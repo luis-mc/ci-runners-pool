@@ -218,6 +218,9 @@ type ChangeDetail struct {
 	Reason   string    `json:"reason,omitempty"`
 	// WaitingFor names the jobs it waits for now.
 	WaitingFor []JobRef `json:"waiting_for,omitempty"`
+	// OverdueSince is when the drain timeout passed with jobs still running.
+	// The change keeps waiting; nothing is stopped (R5.33).
+	OverdueSince time.Time `json:"overdue_since,omitempty"`
 }
 
 // CodeKind is a join code kind.

@@ -199,7 +199,7 @@ Owner decision of 2026-11-14 (CRSP21, CRSP26; dev-standards D302): on 14 Nov an 
 
 **R5.31** — Before a wipe, the console and the CLI list each item that goes with its size and the total, and ask for a yes (UX-62, UX-9). The CLI asks too, unless `--yes` is given. Nothing is deleted before the yes.
 
-**R5.32** — A wipe waits until no running job uses what it would delete, names the jobs it waits for, and stops at the drain timeout the owner set. The check for idle runs right before the delete (product brief, learning 1). A wipe that reaches the timeout deletes nothing and says so.
+**R5.32** — A wipe waits until no running job uses what it would delete, names the jobs it waits for, and, past the machine's drain timeout, keeps waiting and warns (machines R5.33). The check for idle runs right before the delete (product brief, learning 1). A wipe that still waits deletes nothing and says "still draining, N jobs running, waited X".
 
 **R5.33** — During and after a pool wipe, a restore of a wiped entry is a cache miss, never an error.
 
@@ -293,7 +293,7 @@ flowchart TB
 | Registry upstream | Cached tag served, marked stale | Open | Jobs keep running offline; the console shows the risk. |
 | Registry blob digest | Blob refused | Closed | Never serve content that does not match its digest. |
 | Identity of a request | Request refused | Closed | Never leak one repository's cache to another. |
-| Wipe drain | Wipe stops at the timeout, nothing deleted | Closed | Never cut a running job (learning 1). |
+| Wipe drain | Past the timeout the wipe keeps waiting and warns, nothing deleted | Closed | Never cut a running job (learning 1). |
 
 ## 9. How it is proven
 
@@ -332,7 +332,7 @@ Rows for R5.36 to R5.40 are built and run in CI. Every other row is planned: non
 | R5.29 | internal/api/caches_test.go; apps/web/src/caches/CachesScreen.test.tsx |
 | R5.30 | internal/api/caches_wipe_test.go (owner and admin may, viewer refused) |
 | R5.31 | internal/api/caches_wipe_test.go (list and total before yes; nothing deleted without yes); e2e/caches/wipe.spec.ts |
-| R5.32 | internal/cache/wipe_drain_test.go (waits for named jobs; idle check right before delete; timeout deletes nothing) |
+| R5.32 | internal/cache/wipe_drain_test.go (waits for named jobs; idle check right before delete; still waiting past the timeout deletes nothing) |
 | R5.33 | internal/cache/wipe_drain_test.go (restore during wipe is a miss) |
 | R5.34 | internal/api/caches_wipe_test.go (audit entry fields) |
 | R5.35 | internal/cache/settings_test.go (new runners only; restart drains) |

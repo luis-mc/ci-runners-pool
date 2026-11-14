@@ -75,7 +75,7 @@ flowchart TD
 1. Every 6 hours the controller asks GitHub Releases for the newest build on its channel: `edge` (built from every merge to `main`) or stable (`v*` tags).
 2. A newer build is downloaded. Its SHA-256 must match `SHA256SUMS`, and its build provenance attestation must name this repository's release workflow. Any mismatch stops the update.
 3. With the policy `ask` (the default), the tray or the console asks first. The question names the jobs the update waits for.
-4. The machine drains: it takes no new jobs and waits for running jobs to end, or for the drain timeout. The idle check runs right before the restart (learning 1).
+4. The machine drains: it takes no new jobs and waits for running jobs to end. Past the drain timeout it keeps waiting and warns; only an automatic update postpones instead (R5.33 on CRSP19). The idle check runs right before the restart (learning 1).
 5. On the controller, the database is backed up before the new build can migrate it.
 6. The old binary is kept. The new one takes its place. The service restarts.
 7. If the new build is not healthy within 60 seconds, the old binary and the backup come back, the service restarts, and that build is marked bad. It is never tried again on its own.
@@ -164,7 +164,7 @@ The data folder holds the database, `backups/`, `logs/` and `updates/`. It is re
 
 **R5.13** (M3) — Before the swap, the new binary runs `self-check`: it starts, prints its version and database schema version, and exits. A build whose schema version is older than the database is refused (no downgrade; migrations go forward only).
 
-**R5.14** (M3) — An update on a machine drains first: no new jobs start there, and the update waits until no job runs or until the drain timeout (default 60 minutes). The idle check runs right before the restart. The wait says what it waits for.
+**R5.14** (M3) — An update on a machine drains first: no new jobs start there, and the update waits until no job runs. The drain timeout is one per machine (default 60 minutes, machines R5.33): when it passes the update keeps waiting and warns, and never stops a job. An automatic update postpones instead (R5.33). The idle check runs right before the restart. The wait says what it waits for.
 
 **R5.15** (M3) — With the policy `ask` (default), nothing installs until a user says yes: in the tray on that machine, or in the console for a headless machine. The question names the version and the running jobs it waits for. With the policy `auto`, the update runs in the machine's maintenance window.
 
@@ -294,7 +294,7 @@ flowchart LR
 | GitHub Releases down | Fail closed: no update, retry next check | The running build still works |
 | Provenance or checksum check fails | Fail closed: refuse, keep the running build, Problem message | A wrong binary would run with the agent's rights |
 | New build does not start | Roll back binary and database, mark build bad | Learning 1: the pool must keep working |
-| Drain timeout reached | Ask again (policy ask) or wait for the next window (auto); never cut the job | Learning 1 |
+| Drain timeout reached | Ask: keep waiting and warn. Auto: postpone to the next check. Never cut the job | Learning 1 |
 | Backup write or check fails | Delete the bad file, keep the old ones, doctor Problem | A bad backup is worse than none |
 | Disk full | Skip the backup, keep old ones, doctor Problem | Never prune the last good backup |
 | OS secret store missing after restore | Controller starts; doctor lists each missing secret | Secrets are never in a backup |

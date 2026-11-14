@@ -250,8 +250,7 @@ func cmdLogout() *command {
 			}
 			raw, err := c.env.Secrets.Get(c.env.Context, tokenKey(ctx.Name))
 			if errors.Is(err, secrets.ErrNotFound) {
-				_, _ = fmt.Fprintf(c.env.Stderr, "Not signed in to %s.\n", ctx.Name)
-				return nil
+				return fail(ExitAuth, "Not signed in to %s. There is no token to forget.", ctx.Name)
 			}
 			if err != nil {
 				return fail(ExitFailed, "Could not read the secret store: %v", err)
