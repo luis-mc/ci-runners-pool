@@ -1,11 +1,14 @@
 {
   "schema": 1,
   "map": {
-    "internal/scheduler/**": [
-      "docs/features/scheduling/spec.md"
+    "internal/cache/**": [
+      "docs/features/caches/spec.md"
     ],
-    "internal/slots/**": [
-      "docs/features/scheduling/spec.md"
+    "internal/mirror/**": [
+      "docs/features/caches/spec.md"
+    ],
+    "internal/tools/**": [
+      "docs/features/caches/spec.md"
     ]
   }
 }

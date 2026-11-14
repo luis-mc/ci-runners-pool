@@ -8,19 +8,19 @@
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
+| [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### cli
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
+| [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### controller
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
+| [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### tray
 
@@ -30,19 +30,19 @@ No feature lists this app yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
+| [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ## By topic
 
 ### caching
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### github
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### install
 
@@ -54,39 +54,39 @@ No feature lists this topic yet.
 
 ### machines
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### observability
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### operations
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### runners
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### scheduling
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
+| [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### security
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### ui
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ## By status
 
@@ -94,7 +94,7 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
+| [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ## Gaps
 
