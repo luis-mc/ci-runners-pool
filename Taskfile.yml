@@ -1,0 +1,103 @@
+# Task runner (go-task). Run through the version pinned in go.mod:
+#   go tool task <name>
+version: '3'
+
+vars:
+  EXE: '{{if eq OS "windows"}}.exe{{end}}'
+  BIN: bin/ci-runners-pool{{.EXE}}
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+
+tasks:
+  default:
+    cmds:
+      - go tool task --list
+    silent: true
+
+  codegen:
+    desc: Regenerate every generated file (API, queries, agent protocol, TS client)
+    cmds:
+      - task: codegen:api
+      - task: codegen:sql
+      - task: codegen:proto
+      - task: codegen:ts
+
+  codegen:api:
+    desc: Go server types and routes from packages/contract/openapi.yaml
+    cmds:
+      - go tool oapi-codegen -config packages/contract/oapi-codegen.yaml packages/contract/openapi.yaml
+
+  codegen:sql:
+    desc: Go query code from internal/store/queries (sqlc)
+    cmds:
+      - go tool sqlc generate
+
+  codegen:proto:
+    desc: Go code from the agent protocol (buf, protoc-gen-go, protoc-gen-connect-go)
+    dir: packages/contract/proto
+    cmds:
+      - go tool buf generate
+
+  codegen:ts:
+    desc: TypeScript client types from openapi.yaml
+    cmds:
+      - pnpm --filter @crp/contract run codegen
+
+  codegen:check:
+    desc: Regenerate and fail if any generated file changed (STACKSPEC 4.1)
+    cmds:
+      - bash scripts/ci/codegen-drift.sh
+
+  web:build:
+    desc: Build the web console and copy it into internal/webui/dist
+    cmds:
+      - pnpm --filter web build
+      - node scripts/ci/embed-web.mjs
+
+  build:
+    desc: Build the binary with the web console embedded (bin/)
+    deps: [web:build]
+    env:
+      CGO_ENABLED: '0'
+    cmds:
+      - go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN}} ./cmd/ci-runners-pool
+
+  build:go:
+    desc: Build the binary without rebuilding the web console
+    env:
+      CGO_ENABLED: '0'
+    cmds:
+      - go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN}} ./cmd/ci-runners-pool
+
+  test:
+    desc: Go tests (fails when no test ran) and web tests
+    cmds:
+      - bash scripts/ci/go-test.sh
+      - pnpm exec vitest run
+
+  test:go:
+    desc: Go tests only; extra flags after --, for example -race
+    cmds:
+      - bash scripts/ci/go-test.sh {{.CLI_ARGS}}
+
+  e2e:
+    desc: Playwright smoke against bin/ci-runners-pool (run task build first)
+    cmds:
+      - pnpm exec playwright test
+
+  lint:
+    desc: gofmt, go vet, golangci-lint (when installed), ESLint, Prettier, tsc
+    cmds:
+      - bash scripts/ci/gofmt-check.sh
+      - go vet ./...
+      - cmd: golangci-lint run ./...
+        ignore_error: false
+      - pnpm -r lint
+      - pnpm -r typecheck
+      - pnpm run format:check
+
+  vuln:
+    desc: Dependency scan (govulncheck and pnpm audit)
+    cmds:
+      - go tool govulncheck ./...
+      - pnpm audit --prod

@@ -1,0 +1,81 @@
+#
+# Implements STACKSPEC §12's secret-scanning requirement, which mandates
+# gitleaks (or equivalent) as a pre-commit hook *and* a CI gate. The same config
+# serves both: .githooks/pre-commit reads it locally, .github/workflows/ci.yml
+# passes it with --config.
+#
+# Extends gitleaks' built-in rules (private keys, provider-specific token
+# formats, high-entropy generic secrets) with explicit rules for this project's
+# own env-var naming convention, so both layers catch these even if gitleaks'
+# generic heuristics happen to miss a particular value's shape.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "project-database-url"
+description = "DATABASE_URL assignment"
+# One line only ([ \t], never \s, so an empty `DATABASE_URL=` cannot reach the next line).
+# `=` takes a value that is not empty, not a comment, not `=`. `:` takes a quoted value or a
+# URL, so a type annotation (`database_url: &str`) or a field declaration does not match.
+regex = '''(?i)DATABASE_URL[ \t]*(=[ \t]*['"]?[^\s'"#=][^\s'"]*|:[ \t]*(['"][^\s'"][^\s'"]*|[a-z][a-z0-9+.-]*://[^\s'"]+))'''
+tags = ["project", "database"]
+
+[[rules]]
+id = "project-named-secret"
+description = "Assignment to a var ending in _TOKEN, _SECRET, _PASS, or _KEY"
+# One line only. `=` takes a value that is not empty, not a comment, not `=`. `:` takes only a
+# quoted value, so `_token: &Token`, `_secret: String` and `_key: string` (types and field
+# declarations) do not match while `my_token: "literal"` does.
+regex = '''(?i)[A-Z0-9_]*_(TOKEN|SECRET|PASS|KEY)[ \t]*(=[ \t]*['"]?[^\s'"#=][^\s'"]*|:[ \t]*['"][^\s'"][^\s'"]*)'''
+tags = ["project", "secret"]
+
+[allowlist]
+regexTarget = "line"
+# DL204: the installer's own state. Copies of templates and sha256 hashes next to file names,
+# never secrets. Every other path stays scanned.
+paths = [
+  '''^\.delivery/ci-install-base/''',
+  '''^\.delivery/ci-install-state\.json$''',
+]
+description = """
+Three narrow exemptions. Each is allowlisted by the *shape of the line*, not by
+path, so a real credential committed anywhere — including into these same files
+— is still caught.
+
+1. The ephemeral Postgres service container in CI (§5.5) uses throwaway
+   credentials published in the workflow by design; they address a database
+   that exists for the length of one job.
+
+2. `${{ secrets.NAME }}` is a GitHub Actions expression. It is a *reference*
+   resolved at runtime by the runner, and is the only supported way to consume
+   a secret in a workflow — the literal text is never the value. Without this,
+   ci.yml's own gitleaks step (`GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}`)
+   trips project-named-secret and the pre-commit hook blocks the very first
+   commit of a freshly generated repo. `${{ github.token }}` is the same kind
+   of reference; ci.yml passes it as `GH_TOKEN` to the decide job.
+
+3. An assignment whose value is a bare `...` is documentation, not a secret.
+   .githooks/pre-commit documents the patterns it detects (`FOO_TOKEN=...`,
+   `const FOO_KEY = ...`) and gitleaks reads those comments as findings — the
+   scanner matching its own description of what it matches. The hook's layer-1
+   grep skips comment-only lines; gitleaks does not, which is why this belongs
+   here rather than there.
+"""
+regexes = [
+  # DL211: shapes that are not secrets. A name ending in public_key; a value that is NULL, None, null or nil;
+  # a SQL placeholder ($1, ?, :name); a call wrapping an identifier (Some(x)); an env var read.
+  '''(?i)public_key[ \t]*[=:]''',
+  '''(?i)_(token|secret|pass|key)[ \t]*=[ \t]*(NULL|None|nil)[ \t]*[,;)]*[ \t]*$''',
+  '''(?i)_(token|secret|pass|key)[ \t]*=[ \t]*(\$[0-9]+|\?|:[a-z_][a-z0-9_]*)[ \t]*[,;)]*[ \t]*$''',
+  '''(?i)_(token|secret|pass|key)[ \t]*=[ \t]*[a-z_][a-z0-9_.:]*\([ \t]*[&*]?[a-z_][a-z0-9_.:]*(\(\))?[ \t]*\)''',
+  '''(?i)_(token|secret|pass|key)[ \t]*=[ \t]*(os\.environ\[|os\.getenv\(|process\.env\.|(std::)?env::var\()''',
+  # DL237: two more shapes. Each pins the whole line, so a quote, a second assignment or a bare token
+  # on the line leaves it scanned. (1) A SQL placeholder bound to a name that ends in _key, _token,
+  # _secret or _pass, with more SQL after it. (2) A nested call (Some(Arc::new(x))) whose first
+  # argument is an identifier path, not a literal. RE2: no lookahead.
+  '''(?i)^([^'"=]|=[ \t]*(\$[0-9]{1,2}|\?|:[a-z_][a-z0-9_]*)([ \t,;)]|$))*['"`]?([^'"=]|=[ \t]*(\$[0-9]{1,2}|\?|:[a-z_][a-z0-9_]*)([ \t,;)]|$))*_(token|secret|pass|key)[ \t]*=[ \t]*(\$[0-9]{1,2}|\?|:[a-z_][a-z0-9_]*)([ \t]*[,)]|[ \t]*['"`]|[ \t]+(AND|OR|LIMIT|RETURNING|ORDER|GROUP|OFFSET)\b)([^'"=]|=[ \t]*(\$[0-9]{1,2}|\?|:[a-z_][a-z0-9_]*)([ \t,;)]|$))*['"`]?$''',
+  '''(?i)^[^'"=]*_(token|secret|pass|key)[ \t]*[=:][ \t]*[a-z_][a-z0-9_.:]*\([ \t]*[&*]?[a-z_][a-z0-9_.:]*\([^'"=]*$''',
+  '''postgres://postgres:postgres@localhost:5432/[a-z0-9_]+''',
+  '''\$\{\{\s*(secrets\.[A-Za-z0-9_]+|github\.token)\s*\}\}''',
+  '''[:=]\s*\.\.\.''',
+]

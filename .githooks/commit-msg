@@ -1,0 +1,16 @@
+#!/bin/sh
+# Refuses a commit message that carries a Co-Authored-By trailer or an AI
+# attribution line (repo rule: no attribution in commits or pull requests).
+# Bypass only for a reason you can state: git commit --no-verify
+
+msg_file=${1:-}
+[ -n "$msg_file" ] && [ -f "$msg_file" ] || exit 0
+
+hits=$(grep -Ein '^[[:space:]]*co-authored-by:|generated (with|by) \[?claude|claude-session:|noreply@anthropic\.com' "$msg_file" || true)
+if [ -n "$hits" ]; then
+  echo "commit-msg: attribution lines are not allowed in this repository:" >&2
+  echo "$hits" | sed 's/^/    /' >&2
+  echo "Remove them from the message and commit again." >&2
+  exit 1
+fi
+exit 0

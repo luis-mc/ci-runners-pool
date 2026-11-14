@@ -1,0 +1,54 @@
+openapi: 3.1.0
+info:
+  title: CI Runners Pool API
+  version: 0.0.0
+  description: >-
+    Controller API. Every operation must declare `x-auth` and `x-rate-limit`
+    (STACKSPEC 11.1); the route-coverage test in internal/api fails otherwise.
+servers:
+  - url: /
+paths:
+  /healthz:
+    get:
+      operationId: getHealth
+      summary: Liveness and database check
+      x-auth: public
+      x-rate-limit: 60/minute/ip
+      responses:
+        '200':
+          description: The controller is up and its database answers.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '503':
+          description: The controller is up but a dependency is down.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+components:
+  schemas:
+    Health:
+      type: object
+      required: [status, version]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        version:
+          type: string
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Stable machine-readable code.
+            message:
+              type: string
+              description: Human-readable text. Never contains secrets.

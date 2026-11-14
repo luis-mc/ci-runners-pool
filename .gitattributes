@@ -1,0 +1,5 @@
+.claude/*.sh text eol=lf
+*.sh text eol=lf
+.githooks/* text eol=lf
+scripts/**/*.py text eol=lf
+*.go text eol=lf

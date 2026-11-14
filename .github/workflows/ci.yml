@@ -1,0 +1,221 @@
+name: CI
+
+# STACKSPEC 13.1: the twelve required gates. Tool choices are recorded in
+# docs/architecture/stack-profile.md. GitHub-hosted runners only; this workflow
+# does not depend on any delivery plugin.
+#
+#   verify   lint, format, types, unit + integration + route-coverage tests, codegen
+#            drift, dependency scan, secret scan over full history, layer boundaries
+#   test-os  go test on Windows and macOS
+#   build    the six release targets (build.yml); artifacts ci-runners-pool-<os>-<arch>
+#   e2e      Playwright against the built Linux binary
+#
+# Documentation-only changes skip this workflow; dev-standards.yml checks them.
+on:
+  pull_request:
+    # Drafts are skipped by the job-level `if`; ready_for_review starts the run
+    # when a draft is marked ready.
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ['**/*.md', 'docs/**']
+  push:
+    branches: [main]
+    paths-ignore: ['**/*.md', 'docs/**']
+  workflow_dispatch:
+
+concurrency:
+  # A newer push to a pull request cancels the superseded run. A run on main is
+  # never cancelled: a merged commit must not be left unverified.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # STACKSPEC 13.1: a push to main whose tree already passed this workflow on a
+  # pull request skips the suite. Pull requests always run. If this job fails or
+  # is skipped the suite still runs (every job tests the result, not success()).
+  decide:
+    name: decide
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          sparse-checkout: scripts/ci
+      - id: check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/ci/ci_skip_check.py
+
+  verify:
+    name: verify
+    needs: decide
+    if: ${{ always() && needs.decide.outputs.skip != 'true' && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # gitleaks scans history. At the default clone depth it would examine
+          # one commit and report clean: an absent check posing as a passing one.
+          fetch-depth: 0
+
+      # 11 secret scan over full history (STACKSPEC 12). Pinned release, checksum
+      # verified. Runs first so a leaked secret fails fast.
+      - name: Secret scan (gitleaks, full history)
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -fsSL -o gitleaks.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tgz" | sha256sum -c -
+          tar -xzf gitleaks.tgz gitleaks
+          ./gitleaks git --config .gitleaks.toml --redact --no-banner --log-opts="HEAD"
+          rm -f gitleaks gitleaks.tgz
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: CI scripts unit tests
+        run: python3 -m unittest discover -s scripts/ci -p 'test_*.py'
+
+      # 1 install from the committed lockfiles, frozen.
+      - name: Install (frozen)
+        run: |
+          go mod download
+          go mod verify
+          pnpm install --frozen-lockfile
+      - name: Go lockfile is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum || { echo "::error::go.mod/go.sum are not tidy. Run go mod tidy and commit."; exit 1; }
+
+      # 2 codegen drift: regenerate everything, fail if a generated file changed.
+      - name: Codegen drift
+        run: bash scripts/ci/codegen-drift.sh
+
+      # 4 format
+      - name: Format (gofmt, prettier)
+        run: |
+          bash scripts/ci/gofmt-check.sh
+          pnpm run format:check
+
+      # 5 type check
+      - name: Type check
+        run: |
+          go vet ./...
+          pnpm run typecheck
+
+      # 3 lint and 12 layer boundaries (depguard rules in .golangci.yml)
+      - uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8
+        with:
+          version: v2.15.0
+          # Build from source with the Go toolchain this repository pins.
+          install-mode: goinstall
+      - name: Lint (web)
+        run: |
+          pnpm -r lint
+          pnpm run lint:root
+
+      # 6 unit, 7 integration (real SQLite file), 8 contract, 9 route coverage.
+      # The zero-test guard fails the step when no Go test ran (STACKSPEC 11.3).
+      - name: Go tests (race)
+        env:
+          CGO_ENABLED: '1'
+        run: bash scripts/ci/go-test.sh -race
+      - name: Web tests and guards
+        run: pnpm exec vitest run
+
+      # 10 dependency scan
+      - name: Dependency scan
+        run: |
+          go tool govulncheck ./...
+          pnpm audit --prod
+
+  test-os:
+    name: go test (${{ matrix.os }})
+    needs: decide
+    if: ${{ always() && needs.decide.outputs.skip != 'true' && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Go tests
+        shell: bash
+        run: bash scripts/ci/go-test.sh
+
+  build:
+    name: build
+    needs: decide
+    if: ${{ always() && needs.decide.outputs.skip != 'true' && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ github.sha }}
+
+  e2e:
+    name: e2e (Playwright)
+    needs: [decide, build]
+    if: ${{ always() && needs.decide.outputs.skip != 'true' && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ci-runners-pool-linux-amd64
+          path: bin
+      - run: chmod +x bin/ci-runners-pool
+      - run: pnpm exec playwright install --with-deps chromium
+
+      # Required. No retries, no continue-on-error (STACKSPEC 11.2, 11.3).
+      - name: Playwright (gating specs)
+        env:
+          E2E_BINARY: bin/ci-runners-pool
+        run: pnpm exec playwright test
+
+      # Quarantined specs (e2e/quarantine.json) still run and report, but cannot
+      # fail the build. An empty quarantine finds no tests; that is expected here.
+      - name: Playwright (quarantined specs, non-blocking)
+        continue-on-error: true
+        env:
+          E2E_BINARY: bin/ci-runners-pool
+          E2E_QUARANTINE: only
+        run: pnpm exec playwright test
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: test-results/artifacts
+          if-no-files-found: ignore

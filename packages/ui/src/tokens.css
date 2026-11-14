@@ -1,0 +1,213 @@
+/* Design tokens. Source: docs/design-system/v1/tokens.md (approved). Dark is the default; light under the system setting and [data-theme=light]. */
+:root {
+  --ds-color-page: #0a0e0d;
+  --ds-color-surface: #111816;
+  --ds-color-text: #d7e2dc;
+  --ds-color-text-muted: #93a79e;
+  --ds-color-border: #62766d;
+  --ds-color-divider: #22302b;
+  --ds-color-primary: #5ee6f0;
+  --ds-color-on-primary: #04181b;
+  --ds-color-done: #46e08f;
+  --ds-color-done-bg: #0e2a1b;
+  --ds-color-note: #5ed3e8;
+  --ds-color-note-bg: #0a2a30;
+  --ds-color-needs-you: #ffb84d;
+  --ds-color-needs-you-bg: #2e2208;
+  --ds-color-problem: #ff7a7a;
+  --ds-color-problem-bg: #351416;
+  --ds-color-focus: #5ee6f0;
+  --ds-color-on-done: #06110c;
+  --ds-color-done-tint: #0e2a1b;
+  --ds-color-on-done-tint: #46e08f;
+  --ds-color-on-note: #06110c;
+  --ds-color-note-tint: #0a2a30;
+  --ds-color-on-note-tint: #5ed3e8;
+  --ds-color-on-needs-you: #06110c;
+  --ds-color-needs-you-tint: #2e2208;
+  --ds-color-on-needs-you-tint: #ffb84d;
+  --ds-color-on-problem: #06110c;
+  --ds-color-problem-tint: #351416;
+  --ds-color-on-problem-tint: #ff7a7a;
+  --ds-font-body: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --ds-font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --ds-size-1: 0.75rem;
+  --ds-size-2: 0.875rem;
+  --ds-size-3: 1rem;
+  --ds-size-4: 1.125rem;
+  --ds-size-5: 1.25rem;
+  --ds-size-6: 1.75rem;
+  --ds-line-height: 1.5;
+  --ds-line-height-tight: 1.25;
+  --ds-weight-regular: 400;
+  --ds-weight-semibold: 600;
+  --ds-weight-bold: 700;
+  --ds-space-0: 0;
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 24px;
+  --ds-space-6: 32px;
+  --ds-space-7: 48px;
+  --ds-target-min: 44px;
+  --ds-radius-1: 2px;
+  --ds-radius-2: 2px;
+  --ds-radius-3: 4px;
+  --ds-radius-round: 999px;
+  --ds-shadow-1: 0 0 0 rgba(0, 0, 0, 0);
+  --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
+  --ds-glow-focus: 0 0 0 1px #5ee6f0, 0 0 8px rgba(94, 230, 240, 0.55);
+  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(94, 230, 240, 0.06) 0 1px, transparent 1px 3px);
+  --ds-cursor-blink: 1000ms;
+  --ds-bp-min: 360px;
+  --ds-bp-sm: 600px;
+  --ds-bp-md: 900px;
+  --ds-bp-lg: 1200px;
+  --ds-bp-xl: 1600px;
+  --ds-card-min: 280px;
+  --ds-width-field-short: 8rem;
+  --ds-width-field-medium: 20rem;
+  --ds-width-field-full: 100%;
+  --ds-page-gutter: 16px;
+  --ds-page-padding: 16px;
+  --ds-frame-narrow: 40rem;
+  --ds-frame-wide: 72rem;
+  --ds-control-height: 44px;
+  --ds-control-height-large: 52px;
+  --ds-border-thin: 1px;
+  --ds-border-medium: 2px;
+  --ds-border-thick: 3px;
+  --ds-border-double: 6px;
+  --ds-duration-fast: 100ms;
+  --ds-duration-base: 200ms;
+  --ds-duration-slow: 400ms;
+  --ds-duration-loop: 1200ms;
+  --ds-duration-reduced: 0ms;
+  --ds-duration-screen: 300ms;
+  --ds-duration-progress: 300ms;
+  --ds-duration-toast: 5000ms;
+  --ds-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ds-ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
+  --ds-row: 56px;
+  --ds-row-picture: 88px;
+  --ds-hairline: 1px;
+  --ds-icon-size: 16px;
+  --ds-tone-bar: 12px;
+  --ds-focus-width: 3px;
+  --ds-focus-offset: 2px;
+  --ds-z-base: 0;
+  --ds-z-sticky: 100;
+  --ds-z-menu: 200;
+  --ds-z-overlay: 300;
+  --ds-z-dialog: 400;
+  --ds-z-toast: 500;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme=dark]) {
+    --ds-color-page: #f3f6f4;
+    --ds-color-surface: #ffffff;
+    --ds-color-text: #0d1a14;
+    --ds-color-text-muted: #45574e;
+    --ds-color-border: #6b7b73;
+    --ds-color-divider: #d2dcd7;
+    --ds-color-primary: #006a77;
+    --ds-color-on-primary: #ffffff;
+    --ds-color-done: #0a6b33;
+    --ds-color-done-bg: #e3f5ea;
+    --ds-color-note: #006779;
+    --ds-color-note-bg: #def3f7;
+    --ds-color-needs-you: #8a5200;
+    --ds-color-needs-you-bg: #fff1d6;
+    --ds-color-problem: #b3261e;
+    --ds-color-problem-bg: #fde8e6;
+    --ds-color-focus: #006a77;
+    --ds-color-on-done: #ffffff;
+    --ds-color-done-tint: #e3f5ea;
+    --ds-color-on-done-tint: #0a6b33;
+    --ds-color-on-note: #ffffff;
+    --ds-color-note-tint: #def3f7;
+    --ds-color-on-note-tint: #006779;
+    --ds-color-on-needs-you: #ffffff;
+    --ds-color-needs-you-tint: #fff1d6;
+    --ds-color-on-needs-you-tint: #8a5200;
+    --ds-color-on-problem: #ffffff;
+    --ds-color-problem-tint: #fde8e6;
+    --ds-color-on-problem-tint: #b3261e;
+    --ds-shadow-1: 0 0 0 rgba(0, 0, 0, 0);
+    --ds-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.12);
+    --ds-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.18);
+    --ds-glow-focus: 0 0 0 1px #006a77;
+    --ds-scanline-focus: none;
+    --ds-cursor-blink: 1000ms;
+  }
+}
+
+[data-theme=light] {
+  --ds-color-page: #f3f6f4;
+  --ds-color-surface: #ffffff;
+  --ds-color-text: #0d1a14;
+  --ds-color-text-muted: #45574e;
+  --ds-color-border: #6b7b73;
+  --ds-color-divider: #d2dcd7;
+  --ds-color-primary: #006a77;
+  --ds-color-on-primary: #ffffff;
+  --ds-color-done: #0a6b33;
+  --ds-color-done-bg: #e3f5ea;
+  --ds-color-note: #006779;
+  --ds-color-note-bg: #def3f7;
+  --ds-color-needs-you: #8a5200;
+  --ds-color-needs-you-bg: #fff1d6;
+  --ds-color-problem: #b3261e;
+  --ds-color-problem-bg: #fde8e6;
+  --ds-color-focus: #006a77;
+  --ds-color-on-done: #ffffff;
+  --ds-color-done-tint: #e3f5ea;
+  --ds-color-on-done-tint: #0a6b33;
+  --ds-color-on-note: #ffffff;
+  --ds-color-note-tint: #def3f7;
+  --ds-color-on-note-tint: #006779;
+  --ds-color-on-needs-you: #ffffff;
+  --ds-color-needs-you-tint: #fff1d6;
+  --ds-color-on-needs-you-tint: #8a5200;
+  --ds-color-on-problem: #ffffff;
+  --ds-color-problem-tint: #fde8e6;
+  --ds-color-on-problem-tint: #b3261e;
+  --ds-shadow-1: 0 0 0 rgba(0, 0, 0, 0);
+  --ds-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.12);
+  --ds-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --ds-glow-focus: 0 0 0 1px #006a77;
+  --ds-scanline-focus: none;
+  --ds-cursor-blink: 1000ms;
+}
+
+@media (min-width: 600px) {
+  :root {
+    --ds-page-gutter: 24px;
+    --ds-page-padding: 24px;
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --ds-page-gutter: 48px;
+    --ds-page-padding: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ds-duration-fast: 0ms;
+    --ds-duration-base: 0ms;
+    --ds-duration-slow: 0ms;
+    --ds-duration-loop: 0ms;
+    --ds-duration-reduced: 0ms;
+    --ds-duration-screen: 0ms;
+    --ds-duration-progress: 0ms;
+    --ds-duration-toast: 0ms;
+    --ds-scanline-focus: none;
+    --ds-cursor-blink: 0ms;
+  }
+}

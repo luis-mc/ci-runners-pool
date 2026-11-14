@@ -1,0 +1,20 @@
+{
+  "name": "@crp/contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./ts/index.ts"
+  },
+  "scripts": {
+    "codegen": "openapi-typescript openapi.yaml -o ts/generated/schema.d.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint ts"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0"
+  }
+}

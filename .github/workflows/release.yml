@@ -1,0 +1,117 @@
+name: Release
+
+# push to main  -> the `edge` pre-release is replaced with this commit's build.
+#                  The owner installs edge on their own pool first (staging).
+# tag v*        -> a stable release with the same assets (production).
+#
+# Assets: ci-runners-pool-<os>-<arch>.tar.gz (linux, darwin) or .zip (windows),
+# SHA256SUMS, and a build provenance attestation for each.
+# Authenticode signing and Apple notarization come later (milestone 8).
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths-ignore: ['**/*.md', 'docs/**']
+  workflow_dispatch:
+
+concurrency:
+  # A release is never cancelled half way.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      value: ${{ steps.v.outputs.value }}
+    steps:
+      - id: v
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ "$REF_TYPE" = "tag" ]; then
+            echo "value=${REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=edge-${SHA:0:7}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: build
+    needs: version
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.version.outputs.value }}
+      artifact-prefix: release-
+
+  publish:
+    name: publish
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: release-*
+          path: binaries
+
+      - name: Package and checksum
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          for dir in binaries/release-*; do
+            target="${dir#binaries/release-}"          # e.g. linux-amd64
+            stage="stage/ci-runners-pool-${target}"
+            rm -rf stage && mkdir -p "$stage"
+            cp "$dir"/ci-runners-pool* "$stage/"
+            cp LICENSE README.md "$stage/"
+            chmod +x "$stage"/ci-runners-pool* || true
+            case "$target" in
+              windows-*) (cd stage && zip -qr "../dist/ci-runners-pool-${target}.zip" "ci-runners-pool-${target}") ;;
+              *)         tar -C stage -czf "dist/ci-runners-pool-${target}.tar.gz" "ci-runners-pool-${target}" ;;
+            esac
+          done
+          count=$(find dist -type f | wc -l)
+          [ "$count" -eq 6 ] || { echo "::error::expected 6 archives, found $count"; exit 1; }
+          (cd dist && sha256sum ci-runners-pool-* > SHA256SUMS)
+          cat dist/SHA256SUMS
+
+      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: dist/ci-runners-pool-*
+
+      - name: Publish edge pre-release (main)
+        if: ${{ github.ref_type == 'branch' }}
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          gh release delete edge --cleanup-tag --yes || true
+          gh release create edge dist/* \
+            --prerelease \
+            --target "$SHA" \
+            --title "Edge (${SHA:0:7})" \
+            --notes "Automatic build of main at ${SHA}. Not a stable release."
+
+      - name: Publish stable release (tag)
+        if: ${{ github.ref_type == 'tag' }}
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          flags=""
+          case "$TAG" in *-*) flags="--prerelease" ;; esac
+          # shellcheck disable=SC2086
+          gh release create "$TAG" dist/* --verify-tag --generate-notes $flags

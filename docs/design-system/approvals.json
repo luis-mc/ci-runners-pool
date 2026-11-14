@@ -1,0 +1,13 @@
+{
+  "versions": {
+    "v1": {
+      "approved": {
+        "by": "Luis Carvalho",
+        "date": "2026-11-13",
+        "evidence": "chat, 2026-11-13: 'design-system approved'"
+      },
+      "digest": "f2b2d3fe4b2c860d57df1ab783b108a6c4ac9924dab4c0b9e5a3f13cd20257c0",
+      "implementation": null
+    }
+  }
+}

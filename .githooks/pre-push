@@ -1,0 +1,66 @@
+#!/bin/sh
+# Fast gates before a push, so failures stop here and not in CI.
+#   - gofmt check
+#   - go vet
+#   - golangci-lint, when installed
+#   - go test of the packages changed since the upstream branch (or origin/main)
+#   - web typecheck, when node_modules is installed
+# Full suites run in CI. Bypass only for a reason you can state: git push --no-verify
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+cd "$repo_root" || exit 0
+
+fail=0
+step() { printf 'pre-push: %s\n' "$1" >&2; }
+
+if command -v go >/dev/null 2>&1; then
+  step "gofmt"
+  unformatted=$(gofmt -l . 2>/dev/null | grep -v '^internal/gen/' || true)
+  if [ -n "$unformatted" ]; then
+    echo "gofmt: these files are not formatted:" >&2
+    echo "$unformatted" | sed 's/^/    /' >&2
+    fail=1
+  fi
+
+  step "go vet"
+  go vet ./... || fail=1
+
+  if command -v golangci-lint >/dev/null 2>&1; then
+    step "golangci-lint"
+    golangci-lint run ./... || fail=1
+  else
+    echo "pre-push: golangci-lint not installed; skipped (CI runs it)." >&2
+  fi
+
+  base=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || echo origin/main)
+  if git rev-parse --verify --quiet "$base" >/dev/null; then
+    changed=$(git diff --name-only "$base"...HEAD -- '*.go' 'go.mod' 'go.sum' 2>/dev/null)
+  else
+    changed="all"
+  fi
+  if [ -n "$changed" ]; then
+    if [ "$changed" = "all" ] || echo "$changed" | grep -qE '^go\.(mod|sum)$'; then
+      pkgs='./...'
+    else
+      pkgs=$(echo "$changed" | xargs -n1 dirname | sort -u | sed 's#^#./#' | tr '\n' ' ')
+    fi
+    step "go test $pkgs"
+    # shellcheck disable=SC2086
+    go test $pkgs || fail=1
+  fi
+else
+  echo "pre-push: go not found; Go gates skipped." >&2
+fi
+
+if [ -d node_modules ] && command -v pnpm >/dev/null 2>&1; then
+  step "web typecheck"
+  pnpm -r typecheck || fail=1
+else
+  echo "pre-push: node_modules missing; web typecheck skipped (CI runs it)." >&2
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "pre-push: blocked. Fix the failures above, or bypass with --no-verify." >&2
+  exit 1
+fi
+exit 0

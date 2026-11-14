@@ -1,0 +1,42 @@
+name: Artifact prune
+
+# STACKSPEC 13.1 "Build artifacts": keep only the newest artifact of each name.
+# Artifacts are billed for storage, so older ones are deleted after every run of
+# a workflow that uploads one, and a daily sweep deletes any the per-run pruning
+# missed. Artifact names are stable per kind (ci-runners-pool-linux-amd64, never
+# one with a version or run number), or the grouping would not work.
+#
+# `workflows:` must list the `name:` of every workflow of this repository that
+# uploads an artifact (CI and Release). GitHub reads the list before any step
+# runs, so it cannot be dynamic.
+on:
+  workflow_run:
+    workflows: ['CI', 'Release']
+    types: [completed]
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+# Two prunes never overlap; a second waits instead of cancelling the first.
+concurrency:
+  group: artifact-prune
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prune:
+    name: prune build artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Delete all but the newest artifact of each name
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: bash scripts/ci/artifact-prune.sh

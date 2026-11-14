@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "docspec": "1.0.0",
+  "apps": [],
+  "topics": [],
+  "record_dir": "docs/project",
+  "default_branch": "main",
+  "stale_days": 90
+}

@@ -1,0 +1,35 @@
+package main
+
+import (
+	"bytes"
+	"strings"
+	"testing"
+)
+
+func TestRunVersion(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if code := run([]string{"version"}, &out, &errOut); code != 0 {
+		t.Fatalf("exit %d: %s", code, errOut.String())
+	}
+	if !strings.HasPrefix(out.String(), "ci-runners-pool ") {
+		t.Fatalf("output %q", out.String())
+	}
+}
+
+func TestRunUsageErrors(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if code := run(nil, &out, &errOut); code != 2 {
+		t.Fatalf("no args: exit %d", code)
+	}
+	errOut.Reset()
+	if code := run([]string{"bogus"}, &out, &errOut); code != 2 || !strings.Contains(errOut.String(), "unknown command") {
+		t.Fatalf("bogus: exit %d, %q", code, errOut.String())
+	}
+}
+
+func TestRunAgentNotImplemented(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if code := run([]string{"agent"}, &out, &errOut); code != 1 {
+		t.Fatalf("agent: exit %d", code)
+	}
+}
