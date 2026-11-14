@@ -1,0 +1,161 @@
+package checks
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
+)
+
+// Thresholds of doctor 7.2.
+const (
+	// OfflineAfter is how old the agent's last message may be (machine.online).
+	OfflineAfter = 90 * time.Second
+	// LoadFreshFor is how old a load sample may be (machine.load.fresh).
+	LoadFreshFor = 60 * time.Second
+	// OverBudgetFor is how long the load may stay over budget (machine.load.budget).
+	OverBudgetFor = 10 * time.Minute
+
+	gib = int64(1) << 30
+)
+
+func scopedMachines(ctx context.Context, env doctor.Env, check string) ([]doctor.Machine, []doctor.Finding) {
+	ms, err := env.Fleet.Machines(ctx)
+	if err != nil {
+		return nil, []doctor.Finding{skipFor(check, controllerSubject, "The machine list", err)}
+	}
+	var out []doctor.Machine
+	for _, m := range ms {
+		if env.InScopeMachine(m) && m.State != "removing" {
+			out = append(out, m)
+		}
+	}
+	return out, nil
+}
+
+func offlineSkip(check string, m doctor.Machine) doctor.Finding {
+	return skip(check, machineSubject(m), m.Name+" is offline", "Its agent does not answer, so this was not checked. See machine.online.")
+}
+
+func isOnline(env doctor.Env, m doctor.Machine) bool {
+	return m.Online && env.Now.Sub(m.LastSeen) <= OfflineAfter
+}
+
+// machineOnline: the agent's last message is older than the offline timeout.
+// New check, no dev-standards source.
+func machineOnline(ctx context.Context, env doctor.Env) []doctor.Finding {
+	ms, errs := scopedMachines(ctx, env, "machine.online")
+	out := errs
+	for _, m := range ms {
+		f := doctor.Finding{Check: "machine.online", Subject: machineSubject(m)}
+		if isOnline(env, m) {
+			f.Severity, f.Title = doctor.OK, m.Name+" is online"
+		} else {
+			f.Severity, f.Title = doctor.Fail, m.Name+" is offline"
+			if m.LastSeen.IsZero() {
+				f.Detail = "The agent has never been seen."
+			} else {
+				f.Detail = fmt.Sprintf("The agent was last seen %s ago (limit %s).", env.Now.Sub(m.LastSeen).Round(time.Second), OfflineAfter)
+			}
+			f.Fix = doctor.Fix{
+				Text: "Start the agent service on that machine: Windows Services, `systemctl start` on Linux, `launchctl` on macOS. Jobs queue for its runners until it is back.",
+				Link: machineLink(m),
+			}
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// machineLoadFresh: load figures older than 60 s. Ported from delivery_doctor.py
+// machine_items (machine.hostload); tests in checks_test.go TestLoadFresh.
+func machineLoadFresh(ctx context.Context, env doctor.Env) []doctor.Finding {
+	ms, out := scopedMachines(ctx, env, "machine.load.fresh")
+	for _, m := range ms {
+		s := machineSubject(m)
+		if !isOnline(env, m) {
+			out = append(out, offlineSkip("machine.load.fresh", m))
+			continue
+		}
+		f := doctor.Finding{Check: "machine.load.fresh", Subject: s}
+		switch {
+		case m.Load == nil:
+			f.Severity, f.Title, f.Detail = doctor.Fail, m.Name+" has sent no load figures", "No sample exists yet."
+		case env.Now.Sub(m.Load.SampledAt) > LoadFreshFor:
+			f.Severity, f.Title = doctor.Fail, m.Name+" load figures are old"
+			f.Detail = fmt.Sprintf("The newest sample is %s old (limit %s).", env.Now.Sub(m.Load.SampledAt).Round(time.Second), LoadFreshFor)
+		default:
+			f.Severity, f.Title = doctor.OK, m.Name+" load figures are fresh"
+		}
+		if f.Severity != doctor.OK {
+			f.Fix = doctor.Fix{Text: "Restart the agent on that machine; it measures load every 15 seconds.", Link: machineLink(m)}
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// machineLoadBudget: memory or CPU over the budget for more than 10 minutes. New check.
+func machineLoadBudget(ctx context.Context, env doctor.Env) []doctor.Finding {
+	ms, out := scopedMachines(ctx, env, "machine.load.budget")
+	for _, m := range ms {
+		if !isOnline(env, m) {
+			out = append(out, offlineSkip("machine.load.budget", m))
+			continue
+		}
+		if m.Load == nil {
+			out = append(out, skip("machine.load.budget", machineSubject(m), m.Name+" has no load figures", "Nothing to compare with the budget."))
+			continue
+		}
+		f := doctor.Finding{Check: "machine.load.budget", Subject: machineSubject(m)}
+		if !m.OverBudgetSince.IsZero() && env.Now.Sub(m.OverBudgetSince) > OverBudgetFor {
+			f.Severity, f.Title = doctor.Warn, m.Name+" has been over its load budget"
+			f.Detail = fmt.Sprintf("For %s. Memory %.0f%% of %d%%, CPU %.0f%% of %d%%.",
+				env.Now.Sub(m.OverBudgetSince).Round(time.Minute), m.Load.MemoryPct, m.BudgetMemoryPct, m.Load.CPUPct, m.BudgetCPUPct)
+			f.Fix = doctor.Fix{Text: "Lower the job slots or raise the budget on the Machines screen.", Link: machineLink(m)}
+		} else {
+			f.Severity, f.Title = doctor.OK, m.Name+" is within its load budget"
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// machineDisk: free space on the work volume. Under 15% or 10 GB warns; under
+// 5% or 2 GB fails. Ported from delivery_doctor.py machine_items (machine.disk).
+func machineDisk(ctx context.Context, env doctor.Env) []doctor.Finding {
+	ms, out := scopedMachines(ctx, env, "machine.disk")
+	for _, m := range ms {
+		s := machineSubject(m)
+		if !isOnline(env, m) {
+			out = append(out, offlineSkip("machine.disk", m))
+			continue
+		}
+		if m.DiskFreeBytes == nil || m.DiskTotalBytes == nil || *m.DiskTotalBytes <= 0 {
+			out = append(out, skip("machine.disk", s, m.Name+" has not reported its disk", "The agent sent no free-space figure."))
+			continue
+		}
+		free, total := *m.DiskFreeBytes, *m.DiskTotalBytes
+		pct := float64(free) * 100 / float64(total)
+		f := doctor.Finding{Check: "machine.disk", Subject: s,
+			Detail: fmt.Sprintf("%.1f GB free of %.1f GB (%.0f%%).", float64(free)/float64(gib), float64(total)/float64(gib), pct)}
+		switch {
+		case pct < 5 || free < 2*gib:
+			f.Severity, f.Title = doctor.Fail, m.Name+" is almost out of disk space"
+		case pct < 15 || free < 10*gib:
+			f.Severity, f.Title = doctor.Warn, m.Name+" is low on disk space"
+		default:
+			f.Severity, f.Title = doctor.OK, m.Name+" has enough disk space"
+		}
+		if f.Severity != doctor.OK {
+			f.Fix = doctor.Fix{
+				Text:    "Clean the work folders of idle runners.",
+				Command: "crsp runners clean-work --machine " + m.Name,
+				Link:    machineLink(m),
+			}
+		}
+		out = append(out, f)
+	}
+	return out
+}

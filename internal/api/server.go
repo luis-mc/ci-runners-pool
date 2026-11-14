@@ -12,6 +12,11 @@ import (
 	"net/http"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/settings"
 )
 
 // Pinger is what the health route needs from the database.
@@ -26,6 +31,27 @@ type Options struct {
 	Logger  *slog.Logger
 	// Runners serves the runner operations; nil answers 501 (runners R5.1 to R5.7).
 	Runners RunnersService
+
+	// Operations area (CRSP18): settings, audit log, backups. A nil service
+	// answers 501 on its routes, like an unbuilt operation.
+	Settings *settings.Service
+	Audit    *audit.Log
+	Backup   *backup.Service
+	// GitHub is the GitHub integration area (setup, sign-in, users,
+	// repositories). Nil leaves its operations without a backend.
+	GitHub *GitHubArea
+	// Machines serves the machines routes; nil answers 501 (machines area).
+	Machines MachinesService
+	// CA serves GET /api/v1/ca.pem.
+	CA CAProvider
+	// Jobs and Slots serve the jobs and slot routes (handlers_jobs.go).
+	Jobs  slots.Jobs
+	Slots scheduler.SlotQueue
+	// Live serves the overview and the event stream (handlers_live.go). Nil
+	// answers 501 like an unbuilt operation.
+	Live LiveService
+	// Doctor serves the doctor routes (handlers_doctor.go). Nil answers 501.
+	Doctor DoctorService
 }
 
 type server struct {
@@ -40,7 +66,15 @@ func Register(mux *http.ServeMux, opts Options) {
 	if opts.Logger == nil {
 		opts.Logger = slog.Default()
 	}
-	strict := gen.NewStrictHandlerWithOptions(&server{opts: opts}, nil, gen.StrictHTTPServerOptions{
+	var strictMW []gen.StrictMiddlewareFunc
+	var httpMW []gen.MiddlewareFunc
+	if opts.GitHub != nil {
+		strictMW = append(strictMW, opts.GitHub.StrictMiddleware())
+		httpMW = append(httpMW, opts.GitHub.HTTPMiddleware())
+	} else {
+		strictMW = append(strictMW, unwiredGitHub())
+	}
+	strict := gen.NewStrictHandlerWithOptions(&server{opts: opts}, strictMW, gen.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
 			opts.Logger.Debug("bad request", "err", err)
 			WriteError(w, http.StatusBadRequest, CodeBadRequest, "the request is not valid")
@@ -50,7 +84,7 @@ func Register(mux *http.ServeMux, opts Options) {
 			WriteError(w, http.StatusInternalServerError, CodeInternal, "internal error")
 		},
 	})
-	gen.HandlerWithOptions(strict, gen.StdHTTPServerOptions{BaseRouter: mux})
+	gen.HandlerWithOptions(strict, gen.StdHTTPServerOptions{BaseRouter: mux, Middlewares: httpMW})
 	mux.HandleFunc("/api/", notFound)
 }
 

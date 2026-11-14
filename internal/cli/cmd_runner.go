@@ -1,0 +1,294 @@
+package cli
+
+import (
+	"flag"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/api/client"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/cli/output"
+)
+
+func cmdRunner() *command {
+	return &command{
+		name: "runner", summary: "runners on machines",
+		subs: []*command{
+			{name: "list", summary: "list runners", args: "[--machine M] [--os OS]",
+				flags: func(c *call, fs *flag.FlagSet) {
+					fs.String("machine", "", "only this machine")
+					fs.String("os", "", "only this OS (linux, windows, macos)")
+				},
+				run: func(c *call, _ []string) error {
+					s, err := c.open()
+					if err != nil {
+						return err
+					}
+					ms, _ := c.machines(s)
+					names := map[string]string{}
+					for _, m := range ms {
+						names[m.Id] = m.Name
+					}
+					var p client.ListRunnersParams
+					if v := c.fs.Lookup("machine").Value.String(); v != "" {
+						m, err := c.findMachine(s, v)
+						if err != nil {
+							return err
+						}
+						p.MachineId = &m.Id
+					}
+					if v := c.fs.Lookup("os").Value.String(); v != "" {
+						o := client.OS(v)
+						p.Os = &o
+					}
+					rs, err := c.runners(s, p)
+					if err != nil {
+						return err
+					}
+					if c.g.json {
+						return output.JSON(c.env.Stdout, client.RunnerList{Items: nonNil(rs)})
+					}
+					if len(rs) == 0 {
+						_, _ = fmt.Fprintln(c.env.Stderr, "No runners yet. Run `crsp runner add` to add one.")
+						return nil
+					}
+					var rows [][]string
+					for _, r := range rs {
+						mach := names[r.MachineId]
+						if mach == "" {
+							mach = r.MachineId
+						}
+						job := "-"
+						if r.CurrentJob != nil {
+							job = r.CurrentJob.JobName
+						}
+						rows = append(rows, []string{r.Name, mach, string(r.Os), string(r.Backend), string(r.Kind), strings.Join(r.Labels, ","), job, output.Age(r.CreatedAt, c.env.Now())})
+					}
+					output.Table(c.env.Stdout, output.MaxWidth, []string{"NAME", "MACHINE", "OS", "BACKEND", "KIND", "LABELS", "JOB", "AGE"}, rows)
+					return nil
+				}},
+			{name: "add", summary: "add runners on a machine", args: "--machine M --os OS --repo OWNER/NAME [--backend B] [--persistent] [--count N] [--yes]",
+				flags: func(c *call, fs *flag.FlagSet) {
+					fs.String("machine", "", "machine to add the runners on")
+					fs.String("os", "", "linux, windows or macos")
+					fs.String("backend", "", "isolation backend, for example docker")
+					fs.Bool("persistent", false, "keep state between jobs")
+					fs.Int("count", 1, "how many runners")
+					fs.String("repo", "", "repository the runners serve, OWNER/NAME")
+					fs.String("labels", "", "labels, comma separated")
+					yesFlag(fs)
+				},
+				run: func(c *call, _ []string) error { return c.runnerAdd() }},
+			{name: "remove", summary: "remove a runner after its job ends", args: "NAME [--drain-timeout 60m] [--stop-jobs] [--yes]",
+				flags: drainFlags,
+				run:   func(c *call, args []string) error { return c.runnerRemove(args) }},
+		},
+	}
+}
+
+func (c *call) runners(s *session, p client.ListRunnersParams) ([]client.Runner, error) {
+	r, err := s.client.ListRunnersWithResponse(c.env.Context, &p)
+	if err != nil {
+		return nil, s.transport(err)
+	}
+	if err := apiError(r.StatusCode(), r.Body); err != nil {
+		return nil, err
+	}
+	if r.JSON200 == nil {
+		return nil, nil
+	}
+	return r.JSON200.Items, nil
+}
+
+func (c *call) runnerAdd() error {
+	f := func(n string) string { return c.fs.Lookup(n).Value.String() }
+	if f("machine") == "" || f("os") == "" {
+		return fail(ExitUsage, "Usage: crsp runner add --machine M --os OS --repo OWNER/NAME [--backend B] [--persistent] [--count N]")
+	}
+	os := client.OS(f("os"))
+	if !os.Valid() {
+		return fail(ExitUsage, "--os takes linux, windows or macos.")
+	}
+	count := mustInt(f("count"))
+	if count < 1 || count > 64 {
+		return fail(ExitUsage, "--count must be between 1 and 64.")
+	}
+	if f("repo") == "" {
+		return fail(ExitUsage, "Say which repository the runners serve: --repo OWNER/NAME.")
+	}
+	s, err := c.open()
+	if err != nil {
+		return err
+	}
+	ms, err := c.machines(s)
+	if err != nil {
+		return err
+	}
+	var m *client.Machine
+	for i := range ms {
+		if strings.EqualFold(ms[i].Name, f("machine")) || ms[i].Id == f("machine") {
+			m = &ms[i]
+		}
+	}
+	if m == nil {
+		return fail(ExitNotFound, "No machine %q. Run crsp machine list.", f("machine"))
+	}
+	backend := f("backend")
+	supports := func(x client.Machine) bool {
+		if x.Os != os {
+			return false
+		}
+		if backend == "" {
+			return true
+		}
+		for _, b := range x.Backends {
+			if string(b.Name) == backend && b.Present && b.Usable && b.Allowed {
+				return true
+			}
+		}
+		return false
+	}
+	if !supports(*m) {
+		var ok []string
+		for _, x := range ms {
+			if supports(x) {
+				ok = append(ok, x.Name)
+			}
+		}
+		want := string(os)
+		if backend != "" {
+			want += " with backend " + backend
+		}
+		hint := "No machine supports it."
+		if len(ok) > 0 {
+			hint = "These do: " + strings.Join(ok, ", ") + "."
+		}
+		return fail(ExitUsage, "Machine %s does not support %s. %s Nothing changed.", m.Name, want, hint)
+	}
+	repo, err := c.findRepo(s, f("repo"))
+	if err != nil {
+		return err
+	}
+	kind := client.RunnerKindEphemeral
+	if f("persistent") == "true" {
+		kind = client.RunnerKindPersistent
+	}
+	req := client.PlanRunnersRequest{Os: os, Kind: kind, MachineId: m.Id, Count: count,
+		Scope: client.RunnerScope{Kind: client.RunnerScopeKindRepository, RepositoryId: &repo.Id}}
+	if l := splitList(f("labels")); len(l) > 0 {
+		req.Labels = &l
+	}
+	pr, err := s.client.PlanRunnersWithResponse(c.env.Context, req)
+	if err != nil {
+		return s.transport(err)
+	}
+	if err := apiError(pr.StatusCode(), pr.Body); err != nil {
+		return err
+	}
+	if pr.JSON201 == nil {
+		return fail(ExitFailed, "The controller sent no plan.")
+	}
+	id := pr.JSON201.Id
+	get := func() (*client.Plan, error) {
+		r, err := s.client.GetRunnerPlanWithResponse(c.env.Context, id)
+		if err != nil {
+			return nil, s.transport(err)
+		}
+		if err := apiError(r.StatusCode(), r.Body); err != nil {
+			return nil, err
+		}
+		return r.JSON200, nil
+	}
+	apply := func(ids []string) (*client.Plan, error) {
+		r, err := s.client.CreateRunnersWithResponse(c.env.Context, id, client.ApplyPlanRequest{ApprovedSteps: ids})
+		if err != nil {
+			return nil, s.transport(err)
+		}
+		if err := apiError(r.StatusCode(), r.Body); err != nil {
+			return nil, err
+		}
+		return r.JSON202, nil
+	}
+	done, err := c.runPlan(pr.JSON201, fmt.Sprintf("Adding %d %s runner(s) on %s:", count, os, m.Name), false, get, apply)
+	if err != nil {
+		return err
+	}
+	if c.g.json {
+		return output.JSON(c.env.Stdout, done)
+	}
+	_, _ = fmt.Fprintf(c.env.Stderr, "Runners added on %s.\n", m.Name)
+	return nil
+}
+
+func (c *call) runnerRemove(args []string) error {
+	if len(args) != 1 {
+		return fail(ExitUsage, "Usage: crsp runner remove NAME [--drain-timeout 60m] [--stop-jobs] [--yes]")
+	}
+	s, err := c.open()
+	if err != nil {
+		return err
+	}
+	rs, err := c.runners(s, client.ListRunnersParams{})
+	if err != nil {
+		return err
+	}
+	var run *client.Runner
+	for i := range rs {
+		if strings.EqualFold(rs[i].Name, args[0]) || rs[i].Id == args[0] {
+			run = &rs[i]
+		}
+	}
+	if run == nil {
+		return fail(ExitNotFound, "No runner %q. Run crsp runner list.", args[0])
+	}
+	items := []string{"runner " + run.Name}
+	title := "This removes runner " + run.Name + "."
+	if run.CurrentJob != nil {
+		items = append(items, "waits for running job: "+jobTitle(*run.CurrentJob))
+	}
+	if err := c.confirm(title, items, c.yesFlag()); err != nil {
+		return err
+	}
+	timeout, _ := time.ParseDuration(c.fs.Lookup("drain-timeout").Value.String())
+	if timeout <= 0 {
+		timeout = time.Hour
+	}
+	yes := true
+	d, err := s.client.DeleteRunnerWithResponse(c.env.Context, run.Id, &client.DeleteRunnerParams{Confirm: &yes})
+	if err != nil {
+		return s.transport(err)
+	}
+	if err := apiError(d.StatusCode(), d.Body); err != nil {
+		return err
+	}
+	deadline := c.env.Now().Add(timeout)
+	if run.CurrentJob != nil {
+		_, _ = fmt.Fprintf(c.env.Stderr, "Waiting for 1 job to end on %s.\n", run.Name)
+	}
+	for {
+		g, err := s.client.GetRunnerWithResponse(c.env.Context, run.Id)
+		if err != nil {
+			return s.transport(err)
+		}
+		if g.StatusCode() == 404 {
+			break
+		}
+		if err := apiError(g.StatusCode(), g.Body); err != nil {
+			return err
+		}
+		if g.JSON200 != nil && g.JSON200.State == client.RunnerStateFailed {
+			return fail(ExitFailed, "Removing runner %s failed. Run crsp doctor.", run.Name)
+		}
+		if !c.env.Now().Before(deadline) {
+			return fail(ExitFailed, "The job did not end within %s. It still runs; nothing more changed. Run it again later.", timeout)
+		}
+		if err := c.sleep(2 * time.Second); err != nil {
+			return err
+		}
+	}
+	if c.g.json {
+		return output.JSON(c.env.Stdout, map[string]string{"removed": run.Name})
+	}
+	_, _ = fmt.Fprintf(c.env.Stderr, "Runner %s removed.\n", run.Name)
+	return nil
+}

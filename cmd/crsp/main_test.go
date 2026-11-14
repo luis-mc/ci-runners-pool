@@ -27,9 +27,16 @@ func TestRunUsageErrors(t *testing.T) {
 	}
 }
 
-func TestRunAgentNotImplemented(t *testing.T) {
+func TestRunAgentNeedsACommand(t *testing.T) {
 	var out, errOut bytes.Buffer
 	if code := run([]string{"agent"}, &out, &errOut); code != 1 {
 		t.Fatalf("agent: exit %d", code)
+	}
+}
+
+func TestRunVersionJSON(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if code := run([]string{"version", "--json"}, &out, &errOut); code != 0 || !strings.Contains(out.String(), `"version"`) || !strings.Contains(out.String(), `"go"`) {
+		t.Fatalf("exit %d: %q %s", code, out.String(), errOut.String())
 	}
 }

@@ -261,6 +261,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/console-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make a one-time link that signs the caller in to the web console
+         * @description cli R5.9 (added by CRSP25). The link carries a code of 128 random bits, valid 60 seconds, usable once, redeemed by redeemTrayLink. The caller must be signed in; the link gives the same user and role.
+         */
+        post: operations["createConsoleLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -1414,6 +1434,12 @@ export interface components {
         };
         CliTokenList: {
             items: components["schemas"]["CliToken"][];
+        };
+        ConsoleLink: {
+            /** @description The one-time console link. Shown once. */
+            url: string;
+            /** Format: date-time */
+            expires_at: string;
         };
         /**
          * @example {
@@ -2692,6 +2718,27 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createConsoleLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The link. Shown once. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsoleLink"];
+                };
             };
             default: components["responses"]["Error"];
         };

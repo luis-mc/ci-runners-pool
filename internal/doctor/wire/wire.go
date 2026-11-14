@@ -1,0 +1,63 @@
+// Package wire builds the live view and the doctor for the controller in one
+// call each, so cmd/crsp and the server need only a line to mount them.
+package wire
+
+import (
+	"context"
+	"log/slog"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor/checks"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/events"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/overview"
+)
+
+// NewLive makes the event hub and the live service over a source. Producers
+// publish to the returned hub; mount the Live in api.Options.Live. The caller
+// stops the hub at shutdown.
+func NewLive(src overview.Source, opt events.Options) (*events.MemHub, api.Live) {
+	svc := &overview.Service{Source: src}
+	opt.Snapshotter = svc
+	hub := events.NewHub(opt)
+	svc.Events = hub
+	return hub, api.Live{Overviews: svc, Hub: hub}
+}
+
+// DoctorDeps are what the doctor reads and writes.
+type DoctorDeps struct {
+	Fleet doctor.Fleet
+	// GitHub returns the GitHub adapter, or nil when the App is not set up.
+	GitHub   func(ctx context.Context) (doctor.GitHub, error)
+	Store    doctor.Store
+	Events   events.Publisher
+	Logger   *slog.Logger
+	PoolName string
+	// Extra registers the checks of other areas (cache, backend, ...).
+	Extra []doctor.Check
+}
+
+// NewDoctor makes the engine with the M1 core checks and every extra check,
+// and the service the API mounts in api.Options.Doctor.
+func NewDoctor(d DoctorDeps) (*doctor.Engine, *doctor.Service) {
+	reg := doctor.NewRegistry()
+	checks.Register(reg)
+	for _, c := range d.Extra {
+		reg.Register(c)
+	}
+	eng := &doctor.Engine{
+		Registry: reg, Store: d.Store, Events: d.Events, Logger: d.Logger,
+		Env: func(ctx context.Context) (doctor.Env, error) {
+			env := doctor.Env{Fleet: d.Fleet, PoolName: d.PoolName}
+			if d.GitHub != nil {
+				g, err := d.GitHub(ctx)
+				if err != nil {
+					return doctor.Env{}, err
+				}
+				env.GitHub = g
+			}
+			return env, nil
+		},
+	}
+	return eng, &doctor.Service{Engine: eng}
+}

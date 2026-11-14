@@ -26,6 +26,7 @@ tasks:
     desc: Go server types and routes from packages/contract/openapi.yaml
     cmds:
       - go tool oapi-codegen -config packages/contract/oapi-codegen.yaml packages/contract/openapi.yaml
+      - go tool oapi-codegen -config packages/contract/oapi-codegen-client.yaml packages/contract/openapi.yaml
 
   codegen:sql:
     desc: Go query code from internal/store/queries (sqlc)
