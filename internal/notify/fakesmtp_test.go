@@ -2,6 +2,7 @@ package notify
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"net"
@@ -28,7 +29,7 @@ type fakeSMTP struct {
 
 func newFakeSMTP(t *testing.T, tlsCfg *tls.Config, wantAuth string) *fakeSMTP {
 	t.Helper()
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +75,7 @@ func (f *fakeSMTP) serve(c net.Conn) {
 		case up == "STARTTLS":
 			say("220 go ahead")
 			tc := tls.Server(c, f.tlsCfg)
-			if err := tc.Handshake(); err != nil {
+			if err := tc.HandshakeContext(context.Background()); err != nil {
 				return
 			}
 			c, secure = tc, true

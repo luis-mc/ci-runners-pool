@@ -33,12 +33,11 @@ var (
 )
 
 type env struct {
-	svc   *Service
-	db    *store.Store
-	sec   *secrets.Memory
-	logs  *bytes.Buffer
-	now   *time.Time
-	trust *x509.CertPool
+	svc  *Service
+	db   *store.Store
+	sec  *secrets.Memory
+	logs *bytes.Buffer
+	now  *time.Time
 }
 
 func newEnv(t *testing.T, tweak func(*Config)) *env {

@@ -85,6 +85,9 @@ func TestNotificationChannelsHoldNoSecretColumn(t *testing.T) {
 			t.Errorf("column %q could hold a secret", n)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestNotificationChannelRejectsBadKind(t *testing.T) {
