@@ -103,7 +103,10 @@ func TestPollerEmitsNewChangedAndGone(t *testing.T) { // R5.37
 	if j := recv(t, ch); j.ID != 1 || j.Status != "completed" {
 		t.Fatalf("gone job must be reported completed: %+v", j)
 	}
-	if !pf.bg {
+	pf.mu.Lock()
+	bg := pf.bg
+	pf.mu.Unlock()
+	if !bg {
 		t.Fatal("polling is background work (R6.6)")
 	}
 }
