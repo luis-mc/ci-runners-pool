@@ -1,0 +1,108 @@
+name: Installer
+
+# Builds both Windows MSIs when a pull request or a push to main touches the
+# installer (operations R5.7), and on the x64 one runs installer/smoke.ps1: install,
+# service, PATH, firewall rule, shortcut and autostart, silent upgrade, refused
+# downgrade, silent uninstall (data kept), uninstall with REMOVEDATA=1, no leftovers.
+# The release workflow builds the published MSIs; this one only checks them.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'installer/**'
+      - 'cmd/crsp/service_*.go'
+      - '.github/workflows/installer.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'installer/**'
+      - 'cmd/crsp/service_*.go'
+      - '.github/workflows/installer.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: installer-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  msi:
+    name: msi ${{ matrix.goarch }}
+    runs-on: windows-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goarch: amd64, arch: x64 }
+          - { goarch: arm64, arch: arm64 }
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # The web console is not embedded here (the placeholder page stays): the
+      # installer does not depend on it.
+      - name: Build crsp.exe
+        env:
+          GOOS: windows
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+        run: go build -trimpath -ldflags "-s -w -X main.version=0.1.0" -o installer/out/crsp.exe ./cmd/crsp
+
+      - name: Build the MSI (0.1.0)
+        run: ./installer/build.ps1 -Arch ${{ matrix.arch }} -Exe installer/out/crsp.exe -Version 0.1.0 -Out installer/out/v0.1.0
+
+      # Only the x64 MSI installs on this x64 runner; the arm64 one is built and its
+      # file table is checked by an administrative extract.
+      - name: Build the upgrade (0.1.1) and downgrade (0.0.9) MSIs
+        if: ${{ matrix.arch == 'x64' }}
+        run: |
+          ./installer/build.ps1 -Arch x64 -Exe installer/out/crsp.exe -Version 0.1.1 -Out installer/out/v0.1.1
+          ./installer/build.ps1 -Arch x64 -Exe installer/out/crsp.exe -Version 0.0.9 -Out installer/out/v0.0.9
+          # An upgrade that fails after the files are in, to test the rollback.
+          ./installer/build.ps1 -Arch x64 -Exe installer/out/crsp.exe -Version 0.1.2 -Out installer/out/v0.1.2 -FailAfterInstall
+
+      - name: Install, upgrade, downgrade and uninstall
+        if: ${{ matrix.arch == 'x64' }}
+        run: |
+          ./installer/smoke.ps1 `
+            -Msi installer/out/v0.1.0/crsp-windows-amd64.msi `
+            -UpgradeMsi installer/out/v0.1.1/crsp-windows-amd64.msi `
+            -DowngradeMsi installer/out/v0.0.9/crsp-windows-amd64.msi `
+            -FailingMsi installer/out/v0.1.2/crsp-windows-amd64.msi `
+            -LogDir installer/out/logs
+
+      # Drives the "Also delete my data" dialog with UI Automation on the runner's desktop.
+      - name: Uninstall dialog
+        if: ${{ !cancelled() && matrix.arch == 'x64' }}
+        timeout-minutes: 6
+        run: ./installer/ui-test.ps1 -Msi installer/out/v0.1.0/crsp-windows-amd64.msi -LogDir installer/out/logs
+
+      - name: Administrative extract (no install)
+        if: ${{ !cancelled() }}
+        run: |
+          $msi = (Resolve-Path installer/out/v0.1.0/crsp-windows-${{ matrix.goarch }}.msi).Path
+          $target = Join-Path $PWD 'installer/out/extract'
+          $p = Start-Process msiexec.exe -ArgumentList '/a', "`"$msi`"", '/qn', "TARGETDIR=`"$target`"" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "msiexec /a exit $($p.ExitCode)" }
+          $exe = Get-ChildItem $target -Recurse -Filter crsp.exe | Select-Object -First 1
+          if (-not $exe) { throw 'crsp.exe is not in the MSI' }
+          Write-Host "crsp.exe in the MSI: $($exe.FullName) ($($exe.Length) bytes)"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          # Stable name, no version or run number (artifact-prune.yml keeps the newest).
+          name: installer-windows-${{ matrix.goarch }}
+          path: |
+            installer/out/v0.1.0/crsp-windows-${{ matrix.goarch }}.msi
+            installer/out/logs/*.log
+          if-no-files-found: ignore

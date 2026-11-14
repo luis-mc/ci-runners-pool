@@ -5,6 +5,7 @@ name: Release
 # tag v*        -> a stable release with the same assets (production).
 #
 # Assets: crsp-<os>-<arch>.tar.gz (linux, darwin) or .zip (windows),
+# crsp-windows-<arch>.msi (the Windows installer, WiX v5, built on windows-latest),
 # SHA256SUMS, and a build provenance attestation for each.
 # Authenticode signing and Apple notarization come later (milestone 8).
 on:
@@ -50,9 +51,49 @@ jobs:
       version: ${{ needs.version.outputs.value }}
       artifact-prefix: release-
 
+  # The Windows installers (operations R5.7): one MSI per architecture, built
+  # from the crsp.exe the build job made, stamped with the release version.
+  msi:
+    name: msi ${{ matrix.goarch }}
+    needs: [version, build]
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goarch: amd64, arch: x64 }
+          - { goarch: arm64, arch: arm64 }
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-windows-${{ matrix.goarch }}
+          path: binaries
+      - name: Build the MSI
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.version.outputs.value }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          # An edge build is stamped with the next patch after the latest stable tag.
+          $edgeBase = '0.1.0'
+          $last = git tag --list 'v*' --sort=-v:refname | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } | Select-Object -First 1
+          if ($last -match '^v(\d+)\.(\d+)\.(\d+)$') { $edgeBase = "$($Matches[1]).$($Matches[2]).$([int]$Matches[3] + 1)" }
+          ./installer/build.ps1 -Arch ${{ matrix.arch }} -Exe binaries/crsp.exe -Version $env:VERSION `
+            -EdgeBase $edgeBase -Build ([int]$env:RUN_NUMBER % 65535) -Out installer/out
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          # Stable name, no version or run number, so artifact-prune.yml keeps the newest.
+          name: msi-windows-${{ matrix.goarch }}
+          path: installer/out/crsp-windows-${{ matrix.goarch }}.msi
+          if-no-files-found: error
+
   publish:
     name: publish
-    needs: build
+    needs: [build, msi]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -68,6 +109,11 @@ jobs:
         with:
           pattern: release-*
           path: binaries
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: msi-windows-*
+          merge-multiple: true
+          path: msi
 
       - name: Package and checksum
         run: |
@@ -85,8 +131,11 @@ jobs:
               *)         tar -C stage -czf "dist/crsp-${target}.tar.gz" "crsp-${target}" ;;
             esac
           done
+          # Installer assets join the archives here. One line per installer kind:
+          # the Windows MSIs now; pkg, deb and rpm come with CRSP21.
+          cp msi/crsp-windows-amd64.msi msi/crsp-windows-arm64.msi dist/
           count=$(find dist -type f | wc -l)
-          [ "$count" -eq 6 ] || { echo "::error::expected 6 archives, found $count"; exit 1; }
+          [ "$count" -eq 8 ] || { echo "::error::expected 6 archives and 2 MSIs (raise the count with each installer kind), found $count"; exit 1; }
           (cd dist && sha256sum crsp-* > SHA256SUMS)
           cat dist/SHA256SUMS
 

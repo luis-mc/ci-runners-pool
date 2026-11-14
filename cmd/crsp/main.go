@@ -38,7 +38,15 @@ import (
 // version is set at build time: -ldflags "-X main.version=1.2.3".
 var version = "dev"
 
+// baseContext is the context the controller runs under. A Windows service
+// replaces it with one that the service manager's Stop cancels.
+var baseContext = context.Background()
+
 func main() {
+	if runAsService() {
+		return
+	}
+	hideConsoleForTray(os.Args[1:])
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }
 
@@ -96,7 +104,7 @@ func runController() error {
 	}
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: cfg.LogLevel}))
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(baseContext, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	// A restore that was staged before the last exit goes in place now, before
