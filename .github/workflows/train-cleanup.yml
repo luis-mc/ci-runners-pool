@@ -12,9 +12,9 @@ on:
     types: [closed]
 
 permissions:
-  contents: write      # the delivery log is appended to the train's release notes
+  contents: write # the delivery log is appended to the train's release notes
   pull-requests: read
-  actions: read        # CI start and end of the ready pull request's runs
+  actions: read # CI start and end of the ready pull request's runs
 
 concurrency:
   group: train-cleanup
