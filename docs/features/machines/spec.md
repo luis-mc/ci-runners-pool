@@ -3,7 +3,7 @@ id: machines
 title: Machines
 apps: [controller, agent, web-console, cli]
 topics: [machines, security, install, scheduling, operations]
-status: active
+status: building
 version: 0.1.0
 owner: owner
 type: reference

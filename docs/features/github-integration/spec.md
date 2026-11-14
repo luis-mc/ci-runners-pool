@@ -3,7 +3,7 @@ id: github-integration
 title: GitHub integration
 apps: [controller, web-console, cli]
 topics: [github, security, runners, install]
-status: active
+status: building
 version: 0.1.0
 owner: owner
 type: reference

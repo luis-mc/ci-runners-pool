@@ -3,7 +3,7 @@ id: web-console
 title: Web console
 apps: [web-console, controller]
 topics: [ui, security, github]
-status: active
+status: building
 version: 0.1.0
 owner: owner
 type: reference

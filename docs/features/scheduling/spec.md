@@ -3,7 +3,7 @@ id: scheduling
 title: Scheduling, slots and load budget
 apps: [controller, agent, cli, web-console]
 topics: [scheduling, machines, runners, github, observability]
-status: active
+status: building
 version: 0.1.0
 owner: owner
 type: reference

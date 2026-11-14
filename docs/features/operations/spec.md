@@ -3,7 +3,7 @@ id: operations
 title: Operations
 apps: [controller, agent, tray, cli, web-console]
 topics: [operations, install, security, runners]
-status: active
+status: building
 version: 0.1.0
 owner: owner
 type: reference

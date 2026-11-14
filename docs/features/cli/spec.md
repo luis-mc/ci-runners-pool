@@ -3,7 +3,7 @@ id: cli
 title: Command line (CLI)
 apps: [cli, controller, agent, tray]
 topics: [operations, security, github, machines, runners, install]
-status: active
+status: building
 version: 0.1.0
 owner: owner
 type: reference
