@@ -51,7 +51,7 @@ check_installed() {
 install_pkg() {
   case "$kind" in
     deb) DEBIAN_FRONTEND=noninteractive apt-get install -y "$1" ;;
-    rpm) rpm -U "$1" ;;
+    rpm) rpm -U --nosignature "$1" ;;  # the rpm is not signed yet (milestone 8)
   esac
 }
 
