@@ -244,6 +244,12 @@ func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 	l.stream = newClient(pin, cfg.Controller).Session(ctx)
 	l.stream.RequestHeader().Set("Authorization", "Bearer "+key)
 	l.stream.RequestHeader().Set("Crsp-Machine-Id", id)
+	// Ending the session must unblock Receive at once, so close both halves.
+	go func() {
+		<-ctx.Done()
+		_ = l.stream.CloseRequest()
+		_ = l.stream.CloseResponse()
+	}()
 
 	facts := l.redetect(ctx)
 	rep, _ := cfg.Sampler.Latest()

@@ -1,0 +1,99 @@
+package agent_test
+
+import (
+	"context"
+	"crypto/tls"
+	"net"
+	"net/http"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/load"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/machines/secretstest"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/tlsca"
+)
+
+// ctl is a real controller link over TLS 1.3 on a random port.
+type ctl struct {
+	Svc  *machines.Service
+	Repo *machines.MemRepo
+	CA   *tlsca.Authority
+	Addr string
+	Now  *fakeClock
+	srv  *http.Server
+}
+
+type fakeClock struct {
+	mu sync.Mutex
+	t  time.Time
+}
+
+func (c *fakeClock) Now() time.Time { c.mu.Lock(); defer c.mu.Unlock(); return c.t }
+func (c *fakeClock) Add(d time.Duration) {
+	c.mu.Lock()
+	c.t = c.t.Add(d)
+	c.mu.Unlock()
+}
+
+func startController(t *testing.T) *ctl {
+	t.Helper()
+	ca, err := tlsca.LoadOrCreate(context.Background(), tlsca.Options{Dir: t.TempDir(), Secrets: secretstest.New()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo := machines.NewMemRepo()
+	clk := &fakeClock{t: time.Now()}
+	repo.Now = clk.Now
+	svc := machines.New(machines.Options{Repo: repo, Now: clk.Now, ControllerAddress: "127.0.0.1", Fingerprint: ca.Fingerprint()})
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := machines.NewLinkServer(ln.Addr().String(), ca, svc)
+	go func() { _ = srv.Serve(tls.NewListener(ln, ca.ServerTLS())) }()
+	t.Cleanup(func() { _ = srv.Close() })
+	return &ctl{Svc: svc, Repo: repo, CA: ca, Addr: ln.Addr().String(), Now: clk, srv: srv}
+}
+
+// fastConfig is an agent config with short intervals and a fake probe.
+func fastConfig(t *testing.T, c *ctl, code string) agent.Config {
+	t.Helper()
+	sec := secretstest.New()
+	p := &fakeSys{fakeProbeBase: linuxBox()}
+	return agent.Config{
+		Controller: c.Addr, Pin: c.CA.Fingerprint(), JoinCode: code, Secrets: sec, DataDir: t.TempDir(), Version: "test",
+		Sys: p, Sampler: load.NewSampler(p),
+		HeartbeatEvery: 50 * time.Millisecond, LoadEvery: 50 * time.Millisecond, RedetectEvery: time.Hour,
+		SampleEvery: 20 * time.Millisecond, DrainPollEvery: 20 * time.Millisecond,
+	}
+}
+
+func waitFor(t *testing.T, what string, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if cond() {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for %s", what)
+}
+
+func runAgent(t *testing.T, cfg agent.Config) (stop func() error) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	errc := make(chan error, 1)
+	go func() { errc <- agent.Run(ctx, cfg) }()
+	var once sync.Once
+	var result error
+	stop = func() error {
+		once.Do(func() { cancel(); result = <-errc })
+		return result
+	}
+	t.Cleanup(func() { _ = stop() })
+	return stop
+}
