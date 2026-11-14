@@ -43,6 +43,7 @@ Each action has one word. The Never use column lists words that must not stand i
 | Restart the service | Stop and start the service after the running jobs end. | Reboot, Reset |
 | Automatic updates | The switch that lets a newer stable release install by itself after the running jobs end. | Auto-upgrade |
 | Quit tray | Close the tray icon only. The service keeps running. | Exit, Close |
+| Send test | Send one clearly marked test notice through a channel and say what happened. It changes nothing else. | Test, Ping, Verify, Send a test |
 
 Add a row for each action the project needs. A new action gets a word that is not used above.
 
@@ -136,6 +137,22 @@ A message is one or two short sentences in plain words. It names the thing, neve
 - A headline says where the user is: "Reports", not "reports/list".
 - A field name is a noun: "Title", not "Enter the title".
 - Mark only optional fields, with "(optional)" after the name.
+
+## Notification words
+
+The events, severities and channel kinds of the notifications feature, as people read them (notifications R5.1, R5.4). The stable type names stay in the API and in webhook bodies; the screen shows these words.
+
+| Word | Meaning |
+|---|---|
+| Machine offline | A machine's agent link has been down longer than the grace time. |
+| Job waiting | A queued job has waited longer than the set time. |
+| Disk low | Free space on a machine's work disk is below the threshold. |
+| Runner outdated | A runner's version is older than the pinned version. |
+| Doctor finding | The doctor reports a new finding. |
+| Update available | A newer stable release exists. |
+| Info, Warning, Error | The lowest severity a channel gets. |
+| Email, Webhook, Desktop | The kinds of channel. |
+| Channel | One way of being told: an email address, a webhook or a desktop notice. |
 
 ## Component words
 

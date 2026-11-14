@@ -59,6 +59,8 @@ export function TextField(
     autoComplete?: string | undefined;
     mono?: boolean | undefined;
     readOnly?: boolean | undefined;
+    /** A write-only secret (a password): hidden while typed, never filled in again (components 14). */
+    secret?: boolean | undefined;
   },
 ) {
   const id = useId();
@@ -69,10 +71,10 @@ export function TextField(
       <input
         id={id}
         className="ds-input"
-        type="text"
+        type={props.secret ? 'password' : 'text'}
         value={props.value}
         readOnly={props.readOnly}
-        autoComplete={props.autoComplete ?? 'off'}
+        autoComplete={props.autoComplete ?? (props.secret ? 'new-password' : 'off')}
         data-mono={props.mono || undefined}
         aria-invalid={props.error ? true : undefined}
         aria-describedby={

@@ -39,6 +39,7 @@ const TABS = [
   { id: 'appearance', label: 'Appearance' },
   { id: 'retention', label: 'Retention' },
   { id: 'backups', label: 'Backups' },
+  { id: 'notifications', label: 'Notifications' },
   { id: 'updates', label: 'Updates' },
 ];
 

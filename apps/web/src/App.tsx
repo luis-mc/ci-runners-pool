@@ -25,6 +25,7 @@ import {
   ThemeApplier,
   UsersSettings,
 } from './screens/settings/Settings';
+import { NotificationsSettings } from './screens/settings/Notifications';
 import { UpdateReviewPage, UpdatesSettings } from './screens/settings/Updates';
 import { SetupPage } from './screens/setup/Setup';
 
@@ -151,16 +152,7 @@ export function App({
                     />
                   }
                 />
-                <Route
-                  path="notifications"
-                  element={
-                    <Later
-                      title="Notifications"
-                      what="Notifications"
-                      milestone="milestone 8"
-                    />
-                  }
-                />
+                <Route path="notifications" element={<NotificationsSettings />} />
                 <Route path="updates" element={<UpdatesSettings />} />
                 <Route
                   path="audit"
