@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
@@ -26,7 +27,7 @@ func TestSettingsCacheRoundTrip(t *testing.T) {
 	if !ok || got.BudgetMemoryPct != 70 || got.Version != 9 || state != machines.StateDrained {
 		t.Fatalf("%+v %q %v", got, state, ok)
 	}
-	if st, _ := os.Stat(c.Path); st.Mode().Perm() != 0o600 {
+	if st, _ := os.Stat(c.Path); runtime.GOOS != "windows" && st.Mode().Perm() != 0o600 { // POSIX modes only
 		t.Fatalf("mode = %v", st.Mode().Perm())
 	}
 	_ = os.WriteFile(c.Path, []byte("{not json"), 0o600)
