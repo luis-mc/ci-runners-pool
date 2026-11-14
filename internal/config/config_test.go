@@ -1,7 +1,9 @@
 package config
 
 import (
+	"errors"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,61 +13,156 @@ func env(m map[string]string) func(string) string {
 	return func(k string) string { return m[k] }
 }
 
+func files(m map[string]string) func(string) ([]byte, error) {
+	return func(p string) ([]byte, error) {
+		if v, ok := m[p]; ok {
+			return []byte(v), nil
+		}
+		return nil, os.ErrNotExist
+	}
+}
+
+func abs(t *testing.T) string { return filepath.Join(t.TempDir(), "d") }
+
 func TestLoadDefaults(t *testing.T) {
-	cfg, err := Load(env(nil))
+	cfg, err := LoadFor("linux", env(nil), files(nil))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.ListenAddr != "127.0.0.1:8080" || cfg.LogLevel != slog.LevelInfo || cfg.DataDir == "" {
+	if cfg.ListenAddr != "127.0.0.1:8460" || cfg.AgentAddr != "127.0.0.1:8461" || cfg.LogLevel != slog.LevelInfo ||
+		cfg.DataDir != "/var/lib/crsp" || cfg.File != "" {
 		t.Fatalf("unexpected defaults: %+v", cfg)
 	}
 }
 
-func TestLoadValues(t *testing.T) {
-	dir := t.TempDir()
-	cfg, err := Load(env(map[string]string{
-		EnvDataDir: dir, EnvListenAddr: "127.0.0.1:9000", EnvLogLevel: "debug",
-	}))
-	if err != nil {
-		t.Fatal(err)
+func TestDataFolderPerOS(t *testing.T) {
+	cases := map[string]Paths{
+		"linux":   {"/var/lib/crsp", "/etc/crsp/config.toml"},
+		"darwin":  {"/Library/Application Support/crsp", "/Library/Application Support/crsp/config.toml"},
+		"windows": {`D:\PD\crsp`, `D:\PD\crsp\config.toml`},
 	}
-	if cfg.DataDir != dir || cfg.ListenAddr != "127.0.0.1:9000" || cfg.LogLevel != slog.LevelDebug {
-		t.Fatalf("unexpected: %+v", cfg)
+	for goos, want := range cases {
+		got := DefaultPaths(goos, env(map[string]string{"ProgramData": `D:\PD`}))
+		if got != want {
+			t.Errorf("%s: got %+v want %+v", goos, got, want)
+		}
+	}
+	if p := DefaultPaths("windows", env(nil)); p.DataDir != `C:\ProgramData\crsp` {
+		t.Errorf("windows fallback: %+v", p)
 	}
 }
 
-func TestLoadRefusesPlaceholders(t *testing.T) {
-	for _, v := range []string{"<path>", "<...>", "changeme", "CHANGE_ME", "your-data-dir", "${CRSP_DATA_DIR}", "TODO"} {
-		_, err := Load(env(map[string]string{EnvDataDir: v}))
+func TestFileThenEnvOverride(t *testing.T) {
+	dir := abs(t)
+	file := `data_dir = "` + filepath.ToSlash(dir) + `"
+listen_addr = "127.0.0.1:9000"
+log_level = "warn"
+`
+	read := files(map[string]string{"/etc/crsp/config.toml": file})
+	cfg, err := LoadFor("linux", env(nil), read)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.DataDir != filepath.ToSlash(dir) || cfg.ListenAddr != "127.0.0.1:9000" || cfg.LogLevel != slog.LevelWarn || cfg.File == "" {
+		t.Fatalf("file values lost: %+v", cfg)
+	}
+	cfg, err = LoadFor("linux", env(map[string]string{EnvListenAddr: "127.0.0.1:9100", EnvLogLevel: "debug"}), read)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.ListenAddr != "127.0.0.1:9100" || cfg.LogLevel != slog.LevelDebug {
+		t.Fatalf("env must win: %+v", cfg)
+	}
+}
+
+func TestExplicitConfigFileMustExist(t *testing.T) {
+	_, err := LoadFor("linux", env(map[string]string{EnvConfigFile: "/nope/config.toml"}), files(nil))
+	if err == nil || !strings.Contains(err.Error(), "/nope/config.toml") {
+		t.Fatalf("want error naming the file, got %v", err)
+	}
+}
+
+func TestRefusesPlaceholders(t *testing.T) {
+	for _, v := range []string{"<path>", "<...>", "changeme", "CHANGE_ME", "your-data-dir", "${CRSP_DATA_DIR}", "TODO", "example"} {
+		_, err := LoadFor("linux", env(map[string]string{EnvDataDir: v}), files(nil))
 		if err == nil || !strings.Contains(err.Error(), "placeholder") {
-			t.Errorf("value %q: want placeholder error, got %v", v, err)
+			t.Errorf("env %q: want placeholder error, got %v", v, err)
+		}
+		_, err = LoadFor("linux", env(nil), files(map[string]string{"/etc/crsp/config.toml": `data_dir = "` + v + `"`}))
+		if err == nil || !strings.Contains(err.Error(), "placeholder") {
+			t.Errorf("file %q: want placeholder error, got %v", v, err)
 		}
 	}
 }
 
-func TestLoadRefusesBadValues(t *testing.T) {
-	abs := filepath.Join(t.TempDir(), "d")
+func TestRefusesUnknownKeysWrongTypesAndSecrets(t *testing.T) {
+	cases := map[string]struct{ file, want string }{
+		"unknown key":  {`bogus = 1`, `unknown key "bogus"`},
+		"wrong type":   {`listen_addr = 5`, "ListenAddr"},
+		"not toml":     {`listen_addr = `, "line"},
+		"secret key":   {`private_key = "-----BEGIN KEY-----"`, `key "private_key" holds a secret`},
+		"nested token": {"[github]\nwebhook_secret = \"s3cr3t-value\"", `key "github.webhook_secret" holds a secret`},
+	}
+	for name, c := range cases {
+		_, err := LoadFor("linux", env(nil), files(map[string]string{"/etc/crsp/config.toml": c.file}))
+		if err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: want %q, got %v", name, c.want, err)
+			continue
+		}
+		for _, leak := range []string{"s3cr3t-value", "BEGIN KEY"} {
+			if strings.Contains(err.Error(), leak) {
+				t.Errorf("%s: error echoes the secret value: %v", name, err)
+			}
+		}
+	}
+}
+
+func TestRefusesBadValues(t *testing.T) {
+	d := abs(t)
 	cases := map[string]map[string]string{
 		"relative dir": {EnvDataDir: "relative/dir"},
-		"no port":      {EnvDataDir: abs, EnvListenAddr: "localhost"},
-		"bad port":     {EnvDataDir: abs, EnvListenAddr: "localhost:99999"},
-		"bad level":    {EnvDataDir: abs, EnvLogLevel: "loud"},
+		"no port":      {EnvDataDir: d, EnvListenAddr: "localhost"},
+		"bad port":     {EnvDataDir: d, EnvListenAddr: "localhost:99999"},
+		"port zero":    {EnvDataDir: d, EnvAgentAddr: "localhost:0"},
+		"same ports":   {EnvDataDir: d, EnvListenAddr: "127.0.0.1:9", EnvAgentAddr: "127.0.0.1:9"},
+		"bad level":    {EnvDataDir: d, EnvLogLevel: "loud"},
 	}
 	for name, m := range cases {
-		if _, err := Load(env(m)); err == nil {
+		if _, err := LoadFor("linux", env(m), files(nil)); err == nil {
 			t.Errorf("%s: want error", name)
 		}
 	}
 }
 
-func TestLoadReportsAllProblems(t *testing.T) {
-	_, err := Load(env(map[string]string{EnvDataDir: "<x>", EnvListenAddr: "bad", EnvLogLevel: "loud"}))
+func TestReportsAllProblems(t *testing.T) {
+	_, err := LoadFor("linux", env(map[string]string{EnvDataDir: "<x>", EnvListenAddr: "bad", EnvLogLevel: "loud"}),
+		files(map[string]string{"/etc/crsp/config.toml": "bogus = 1\npassword = \"x\""}))
 	if err == nil {
 		t.Fatal("want error")
 	}
-	for _, name := range []string{EnvDataDir, EnvListenAddr, EnvLogLevel} {
-		if !strings.Contains(err.Error(), name) {
-			t.Errorf("error does not mention %s: %v", name, err)
+	for _, want := range []string{EnvDataDir, "listen_addr", "log_level", `"bogus"`, `"password"`} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error does not mention %s: %v", want, err)
 		}
+	}
+}
+
+func TestWindowsAbsolutePaths(t *testing.T) {
+	if _, err := LoadFor("windows", env(nil), files(nil)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadFor("windows", env(map[string]string{EnvDataDir: `relative\dir`}), files(nil)); err == nil {
+		t.Fatal("want error")
+	}
+}
+
+func TestMissingDefaultFileIsNotAnError(t *testing.T) {
+	_, err := LoadFor("linux", env(nil), func(string) ([]byte, error) { return nil, os.ErrNotExist })
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = LoadFor("linux", env(nil), func(string) ([]byte, error) { return nil, errors.New("permission denied") })
+	if err == nil {
+		t.Fatal("a file that cannot be read must be refused")
 	}
 }
