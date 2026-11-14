@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createApiClient } from '@crp/contract';
+import { createApiClient } from '@crsp/contract';
 import { App } from './App';
 
 afterEach(cleanup);
@@ -18,7 +18,7 @@ describe('App', () => {
         <App client={clientAnswering(response)} />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('heading', { name: 'CI Runners Pool' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'CI Runners Shared Pool' })).toBeTruthy();
     expect((await screen.findByTestId('health')).textContent).toContain('version 1.2.3');
   });
 

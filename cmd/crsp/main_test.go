@@ -11,7 +11,7 @@ func TestRunVersion(t *testing.T) {
 	if code := run([]string{"version"}, &out, &errOut); code != 0 {
 		t.Fatalf("exit %d: %s", code, errOut.String())
 	}
-	if !strings.HasPrefix(out.String(), "ci-runners-pool ") {
+	if !strings.HasPrefix(out.String(), "crsp ") {
 		t.Fatalf("output %q", out.String())
 	}
 }

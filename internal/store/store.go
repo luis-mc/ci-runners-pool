@@ -20,7 +20,7 @@ import (
 	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite" // the SQLite driver; confined to this package by depguard.
 
-	"github.com/luis-mc/ci-runners-pool/internal/store/sqlcgen"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/store/sqlcgen"
 )
 
 //go:embed migrations/*.sql

@@ -43,7 +43,7 @@ Local access, one tray per OS:
 | Windows | Notification-area icon | Per-user startup entry | Windows service |
 | macOS | Menu-bar item | LaunchAgent | LaunchDaemon |
 | Linux, desktop | StatusNotifierItem (AppIndicator) | XDG autostart entry | systemd unit |
-| Linux, headless | None; `ci-runners-pool open` prints a one-time sign-in link | n/a | systemd unit |
+| Linux, headless | None; `crsp open` prints a one-time sign-in link | n/a | systemd unit |
 
 - The tray is a separate process in the user's session, because a service cannot show anything on the desktop.
 - It is the `tray` mode of the same binary, built with `fyne.io/systray`.
@@ -57,4 +57,4 @@ Local access, one tray per OS:
 - The tray's macOS build needs cgo, so macOS release builds run on macOS runners.
 - CI starts the built tray and agent binaries, not only unit tests, because a tray that passes its tests can still crash at start.
 - Some Linux desktops (stock GNOME) show no tray without an extension.
-  The console and `ci-runners-pool open` work everywhere.
+  The console and `crsp open` work everywhere.

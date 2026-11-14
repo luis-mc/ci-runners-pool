@@ -15,7 +15,7 @@ import { defineConfig } from '@playwright/test';
 //   default                 every spec EXCEPT the quarantined ones (the gate)
 //   E2E_QUARANTINE=only     ONLY the quarantined ones (CI's non-blocking step)
 //
-// The specs run against the built binary (bin/ci-runners-pool), which serves the
+// The specs run against the built binary (bin/crsp), which serves the
 // embedded web console. Set E2E_BINARY to use another path.
 
 interface Quarantined {
@@ -47,7 +47,7 @@ const only = process.env.E2E_QUARANTINE === 'only';
 
 const port = 18080;
 const exe = process.platform === 'win32' ? '.exe' : '';
-const binary = process.env.E2E_BINARY ?? `bin/ci-runners-pool${exe}`;
+const binary = process.env.E2E_BINARY ?? `bin/crsp${exe}`;
 
 export default defineConfig({
   testDir: './e2e/tests',
@@ -64,9 +64,9 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 30_000,
     env: {
-      CRP_LISTEN_ADDR: `127.0.0.1:${port}`,
-      CRP_DATA_DIR: resolve('test-results', 'e2e-data'),
-      CRP_LOG_LEVEL: 'warn',
+      CRSP_LISTEN_ADDR: `127.0.0.1:${port}`,
+      CRSP_DATA_DIR: resolve('test-results', 'e2e-data'),
+      CRSP_LOG_LEVEL: 'warn',
     },
   },
   ...(only

@@ -1,4 +1,4 @@
-// Command ci-runners-pool manages shared self-hosted GitHub Actions runners.
+// Command crsp manages shared self-hosted GitHub Actions runners.
 //
 // Modes: controller (config, GitHub, scheduling, web app and API), agent (runs
 // on every machine and dials the controller), version. The tray mode comes later.
@@ -17,10 +17,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/luis-mc/ci-runners-pool/internal/api"
-	"github.com/luis-mc/ci-runners-pool/internal/config"
-	"github.com/luis-mc/ci-runners-pool/internal/store"
-	"github.com/luis-mc/ci-runners-pool/internal/webui"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
 )
 
 // version is set at build time: -ldflags "-X main.version=1.2.3".
@@ -54,14 +54,14 @@ func run(args []string, stdout, stderr io.Writer) int {
 }
 
 func usage(w io.Writer) {
-	_, _ = fmt.Fprint(w, `Usage: ci-runners-pool <command>
+	_, _ = fmt.Fprint(w, `Usage: crsp <command>
 
 Commands:
   controller   run the controller: web console, API and scheduling
   agent        run the agent on a runner machine (not implemented yet)
   version      print the version
 
-Configuration is read from CRP_* environment variables; see .env.example.
+Configuration is read from CRSP_* environment variables; see .env.example.
 `)
 }
 
@@ -78,7 +78,7 @@ func versionString() string {
 	if info, ok := debug.ReadBuildInfo(); ok {
 		v += " (" + info.GoVersion + ")"
 	}
-	return "ci-runners-pool " + v
+	return "crsp " + v
 }
 
 func runController() error {

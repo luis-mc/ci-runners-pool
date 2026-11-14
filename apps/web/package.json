@@ -11,8 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@crp/contract": "workspace:*",
-    "@crp/ui": "workspace:*",
+    "@crsp/contract": "workspace:*",
+    "@crsp/ui": "workspace:*",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-router-dom": "7.18.5"

@@ -389,7 +389,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x12sampled_at_unix_ms\x18\x01 \x01(\x03R\x0fsampledAtUnixMs2\x95\x01\n" +
 	"\fAgentService\x12A\n" +
 	"\bRegister\x12\x19.agent.v1.RegisterRequest\x1a\x1a.agent.v1.RegisterResponse\x12B\n" +
-	"\aSession\x12\x18.agent.v1.SessionRequest\x1a\x19.agent.v1.SessionResponse(\x010\x01BBZ@github.com/luis-mc/ci-runners-pool/internal/gen/agent/v1;agentv1b\x06proto3"
+	"\aSession\x12\x18.agent.v1.SessionRequest\x1a\x19.agent.v1.SessionResponse(\x010\x01BIZGgithub.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1;agentv1b\x06proto3"
 
 var (
 	file_agent_v1_agent_proto_rawDescOnce sync.Once

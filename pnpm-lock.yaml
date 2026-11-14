@@ -38,10 +38,10 @@ importers:
 
   apps/web:
     dependencies:
-      '@crp/contract':
+      '@crsp/contract':
         specifier: workspace:*
         version: link:../../packages/contract
-      '@crp/ui':
+      '@crsp/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       react:

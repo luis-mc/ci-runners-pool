@@ -7,7 +7,7 @@ name: CI
 #   verify   lint, format, types, unit + integration + route-coverage tests, codegen
 #            drift, dependency scan, secret scan over full history, layer boundaries
 #   test-os  go test on Windows and macOS
-#   build    the six release targets (build.yml); artifacts ci-runners-pool-<os>-<arch>
+#   build    the six release targets (build.yml); artifacts crsp-<os>-<arch>
 #   e2e      Playwright against the built Linux binary
 #
 # Documentation-only changes skip this workflow; dev-standards.yml checks them.
@@ -193,15 +193,15 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: ci-runners-pool-linux-amd64
+          name: crsp-linux-amd64
           path: bin
-      - run: chmod +x bin/ci-runners-pool
+      - run: chmod +x bin/crsp
       - run: pnpm exec playwright install --with-deps chromium
 
       # Required. No retries, no continue-on-error (STACKSPEC 11.2, 11.3).
       - name: Playwright (gating specs)
         env:
-          E2E_BINARY: bin/ci-runners-pool
+          E2E_BINARY: bin/crsp
         run: pnpm exec playwright test
 
       # Quarantined specs (e2e/quarantine.json) still run and report, but cannot
@@ -209,7 +209,7 @@ jobs:
       - name: Playwright (quarantined specs, non-blocking)
         continue-on-error: true
         env:
-          E2E_BINARY: bin/ci-runners-pool
+          E2E_BINARY: bin/crsp
           E2E_QUARANTINE: only
         run: pnpm exec playwright test
 

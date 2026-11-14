@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: CI Runners Pool API
+  title: CI Runners Shared Pool API
   version: 0.0.0
   description: >-
     Controller API. Every operation must declare `x-auth` and `x-rate-limit`
