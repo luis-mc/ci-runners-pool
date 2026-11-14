@@ -24,3 +24,10 @@ test-results/
 .vitest/
 .github/workflows/dev-standards.yml
 .github/pull_request_template.md
+# luismc-delivery: installer copies (do not edit this block)
+.delivery/ci-install-base/
+scripts/delivery/ci-install.example.json
+scripts/delivery/ci-shards.example.json
+scripts/delivery/windows-build-tools.example.json
+scripts/delivery/windows-real.example.json
+# luismc-delivery: end of installer copies
