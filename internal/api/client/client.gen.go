@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"go.yaml.in/yaml/v3"
+
 	"github.com/oapi-codegen/runtime"
 )
 
@@ -182,6 +184,48 @@ func (e BackupDrillState) Valid() bool {
 	}
 }
 
+// Defines values for CacheState.
+const (
+	CacheStateReady  CacheState = "ready"
+	CacheStateWiping CacheState = "wiping"
+)
+
+// Valid indicates whether the value is a known member of the CacheState enum.
+func (e CacheState) Valid() bool {
+	switch e {
+	case CacheStateReady:
+		return true
+	case CacheStateWiping:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CacheKind.
+const (
+	ActionsCache   CacheKind = "actions_cache"
+	GitMirror      CacheKind = "git_mirror"
+	RegistryMirror CacheKind = "registry_mirror"
+	ToolCache      CacheKind = "tool_cache"
+)
+
+// Valid indicates whether the value is a known member of the CacheKind enum.
+func (e CacheKind) Valid() bool {
+	switch e {
+	case ActionsCache:
+		return true
+	case GitMirror:
+		return true
+	case RegistryMirror:
+		return true
+	case ToolCache:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DoctorRunState.
 const (
 	DoctorRunStateDone    DoctorRunState = "done"
@@ -257,6 +301,27 @@ const (
 func (e HealthStatus) Valid() bool {
 	switch e {
 	case HealthStatusOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ImageState.
+const (
+	ImageStateFailed     ImageState = "failed"
+	ImageStateReady      ImageState = "ready"
+	ImageStateRebuilding ImageState = "rebuilding"
+)
+
+// Valid indicates whether the value is a known member of the ImageState enum.
+func (e ImageState) Valid() bool {
+	switch e {
+	case ImageStateFailed:
+		return true
+	case ImageStateReady:
+		return true
+	case ImageStateRebuilding:
 		return true
 	default:
 		return false
@@ -397,12 +462,14 @@ func (e JoinCodeState) Valid() bool {
 
 // Defines values for MachineChangeKind.
 const (
-	MachineChangeKindAgentUpdate    MachineChangeKind = "agent_update"
-	MachineChangeKindDrain          MachineChangeKind = "drain"
-	MachineChangeKindRemove         MachineChangeKind = "remove"
-	MachineChangeKindRunnerUpdate   MachineChangeKind = "runner_update"
-	MachineChangeKindServiceRestart MachineChangeKind = "service_restart"
-	MachineChangeKindSettings       MachineChangeKind = "settings"
+	MachineChangeKindAgentUpdate      MachineChangeKind = "agent_update"
+	MachineChangeKindControllerUpdate MachineChangeKind = "controller_update"
+	MachineChangeKindDrain            MachineChangeKind = "drain"
+	MachineChangeKindImageRebuild     MachineChangeKind = "image_rebuild"
+	MachineChangeKindRemove           MachineChangeKind = "remove"
+	MachineChangeKindRunnerUpdate     MachineChangeKind = "runner_update"
+	MachineChangeKindServiceRestart   MachineChangeKind = "service_restart"
+	MachineChangeKindSettings         MachineChangeKind = "settings"
 )
 
 // Valid indicates whether the value is a known member of the MachineChangeKind enum.
@@ -410,7 +477,11 @@ func (e MachineChangeKind) Valid() bool {
 	switch e {
 	case MachineChangeKindAgentUpdate:
 		return true
+	case MachineChangeKindControllerUpdate:
+		return true
 	case MachineChangeKindDrain:
+		return true
+	case MachineChangeKindImageRebuild:
 		return true
 	case MachineChangeKindRemove:
 		return true
@@ -527,6 +598,96 @@ func (e MachineState) Valid() bool {
 	case MachineStateDraining:
 		return true
 	case MachineStateRemoving:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationChannelScope.
+const (
+	Personal NotificationChannelScope = "personal"
+	Pool     NotificationChannelScope = "pool"
+)
+
+// Valid indicates whether the value is a known member of the NotificationChannelScope enum.
+func (e NotificationChannelScope) Valid() bool {
+	switch e {
+	case Personal:
+		return true
+	case Pool:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationEvent.
+const (
+	NotificationEventDiskLow         NotificationEvent = "disk.low"
+	NotificationEventDoctorFinding   NotificationEvent = "doctor.finding"
+	NotificationEventJobWaiting      NotificationEvent = "job.waiting"
+	NotificationEventMachineOffline  NotificationEvent = "machine.offline"
+	NotificationEventRunnerOutdated  NotificationEvent = "runner.outdated"
+	NotificationEventUpdateAvailable NotificationEvent = "update.available"
+)
+
+// Valid indicates whether the value is a known member of the NotificationEvent enum.
+func (e NotificationEvent) Valid() bool {
+	switch e {
+	case NotificationEventDiskLow:
+		return true
+	case NotificationEventDoctorFinding:
+		return true
+	case NotificationEventJobWaiting:
+		return true
+	case NotificationEventMachineOffline:
+		return true
+	case NotificationEventRunnerOutdated:
+		return true
+	case NotificationEventUpdateAvailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationKind.
+const (
+	Desktop NotificationKind = "desktop"
+	Email   NotificationKind = "email"
+	Webhook NotificationKind = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the NotificationKind enum.
+func (e NotificationKind) Valid() bool {
+	switch e {
+	case Desktop:
+		return true
+	case Email:
+		return true
+	case Webhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationSeverity.
+const (
+	NotificationSeverityError   NotificationSeverity = "error"
+	NotificationSeverityInfo    NotificationSeverity = "info"
+	NotificationSeverityWarning NotificationSeverity = "warning"
+)
+
+// Valid indicates whether the value is a known member of the NotificationSeverity enum.
+func (e NotificationSeverity) Valid() bool {
+	switch e {
+	case NotificationSeverityError:
+		return true
+	case NotificationSeverityInfo:
+		return true
+	case NotificationSeverityWarning:
 		return true
 	default:
 		return false
@@ -1010,6 +1171,66 @@ func (e Theme) Valid() bool {
 	}
 }
 
+// Defines values for UpdatePartPart.
+const (
+	UpdatePartPartAgent      UpdatePartPart = "agent"
+	UpdatePartPartController UpdatePartPart = "controller"
+)
+
+// Valid indicates whether the value is a known member of the UpdatePartPart enum.
+func (e UpdatePartPart) Valid() bool {
+	switch e {
+	case UpdatePartPartAgent:
+		return true
+	case UpdatePartPartController:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdatePartState.
+const (
+	UpdatePartStateAvailable UpdatePartState = "available"
+	UpdatePartStateCurrent   UpdatePartState = "current"
+	UpdatePartStateFailed    UpdatePartState = "failed"
+	UpdatePartStateUpdating  UpdatePartState = "updating"
+	UpdatePartStateWaiting   UpdatePartState = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the UpdatePartState enum.
+func (e UpdatePartState) Valid() bool {
+	switch e {
+	case UpdatePartStateAvailable:
+		return true
+	case UpdatePartStateCurrent:
+		return true
+	case UpdatePartStateFailed:
+		return true
+	case UpdatePartStateUpdating:
+		return true
+	case UpdatePartStateWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateStatusChannel.
+const (
+	Stable UpdateStatusChannel = "stable"
+)
+
+// Valid indicates whether the value is a known member of the UpdateStatusChannel enum.
+func (e UpdateStatusChannel) Valid() bool {
+	switch e {
+	case Stable:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for VariableStatus.
 const (
 	VariableStatusMissing    VariableStatus = "missing"
@@ -1061,6 +1282,63 @@ func (e WaitReason) Valid() bool {
 	case WaitReasonRepositoryParallelLimit:
 		return true
 	case WaitReasonUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportAuditEventsParamsFormat.
+const (
+	ExportAuditEventsParamsFormatCsv  ExportAuditEventsParamsFormat = "csv"
+	ExportAuditEventsParamsFormatJson ExportAuditEventsParamsFormat = "json"
+)
+
+// Valid indicates whether the value is a known member of the ExportAuditEventsParamsFormat enum.
+func (e ExportAuditEventsParamsFormat) Valid() bool {
+	switch e {
+	case ExportAuditEventsParamsFormatCsv:
+		return true
+	case ExportAuditEventsParamsFormatJson:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportJobsParamsFormat.
+const (
+	ExportJobsParamsFormatCsv  ExportJobsParamsFormat = "csv"
+	ExportJobsParamsFormatJson ExportJobsParamsFormat = "json"
+)
+
+// Valid indicates whether the value is a known member of the ExportJobsParamsFormat enum.
+func (e ExportJobsParamsFormat) Valid() bool {
+	switch e {
+	case ExportJobsParamsFormatCsv:
+		return true
+	case ExportJobsParamsFormatJson:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportJobsParamsState.
+const (
+	ExportJobsParamsStateDone    ExportJobsParamsState = "done"
+	ExportJobsParamsStateQueued  ExportJobsParamsState = "queued"
+	ExportJobsParamsStateRunning ExportJobsParamsState = "running"
+)
+
+// Valid indicates whether the value is a known member of the ExportJobsParamsState enum.
+func (e ExportJobsParamsState) Valid() bool {
+	switch e {
+	case ExportJobsParamsStateDone:
+		return true
+	case ExportJobsParamsStateQueued:
+		return true
+	case ExportJobsParamsStateRunning:
 		return true
 	default:
 		return false
@@ -1214,6 +1492,30 @@ type BackupDrillState string
 type BackupList struct {
 	Items     []Backup     `json:"items"`
 	LastDrill *BackupDrill `json:"last_drill,omitempty"`
+}
+
+// Cache One cache on one machine (caches R5.8 to R5.14).
+type Cache struct {
+	// CapBytes Absent when the cache has no cap.
+	CapBytes    *int64     `json:"cap_bytes,omitempty"`
+	EntryCount  *int       `json:"entry_count,omitempty"`
+	Id          string     `json:"id"`
+	Kind        CacheKind  `json:"kind"`
+	LastWipedAt *time.Time `json:"last_wiped_at,omitempty"`
+	MachineId   string     `json:"machine_id"`
+	SizeBytes   int64      `json:"size_bytes"`
+	State       CacheState `json:"state"`
+}
+
+// CacheState defines model for Cache.State.
+type CacheState string
+
+// CacheKind defines model for CacheKind.
+type CacheKind string
+
+// CacheList defines model for CacheList.
+type CacheList struct {
+	Items []Cache `json:"items"`
 }
 
 // CliLoginConfig defines model for CliLoginConfig.
@@ -1393,6 +1695,44 @@ type Health struct {
 
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
+
+// Image One image on one machine (runners R5.32 and R5.33).
+type Image struct {
+	// Base The base image.
+	Base    string     `json:"base"`
+	BuiltAt *time.Time `json:"built_at,omitempty"`
+
+	// Error Why the last build failed; the old image keeps serving.
+	Error     *string      `json:"error,omitempty"`
+	Id        string       `json:"id"`
+	Layers    []ImageLayer `json:"layers"`
+	MachineId string       `json:"machine_id"`
+
+	// NeedsRebuild The saved layers differ from the built ones.
+	NeedsRebuild *bool `json:"needs_rebuild,omitempty"`
+
+	// Newest True for the newest image kept for this machine and OS.
+	Newest    bool       `json:"newest"`
+	Os        OS         `json:"os"`
+	SizeBytes int64      `json:"size_bytes"`
+	State     ImageState `json:"state"`
+}
+
+// ImageState defines model for Image.State.
+type ImageState string
+
+// ImageLayer defines model for ImageLayer.
+type ImageLayer struct {
+	Enabled   bool   `json:"enabled"`
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	SizeBytes int64  `json:"size_bytes"`
+}
+
+// ImageList defines model for ImageList.
+type ImageList struct {
+	Items []Image `json:"items"`
+}
 
 // InstallCommands defines model for InstallCommands.
 type InstallCommands struct {
@@ -1664,6 +2004,108 @@ type MachineSettingsUpdateGateOnTimeout string
 
 // MachineState active and drained are set by the user; draining while a drain waits.
 type MachineState string
+
+// NotificationChannel One channel. No secret is returned: `has_secret` and `smtp.has_password` say only whether one is set.
+type NotificationChannel struct {
+	// Address Email address (kind email).
+	Address *string             `json:"address,omitempty"`
+	Enabled bool                `json:"enabled"`
+	Events  []NotificationEvent `json:"events"`
+
+	// HasSecret A webhook signing secret is set. Always false for other kinds.
+	HasSecret  bool             `json:"has_secret"`
+	Id         string           `json:"id"`
+	Kind       NotificationKind `json:"kind"`
+	LastTestAt *time.Time       `json:"last_test_at,omitempty"`
+	LastTestOk *bool            `json:"last_test_ok,omitempty"`
+
+	// MinSeverity The lowest doctor severity the channel gets (notifications R5.4).
+	MinSeverity NotificationSeverity `json:"min_severity"`
+	Name        string               `json:"name"`
+
+	// Scope Email and desktop are personal; a webhook is pool-wide.
+	Scope NotificationChannelScope `json:"scope"`
+
+	// Smtp How an email channel sends. The password is never returned.
+	Smtp *SmtpSettings `json:"smtp,omitempty"`
+
+	// Url HTTPS URL (kind webhook).
+	Url *string `json:"url,omitempty"`
+}
+
+// NotificationChannelScope Email and desktop are personal; a webhook is pool-wide.
+type NotificationChannelScope string
+
+// NotificationChannelInput defines model for NotificationChannelInput.
+type NotificationChannelInput struct {
+	Address *string             `json:"address,omitempty"`
+	Enabled *bool               `json:"enabled,omitempty"`
+	Events  []NotificationEvent `json:"events"`
+	Kind    NotificationKind    `json:"kind"`
+
+	// MinSeverity The lowest doctor severity the channel gets (notifications R5.4).
+	MinSeverity *NotificationSeverity `json:"min_severity,omitempty"`
+	Name        string                `json:"name"`
+
+	// Secret Webhook signing secret. Write-only.
+	Secret *string `json:"secret,omitempty"`
+	Smtp   *struct {
+		From *string `json:"from,omitempty"`
+		Host string  `json:"host"`
+
+		// Password SMTP password. Write-only.
+		Password *string `json:"password,omitempty"`
+		Port     int     `json:"port"`
+		Username *string `json:"username,omitempty"`
+	} `json:"smtp,omitempty"`
+	Url *string `json:"url,omitempty"`
+}
+
+// NotificationChannelList defines model for NotificationChannelList.
+type NotificationChannelList struct {
+	Items []NotificationChannel `json:"items"`
+}
+
+// NotificationChannelUpdate Every field is optional; `kind` cannot change.
+type NotificationChannelUpdate struct {
+	Address *string              `json:"address,omitempty"`
+	Enabled *bool                `json:"enabled,omitempty"`
+	Events  *[]NotificationEvent `json:"events,omitempty"`
+
+	// MinSeverity The lowest doctor severity the channel gets (notifications R5.4).
+	MinSeverity *NotificationSeverity `json:"min_severity,omitempty"`
+	Name        *string               `json:"name,omitempty"`
+
+	// Secret New signing secret; an empty string removes it.
+	Secret *string `json:"secret,omitempty"`
+	Smtp   *struct {
+		From *string `json:"from,omitempty"`
+		Host *string `json:"host,omitempty"`
+
+		// Password New SMTP password; an empty string removes it.
+		Password *string `json:"password,omitempty"`
+		Port     *int    `json:"port,omitempty"`
+		Username *string `json:"username,omitempty"`
+	} `json:"smtp,omitempty"`
+	Url *string `json:"url,omitempty"`
+}
+
+// NotificationEvent The stable event types of notifications R5.1.
+type NotificationEvent string
+
+// NotificationKind defines model for NotificationKind.
+type NotificationKind string
+
+// NotificationSeverity The lowest doctor severity the channel gets (notifications R5.4).
+type NotificationSeverity string
+
+// NotificationTestResult defines model for NotificationTestResult.
+type NotificationTestResult struct {
+	// Message What happened, or why delivery failed.
+	Message *string   `json:"message,omitempty"`
+	Ok      bool      `json:"ok"`
+	SentAt  time.Time `json:"sent_at"`
+}
 
 // OS defines model for OS.
 type OS string
@@ -1993,6 +2435,15 @@ type SlotStatus struct {
 	Tickets   []Ticket `json:"tickets"`
 }
 
+// SmtpSettings How an email channel sends. The password is never returned.
+type SmtpSettings struct {
+	From        *string `json:"from,omitempty"`
+	HasPassword bool    `json:"has_password"`
+	Host        string  `json:"host"`
+	Port        int     `json:"port"`
+	Username    *string `json:"username,omitempty"`
+}
+
 // Staleness Set when GitHub did not answer and the last copy is shown (UX-53).
 type Staleness struct {
 	AsOf  *time.Time `json:"as_of,omitempty"`
@@ -2013,6 +2464,12 @@ type StartAppManifestRequest struct {
 
 // StartAppManifestRequestAccountType defines model for StartAppManifestRequest.AccountType.
 type StartAppManifestRequestAccountType string
+
+// StartUpdateRequest defines model for StartUpdateRequest.
+type StartUpdateRequest struct {
+	// MachineIds Only these machines. Absent means the controller, then every agent.
+	MachineIds *[]string `json:"machine_ids,omitempty"`
+}
 
 // Theme defines model for Theme.
 type Theme string
@@ -2036,6 +2493,65 @@ type Ticket struct {
 	// WaitReason observability R5.5.
 	WaitReason *WaitReason `json:"wait_reason,omitempty"`
 }
+
+// UpdateImageLayersRequest defines model for UpdateImageLayersRequest.
+type UpdateImageLayersRequest struct {
+	// EnabledLayers Ids of the layers that are on. Every other layer is off.
+	EnabledLayers []string `json:"enabled_layers"`
+}
+
+// UpdatePart One part that runs a version of crsp (the controller or an agent).
+type UpdatePart struct {
+	AvailableVersion *string         `json:"available_version,omitempty"`
+	Error            *string         `json:"error,omitempty"`
+	MachineId        string          `json:"machine_id"`
+	MachineName      *string         `json:"machine_name,omitempty"`
+	Part             UpdatePartPart  `json:"part"`
+	State            UpdatePartState `json:"state"`
+	Version          string          `json:"version"`
+
+	// WaitingFor Jobs the drain waits for.
+	WaitingFor *[]Job `json:"waiting_for,omitempty"`
+}
+
+// UpdatePartPart defines model for UpdatePart.Part.
+type UpdatePartPart string
+
+// UpdatePartState defines model for UpdatePart.State.
+type UpdatePartState string
+
+// UpdatePolicy operations R5.11, R5.14 and R5.15. The channel is `stable` and cannot change.
+type UpdatePolicy struct {
+	// AutoUpdate On installs a stable build in its window after the drain; off asks first.
+	AutoUpdate          *bool `json:"auto_update,omitempty"`
+	CheckIntervalHours  *int  `json:"check_interval_hours,omitempty"`
+	DrainTimeoutMinutes *int  `json:"drain_timeout_minutes,omitempty"`
+}
+
+// UpdateRun defines model for UpdateRun.
+type UpdateRun struct {
+	Changes []MachineChange `json:"changes"`
+	Version *string         `json:"version,omitempty"`
+}
+
+// UpdateStatus defines model for UpdateStatus.
+type UpdateStatus struct {
+	// AvailableVersion The newest stable build offered, absent when the pool is current.
+	AvailableVersion *string             `json:"available_version,omitempty"`
+	Channel          UpdateStatusChannel `json:"channel"`
+	LastCheckAt      *time.Time          `json:"last_check_at,omitempty"`
+	NextCheckAt      *time.Time          `json:"next_check_at,omitempty"`
+	Parts            []UpdatePart        `json:"parts"`
+
+	// Policy operations R5.11, R5.14 and R5.15. The channel is `stable` and cannot change.
+	Policy UpdatePolicy `json:"policy"`
+
+	// RunnerVersion The pinned GitHub runner version (operations R5.19).
+	RunnerVersion *string `json:"runner_version,omitempty"`
+}
+
+// UpdateStatusChannel defines model for UpdateStatus.Channel.
+type UpdateStatusChannel string
 
 // UpdateUserRoleRequest defines model for UpdateUserRoleRequest.
 type UpdateUserRoleRequest struct {
@@ -2070,8 +2586,14 @@ type WaitReason string
 // BackupId defines model for BackupId.
 type BackupId = string
 
+// CacheId defines model for CacheId.
+type CacheId = string
+
 // ChangeId defines model for ChangeId.
 type ChangeId = string
+
+// ChannelId defines model for ChannelId.
+type ChannelId = string
 
 // Confirm defines model for Confirm.
 type Confirm = bool
@@ -2081,6 +2603,9 @@ type Cursor = string
 
 // From defines model for From.
 type From = time.Time
+
+// ImageId defines model for ImageId.
+type ImageId = string
 
 // JobId defines model for JobId.
 type JobId = int64
@@ -2124,6 +2649,9 @@ type UserId = int64
 // Error defines model for Error.
 type Error = ErrorEnvelope
 
+// ExportFile defines model for ExportFile.
+type ExportFile = string
+
 // ListAuditEventsParams defines parameters for ListAuditEvents.
 type ListAuditEventsParams struct {
 	Actor      *string `form:"actor,omitempty" json:"actor,omitempty"`
@@ -2144,6 +2672,18 @@ type RestoreBackupParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// ListCachesParams defines parameters for ListCaches.
+type ListCachesParams struct {
+	MachineId *string    `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+	Kind      *CacheKind `form:"kind,omitempty" json:"kind,omitempty"`
+}
+
+// WipeCacheParams defines parameters for WipeCache.
+type WipeCacheParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // ListDoctorFindingsParams defines parameters for ListDoctorFindings.
 type ListDoctorFindingsParams struct {
 	Severity *Severity `form:"severity,omitempty" json:"severity,omitempty"`
@@ -2154,6 +2694,38 @@ type ListDoctorFindingsParams struct {
 type StreamEventsParams struct {
 	LastEventID *string `json:"Last-Event-ID,omitempty"`
 }
+
+// ExportAuditEventsParams defines parameters for ExportAuditEvents.
+type ExportAuditEventsParams struct {
+	Format     *ExportAuditEventsParamsFormat `form:"format,omitempty" json:"format,omitempty"`
+	Actor      *string                        `form:"actor,omitempty" json:"actor,omitempty"`
+	Action     *string                        `form:"action,omitempty" json:"action,omitempty"`
+	TargetType *string                        `form:"target_type,omitempty" json:"target_type,omitempty"`
+	TargetId   *string                        `form:"target_id,omitempty" json:"target_id,omitempty"`
+	From       *From                          `form:"from,omitempty" json:"from,omitempty"`
+	To         *To                            `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// ExportAuditEventsParamsFormat defines parameters for ExportAuditEvents.
+type ExportAuditEventsParamsFormat string
+
+// ExportJobsParams defines parameters for ExportJobs.
+type ExportJobsParams struct {
+	Format       *ExportJobsParamsFormat `form:"format,omitempty" json:"format,omitempty"`
+	State        *ExportJobsParamsState  `form:"state,omitempty" json:"state,omitempty"`
+	RepositoryId *int64                  `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+	MachineId    *string                 `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+	Backend      *string                 `form:"backend,omitempty" json:"backend,omitempty"`
+	Result       *JobResult              `form:"result,omitempty" json:"result,omitempty"`
+	From         *From                   `form:"from,omitempty" json:"from,omitempty"`
+	To           *To                     `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// ExportJobsParamsFormat defines parameters for ExportJobs.
+type ExportJobsParamsFormat string
+
+// ExportJobsParamsState defines parameters for ExportJobs.
+type ExportJobsParamsState string
 
 // ListRepositoriesParams defines parameters for ListRepositories.
 type ListRepositoriesParams struct {
@@ -2170,6 +2742,18 @@ type ListRepositoriesParams struct {
 
 // ListRepositoriesParamsPool defines parameters for ListRepositories.
 type ListRepositoriesParamsPool string
+
+// ListImagesParams defines parameters for ListImages.
+type ListImagesParams struct {
+	MachineId *string `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+	Os        *OS     `form:"os,omitempty" json:"os,omitempty"`
+}
+
+// RebuildImageParams defines parameters for RebuildImage.
+type RebuildImageParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
 
 // ListJobsParams defines parameters for ListJobs.
 type ListJobsParams struct {
@@ -2207,6 +2791,12 @@ type ResumeMachineParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// DeleteNotificationChannelParams defines parameters for DeleteNotificationChannel.
+type DeleteNotificationChannelParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // ListRunnersParams defines parameters for ListRunners.
 type ListRunnersParams struct {
 	MachineId *string      `form:"machine_id,omitempty" json:"machine_id,omitempty"`
@@ -2217,6 +2807,12 @@ type ListRunnersParams struct {
 
 // DeleteRunnerParams defines parameters for DeleteRunner.
 type DeleteRunnerParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
+// StartUpdateParams defines parameters for StartUpdate.
+type StartUpdateParams struct {
 	// Confirm The yes to a question card that named what goes (UX-62).
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
@@ -2262,6 +2858,9 @@ type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
 // RunDoctorJSONRequestBody defines body for RunDoctor for application/json ContentType.
 type RunDoctorJSONRequestBody = DoctorScope
 
+// UpdateImageLayersJSONRequestBody defines body for UpdateImageLayers for application/json ContentType.
+type UpdateImageLayersJSONRequestBody = UpdateImageLayersRequest
+
 // CreateJoinCodeJSONRequestBody defines body for CreateJoinCode for application/json ContentType.
 type CreateJoinCodeJSONRequestBody = CreateJoinCodeRequest
 
@@ -2279,6 +2878,12 @@ type FreeStaleSlotsJSONRequestBody = FreeSlotsRequest
 
 // UpdatePreferencesJSONRequestBody defines body for UpdatePreferences for application/json ContentType.
 type UpdatePreferencesJSONRequestBody = Preferences
+
+// CreateNotificationChannelJSONRequestBody defines body for CreateNotificationChannel for application/json ContentType.
+type CreateNotificationChannelJSONRequestBody = NotificationChannelInput
+
+// UpdateNotificationChannelJSONRequestBody defines body for UpdateNotificationChannel for application/json ContentType.
+type UpdateNotificationChannelJSONRequestBody = NotificationChannelUpdate
 
 // UpdateRepositoryPolicyJSONRequestBody defines body for UpdateRepositoryPolicy for application/json ContentType.
 type UpdateRepositoryPolicyJSONRequestBody = RepositoryPolicyUpdate
@@ -2309,6 +2914,12 @@ type StartAppManifestJSONRequestBody = StartAppManifestRequest
 
 // RedeemSetupLinkJSONRequestBody defines body for RedeemSetupLink for application/json ContentType.
 type RedeemSetupLinkJSONRequestBody = RedeemSetupLinkRequest
+
+// UpdateUpdatePolicyJSONRequestBody defines body for UpdateUpdatePolicy for application/json ContentType.
+type UpdateUpdatePolicyJSONRequestBody = UpdatePolicy
+
+// StartUpdateJSONRequestBody defines body for StartUpdate for application/json ContentType.
+type StartUpdateJSONRequestBody = StartUpdateRequest
 
 // AddUserJSONRequestBody defines body for AddUser for application/json ContentType.
 type AddUserJSONRequestBody = AddUserRequest
@@ -2488,6 +3099,20 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/ca.pem (the `GetCaCertificate` operationId).
 	GetCaCertificate(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListCaches Caches per machine with size against cap
+	//
+	// web-console R5.25, caches R5.8 to R5.14. The Actions cache, git mirrors, the tool cache and the registry mirror.
+	//
+	// Corresponds with GET /api/v1/caches (the `ListCaches` operationId).
+	ListCaches(ctx context.Context, params *ListCachesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// WipeCache Empty one cache
+	//
+	// web-console R5.25 and R5.30. Without `confirm=true` it answers 409 needs_confirmation naming the cache, its size and the jobs that use it. An entry being read or written is not removed.
+	//
+	// Corresponds with POST /api/v1/caches/{cacheId}/wipe (the `WipeCache` operationId).
+	WipeCache(ctx context.Context, cacheId CacheId, params *WipeCacheParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListDoctorFindings The latest finding per check and subject
 	//
 	// Corresponds with GET /api/v1/doctor/findings (the `ListDoctorFindings` operationId).
@@ -2523,6 +3148,27 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/events (the `StreamEvents` operationId).
 	StreamEvents(ctx context.Context, params *StreamEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ExportAuditEvents Export the audit log as a file
+	//
+	// web-console 4.9, observability R5.24 to R5.27. Takes the filters of listAuditEvents and holds every matching row, newest first. Named `crsp-audit-<stamp>.csv` or `.json`. Summaries are redacted as in the list.
+	//
+	// Corresponds with GET /api/v1/exports/audit (the `ExportAuditEvents` operationId).
+	ExportAuditEvents(ctx context.Context, params *ExportAuditEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ExportConfig Export the configuration without any secret
+	//
+	// web-console R5.29, operations R5.26. A YAML file with no token, key, password or signing secret; a secret is named only as set or not set. Named `crsp-config-<stamp>.yaml`.
+	//
+	// Corresponds with GET /api/v1/exports/config (the `ExportConfig` operationId).
+	ExportConfig(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ExportJobs Export the job history as a file
+	//
+	// web-console R5.24, observability R5.7 to R5.11. Takes the filters of listJobs and holds every matching row (no paging), in the order the list shows. The file is named for what it holds then the stamp, such as `crsp-jobs-2026-11-14-1005.csv`, and says so in `Content-Disposition`.
+	//
+	// Corresponds with GET /api/v1/exports/jobs (the `ExportJobs` operationId).
+	ExportJobs(ctx context.Context, params *ExportJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	//
 	// web-console 4.3.
@@ -2543,6 +3189,43 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/github/repositories (the `ListRepositories` operationId).
 	ListRepositories(ctx context.Context, params *ListRepositoriesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListImages Images per machine and OS, with layers and sizes
+	//
+	// web-console R5.25, runners R5.32 and R5.33.
+	//
+	// Corresponds with GET /api/v1/images (the `ListImages` operationId).
+	ListImages(ctx context.Context, params *ListImagesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetImage One image with its layers
+	//
+	// Corresponds with GET /api/v1/images/{imageId} (the `GetImage` operationId).
+	GetImage(ctx context.Context, imageId ImageId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateImageLayersWithBody Turn tool layers on or off for an image
+	//
+	// web-console R5.25, runners R5.32. Saves the layer choice; the image keeps serving until rebuildImage. `needs_rebuild` on the answer says a rebuild is due.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/images/{imageId}/layers (the `UpdateImageLayers` operationId).
+	UpdateImageLayersWithBody(ctx context.Context, imageId ImageId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateImageLayers Turn tool layers on or off for an image
+	//
+	// web-console R5.25, runners R5.32. Saves the layer choice; the image keeps serving until rebuildImage. `needs_rebuild` on the answer says a rebuild is due.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/images/{imageId}/layers (the `UpdateImageLayers` operationId).
+	UpdateImageLayers(ctx context.Context, imageId ImageId, body UpdateImageLayersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RebuildImage Rebuild an image after a drain
+	//
+	// web-console R5.25 and R5.30, runners R5.35. Without `confirm=true` it answers 409 needs_confirmation naming the machine, the runners and the jobs it waits for. With it, the machine drains and a MachineChange of kind `image_rebuild` is returned; watch it with getMachineChange on `machine_id` and `change.progress` events. A build failure keeps the old image.
+	//
+	// Corresponds with POST /api/v1/images/{imageId}/rebuild (the `RebuildImage` operationId).
+	RebuildImage(ctx context.Context, imageId ImageId, params *RebuildImageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetInstallCommand The install command per OS, without a join code
 	//
@@ -2749,6 +3432,63 @@ type ClientInterface interface {
 	// Corresponds with PUT /api/v1/me/preferences (the `UpdatePreferences` operationId).
 	UpdatePreferences(ctx context.Context, body UpdatePreferencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListNotificationChannels Notification channels the caller may see
+	//
+	// web-console 4.9, notifications R5.6 to R5.9. Personal channels (email, desktop) are the caller's own; webhooks are pool-wide. A secret is never returned, only whether one is set.
+	//
+	// Corresponds with GET /api/v1/notification-channels (the `ListNotificationChannels` operationId).
+	ListNotificationChannels(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateNotificationChannelWithBody Add a notification channel
+	//
+	// notifications R5.7 to R5.9 and R5.19. Any signed-in user adds a personal channel (email, desktop); a webhook needs admin or owner and an HTTPS URL, else 403 forbidden. Secrets in the request are write-only.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/notification-channels (the `CreateNotificationChannel` operationId).
+	CreateNotificationChannelWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateNotificationChannel Add a notification channel
+	//
+	// notifications R5.7 to R5.9 and R5.19. Any signed-in user adds a personal channel (email, desktop); a webhook needs admin or owner and an HTTPS URL, else 403 forbidden. Secrets in the request are write-only.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/notification-channels (the `CreateNotificationChannel` operationId).
+	CreateNotificationChannel(ctx context.Context, body CreateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteNotificationChannel Remove a notification channel
+	//
+	// Without `confirm=true` it answers 409 needs_confirmation naming the channel and the events it carries (UX-62).
+	//
+	// Corresponds with DELETE /api/v1/notification-channels/{channelId} (the `DeleteNotificationChannel` operationId).
+	DeleteNotificationChannel(ctx context.Context, channelId ChannelId, params *DeleteNotificationChannelParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateNotificationChannelWithBody Change a notification channel
+	//
+	// notifications R5.7 to R5.9. The kind never changes. A field left out keeps its value; a secret left out stays, a secret sent as an empty string is removed.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PATCH /api/v1/notification-channels/{channelId} (the `UpdateNotificationChannel` operationId).
+	UpdateNotificationChannelWithBody(ctx context.Context, channelId ChannelId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateNotificationChannel Change a notification channel
+	//
+	// notifications R5.7 to R5.9. The kind never changes. A field left out keeps its value; a secret left out stays, a secret sent as an empty string is removed.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PATCH /api/v1/notification-channels/{channelId} (the `UpdateNotificationChannel` operationId).
+	UpdateNotificationChannel(ctx context.Context, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TestNotificationChannel Send a test notice through a channel
+	//
+	// notifications R5.9. Sends one clearly marked test notice and answers what happened. A failed delivery is a 200 with `ok: false` and the reason, not an error.
+	//
+	// Corresponds with POST /api/v1/notification-channels/{channelId}/test (the `TestNotificationChannel` operationId).
+	TestNotificationChannel(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetOverview The overview snapshot
 	//
 	// web-console 4.2, observability R5.1 and R5.15.
@@ -2831,6 +3571,13 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/repository-plans/{planId}/apply (the `ApplyRepositoryChanges` operationId).
 	ApplyRepositoryChanges(ctx context.Context, planId PlanId, body ApplyRepositoryChangesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// StopRepositoryPlan Stop a repository plan that is applying
+	//
+	// web-console section 11. The step that runs finishes; no later step starts; the plan ends `stopped`. A plan that is not applying answers 409 conflict. Progress comes on the event stream (`plan.progress`).
+	//
+	// Corresponds with POST /api/v1/repository-plans/{planId}/stop (the `StopRepositoryPlan` operationId).
+	StopRepositoryPlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// PlanRunnersWithBody Plan adding runners on a machine
 	//
 	// runners R5.1 and R5.36. Refuses a machine without an allowed backend for the OS and kind, or a label that is not generic, with the reason.
@@ -2871,6 +3618,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /api/v1/runner-plans/{planId}/apply (the `CreateRunners` operationId).
 	CreateRunners(ctx context.Context, planId PlanId, body CreateRunnersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StopRunnerPlan Stop a runner plan that is applying
+	//
+	// web-console section 11. The step that runs finishes; no later step starts; the plan ends `stopped`. A plan that is not applying answers 409 conflict. Progress comes on the event stream (`plan.progress`).
+	//
+	// Corresponds with POST /api/v1/runner-plans/{planId}/stop (the `StopRunnerPlan` operationId).
+	StopRunnerPlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListRunners Every runner, managed or not
 	//
@@ -3007,6 +3761,49 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /api/v1/setup/redeem (the `RedeemSetupLink` operationId).
 	RedeemSetupLink(ctx context.Context, body RedeemSetupLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetUpdateStatus Controller and agent versions, the policy and what is offered
+	//
+	// web-console 4.9, operations R5.11 to R5.18. The channel is `stable` only. Auto-update is on by default.
+	//
+	// Corresponds with GET /api/v1/updates (the `GetUpdateStatus` operationId).
+	GetUpdateStatus(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateUpdatePolicyWithBody Change auto-update, the check interval and the drain rules
+	//
+	// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
+	UpdateUpdatePolicyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateUpdatePolicy Change auto-update, the check interval and the drain rules
+	//
+	// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
+	UpdateUpdatePolicy(ctx context.Context, body UpdateUpdatePolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartUpdateWithBody Update now
+	//
+	// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
+	StartUpdateWithBody(ctx context.Context, params *StartUpdateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartUpdate Update now
+	//
+	// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
+	StartUpdate(ctx context.Context, params *StartUpdateParams, body StartUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListUsers Users allowed to sign in, with their roles
 	//
@@ -3335,6 +4132,40 @@ func (c *Client) GetCaCertificate(ctx context.Context, reqEditors ...RequestEdit
 	return c.Client.Do(req)
 }
 
+// ListCaches Caches per machine with size against cap
+//
+// web-console R5.25, caches R5.8 to R5.14. The Actions cache, git mirrors, the tool cache and the registry mirror.
+//
+// Corresponds with GET /api/v1/caches (the `ListCaches` operationId).
+func (c *Client) ListCaches(ctx context.Context, params *ListCachesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCachesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// WipeCache Empty one cache
+//
+// web-console R5.25 and R5.30. Without `confirm=true` it answers 409 needs_confirmation naming the cache, its size and the jobs that use it. An entry being read or written is not removed.
+//
+// Corresponds with POST /api/v1/caches/{cacheId}/wipe (the `WipeCache` operationId).
+func (c *Client) WipeCache(ctx context.Context, cacheId CacheId, params *WipeCacheParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewWipeCacheRequest(c.Server, cacheId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // ListDoctorFindings The latest finding per check and subject
 //
 // Corresponds with GET /api/v1/doctor/findings (the `ListDoctorFindings` operationId).
@@ -3420,6 +4251,57 @@ func (c *Client) StreamEvents(ctx context.Context, params *StreamEventsParams, r
 	return c.Client.Do(req)
 }
 
+// ExportAuditEvents Export the audit log as a file
+//
+// web-console 4.9, observability R5.24 to R5.27. Takes the filters of listAuditEvents and holds every matching row, newest first. Named `crsp-audit-<stamp>.csv` or `.json`. Summaries are redacted as in the list.
+//
+// Corresponds with GET /api/v1/exports/audit (the `ExportAuditEvents` operationId).
+func (c *Client) ExportAuditEvents(ctx context.Context, params *ExportAuditEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewExportAuditEventsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ExportConfig Export the configuration without any secret
+//
+// web-console R5.29, operations R5.26. A YAML file with no token, key, password or signing secret; a secret is named only as set or not set. Named `crsp-config-<stamp>.yaml`.
+//
+// Corresponds with GET /api/v1/exports/config (the `ExportConfig` operationId).
+func (c *Client) ExportConfig(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewExportConfigRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ExportJobs Export the job history as a file
+//
+// web-console R5.24, observability R5.7 to R5.11. Takes the filters of listJobs and holds every matching row (no paging), in the order the list shows. The file is named for what it holds then the stamp, such as `crsp-jobs-2026-11-14-1005.csv`, and says so in `Content-Disposition`.
+//
+// Corresponds with GET /api/v1/exports/jobs (the `ExportJobs` operationId).
+func (c *Client) ExportJobs(ctx context.Context, params *ExportJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewExportJobsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetAppInstallUrl GitHub's page to install the App on more repositories
 //
 // web-console 4.3.
@@ -3461,6 +4343,93 @@ func (c *Client) ListInstallations(ctx context.Context, reqEditors ...RequestEdi
 // Corresponds with GET /api/v1/github/repositories (the `ListRepositories` operationId).
 func (c *Client) ListRepositories(ctx context.Context, params *ListRepositoriesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListRepositoriesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListImages Images per machine and OS, with layers and sizes
+//
+// web-console R5.25, runners R5.32 and R5.33.
+//
+// Corresponds with GET /api/v1/images (the `ListImages` operationId).
+func (c *Client) ListImages(ctx context.Context, params *ListImagesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListImagesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetImage One image with its layers
+//
+// Corresponds with GET /api/v1/images/{imageId} (the `GetImage` operationId).
+func (c *Client) GetImage(ctx context.Context, imageId ImageId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetImageRequest(c.Server, imageId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateImageLayersWithBody Turn tool layers on or off for an image
+//
+// web-console R5.25, runners R5.32. Saves the layer choice; the image keeps serving until rebuildImage. `needs_rebuild` on the answer says a rebuild is due.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/images/{imageId}/layers (the `UpdateImageLayers` operationId).
+func (c *Client) UpdateImageLayersWithBody(ctx context.Context, imageId ImageId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateImageLayersRequestWithBody(c.Server, imageId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateImageLayers Turn tool layers on or off for an image
+//
+// web-console R5.25, runners R5.32. Saves the layer choice; the image keeps serving until rebuildImage. `needs_rebuild` on the answer says a rebuild is due.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/images/{imageId}/layers (the `UpdateImageLayers` operationId).
+func (c *Client) UpdateImageLayers(ctx context.Context, imageId ImageId, body UpdateImageLayersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateImageLayersRequest(c.Server, imageId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RebuildImage Rebuild an image after a drain
+//
+// web-console R5.25 and R5.30, runners R5.35. Without `confirm=true` it answers 409 needs_confirmation naming the machine, the runners and the jobs it waits for. With it, the machine drains and a MachineChange of kind `image_rebuild` is returned; watch it with getMachineChange on `machine_id` and `change.progress` events. A build failure keeps the old image.
+//
+// Corresponds with POST /api/v1/images/{imageId}/rebuild (the `RebuildImage` operationId).
+func (c *Client) RebuildImage(ctx context.Context, imageId ImageId, params *RebuildImageParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRebuildImageRequest(c.Server, imageId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -3946,6 +4915,133 @@ func (c *Client) UpdatePreferences(ctx context.Context, body UpdatePreferencesJS
 	return c.Client.Do(req)
 }
 
+// ListNotificationChannels Notification channels the caller may see
+//
+// web-console 4.9, notifications R5.6 to R5.9. Personal channels (email, desktop) are the caller's own; webhooks are pool-wide. A secret is never returned, only whether one is set.
+//
+// Corresponds with GET /api/v1/notification-channels (the `ListNotificationChannels` operationId).
+func (c *Client) ListNotificationChannels(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListNotificationChannelsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateNotificationChannelWithBody Add a notification channel
+//
+// notifications R5.7 to R5.9 and R5.19. Any signed-in user adds a personal channel (email, desktop); a webhook needs admin or owner and an HTTPS URL, else 403 forbidden. Secrets in the request are write-only.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/notification-channels (the `CreateNotificationChannel` operationId).
+func (c *Client) CreateNotificationChannelWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateNotificationChannelRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateNotificationChannel Add a notification channel
+//
+// notifications R5.7 to R5.9 and R5.19. Any signed-in user adds a personal channel (email, desktop); a webhook needs admin or owner and an HTTPS URL, else 403 forbidden. Secrets in the request are write-only.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/notification-channels (the `CreateNotificationChannel` operationId).
+func (c *Client) CreateNotificationChannel(ctx context.Context, body CreateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateNotificationChannelRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteNotificationChannel Remove a notification channel
+//
+// Without `confirm=true` it answers 409 needs_confirmation naming the channel and the events it carries (UX-62).
+//
+// Corresponds with DELETE /api/v1/notification-channels/{channelId} (the `DeleteNotificationChannel` operationId).
+func (c *Client) DeleteNotificationChannel(ctx context.Context, channelId ChannelId, params *DeleteNotificationChannelParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteNotificationChannelRequest(c.Server, channelId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateNotificationChannelWithBody Change a notification channel
+//
+// notifications R5.7 to R5.9. The kind never changes. A field left out keeps its value; a secret left out stays, a secret sent as an empty string is removed.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PATCH /api/v1/notification-channels/{channelId} (the `UpdateNotificationChannel` operationId).
+func (c *Client) UpdateNotificationChannelWithBody(ctx context.Context, channelId ChannelId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateNotificationChannelRequestWithBody(c.Server, channelId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateNotificationChannel Change a notification channel
+//
+// notifications R5.7 to R5.9. The kind never changes. A field left out keeps its value; a secret left out stays, a secret sent as an empty string is removed.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PATCH /api/v1/notification-channels/{channelId} (the `UpdateNotificationChannel` operationId).
+func (c *Client) UpdateNotificationChannel(ctx context.Context, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateNotificationChannelRequest(c.Server, channelId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TestNotificationChannel Send a test notice through a channel
+//
+// notifications R5.9. Sends one clearly marked test notice and answers what happened. A failed delivery is a 200 with `ok: false` and the reason, not an error.
+//
+// Corresponds with POST /api/v1/notification-channels/{channelId}/test (the `TestNotificationChannel` operationId).
+func (c *Client) TestNotificationChannel(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTestNotificationChannelRequest(c.Server, channelId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetOverview The overview snapshot
 //
 // web-console 4.2, observability R5.1 and R5.15.
@@ -4128,6 +5224,23 @@ func (c *Client) ApplyRepositoryChanges(ctx context.Context, planId PlanId, body
 	return c.Client.Do(req)
 }
 
+// StopRepositoryPlan Stop a repository plan that is applying
+//
+// web-console section 11. The step that runs finishes; no later step starts; the plan ends `stopped`. A plan that is not applying answers 409 conflict. Progress comes on the event stream (`plan.progress`).
+//
+// Corresponds with POST /api/v1/repository-plans/{planId}/stop (the `StopRepositoryPlan` operationId).
+func (c *Client) StopRepositoryPlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStopRepositoryPlanRequest(c.Server, planId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // PlanRunnersWithBody Plan adding runners on a machine
 //
 // runners R5.1 and R5.36. Refuses a machine without an allowed backend for the OS and kind, or a label that is not generic, with the reason.
@@ -4209,6 +5322,23 @@ func (c *Client) CreateRunnersWithBody(ctx context.Context, planId PlanId, conte
 // Corresponds with POST /api/v1/runner-plans/{planId}/apply (the `CreateRunners` operationId).
 func (c *Client) CreateRunners(ctx context.Context, planId PlanId, body CreateRunnersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateRunnersRequest(c.Server, planId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StopRunnerPlan Stop a runner plan that is applying
+//
+// web-console section 11. The step that runs finishes; no later step starts; the plan ends `stopped`. A plan that is not applying answers 409 conflict. Progress comes on the event stream (`plan.progress`).
+//
+// Corresponds with POST /api/v1/runner-plans/{planId}/stop (the `StopRunnerPlan` operationId).
+func (c *Client) StopRunnerPlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStopRunnerPlanRequest(c.Server, planId)
 	if err != nil {
 		return nil, err
 	}
@@ -4525,6 +5655,99 @@ func (c *Client) RedeemSetupLinkWithBody(ctx context.Context, contentType string
 // Corresponds with POST /api/v1/setup/redeem (the `RedeemSetupLink` operationId).
 func (c *Client) RedeemSetupLink(ctx context.Context, body RedeemSetupLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRedeemSetupLinkRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetUpdateStatus Controller and agent versions, the policy and what is offered
+//
+// web-console 4.9, operations R5.11 to R5.18. The channel is `stable` only. Auto-update is on by default.
+//
+// Corresponds with GET /api/v1/updates (the `GetUpdateStatus` operationId).
+func (c *Client) GetUpdateStatus(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetUpdateStatusRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateUpdatePolicyWithBody Change auto-update, the check interval and the drain rules
+//
+// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
+func (c *Client) UpdateUpdatePolicyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateUpdatePolicyRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateUpdatePolicy Change auto-update, the check interval and the drain rules
+//
+// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
+func (c *Client) UpdateUpdatePolicy(ctx context.Context, body UpdateUpdatePolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateUpdatePolicyRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartUpdateWithBody Update now
+//
+// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
+func (c *Client) StartUpdateWithBody(ctx context.Context, params *StartUpdateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartUpdateRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartUpdate Update now
+//
+// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
+func (c *Client) StartUpdate(ctx context.Context, params *StartUpdateParams, body StartUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartUpdateRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -5255,6 +6478,133 @@ func NewGetCaCertificateRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewListCachesRequest constructs an http.Request for the ListCaches method
+func NewListCachesRequest(server string, params *ListCachesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/caches")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.MachineId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "machine_id", *params.MachineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Kind != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "kind", *params.Kind, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewWipeCacheRequest constructs an http.Request for the WipeCache method
+func NewWipeCacheRequest(server string, cacheId CacheId, params *WipeCacheParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "cacheId", cacheId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/caches/%s/wipe", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Confirm != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirm", *params.Confirm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListDoctorFindingsRequest constructs an http.Request for the ListDoctorFindings method
 func NewListDoctorFindingsRequest(server string, params *ListDoctorFindingsParams) (*http.Request, error) {
 	var err error
@@ -5437,6 +6787,297 @@ func NewStreamEventsRequest(server string, params *StreamEventsParams) (*http.Re
 	return req, nil
 }
 
+// NewExportAuditEventsRequest constructs an http.Request for the ExportAuditEvents method
+func NewExportAuditEventsRequest(server string, params *ExportAuditEventsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/exports/audit")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Format != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "format", *params.Format, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Actor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "actor", *params.Actor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Action != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "action", *params.Action, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.TargetType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "target_type", *params.TargetType, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.TargetId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "target_id", *params.TargetId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "from", *params.From, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "to", *params.To, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewExportConfigRequest constructs an http.Request for the ExportConfig method
+func NewExportConfigRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/exports/config")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewExportJobsRequest constructs an http.Request for the ExportJobs method
+func NewExportJobsRequest(server string, params *ExportJobsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/exports/jobs")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Format != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "format", *params.Format, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.State != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "state", *params.State, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.RepositoryId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repository_id", *params.RepositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.MachineId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "machine_id", *params.MachineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Backend != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "backend", *params.Backend, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Result != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "result", *params.Result, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "from", *params.From, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "to", *params.To, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetAppInstallUrlRequest constructs an http.Request for the GetAppInstallUrl method
 func NewGetAppInstallUrlRequest(server string) (*http.Request, error) {
 	var err error
@@ -5586,6 +7227,214 @@ func NewListRepositoriesRequest(server string, params *ListRepositoriesParams) (
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListImagesRequest constructs an http.Request for the ListImages method
+func NewListImagesRequest(server string, params *ListImagesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/images")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.MachineId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "machine_id", *params.MachineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Os != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "os", *params.Os, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetImageRequest constructs an http.Request for the GetImage method
+func NewGetImageRequest(server string, imageId ImageId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "imageId", imageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/images/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateImageLayersRequest calls the generic UpdateImageLayers builder with application/json body
+func NewUpdateImageLayersRequest(server string, imageId ImageId, body UpdateImageLayersJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateImageLayersRequestWithBody(server, imageId, "application/json", bodyReader)
+}
+
+// NewUpdateImageLayersRequestWithBody constructs an http.Request for the UpdateImageLayers method, with any body, and a specified content type
+func NewUpdateImageLayersRequestWithBody(server string, imageId ImageId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "imageId", imageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/images/%s/layers", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewRebuildImageRequest constructs an http.Request for the RebuildImage method
+func NewRebuildImageRequest(server string, imageId ImageId, params *RebuildImageParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "imageId", imageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/images/%s/rebuild", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Confirm != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirm", *params.Confirm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -6566,6 +8415,215 @@ func NewUpdatePreferencesRequestWithBody(server string, contentType string, body
 	return req, nil
 }
 
+// NewListNotificationChannelsRequest constructs an http.Request for the ListNotificationChannels method
+func NewListNotificationChannelsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification-channels")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateNotificationChannelRequest calls the generic CreateNotificationChannel builder with application/json body
+func NewCreateNotificationChannelRequest(server string, body CreateNotificationChannelJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateNotificationChannelRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateNotificationChannelRequestWithBody constructs an http.Request for the CreateNotificationChannel method, with any body, and a specified content type
+func NewCreateNotificationChannelRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification-channels")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteNotificationChannelRequest constructs an http.Request for the DeleteNotificationChannel method
+func NewDeleteNotificationChannelRequest(server string, channelId ChannelId, params *DeleteNotificationChannelParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "channelId", channelId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification-channels/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Confirm != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirm", *params.Confirm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateNotificationChannelRequest calls the generic UpdateNotificationChannel builder with application/json body
+func NewUpdateNotificationChannelRequest(server string, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateNotificationChannelRequestWithBody(server, channelId, "application/json", bodyReader)
+}
+
+// NewUpdateNotificationChannelRequestWithBody constructs an http.Request for the UpdateNotificationChannel method, with any body, and a specified content type
+func NewUpdateNotificationChannelRequestWithBody(server string, channelId ChannelId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "channelId", channelId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification-channels/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewTestNotificationChannelRequest constructs an http.Request for the TestNotificationChannel method
+func NewTestNotificationChannelRequest(server string, channelId ChannelId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "channelId", channelId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification-channels/%s/test", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetOverviewRequest constructs an http.Request for the GetOverview method
 func NewGetOverviewRequest(server string) (*http.Request, error) {
 	var err error
@@ -6829,6 +8887,40 @@ func NewApplyRepositoryChangesRequestWithBody(server string, planId PlanId, cont
 	return req, nil
 }
 
+// NewStopRepositoryPlanRequest constructs an http.Request for the StopRepositoryPlan method
+func NewStopRepositoryPlanRequest(server string, planId PlanId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "planId", planId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/repository-plans/%s/stop", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewPlanRunnersRequest calls the generic PlanRunners builder with application/json body
 func NewPlanRunnersRequest(server string, body PlanRunnersJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -6946,6 +9038,40 @@ func NewCreateRunnersRequestWithBody(server string, planId PlanId, contentType s
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewStopRunnerPlanRequest constructs an http.Request for the StopRunnerPlan method
+func NewStopRunnerPlanRequest(server string, planId PlanId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "planId", planId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/runner-plans/%s/stop", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -7465,6 +9591,140 @@ func NewRedeemSetupLinkRequestWithBody(server string, contentType string, body i
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetUpdateStatusRequest constructs an http.Request for the GetUpdateStatus method
+func NewGetUpdateStatusRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/updates")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateUpdatePolicyRequest calls the generic UpdateUpdatePolicy builder with application/json body
+func NewUpdateUpdatePolicyRequest(server string, body UpdateUpdatePolicyJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateUpdatePolicyRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewUpdateUpdatePolicyRequestWithBody constructs an http.Request for the UpdateUpdatePolicy method, with any body, and a specified content type
+func NewUpdateUpdatePolicyRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/updates/policy")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewStartUpdateRequest calls the generic StartUpdate builder with application/json body
+func NewStartUpdateRequest(server string, params *StartUpdateParams, body StartUpdateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewStartUpdateRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewStartUpdateRequestWithBody constructs an http.Request for the StartUpdate method, with any body, and a specified content type
+func NewStartUpdateRequestWithBody(server string, params *StartUpdateParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/updates/start")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Confirm != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirm", *params.Confirm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
@@ -8116,6 +10376,24 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/ca.pem (the `GetCaCertificate` operationId).
 	GetCaCertificateWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetCaCertificateResponse, error)
 
+	// ListCachesWithResponse Caches per machine with size against cap
+	//
+	// web-console R5.25, caches R5.8 to R5.14. The Actions cache, git mirrors, the tool cache and the registry mirror.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/caches (the `ListCaches` operationId).
+	ListCachesWithResponse(ctx context.Context, params *ListCachesParams, reqEditors ...RequestEditorFn) (*ListCachesResponse, error)
+
+	// WipeCacheWithResponse Empty one cache
+	//
+	// web-console R5.25 and R5.30. Without `confirm=true` it answers 409 needs_confirmation naming the cache, its size and the jobs that use it. An entry being read or written is not removed.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/caches/{cacheId}/wipe (the `WipeCache` operationId).
+	WipeCacheWithResponse(ctx context.Context, cacheId CacheId, params *WipeCacheParams, reqEditors ...RequestEditorFn) (*WipeCacheResponse, error)
+
 	// ListDoctorFindingsWithResponse The latest finding per check and subject
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -8157,6 +10435,33 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/events (the `StreamEvents` operationId).
 	StreamEventsWithResponse(ctx context.Context, params *StreamEventsParams, reqEditors ...RequestEditorFn) (*StreamEventsResponse, error)
 
+	// ExportAuditEventsWithResponse Export the audit log as a file
+	//
+	// web-console 4.9, observability R5.24 to R5.27. Takes the filters of listAuditEvents and holds every matching row, newest first. Named `crsp-audit-<stamp>.csv` or `.json`. Summaries are redacted as in the list.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/exports/audit (the `ExportAuditEvents` operationId).
+	ExportAuditEventsWithResponse(ctx context.Context, params *ExportAuditEventsParams, reqEditors ...RequestEditorFn) (*ExportAuditEventsResponse, error)
+
+	// ExportConfigWithResponse Export the configuration without any secret
+	//
+	// web-console R5.29, operations R5.26. A YAML file with no token, key, password or signing secret; a secret is named only as set or not set. Named `crsp-config-<stamp>.yaml`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/exports/config (the `ExportConfig` operationId).
+	ExportConfigWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ExportConfigResponse, error)
+
+	// ExportJobsWithResponse Export the job history as a file
+	//
+	// web-console R5.24, observability R5.7 to R5.11. Takes the filters of listJobs and holds every matching row (no paging), in the order the list shows. The file is named for what it holds then the stamp, such as `crsp-jobs-2026-11-14-1005.csv`, and says so in `Content-Disposition`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/exports/jobs (the `ExportJobs` operationId).
+	ExportJobsWithResponse(ctx context.Context, params *ExportJobsParams, reqEditors ...RequestEditorFn) (*ExportJobsResponse, error)
+
 	// GetAppInstallUrlWithResponse GitHub's page to install the App on more repositories
 	//
 	// web-console 4.3.
@@ -8183,6 +10488,49 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/github/repositories (the `ListRepositories` operationId).
 	ListRepositoriesWithResponse(ctx context.Context, params *ListRepositoriesParams, reqEditors ...RequestEditorFn) (*ListRepositoriesResponse, error)
+
+	// ListImagesWithResponse Images per machine and OS, with layers and sizes
+	//
+	// web-console R5.25, runners R5.32 and R5.33.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/images (the `ListImages` operationId).
+	ListImagesWithResponse(ctx context.Context, params *ListImagesParams, reqEditors ...RequestEditorFn) (*ListImagesResponse, error)
+
+	// GetImageWithResponse One image with its layers
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/images/{imageId} (the `GetImage` operationId).
+	GetImageWithResponse(ctx context.Context, imageId ImageId, reqEditors ...RequestEditorFn) (*GetImageResponse, error)
+
+	// UpdateImageLayersWithBodyWithResponse Turn tool layers on or off for an image
+	//
+	// web-console R5.25, runners R5.32. Saves the layer choice; the image keeps serving until rebuildImage. `needs_rebuild` on the answer says a rebuild is due.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/images/{imageId}/layers (the `UpdateImageLayers` operationId).
+	UpdateImageLayersWithBodyWithResponse(ctx context.Context, imageId ImageId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateImageLayersResponse, error)
+
+	// UpdateImageLayersWithResponse Turn tool layers on or off for an image
+	//
+	// web-console R5.25, runners R5.32. Saves the layer choice; the image keeps serving until rebuildImage. `needs_rebuild` on the answer says a rebuild is due.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/images/{imageId}/layers (the `UpdateImageLayers` operationId).
+	UpdateImageLayersWithResponse(ctx context.Context, imageId ImageId, body UpdateImageLayersJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateImageLayersResponse, error)
+
+	// RebuildImageWithResponse Rebuild an image after a drain
+	//
+	// web-console R5.25 and R5.30, runners R5.35. Without `confirm=true` it answers 409 needs_confirmation naming the machine, the runners and the jobs it waits for. With it, the machine drains and a MachineChange of kind `image_rebuild` is returned; watch it with getMachineChange on `machine_id` and `change.progress` events. A build failure keeps the old image.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/images/{imageId}/rebuild (the `RebuildImage` operationId).
+	RebuildImageWithResponse(ctx context.Context, imageId ImageId, params *RebuildImageParams, reqEditors ...RequestEditorFn) (*RebuildImageResponse, error)
 
 	// GetInstallCommandWithResponse The install command per OS, without a join code
 	//
@@ -8419,6 +10767,69 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with PUT /api/v1/me/preferences (the `UpdatePreferences` operationId).
 	UpdatePreferencesWithResponse(ctx context.Context, body UpdatePreferencesJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdatePreferencesResponse, error)
 
+	// ListNotificationChannelsWithResponse Notification channels the caller may see
+	//
+	// web-console 4.9, notifications R5.6 to R5.9. Personal channels (email, desktop) are the caller's own; webhooks are pool-wide. A secret is never returned, only whether one is set.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/notification-channels (the `ListNotificationChannels` operationId).
+	ListNotificationChannelsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListNotificationChannelsResponse, error)
+
+	// CreateNotificationChannelWithBodyWithResponse Add a notification channel
+	//
+	// notifications R5.7 to R5.9 and R5.19. Any signed-in user adds a personal channel (email, desktop); a webhook needs admin or owner and an HTTPS URL, else 403 forbidden. Secrets in the request are write-only.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/notification-channels (the `CreateNotificationChannel` operationId).
+	CreateNotificationChannelWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateNotificationChannelResponse, error)
+
+	// CreateNotificationChannelWithResponse Add a notification channel
+	//
+	// notifications R5.7 to R5.9 and R5.19. Any signed-in user adds a personal channel (email, desktop); a webhook needs admin or owner and an HTTPS URL, else 403 forbidden. Secrets in the request are write-only.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/notification-channels (the `CreateNotificationChannel` operationId).
+	CreateNotificationChannelWithResponse(ctx context.Context, body CreateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateNotificationChannelResponse, error)
+
+	// DeleteNotificationChannelWithResponse Remove a notification channel
+	//
+	// Without `confirm=true` it answers 409 needs_confirmation naming the channel and the events it carries (UX-62).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /api/v1/notification-channels/{channelId} (the `DeleteNotificationChannel` operationId).
+	DeleteNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, params *DeleteNotificationChannelParams, reqEditors ...RequestEditorFn) (*DeleteNotificationChannelResponse, error)
+
+	// UpdateNotificationChannelWithBodyWithResponse Change a notification channel
+	//
+	// notifications R5.7 to R5.9. The kind never changes. A field left out keeps its value; a secret left out stays, a secret sent as an empty string is removed.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /api/v1/notification-channels/{channelId} (the `UpdateNotificationChannel` operationId).
+	UpdateNotificationChannelWithBodyWithResponse(ctx context.Context, channelId ChannelId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error)
+
+	// UpdateNotificationChannelWithResponse Change a notification channel
+	//
+	// notifications R5.7 to R5.9. The kind never changes. A field left out keeps its value; a secret left out stays, a secret sent as an empty string is removed.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /api/v1/notification-channels/{channelId} (the `UpdateNotificationChannel` operationId).
+	UpdateNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error)
+
+	// TestNotificationChannelWithResponse Send a test notice through a channel
+	//
+	// notifications R5.9. Sends one clearly marked test notice and answers what happened. A failed delivery is a 200 with `ok: false` and the reason, not an error.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/notification-channels/{channelId}/test (the `TestNotificationChannel` operationId).
+	TestNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*TestNotificationChannelResponse, error)
+
 	// GetOverviewWithResponse The overview snapshot
 	//
 	// web-console 4.2, observability R5.1 and R5.15.
@@ -8509,6 +10920,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/repository-plans/{planId}/apply (the `ApplyRepositoryChanges` operationId).
 	ApplyRepositoryChangesWithResponse(ctx context.Context, planId PlanId, body ApplyRepositoryChangesJSONRequestBody, reqEditors ...RequestEditorFn) (*ApplyRepositoryChangesResponse, error)
 
+	// StopRepositoryPlanWithResponse Stop a repository plan that is applying
+	//
+	// web-console section 11. The step that runs finishes; no later step starts; the plan ends `stopped`. A plan that is not applying answers 409 conflict. Progress comes on the event stream (`plan.progress`).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/repository-plans/{planId}/stop (the `StopRepositoryPlan` operationId).
+	StopRepositoryPlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*StopRepositoryPlanResponse, error)
+
 	// PlanRunnersWithBodyWithResponse Plan adding runners on a machine
 	//
 	// runners R5.1 and R5.36. Refuses a machine without an allowed backend for the OS and kind, or a label that is not generic, with the reason.
@@ -8551,6 +10971,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /api/v1/runner-plans/{planId}/apply (the `CreateRunners` operationId).
 	CreateRunnersWithResponse(ctx context.Context, planId PlanId, body CreateRunnersJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateRunnersResponse, error)
+
+	// StopRunnerPlanWithResponse Stop a runner plan that is applying
+	//
+	// web-console section 11. The step that runs finishes; no later step starts; the plan ends `stopped`. A plan that is not applying answers 409 conflict. Progress comes on the event stream (`plan.progress`).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/runner-plans/{planId}/stop (the `StopRunnerPlan` operationId).
+	StopRunnerPlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*StopRunnerPlanResponse, error)
 
 	// ListRunnersWithResponse Every runner, managed or not
 	//
@@ -8703,6 +11132,51 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /api/v1/setup/redeem (the `RedeemSetupLink` operationId).
 	RedeemSetupLinkWithResponse(ctx context.Context, body RedeemSetupLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*RedeemSetupLinkResponse, error)
+
+	// GetUpdateStatusWithResponse Controller and agent versions, the policy and what is offered
+	//
+	// web-console 4.9, operations R5.11 to R5.18. The channel is `stable` only. Auto-update is on by default.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/updates (the `GetUpdateStatus` operationId).
+	GetUpdateStatusWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUpdateStatusResponse, error)
+
+	// UpdateUpdatePolicyWithBodyWithResponse Change auto-update, the check interval and the drain rules
+	//
+	// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
+	UpdateUpdatePolicyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateUpdatePolicyResponse, error)
+
+	// UpdateUpdatePolicyWithResponse Change auto-update, the check interval and the drain rules
+	//
+	// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
+	UpdateUpdatePolicyWithResponse(ctx context.Context, body UpdateUpdatePolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUpdatePolicyResponse, error)
+
+	// StartUpdateWithBodyWithResponse Update now
+	//
+	// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
+	StartUpdateWithBodyWithResponse(ctx context.Context, params *StartUpdateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartUpdateResponse, error)
+
+	// StartUpdateWithResponse Update now
+	//
+	// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
+	StartUpdateWithResponse(ctx context.Context, params *StartUpdateParams, body StartUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*StartUpdateResponse, error)
 
 	// ListUsersWithResponse Users allowed to sign in, with their roles
 	//
@@ -9375,6 +11849,102 @@ func (r GetCaCertificateResponse) ContentType() string {
 	return ""
 }
 
+type ListCachesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CacheList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListCachesResponse) GetJSON200() *CacheList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListCachesResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListCachesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCachesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCachesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListCachesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type WipeCacheResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *Cache
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r WipeCacheResponse) GetJSON202() *Cache {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r WipeCacheResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r WipeCacheResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r WipeCacheResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r WipeCacheResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r WipeCacheResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ListDoctorFindingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -9560,6 +12130,192 @@ func (r StreamEventsResponse) ContentType() string {
 	return ""
 }
 
+// ExportAuditEventsResponse200Headers the declared response headers of an HTTP 200 response for ExportAuditEvents
+type ExportAuditEventsResponse200Headers struct {
+	ContentDisposition string
+}
+
+type ExportAuditEventsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ExportFile
+	// YAML200 the response for an HTTP 200 `application/yaml` response
+	YAML200 *string
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *ExportAuditEventsResponse200Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ExportAuditEventsResponse) GetJSON200() *ExportFile {
+	return r.JSON200
+}
+
+// GetYAML200 returns the response for an HTTP 200 `application/yaml` response
+func (r ExportAuditEventsResponse) GetYAML200() *string {
+	return r.YAML200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ExportAuditEventsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ExportAuditEventsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ExportAuditEventsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ExportAuditEventsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ExportAuditEventsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ExportConfigResponse200Headers the declared response headers of an HTTP 200 response for ExportConfig
+type ExportConfigResponse200Headers struct {
+	ContentDisposition string
+}
+
+type ExportConfigResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ExportFile
+	// YAML200 the response for an HTTP 200 `application/yaml` response
+	YAML200 *string
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *ExportConfigResponse200Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ExportConfigResponse) GetJSON200() *ExportFile {
+	return r.JSON200
+}
+
+// GetYAML200 returns the response for an HTTP 200 `application/yaml` response
+func (r ExportConfigResponse) GetYAML200() *string {
+	return r.YAML200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ExportConfigResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ExportConfigResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ExportConfigResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ExportConfigResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ExportConfigResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ExportJobsResponse200Headers the declared response headers of an HTTP 200 response for ExportJobs
+type ExportJobsResponse200Headers struct {
+	ContentDisposition string
+}
+
+type ExportJobsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ExportFile
+	// YAML200 the response for an HTTP 200 `application/yaml` response
+	YAML200 *string
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *ExportJobsResponse200Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ExportJobsResponse) GetJSON200() *ExportFile {
+	return r.JSON200
+}
+
+// GetYAML200 returns the response for an HTTP 200 `application/yaml` response
+func (r ExportJobsResponse) GetYAML200() *string {
+	return r.YAML200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ExportJobsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ExportJobsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ExportJobsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ExportJobsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ExportJobsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetAppInstallUrlResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -9698,6 +12454,198 @@ func (r ListRepositoriesResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ListRepositoriesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListImagesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ImageList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListImagesResponse) GetJSON200() *ImageList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListImagesResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListImagesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListImagesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListImagesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListImagesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetImageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Image
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetImageResponse) GetJSON200() *Image {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetImageResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetImageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetImageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetImageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetImageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateImageLayersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Image
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateImageLayersResponse) GetJSON200() *Image {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r UpdateImageLayersResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateImageLayersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateImageLayersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateImageLayersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateImageLayersResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RebuildImageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *MachineChange
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r RebuildImageResponse) GetJSON202() *MachineChange {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r RebuildImageResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RebuildImageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RebuildImageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RebuildImageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RebuildImageResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -10705,6 +13653,239 @@ func (r UpdatePreferencesResponse) ContentType() string {
 	return ""
 }
 
+type ListNotificationChannelsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationChannelList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListNotificationChannelsResponse) GetJSON200() *NotificationChannelList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListNotificationChannelsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListNotificationChannelsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListNotificationChannelsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListNotificationChannelsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListNotificationChannelsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateNotificationChannelResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *NotificationChannel
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateNotificationChannelResponse) GetJSON201() *NotificationChannel {
+	return r.JSON201
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r CreateNotificationChannelResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateNotificationChannelResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateNotificationChannelResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateNotificationChannelResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateNotificationChannelResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteNotificationChannelResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r DeleteNotificationChannelResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteNotificationChannelResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteNotificationChannelResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteNotificationChannelResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteNotificationChannelResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateNotificationChannelResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationChannel
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateNotificationChannelResponse) GetJSON200() *NotificationChannel {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r UpdateNotificationChannelResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateNotificationChannelResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateNotificationChannelResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateNotificationChannelResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateNotificationChannelResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type TestNotificationChannelResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationTestResult
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r TestNotificationChannelResponse) GetJSON200() *NotificationTestResult {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r TestNotificationChannelResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r TestNotificationChannelResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TestNotificationChannelResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TestNotificationChannelResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TestNotificationChannelResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetOverviewResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -11041,6 +14222,54 @@ func (r ApplyRepositoryChangesResponse) ContentType() string {
 	return ""
 }
 
+type StopRepositoryPlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *Plan
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StopRepositoryPlanResponse) GetJSON202() *Plan {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r StopRepositoryPlanResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StopRepositoryPlanResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StopRepositoryPlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StopRepositoryPlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StopRepositoryPlanResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type PlanRunnersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -11179,6 +14408,54 @@ func (r CreateRunnersResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r CreateRunnersResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StopRunnerPlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *Plan
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StopRunnerPlanResponse) GetJSON202() *Plan {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r StopRunnerPlanResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StopRunnerPlanResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StopRunnerPlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StopRunnerPlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StopRunnerPlanResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -11810,6 +15087,150 @@ func (r RedeemSetupLinkResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r RedeemSetupLinkResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetUpdateStatusResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *UpdateStatus
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetUpdateStatusResponse) GetJSON200() *UpdateStatus {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetUpdateStatusResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetUpdateStatusResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetUpdateStatusResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetUpdateStatusResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetUpdateStatusResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateUpdatePolicyResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *UpdateStatus
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateUpdatePolicyResponse) GetJSON200() *UpdateStatus {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r UpdateUpdatePolicyResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateUpdatePolicyResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateUpdatePolicyResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateUpdatePolicyResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateUpdatePolicyResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StartUpdateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *UpdateRun
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StartUpdateResponse) GetJSON202() *UpdateRun {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r StartUpdateResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StartUpdateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartUpdateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartUpdateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartUpdateResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -12481,6 +15902,36 @@ func (c *ClientWithResponses) GetCaCertificateWithResponse(ctx context.Context, 
 	return ParseGetCaCertificateResponse(rsp)
 }
 
+// ListCachesWithResponse Caches per machine with size against cap
+//
+// web-console R5.25, caches R5.8 to R5.14. The Actions cache, git mirrors, the tool cache and the registry mirror.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/caches (the `ListCaches` operationId).
+func (c *ClientWithResponses) ListCachesWithResponse(ctx context.Context, params *ListCachesParams, reqEditors ...RequestEditorFn) (*ListCachesResponse, error) {
+	rsp, err := c.ListCaches(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCachesResponse(rsp)
+}
+
+// WipeCacheWithResponse Empty one cache
+//
+// web-console R5.25 and R5.30. Without `confirm=true` it answers 409 needs_confirmation naming the cache, its size and the jobs that use it. An entry being read or written is not removed.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/caches/{cacheId}/wipe (the `WipeCache` operationId).
+func (c *ClientWithResponses) WipeCacheWithResponse(ctx context.Context, cacheId CacheId, params *WipeCacheParams, reqEditors ...RequestEditorFn) (*WipeCacheResponse, error) {
+	rsp, err := c.WipeCache(ctx, cacheId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseWipeCacheResponse(rsp)
+}
+
 // ListDoctorFindingsWithResponse The latest finding per check and subject
 //
 // Returns a wrapper object for the known response body format(s).
@@ -12552,6 +16003,51 @@ func (c *ClientWithResponses) StreamEventsWithResponse(ctx context.Context, para
 	return ParseStreamEventsResponse(rsp)
 }
 
+// ExportAuditEventsWithResponse Export the audit log as a file
+//
+// web-console 4.9, observability R5.24 to R5.27. Takes the filters of listAuditEvents and holds every matching row, newest first. Named `crsp-audit-<stamp>.csv` or `.json`. Summaries are redacted as in the list.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/exports/audit (the `ExportAuditEvents` operationId).
+func (c *ClientWithResponses) ExportAuditEventsWithResponse(ctx context.Context, params *ExportAuditEventsParams, reqEditors ...RequestEditorFn) (*ExportAuditEventsResponse, error) {
+	rsp, err := c.ExportAuditEvents(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseExportAuditEventsResponse(rsp)
+}
+
+// ExportConfigWithResponse Export the configuration without any secret
+//
+// web-console R5.29, operations R5.26. A YAML file with no token, key, password or signing secret; a secret is named only as set or not set. Named `crsp-config-<stamp>.yaml`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/exports/config (the `ExportConfig` operationId).
+func (c *ClientWithResponses) ExportConfigWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ExportConfigResponse, error) {
+	rsp, err := c.ExportConfig(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseExportConfigResponse(rsp)
+}
+
+// ExportJobsWithResponse Export the job history as a file
+//
+// web-console R5.24, observability R5.7 to R5.11. Takes the filters of listJobs and holds every matching row (no paging), in the order the list shows. The file is named for what it holds then the stamp, such as `crsp-jobs-2026-11-14-1005.csv`, and says so in `Content-Disposition`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/exports/jobs (the `ExportJobs` operationId).
+func (c *ClientWithResponses) ExportJobsWithResponse(ctx context.Context, params *ExportJobsParams, reqEditors ...RequestEditorFn) (*ExportJobsResponse, error) {
+	rsp, err := c.ExportJobs(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseExportJobsResponse(rsp)
+}
+
 // GetAppInstallUrlWithResponse GitHub's page to install the App on more repositories
 //
 // web-console 4.3.
@@ -12595,6 +16091,79 @@ func (c *ClientWithResponses) ListRepositoriesWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseListRepositoriesResponse(rsp)
+}
+
+// ListImagesWithResponse Images per machine and OS, with layers and sizes
+//
+// web-console R5.25, runners R5.32 and R5.33.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/images (the `ListImages` operationId).
+func (c *ClientWithResponses) ListImagesWithResponse(ctx context.Context, params *ListImagesParams, reqEditors ...RequestEditorFn) (*ListImagesResponse, error) {
+	rsp, err := c.ListImages(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListImagesResponse(rsp)
+}
+
+// GetImageWithResponse One image with its layers
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/images/{imageId} (the `GetImage` operationId).
+func (c *ClientWithResponses) GetImageWithResponse(ctx context.Context, imageId ImageId, reqEditors ...RequestEditorFn) (*GetImageResponse, error) {
+	rsp, err := c.GetImage(ctx, imageId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetImageResponse(rsp)
+}
+
+// UpdateImageLayersWithBodyWithResponse Turn tool layers on or off for an image
+//
+// web-console R5.25, runners R5.32. Saves the layer choice; the image keeps serving until rebuildImage. `needs_rebuild` on the answer says a rebuild is due.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/images/{imageId}/layers (the `UpdateImageLayers` operationId).
+func (c *ClientWithResponses) UpdateImageLayersWithBodyWithResponse(ctx context.Context, imageId ImageId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateImageLayersResponse, error) {
+	rsp, err := c.UpdateImageLayersWithBody(ctx, imageId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateImageLayersResponse(rsp)
+}
+
+// UpdateImageLayersWithResponse Turn tool layers on or off for an image
+//
+// web-console R5.25, runners R5.32. Saves the layer choice; the image keeps serving until rebuildImage. `needs_rebuild` on the answer says a rebuild is due.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/images/{imageId}/layers (the `UpdateImageLayers` operationId).
+func (c *ClientWithResponses) UpdateImageLayersWithResponse(ctx context.Context, imageId ImageId, body UpdateImageLayersJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateImageLayersResponse, error) {
+	rsp, err := c.UpdateImageLayers(ctx, imageId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateImageLayersResponse(rsp)
+}
+
+// RebuildImageWithResponse Rebuild an image after a drain
+//
+// web-console R5.25 and R5.30, runners R5.35. Without `confirm=true` it answers 409 needs_confirmation naming the machine, the runners and the jobs it waits for. With it, the machine drains and a MachineChange of kind `image_rebuild` is returned; watch it with getMachineChange on `machine_id` and `change.progress` events. A build failure keeps the old image.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/images/{imageId}/rebuild (the `RebuildImage` operationId).
+func (c *ClientWithResponses) RebuildImageWithResponse(ctx context.Context, imageId ImageId, params *RebuildImageParams, reqEditors ...RequestEditorFn) (*RebuildImageResponse, error) {
+	rsp, err := c.RebuildImage(ctx, imageId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRebuildImageResponse(rsp)
 }
 
 // GetInstallCommandWithResponse The install command per OS, without a join code
@@ -12994,6 +16563,111 @@ func (c *ClientWithResponses) UpdatePreferencesWithResponse(ctx context.Context,
 	return ParseUpdatePreferencesResponse(rsp)
 }
 
+// ListNotificationChannelsWithResponse Notification channels the caller may see
+//
+// web-console 4.9, notifications R5.6 to R5.9. Personal channels (email, desktop) are the caller's own; webhooks are pool-wide. A secret is never returned, only whether one is set.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/notification-channels (the `ListNotificationChannels` operationId).
+func (c *ClientWithResponses) ListNotificationChannelsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListNotificationChannelsResponse, error) {
+	rsp, err := c.ListNotificationChannels(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListNotificationChannelsResponse(rsp)
+}
+
+// CreateNotificationChannelWithBodyWithResponse Add a notification channel
+//
+// notifications R5.7 to R5.9 and R5.19. Any signed-in user adds a personal channel (email, desktop); a webhook needs admin or owner and an HTTPS URL, else 403 forbidden. Secrets in the request are write-only.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/notification-channels (the `CreateNotificationChannel` operationId).
+func (c *ClientWithResponses) CreateNotificationChannelWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateNotificationChannelResponse, error) {
+	rsp, err := c.CreateNotificationChannelWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateNotificationChannelResponse(rsp)
+}
+
+// CreateNotificationChannelWithResponse Add a notification channel
+//
+// notifications R5.7 to R5.9 and R5.19. Any signed-in user adds a personal channel (email, desktop); a webhook needs admin or owner and an HTTPS URL, else 403 forbidden. Secrets in the request are write-only.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/notification-channels (the `CreateNotificationChannel` operationId).
+func (c *ClientWithResponses) CreateNotificationChannelWithResponse(ctx context.Context, body CreateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateNotificationChannelResponse, error) {
+	rsp, err := c.CreateNotificationChannel(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateNotificationChannelResponse(rsp)
+}
+
+// DeleteNotificationChannelWithResponse Remove a notification channel
+//
+// Without `confirm=true` it answers 409 needs_confirmation naming the channel and the events it carries (UX-62).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /api/v1/notification-channels/{channelId} (the `DeleteNotificationChannel` operationId).
+func (c *ClientWithResponses) DeleteNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, params *DeleteNotificationChannelParams, reqEditors ...RequestEditorFn) (*DeleteNotificationChannelResponse, error) {
+	rsp, err := c.DeleteNotificationChannel(ctx, channelId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteNotificationChannelResponse(rsp)
+}
+
+// UpdateNotificationChannelWithBodyWithResponse Change a notification channel
+//
+// notifications R5.7 to R5.9. The kind never changes. A field left out keeps its value; a secret left out stays, a secret sent as an empty string is removed.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /api/v1/notification-channels/{channelId} (the `UpdateNotificationChannel` operationId).
+func (c *ClientWithResponses) UpdateNotificationChannelWithBodyWithResponse(ctx context.Context, channelId ChannelId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error) {
+	rsp, err := c.UpdateNotificationChannelWithBody(ctx, channelId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateNotificationChannelResponse(rsp)
+}
+
+// UpdateNotificationChannelWithResponse Change a notification channel
+//
+// notifications R5.7 to R5.9. The kind never changes. A field left out keeps its value; a secret left out stays, a secret sent as an empty string is removed.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /api/v1/notification-channels/{channelId} (the `UpdateNotificationChannel` operationId).
+func (c *ClientWithResponses) UpdateNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error) {
+	rsp, err := c.UpdateNotificationChannel(ctx, channelId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateNotificationChannelResponse(rsp)
+}
+
+// TestNotificationChannelWithResponse Send a test notice through a channel
+//
+// notifications R5.9. Sends one clearly marked test notice and answers what happened. A failed delivery is a 200 with `ok: false` and the reason, not an error.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/notification-channels/{channelId}/test (the `TestNotificationChannel` operationId).
+func (c *ClientWithResponses) TestNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*TestNotificationChannelResponse, error) {
+	rsp, err := c.TestNotificationChannel(ctx, channelId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTestNotificationChannelResponse(rsp)
+}
+
 // GetOverviewWithResponse The overview snapshot
 //
 // web-console 4.2, observability R5.1 and R5.15.
@@ -13144,6 +16818,21 @@ func (c *ClientWithResponses) ApplyRepositoryChangesWithResponse(ctx context.Con
 	return ParseApplyRepositoryChangesResponse(rsp)
 }
 
+// StopRepositoryPlanWithResponse Stop a repository plan that is applying
+//
+// web-console section 11. The step that runs finishes; no later step starts; the plan ends `stopped`. A plan that is not applying answers 409 conflict. Progress comes on the event stream (`plan.progress`).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/repository-plans/{planId}/stop (the `StopRepositoryPlan` operationId).
+func (c *ClientWithResponses) StopRepositoryPlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*StopRepositoryPlanResponse, error) {
+	rsp, err := c.StopRepositoryPlan(ctx, planId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStopRepositoryPlanResponse(rsp)
+}
+
 // PlanRunnersWithBodyWithResponse Plan adding runners on a machine
 //
 // runners R5.1 and R5.36. Refuses a machine without an allowed backend for the OS and kind, or a label that is not generic, with the reason.
@@ -13215,6 +16904,21 @@ func (c *ClientWithResponses) CreateRunnersWithResponse(ctx context.Context, pla
 		return nil, err
 	}
 	return ParseCreateRunnersResponse(rsp)
+}
+
+// StopRunnerPlanWithResponse Stop a runner plan that is applying
+//
+// web-console section 11. The step that runs finishes; no later step starts; the plan ends `stopped`. A plan that is not applying answers 409 conflict. Progress comes on the event stream (`plan.progress`).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/runner-plans/{planId}/stop (the `StopRunnerPlan` operationId).
+func (c *ClientWithResponses) StopRunnerPlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*StopRunnerPlanResponse, error) {
+	rsp, err := c.StopRunnerPlan(ctx, planId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStopRunnerPlanResponse(rsp)
 }
 
 // ListRunnersWithResponse Every runner, managed or not
@@ -13475,6 +17179,81 @@ func (c *ClientWithResponses) RedeemSetupLinkWithResponse(ctx context.Context, b
 		return nil, err
 	}
 	return ParseRedeemSetupLinkResponse(rsp)
+}
+
+// GetUpdateStatusWithResponse Controller and agent versions, the policy and what is offered
+//
+// web-console 4.9, operations R5.11 to R5.18. The channel is `stable` only. Auto-update is on by default.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/updates (the `GetUpdateStatus` operationId).
+func (c *ClientWithResponses) GetUpdateStatusWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUpdateStatusResponse, error) {
+	rsp, err := c.GetUpdateStatus(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetUpdateStatusResponse(rsp)
+}
+
+// UpdateUpdatePolicyWithBodyWithResponse Change auto-update, the check interval and the drain rules
+//
+// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
+func (c *ClientWithResponses) UpdateUpdatePolicyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateUpdatePolicyResponse, error) {
+	rsp, err := c.UpdateUpdatePolicyWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateUpdatePolicyResponse(rsp)
+}
+
+// UpdateUpdatePolicyWithResponse Change auto-update, the check interval and the drain rules
+//
+// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
+func (c *ClientWithResponses) UpdateUpdatePolicyWithResponse(ctx context.Context, body UpdateUpdatePolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUpdatePolicyResponse, error) {
+	rsp, err := c.UpdateUpdatePolicy(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateUpdatePolicyResponse(rsp)
+}
+
+// StartUpdateWithBodyWithResponse Update now
+//
+// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
+func (c *ClientWithResponses) StartUpdateWithBodyWithResponse(ctx context.Context, params *StartUpdateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartUpdateResponse, error) {
+	rsp, err := c.StartUpdateWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartUpdateResponse(rsp)
+}
+
+// StartUpdateWithResponse Update now
+//
+// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
+func (c *ClientWithResponses) StartUpdateWithResponse(ctx context.Context, params *StartUpdateParams, body StartUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*StartUpdateResponse, error) {
+	rsp, err := c.StartUpdate(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartUpdateResponse(rsp)
 }
 
 // ListUsersWithResponse Users allowed to sign in, with their roles
@@ -14051,6 +17830,72 @@ func ParseGetCaCertificateResponse(rsp *http.Response) (*GetCaCertificateRespons
 	return response, nil
 }
 
+// ParseListCachesResponse parses an HTTP response from a ListCachesWithResponse call
+func ParseListCachesResponse(rsp *http.Response) (*ListCachesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCachesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CacheList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseWipeCacheResponse parses an HTTP response from a WipeCacheWithResponse call
+func ParseWipeCacheResponse(rsp *http.Response) (*WipeCacheResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &WipeCacheResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest Cache
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListDoctorFindingsResponse parses an HTTP response from a ListDoctorFindingsWithResponse call
 func ParseListDoctorFindingsResponse(rsp *http.Response) (*ListDoctorFindingsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -14176,6 +18021,174 @@ func ParseStreamEventsResponse(rsp *http.Response) (*StreamEventsResponse, error
 	return response, nil
 }
 
+// ParseExportAuditEventsResponse parses an HTTP response from a ExportAuditEventsWithResponse call
+func ParseExportAuditEventsResponse(rsp *http.Response) (*ExportAuditEventsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ExportAuditEventsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ExportFile
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "yaml") && rsp.StatusCode == 200:
+		var dest string
+		if err := yaml.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.YAML200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/csv) unsupported
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers ExportAuditEventsResponse200Headers
+		if values := rsp.Header.Values("Content-Disposition"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Disposition", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentDisposition = value
+		}
+		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseExportConfigResponse parses an HTTP response from a ExportConfigWithResponse call
+func ParseExportConfigResponse(rsp *http.Response) (*ExportConfigResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ExportConfigResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ExportFile
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "yaml") && rsp.StatusCode == 200:
+		var dest string
+		if err := yaml.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.YAML200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/csv) unsupported
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers ExportConfigResponse200Headers
+		if values := rsp.Header.Values("Content-Disposition"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Disposition", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentDisposition = value
+		}
+		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseExportJobsResponse parses an HTTP response from a ExportJobsWithResponse call
+func ParseExportJobsResponse(rsp *http.Response) (*ExportJobsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ExportJobsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ExportFile
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "yaml") && rsp.StatusCode == 200:
+		var dest string
+		if err := yaml.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.YAML200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/csv) unsupported
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers ExportJobsResponse200Headers
+		if values := rsp.Header.Values("Content-Disposition"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Disposition", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentDisposition = value
+		}
+		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
 // ParseGetAppInstallUrlResponse parses an HTTP response from a GetAppInstallUrlWithResponse call
 func ParseGetAppInstallUrlResponse(rsp *http.Response) (*GetAppInstallUrlResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -14262,6 +18275,138 @@ func ParseListRepositoriesResponse(rsp *http.Response) (*ListRepositoriesRespons
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListImagesResponse parses an HTTP response from a ListImagesWithResponse call
+func ParseListImagesResponse(rsp *http.Response) (*ListImagesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListImagesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ImageList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetImageResponse parses an HTTP response from a GetImageWithResponse call
+func ParseGetImageResponse(rsp *http.Response) (*GetImageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetImageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Image
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateImageLayersResponse parses an HTTP response from a UpdateImageLayersWithResponse call
+func ParseUpdateImageLayersResponse(rsp *http.Response) (*UpdateImageLayersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateImageLayersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Image
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRebuildImageResponse parses an HTTP response from a RebuildImageWithResponse call
+func ParseRebuildImageResponse(rsp *http.Response) (*RebuildImageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RebuildImageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest MachineChange
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error
@@ -14967,6 +19112,167 @@ func ParseUpdatePreferencesResponse(rsp *http.Response) (*UpdatePreferencesRespo
 	return response, nil
 }
 
+// ParseListNotificationChannelsResponse parses an HTTP response from a ListNotificationChannelsWithResponse call
+func ParseListNotificationChannelsResponse(rsp *http.Response) (*ListNotificationChannelsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListNotificationChannelsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationChannelList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateNotificationChannelResponse parses an HTTP response from a CreateNotificationChannelWithResponse call
+func ParseCreateNotificationChannelResponse(rsp *http.Response) (*CreateNotificationChannelResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateNotificationChannelResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest NotificationChannel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteNotificationChannelResponse parses an HTTP response from a DeleteNotificationChannelWithResponse call
+func ParseDeleteNotificationChannelResponse(rsp *http.Response) (*DeleteNotificationChannelResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteNotificationChannelResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateNotificationChannelResponse parses an HTTP response from a UpdateNotificationChannelWithResponse call
+func ParseUpdateNotificationChannelResponse(rsp *http.Response) (*UpdateNotificationChannelResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateNotificationChannelResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationChannel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTestNotificationChannelResponse parses an HTTP response from a TestNotificationChannelWithResponse call
+func ParseTestNotificationChannelResponse(rsp *http.Response) (*TestNotificationChannelResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TestNotificationChannelResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationTestResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetOverviewResponse parses an HTTP response from a GetOverviewWithResponse call
 func ParseGetOverviewResponse(rsp *http.Response) (*GetOverviewResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -15198,6 +19504,39 @@ func ParseApplyRepositoryChangesResponse(rsp *http.Response) (*ApplyRepositoryCh
 	return response, nil
 }
 
+// ParseStopRepositoryPlanResponse parses an HTTP response from a StopRepositoryPlanWithResponse call
+func ParseStopRepositoryPlanResponse(rsp *http.Response) (*StopRepositoryPlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StopRepositoryPlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest Plan
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParsePlanRunnersResponse parses an HTTP response from a PlanRunnersWithResponse call
 func ParsePlanRunnersResponse(rsp *http.Response) (*PlanRunnersResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -15273,6 +19612,39 @@ func ParseCreateRunnersResponse(rsp *http.Response) (*CreateRunnersResponse, err
 	}
 
 	response := &CreateRunnersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest Plan
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStopRunnerPlanResponse parses an HTTP response from a StopRunnerPlanWithResponse call
+func ParseStopRunnerPlanResponse(rsp *http.Response) (*StopRunnerPlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StopRunnerPlanResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -15734,6 +20106,105 @@ func ParseRedeemSetupLinkResponse(rsp *http.Response) (*RedeemSetupLinkResponse,
 			headers.SetCookie = &value
 		}
 		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseGetUpdateStatusResponse parses an HTTP response from a GetUpdateStatusWithResponse call
+func ParseGetUpdateStatusResponse(rsp *http.Response) (*GetUpdateStatusResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetUpdateStatusResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest UpdateStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateUpdatePolicyResponse parses an HTTP response from a UpdateUpdatePolicyWithResponse call
+func ParseUpdateUpdatePolicyResponse(rsp *http.Response) (*UpdateUpdatePolicyResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateUpdatePolicyResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest UpdateStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStartUpdateResponse parses an HTTP response from a StartUpdateWithResponse call
+func ParseStartUpdateResponse(rsp *http.Response) (*StartUpdateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartUpdateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest UpdateRun
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
 	}
 
 	return response, nil

@@ -183,6 +183,48 @@ func (e BackupDrillState) Valid() bool {
 	}
 }
 
+// Defines values for CacheState.
+const (
+	CacheStateReady  CacheState = "ready"
+	CacheStateWiping CacheState = "wiping"
+)
+
+// Valid indicates whether the value is a known member of the CacheState enum.
+func (e CacheState) Valid() bool {
+	switch e {
+	case CacheStateReady:
+		return true
+	case CacheStateWiping:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CacheKind.
+const (
+	ActionsCache   CacheKind = "actions_cache"
+	GitMirror      CacheKind = "git_mirror"
+	RegistryMirror CacheKind = "registry_mirror"
+	ToolCache      CacheKind = "tool_cache"
+)
+
+// Valid indicates whether the value is a known member of the CacheKind enum.
+func (e CacheKind) Valid() bool {
+	switch e {
+	case ActionsCache:
+		return true
+	case GitMirror:
+		return true
+	case RegistryMirror:
+		return true
+	case ToolCache:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DoctorRunState.
 const (
 	DoctorRunStateDone    DoctorRunState = "done"
@@ -258,6 +300,27 @@ const (
 func (e HealthStatus) Valid() bool {
 	switch e {
 	case HealthStatusOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ImageState.
+const (
+	ImageStateFailed     ImageState = "failed"
+	ImageStateReady      ImageState = "ready"
+	ImageStateRebuilding ImageState = "rebuilding"
+)
+
+// Valid indicates whether the value is a known member of the ImageState enum.
+func (e ImageState) Valid() bool {
+	switch e {
+	case ImageStateFailed:
+		return true
+	case ImageStateReady:
+		return true
+	case ImageStateRebuilding:
 		return true
 	default:
 		return false
@@ -398,12 +461,14 @@ func (e JoinCodeState) Valid() bool {
 
 // Defines values for MachineChangeKind.
 const (
-	MachineChangeKindAgentUpdate    MachineChangeKind = "agent_update"
-	MachineChangeKindDrain          MachineChangeKind = "drain"
-	MachineChangeKindRemove         MachineChangeKind = "remove"
-	MachineChangeKindRunnerUpdate   MachineChangeKind = "runner_update"
-	MachineChangeKindServiceRestart MachineChangeKind = "service_restart"
-	MachineChangeKindSettings       MachineChangeKind = "settings"
+	MachineChangeKindAgentUpdate      MachineChangeKind = "agent_update"
+	MachineChangeKindControllerUpdate MachineChangeKind = "controller_update"
+	MachineChangeKindDrain            MachineChangeKind = "drain"
+	MachineChangeKindImageRebuild     MachineChangeKind = "image_rebuild"
+	MachineChangeKindRemove           MachineChangeKind = "remove"
+	MachineChangeKindRunnerUpdate     MachineChangeKind = "runner_update"
+	MachineChangeKindServiceRestart   MachineChangeKind = "service_restart"
+	MachineChangeKindSettings         MachineChangeKind = "settings"
 )
 
 // Valid indicates whether the value is a known member of the MachineChangeKind enum.
@@ -411,7 +476,11 @@ func (e MachineChangeKind) Valid() bool {
 	switch e {
 	case MachineChangeKindAgentUpdate:
 		return true
+	case MachineChangeKindControllerUpdate:
+		return true
 	case MachineChangeKindDrain:
+		return true
+	case MachineChangeKindImageRebuild:
 		return true
 	case MachineChangeKindRemove:
 		return true
@@ -528,6 +597,96 @@ func (e MachineState) Valid() bool {
 	case MachineStateDraining:
 		return true
 	case MachineStateRemoving:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationChannelScope.
+const (
+	Personal NotificationChannelScope = "personal"
+	Pool     NotificationChannelScope = "pool"
+)
+
+// Valid indicates whether the value is a known member of the NotificationChannelScope enum.
+func (e NotificationChannelScope) Valid() bool {
+	switch e {
+	case Personal:
+		return true
+	case Pool:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationEvent.
+const (
+	NotificationEventDiskLow         NotificationEvent = "disk.low"
+	NotificationEventDoctorFinding   NotificationEvent = "doctor.finding"
+	NotificationEventJobWaiting      NotificationEvent = "job.waiting"
+	NotificationEventMachineOffline  NotificationEvent = "machine.offline"
+	NotificationEventRunnerOutdated  NotificationEvent = "runner.outdated"
+	NotificationEventUpdateAvailable NotificationEvent = "update.available"
+)
+
+// Valid indicates whether the value is a known member of the NotificationEvent enum.
+func (e NotificationEvent) Valid() bool {
+	switch e {
+	case NotificationEventDiskLow:
+		return true
+	case NotificationEventDoctorFinding:
+		return true
+	case NotificationEventJobWaiting:
+		return true
+	case NotificationEventMachineOffline:
+		return true
+	case NotificationEventRunnerOutdated:
+		return true
+	case NotificationEventUpdateAvailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationKind.
+const (
+	Desktop NotificationKind = "desktop"
+	Email   NotificationKind = "email"
+	Webhook NotificationKind = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the NotificationKind enum.
+func (e NotificationKind) Valid() bool {
+	switch e {
+	case Desktop:
+		return true
+	case Email:
+		return true
+	case Webhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationSeverity.
+const (
+	NotificationSeverityError   NotificationSeverity = "error"
+	NotificationSeverityInfo    NotificationSeverity = "info"
+	NotificationSeverityWarning NotificationSeverity = "warning"
+)
+
+// Valid indicates whether the value is a known member of the NotificationSeverity enum.
+func (e NotificationSeverity) Valid() bool {
+	switch e {
+	case NotificationSeverityError:
+		return true
+	case NotificationSeverityInfo:
+		return true
+	case NotificationSeverityWarning:
 		return true
 	default:
 		return false
@@ -1011,6 +1170,66 @@ func (e Theme) Valid() bool {
 	}
 }
 
+// Defines values for UpdatePartPart.
+const (
+	UpdatePartPartAgent      UpdatePartPart = "agent"
+	UpdatePartPartController UpdatePartPart = "controller"
+)
+
+// Valid indicates whether the value is a known member of the UpdatePartPart enum.
+func (e UpdatePartPart) Valid() bool {
+	switch e {
+	case UpdatePartPartAgent:
+		return true
+	case UpdatePartPartController:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdatePartState.
+const (
+	UpdatePartStateAvailable UpdatePartState = "available"
+	UpdatePartStateCurrent   UpdatePartState = "current"
+	UpdatePartStateFailed    UpdatePartState = "failed"
+	UpdatePartStateUpdating  UpdatePartState = "updating"
+	UpdatePartStateWaiting   UpdatePartState = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the UpdatePartState enum.
+func (e UpdatePartState) Valid() bool {
+	switch e {
+	case UpdatePartStateAvailable:
+		return true
+	case UpdatePartStateCurrent:
+		return true
+	case UpdatePartStateFailed:
+		return true
+	case UpdatePartStateUpdating:
+		return true
+	case UpdatePartStateWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateStatusChannel.
+const (
+	Stable UpdateStatusChannel = "stable"
+)
+
+// Valid indicates whether the value is a known member of the UpdateStatusChannel enum.
+func (e UpdateStatusChannel) Valid() bool {
+	switch e {
+	case Stable:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for VariableStatus.
 const (
 	VariableStatusMissing    VariableStatus = "missing"
@@ -1062,6 +1281,63 @@ func (e WaitReason) Valid() bool {
 	case WaitReasonRepositoryParallelLimit:
 		return true
 	case WaitReasonUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportAuditEventsParamsFormat.
+const (
+	ExportAuditEventsParamsFormatCsv  ExportAuditEventsParamsFormat = "csv"
+	ExportAuditEventsParamsFormatJson ExportAuditEventsParamsFormat = "json"
+)
+
+// Valid indicates whether the value is a known member of the ExportAuditEventsParamsFormat enum.
+func (e ExportAuditEventsParamsFormat) Valid() bool {
+	switch e {
+	case ExportAuditEventsParamsFormatCsv:
+		return true
+	case ExportAuditEventsParamsFormatJson:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportJobsParamsFormat.
+const (
+	ExportJobsParamsFormatCsv  ExportJobsParamsFormat = "csv"
+	ExportJobsParamsFormatJson ExportJobsParamsFormat = "json"
+)
+
+// Valid indicates whether the value is a known member of the ExportJobsParamsFormat enum.
+func (e ExportJobsParamsFormat) Valid() bool {
+	switch e {
+	case ExportJobsParamsFormatCsv:
+		return true
+	case ExportJobsParamsFormatJson:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExportJobsParamsState.
+const (
+	ExportJobsParamsStateDone    ExportJobsParamsState = "done"
+	ExportJobsParamsStateQueued  ExportJobsParamsState = "queued"
+	ExportJobsParamsStateRunning ExportJobsParamsState = "running"
+)
+
+// Valid indicates whether the value is a known member of the ExportJobsParamsState enum.
+func (e ExportJobsParamsState) Valid() bool {
+	switch e {
+	case ExportJobsParamsStateDone:
+		return true
+	case ExportJobsParamsStateQueued:
+		return true
+	case ExportJobsParamsStateRunning:
 		return true
 	default:
 		return false
@@ -1215,6 +1491,30 @@ type BackupDrillState string
 type BackupList struct {
 	Items     []Backup     `json:"items"`
 	LastDrill *BackupDrill `json:"last_drill,omitempty"`
+}
+
+// Cache One cache on one machine (caches R5.8 to R5.14).
+type Cache struct {
+	// CapBytes Absent when the cache has no cap.
+	CapBytes    *int64     `json:"cap_bytes,omitempty"`
+	EntryCount  *int       `json:"entry_count,omitempty"`
+	Id          string     `json:"id"`
+	Kind        CacheKind  `json:"kind"`
+	LastWipedAt *time.Time `json:"last_wiped_at,omitempty"`
+	MachineId   string     `json:"machine_id"`
+	SizeBytes   int64      `json:"size_bytes"`
+	State       CacheState `json:"state"`
+}
+
+// CacheState defines model for Cache.State.
+type CacheState string
+
+// CacheKind defines model for CacheKind.
+type CacheKind string
+
+// CacheList defines model for CacheList.
+type CacheList struct {
+	Items []Cache `json:"items"`
 }
 
 // CliLoginConfig defines model for CliLoginConfig.
@@ -1394,6 +1694,44 @@ type Health struct {
 
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
+
+// Image One image on one machine (runners R5.32 and R5.33).
+type Image struct {
+	// Base The base image.
+	Base    string     `json:"base"`
+	BuiltAt *time.Time `json:"built_at,omitempty"`
+
+	// Error Why the last build failed; the old image keeps serving.
+	Error     *string      `json:"error,omitempty"`
+	Id        string       `json:"id"`
+	Layers    []ImageLayer `json:"layers"`
+	MachineId string       `json:"machine_id"`
+
+	// NeedsRebuild The saved layers differ from the built ones.
+	NeedsRebuild *bool `json:"needs_rebuild,omitempty"`
+
+	// Newest True for the newest image kept for this machine and OS.
+	Newest    bool       `json:"newest"`
+	Os        OS         `json:"os"`
+	SizeBytes int64      `json:"size_bytes"`
+	State     ImageState `json:"state"`
+}
+
+// ImageState defines model for Image.State.
+type ImageState string
+
+// ImageLayer defines model for ImageLayer.
+type ImageLayer struct {
+	Enabled   bool   `json:"enabled"`
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	SizeBytes int64  `json:"size_bytes"`
+}
+
+// ImageList defines model for ImageList.
+type ImageList struct {
+	Items []Image `json:"items"`
+}
 
 // InstallCommands defines model for InstallCommands.
 type InstallCommands struct {
@@ -1665,6 +2003,108 @@ type MachineSettingsUpdateGateOnTimeout string
 
 // MachineState active and drained are set by the user; draining while a drain waits.
 type MachineState string
+
+// NotificationChannel One channel. No secret is returned: `has_secret` and `smtp.has_password` say only whether one is set.
+type NotificationChannel struct {
+	// Address Email address (kind email).
+	Address *string             `json:"address,omitempty"`
+	Enabled bool                `json:"enabled"`
+	Events  []NotificationEvent `json:"events"`
+
+	// HasSecret A webhook signing secret is set. Always false for other kinds.
+	HasSecret  bool             `json:"has_secret"`
+	Id         string           `json:"id"`
+	Kind       NotificationKind `json:"kind"`
+	LastTestAt *time.Time       `json:"last_test_at,omitempty"`
+	LastTestOk *bool            `json:"last_test_ok,omitempty"`
+
+	// MinSeverity The lowest doctor severity the channel gets (notifications R5.4).
+	MinSeverity NotificationSeverity `json:"min_severity"`
+	Name        string               `json:"name"`
+
+	// Scope Email and desktop are personal; a webhook is pool-wide.
+	Scope NotificationChannelScope `json:"scope"`
+
+	// Smtp How an email channel sends. The password is never returned.
+	Smtp *SmtpSettings `json:"smtp,omitempty"`
+
+	// Url HTTPS URL (kind webhook).
+	Url *string `json:"url,omitempty"`
+}
+
+// NotificationChannelScope Email and desktop are personal; a webhook is pool-wide.
+type NotificationChannelScope string
+
+// NotificationChannelInput defines model for NotificationChannelInput.
+type NotificationChannelInput struct {
+	Address *string             `json:"address,omitempty"`
+	Enabled *bool               `json:"enabled,omitempty"`
+	Events  []NotificationEvent `json:"events"`
+	Kind    NotificationKind    `json:"kind"`
+
+	// MinSeverity The lowest doctor severity the channel gets (notifications R5.4).
+	MinSeverity *NotificationSeverity `json:"min_severity,omitempty"`
+	Name        string                `json:"name"`
+
+	// Secret Webhook signing secret. Write-only.
+	Secret *string `json:"secret,omitempty"`
+	Smtp   *struct {
+		From *string `json:"from,omitempty"`
+		Host string  `json:"host"`
+
+		// Password SMTP password. Write-only.
+		Password *string `json:"password,omitempty"`
+		Port     int     `json:"port"`
+		Username *string `json:"username,omitempty"`
+	} `json:"smtp,omitempty"`
+	Url *string `json:"url,omitempty"`
+}
+
+// NotificationChannelList defines model for NotificationChannelList.
+type NotificationChannelList struct {
+	Items []NotificationChannel `json:"items"`
+}
+
+// NotificationChannelUpdate Every field is optional; `kind` cannot change.
+type NotificationChannelUpdate struct {
+	Address *string              `json:"address,omitempty"`
+	Enabled *bool                `json:"enabled,omitempty"`
+	Events  *[]NotificationEvent `json:"events,omitempty"`
+
+	// MinSeverity The lowest doctor severity the channel gets (notifications R5.4).
+	MinSeverity *NotificationSeverity `json:"min_severity,omitempty"`
+	Name        *string               `json:"name,omitempty"`
+
+	// Secret New signing secret; an empty string removes it.
+	Secret *string `json:"secret,omitempty"`
+	Smtp   *struct {
+		From *string `json:"from,omitempty"`
+		Host *string `json:"host,omitempty"`
+
+		// Password New SMTP password; an empty string removes it.
+		Password *string `json:"password,omitempty"`
+		Port     *int    `json:"port,omitempty"`
+		Username *string `json:"username,omitempty"`
+	} `json:"smtp,omitempty"`
+	Url *string `json:"url,omitempty"`
+}
+
+// NotificationEvent The stable event types of notifications R5.1.
+type NotificationEvent string
+
+// NotificationKind defines model for NotificationKind.
+type NotificationKind string
+
+// NotificationSeverity The lowest doctor severity the channel gets (notifications R5.4).
+type NotificationSeverity string
+
+// NotificationTestResult defines model for NotificationTestResult.
+type NotificationTestResult struct {
+	// Message What happened, or why delivery failed.
+	Message *string   `json:"message,omitempty"`
+	Ok      bool      `json:"ok"`
+	SentAt  time.Time `json:"sent_at"`
+}
 
 // OS defines model for OS.
 type OS string
@@ -1994,6 +2434,15 @@ type SlotStatus struct {
 	Tickets   []Ticket `json:"tickets"`
 }
 
+// SmtpSettings How an email channel sends. The password is never returned.
+type SmtpSettings struct {
+	From        *string `json:"from,omitempty"`
+	HasPassword bool    `json:"has_password"`
+	Host        string  `json:"host"`
+	Port        int     `json:"port"`
+	Username    *string `json:"username,omitempty"`
+}
+
 // Staleness Set when GitHub did not answer and the last copy is shown (UX-53).
 type Staleness struct {
 	AsOf  *time.Time `json:"as_of,omitempty"`
@@ -2014,6 +2463,12 @@ type StartAppManifestRequest struct {
 
 // StartAppManifestRequestAccountType defines model for StartAppManifestRequest.AccountType.
 type StartAppManifestRequestAccountType string
+
+// StartUpdateRequest defines model for StartUpdateRequest.
+type StartUpdateRequest struct {
+	// MachineIds Only these machines. Absent means the controller, then every agent.
+	MachineIds *[]string `json:"machine_ids,omitempty"`
+}
 
 // Theme defines model for Theme.
 type Theme string
@@ -2037,6 +2492,65 @@ type Ticket struct {
 	// WaitReason observability R5.5.
 	WaitReason *WaitReason `json:"wait_reason,omitempty"`
 }
+
+// UpdateImageLayersRequest defines model for UpdateImageLayersRequest.
+type UpdateImageLayersRequest struct {
+	// EnabledLayers Ids of the layers that are on. Every other layer is off.
+	EnabledLayers []string `json:"enabled_layers"`
+}
+
+// UpdatePart One part that runs a version of crsp (the controller or an agent).
+type UpdatePart struct {
+	AvailableVersion *string         `json:"available_version,omitempty"`
+	Error            *string         `json:"error,omitempty"`
+	MachineId        string          `json:"machine_id"`
+	MachineName      *string         `json:"machine_name,omitempty"`
+	Part             UpdatePartPart  `json:"part"`
+	State            UpdatePartState `json:"state"`
+	Version          string          `json:"version"`
+
+	// WaitingFor Jobs the drain waits for.
+	WaitingFor *[]Job `json:"waiting_for,omitempty"`
+}
+
+// UpdatePartPart defines model for UpdatePart.Part.
+type UpdatePartPart string
+
+// UpdatePartState defines model for UpdatePart.State.
+type UpdatePartState string
+
+// UpdatePolicy operations R5.11, R5.14 and R5.15. The channel is `stable` and cannot change.
+type UpdatePolicy struct {
+	// AutoUpdate On installs a stable build in its window after the drain; off asks first.
+	AutoUpdate          *bool `json:"auto_update,omitempty"`
+	CheckIntervalHours  *int  `json:"check_interval_hours,omitempty"`
+	DrainTimeoutMinutes *int  `json:"drain_timeout_minutes,omitempty"`
+}
+
+// UpdateRun defines model for UpdateRun.
+type UpdateRun struct {
+	Changes []MachineChange `json:"changes"`
+	Version *string         `json:"version,omitempty"`
+}
+
+// UpdateStatus defines model for UpdateStatus.
+type UpdateStatus struct {
+	// AvailableVersion The newest stable build offered, absent when the pool is current.
+	AvailableVersion *string             `json:"available_version,omitempty"`
+	Channel          UpdateStatusChannel `json:"channel"`
+	LastCheckAt      *time.Time          `json:"last_check_at,omitempty"`
+	NextCheckAt      *time.Time          `json:"next_check_at,omitempty"`
+	Parts            []UpdatePart        `json:"parts"`
+
+	// Policy operations R5.11, R5.14 and R5.15. The channel is `stable` and cannot change.
+	Policy UpdatePolicy `json:"policy"`
+
+	// RunnerVersion The pinned GitHub runner version (operations R5.19).
+	RunnerVersion *string `json:"runner_version,omitempty"`
+}
+
+// UpdateStatusChannel defines model for UpdateStatus.Channel.
+type UpdateStatusChannel string
 
 // UpdateUserRoleRequest defines model for UpdateUserRoleRequest.
 type UpdateUserRoleRequest struct {
@@ -2071,8 +2585,14 @@ type WaitReason string
 // BackupId defines model for BackupId.
 type BackupId = string
 
+// CacheId defines model for CacheId.
+type CacheId = string
+
 // ChangeId defines model for ChangeId.
 type ChangeId = string
+
+// ChannelId defines model for ChannelId.
+type ChannelId = string
 
 // Confirm defines model for Confirm.
 type Confirm = bool
@@ -2082,6 +2602,9 @@ type Cursor = string
 
 // From defines model for From.
 type From = time.Time
+
+// ImageId defines model for ImageId.
+type ImageId = string
 
 // JobId defines model for JobId.
 type JobId = int64
@@ -2125,6 +2648,9 @@ type UserId = int64
 // Error defines model for Error.
 type Error = ErrorEnvelope
 
+// ExportFile defines model for ExportFile.
+type ExportFile = string
+
 // ListAuditEventsParams defines parameters for ListAuditEvents.
 type ListAuditEventsParams struct {
 	Actor      *string `form:"actor,omitempty" json:"actor,omitempty"`
@@ -2145,6 +2671,18 @@ type RestoreBackupParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// ListCachesParams defines parameters for ListCaches.
+type ListCachesParams struct {
+	MachineId *string    `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+	Kind      *CacheKind `form:"kind,omitempty" json:"kind,omitempty"`
+}
+
+// WipeCacheParams defines parameters for WipeCache.
+type WipeCacheParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // ListDoctorFindingsParams defines parameters for ListDoctorFindings.
 type ListDoctorFindingsParams struct {
 	Severity *Severity `form:"severity,omitempty" json:"severity,omitempty"`
@@ -2155,6 +2693,38 @@ type ListDoctorFindingsParams struct {
 type StreamEventsParams struct {
 	LastEventID *string `json:"Last-Event-ID,omitempty"`
 }
+
+// ExportAuditEventsParams defines parameters for ExportAuditEvents.
+type ExportAuditEventsParams struct {
+	Format     *ExportAuditEventsParamsFormat `form:"format,omitempty" json:"format,omitempty"`
+	Actor      *string                        `form:"actor,omitempty" json:"actor,omitempty"`
+	Action     *string                        `form:"action,omitempty" json:"action,omitempty"`
+	TargetType *string                        `form:"target_type,omitempty" json:"target_type,omitempty"`
+	TargetId   *string                        `form:"target_id,omitempty" json:"target_id,omitempty"`
+	From       *From                          `form:"from,omitempty" json:"from,omitempty"`
+	To         *To                            `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// ExportAuditEventsParamsFormat defines parameters for ExportAuditEvents.
+type ExportAuditEventsParamsFormat string
+
+// ExportJobsParams defines parameters for ExportJobs.
+type ExportJobsParams struct {
+	Format       *ExportJobsParamsFormat `form:"format,omitempty" json:"format,omitempty"`
+	State        *ExportJobsParamsState  `form:"state,omitempty" json:"state,omitempty"`
+	RepositoryId *int64                  `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+	MachineId    *string                 `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+	Backend      *string                 `form:"backend,omitempty" json:"backend,omitempty"`
+	Result       *JobResult              `form:"result,omitempty" json:"result,omitempty"`
+	From         *From                   `form:"from,omitempty" json:"from,omitempty"`
+	To           *To                     `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// ExportJobsParamsFormat defines parameters for ExportJobs.
+type ExportJobsParamsFormat string
+
+// ExportJobsParamsState defines parameters for ExportJobs.
+type ExportJobsParamsState string
 
 // ListRepositoriesParams defines parameters for ListRepositories.
 type ListRepositoriesParams struct {
@@ -2171,6 +2741,18 @@ type ListRepositoriesParams struct {
 
 // ListRepositoriesParamsPool defines parameters for ListRepositories.
 type ListRepositoriesParamsPool string
+
+// ListImagesParams defines parameters for ListImages.
+type ListImagesParams struct {
+	MachineId *string `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+	Os        *OS     `form:"os,omitempty" json:"os,omitempty"`
+}
+
+// RebuildImageParams defines parameters for RebuildImage.
+type RebuildImageParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
 
 // ListJobsParams defines parameters for ListJobs.
 type ListJobsParams struct {
@@ -2208,6 +2790,12 @@ type ResumeMachineParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// DeleteNotificationChannelParams defines parameters for DeleteNotificationChannel.
+type DeleteNotificationChannelParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // ListRunnersParams defines parameters for ListRunners.
 type ListRunnersParams struct {
 	MachineId *string      `form:"machine_id,omitempty" json:"machine_id,omitempty"`
@@ -2218,6 +2806,12 @@ type ListRunnersParams struct {
 
 // DeleteRunnerParams defines parameters for DeleteRunner.
 type DeleteRunnerParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
+// StartUpdateParams defines parameters for StartUpdate.
+type StartUpdateParams struct {
 	// Confirm The yes to a question card that named what goes (UX-62).
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
@@ -2263,6 +2857,9 @@ type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
 // RunDoctorJSONRequestBody defines body for RunDoctor for application/json ContentType.
 type RunDoctorJSONRequestBody = DoctorScope
 
+// UpdateImageLayersJSONRequestBody defines body for UpdateImageLayers for application/json ContentType.
+type UpdateImageLayersJSONRequestBody = UpdateImageLayersRequest
+
 // CreateJoinCodeJSONRequestBody defines body for CreateJoinCode for application/json ContentType.
 type CreateJoinCodeJSONRequestBody = CreateJoinCodeRequest
 
@@ -2280,6 +2877,12 @@ type FreeStaleSlotsJSONRequestBody = FreeSlotsRequest
 
 // UpdatePreferencesJSONRequestBody defines body for UpdatePreferences for application/json ContentType.
 type UpdatePreferencesJSONRequestBody = Preferences
+
+// CreateNotificationChannelJSONRequestBody defines body for CreateNotificationChannel for application/json ContentType.
+type CreateNotificationChannelJSONRequestBody = NotificationChannelInput
+
+// UpdateNotificationChannelJSONRequestBody defines body for UpdateNotificationChannel for application/json ContentType.
+type UpdateNotificationChannelJSONRequestBody = NotificationChannelUpdate
 
 // UpdateRepositoryPolicyJSONRequestBody defines body for UpdateRepositoryPolicy for application/json ContentType.
 type UpdateRepositoryPolicyJSONRequestBody = RepositoryPolicyUpdate
@@ -2310,6 +2913,12 @@ type StartAppManifestJSONRequestBody = StartAppManifestRequest
 
 // RedeemSetupLinkJSONRequestBody defines body for RedeemSetupLink for application/json ContentType.
 type RedeemSetupLinkJSONRequestBody = RedeemSetupLinkRequest
+
+// UpdateUpdatePolicyJSONRequestBody defines body for UpdateUpdatePolicy for application/json ContentType.
+type UpdateUpdatePolicyJSONRequestBody = UpdatePolicy
+
+// StartUpdateJSONRequestBody defines body for StartUpdate for application/json ContentType.
+type StartUpdateJSONRequestBody = StartUpdateRequest
 
 // AddUserJSONRequestBody defines body for AddUser for application/json ContentType.
 type AddUserJSONRequestBody = AddUserRequest
@@ -2358,6 +2967,12 @@ type ServerInterface interface {
 	// GetCaCertificate Download the controller's CA certificate
 	// (GET /api/v1/ca.pem)
 	GetCaCertificate(w http.ResponseWriter, r *http.Request)
+	// ListCaches Caches per machine with size against cap
+	// (GET /api/v1/caches)
+	ListCaches(w http.ResponseWriter, r *http.Request, params ListCachesParams)
+	// WipeCache Empty one cache
+	// (POST /api/v1/caches/{cacheId}/wipe)
+	WipeCache(w http.ResponseWriter, r *http.Request, cacheId CacheId, params WipeCacheParams)
 	// ListDoctorFindings The latest finding per check and subject
 	// (GET /api/v1/doctor/findings)
 	ListDoctorFindings(w http.ResponseWriter, r *http.Request, params ListDoctorFindingsParams)
@@ -2370,6 +2985,15 @@ type ServerInterface interface {
 	// StreamEvents The live view as server-sent events
 	// (GET /api/v1/events)
 	StreamEvents(w http.ResponseWriter, r *http.Request, params StreamEventsParams)
+	// ExportAuditEvents Export the audit log as a file
+	// (GET /api/v1/exports/audit)
+	ExportAuditEvents(w http.ResponseWriter, r *http.Request, params ExportAuditEventsParams)
+	// ExportConfig Export the configuration without any secret
+	// (GET /api/v1/exports/config)
+	ExportConfig(w http.ResponseWriter, r *http.Request)
+	// ExportJobs Export the job history as a file
+	// (GET /api/v1/exports/jobs)
+	ExportJobs(w http.ResponseWriter, r *http.Request, params ExportJobsParams)
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	// (GET /api/v1/github/install-url)
 	GetAppInstallUrl(w http.ResponseWriter, r *http.Request)
@@ -2379,6 +3003,18 @@ type ServerInterface interface {
 	// ListRepositories Repositories of the installations, with pool state and policy
 	// (GET /api/v1/github/repositories)
 	ListRepositories(w http.ResponseWriter, r *http.Request, params ListRepositoriesParams)
+	// ListImages Images per machine and OS, with layers and sizes
+	// (GET /api/v1/images)
+	ListImages(w http.ResponseWriter, r *http.Request, params ListImagesParams)
+	// GetImage One image with its layers
+	// (GET /api/v1/images/{imageId})
+	GetImage(w http.ResponseWriter, r *http.Request, imageId ImageId)
+	// UpdateImageLayers Turn tool layers on or off for an image
+	// (PUT /api/v1/images/{imageId}/layers)
+	UpdateImageLayers(w http.ResponseWriter, r *http.Request, imageId ImageId)
+	// RebuildImage Rebuild an image after a drain
+	// (POST /api/v1/images/{imageId}/rebuild)
+	RebuildImage(w http.ResponseWriter, r *http.Request, imageId ImageId, params RebuildImageParams)
 	// GetInstallCommand The install command per OS, without a join code
 	// (GET /api/v1/install-command)
 	GetInstallCommand(w http.ResponseWriter, r *http.Request)
@@ -2442,6 +3078,21 @@ type ServerInterface interface {
 	// UpdatePreferences Save the user's own view preferences
 	// (PUT /api/v1/me/preferences)
 	UpdatePreferences(w http.ResponseWriter, r *http.Request)
+	// ListNotificationChannels Notification channels the caller may see
+	// (GET /api/v1/notification-channels)
+	ListNotificationChannels(w http.ResponseWriter, r *http.Request)
+	// CreateNotificationChannel Add a notification channel
+	// (POST /api/v1/notification-channels)
+	CreateNotificationChannel(w http.ResponseWriter, r *http.Request)
+	// DeleteNotificationChannel Remove a notification channel
+	// (DELETE /api/v1/notification-channels/{channelId})
+	DeleteNotificationChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId, params DeleteNotificationChannelParams)
+	// UpdateNotificationChannel Change a notification channel
+	// (PATCH /api/v1/notification-channels/{channelId})
+	UpdateNotificationChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId)
+	// TestNotificationChannel Send a test notice through a channel
+	// (POST /api/v1/notification-channels/{channelId}/test)
+	TestNotificationChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId)
 	// GetOverview The overview snapshot
 	// (GET /api/v1/overview)
 	GetOverview(w http.ResponseWriter, r *http.Request)
@@ -2463,6 +3114,9 @@ type ServerInterface interface {
 	// ApplyRepositoryChanges Apply a repository plan after a yes
 	// (POST /api/v1/repository-plans/{planId}/apply)
 	ApplyRepositoryChanges(w http.ResponseWriter, r *http.Request, planId PlanId)
+	// StopRepositoryPlan Stop a repository plan that is applying
+	// (POST /api/v1/repository-plans/{planId}/stop)
+	StopRepositoryPlan(w http.ResponseWriter, r *http.Request, planId PlanId)
 	// PlanRunners Plan adding runners on a machine
 	// (POST /api/v1/runner-plans)
 	PlanRunners(w http.ResponseWriter, r *http.Request)
@@ -2472,6 +3126,9 @@ type ServerInterface interface {
 	// CreateRunners Apply a runner plan (add, or replace an unmanaged runner)
 	// (POST /api/v1/runner-plans/{planId}/apply)
 	CreateRunners(w http.ResponseWriter, r *http.Request, planId PlanId)
+	// StopRunnerPlan Stop a runner plan that is applying
+	// (POST /api/v1/runner-plans/{planId}/stop)
+	StopRunnerPlan(w http.ResponseWriter, r *http.Request, planId PlanId)
 	// ListRunners Every runner, managed or not
 	// (GET /api/v1/runners)
 	ListRunners(w http.ResponseWriter, r *http.Request, params ListRunnersParams)
@@ -2511,6 +3168,15 @@ type ServerInterface interface {
 	// RedeemSetupLink Trade a one-time setup code for a setup cookie
 	// (POST /api/v1/setup/redeem)
 	RedeemSetupLink(w http.ResponseWriter, r *http.Request)
+	// GetUpdateStatus Controller and agent versions, the policy and what is offered
+	// (GET /api/v1/updates)
+	GetUpdateStatus(w http.ResponseWriter, r *http.Request)
+	// UpdateUpdatePolicy Change auto-update, the check interval and the drain rules
+	// (PATCH /api/v1/updates/policy)
+	UpdateUpdatePolicy(w http.ResponseWriter, r *http.Request)
+	// StartUpdate Update now
+	// (POST /api/v1/updates/start)
+	StartUpdate(w http.ResponseWriter, r *http.Request, params StartUpdateParams)
 	// ListUsers Users allowed to sign in, with their roles
 	// (GET /api/v1/users)
 	ListUsers(w http.ResponseWriter, r *http.Request)
@@ -2870,6 +3536,94 @@ func (siw *ServerInterfaceWrapper) GetCaCertificate(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// ListCaches operation middleware
+func (siw *ServerInterfaceWrapper) ListCaches(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListCachesParams
+
+	// ------------- Optional query parameter "machine_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "machine_id", r.URL.Query(), &params.MachineId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "machine_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machine_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "kind", r.URL.Query(), &params.Kind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kind", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCaches(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// WipeCache operation middleware
+func (siw *ServerInterfaceWrapper) WipeCache(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "cacheId" -------------
+	var cacheId CacheId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "cacheId", r.PathValue("cacheId"), &cacheId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cacheId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params WipeCacheParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.WipeCache(w, r, cacheId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListDoctorFindings operation middleware
 func (siw *ServerInterfaceWrapper) ListDoctorFindings(w http.ResponseWriter, r *http.Request) {
 
@@ -2997,6 +3751,255 @@ func (siw *ServerInterfaceWrapper) StreamEvents(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// ExportAuditEvents operation middleware
+func (siw *ServerInterfaceWrapper) ExportAuditEvents(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ExportAuditEventsParams
+
+	// ------------- Optional query parameter "format" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "format", r.URL.Query(), &params.Format, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "format"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "format", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "actor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "actor", r.URL.Query(), &params.Actor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "actor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "actor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "action" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "action", r.URL.Query(), &params.Action, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "action"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "action", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "target_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "target_type", r.URL.Query(), &params.TargetType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "target_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "target_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "target_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "target_id", r.URL.Query(), &params.TargetId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "target_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "target_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportAuditEvents(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ExportConfig operation middleware
+func (siw *ServerInterfaceWrapper) ExportConfig(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportConfig(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ExportJobs operation middleware
+func (siw *ServerInterfaceWrapper) ExportJobs(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ExportJobsParams
+
+	// ------------- Optional query parameter "format" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "format", r.URL.Query(), &params.Format, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "format"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "format", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "repository_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "repository_id", r.URL.Query(), &params.RepositoryId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "repository_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repository_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "machine_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "machine_id", r.URL.Query(), &params.MachineId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "machine_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machine_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "backend" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "backend", r.URL.Query(), &params.Backend, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "backend"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "backend", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "result" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "result", r.URL.Query(), &params.Result, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "result"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "result", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportJobs(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetAppInstallUrl operation middleware
 func (siw *ServerInterfaceWrapper) GetAppInstallUrl(w http.ResponseWriter, r *http.Request) {
 
@@ -3101,6 +4104,146 @@ func (siw *ServerInterfaceWrapper) ListRepositories(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListRepositories(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListImages operation middleware
+func (siw *ServerInterfaceWrapper) ListImages(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListImagesParams
+
+	// ------------- Optional query parameter "machine_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "machine_id", r.URL.Query(), &params.MachineId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "machine_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machine_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "os" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "os", r.URL.Query(), &params.Os, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "os"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "os", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListImages(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetImage operation middleware
+func (siw *ServerInterfaceWrapper) GetImage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "imageId" -------------
+	var imageId ImageId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "imageId", r.PathValue("imageId"), &imageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "imageId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetImage(w, r, imageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateImageLayers operation middleware
+func (siw *ServerInterfaceWrapper) UpdateImageLayers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "imageId" -------------
+	var imageId ImageId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "imageId", r.PathValue("imageId"), &imageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "imageId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateImageLayers(w, r, imageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RebuildImage operation middleware
+func (siw *ServerInterfaceWrapper) RebuildImage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "imageId" -------------
+	var imageId ImageId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "imageId", r.PathValue("imageId"), &imageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "imageId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RebuildImageParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RebuildImage(w, r, imageId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3774,6 +4917,128 @@ func (siw *ServerInterfaceWrapper) UpdatePreferences(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r)
 }
 
+// ListNotificationChannels operation middleware
+func (siw *ServerInterfaceWrapper) ListNotificationChannels(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListNotificationChannels(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateNotificationChannel operation middleware
+func (siw *ServerInterfaceWrapper) CreateNotificationChannel(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateNotificationChannel(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteNotificationChannel operation middleware
+func (siw *ServerInterfaceWrapper) DeleteNotificationChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channelId" -------------
+	var channelId ChannelId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channelId", r.PathValue("channelId"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channelId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteNotificationChannelParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteNotificationChannel(w, r, channelId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateNotificationChannel operation middleware
+func (siw *ServerInterfaceWrapper) UpdateNotificationChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channelId" -------------
+	var channelId ChannelId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channelId", r.PathValue("channelId"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channelId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateNotificationChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TestNotificationChannel operation middleware
+func (siw *ServerInterfaceWrapper) TestNotificationChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "channelId" -------------
+	var channelId ChannelId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "channelId", r.PathValue("channelId"), &channelId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "channelId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TestNotificationChannel(w, r, channelId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetOverview operation middleware
 func (siw *ServerInterfaceWrapper) GetOverview(w http.ResponseWriter, r *http.Request) {
 
@@ -3932,6 +5197,32 @@ func (siw *ServerInterfaceWrapper) ApplyRepositoryChanges(w http.ResponseWriter,
 	handler.ServeHTTP(w, r)
 }
 
+// StopRepositoryPlan operation middleware
+func (siw *ServerInterfaceWrapper) StopRepositoryPlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "planId" -------------
+	var planId PlanId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "planId", r.PathValue("planId"), &planId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "planId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StopRepositoryPlan(w, r, planId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PlanRunners operation middleware
 func (siw *ServerInterfaceWrapper) PlanRunners(w http.ResponseWriter, r *http.Request) {
 
@@ -3989,6 +5280,32 @@ func (siw *ServerInterfaceWrapper) CreateRunners(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateRunners(w, r, planId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StopRunnerPlan operation middleware
+func (siw *ServerInterfaceWrapper) StopRunnerPlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "planId" -------------
+	var planId PlanId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "planId", r.PathValue("planId"), &planId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "planId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StopRunnerPlan(w, r, planId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4281,6 +5598,67 @@ func (siw *ServerInterfaceWrapper) RedeemSetupLink(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RedeemSetupLink(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUpdateStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetUpdateStatus(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUpdateStatus(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateUpdatePolicy operation middleware
+func (siw *ServerInterfaceWrapper) UpdateUpdatePolicy(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateUpdatePolicy(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartUpdate operation middleware
+func (siw *ServerInterfaceWrapper) StartUpdate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params StartUpdateParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartUpdate(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4838,12 +6216,52 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/backups", wrapper.RunBackup)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/backups/drills", wrapper.RunBackupDrill)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/backups/{backupId}/restore", wrapper.RestoreBackup)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/exports/jobs", wrapper.ExportJobs)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/exports/audit", wrapper.ExportAuditEvents)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/exports/config", wrapper.ExportConfig)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repository-plans/{planId}/stop", wrapper.StopRepositoryPlan)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/runner-plans/{planId}/stop", wrapper.StopRunnerPlan)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/images", wrapper.ListImages)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/images/{imageId}", wrapper.GetImage)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/images/{imageId}/layers", wrapper.UpdateImageLayers)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/images/{imageId}/rebuild", wrapper.RebuildImage)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/caches", wrapper.ListCaches)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/caches/{cacheId}/wipe", wrapper.WipeCache)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notification-channels", wrapper.ListNotificationChannels)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/notification-channels", wrapper.CreateNotificationChannel)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/notification-channels/{channelId}", wrapper.DeleteNotificationChannel)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/notification-channels/{channelId}", wrapper.UpdateNotificationChannel)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/notification-channels/{channelId}/test", wrapper.TestNotificationChannel)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/updates", wrapper.GetUpdateStatus)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/updates/policy", wrapper.UpdateUpdatePolicy)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/updates/start", wrapper.StartUpdate)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/webhooks/github", wrapper.ReceiveGithubWebhook)
 
 	return m
 }
 
 type ErrorJSONResponse ErrorEnvelope
+
+type ExportFileResponseHeaders struct {
+	ContentDisposition string
+}
+type ExportFileJSONResponse struct {
+	Body string
+
+	Headers ExportFileResponseHeaders
+}
+type ExportFileApplicationyamlResponse struct {
+	Body io.Reader
+
+	Headers       ExportFileResponseHeaders
+	ContentLength int64
+}
+type ExportFileTextcsvResponse struct {
+	Body io.Reader
+
+	Headers       ExportFileResponseHeaders
+	ContentLength int64
+}
 
 type RedirectResponseHeaders struct {
 	Location  string
@@ -5308,6 +6726,85 @@ func (response GetCaCertificatedefaultJSONResponse) VisitGetCaCertificateRespons
 	return err
 }
 
+type ListCachesRequestObject struct {
+	Params ListCachesParams
+}
+
+type ListCachesResponseObject interface {
+	VisitListCachesResponse(w http.ResponseWriter) error
+}
+
+type ListCaches200JSONResponse CacheList
+
+func (response ListCaches200JSONResponse) VisitListCachesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCachesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListCachesdefaultJSONResponse) VisitListCachesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WipeCacheRequestObject struct {
+	CacheId CacheId `json:"cacheId"`
+	Params  WipeCacheParams
+}
+
+type WipeCacheResponseObject interface {
+	VisitWipeCacheResponse(w http.ResponseWriter) error
+}
+
+type WipeCache202JSONResponse Cache
+
+func (response WipeCache202JSONResponse) VisitWipeCacheResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WipeCachedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response WipeCachedefaultJSONResponse) VisitWipeCacheResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListDoctorFindingsRequestObject struct {
 	Params ListDoctorFindingsParams
 }
@@ -5493,6 +6990,239 @@ func (response StreamEventsdefaultJSONResponse) VisitStreamEventsResponse(w http
 	return err
 }
 
+type ExportAuditEventsRequestObject struct {
+	Params ExportAuditEventsParams
+}
+
+type ExportAuditEventsResponseObject interface {
+	VisitExportAuditEventsResponse(w http.ResponseWriter) error
+}
+
+type ExportAuditEvents200JSONResponse struct{ ExportFileJSONResponse }
+
+func (response ExportAuditEvents200JSONResponse) VisitExportAuditEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportAuditEvents200ApplicationyamlResponse struct {
+	ExportFileApplicationyamlResponse
+}
+
+func (response ExportAuditEvents200ApplicationyamlResponse) VisitExportAuditEventsResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/yaml")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type ExportAuditEvents200TextcsvResponse struct{ ExportFileTextcsvResponse }
+
+func (response ExportAuditEvents200TextcsvResponse) VisitExportAuditEventsResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/csv")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type ExportAuditEventsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ExportAuditEventsdefaultJSONResponse) VisitExportAuditEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportConfigRequestObject struct {
+}
+
+type ExportConfigResponseObject interface {
+	VisitExportConfigResponse(w http.ResponseWriter) error
+}
+
+type ExportConfig200JSONResponse struct{ ExportFileJSONResponse }
+
+func (response ExportConfig200JSONResponse) VisitExportConfigResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportConfig200ApplicationyamlResponse struct {
+	ExportFileApplicationyamlResponse
+}
+
+func (response ExportConfig200ApplicationyamlResponse) VisitExportConfigResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/yaml")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type ExportConfig200TextcsvResponse struct{ ExportFileTextcsvResponse }
+
+func (response ExportConfig200TextcsvResponse) VisitExportConfigResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/csv")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type ExportConfigdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ExportConfigdefaultJSONResponse) VisitExportConfigResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportJobsRequestObject struct {
+	Params ExportJobsParams
+}
+
+type ExportJobsResponseObject interface {
+	VisitExportJobsResponse(w http.ResponseWriter) error
+}
+
+type ExportJobs200JSONResponse struct{ ExportFileJSONResponse }
+
+func (response ExportJobs200JSONResponse) VisitExportJobsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportJobs200ApplicationyamlResponse struct {
+	ExportFileApplicationyamlResponse
+}
+
+func (response ExportJobs200ApplicationyamlResponse) VisitExportJobsResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/yaml")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type ExportJobs200TextcsvResponse struct{ ExportFileTextcsvResponse }
+
+func (response ExportJobs200TextcsvResponse) VisitExportJobsResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/csv")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type ExportJobsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ExportJobsdefaultJSONResponse) VisitExportJobsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetAppInstallUrlRequestObject struct {
 }
 
@@ -5597,6 +7327,164 @@ type ListRepositoriesdefaultJSONResponse struct {
 }
 
 func (response ListRepositoriesdefaultJSONResponse) VisitListRepositoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListImagesRequestObject struct {
+	Params ListImagesParams
+}
+
+type ListImagesResponseObject interface {
+	VisitListImagesResponse(w http.ResponseWriter) error
+}
+
+type ListImages200JSONResponse ImageList
+
+func (response ListImages200JSONResponse) VisitListImagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListImagesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListImagesdefaultJSONResponse) VisitListImagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetImageRequestObject struct {
+	ImageId ImageId `json:"imageId"`
+}
+
+type GetImageResponseObject interface {
+	VisitGetImageResponse(w http.ResponseWriter) error
+}
+
+type GetImage200JSONResponse Image
+
+func (response GetImage200JSONResponse) VisitGetImageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetImagedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetImagedefaultJSONResponse) VisitGetImageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateImageLayersRequestObject struct {
+	ImageId ImageId `json:"imageId"`
+	Body    *UpdateImageLayersJSONRequestBody
+}
+
+type UpdateImageLayersResponseObject interface {
+	VisitUpdateImageLayersResponse(w http.ResponseWriter) error
+}
+
+type UpdateImageLayers200JSONResponse Image
+
+func (response UpdateImageLayers200JSONResponse) VisitUpdateImageLayersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateImageLayersdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response UpdateImageLayersdefaultJSONResponse) VisitUpdateImageLayersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RebuildImageRequestObject struct {
+	ImageId ImageId `json:"imageId"`
+	Params  RebuildImageParams
+}
+
+type RebuildImageResponseObject interface {
+	VisitRebuildImageResponse(w http.ResponseWriter) error
+}
+
+type RebuildImage202JSONResponse MachineChange
+
+func (response RebuildImage202JSONResponse) VisitRebuildImageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RebuildImagedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RebuildImagedefaultJSONResponse) VisitRebuildImageResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -6434,6 +8322,196 @@ func (response UpdatePreferencesdefaultJSONResponse) VisitUpdatePreferencesRespo
 	return err
 }
 
+type ListNotificationChannelsRequestObject struct {
+}
+
+type ListNotificationChannelsResponseObject interface {
+	VisitListNotificationChannelsResponse(w http.ResponseWriter) error
+}
+
+type ListNotificationChannels200JSONResponse NotificationChannelList
+
+func (response ListNotificationChannels200JSONResponse) VisitListNotificationChannelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListNotificationChannelsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListNotificationChannelsdefaultJSONResponse) VisitListNotificationChannelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateNotificationChannelRequestObject struct {
+	Body *CreateNotificationChannelJSONRequestBody
+}
+
+type CreateNotificationChannelResponseObject interface {
+	VisitCreateNotificationChannelResponse(w http.ResponseWriter) error
+}
+
+type CreateNotificationChannel201JSONResponse NotificationChannel
+
+func (response CreateNotificationChannel201JSONResponse) VisitCreateNotificationChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateNotificationChanneldefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CreateNotificationChanneldefaultJSONResponse) VisitCreateNotificationChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteNotificationChannelRequestObject struct {
+	ChannelId ChannelId `json:"channelId"`
+	Params    DeleteNotificationChannelParams
+}
+
+type DeleteNotificationChannelResponseObject interface {
+	VisitDeleteNotificationChannelResponse(w http.ResponseWriter) error
+}
+
+type DeleteNotificationChannel204Response struct {
+}
+
+func (response DeleteNotificationChannel204Response) VisitDeleteNotificationChannelResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteNotificationChanneldefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DeleteNotificationChanneldefaultJSONResponse) VisitDeleteNotificationChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateNotificationChannelRequestObject struct {
+	ChannelId ChannelId `json:"channelId"`
+	Body      *UpdateNotificationChannelJSONRequestBody
+}
+
+type UpdateNotificationChannelResponseObject interface {
+	VisitUpdateNotificationChannelResponse(w http.ResponseWriter) error
+}
+
+type UpdateNotificationChannel200JSONResponse NotificationChannel
+
+func (response UpdateNotificationChannel200JSONResponse) VisitUpdateNotificationChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateNotificationChanneldefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response UpdateNotificationChanneldefaultJSONResponse) VisitUpdateNotificationChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestNotificationChannelRequestObject struct {
+	ChannelId ChannelId `json:"channelId"`
+}
+
+type TestNotificationChannelResponseObject interface {
+	VisitTestNotificationChannelResponse(w http.ResponseWriter) error
+}
+
+type TestNotificationChannel200JSONResponse NotificationTestResult
+
+func (response TestNotificationChannel200JSONResponse) VisitTestNotificationChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestNotificationChanneldefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response TestNotificationChanneldefaultJSONResponse) VisitTestNotificationChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetOverviewRequestObject struct {
 }
 
@@ -6708,6 +8786,45 @@ func (response ApplyRepositoryChangesdefaultJSONResponse) VisitApplyRepositoryCh
 	return err
 }
 
+type StopRepositoryPlanRequestObject struct {
+	PlanId PlanId `json:"planId"`
+}
+
+type StopRepositoryPlanResponseObject interface {
+	VisitStopRepositoryPlanResponse(w http.ResponseWriter) error
+}
+
+type StopRepositoryPlan202JSONResponse Plan
+
+func (response StopRepositoryPlan202JSONResponse) VisitStopRepositoryPlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StopRepositoryPlandefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StopRepositoryPlandefaultJSONResponse) VisitStopRepositoryPlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type PlanRunnersRequestObject struct {
 	Body *PlanRunnersJSONRequestBody
 }
@@ -6815,6 +8932,45 @@ type CreateRunnersdefaultJSONResponse struct {
 }
 
 func (response CreateRunnersdefaultJSONResponse) VisitCreateRunnersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StopRunnerPlanRequestObject struct {
+	PlanId PlanId `json:"planId"`
+}
+
+type StopRunnerPlanResponseObject interface {
+	VisitStopRunnerPlanResponse(w http.ResponseWriter) error
+}
+
+type StopRunnerPlan202JSONResponse Plan
+
+func (response StopRunnerPlan202JSONResponse) VisitStopRunnerPlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StopRunnerPlandefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StopRunnerPlandefaultJSONResponse) VisitStopRunnerPlanResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -7340,6 +9496,123 @@ func (response RedeemSetupLinkdefaultJSONResponse) VisitRedeemSetupLinkResponse(
 	return err
 }
 
+type GetUpdateStatusRequestObject struct {
+}
+
+type GetUpdateStatusResponseObject interface {
+	VisitGetUpdateStatusResponse(w http.ResponseWriter) error
+}
+
+type GetUpdateStatus200JSONResponse UpdateStatus
+
+func (response GetUpdateStatus200JSONResponse) VisitGetUpdateStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetUpdateStatusdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetUpdateStatusdefaultJSONResponse) VisitGetUpdateStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateUpdatePolicyRequestObject struct {
+	Body *UpdateUpdatePolicyJSONRequestBody
+}
+
+type UpdateUpdatePolicyResponseObject interface {
+	VisitUpdateUpdatePolicyResponse(w http.ResponseWriter) error
+}
+
+type UpdateUpdatePolicy200JSONResponse UpdateStatus
+
+func (response UpdateUpdatePolicy200JSONResponse) VisitUpdateUpdatePolicyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateUpdatePolicydefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response UpdateUpdatePolicydefaultJSONResponse) VisitUpdateUpdatePolicyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartUpdateRequestObject struct {
+	Params StartUpdateParams
+	Body   *StartUpdateJSONRequestBody
+}
+
+type StartUpdateResponseObject interface {
+	VisitStartUpdateResponse(w http.ResponseWriter) error
+}
+
+type StartUpdate202JSONResponse UpdateRun
+
+func (response StartUpdate202JSONResponse) VisitStartUpdateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartUpdatedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StartUpdatedefaultJSONResponse) VisitStartUpdateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListUsersRequestObject struct {
 }
 
@@ -7741,6 +10014,12 @@ type StrictServerInterface interface {
 	// GetCaCertificate Download the controller's CA certificate
 	// (GET /api/v1/ca.pem)
 	GetCaCertificate(ctx context.Context, request GetCaCertificateRequestObject) (GetCaCertificateResponseObject, error)
+	// ListCaches Caches per machine with size against cap
+	// (GET /api/v1/caches)
+	ListCaches(ctx context.Context, request ListCachesRequestObject) (ListCachesResponseObject, error)
+	// WipeCache Empty one cache
+	// (POST /api/v1/caches/{cacheId}/wipe)
+	WipeCache(ctx context.Context, request WipeCacheRequestObject) (WipeCacheResponseObject, error)
 	// ListDoctorFindings The latest finding per check and subject
 	// (GET /api/v1/doctor/findings)
 	ListDoctorFindings(ctx context.Context, request ListDoctorFindingsRequestObject) (ListDoctorFindingsResponseObject, error)
@@ -7753,6 +10032,15 @@ type StrictServerInterface interface {
 	// StreamEvents The live view as server-sent events
 	// (GET /api/v1/events)
 	StreamEvents(ctx context.Context, request StreamEventsRequestObject) (StreamEventsResponseObject, error)
+	// ExportAuditEvents Export the audit log as a file
+	// (GET /api/v1/exports/audit)
+	ExportAuditEvents(ctx context.Context, request ExportAuditEventsRequestObject) (ExportAuditEventsResponseObject, error)
+	// ExportConfig Export the configuration without any secret
+	// (GET /api/v1/exports/config)
+	ExportConfig(ctx context.Context, request ExportConfigRequestObject) (ExportConfigResponseObject, error)
+	// ExportJobs Export the job history as a file
+	// (GET /api/v1/exports/jobs)
+	ExportJobs(ctx context.Context, request ExportJobsRequestObject) (ExportJobsResponseObject, error)
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	// (GET /api/v1/github/install-url)
 	GetAppInstallUrl(ctx context.Context, request GetAppInstallUrlRequestObject) (GetAppInstallUrlResponseObject, error)
@@ -7762,6 +10050,18 @@ type StrictServerInterface interface {
 	// ListRepositories Repositories of the installations, with pool state and policy
 	// (GET /api/v1/github/repositories)
 	ListRepositories(ctx context.Context, request ListRepositoriesRequestObject) (ListRepositoriesResponseObject, error)
+	// ListImages Images per machine and OS, with layers and sizes
+	// (GET /api/v1/images)
+	ListImages(ctx context.Context, request ListImagesRequestObject) (ListImagesResponseObject, error)
+	// GetImage One image with its layers
+	// (GET /api/v1/images/{imageId})
+	GetImage(ctx context.Context, request GetImageRequestObject) (GetImageResponseObject, error)
+	// UpdateImageLayers Turn tool layers on or off for an image
+	// (PUT /api/v1/images/{imageId}/layers)
+	UpdateImageLayers(ctx context.Context, request UpdateImageLayersRequestObject) (UpdateImageLayersResponseObject, error)
+	// RebuildImage Rebuild an image after a drain
+	// (POST /api/v1/images/{imageId}/rebuild)
+	RebuildImage(ctx context.Context, request RebuildImageRequestObject) (RebuildImageResponseObject, error)
 	// GetInstallCommand The install command per OS, without a join code
 	// (GET /api/v1/install-command)
 	GetInstallCommand(ctx context.Context, request GetInstallCommandRequestObject) (GetInstallCommandResponseObject, error)
@@ -7825,6 +10125,21 @@ type StrictServerInterface interface {
 	// UpdatePreferences Save the user's own view preferences
 	// (PUT /api/v1/me/preferences)
 	UpdatePreferences(ctx context.Context, request UpdatePreferencesRequestObject) (UpdatePreferencesResponseObject, error)
+	// ListNotificationChannels Notification channels the caller may see
+	// (GET /api/v1/notification-channels)
+	ListNotificationChannels(ctx context.Context, request ListNotificationChannelsRequestObject) (ListNotificationChannelsResponseObject, error)
+	// CreateNotificationChannel Add a notification channel
+	// (POST /api/v1/notification-channels)
+	CreateNotificationChannel(ctx context.Context, request CreateNotificationChannelRequestObject) (CreateNotificationChannelResponseObject, error)
+	// DeleteNotificationChannel Remove a notification channel
+	// (DELETE /api/v1/notification-channels/{channelId})
+	DeleteNotificationChannel(ctx context.Context, request DeleteNotificationChannelRequestObject) (DeleteNotificationChannelResponseObject, error)
+	// UpdateNotificationChannel Change a notification channel
+	// (PATCH /api/v1/notification-channels/{channelId})
+	UpdateNotificationChannel(ctx context.Context, request UpdateNotificationChannelRequestObject) (UpdateNotificationChannelResponseObject, error)
+	// TestNotificationChannel Send a test notice through a channel
+	// (POST /api/v1/notification-channels/{channelId}/test)
+	TestNotificationChannel(ctx context.Context, request TestNotificationChannelRequestObject) (TestNotificationChannelResponseObject, error)
 	// GetOverview The overview snapshot
 	// (GET /api/v1/overview)
 	GetOverview(ctx context.Context, request GetOverviewRequestObject) (GetOverviewResponseObject, error)
@@ -7846,6 +10161,9 @@ type StrictServerInterface interface {
 	// ApplyRepositoryChanges Apply a repository plan after a yes
 	// (POST /api/v1/repository-plans/{planId}/apply)
 	ApplyRepositoryChanges(ctx context.Context, request ApplyRepositoryChangesRequestObject) (ApplyRepositoryChangesResponseObject, error)
+	// StopRepositoryPlan Stop a repository plan that is applying
+	// (POST /api/v1/repository-plans/{planId}/stop)
+	StopRepositoryPlan(ctx context.Context, request StopRepositoryPlanRequestObject) (StopRepositoryPlanResponseObject, error)
 	// PlanRunners Plan adding runners on a machine
 	// (POST /api/v1/runner-plans)
 	PlanRunners(ctx context.Context, request PlanRunnersRequestObject) (PlanRunnersResponseObject, error)
@@ -7855,6 +10173,9 @@ type StrictServerInterface interface {
 	// CreateRunners Apply a runner plan (add, or replace an unmanaged runner)
 	// (POST /api/v1/runner-plans/{planId}/apply)
 	CreateRunners(ctx context.Context, request CreateRunnersRequestObject) (CreateRunnersResponseObject, error)
+	// StopRunnerPlan Stop a runner plan that is applying
+	// (POST /api/v1/runner-plans/{planId}/stop)
+	StopRunnerPlan(ctx context.Context, request StopRunnerPlanRequestObject) (StopRunnerPlanResponseObject, error)
 	// ListRunners Every runner, managed or not
 	// (GET /api/v1/runners)
 	ListRunners(ctx context.Context, request ListRunnersRequestObject) (ListRunnersResponseObject, error)
@@ -7894,6 +10215,15 @@ type StrictServerInterface interface {
 	// RedeemSetupLink Trade a one-time setup code for a setup cookie
 	// (POST /api/v1/setup/redeem)
 	RedeemSetupLink(ctx context.Context, request RedeemSetupLinkRequestObject) (RedeemSetupLinkResponseObject, error)
+	// GetUpdateStatus Controller and agent versions, the policy and what is offered
+	// (GET /api/v1/updates)
+	GetUpdateStatus(ctx context.Context, request GetUpdateStatusRequestObject) (GetUpdateStatusResponseObject, error)
+	// UpdateUpdatePolicy Change auto-update, the check interval and the drain rules
+	// (PATCH /api/v1/updates/policy)
+	UpdateUpdatePolicy(ctx context.Context, request UpdateUpdatePolicyRequestObject) (UpdateUpdatePolicyResponseObject, error)
+	// StartUpdate Update now
+	// (POST /api/v1/updates/start)
+	StartUpdate(ctx context.Context, request StartUpdateRequestObject) (StartUpdateResponseObject, error)
 	// ListUsers Users allowed to sign in, with their roles
 	// (GET /api/v1/users)
 	ListUsers(ctx context.Context, request ListUsersRequestObject) (ListUsersResponseObject, error)
@@ -8267,6 +10597,59 @@ func (sh *strictHandler) GetCaCertificate(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// ListCaches operation middleware
+func (sh *strictHandler) ListCaches(w http.ResponseWriter, r *http.Request, params ListCachesParams) {
+	var request ListCachesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCaches(ctx, request.(ListCachesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCaches")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCachesResponseObject); ok {
+		if err := validResponse.VisitListCachesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// WipeCache operation middleware
+func (sh *strictHandler) WipeCache(w http.ResponseWriter, r *http.Request, cacheId CacheId, params WipeCacheParams) {
+	var request WipeCacheRequestObject
+
+	request.CacheId = cacheId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.WipeCache(ctx, request.(WipeCacheRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "WipeCache")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(WipeCacheResponseObject); ok {
+		if err := validResponse.VisitWipeCacheResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListDoctorFindings operation middleware
 func (sh *strictHandler) ListDoctorFindings(w http.ResponseWriter, r *http.Request, params ListDoctorFindingsParams) {
 	var request ListDoctorFindingsRequestObject
@@ -8379,6 +10762,82 @@ func (sh *strictHandler) StreamEvents(w http.ResponseWriter, r *http.Request, pa
 	}
 }
 
+// ExportAuditEvents operation middleware
+func (sh *strictHandler) ExportAuditEvents(w http.ResponseWriter, r *http.Request, params ExportAuditEventsParams) {
+	var request ExportAuditEventsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ExportAuditEvents(ctx, request.(ExportAuditEventsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ExportAuditEvents")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ExportAuditEventsResponseObject); ok {
+		if err := validResponse.VisitExportAuditEventsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ExportConfig operation middleware
+func (sh *strictHandler) ExportConfig(w http.ResponseWriter, r *http.Request) {
+	var request ExportConfigRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ExportConfig(ctx, request.(ExportConfigRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ExportConfig")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ExportConfigResponseObject); ok {
+		if err := validResponse.VisitExportConfigResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ExportJobs operation middleware
+func (sh *strictHandler) ExportJobs(w http.ResponseWriter, r *http.Request, params ExportJobsParams) {
+	var request ExportJobsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ExportJobs(ctx, request.(ExportJobsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ExportJobs")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ExportJobsResponseObject); ok {
+		if err := validResponse.VisitExportJobsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetAppInstallUrl operation middleware
 func (sh *strictHandler) GetAppInstallUrl(w http.ResponseWriter, r *http.Request) {
 	var request GetAppInstallUrlRequestObject
@@ -8446,6 +10905,118 @@ func (sh *strictHandler) ListRepositories(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListRepositoriesResponseObject); ok {
 		if err := validResponse.VisitListRepositoriesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListImages operation middleware
+func (sh *strictHandler) ListImages(w http.ResponseWriter, r *http.Request, params ListImagesParams) {
+	var request ListImagesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListImages(ctx, request.(ListImagesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListImages")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListImagesResponseObject); ok {
+		if err := validResponse.VisitListImagesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetImage operation middleware
+func (sh *strictHandler) GetImage(w http.ResponseWriter, r *http.Request, imageId ImageId) {
+	var request GetImageRequestObject
+
+	request.ImageId = imageId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetImage(ctx, request.(GetImageRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetImage")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetImageResponseObject); ok {
+		if err := validResponse.VisitGetImageResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateImageLayers operation middleware
+func (sh *strictHandler) UpdateImageLayers(w http.ResponseWriter, r *http.Request, imageId ImageId) {
+	var request UpdateImageLayersRequestObject
+
+	request.ImageId = imageId
+
+	var body UpdateImageLayersJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateImageLayers(ctx, request.(UpdateImageLayersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateImageLayers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateImageLayersResponseObject); ok {
+		if err := validResponse.VisitUpdateImageLayersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RebuildImage operation middleware
+func (sh *strictHandler) RebuildImage(w http.ResponseWriter, r *http.Request, imageId ImageId, params RebuildImageParams) {
+	var request RebuildImageRequestObject
+
+	request.ImageId = imageId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RebuildImage(ctx, request.(RebuildImageRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RebuildImage")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RebuildImageResponseObject); ok {
+		if err := validResponse.VisitRebuildImageResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -9043,6 +11614,147 @@ func (sh *strictHandler) UpdatePreferences(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// ListNotificationChannels operation middleware
+func (sh *strictHandler) ListNotificationChannels(w http.ResponseWriter, r *http.Request) {
+	var request ListNotificationChannelsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListNotificationChannels(ctx, request.(ListNotificationChannelsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListNotificationChannels")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListNotificationChannelsResponseObject); ok {
+		if err := validResponse.VisitListNotificationChannelsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateNotificationChannel operation middleware
+func (sh *strictHandler) CreateNotificationChannel(w http.ResponseWriter, r *http.Request) {
+	var request CreateNotificationChannelRequestObject
+
+	var body CreateNotificationChannelJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateNotificationChannel(ctx, request.(CreateNotificationChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateNotificationChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateNotificationChannelResponseObject); ok {
+		if err := validResponse.VisitCreateNotificationChannelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteNotificationChannel operation middleware
+func (sh *strictHandler) DeleteNotificationChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId, params DeleteNotificationChannelParams) {
+	var request DeleteNotificationChannelRequestObject
+
+	request.ChannelId = channelId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteNotificationChannel(ctx, request.(DeleteNotificationChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteNotificationChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteNotificationChannelResponseObject); ok {
+		if err := validResponse.VisitDeleteNotificationChannelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateNotificationChannel operation middleware
+func (sh *strictHandler) UpdateNotificationChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId) {
+	var request UpdateNotificationChannelRequestObject
+
+	request.ChannelId = channelId
+
+	var body UpdateNotificationChannelJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateNotificationChannel(ctx, request.(UpdateNotificationChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateNotificationChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateNotificationChannelResponseObject); ok {
+		if err := validResponse.VisitUpdateNotificationChannelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// TestNotificationChannel operation middleware
+func (sh *strictHandler) TestNotificationChannel(w http.ResponseWriter, r *http.Request, channelId ChannelId) {
+	var request TestNotificationChannelRequestObject
+
+	request.ChannelId = channelId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.TestNotificationChannel(ctx, request.(TestNotificationChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "TestNotificationChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(TestNotificationChannelResponseObject); ok {
+		if err := validResponse.VisitTestNotificationChannelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetOverview operation middleware
 func (sh *strictHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
 	var request GetOverviewRequestObject
@@ -9242,6 +11954,32 @@ func (sh *strictHandler) ApplyRepositoryChanges(w http.ResponseWriter, r *http.R
 	}
 }
 
+// StopRepositoryPlan operation middleware
+func (sh *strictHandler) StopRepositoryPlan(w http.ResponseWriter, r *http.Request, planId PlanId) {
+	var request StopRepositoryPlanRequestObject
+
+	request.PlanId = planId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StopRepositoryPlan(ctx, request.(StopRepositoryPlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StopRepositoryPlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StopRepositoryPlanResponseObject); ok {
+		if err := validResponse.VisitStopRepositoryPlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // PlanRunners operation middleware
 func (sh *strictHandler) PlanRunners(w http.ResponseWriter, r *http.Request) {
 	var request PlanRunnersRequestObject
@@ -9325,6 +12063,32 @@ func (sh *strictHandler) CreateRunners(w http.ResponseWriter, r *http.Request, p
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateRunnersResponseObject); ok {
 		if err := validResponse.VisitCreateRunnersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StopRunnerPlan operation middleware
+func (sh *strictHandler) StopRunnerPlan(w http.ResponseWriter, r *http.Request, planId PlanId) {
+	var request StopRunnerPlanRequestObject
+
+	request.PlanId = planId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StopRunnerPlan(ctx, request.(StopRunnerPlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StopRunnerPlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StopRunnerPlanResponseObject); ok {
+		if err := validResponse.VisitStopRunnerPlanResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -9681,6 +12445,97 @@ func (sh *strictHandler) RedeemSetupLink(w http.ResponseWriter, r *http.Request)
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RedeemSetupLinkResponseObject); ok {
 		if err := validResponse.VisitRedeemSetupLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetUpdateStatus operation middleware
+func (sh *strictHandler) GetUpdateStatus(w http.ResponseWriter, r *http.Request) {
+	var request GetUpdateStatusRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetUpdateStatus(ctx, request.(GetUpdateStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetUpdateStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetUpdateStatusResponseObject); ok {
+		if err := validResponse.VisitGetUpdateStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateUpdatePolicy operation middleware
+func (sh *strictHandler) UpdateUpdatePolicy(w http.ResponseWriter, r *http.Request) {
+	var request UpdateUpdatePolicyRequestObject
+
+	var body UpdateUpdatePolicyJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateUpdatePolicy(ctx, request.(UpdateUpdatePolicyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateUpdatePolicy")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateUpdatePolicyResponseObject); ok {
+		if err := validResponse.VisitUpdateUpdatePolicyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartUpdate operation middleware
+func (sh *strictHandler) StartUpdate(w http.ResponseWriter, r *http.Request, params StartUpdateParams) {
+	var request StartUpdateRequestObject
+
+	request.Params = params
+
+	var body StartUpdateJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartUpdate(ctx, request.(StartUpdateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartUpdate")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartUpdateResponseObject); ok {
+		if err := validResponse.VisitStartUpdateResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

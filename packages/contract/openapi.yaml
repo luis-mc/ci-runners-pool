@@ -40,6 +40,14 @@ tags:
     description: Controller settings and the audit log (observability R5.24 to R5.32)
   - name: backups
     description: Backup, restore and drill (operations R5.21 to R5.27)
+  - name: images
+    description: Images and tool layers (runners R5.32 to R5.35, web-console R5.25)
+  - name: caches
+    description: Caches per machine (caches R5.8 to R5.14, web-console R5.25)
+  - name: notifications
+    description: Notification channels (notifications R5.7 to R5.9)
+  - name: updates
+    description: Controller and agent updates (operations R5.11 to R5.18)
   - name: webhooks
     description: GitHub webhook intake (github-integration R5.36)
 paths:
@@ -1723,6 +1731,553 @@ paths:
         default:
           $ref: '#/components/responses/Error'
 
+  # ---------------------------------------------------------------- exports and plan stops (CRSP32)
+  /api/v1/exports/jobs:
+    get:
+      operationId: exportJobs
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [jobs]
+      summary: Export the job history as a file
+      description: >-
+        web-console R5.24, observability R5.7 to R5.11. Takes the filters of
+        listJobs and holds every matching row (no paging), in the order the
+        list shows. The file is named for what it holds then the stamp, such as
+        `crsp-jobs-2026-11-14-1005.csv`, and says so in `Content-Disposition`.
+      x-auth: user
+      x-rate-limit: 10/minute/user
+      parameters:
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [csv, json]
+            default: csv
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [queued, running, done]
+        - name: repository_id
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: machine_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: backend
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: result
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/JobResult'
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+      responses:
+        '200':
+          $ref: '#/components/responses/ExportFile'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/exports/audit:
+    get:
+      operationId: exportAuditEvents
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [settings]
+      summary: Export the audit log as a file
+      description: >-
+        web-console 4.9, observability R5.24 to R5.27. Takes the filters of
+        listAuditEvents and holds every matching row, newest first. Named
+        `crsp-audit-<stamp>.csv` or `.json`. Summaries are redacted as in the
+        list.
+      x-auth: user
+      x-rate-limit: 10/minute/user
+      parameters:
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [csv, json]
+            default: csv
+        - name: actor
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: target_type
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: target_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+      responses:
+        '200':
+          $ref: '#/components/responses/ExportFile'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/exports/config:
+    get:
+      operationId: exportConfig
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [settings]
+      summary: Export the configuration without any secret
+      description: >-
+        web-console R5.29, operations R5.26. A YAML file with no token, key,
+        password or signing secret; a secret is named only as set or not set.
+        Named `crsp-config-<stamp>.yaml`.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      responses:
+        '200':
+          $ref: '#/components/responses/ExportFile'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/repository-plans/{planId}/stop:
+    post:
+      operationId: stopRepositoryPlan
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [repositories]
+      summary: Stop a repository plan that is applying
+      description: >-
+        web-console section 11. The step that runs finishes; no later step
+        starts; the plan ends `stopped`. A plan that is not applying answers 409
+        conflict. Progress comes on the event stream (`plan.progress`).
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+      responses:
+        '202':
+          description: Stopping; the plan after the request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/runner-plans/{planId}/stop:
+    post:
+      operationId: stopRunnerPlan
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [runners]
+      summary: Stop a runner plan that is applying
+      description: >-
+        web-console section 11. The step that runs finishes; no later step
+        starts; the plan ends `stopped`. A plan that is not applying answers 409
+        conflict. Progress comes on the event stream (`plan.progress`).
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+      responses:
+        '202':
+          description: Stopping; the plan after the request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        default:
+          $ref: '#/components/responses/Error'
+
+  # ---------------------------------------------------------------- images and caches (CRSP32)
+  /api/v1/images:
+    get:
+      operationId: listImages
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [images]
+      summary: Images per machine and OS, with layers and sizes
+      description: web-console R5.25, runners R5.32 and R5.33.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: machine_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: os
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/OS'
+      responses:
+        '200':
+          description: The images, newest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/images/{imageId}:
+    get:
+      operationId: getImage
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [images]
+      summary: One image with its layers
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/ImageId'
+      responses:
+        '200':
+          description: The image.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Image'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/images/{imageId}/layers:
+    put:
+      operationId: updateImageLayers
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [images]
+      summary: Turn tool layers on or off for an image
+      description: >-
+        web-console R5.25, runners R5.32. Saves the layer choice; the image
+        keeps serving until rebuildImage. `needs_rebuild` on the answer says a
+        rebuild is due.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/ImageId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateImageLayersRequest'
+      responses:
+        '200':
+          description: The image with the saved layers.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Image'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/images/{imageId}/rebuild:
+    post:
+      operationId: rebuildImage
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [images]
+      summary: Rebuild an image after a drain
+      description: >-
+        web-console R5.25 and R5.30, runners R5.35. Without `confirm=true` it
+        answers 409 needs_confirmation naming the machine, the runners and the
+        jobs it waits for. With it, the machine drains and a MachineChange of
+        kind `image_rebuild` is returned; watch it with getMachineChange on
+        `machine_id` and `change.progress` events. A build failure keeps the old
+        image.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/ImageId'
+        - $ref: '#/components/parameters/Confirm'
+      responses:
+        '202':
+          description: Draining, then building.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MachineChange'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/caches:
+    get:
+      operationId: listCaches
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [caches]
+      summary: Caches per machine with size against cap
+      description: >-
+        web-console R5.25, caches R5.8 to R5.14. The Actions cache, git
+        mirrors, the tool cache and the registry mirror.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: machine_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: kind
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/CacheKind'
+      responses:
+        '200':
+          description: The caches.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/caches/{cacheId}/wipe:
+    post:
+      operationId: wipeCache
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [caches]
+      summary: Empty one cache
+      description: >-
+        web-console R5.25 and R5.30. Without `confirm=true` it answers 409
+        needs_confirmation naming the cache, its size and the jobs that use it.
+        An entry being read or written is not removed.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/CacheId'
+        - $ref: '#/components/parameters/Confirm'
+      responses:
+        '202':
+          description: Wiping.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cache'
+        default:
+          $ref: '#/components/responses/Error'
+
+  # ---------------------------------------------------------------- notifications (CRSP32)
+  /api/v1/notification-channels:
+    get:
+      operationId: listNotificationChannels
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [notifications]
+      summary: Notification channels the caller may see
+      description: >-
+        web-console 4.9, notifications R5.6 to R5.9. Personal channels (email,
+        desktop) are the caller's own; webhooks are pool-wide. A secret is never
+        returned, only whether one is set.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      responses:
+        '200':
+          description: The channels.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationChannelList'
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: createNotificationChannel
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [notifications]
+      summary: Add a notification channel
+      description: >-
+        notifications R5.7 to R5.9 and R5.19. Any signed-in user adds a personal
+        channel (email, desktop); a webhook needs admin or owner and an HTTPS
+        URL, else 403 forbidden. Secrets in the request are write-only.
+      x-auth: user
+      x-rate-limit: 30/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationChannelInput'
+      responses:
+        '201':
+          description: The channel.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationChannel'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/notification-channels/{channelId}:
+    patch:
+      operationId: updateNotificationChannel
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [notifications]
+      summary: Change a notification channel
+      description: >-
+        notifications R5.7 to R5.9. The kind never changes. A field left out
+        keeps its value; a secret left out stays, a secret sent as an empty
+        string is removed.
+      x-auth: user
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/ChannelId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationChannelUpdate'
+      responses:
+        '200':
+          description: The channel.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationChannel'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteNotificationChannel
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [notifications]
+      summary: Remove a notification channel
+      description: >-
+        Without `confirm=true` it answers 409 needs_confirmation naming the
+        channel and the events it carries (UX-62).
+      x-auth: user
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/ChannelId'
+        - $ref: '#/components/parameters/Confirm'
+      responses:
+        '204':
+          description: Removed.
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/notification-channels/{channelId}/test:
+    post:
+      operationId: testNotificationChannel
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [notifications]
+      summary: Send a test notice through a channel
+      description: >-
+        notifications R5.9. Sends one clearly marked test notice and answers
+        what happened. A failed delivery is a 200 with `ok: false` and the
+        reason, not an error.
+      x-auth: user
+      x-rate-limit: 5/minute/user
+      parameters:
+        - $ref: '#/components/parameters/ChannelId'
+      responses:
+        '200':
+          description: The result of the test.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationTestResult'
+        default:
+          $ref: '#/components/responses/Error'
+
+  # ---------------------------------------------------------------- updates (CRSP32)
+  /api/v1/updates:
+    get:
+      operationId: getUpdateStatus
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [updates]
+      summary: Controller and agent versions, the policy and what is offered
+      description: >-
+        web-console 4.9, operations R5.11 to R5.18. The channel is `stable`
+        only. Auto-update is on by default.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      responses:
+        '200':
+          description: The status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/updates/policy:
+    patch:
+      operationId: updateUpdatePolicy
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [updates]
+      summary: Change auto-update, the check interval and the drain rules
+      description: >-
+        operations R5.11, R5.14 and R5.15. A field left out keeps its value. A
+        value outside its range is refused with the range.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePolicy'
+      responses:
+        '200':
+          description: The status after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/updates/start:
+    post:
+      operationId: startUpdate
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [updates]
+      summary: Update now
+      description: >-
+        operations R5.14 to R5.18. Without `confirm=true` it answers 409
+        needs_confirmation naming the version, the machines and the jobs the
+        drain waits for (UX-62). The controller goes first, then agents one at a
+        time. Each machine gets a MachineChange of kind `controller_update` or
+        `agent_update`; watch them with getMachineChange and `change.progress`.
+        Answers 409 conflict when nothing newer is offered.
+      x-auth: owner
+      x-rate-limit: 5/minute/user
+      parameters:
+        - $ref: '#/components/parameters/Confirm'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartUpdateRequest'
+      responses:
+        '202':
+          description: Draining, then updating.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateRun'
+        default:
+          $ref: '#/components/responses/Error'
+
   # ---------------------------------------------------------------- webhooks
   /webhooks/github:
     post:
@@ -1890,6 +2445,24 @@ components:
       required: true
       schema:
         type: string
+    ImageId:
+      name: imageId
+      in: path
+      required: true
+      schema:
+        type: string
+    CacheId:
+      name: cacheId
+      in: path
+      required: true
+      schema:
+        type: string
+    ChannelId:
+      name: channelId
+      in: path
+      required: true
+      schema:
+        type: string
 
   responses:
     Error:
@@ -1898,6 +2471,26 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
+    ExportFile:
+      description: >-
+        The export as a file. `Content-Disposition` carries the file name, named
+        for what the file holds then the stamp (UX-39).
+      headers:
+        Content-Disposition:
+          required: true
+          schema:
+            type: string
+          example: attachment; filename="crsp-jobs-2026-11-14-1005.csv"
+      content:
+        text/csv:
+          schema:
+            type: string
+        application/json:
+          schema:
+            type: string
+        application/yaml:
+          schema:
+            type: string
     Redirect:
       description: A redirect. May set or clear a cookie.
       headers:
@@ -2984,7 +3577,17 @@ components:
           type: string
         kind:
           type: string
-          enum: [drain, settings, remove, agent_update, runner_update, service_restart]
+          enum:
+            [
+              drain,
+              settings,
+              remove,
+              agent_update,
+              controller_update,
+              runner_update,
+              service_restart,
+              image_rebuild,
+            ]
         state:
           type: string
           enum: [waiting, running, done, cancelled, needs_you]
@@ -3500,6 +4103,9 @@ components:
               doctor.progress,
               plan.progress,
               change.progress,
+              image.state,
+              cache.state,
+              update.status,
             ]
         at:
           type: string
@@ -3531,6 +4137,12 @@ components:
           $ref: '#/components/schemas/Plan'
         change:
           $ref: '#/components/schemas/MachineChange'
+        image:
+          $ref: '#/components/schemas/Image'
+        cache:
+          $ref: '#/components/schemas/Cache'
+        update:
+          $ref: '#/components/schemas/UpdateStatus'
       example:
         id: '1042'
         type: machine.load
@@ -3815,3 +4427,429 @@ components:
           enum: [running, passed, failed]
         detail:
           type: string
+
+    # ---------- images and caches (CRSP32)
+    ImageLayer:
+      type: object
+      required: [id, name, enabled, size_bytes]
+      properties:
+        id:
+          type: string
+          example: browsers
+        name:
+          type: string
+          example: Browsers for Playwright
+        enabled:
+          type: boolean
+        size_bytes:
+          type: integer
+          format: int64
+    Image:
+      type: object
+      description: One image on one machine (runners R5.32 and R5.33).
+      required: [id, machine_id, os, base, layers, size_bytes, state, newest]
+      properties:
+        id:
+          type: string
+        machine_id:
+          type: string
+        os:
+          $ref: '#/components/schemas/OS'
+        base:
+          type: string
+          description: The base image.
+          example: ubuntu-24.04
+        layers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageLayer'
+        size_bytes:
+          type: integer
+          format: int64
+        built_at:
+          type: string
+          format: date-time
+        newest:
+          type: boolean
+          description: True for the newest image kept for this machine and OS.
+        needs_rebuild:
+          type: boolean
+          description: The saved layers differ from the built ones.
+        state:
+          type: string
+          enum: [ready, rebuilding, failed]
+        error:
+          type: string
+          description: Why the last build failed; the old image keeps serving.
+      example:
+        id: img_01JCRSP0001
+        machine_id: m_01JCRSP0001
+        os: linux
+        base: ubuntu-24.04
+        layers:
+          - id: build-tools
+            name: Build tools
+            enabled: true
+            size_bytes: 612368384
+        size_bytes: 2147483648
+        built_at: '2026-11-13T22:00:00Z'
+        newest: true
+        needs_rebuild: false
+        state: ready
+    ImageList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Image'
+    UpdateImageLayersRequest:
+      type: object
+      required: [enabled_layers]
+      properties:
+        enabled_layers:
+          type: array
+          description: Ids of the layers that are on. Every other layer is off.
+          items:
+            type: string
+      example:
+        enabled_layers: [build-tools, browsers]
+    CacheKind:
+      type: string
+      enum: [actions_cache, git_mirror, tool_cache, registry_mirror]
+    Cache:
+      type: object
+      description: One cache on one machine (caches R5.8 to R5.14).
+      required: [id, kind, machine_id, size_bytes, state]
+      properties:
+        id:
+          type: string
+        kind:
+          $ref: '#/components/schemas/CacheKind'
+        machine_id:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+        cap_bytes:
+          type: integer
+          format: int64
+          description: Absent when the cache has no cap.
+        entry_count:
+          type: integer
+        last_wiped_at:
+          type: string
+          format: date-time
+        state:
+          type: string
+          enum: [ready, wiping]
+      example:
+        id: cch_01JCRSP0001
+        kind: tool_cache
+        machine_id: m_01JCRSP0001
+        size_bytes: 3221225472
+        cap_bytes: 10737418240
+        entry_count: 42
+        state: ready
+    CacheList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Cache'
+
+    # ---------- notifications (CRSP32)
+    NotificationEvent:
+      type: string
+      description: The stable event types of notifications R5.1.
+      enum: [machine.offline, job.waiting, disk.low, runner.outdated, doctor.finding, update.available]
+    NotificationKind:
+      type: string
+      enum: [email, webhook, desktop]
+    NotificationSeverity:
+      type: string
+      description: The lowest doctor severity the channel gets (notifications R5.4).
+      enum: [info, warning, error]
+    SmtpSettings:
+      type: object
+      description: How an email channel sends. The password is never returned.
+      required: [host, port, has_password]
+      properties:
+        host:
+          type: string
+        port:
+          type: integer
+        username:
+          type: string
+        from:
+          type: string
+        has_password:
+          type: boolean
+    NotificationChannel:
+      type: object
+      description: >-
+        One channel. No secret is returned: `has_secret` and `smtp.has_password`
+        say only whether one is set.
+      required: [id, kind, name, scope, enabled, events, min_severity, has_secret]
+      properties:
+        id:
+          type: string
+        kind:
+          $ref: '#/components/schemas/NotificationKind'
+        name:
+          type: string
+        scope:
+          type: string
+          enum: [personal, pool]
+          description: Email and desktop are personal; a webhook is pool-wide.
+        enabled:
+          type: boolean
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationEvent'
+        min_severity:
+          $ref: '#/components/schemas/NotificationSeverity'
+        address:
+          type: string
+          description: Email address (kind email).
+        url:
+          type: string
+          description: HTTPS URL (kind webhook).
+        has_secret:
+          type: boolean
+          description: A webhook signing secret is set. Always false for other kinds.
+        smtp:
+          $ref: '#/components/schemas/SmtpSettings'
+        last_test_at:
+          type: string
+          format: date-time
+        last_test_ok:
+          type: boolean
+      example:
+        id: nch_01JCRSP0001
+        kind: webhook
+        name: Team chat
+        scope: pool
+        enabled: true
+        events: [machine.offline, job.waiting]
+        min_severity: warning
+        url: https://hooks.example.com/crsp
+        has_secret: true
+    NotificationChannelList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannel'
+    NotificationChannelInput:
+      type: object
+      required: [kind, name, events]
+      properties:
+        kind:
+          $ref: '#/components/schemas/NotificationKind'
+        name:
+          type: string
+        enabled:
+          type: boolean
+          default: true
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationEvent'
+        min_severity:
+          $ref: '#/components/schemas/NotificationSeverity'
+        address:
+          type: string
+        url:
+          type: string
+        secret:
+          type: string
+          writeOnly: true
+          description: Webhook signing secret. Write-only.
+        smtp:
+          type: object
+          required: [host, port]
+          properties:
+            host:
+              type: string
+            port:
+              type: integer
+            username:
+              type: string
+            from:
+              type: string
+            password:
+              type: string
+              writeOnly: true
+              description: SMTP password. Write-only.
+      example:
+        kind: webhook
+        name: Team chat
+        events: [machine.offline]
+        min_severity: warning
+        url: https://hooks.example.com/crsp
+        secret: s3cret-signing-key
+    NotificationChannelUpdate:
+      type: object
+      description: Every field is optional; `kind` cannot change.
+      properties:
+        name:
+          type: string
+        enabled:
+          type: boolean
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationEvent'
+        min_severity:
+          $ref: '#/components/schemas/NotificationSeverity'
+        address:
+          type: string
+        url:
+          type: string
+        secret:
+          type: string
+          writeOnly: true
+          description: New signing secret; an empty string removes it.
+        smtp:
+          type: object
+          properties:
+            host:
+              type: string
+            port:
+              type: integer
+            username:
+              type: string
+            from:
+              type: string
+            password:
+              type: string
+              writeOnly: true
+              description: New SMTP password; an empty string removes it.
+    NotificationTestResult:
+      type: object
+      required: [ok, sent_at]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+          description: What happened, or why delivery failed.
+        sent_at:
+          type: string
+          format: date-time
+
+    # ---------- updates (CRSP32)
+    UpdatePolicy:
+      type: object
+      description: operations R5.11, R5.14 and R5.15. The channel is `stable` and cannot change.
+      properties:
+        auto_update:
+          type: boolean
+          description: On installs a stable build in its window after the drain; off asks first.
+          default: true
+        check_interval_hours:
+          type: integer
+          minimum: 1
+          maximum: 168
+          default: 6
+        drain_timeout_minutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+          default: 60
+      example:
+        auto_update: true
+        check_interval_hours: 6
+        drain_timeout_minutes: 60
+    UpdatePart:
+      type: object
+      description: One part that runs a version of crsp (the controller or an agent).
+      required: [part, machine_id, version, state]
+      properties:
+        part:
+          type: string
+          enum: [controller, agent]
+        machine_id:
+          type: string
+        machine_name:
+          type: string
+        version:
+          type: string
+        available_version:
+          type: string
+        state:
+          type: string
+          enum: [current, available, waiting, updating, failed]
+        waiting_for:
+          type: array
+          description: Jobs the drain waits for.
+          items:
+            $ref: '#/components/schemas/Job'
+        error:
+          type: string
+    UpdateStatus:
+      type: object
+      required: [channel, policy, parts]
+      properties:
+        channel:
+          type: string
+          enum: [stable]
+        policy:
+          $ref: '#/components/schemas/UpdatePolicy'
+        last_check_at:
+          type: string
+          format: date-time
+        next_check_at:
+          type: string
+          format: date-time
+        available_version:
+          type: string
+          description: The newest stable build offered, absent when the pool is current.
+        runner_version:
+          type: string
+          description: The pinned GitHub runner version (operations R5.19).
+        parts:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpdatePart'
+      example:
+        channel: stable
+        policy:
+          auto_update: true
+          check_interval_hours: 6
+          drain_timeout_minutes: 60
+        last_check_at: '2026-11-14T09:00:00Z'
+        available_version: v0.2.0
+        runner_version: 2.321.0
+        parts:
+          - part: controller
+            machine_id: m_01JCRSP0001
+            machine_name: box-1
+            version: v0.1.0
+            available_version: v0.2.0
+            state: available
+    StartUpdateRequest:
+      type: object
+      properties:
+        machine_ids:
+          type: array
+          description: Only these machines. Absent means the controller, then every agent.
+          items:
+            type: string
+    UpdateRun:
+      type: object
+      required: [changes]
+      properties:
+        version:
+          type: string
+        changes:
+          type: array
+          items:
+            $ref: '#/components/schemas/MachineChange'

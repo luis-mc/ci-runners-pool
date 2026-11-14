@@ -437,6 +437,7 @@ flowchart LR
 | Notifications | `listNotificationChannels`, `createNotificationChannel`, `updateNotificationChannel`, `deleteNotificationChannel`, `testNotificationChannel` | `notifications` |
 | Updates and export | `getUpdateStatus`, `updateUpdatePolicy`, `startUpdate`, `exportConfig` | `operations` |
 | Audit | `listAuditEvents`, `exportAuditEvents` | `observability` |
+| Stop a plan | `stopRepositoryPlan`, `stopRunnerPlan` | `github-integration`, `runners` |
 
 **Errors.** Every error uses the `ErrorEnvelope` of the contract. The console reads its `code`: `session_expired` opens the session-ended dialog (R5.11), `forbidden` refreshes the role, and anything else shows could-not-load with the message (UX-28).
 
@@ -551,7 +552,7 @@ Built by CRSP24: the shell, the auth states, first run, the overview, repositori
 - the later settings sub-pages: Budgets, Notifications, Updates, Audit log, Config export (R5.29);
 - the serving side: `internal/webui/webui.go` serves over TLS and sends the headers of R6.3 (R5.1, R6.3), the session cookie and CSRF checks (R6.1, R6.2), the role checks (R6.5);
 - an automated axe check in both themes (R6.6), the performance budgets (R6.12), the offline check (R6.13);
-- a way to stop a repository or runner plan that is applying: the contract has no operation for it, so those wizards offer Stop only on Joining.
+- Stop on a repository or runner plan that is applying: the contract now has `stopRepositoryPlan` and `stopRunnerPlan` (CRSP32), but the wizards still offer Stop only on Joining until they call them; the server side answers 501 for now.
 
 ## 12. Code map
 
