@@ -16,7 +16,7 @@ Sources read: dev-standards `docs/features/runner-pool/spec.md` (R5.1 to R5.60),
 
 ## 2. Job kinds
 
-The repository names are not in these docs. dev-standards does not name other projects, so the kinds come from its templates. `crsp doctor` (doctor R5.32) lists the kinds per repository.
+The repository names are not in these docs. dev-standards does not name other projects, so the kinds come from its templates. `crsp doctor` (doctor R5.33) lists the kinds per repository.
 
 | Kind | What the job does | Needs |
 |---|---|---|
@@ -50,43 +50,43 @@ Status words: **Built** (code and tests exist), **Specified** (a requirement exi
 | 6 | Load limits 85% memory and 60% CPU, measured; WSL VM; Docker CLI first; cgroup | `load.py`, `host-load.json` | all | Built in the agent; the WSL VM read in the gate is Specified | machines R5.15 to R5.21; scheduling R5.40 to R5.46; scheduling R5.47 (M2) |
 | 7 | Gate never blocks on a failure; a hook that cannot reach it is shown | fail open, DL351 | all | Built | scheduling R5.22, R5.23, R5.61; runners R5.40; doctor R5.29 |
 | 8 | Disk guard | none until 14 Nov (320 GB cache) | J2, J8 | Built (CRSP21) | caches R5.38 |
-| 9 | CPU count for jobs (`CI_MAX_PARALLEL`, cpuset) | `pool_supervisor.py` | J1 to J7 | Specified | machines R5.54; runners R5.52 (added) |
-| 10 | Pool size set by the owner, checked against the budget, no accidental shrink | `pool-plan --pool-gib`, `--shrink` | all | Missing, added | machines R5.55 |
+| 9 | CPU count for jobs (`CI_MAX_PARALLEL`, cpuset) | `pool_supervisor.py` | J1 to J7 | Specified | machines R5.54; runners R5.53 (added) |
+| 10 | Pool size set by the owner, checked against the budget, no accidental shrink | `pool-plan --pool-gib`, `--shrink` | all | Missing, added | machines R5.58 |
 | 11 | Windows runner as a service with its own account, rights, symlink right, PowerShell hooks, execution policy, remove token, rerun, replace the old one | `win-*` steps | J12 | Built (CRSP22) | runners R5.5, R5.6, R5.13 to R5.20, R5.40 |
-| 12 | `RUSTUP_HOME` and `CARGO_HOME` per Windows runner | runner `.env` | J2, J12 | Missing, added | runners R5.55 |
+| 12 | `RUSTUP_HOME` and `CARGO_HOME` per Windows runner | runner `.env` | J2, J12 | Missing, added | runners R5.56 |
 | 13 | Linux job runners in a pool container, one per repository, non-root, no Docker socket, one cap | `pool_supervisor.py`, Docker | J1 to J11 | Specified | runners R5.27, R5.25, R5.26, R5.31; github R5.34 |
-| 14 | The container engine on this PC: Docker in WSL2 through the Windows CLI | Docker Desktop | J1 to J11 | Missing, added | runners R5.46 |
-| 15 | `crsp` binary inside the job for `crsp vm`, `crsp db-env` | scripts in the image | J6, J11 | Missing, added | runners R5.47 |
+| 14 | The container engine on this PC: Docker in WSL2 through the Windows CLI | Docker Desktop | J1 to J11 | Missing, added | runners R5.47 |
+| 15 | `crsp` binary inside the job for `crsp vm`, `crsp db-env` | scripts in the image | J6, J11 | Missing, added | runners R5.48 |
 | 16 | Routing: variables with the runner labels | `CI_RUNS_ON`, `CI_RUNS_ON_WINDOWS`, label `repo-<route>` | all | Built as `RUNS_ON_*`; the old names are Missing, added for the move | github R5.27 to R5.30; github R5.39 |
 | 17 | One registry of all runners, status, doctor compares with GitHub | `agents.json`, `pool_status.py` | all | Built | runners R5.2, R5.5; doctor R5.11, R5.12 |
 | 18 | Runner version pinned with SHA-256 | `RUNNER_SHA256` | all | Built | runners R5.37 |
 | 19 | Runner auto-update with drain | `pool-refresh` | all | Specified | runners R5.38 |
 | 20 | Never cut a running job: drain, check right before the swap | drain handshake | all | Built for runners; Specified for image swap | runners R6.4; machines R5.30 to R5.33; runners R5.35 |
-| 21 | Base image like a hosted runner: git, curl, jq, zip, build-essential, libatomic, psql client, `gh`, python3 | Dockerfile | J1 to J11 | Missing, added | runners R5.48 |
-| 22 | Node LTS with corepack, `pnpm` shim | Dockerfile (DL215, DL220, DL223) | J1, J7 | Missing, added | runners R5.48 |
+| 21 | Base image like a hosted runner: git, curl, jq, zip, build-essential, libatomic, psql client, `gh`, python3 | Dockerfile | J1 to J11 | Missing, added | runners R5.49 |
+| 22 | Node LTS with corepack, `pnpm` shim | Dockerfile (DL215, DL220, DL223) | J1, J7 | Missing, added | runners R5.49 |
 | 23 | LLVM, `clang-cl`, `lld-link`, `llvm-lib` | Dockerfile base | J8 | Specified | runners R5.43 |
 | 24 | Playwright browsers and system libraries | `POOL_BROWSERS` | J7 | Specified | runners R5.44; caches R5.41 |
-| 25 | `windows-packaging` layer: dotnet 8, wine, xvfb, xauth, msitools | `POOL_LAYERS` | J9 | Wine Specified; the rest Missing, added | runners R5.42, R5.49 |
-| 26 | Wine prefix per agent, made once, `TMPDIR` unset, `POOL_WINE_PREFIX` | supervisor | J9 | Specified; kept prefix and old name Missing, added | runners R5.42, R5.51 |
-| 27 | `linux-packaging` layer | `POOL_LAYERS` | J10 | Missing, added | runners R5.49 |
-| 28 | `kvm` layer, the device, the group, the `kvm` label | `POOL_KVM`, `compose.kvm.yaml` | J11 | Device and label Specified; layer Missing, added | runners R5.41, R5.49 |
-| 29 | Extra distribution packages per pool | `.delivery/pool.apt` | any | Missing, added | runners R5.50 |
+| 25 | `windows-packaging` layer: dotnet 8, wine, xvfb, xauth, msitools | `POOL_LAYERS` | J9 | Wine Specified; the rest Missing, added | runners R5.42, R5.50 |
+| 26 | Wine prefix per agent, made once, `TMPDIR` unset, `POOL_WINE_PREFIX` | supervisor | J9 | Specified; kept prefix and old name Missing, added | runners R5.42, R5.52 |
+| 27 | `linux-packaging` layer | `POOL_LAYERS` | J10 | Missing, added | runners R5.50 |
+| 28 | `kvm` layer, the device, the group, the `kvm` label | `POOL_KVM`, `compose.kvm.yaml` | J11 | Device and label Specified; layer Missing, added | runners R5.41, R5.50 |
+| 29 | Extra distribution packages per pool | `.delivery/pool.apt` | any | Missing, added | runners R5.51 |
 | 30 | Image layers merged across repositories, `--drop-layer`, Playwright never lowered | `pool-refresh` | n/a | Not needed: a crsp pool is per repository and an image is keyed by its layers | runners R5.33 |
 | 31 | Build aside, drain, swap, truthful result, wrong runner hash fixed | `pool-refresh` | all | Specified | runners R5.33, R5.35, R5.37 |
-| 32 | Agent user id clashes | `pool_supervisor.py` (DL284) | all | Not needed: the job user is fixed in the image | runners R5.48 |
-| 33 | Image checks in the doctor: tools found, image current, tool cache writable | `pool.<name>.*` | all | Missing, added | doctor R5.30 |
+| 32 | Agent user id clashes | `pool_supervisor.py` (DL284) | all | Not needed: the job user is fixed in the image | runners R5.49 |
+| 33 | Image checks in the doctor: tools found, image current, tool cache writable | `pool.<name>.*` | all | Missing, added | doctor R5.31 |
 | 34 | Postgres 16 per pool, a login and a database per agent, random password | `pool_agents.py` | J6, J7 | Specified in short | runners R5.45 |
-| 35 | `db.env` and the `pool-db-env` step, `CREATEDB` opt-in, declared `NOLOGIN` roles | `pool-add-agent --db-role` | J6, J7 | Missing, added | runners R5.53 |
-| 36 | Per-runner tool cache and Rust cache with quotas and eviction | `/ci-tools`, `cache-sweep` | J1, J2, J8 | Built for persistent runners (CRSP21, CRSP26); container form Missing, added | caches R5.36 to R5.39; caches R5.42 |
-| 37 | Shared-cache mode for a folder many users write | `ci_tool.py` (DL194) | J2 | Specified; scope set by D308 | caches R5.18 to R5.20; caches R5.43 |
-| 38 | Rust cache cap: key in use kept, newest other key, `incremental/` first | `rust_ci.py` (DL342) | J2, J8 | Partly built; details Missing, added | caches R5.37; caches R5.44 |
-| 39 | `vm_check.py` and `vm-images.json` | `scripts/delivery` | J11 | Data and checks Built (CRSP26); the boot Missing, added | caches R5.40; caches R5.45, R5.46; runners R5.54 |
-| 40 | Pinned downloads and unpack (`ci_tool.py`, `tools.json`) | delivery scripts | J1 to J4 | Not taken: they stay in delivery (D308) | caches R5.43 |
-| 41 | KVM on WSL2: load the module, check `nestedVirtualization` | `kvm-autoload` (DL343) | J11 | Specified; doctor checks Missing, added | machines R5.53; doctor R5.31 |
+| 35 | `db.env` and the `pool-db-env` step, `CREATEDB` opt-in, declared `NOLOGIN` roles | `pool-add-agent --db-role` | J6, J7 | Missing, added | runners R5.54 |
+| 36 | Per-runner tool cache and Rust cache with quotas and eviction | `/ci-tools`, `cache-sweep` | J1, J2, J8 | Built for persistent runners (CRSP21, CRSP26); container form Missing, added | caches R5.36 to R5.39; caches R5.43 |
+| 37 | Shared-cache mode for a folder many users write | `ci_tool.py` (DL194) | J2 | Specified; scope set by D308 | caches R5.18 to R5.20; caches R5.44 |
+| 38 | Rust cache cap: key in use kept, newest other key, `incremental/` first | `rust_ci.py` (DL342) | J2, J8 | Partly built; details Missing, added | caches R5.37; caches R5.45 |
+| 39 | `vm_check.py` and `vm-images.json` | `scripts/delivery` | J11 | Data and checks Built (CRSP26); the boot Missing, added | caches R5.40; caches R5.46, R5.47; runners R5.55 |
+| 40 | Pinned downloads and unpack (`ci_tool.py`, `tools.json`) | delivery scripts | J1 to J4 | Not taken: they stay in delivery (D308) | caches R5.44 |
+| 41 | KVM on WSL2: load the module, check `nestedVirtualization` | `kvm-autoload` (DL343) | J11 | Specified; doctor checks Missing, added | machines R5.53; doctor R5.32 |
 | 42 | WSL memory and CPU sizing from `.wslconfig` | `pool-plan` | all | Specified | machines R5.54 |
 | 43 | `runs-on` and variable checks, hook checks | doctor | all | Built | doctor R5.14, R5.17 to R5.19, R5.29 |
-| 44 | Cache over quota, low cache disk | `cache-cap`, `cache-disk` | J2 | Missing, added | doctor R5.33 |
-| 45 | Which jobs of a repository the pool can run | none | all | Missing, added | doctor R5.32 |
+| 44 | Cache over quota, low cache disk | `cache-cap`, `cache-disk` | J2 | Missing, added | doctor R5.34 |
+| 45 | Which jobs of a repository the pool can run | none | all | Missing, added | doctor R5.33 |
 | 46 | Local heavy-work guard, cloud CI session limit, `ci-wait` marker and fallback | delivery | n/a | Not taken (D301) | handover |
 | 47 | Verify workflow `pool-check.yml` | a manual run | n/a | Replaced by `crsp doctor` and the parity workflow (section 6) | doctor R5.21 |
 | 48 | Actions cache server, git mirror, registry mirror | not in the old pool | n/a | Not needed for parity; jobs use GitHub's cache | caches R5.1 to R5.13 (M7) |
@@ -99,12 +99,12 @@ v0.1.0 is milestone 1 (persistent runners). Each release below ends with the rea
 
 | Release | Name | Scope (IDs) | Unlocks | Agent-hours |
 |---|---|---|---|---|
-| v0.1.0 | Persistent runners (milestone 1) | runners R5.13 to R5.20; scheduling R5.1 to R5.39; caches R5.36 to R5.40 | Nothing moves yet: a Windows runner still lacks its tool homes (runners R5.55). | built |
-| v0.2.0 | Windows jobs complete | runners R5.55, R5.11 (log redactor, private logs); caches R5.44; github R5.39; doctor R5.32 (first version) | **J12.** Windows jobs of any repository can move. Rust cache cap holds. | 17 |
-| v0.3.0 | Linux containers in WSL2 | runners R5.27, R5.25, R5.26, R5.31 to R5.33, R5.35, R5.46 to R5.48, R5.52; github R5.34; caches R5.42, R5.43; machines R5.54, R5.55; scheduling R5.47, R5.50; doctor R5.30, R5.33 | **J1, J2, J3, J4, J5, J13.** Verify and housekeeping jobs of every repository without a database, browser, packaging or VM job. | 83 |
-| v0.4.0 | Database and browsers | runners R5.45, R5.53, R5.44; caches R5.41; doctor R5.32 (extended) | **J6, J7.** Integration and e2e jobs, nightly full runs. | 28 |
-| v0.5.0 | Windows builds and packaging | runners R5.43, R5.42, R5.49 (`windows-packaging`, `linux-packaging`, `llvm`), R5.50, R5.51; doctor R5.32 (extended) | **J8, J9, J10.** | 30 |
-| v0.6.0 | KVM and VM checks | machines R5.53; runners R5.41, R5.49 (`kvm`), R5.54; caches R5.45, R5.46; doctor R5.31 | **J11.** | 38 |
+| v0.1.0 | Persistent runners (milestone 1) | runners R5.13 to R5.20; scheduling R5.1 to R5.39; caches R5.36 to R5.40 | Nothing moves yet: a Windows runner still lacks its tool homes (runners R5.56). | built |
+| v0.2.0 | Windows jobs complete | runners R5.56, R5.11 (log redactor, private logs); caches R5.45; github R5.39; doctor R5.33 (first version) | **J12.** Windows jobs of any repository can move. Rust cache cap holds. | 17 |
+| v0.3.0 | Linux containers in WSL2 | runners R5.27, R5.25, R5.26, R5.31 to R5.33, R5.35, R5.47 to R5.49, R5.53; github R5.34; caches R5.43, R5.44; machines R5.54, R5.58; scheduling R5.47, R5.50; doctor R5.31, R5.34 | **J1, J2, J3, J4, J5, J13.** Verify and housekeeping jobs of every repository without a database, browser, packaging or VM job. | 83 |
+| v0.4.0 | Database and browsers | runners R5.45, R5.54, R5.44; caches R5.41; doctor R5.33 (extended) | **J6, J7.** Integration and e2e jobs, nightly full runs. | 28 |
+| v0.5.0 | Windows builds and packaging | runners R5.43, R5.42, R5.50 (`windows-packaging`, `linux-packaging`, `llvm`), R5.51, R5.52; doctor R5.33 (extended) | **J8, J9, J10.** | 30 |
+| v0.6.0 | KVM and VM checks | machines R5.53; runners R5.41, R5.50 (`kvm`), R5.55; caches R5.46, R5.47; doctor R5.32 | **J11.** | 38 |
 | v0.7.0 | Parity gate | the parity workflow for every kind, the last gaps from the soak, the move runbook | Nothing new. Proves the others together. | 37 |
 | | Total from v0.2.0 | | | 233 |
 
@@ -112,18 +112,18 @@ How each estimate adds up (before the 20%; the sum times 1.2, rounded):
 
 - **v0.2.0 (14):** tool homes 1.5, legacy variable names 1.5, log redactor 3, Rust cap details 3, first coverage check 3, the real Windows run 2.
 - **v0.3.0 (69.5):** container backend 10, JIT and clean-up 6 (runners R5.25, R5.26) and github R5.34 3, best-backend order 1, engine in WSL2 3, crsp in the job 1.5, base image and its CI build 6, layers machinery and image key 6 (R5.32, R5.33), rebuild with drain 3 (R5.35), job environment 1.5, cache lanes 6, caches scope 0, WSL VM load read 3, ephemeral slot 3, WSL sizing 3, pool size 3, container checks 3, cache checks 1.5, the real run and fixes 6.
-- **v0.4.0 (23.5):** Postgres server and roles 12 (R5.45 and R5.53), Playwright layer and path 6, doctor 1.5, real runs of J6 and J7 4.
+- **v0.4.0 (23.5):** Postgres server and roles 12 (R5.45 and R5.54), Playwright layer and path 6, doctor 1.5, real runs of J6 and J7 4.
 - **v0.5.0 (25):** LLVM 3, Wine 3, prefix 3, two packaging layers 6, extra packages 1.5, doctor 1.5, real runs of J8, J9, J10 7.
 - **v0.6.0 (32):** KVM on WSL2 6, KVM label and device 3, `kvm` layer 1.5, `crsp vm` 10, VM cache 3, memory warning 1.5, doctor 3, the real run with a WSL restart 4.
 - **v0.7.0 (30.5):** the harness 3, 13 fixtures at 1 each, final coverage report 3, soak fixes 10, runbook 1.5.
 
 Reading the table: the first repositories can move after v0.2.0 (Windows jobs), about 17 agent-hours from the start of this plan. A repository with only verify jobs moves after v0.3.0. The last move needs v0.6.0 and then the 7-day soak.
 
-Not in the plan, because parity does not need it: own container engine (rootless Podman in a crsp WSL2 distro, runners R5.46 keeps the seam), the cache server, the git mirror, the registry mirror (milestone 7), macOS, Hyper-V and microVMs.
+Not in the plan, because parity does not need it: own container engine (rootless Podman in a crsp WSL2 distro, runners R5.47 keeps the seam), the cache server, the git mirror, the registry mirror (milestone 7), macOS, Hyper-V and microVMs.
 
 ## 5. Move order, repository by repository
 
-A repository moves one operating system at a time, because it has one variable per OS (`CI_RUNS_ON` and `CI_RUNS_ON_WINDOWS` today). It moves when `crsp doctor` says `covered` for every job of that OS (doctor R5.32). The old pool keeps the repositories that are not covered yet.
+A repository moves one operating system at a time, because it has one variable per OS (`CI_RUNS_ON` and `CI_RUNS_ON_WINDOWS` today). It moves when `crsp doctor` says `covered` for every job of that OS (doctor R5.33). The old pool keeps the repositories that are not covered yet.
 
 | Wave | After | Repositories with only these kinds | Examples |
 |---|---|---|---|

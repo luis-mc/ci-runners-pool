@@ -42,7 +42,7 @@ This replaces the `CRSP_RUNS_ON_*` names in the specs today.
 
 - `vm_check.py` and `vm-images.json`: boot test VMs on `kvm` runners.
 - The Rust build-cache cap and the shared tool-cache mode: per-runner cache quotas and eviction belong to the pool.
-- The pinned download and build logic of `ci_tool.py` and `rust_ci.py` stay in delivery, because projects also run them on GitHub-hosted runners. Confirmed by the dev-standards owner (D308): only the cache parts move (the shared-cache mode, the Rust cache cap, the per-runner quotas); jobs read `CI_TOOLS_DIR`. See [caches](../features/caches/spec.md) R5.43.
+- The pinned download and build logic of `ci_tool.py` and `rust_ci.py` stay in delivery, because projects also run them on GitHub-hosted runners. Confirmed by the dev-standards owner (D308): only the cache parts move (the shared-cache mode, the Rust cache cap, the per-runner quotas); jobs read `CI_TOOLS_DIR`. See [caches](../features/caches/spec.md) R5.44.
 
 ### What crsp does not take
 
