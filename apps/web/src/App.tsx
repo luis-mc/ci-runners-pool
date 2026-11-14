@@ -143,6 +143,7 @@ export function App({
                   path="budgets"
                   element={
                     <Later
+                      nested
                       title="Budgets"
                       what="The pool budgets"
                       milestone="a later milestone"
@@ -153,6 +154,7 @@ export function App({
                   path="notifications"
                   element={
                     <Later
+                      nested
                       title="Notifications"
                       what="Notifications"
                       milestone="milestone 8"
@@ -162,13 +164,19 @@ export function App({
                 <Route
                   path="updates"
                   element={
-                    <Later title="Updates" what="Updates" milestone="milestone 3" />
+                    <Later
+                      nested
+                      title="Updates"
+                      what="Updates"
+                      milestone="milestone 3"
+                    />
                   }
                 />
                 <Route
                   path="audit"
                   element={
                     <Later
+                      nested
                       title="Audit log"
                       what="The audit log"
                       milestone="a later milestone"
@@ -179,6 +187,7 @@ export function App({
                   path="export"
                   element={
                     <Later
+                      nested
                       title="Config export"
                       what="Config export"
                       milestone="milestone 8"

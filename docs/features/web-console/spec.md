@@ -23,7 +23,7 @@ generator: luismc-docs 2.6.0
 
 The top half (sections 1 to 4) is for every reader: product, design, UX. The bottom half (5 to 12) is for engineers.
 
-The M1 console is built (CRSP24): the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups. Requirements marked (built, CRSP24) are built. Everything else in this spec is **NOT YET IMPLEMENTED**: the jobs, images and caches and doctor screens, the later settings sub-pages, and the server side of serving (R5.1, R5.2, R6.1 to R6.5, R6.12, R6.13).
+The M1 console is built (CRSP24): the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups. Requirements marked (built, CRSP24) are built. Everything else in this spec is **NOT YET IMPLEMENTED**: the jobs, images and caches and doctor screens, the later settings sub-pages, and the server side of serving (R5.1, R5.2, R6.1 to R6.5).
 
 ## 1. In one paragraph
 
@@ -353,7 +353,7 @@ Requirements marked (built, CRSP24) are built. The others are **NOT YET IMPLEMEN
 
 **R6.5** — The API checks the role on every operation (its `x-auth`), whatever the console shows. A viewer's change request gets 403.
 
-**R6.6** — Every screen, in the dark and the light theme, has no serious or critical accessibility violation (axe), one `h1`, landmarks, and a visible focus (UX-17, UX-59).
+**R6.6** (built, CRSP34) — Every screen, in the dark and the light theme, has no serious or critical accessibility violation (axe), one `h1`, landmarks, and a visible focus (UX-17, UX-59).
 
 **R6.7** (built, CRSP24) — Every screen works from 360 px wide to desktop with no sideways page scroll and 44 px touch targets (UX-16, UX-49).
 
@@ -365,9 +365,9 @@ Requirements marked (built, CRSP24) are built. The others are **NOT YET IMPLEMEN
 
 **R6.11** (built, CRSP24) — Under `prefers-reduced-motion` nothing in the console moves (UX-36, UX-59).
 
-**R6.12** — Proposed budgets (owner question Q14): the first screen is usable within 2 s on the local network; the console's first JavaScript is at most 300 KB gzipped; a live event shows on screen within 2 s of the controller sending it.
+**R6.12** (built, CRSP34) — Proposed budgets (owner question Q14): the first screen is usable within 2 s on the local network; the console's first JavaScript is at most 300 KB gzipped; a live event shows on screen within 2 s of the controller sending it. The numbers live in one file, `apps/web/perf-budgets.json`; the checks read it, so the owner changes a budget there. Measured at CRSP34 (Linux CI-like run): first screen usable in about 0.25 s, first JavaScript about 113 KB gzipped, live event on screen in about 20 ms.
 
-**R6.13** — The console keeps working when the internet is down: local screens load, and screens that need GitHub say so (UX-28).
+**R6.13** (built, CRSP34) — The console keeps working when the internet is down: local screens load, and screens that need GitHub say so (UX-28).
 
 ## 7. Design
 
@@ -498,14 +498,14 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R6.3 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/webui/headers_test.go`, `e2e/tests/web-console/no-external-requests.spec.ts` |
 | R6.4 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/api/no_secrets_test.go`, `e2e/tests/web-console/no-secrets.spec.ts` |
 | R6.5 | Go test | NOT YET IMPLEMENTED: `internal/api/route_coverage_test.go` (x-auth on every route) and `internal/api/roles_test.go` |
-| R6.6 | Playwright e2e | NOT YET IMPLEMENTED: `e2e/tests/web-console/a11y.spec.ts` (axe, both themes) |
+| R6.6 | Playwright e2e | `e2e/tests/web-console/a11y.spec.ts` (axe, both themes, every screen of the route table in `apps/web/src/App.tsx`, read by `e2e/tests/web-console/routes.ts`) |
 | R6.7 | design kit guard (Playwright) | `e2e/tests/design-layout.spec.ts` on `scripts/design/dom-layout.ts` at 360, 393 and 1300 px |
 | R6.8 | design kit guard | `scripts/design/raw-controls.test.ts`, `scripts/design/no-app-css.test.ts`, `scripts/design/raw-inputs.test.ts` |
 | R6.9 | design kit guard | `scripts/design/contrast.test.ts` |
 | R6.10 | design kit guard | `scripts/design/design-system-follow.test.ts` |
 | R6.11 | design kit guard | `packages/ui/src/components.css` (a `prefers-reduced-motion` rule); no automated check yet |
-| R6.12 | Playwright e2e, Vitest | NOT YET IMPLEMENTED: `e2e/tests/web-console/perf.spec.ts`, `apps/web/src/bundle-size.test.ts` |
-| R6.13 | Playwright e2e | NOT YET IMPLEMENTED: `e2e/tests/web-console/offline-internet.spec.ts` |
+| R6.12 | Playwright e2e, Vitest | `e2e/tests/web-console/perf.spec.ts`, `apps/web/src/bundle-size.test.ts` (budgets in `apps/web/perf-budgets.json`) |
+| R6.13 | Playwright e2e | `e2e/tests/web-console/offline-internet.spec.ts` (every screen of the route table, every non-controller request blocked) |
 
 ## 10. Decisions
 
@@ -543,6 +543,8 @@ For the product:
 
 ## 11. Not built yet
 
+Built by CRSP34: the axe check in both themes (R6.6), the performance budgets (R6.12) and the offline check (R6.13). The check found two headings on the five settings pages that are not built yet; they now show their title as a section.
+
 Built by CRSP24: the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups (all against the M1 contract and a mocked API in tests).
 
 **NOT YET IMPLEMENTED:**
@@ -550,12 +552,13 @@ Built by CRSP24: the shell, the auth states, first run, the overview, repositori
 - the jobs, images and caches and doctor screens (R5.24 to R5.26): their menu entries open a page that says in which milestone they arrive;
 - the later settings sub-pages: Budgets, Notifications, Updates, Audit log, Config export (R5.29);
 - the serving side: `internal/webui/webui.go` serves over TLS and sends the headers of R6.3 (R5.1, R6.3), the session cookie and CSRF checks (R6.1, R6.2), the role checks (R6.5);
-- an automated axe check in both themes (R6.6), the performance budgets (R6.12), the offline check (R6.13);
 - a way to stop a repository or runner plan that is applying: the contract has no operation for it, so those wizards offer Stop only on Joining.
 
 ## 12. Code map
 
 Source: apps/web/src/App.tsx
+Source: apps/web/perf-budgets.json
+Source: e2e/tests/web-console/routes.ts
 Source: apps/web/src/main.tsx
 Source: apps/web/src/api/api.tsx
 Source: apps/web/src/api/hooks.ts
