@@ -172,24 +172,9 @@ func (s *server) GetSession(_ context.Context, _ gen.GetSessionRequestObject) (g
 	return gen.GetSessiondefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// GetSettings is not built yet.
-func (s *server) GetSettings(_ context.Context, _ gen.GetSettingsRequestObject) (gen.GetSettingsResponseObject, error) {
-	return gen.GetSettingsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // GetSetupState is not built yet.
 func (s *server) GetSetupState(_ context.Context, _ gen.GetSetupStateRequestObject) (gen.GetSetupStateResponseObject, error) {
 	return gen.GetSetupStatedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// ListAuditEvents is not built yet.
-func (s *server) ListAuditEvents(_ context.Context, _ gen.ListAuditEventsRequestObject) (gen.ListAuditEventsResponseObject, error) {
-	return gen.ListAuditEventsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// ListBackups is not built yet.
-func (s *server) ListBackups(_ context.Context, _ gen.ListBackupsRequestObject) (gen.ListBackupsResponseObject, error) {
-	return gen.ListBackupsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // ListCliTokens is not built yet.
@@ -282,11 +267,6 @@ func (s *server) RemoveUser(_ context.Context, _ gen.RemoveUserRequestObject) (g
 	return gen.RemoveUserdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// RestoreBackup is not built yet.
-func (s *server) RestoreBackup(_ context.Context, _ gen.RestoreBackupRequestObject) (gen.RestoreBackupResponseObject, error) {
-	return gen.RestoreBackupdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // ResumeMachine is not built yet.
 func (s *server) ResumeMachine(_ context.Context, _ gen.ResumeMachineRequestObject) (gen.ResumeMachineResponseObject, error) {
 	return gen.ResumeMachinedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
@@ -300,16 +280,6 @@ func (s *server) RevokeCliToken(_ context.Context, _ gen.RevokeCliTokenRequestOb
 // RevokeJoinCode is not built yet.
 func (s *server) RevokeJoinCode(_ context.Context, _ gen.RevokeJoinCodeRequestObject) (gen.RevokeJoinCodeResponseObject, error) {
 	return gen.RevokeJoinCodedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// RunBackup is not built yet.
-func (s *server) RunBackup(_ context.Context, _ gen.RunBackupRequestObject) (gen.RunBackupResponseObject, error) {
-	return gen.RunBackupdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// RunBackupDrill is not built yet.
-func (s *server) RunBackupDrill(_ context.Context, _ gen.RunBackupDrillRequestObject) (gen.RunBackupDrillResponseObject, error) {
-	return gen.RunBackupDrilldefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // RunDoctor is not built yet.
@@ -360,11 +330,6 @@ func (s *server) UpdateQueueSettings(_ context.Context, _ gen.UpdateQueueSetting
 // UpdateRepositoryPolicy is not built yet.
 func (s *server) UpdateRepositoryPolicy(_ context.Context, _ gen.UpdateRepositoryPolicyRequestObject) (gen.UpdateRepositoryPolicyResponseObject, error) {
 	return gen.UpdateRepositoryPolicydefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// UpdateSettings is not built yet.
-func (s *server) UpdateSettings(_ context.Context, _ gen.UpdateSettingsRequestObject) (gen.UpdateSettingsResponseObject, error) {
-	return gen.UpdateSettingsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // UpdateUserRole is not built yet.

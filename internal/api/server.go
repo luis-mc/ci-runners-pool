@@ -12,6 +12,9 @@ import (
 	"net/http"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/settings"
 )
 
 // Pinger is what the health route needs from the database.
@@ -24,6 +27,12 @@ type Options struct {
 	Version string
 	DB      Pinger
 	Logger  *slog.Logger
+
+	// Operations area (CRSP18): settings, audit log, backups. A nil service
+	// answers 501 on its routes, like an unbuilt operation.
+	Settings *settings.Service
+	Audit    *audit.Log
+	Backup   *backup.Service
 }
 
 type server struct {

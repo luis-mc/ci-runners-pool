@@ -14,10 +14,12 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
@@ -91,14 +93,40 @@ func runController() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// A restore that was staged before the last exit goes in place now, before
+	// the database opens (operations R5.25).
+	if applied, err := backup.ApplyPending(cfg.DataDir, cfg.File); err != nil {
+		return fmt.Errorf("apply the staged restore: %w", err)
+	} else if applied {
+		logger.Info("restore applied")
+	}
+
 	db, err := store.Open(ctx, cfg.DataDir)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = db.Close() }()
 
+	var restarting atomic.Bool
+	ops := backup.Start(ctx, backup.StartOptions{
+		DB: db, DataDir: cfg.DataDir, ConfigFile: cfg.File, Version: version, Logger: logger,
+		Restart: func() {
+			// Exit non-zero after the answer is sent; the service manager restarts us.
+			restarting.Store(true)
+			time.AfterFunc(time.Second, stop)
+		},
+		DrillHandler: func(drillDB *store.Store) http.Handler {
+			m := http.NewServeMux()
+			api.Register(m, api.Options{Version: version, DB: drillDB, Logger: logger})
+			return m
+		},
+	})
+
 	mux := http.NewServeMux()
-	api.Register(mux, api.Options{Version: version, DB: db, Logger: logger})
+	api.Register(mux, api.Options{
+		Version: version, DB: db, Logger: logger,
+		Settings: ops.Settings, Audit: ops.Audit, Backup: ops.Backup,
+	})
 	mux.Handle("/", webui.Handler())
 
 	srv := &http.Server{
@@ -123,6 +151,12 @@ func runController() error {
 		logger.Info("shutting down")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		return srv.Shutdown(shutdownCtx)
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			return err
+		}
+		if restarting.Load() {
+			return errors.New("restarting to apply a restore")
+		}
+		return nil
 	}
 }

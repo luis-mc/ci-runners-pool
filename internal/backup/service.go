@@ -745,3 +745,8 @@ func (s *Service) Newest(ctx context.Context) (*store.Backup, error) {
 	}
 	return nil, nil
 }
+
+// Get returns one backup record.
+func (s *Service) Get(ctx context.Context, id string) (store.Backup, error) {
+	return s.o.DB.GetBackup(ctx, id)
+}

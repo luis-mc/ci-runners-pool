@@ -1,6 +1,6 @@
 # CRSP18 report (live)
 
-Status: config, audit, settings, store ops, backup built and tested. Retention, handlers, wiring, docs next.
+Status: code built and tested. Lint, codegen drift, docs notes next.
 
 ## Plan
 1. config: TOML file, strict schema, placeholders and secrets refused, CRSP_* overrides, per-OS dirs (R5.8-R5.10).

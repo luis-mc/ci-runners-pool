@@ -116,12 +116,20 @@ func TestLogSizeCapPerMachineOldestFirst(t *testing.T) {
 func TestRunRepeats(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	r, l, _ := retention(t)
+	r, _, dir := retention(t)
 	r.Interval = 20 * time.Millisecond
 	go r.Run(ctx)
+	// A file that turns old after the first run is deleted by a later run.
+	time.Sleep(100 * time.Millisecond)
+	logs := filepath.Join(dir, LogsDir)
+	_ = os.MkdirAll(logs, 0o755)
+	old := filepath.Join(logs, "late.log")
+	_ = os.WriteFile(old, []byte("x"), 0o600)
+	past := time.Now().Add(-30 * 24 * time.Hour)
+	_ = os.Chtimes(old, past, past)
 	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
-		if p, _ := l.List(ctx, audit.Filter{Action: "audit.retention", Limit: 10}); len(p.Items) >= 2 {
+		if _, err := os.Stat(old); err != nil {
 			return
 		}
 		time.Sleep(20 * time.Millisecond)

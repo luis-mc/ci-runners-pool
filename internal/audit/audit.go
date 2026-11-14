@@ -49,6 +49,7 @@ const (
 	SourceTray   = "tray"
 	SourceAPI    = "api"
 	SourceSystem = "system"
+	SourceAgent  = "agent"
 )
 
 // Results of a change (R5.24).
@@ -286,12 +287,12 @@ func Summary(detailJSON string) string {
 	return strings.Join(parts, ", ")
 }
 
-// Prune deletes rows older than cutoff and writes its own row with the count
-// (R5.26). It is the only deleting path.
+// Prune deletes rows older than cutoff and, when it deleted any, writes its own
+// row with the count (R5.26). It is the only deleting path.
 func (l *Log) Prune(ctx context.Context, cutoff time.Time) (int64, error) {
 	n, err := l.db.DeleteAuditBefore(ctx, cutoff)
-	if err != nil {
-		return 0, err
+	if err != nil || n == 0 {
+		return n, err // an hourly run that deletes nothing writes nothing
 	}
 	err = l.Record(ctx, System, "audit.retention", Target{Type: "audit_log"}, map[string]any{
 		"summary": fmt.Sprintf("deleted %d audit rows older than %s", n, cutoff.UTC().Format("2006-01-02")),
