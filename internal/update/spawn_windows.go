@@ -27,7 +27,8 @@ func Spawn(_ context.Context, exe string, p Plan, planPath string) (int, error) 
 		return 0, fmt.Errorf("copy the helper: %w", err)
 	}
 	start := func(flags uint32) (*exec.Cmd, error) {
-		cmd := exec.Command(copyPath, "update-helper", planPath) //nolint:gosec // our own copy
+		// Background, never the caller's context: the helper must outlive this process.
+		cmd := exec.CommandContext(context.Background(), copyPath, "update-helper", planPath) //nolint:gosec // our own copy
 		cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: flags, HideWindow: true}
 		return cmd, cmd.Start()
 	}

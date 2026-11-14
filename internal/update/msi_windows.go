@@ -12,7 +12,8 @@ import (
 // this very process, and msiexec must go on.
 func StartMSIDetached(_ context.Context, msi, log string) (int, error) {
 	start := func(flags uint32) (*exec.Cmd, error) {
-		cmd := exec.Command("msiexec", MSIArgs(msi, log)...) //nolint:gosec // fixed program, our own file
+		// Background, never the caller's context: msiexec must outlive this process.
+		cmd := exec.CommandContext(context.Background(), "msiexec", MSIArgs(msi, log)...) //nolint:gosec // fixed program, our own file
 		cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: flags, HideWindow: true}
 		return cmd, cmd.Start()
 	}
