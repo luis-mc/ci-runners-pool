@@ -18,11 +18,11 @@ jobs:
       - self-hosted
       - windows
   var:
-    runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_LINUX) }}
+    runs-on: ${{ fromJSON(vars.RUNS_ON_LINUX) }}
   withdefault:
-    runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_WINDOWS || '["self-hosted","windows"]') }}
+    runs-on: ${{ fromJSON(vars.RUNS_ON_WINDOWS || '["self-hosted","windows"]') }}
   defaultlabel:
-    runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_MACOS) || 'macos-latest' }}
+    runs-on: ${{ fromJSON(vars.RUNS_ON_MACOS) || 'macos-latest' }}
   matrix:
     runs-on: ${{ matrix.os }}
   mapping:
@@ -60,9 +60,9 @@ func TestParse(t *testing.T) {
 		"plain":        {Literal, []string{"ubuntu-latest"}, "", 5},
 		"flow":         {Literal, []string{"self-hosted", "linux", "x64"}, "", 8},
 		"block":        {Literal, []string{"self-hosted", "windows"}, "", 11},
-		"var":          {Variable, nil, "CRSP_RUNS_ON_LINUX", 14},
-		"withdefault":  {Variable, []string{"self-hosted", "windows"}, "CRSP_RUNS_ON_WINDOWS", 16},
-		"defaultlabel": {Variable, []string{"macos-latest"}, "CRSP_RUNS_ON_MACOS", 18},
+		"var":          {Variable, nil, "RUNS_ON_LINUX", 14},
+		"withdefault":  {Variable, []string{"self-hosted", "windows"}, "RUNS_ON_WINDOWS", 16},
+		"defaultlabel": {Variable, []string{"macos-latest"}, "RUNS_ON_MACOS", 18},
 		"mapping":      {Literal, []string{"self-hosted", "linux"}, "", 24},
 	}
 	for name, want := range cases {
@@ -85,7 +85,7 @@ func TestParse(t *testing.T) {
 
 func TestResolve(t *testing.T) {
 	m := byJob(t)
-	vars := map[string]string{"CRSP_RUNS_ON_LINUX": `["self-hosted","linux","crsp"]`, "CRSP_RUNS_ON_MACOS": `not json`}
+	vars := map[string]string{"RUNS_ON_LINUX": `["self-hosted","linux","crsp"]`, "RUNS_ON_MACOS": `not json`}
 	if l, ok, _ := m["var"].Resolve(vars); !ok || len(l) != 3 {
 		t.Errorf("var: %v %v", l, ok)
 	}
@@ -93,7 +93,7 @@ func TestResolve(t *testing.T) {
 	if l, ok, _ := m["withdefault"].Resolve(vars); !ok || l[1] != "windows" {
 		t.Errorf("withdefault: %v %v", l, ok)
 	}
-	if _, ok, miss := m["var"].Resolve(nil); ok || miss != "CRSP_RUNS_ON_LINUX" {
+	if _, ok, miss := m["var"].Resolve(nil); ok || miss != "RUNS_ON_LINUX" {
 		t.Errorf("unset: ok=%v missing=%q", ok, miss)
 	}
 	// A variable that is set but not a JSON list cannot be resolved.
@@ -116,7 +116,7 @@ func TestHostedAndCarries(t *testing.T) {
 }
 
 func TestVariableNames(t *testing.T) {
-	if OSOfVariable("CRSP_RUNS_ON_MACOS") != "macos" || OSOfVariable("OTHER") != "" || VariableOfOS("windows") != "CRSP_RUNS_ON_WINDOWS" {
+	if OSOfVariable("RUNS_ON_MACOS") != "macos" || OSOfVariable("OTHER") != "" || VariableOfOS("windows") != "RUNS_ON_WINDOWS" {
 		t.Error("variable names")
 	}
 }

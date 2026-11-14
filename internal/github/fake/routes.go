@@ -395,6 +395,7 @@ func (s *Server) runnerRoutes(w http.ResponseWriter, r *http.Request, scope, res
 }
 
 func (s *Server) variableRoutes(w http.ResponseWriter, r *http.Request, full, name string) {
+	name = strings.ToUpper(name) // GitHub keeps variable names in upper case
 	vars := s.Variables[full]
 	switch {
 	case name == "" && r.Method == "GET":
@@ -411,6 +412,7 @@ func (s *Server) variableRoutes(w http.ResponseWriter, r *http.Request, full, na
 	case name == "" && r.Method == "POST":
 		var in map[string]string
 		_ = json.NewDecoder(r.Body).Decode(&in)
+		in["name"] = strings.ToUpper(in["name"])
 		if _, exists := vars[in["name"]]; exists {
 			writeJSON(w, 409, map[string]string{"message": "Already exists"})
 			return

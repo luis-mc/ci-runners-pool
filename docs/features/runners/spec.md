@@ -347,7 +347,7 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | RN-2 | What milestone 1 builds | Persistent runners on Windows, Linux and macOS together | 2026-11-14 |
 | RN-3 | Where runners are created | From the web console (and CLI), per OS, only on machines that support it | 2026-11-14 |
 | RN-4 | Windows runner account | Own local non-admin account; log on as a service; interactive logon denied; folder locked to it | 2026-11-13 |
-| RN-5 | Labels | Generic only; workflows target runners by `CRSP_RUNS_ON_*` repository variables | 2026-11-14 |
+| RN-5 | Labels | Generic only; workflows target runners by `RUNS_ON_*` repository variables | 2026-11-14 |
 | RN-6 | Containers | Never privileged; KVM as a device | 2026-11-13 |
 | RN-7 | Tart limit | At most two macOS VMs per Mac, enforced | 2026-11-13 |
 

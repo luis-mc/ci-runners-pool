@@ -111,7 +111,7 @@ test('Turn on the pool: choose, Review, Turning on, Done with what was really do
       {
         id: 's2',
         action: 'write_variable',
-        text: 'Write CRSP_RUNS_ON_LINUX',
+        text: 'Write RUNS_ON_LINUX',
         needs_yes: false,
         state: stepState,
       },
