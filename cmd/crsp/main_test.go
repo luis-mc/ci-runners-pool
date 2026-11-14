@@ -27,7 +27,7 @@ func TestRunUsageErrors(t *testing.T) {
 	}
 }
 
-func TestRunAgentNotImplemented(t *testing.T) {
+func TestRunAgentNeedsACommand(t *testing.T) {
 	var out, errOut bytes.Buffer
 	if code := run([]string{"agent"}, &out, &errOut); code != 1 {
 		t.Fatalf("agent: exit %d", code)

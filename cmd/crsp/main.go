@@ -6,7 +6,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -42,7 +41,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	case "controller":
 		return report(stderr, runController())
 	case "agent":
-		return report(stderr, errors.New("agent mode is not implemented in this build"))
+		return report(stderr, runAgentCmd(args[1:], stdout, stderr))
 	case "help", "--help", "-h":
 		usage(stdout)
 		return 0
@@ -58,7 +57,7 @@ func usage(w io.Writer) {
 
 Commands:
   controller   run the controller: web console, API and scheduling
-  agent        run the agent on a runner machine (not implemented yet)
+  agent        run (run, join, install) the agent on a runner machine
   version      print the version
 
 Configuration is read from CRSP_* environment variables; see .env.example.
@@ -97,8 +96,14 @@ func runController() error {
 	}
 	defer func() { _ = db.Close() }()
 
+	mr, err := startMachines(ctx, cfg, logger)
+	if err != nil {
+		return err
+	}
+	defer mr.Close()
+
 	mux := http.NewServeMux()
-	api.Register(mux, api.Options{Version: version, DB: db, Logger: logger})
+	api.Register(mux, api.Options{Version: version, DB: db, Logger: logger, Machines: mr.Service, CA: mr.CA})
 	mux.Handle("/", webui.Handler())
 
 	srv := &http.Server{
