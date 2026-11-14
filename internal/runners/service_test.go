@@ -11,6 +11,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
 type rig struct {
@@ -443,5 +444,15 @@ func TestAuditEntries(t *testing.T) {
 		if !strings.Contains(joined, want) {
 			t.Errorf("audit lacks %q:\n%s", want, joined)
 		}
+	}
+}
+
+// Runners R5.39: a new runner gets the declared cache quota of the service.
+func TestAddPassesCacheQuotaToTheAgent(t *testing.T) {
+	r := newRig(machine("linux", "x64", true))
+	r.svc.CacheQuota = runnercache.Quota{ToolGiB: 7, RustGiB: 50}
+	r.add(t)
+	if len(r.ag.added) != 1 || r.ag.added[0].CacheQuota.ToolGiB != 7 || r.ag.added[0].CacheQuota.RustGiB != 50 {
+		t.Fatalf("spec %+v", r.ag.added)
 	}
 }

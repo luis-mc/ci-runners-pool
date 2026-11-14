@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
 // Thresholds of doctor 7.2.
@@ -154,6 +155,41 @@ func machineDisk(ctx context.Context, env doctor.Env) []doctor.Finding {
 				Command: "crsp runners clean-work --machine " + m.Name,
 				Link:    machineLink(m),
 			}
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// machineDiskGuard: reports a machine whose volume has under the guard limit
+// (10% free), where the job-started hook holds new jobs (caches R5.38). The
+// held jobs wait; this finding says why.
+func machineDiskGuard(ctx context.Context, env doctor.Env) []doctor.Finding {
+	ms, out := scopedMachines(ctx, env, "machine.guard.disk")
+	for _, m := range ms {
+		s := machineSubject(m)
+		if !isOnline(env, m) {
+			out = append(out, offlineSkip("machine.guard.disk", m))
+			continue
+		}
+		if m.DiskFreeBytes == nil || m.DiskTotalBytes == nil || *m.DiskTotalBytes <= 0 {
+			out = append(out, skip("machine.guard.disk", s, m.Name+" has not reported its disk", "The agent sent no free-space figure."))
+			continue
+		}
+		d := runnercache.Disk{Free: *m.DiskFreeBytes, Total: *m.DiskTotalBytes}
+		f := doctor.Finding{Check: "machine.guard.disk", Subject: s}
+		if d.FreePct() < runnercache.DefaultMinFreePct {
+			f.Severity, f.Title = doctor.Fail, "New jobs on "+m.Name+" are held: the disk is nearly full"
+			f.Detail = fmt.Sprintf("%.1f%% free, under the %d%% limit. Jobs wait and go on when %d%% is free again.",
+				d.FreePct(), runnercache.DefaultMinFreePct, runnercache.DefaultMinFreePct+runnercache.ResumeMarginPct)
+			f.Fix = doctor.Fix{
+				Text:    "Free space on the volume, or lower the cache quotas of the runners on " + m.Name + ".",
+				Command: "crsp runners clean-work --machine " + m.Name,
+				Link:    machineLink(m),
+			}
+		} else {
+			f.Severity, f.Title = doctor.OK, "New jobs on "+m.Name+" are not held for disk space"
+			f.Detail = fmt.Sprintf("%.1f%% free.", d.FreePct())
 		}
 		out = append(out, f)
 	}

@@ -3,7 +3,7 @@ id: scheduling
 title: Scheduling, slots and load budget
 apps: [controller, agent, cli, web-console]
 topics: [scheduling, machines, runners, github, observability]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference
@@ -214,7 +214,7 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 
 **R5.43** — The agent publishes its machine's load every 15 s. A reader inside a VM or container uses the published figure when it is at most 60 s old, and its own figure otherwise, marking the source as `file`, `own` or `stale`. M1. Built. Source: `load.py` `write_host_load`, `read_host_load`, `_combine`; `machine_slots.py` `HOST_LOAD_MAX_AGE`.
 
-**R5.44** — Inside a container, the reader also reads cgroup v2: memory is `memory.current` over `memory.max` (none when uncapped), CPU is the `usage_usec` change over the CPUs in `cpu.max` (or all CPUs), capped at 100%. The gate decides on the worse of the host and the container. M2. NOT YET IMPLEMENTED. Source: `load.py` `measure_container`, `parse_cpu_stat`, `parse_cpu_max`, `_combine`.
+**R5.44** — Inside a container, the sampler also reads cgroup v2 (the same read as machines R5.19, built in `internal/load`; a one-shot hook reader in a container uses the agent's published figure, R5.43): memory is `memory.current` over `memory.max` (none when uncapped), CPU is the `usage_usec` change over the CPUs in `cpu.max` (or all CPUs), capped at 100%. The gate decides on the worse of the host and the container. M1. Built in the agent's sampler (`internal/load`); the one-shot hook reader in `internal/scheduler/load` has no cgroup read of its own. Source: `load.py` `measure_container`, `parse_cpu_stat`, `parse_cpu_max`, `_combine`.
 
 **R5.45** — A machine is over budget when memory is strictly above the memory budget or CPU is strictly above the CPU budget. Each exceeded budget is named with its figures, for example "memory 91% > 85%". M1. Built. Source: `load.py` `over`, `_n`.
 
@@ -253,6 +253,10 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 **R5.58** — Status per machine: each slot of each kind with free or held, and for a held slot the repository, run id, job, shard, runner, holder process, age in seconds and a stale flag; and each ticket with repository, run id, job, shard, priority and wait in seconds. Light and heavy slots are listed after job slots. With no light slots, no light line is shown. The API, the CLI (`crsp slots`, also `--json`) and the console read the same status. M1. Built: the scheduler status and the API. The CLI and console read it in their own features. Source: `machine_slots.py` `status`, `_status_kind`.
 
 **R5.59** — The hooks are set in each persistent runner's `.env` file as its first lines. On Windows the hooks are `.ps1` files, never `.cmd`. A hook calls the product binary by its full path, installed for all users, never one in a user profile. The wrapper passes its arguments through and returns the binary's exit code. M1. Built: the wrappers and the `.env` lines. The runners feature writes them at install. Source: `runner_load_gate.ps1`, `runner_load_gate.sh`, `runner_job_done.ps1`, `runner_job_done.sh`; learning 4.
+
+**R5.60** — **Disk guard.** Before the gate asks for a slot, it reads the free space of the volume of the runner's tool cache (`CI_TOOLS_DIR`, else the job's workspace). Under 10% free (`CRSP_DISK_MIN_FREE_PCT`, default 10) it holds the job without a ticket or slot, logs `disk guard: holding the job` with the free share, and polls like the gate. It goes on to the queue when 12% is free. The hold counts against the maximum wait; at the limit the job fails and can be re-run, whatever the on-timeout rule says. A disk that cannot be read never holds a job (R6.6). M1. Built (CRSP21). Source: new (caches R5.38, dev-standards lesson 1).
+
+**R5.61** — **A hook that does not reach crsp is shown, not silent.** When the hook cannot find crsp, cannot start it, or crsp cannot reach its agent, the job still runs (the gate fails open, R5.23; a broken install must not fail CI) and three things say so. (1) The job gets `::warning title=crsp::...` on a line of its own, in the `.ps1` hook, the `.sh` hook and `crsp hook` alike (runners R5.39); a line after the log time stamp would not count, so the annotation is never stamped. (2) `crsp hook` records the problem in `crsp-hook-problem.txt` in the hook folder (`CRSP_HOOK_DIR`) and clears it when the agent answers again. (3) When a job-completed hook arrives for a job that holds no slot or ticket on that machine, the job-started hook did not reach the gate (or the gate let the job go on its on-timeout rule), and the engine raises the alert `hook.job_started_missing` with the machine, repository, run, job and runner, and logs a warning. The job-completed hook still returns 0 (R5.30). Built.
 
 ## 6. Non-functional requirements
 
@@ -351,7 +355,7 @@ A take is one transaction: check the ticket is first, count free slots, insert t
 
 ## 9. How it is proven
 
-A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTED (M2 and M3 requirements, R5.44, R5.47, R5.48 to R5.53, R5.55 to R5.57, R6.7). "Ported from" names the dev-standards test under `claude/plugins/delivery/tests/`.
+A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTED (M2 and M3 requirements, R5.47, R5.48 to R5.53, R5.55 to R5.57, R6.7). "Ported from" names the dev-standards test under `claude/plugins/delivery/tests/`.
 
 | Requirement | Test | Ported from |
 |---|---|---|
@@ -398,7 +402,7 @@ A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTE
 | R5.41 | `internal/scheduler/load/load_test.go` TestCPUParsersAndDelta, TestCPUDeltaAndFallbacks | `test_load.py` Parsers `test_windows_cpu_from_times`; Cache `test_no_sleep_and_delta_from_saved_raw`, `test_delta_and_fallbacks`, `test_unmeasurable_raises` |
 | R5.42 | `internal/scheduler/load/load_test.go` TestReuseAndSmoothing | `test_load.py` Cache `test_reuse_within_ttl_and_smoothing`, `test_unwritable_cache_still_works`, `test_default_cache_is_per_user_not_shared_temp`, `test_write_leaves_no_temp_file_and_makes_folder`, `test_corrupt_cache_is_ignored` |
 | R5.43 | `internal/scheduler/load/load_test.go` TestPublishedLoad | `test_machine.py` HostLoad `test_fresh_host_file_wins_over_own_figures`, `test_stale_host_file_falls_back_to_own_figures`, `test_no_host_file_is_own`, `test_write_mode_writes_host_load_json` |
-| R5.44 | planned: internal/scheduler/load/cgroup_test.go TestContainerFigures | `test_machine.py` HostLoad `test_container_figures_from_cgroup_v2`, `test_the_worse_of_host_and_container_decides` |
+| R5.44 | `internal/load/cgroup_test.go` | `test_machine.py` HostLoad `test_container_figures_from_cgroup_v2`, `test_the_worse_of_host_and_container_decides` |
 | R5.45 | `internal/scheduler/load/load_test.go` TestOverNamesTheNumbers; `internal/scheduler/gate_test.go` TestOverNamesTheNumbers | `test_load.py` Limits `test_over_names_the_numbers` |
 | R5.46 | `internal/scheduler/load/load_test.go` TestTopProcesses | `test_load.py` Parsers `test_process_names` |
 | R5.47 | planned: internal/scheduler/load/wsl_test.go TestWSLVMAndDockerRead | `test_dl177_pool_measure.py` VmReadTests (4), DockerReadTests (5), HostTests (6); `test_dl176_pool_resize.py` MedianTests `test_a_spike_does_not_cut_the_cap`, `test_sampling_sleeps_between_reads_through_the_probe`, `test_even_count_uses_the_middle_pair`, `test_three_resize_plans_with_different_spikes_agree` |
@@ -413,7 +417,9 @@ A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTE
 | R5.56 | planned: internal/scheduler/windows_test.go TestQuietHoursSettingsInForce | new |
 | R5.57 | planned: internal/scheduler/windows_test.go TestWindowStartStopsNoJob | new |
 | R5.58 | `internal/scheduler/gate_test.go` TestStatus; `internal/scheduler/api_jobs_test.go` TestAPIListSlots | `test_machine.py` SlotsCommand `test_slots_command_prints_holders_queue_and_waits`; `test_dl270_light_slot_listing.py` `test_free_and_held_light_slot`, `test_light_slots_after_ci_slots`, `test_zero_light_slots_prints_no_light_line`, `test_json_keeps_light_slots`, `test_stale_light_lock_is_flagged_and_ok_line_counts_both` |
+| R5.61 | `internal/hooks/visibility_test.go` TestUnreachableAgentIsAnnotatedAndRecorded, TestHealthyHookClearsTheRecord, TestAnnotationEscapesLines; `internal/scheduler/alert_test.go` TestJobEndedWithoutJobStartedRaisesAnAlert; `packaging/hooks/hooks_test.go` | new |
 | R5.59 | `internal/hooks/hooks_test.go` TestHookWrappers | `test_machine.py` ShardAndMarker `test_no_cmd_wrappers_ship`; `test_dl324_runner_policy.py` `test_env_keeps_hooks_first`; `test_dl289_refresh_drain.py` `test_hooks_still_exec_their_python`; `test_runner_pool.py` `test_hook_files_are_copied_with_the_full_python_path` |
+| R5.60 | `internal/hooks/hooks_test.go` TestDiskGuardHoldsAndResumes, TestDiskGuardTimeoutFailsWithoutSlotEvenOnTimeoutRun, TestDiskGuardFailsOpenOnReadError | new, none in dev-standards |
 | R6.1 | `internal/hooks/hooks_test.go` TestQuietGateUnderTwoSeconds | `test_load.py` Cache `test_no_sleep_and_delta_from_saved_raw` |
 | R6.2 | `internal/scheduler/gate_test.go` TestTwoTakersNeverShareASlot | `test_machine.py` Slots `test_race_two_processes_never_share_one_slot` |
 | R6.3 | `internal/scheduler/guard_test.go` TestQueriesHaveDeadline | new |
@@ -447,14 +453,14 @@ These dev-standards tests touch the same modules but are not ported here, or go 
 | D4 | A repository at its parallel limit | Its ticket is passed over, not the whole queue held. | 2026-11-14 |
 | D5 | The ci-wait marker and claim-lost exit 3 | Not ported. They serve the dev-standards cloud fallback, which this product does not have. | 2026-11-14 |
 | D6 | `load_guard.py` | Only its rules are ported: hold new work, never kill, fail open, a project may lower but never raise. The tool-call classifier is not. | 2026-11-14 |
-| D7 | CPU smoothing | Kept as in the source: the mean of up to 3 samples in 30 s. The median of 5 samples is only for sizing (R5.47). | 2026-11-14 |
+| D7 | CPU smoothing | Two readers, two rules, both built. The one-shot hook reader (this spec, R5.42) takes the mean of up to 3 samples in 30 s. The agent's sampler (machines R5.16) samples every 5 s and decides on the median of the last 5. The median of 5 samples 1 s apart is for sizing (R5.47). | 2026-11-14 |
 | D8 | Gate when the load cannot be measured | Fail open, as in the source. | 2026-11-14 |
 
 ## 11. Not built yet
 
 Built in CRSP21 (M1): the slot queue, the gate, the job hooks, the dead-holder and age rules, the slot log, the load probe and the status and free-stale handlers. Still open:
 
-- M2: cgroup v2 and WSL VM load reads (R5.44, R5.47), the scale-set demand signal (R5.51), ephemeral-runner slots (R5.50 for one machine).
+- M2: the WSL VM load read (R5.47); the cgroup v2 read (R5.44) is M1 in the agent's sampler, the scale-set demand signal (R5.51), ephemeral-runner slots (R5.50 for one machine).
 - M3: placement across machines (R5.48, R5.49), the liveness judge for holders on other machines (R5.32), maintenance windows and quiet hours (R5.55 to R5.57).
 - The webhook and poll intake of GitHub jobs (R5.52, R5.53) and the other `job_queue` follow-ups (R5.54) belong to github-integration and the agent link.
 - The agent side of the hook socket (`hooks.Serve` is the protocol; the agent wires it to its controller stream), the `crsp slots` commands and the console views belong to the agent, CLI and web-console features.
@@ -477,4 +483,4 @@ Source: `internal/scheduler/slots/config.go`, `internal/scheduler/slots/order.go
 - `internal/store/schedstore.go`: the SQLite side of `Store`, and the jobs reads.
 - `internal/api/handlers_jobs.go`: listJobs, getJob, listSlots, freeStaleSlots.
 
-Planned, not built: `internal/scheduler/placement.go`, `demand.go`, `windows.go` (M2 and M3); `internal/scheduler/load/cgroup.go`, `wsl_windows.go` (M2). The tables are those of `internal/store/migrations/00006_scheduling.sql`.
+Planned, not built: `internal/scheduler/placement.go`, `demand.go`, `windows.go` (M2 and M3); `internal/scheduler/load/wsl_windows.go` (M2). The tables are those of `internal/store/migrations/00006_scheduling.sql`.

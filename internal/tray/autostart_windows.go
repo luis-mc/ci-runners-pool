@@ -17,7 +17,7 @@ func (a RunKeyAutostart) Enabled() (bool, error) {
 	if err != nil {
 		return false, nil
 	}
-	defer k.Close()
+	defer func() { _ = k.Close() }()
 	if _, _, err := k.GetStringValue("crsp-tray"); err != nil {
 		return false, nil
 	}
@@ -30,7 +30,7 @@ func (a RunKeyAutostart) Set(on bool) error {
 	if err != nil {
 		return err
 	}
-	defer k.Close()
+	defer func() { _ = k.Close() }()
 	if !on {
 		if err := k.DeleteValue("crsp-tray"); err != nil && err != registry.ErrNotExist {
 			return err

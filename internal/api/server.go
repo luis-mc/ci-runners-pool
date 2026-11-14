@@ -37,6 +37,8 @@ type Options struct {
 	Settings *settings.Service
 	Audit    *audit.Log
 	Backup   *backup.Service
+	// Update serves the update and restart routes (handlers_update.go). Nil answers 501.
+	Update UpdateService
 	// GitHub is the GitHub integration area (setup, sign-in, users,
 	// repositories). Nil leaves its operations without a backend.
 	GitHub *GitHubArea

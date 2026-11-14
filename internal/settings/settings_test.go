@@ -127,3 +127,31 @@ func patchFor(key string, v int) Patch {
 	}
 	return p
 }
+
+// CRSP19: auto-update is on by default, the owner can turn it off and on, and
+// the choice survives a read.
+func TestAutoUpdateDefaultsOnAndToggles(t *testing.T) {
+	ctx := context.Background()
+	s, l := setup(t)
+	got, err := s.Get(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.AutoUpdate || !Defaults.AutoUpdate {
+		t.Fatalf("auto_update must default to on: %+v", got)
+	}
+	off, on := false, true
+	if got, err = s.Update(ctx, owner, Patch{AutoUpdate: &off}); err != nil || got.AutoUpdate {
+		t.Fatalf("off: %+v %v", got, err)
+	}
+	if again, _ := s.Get(ctx); again.AutoUpdate {
+		t.Fatal("off did not persist")
+	}
+	if got, err = s.Update(ctx, owner, Patch{AutoUpdate: &on}); err != nil || !got.AutoUpdate {
+		t.Fatalf("on: %+v %v", got, err)
+	}
+	p, _ := l.List(ctx, audit.Filter{})
+	if len(p.Items) != 2 || !strings.Contains(p.Items[0].Summary, "auto_update") {
+		t.Fatalf("each change must write one audit row naming auto_update: %+v", p.Items)
+	}
+}

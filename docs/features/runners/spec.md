@@ -3,13 +3,14 @@ id: runners
 title: Runners and isolation backends
 apps: [controller, agent, web-console, cli]
 topics: [runners, isolation, security, machines, ui]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference
 code:
   - internal/runners/**
   - internal/backend/**
+  - internal/runnercache/**
 design_system: [UX-4, UX-5, UX-6, UX-9, UX-13, UX-19, UX-25, UX-29, UX-30, UX-38, UX-53, UX-58, UX-61, UX-62]
 last_verified: 2026-11-14
 artifact:
@@ -106,7 +107,7 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 
 ## 5. Functional requirements
 
-**Built by CRSP22:** R5.1 to R5.8, R5.10, R5.13 to R5.24, R5.36, R5.37, R6.1 to R6.4 and R6.8 (their store and agent link adapters are listed in section 11). **Built in part:** R5.5 (the finders are built; the console list that shows `not managed` is not), R5.9 (`Detect` is built; the allow list belongs to `machines`), R5.11 (`StreamLogs` takes a redactor; the secret list is not wired), R5.12 (`ReportUsage` is built; the 15-second sender is not). **Not built:** R5.38, R6.7, R6.9 (CI jobs). Every other requirement is **NOT YET IMPLEMENTED**. "Port" names the dev-standards source (repository `luis-mc/dev-standards`, spec `docs/features/runner-pool/spec.md`, requirement IDs as `DS R5.n`).
+**Built by CRSP22:** R5.1 to R5.8, R5.10, R5.13 to R5.24, R5.36, R5.37, R6.1 to R6.4 and R6.8 and R5.40 (R5.39 is built by CRSP21 and CRSP26) (their store and agent link adapters are listed in section 11). **Built in part:** R5.5 (the finders are built; the console list that shows `not managed` is not), R5.9 (`Detect` is built; the allow list belongs to `machines`), R5.11 (`StreamLogs` takes a redactor; the secret list is not wired), R5.12 (`ReportUsage` is built; the 15-second sender is not). **Not built:** R5.38, R6.7, R6.9 (CI jobs). Every other requirement is **NOT YET IMPLEMENTED**. "Port" names the dev-standards source (repository `luis-mc/dev-standards`, spec `docs/features/runner-pool/spec.md`, requirement IDs as `DS R5.n`).
 
 ### 5.1 Lifecycle from the console
 
@@ -116,7 +117,7 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 
 **R5.3** (M1) — **States.** A runner is in one state: `creating`, `idle`, `busy`, `draining`, `updating`, `offline`, `failed` or `removing`. The agent reports changes; the controller stores them and pushes them to the console.
 
-**R5.4** (M1) — **Remove with a yes and a drain.** Removing a runner lists what goes (the GitHub registration, the service, the account, the folder) and needs a yes (design system UX-62). A busy runner drains first: it takes no new job and is removed when its job ends, or when the drain timeout the user set runs out. The idle check runs right before the removal. Removal from GitHub uses a remove token, never a registration token, and its result is checked (port DS R5.32, DL315).
+**R5.4** (M1) — **Remove with a yes and a drain.** Removing a runner lists what goes (the GitHub registration, the service, the account, the folder) and needs a yes (design system UX-62). A busy runner drains first: it takes no new job and is removed when its job ends, and keeps waiting past the machine's drain timeout (machines R5.33), with a warning. The idle check runs right before the removal. Removal from GitHub uses a remove token, never a registration token, and its result is checked (port DS R5.32, DL315).
 
 **R5.5** (M1) — **Find runners already on a machine.** The agent lists existing runners from the OS service list, not only from folders: Windows `Win32_Service` entries named `actions.runner.*` (path gives the folder, `StartName` the account), Linux systemd units `actions.runner.*`, macOS launchd jobs `actions.runner.*`. A runner whose folder the agent cannot read is still reported, and the checks that need admin rights say so (port DS R5.38). The console shows a runner it did not create as `not managed`.
 
@@ -192,6 +193,10 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 
 **R5.35** (M2) — **Rebuild with drain.** A rebuild builds the new image while the old one keeps serving jobs. Runners switch to the new image only when idle; the idle check runs right before the switch. A build failure keeps the old image and says `the rebuild failed: <reason>` (port DS R5.10, R5.13, R5.15; learning 1).
 
+### 5.10 Runner caches (M1)
+
+**R5.39** (M1) — **Cache folders, quotas and disk guard.** Each persistent runner has its own tool cache and Rust build cache folders under its folder, exported to its jobs as `CI_TOOLS_DIR` and `CARGO_TARGET_DIR`, with the quotas declared in configuration (default 20 GiB and 40 GiB). The job-completed hook evicts the oldest entries over a quota, between jobs only. The job-started gate holds new jobs while the volume has under 10% free, and the doctor reports it. The rules, the defaults and the tests are caches R5.36 to R5.39. Built (CRSP21, CRSP26). Replaces the milestone 7 plan for the cache cap.
+
 ### 5.8 Labels
 
 **R5.36** (M1) — **Generic labels only.** A runner carries only `self-hosted`, its OS, its architecture, `docker`, `kvm`, `gpu` and the pool name. Each capability label is added only when the agent has checked it works (for example `kvm` only when `/dev/kvm` is usable by the runner). The controller refuses any other label with the reason (port DS R5.36, R5.37; learning 7).
@@ -201,6 +206,22 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 **R5.37** (M1) — **Pinned runner version with SHA-256.** The binary carries one pinned GitHub runner version per OS and architecture, each with its SHA-256. A download whose hash does not match is deleted and refused. A hash that is not 64 hex characters, or is one repeated character, is treated as wrong (port DS R5.14).
 
 **R5.38** (M1) — **Auto-update with drain.** Persistent runners are registered with the runner's own self-update turned off. When a release of the product pins a newer runner version, or GitHub marks the running version as deprecated, the agent updates each runner: it drains it, replaces the runner files, and starts it again. The idle check runs right before the swap. An ephemeral runner uses the new version from its next job.
+
+**R5.40** (M1) — **A missing or broken crsp never hides.** The `.ps1` and `.sh` hooks keep the job going when `crsp` is not installed, cannot start, or cannot be reached (a bad install must not fail CI), but each prints the GitHub Actions annotation `::warning title=crsp::...` on its own line. The text says what failed (`crsp is not installed at <path>` or `crsp at <path> could not run (...)`), that the job ran without the queue and the load gate, and what to do (reinstall crsp for all users on this machine, then run `crsp doctor --check runner.hooks`). The hook also writes the line to `crsp-hook-problem.txt` next to the scripts, which the agent reads into the runner's hook problems for the doctor (doctor R5.14). `CRSP_BIN` overrides the binary path, for tests. The same applies to every OS. Built.
+
+### 5.11 Parity with the old pool (after v0.1.0)
+
+The dev-standards runner pool covered these cases ([handover page](../../architecture/dev-standards-handover.md), section 4). Each requirement below targets a milestone after v0.1.0 and is **NOT YET IMPLEMENTED**. Until this is built, jobs that need it run on GitHub-hosted runners.
+
+**R5.41** (after v0.1.0, NOT YET IMPLEMENTED) — **Linux containers with KVM.** A Linux runner in a container (R5.27) on a machine whose `/dev/kvm` the agent has checked as usable by the runner gets the `kvm` label (R5.36) and the device through `--device /dev/kvm`, never `--privileged`. A test VM boot job (the `vm_check.py` case of the handover page) runs in it. When `/dev/kvm` is missing or not usable the runner has no `kvm` label and the doctor says why (machines R5.53).
+
+**R5.42** (after v0.1.0, NOT YET IMPLEMENTED) — **A Wine prefix per runner.** A Linux runner image that has the `wine` layer gives each runner its own Wine prefix in the runner's own folder, set by `WINEPREFIX`. `TMPDIR` is not set in the runner's job environment, because a set `TMPDIR` breaks Wine's startup. Two runners never share a prefix. A prefix is made on first use and removed with the runner.
+
+**R5.43** (after v0.1.0, NOT YET IMPLEMENTED) — **LLVM and clang-cl for cargo-xwin.** A Linux image layer `llvm` holds a pinned LLVM (SHA-256 checked, R5.37 rule) with `clang-cl`, `lld-link` and `llvm-lib` on the `PATH`, so `cargo-xwin` builds Windows targets. The layer has a self-check that runs `clang-cl --version`. On a Windows runner the symlink right that `cargo-xwin` and Rust tooling need follows R5.14: given only when the machine or label setting asks for it.
+
+**R5.44** (after v0.1.0, NOT YET IMPLEMENTED) — **Playwright browsers in the image.** An image layer `playwright` holds the Chromium, Firefox and WebKit builds for one pinned Playwright version and their system packages, at a fixed path set by `PLAYWRIGHT_BROWSERS_PATH` (caches R5.41). The layer's self-check launches each browser headless once. A job that finds the browsers there downloads nothing.
+
+**R5.45** (after v0.1.0, NOT YET IMPLEMENTED) — **Postgres roles per runner.** Where a machine offers a Postgres server to jobs, each runner gets its own role and its own database owned by it, with a random password the agent keeps in the OS secret store and puts only in that runner's job environment. A role cannot connect to another runner's database. The role and database go with the runner when it is removed. No secret is written to a log (R6.2).
 
 ## 6. Non-functional requirements
 
@@ -212,7 +233,7 @@ All **NOT YET IMPLEMENTED**.
 
 **R6.3** (M1) — **Least rights.** The agent's admin work (making accounts, services, groups) runs in one install-time helper the user approves. Runner accounts are never administrators. A persistent runner's account can write only its own folder and the shared tool cache.
 
-**R6.4** (M1) — **Never cut a running job.** Any change that stops a runner (remove, update, image switch, backend change) drains first and checks for an idle runner right before it acts, not earlier. The drain timeout is a setting (default 60 minutes). On timeout the change waits and asks the user; it never stops the job by itself.
+**R6.4** (M1) — **Never cut a running job.** Any change that stops a runner (remove, update, image switch, backend change) drains first and checks for an idle runner right before it acts, not earlier. The drain timeout is one setting per machine (default 60 minutes, machines R5.33). When it passes the change keeps waiting and warns "still draining, N jobs running, waited X"; it never stops the job.
 
 **R6.5** (M2) — **Start times.** With a warm image, an ephemeral container runner is online in GitHub within 15 s of the job being assigned (median over 20 starts). A microVM from a snapshot is online within 5 s (M6).
 
@@ -329,10 +350,17 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.36 | internal/runners/runners_test.go TestGenericLabelsOnly (port of test_dl316_windows_only_generic.py); internal/runners/service_test.go TestPlanRefusesProjectLabels |
 | R5.37 | internal/runners/runners_test.go TestPinnedHash, TestValidSHA256 (port of the test_dl310 pin tests and test_dl165_pool_refresh_hash_result.py); internal/backend/windows/windows_test.go TestWrongHashRefused; linux and macos TestWrongHashRefused |
 | R5.38 | planned: internal/runners/update_test.go TestUpdateDrainsThenSwaps |
+| R5.39 | internal/runners/service_test.go TestAddPassesCacheQuotaToTheAgent; internal/backend/linux/linux_test.go and internal/backend/windows/windows_test.go (the runner env file holds CI_TOOLS_DIR); internal/runnercache/runnercache_test.go and internal/hooks/hooks_test.go (quota, eviction, disk guard: caches R5.36 to R5.38) |
+| R5.40 | packaging/hooks/hooks_test.go TestShHookWarnsWhenCrspIsMissing, TestShHookWarnsWhenCrspCannotRun, TestShHookPassesCrspExitCodeAndStaysQuiet, TestPs1HookWarnsWhenCrspIsMissing |
+| R5.41 | planned: internal/backend/linux/kvm_test.go TestKVMDeviceOnlyAndLabelNeedsUsable |
+| R5.42 | planned: internal/backend/linux/wine_test.go TestPrefixPerRunnerAndTmpdirUnset |
+| R5.43 | planned: internal/runners/images_test.go TestLLVMLayerSelfCheckAndPinnedHash; internal/backend/windows/symlink_test.go TestSymlinkRightOnlyWhenAsked |
+| R5.44 | planned: internal/runners/images_test.go TestPlaywrightLayerSelfCheck |
+| R5.45 | planned: internal/runners/postgres_test.go TestRolePerRunnerIsolatedAndRemoved |
 | R6.1 | no backend in M1 starts a container; nothing to test until M2 |
 | R6.2 | internal/runners/service_test.go TestNoTokenOrPasswordStoredOrLogged; internal/backend/linux/linux_test.go TestTokenOnlyInEnvAndUpdateOff |
 | R6.3 | internal/backend/windows/windows_test.go TestAccountRights (never in Administrators); internal/backend/linux/linux_test.go TestUnitUserAndGroup; internal/backend/macos/macos_test.go TestHiddenUser |
-| R6.4 | internal/runners/runners_test.go TestIdleCheckRightBeforeAct, TestTimeoutAsksNeverKills, TestDrainFailsClosed; internal/runners/service_test.go TestRemoveFailsClosedAndTimeoutAsks |
+| R6.4 | internal/runners/runners_test.go TestIdleCheckRightBeforeAct, TestTimeoutWarnsNeverKills, TestDrainFailsClosed; internal/runners/service_test.go TestRemoveFailsClosedAndTimeoutAsks |
 | R6.5 | planned: internal/backend/container/perf_test.go TestStartTime (M2); microvm perf_test.go (M6) |
 | R6.6 | planned: internal/backend/tart/tart_test.go TestLimitNotConfigurable |
 | R6.7 | planned: internal/runners/retention_test.go TestLogAndUsageRetention |
@@ -347,16 +375,16 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | RN-2 | What milestone 1 builds | Persistent runners on Windows, Linux and macOS together | 2026-11-14 |
 | RN-3 | Where runners are created | From the web console (and CLI), per OS, only on machines that support it | 2026-11-14 |
 | RN-4 | Windows runner account | Own local non-admin account; log on as a service; interactive logon denied; folder locked to it | 2026-11-13 |
-| RN-5 | Labels | Generic only; workflows target runners by `CRSP_RUNS_ON_*` repository variables | 2026-11-14 |
+| RN-5 | Labels | Generic only; workflows target runners by `RUNS_ON_*` repository variables | 2026-11-14 |
 | RN-6 | Containers | Never privileged; KVM as a device | 2026-11-13 |
 | RN-7 | Tart limit | At most two macOS VMs per Mac, enforced | 2026-11-13 |
 
 Open questions for the owner (proposed answers are in the requirements until decided):
 
 1. R5.14: the symlink right only when asked (brief), while dev-standards gives it to every account (DL319). Confirm "only when asked".
-2. R5.13, R5.21, R5.23: account prefix `crp-` and group `crsp-runners`. Confirm names.
+2. R5.13, R5.21, R5.23: account prefix `crsp-` and group `crsp-runners` are built (`internal/runners/account.go`). Confirm names.
 3. R5.33: keep the newest 3 images per OS. Confirm the default.
-4. R6.4: drain timeout default 60 minutes. Confirm.
+4. R6.4: drain timeout default 60 minutes, one per machine. Decided by the owner (2026-11-14).
 5. R6.7: log retention 14 days or 200 MB per machine; usage 90 days. Confirm.
 6. R5.5: should the product offer to adopt a hand-made runner, or only replace it (R5.6)?
 7. R5.21: Linux runners as systemd system units (admin needed at install). Confirm against user units.
@@ -373,6 +401,7 @@ Built by CRSP22: the three persistent backends, the runner rules, plan and apply
 - M5: Tart backend.
 - M6: Firecracker and Cloud Hypervisor backends with snapshots.
 - M7: the registry mirror server that R5.34 uses.
+- After v0.1.0: the parity requirements R5.41 to R5.45 (Linux containers with KVM, Wine prefix, LLVM, Playwright browsers, Postgres roles).
 
 ## 12. Code map
 
@@ -380,6 +409,7 @@ Built by CRSP22: the three persistent backends, the runner rules, plan and apply
 - `internal/backend/`: the `Backend` interface (`backend.go`), the optional `Finder` and `Deregisterer` (`ext.go`).
 - `internal/backend/sys/`: the command, file and download seams, with fakes in `sys/sysfake`.
 - `internal/backend/persistent/`: shared .env, meta file, rerun decision, pinned download.
+- `internal/runnercache/`: the per-runner cache quota, eviction, disk guard and cache environment (R5.39).
 - `internal/backend/windows/`, `linux/`, `macos/`: one persistent backend each. `registry/` holds the build-tagged files that put one of them in each binary.
 - `internal/api/handlers_runners.go`: the runner operations of `packages/contract/openapi.yaml`.
 - `packaging/hooks/`: the .ps1 and .sh hook scripts.

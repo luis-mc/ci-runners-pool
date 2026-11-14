@@ -131,7 +131,7 @@ func cmdMachine() *command {
 					}
 					return nil
 				}},
-			{name: "drain", summary: "stop giving a machine new jobs; wait for running jobs", args: "NAME [--drain-timeout 60m] [--stop-jobs] [--yes]",
+			{name: "drain", summary: "stop giving a machine new jobs; wait for running jobs", args: "NAME [--yes]",
 				flags: drainFlags,
 				run:   func(c *call, args []string) error { return c.drainOrRemove(args, false) }},
 			{name: "resume", summary: "let a drained machine take jobs again", args: "NAME",
@@ -160,7 +160,7 @@ func cmdMachine() *command {
 					_, _ = fmt.Fprintf(c.env.Stderr, "Machine %s takes jobs again.\n", m.Name)
 					return nil
 				}},
-			{name: "remove", summary: "drain and remove a machine", args: "NAME [--drain-timeout 60m] [--stop-jobs] [--yes]",
+			{name: "remove", summary: "drain and remove a machine", args: "NAME [--yes]",
 				flags: drainFlags,
 				run:   func(c *call, args []string) error { return c.drainOrRemove(args, true) }},
 		},
@@ -168,10 +168,11 @@ func cmdMachine() *command {
 }
 
 func drainFlags(c *call, fs *flag.FlagSet) {
-	fs.Duration("drain-timeout", 0, "how long to wait for running jobs (default: the machine's drain timeout)")
-	fs.Bool("stop-jobs", false, "when the time passes, stop the jobs that still run")
 	yesFlag(fs)
 }
+
+// stillDrainingEvery is how often a wait past the drain timeout repeats its warning.
+const stillDrainingEvery = 5 * time.Minute
 
 // drainOrRemove drains or removes a machine without cutting a running job
 // (cli R5.14 to R5.16).
@@ -181,7 +182,7 @@ func (c *call) drainOrRemove(args []string, remove bool) error {
 		verb = "remove"
 	}
 	if len(args) != 1 {
-		return fail(ExitUsage, "Usage: crsp machine %s NAME [--drain-timeout 60m] [--stop-jobs] [--yes]", verb)
+		return fail(ExitUsage, "Usage: crsp machine %s NAME [--yes]", verb)
 	}
 	s, err := c.open()
 	if err != nil {
@@ -191,11 +192,6 @@ func (c *call) drainOrRemove(args []string, remove bool) error {
 	if err != nil {
 		return err
 	}
-	timeout, _ := time.ParseDuration(c.fs.Lookup("drain-timeout").Value.String())
-	if timeout <= 0 {
-		timeout = time.Duration(m.Settings.DrainTimeoutMinutes) * time.Minute
-	}
-	stopJobs := c.fs.Lookup("stop-jobs").Value.String() == "true"
 	title := "This " + verb + "s machine " + m.Name + "."
 	items := []string{"machine " + m.Name}
 	if remove {
@@ -231,13 +227,18 @@ func (c *call) drainOrRemove(args []string, remove bool) error {
 	if change == nil {
 		return fail(ExitFailed, "The controller sent no change to follow.")
 	}
-	deadline := c.env.Now().Add(timeout)
-	stopped := false
+	// One drain timeout per machine, set in its settings. When it passes, the
+	// command keeps waiting and warns; it never stops a job (cli R5.16).
+	timeout := time.Duration(m.Settings.DrainTimeoutMinutes) * time.Minute
+	started := c.env.Now()
+	var lastWarn time.Time
 	lastWait := -1
 	for change.State != client.MachineChangeStateDone {
 		switch change.State {
 		case client.MachineChangeStateCancelled:
 			return fail(ExitFailed, "The change was cancelled. Nothing more changed.")
+		case client.MachineChangeStateNeedsYou:
+			return fail(ExitFailed, "The change needs you and did not run. Open the console, or run crsp doctor. Running jobs were not stopped.")
 		}
 		if n := len(change.WaitingFor); n != lastWait {
 			lastWait = n
@@ -250,19 +251,9 @@ func (c *call) drainOrRemove(args []string, remove bool) error {
 				_, _ = fmt.Fprintf(c.env.Stderr, "  - %s\n", jobTitle(j))
 			}
 		}
-		if !c.env.Now().Before(deadline) && !stopped {
-			if !stopJobs {
-				return fail(ExitFailed, "The jobs did not end within %s. They still run; nothing more changed. Run it again later, or add --stop-jobs.", timeout)
-			}
-			conf := true
-			d, err := s.client.DecideMachineChangeWithResponse(c.env.Context, m.Id, change.Id, client.MachineChangeDecision{Decision: client.StopJobs, Confirm: &conf})
-			if err != nil {
-				return s.transport(err)
-			}
-			if err := apiError(d.StatusCode(), d.Body); err != nil {
-				return err
-			}
-			stopped = true
+		if waited := c.env.Now().Sub(started); timeout > 0 && waited >= timeout && len(change.WaitingFor) > 0 && c.env.Now().Sub(lastWarn) >= stillDrainingEvery {
+			lastWarn = c.env.Now()
+			_, _ = fmt.Fprintf(c.env.Stderr, "Still draining %s: %d jobs running, waited %s. Nothing is stopped; press Ctrl-C to stop waiting (the drain goes on).\n", m.Name, len(change.WaitingFor), waited.Round(time.Minute))
 		}
 		if err := c.sleep(2 * time.Second); err != nil {
 			return err

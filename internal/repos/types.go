@@ -1,4 +1,4 @@
-// Package repos is the pool switch, repository policy, the CRSP_RUNS_ON_*
+// Package repos is the pool switch, repository policy, the RUNS_ON_*
 // variables and the workflow runs-on check (github-integration R5.17 to
 // R5.30). It reads and writes data through the Store interface declared here
 // and reaches GitHub through the small GitHub interface, so it is tested with
@@ -55,7 +55,7 @@ const (
 	VarNotManaged = "not_managed"
 )
 
-// ManagedVariable is a CRSP_RUNS_ON_* variable as the controller last wrote it.
+// ManagedVariable is a RUNS_ON_* variable as the controller last wrote it.
 type ManagedVariable struct {
 	RepositoryID int64
 	Name         string

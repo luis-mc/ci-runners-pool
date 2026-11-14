@@ -92,6 +92,7 @@ message SessionRequest {
     DrainStatus drain_status = 13;
     CheckResults check_results = 14;
     UsageReport usage_report = 15;
+    UpdateReport update_report = 16;
   }
 }
 
@@ -111,6 +112,7 @@ message SessionResponse {
     Redetect redetect = 11;
     RunChecks run_checks = 12;
     MachineRemoved machine_removed = 13;
+    UpdateAgent update_agent = 14;
   }
 }
 
@@ -557,4 +559,26 @@ message CheckResult {
   string fix_command = 9;
   bool needs_admin = 10;
   int64 checked_at_unix_ms = 11;
+}
+
+// UpdateAgent asks the agent to update itself to the controller's version
+// (operations R5.39). The agent downloads and verifies the release, drains the
+// same way as for any change (60 minutes, then it postpones), and installs when
+// idle. The controller asks again at its next check until the versions match.
+message UpdateAgent {
+  string command_id = 1;
+  // The stable version to install, without the leading v: the controller's own.
+  string version = 2;
+}
+
+// UpdateReport says where the agent's follow-the-controller update stands.
+message UpdateReport {
+  string command_id = 1;
+  string version = 2; // the version being installed
+  // idle, waiting_for_jobs, downloading, installing, restarting, postponed, failed or unsupported.
+  string state = 3;
+  // A redacted text safe to show; empty unless failed, postponed or unsupported.
+  string error = 4;
+  // The jobs a waiting drain still waits for.
+  repeated JobRef waiting_for = 5;
 }

@@ -33,7 +33,7 @@ func tree(env *Env) *command {
 		cmdDoctor(),
 		unbuilt("config", "configuration as a file (export, import, apply)", "M8", "export|import|apply"),
 		cmdBackup(), cmdRestore(),
-		unbuilt("update", "update this machine's binary, with drain", "M3", "[--dry-run]"),
+		cmdUpdate(), cmdRestart(),
 		{name: "help", summary: "print usage", run: func(c *call, _ []string) error {
 			writeUsage(c.env.Stdout, root, nil)
 			return nil

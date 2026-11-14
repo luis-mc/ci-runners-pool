@@ -36,6 +36,10 @@ type Config struct {
 	Sys                 Sys
 	Sampler             *load.Sampler
 	Gate                *Gate
+	// Updater follows the controller's version (operations R5.39); nil answers "unsupported".
+	Updater Updater
+	// UpdaterFor builds the Updater once the gate exists (the agent command sets it).
+	UpdaterFor func(*Gate) Updater
 
 	// Intervals; the defaults are the spec's (R5.35, R5.13, R5.16).
 	HeartbeatEvery time.Duration // 10 s
@@ -80,6 +84,9 @@ func (c *Config) defaults() {
 		if *d.p == 0 {
 			*d.p = d.v
 		}
+	}
+	if c.Updater == nil && c.UpdaterFor != nil {
+		c.Updater = c.UpdaterFor(c.Gate)
 	}
 	if c.Backoff == nil {
 		c.Backoff = &Backoff{}
@@ -224,6 +231,9 @@ type link struct {
 
 	drainMu sync.Mutex
 	drainID string // command id of the drain in progress; empty when none
+
+	followMu  sync.Mutex
+	following bool
 }
 
 func (l *link) send(m *agentv1.SessionRequest) error {
@@ -424,6 +434,8 @@ func (l *link) handle(ctx context.Context, msg *agentv1.SessionResponse) error {
 		f := l.redetect(ctx)
 		_ = l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_Facts{Facts: f}})
 		_ = l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_CommandResult{CommandResult: &agentv1.CommandResult{CommandId: m.Redetect.GetCommandId(), Ok: true, Outcome: "done"}}})
+	case *agentv1.SessionResponse_UpdateAgent:
+		l.handleUpdate(ctx, m.UpdateAgent)
 	case *agentv1.SessionResponse_MachineRemoved:
 		return ErrRemoved
 	}

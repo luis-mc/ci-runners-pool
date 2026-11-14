@@ -12,10 +12,14 @@ import (
 
 // variableOrder is the fixed order of operating systems and their variable.
 var variableOrder = []struct{ OS, Var string }{
-	{"Linux", "CRSP_RUNS_ON_LINUX"},
-	{"Windows", "CRSP_RUNS_ON_WINDOWS"},
-	{"macOS", "CRSP_RUNS_ON_MACOS"},
+	{"linux", "RUNS_ON_LINUX"},
+	{"windows", "RUNS_ON_WINDOWS"},
+	{"macos", "RUNS_ON_MACOS"},
 }
+
+// legacyVariableNames are the names older versions wrote (CRSP25). They are
+// deleted on upgrade, only where the store knows the controller created them.
+var legacyVariableNames = []string{"CRSP_RUNS_ON_LINUX", "CRSP_RUNS_ON_WINDOWS", "CRSP_RUNS_ON_MACOS"}
 
 // VariableNames lists the three managed variable names.
 func VariableNames() []string {
@@ -27,10 +31,12 @@ func VariableNames() []string {
 }
 
 // labelList builds the JSON list for one OS: self-hosted, the OS, then the
-// machines' labels, then the policy's labels, without repeats.
+// machines' labels, then the policy's labels, without repeats. Labels are
+// case-insensitive, so every one is written lowercase (R5.28).
 func labelList(os string, machine, policy []string) []string {
+	os = strings.ToLower(os)
 	out := []string{"self-hosted", os}
-	seen := map[string]bool{"self-hosted": true, strings.ToLower(os): true}
+	seen := map[string]bool{"self-hosted": true, os: true}
 	for _, set := range [][]string{machine, policy} {
 		for _, l := range set {
 			k := strings.ToLower(l)
@@ -38,31 +44,44 @@ func labelList(os string, machine, policy []string) []string {
 				continue
 			}
 			seen[k] = true
-			out = append(out, l)
+			out = append(out, k)
 		}
 	}
 	return out
 }
 
+// osName returns the lowercase OS for a lowercase label, "" for any other.
 func osName(lower string) string {
 	switch lower {
-	case "linux":
-		return "Linux"
-	case "windows":
-		return "Windows"
-	case "macos":
-		return "macOS"
+	case "linux", "windows", "macos":
+		return lower
 	}
 	return ""
 }
 
+// sameLabels reports whether two JSON label lists hold the same labels in the
+// same order, ignoring case (labels are case-insensitive). A value that is not
+// a JSON list never matches.
+func sameLabels(a, b string) bool {
+	var x, y []string
+	if json.Unmarshal([]byte(a), &x) != nil || json.Unmarshal([]byte(b), &y) != nil || len(x) != len(y) {
+		return false
+	}
+	for i := range x {
+		if !strings.EqualFold(x[i], y[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 // Desired is the variables the controller keeps for a repository: one for each
-// OS the policy enables and some machine can serve (R5.28). A policy whose
+// OS the policy enables and some runner can serve (R5.28). A policy whose
 // labels name one or more operating systems enables only those; otherwise it
-// enables every OS that a machine serves. Each value is a JSON list such as
-// ["self-hosted","Linux","crsp-home"].
+// enables every OS that a runner serves. An OS not in the result has no
+// variable. Each value is a JSON list such as ["self-hosted","linux","crsp-home"].
 func (s *Service) Desired(ctx context.Context, pol Policy) (map[string]string, error) {
-	capy, err := s.cfg.Capacity.OSLabels(ctx)
+	capy, err := s.osCapacity(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -84,12 +103,30 @@ func (s *Service) Desired(ctx context.Context, pol Policy) (map[string]string, e
 	return out, nil
 }
 
-// syncVariables writes the desired variables of an enabled repository and
-// removes none (R5.28). Deleting is only done when the pool is turned off,
-// after a yes (R5.29).
+// osCapacity is Capacity.OSLabels with the OS keys lowercased, so "Linux" and
+// "linux" mean the same OS.
+func (s *Service) osCapacity(ctx context.Context) (map[string][]string, error) {
+	capy, err := s.cfg.Capacity.OSLabels(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string][]string, len(capy))
+	for k, v := range capy {
+		out[strings.ToLower(k)] = v
+	}
+	return out, nil
+}
+
+// syncVariables makes the repository's variables what Desired says (R5.28):
+// it writes the ones wanted and deletes the ones not wanted, which are the
+// ones for an OS the repository has no runner for or the policy turns off.
+// Old CRSP_RUNS_ON_* variables are deleted first.
 func (s *Service) syncVariables(ctx context.Context, actor auth.Principal, r Repository, pol Policy) error {
 	want, err := s.Desired(ctx, pol)
 	if err != nil {
+		return err
+	}
+	if err := s.migrateLegacy(ctx, actor, r); err != nil {
 		return err
 	}
 	have, err := s.cfg.GitHub.ListVariables(ctx, r.InstallationID, r.Owner, r.Name)
@@ -102,16 +139,20 @@ func (s *Service) syncVariables(ctx context.Context, actor auth.Principal, r Rep
 	}
 	for _, name := range VariableNames() {
 		val, ok := want[name]
+		got, exists := cur[name]
 		if !ok {
-			continue
-		}
-		if cur[name] == val {
-			if _, exists := cur[name]; exists {
-				if err := s.recordVariable(ctx, r.ID, name, val, VarOK, false); err != nil {
+			if exists {
+				if err := s.deleteVariable(ctx, actor, r, name); err != nil {
 					return err
 				}
-				continue
 			}
+			continue
+		}
+		if exists && sameLabels(got, val) {
+			if err := s.recordVariable(ctx, r.ID, name, got, VarOK, false); err != nil {
+				return err
+			}
+			continue
 		}
 		if err := s.cfg.GitHub.SetVariable(ctx, r.InstallationID, r.Owner, r.Name, github.Variable{Name: name, Value: val}); err != nil {
 			return err
@@ -122,6 +163,44 @@ func (s *Service) syncVariables(ctx context.Context, actor auth.Principal, r Rep
 		s.cfg.Audit.Audit(ctx, actor, "variable.written", "repository", r.FullName, name+" = "+val)
 	}
 	return nil
+}
+
+// deleteVariable removes one variable from GitHub and from the store.
+func (s *Service) deleteVariable(ctx context.Context, actor auth.Principal, r Repository, name string) error {
+	if err := s.cfg.GitHub.DeleteVariable(ctx, r.InstallationID, r.Owner, r.Name, name); err != nil {
+		return err
+	}
+	if err := s.cfg.Store.DeleteManagedVariable(ctx, r.ID, name); err != nil {
+		return err
+	}
+	s.cfg.Audit.Audit(ctx, actor, "variable.deleted", "repository", r.FullName, name)
+	return nil
+}
+
+// migrateLegacy deletes the CRSP_RUNS_ON_* variables an older version wrote.
+// Only a name the store lists as written by the controller is deleted.
+func (s *Service) migrateLegacy(ctx context.Context, actor auth.Principal, r Repository) error {
+	rows, err := s.cfg.Store.ListManagedVariables(ctx, r.ID)
+	if err != nil {
+		return err
+	}
+	for _, row := range rows {
+		if isLegacyVariable(row.Name) {
+			if err := s.deleteVariable(ctx, actor, r, row.Name); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func isLegacyVariable(name string) bool {
+	for _, n := range legacyVariableNames {
+		if n == name {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) recordVariable(ctx context.Context, repoID int64, name, value, status string, written bool) error {
@@ -145,10 +224,15 @@ func (s *Service) recordVariable(ctx context.Context, repoID int64, name, value,
 // they should be, as background work within the rate budget (R5.28, R6.6). A
 // value changed outside the product is restored, written to the audit log, and
 // shown as drift until the next check finds it correct. A missing variable is
-// written back the same way.
+// written back the same way. A variable that should not exist (no runner for
+// its OS, or the pool off for it) is deleted. Old CRSP_RUNS_ON_* variables are
+// deleted whatever the pool state.
 func (s *Service) ReconcileVariables(ctx context.Context, repoID int64) error {
 	r, err := s.cfg.Store.GetRepository(ctx, repoID)
 	if err != nil {
+		return err
+	}
+	if err := s.migrateLegacy(github.Background(ctx), System, r); err != nil {
 		return err
 	}
 	if !r.PoolOn {
@@ -174,11 +258,17 @@ func (s *Service) ReconcileVariables(ctx context.Context, repoID int64) error {
 	now := s.cfg.Now()
 	for _, name := range VariableNames() {
 		val, ok := want[name]
+		got, exists := cur[name]
 		if !ok {
+			// No runner for this OS, or the pool is off for it: no variable.
+			if exists {
+				if err := s.deleteVariable(bg, System, r, name); err != nil {
+					return err
+				}
+			}
 			continue
 		}
-		got, exists := cur[name]
-		if exists && got == val {
+		if exists && sameLabels(got, val) {
 			if err := s.recordVariable(ctx, repoID, name, val, VarOK, false); err != nil {
 				return err
 			}
@@ -211,11 +301,17 @@ func driftWas(exists bool, got string) string {
 	return got
 }
 
-// ReconcileAllVariables checks every enabled repository. On a rate limit it
+// RunnersChanged is called when a runner is added or removed: it brings every
+// repository's variables in line at once, so an OS that gained its first
+// runner gets its variable and one that lost its last runner loses it (R5.28).
+func (s *Service) RunnersChanged(ctx context.Context) error {
+	return s.ReconcileAllVariables(ctx)
+}
+
+// ReconcileAllVariables checks every known repository. On a rate limit it
 // stops and returns the error, which carries the reset time (R6.6).
 func (s *Service) ReconcileAllVariables(ctx context.Context) error {
-	pool := true
-	rs, err := s.cfg.Store.ListRepositories(ctx, ListFilter{Pool: &pool})
+	rs, err := s.cfg.Store.ListRepositories(ctx, ListFilter{})
 	if err != nil {
 		return err
 	}

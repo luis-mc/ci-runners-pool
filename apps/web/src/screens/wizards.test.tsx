@@ -197,7 +197,7 @@ const plan = (state: string, steps: object[] = []) => ({
         {
           id: 's2',
           action: 'write_variable',
-          text: 'Write CRSP_RUNS_ON_LINUX',
+          text: 'Write RUNS_ON_LINUX',
           needs_yes: false,
           state: state === 'done' ? 'done' : 'planned',
         },
@@ -389,8 +389,97 @@ const connectDriver: WizardDriver = {
   },
 };
 
+// ---------------------------------------------------------------------------------------------------- Update
+const upd = (extra: object = {}) => ({
+  current_version: '1.4.0',
+  latest_version: '1.5.0',
+  update_available: true,
+  state: 'idle',
+  auto_update: false,
+  running_jobs: [{ repository: 'octo/app', workflow: 'ci', run_id: 7, job: 'test' }],
+  drain_timeout_minutes: 60,
+  ...extra,
+});
+
+// A real hang: the body never ends, so the client waits (the shared `never` answers {} at once).
+const hang = () => new Response(new ReadableStream());
+
+const updateDriver: WizardDriver = {
+  id: 'update',
+  async open(state) {
+    let applied = false;
+    const api = signedIn()
+      .on('GET', '/api/v1/update', () =>
+        applied
+          ? state === 'done'
+            ? upd({ current_version: '1.5.0', update_available: false, running_jobs: [] })
+            : upd({ state: 'waiting_for_jobs' })
+          : upd(),
+      )
+      .on('POST', '/api/v1/update/apply', () => {
+        applied = true;
+        return upd({ state: 'waiting_for_jobs' });
+      })
+      .on('POST', '/api/v1/update/check', upd());
+    let path = '/settings/updates/review?kind=update';
+    if (state === 'loading') api.on('GET', '/api/v1/update', hang);
+    if (state === 'first-run' || state === 'planning')
+      api.on(
+        'GET',
+        '/api/v1/update',
+        upd({ latest_version: undefined, update_available: false }),
+      );
+    if (state === 'planning') api.on('POST', '/api/v1/update/check', hang);
+    if (state === 'paused') {
+      path += '&started=1&to=1.5.0';
+      api.on('GET', '/api/v1/update', upd({ state: 'waiting_for_jobs' }));
+    }
+    if (state === 'stopped')
+      api.on(
+        'GET',
+        '/api/v1/update',
+        upd({ latest_version: '1.4.0', update_available: false }),
+      );
+    if (state === 'failed')
+      api.on(
+        'GET',
+        '/api/v1/update',
+        upd({ state: 'failed', error: 'the checksum check failed' }),
+      );
+    if (state === 'done-after-reload') {
+      path += '&started=1&to=1.5.0';
+      api.on(
+        'GET',
+        '/api/v1/update',
+        upd({ current_version: '1.5.0', update_available: false, running_jobs: [] }),
+      );
+    }
+    renderApp(api, path);
+    await step('Update');
+    const snap = () => read(state, 'Update', false);
+    if (state === 'loading') return snap();
+    if (['paused', 'stopped', 'failed', 'done-after-reload'].includes(state)) {
+      await screen.findByRole('button', { name: /Start again|Try again|Open Updates/ });
+      return snap();
+    }
+    if (state === 'first-run' || state === 'planning') {
+      await press('Look for updates');
+      return snap();
+    }
+    await screen.findByText(/Nothing has changed yet/);
+    if (state === 'ready-to-review') return snap();
+    await press('Update to 1.5.0');
+    if (state === 'running') {
+      await screen.findByText(/Waiting for running jobs to end/, { selector: 'p' });
+      return snap();
+    }
+    await screen.findByRole('button', { name: 'Open Updates' });
+    return snap();
+  },
+};
+
 describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
-  const drivers = [connectDriver, machineDriver, poolDriver, runnersDriver];
+  const drivers = [connectDriver, machineDriver, poolDriver, runnersDriver, updateDriver];
   for (const d of drivers) {
     it(`${d.id} passes the ten states and keeps its known list empty`, async () => {
       const lines: string[] = [];

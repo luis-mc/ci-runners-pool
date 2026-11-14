@@ -1,0 +1,24 @@
+#!/bin/sh
+# Runs before the files are laid down, on a first install and on an upgrade
+# (`installer -pkg <file> -target /`): stop the running service and tray so the
+# binary can be replaced. Data is never touched here.
+LABEL=crsp
+TRAY=dev.luismc.crsp.tray
+
+if launchctl print "system/$LABEL" >/dev/null 2>&1; then
+  launchctl bootout "system/$LABEL" >/dev/null 2>&1 || true
+  # Wait for the process to end (it drains for a few seconds).
+  i=0
+  while launchctl print "system/$LABEL" >/dev/null 2>&1 && [ "$i" -lt 30 ]; do
+    sleep 1
+    i=$((i + 1))
+  done
+fi
+
+# The tray of every logged-in user.
+for uid in $(ps -axo uid=,comm= | awk '$2 ~ /crsp$/ {print $1}' | sort -u); do
+  if [ "$uid" != 0 ]; then
+    launchctl bootout "gui/$uid/$TRAY" >/dev/null 2>&1 || true
+  fi
+done
+exit 0

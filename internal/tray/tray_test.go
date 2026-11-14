@@ -12,22 +12,6 @@ import (
 	"time"
 )
 
-func TestMenuOrderM1(t *testing.T) {
-	m := MenuM1(Status{State: StateHealthy, Running: 2, Waiting: 1}, true)
-	want := []string{"✓ ok · 2 running · 1 waiting", LabelOpen, LabelOpenLogs, LabelStartAtLogin, LabelQuit}
-	if len(m) != len(want) {
-		t.Fatalf("len %d", len(m))
-	}
-	for i, w := range want {
-		if m[i].Label != w {
-			t.Errorf("item %d = %q want %q", i, m[i].Label, w)
-		}
-	}
-	if m[0].Action || !m[3].Switch || !m[3].Checked {
-		t.Error("status must be text, Start at login a ticked switch")
-	}
-}
-
 func TestStatusTextPerState(t *testing.T) {
 	at := time.Date(2026, 11, 14, 14, 30, 0, 0, time.UTC)
 	cases := map[string]Status{

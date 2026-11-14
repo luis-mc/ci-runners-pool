@@ -6,10 +6,32 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"sync"
 	"time"
 
 	"fyne.io/systray"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 )
+
+// NeedsRelaunch says whether the service runs a newer stable version than this
+// tray: an update installed, so the tray starts the new binary (R5.18).
+func NeedsRelaunch(own, service string) bool {
+	return service != "" && update.Newer(own, service)
+}
+
+// Relaunch starts the tray of the binary now on disk (the new version) and
+// returns at once. The new tray waits up to 20 s for this one to release the
+// single-instance lock (--wait).
+func Relaunch(exe string) error {
+	cmd := exec.CommandContext(context.Background(), exe, "tray", "--wait", "20s", "--updated") //nolint:gosec // our own binary
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	go func() { _ = cmd.Wait() }()
+	return nil
+}
 
 // Options configure Run. Zero values use the OS defaults.
 type Options struct {
@@ -25,6 +47,8 @@ func Run(args []string, o Options) int {
 	fs.SetOutput(o.Stderr)
 	smoke := fs.Bool("smoke", false, "start the tray loop, exit 0 once the icon is ready (CI)")
 	hold := fs.Duration("smoke-hold", 0, "with --smoke: keep running this long after the icon is ready")
+	updated := fs.Bool("updated", false, "this tray was started by the old tray after an update: say so in one notice")
+	wait := fs.Duration("wait", 0, "wait up to this long for the tray of the old version to quit (used after an update)")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
@@ -33,6 +57,10 @@ func Run(args []string, o Options) int {
 	}
 
 	lock, ok, err := AcquireLock()
+	for end := time.Now().Add(*wait); err == nil && !ok && time.Now().Before(end); {
+		time.Sleep(500 * time.Millisecond)
+		lock, ok, err = AcquireLock()
+	}
 	if err != nil {
 		_, _ = fmt.Fprintln(o.Stderr, "error:", err)
 		return 1
@@ -53,6 +81,9 @@ func Run(args []string, o Options) int {
 		return ExitNoTrayHost
 	}
 
+	if *updated && o.Version != "" {
+		DesktopNotice("Updated to "+o.Version, ProductName+" now runs version "+o.Version+".")
+	}
 	return loop(o, *smoke, *hold)
 }
 
@@ -74,7 +105,8 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 
 	auto, _ := DefaultAutostart(o.Exe)
 	opener := &Opener{
-		Links: client, Browser: OSLauncher, Files: OSLauncher,
+		Links: client, Targets: client, Checker: client, Version: o.Version,
+		Browser: OSLauncher, Files: OSLauncher,
 		Notify: DesktopNotice, Current: current, LogDir: LogDir,
 	}
 
@@ -82,18 +114,35 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 	onReady := func() {
 		systray.SetIcon(Icon(StateStarting))
 		systray.SetTooltip(cur.Tooltip())
-		items := MenuM1(cur, false)
+		loginOn := false
 		if auto != nil {
-			on, _ := auto.Enabled()
-			items = MenuM1(cur, on)
+			loginOn, _ = auto.Enabled()
 		}
-		statusItem := systray.AddMenuItem(items[0].Label, "")
-		statusItem.Disable()
-		open := systray.AddMenuItem(items[1].Label, "")
-		logs := systray.AddMenuItem(items[2].Label, "")
-		login := systray.AddMenuItemCheckbox(items[3].Label, "", items[3].Checked)
-		quit := systray.AddMenuItem(items[4].Label, "")
+		items := BuildMenu(o.Version, cur, loginOn)
+		sys := map[string]*systray.MenuItem{}
+		for _, it := range items {
+			if it.Separator {
+				systray.AddSeparator()
+				continue
+			}
+			var mi *systray.MenuItem
+			if it.Switch {
+				mi = systray.AddMenuItemCheckbox(it.Label, "", it.Checked)
+			} else {
+				mi = systray.AddMenuItem(it.Label, "")
+				if !it.Action {
+					mi.Disable()
+				}
+			}
+			if it.Hidden {
+				mi.Hide()
+			}
+			sys[it.ID] = mi
+		}
+		open, check, upd, restart := sys[IDOpen], sys[IDCheck], sys[IDUpdate], sys[IDRestart]
+		logs, gh, login, quit := sys[IDLogs], sys[IDGitHub], sys[IDLogin], sys[IDQuit]
 
+		var relaunchOnce sync.Once
 		p := &Poller{Source: client, Manager: ServiceState}
 		p.OnStatus = func(s Status) {
 			select {
@@ -101,9 +150,30 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 			default:
 			}
 			curCh <- s
-			statusItem.SetTitle(s.Text())
+			for _, it := range BuildMenu(o.Version, s, login.Checked()) {
+				switch it.ID {
+				case IDHeader, IDService:
+					sys[it.ID].SetTitle(it.Label)
+				case IDUpdate:
+					sys[it.ID].SetTitle(it.Label)
+					if it.Hidden {
+						sys[it.ID].Hide()
+					} else {
+						sys[it.ID].Show()
+					}
+				}
+			}
 			systray.SetTooltip(s.Tooltip())
 			systray.SetIcon(Icon(s.State))
+			// The service runs a newer version than this tray: the update installed.
+			// Start the tray of the new version and quit this one (R5.18, within 30 s).
+			if NeedsRelaunch(o.Version, s.Version) {
+				relaunchOnce.Do(func() {
+					if err := Relaunch(o.Exe); err == nil {
+						systray.Quit()
+					}
+				})
+			}
 		}
 		go p.Run(ctx)
 		go func() {
@@ -111,6 +181,14 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 				select {
 				case <-open.ClickedCh:
 					go func() { _ = opener.Open(ctx) }()
+				case <-check.ClickedCh:
+					go func() { _ = opener.LookForUpdates(ctx) }()
+				case <-upd.ClickedCh:
+					go func() { _ = opener.OpenReview(ctx, ReviewUpdatePath) }()
+				case <-restart.ClickedCh:
+					go func() { _ = opener.OpenReview(ctx, ReviewRestartPath) }()
+				case <-gh.ClickedCh:
+					go func() { _ = opener.OpenGitHub() }()
 				case <-logs.ClickedCh:
 					go func() { _ = opener.OpenLogFolder() }()
 				case <-login.ClickedCh:

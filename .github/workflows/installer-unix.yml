@@ -1,0 +1,126 @@
+name: Installer packages
+
+# OPS1. Builds the Linux .deb and .rpm and the macOS .pkg and smoke-tests them.
+# The shipped packages are built by release.yml (job installers-unix); this
+# workflow proves they install, upgrade, remove and (deb) purge, on a pull
+# request that touches the installers or the crsp command.
+#
+# The old and the new package of each smoke test are two builds of the same
+# binary with different edge run numbers (1 and 2), so the upgrade is real.
+# Artifact names are stable (no version or run number) for artifact-prune.yml.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'installer/linux/**'
+      - 'installer/macos/**'
+      - 'cmd/crsp/**'
+      - 'scripts/delivery/tools.json'
+      - '.github/workflows/installer-unix.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: installer-unix-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ github.sha }}
+      artifact-prefix: installer-bin-
+
+  linux-packages:
+    name: build deb and rpm
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: installer-bin-linux-amd64
+          path: bin
+      - name: Build the old and the new package
+        run: |
+          set -euo pipefail
+          chmod +x bin/crsp
+          bash installer/linux/build.sh amd64 bin/crsp edge-ci 1 pkgs/old
+          bash installer/linux/build.sh amd64 bin/crsp edge-ci 2 pkgs/new
+          ls -l pkgs/old pkgs/new
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: installer-linux-amd64
+          path: pkgs
+          if-no-files-found: error
+
+  smoke-deb:
+    name: smoke deb (systemd on the runner)
+    needs: linux-packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: installer-linux-amd64
+          path: pkgs
+      - name: Install, upgrade, remove, purge
+        run: |
+          old=$(sudo dpkg-deb -f pkgs/old/crsp-linux-amd64.deb Version)
+          new=$(sudo dpkg-deb -f pkgs/new/crsp-linux-amd64.deb Version)
+          sudo SMOKE_SYSTEMD=1 bash installer/linux/smoke.sh deb \
+            pkgs/old/crsp-linux-amd64.deb pkgs/new/crsp-linux-amd64.deb "${old%-*}" "${new%-*}"
+
+  smoke-rpm:
+    name: smoke rpm (fedora container)
+    needs: linux-packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: installer-linux-amd64
+          path: pkgs
+      - name: Install, upgrade, erase
+        run: |
+          docker run --rm -v "$PWD:/w" -w /w fedora:latest bash -c '
+            set -euo pipefail
+            old=$(rpm -qp --qf "%{VERSION}" pkgs/old/crsp-linux-amd64.rpm)
+            new=$(rpm -qp --qf "%{VERSION}" pkgs/new/crsp-linux-amd64.rpm)
+            bash installer/linux/smoke.sh rpm pkgs/old/crsp-linux-amd64.rpm pkgs/new/crsp-linux-amd64.rpm "$old" "$new"
+          '
+
+  macos-pkg:
+    name: build and smoke pkg (macos)
+    needs: build
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: installer-bin-darwin-arm64
+          path: bin
+      - name: Build the old and the new package
+        run: |
+          set -euo pipefail
+          chmod +x bin/crsp
+          bash installer/macos/build.sh arm64 bin/crsp edge-ci 1 pkgs/old
+          bash installer/macos/build.sh arm64 bin/crsp edge-ci 2 pkgs/new
+      - name: Install, upgrade, uninstall
+        run: bash installer/macos/smoke.sh pkgs/old/crsp-darwin-arm64.pkg pkgs/new/crsp-darwin-arm64.pkg
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: installer-darwin-arm64
+          path: pkgs
+          if-no-files-found: error

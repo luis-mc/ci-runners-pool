@@ -45,10 +45,11 @@ type Notifier interface {
 	LoadChanged(machineID string)
 }
 
-// JobStopper stops the named running jobs after the user said yes (R5.33). It
-// belongs to the runners feature; without one, "stop those jobs now" says so.
-type JobStopper interface {
-	StopJobs(ctx context.Context, machineID string, jobs []JobRef) error
+// DrainOverdueNotifier is an optional part of a Notifier: it is told once
+// when a drain passed its timeout and still waits, so the console, the CLI and
+// the alerts say "still draining" (R5.33).
+type DrainOverdueNotifier interface {
+	DrainOverdue(machineID, kind string, waited time.Duration, jobs []JobRef)
 }
 
 // Options configure a Service.
@@ -60,7 +61,6 @@ type Options struct {
 	AgentPort         int
 	Fingerprint       string
 	Notify            Notifier
-	Stopper           JobStopper
 	// OnIdle runs a change of another feature (agent update, runner image
 	// rebuild, service restart) once the machine is idle; it runs in the step
 	// that keeps new jobs out (R5.32). Nil means nothing else to do.
@@ -80,6 +80,7 @@ type Service struct {
 	runners  map[string][]string
 	fails    map[string][]time.Time
 	blocked  map[string]time.Time
+	updates  map[string]AgentUpdate
 }
 
 // New returns a Service.
@@ -94,6 +95,7 @@ func New(o Options) *Service {
 		o: o, sessions: newSessions(),
 		loads: map[string]Load{}, lastKept: map[string]time.Time{}, running: map[string][]JobRef{},
 		runners: map[string][]string{}, fails: map[string][]time.Time{}, blocked: map[string]time.Time{},
+		updates: map[string]AgentUpdate{},
 	}
 }
 

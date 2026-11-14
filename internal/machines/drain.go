@@ -212,6 +212,7 @@ func (s *Service) finishRemove(ctx context.Context, actor string, m Machine) {
 	delete(s.loads, m.ID)
 	delete(s.running, m.ID)
 	delete(s.runners, m.ID)
+	delete(s.updates, m.ID)
 	s.mu.Unlock()
 	s.notifyMachine(m.ID)
 }
@@ -221,19 +222,26 @@ func (s *Service) GetChange(ctx context.Context, machineID, id string) (Change, 
 	return s.o.Repo.GetChange(ctx, machineID, id)
 }
 
-// Decision is the user's answer to a change that needs them (R5.33).
+// Decision is the user's answer to a change that needs them (R5.33). There is
+// no decision that stops a job: crsp never cuts a running job (R5.33).
 type Decision string
 
 // Decisions.
 const (
 	WaitLonger Decision = "wait_longer"
 	CancelIt   Decision = "cancel"
-	StopJobs   Decision = "stop_jobs"
 )
 
-// DecideChange answers a change that timed out: wait longer, cancel it, or
-// stop the named jobs (which needs a yes).
+// ErrNeverStopJobs answers the old "stop_jobs" decision of the API contract.
+var ErrNeverStopJobs = fmt.Errorf("%w: crsp never stops a running job; wait for it or cancel the change", ErrInvalid)
+
+// DecideChange answers a change that needs the user: wait longer (the
+// drain timeout runs again from now) or cancel it. Nothing here stops a job.
 func (s *Service) DecideChange(ctx context.Context, actor, machineID, changeID string, d Decision, waitMinutes int, confirm bool) (Change, error) {
+	_ = confirm
+	if d == "stop_jobs" {
+		return Change{}, ErrNeverStopJobs
+	}
 	c, err := s.o.Repo.GetChange(ctx, machineID, changeID)
 	if err != nil {
 		return Change{}, err
@@ -251,6 +259,7 @@ func (s *Service) DecideChange(ctx context.Context, actor, machineID, changeID s
 			return Change{}, fmt.Errorf("%w: wait 5 minutes to 24 hours", ErrInvalid)
 		}
 		c.State, c.Deadline = ChangeWaiting, s.now().Add(time.Duration(waitMinutes)*time.Minute)
+		c.Detail.OverdueSince = time.Time{}
 		if err := s.o.Repo.UpdateChange(ctx, c); err != nil {
 			return Change{}, err
 		}
@@ -263,23 +272,6 @@ func (s *Service) DecideChange(ctx context.Context, actor, machineID, changeID s
 		}
 		_ = s.o.Repo.Audit(ctx, actor, "machine.change.cancel", machineID, c.Kind)
 		s.setActive(ctx, machineID, m, actor)
-	case StopJobs:
-		jobs := s.runningJobs(machineID)
-		if !confirm {
-			return Change{}, &NeedsConfirmationError{Message: "these jobs will be stopped now", Names: jobNames(jobs)}
-		}
-		if s.o.Stopper == nil {
-			return Change{}, fmt.Errorf("%w: stopping jobs needs the runners feature, which is not part of this build", ErrNotSupported)
-		}
-		if err := s.o.Stopper.StopJobs(ctx, machineID, jobs); err != nil {
-			return Change{}, err
-		}
-		_ = s.o.Repo.Audit(ctx, actor, "machine.change.stop_jobs", machineID, fmt.Sprintf("%d jobs", len(jobs)))
-		c.State = ChangeWaiting
-		c.Deadline = s.now().Add(5 * time.Minute)
-		if err := s.o.Repo.UpdateChange(ctx, c); err != nil {
-			return Change{}, err
-		}
 	default:
 		return Change{}, fmt.Errorf("%w: unknown decision %q", ErrInvalid, d)
 	}

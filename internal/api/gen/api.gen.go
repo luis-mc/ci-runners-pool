@@ -734,19 +734,19 @@ func (e RepositoryVisibility) Valid() bool {
 
 // Defines values for RepositoryVariableName.
 const (
-	CRSPRUNSONLINUX   RepositoryVariableName = "CRSP_RUNS_ON_LINUX"
-	CRSPRUNSONMACOS   RepositoryVariableName = "CRSP_RUNS_ON_MACOS"
-	CRSPRUNSONWINDOWS RepositoryVariableName = "CRSP_RUNS_ON_WINDOWS"
+	RUNSONLINUX   RepositoryVariableName = "RUNS_ON_LINUX"
+	RUNSONMACOS   RepositoryVariableName = "RUNS_ON_MACOS"
+	RUNSONWINDOWS RepositoryVariableName = "RUNS_ON_WINDOWS"
 )
 
 // Valid indicates whether the value is a known member of the RepositoryVariableName enum.
 func (e RepositoryVariableName) Valid() bool {
 	switch e {
-	case CRSPRUNSONLINUX:
+	case RUNSONLINUX:
 		return true
-	case CRSPRUNSONMACOS:
+	case RUNSONMACOS:
 		return true
-	case CRSPRUNSONWINDOWS:
+	case RUNSONWINDOWS:
 		return true
 	default:
 		return false
@@ -1005,6 +1005,39 @@ func (e Theme) Valid() bool {
 	case ThemeLight:
 		return true
 	case ThemeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateStatusState.
+const (
+	UpdateStatusStateChecking       UpdateStatusState = "checking"
+	UpdateStatusStateDownloading    UpdateStatusState = "downloading"
+	UpdateStatusStateFailed         UpdateStatusState = "failed"
+	UpdateStatusStateIdle           UpdateStatusState = "idle"
+	UpdateStatusStateInstalling     UpdateStatusState = "installing"
+	UpdateStatusStateRestarting     UpdateStatusState = "restarting"
+	UpdateStatusStateWaitingForJobs UpdateStatusState = "waiting_for_jobs"
+)
+
+// Valid indicates whether the value is a known member of the UpdateStatusState enum.
+func (e UpdateStatusState) Valid() bool {
+	switch e {
+	case UpdateStatusStateChecking:
+		return true
+	case UpdateStatusStateDownloading:
+		return true
+	case UpdateStatusStateFailed:
+		return true
+	case UpdateStatusStateIdle:
+		return true
+	case UpdateStatusStateInstalling:
+		return true
+	case UpdateStatusStateRestarting:
+		return true
+	case UpdateStatusStateWaitingForJobs:
 		return true
 	default:
 		return false
@@ -1932,7 +1965,9 @@ type Session struct {
 
 // Settings observability R6.8 retention (days unless named), operations R5.21 backup time.
 type Settings struct {
-	BackupKeepDays *int `json:"backup_keep_days,omitempty"`
+	// AutoUpdate operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first.
+	AutoUpdate     *bool `json:"auto_update,omitempty"`
+	BackupKeepDays *int  `json:"backup_keep_days,omitempty"`
 
 	// BackupTimeLocal HH:MM, 24-hour local time.
 	BackupTimeLocal            *string `json:"backup_time_local,omitempty"`
@@ -2038,6 +2073,39 @@ type Ticket struct {
 	WaitReason *WaitReason `json:"wait_reason,omitempty"`
 }
 
+// UpdateJob defines model for UpdateJob.
+type UpdateJob struct {
+	Job        string  `json:"job"`
+	Repository string  `json:"repository"`
+	RunId      int64   `json:"run_id"`
+	Workflow   *string `json:"workflow,omitempty"`
+}
+
+// UpdateStatus operations R5.11 to R5.18, tray R5.18.
+type UpdateStatus struct {
+	AutoUpdate          bool       `json:"auto_update"`
+	CheckedAt           *time.Time `json:"checked_at,omitempty"`
+	CurrentVersion      string     `json:"current_version"`
+	DrainTimeoutMinutes *int       `json:"drain_timeout_minutes,omitempty"`
+
+	// Error Which check or step failed, in words.
+	Error *string `json:"error,omitempty"`
+
+	// LatestVersion The newest stable release found; absent before the first look.
+	LatestVersion *string `json:"latest_version,omitempty"`
+	ReleaseUrl    *string `json:"release_url,omitempty"`
+
+	// RunningJobs Jobs running on this machine that the drain waits for.
+	RunningJobs []UpdateJob `json:"running_jobs"`
+
+	// State waiting_for_jobs is the drain. failed carries `error`.
+	State           UpdateStatusState `json:"state"`
+	UpdateAvailable bool              `json:"update_available"`
+}
+
+// UpdateStatusState waiting_for_jobs is the drain. failed carries `error`.
+type UpdateStatusState string
+
 // UpdateUserRoleRequest defines model for UpdateUserRoleRequest.
 type UpdateUserRoleRequest struct {
 	// Confirm Needed to hand over the owner role.
@@ -2076,6 +2144,9 @@ type ChangeId = string
 
 // Confirm defines model for Confirm.
 type Confirm = bool
+
+// Confirmed defines model for Confirmed.
+type Confirmed = bool
 
 // Cursor defines model for Cursor.
 type Cursor = string
@@ -2220,6 +2291,18 @@ type ListRunnersParams struct {
 type DeleteRunnerParams struct {
 	// Confirm The yes to a question card that named what goes (UX-62).
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
+// RestartServiceParams defines parameters for RestartService.
+type RestartServiceParams struct {
+	// Confirmed The yes to the Review step that named the running jobs (tray R5.16).
+	Confirmed *Confirmed `form:"confirmed,omitempty" json:"confirmed,omitempty"`
+}
+
+// ApplyUpdateParams defines parameters for ApplyUpdate.
+type ApplyUpdateParams struct {
+	// Confirmed The yes to the Review step that named the running jobs (tray R5.16).
+	Confirmed *Confirmed `form:"confirmed,omitempty" json:"confirmed,omitempty"`
 }
 
 // CompleteAppManifestParams defines parameters for CompleteAppManifest.
@@ -2484,6 +2567,9 @@ type ServerInterface interface {
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
+	// RestartService Restart the service after a drain
+	// (POST /api/v1/service/restart)
+	RestartService(w http.ResponseWriter, r *http.Request, params RestartServiceParams)
 	// GetSettings Controller settings (retention, backup time, stream limits)
 	// (GET /api/v1/settings)
 	GetSettings(w http.ResponseWriter, r *http.Request)
@@ -2511,6 +2597,15 @@ type ServerInterface interface {
 	// RedeemSetupLink Trade a one-time setup code for a setup cookie
 	// (POST /api/v1/setup/redeem)
 	RedeemSetupLink(w http.ResponseWriter, r *http.Request)
+	// GetUpdateStatus The running version, the newest stable release, and the state of an update
+	// (GET /api/v1/update)
+	GetUpdateStatus(w http.ResponseWriter, r *http.Request)
+	// ApplyUpdate Update to the newest stable release after a drain
+	// (POST /api/v1/update/apply)
+	ApplyUpdate(w http.ResponseWriter, r *http.Request, params ApplyUpdateParams)
+	// CheckForUpdate Look for a newer stable release now
+	// (POST /api/v1/update/check)
+	CheckForUpdate(w http.ResponseWriter, r *http.Request)
 	// ListUsers Users allowed to sign in, with their roles
 	// (GET /api/v1/users)
 	ListUsers(w http.ResponseWriter, r *http.Request)
@@ -4164,6 +4259,39 @@ func (siw *ServerInterfaceWrapper) PlanRunnerReplacement(w http.ResponseWriter, 
 	handler.ServeHTTP(w, r)
 }
 
+// RestartService operation middleware
+func (siw *ServerInterfaceWrapper) RestartService(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RestartServiceParams
+
+	// ------------- Optional query parameter "confirmed" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirmed", r.URL.Query(), &params.Confirmed, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirmed"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirmed", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RestartService(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSettings operation middleware
 func (siw *ServerInterfaceWrapper) GetSettings(w http.ResponseWriter, r *http.Request) {
 
@@ -4281,6 +4409,67 @@ func (siw *ServerInterfaceWrapper) RedeemSetupLink(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RedeemSetupLink(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUpdateStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetUpdateStatus(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUpdateStatus(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ApplyUpdate operation middleware
+func (siw *ServerInterfaceWrapper) ApplyUpdate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ApplyUpdateParams
+
+	// ------------- Optional query parameter "confirmed" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirmed", r.URL.Query(), &params.Confirmed, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirmed"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirmed", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ApplyUpdate(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CheckForUpdate operation middleware
+func (siw *ServerInterfaceWrapper) CheckForUpdate(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CheckForUpdate(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4833,6 +5022,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/doctor/findings", wrapper.ListDoctorFindings)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings", wrapper.GetSettings)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/settings", wrapper.UpdateSettings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/update", wrapper.GetUpdateStatus)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/update/check", wrapper.CheckForUpdate)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/update/apply", wrapper.ApplyUpdate)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/service/restart", wrapper.RestartService)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/audit", wrapper.ListAuditEvents)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/backups", wrapper.ListBackups)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/backups", wrapper.RunBackup)
@@ -6983,6 +7176,45 @@ func (response PlanRunnerReplacementdefaultJSONResponse) VisitPlanRunnerReplacem
 	return err
 }
 
+type RestartServiceRequestObject struct {
+	Params RestartServiceParams
+}
+
+type RestartServiceResponseObject interface {
+	VisitRestartServiceResponse(w http.ResponseWriter) error
+}
+
+type RestartService202JSONResponse UpdateStatus
+
+func (response RestartService202JSONResponse) VisitRestartServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RestartServicedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RestartServicedefaultJSONResponse) VisitRestartServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetSettingsRequestObject struct {
 }
 
@@ -7329,6 +7561,121 @@ type RedeemSetupLinkdefaultJSONResponse struct {
 }
 
 func (response RedeemSetupLinkdefaultJSONResponse) VisitRedeemSetupLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetUpdateStatusRequestObject struct {
+}
+
+type GetUpdateStatusResponseObject interface {
+	VisitGetUpdateStatusResponse(w http.ResponseWriter) error
+}
+
+type GetUpdateStatus200JSONResponse UpdateStatus
+
+func (response GetUpdateStatus200JSONResponse) VisitGetUpdateStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetUpdateStatusdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetUpdateStatusdefaultJSONResponse) VisitGetUpdateStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ApplyUpdateRequestObject struct {
+	Params ApplyUpdateParams
+}
+
+type ApplyUpdateResponseObject interface {
+	VisitApplyUpdateResponse(w http.ResponseWriter) error
+}
+
+type ApplyUpdate202JSONResponse UpdateStatus
+
+func (response ApplyUpdate202JSONResponse) VisitApplyUpdateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ApplyUpdatedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ApplyUpdatedefaultJSONResponse) VisitApplyUpdateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckForUpdateRequestObject struct {
+}
+
+type CheckForUpdateResponseObject interface {
+	VisitCheckForUpdateResponse(w http.ResponseWriter) error
+}
+
+type CheckForUpdate200JSONResponse UpdateStatus
+
+func (response CheckForUpdate200JSONResponse) VisitCheckForUpdateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckForUpdatedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CheckForUpdatedefaultJSONResponse) VisitCheckForUpdateResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -7867,6 +8214,9 @@ type StrictServerInterface interface {
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(ctx context.Context, request PlanRunnerReplacementRequestObject) (PlanRunnerReplacementResponseObject, error)
+	// RestartService Restart the service after a drain
+	// (POST /api/v1/service/restart)
+	RestartService(ctx context.Context, request RestartServiceRequestObject) (RestartServiceResponseObject, error)
 	// GetSettings Controller settings (retention, backup time, stream limits)
 	// (GET /api/v1/settings)
 	GetSettings(ctx context.Context, request GetSettingsRequestObject) (GetSettingsResponseObject, error)
@@ -7894,6 +8244,15 @@ type StrictServerInterface interface {
 	// RedeemSetupLink Trade a one-time setup code for a setup cookie
 	// (POST /api/v1/setup/redeem)
 	RedeemSetupLink(ctx context.Context, request RedeemSetupLinkRequestObject) (RedeemSetupLinkResponseObject, error)
+	// GetUpdateStatus The running version, the newest stable release, and the state of an update
+	// (GET /api/v1/update)
+	GetUpdateStatus(ctx context.Context, request GetUpdateStatusRequestObject) (GetUpdateStatusResponseObject, error)
+	// ApplyUpdate Update to the newest stable release after a drain
+	// (POST /api/v1/update/apply)
+	ApplyUpdate(ctx context.Context, request ApplyUpdateRequestObject) (ApplyUpdateResponseObject, error)
+	// CheckForUpdate Look for a newer stable release now
+	// (POST /api/v1/update/check)
+	CheckForUpdate(ctx context.Context, request CheckForUpdateRequestObject) (CheckForUpdateResponseObject, error)
 	// ListUsers Users allowed to sign in, with their roles
 	// (GET /api/v1/users)
 	ListUsers(ctx context.Context, request ListUsersRequestObject) (ListUsersResponseObject, error)
@@ -9437,6 +9796,32 @@ func (sh *strictHandler) PlanRunnerReplacement(w http.ResponseWriter, r *http.Re
 	}
 }
 
+// RestartService operation middleware
+func (sh *strictHandler) RestartService(w http.ResponseWriter, r *http.Request, params RestartServiceParams) {
+	var request RestartServiceRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RestartService(ctx, request.(RestartServiceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RestartService")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RestartServiceResponseObject); ok {
+		if err := validResponse.VisitRestartServiceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetSettings operation middleware
 func (sh *strictHandler) GetSettings(w http.ResponseWriter, r *http.Request) {
 	var request GetSettingsRequestObject
@@ -9681,6 +10066,80 @@ func (sh *strictHandler) RedeemSetupLink(w http.ResponseWriter, r *http.Request)
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RedeemSetupLinkResponseObject); ok {
 		if err := validResponse.VisitRedeemSetupLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetUpdateStatus operation middleware
+func (sh *strictHandler) GetUpdateStatus(w http.ResponseWriter, r *http.Request) {
+	var request GetUpdateStatusRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetUpdateStatus(ctx, request.(GetUpdateStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetUpdateStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetUpdateStatusResponseObject); ok {
+		if err := validResponse.VisitGetUpdateStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ApplyUpdate operation middleware
+func (sh *strictHandler) ApplyUpdate(w http.ResponseWriter, r *http.Request, params ApplyUpdateParams) {
+	var request ApplyUpdateRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ApplyUpdate(ctx, request.(ApplyUpdateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ApplyUpdate")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ApplyUpdateResponseObject); ok {
+		if err := validResponse.VisitApplyUpdateResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CheckForUpdate operation middleware
+func (sh *strictHandler) CheckForUpdate(w http.ResponseWriter, r *http.Request) {
+	var request CheckForUpdateRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CheckForUpdate(ctx, request.(CheckForUpdateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CheckForUpdate")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CheckForUpdateResponseObject); ok {
+		if err := validResponse.VisitCheckForUpdateResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

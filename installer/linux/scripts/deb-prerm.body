@@ -1,0 +1,7 @@
+case "$1" in
+  remove|deconfigure)
+    if have_systemd; then
+      systemctl disable --now crsp.service >/dev/null 2>&1 || true
+    fi
+    ;;
+esac

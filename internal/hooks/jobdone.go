@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
 )
@@ -58,6 +59,13 @@ type DoneConfig struct {
 	Workspace string
 	KeepWork  bool
 	Log       func(string)
+	// Caches are the cache folders to bring under their quota between jobs
+	// (caches R5.37). CacheFS is the file access for them; nil is the real one.
+	Caches  []runnercache.Cap
+	CacheFS runnercache.FS
+	// Report and Healthy are as in GateConfig (R5.61). Both may be nil.
+	Report  func(string)
+	Healthy func()
 }
 
 // RunJobDone frees every slot of every kind the job holds with the outcome ran
@@ -78,6 +86,9 @@ func RunJobDone(ctx context.Context, cfg DoneConfig) (code int) {
 	}()
 	if cfg.Client == nil {
 		log("agent not reachable: slots are freed later by the stale rules")
+		if cfg.Report != nil {
+			cfg.Report(unreachableText("job-completed", ErrUnreachable))
+		}
 	} else {
 		machine := cfg.MachineID
 		if machine == "" {
@@ -89,9 +100,18 @@ func RunJobDone(ctx context.Context, cfg DoneConfig) (code int) {
 		switch {
 		case err != nil:
 			log("skipped (%v): slots are freed later by the stale rules", err)
+			if cfg.Report != nil {
+				cfg.Report(unreachableText("job-completed", err))
+			}
 		case len(freed) == 0:
+			if cfg.Healthy != nil {
+				cfg.Healthy()
+			}
 			log("this job held no slot")
 		default:
+			if cfg.Healthy != nil {
+				cfg.Healthy()
+			}
 			for _, f := range freed {
 				if f.Number > 0 {
 					log("freed slot %s of %s run %d job %s", slots.SlotLabel(slots.Kind(f.Kind), f.Number), cfg.Job.Repository, cfg.Job.RunID, cfg.Job.Job)
@@ -109,5 +129,26 @@ func RunJobDone(ctx context.Context, cfg DoneConfig) (code int) {
 			}
 		}
 	}
+	sweepCaches(&cfg, log)
 	return 0
+}
+
+// sweepCaches evicts the oldest entries of each cache over its quota. The job
+// that ran here is done and the runner takes no other job before this hook
+// ends, so no job reads the folder now (caches R5.37).
+func sweepCaches(cfg *DoneConfig, log func(string, ...any)) {
+	fsys := cfg.CacheFS
+	if fsys == nil {
+		fsys = runnercache.OSFS{}
+	}
+	for _, c := range cfg.Caches {
+		res, err := runnercache.Enforce(fsys, c.Dir, c.Bytes, false)
+		switch {
+		case err != nil:
+			log("%s %s: eviction skipped (%v)", c.Name, c.Dir, err)
+		case len(res.Removed) > 0:
+			log("%s over its quota: removed %d entries, %d MiB to %d MiB (quota %d MiB)",
+				c.Name, len(res.Removed), res.Before>>20, res.After>>20, res.Quota>>20)
+		}
+	}
 }

@@ -733,19 +733,19 @@ func (e RepositoryVisibility) Valid() bool {
 
 // Defines values for RepositoryVariableName.
 const (
-	CRSPRUNSONLINUX   RepositoryVariableName = "CRSP_RUNS_ON_LINUX"
-	CRSPRUNSONMACOS   RepositoryVariableName = "CRSP_RUNS_ON_MACOS"
-	CRSPRUNSONWINDOWS RepositoryVariableName = "CRSP_RUNS_ON_WINDOWS"
+	RUNSONLINUX   RepositoryVariableName = "RUNS_ON_LINUX"
+	RUNSONMACOS   RepositoryVariableName = "RUNS_ON_MACOS"
+	RUNSONWINDOWS RepositoryVariableName = "RUNS_ON_WINDOWS"
 )
 
 // Valid indicates whether the value is a known member of the RepositoryVariableName enum.
 func (e RepositoryVariableName) Valid() bool {
 	switch e {
-	case CRSPRUNSONLINUX:
+	case RUNSONLINUX:
 		return true
-	case CRSPRUNSONMACOS:
+	case RUNSONMACOS:
 		return true
-	case CRSPRUNSONWINDOWS:
+	case RUNSONWINDOWS:
 		return true
 	default:
 		return false
@@ -1004,6 +1004,39 @@ func (e Theme) Valid() bool {
 	case ThemeLight:
 		return true
 	case ThemeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateStatusState.
+const (
+	UpdateStatusStateChecking       UpdateStatusState = "checking"
+	UpdateStatusStateDownloading    UpdateStatusState = "downloading"
+	UpdateStatusStateFailed         UpdateStatusState = "failed"
+	UpdateStatusStateIdle           UpdateStatusState = "idle"
+	UpdateStatusStateInstalling     UpdateStatusState = "installing"
+	UpdateStatusStateRestarting     UpdateStatusState = "restarting"
+	UpdateStatusStateWaitingForJobs UpdateStatusState = "waiting_for_jobs"
+)
+
+// Valid indicates whether the value is a known member of the UpdateStatusState enum.
+func (e UpdateStatusState) Valid() bool {
+	switch e {
+	case UpdateStatusStateChecking:
+		return true
+	case UpdateStatusStateDownloading:
+		return true
+	case UpdateStatusStateFailed:
+		return true
+	case UpdateStatusStateIdle:
+		return true
+	case UpdateStatusStateInstalling:
+		return true
+	case UpdateStatusStateRestarting:
+		return true
+	case UpdateStatusStateWaitingForJobs:
 		return true
 	default:
 		return false
@@ -1931,7 +1964,9 @@ type Session struct {
 
 // Settings observability R6.8 retention (days unless named), operations R5.21 backup time.
 type Settings struct {
-	BackupKeepDays *int `json:"backup_keep_days,omitempty"`
+	// AutoUpdate operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first.
+	AutoUpdate     *bool `json:"auto_update,omitempty"`
+	BackupKeepDays *int  `json:"backup_keep_days,omitempty"`
 
 	// BackupTimeLocal HH:MM, 24-hour local time.
 	BackupTimeLocal            *string `json:"backup_time_local,omitempty"`
@@ -2037,6 +2072,39 @@ type Ticket struct {
 	WaitReason *WaitReason `json:"wait_reason,omitempty"`
 }
 
+// UpdateJob defines model for UpdateJob.
+type UpdateJob struct {
+	Job        string  `json:"job"`
+	Repository string  `json:"repository"`
+	RunId      int64   `json:"run_id"`
+	Workflow   *string `json:"workflow,omitempty"`
+}
+
+// UpdateStatus operations R5.11 to R5.18, tray R5.18.
+type UpdateStatus struct {
+	AutoUpdate          bool       `json:"auto_update"`
+	CheckedAt           *time.Time `json:"checked_at,omitempty"`
+	CurrentVersion      string     `json:"current_version"`
+	DrainTimeoutMinutes *int       `json:"drain_timeout_minutes,omitempty"`
+
+	// Error Which check or step failed, in words.
+	Error *string `json:"error,omitempty"`
+
+	// LatestVersion The newest stable release found; absent before the first look.
+	LatestVersion *string `json:"latest_version,omitempty"`
+	ReleaseUrl    *string `json:"release_url,omitempty"`
+
+	// RunningJobs Jobs running on this machine that the drain waits for.
+	RunningJobs []UpdateJob `json:"running_jobs"`
+
+	// State waiting_for_jobs is the drain. failed carries `error`.
+	State           UpdateStatusState `json:"state"`
+	UpdateAvailable bool              `json:"update_available"`
+}
+
+// UpdateStatusState waiting_for_jobs is the drain. failed carries `error`.
+type UpdateStatusState string
+
 // UpdateUserRoleRequest defines model for UpdateUserRoleRequest.
 type UpdateUserRoleRequest struct {
 	// Confirm Needed to hand over the owner role.
@@ -2075,6 +2143,9 @@ type ChangeId = string
 
 // Confirm defines model for Confirm.
 type Confirm = bool
+
+// Confirmed defines model for Confirmed.
+type Confirmed = bool
 
 // Cursor defines model for Cursor.
 type Cursor = string
@@ -2219,6 +2290,18 @@ type ListRunnersParams struct {
 type DeleteRunnerParams struct {
 	// Confirm The yes to a question card that named what goes (UX-62).
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
+// RestartServiceParams defines parameters for RestartService.
+type RestartServiceParams struct {
+	// Confirmed The yes to the Review step that named the running jobs (tray R5.16).
+	Confirmed *Confirmed `form:"confirmed,omitempty" json:"confirmed,omitempty"`
+}
+
+// ApplyUpdateParams defines parameters for ApplyUpdate.
+type ApplyUpdateParams struct {
+	// Confirmed The yes to the Review step that named the running jobs (tray R5.16).
+	Confirmed *Confirmed `form:"confirmed,omitempty" json:"confirmed,omitempty"`
 }
 
 // CompleteAppManifestParams defines parameters for CompleteAppManifest.
@@ -2898,6 +2981,13 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/runners/{runnerId}/replace (the `PlanRunnerReplacement` operationId).
 	PlanRunnerReplacement(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// RestartService Restart the service after a drain
+	//
+	// tray R5.15 to R5.17. Same confirmation rule as applyUpdate.
+	//
+	// Corresponds with POST /api/v1/service/restart (the `RestartService` operationId).
+	RestartService(ctx context.Context, params *RestartServiceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetSettings Controller settings (retention, backup time, stream limits)
 	//
 	// observability R5.32 and R6.8, operations R5.21.
@@ -3007,6 +3097,27 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /api/v1/setup/redeem (the `RedeemSetupLink` operationId).
 	RedeemSetupLink(ctx context.Context, body RedeemSetupLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetUpdateStatus The running version, the newest stable release, and the state of an update
+	//
+	// operations R5.11, tray R5.18. Stable releases only.
+	//
+	// Corresponds with GET /api/v1/update (the `GetUpdateStatus` operationId).
+	GetUpdateStatus(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ApplyUpdate Update to the newest stable release after a drain
+	//
+	// tray R5.16 to R5.18, operations R5.12 to R5.14. Without `confirmed=true` it changes nothing and answers 409 needs_confirmation with one `job` detail per running job. With it, the machine drains (no new jobs, running jobs finish up to the drain timeout), the download is verified (SHA-256 and build provenance) and installed.
+	//
+	// Corresponds with POST /api/v1/update/apply (the `ApplyUpdate` operationId).
+	ApplyUpdate(ctx context.Context, params *ApplyUpdateParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CheckForUpdate Look for a newer stable release now
+	//
+	// operations R5.11. Downloads nothing. With auto-update on and a newer release, the update then starts by itself and drains first.
+	//
+	// Corresponds with POST /api/v1/update/check (the `CheckForUpdate` operationId).
+	CheckForUpdate(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListUsers Users allowed to sign in, with their roles
 	//
@@ -4285,6 +4396,23 @@ func (c *Client) PlanRunnerReplacement(ctx context.Context, runnerId RunnerId, r
 	return c.Client.Do(req)
 }
 
+// RestartService Restart the service after a drain
+//
+// tray R5.15 to R5.17. Same confirmation rule as applyUpdate.
+//
+// Corresponds with POST /api/v1/service/restart (the `RestartService` operationId).
+func (c *Client) RestartService(ctx context.Context, params *RestartServiceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRestartServiceRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetSettings Controller settings (retention, backup time, stream limits)
 //
 // observability R5.32 and R6.8, operations R5.21.
@@ -4525,6 +4653,57 @@ func (c *Client) RedeemSetupLinkWithBody(ctx context.Context, contentType string
 // Corresponds with POST /api/v1/setup/redeem (the `RedeemSetupLink` operationId).
 func (c *Client) RedeemSetupLink(ctx context.Context, body RedeemSetupLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRedeemSetupLinkRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetUpdateStatus The running version, the newest stable release, and the state of an update
+//
+// operations R5.11, tray R5.18. Stable releases only.
+//
+// Corresponds with GET /api/v1/update (the `GetUpdateStatus` operationId).
+func (c *Client) GetUpdateStatus(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetUpdateStatusRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ApplyUpdate Update to the newest stable release after a drain
+//
+// tray R5.16 to R5.18, operations R5.12 to R5.14. Without `confirmed=true` it changes nothing and answers 409 needs_confirmation with one `job` detail per running job. With it, the machine drains (no new jobs, running jobs finish up to the drain timeout), the download is verified (SHA-256 and build provenance) and installed.
+//
+// Corresponds with POST /api/v1/update/apply (the `ApplyUpdate` operationId).
+func (c *Client) ApplyUpdate(ctx context.Context, params *ApplyUpdateParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApplyUpdateRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CheckForUpdate Look for a newer stable release now
+//
+// operations R5.11. Downloads nothing. With auto-update on and a newer release, the update then starts by itself and drains first.
+//
+// Corresponds with POST /api/v1/update/check (the `CheckForUpdate` operationId).
+func (c *Client) CheckForUpdate(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCheckForUpdateRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -7169,6 +7348,60 @@ func NewPlanRunnerReplacementRequest(server string, runnerId RunnerId) (*http.Re
 	return req, nil
 }
 
+// NewRestartServiceRequest constructs an http.Request for the RestartService method
+func NewRestartServiceRequest(server string, params *RestartServiceParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/service/restart")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Confirmed != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirmed", *params.Confirmed, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetSettingsRequest constructs an http.Request for the GetSettings method
 func NewGetSettingsRequest(server string) (*http.Request, error) {
 	var err error
@@ -7473,6 +7706,114 @@ func NewRedeemSetupLinkRequestWithBody(server string, contentType string, body i
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetUpdateStatusRequest constructs an http.Request for the GetUpdateStatus method
+func NewGetUpdateStatusRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/update")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewApplyUpdateRequest constructs an http.Request for the ApplyUpdate method
+func NewApplyUpdateRequest(server string, params *ApplyUpdateParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/update/apply")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Confirmed != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirmed", *params.Confirmed, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCheckForUpdateRequest constructs an http.Request for the CheckForUpdate method
+func NewCheckForUpdateRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/update/check")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -8586,6 +8927,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/runners/{runnerId}/replace (the `PlanRunnerReplacement` operationId).
 	PlanRunnerReplacementWithResponse(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*PlanRunnerReplacementResponse, error)
 
+	// RestartServiceWithResponse Restart the service after a drain
+	//
+	// tray R5.15 to R5.17. Same confirmation rule as applyUpdate.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/service/restart (the `RestartService` operationId).
+	RestartServiceWithResponse(ctx context.Context, params *RestartServiceParams, reqEditors ...RequestEditorFn) (*RestartServiceResponse, error)
+
 	// GetSettingsWithResponse Controller settings (retention, backup time, stream limits)
 	//
 	// observability R5.32 and R6.8, operations R5.21.
@@ -8703,6 +9053,33 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /api/v1/setup/redeem (the `RedeemSetupLink` operationId).
 	RedeemSetupLinkWithResponse(ctx context.Context, body RedeemSetupLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*RedeemSetupLinkResponse, error)
+
+	// GetUpdateStatusWithResponse The running version, the newest stable release, and the state of an update
+	//
+	// operations R5.11, tray R5.18. Stable releases only.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/update (the `GetUpdateStatus` operationId).
+	GetUpdateStatusWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUpdateStatusResponse, error)
+
+	// ApplyUpdateWithResponse Update to the newest stable release after a drain
+	//
+	// tray R5.16 to R5.18, operations R5.12 to R5.14. Without `confirmed=true` it changes nothing and answers 409 needs_confirmation with one `job` detail per running job. With it, the machine drains (no new jobs, running jobs finish up to the drain timeout), the download is verified (SHA-256 and build provenance) and installed.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/update/apply (the `ApplyUpdate` operationId).
+	ApplyUpdateWithResponse(ctx context.Context, params *ApplyUpdateParams, reqEditors ...RequestEditorFn) (*ApplyUpdateResponse, error)
+
+	// CheckForUpdateWithResponse Look for a newer stable release now
+	//
+	// operations R5.11. Downloads nothing. With auto-update on and a newer release, the update then starts by itself and drains first.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/update/check (the `CheckForUpdate` operationId).
+	CheckForUpdateWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*CheckForUpdateResponse, error)
 
 	// ListUsersWithResponse Users allowed to sign in, with their roles
 	//
@@ -11377,6 +11754,54 @@ func (r PlanRunnerReplacementResponse) ContentType() string {
 	return ""
 }
 
+type RestartServiceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *UpdateStatus
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r RestartServiceResponse) GetJSON202() *UpdateStatus {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r RestartServiceResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RestartServiceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RestartServiceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RestartServiceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RestartServiceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetSettingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -11810,6 +12235,150 @@ func (r RedeemSetupLinkResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r RedeemSetupLinkResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetUpdateStatusResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *UpdateStatus
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetUpdateStatusResponse) GetJSON200() *UpdateStatus {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetUpdateStatusResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetUpdateStatusResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetUpdateStatusResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetUpdateStatusResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetUpdateStatusResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ApplyUpdateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *UpdateStatus
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r ApplyUpdateResponse) GetJSON202() *UpdateStatus {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ApplyUpdateResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ApplyUpdateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ApplyUpdateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ApplyUpdateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ApplyUpdateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CheckForUpdateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *UpdateStatus
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CheckForUpdateResponse) GetJSON200() *UpdateStatus {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r CheckForUpdateResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CheckForUpdateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CheckForUpdateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CheckForUpdateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CheckForUpdateResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -13275,6 +13844,21 @@ func (c *ClientWithResponses) PlanRunnerReplacementWithResponse(ctx context.Cont
 	return ParsePlanRunnerReplacementResponse(rsp)
 }
 
+// RestartServiceWithResponse Restart the service after a drain
+//
+// tray R5.15 to R5.17. Same confirmation rule as applyUpdate.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/service/restart (the `RestartService` operationId).
+func (c *ClientWithResponses) RestartServiceWithResponse(ctx context.Context, params *RestartServiceParams, reqEditors ...RequestEditorFn) (*RestartServiceResponse, error) {
+	rsp, err := c.RestartService(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRestartServiceResponse(rsp)
+}
+
 // GetSettingsWithResponse Controller settings (retention, backup time, stream limits)
 //
 // observability R5.32 and R6.8, operations R5.21.
@@ -13475,6 +14059,51 @@ func (c *ClientWithResponses) RedeemSetupLinkWithResponse(ctx context.Context, b
 		return nil, err
 	}
 	return ParseRedeemSetupLinkResponse(rsp)
+}
+
+// GetUpdateStatusWithResponse The running version, the newest stable release, and the state of an update
+//
+// operations R5.11, tray R5.18. Stable releases only.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/update (the `GetUpdateStatus` operationId).
+func (c *ClientWithResponses) GetUpdateStatusWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUpdateStatusResponse, error) {
+	rsp, err := c.GetUpdateStatus(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetUpdateStatusResponse(rsp)
+}
+
+// ApplyUpdateWithResponse Update to the newest stable release after a drain
+//
+// tray R5.16 to R5.18, operations R5.12 to R5.14. Without `confirmed=true` it changes nothing and answers 409 needs_confirmation with one `job` detail per running job. With it, the machine drains (no new jobs, running jobs finish up to the drain timeout), the download is verified (SHA-256 and build provenance) and installed.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/update/apply (the `ApplyUpdate` operationId).
+func (c *ClientWithResponses) ApplyUpdateWithResponse(ctx context.Context, params *ApplyUpdateParams, reqEditors ...RequestEditorFn) (*ApplyUpdateResponse, error) {
+	rsp, err := c.ApplyUpdate(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseApplyUpdateResponse(rsp)
+}
+
+// CheckForUpdateWithResponse Look for a newer stable release now
+//
+// operations R5.11. Downloads nothing. With auto-update on and a newer release, the update then starts by itself and drains first.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/update/check (the `CheckForUpdate` operationId).
+func (c *ClientWithResponses) CheckForUpdateWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*CheckForUpdateResponse, error) {
+	rsp, err := c.CheckForUpdate(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCheckForUpdateResponse(rsp)
 }
 
 // ListUsersWithResponse Users allowed to sign in, with their roles
@@ -15429,6 +16058,39 @@ func ParsePlanRunnerReplacementResponse(rsp *http.Response) (*PlanRunnerReplacem
 	return response, nil
 }
 
+// ParseRestartServiceResponse parses an HTTP response from a RestartServiceWithResponse call
+func ParseRestartServiceResponse(rsp *http.Response) (*RestartServiceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RestartServiceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest UpdateStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetSettingsResponse parses an HTTP response from a GetSettingsWithResponse call
 func ParseGetSettingsResponse(rsp *http.Response) (*GetSettingsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -15734,6 +16396,105 @@ func ParseRedeemSetupLinkResponse(rsp *http.Response) (*RedeemSetupLinkResponse,
 			headers.SetCookie = &value
 		}
 		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseGetUpdateStatusResponse parses an HTTP response from a GetUpdateStatusWithResponse call
+func ParseGetUpdateStatusResponse(rsp *http.Response) (*GetUpdateStatusResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetUpdateStatusResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest UpdateStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseApplyUpdateResponse parses an HTTP response from a ApplyUpdateWithResponse call
+func ParseApplyUpdateResponse(rsp *http.Response) (*ApplyUpdateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ApplyUpdateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest UpdateStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCheckForUpdateResponse parses an HTTP response from a CheckForUpdateWithResponse call
+func ParseCheckForUpdateResponse(rsp *http.Response) (*CheckForUpdateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CheckForUpdateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest UpdateStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
 	}
 
 	return response, nil
