@@ -11,9 +11,9 @@ Feature decisions come from each feature's `decisions.json` (and the Decisions t
 | cross-cutting | 0003-isolation-backends | [Isolation backends as plugins behind one interface, chosen per machine and label](decisions/0003-isolation-backends.md) |  | accepted | 2026-11-13 |
 | cross-cutting | 0004-agent-link | [Agents connect outbound to the controller over gRPC with a per-machine key](decisions/0004-agent-link.md) |  | accepted | 2026-11-13 |
 | cross-cutting | 0005-product-boundary | [Self-hosted machines first, a tray per OS, no dependency on the delivery plugin](decisions/0005-product-boundary.md) |  | accepted | 2026-11-13 |
-| doctor | D1 | [Does the doctor repair?](../features/doctor/spec.md) | No. It reads only; each finding gives words, a command and a link to where the fix lives (UX-52) | decided | 2026-11-14 |
-| doctor | D2 | [Severity levels](../features/doctor/spec.md) | `ok`, `info`, `skip`, `warn`, `fail`; `needs_admin` is a flag on `skip` | decided | 2026-11-14 |
-| doctor | D3 | [CLI exit codes](../features/doctor/spec.md) | 0 healthy, 1 worst `warn`, 2 worst `fail`, 3 could not run | decided | 2026-11-14 |
-| doctor | D4 | [Variable names](../features/doctor/spec.md) | `CRP_RUNS_ON_LINUX`, `CRP_RUNS_ON_WINDOWS`, `CRP_RUNS_ON_MACOS`, from the product brief (decision 0002 still says `CI_RUNS_ON`) | decided | 2026-11-14 |
-| doctor | D5 | [How runners are found](../features/doctor/spec.md) | From the OS service list first, then the database; never only by reading runner folders (learning 6) | decided | 2026-11-14 |
-| doctor | D6 | [Which milestone starts the doctor](../features/doctor/spec.md) | Milestone 1, with the checks of milestone 1 parts, since every milestone ends with the doctor covering its parts | decided | 2026-11-14 |
+| observability | D1 | [SSE or WebSocket for the live view?](../features/observability/spec.md) | SSE: one-way flow, plain `net/http`, built-in reconnect and replay, no extra library (section 7) | decided | 2026-11-14 |
+| observability | D2 | [Where do runner and agent logs live?](../features/observability/spec.md) | A separate SQLite file `logs.db` with FTS5, so log volume never blocks the scheduler | decided | 2026-11-14 |
+| observability | D3 | [How is an audit row kept with its change?](../features/observability/spec.md) | Same transaction; no audit row, no change | decided | 2026-11-14 |
+| observability | D4 | [Where does the per-minute rate come from?](../features/observability/spec.md) | A table copied from GitHub's Actions runner pricing, with source URL and date, which the owner can change | decided | 2026-11-14 |
+| observability | D5 | [How are minutes counted?](../features/observability/spec.md) | Each job's run time rounded up to the whole minute, as GitHub bills | decided | 2026-11-14 |
+| observability | D6 | [Error tracking?](../features/observability/spec.md) | Local only: structured logs, crash files, doctor (stack profile, section 14) | decided | 2026-11-13 |

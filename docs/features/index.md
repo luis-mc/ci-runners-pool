@@ -8,19 +8,19 @@
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | proposed | 0.1.0 | 2026-11-14 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### cli
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | proposed | 0.1.0 | 2026-11-14 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### controller
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | proposed | 0.1.0 | 2026-11-14 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### tray
 
@@ -30,7 +30,7 @@ No feature lists this app yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | proposed | 0.1.0 | 2026-11-14 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ## By topic
 
@@ -40,9 +40,7 @@ No feature lists this topic yet.
 
 ### github
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### install
 
@@ -56,37 +54,43 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | proposed | 0.1.0 | 2026-11-14 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### observability
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | proposed | 0.1.0 | 2026-11-14 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### operations
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | proposed | 0.1.0 | 2026-11-14 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### runners
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | proposed | 0.1.0 | 2026-11-14 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### scheduling
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### security
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### ui
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ## By status
 
@@ -94,7 +98,7 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | proposed | 0.1.0 | 2026-11-14 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ## Gaps
 
