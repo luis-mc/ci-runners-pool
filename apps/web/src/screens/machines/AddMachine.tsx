@@ -21,6 +21,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { unwrap, useClient, type Schemas } from '../../api/api';
+import { TIMING } from '../../timing';
 
 type JoinCode = Schemas['JoinCode'];
 type Machine = Schemas['Machine'];
@@ -179,7 +180,7 @@ export function AddMachineWizard({ onDone }: Props) {
           }
         })
         .catch(() => undefined);
-    }, 2000);
+    }, TIMING.joinPollMs);
     return () => clearInterval(timer);
   }, [phase, created, client, finish, onDone]);
 

@@ -1,5 +1,6 @@
 // Repository plans (github-integration R5.20): plan the change, show it, apply it, and read the stored result.
 import type { ApiClient } from '@crsp/contract';
+import { TIMING } from '../../timing';
 import { unwrap, type Schemas } from '../../api/api';
 
 export type Plan = Schemas['Plan'];
@@ -50,7 +51,7 @@ export function planProgress(plan: Plan): {
 export async function applyChanges(
   client: ApiClient,
   changes: { repository_id: number; pool: 'on' | 'off' }[],
-  poll: () => Promise<void> = () => new Promise((r) => setTimeout(r, 1000)),
+  poll: () => Promise<void> = () => new Promise((r) => setTimeout(r, TIMING.planPollMs)),
 ): Promise<Plan> {
   const planned = await unwrap(
     client.POST('/api/v1/repository-plans', { body: { changes } }),

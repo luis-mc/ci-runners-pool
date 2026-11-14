@@ -18,6 +18,7 @@ import {
 } from '@crsp/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { TIMING } from '../../timing';
 import { unwrap, useClient } from '../../api/api';
 import { useLiveState } from '../../live/LiveProvider';
 import {
@@ -111,7 +112,9 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
     try {
       const p = await unwrap(
         client.POST('/api/v1/repository-plans', {
-          body: { changes: chosen.map((r) => ({ repository_id: r.id, pool: 'on' as const })) },
+          body: {
+            changes: chosen.map((r) => ({ repository_id: r.id, pool: 'on' as const })),
+          },
         }),
       );
       setPlan(p);
@@ -141,7 +144,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
       setParams(next, { replace: true });
       setPlan(p);
       while (p.state === 'applying' || p.state === 'planned') {
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, TIMING.planPollMs));
         p = await unwrap(
           client.GET('/api/v1/repository-plans/{planId}', {
             params: { path: { planId: p.id } },

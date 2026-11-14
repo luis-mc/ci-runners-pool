@@ -17,6 +17,7 @@ import {
 } from '@crsp/ui';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { TIMING } from '../../timing';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import {
   allRepositories,
@@ -163,7 +164,7 @@ export function AddRunnersWizard() {
       setParams(next, { replace: true });
       setPlan(p);
       while (p.state === 'applying' || p.state === 'planned') {
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, TIMING.planPollMs));
         p = await unwrap(
           client.GET('/api/v1/runner-plans/{planId}', {
             params: { path: { planId: p.id } },

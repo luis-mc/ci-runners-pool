@@ -413,7 +413,9 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
   });
 
   const offQ = useQuestion(async () => {
-    const plan = await applyChanges(client, [{ repository_id: r.id, pool: 'off' as const }]);
+    const plan = await applyChanges(client, [
+      { repository_id: r.id, pool: 'off' as const },
+    ]);
     if (plan.state !== 'done') throw new Error('The pool was not turned off.');
   }, onChanged);
 

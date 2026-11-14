@@ -56,7 +56,7 @@ export function ConnectGithubWizard({
   const seen = useRef(false);
 
   useEffect(() => {
-    if (seen.current) return;
+    if (seen.current || !state) return;
     seen.current = true;
     if (state.has_app) {
       setStep(4);
@@ -84,7 +84,7 @@ export function ConnectGithubWizard({
     }
   }, [state, flow, params, setParams]);
 
-  const toReview = () => {
+  const toReview = async () => {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = 'Write a name for the App.';
     if (type === 'organization' && !org.trim()) e.org = 'Write the organization.';
@@ -92,7 +92,20 @@ export function ConnectGithubWizard({
     if (Object.keys(e).length) return;
     setStep(2);
     setPhase('planning');
-    queueMicrotask(() => setPhase('ready-to-review'));
+    try {
+      // Read the controller once more: an App that exists already must not be made twice.
+      const now = await unwrap(client.GET('/api/v1/setup'));
+      if (now.has_app) {
+        setStep(4);
+        setPhase('done-after-reload');
+        return;
+      }
+      setPhase('ready-to-review');
+    } catch (err) {
+      setProblem(err instanceof Error ? err.message : 'The controller did not answer.');
+      setStep(4);
+      setPhase('failed');
+    }
   };
 
   const create = async () => {
@@ -134,7 +147,7 @@ export function ConnectGithubWizard({
     setPhase('first-run');
   };
 
-  const app = state.app;
+  const app = state?.app;
   let body;
   if (step <= 1)
     body = (
@@ -238,7 +251,7 @@ export function ConnectGithubWizard({
       }}
       primary={
         step <= 1
-          ? { label: 'Next', onPress: toReview }
+          ? { label: 'Next', onPress: () => void toReview() }
           : {
               label: 'Create the App',
               busyLabel: 'Creating the App',
