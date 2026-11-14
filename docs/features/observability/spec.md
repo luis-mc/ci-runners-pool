@@ -19,7 +19,7 @@ generator: luismc-docs 2.6.1
 ---
 # Observability
 
-NOT YET IMPLEMENTED. Nothing in this spec is built. Every requirement names the milestone that builds it.
+Partly built (CRSP18): the audit log (R5.24 to R5.27, without the hash chain) and retention (R5.32, R6.8 for audit, job history, raw load samples and log files). Everything else is NOT YET IMPLEMENTED. Every requirement names the milestone that builds it.
 
 ## 1. In one paragraph
 
@@ -297,7 +297,7 @@ The live view flows one way: controller to browser. Commands go through the norm
 
 ## 9. How it is proven
 
-Every test below is planned and NOT YET IMPLEMENTED. The paths are where each test will live.
+A test marked planned is NOT YET IMPLEMENTED; its path is where it will live.
 
 | Requirement | Test |
 |---|---|
@@ -324,15 +324,15 @@ Every test below is planned and NOT YET IMPLEMENTED. The paths are where each te
 | R5.21 | planned: internal/logs/search_test.go TestFullTextAndFilters |
 | R5.22 | planned: internal/events/sse_test.go TestRunnerSetupLogLive |
 | R5.23 | planned: internal/logs/buffer_test.go TestBufferKeepsOrderAndCountsDropped |
-| R5.24 | planned: internal/audit/audit_test.go TestEveryWriteHandlerRecords, TestRowFields |
-| R5.25 | planned: internal/audit/audit_test.go TestAuditFailureRollsBackChange |
-| R5.26 | planned: internal/audit/audit_test.go TestNoUpdateOrDeletePath, TestRetentionWritesOwnRow |
-| R5.27 | planned: internal/audit/query_test.go TestNewestFirstAndFilters, TestAuditJSON |
+| R5.24 | internal/audit/audit_test.go TestRowFields; internal/api/handlers_ops_test.go TestEveryWriteHandlerRecords |
+| R5.25 | internal/audit/audit_test.go TestAuditFailureRollsBackChange |
+| R5.26 | internal/audit/audit_test.go TestNoUpdateOrDeletePath, TestRetentionWritesOwnRow; internal/store/ops_test.go TestAuditIsAppendOnly |
+| R5.27 | internal/audit/query_test.go TestNewestFirstAndFilters; internal/api/handlers_ops_test.go TestEveryWriteHandlerRecords |
 | R5.28 | planned: internal/audit/chain_test.go TestChainDetectsFirstBrokenRow |
 | R5.29 | planned: internal/logs/slog_test.go TestJSONFieldsAndRotation |
 | R5.30 | planned: internal/logs/crash_test.go TestPanicWritesCrashFile, TestSetCrashOutputFolder |
 | R5.31 | planned: internal/logs/crash_test.go TestUnreportedCrashShownOnce |
-| R5.32 | planned: internal/logs/retention_test.go TestHourlyJobDeletesPastLimit, TestOutOfRangeRefused |
+| R5.32 | internal/settings/retention_test.go TestHourlyJobDeletesPastLimit, TestRetentionUsesSettings; internal/settings/settings_test.go TestOutOfRangeRefusedWithRange, TestEveryRangeMatchesFloorAndCeiling |
 | R6.1 | planned: internal/events/latency_test.go TestP95UnderTwoSeconds |
 | R6.2 | planned: internal/events/load_test.go TestMedianOfThree, TestOneLoadEventPerFiveSeconds |
 | R6.3 | planned: internal/events/hub_test.go TestHeartbeat, TestSlowSubscriberClosed, TestStreamCap, TestPublisherNeverBlocks |
@@ -378,11 +378,11 @@ Everything. The seams that change when it is built:
 
 ## 12. Code map
 
-Nothing exists yet. Planned files, in the globs of the front matter:
+Built: `internal/audit/audit.go` (writer, reader, redaction, prune), `internal/settings/settings.go` and `internal/settings/retention.go` (settings and the hourly retention job), `internal/api/handlers_ops.go`. Planned files, in the globs of the front matter:
 
 - internal/events/ (hub, SSE handler, snapshot, wait reasons)
 - internal/history/ (store, timing, savings, rates.json)
-- internal/audit/ (writer, reader, chain, retention)
+- internal/audit/ (chain)
 - internal/logs/ (slog setup, redactor, rotation, crash files, agent buffer, logs.db, search, retention)
 
 Ported from dev-standards (cite in each ported file): `claude/plugins/delivery/scripts/ci_runs.py`, `claude/plugins/delivery/templates/shared/scripts/delivery/ci_watch.py`, `claude/plugins/delivery/tests/test_ci_runs.py`, `claude/plugins/delivery/scripts/load.py`.
