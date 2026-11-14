@@ -129,7 +129,7 @@ func only(t *testing.T, fs []doctor.Finding, check string) doctor.Finding {
 func TestEveryRegisteredCheckIsM1AndHasAnID(t *testing.T) {
 	reg := doctor.NewRegistry()
 	Register(reg)
-	if len(reg.All()) != 17 {
+	if len(reg.All()) != 18 {
 		t.Fatalf("checks: %v", reg.SortedIDs())
 	}
 	for _, c := range reg.All() {
@@ -218,6 +218,32 @@ func TestDisk(t *testing.T) {
 		}
 		if f.Severity == doctor.Fail && !strings.Contains(f.Fix.Command, "clean-work --machine "+f.Subject.Name) {
 			t.Errorf("fix command = %q", f.Fix.Command)
+		}
+	}
+}
+
+// Caches R5.38: the doctor reports a machine whose volume is under the guard limit.
+func TestDiskGuard(t *testing.T) {
+	mk := func(name string, free, total int64) doctor.Machine {
+		m := healthyMachine()
+		m.ID, m.Name, m.DiskFreeBytes, m.DiskTotalBytes = name, name, i64(free), i64(total)
+		return m
+	}
+	unknown := healthyMachine()
+	unknown.ID, unknown.Name, unknown.DiskFreeBytes = "u", "u", nil
+	fs := run(t, doctor.Env{Fleet: &fleet{machines: []doctor.Machine{
+		mk("fine", 300*gib, 500*gib),
+		mk("edge", 50*gib, 500*gib), // exactly 10%: not held
+		mk("held", 49*gib, 500*gib), // 9.8%
+		unknown,
+	}}}, "machine.guard.disk")
+	want := map[string]doctor.Severity{"fine": doctor.OK, "edge": doctor.OK, "held": doctor.Fail, "u": doctor.Skip}
+	for _, f := range fs {
+		if want[f.Subject.Name] != f.Severity {
+			t.Errorf("%s = %s, want %s", f.Subject.Name, f.Severity, want[f.Subject.Name])
+		}
+		if f.Subject.Name == "held" && !strings.Contains(f.Title, "held") {
+			t.Errorf("title %q", f.Title)
 		}
 	}
 }
