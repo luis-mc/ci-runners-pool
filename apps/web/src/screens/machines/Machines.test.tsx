@@ -16,7 +16,7 @@ describe('Machines list', () => {
     expect(within(table).getByText('offline')).toBeTruthy();
     expect(within(table).getAllByText('1 of 4').length).toBe(2);
     expect(within(table).getAllByText('docker').length).toBe(2);
-    expect(within(table).getByText(/memory 40%, CPU 20%/)).toBeTruthy();
+    expect(within(table).getAllByText(/memory 40%, CPU 20%/).length).toBe(2);
   });
 
   it('searches and filters, and says how many are hidden', async () => {
