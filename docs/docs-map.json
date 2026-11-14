@@ -1,4 +1,17 @@
 {
   "schema": 1,
-  "map": {}
+  "map": {
+    "internal/audit/**": [
+      "docs/features/observability/spec.md"
+    ],
+    "internal/events/**": [
+      "docs/features/observability/spec.md"
+    ],
+    "internal/history/**": [
+      "docs/features/observability/spec.md"
+    ],
+    "internal/logs/**": [
+      "docs/features/observability/spec.md"
+    ]
+  }
 }
