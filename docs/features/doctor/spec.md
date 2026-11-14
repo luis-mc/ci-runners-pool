@@ -167,6 +167,8 @@ States:
 
 **R5.28** — Each milestone adds the checks of the parts it builds, as the catalogue marks them. A milestone is not done until its checks exist with tests. A check for a part that is not built yet does not appear in a run. NOT YET IMPLEMENTED (every milestone).
 
+**R5.29** — The hook run check (`runner.hookrun`) runs each persistent runner's real `job-started` hook script as the runner's service account with `CRSP_HOOK_PROBE=1`, so it takes no slot and starts no job, and reads its exit code and output. A hook is fine when it exits 0 and prints `crsp hook ok`. It is `fail` when the script cannot start, exits non-zero, prints a `::warning` annotation (crsp missing or broken, scheduling R5.60), or does not reach crsp. Hooks depend on nothing but the shell the runner already uses. An agent that did not run the hook gives `skip`. Problems the hooks wrote to `crsp-hook-problem.txt` show in `runner.hooks` (R5.14). Built (CRSP22): the check; the agent running the hook as the account is NOT YET IMPLEMENTED.
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -264,6 +266,7 @@ Runners:
 | `runner.service` | Service missing, stopped, or not set to start with the machine | fail | Start the service; set it to automatic | no | 1 |
 | `runner.version` | A newer runner release exists (warn); GitHub no longer accepts this version (fail) | warn, fail | Update the runner (drains first) | no | 1 |
 | `runner.hooks` | A job hook missing, ending in `.cmd`, pointing into a user profile, or blocked by the execution policy | fail | Set the hooks again from the Runners screen | yes | 1 |
+| `runner.hookrun` | The real job-started hook, run as the service account in probe mode, cannot start, exits non-zero, prints a crsp warning, or does not reach crsp | fail | Install crsp for all users again; set the hooks again | no | 1 |
 | `runner.machine` | The runner reads another machine config or hook folder than the pool | warn | Set the hooks again | yes | 1 |
 | `runner.env` | Runner env lacks the tool cache settings | warn | Set the runner env again | yes | 2 |
 | `runner.account` | A Windows runner service runs as a shared, system or admin account, or outside the runner group | warn | Replace it with its own non-admin account (learning 4) | no | 4 |
@@ -424,6 +427,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.26 | internal/doctor/diff_test.go TestOpenedResolvedNoRepeat (planned) |
 | R5.27 | internal/doctor/diff_test.go TestBriefNotificationCases (planned) |
 | R5.28 | internal/doctor/registry_test.go TestMilestoneGating and TestEveryCheckHasATest (planned) |
+| R5.29 | internal/doctor/checks/checks_test.go TestRunnerHookRun; internal/hooks/visibility_test.go TestProbeAnswersWithoutTheGate |
 | R6.1 | internal/doctor/engine_test.go TestSlowCheckIsSkipNotOk (the timeout); benchmark planned |
 | R6.2 | internal/doctor/checks/checks_test.go TestCallCountBudget |
 | R6.3 | internal/doctor/engine_test.go TestSecretsAreRedactedInFindings |

@@ -58,7 +58,7 @@ type DoneConfig struct {
 	Workspace string
 	KeepWork  bool
 	Log       func(string)
-	// Report and Healthy are as in GateConfig (R5.43). Both may be nil.
+	// Report and Healthy are as in GateConfig (R5.60). Both may be nil.
 	Report  func(string)
 	Healthy func()
 }

@@ -3,7 +3,7 @@
 # .cmd hooks, so this is PowerShell.
 # A crsp that is missing or broken never fails the job, but it is never silent:
 # the job gets a ::warning annotation and the runner folder gets a problem file
-# that the doctor reads (scheduling R5.43).
+# that the doctor reads (scheduling R5.60).
 $ErrorActionPreference = 'Stop'
 $hook = 'job-completed'
 $crsp = if ($env:CRSP_BIN) { $env:CRSP_BIN } else { Join-Path $env:ProgramFiles 'crsp\crsp.exe' }

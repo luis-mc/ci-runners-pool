@@ -15,7 +15,7 @@ import (
 // A job-completed hook that frees nothing means the job never took a slot: its
 // job-started hook did not reach the gate (crsp missing, broken or cut off from
 // its agent, or the gate let the job go on its on-timeout rule). The engine
-// raises AlertJobStartedMissing for it (R5.43), once per call, and still
+// raises AlertJobStartedMissing for it (R5.60), once per call, and still
 // returns no error: the job has finished and nothing fails.
 func (e *Engine) Release(ctx context.Context, machineID string, job JobRef, claims []string) ([]Freed, error) {
 	freed, err := e.freeJob(ctx, machineID, toJob(job), claims, slots.OutcomeRan)

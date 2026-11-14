@@ -8,7 +8,7 @@ import (
 )
 
 // A crsp that is missing, broken or cannot reach its agent never fails a job
-// (R5.23), but it is never silent (R5.43): the job gets a `::warning`
+// (R5.23), but it is never silent (R5.60): the job gets a `::warning`
 // annotation, the runner folder gets a problem file the doctor reads, and the
 // controller is told when a job ends that never started through the gate.
 const (

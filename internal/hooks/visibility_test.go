@@ -22,7 +22,7 @@ func deadEnv(t *testing.T, out *bytes.Buffer, dir string) hooks.Env {
 		Measure: func() load.Reading { return load.Reading{MemoryPct: 10, MemoryKnown: true, CPUPct: 10, CPUKnown: true} }}
 }
 
-// R5.43: an unreachable agent keeps the job going, and says so on the job and in the runner folder.
+// R5.60: an unreachable agent keeps the job going, and says so on the job and in the runner folder.
 func TestUnreachableAgentIsAnnotatedAndRecorded(t *testing.T) {
 	for _, hook := range []string{"job-started", "job-completed"} {
 		dir := t.TempDir()
@@ -46,7 +46,7 @@ func TestUnreachableAgentIsAnnotatedAndRecorded(t *testing.T) {
 	}
 }
 
-// R5.43: a hook that works again clears the record.
+// R5.60: a hook that works again clears the record.
 func TestHealthyHookClearsTheRecord(t *testing.T) {
 	w := newWorld(t)
 	dir := t.TempDir()

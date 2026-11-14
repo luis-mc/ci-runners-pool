@@ -40,7 +40,7 @@ type GateConfig struct {
 	// Log writes one line; it goes to the job's Set up job step and the agent log (R5.21).
 	Log func(string)
 	// Report puts a ::warning annotation on the job and records the problem
-	// for the doctor; Healthy clears the record (R5.43). Both may be nil.
+	// for the doctor; Healthy clears the record (R5.60). Both may be nil.
 	Report  func(string)
 	Healthy func()
 	// Top names the top processes for hold and timeout lines (R5.46); may be nil.
@@ -69,7 +69,7 @@ func (c *GateConfig) sleep(ctx context.Context, d time.Duration) {
 	}
 }
 
-// unreachable tells the owner, not only the log, that the gate is off (R5.43).
+// unreachable tells the owner, not only the log, that the gate is off (R5.60).
 func (c *GateConfig) unreachable(err error) {
 	if c.Report != nil {
 		c.Report(unreachableText("job-started", err))

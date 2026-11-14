@@ -8,7 +8,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 )
 
-// R5.43: a job that ends without ever having taken a slot raises an alert; a normal job does not.
+// R5.60: a job that ends without ever having taken a slot raises an alert; a normal job does not.
 func TestJobEndedWithoutJobStartedRaisesAnAlert(t *testing.T) {
 	e := newEnv(t)
 	var got []scheduler.Alert

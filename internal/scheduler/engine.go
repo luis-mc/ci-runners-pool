@@ -34,7 +34,7 @@ func WithClock(now func() time.Time) Option { return func(e *Engine) { e.now = n
 func WithLogger(l *slog.Logger) Option { return func(e *Engine) { e.log = l } }
 
 // WithAlerts sets where the engine reports a job that ended without a slot
-// (R5.43). The callback must not block; the console and the notifications read
+// (R5.60). The callback must not block; the console and the notifications read
 // the alert from there.
 func WithAlerts(f func(Alert)) Option { return func(e *Engine) { e.alert = f } }
 

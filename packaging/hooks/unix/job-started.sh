@@ -2,7 +2,7 @@
 # CRSP runner hook: job started (runners R5.22, R5.23, R5.39).
 # A crsp that is missing or broken never fails the job, but it is never silent:
 # the job gets a ::warning annotation and the runner folder gets a problem file
-# that the doctor reads (scheduling R5.43).
+# that the doctor reads (scheduling R5.60).
 hook=job-started
 crsp=${CRSP_BIN:-/usr/local/bin/crsp}
 dir=$(dirname "$0")

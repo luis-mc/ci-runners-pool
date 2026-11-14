@@ -123,7 +123,7 @@ type Freed struct {
 type AlertKind string
 
 // AlertJobStartedMissing: a job-completed hook arrived for a job that held no
-// slot or ticket on the machine (R5.43).
+// slot or ticket on the machine (R5.60).
 const AlertJobStartedMissing AlertKind = "hook.job_started_missing"
 
 // Alert is one condition the owner should see. Message holds no secret.
