@@ -33,3 +33,17 @@ func TestRunAgentNotImplemented(t *testing.T) {
 		t.Fatalf("agent: exit %d", code)
 	}
 }
+
+func TestRunVersionJSON(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if code := run([]string{"version", "--json"}, &out, &errOut); code != 0 || !strings.Contains(out.String(), `"version"`) || !strings.Contains(out.String(), `"go"`) {
+		t.Fatalf("exit %d: %q %s", code, out.String(), errOut.String())
+	}
+}
+
+func TestRunTrayNotBuilt(t *testing.T) {
+	var out, errOut bytes.Buffer
+	if code := run([]string{"tray"}, &out, &errOut); code != 2 || !strings.Contains(errOut.String(), "not built yet") {
+		t.Fatalf("exit %d: %q", code, errOut.String())
+	}
+}

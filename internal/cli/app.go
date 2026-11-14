@@ -219,7 +219,7 @@ func nonFlags(args []string) []string {
 
 func execute(env *Env, root, cmd *command, path, rest []string) int {
 	c := &call{env: env, cmd: cmd}
-	if cmd.raw && cmd.milestone == "" && !(len(rest) == 1 && (rest[0] == "--help" || rest[0] == "-h")) {
+	if cmd.raw && cmd.milestone == "" && (len(rest) != 1 || (rest[0] != "--help" && rest[0] != "-h")) {
 		return c.report(cmd.run(c, rest))
 	}
 	fs := flag.NewFlagSet("crsp "+strings.Join(path, " "), flag.ContinueOnError)

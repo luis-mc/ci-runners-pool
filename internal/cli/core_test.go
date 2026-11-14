@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"bytes"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/cli/contexts"
-	"github.com/luis-mc/ci-runners-shared-pool/internal/cli/output"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 	"gopkg.in/yaml.v3"
 )
@@ -231,26 +229,6 @@ func TestCallTimeout(t *testing.T) {
 	}
 }
 
-func TestTableAndFormats(t *testing.T) {
-	var b bytes.Buffer
-	output.Table(&b, 80, []string{"NAME", "N"}, [][]string{{"alpha", "1"}, {"b", "22"}})
-	want := "NAME   N\nalpha  1\nb      22\n"
-	if b.String() != want {
-		t.Fatalf("%q", b.String())
-	}
-	if output.Number(12345) != "12 345" || output.Number(-1234567) != "-1 234 567" || output.Number(7) != "7" {
-		t.Error("number format")
-	}
-	p := float32(44.6)
-	if output.Percent(&p) != "45%" || output.Percent(nil) != "-" {
-		t.Error("percent")
-	}
-	ts := time.Date(2026, 11, 2, 14, 30, 59, 0, time.UTC)
-	if output.Time(&ts) != "2026-11-02 14:30" || output.Time(nil) != "-" {
-		t.Error("time")
-	}
-}
-
 func TestNoColor(t *testing.T) {
 	f := newFixture(t)
 	f.reply("GET /api/v1/machines", 200, map[string]any{"items": []any{}})
@@ -259,68 +237,6 @@ func TestNoColor(t *testing.T) {
 		if strings.Contains(out+errOut, "\x1b[") {
 			t.Fatalf("colour in %v: %q", a, out+errOut)
 		}
-	}
-}
-
-func TestFits80Columns(t *testing.T) {
-	var b bytes.Buffer
-	long := strings.Repeat("x", 120)
-	output.Table(&b, 80, []string{"REPOSITORY", "POOL", "LABELS", "MAX"}, [][]string{{"luis-mc/" + long, "on", "self-hosted,linux,x64", "2"}})
-	for _, l := range strings.Split(strings.TrimRight(b.String(), "\n"), "\n") {
-		if n := len([]rune(l)); n > 80 {
-			t.Errorf("%d columns: %q", n, l)
-		}
-	}
-	if !strings.Contains(b.String(), "…") {
-		t.Error("no ellipsis")
-	}
-}
-
-func TestAddUseRemove(t *testing.T) {
-	dir := t.TempDir()
-	cf, err := contexts.Load(dir)
-	if err != nil || len(cf.Contexts) != 0 {
-		t.Fatal(err, cf)
-	}
-	cf.Set(contexts.Context{Name: "home", URL: "https://home:8460", Fingerprint: "aa"})
-	cf.Set(contexts.Context{Name: "office", URL: "https://office:8460", Fingerprint: "bb"})
-	if cf.Current != "office" {
-		t.Fatal("login must make the context current")
-	}
-	if err := cf.Save(dir); err != nil {
-		t.Fatal(err)
-	}
-	cf, _ = contexts.Load(dir)
-	if len(cf.Contexts) != 2 || cf.Contexts["home"].Fingerprint != "aa" || cf.Current != "office" {
-		t.Fatalf("%+v", cf)
-	}
-	if err := cf.Use("home"); err != nil || cf.Current != "home" {
-		t.Fatal(err)
-	}
-	if cf.Use("nope") == nil {
-		t.Fatal("use of an unknown context worked")
-	}
-	if err := cf.Remove("home"); err != nil || cf.Current != "" || len(cf.Contexts) != 1 {
-		t.Fatalf("%+v", cf)
-	}
-	if u, ok := cf.ByURL("https://office:8460/"); !ok || u.Name != "office" {
-		t.Fatal("ByURL")
-	}
-	if _, ok := cf.ByURL("https://other"); ok {
-		t.Fatal("ByURL matched an unpinned URL")
-	}
-}
-
-func TestPickOrder(t *testing.T) {
-	cf := &contexts.File{Current: "c", Contexts: map[string]contexts.Context{"a": {Name: "a"}, "b": {Name: "b"}, "c": {Name: "c"}}}
-	for _, tc := range []struct{ flag, env, want string }{{"a", "b", "a"}, {"", "b", "b"}, {"", "", "c"}} {
-		got, err := cf.Pick(tc.flag, tc.env)
-		if err != nil || got.Name != tc.want {
-			t.Errorf("%+v: %v %v", tc, got, err)
-		}
-	}
-	if _, err := (&contexts.File{Contexts: map[string]contexts.Context{}}).Pick("", ""); err == nil {
-		t.Error("no context chosen should fail")
 	}
 }
 

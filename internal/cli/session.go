@@ -170,12 +170,12 @@ func apiError(status int, body []byte) error {
 		}
 	}
 	code := ExitFailed
-	switch {
-	case status == http.StatusUnauthorized || status == http.StatusForbidden:
+	switch status {
+	case http.StatusUnauthorized, http.StatusForbidden:
 		code = ExitAuth
-	case status == http.StatusNotFound:
+	case http.StatusNotFound:
 		code = ExitNotFound
-	case status == http.StatusConflict:
+	case http.StatusConflict:
 		code = ExitConflict
 	}
 	return &exitError{Code: code, Message: msg, Envelope: body}
