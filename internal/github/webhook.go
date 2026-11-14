@@ -1,0 +1,139 @@
+package github
+
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+)
+
+// MaxWebhookBody is the largest delivery accepted (R6.5).
+const MaxWebhookBody = 25 << 20
+
+// HMACVerifier checks X-Hub-Signature-256 in constant time (R6.5).
+type HMACVerifier struct{ secret []byte }
+
+// NewWebhookVerifier returns a verifier for the App's webhook secret.
+func NewWebhookVerifier(secret []byte) *HMACVerifier {
+	return &HMACVerifier{secret: append([]byte(nil), secret...)}
+}
+
+// Verify implements WebhookVerifier.
+func (v *HMACVerifier) Verify(body []byte, signature256 string) bool {
+	if len(v.secret) == 0 {
+		return false
+	}
+	hexSig, ok := strings.CutPrefix(signature256, "sha256=")
+	if !ok {
+		return false
+	}
+	got, err := hex.DecodeString(hexSig)
+	if err != nil {
+		return false
+	}
+	mac := hmac.New(sha256.New, v.secret)
+	mac.Write(body)
+	return hmac.Equal(mac.Sum(nil), got)
+}
+
+// Sign makes the header value for a body, for tests and the fake server.
+func Sign(secret, body []byte) string {
+	mac := hmac.New(sha256.New, secret)
+	mac.Write(body)
+	return "sha256=" + hex.EncodeToString(mac.Sum(nil))
+}
+
+// WebhookEvents receives verified, de-duplicated deliveries.
+type WebhookEvents interface {
+	// Job gets a workflow_job event (R5.36).
+	Job(Job)
+	// Installation gets an installation or installation_repositories event
+	// (R5.22): the raw body, for the reconcile to read.
+	Installation(event string, body []byte)
+}
+
+// WebhookHandler serves POST /webhooks/github (R5.36, R6.5).
+type WebhookHandler struct {
+	// Verifier is loaded per request so a rotated secret takes effect.
+	Verifier func() (WebhookVerifier, error)
+	// FirstDelivery records a delivery id and reports false for a repeat.
+	FirstDelivery func(id, event string) (bool, error)
+	Events        WebhookEvents
+}
+
+// ServeHTTP implements http.Handler. The signature is checked before the body
+// is parsed.
+func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, MaxWebhookBody))
+	if err != nil {
+		http.Error(w, "body too large", http.StatusRequestEntityTooLarge)
+		return
+	}
+	v, err := h.Verifier()
+	if err != nil {
+		http.Error(w, "webhook secret unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	if !v.Verify(body, r.Header.Get("X-Hub-Signature-256")) {
+		http.Error(w, "bad signature", http.StatusUnauthorized)
+		return
+	}
+	id, event := r.Header.Get("X-GitHub-Delivery"), r.Header.Get("X-GitHub-Event")
+	if id == "" || event == "" {
+		http.Error(w, "missing delivery headers", http.StatusBadRequest)
+		return
+	}
+	first, err := h.FirstDelivery(id, event)
+	if err != nil {
+		http.Error(w, "could not record delivery", http.StatusInternalServerError)
+		return
+	}
+	if !first {
+		w.WriteHeader(http.StatusOK) // a repeat is acknowledged and ignored
+		return
+	}
+	switch event {
+	case "workflow_job":
+		job, err := ParseWorkflowJobEvent(body)
+		if err != nil {
+			http.Error(w, "unreadable workflow_job", http.StatusBadRequest)
+			return
+		}
+		h.Events.Job(job)
+	case "installation", "installation_repositories":
+		h.Events.Installation(event, body)
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// ParseWorkflowJobEvent reads a workflow_job webhook body.
+func ParseWorkflowJobEvent(body []byte) (Job, error) {
+	var ev struct {
+		Action      string `json:"action"`
+		WorkflowJob struct {
+			apiJob
+		} `json:"workflow_job"`
+		Repository struct {
+			FullName string `json:"full_name"`
+		} `json:"repository"`
+	}
+	if err := json.Unmarshal(body, &ev); err != nil {
+		return Job{}, err
+	}
+	if ev.WorkflowJob.ID == 0 || ev.Repository.FullName == "" {
+		return Job{}, errors.New("workflow_job: missing job or repository")
+	}
+	j := ev.WorkflowJob.job(ev.Repository.FullName, apiRun{})
+	// Fork and event come from the run, which the event omits; the poller and
+	// reconcile fill them in. A webhook never claims "not from a fork".
+	j.FromFork = false
+	if j.CreatedAt.IsZero() {
+		j.CreatedAt = time.Now().UTC()
+	}
+	return j, nil
+}

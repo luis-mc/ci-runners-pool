@@ -1,0 +1,238 @@
+package github
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/url"
+	"time"
+)
+
+type apiApp struct {
+	ID          int64             `json:"id"`
+	Slug        string            `json:"slug"`
+	ClientID    string            `json:"client_id"`
+	HTMLURL     string            `json:"html_url"`
+	Permissions map[string]string `json:"permissions"`
+	Owner       struct {
+		Login string `json:"login"`
+		Type  string `json:"type"`
+	} `json:"owner"`
+}
+
+func (a apiApp) app() App {
+	return App{ID: a.ID, Slug: a.Slug, ClientID: a.ClientID, OwnerLogin: a.Owner.Login,
+		OwnerType: a.Owner.Type, HTMLURL: a.HTMLURL, Permissions: a.Permissions}
+}
+
+// ConvertManifest implements AppClient (R5.3). The code is single use on
+// GitHub's side; the caller also refuses a second use.
+func (c *REST) ConvertManifest(ctx context.Context, code string) (AppCredentials, error) {
+	var out struct {
+		apiApp
+		ClientSecret  string `json:"client_secret"`
+		WebhookSecret string `json:"webhook_secret"`
+		PEM           string `json:"pem"`
+	}
+	if code == "" {
+		return AppCredentials{}, errors.New("github: empty manifest code")
+	}
+	_, err := c.do(ctx, req{method: "POST", path: "/app-manifests/" + url.PathEscape(code) + "/conversions"}, &out)
+	if err != nil {
+		return AppCredentials{}, err
+	}
+	return AppCredentials{App: out.app(), PrivateKeyPEM: []byte(out.PEM), ClientSecret: out.ClientSecret, WebhookSecret: out.WebhookSecret}, nil
+}
+
+// GetApp implements AppClient (R5.6).
+func (c *REST) GetApp(ctx context.Context) (App, error) {
+	jwt, err := c.appJWT(ctx)
+	if err != nil {
+		return App{}, err
+	}
+	var out apiApp
+	if _, err := c.do(ctx, req{method: "GET", path: "/app", bearer: jwt}, &out); err != nil {
+		return App{}, err
+	}
+	return out.app(), nil
+}
+
+// AuthorizeURL implements OAuth (R5.8).
+func (c *REST) AuthorizeURL(state, codeChallenge, redirectURI string) string {
+	c.mu.Lock()
+	clientID := c.clientID
+	c.mu.Unlock()
+	q := url.Values{}
+	q.Set("client_id", clientID)
+	q.Set("redirect_uri", redirectURI)
+	q.Set("state", state)
+	q.Set("code_challenge", codeChallenge)
+	q.Set("code_challenge_method", "S256")
+	return c.cfg.WebBase + "/login/oauth/authorize?" + q.Encode()
+}
+
+// ExchangeCode implements OAuth.
+func (c *REST) ExchangeCode(ctx context.Context, code, codeVerifier, redirectURI string) (UserToken, error) {
+	c.mu.Lock()
+	appID, clientID := c.appID, c.clientID
+	c.mu.Unlock()
+	if appID == 0 {
+		return UserToken{}, errNoApp
+	}
+	secret, err := c.cfg.Secrets.Get(ctx, SecretKey(appID, SecretClientSecret))
+	if err != nil {
+		return UserToken{}, fmt.Errorf("app client secret: %w", err)
+	}
+	var out struct {
+		AccessToken string `json:"access_token"`
+		ExpiresIn   int    `json:"expires_in"`
+		Error       string `json:"error"`
+	}
+	_, err = c.do(ctx, req{method: "POST", path: c.cfg.WebBase + "/login/oauth/access_token", abs: true, body: map[string]string{
+		"client_id": clientID, "client_secret": string(secret), "code": code,
+		"code_verifier": codeVerifier, "redirect_uri": redirectURI,
+	}}, &out)
+	if err != nil {
+		return UserToken{}, err
+	}
+	if out.Error != "" || out.AccessToken == "" {
+		// GitHub answers 200 with an error name for a bad or used code.
+		return UserToken{}, fmt.Errorf("%w: sign-in code refused (%s)", ErrForbidden, out.Error)
+	}
+	tok := UserToken{Value: out.AccessToken}
+	if out.ExpiresIn > 0 {
+		tok.ExpiresAt = c.cfg.Now().Add(time.Duration(out.ExpiresIn) * time.Second)
+	}
+	return tok, nil
+}
+
+// CurrentUser implements OAuth.
+func (c *REST) CurrentUser(ctx context.Context, tok UserToken) (User, error) {
+	var out struct {
+		ID    int64  `json:"id"`
+		Login string `json:"login"`
+	}
+	if _, err := c.do(ctx, req{method: "GET", path: "/user", bearer: tok.Value}, &out); err != nil {
+		return User{}, err
+	}
+	return User{ID: out.ID, Login: out.Login}, nil
+}
+
+// ResolveLogin implements OAuth (R5.11). It asks as the App.
+func (c *REST) ResolveLogin(ctx context.Context, login string) (User, error) {
+	jwt, err := c.appJWT(ctx)
+	if err != nil {
+		return User{}, err
+	}
+	var out struct {
+		ID    int64  `json:"id"`
+		Login string `json:"login"`
+	}
+	if _, err := c.do(ctx, req{method: "GET", path: "/users/" + url.PathEscape(login), bearer: jwt}, &out); err != nil {
+		return User{}, err
+	}
+	return User{ID: out.ID, Login: out.Login}, nil
+}
+
+type apiInstallation struct {
+	ID                  int64             `json:"id"`
+	RepositorySelection string            `json:"repository_selection"`
+	Permissions         map[string]string `json:"permissions"`
+	SuspendedAt         *time.Time        `json:"suspended_at"`
+	Account             struct {
+		Login string `json:"login"`
+		Type  string `json:"type"`
+	} `json:"account"`
+}
+
+func (a apiInstallation) install() Installation {
+	return Installation{ID: a.ID, AccountLogin: a.Account.Login, AccountType: a.Account.Type,
+		RepositorySelection: a.RepositorySelection, Permissions: a.Permissions, Suspended: a.SuspendedAt != nil}
+}
+
+// ListUserInstallations implements UserClient (R5.17).
+func (c *REST) ListUserInstallations(ctx context.Context, tok UserToken) ([]Installation, error) {
+	var all []Installation
+	err := c.getAll(ctx, req{path: "/user/installations", bearer: tok.Value}, func(raw json.RawMessage) error {
+		var page struct {
+			Installations []apiInstallation `json:"installations"`
+		}
+		if err := json.Unmarshal(raw, &page); err != nil {
+			return err
+		}
+		for _, i := range page.Installations {
+			all = append(all, i.install())
+		}
+		return nil
+	})
+	return all, err
+}
+
+// ListInstallationRepositories implements UserClient (R5.18): all pages, with
+// the user's admin flag.
+func (c *REST) ListInstallationRepositories(ctx context.Context, tok UserToken, installationID int64) ([]Repository, error) {
+	var all []Repository
+	err := c.getAll(ctx, req{path: fmt.Sprintf("/user/installations/%d/repositories", installationID), bearer: tok.Value}, func(raw json.RawMessage) error {
+		var page struct {
+			Repositories []struct {
+				ID            int64  `json:"id"`
+				FullName      string `json:"full_name"`
+				Name          string `json:"name"`
+				Private       bool   `json:"private"`
+				Visibility    string `json:"visibility"`
+				DefaultBranch string `json:"default_branch"`
+				Archived      bool   `json:"archived"`
+				Owner         struct {
+					Login string `json:"login"`
+				} `json:"owner"`
+				Permissions struct {
+					Admin bool `json:"admin"`
+				} `json:"permissions"`
+			} `json:"repositories"`
+		}
+		if err := json.Unmarshal(raw, &page); err != nil {
+			return err
+		}
+		for _, r := range page.Repositories {
+			vis := r.Visibility
+			if vis == "" {
+				vis = "public"
+				if r.Private {
+					vis = "private"
+				}
+			}
+			all = append(all, Repository{ID: r.ID, FullName: r.FullName, Owner: r.Owner.Login, Name: r.Name,
+				Visibility: vis, DefaultBranch: r.DefaultBranch, Archived: r.Archived, Admin: r.Permissions.Admin})
+		}
+		return nil
+	})
+	return all, err
+}
+
+// GetInstallation implements InstallationClient (R5.24).
+func (c *REST) GetInstallation(ctx context.Context, installationID int64) (Installation, error) {
+	jwt, err := c.appJWT(ctx)
+	if err != nil {
+		return Installation{}, err
+	}
+	var out apiInstallation
+	if _, err := c.do(ctx, req{method: "GET", path: fmt.Sprintf("/app/installations/%d", installationID), bearer: jwt}, &out); err != nil {
+		return Installation{}, err
+	}
+	return out.install(), nil
+}
+
+// UserCanAdmin reads the user's GitHub permission on one repository, fresh
+// (R5.19). It uses the user's own token, so GitHub answers for that user.
+func (c *REST) UserCanAdmin(ctx context.Context, tok UserToken, owner, repo string) (bool, error) {
+	var out struct {
+		Permissions struct {
+			Admin bool `json:"admin"`
+		} `json:"permissions"`
+	}
+	if _, err := c.do(ctx, req{method: "GET", path: fmt.Sprintf("/repos/%s/%s", url.PathEscape(owner), url.PathEscape(repo)), bearer: tok.Value}, &out); err != nil {
+		return false, err
+	}
+	return out.Permissions.Admin, nil
+}

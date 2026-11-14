@@ -1249,6 +1249,14 @@ type CliTokenList struct {
 	Items []CliToken `json:"items"`
 }
 
+// ConsoleLink defines model for ConsoleLink.
+type ConsoleLink struct {
+	ExpiresAt time.Time `json:"expires_at"`
+
+	// Url The one-time console link. Shown once.
+	Url string `json:"url"`
+}
+
 // CreateJoinCodeRequest defines model for CreateJoinCodeRequest.
 type CreateJoinCodeRequest struct {
 	// TtlMinutes Default 15, ceiling 1440 (machines R5.4).
@@ -2329,6 +2337,9 @@ type ServerInterface interface {
 	// RevokeCliToken Revoke a CLI token
 	// (DELETE /api/v1/auth/cli/tokens/{tokenId})
 	RevokeCliToken(w http.ResponseWriter, r *http.Request, tokenId TokenId)
+	// CreateConsoleLink Make a one-time link that signs the caller in to the web console
+	// (POST /api/v1/auth/console-links)
+	CreateConsoleLink(w http.ResponseWriter, r *http.Request)
 	// SignOut End this session
 	// (POST /api/v1/auth/logout)
 	SignOut(w http.ResponseWriter, r *http.Request)
@@ -2724,6 +2735,20 @@ func (siw *ServerInterfaceWrapper) RevokeCliToken(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RevokeCliToken(w, r, tokenId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateConsoleLink operation middleware
+func (siw *ServerInterfaceWrapper) CreateConsoleLink(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateConsoleLink(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4754,6 +4779,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/auth/cli/tokens", wrapper.ListCliTokens)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/auth/cli/tokens/{tokenId}", wrapper.RevokeCliToken)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/logout", wrapper.SignOut)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/console-links", wrapper.CreateConsoleLink)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/me", wrapper.GetSession)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/me/preferences", wrapper.GetPreferences)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/me/preferences", wrapper.UpdatePreferences)
@@ -5003,6 +5029,44 @@ type RevokeCliTokendefaultJSONResponse struct {
 }
 
 func (response RevokeCliTokendefaultJSONResponse) VisitRevokeCliTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateConsoleLinkRequestObject struct {
+}
+
+type CreateConsoleLinkResponseObject interface {
+	VisitCreateConsoleLinkResponse(w http.ResponseWriter) error
+}
+
+type CreateConsoleLink201JSONResponse ConsoleLink
+
+func (response CreateConsoleLink201JSONResponse) VisitCreateConsoleLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateConsoleLinkdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CreateConsoleLinkdefaultJSONResponse) VisitCreateConsoleLinkResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -7656,6 +7720,9 @@ type StrictServerInterface interface {
 	// RevokeCliToken Revoke a CLI token
 	// (DELETE /api/v1/auth/cli/tokens/{tokenId})
 	RevokeCliToken(ctx context.Context, request RevokeCliTokenRequestObject) (RevokeCliTokenResponseObject, error)
+	// CreateConsoleLink Make a one-time link that signs the caller in to the web console
+	// (POST /api/v1/auth/console-links)
+	CreateConsoleLink(ctx context.Context, request CreateConsoleLinkRequestObject) (CreateConsoleLinkResponseObject, error)
 	// SignOut End this session
 	// (POST /api/v1/auth/logout)
 	SignOut(ctx context.Context, request SignOutRequestObject) (SignOutResponseObject, error)
@@ -8022,6 +8089,30 @@ func (sh *strictHandler) RevokeCliToken(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RevokeCliTokenResponseObject); ok {
 		if err := validResponse.VisitRevokeCliTokenResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateConsoleLink operation middleware
+func (sh *strictHandler) CreateConsoleLink(w http.ResponseWriter, r *http.Request) {
+	var request CreateConsoleLinkRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateConsoleLink(ctx, request.(CreateConsoleLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateConsoleLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateConsoleLinkResponseObject); ok {
+		if err := validResponse.VisitCreateConsoleLinkResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

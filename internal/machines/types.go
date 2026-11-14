@@ -1,0 +1,268 @@
+// Package machines is the controller side of the agent link (decision 0004;
+// machines R5.1 to R5.43, R6.1 to R6.8): the machine record, join codes and
+// machine keys (stored only as hashes), settings, drain and removal, offline
+// detection, and the AgentService the agents dial.
+//
+// Data goes through the Repository interface. The in-memory MemRepo ships with
+// this package; the SQLite adapter over the tables of migration 00004 belongs
+// to internal/store.
+package machines
+
+import (
+	"errors"
+	"time"
+)
+
+// Machine states (machines R5.22).
+const (
+	StateActive   = "active"
+	StateDraining = "draining"
+	StateDrained  = "drained"
+	StateRemoving = "removing"
+)
+
+// Change kinds and states (machines R5.30 to R5.34).
+const (
+	KindDrain          = "drain"
+	KindSettings       = "settings"
+	KindRemove         = "remove"
+	KindAgentUpdate    = "agent_update"
+	KindRunnerUpdate   = "runner_update"
+	KindServiceRestart = "service_restart"
+
+	ChangeWaiting  = "waiting"
+	ChangeRunning  = "running"
+	ChangeDone     = "done"
+	ChangeCancel   = "cancelled"
+	ChangeNeedsYou = "needs_you"
+)
+
+// Errors the API maps to the error envelope.
+var (
+	ErrNotFound        = errors.New("machine not found")
+	ErrUnauthenticated = errors.New("unknown or revoked machine key")
+	ErrInvalid         = errors.New("invalid value")
+	ErrConflict        = errors.New("conflict")
+	ErrNotSupported    = errors.New("not supported in this build")
+	ErrOffline         = errors.New("machine is offline")
+)
+
+// NeedsConfirmationError says what a destructive step needs a yes for (UX-62).
+// Names lists every item that goes or waits.
+type NeedsConfirmationError struct {
+	Message string
+	Names   []string
+}
+
+func (e *NeedsConfirmationError) Error() string { return e.Message }
+
+// JoinError is a refused join with a reason fit to show ("this code was already used").
+type JoinError struct{ Reason string }
+
+func (e *JoinError) Error() string { return e.Reason }
+
+// Gpu is one GPU (R5.10).
+type Gpu struct {
+	Vendor      string `json:"vendor"`
+	Model       string `json:"model"`
+	MemoryBytes int64  `json:"memory_bytes"`
+}
+
+// Facts are what the agent detects (R5.10).
+type Facts struct {
+	HostName       string    `json:"host_name"`
+	OS             string    `json:"os"` // linux, windows or macos
+	OSName         string    `json:"os_name"`
+	OSVersion      string    `json:"os_version"`
+	KernelVersion  string    `json:"kernel_version"`
+	Arch           string    `json:"arch"` // x64 or arm64
+	CPUModel       string    `json:"cpu_model"`
+	Cores          int       `json:"cores"`
+	Threads        int       `json:"threads"`
+	MemoryBytes    int64     `json:"memory_bytes"`
+	DiskTotalBytes int64     `json:"disk_total_bytes"`
+	DiskFreeBytes  int64     `json:"disk_free_bytes"`
+	GPUs           []Gpu     `json:"gpus"`
+	AgentVersion   string    `json:"agent_version"`
+	DetectedAt     time.Time `json:"detected_at"`
+}
+
+// Backend is one detected isolation backend (R5.11).
+type Backend struct {
+	Name     string `json:"name"`
+	Present  bool   `json:"present"`
+	Usable   bool   `json:"usable"`
+	Version  string `json:"version"`
+	Reason   string `json:"reason"`
+	Rootless bool   `json:"rootless"`
+}
+
+// Machine is one computer in the pool.
+type Machine struct {
+	ID           string
+	Name         string
+	OS           string
+	Arch         string
+	Facts        Facts
+	Backends     []Backend
+	State        string
+	IsController bool
+	AgentVersion string
+	Online       bool
+	LastSeen     time.Time
+	JoinedAt     time.Time
+	RemovedAt    time.Time
+}
+
+// Settings are the per-machine settings (R5.22, scheduling R5.1).
+type Settings struct {
+	Version             int64
+	State               string
+	BudgetMemoryPct     int
+	BudgetCPUPct        int
+	JobSlots            int
+	LightSlots          int
+	HeavySlots          int
+	LightJobs           []string
+	HeavyJobs           []string
+	SlotMaxAgeMinutes   int
+	GatePollSeconds     int
+	GateMaxWaitMinutes  int
+	GateOnTimeout       string
+	AllowedBackends     []string
+	CacheCapBytes       int64
+	DrainTimeoutMinutes int
+	WindowsSymlinkRight bool
+}
+
+// DefaultSettings are the defaults of R5.22: budget 85% memory and 60% CPU,
+// 2 slots, persistent runner only, 20 GiB cache cap, 60 minute drain timeout.
+func DefaultSettings() Settings {
+	return Settings{
+		Version: 1, State: StateActive,
+		BudgetMemoryPct: 85, BudgetCPUPct: 60, JobSlots: 2, LightSlots: 1, HeavySlots: 1,
+		LightJobs: []string{}, HeavyJobs: []string{},
+		SlotMaxAgeMinutes: 120, GatePollSeconds: 15, GateMaxWaitMinutes: 30, GateOnTimeout: "fail",
+		AllowedBackends: []string{"persistent"}, CacheCapBytes: 20 << 30, DrainTimeoutMinutes: 60,
+	}
+}
+
+// SettingsUpdate is a partial change; nil fields stay as they are.
+type SettingsUpdate struct {
+	Name                *string
+	BudgetMemoryPct     *int
+	BudgetCPUPct        *int
+	JobSlots            *int
+	LightSlots          *int
+	HeavySlots          *int
+	LightJobs           *[]string
+	HeavyJobs           *[]string
+	GateOnTimeout       *string
+	AllowedBackends     *[]string
+	CacheCapBytes       *int64
+	DrainTimeoutMinutes *int
+	WindowsSymlinkRight *bool
+	// Confirm is the yes once the jobs a restart waits for are named.
+	Confirm bool
+}
+
+// JobRef names one running job (R5.30).
+type JobRef struct {
+	Repository  string
+	RunID       int64
+	RunAttempt  int
+	Job         string
+	GitHubJobID int64
+	RunnerName  string
+	StartedAt   time.Time
+}
+
+// Load is the newest load report of a machine.
+type Load struct {
+	MemoryPct     float64
+	MemoryKnown   bool
+	CPUPct        float64
+	CPUKnown      bool
+	UnknownReason string
+	SlotsUsed     int
+	SampledAt     time.Time
+	// ReceivedAt is controller time, used for the stale mark (R6.7).
+	ReceivedAt time.Time
+}
+
+// LoadPoint is one stored sample (R6.8).
+type LoadPoint struct {
+	At        time.Time
+	MemoryPct *float64
+	CPUPct    *float64
+	SlotsUsed int
+}
+
+// Change is a change waiting for a drain (R5.30 to R5.33).
+type Change struct {
+	ID         string
+	MachineID  string
+	Kind       string
+	State      string
+	Detail     ChangeDetail
+	StartedBy  string
+	StartedAt  time.Time
+	Deadline   time.Time
+	FinishedAt time.Time
+}
+
+// ChangeDetail is what a change carries.
+type ChangeDetail struct {
+	// Settings is the settings the change applies when the machine is idle.
+	Settings *Settings `json:"settings,omitempty"`
+	Reason   string    `json:"reason,omitempty"`
+	// WaitingFor names the jobs it waits for now.
+	WaitingFor []JobRef `json:"waiting_for,omitempty"`
+}
+
+// CodeKind is a join code kind.
+type CodeKind string
+
+// Code kinds: a code from the install command, and the credential the
+// controller writes for its own agent (R5.1).
+const (
+	CodeKindCode  CodeKind = "code"
+	CodeKindLocal CodeKind = "local"
+)
+
+// JoinCode is a one-time code. Only its hash is kept (R6.2).
+type JoinCode struct {
+	ID        string
+	Hash      string
+	Kind      CodeKind
+	CreatedBy string
+	CreatedAt time.Time
+	ExpiresAt time.Time
+	UsedAt    time.Time
+	RevokedAt time.Time
+	MachineID string
+}
+
+// CodeState is the state the wizard polls (R5.4).
+type CodeState string
+
+// Join code states.
+const (
+	CodeWaiting CodeState = "waiting"
+	CodeJoined  CodeState = "joined"
+	CodeExpired CodeState = "expired"
+	CodeRevoked CodeState = "revoked"
+)
+
+// State computes the state at time now.
+func (c JoinCode) State(now time.Time) CodeState {
+	switch {
+	case !c.UsedAt.IsZero():
+		return CodeJoined
+	case !c.RevokedAt.IsZero():
+		return CodeRevoked
+	case !now.Before(c.ExpiresAt):
+		return CodeExpired
+	}
+	return CodeWaiting
+}

@@ -1,13 +1,18 @@
-// Package config holds the one validated configuration schema (STACKSPEC 15).
+// Package config holds the one validated configuration schema (operations
+// R5.8 to R5.10, STACKSPEC 15).
 //
-// Every setting is an environment variable named CRSP_*. A value that looks like
-// a placeholder is refused, so a copied .env.example never boots.
+// The controller and the agent read one file, config.toml, checked against one
+// schema. A CRSP_* environment variable overrides the matching key. The check
+// refuses unknown keys, wrong types, values out of range, placeholder values
+// and any key that holds a secret. All problems are reported together.
 //
 // Secrets are not configuration: the GitHub App private key and the webhook
-// secret live in the OS secret store, never in env, the database or logs.
+// secret live in the OS secret store, never in the file, env, the database or
+// logs.
 package config
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -15,32 +20,93 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
+	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/pelletier/go-toml/v2"
 )
 
-// Environment variable names.
+// Environment variable names. Each overrides the TOML key of the same meaning.
 const (
+	EnvConfigFile = "CRSP_CONFIG"
 	EnvDataDir    = "CRSP_DATA_DIR"
 	EnvListenAddr = "CRSP_LISTEN_ADDR"
+	EnvAgentAddr  = "CRSP_AGENT_ADDR"
 	EnvLogLevel   = "CRSP_LOG_LEVEL"
+)
+
+// Defaults for the console and agent link ports (owner decision, 2026-11-14).
+const (
+	DefaultListenAddr = "127.0.0.1:8460"
+	DefaultAgentAddr  = "127.0.0.1:8461"
 )
 
 // Config is the validated configuration of a running process.
 type Config struct {
-	// DataDir holds the SQLite database and other local state.
+	// File is the config file that was read, or "" when none exists.
+	File string
+	// DataDir holds the database, backups/, logs/ and updates/.
 	DataDir string
-	// ListenAddr is the controller's HTTP listen address (host:port).
+	// ListenAddr is the console and API address (HTTPS later), host:port.
 	ListenAddr string
+	// AgentAddr is the agent link address (gRPC over TLS), host:port.
+	AgentAddr string
 	// LogLevel is the minimum level written to the structured log.
 	LogLevel slog.Level
 }
 
-var placeholder = regexp.MustCompile(`(?i)^\s*(<[^>]*>|\$\{[^}]*\}|change[-_ ]?me|replace[-_ ]?me|todo|tbd|xxx+|your[-_ ].*|example)\s*$`)
+// fileSchema is the one schema of config.toml. A key not listed here is refused.
+type fileSchema struct {
+	DataDir    string `toml:"data_dir"`
+	ListenAddr string `toml:"listen_addr"`
+	AgentAddr  string `toml:"agent_addr"`
+	LogLevel   string `toml:"log_level"`
+}
 
-// Load reads and validates the configuration. getenv is os.Getenv in production.
-// All problems are reported together.
+// Keys are the keys config.toml accepts, for docs and the generated reference.
+var Keys = []string{"data_dir", "listen_addr", "agent_addr", "log_level"}
+
+var (
+	placeholder = regexp.MustCompile(`(?i)^\s*(<[^>]*>|\$\{[^}]*\}|change[-_ ]?me|replace[-_ ]?me|todo|tbd|xxx+|your[-_ ].*|example)\s*$`)
+	secretKey   = regexp.MustCompile(`(?i)(private[-_]?key|secret|token|password|passwd|credential|api[-_]?key)`)
+)
+
+// Paths are the per-OS data folder and config file (operations R5.10).
+type Paths struct {
+	DataDir    string
+	ConfigFile string
+}
+
+// DefaultPaths returns the service folders for goos ("windows", "linux",
+// "darwin"). getenv supplies ProgramData on Windows.
+func DefaultPaths(goos string, getenv func(string) string) Paths {
+	switch goos {
+	case "windows":
+		base := strings.TrimSpace(getenv("ProgramData"))
+		if base == "" {
+			base = `C:\ProgramData`
+		}
+		dir := base + `\crsp`
+		return Paths{DataDir: dir, ConfigFile: dir + `\config.toml`}
+	case "darwin":
+		dir := "/Library/Application Support/crsp"
+		return Paths{DataDir: dir, ConfigFile: dir + "/config.toml"}
+	default:
+		return Paths{DataDir: "/var/lib/crsp", ConfigFile: "/etc/crsp/config.toml"}
+	}
+}
+
+// Load reads and validates the configuration for this OS. getenv is os.Getenv
+// in production. A missing config file is not an error; a broken one is.
 func Load(getenv func(string) string) (Config, error) {
+	return LoadFor(runtime.GOOS, getenv, os.ReadFile)
+}
+
+// LoadFor is Load with the OS and the file reader chosen by the caller.
+func LoadFor(goos string, getenv func(string) string, readFile func(string) ([]byte, error)) (Config, error) {
+	paths := DefaultPaths(goos, getenv)
 	var errs []error
 	get := func(name string) string {
 		v := strings.TrimSpace(getenv(name))
@@ -51,33 +117,55 @@ func Load(getenv func(string) string) (Config, error) {
 		return v
 	}
 
-	cfg := Config{
-		DataDir:    get(EnvDataDir),
-		ListenAddr: get(EnvListenAddr),
-		LogLevel:   slog.LevelInfo,
+	file := get(EnvConfigFile)
+	explicit := file != ""
+	if !explicit {
+		file = paths.ConfigFile
 	}
 
-	if cfg.DataDir == "" {
-		dir, err := os.UserConfigDir()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("%s: not set and no user config dir: %w", EnvDataDir, err))
-		} else {
-			cfg.DataDir = filepath.Join(dir, "crsp")
+	var fs fileSchema
+	data, err := readFile(file)
+	switch {
+	case err == nil:
+		var ferrs []error
+		fs, ferrs = parseFile(file, data)
+		errs = append(errs, ferrs...)
+	case errors.Is(err, os.ErrNotExist) && !explicit:
+		file = ""
+	default:
+		errs = append(errs, fmt.Errorf("config file %s: %w", file, err))
+		file = ""
+	}
+
+	cfg := Config{File: file, LogLevel: slog.LevelInfo}
+	pick := func(env, fileVal, def string) string {
+		if v := get(env); v != "" {
+			return v
 		}
-	} else if !filepath.IsAbs(cfg.DataDir) {
-		errs = append(errs, fmt.Errorf("%s: %q must be an absolute path", EnvDataDir, cfg.DataDir))
+		if fileVal != "" {
+			return fileVal
+		}
+		return def
 	}
+	cfg.DataDir = pick(EnvDataDir, fs.DataDir, paths.DataDir)
+	cfg.ListenAddr = pick(EnvListenAddr, fs.ListenAddr, DefaultListenAddr)
+	cfg.AgentAddr = pick(EnvAgentAddr, fs.AgentAddr, DefaultAgentAddr)
 
-	if cfg.ListenAddr == "" {
-		cfg.ListenAddr = "127.0.0.1:8080"
+	if !isAbs(cfg.DataDir, goos) {
+		errs = append(errs, fmt.Errorf("data_dir: %q must be an absolute path", cfg.DataDir))
 	}
-	if err := validateListenAddr(cfg.ListenAddr); err != nil {
-		errs = append(errs, fmt.Errorf("%s: %w", EnvListenAddr, err))
+	if err := validateAddr(cfg.ListenAddr); err != nil {
+		errs = append(errs, fmt.Errorf("listen_addr: %w", err))
 	}
-
-	if v := get(EnvLogLevel); v != "" {
+	if err := validateAddr(cfg.AgentAddr); err != nil {
+		errs = append(errs, fmt.Errorf("agent_addr: %w", err))
+	}
+	if cfg.ListenAddr == cfg.AgentAddr {
+		errs = append(errs, errors.New("listen_addr and agent_addr must differ"))
+	}
+	if v := pick(EnvLogLevel, fs.LogLevel, ""); v != "" {
 		if err := cfg.LogLevel.UnmarshalText([]byte(v)); err != nil {
-			errs = append(errs, fmt.Errorf("%s: %q is not one of debug, info, warn, error", EnvLogLevel, v))
+			errs = append(errs, fmt.Errorf("log_level: %q is not one of debug, info, warn, error", v))
 		}
 	}
 
@@ -87,14 +175,108 @@ func Load(getenv func(string) string) (Config, error) {
 	return cfg, nil
 }
 
-func validateListenAddr(addr string) error {
+// parseFile checks data against the schema and returns every problem found.
+func parseFile(name string, data []byte) (fileSchema, []error) {
+	var errs []error
+	var raw map[string]any
+	if err := toml.Unmarshal(data, &raw); err != nil {
+		return fileSchema{}, []error{fmt.Errorf("%s: %w", name, tomlError(err))}
+	}
+	// Secrets first, so the message is specific and never echoes the value.
+	for _, k := range secretKeys(raw, "") {
+		errs = append(errs, fmt.Errorf("%s: key %q holds a secret; secrets live in the OS secret store, never in config", name, k))
+	}
+	var fs fileSchema
+	dec := toml.NewDecoder(bytes.NewReader(data)).DisallowUnknownFields()
+	if err := dec.Decode(&fs); err != nil {
+		var strict *toml.StrictMissingError
+		if errors.As(err, &strict) {
+			for _, d := range strict.Errors {
+				key := strings.Join(d.Key(), ".")
+				if secretKey.MatchString(key) {
+					continue // already reported above
+				}
+				errs = append(errs, fmt.Errorf("%s: unknown key %q (allowed: %s)", name, key, strings.Join(Keys, ", ")))
+			}
+		} else {
+			errs = append(errs, fmt.Errorf("%s: %w", name, tomlError(err)))
+		}
+	}
+	for _, f := range []struct{ key, val string }{
+		{"data_dir", fs.DataDir}, {"listen_addr", fs.ListenAddr}, {"agent_addr", fs.AgentAddr}, {"log_level", fs.LogLevel},
+	} {
+		if f.val != "" && placeholder.MatchString(f.val) {
+			errs = append(errs, fmt.Errorf("%s: %s: %q is a placeholder; set a real value or remove the key", name, f.key, f.val))
+		}
+	}
+	// A placeholder must not reach the validators below as a real value.
+	if placeholder.MatchString(fs.DataDir) {
+		fs.DataDir = ""
+	}
+	if placeholder.MatchString(fs.ListenAddr) {
+		fs.ListenAddr = ""
+	}
+	if placeholder.MatchString(fs.AgentAddr) {
+		fs.AgentAddr = ""
+	}
+	if placeholder.MatchString(fs.LogLevel) {
+		fs.LogLevel = ""
+	}
+	return fs, errs
+}
+
+// tomlError keeps a decode error's position and drops the document excerpt,
+// which could echo a secret value.
+func tomlError(err error) error {
+	var de *toml.DecodeError
+	if errors.As(err, &de) {
+		line, col := de.Position()
+		return fmt.Errorf("%s (line %d, column %d)", de.Error(), line, col)
+	}
+	return err
+}
+
+func secretKeys(m map[string]any, prefix string) []string {
+	var out []string
+	for k, v := range m {
+		full := prefix + k
+		if secretKey.MatchString(k) {
+			out = append(out, full)
+			continue
+		}
+		if sub, ok := v.(map[string]any); ok {
+			out = append(out, secretKeys(sub, full+".")...)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+func isAbs(p, goos string) bool {
+	if goos == "windows" {
+		return len(p) >= 3 && p[1] == ':' && (p[2] == '\\' || p[2] == '/') || strings.HasPrefix(p, `\\`)
+	}
+	return filepath.IsAbs(p) || strings.HasPrefix(p, "/")
+}
+
+func validateAddr(addr string) error {
 	_, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return fmt.Errorf("%q is not host:port", addr)
 	}
 	n, err := strconv.Atoi(port)
-	if err != nil || n < 0 || n > 65535 {
+	if err != nil || n < 1 || n > 65535 {
 		return fmt.Errorf("%q has an invalid port", addr)
 	}
 	return nil
+}
+
+// SecretKeys returns the keys of a TOML document that look like secrets. A
+// document that does not parse returns nil; the config check reports that.
+func SecretKeys(data []byte) []string {
+	var raw map[string]any
+	if err := toml.Unmarshal(data, &raw); err != nil {
+		return nil
+	}
+	return secretKeys(raw, "")
 }

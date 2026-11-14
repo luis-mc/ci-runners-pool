@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-**NOT YET IMPLEMENTED.** Nothing in this spec is built. Today the binary reads three `CRSP_*` environment variables (`internal/config/config.go`) and the release workflow publishes `edge` and `v*` releases. Every requirement below is planned, with its milestone.
+**Partly built (CRSP18).** Built: the config file and schema (R5.8, R5.9), the per-OS folders (R5.10), the daily backup, restore and drill (R5.21 to R5.25, R5.27, the secret list of R5.26 as `backup.MissingSecrets`). Everything else below is **NOT YET IMPLEMENTED**: planned, with its milestone.
 
 ## 1. In one paragraph
 
@@ -122,7 +122,7 @@ States for every screen: empty (no backups, no update), busy (draining, download
 
 ## 5. Functional requirements
 
-Each requirement names its milestone (M1 to M8, product brief). All are **NOT YET IMPLEMENTED**.
+Each requirement names its milestone (M1 to M8, product brief). Those not named as built in the status line at the top are **NOT YET IMPLEMENTED**.
 
 ### Install and first run
 
@@ -298,9 +298,9 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R5.5 | planned: internal/install/join_test.go TestJoinStoresKeyInSecretStore |
 | R5.6 | planned: cmd/crsp first-run e2e TestFirstStartPrintsOneTimeLink |
 | R5.7 | planned: installer smoke jobs in build.yml per OS (M8) |
-| R5.8 | planned: internal/config/file_test.go TestFileAndEnvOverride, TestCheckListsAllProblems |
-| R5.9 | planned: internal/config/file_test.go TestRefusesUnknownKeyPlaceholderSecret |
-| R5.10 | planned: internal/install/paths_test.go TestDataFolderPerOS, TestDataFolderPermissions |
+| R5.8 | internal/config/config_test.go TestFileThenEnvOverride, TestReportsAllProblems |
+| R5.9 | internal/config/config_test.go TestRefusesPlaceholders, TestRefusesUnknownKeysWrongTypesAndSecrets |
+| R5.10 | internal/config/config_test.go TestDataFolderPerOS |
 | R5.11 | planned: internal/update/checker_test.go TestNewestBuildPerChannel (recorded GitHub responses) |
 | R5.12 | planned: internal/update/verify_test.go TestRejectsBadSHA256, TestRejectsWrongWorkflowProvenance |
 | R5.13 | planned: internal/update/selfcheck_test.go TestRefusesOlderSchema |
@@ -311,13 +311,13 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R5.18 | planned: internal/update/rollout_test.go TestControllerFirstThenOneMachineAtATime, TestAcceptsPreviousAgent |
 | R5.19 | planned: internal/update/runner_version_test.go TestRunnerSHA256Mismatch, TestDisableUpdateFlag |
 | R5.20 | planned: internal/update/runner_version_test.go TestPinMovesWithin7Days, TestDoctorWarnsAt21Days |
-| R5.21 | planned: internal/backup/writer_test.go TestArchiveHasDbConfigManifestNoSecret |
-| R5.22 | planned: internal/backup/writer_test.go TestCorruptBackupDeleted |
-| R5.23 | planned: internal/backup/prune_test.go TestKeep14DaysAndNewestGood |
-| R5.24 | planned: internal/backup/cli_test.go TestBackupNowAndList |
-| R5.25 | planned: internal/backup/restore_test.go TestRestoreChecksManifestAndBacksUpFirst, TestRefusesNewerSchema |
-| R5.26 | planned: internal/backup/restore_test.go TestDoctorListsMissingSecrets |
-| R5.27 | planned: internal/backup/drill_test.go TestDrillRecordsResult, TestDoctorWarnsAfter90Days |
+| R5.21 | internal/backup/backup_test.go TestArchiveHasDbConfigManifestNoSecret, TestScheduledRunWritesBackup |
+| R5.22 | internal/backup/backup_test.go TestCorruptBackupDeleted |
+| R5.23 | internal/backup/backup_test.go TestKeep14DaysAndNewestGood |
+| R5.24 | internal/backup/backup_test.go TestBackupNowAndList; internal/api/handlers_ops_test.go TestBackupsListRunDrillRestore |
+| R5.25 | internal/backup/backup_test.go TestRestoreChecksManifestAndBacksUpFirst, TestRestoreRefusesNewerSchemaAndTamperedArchive |
+| R5.26 | internal/backup/backup_test.go TestDoctorListsMissingSecrets (the doctor check itself is the doctor's) |
+| R5.27 | internal/backup/backup_test.go TestDrillRecordsResult, TestDoctorWarnsAfter90Days |
 | R5.28 | planned: internal/configio/export_test.go TestExportHasNoSecretsOrHistory |
 | R5.29 | planned: internal/configio/plan_test.go TestPlanListsEachChangeAndChangesNothing |
 | R5.30 | planned: internal/configio/apply_test.go TestRefusesStalePlan, TestRemovalNeedsYes, TestAuditPerChange |
@@ -330,7 +330,7 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R6.3 | planned: internal/update/verify_test.go TestNoNetworkFailsClosed |
 | R6.4 | planned: internal/backup/doctor_test.go TestProblemWhenBackupOlderThan24h |
 | R6.5 | planned: internal/backup/drill_bench_test.go BenchmarkDrill1GB (under 10 minutes) |
-| R6.6 | planned: internal/backup/writer_bench_test.go BenchmarkBackup1GB, TestWritersNotBlocked |
+| R6.6 | WAL and VACUUM INTO: internal/store/ops_test.go TestInspectAndVacuumInto (benchmark planned) |
 | R6.7 | planned: internal/backup/doctor_test.go TestWarnsAbove20PercentFreeDisk |
 | R6.8 | planned: internal/backup/secrets_scan_test.go TestNoSecretInBackupExportConfigLogs |
 | R6.9 | planned: internal/install/rerun_test.go, internal/update/swap_test.go TestInterruptedStepsRerun |
@@ -353,9 +353,9 @@ Proposed by the spec writer. The owner confirms or changes each one (see the que
 
 ## 11. Not built yet
 
-Everything above is **NOT YET IMPLEMENTED**. The seams:
+Built in CRSP18: see the status line at the top. The seams:
 
-- `internal/config/config.go` reads three env variables today, with dev defaults (`127.0.0.1:8080`, the user config folder). R5.8 to R5.10 add the file, the schema and the per-OS service folders; the env names stay.
+- `internal/config/config.go` reads `config.toml` and the `CRSP_*` variables (R5.8 to R5.10). `crsp config check` (the command) is the CLI's.
 - `.github/workflows/release.yml` publishes archives, `SHA256SUMS` and provenance today. The updater reads exactly these. It will also need `install.sh` and `install.ps1` as release assets (R5.1), and the `edge` release keeps its tag name so the checker can find it.
 - Code signing and installers (R5.7) come in milestone 8.
 
@@ -374,5 +374,9 @@ Everything above is **NOT YET IMPLEMENTED**. The seams:
 ## 12. Code map
 
 Source: internal/config/config.go
+Source: internal/backup/service.go
+Source: internal/backup/archive.go
+Source: internal/backup/start.go
+Source: internal/api/handlers_ops.go
 Source: .github/workflows/release.yml
 Source: cmd/crsp/main.go

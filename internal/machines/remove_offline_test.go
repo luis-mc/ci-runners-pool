@@ -1,0 +1,40 @@
+package machines_test
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"testing"
+	"time"
+
+	"connectrpc.com/connect"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
+)
+
+func timeAfter() <-chan time.Time { return time.After(5 * time.Second) }
+
+// R5.42: if the machine is offline, removal still revokes the key at once. The
+// change says the agent will learn this on its next connect and that its local
+// files stay until it is uninstalled. When it connects, it is refused with the
+// "removed" reason (R5.39).
+func TestRemoveOfflineMachineRevokesAtOnce(t *testing.T) {
+	e, id, key := setup(t)
+	ch, err := e.Svc.Remove(context.Background(), "owner", id, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ch.State != machines.ChangeDone || !strings.Contains(ch.Detail.Reason, "next connect") || !strings.Contains(ch.Detail.Reason, "local files stay") {
+		t.Fatalf("change = %+v", ch)
+	}
+	if _, err := e.Svc.Authenticate(context.Background(), key, ""); !errors.Is(err, machines.ErrUnauthenticated) {
+		t.Fatalf("key still valid: %v", err)
+	}
+	_, err = e.session(id, key, nil)
+	if connect.CodeOf(err) != connect.CodeUnauthenticated {
+		t.Fatalf("next connect: %v", err)
+	}
+	if _, err := e.Svc.Remove(context.Background(), "owner", id, true); !errors.Is(err, machines.ErrNotFound) {
+		t.Fatalf("remove twice: %v", err)
+	}
+}

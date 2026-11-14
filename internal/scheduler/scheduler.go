@@ -116,6 +116,7 @@ type Freed struct {
 	Number    int // 0 for a ticket
 	Job       JobRef
 	Reason    string
+	TakenAt   time.Time // when the freed slot was taken; zero for a ticket
 }
 
 // Status is the queue of one machine (R5.58).

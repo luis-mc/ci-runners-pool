@@ -258,41 +258,41 @@ Tests are planned unless marked built. Planned paths are written in plain text u
 
 | Requirement | Test |
 |---|---|
-| R5.1 | planned: internal/cli/tree_test.go TestEveryCommandHasHelp, TestUnbuiltCommandExits2 |
-| R5.2 | planned: internal/cli/client_test.go TestNoHandWrittenControllerCalls |
-| R5.3 | planned: internal/cli/parity_test.go TestEveryOperationHasCommand |
-| R5.4 | planned: internal/cli/login_test.go TestDeviceFlowSavesToken |
-| R5.5 | planned: internal/cli/login_test.go TestFingerprintPinnedAndMismatchRefused |
-| R5.6 | planned: internal/cli/contexts/contexts_test.go TestAddUseRemove |
-| R5.7 | planned: internal/cli/contexts/contexts_test.go TestPickOrder |
-| R5.8 | planned: internal/cli/login_test.go TestLogoutOffline |
-| R5.9 | planned: internal/cli/open_test.go TestOneTimeLinkPrinted |
-| R5.10 | planned: internal/cli/output/table_test.go TestTableAndFormats |
-| R5.11 | planned: internal/cli/output/json_test.go TestJSONMatchesSchema, TestWatchNDJSON |
-| R5.12 | planned: internal/cli/exitcode_test.go TestStatusToExitCode |
-| R5.13 | planned: internal/cli/output/table_test.go TestNoColor |
-| R5.14 | planned: internal/cli/confirm_test.go TestDestructiveListsWhatGoes |
-| R5.15 | planned: internal/cli/confirm_test.go TestYesFlagAndNoTerminal |
-| R5.16 | planned: internal/cli/drain_test.go TestWaitsForJobsAndTimeout |
-| R5.17 | planned: internal/cli/repo_test.go TestRepoCommands, TestForkWarning |
-| R5.18 | planned: internal/cli/machine_test.go TestMachineListAndAdd |
-| R5.19 | planned: internal/cli/runner_test.go TestRunnerCreateRefusesUnsupported |
-| R5.20 | planned: internal/cli/job_test.go TestJobListFilters, TestWatchReconnects |
-| R5.21 | planned: internal/cli/doctor_test.go TestFindingsAndExitCode |
-| R5.22 | planned: internal/cli/config_test.go TestDryRunChangesNothing, TestApplyNeedsYes |
-| R5.23 | planned: internal/cli/backup_test.go TestBackupRestoreOwnerOnly |
-| R5.24 | planned: internal/cli/update_test.go TestChecksumAndDrain |
-| R5.25 | planned: internal/cli/completion_test.go TestScriptsAndOfflineCompletion |
-| R5.26 | built: `cmd/crsp/main_test.go` TestRunVersion; planned: --json case |
-| R5.27 | built: `cmd/crsp/main_test.go` TestRunUsageErrors |
-| R6.1 | planned: internal/cli/secrets_test.go TestNoSecretInOutputOrConfig (runs every command with a canary token) |
-| R6.2 | planned: internal/cli/contexts/contexts_test.go TestNoTokenInFile, TestFallbackFileMode |
-| R6.3 | planned: internal/cli/client_test.go TestNoInsecureFlag |
-| R6.4 | planned: internal/cli/bench_test.go BenchmarkOfflineCommands |
-| R6.5 | planned: internal/cli/bench_test.go BenchmarkList1000, TestCallTimeout |
-| R6.6 | planned: internal/cli/role_test.go TestViewerChangeExits3 |
-| R6.7 | planned: internal/cli/output/table_test.go TestFits80Columns |
-| R6.8 | planned: internal/cli/output/json_test.go TestJSONGolden |
+| R5.1 | built: internal/cli/core_test.go TestEveryCommandHasHelp, TestUnbuiltCommandExits2 (unbuilt commands exit 2) |
+| R5.2 | built: internal/cli/core_test.go TestNoHandWrittenControllerCalls |
+| R5.3 | built: internal/cli/core_test.go TestEveryOperationHasCommand |
+| R5.4 | built: internal/cli/login_test.go TestDeviceFlowSavesToken |
+| R5.5 | built: internal/cli/login_test.go TestFingerprintPinnedAndMismatchRefused |
+| R5.6 | built: internal/cli/contexts/contexts_test.go TestAddUseRemove; internal/cli/core_test.go TestContextCommands |
+| R5.7 | built: internal/cli/contexts/contexts_test.go TestPickOrder; internal/cli/core_test.go TestControllerFlagNeedsPinnedURL |
+| R5.8 | built: internal/cli/login_test.go TestLogoutOffline |
+| R5.9 | built: internal/cli/login_test.go TestOneTimeLinkPrinted |
+| R5.10 | built: internal/cli/output/output_test.go TestTableAndFormats |
+| R5.11 | built: internal/cli/core_test.go TestJSONErrorEnvelopeOnStderr; internal/cli/resources_test.go TestWatchNDJSON; internal/cli/output/output_test.go TestJSONGolden |
+| R5.12 | built: internal/cli/core_test.go TestStatusToExitCode, TestUnreachableExits6, TestNotSignedInExits3 |
+| R5.13 | built: internal/cli/output/output_test.go TestNoColor; internal/cli/core_test.go TestNoColor |
+| R5.14 | built: internal/cli/resources_test.go TestDestructiveListsWhatGoes |
+| R5.15 | built: internal/cli/resources_test.go TestYesFlagAndNoTerminal |
+| R5.16 | built: internal/cli/resources_test.go TestWaitsForJobsAndTimeout, TestStopJobsDecision |
+| R5.17 | built: internal/cli/resources_test.go TestRepoCommands, TestRepoPlanOutcomes, TestForkWarning |
+| R5.18 | built: internal/cli/resources_test.go TestMachineListAndAdd |
+| R5.19 | built: internal/cli/resources_test.go TestRunnerCreateRefusesUnsupported, TestRunnerListAndRemove |
+| R5.20 | built: internal/cli/resources_test.go TestJobListFilters, TestWatchReconnects |
+| R5.21 | built: internal/cli/resources_test.go TestFindingsAndExitCode |
+| R5.22 | planned (M8): internal/cli/config_test.go TestDryRunChangesNothing, TestApplyNeedsYes |
+| R5.23 | built: internal/cli/resources_test.go TestBackupRestoreOwnerOnly (backup --out is not built: no download operation in the contract) |
+| R5.24 | planned (M3): internal/cli/update_test.go TestChecksumAndDrain |
+| R5.25 | built: internal/cli/completion_test.go TestScriptsAndOfflineCompletion |
+| R5.26 | built: cmd/crsp/main_test.go TestRunVersion, TestRunVersionJSON; internal/cli/core_test.go TestVersionJSON |
+| R5.27 | built: cmd/crsp/main_test.go TestRunUsageErrors; internal/cli/core_test.go TestUsageErrors |
+| R6.1 | built: internal/cli/login_test.go TestNoSecretInOutputOrConfig (runs commands with a canary token) |
+| R6.2 | built: internal/cli/contexts/contexts_test.go TestNoTokenInFile; internal/cli/core_test.go TestFallbackFileMode |
+| R6.3 | built: internal/cli/core_test.go TestNoInsecureFlag; internal/cli/login_test.go TestLoginErrors |
+| R6.4 | built: internal/cli/completion_test.go BenchmarkOfflineCommands, TestScriptsAndOfflineCompletion |
+| R6.5 | built: internal/cli/resources_test.go TestJobList1000; internal/cli/core_test.go TestCallTimeout |
+| R6.6 | built: internal/cli/resources_test.go TestViewerChangeExits3 |
+| R6.7 | built: internal/cli/output/output_test.go TestFits80Columns |
+| R6.8 | built: internal/cli/output/output_test.go TestJSONGolden |
 
 ## 10. Decisions
 
@@ -301,6 +301,8 @@ Tests are planned unless marked built. Planned paths are written in plain text u
 | D1 | How does the CLI sign in? | GitHub device flow through the controller; the CLI keeps only a controller token (decision 0002). | 2026-11-13 |
 | D2 | How does the CLI reach the API? | The Go client generated from the same OpenAPI contract as the web console (decision 0001). | 2026-11-13 |
 | D3 | How does a headless machine open the console? | `crsp open` prints a one-time link (decision 0005). | 2026-11-13 |
+| D4 | Which command library? | The standard `flag` package with a small command table in `internal/cli`: no new dependency; completion scripts are written from the table. (CRSP25, answers open question 6; the owner may still choose cobra.) | 2026-11-14 |
+| D5 | What is the verb for new runners? | `runner add` (owner decision for M1; answers open question 1). | 2026-11-14 |
 
 Open questions for the owner (not decided):
 
@@ -315,17 +317,41 @@ Open questions for the owner (not decided):
 
 ## 11. Not built yet
 
-Everything except `controller`, `version`, `help` and the `agent` placeholder is NOT YET IMPLEMENTED.
+Built in milestone 1 (CRSP25): `controller`, `agent` and `tray` dispatch, `version` (with `--json`), `help`, `login`, `logout`, `open`, `context list|use|remove`, `repo list|enable|disable|policy`, `machine list|add|drain|resume|remove`, `runner list|add|remove`, `job list|watch`, `doctor`, `backup`, `restore`, `completion`, the generated Go client, contexts, the token in the secret store, `--json`, exit codes, and the confirmation helper.
 
-- The seam: `run()` in `cmd/crsp/main.go` sends any command other than the modes to `internal/cli`.
-- `packages/contract/oapi-codegen.yaml` has no client target yet. The contract has only `getHealth`.
-- `version --json` is not built.
+NOT YET IMPLEMENTED:
+
+- `config export|import|apply` (M8), `update` (M3), the `tray` mode (M8), `agent join` (M3, with `machines`). Each says it is not built yet and exits 2.
+- `backup --out FILE`: the contract has no download operation, so `backup` starts a backup on the controller and names its file. A download operation is needed first.
+- OS secret stores (Windows Credential Manager, macOS Keychain, Linux Secret Service): the CLI uses the 0600 file store behind `internal/secrets` until each store lands. The file is refused when its mode is wider than 0600.
+- `login` runs GitHub's device flow with the URLs from `getCliLoginConfig` (the contract's shape) and then calls `exchangeCliToken`. The sequence diagram in section 3 shows the controller doing the polling; the contract does not.
+- `machine add --name` is printed as a hint only: the contract's join code has no name field.
+- `runner add --backend` is checked against the machine's backends on the client; the contract's plan request has no backend field.
+- `runner remove --stop-jobs` is accepted for symmetry; the contract has no operation to stop one runner's job, so it only waits and times out.
+- Operations with `x-cli: none` in the contract (users, settings, audit, repository plans for other areas, slots, setup, webhooks) have no command yet (open question 7).
 
 ## 12. Code map
 
 Source: cmd/crsp/main.go
+Source: cmd/crsp/browser.go
 Source: cmd/crsp/main_test.go
+Source: internal/cli/app.go
+Source: internal/cli/session.go
+Source: internal/cli/confirm.go
+Source: internal/cli/filestore.go
+Source: internal/cli/tree.go
+Source: internal/cli/parity.go
+Source: internal/cli/cmd_auth.go
+Source: internal/cli/cmd_repo.go
+Source: internal/cli/cmd_machine.go
+Source: internal/cli/cmd_runner.go
+Source: internal/cli/cmd_job.go
+Source: internal/cli/cmd_ops.go
+Source: internal/cli/contexts/contexts.go
+Source: internal/cli/output/output.go
+Source: internal/api/client/client.gen.go
 Source: packages/contract/openapi.yaml
 Source: packages/contract/oapi-codegen.yaml
+Source: packages/contract/oapi-codegen-client.yaml
 
-Planned: internal/cli/ (command tree, output, prompts, exit codes), internal/cli/contexts/ (config file).
+Tests: internal/cli/*_test.go, internal/cli/contexts/contexts_test.go, internal/cli/output/output_test.go.

@@ -1,0 +1,37 @@
+package cli
+
+// operationCommands maps each contract operation the CLI reaches to the
+// command that calls it (cli R5.3). An operation not listed here must carry
+// `x-cli: none` and `x-cli-reason` in packages/contract/openapi.yaml; the test
+// TestEveryOperationHasCommand fails when a new operation has neither.
+var operationCommands = map[string]string{
+	"getCliLoginConfig":      "login",
+	"exchangeCliToken":       "login",
+	"revokeCliToken":         "logout",
+	"createConsoleLink":      "open",
+	"listRepositories":       "repo list",
+	"planRepositoryChanges":  "repo enable|disable",
+	"getRepositoryPlan":      "repo enable|disable",
+	"applyRepositoryChanges": "repo enable|disable",
+	"updateRepositoryPolicy": "repo policy",
+	"listMachines":           "machine list",
+	"createJoinCode":         "machine add",
+	"drainMachine":           "machine drain",
+	"getMachineChange":       "machine drain|remove",
+	"decideMachineChange":    "machine drain|remove --stop-jobs",
+	"removeMachine":          "machine remove",
+	"resumeMachine":          "machine resume",
+	"listRunners":            "runner list",
+	"planRunners":            "runner add",
+	"getRunnerPlan":          "runner add",
+	"createRunners":          "runner add",
+	"deleteRunner":           "runner remove",
+	"getRunner":              "runner remove",
+	"listJobs":               "job list",
+	"streamEvents":           "job watch",
+	"runDoctor":              "doctor",
+	"getDoctorRun":           "doctor",
+	"runBackup":              "backup",
+	"listBackups":            "restore",
+	"restoreBackup":          "restore",
+}
