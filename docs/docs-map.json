@@ -1,11 +1,8 @@
 {
   "schema": 1,
   "map": {
-    "cmd/ci-runners-pool/**": [
-      "docs/features/cli/spec.md"
-    ],
-    "internal/cli/**": [
-      "docs/features/cli/spec.md"
+    "internal/tray/**": [
+      "docs/features/tray/spec.md"
     ]
   }
 }

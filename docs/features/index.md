@@ -6,27 +6,23 @@
 
 ### agent
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this app yet.
 
 ### cli
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
+| [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | proposed | 0.1.0 | 2026-11-14 |
 
 ### controller
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this app yet.
 
 ### tray
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
+| [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | proposed | 0.1.0 | 2026-11-14 |
 
 ### web-console
 
@@ -40,15 +36,13 @@ No feature lists this topic yet.
 
 ### github
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### install
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
+| [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | proposed | 0.1.0 | 2026-11-14 |
 
 ### isolation
 
@@ -56,9 +50,7 @@ No feature lists this topic yet.
 
 ### machines
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### observability
 
@@ -68,13 +60,11 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
+| [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | proposed | 0.1.0 | 2026-11-14 |
 
 ### runners
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### scheduling
 
@@ -84,11 +74,13 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
+| [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | proposed | 0.1.0 | 2026-11-14 |
 
 ### ui
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | proposed | 0.1.0 | 2026-11-14 |
 
 ## By status
 
@@ -96,8 +88,10 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
+| [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | proposed | 0.1.0 | 2026-11-14 |
 
 ## Gaps
 
+- app controller: no feature spec lists it
+- app agent: no feature spec lists it
 - app web-console: no feature spec lists it
