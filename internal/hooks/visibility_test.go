@@ -79,7 +79,7 @@ func TestProbeAnswersWithoutTheGate(t *testing.T) {
 		}
 		return getenv(k)
 	}
-	if code := hooks.Run(context.Background(), []string{"job-started"}, e); code != 0 || strings.TrimSpace(out.String()) != hooks.ProbeOK {
+	if code := hooks.Run(context.Background(), []string{"job-started"}, e); code != 0 || strings.TrimSpace(out.String()) != hooks.ProbeOK+"\n"+hooks.NonInteractiveOK {
 		t.Fatalf("exit %d output %q", code, out.String())
 	}
 }

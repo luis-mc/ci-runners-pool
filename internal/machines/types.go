@@ -218,9 +218,25 @@ type ChangeDetail struct {
 	Reason   string    `json:"reason,omitempty"`
 	// WaitingFor names the jobs it waits for now.
 	WaitingFor []JobRef `json:"waiting_for,omitempty"`
+	// RunnerNames are the runners the change touches (R5.57). Empty means every
+	// runner of the machine. The drain waits only for jobs on these runners.
+	RunnerNames []string `json:"runner_names,omitempty"`
+	// Holder is the job that holds the drain longest (R5.55).
+	Holder *Holder `json:"holder,omitempty"`
+	// StuckAlerted is true once the owner was told that the holder runs far past
+	// its usual duration, so the alert goes out once (R5.56).
+	StuckAlerted bool `json:"stuck_alerted,omitempty"`
 	// OverdueSince is when the drain timeout passed with jobs still running.
 	// The change keeps waiting; nothing is stopped (R5.33).
 	OverdueSince time.Time `json:"overdue_since,omitempty"`
+}
+
+// Holder is the job a drain waits for longest, with its usual duration from job
+// history (R5.55). Usual is zero when there is no history for the job.
+type Holder struct {
+	Job       JobRef        `json:"job"`
+	Usual     time.Duration `json:"usual,omitempty"`
+	OverUsual bool          `json:"over_usual,omitempty"`
 }
 
 // CodeKind is a join code kind.

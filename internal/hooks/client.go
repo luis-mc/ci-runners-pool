@@ -31,6 +31,20 @@ type Client interface {
 	Release(ctx context.Context, machineID string, job scheduler.JobRef, claims []string) ([]scheduler.Freed, error)
 }
 
+// Time limits of the hook's one network-like path, the call to the agent
+// (scheduling R5.62). A hook does only local work; this call is the only thing
+// that can be slow, so it has a short, explicit limit and the hook decides what
+// the job does when it is hit: it fails open with a ::warning annotation and a
+// problem record, and never waits for a login or a reply (R5.61).
+const (
+	// CallTimeout is how long a hook waits for one answer of the agent.
+	CallTimeout = 5 * time.Second
+	// AgentForwardTimeout is how long the agent waits for the controller while
+	// it answers a hook. It is shorter than CallTimeout, so the hook gets the
+	// agent's "not reachable" answer rather than its own timeout.
+	AgentForwardTimeout = 4 * time.Second
+)
+
 // ErrUnreachable marks a failure to reach the agent, or the agent's failure to
 // reach the controller. The gate then waits on local load only (R5.23).
 var ErrUnreachable = errors.New("agent not reachable")
@@ -65,8 +79,8 @@ var _ Client = (*SocketClient)(nil)
 
 func (c *SocketClient) call(ctx context.Context, env envelope) (reply, error) {
 	to := c.Timeout
-	if to == 0 {
-		to = 30 * time.Second
+	if to <= 0 {
+		to = CallTimeout
 	}
 	ctx, cancel := context.WithTimeout(ctx, to)
 	defer cancel()
@@ -174,6 +188,10 @@ func Serve(ln net.Listener, h Client) error {
 }
 
 func handle(ctx context.Context, h Client, env envelope) reply {
+	// A slow controller never holds a hook past its own limit: the agent answers
+	// "not reachable" first and the hook fails open (R5.62).
+	ctx, cancel := context.WithTimeout(ctx, AgentForwardTimeout)
+	defer cancel()
 	var r reply
 	var err error
 	switch env.Op {

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
@@ -154,7 +155,7 @@ func TestRerunAlreadyAndStaleEnv(t *testing.T) {
 	if _, err := r.b.Start(context.Background(), r.spec(), backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
 		t.Fatal(err)
 	}
-	if r.index("launchctl kickstart -k system/"+label) < 0 || r.index("dscl . -create") >= 0 {
+	if r.index("launchctl bootout system/"+label) < 0 || r.index("launchctl bootstrap system") < r.index("pgrep") || r.index("dscl . -create") >= 0 {
 		t.Errorf("stale env: %v", r.cmd.Texts())
 	}
 }
@@ -262,5 +263,21 @@ func TestDetect(t *testing.T) {
 	r.cmd.Rules = []sysfake.Rule{{Match: "id -u", Result: sys.Result{Stdout: "0\n"}}}
 	if s, _ := r.b.Detect(context.Background()); !s.Usable {
 		t.Errorf("%+v", s)
+	}
+}
+
+// runners R5.46: a listener that outlives its daemon blocks the load.
+func TestRestartNeverStartsASecondListener(t *testing.T) {
+	r := started(t)
+	r.b.d.Sleep = func(context.Context, time.Duration) {}
+	r.fs.Files["/usr/local/var/crsp/runners/box-1/.env"] = []byte("old\n")
+	r.cmd.Rules = []sysfake.Rule{{Match: "pgrep", Result: sys.Result{Stdout: "88\n"}}}
+	r.cmd.Calls = nil
+	_, err := r.b.Start(context.Background(), r.spec(), backend.StartConfig{Registration: "REGTOKEN"})
+	if !errors.Is(err, persistent.ErrListenerAlive) {
+		t.Fatalf("err = %v", err)
+	}
+	if r.index("launchctl bootstrap") >= 0 {
+		t.Errorf("a daemon was loaded beside a live listener: %v", r.cmd.Texts())
 	}
 }

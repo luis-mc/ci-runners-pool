@@ -111,12 +111,16 @@ func RunGate(ctx context.Context, cfg GateConfig) int {
 	}
 	budget := cfg.budget()
 
+	// Decide in the log before the first step that can be slow: a hang after
+	// this line is never silence (scheduling R5.63).
+	cfg.logf("job-started: checking disk space, then asking the agent (limit %.0f s per call); if it does not answer the job goes on with a warning", CallTimeout.Seconds())
 	if code, held := diskHold(ctx, &cfg, start, poll, maxWait); held {
 		return code
 	}
 
 	// Ask the agent who we are. A failure here is the load-only fallback.
 	if cfg.Client != nil {
+		cfg.logf("asking the agent who this machine is")
 		h, err := cfg.Client.Hello(ctx)
 		if err != nil {
 			cfg.logf("agent not reachable (%v): waiting on this machine's load only", err)
@@ -153,6 +157,9 @@ func RunGate(ctx context.Context, cfg GateConfig) int {
 			}
 		}
 		if !haveTicket {
+			if firstQueued.IsZero() {
+				cfg.logf("asking the agent for a slot")
+			}
 			dec, err = cfg.Client.Gate(ctx, scheduler.GateRequest{
 				GateID: cfg.GateID, MachineID: cfg.MachineID, Job: cfg.Job, EventClass: cfg.EventClass, Holder: cfg.Holder,
 				FirstQueued: firstQueued, Load: toLoad(reading), BudgetMemoryPct: cfg.BudgetMemoryPct, BudgetCPUPct: cfg.BudgetCPUPct})
@@ -167,6 +174,13 @@ func RunGate(ctx context.Context, cfg GateConfig) int {
 			// The agent or the controller went away: wait on local load only for what is left.
 			cfg.logf("%v: waiting on this machine's load only", err)
 			cfg.unreachable(err)
+			if haveTicket {
+				// Take our place out of the queue, with a short limit, so the
+				// job that goes on without a slot does not also hold one.
+				cctx, stop := context.WithTimeout(context.WithoutCancel(ctx), CallTimeout)
+				_ = cfg.Client.Cancel(cctx, cfg.MachineID, cfg.GateID)
+				stop()
+			}
 			return loadOnlyWait(ctx, &cfg, start, poll, maxWait, budget)
 		}
 		if len(dec.Go) > 0 {
@@ -204,7 +218,7 @@ func RunGate(ctx context.Context, cfg GateConfig) int {
 // finishTimeout removes the ticket and exits by the on-timeout rule (R5.20).
 func finishTimeout(ctx context.Context, cfg *GateConfig, onTimeout string, reasons []string, cancel bool) int {
 	if cancel && cfg.Client != nil {
-		cctx, stop := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+		cctx, stop := context.WithTimeout(context.WithoutCancel(ctx), CallTimeout)
 		defer stop()
 		_ = cfg.Client.Cancel(cctx, cfg.MachineID, cfg.GateID)
 	}

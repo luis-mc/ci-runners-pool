@@ -15,7 +15,10 @@ if [ ! -x "$crsp" ]; then
   warn "crsp is not installed at $crsp, so this job ran without the queue and the load gate. Reinstall crsp for all users on this machine, then run 'crsp doctor --check runner.hooks'. The job was not stopped."
 fi
 CRSP_HOOK_DIR=$dir
-export CRSP_HOOK_DIR
+# Nothing a hook starts may ask for a login (scheduling R5.62).
+GIT_TERMINAL_PROMPT=0
+GCM_INTERACTIVE=never
+export CRSP_HOOK_DIR GIT_TERMINAL_PROMPT GCM_INTERACTIVE
 "$crsp" hook "$hook" "$@"
 code=$?
 if [ "$code" -eq 126 ] || [ "$code" -eq 127 ]; then

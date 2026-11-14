@@ -39,6 +39,10 @@ type Drain struct {
 	Timeout time.Duration
 	// OnWarn is called once, at WarnAfter, with the blocking job.
 	OnWarn func(job string)
+	// OnStep is told each decision before the slow step it leads to: before the
+	// first idle check (it asks GitHub), when the blocking job changes, and
+	// before the action. A drain that hangs is never silent (scheduling R5.63).
+	OnStep func(line string)
 	// Now and Sleep are replaceable for tests.
 	Now   func() time.Time
 	Sleep func(ctx context.Context, d time.Duration) error
@@ -75,17 +79,29 @@ func (d Drain) Act(ctx context.Context, act func(ctx context.Context) error) err
 	if warnAfter <= 0 {
 		warnAfter = DefaultWarnAfter
 	}
+	step := func(format string, a ...any) {
+		if d.OnStep != nil {
+			d.OnStep("drain: " + fmt.Sprintf(format, a...))
+		}
+	}
 	start := now()
 	warned := false
+	lastJob := ""
+	step("asking whether the runner is idle (polls every %s, the warning comes at %s)", poll, warnAfter)
 	for {
 		idle, job, err := d.Idle(ctx)
 		if err != nil {
 			return fmt.Errorf("the runner list cannot be read, so no change is made: %w", err)
 		}
 		if idle {
+			step("the runner is idle; acting now")
 			return act(ctx)
 		}
 		elapsed := now().Sub(start)
+		if job != lastJob {
+			step("waiting for job %s (%s so far); nothing is stopped", job, elapsed.Round(time.Second))
+			lastJob = job
+		}
 		if !warned && elapsed >= warnAfter {
 			warned = true
 			if d.OnWarn != nil {
@@ -93,6 +109,7 @@ func (d Drain) Act(ctx context.Context, act func(ctx context.Context) error) err
 			}
 		}
 		if d.Timeout > 0 && elapsed >= d.Timeout {
+			step("the drain timeout passed with job %s still running; nothing was stopped", job)
 			return ErrDrainTimeout{Job: job}
 		}
 		if err := sleep(ctx, poll); err != nil {

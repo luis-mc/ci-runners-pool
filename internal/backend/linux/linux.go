@@ -214,14 +214,15 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 		if err := persistent.WriteMeta(b.d.FS, folder+"/"+persistent.MetaFile, wantMeta); err != nil {
 			return h, err
 		}
-		_, err := b.run(ctx, "restart", sys.Command{Name: "systemctl", Args: []string{"restart", unit}})
-		return h, err
+		// Stop, wait for the listener itself to end, then start: never a
+		// second listener beside one that is still alive (runners R5.46).
+		return h, b.restartUnit(ctx, unit, folder)
 	case persistent.Reregister:
 		if cfg.Removal == "" {
 			return h, errors.New("registering again in place needs a remove token for the old runner")
 		}
 		oldUnit := have.Service + ".service"
-		if _, err := b.run(ctx, "stop old service", sys.Command{Name: "systemctl", Args: []string{"stop", oldUnit}}); err != nil {
+		if err := b.stopUnit(ctx, oldUnit, have.Folder); err != nil {
 			return h, err
 		}
 		if err := b.configure(ctx, "remove old registration", have.Folder, have.Account, []string{"remove"}, cfg.Removal); err != nil {
@@ -336,8 +337,42 @@ func (b *Backend) writeFiles(ctx context.Context, folder, user, env string) erro
 // Stop stops the unit. Callers drain first and check for an idle runner right
 // before (runners R6.4).
 func (b *Backend) Stop(ctx context.Context, h backend.Handle) error {
-	_, err := b.run(ctx, "stop", sys.Command{Name: "systemctl", Args: []string{"stop", h.Ref + ".service"}})
+	f, ok, err := b.lookup(ctx, h.Ref)
+	if err != nil {
+		return err
+	}
+	folder := ""
+	if ok {
+		folder = f.Folder
+	}
+	return b.stopUnit(ctx, h.Ref+".service", folder)
+}
+
+// stopUnit stops the unit and waits until the listener of the runner folder is
+// gone. A listener that outlives its unit is reported, not ignored (R5.46).
+func (b *Backend) stopUnit(ctx context.Context, unit, folder string) error {
+	if _, err := b.run(ctx, "stop", sys.Command{Name: "systemctl", Args: []string{"stop", unit}}); err != nil {
+		return err
+	}
+	return b.noListener(ctx, folder)
+}
+
+// restartUnit is stop, wait for the listener to end, start.
+func (b *Backend) restartUnit(ctx context.Context, unit, folder string) error {
+	if err := b.stopUnit(ctx, unit, folder); err != nil {
+		return err
+	}
+	_, err := b.run(ctx, "start", sys.Command{Name: "systemctl", Args: []string{"start", unit}})
 	return err
+}
+
+func (b *Backend) noListener(ctx context.Context, folder string) error {
+	if folder == "" {
+		return nil
+	}
+	return persistent.WaitNoListener(ctx, func(ctx context.Context) ([]int, error) {
+		return persistent.UnixListeners(ctx, b.d.Cmd, folder)
+	}, 0, 0, b.d.Sleep)
 }
 
 // Deregister removes the runner from GitHub with a remove token and checks the
@@ -351,7 +386,7 @@ func (b *Backend) Deregister(ctx context.Context, h backend.Handle, removeToken 
 		return nil
 	}
 	unit := h.Ref + ".service"
-	if _, err := b.run(ctx, "stop", sys.Command{Name: "systemctl", Args: []string{"stop", unit}}); err != nil {
+	if err := b.stopUnit(ctx, unit, f.Folder); err != nil {
 		return err
 	}
 	if err := b.configure(ctx, "deregister", f.Folder, f.Account, []string{"remove"}, removeToken); err != nil {

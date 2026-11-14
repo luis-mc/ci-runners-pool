@@ -316,6 +316,10 @@ func runnerHooks(ctx context.Context, env doctor.Env) []doctor.Finding {
 // The check keeps its own copy so the doctor does not import the hook runtime.
 const hookProbeOK = "crsp hook ok"
 
+// hookNonInteractive is the word a hook prints in probe mode when it has turned
+// prompts off (internal/hooks NonInteractiveOK).
+const hookNonInteractive = "non-interactive"
+
 // runnerHookRun reports what happened when the agent ran each runner's real
 // job-started hook as the service account (R5.29). A hook needs only the shell
 // the runner already uses; it is not allowed to depend on anything else. A
@@ -343,8 +347,52 @@ func runnerHookRun(ctx context.Context, env doctor.Env) []doctor.Finding {
 			f.Severity, f.Title = doctor.Fail, "The job hook of "+r.Name+" does not reach crsp"
 			f.Detail = fmt.Sprintf("Exit %d. %s", p.ExitCode, strings.TrimSpace(p.Output))
 			f.Fix = doctor.Fix{Text: "Install crsp for all users on " + m.Name + " again, then run the check again.", Command: "crsp doctor --check runner.hookrun"}
+		case !strings.Contains(p.Output, hookNonInteractive):
+			// The hook runs, but it does not say it turns prompts off: a git or
+			// credential helper it starts could wait for a login (R5.30).
+			f.Severity, f.Title = doctor.Warn, "The job hook of "+r.Name+" does not turn prompts off"
+			f.Detail = "The hook reaches crsp, but crsp did not report that it sets GIT_TERMINAL_PROMPT=0 and GCM_INTERACTIVE=never."
+			f.Fix = doctor.Fix{Text: "Update crsp on " + m.Name + " and set the hooks again.", Command: "crsp doctor --check runner.hookrun"}
 		default:
 			f.Severity, f.Title = doctor.OK, "The job hook of "+r.Name+" reaches crsp"
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// runnerListener is runners R5.46 as the doctor sees it: a registered runner
+// has exactly one listener, and a listener never runs while its service is
+// stopped. Two listeners, or an orphan beside a stopped service, make GitHub
+// refuse the next one ("a session for this runner already exists").
+func runnerListener(ctx context.Context, env doctor.Env) []doctor.Finding {
+	rs, ms, out := persistentRunners(ctx, env, "runner.listener")
+	for _, r := range rs {
+		m := ms[r.MachineID]
+		f := doctor.Finding{Check: "runner.listener", Subject: runnerSubject(r)}
+		n := len(r.ListenerPIDs)
+		switch {
+		case !isOnline(env, m):
+			out = append(out, offlineSkip("runner.listener", m))
+			continue
+		case !r.ListenerKnown:
+			f.Severity, f.Title = doctor.Skip, "The listener of "+r.Name+" was not looked at"
+			f.Detail = "The agent on " + m.Name + " did not list the runner's listener processes."
+			f.Fix = doctor.Fix{Text: "Update the agent on " + m.Name + " and run the checks again.", Command: "crsp doctor --check runner.listener"}
+		case n > 1:
+			f.Severity, f.Title = doctor.Fail, r.Name+" has more than one listener"
+			f.Detail = fmt.Sprintf("%d listener processes run from the runner folder (%v). GitHub keeps one session per runner and refuses the others.", n, r.ListenerPIDs)
+			f.Fix = doctor.Fix{Text: "Stop the runner from the Runners screen. crsp waits for the listener itself to end, then starts one.", Link: "/runners"}
+		case n == 1 && !r.ServiceRunning:
+			f.Severity, f.Title = doctor.Fail, r.Name+" has a listener but its service is stopped"
+			f.Detail = fmt.Sprintf("The listener (process %d) outlived its service. Starting the service would start a second listener, which GitHub refuses.", r.ListenerPIDs[0])
+			f.Fix = doctor.Fix{Text: "End that listener process, or restart the runner from the Runners screen when it is idle.", Link: "/runners"}
+		case n == 0 && r.ServiceRunning:
+			f.Severity, f.Title = doctor.Warn, "The service of "+r.Name+" runs without a listener"
+			f.Detail = "The service wrapper is up, but no Runner.Listener process runs from the runner folder, so the runner takes no job."
+			f.Fix = doctor.Fix{Text: "Restart the runner from the Runners screen.", Link: "/runners"}
+		default:
+			f.Severity, f.Title = doctor.OK, "The listener of "+r.Name+" is one process under its service"
 		}
 		out = append(out, f)
 	}

@@ -129,7 +129,7 @@ func only(t *testing.T, fs []doctor.Finding, check string) doctor.Finding {
 func TestEveryRegisteredCheckIsM1AndHasAnID(t *testing.T) {
 	reg := doctor.NewRegistry()
 	Register(reg)
-	if len(reg.All()) != 19 {
+	if len(reg.All()) != 20 {
 		t.Fatalf("checks: %v", reg.SortedIDs())
 	}
 	for _, c := range reg.All() {
@@ -263,7 +263,7 @@ func TestRunnerService(t *testing.T) {
 		{Name: "actions.runner.o-r.crsp-manual", RunnerName: "crsp-manual", Running: true, Automatic: false, AutomaticKnown: true},
 	}}}
 	fs := run(t, doctor.Env{Fleet: fl}, "runner.service")
-	want := map[string]doctor.Severity{"crsp-ok": doctor.OK, "crsp-missing": doctor.Fail, "crsp-stopped": doctor.Fail, "crsp-manual": doctor.Fail}
+	want := map[string]doctor.Severity{"crsp-ok": doctor.OK, "crsp-prompts": doctor.Warn, "crsp-missing": doctor.Fail, "crsp-stopped": doctor.Fail, "crsp-manual": doctor.Fail}
 	for _, f := range fs {
 		if want[f.Subject.Name] != f.Severity {
 			t.Errorf("%s = %s", f.Subject.Name, f.Severity)
@@ -636,7 +636,8 @@ func TestRunnerHookRun(t *testing.T) {
 		return r
 	}
 	rs := []doctor.Runner{
-		mk("crsp-ok", &doctor.HookProbe{Output: "crsp hook ok\n"}),
+		mk("crsp-ok", &doctor.HookProbe{Output: "crsp hook ok\ncrsp hook non-interactive\n"}),
+		mk("crsp-prompts", &doctor.HookProbe{Output: "crsp hook ok\n"}),
 		mk("crsp-missing", &doctor.HookProbe{Output: "::warning title=crsp::crsp is not installed at /usr/local/bin/crsp, so this job ran without the queue and the load gate.\n"}),
 		mk("crsp-exit", &doctor.HookProbe{ExitCode: 2, Output: "boom"}),
 		mk("crsp-nostart", &doctor.HookProbe{Err: "powershell.exe: access denied"}),
@@ -648,7 +649,7 @@ func TestRunnerHookRun(t *testing.T) {
 	for _, f := range forCheck(run(t, doctor.Env{Fleet: fl}, "runner.hookrun"), "runner.hookrun") {
 		got[f.Subject.Name] = f
 	}
-	want := map[string]doctor.Severity{"crsp-ok": doctor.OK, "crsp-missing": doctor.Fail, "crsp-exit": doctor.Fail,
+	want := map[string]doctor.Severity{"crsp-ok": doctor.OK, "crsp-prompts": doctor.Warn, "crsp-missing": doctor.Fail, "crsp-exit": doctor.Fail,
 		"crsp-nostart": doctor.Fail, "crsp-silent": doctor.Fail, "crsp-unrun": doctor.Skip}
 	for name, sev := range want {
 		if got[name].Severity != sev {
@@ -660,5 +661,36 @@ func TestRunnerHookRun(t *testing.T) {
 	}
 	if d := got["crsp-missing"].Detail; !strings.Contains(d, "crsp is not installed") {
 		t.Errorf("detail does not carry the annotation: %q", d)
+	}
+}
+
+// R5.30: one listener per runner, under a running service.
+func TestRunnerListener(t *testing.T) {
+	mk := func(name string, known bool, pids []int, running bool) doctor.Runner {
+		r := persistent("id-"+name, name)
+		r.ListenerKnown, r.ListenerPIDs, r.ServiceRunning = known, pids, running
+		return r
+	}
+	fl := &fleet{machines: []doctor.Machine{healthyMachine()}, runners: []doctor.Runner{
+		mk("one", true, []int{10}, true),
+		mk("two", true, []int{10, 11}, true),
+		mk("orphan", true, []int{12}, false),
+		mk("empty", true, nil, true),
+		mk("idle", true, nil, false),
+		mk("unknown", false, nil, true),
+	}}
+	got := map[string]doctor.Finding{}
+	for _, f := range forCheck(run(t, doctor.Env{Fleet: fl}, "runner.listener"), "runner.listener") {
+		got[f.Subject.Name] = f
+	}
+	want := map[string]doctor.Severity{"one": doctor.OK, "two": doctor.Fail, "orphan": doctor.Fail,
+		"empty": doctor.Warn, "idle": doctor.OK, "unknown": doctor.Skip}
+	for name, sev := range want {
+		if got[name].Severity != sev {
+			t.Errorf("%s = %+v, want %s", name, got[name], sev)
+		}
+		if sev != doctor.OK && got[name].Fix.Text == "" {
+			t.Errorf("%s has no fix", name)
+		}
 	}
 }

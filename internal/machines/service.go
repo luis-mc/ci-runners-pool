@@ -81,6 +81,7 @@ type Service struct {
 	fails    map[string][]time.Time
 	blocked  map[string]time.Time
 	updates  map[string]AgentUpdate
+	typical  TypicalFunc
 }
 
 // New returns a Service.

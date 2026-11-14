@@ -42,17 +42,22 @@ func (s *Service) beginChange(ctx context.Context, actor string, m Machine, kind
 	if timeoutMinutes <= 0 {
 		timeoutMinutes = DefaultSettings().DrainTimeoutMinutes
 	}
-	d.WaitingFor = s.runningJobs(m.ID)
+	d.WaitingFor = JobsOn(s.runningJobs(m.ID), d.RunnerNames)
 	c := Change{
 		ID: newID("ch_"), MachineID: m.ID, Kind: kind, State: ChangeWaiting, Detail: d,
 		StartedBy: actor, StartedAt: now, Deadline: now.Add(time.Duration(timeoutMinutes) * time.Minute),
 	}
+	c.Detail.Holder = s.HolderOf(ctx, c.Detail.WaitingFor)
 	if err := s.o.Repo.InsertChange(ctx, c); err != nil {
 		return Change{}, err
 	}
-	m.State = StateDraining
-	if err := s.o.Repo.UpdateMachine(ctx, m); err != nil {
-		return Change{}, err
+	// A change for a runner set keeps new jobs out of those runners only; the
+	// machine stays active for the rest (R5.57).
+	if len(d.RunnerNames) == 0 {
+		m.State = StateDraining
+		if err := s.o.Repo.UpdateMachine(ctx, m); err != nil {
+			return Change{}, err
+		}
 	}
 	_ = s.o.Repo.Audit(ctx, actor, "machine."+kind, m.ID, d.Reason)
 	s.sendDrain(c, timeoutMinutes)
@@ -63,6 +68,7 @@ func (s *Service) beginChange(ctx context.Context, actor string, m Machine, kind
 func (s *Service) sendDrain(c Change, timeoutMinutes int) {
 	_ = s.sessions.send(c.MachineID, &agentv1.SessionResponse{Message: &agentv1.SessionResponse_Drain{Drain: &agentv1.Drain{
 		CommandId: c.ID, ChangeKind: c.Kind, TimeoutSeconds: int32(timeoutMinutes * 60), //nolint:gosec // 5 minutes to 24 hours
+		RunnerNames: c.Detail.RunnerNames,
 	}}})
 }
 
@@ -94,6 +100,14 @@ func (s *Service) Drain(ctx context.Context, actor, id, reason string) (Change, 
 // StartChange begins a change of another feature that restarts runners or the
 // agent: it drains first and then calls Options.OnIdle (R5.31).
 func (s *Service) StartChange(ctx context.Context, actor, id, kind, reason string) (Change, error) {
+	return s.StartChangeFor(ctx, actor, id, kind, reason, nil)
+}
+
+// StartChangeFor is StartChange for a runner set: the drain keeps new jobs out
+// of those runners and waits only for the jobs on them, never for a busy runner
+// outside the set, not even one of the same repository (R5.57). No runner names
+// means the whole machine.
+func (s *Service) StartChangeFor(ctx context.Context, actor, id, kind, reason string, runners []string) (Change, error) {
 	switch kind {
 	case KindAgentUpdate, KindRunnerUpdate, KindServiceRestart:
 	default:
@@ -112,7 +126,7 @@ func (s *Service) StartChange(ctx context.Context, actor, id, kind, reason strin
 	if err != nil {
 		return Change{}, err
 	}
-	return s.beginChange(ctx, actor, m, kind, ChangeDetail{Reason: reason}, set.DrainTimeoutMinutes)
+	return s.beginChange(ctx, actor, m, kind, ChangeDetail{Reason: reason, RunnerNames: runners}, set.DrainTimeoutMinutes)
 }
 
 // Resume returns a drained machine to active (R5.34). A change that is still
@@ -297,9 +311,13 @@ func (s *Service) HandleDrainStatus(ctx context.Context, machineID string, st *a
 	for _, j := range st.GetWaitingFor() {
 		jobs = append(jobs, jobFromProto(j))
 	}
+	// Only the jobs on the runners the change touches count, whatever the agent
+	// sent (R5.57).
+	jobs = JobsOn(jobs, c.Detail.RunnerNames)
 	sort.Slice(jobs, func(i, j int) bool { return jobs[i].StartedAt.Before(jobs[j].StartedAt) })
 	c.Detail.WaitingFor = jobs
-	if !st.GetIdle() {
+	s.refreshHolder(ctx, &c)
+	if !st.GetIdle() && len(jobs) > 0 {
 		return s.o.Repo.UpdateChange(ctx, c)
 	}
 	return s.execute(ctx, c)
@@ -367,5 +385,9 @@ func finishOr(f func() error) error { return f() }
 func mustSettings(st Settings, _ error) Settings { return st }
 
 func jobFromProto(j *agentv1.JobRef) JobRef {
-	return JobRef{Repository: j.GetRepository(), RunID: j.GetRunId(), RunAttempt: int(j.GetRunAttempt()), Job: j.GetJob(), GitHubJobID: j.GetGithubJobId(), RunnerName: j.GetRunnerName()}
+	out := JobRef{Repository: j.GetRepository(), RunID: j.GetRunId(), RunAttempt: int(j.GetRunAttempt()), Job: j.GetJob(), GitHubJobID: j.GetGithubJobId(), RunnerName: j.GetRunnerName()}
+	if ms := j.GetStartedUnixMs(); ms > 0 {
+		out.StartedAt = time.UnixMilli(ms).UTC()
+	}
+	return out
 }

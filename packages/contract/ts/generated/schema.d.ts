@@ -1998,7 +1998,22 @@ export interface components {
             started_at: string;
             /** Format: date-time */
             deadline_at?: string;
+            /** @description Only the jobs on the runners the change touches (machines R5.57). */
             waiting_for: components["schemas"]["Job"][];
+            /** @description The runners the change touches. Empty means every runner of the machine (machines R5.57). */
+            runner_names?: string[];
+            holder?: components["schemas"]["DrainHolder"];
+            /** @description The named choices the user has now. Offered when the drain is past its timeout or its holder is far past its usual duration. There is never a choice that stops a job (machines R5.33, R5.56). */
+            choices?: ("wait_longer" | "cancel")[];
+        };
+        /** @description The job that holds a drain longest, and how long it has run (machines R5.55). */
+        DrainHolder: {
+            job: components["schemas"]["Job"];
+            running_seconds: number;
+            /** @description The usual duration of this job from job history. Absent when there is no history. */
+            usual_seconds?: number;
+            /** @description True when the job runs far past its usual duration (twice as long or more). */
+            over_usual: boolean;
         };
         MachineChangeDecision: {
             /** @enum {string} */

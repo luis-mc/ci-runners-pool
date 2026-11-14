@@ -456,3 +456,57 @@ func TestAddPassesCacheQuotaToTheAgent(t *testing.T) {
 		t.Fatalf("spec %+v", r.ag.added)
 	}
 }
+
+// CRSP38, scheduling R5.64: an operation on runner set X waits only for X. A
+// busy runner of the same repository outside X never holds the removal.
+func TestRemoveWaitsOnlyForItsOwnRunner(t *testing.T) {
+	r := newRig(machine("linux", "x64", true))
+	rec := r.add(t)
+	ctx := context.Background()
+	r.gh.runners = []github.Runner{
+		{Name: "box-1", Status: "online", Busy: false},
+		{Name: "box-2", Status: "online", Busy: true}, // same repository, outside the set
+		{Name: "box-3", Status: "online", Busy: true},
+	}
+	polls := 0
+	r.svc.Sleep = func(_ context.Context, d time.Duration) error { polls++; return nil }
+	_, finish, err := r.svc.BeginRemove(ctx, rec.ID, true, "luis-mc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := finish(ctx); err != nil {
+		t.Fatalf("busy runners outside the set held the removal: %v", err)
+	}
+	if polls != 0 || len(r.ag.removed) != 1 {
+		t.Errorf("polls %d removed %v", polls, r.ag.removed)
+	}
+}
+
+// CRSP38, scheduling R5.63: the drain writes each decision before the slow step.
+func TestDrainLogsItsDecisionsBeforeTheSlowSteps(t *testing.T) {
+	r := newRig(machine("linux", "x64", true))
+	rec := r.add(t)
+	ctx := context.Background()
+	var lines []string
+	r.svc.OnDrainStep = func(_, line string) { lines = append(lines, line) }
+	polls := 0
+	r.gh.runners = []github.Runner{{Name: "box-1", Status: "online", Busy: true}}
+	r.svc.Sleep = func(_ context.Context, d time.Duration) error {
+		r.clock = r.clock.Add(d)
+		if polls++; polls == 2 {
+			r.gh.runners = []github.Runner{{Name: "box-1", Status: "online"}}
+		}
+		return nil
+	}
+	_, finish, _ := r.svc.BeginRemove(ctx, rec.ID, true, "u")
+	if err := finish(ctx); err != nil {
+		t.Fatal(err)
+	}
+	all := strings.Join(lines, "\n")
+	first := strings.Index(all, "asking whether the runner is idle")
+	wait := strings.Index(all, "waiting for job")
+	act := strings.Index(all, "the runner is idle; acting now")
+	if first < 0 || wait < first || act < wait || !strings.Contains(all, "nothing is stopped") {
+		t.Fatalf("drain log:\n%s", all)
+	}
+}

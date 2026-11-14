@@ -84,6 +84,10 @@ func RunJobDone(ctx context.Context, cfg DoneConfig) (code int) {
 			code = 0
 		}
 	}()
+	if cfg.Client != nil {
+		// The decision first, then the call that can be slow (R5.63).
+		log("freeing this job's slots (the agent answers within %.0f s or the slots are freed later by the stale rules)", CallTimeout.Seconds())
+	}
 	if cfg.Client == nil {
 		log("agent not reachable: slots are freed later by the stale rules")
 		if cfg.Report != nil {
@@ -121,6 +125,7 @@ func RunJobDone(ctx context.Context, cfg DoneConfig) (code int) {
 	}
 	if !cfg.KeepWork {
 		if work := WorkFolder(cfg.Workspace); work != "" {
+			log("emptying %s", work)
 			bad := EmptyFolder(work)
 			if bad > 0 {
 				log("emptied %s (%d entries stay)", work, bad)
@@ -142,6 +147,7 @@ func sweepCaches(cfg *DoneConfig, log func(string, ...any)) {
 		fsys = runnercache.OSFS{}
 	}
 	for _, c := range cfg.Caches {
+		log("%s %s: checking the quota", c.Name, c.Dir)
 		res, err := runnercache.Enforce(fsys, c.Dir, c.Bytes, false)
 		switch {
 		case err != nil:

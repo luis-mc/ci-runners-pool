@@ -37,6 +37,9 @@ type Service struct {
 	NewID                         func() string
 	// OnDrainWarn is called once at the warn time with the blocking job.
 	OnDrainWarn func(runnerID, job string)
+	// OnDrainStep gets each drain decision before the slow step it leads to
+	// (scheduling R5.63).
+	OnDrainStep func(runnerID, line string)
 	// Background runs long work (a plan apply, a drain) off the request. The
 	// default is a goroutine; tests run it inline.
 	Background func(func())
@@ -552,6 +555,11 @@ func (s *Service) finishRemove(ctx context.Context, r Record, prev State, actor 
 		OnWarn: func(job string) {
 			if s.OnDrainWarn != nil {
 				s.OnDrainWarn(r.ID, job)
+			}
+		},
+		OnStep: func(line string) {
+			if s.OnDrainStep != nil {
+				s.OnDrainStep(r.ID, line)
 			}
 		},
 		Idle: func(ctx context.Context) (bool, string, error) { return s.idle(ctx, r) },

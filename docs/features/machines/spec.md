@@ -249,6 +249,15 @@ Each requirement below targets a milestone after v0.1.0 and is **NOT YET IMPLEME
 
 **R5.54** (after v0.1.0, NOT YET IMPLEMENTED) — **WSL memory sizing.** The agent reads the `memory=` and `processors=` values of `.wslconfig` and the memory the WSL VM holds (R5.17), and shows them in the machine facts. The runner count and per-runner memory cap are set from the declared value, never from a live reading. It exports the CPU limit to jobs and splits it per runner, so `nproc` in a container matches the cap. A declared value above what the machine can give is refused with the reason. A change to `.wslconfig` needs `wsl --shutdown`, so the console says it waits for the machine to drain (R5.30).
 
+
+### 5.13 A stuck job and a runner set (M1)
+
+**R5.55** (M1) — **A drain names its holder.** (Lesson 20 of the old pool.) A job that does not end blocks every drain behind it. While a change waits, the console and the API show the job that holds it longest (`holder` on the change): its repository, job and runner, how long it has run, and its usual duration. The usual duration is the median of the last finished runs of the same repository and job name in the job history (at least 3 runs; with fewer there is no usual duration and nothing is flagged). The agent reports the start time of each running job (`JobRef.started_unix_ms`). The machine screen shows the holder under "Waiting for a drain". Built (CRSP38).
+
+**R5.56** (M1) — **A job far past its usual time is flagged, and the user has a named choice.** When the holder has run twice as long as its usual duration or more, the change marks it (`over_usual`), the audit log records `machine.drain.stuck` once, and the notifier is told once (`StuckNotifier`). Once the drain timeout has passed (R5.33) or the holder is flagged, the change lists its named choices (`choices`): wait longer or cancel the change. The drain never waits silently, and it offers nothing that stops a job (R5.33). The drain timeout stays 60 minutes per machine by default. Built (CRSP38).
+
+**R5.57** (M1) — **A change for a runner set waits only for that set.** (Lesson 21.) A drain, restart or image swap can name the runners it touches (`runner_names`, `Drain.runner_names`). The controller counts only the jobs on those runners (names compare without case), whatever else the machine runs, including a busy runner of the same repository. The agent keeps new jobs out of those runners only (the gate answers `runner_draining`), the machine stays active, and the change runs when no job runs on its runners. The idle check and the hold are one step, as in R5.32. Without runner names the change is the whole machine, as before. Built (CRSP38).
+
 ## 6. Non-functional requirements
 
 **R6.1** (M1) — The agent link uses TLS 1.3 only. A connection without a valid pinned certificate and a valid machine key is refused.
@@ -387,6 +396,9 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.52 | internal/api/machines_auth_test.go | planned |
 | R5.53 | internal/agent/wsl_kvm_test.go | planned; after v0.1.0 |
 | R5.54 | internal/agent/wsl_memory_test.go | planned; after v0.1.0 |
+| R5.55 | `internal/machines/holder_test.go` TestDrainNamesTheHolderAndHowLongItRuns; `internal/api/machines_holder_test.go` TestChangeShowsTheDrainHolderAndChoices; `apps/web/src/screens/machines/Machines.test.tsx` Machine detail, a drain that waits | new, from the 14 Nov runs of the old pool |
+| R5.56 | `internal/machines/holder_test.go` TestHolderFarPastItsUsualDurationIsFlaggedOnceWithChoices; `internal/api/machines_holder_test.go` TestChangeShowsTheDrainHolderAndChoices | new |
+| R5.57 | `internal/machines/holder_test.go` TestScopedDrainCountsOnlyItsOwnRunners; `internal/agent/drain_idle_test.go` TestScopedHoldCountsOnlyItsOwnRunners, TestHoldRunnersWithoutNamesIsTheWholeMachine | new |
 | R6.1 | internal/machines/tls_test.go | planned |
 | R6.2 | internal/machines/secrets_test.go | planned |
 | R6.3 | internal/machines/joincode_test.go | planned |

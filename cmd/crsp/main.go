@@ -147,6 +147,9 @@ func runController() error {
 		return err
 	}
 	defer mr.Close()
+	// A drain names the job that holds it and flags one far past its usual
+	// duration, from job history (machines R5.55, R5.56).
+	mr.Service.SetTypical(usualDuration(db))
 
 	// Live view over an empty source until the store adapter is wired (CRSP23).
 	hub, live := wire.NewLive(overview.EmptySource{}, events.Options{})

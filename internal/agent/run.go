@@ -211,7 +211,11 @@ func sampleLoop(ctx context.Context, cfg Config) {
 }
 
 func jobToProto(j machines.JobRef) *agentv1.JobRef {
-	return &agentv1.JobRef{Repository: j.Repository, RunId: j.RunID, RunAttempt: int32(j.RunAttempt), Job: j.Job, GithubJobId: j.GitHubJobID, RunnerName: j.RunnerName} //nolint:gosec // small
+	out := &agentv1.JobRef{Repository: j.Repository, RunId: j.RunID, RunAttempt: int32(j.RunAttempt), Job: j.Job, GithubJobId: j.GitHubJobID, RunnerName: j.RunnerName} //nolint:gosec // small
+	if !j.StartedAt.IsZero() {
+		out.StartedUnixMs = j.StartedAt.UnixMilli()
+	}
+	return out
 }
 
 func loadToProto(r load.Report, slots int) *agentv1.LoadReport {
@@ -231,6 +235,8 @@ type link struct {
 
 	drainMu sync.Mutex
 	drainID string // command id of the drain in progress; empty when none
+	// drainRunners are the runners the drain touches; empty means the machine (R5.57).
+	drainRunners []string
 
 	followMu  sync.Mutex
 	following bool
@@ -393,9 +399,9 @@ func (l *link) sendLoop(ctx context.Context, cancel context.CancelFunc, lastRecv
 	}
 }
 
-func (l *link) setDrain(id string) {
+func (l *link) setDrain(id string, runners ...string) {
 	l.drainMu.Lock()
-	l.drainID = id
+	l.drainID, l.drainRunners = id, runners
 	l.drainMu.Unlock()
 }
 
@@ -403,12 +409,12 @@ func (l *link) setDrain(id string) {
 // in Gate.Hold (R5.32). It sends nothing while no drain is in progress.
 func (l *link) reportDrain() error {
 	l.drainMu.Lock()
-	id := l.drainID
+	id, runners := l.drainID, l.drainRunners
 	l.drainMu.Unlock()
 	if id == "" {
 		return nil
 	}
-	idle, waiting := l.cfg.Gate.Hold()
+	idle, waiting := l.cfg.Gate.HoldRunners(runners)
 	st := &agentv1.DrainStatus{CommandId: id, Idle: idle}
 	for _, j := range waiting {
 		st.WaitingFor = append(st.WaitingFor, jobToProto(j))
@@ -425,7 +431,7 @@ func (l *link) handle(ctx context.Context, msg *agentv1.SessionResponse) error {
 	case *agentv1.SessionResponse_Settings:
 		applySettings(cfg, m.Settings)
 	case *agentv1.SessionResponse_Drain:
-		l.setDrain(m.Drain.GetCommandId())
+		l.setDrain(m.Drain.GetCommandId(), m.Drain.GetRunnerNames()...)
 		_ = l.reportDrain() // the first check right away
 	case *agentv1.SessionResponse_Resume:
 		l.setDrain("")

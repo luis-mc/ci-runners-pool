@@ -2370,10 +2370,13 @@ type JobRef struct {
 	RunId      int64                  `protobuf:"varint,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	RunAttempt int32                  `protobuf:"varint,3,opt,name=run_attempt,json=runAttempt,proto3" json:"run_attempt,omitempty"`
 	// The job key (GITHUB_JOB) and, when GitHub gives it, the numeric job id.
-	Job           string `protobuf:"bytes,4,opt,name=job,proto3" json:"job,omitempty"`
-	GithubJobId   int64  `protobuf:"varint,5,opt,name=github_job_id,json=githubJobId,proto3" json:"github_job_id,omitempty"`
-	Shard         string `protobuf:"bytes,6,opt,name=shard,proto3" json:"shard,omitempty"`
-	RunnerName    string `protobuf:"bytes,7,opt,name=runner_name,json=runnerName,proto3" json:"runner_name,omitempty"`
+	Job         string `protobuf:"bytes,4,opt,name=job,proto3" json:"job,omitempty"`
+	GithubJobId int64  `protobuf:"varint,5,opt,name=github_job_id,json=githubJobId,proto3" json:"github_job_id,omitempty"`
+	Shard       string `protobuf:"bytes,6,opt,name=shard,proto3" json:"shard,omitempty"`
+	RunnerName  string `protobuf:"bytes,7,opt,name=runner_name,json=runnerName,proto3" json:"runner_name,omitempty"`
+	// When the job took its slot on the machine, in Unix milliseconds. Zero when
+	// not known. A drain names the job that holds it and for how long (machines R5.55).
+	StartedUnixMs int64 `protobuf:"varint,8,opt,name=started_unix_ms,json=startedUnixMs,proto3" json:"started_unix_ms,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2455,6 +2458,13 @@ func (x *JobRef) GetRunnerName() string {
 		return x.RunnerName
 	}
 	return ""
+}
+
+func (x *JobRef) GetStartedUnixMs() int64 {
+	if x != nil {
+		return x.StartedUnixMs
+	}
+	return 0
 }
 
 // Holder names the processes that hold a slot or ticket (scheduling R5.31).
@@ -3237,8 +3247,13 @@ type Drain struct {
 	// drain, settings, remove, agent_update, runner_update or service_restart.
 	ChangeKind     string `protobuf:"bytes,2,opt,name=change_kind,json=changeKind,proto3" json:"change_kind,omitempty"`
 	TimeoutSeconds int32  `protobuf:"varint,3,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// runner_names are the runners the change touches (machines R5.57). Empty
+	// means every runner of the machine. A scoped drain keeps new jobs out of
+	// these runners only and waits only for jobs that run on them; a busy runner
+	// outside the set never holds it.
+	RunnerNames   []string `protobuf:"bytes,4,rep,name=runner_names,json=runnerNames,proto3" json:"runner_names,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Drain) Reset() {
@@ -3290,6 +3305,13 @@ func (x *Drain) GetTimeoutSeconds() int32 {
 		return x.TimeoutSeconds
 	}
 	return 0
+}
+
+func (x *Drain) GetRunnerNames() []string {
+	if x != nil {
+		return x.RunnerNames
+	}
+	return nil
 }
 
 // Resume returns a drained machine to active (R5.34).
@@ -4439,7 +4461,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x13memory_median_bytes\x18\x05 \x01(\x03R\x11memoryMedianBytes\x12&\n" +
 	"\x0fdisk_used_bytes\x18\x06 \x01(\x03R\rdiskUsedBytes\x12\x17\n" +
 	"\awall_ms\x18\a \x01(\x03R\x06wallMs\x12\x14\n" +
-	"\x05final\x18\b \x01(\bR\x05final\"\xcd\x01\n" +
+	"\x05final\x18\b \x01(\bR\x05final\"\xf5\x01\n" +
 	"\x06JobRef\x12\x1e\n" +
 	"\n" +
 	"repository\x18\x01 \x01(\tR\n" +
@@ -4451,7 +4473,8 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\rgithub_job_id\x18\x05 \x01(\x03R\vgithubJobId\x12\x14\n" +
 	"\x05shard\x18\x06 \x01(\tR\x05shard\x12\x1f\n" +
 	"\vrunner_name\x18\a \x01(\tR\n" +
-	"runnerName\"w\n" +
+	"runnerName\x12&\n" +
+	"\x0fstarted_unix_ms\x18\b \x01(\x03R\rstartedUnixMs\"w\n" +
 	"\x06Holder\x12\x1d\n" +
 	"\n" +
 	"holder_pid\x18\x01 \x01(\x03R\tholderPid\x12\x19\n" +
@@ -4529,13 +4552,14 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x10allowed_backends\x18\x0e \x03(\tR\x0fallowedBackends\x12&\n" +
 	"\x0fcache_cap_bytes\x18\x0f \x01(\x03R\rcacheCapBytes\x122\n" +
 	"\x15drain_timeout_minutes\x18\x10 \x01(\x05R\x13drainTimeoutMinutes\x122\n" +
-	"\x15windows_symlink_right\x18\x11 \x01(\bR\x13windowsSymlinkRight\"p\n" +
+	"\x15windows_symlink_right\x18\x11 \x01(\bR\x13windowsSymlinkRight\"\x93\x01\n" +
 	"\x05Drain\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x1f\n" +
 	"\vchange_kind\x18\x02 \x01(\tR\n" +
 	"changeKind\x12'\n" +
-	"\x0ftimeout_seconds\x18\x03 \x01(\x05R\x0etimeoutSeconds\"'\n" +
+	"\x0ftimeout_seconds\x18\x03 \x01(\x05R\x0etimeoutSeconds\x12!\n" +
+	"\frunner_names\x18\x04 \x03(\tR\vrunnerNames\"'\n" +
 	"\x06Resume\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\"s\n" +

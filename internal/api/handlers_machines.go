@@ -131,6 +131,27 @@ func changeToAPI(c machines.Change) gen.MachineChange {
 	for _, j := range c.Detail.WaitingFor {
 		out.WaitingFor = append(out.WaitingFor, jobToAPI(j))
 	}
+	if len(c.Detail.RunnerNames) > 0 {
+		names := append([]string(nil), c.Detail.RunnerNames...)
+		out.RunnerNames = &names
+	}
+	if h := c.Detail.Holder; h != nil {
+		dh := gen.DrainHolder{Job: jobToAPI(h.Job), OverUsual: h.OverUsual}
+		if !h.Job.StartedAt.IsZero() {
+			dh.RunningSeconds = int(time.Since(h.Job.StartedAt).Seconds())
+		}
+		if h.Usual > 0 {
+			dh.UsualSeconds = machinesPtr(int(h.Usual.Seconds()))
+		}
+		out.Holder = &dh
+	}
+	if ch := machines.Choices(c); len(ch) > 0 {
+		cs := make([]gen.MachineChangeChoices, 0, len(ch))
+		for _, x := range ch {
+			cs = append(cs, gen.MachineChangeChoices(x))
+		}
+		out.Choices = &cs
+	}
 	return out
 }
 
