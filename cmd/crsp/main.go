@@ -19,6 +19,10 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
+	doctorcli "github.com/luis-mc/ci-runners-shared-pool/internal/doctor/cli"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor/wire"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/events"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/overview"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
 )
@@ -43,6 +47,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return report(stderr, runController())
 	case "agent":
 		return report(stderr, errors.New("agent mode is not implemented in this build"))
+	case "doctor":
+		return runDoctor(args[1:], stdout, stderr)
 	case "help", "--help", "-h":
 		usage(stdout)
 		return 0
@@ -59,6 +65,7 @@ func usage(w io.Writer) {
 Commands:
   controller   run the controller: web console, API and scheduling
   agent        run the agent on a runner machine (not implemented yet)
+  doctor       check the pool and print what to fix (exit 1 on a fail)
   version      print the version
 
 Configuration is read from CRSP_* environment variables; see .env.example.
@@ -97,8 +104,12 @@ func runController() error {
 	}
 	defer func() { _ = db.Close() }()
 
+	// Live view over an empty source until the store adapter is wired (CRSP23).
+	hub, live := wire.NewLive(overview.EmptySource{}, events.Options{})
+	defer hub.Stop()
+
 	mux := http.NewServeMux()
-	api.Register(mux, api.Options{Version: version, DB: db, Logger: logger})
+	api.Register(mux, api.Options{Version: version, DB: db, Logger: logger, Live: live})
 	mux.Handle("/", webui.Handler())
 
 	srv := &http.Server{
@@ -125,4 +136,18 @@ func runController() error {
 		defer cancel()
 		return srv.Shutdown(shutdownCtx)
 	}
+}
+
+// runDoctor is `crsp doctor`: it asks the controller at CRSP_URL (default the
+// dev console address) for a run. CRSP_TOKEN is the CLI token until the CLI
+// sign-in lands.
+func runDoctor(args []string, stdout, stderr io.Writer) int {
+	base := os.Getenv("CRSP_URL")
+	if base == "" {
+		base = "http://127.0.0.1:8460"
+	}
+	c := &doctorcli.HTTPClient{BaseURL: base, Token: os.Getenv("CRSP_TOKEN")}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return doctorcli.Run(ctx, args, stdout, stderr, c, doctorcli.Options{})
 }

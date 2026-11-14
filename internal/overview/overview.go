@@ -153,3 +153,21 @@ func (s *Service) Snapshot(ctx context.Context) ([]byte, error) {
 	}
 	return json.Marshal(o)
 }
+
+// EmptySource has no machines, jobs or savings. The controller uses it until
+// the store adapter is wired, so the stream and the overview answer.
+type EmptySource struct{}
+
+// Machines implements Source.
+func (EmptySource) Machines(context.Context) ([]gen.Machine, error) { return nil, nil }
+
+// QueuedJobs implements Source.
+func (EmptySource) QueuedJobs(context.Context) ([]gen.Job, error) { return nil, nil }
+
+// RunningJobs implements Source.
+func (EmptySource) RunningJobs(context.Context) ([]gen.Job, error) { return nil, nil }
+
+// MinutesSavedSince implements Source.
+func (EmptySource) MinutesSavedSince(context.Context, time.Time) ([]OSMinutes, error) {
+	return nil, nil
+}
