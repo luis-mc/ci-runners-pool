@@ -11,12 +11,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"strings"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"github.com/luis-mc/ci-runners-shared-pool/packaging/hooks"
 )
@@ -157,10 +159,10 @@ func Unit(name, user, folder string) string {
 
 func (b *Backend) want(r backend.RunnerSpec, user string) (persistent.Meta, string) {
 	folder := b.Folder(r.Name)
-	env := persistent.Env(map[string]string{
-		"ACTIONS_RUNNER_HOOK_JOB_STARTED":   folder + "/hooks/job-started.sh",
-		"ACTIONS_RUNNER_HOOK_JOB_COMPLETED": folder + "/hooks/job-completed.sh",
-	})
+	kv := runnercache.EnvJoin(folder, r.CacheQuota, path.Join)
+	kv["ACTIONS_RUNNER_HOOK_JOB_STARTED"] = folder + "/hooks/job-started.sh"
+	kv["ACTIONS_RUNNER_HOOK_JOB_COMPLETED"] = folder + "/hooks/job-completed.sh"
+	env := persistent.Env(kv)
 	return persistent.Meta{
 		Name: r.Name, Account: user, Folder: folder, Service: persistent.ServiceName(r.GitHubURL, r.Name),
 		GitHubURL: r.GitHubURL, Labels: r.Labels, RunnerVersion: r.RunnerVersion,

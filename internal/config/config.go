@@ -26,6 +26,8 @@ import (
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
 // Environment variable names. Each overrides the TOML key of the same meaning.
@@ -55,6 +57,9 @@ type Config struct {
 	AgentAddr string
 	// LogLevel is the minimum level written to the structured log.
 	LogLevel slog.Level
+	// Cache is the declared cache sizing per runner (runners R5.40): tool
+	// cache quota, Rust build cache cap and the disk guard threshold.
+	Cache runnercache.Quota
 }
 
 // fileSchema is the one schema of config.toml. A key not listed here is refused.
@@ -63,10 +68,14 @@ type fileSchema struct {
 	ListenAddr string `toml:"listen_addr"`
 	AgentAddr  string `toml:"agent_addr"`
 	LogLevel   string `toml:"log_level"`
+	// Cache sizing per runner, in GiB; 0 or absent takes the default.
+	CacheToolGiB    int `toml:"cache_tool_gib"`
+	CacheRustGiB    int `toml:"cache_rust_gib"`
+	CacheMinFreePct int `toml:"cache_min_free_pct"`
 }
 
 // Keys are the keys config.toml accepts, for docs and the generated reference.
-var Keys = []string{"data_dir", "listen_addr", "agent_addr", "log_level"}
+var Keys = []string{"data_dir", "listen_addr", "agent_addr", "log_level", "cache_tool_gib", "cache_rust_gib", "cache_min_free_pct"}
 
 var (
 	placeholder = regexp.MustCompile(`(?i)^\s*(<[^>]*>|\$\{[^}]*\}|change[-_ ]?me|replace[-_ ]?me|todo|tbd|xxx+|your[-_ ].*|example)\s*$`)
@@ -167,6 +176,11 @@ func LoadFor(goos string, getenv func(string) string, readFile func(string) ([]b
 		if err := cfg.LogLevel.UnmarshalText([]byte(v)); err != nil {
 			errs = append(errs, fmt.Errorf("log_level: %q is not one of debug, info, warn, error", v))
 		}
+	}
+
+	cfg.Cache = runnercache.Quota{ToolGiB: fs.CacheToolGiB, RustGiB: fs.CacheRustGiB, MinFreePct: fs.CacheMinFreePct}.WithDefaults()
+	if err := cfg.Cache.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("cache: %w", err))
 	}
 
 	if err := errors.Join(errs...); err != nil {
