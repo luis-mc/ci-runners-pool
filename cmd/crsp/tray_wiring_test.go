@@ -12,10 +12,10 @@ func TestTrayLinkLandsOnTargetPathAndRefusesOpenRedirects(t *testing.T) {
 	ctx := context.Background()
 	c := trayserver.Caller{OSUser: "1000"}
 	for target, want := range map[string]string{
-		"":                       "https://127.0.0.1:8460",
-		"/settings/updates":      "https://127.0.0.1:8460/settings/updates",
-		"//evil.example/x":       "https://127.0.0.1:8460",
-		"https://evil.example/x": "https://127.0.0.1:8460",
+		"":                       "http://127.0.0.1:8460",
+		"/settings/updates":      "http://127.0.0.1:8460/settings/updates",
+		"//evil.example/x":       "http://127.0.0.1:8460",
+		"https://evil.example/x": "http://127.0.0.1:8460",
 	} {
 		got, err := b.Link(ctx, c, target)
 		if err != nil || got != want {
