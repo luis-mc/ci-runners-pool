@@ -52,6 +52,9 @@ type Store interface {
 	GetTrayBinding(ctx context.Context, machineID, osUserID string) (TrayBinding, error)
 	UpsertTrayBinding(ctx context.Context, b TrayBinding) error
 
+	GetTheme(ctx context.Context, userID int64) (string, error) // "" when unset
+	SetTheme(ctx context.Context, userID int64, theme string) error
+
 	// Audit appends an event (R5.16).
 	Audit(ctx context.Context, e AuditEvent) error
 }

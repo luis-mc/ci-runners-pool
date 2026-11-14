@@ -38,13 +38,13 @@ func (s *Service) PlanChanges(ctx context.Context, p auth.Principal, changes []C
 		return Plan{}, err
 	}
 	if len(changes) == 0 {
-		return Plan{}, errors.New("at least one change is needed")
+		return Plan{}, auth.Invalid("at least one change is needed")
 	}
 	var steps []Step
 	seen := map[int64]bool{}
 	for _, c := range changes {
 		if seen[c.RepositoryID] {
-			return Plan{}, fmt.Errorf("repository %d is listed twice", c.RepositoryID)
+			return Plan{}, auth.Invalid("repository %d is listed twice", c.RepositoryID)
 		}
 		seen[c.RepositoryID] = true
 		r, err := s.cfg.Store.GetRepository(ctx, c.RepositoryID)

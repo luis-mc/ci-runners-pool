@@ -2,9 +2,10 @@ package repos
 
 import (
 	"errors"
-	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 )
 
 // PolicyUpdate is a partial change; nil fields keep their value (R5.25).
@@ -27,13 +28,13 @@ var ErrForkNeedsConfirm = errors.New("fork pull request code would run on your m
 func (u PolicyUpdate) Apply(p Policy) (Policy, error) {
 	if u.Priority != nil {
 		if *u.Priority < -100 || *u.Priority > 100 {
-			return p, errors.New("priority must be between -100 and 100")
+			return p, auth.Invalid("priority must be between -100 and 100")
 		}
 		p.Priority = *u.Priority
 	}
 	if u.MaxParallelJobs != nil {
 		if *u.MaxParallelJobs < 1 || *u.MaxParallelJobs > 256 {
-			return p, errors.New("maximum parallel jobs must be between 1 and 256")
+			return p, auth.Invalid("maximum parallel jobs must be between 1 and 256")
 		}
 		p.MaxParallelJobs = *u.MaxParallelJobs
 	}
@@ -52,7 +53,7 @@ func (u PolicyUpdate) Apply(p Policy) (Policy, error) {
 	if u.RunnerGroups != nil {
 		for _, g := range *u.RunnerGroups {
 			if strings.TrimSpace(g) == "" {
-				return p, errors.New("a runner group name must not be empty")
+				return p, auth.Invalid("a runner group name must not be empty")
 			}
 		}
 		p.RunnerGroups = normalizeList(*u.RunnerGroups)
@@ -66,7 +67,7 @@ func (u PolicyUpdate) Apply(p Policy) (Policy, error) {
 			continue
 		}
 		if *b.in < 0 || *b.in > 100 {
-			return p, fmt.Errorf("%s must be between 1 and 100 (0 clears it)", b.name)
+			return p, auth.Invalid("%s must be between 1 and 100 (0 clears it)", b.name)
 		}
 		*b.set = *b.in
 	}

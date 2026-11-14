@@ -24,6 +24,9 @@ type Options struct {
 	Version string
 	DB      Pinger
 	Logger  *slog.Logger
+	// GitHub is the GitHub integration area (setup, sign-in, users,
+	// repositories). Nil leaves its operations without a backend.
+	GitHub *GitHubArea
 }
 
 type server struct {
@@ -38,7 +41,15 @@ func Register(mux *http.ServeMux, opts Options) {
 	if opts.Logger == nil {
 		opts.Logger = slog.Default()
 	}
-	strict := gen.NewStrictHandlerWithOptions(&server{opts: opts}, nil, gen.StrictHTTPServerOptions{
+	var strictMW []gen.StrictMiddlewareFunc
+	var httpMW []gen.MiddlewareFunc
+	if opts.GitHub != nil {
+		strictMW = append(strictMW, opts.GitHub.StrictMiddleware())
+		httpMW = append(httpMW, opts.GitHub.HTTPMiddleware())
+	} else {
+		strictMW = append(strictMW, unwiredGitHub())
+	}
+	strict := gen.NewStrictHandlerWithOptions(&server{opts: opts}, strictMW, gen.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
 			opts.Logger.Debug("bad request", "err", err)
 			WriteError(w, http.StatusBadRequest, CodeBadRequest, "the request is not valid")
@@ -48,7 +59,7 @@ func Register(mux *http.ServeMux, opts Options) {
 			WriteError(w, http.StatusInternalServerError, CodeInternal, "internal error")
 		},
 	})
-	gen.HandlerWithOptions(strict, gen.StdHTTPServerOptions{BaseRouter: mux})
+	gen.HandlerWithOptions(strict, gen.StdHTTPServerOptions{BaseRouter: mux, Middlewares: httpMW})
 	mux.HandleFunc("/api/", notFound)
 }
 

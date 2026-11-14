@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 )
 
 var (
@@ -37,7 +39,7 @@ func CheckLabels(labels []string) error {
 		}
 	}
 	if len(bad) > 0 {
-		return fmt.Errorf("labels must be generic (self-hosted, an OS, an architecture, docker, kvm, gpu, or a pool name like crsp-home); not allowed: %s", strings.Join(bad, ", "))
+		return auth.Invalid("labels must be generic (self-hosted, an OS, an architecture, docker, kvm, gpu, or a pool name like crsp-home); not allowed: %s", strings.Join(bad, ", "))
 	}
 	return nil
 }

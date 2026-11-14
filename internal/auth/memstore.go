@@ -20,6 +20,7 @@ type MemStore struct {
 	links    map[string]linkRow
 	bindings map[[2]string]TrayBinding
 	audit    []AuditEvent
+	themes   map[int64]string
 	// FailAudit makes Audit fail, to test that callers do not lose the error.
 	FailAudit bool
 }
@@ -41,7 +42,7 @@ type linkRow struct {
 // NewMemStore returns an empty store.
 func NewMemStore() *MemStore {
 	return &MemStore{setup: map[string]setupRow{}, users: map[int64]User{}, sessions: map[string]sessionRow{},
-		tokens: map[string]CLIToken{}, links: map[string]linkRow{}, bindings: map[[2]string]TrayBinding{}}
+		tokens: map[string]CLIToken{}, links: map[string]linkRow{}, bindings: map[[2]string]TrayBinding{}, themes: map[int64]string{}}
 }
 
 var _ Store = (*MemStore)(nil)
@@ -416,5 +417,18 @@ func (m *MemStore) Audit(_ context.Context, e AuditEvent) error {
 		return context.DeadlineExceeded
 	}
 	m.audit = append(m.audit, e)
+	return nil
+}
+
+func (m *MemStore) GetTheme(_ context.Context, id int64) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.themes[id], nil
+}
+
+func (m *MemStore) SetTheme(_ context.Context, id int64, theme string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.themes[id] = theme
 	return nil
 }

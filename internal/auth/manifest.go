@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -64,7 +63,7 @@ type ManifestOptions struct {
 // the browser with the one-time code; it is the first console address.
 func BuildManifest(o ManifestOptions) (Manifest, error) {
 	if !appNameRE.MatchString(o.AppName) {
-		return Manifest{}, errors.New("app name: use letters, numbers, spaces, dashes and underscores, up to 34 characters")
+		return Manifest{}, Invalid("app name: use letters, numbers, spaces, dashes and underscores, up to 34 characters")
 	}
 	cbs, err := CallbackURLs(o.ConsoleURLs)
 	if err != nil {
@@ -91,7 +90,7 @@ func BuildManifest(o ManifestOptions) (Manifest, error) {
 	if !AllLoopback(o.ConsoleURLs) && o.WebhookURL != "" {
 		u, err := url.Parse(o.WebhookURL)
 		if err != nil || u.Scheme != "https" || u.Host == "" || IsLoopbackHost(u.Host) {
-			return Manifest{}, errors.New("webhook URL must be a public https address")
+			return Manifest{}, Invalid("webhook URL must be a public https address")
 		}
 		m.HookAttributes = HookAttributes{URL: o.WebhookURL, Active: true}
 	}

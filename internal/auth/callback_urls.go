@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"fmt"
 	"net"
 	"net/url"
 	"strings"
@@ -27,19 +26,19 @@ func IsLoopbackHost(host string) bool {
 func NormalizeConsoleURL(raw string) (string, error) {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || u.Host == "" || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
-		return "", fmt.Errorf("console address %q is not an origin like https://host:8460", raw)
+		return "", Invalid("console address %q is not an origin like https://host:8460", raw)
 	}
 	switch u.Scheme {
 	case "http":
 		if !IsLoopbackHost(u.Host) {
-			return "", fmt.Errorf("console address %q: plain http is allowed on 127.0.0.1 and ::1 only", raw)
+			return "", Invalid("console address %q: plain http is allowed on 127.0.0.1 and ::1 only", raw)
 		}
 	case "https":
 		if strings.EqualFold(u.Hostname(), "localhost") {
-			return "", fmt.Errorf("console address %q: GitHub rejects https://localhost; use http://127.0.0.1:<port>", raw)
+			return "", Invalid("console address %q: GitHub rejects https://localhost; use http://127.0.0.1:<port>", raw)
 		}
 	default:
-		return "", fmt.Errorf("console address %q: use http (loopback) or https", raw)
+		return "", Invalid("console address %q: use http (loopback) or https", raw)
 	}
 	return u.Scheme + "://" + u.Host, nil
 }
@@ -48,7 +47,7 @@ func NormalizeConsoleURL(raw string) (string, error) {
 // break R5.4. The result has no duplicates and keeps the order.
 func CallbackURLs(consoleURLs []string) ([]string, error) {
 	if len(consoleURLs) == 0 {
-		return nil, fmt.Errorf("at least one console address is needed")
+		return nil, Invalid("at least one console address is needed")
 	}
 	seen := map[string]bool{}
 	var out []string

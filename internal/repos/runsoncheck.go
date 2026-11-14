@@ -3,6 +3,7 @@ package repos
 import (
 	"context"
 	"sort"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 )
@@ -98,7 +99,12 @@ func (s *Service) CheckRunsOn(ctx context.Context, repoID int64) error {
 	return s.cfg.Store.ReplaceFindings(ctx, repoID, all, s.cfg.Now())
 }
 
-// Findings returns the stored runs-on findings and when they were checked.
+// FindingsAt returns the stored runs-on findings and when they were checked.
+func (s *Service) FindingsAt(ctx context.Context, repoID int64) ([]Finding, time.Time, error) {
+	return s.cfg.Store.ListFindings(ctx, repoID)
+}
+
+// Findings returns the stored runs-on findings.
 func (s *Service) Findings(ctx context.Context, repoID int64) ([]Finding, error) {
 	fs, _, err := s.cfg.Store.ListFindings(ctx, repoID)
 	return fs, err

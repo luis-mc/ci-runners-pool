@@ -44,6 +44,7 @@ type Service struct {
 	usedManifestCodes map[string]bool
 	setupCookies      map[string]time.Time // hash -> expiry
 	userTokens        map[int64]github.UserToken
+	consoles          []string
 }
 
 // New returns a Service.
@@ -113,4 +114,23 @@ func (s *Service) dropToken(userID int64) {
 	s.mu.Lock()
 	delete(s.userTokens, userID)
 	s.mu.Unlock()
+}
+
+// SetConsoleURLs records the console addresses the App was made for, so
+// sign-in accepts exactly those (R5.4, R5.8). The controller's config gives the
+// same list at start.
+func (s *Service) SetConsoleURLs(urls []string) {
+	s.mu.Lock()
+	s.consoles = append([]string(nil), urls...)
+	s.mu.Unlock()
+}
+
+func (s *Service) consoleURLs() []string {
+	s.mu.Lock()
+	c := s.consoles
+	s.mu.Unlock()
+	if len(c) > 0 {
+		return c
+	}
+	return s.cfg.ConsoleURLs()
 }

@@ -1,6 +1,6 @@
 # CRSP19 report
 
-Status: in progress.
+Status: in progress. Done and pushed: secrets, github client + fake, auth, repos (all tested). Next: api handlers, docs notes, checks, PR.
 
 ## Design
 - Data access goes through ports declared in `internal/auth` and `internal/repos` (api may not import store; CRSP18 owns store). Each package ships an in-memory implementation for tests. The sqlc-backed adapter belongs with the store (CRSP18) or the integration join.

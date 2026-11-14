@@ -149,3 +149,13 @@ type AuditEvent struct {
 	Detail     string
 	Result     string // done or failed
 }
+
+// InvalidError is a request the person can fix; its message is safe to show.
+type InvalidError struct{ Msg string }
+
+func (e *InvalidError) Error() string { return e.Msg }
+
+// Invalid makes an InvalidError.
+func Invalid(format string, args ...any) error {
+	return &InvalidError{Msg: fmt.Sprintf(format, args...)}
+}

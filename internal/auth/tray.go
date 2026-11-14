@@ -21,7 +21,7 @@ const (
 // has already proved the OS user (tray R5.7).
 func (s *Service) IssueLink(ctx context.Context, userID int64, purpose, target string) (string, error) {
 	if purpose != LinkSignIn && purpose != LinkBindTray {
-		return "", errors.New("unknown link purpose")
+		return "", Invalid("unknown link purpose")
 	}
 	if _, err := s.store.GetUser(ctx, userID); err != nil {
 		return "", err

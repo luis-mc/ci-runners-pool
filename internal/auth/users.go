@@ -36,11 +36,11 @@ func (s *Service) AddUser(ctx context.Context, p Principal, login string, role R
 		return User{}, err
 	}
 	if role != RoleAdmin && role != RoleViewer {
-		return User{}, errors.New("role must be admin or viewer")
+		return User{}, Invalid("role must be admin or viewer")
 	}
 	login = strings.TrimPrefix(strings.TrimSpace(login), "@")
 	if login == "" {
-		return User{}, errors.New("a GitHub login is needed")
+		return User{}, Invalid("a GitHub login is needed")
 	}
 	gu, err := s.cfg.GitHub.ResolveLogin(ctx, login)
 	if err != nil {
@@ -70,14 +70,14 @@ func (s *Service) UpdateRole(ctx context.Context, p Principal, id int64, role Ro
 		return User{}, err
 	}
 	if !role.Valid() {
-		return User{}, errors.New("unknown role")
+		return User{}, Invalid("unknown role")
 	}
 	switch {
 	case target.Role == RoleOwner:
-		return User{}, errors.New("the owner's role changes only by handing ownership to an admin")
+		return User{}, Invalid("the owner's role changes only by handing ownership to an admin")
 	case role == RoleOwner:
 		if target.Role != RoleAdmin {
-			return User{}, errors.New("ownership goes to an admin; make them an admin first")
+			return User{}, Invalid("ownership goes to an admin; make them an admin first")
 		}
 		if !confirm {
 			return User{}, ErrNeedsConfirm
@@ -110,7 +110,7 @@ func (s *Service) RemoveUser(ctx context.Context, p Principal, id int64) error {
 		return err
 	}
 	if u.Role == RoleOwner {
-		return errors.New("the owner cannot be removed")
+		return Invalid("the owner cannot be removed")
 	}
 	now := s.cfg.Now()
 	_ = s.store.EndUserSessions(ctx, id)
@@ -126,4 +126,37 @@ func (s *Service) RemoveUser(ctx context.Context, p Principal, id int64) error {
 // Me reads the current user's row.
 func (s *Service) Me(ctx context.Context, p Principal) (User, error) {
 	return s.store.GetUser(ctx, p.UserID)
+}
+
+// Themes the console offers (web-console 4.9).
+var Themes = []string{"system", "dark", "light"}
+
+// Theme reads the user's theme; "system" when never set.
+func (s *Service) Theme(ctx context.Context, p Principal) (string, error) {
+	if err := Require(p, RoleViewer); err != nil {
+		return "", err
+	}
+	t, err := s.store.GetTheme(ctx, p.UserID)
+	if err != nil {
+		return "", err
+	}
+	if t == "" {
+		t = "system"
+	}
+	return t, nil
+}
+
+// SetTheme saves the user's own theme.
+func (s *Service) SetTheme(ctx context.Context, p Principal, theme string) error {
+	if err := Require(p, RoleViewer); err != nil {
+		return err
+	}
+	ok := false
+	for _, t := range Themes {
+		ok = ok || t == theme
+	}
+	if !ok {
+		return Invalid("theme must be system, dark or light")
+	}
+	return s.store.SetTheme(ctx, p.UserID, theme)
 }

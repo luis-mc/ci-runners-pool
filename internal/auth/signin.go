@@ -59,7 +59,7 @@ func (s *Service) redirectURI(origin string) (string, error) {
 	if err != nil {
 		return "", ErrInsecure
 	}
-	allowed := s.cfg.ConsoleURLs()
+	allowed := s.consoleURLs()
 	for _, a := range allowed {
 		if n, err := NormalizeConsoleURL(a); err == nil && n == o {
 			return o + CallbackPath, nil
