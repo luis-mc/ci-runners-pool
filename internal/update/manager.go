@@ -128,7 +128,9 @@ type Options struct {
 	// StartMSI starts msiexec detached (Windows update); MSILog is its log path (default %ProgramData%\crsp\logs).
 	StartMSI func(ctx context.Context, msi, log string) (int, error)
 	MSILog   string
-	Pid      func() int
+	// Privileged says whether this process may install (default: root or an elevated token).
+	Privileged func() bool
+	Pid        func() int
 }
 
 // Manager runs checks, updates and restarts. It is safe for concurrent use.
@@ -188,6 +190,9 @@ func New(o Options) *Manager {
 	}
 	if o.Spawn == nil {
 		o.Spawn = Spawn
+	}
+	if o.Privileged == nil {
+		o.Privileged = Privileged
 	}
 	if o.StartMSI == nil {
 		o.StartMSI = StartMSIDetached
@@ -367,7 +372,7 @@ func (m *Manager) begin(ctx context.Context, kind Kind, actor string) (Status, e
 		m.fail(err, p.version)
 		return m.Status(ctx), err
 	}
-	if actor == "auto-update" {
+	if autoActor(actor) {
 		// An automatic update waits at most AutoDrainLimit; then it lets go and retries at the next check.
 		m.mu.Lock()
 		m.timer = time.AfterFunc(m.o.AutoDrainLimit, func() { m.giveUpDrain(actor) })

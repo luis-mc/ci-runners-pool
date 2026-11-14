@@ -657,3 +657,124 @@ func TestHelperNativePackages(t *testing.T) {
 		t.Errorf("%v", e.calls)
 	}
 }
+
+// ------------------------------------------------------- follow the controller
+
+func TestFollowUpdatesToTheControllersVersionAndDrains(t *testing.T) {
+	h := newHarness(t, "linux", false, true) // auto-update off: follow does not depend on the setting
+	h.m.o.Privileged = func() bool { return true }
+	ctx := context.Background()
+	if _, err := h.m.Follow(ctx, "1.4.0"); !errors.Is(err, ErrNoUpdate) {
+		t.Fatalf("a build that is not older does not follow: %v", err)
+	}
+	if _, err := h.m.Follow(ctx, "1.5.0"); err != nil {
+		t.Fatal(err)
+	}
+	if len(h.dl) != 2 || len(h.d.begun) != 1 {
+		t.Fatalf("download, verify and drain first: dl=%v begun=%v", h.dl, h.d.begun)
+	}
+	if err := h.m.OnIdle(ctx, KindUpdate); err != nil {
+		t.Fatal(err)
+	}
+	if len(h.spawns) != 1 || h.spawns[0].To != "1.5.0" {
+		t.Fatalf("%+v", h.spawns)
+	}
+}
+
+func TestFollowNeedsPrivilegeAndDownloadsNothingWithout(t *testing.T) {
+	h := newHarness(t, "linux", false, true)
+	h.m.o.Privileged = func() bool { return false }
+	if _, err := h.m.Follow(context.Background(), "1.5.0"); !errors.Is(err, ErrUnprivileged) {
+		t.Fatalf("%v", err)
+	}
+	if len(h.dl) != 0 || len(h.d.begun) != 0 {
+		t.Fatal("nothing may be downloaded or drained")
+	}
+}
+
+func TestFollowPostponesAfterTheDrainLimitAndRetries(t *testing.T) {
+	h := newHarness(t, "linux", false, true)
+	h.m.o.Privileged = func() bool { return true }
+	h.m.o.AutoDrainLimit = 20 * time.Millisecond
+	h.d.jobs = []Job{{Repository: "a/b", RunID: 1, Job: "x"}}
+	if _, err := h.m.Follow(context.Background(), "1.5.0"); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(200 * time.Millisecond)
+	st := h.m.Status(context.Background())
+	if h.d.cancelled != 1 || st.State != StateIdle || len(h.spawns) != 0 {
+		t.Fatalf("a running job is never cut: cancelled=%d %+v", h.d.cancelled, st)
+	}
+	if _, err := h.m.Follow(context.Background(), "1.5.0"); err != nil || len(h.d.begun) != 2 {
+		t.Fatalf("the next ask tries again: %v %v", err, h.d.begun)
+	}
+}
+
+func TestFollowStopsAfterThreeFailedTriesOfAVersion(t *testing.T) {
+	h := newHarness(t, "linux", false, true)
+	h.m.o.Privileged = func() bool { return true }
+	now := time.Now()
+	h.m.o.Now = func() time.Time { return now }
+	_ = os.MkdirAll(h.m.o.Dir, 0o750)
+	for i := 0; i < AutoTries; i++ {
+		_ = RecordFailure(h.m.o.Dir, "1.5.0", now, false)
+	}
+	if _, err := h.m.Follow(context.Background(), "1.5.0"); err != nil {
+		t.Fatal(err)
+	}
+	if len(h.dl) != 0 || len(h.d.begun) != 0 {
+		t.Fatal("after three failed tries the version is left alone")
+	}
+	if st := h.m.Status(context.Background()); !strings.Contains(st.Error, "gave up") {
+		t.Fatalf("%+v", st)
+	}
+}
+
+func TestPinnedSourceAsksForTheTag(t *testing.T) {
+	var path string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path = r.URL.Path
+		_, _ = w.Write([]byte(`{"tag_name":"v1.5.0","html_url":"u","assets":[]}`))
+	}))
+	defer srv.Close()
+	p := &PinnedSource{Base: GitHubSource{Base: srv.URL}}
+	if _, err := p.Latest(context.Background()); !errors.Is(err, ErrNoRelease) {
+		t.Fatalf("nothing pinned: %v", err)
+	}
+	p.Pin("1.5.0")
+	rel, err := p.Latest(context.Background())
+	if err != nil || rel.Version != "1.5.0" || path != "/repos/"+Repo+"/releases/tags/v1.5.0" {
+		t.Fatalf("%+v %v %s", rel, err, path)
+	}
+}
+
+func TestHelperWithoutHealthURLWaitsForTheServiceToBeActive(t *testing.T) {
+	p, _, _ := unixPlan(t, "linux")
+	p.HealthURL = "" // an agent has no console port
+	e := &execLog{}
+	if err := RunPlan(context.Background(), p, helperEnv(e, nil)); err != nil {
+		t.Fatal(err)
+	}
+	last := strings.Join(e.calls[len(e.calls)-1], "|")
+	if last != "systemctl|is-active|--quiet|crsp" {
+		t.Fatalf("%s", last)
+	}
+	// A service that never becomes active rolls the binary back.
+	p2, exe, _ := unixPlan(t, "linux")
+	p2.HealthURL, p2.HealthTimeout = "", time.Second
+	e = &execLog{codes: map[string]int{"systemctl": 0}}
+	env := helperEnv(e, nil)
+	env.Exec = func(_ context.Context, name string, args ...string) (int, error) {
+		e.calls = append(e.calls, append([]string{name}, args...))
+		if len(args) > 0 && args[0] == "is-active" {
+			return 3, nil
+		}
+		return 0, nil
+	}
+	if err := RunPlan(context.Background(), p2, env); err == nil {
+		t.Fatal("must fail")
+	}
+	if b, _ := os.ReadFile(exe); string(b) != "OLD" {
+		t.Fatalf("rolled back: %q", b)
+	}
+}

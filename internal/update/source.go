@@ -40,6 +40,9 @@ type GitHubSource struct {
 	Base   string
 	Repo   string
 	Client *http.Client
+	// Version, when set, looks up that release by its tag (a follower pins the
+	// controller's version) instead of the latest one.
+	Version string
 }
 
 type ghRelease struct {
@@ -53,6 +56,13 @@ type ghRelease struct {
 type ghAsset struct {
 	Name string `json:"name"`
 	URL  string `json:"browser_download_url"`
+}
+
+func (g GitHubSource) releasePath() string {
+	if g.Version != "" {
+		return "/releases/tags/v" + url.PathEscape(strings.TrimPrefix(g.Version, "v"))
+	}
+	return "/releases/latest"
 }
 
 // Latest asks for /releases/latest, which GitHub answers with the newest
@@ -71,7 +81,7 @@ func (g GitHubSource) Latest(ctx context.Context) (Release, error) {
 	if c == nil {
 		c = &http.Client{Timeout: 20 * time.Second}
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(base, "/")+"/repos/"+repo+"/releases/latest", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(base, "/")+"/repos/"+repo+g.releasePath(), nil)
 	if err != nil {
 		return Release{}, err
 	}

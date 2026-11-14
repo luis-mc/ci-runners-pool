@@ -171,6 +171,9 @@ func restartService(ctx context.Context, p Plan, env *Env) error {
 }
 
 func waitHealthy(ctx context.Context, p Plan, env *Env, want string) error {
+	if p.HealthURL == "" {
+		return waitServiceActive(ctx, p, env)
+	}
 	limit := p.HealthTimeout
 	if limit <= 0 {
 		limit = 60 * time.Second
