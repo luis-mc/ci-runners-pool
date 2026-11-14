@@ -24,6 +24,10 @@ type Options struct {
 	Version string
 	DB      Pinger
 	Logger  *slog.Logger
+	// Machines serves the machines routes; nil answers 501 (machines area).
+	Machines MachinesService
+	// CA serves GET /api/v1/ca.pem.
+	CA CAProvider
 }
 
 type server struct {

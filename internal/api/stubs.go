@@ -37,29 +37,14 @@ func (s *server) CompleteSignIn(_ context.Context, _ gen.CompleteSignInRequestOb
 	return gen.CompleteSignIndefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// CreateJoinCode is not built yet.
-func (s *server) CreateJoinCode(_ context.Context, _ gen.CreateJoinCodeRequestObject) (gen.CreateJoinCodeResponseObject, error) {
-	return gen.CreateJoinCodedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // CreateRunners is not built yet.
 func (s *server) CreateRunners(_ context.Context, _ gen.CreateRunnersRequestObject) (gen.CreateRunnersResponseObject, error) {
 	return gen.CreateRunnersdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// DecideMachineChange is not built yet.
-func (s *server) DecideMachineChange(_ context.Context, _ gen.DecideMachineChangeRequestObject) (gen.DecideMachineChangeResponseObject, error) {
-	return gen.DecideMachineChangedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // DeleteRunner is not built yet.
 func (s *server) DeleteRunner(_ context.Context, _ gen.DeleteRunnerRequestObject) (gen.DeleteRunnerResponseObject, error) {
 	return gen.DeleteRunnerdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// DrainMachine is not built yet.
-func (s *server) DrainMachine(_ context.Context, _ gen.DrainMachineRequestObject) (gen.DrainMachineResponseObject, error) {
-	return gen.DrainMachinedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // ExchangeCliToken is not built yet.
@@ -77,11 +62,6 @@ func (s *server) GetAppInstallUrl(_ context.Context, _ gen.GetAppInstallUrlReque
 	return gen.GetAppInstallUrldefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// GetCaCertificate is not built yet.
-func (s *server) GetCaCertificate(_ context.Context, _ gen.GetCaCertificateRequestObject) (gen.GetCaCertificateResponseObject, error) {
-	return gen.GetCaCertificatedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // GetCliLoginConfig is not built yet.
 func (s *server) GetCliLoginConfig(_ context.Context, _ gen.GetCliLoginConfigRequestObject) (gen.GetCliLoginConfigResponseObject, error) {
 	return gen.GetCliLoginConfigdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
@@ -92,34 +72,9 @@ func (s *server) GetDoctorRun(_ context.Context, _ gen.GetDoctorRunRequestObject
 	return gen.GetDoctorRundefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// GetInstallCommand is not built yet.
-func (s *server) GetInstallCommand(_ context.Context, _ gen.GetInstallCommandRequestObject) (gen.GetInstallCommandResponseObject, error) {
-	return gen.GetInstallCommanddefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // GetJob is not built yet.
 func (s *server) GetJob(_ context.Context, _ gen.GetJobRequestObject) (gen.GetJobResponseObject, error) {
 	return gen.GetJobdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// GetJoinCode is not built yet.
-func (s *server) GetJoinCode(_ context.Context, _ gen.GetJoinCodeRequestObject) (gen.GetJoinCodeResponseObject, error) {
-	return gen.GetJoinCodedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// GetMachine is not built yet.
-func (s *server) GetMachine(_ context.Context, _ gen.GetMachineRequestObject) (gen.GetMachineResponseObject, error) {
-	return gen.GetMachinedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// GetMachineChange is not built yet.
-func (s *server) GetMachineChange(_ context.Context, _ gen.GetMachineChangeRequestObject) (gen.GetMachineChangeResponseObject, error) {
-	return gen.GetMachineChangedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// GetMachineLoad is not built yet.
-func (s *server) GetMachineLoad(_ context.Context, _ gen.GetMachineLoadRequestObject) (gen.GetMachineLoadResponseObject, error) {
-	return gen.GetMachineLoaddefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // GetOverview is not built yet.
@@ -212,11 +167,6 @@ func (s *server) ListJobs(_ context.Context, _ gen.ListJobsRequestObject) (gen.L
 	return gen.ListJobsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// ListMachines is not built yet.
-func (s *server) ListMachines(_ context.Context, _ gen.ListMachinesRequestObject) (gen.ListMachinesResponseObject, error) {
-	return gen.ListMachinesdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // ListRepositories is not built yet.
 func (s *server) ListRepositories(_ context.Context, _ gen.ListRepositoriesRequestObject) (gen.ListRepositoriesResponseObject, error) {
 	return gen.ListRepositoriesdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
@@ -267,16 +217,6 @@ func (s *server) RedeemTrayLink(_ context.Context, _ gen.RedeemTrayLinkRequestOb
 	return gen.RedeemTrayLinkdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// RedetectMachine is not built yet.
-func (s *server) RedetectMachine(_ context.Context, _ gen.RedetectMachineRequestObject) (gen.RedetectMachineResponseObject, error) {
-	return gen.RedetectMachinedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// RemoveMachine is not built yet.
-func (s *server) RemoveMachine(_ context.Context, _ gen.RemoveMachineRequestObject) (gen.RemoveMachineResponseObject, error) {
-	return gen.RemoveMachinedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // RemoveUser is not built yet.
 func (s *server) RemoveUser(_ context.Context, _ gen.RemoveUserRequestObject) (gen.RemoveUserResponseObject, error) {
 	return gen.RemoveUserdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
@@ -287,19 +227,9 @@ func (s *server) RestoreBackup(_ context.Context, _ gen.RestoreBackupRequestObje
 	return gen.RestoreBackupdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// ResumeMachine is not built yet.
-func (s *server) ResumeMachine(_ context.Context, _ gen.ResumeMachineRequestObject) (gen.ResumeMachineResponseObject, error) {
-	return gen.ResumeMachinedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // RevokeCliToken is not built yet.
 func (s *server) RevokeCliToken(_ context.Context, _ gen.RevokeCliTokenRequestObject) (gen.RevokeCliTokenResponseObject, error) {
 	return gen.RevokeCliTokendefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// RevokeJoinCode is not built yet.
-func (s *server) RevokeJoinCode(_ context.Context, _ gen.RevokeJoinCodeRequestObject) (gen.RevokeJoinCodeResponseObject, error) {
-	return gen.RevokeJoinCodedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // RunBackup is not built yet.
@@ -335,11 +265,6 @@ func (s *server) StartSignIn(_ context.Context, _ gen.StartSignInRequestObject) 
 // StreamEvents is not built yet.
 func (s *server) StreamEvents(_ context.Context, _ gen.StreamEventsRequestObject) (gen.StreamEventsResponseObject, error) {
 	return gen.StreamEventsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// UpdateMachine is not built yet.
-func (s *server) UpdateMachine(_ context.Context, _ gen.UpdateMachineRequestObject) (gen.UpdateMachineResponseObject, error) {
-	return gen.UpdateMachinedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // UpdatePoolSettings is not built yet.
