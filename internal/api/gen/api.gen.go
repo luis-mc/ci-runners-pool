@@ -9,34 +9,1373 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"time"
+
+	"github.com/oapi-codegen/runtime"
 )
 
-// Defines values for HealthStatus.
+// Defines values for AddUserRequestRole.
 const (
-	Ok HealthStatus = "ok"
+	AddUserRequestRoleAdmin  AddUserRequestRole = "admin"
+	AddUserRequestRoleViewer AddUserRequestRole = "viewer"
 )
 
-// Valid indicates whether the value is a known member of the HealthStatus enum.
-func (e HealthStatus) Valid() bool {
+// Valid indicates whether the value is a known member of the AddUserRequestRole enum.
+func (e AddUserRequestRole) Valid() bool {
 	switch e {
-	case Ok:
+	case AddUserRequestRoleAdmin:
+		return true
+	case AddUserRequestRoleViewer:
 		return true
 	default:
 		return false
 	}
 }
 
+// Defines values for Arch.
+const (
+	Arm64 Arch = "arm64"
+	X64   Arch = "x64"
+)
+
+// Valid indicates whether the value is a known member of the Arch enum.
+func (e Arch) Valid() bool {
+	switch e {
+	case Arm64:
+		return true
+	case X64:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AuditEventResult.
+const (
+	AuditEventResultDone    AuditEventResult = "done"
+	AuditEventResultRefused AuditEventResult = "refused"
+)
+
+// Valid indicates whether the value is a known member of the AuditEventResult enum.
+func (e AuditEventResult) Valid() bool {
+	switch e {
+	case AuditEventResultDone:
+		return true
+	case AuditEventResultRefused:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AuditEventSource.
+const (
+	AuditEventSourceAgent  AuditEventSource = "agent"
+	AuditEventSourceApi    AuditEventSource = "api"
+	AuditEventSourceCli    AuditEventSource = "cli"
+	AuditEventSourceSystem AuditEventSource = "system"
+	AuditEventSourceTray   AuditEventSource = "tray"
+	AuditEventSourceWeb    AuditEventSource = "web"
+)
+
+// Valid indicates whether the value is a known member of the AuditEventSource enum.
+func (e AuditEventSource) Valid() bool {
+	switch e {
+	case AuditEventSourceAgent:
+		return true
+	case AuditEventSourceApi:
+		return true
+	case AuditEventSourceCli:
+		return true
+	case AuditEventSourceSystem:
+		return true
+	case AuditEventSourceTray:
+		return true
+	case AuditEventSourceWeb:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BackendName.
+const (
+	BackendNameDocker      BackendName = "docker"
+	BackendNameFirecracker BackendName = "firecracker"
+	BackendNameHyperv      BackendName = "hyperv"
+	BackendNameKvm         BackendName = "kvm"
+	BackendNameNerdctl     BackendName = "nerdctl"
+	BackendNamePersistent  BackendName = "persistent"
+	BackendNamePodman      BackendName = "podman"
+	BackendNameTart        BackendName = "tart"
+	BackendNameWsl2        BackendName = "wsl2"
+)
+
+// Valid indicates whether the value is a known member of the BackendName enum.
+func (e BackendName) Valid() bool {
+	switch e {
+	case BackendNameDocker:
+		return true
+	case BackendNameFirecracker:
+		return true
+	case BackendNameHyperv:
+		return true
+	case BackendNameKvm:
+		return true
+	case BackendNameNerdctl:
+		return true
+	case BackendNamePersistent:
+		return true
+	case BackendNamePodman:
+		return true
+	case BackendNameTart:
+		return true
+	case BackendNameWsl2:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BackupState.
+const (
+	BackupStateFailed  BackupState = "failed"
+	BackupStateGood    BackupState = "good"
+	BackupStateWriting BackupState = "writing"
+)
+
+// Valid indicates whether the value is a known member of the BackupState enum.
+func (e BackupState) Valid() bool {
+	switch e {
+	case BackupStateFailed:
+		return true
+	case BackupStateGood:
+		return true
+	case BackupStateWriting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BackupDrillState.
+const (
+	BackupDrillStateFailed  BackupDrillState = "failed"
+	BackupDrillStatePassed  BackupDrillState = "passed"
+	BackupDrillStateRunning BackupDrillState = "running"
+)
+
+// Valid indicates whether the value is a known member of the BackupDrillState enum.
+func (e BackupDrillState) Valid() bool {
+	switch e {
+	case BackupDrillStateFailed:
+		return true
+	case BackupDrillStatePassed:
+		return true
+	case BackupDrillStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DoctorRunState.
+const (
+	DoctorRunStateDone    DoctorRunState = "done"
+	DoctorRunStateFailed  DoctorRunState = "failed"
+	DoctorRunStateRunning DoctorRunState = "running"
+)
+
+// Valid indicates whether the value is a known member of the DoctorRunState enum.
+func (e DoctorRunState) Valid() bool {
+	switch e {
+	case DoctorRunStateDone:
+		return true
+	case DoctorRunStateFailed:
+		return true
+	case DoctorRunStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DoctorRunTrigger.
+const (
+	DoctorRunTriggerCli      DoctorRunTrigger = "cli"
+	DoctorRunTriggerSchedule DoctorRunTrigger = "schedule"
+	DoctorRunTriggerSystem   DoctorRunTrigger = "system"
+	DoctorRunTriggerWeb      DoctorRunTrigger = "web"
+)
+
+// Valid indicates whether the value is a known member of the DoctorRunTrigger enum.
+func (e DoctorRunTrigger) Valid() bool {
+	switch e {
+	case DoctorRunTriggerCli:
+		return true
+	case DoctorRunTriggerSchedule:
+		return true
+	case DoctorRunTriggerSystem:
+		return true
+	case DoctorRunTriggerWeb:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FreeSlotsRequestSlotsKind.
+const (
+	FreeSlotsRequestSlotsKindCi    FreeSlotsRequestSlotsKind = "ci"
+	FreeSlotsRequestSlotsKindHeavy FreeSlotsRequestSlotsKind = "heavy"
+	FreeSlotsRequestSlotsKindLight FreeSlotsRequestSlotsKind = "light"
+)
+
+// Valid indicates whether the value is a known member of the FreeSlotsRequestSlotsKind enum.
+func (e FreeSlotsRequestSlotsKind) Valid() bool {
+	switch e {
+	case FreeSlotsRequestSlotsKindCi:
+		return true
+	case FreeSlotsRequestSlotsKindHeavy:
+		return true
+	case FreeSlotsRequestSlotsKindLight:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HealthStatus.
+const (
+	HealthStatusOk HealthStatus = "ok"
+)
+
+// Valid indicates whether the value is a known member of the HealthStatus enum.
+func (e HealthStatus) Valid() bool {
+	switch e {
+	case HealthStatusOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstallationAccountType.
+const (
+	InstallationAccountTypeOrganization InstallationAccountType = "Organization"
+	InstallationAccountTypeUser         InstallationAccountType = "User"
+)
+
+// Valid indicates whether the value is a known member of the InstallationAccountType enum.
+func (e InstallationAccountType) Valid() bool {
+	switch e {
+	case InstallationAccountTypeOrganization:
+		return true
+	case InstallationAccountTypeUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstallationRepositorySelection.
+const (
+	All      InstallationRepositorySelection = "all"
+	Selected InstallationRepositorySelection = "selected"
+)
+
+// Valid indicates whether the value is a known member of the InstallationRepositorySelection enum.
+func (e InstallationRepositorySelection) Valid() bool {
+	switch e {
+	case All:
+		return true
+	case Selected:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Isolation.
+const (
+	IsolationContainer  Isolation = "container"
+	IsolationMicroVM    Isolation = "microVM"
+	IsolationPersistent Isolation = "persistent"
+	IsolationVM         Isolation = "VM"
+)
+
+// Valid indicates whether the value is a known member of the Isolation enum.
+func (e Isolation) Valid() bool {
+	switch e {
+	case IsolationContainer:
+		return true
+	case IsolationMicroVM:
+		return true
+	case IsolationPersistent:
+		return true
+	case IsolationVM:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobState.
+const (
+	JobStateDone    JobState = "done"
+	JobStateQueued  JobState = "queued"
+	JobStateRunning JobState = "running"
+)
+
+// Valid indicates whether the value is a known member of the JobState enum.
+func (e JobState) Valid() bool {
+	switch e {
+	case JobStateDone:
+		return true
+	case JobStateQueued:
+		return true
+	case JobStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobResult.
+const (
+	JobResultCancelled JobResult = "cancelled"
+	JobResultFailure   JobResult = "failure"
+	JobResultLost      JobResult = "lost"
+	JobResultSuccess   JobResult = "success"
+	JobResultTimedOut  JobResult = "timed_out"
+)
+
+// Valid indicates whether the value is a known member of the JobResult enum.
+func (e JobResult) Valid() bool {
+	switch e {
+	case JobResultCancelled:
+		return true
+	case JobResultFailure:
+		return true
+	case JobResultLost:
+		return true
+	case JobResultSuccess:
+		return true
+	case JobResultTimedOut:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JoinCodeState.
+const (
+	JoinCodeStateExpired JoinCodeState = "expired"
+	JoinCodeStateJoined  JoinCodeState = "joined"
+	JoinCodeStateRevoked JoinCodeState = "revoked"
+	JoinCodeStateWaiting JoinCodeState = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the JoinCodeState enum.
+func (e JoinCodeState) Valid() bool {
+	switch e {
+	case JoinCodeStateExpired:
+		return true
+	case JoinCodeStateJoined:
+		return true
+	case JoinCodeStateRevoked:
+		return true
+	case JoinCodeStateWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MachineChangeKind.
+const (
+	MachineChangeKindAgentUpdate    MachineChangeKind = "agent_update"
+	MachineChangeKindDrain          MachineChangeKind = "drain"
+	MachineChangeKindRemove         MachineChangeKind = "remove"
+	MachineChangeKindRunnerUpdate   MachineChangeKind = "runner_update"
+	MachineChangeKindServiceRestart MachineChangeKind = "service_restart"
+	MachineChangeKindSettings       MachineChangeKind = "settings"
+)
+
+// Valid indicates whether the value is a known member of the MachineChangeKind enum.
+func (e MachineChangeKind) Valid() bool {
+	switch e {
+	case MachineChangeKindAgentUpdate:
+		return true
+	case MachineChangeKindDrain:
+		return true
+	case MachineChangeKindRemove:
+		return true
+	case MachineChangeKindRunnerUpdate:
+		return true
+	case MachineChangeKindServiceRestart:
+		return true
+	case MachineChangeKindSettings:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MachineChangeState.
+const (
+	MachineChangeStateCancelled MachineChangeState = "cancelled"
+	MachineChangeStateDone      MachineChangeState = "done"
+	MachineChangeStateNeedsYou  MachineChangeState = "needs_you"
+	MachineChangeStateRunning   MachineChangeState = "running"
+	MachineChangeStateWaiting   MachineChangeState = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the MachineChangeState enum.
+func (e MachineChangeState) Valid() bool {
+	switch e {
+	case MachineChangeStateCancelled:
+		return true
+	case MachineChangeStateDone:
+		return true
+	case MachineChangeStateNeedsYou:
+		return true
+	case MachineChangeStateRunning:
+		return true
+	case MachineChangeStateWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MachineChangeDecisionDecision.
+const (
+	Cancel     MachineChangeDecisionDecision = "cancel"
+	StopJobs   MachineChangeDecisionDecision = "stop_jobs"
+	WaitLonger MachineChangeDecisionDecision = "wait_longer"
+)
+
+// Valid indicates whether the value is a known member of the MachineChangeDecisionDecision enum.
+func (e MachineChangeDecisionDecision) Valid() bool {
+	switch e {
+	case Cancel:
+		return true
+	case StopJobs:
+		return true
+	case WaitLonger:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MachineSettingsGateOnTimeout.
+const (
+	MachineSettingsGateOnTimeoutFail MachineSettingsGateOnTimeout = "fail"
+	MachineSettingsGateOnTimeoutRun  MachineSettingsGateOnTimeout = "run"
+)
+
+// Valid indicates whether the value is a known member of the MachineSettingsGateOnTimeout enum.
+func (e MachineSettingsGateOnTimeout) Valid() bool {
+	switch e {
+	case MachineSettingsGateOnTimeoutFail:
+		return true
+	case MachineSettingsGateOnTimeoutRun:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MachineSettingsUpdateGateOnTimeout.
+const (
+	MachineSettingsUpdateGateOnTimeoutFail MachineSettingsUpdateGateOnTimeout = "fail"
+	MachineSettingsUpdateGateOnTimeoutRun  MachineSettingsUpdateGateOnTimeout = "run"
+)
+
+// Valid indicates whether the value is a known member of the MachineSettingsUpdateGateOnTimeout enum.
+func (e MachineSettingsUpdateGateOnTimeout) Valid() bool {
+	switch e {
+	case MachineSettingsUpdateGateOnTimeoutFail:
+		return true
+	case MachineSettingsUpdateGateOnTimeoutRun:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MachineState.
+const (
+	MachineStateActive   MachineState = "active"
+	MachineStateDrained  MachineState = "drained"
+	MachineStateDraining MachineState = "draining"
+	MachineStateRemoving MachineState = "removing"
+)
+
+// Valid indicates whether the value is a known member of the MachineState enum.
+func (e MachineState) Valid() bool {
+	switch e {
+	case MachineStateActive:
+		return true
+	case MachineStateDrained:
+		return true
+	case MachineStateDraining:
+		return true
+	case MachineStateRemoving:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OS.
+const (
+	Linux   OS = "linux"
+	Macos   OS = "macos"
+	Windows OS = "windows"
+)
+
+// Valid indicates whether the value is a known member of the OS enum.
+func (e OS) Valid() bool {
+	switch e {
+	case Linux:
+		return true
+	case Macos:
+		return true
+	case Windows:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PlanArea.
+const (
+	Repositories PlanArea = "repositories"
+	Runners      PlanArea = "runners"
+)
+
+// Valid indicates whether the value is a known member of the PlanArea enum.
+func (e PlanArea) Valid() bool {
+	switch e {
+	case Repositories:
+		return true
+	case Runners:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PlanState.
+const (
+	PlanStateApplying PlanState = "applying"
+	PlanStateDone     PlanState = "done"
+	PlanStateFailed   PlanState = "failed"
+	PlanStatePlanned  PlanState = "planned"
+	PlanStateStale    PlanState = "stale"
+	PlanStateStopped  PlanState = "stopped"
+)
+
+// Valid indicates whether the value is a known member of the PlanState enum.
+func (e PlanState) Valid() bool {
+	switch e {
+	case PlanStateApplying:
+		return true
+	case PlanStateDone:
+		return true
+	case PlanStateFailed:
+		return true
+	case PlanStatePlanned:
+		return true
+	case PlanStateStale:
+		return true
+	case PlanStateStopped:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PlanRepositoryChangesRequestChangesPool.
+const (
+	PlanRepositoryChangesRequestChangesPoolOff PlanRepositoryChangesRequestChangesPool = "off"
+	PlanRepositoryChangesRequestChangesPoolOn  PlanRepositoryChangesRequestChangesPool = "on"
+)
+
+// Valid indicates whether the value is a known member of the PlanRepositoryChangesRequestChangesPool enum.
+func (e PlanRepositoryChangesRequestChangesPool) Valid() bool {
+	switch e {
+	case PlanRepositoryChangesRequestChangesPoolOff:
+		return true
+	case PlanRepositoryChangesRequestChangesPoolOn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PlanStepAction.
+const (
+	AddRunner       PlanStepAction = "add_runner"
+	DeleteOldFolder PlanStepAction = "delete_old_folder"
+	DeleteVariable  PlanStepAction = "delete_variable"
+	PoolOff         PlanStepAction = "pool_off"
+	PoolOn          PlanStepAction = "pool_on"
+	RemoveOldRunner PlanStepAction = "remove_old_runner"
+	StopOldService  PlanStepAction = "stop_old_service"
+	WriteVariable   PlanStepAction = "write_variable"
+)
+
+// Valid indicates whether the value is a known member of the PlanStepAction enum.
+func (e PlanStepAction) Valid() bool {
+	switch e {
+	case AddRunner:
+		return true
+	case DeleteOldFolder:
+		return true
+	case DeleteVariable:
+		return true
+	case PoolOff:
+		return true
+	case PoolOn:
+		return true
+	case RemoveOldRunner:
+		return true
+	case StopOldService:
+		return true
+	case WriteVariable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PlanStepState.
+const (
+	PlanStepStateDone    PlanStepState = "done"
+	PlanStepStateFailed  PlanStepState = "failed"
+	PlanStepStatePlanned PlanStepState = "planned"
+	PlanStepStateRunning PlanStepState = "running"
+	PlanStepStateSkipped PlanStepState = "skipped"
+	PlanStepStateWaiting PlanStepState = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the PlanStepState enum.
+func (e PlanStepState) Valid() bool {
+	switch e {
+	case PlanStepStateDone:
+		return true
+	case PlanStepStateFailed:
+		return true
+	case PlanStepStatePlanned:
+		return true
+	case PlanStepStateRunning:
+		return true
+	case PlanStepStateSkipped:
+		return true
+	case PlanStepStateWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for QueueSettingsOrder.
+const (
+	EventClass QueueSettingsOrder = "event_class"
+	FairShare  QueueSettingsOrder = "fair_share"
+	Priority   QueueSettingsOrder = "priority"
+	QueuedAt   QueueSettingsOrder = "queued_at"
+)
+
+// Valid indicates whether the value is a known member of the QueueSettingsOrder enum.
+func (e QueueSettingsOrder) Valid() bool {
+	switch e {
+	case EventClass:
+		return true
+	case FairShare:
+		return true
+	case Priority:
+		return true
+	case QueuedAt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RepositoryVisibility.
+const (
+	Internal RepositoryVisibility = "internal"
+	Private  RepositoryVisibility = "private"
+	Public   RepositoryVisibility = "public"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryVisibility enum.
+func (e RepositoryVisibility) Valid() bool {
+	switch e {
+	case Internal:
+		return true
+	case Private:
+		return true
+	case Public:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RepositoryVariableName.
+const (
+	CRSPRUNSONLINUX   RepositoryVariableName = "CRSP_RUNS_ON_LINUX"
+	CRSPRUNSONMACOS   RepositoryVariableName = "CRSP_RUNS_ON_MACOS"
+	CRSPRUNSONWINDOWS RepositoryVariableName = "CRSP_RUNS_ON_WINDOWS"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryVariableName enum.
+func (e RepositoryVariableName) Valid() bool {
+	switch e {
+	case CRSPRUNSONLINUX:
+		return true
+	case CRSPRUNSONMACOS:
+		return true
+	case CRSPRUNSONWINDOWS:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Role.
+const (
+	RoleAdmin  Role = "admin"
+	RoleOwner  Role = "owner"
+	RoleViewer Role = "viewer"
+)
+
+// Valid indicates whether the value is a known member of the Role enum.
+func (e Role) Valid() bool {
+	switch e {
+	case RoleAdmin:
+		return true
+	case RoleOwner:
+		return true
+	case RoleViewer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunnerKind.
+const (
+	RunnerKindEphemeral  RunnerKind = "ephemeral"
+	RunnerKindPersistent RunnerKind = "persistent"
+)
+
+// Valid indicates whether the value is a known member of the RunnerKind enum.
+func (e RunnerKind) Valid() bool {
+	switch e {
+	case RunnerKindEphemeral:
+		return true
+	case RunnerKindPersistent:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunnerScopeKind.
+const (
+	RunnerScopeKindOrganization RunnerScopeKind = "organization"
+	RunnerScopeKindRepository   RunnerScopeKind = "repository"
+)
+
+// Valid indicates whether the value is a known member of the RunnerScopeKind enum.
+func (e RunnerScopeKind) Valid() bool {
+	switch e {
+	case RunnerScopeKindOrganization:
+		return true
+	case RunnerScopeKindRepository:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunnerState.
+const (
+	RunnerStateBusy     RunnerState = "busy"
+	RunnerStateCreating RunnerState = "creating"
+	RunnerStateDraining RunnerState = "draining"
+	RunnerStateFailed   RunnerState = "failed"
+	RunnerStateIdle     RunnerState = "idle"
+	RunnerStateOffline  RunnerState = "offline"
+	RunnerStateRemoving RunnerState = "removing"
+	RunnerStateUpdating RunnerState = "updating"
+)
+
+// Valid indicates whether the value is a known member of the RunnerState enum.
+func (e RunnerState) Valid() bool {
+	switch e {
+	case RunnerStateBusy:
+		return true
+	case RunnerStateCreating:
+		return true
+	case RunnerStateDraining:
+		return true
+	case RunnerStateFailed:
+		return true
+	case RunnerStateIdle:
+		return true
+	case RunnerStateOffline:
+		return true
+	case RunnerStateRemoving:
+		return true
+	case RunnerStateUpdating:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunsOnFindingKind.
+const (
+	RunsOnFindingKindHosted             RunsOnFindingKind = "hosted"
+	RunsOnFindingKindNoRunnerWithLabels RunsOnFindingKind = "no_runner_with_labels"
+	RunsOnFindingKindNotGeneric         RunsOnFindingKind = "not_generic"
+	RunsOnFindingKindUsesVariable       RunsOnFindingKind = "uses_variable"
+)
+
+// Valid indicates whether the value is a known member of the RunsOnFindingKind enum.
+func (e RunsOnFindingKind) Valid() bool {
+	switch e {
+	case RunsOnFindingKindHosted:
+		return true
+	case RunsOnFindingKindNoRunnerWithLabels:
+		return true
+	case RunsOnFindingKindNotGeneric:
+		return true
+	case RunsOnFindingKindUsesVariable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SetupStateStepsConnectGithub.
+const (
+	SetupStateStepsConnectGithubDone SetupStateStepsConnectGithub = "done"
+	SetupStateStepsConnectGithubTodo SetupStateStepsConnectGithub = "todo"
+)
+
+// Valid indicates whether the value is a known member of the SetupStateStepsConnectGithub enum.
+func (e SetupStateStepsConnectGithub) Valid() bool {
+	switch e {
+	case SetupStateStepsConnectGithubDone:
+		return true
+	case SetupStateStepsConnectGithubTodo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SetupStateStepsFirstMachine.
+const (
+	SetupStateStepsFirstMachineDone SetupStateStepsFirstMachine = "done"
+	SetupStateStepsFirstMachineTodo SetupStateStepsFirstMachine = "todo"
+)
+
+// Valid indicates whether the value is a known member of the SetupStateStepsFirstMachine enum.
+func (e SetupStateStepsFirstMachine) Valid() bool {
+	switch e {
+	case SetupStateStepsFirstMachineDone:
+		return true
+	case SetupStateStepsFirstMachineTodo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SetupStateStepsFirstRepository.
+const (
+	SetupStateStepsFirstRepositoryDone SetupStateStepsFirstRepository = "done"
+	SetupStateStepsFirstRepositoryTodo SetupStateStepsFirstRepository = "todo"
+)
+
+// Valid indicates whether the value is a known member of the SetupStateStepsFirstRepository enum.
+func (e SetupStateStepsFirstRepository) Valid() bool {
+	switch e {
+	case SetupStateStepsFirstRepositoryDone:
+		return true
+	case SetupStateStepsFirstRepositoryTodo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Severity.
+const (
+	SeverityFail Severity = "fail"
+	SeverityInfo Severity = "info"
+	SeverityOk   Severity = "ok"
+	SeveritySkip Severity = "skip"
+	SeverityWarn Severity = "warn"
+)
+
+// Valid indicates whether the value is a known member of the Severity enum.
+func (e Severity) Valid() bool {
+	switch e {
+	case SeverityFail:
+		return true
+	case SeverityInfo:
+		return true
+	case SeverityOk:
+		return true
+	case SeveritySkip:
+		return true
+	case SeverityWarn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SlotKind.
+const (
+	SlotKindCi    SlotKind = "ci"
+	SlotKindHeavy SlotKind = "heavy"
+	SlotKindLight SlotKind = "light"
+)
+
+// Valid indicates whether the value is a known member of the SlotKind enum.
+func (e SlotKind) Valid() bool {
+	switch e {
+	case SlotKindCi:
+		return true
+	case SlotKindHeavy:
+		return true
+	case SlotKindLight:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for StartAppManifestRequestAccountType.
+const (
+	StartAppManifestRequestAccountTypeOrganization StartAppManifestRequestAccountType = "organization"
+	StartAppManifestRequestAccountTypeUser         StartAppManifestRequestAccountType = "user"
+)
+
+// Valid indicates whether the value is a known member of the StartAppManifestRequestAccountType enum.
+func (e StartAppManifestRequestAccountType) Valid() bool {
+	switch e {
+	case StartAppManifestRequestAccountTypeOrganization:
+		return true
+	case StartAppManifestRequestAccountTypeUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Theme.
+const (
+	ThemeDark   Theme = "dark"
+	ThemeLight  Theme = "light"
+	ThemeSystem Theme = "system"
+)
+
+// Valid indicates whether the value is a known member of the Theme enum.
+func (e Theme) Valid() bool {
+	switch e {
+	case ThemeDark:
+		return true
+	case ThemeLight:
+		return true
+	case ThemeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VariableStatus.
+const (
+	VariableStatusMissing    VariableStatus = "missing"
+	VariableStatusNotManaged VariableStatus = "not_managed"
+	VariableStatusOk         VariableStatus = "ok"
+	VariableStatusWrong      VariableStatus = "wrong"
+)
+
+// Valid indicates whether the value is a known member of the VariableStatus enum.
+func (e VariableStatus) Valid() bool {
+	switch e {
+	case VariableStatusMissing:
+		return true
+	case VariableStatusNotManaged:
+		return true
+	case VariableStatusOk:
+		return true
+	case VariableStatusWrong:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WaitReason.
+const (
+	WaitReasonFreeSlot                WaitReason = "free_slot"
+	WaitReasonLoadOverBudget          WaitReason = "load_over_budget"
+	WaitReasonMachineDrained          WaitReason = "machine_drained"
+	WaitReasonNoRunnerWithLabels      WaitReason = "no_runner_with_labels"
+	WaitReasonQuietHours              WaitReason = "quiet_hours"
+	WaitReasonRepositoryParallelLimit WaitReason = "repository_parallel_limit"
+	WaitReasonUnknown                 WaitReason = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the WaitReason enum.
+func (e WaitReason) Valid() bool {
+	switch e {
+	case WaitReasonFreeSlot:
+		return true
+	case WaitReasonLoadOverBudget:
+		return true
+	case WaitReasonMachineDrained:
+		return true
+	case WaitReasonNoRunnerWithLabels:
+		return true
+	case WaitReasonQuietHours:
+		return true
+	case WaitReasonRepositoryParallelLimit:
+		return true
+	case WaitReasonUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListRepositoriesParamsPool.
+const (
+	ListRepositoriesParamsPoolOff ListRepositoriesParamsPool = "off"
+	ListRepositoriesParamsPoolOn  ListRepositoriesParamsPool = "on"
+)
+
+// Valid indicates whether the value is a known member of the ListRepositoriesParamsPool enum.
+func (e ListRepositoriesParamsPool) Valid() bool {
+	switch e {
+	case ListRepositoriesParamsPoolOff:
+		return true
+	case ListRepositoriesParamsPoolOn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListJobsParamsState.
+const (
+	ListJobsParamsStateDone    ListJobsParamsState = "done"
+	ListJobsParamsStateQueued  ListJobsParamsState = "queued"
+	ListJobsParamsStateRunning ListJobsParamsState = "running"
+)
+
+// Valid indicates whether the value is a known member of the ListJobsParamsState enum.
+func (e ListJobsParamsState) Valid() bool {
+	switch e {
+	case ListJobsParamsStateDone:
+		return true
+	case ListJobsParamsStateQueued:
+		return true
+	case ListJobsParamsStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// AddUserRequest defines model for AddUserRequest.
+type AddUserRequest struct {
+	Login string             `json:"login"`
+	Role  AddUserRequestRole `json:"role"`
+}
+
+// AddUserRequestRole defines model for AddUserRequest.Role.
+type AddUserRequestRole string
+
+// AppInstallUrl defines model for AppInstallUrl.
+type AppInstallUrl struct {
+	Url string `json:"url"`
+}
+
+// AppManifestForm defines model for AppManifestForm.
+type AppManifestForm struct {
+	Manifest map[string]interface{} `json:"manifest"`
+	PostUrl  string                 `json:"post_url"`
+	State    string                 `json:"state"`
+}
+
+// ApplyPlanRequest defines model for ApplyPlanRequest.
+type ApplyPlanRequest struct {
+	// ApprovedSteps Ids of the steps the user said yes to.
+	ApprovedSteps []string `json:"approved_steps"`
+}
+
+// Arch defines model for Arch.
+type Arch string
+
+// AuditEvent observability R5.24.
+type AuditEvent struct {
+	Action string `json:"action"`
+
+	// Actor GitHub login, `system`, or the machine for agent actions.
+	Actor   string           `json:"actor"`
+	ActorId *string          `json:"actor_id,omitempty"`
+	At      time.Time        `json:"at"`
+	Id      int64            `json:"id"`
+	Result  AuditEventResult `json:"result"`
+	Source  AuditEventSource `json:"source"`
+
+	// Summary Short before-and-after summary; redacted.
+	Summary    string `json:"summary"`
+	TargetId   string `json:"target_id"`
+	TargetType string `json:"target_type"`
+}
+
+// AuditEventResult defines model for AuditEvent.Result.
+type AuditEventResult string
+
+// AuditEventSource defines model for AuditEvent.Source.
+type AuditEventSource string
+
+// AuditPage defines model for AuditPage.
+type AuditPage struct {
+	Items      []AuditEvent `json:"items"`
+	NextCursor *string      `json:"next_cursor,omitempty"`
+}
+
+// BackendName defines model for BackendName.
+type BackendName string
+
+// BackendSupport machines R5.11 and R5.12.
+type BackendSupport struct {
+	Allowed bool        `json:"allowed"`
+	Name    BackendName `json:"name"`
+	Present bool        `json:"present"`
+
+	// Reason Why it is not usable, such as "no /dev/kvm".
+	Reason   *string `json:"reason,omitempty"`
+	Rootless *bool   `json:"rootless,omitempty"`
+	Usable   bool    `json:"usable"`
+	Version  *string `json:"version,omitempty"`
+}
+
+// Backup defines model for Backup.
+type Backup struct {
+	// CheckResult PRAGMA integrity_check result.
+	CheckResult   *string     `json:"check_result,omitempty"`
+	CreatedAt     time.Time   `json:"created_at"`
+	File          string      `json:"file"`
+	Id            string      `json:"id"`
+	SchemaVersion *int64      `json:"schema_version,omitempty"`
+	SizeBytes     *int64      `json:"size_bytes,omitempty"`
+	State         BackupState `json:"state"`
+}
+
+// BackupState defines model for Backup.State.
+type BackupState string
+
+// BackupDrill defines model for BackupDrill.
+type BackupDrill struct {
+	BackupId   *string          `json:"backup_id,omitempty"`
+	Detail     *string          `json:"detail,omitempty"`
+	FinishedAt *time.Time       `json:"finished_at,omitempty"`
+	Id         string           `json:"id"`
+	StartedAt  time.Time        `json:"started_at"`
+	State      BackupDrillState `json:"state"`
+}
+
+// BackupDrillState defines model for BackupDrill.State.
+type BackupDrillState string
+
+// BackupList defines model for BackupList.
+type BackupList struct {
+	Items     []Backup     `json:"items"`
+	LastDrill *BackupDrill `json:"last_drill,omitempty"`
+}
+
+// CliLoginConfig defines model for CliLoginConfig.
+type CliLoginConfig struct {
+	ClientId        string `json:"client_id"`
+	DeviceCodeUrl   string `json:"device_code_url"`
+	VerificationUrl string `json:"verification_url"`
+}
+
+// CliToken defines model for CliToken.
+type CliToken struct {
+	CreatedAt  time.Time  `json:"created_at"`
+	ExpiresAt  time.Time  `json:"expires_at"`
+	Id         string     `json:"id"`
+	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
+	Name       string     `json:"name"`
+	RevokedAt  *time.Time `json:"revoked_at,omitempty"`
+	UserId     int64      `json:"user_id"`
+	UserLogin  string     `json:"user_login"`
+}
+
+// CliTokenCreated defines model for CliTokenCreated.
+type CliTokenCreated struct {
+	Info CliToken `json:"info"`
+
+	// Token Shown once; the controller keeps only its hash.
+	Token string `json:"token"`
+}
+
+// CliTokenList defines model for CliTokenList.
+type CliTokenList struct {
+	Items []CliToken `json:"items"`
+}
+
+// CreateJoinCodeRequest defines model for CreateJoinCodeRequest.
+type CreateJoinCodeRequest struct {
+	// TtlMinutes Default 15, ceiling 1440 (machines R5.4).
+	TtlMinutes *int `json:"ttl_minutes,omitempty"`
+}
+
+// DoctorFinding defines model for DoctorFinding.
+type DoctorFinding struct {
+	Check     string    `json:"check"`
+	CheckedAt time.Time `json:"checked_at"`
+	Detail    *string   `json:"detail,omitempty"`
+	Fix       struct {
+		Command *string `json:"command,omitempty"`
+		Link    *string `json:"link,omitempty"`
+		Text    string  `json:"text"`
+	} `json:"fix"`
+	Milestone  int      `json:"milestone"`
+	NeedsAdmin bool     `json:"needs_admin"`
+	Severity   Severity `json:"severity"`
+	Subject    struct {
+		Id   string `json:"id"`
+		Kind string `json:"kind"`
+		Name string `json:"name"`
+	} `json:"subject"`
+	Title string `json:"title"`
+}
+
+// DoctorFindingList defines model for DoctorFindingList.
+type DoctorFindingList struct {
+	Items     []DoctorFinding `json:"items"`
+	LastRunAt *time.Time      `json:"last_run_at,omitempty"`
+}
+
+// DoctorRun doctor 7.4.
+type DoctorRun struct {
+	Counts     map[string]int   `json:"counts"`
+	Findings   []DoctorFinding  `json:"findings"`
+	FinishedAt *time.Time       `json:"finished_at,omitempty"`
+	Id         string           `json:"id"`
+	Scope      *DoctorScope     `json:"scope,omitempty"`
+	StartedAt  time.Time        `json:"started_at"`
+	State      DoctorRunState   `json:"state"`
+	Trigger    DoctorRunTrigger `json:"trigger"`
+	Worst      *Severity        `json:"worst,omitempty"`
+}
+
+// DoctorRunState defines model for DoctorRun.State.
+type DoctorRunState string
+
+// DoctorRunTrigger defines model for DoctorRun.Trigger.
+type DoctorRunTrigger string
+
+// DoctorScope defines model for DoctorScope.
+type DoctorScope struct {
+	Checks       *[]string `json:"checks,omitempty"`
+	Machines     *[]string `json:"machines,omitempty"`
+	Repositories *[]int64  `json:"repositories,omitempty"`
+}
+
+// DrainRequest defines model for DrainRequest.
+type DrainRequest struct {
+	Reason *string `json:"reason,omitempty"`
+}
+
+// ErrorBody defines model for ErrorBody.
+type ErrorBody struct {
+	// Code Stable machine-readable code.
+	Code string `json:"code"`
+
+	// Details For needs_confirmation, each item that goes or job it waits for; for bad_request, each field problem.
+	Details *[]ErrorDetail `json:"details,omitempty"`
+
+	// Message Human-readable text. Never contains secrets.
+	Message string `json:"message"`
+}
+
+// ErrorDetail defines model for ErrorDetail.
+type ErrorDetail struct {
+	Id   *string `json:"id,omitempty"`
+	Kind string  `json:"kind"`
+	Text string  `json:"text"`
+}
+
 // ErrorEnvelope defines model for ErrorEnvelope.
 type ErrorEnvelope struct {
-	Error struct {
-		// Code Stable machine-readable code.
-		Code string `json:"code"`
+	Error ErrorBody `json:"error"`
+}
 
-		// Message Human-readable text. Never contains secrets.
-		Message string `json:"message"`
-	} `json:"error"`
+// ExchangeCliTokenRequest defines model for ExchangeCliTokenRequest.
+type ExchangeCliTokenRequest struct {
+	// GithubCredential The device-flow user token. Checked once and dropped.
+	GithubCredential string `json:"github_credential"`
+
+	// Name A label for the token list, such as the host name.
+	Name string `json:"name"`
+}
+
+// FreeSlotsRequest defines model for FreeSlotsRequest.
+type FreeSlotsRequest struct {
+	Confirm *bool `json:"confirm,omitempty"`
+
+	// Slots Live slots to free by hand; needs confirm.
+	Slots *[]struct {
+		Kind   FreeSlotsRequestSlotsKind `json:"kind"`
+		Number int                       `json:"number"`
+	} `json:"slots,omitempty"`
+}
+
+// FreeSlotsRequestSlotsKind defines model for FreeSlotsRequest.Slots.Kind.
+type FreeSlotsRequestSlotsKind string
+
+// FreedSlotList defines model for FreedSlotList.
+type FreedSlotList struct {
+	Items []struct {
+		Reason string `json:"reason"`
+		Slot   Slot   `json:"slot"`
+	} `json:"items"`
+}
+
+// GitHubApp defines model for GitHubApp.
+type GitHubApp struct {
+	HtmlUrl       string             `json:"html_url"`
+	Id            int64              `json:"id"`
+	OwnerLogin    string             `json:"owner_login"`
+	Permissions   *map[string]string `json:"permissions,omitempty"`
+	Slug          string             `json:"slug"`
+	WebhookActive bool               `json:"webhook_active"`
 }
 
 // Health defines model for Health.
@@ -48,11 +1387,1149 @@ type Health struct {
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
 
+// InstallCommands defines model for InstallCommands.
+type InstallCommands struct {
+	AgentPort int `json:"agent_port"`
+
+	// CertSha256 The controller certificate fingerprint the agent pins.
+	CertSha256        string `json:"cert_sha256"`
+	ControllerAddress string `json:"controller_address"`
+	Items             []struct {
+		Command string `json:"command"`
+		Os      OS     `json:"os"`
+	} `json:"items"`
+}
+
+// Installation defines model for Installation.
+type Installation struct {
+	AccountLogin string                  `json:"account_login"`
+	AccountType  InstallationAccountType `json:"account_type"`
+	Id           int64                   `json:"id"`
+
+	// MissingPermissions github-integration R5.24.
+	MissingPermissions  *[]string                       `json:"missing_permissions,omitempty"`
+	RepositorySelection InstallationRepositorySelection `json:"repository_selection"`
+	Suspended           bool                            `json:"suspended"`
+}
+
+// InstallationAccountType defines model for Installation.AccountType.
+type InstallationAccountType string
+
+// InstallationRepositorySelection defines model for Installation.RepositorySelection.
+type InstallationRepositorySelection string
+
+// InstallationList defines model for InstallationList.
+type InstallationList struct {
+	Items []Installation `json:"items"`
+
+	// Stale Set when GitHub did not answer and the last copy is shown (UX-53).
+	Stale Staleness `json:"stale"`
+}
+
+// Isolation defines model for Isolation.
+type Isolation string
+
+// Job One job attempt (observability R5.7, R5.8).
+type Job struct {
+	Backend           *string    `json:"backend,omitempty"`
+	CompletedAt       *time.Time `json:"completed_at,omitempty"`
+	CreatedAt         *time.Time `json:"created_at,omitempty"`
+	GithubJobId       int64      `json:"github_job_id"`
+	GithubWaitSeconds *int       `json:"github_wait_seconds,omitempty"`
+	HeadSha           *string    `json:"head_sha,omitempty"`
+	HtmlUrl           *string    `json:"html_url,omitempty"`
+	Id                int64      `json:"id"`
+	Isolation         *Isolation `json:"isolation,omitempty"`
+	JobName           string     `json:"job_name"`
+	Labels            []string   `json:"labels"`
+	MachineId         *string    `json:"machine_id,omitempty"`
+	QueuedAt          *time.Time `json:"queued_at,omitempty"`
+	Repository        string     `json:"repository"`
+	RepositoryId      *int64     `json:"repository_id,omitempty"`
+	Result            *JobResult `json:"result,omitempty"`
+	RunAttempt        int        `json:"run_attempt"`
+	RunId             int64      `json:"run_id"`
+	RunSeconds        *int       `json:"run_seconds,omitempty"`
+	RunnerId          *string    `json:"runner_id,omitempty"`
+	RunnerName        *string    `json:"runner_name,omitempty"`
+	SlotAt            *time.Time `json:"slot_at,omitempty"`
+	SlotWaitSeconds   *int       `json:"slot_wait_seconds,omitempty"`
+	StartedAt         *time.Time `json:"started_at,omitempty"`
+	State             JobState   `json:"state"`
+	Trigger           *string    `json:"trigger,omitempty"`
+
+	// WaitReason observability R5.5.
+	WaitReason *WaitReason `json:"wait_reason,omitempty"`
+
+	// WaitText The reason with its machine, numbers or labels.
+	WaitText *string `json:"wait_text,omitempty"`
+	Workflow *string `json:"workflow,omitempty"`
+}
+
+// JobState defines model for Job.State.
+type JobState string
+
+// JobPage defines model for JobPage.
+type JobPage struct {
+	Items      []Job   `json:"items"`
+	NextCursor *string `json:"next_cursor,omitempty"`
+
+	// Stale Set when GitHub did not answer and the last copy is shown (UX-53).
+	Stale Staleness `json:"stale"`
+}
+
+// JobResult defines model for JobResult.
+type JobResult string
+
+// JoinCode defines model for JoinCode.
+type JoinCode struct {
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
+	Id        string    `json:"id"`
+
+	// MachineId Set once an agent joined with it.
+	MachineId *string       `json:"machine_id,omitempty"`
+	State     JoinCodeState `json:"state"`
+}
+
+// JoinCodeState defines model for JoinCode.State.
+type JoinCodeState string
+
+// JoinCodeCreated defines model for JoinCodeCreated.
+type JoinCodeCreated struct {
+	// Code The one-time code, shown once.
+	Code     string          `json:"code"`
+	Commands InstallCommands `json:"commands"`
+	JoinCode JoinCode        `json:"join_code"`
+}
+
+// Load defines model for Load.
+type Load struct {
+	CpuKnown    bool      `json:"cpu_known"`
+	CpuPct      *float32  `json:"cpu_pct,omitempty"`
+	MemoryKnown bool      `json:"memory_known"`
+	MemoryPct   *float32  `json:"memory_pct,omitempty"`
+	SampledAt   time.Time `json:"sampled_at"`
+
+	// Stale Older than 20 seconds (machines R6.7).
+	Stale         bool    `json:"stale"`
+	UnknownReason *string `json:"unknown_reason,omitempty"`
+}
+
+// LoadHistory defines model for LoadHistory.
+type LoadHistory struct {
+	Items []struct {
+		At        time.Time `json:"at"`
+		CpuPct    *float32  `json:"cpu_pct,omitempty"`
+		MemoryPct *float32  `json:"memory_pct,omitempty"`
+	} `json:"items"`
+}
+
+// Machine defines model for Machine.
+type Machine struct {
+	Arch     Arch             `json:"arch"`
+	Backends []BackendSupport `json:"backends"`
+
+	// Facts machines R5.10.
+	Facts *MachineFacts `json:"facts,omitempty"`
+	Id    string        `json:"id"`
+
+	// IsController The controller's own machine (machines R5.1); it has no special path.
+	IsController bool       `json:"is_controller"`
+	JoinedAt     *time.Time `json:"joined_at,omitempty"`
+	LastSeenAt   time.Time  `json:"last_seen_at"`
+	Load         *Load      `json:"load,omitempty"`
+	Name         string     `json:"name"`
+	Online       bool       `json:"online"`
+	Os           OS         `json:"os"`
+
+	// PendingChange A change that waits for a drain (machines R5.30 to R5.33).
+	PendingChange *MachineChange `json:"pending_change,omitempty"`
+	RunningJobs   *[]Job         `json:"running_jobs,omitempty"`
+
+	// Settings machines R5.22, scheduling R5.1.
+	Settings  MachineSettings `json:"settings"`
+	SlotsUsed int             `json:"slots_used"`
+
+	// State active and drained are set by the user; draining while a drain waits.
+	State MachineState `json:"state"`
+}
+
+// MachineChange A change that waits for a drain (machines R5.30 to R5.33).
+type MachineChange struct {
+	DeadlineAt *time.Time         `json:"deadline_at,omitempty"`
+	Id         string             `json:"id"`
+	Kind       MachineChangeKind  `json:"kind"`
+	MachineId  string             `json:"machine_id"`
+	StartedAt  time.Time          `json:"started_at"`
+	State      MachineChangeState `json:"state"`
+	WaitingFor []Job              `json:"waiting_for"`
+}
+
+// MachineChangeKind defines model for MachineChange.Kind.
+type MachineChangeKind string
+
+// MachineChangeState defines model for MachineChange.State.
+type MachineChangeState string
+
+// MachineChangeDecision defines model for MachineChangeDecision.
+type MachineChangeDecision struct {
+	Confirm     *bool                         `json:"confirm,omitempty"`
+	Decision    MachineChangeDecisionDecision `json:"decision"`
+	WaitMinutes *int                          `json:"wait_minutes,omitempty"`
+}
+
+// MachineChangeDecisionDecision defines model for MachineChangeDecision.Decision.
+type MachineChangeDecisionDecision string
+
+// MachineFacts machines R5.10.
+type MachineFacts struct {
+	AgentVersion   *string    `json:"agent_version,omitempty"`
+	Cores          *int       `json:"cores,omitempty"`
+	CpuModel       *string    `json:"cpu_model,omitempty"`
+	DetectedAt     *time.Time `json:"detected_at,omitempty"`
+	DiskFreeBytes  *int64     `json:"disk_free_bytes,omitempty"`
+	DiskTotalBytes *int64     `json:"disk_total_bytes,omitempty"`
+	Gpus           *[]struct {
+		MemoryBytes *int64  `json:"memory_bytes,omitempty"`
+		Model       *string `json:"model,omitempty"`
+		Vendor      *string `json:"vendor,omitempty"`
+	} `json:"gpus,omitempty"`
+	HostName      *string `json:"host_name,omitempty"`
+	KernelVersion *string `json:"kernel_version,omitempty"`
+	MemoryBytes   *int64  `json:"memory_bytes,omitempty"`
+	OsName        *string `json:"os_name,omitempty"`
+	OsVersion     *string `json:"os_version,omitempty"`
+	Threads       *int    `json:"threads,omitempty"`
+}
+
+// MachineList defines model for MachineList.
+type MachineList struct {
+	Items []Machine `json:"items"`
+}
+
+// MachineSettings machines R5.22, scheduling R5.1.
+type MachineSettings struct {
+	AllowedBackends     []BackendName                 `json:"allowed_backends"`
+	BudgetCpuPct        int                           `json:"budget_cpu_pct"`
+	BudgetMemoryPct     int                           `json:"budget_memory_pct"`
+	CacheCapBytes       *int64                        `json:"cache_cap_bytes,omitempty"`
+	DrainTimeoutMinutes int                           `json:"drain_timeout_minutes"`
+	GateMaxWaitMinutes  *int                          `json:"gate_max_wait_minutes,omitempty"`
+	GateOnTimeout       *MachineSettingsGateOnTimeout `json:"gate_on_timeout,omitempty"`
+	GatePollSeconds     *int                          `json:"gate_poll_seconds,omitempty"`
+	HeavyJobs           *[]string                     `json:"heavy_jobs,omitempty"`
+	HeavySlots          int                           `json:"heavy_slots"`
+	JobSlots            int                           `json:"job_slots"`
+	LightJobs           *[]string                     `json:"light_jobs,omitempty"`
+	LightSlots          int                           `json:"light_slots"`
+	SlotMaxAgeMinutes   *int                          `json:"slot_max_age_minutes,omitempty"`
+
+	// WindowsSymlinkRight Owner decision for M1; grant "create symbolic links" to Windows runner accounts.
+	WindowsSymlinkRight bool `json:"windows_symlink_right"`
+}
+
+// MachineSettingsGateOnTimeout defines model for MachineSettings.GateOnTimeout.
+type MachineSettingsGateOnTimeout string
+
+// MachineSettingsUpdate defines model for MachineSettingsUpdate.
+type MachineSettingsUpdate struct {
+	AllowedBackends *[]BackendName `json:"allowed_backends,omitempty"`
+	BudgetCpuPct    *int           `json:"budget_cpu_pct,omitempty"`
+	BudgetMemoryPct *int           `json:"budget_memory_pct,omitempty"`
+	CacheCapBytes   *int64         `json:"cache_cap_bytes,omitempty"`
+
+	// Confirm The yes once the jobs a restart waits for are named.
+	Confirm             *bool                               `json:"confirm,omitempty"`
+	DrainTimeoutMinutes *int                                `json:"drain_timeout_minutes,omitempty"`
+	GateOnTimeout       *MachineSettingsUpdateGateOnTimeout `json:"gate_on_timeout,omitempty"`
+	HeavyJobs           *[]string                           `json:"heavy_jobs,omitempty"`
+	HeavySlots          *int                                `json:"heavy_slots,omitempty"`
+	JobSlots            *int                                `json:"job_slots,omitempty"`
+	LightJobs           *[]string                           `json:"light_jobs,omitempty"`
+	LightSlots          *int                                `json:"light_slots,omitempty"`
+	Name                *string                             `json:"name,omitempty"`
+	WindowsSymlinkRight *bool                               `json:"windows_symlink_right,omitempty"`
+}
+
+// MachineSettingsUpdateGateOnTimeout defines model for MachineSettingsUpdate.GateOnTimeout.
+type MachineSettingsUpdateGateOnTimeout string
+
+// MachineState active and drained are set by the user; draining while a drain waits.
+type MachineState string
+
+// OS defines model for OS.
+type OS string
+
+// Overview defines model for Overview.
+type Overview struct {
+	// LastEventId Open the stream with this as Last-Event-ID.
+	LastEventId string    `json:"last_event_id"`
+	Machines    []Machine `json:"machines"`
+
+	// MinutesSavedToday Per OS (observability R5.15).
+	MinutesSavedToday *[]struct {
+		Minutes int `json:"minutes"`
+		Os      OS  `json:"os"`
+	} `json:"minutes_saved_today,omitempty"`
+	Queued      *[]Job `json:"queued,omitempty"`
+	QueuedCount int    `json:"queued_count"`
+	Running     []Job  `json:"running"`
+}
+
+// Plan A planned change. Nothing changes until it is applied. Each step names what it does; steps that delete need their own yes (UX-62).
+type Plan struct {
+	Area      PlanArea   `json:"area"`
+	CreatedAt time.Time  `json:"created_at"`
+	CreatedBy string     `json:"created_by"`
+	Id        string     `json:"id"`
+	State     PlanState  `json:"state"`
+	Steps     []PlanStep `json:"steps"`
+}
+
+// PlanArea defines model for Plan.Area.
+type PlanArea string
+
+// PlanState defines model for Plan.State.
+type PlanState string
+
+// PlanRepositoryChangesRequest defines model for PlanRepositoryChangesRequest.
+type PlanRepositoryChangesRequest struct {
+	Changes []struct {
+		Pool         PlanRepositoryChangesRequestChangesPool `json:"pool"`
+		RepositoryId int64                                   `json:"repository_id"`
+	} `json:"changes"`
+}
+
+// PlanRepositoryChangesRequestChangesPool defines model for PlanRepositoryChangesRequest.Changes.Pool.
+type PlanRepositoryChangesRequestChangesPool string
+
+// PlanRunnersRequest defines model for PlanRunnersRequest.
+type PlanRunnersRequest struct {
+	Count     int         `json:"count"`
+	Kind      RunnerKind  `json:"kind"`
+	Labels    *[]string   `json:"labels,omitempty"`
+	MachineId string      `json:"machine_id"`
+	Os        OS          `json:"os"`
+	Scope     RunnerScope `json:"scope"`
+}
+
+// PlanStep defines model for PlanStep.
+type PlanStep struct {
+	Action   PlanStepAction `json:"action"`
+	Error    *string        `json:"error,omitempty"`
+	Id       string         `json:"id"`
+	NeedsYes bool           `json:"needs_yes"`
+	State    PlanStepState  `json:"state"`
+	Target   *string        `json:"target,omitempty"`
+	Text     string         `json:"text"`
+
+	// WaitsFor The step this one waits for, such as the new runner being online.
+	WaitsFor *string `json:"waits_for,omitempty"`
+}
+
+// PlanStepAction defines model for PlanStep.Action.
+type PlanStepAction string
+
+// PlanStepState defines model for PlanStep.State.
+type PlanStepState string
+
+// PoolSettings defines model for PoolSettings.
+type PoolSettings struct {
+	BudgetCpuPct        int `json:"budget_cpu_pct"`
+	BudgetMemoryPct     int `json:"budget_memory_pct"`
+	DefaultJobSlots     int `json:"default_job_slots"`
+	DrainTimeoutMinutes int `json:"drain_timeout_minutes"`
+
+	// SizeSlotsFromMachine Size a new machine's slots from its cores and memory within the budget.
+	SizeSlotsFromMachine bool `json:"size_slots_from_machine"`
+}
+
+// Preferences defines model for Preferences.
+type Preferences struct {
+	Theme Theme `json:"theme"`
+}
+
+// QueueSettings defines model for QueueSettings.
+type QueueSettings struct {
+	// FairShare Round-robin by repository within a priority (scheduling R5.9).
+	FairShare bool `json:"fair_share"`
+
+	// NoRunnerWaitMinutes Minutes before "no runner with the labels" is raised (observability R5.5).
+	NoRunnerWaitMinutes int `json:"no_runner_wait_minutes"`
+
+	// Order The order of service keys, first decides first (scheduling R5.8). Default priority, event_class, fair_share, queued_at.
+	Order []QueueSettingsOrder `json:"order"`
+}
+
+// QueueSettingsOrder defines model for QueueSettings.Order.
+type QueueSettingsOrder string
+
+// RedeemSetupLinkRequest defines model for RedeemSetupLinkRequest.
+type RedeemSetupLinkRequest struct {
+	Code string `json:"code"`
+}
+
+// Repository defines model for Repository.
+type Repository struct {
+	DefaultBranch  *string          `json:"default_branch,omitempty"`
+	FullName       string           `json:"full_name"`
+	Id             int64            `json:"id"`
+	InstallationId int64            `json:"installation_id"`
+	Name           string           `json:"name"`
+	Owner          string           `json:"owner"`
+	Policy         RepositoryPolicy `json:"policy"`
+	PoolOn         bool             `json:"pool_on"`
+
+	// UserIsGithubAdmin github-integration R5.19; without it the switch is disabled with this reason.
+	UserIsGithubAdmin bool                 `json:"user_is_github_admin"`
+	Variables         []RepositoryVariable `json:"variables"`
+	Visibility        RepositoryVisibility `json:"visibility"`
+}
+
+// RepositoryVisibility defines model for Repository.Visibility.
+type RepositoryVisibility string
+
+// RepositoryPage defines model for RepositoryPage.
+type RepositoryPage struct {
+	Items      []Repository `json:"items"`
+	NextCursor *string      `json:"next_cursor,omitempty"`
+
+	// Stale Set when GitHub did not answer and the last copy is shown (UX-53).
+	Stale Staleness `json:"stale"`
+}
+
+// RepositoryPolicy defines model for RepositoryPolicy.
+type RepositoryPolicy struct {
+	AllowForkPullRequests bool `json:"allow_fork_pull_requests"`
+	BudgetCpuPct          *int `json:"budget_cpu_pct,omitempty"`
+
+	// BudgetMemoryPct May lower the machine budget for this repository's jobs, never raise it (scheduling R5.4).
+	BudgetMemoryPct *int `json:"budget_memory_pct,omitempty"`
+
+	// Labels Generic labels only (github-integration R5.27).
+	Labels          []string `json:"labels"`
+	MaxParallelJobs int      `json:"max_parallel_jobs"`
+
+	// Priority Higher goes first (scheduling R5.8).
+	Priority     int        `json:"priority"`
+	RunnerGroups []string   `json:"runner_groups"`
+	UpdatedAt    *time.Time `json:"updated_at,omitempty"`
+	UpdatedBy    *string    `json:"updated_by,omitempty"`
+}
+
+// RepositoryPolicyUpdate defines model for RepositoryPolicyUpdate.
+type RepositoryPolicyUpdate struct {
+	AllowForkPullRequests *bool `json:"allow_fork_pull_requests,omitempty"`
+	BudgetCpuPct          *int  `json:"budget_cpu_pct,omitempty"`
+	BudgetMemoryPct       *int  `json:"budget_memory_pct,omitempty"`
+
+	// ConfirmForkRisk Needed to turn fork jobs on (github-integration R5.26).
+	ConfirmForkRisk *bool     `json:"confirm_fork_risk,omitempty"`
+	Labels          *[]string `json:"labels,omitempty"`
+	MaxParallelJobs *int      `json:"max_parallel_jobs,omitempty"`
+	Priority        *int      `json:"priority,omitempty"`
+	RunnerGroups    *[]string `json:"runner_groups,omitempty"`
+}
+
+// RepositoryVariable defines model for RepositoryVariable.
+type RepositoryVariable struct {
+	Name   RepositoryVariableName `json:"name"`
+	Status VariableStatus         `json:"status"`
+
+	// Value The JSON list of labels as written.
+	Value     *string    `json:"value,omitempty"`
+	WrittenAt *time.Time `json:"written_at,omitempty"`
+}
+
+// RepositoryVariableName defines model for RepositoryVariable.Name.
+type RepositoryVariableName string
+
+// Role defines model for Role.
+type Role string
+
+// Runner defines model for Runner.
+type Runner struct {
+	Arch      Arch        `json:"arch"`
+	Backend   BackendName `json:"backend"`
+	CreatedAt *time.Time  `json:"created_at,omitempty"`
+
+	// CurrentJob One job attempt (observability R5.7, R5.8).
+	CurrentJob     *Job      `json:"current_job,omitempty"`
+	GithubRunnerId *int64    `json:"github_runner_id,omitempty"`
+	Id             string    `json:"id"`
+	Isolation      Isolation `json:"isolation"`
+
+	// KeepsState True for a persistent runner (runners R5.7, UX-61).
+	KeepsState bool       `json:"keeps_state"`
+	Kind       RunnerKind `json:"kind"`
+	Labels     []string   `json:"labels"`
+	MachineId  string     `json:"machine_id"`
+
+	// Managed False for a runner not made by CRSP (runners R5.5).
+	Managed       bool        `json:"managed"`
+	Name          string      `json:"name"`
+	Os            OS          `json:"os"`
+	RunnerVersion *string     `json:"runner_version,omitempty"`
+	Scope         RunnerScope `json:"scope"`
+	State         RunnerState `json:"state"`
+}
+
+// RunnerKind defines model for RunnerKind.
+type RunnerKind string
+
+// RunnerList defines model for RunnerList.
+type RunnerList struct {
+	Items []Runner `json:"items"`
+}
+
+// RunnerScope defines model for RunnerScope.
+type RunnerScope struct {
+	Kind         RunnerScopeKind `json:"kind"`
+	Organization *string         `json:"organization,omitempty"`
+	RepositoryId *int64          `json:"repository_id,omitempty"`
+	RunnerGroup  *string         `json:"runner_group,omitempty"`
+}
+
+// RunnerScopeKind defines model for RunnerScope.Kind.
+type RunnerScopeKind string
+
+// RunnerState defines model for RunnerState.
+type RunnerState string
+
+// RunsOnFinding defines model for RunsOnFinding.
+type RunsOnFinding struct {
+	Kind   RunsOnFindingKind `json:"kind"`
+	Labels []string          `json:"labels"`
+	Line   int               `json:"line"`
+	Path   string            `json:"path"`
+	Text   string            `json:"text"`
+}
+
+// RunsOnFindingKind defines model for RunsOnFinding.Kind.
+type RunsOnFindingKind string
+
+// RunsOnFindingList defines model for RunsOnFindingList.
+type RunsOnFindingList struct {
+	CheckedAt *time.Time      `json:"checked_at,omitempty"`
+	Items     []RunsOnFinding `json:"items"`
+}
+
+// Session defines model for Session.
+type Session struct {
+	// Csrf Send as X-CSRF-Token on every change.
+	Csrf string `json:"csrf"`
+	User User   `json:"user"`
+}
+
+// Settings observability R6.8 retention (days unless named), operations R5.21 backup time.
+type Settings struct {
+	BackupKeepDays *int `json:"backup_keep_days,omitempty"`
+
+	// BackupTimeLocal HH:MM, 24-hour local time.
+	BackupTimeLocal            *string `json:"backup_time_local,omitempty"`
+	MaxEventStreams            *int    `json:"max_event_streams,omitempty"`
+	RetentionAuditDays         *int    `json:"retention_audit_days,omitempty"`
+	RetentionJobHistoryDays    *int    `json:"retention_job_history_days,omitempty"`
+	RetentionLoadRawHours      *int    `json:"retention_load_raw_hours,omitempty"`
+	RetentionLogsDays          *int    `json:"retention_logs_days,omitempty"`
+	RetentionLogsMibPerMachine *int    `json:"retention_logs_mib_per_machine,omitempty"`
+}
+
+// SetupState defines model for SetupState.
+type SetupState struct {
+	App      *GitHubApp `json:"app,omitempty"`
+	HasApp   bool       `json:"has_app"`
+	HasOwner bool       `json:"has_owner"`
+
+	// SetupLinkRedeemed True when this browser holds a valid setup cookie.
+	SetupLinkRedeemed bool `json:"setup_link_redeemed"`
+	Steps             struct {
+		ConnectGithub   SetupStateStepsConnectGithub   `json:"connect_github"`
+		FirstMachine    SetupStateStepsFirstMachine    `json:"first_machine"`
+		FirstRepository SetupStateStepsFirstRepository `json:"first_repository"`
+	} `json:"steps"`
+}
+
+// SetupStateStepsConnectGithub defines model for SetupState.Steps.ConnectGithub.
+type SetupStateStepsConnectGithub string
+
+// SetupStateStepsFirstMachine defines model for SetupState.Steps.FirstMachine.
+type SetupStateStepsFirstMachine string
+
+// SetupStateStepsFirstRepository defines model for SetupState.Steps.FirstRepository.
+type SetupStateStepsFirstRepository string
+
+// Severity defines model for Severity.
+type Severity string
+
+// Slot defines model for Slot.
+type Slot struct {
+	Job         string    `json:"job"`
+	Kind        SlotKind  `json:"kind"`
+	Number      int       `json:"number"`
+	Repository  string    `json:"repository"`
+	RunAttempt  int       `json:"run_attempt"`
+	RunId       int64     `json:"run_id"`
+	RunnerId    *string   `json:"runner_id,omitempty"`
+	StaleReason *string   `json:"stale_reason,omitempty"`
+	TakenAt     time.Time `json:"taken_at"`
+}
+
+// SlotKind defines model for Slot.Kind.
+type SlotKind string
+
+// SlotStatus defines model for SlotStatus.
+type SlotStatus struct {
+	MachineId string   `json:"machine_id"`
+	Slots     []Slot   `json:"slots"`
+	Tickets   []Ticket `json:"tickets"`
+}
+
+// Staleness Set when GitHub did not answer and the last copy is shown (UX-53).
+type Staleness struct {
+	AsOf  *time.Time `json:"as_of,omitempty"`
+	Stale bool       `json:"stale"`
+}
+
+// StartAppManifestRequest defines model for StartAppManifestRequest.
+type StartAppManifestRequest struct {
+	AccountType StartAppManifestRequestAccountType `json:"account_type"`
+	AppName     string                             `json:"app_name"`
+
+	// ConsoleUrls Console addresses; each gets `/auth/github/callback` (R5.4).
+	ConsoleUrls []string `json:"console_urls"`
+
+	// Organization The organization login when account_type is organization.
+	Organization *string `json:"organization,omitempty"`
+}
+
+// StartAppManifestRequestAccountType defines model for StartAppManifestRequest.AccountType.
+type StartAppManifestRequestAccountType string
+
+// Theme defines model for Theme.
+type Theme string
+
+// Ticket defines model for Ticket.
+type Ticket struct {
+	BeatAt     *time.Time `json:"beat_at,omitempty"`
+	EventClass *int       `json:"event_class,omitempty"`
+	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
+	Id         string     `json:"id"`
+	Job        string     `json:"job"`
+
+	// Place 1 is first in line.
+	Place      int       `json:"place"`
+	Priority   *int      `json:"priority,omitempty"`
+	QueuedAt   time.Time `json:"queued_at"`
+	Repository string    `json:"repository"`
+	RunAttempt int       `json:"run_attempt"`
+	RunId      int64     `json:"run_id"`
+
+	// WaitReason observability R5.5.
+	WaitReason *WaitReason `json:"wait_reason,omitempty"`
+}
+
+// UpdateUserRoleRequest defines model for UpdateUserRoleRequest.
+type UpdateUserRoleRequest struct {
+	// Confirm Needed to hand over the owner role.
+	Confirm *bool `json:"confirm,omitempty"`
+	Role    Role  `json:"role"`
+}
+
+// User defines model for User.
+type User struct {
+	AddedAt time.Time `json:"added_at"`
+	AddedBy *string   `json:"added_by,omitempty"`
+
+	// Id The numeric GitHub user id (R5.9).
+	Id           int64      `json:"id"`
+	LastSignInAt *time.Time `json:"last_sign_in_at,omitempty"`
+	Login        string     `json:"login"`
+	Role         Role       `json:"role"`
+}
+
+// UserList defines model for UserList.
+type UserList struct {
+	Items []User `json:"items"`
+}
+
+// VariableStatus defines model for VariableStatus.
+type VariableStatus string
+
+// WaitReason observability R5.5.
+type WaitReason string
+
+// BackupId defines model for BackupId.
+type BackupId = string
+
+// ChangeId defines model for ChangeId.
+type ChangeId = string
+
+// Confirm defines model for Confirm.
+type Confirm = bool
+
+// Cursor defines model for Cursor.
+type Cursor = string
+
+// From defines model for From.
+type From = time.Time
+
+// JobId defines model for JobId.
+type JobId = int64
+
+// JoinCodeId defines model for JoinCodeId.
+type JoinCodeId = string
+
+// Limit defines model for Limit.
+type Limit = int
+
+// MachineId defines model for MachineId.
+type MachineId = string
+
+// OAuthCode defines model for OAuthCode.
+type OAuthCode = string
+
+// OAuthState defines model for OAuthState.
+type OAuthState = string
+
+// PlanId defines model for PlanId.
+type PlanId = string
+
+// RepositoryId defines model for RepositoryId.
+type RepositoryId = int64
+
+// RunId defines model for RunId.
+type RunId = string
+
+// RunnerId defines model for RunnerId.
+type RunnerId = string
+
+// To defines model for To.
+type To = time.Time
+
+// TokenId defines model for TokenId.
+type TokenId = string
+
+// UserId defines model for UserId.
+type UserId = int64
+
+// Error defines model for Error.
+type Error = ErrorEnvelope
+
+// ListAuditEventsParams defines parameters for ListAuditEvents.
+type ListAuditEventsParams struct {
+	Actor      *string `form:"actor,omitempty" json:"actor,omitempty"`
+	Action     *string `form:"action,omitempty" json:"action,omitempty"`
+	TargetType *string `form:"target_type,omitempty" json:"target_type,omitempty"`
+	TargetId   *string `form:"target_id,omitempty" json:"target_id,omitempty"`
+	From       *From   `form:"from,omitempty" json:"from,omitempty"`
+	To         *To     `form:"to,omitempty" json:"to,omitempty"`
+
+	// Cursor Opaque cursor from the previous page's `next_cursor`.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// RestoreBackupParams defines parameters for RestoreBackup.
+type RestoreBackupParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
+// ListDoctorFindingsParams defines parameters for ListDoctorFindings.
+type ListDoctorFindingsParams struct {
+	Severity *Severity `form:"severity,omitempty" json:"severity,omitempty"`
+	Group    *string   `form:"group,omitempty" json:"group,omitempty"`
+}
+
+// StreamEventsParams defines parameters for StreamEvents.
+type StreamEventsParams struct {
+	LastEventID *string `json:"Last-Event-ID,omitempty"`
+}
+
+// ListRepositoriesParams defines parameters for ListRepositories.
+type ListRepositoriesParams struct {
+	InstallationId *int64                      `form:"installation_id,omitempty" json:"installation_id,omitempty"`
+	Pool           *ListRepositoriesParamsPool `form:"pool,omitempty" json:"pool,omitempty"`
+
+	// Q Search by name.
+	Q *string `form:"q,omitempty" json:"q,omitempty"`
+
+	// Cursor Opaque cursor from the previous page's `next_cursor`.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListRepositoriesParamsPool defines parameters for ListRepositories.
+type ListRepositoriesParamsPool string
+
+// ListJobsParams defines parameters for ListJobs.
+type ListJobsParams struct {
+	State        *ListJobsParamsState `form:"state,omitempty" json:"state,omitempty"`
+	RepositoryId *int64               `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+	MachineId    *string              `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+	Backend      *string              `form:"backend,omitempty" json:"backend,omitempty"`
+	Result       *JobResult           `form:"result,omitempty" json:"result,omitempty"`
+	From         *From                `form:"from,omitempty" json:"from,omitempty"`
+	To           *To                  `form:"to,omitempty" json:"to,omitempty"`
+
+	// Cursor Opaque cursor from the previous page's `next_cursor`.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListJobsParamsState defines parameters for ListJobs.
+type ListJobsParamsState string
+
+// RemoveMachineParams defines parameters for RemoveMachine.
+type RemoveMachineParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
+// GetMachineLoadParams defines parameters for GetMachineLoad.
+type GetMachineLoadParams struct {
+	From *From `form:"from,omitempty" json:"from,omitempty"`
+	To   *To   `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// ResumeMachineParams defines parameters for ResumeMachine.
+type ResumeMachineParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
+// ListRunnersParams defines parameters for ListRunners.
+type ListRunnersParams struct {
+	MachineId *string      `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+	Os        *OS          `form:"os,omitempty" json:"os,omitempty"`
+	State     *RunnerState `form:"state,omitempty" json:"state,omitempty"`
+	Managed   *bool        `form:"managed,omitempty" json:"managed,omitempty"`
+}
+
+// DeleteRunnerParams defines parameters for DeleteRunner.
+type DeleteRunnerParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
+// CompleteAppManifestParams defines parameters for CompleteAppManifest.
+type CompleteAppManifestParams struct {
+	Code  OAuthCode  `form:"code" json:"code"`
+	State OAuthState `form:"state" json:"state"`
+}
+
+// CompleteSignInParams defines parameters for CompleteSignIn.
+type CompleteSignInParams struct {
+	Code  OAuthCode  `form:"code" json:"code"`
+	State OAuthState `form:"state" json:"state"`
+}
+
+// StartSignInParams defines parameters for StartSignIn.
+type StartSignInParams struct {
+	ReturnTo *string `form:"return_to,omitempty" json:"return_to,omitempty"`
+
+	// BindTray A one-time tray binding code from the local channel.
+	BindTray *string `form:"bind_tray,omitempty" json:"bind_tray,omitempty"`
+}
+
+// RedeemTrayLinkParams defines parameters for RedeemTrayLink.
+type RedeemTrayLinkParams struct {
+	Code string `form:"code" json:"code"`
+}
+
+// ReceiveGithubWebhookJSONBody defines parameters for ReceiveGithubWebhook.
+type ReceiveGithubWebhookJSONBody map[string]interface{}
+
+// ReceiveGithubWebhookParams defines parameters for ReceiveGithubWebhook.
+type ReceiveGithubWebhookParams struct {
+	XGitHubEvent     string `json:"X-GitHub-Event"`
+	XGitHubDelivery  string `json:"X-GitHub-Delivery"`
+	XHubSignature256 string `json:"X-Hub-Signature-256"`
+}
+
+// ExchangeCliTokenJSONRequestBody defines body for ExchangeCliToken for application/json ContentType.
+type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
+
+// RunDoctorJSONRequestBody defines body for RunDoctor for application/json ContentType.
+type RunDoctorJSONRequestBody = DoctorScope
+
+// CreateJoinCodeJSONRequestBody defines body for CreateJoinCode for application/json ContentType.
+type CreateJoinCodeJSONRequestBody = CreateJoinCodeRequest
+
+// UpdateMachineJSONRequestBody defines body for UpdateMachine for application/json ContentType.
+type UpdateMachineJSONRequestBody = MachineSettingsUpdate
+
+// DecideMachineChangeJSONRequestBody defines body for DecideMachineChange for application/json ContentType.
+type DecideMachineChangeJSONRequestBody = MachineChangeDecision
+
+// DrainMachineJSONRequestBody defines body for DrainMachine for application/json ContentType.
+type DrainMachineJSONRequestBody = DrainRequest
+
+// FreeStaleSlotsJSONRequestBody defines body for FreeStaleSlots for application/json ContentType.
+type FreeStaleSlotsJSONRequestBody = FreeSlotsRequest
+
+// UpdatePreferencesJSONRequestBody defines body for UpdatePreferences for application/json ContentType.
+type UpdatePreferencesJSONRequestBody = Preferences
+
+// UpdateRepositoryPolicyJSONRequestBody defines body for UpdateRepositoryPolicy for application/json ContentType.
+type UpdateRepositoryPolicyJSONRequestBody = RepositoryPolicyUpdate
+
+// PlanRepositoryChangesJSONRequestBody defines body for PlanRepositoryChanges for application/json ContentType.
+type PlanRepositoryChangesJSONRequestBody = PlanRepositoryChangesRequest
+
+// ApplyRepositoryChangesJSONRequestBody defines body for ApplyRepositoryChanges for application/json ContentType.
+type ApplyRepositoryChangesJSONRequestBody = ApplyPlanRequest
+
+// PlanRunnersJSONRequestBody defines body for PlanRunners for application/json ContentType.
+type PlanRunnersJSONRequestBody = PlanRunnersRequest
+
+// CreateRunnersJSONRequestBody defines body for CreateRunners for application/json ContentType.
+type CreateRunnersJSONRequestBody = ApplyPlanRequest
+
+// UpdateSettingsJSONRequestBody defines body for UpdateSettings for application/json ContentType.
+type UpdateSettingsJSONRequestBody = Settings
+
+// UpdatePoolSettingsJSONRequestBody defines body for UpdatePoolSettings for application/json ContentType.
+type UpdatePoolSettingsJSONRequestBody = PoolSettings
+
+// UpdateQueueSettingsJSONRequestBody defines body for UpdateQueueSettings for application/json ContentType.
+type UpdateQueueSettingsJSONRequestBody = QueueSettings
+
+// StartAppManifestJSONRequestBody defines body for StartAppManifest for application/json ContentType.
+type StartAppManifestJSONRequestBody = StartAppManifestRequest
+
+// RedeemSetupLinkJSONRequestBody defines body for RedeemSetupLink for application/json ContentType.
+type RedeemSetupLinkJSONRequestBody = RedeemSetupLinkRequest
+
+// AddUserJSONRequestBody defines body for AddUser for application/json ContentType.
+type AddUserJSONRequestBody = AddUserRequest
+
+// UpdateUserRoleJSONRequestBody defines body for UpdateUserRole for application/json ContentType.
+type UpdateUserRoleJSONRequestBody = UpdateUserRoleRequest
+
+// ReceiveGithubWebhookJSONRequestBody defines body for ReceiveGithubWebhook for application/json ContentType.
+type ReceiveGithubWebhookJSONRequestBody ReceiveGithubWebhookJSONBody
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ListAuditEvents The audit log, newest first
+	// (GET /api/v1/audit)
+	ListAuditEvents(w http.ResponseWriter, r *http.Request, params ListAuditEventsParams)
+	// ExchangeCliToken Trade a device-flow GitHub user token for a CLI token
+	// (POST /api/v1/auth/cli)
+	ExchangeCliToken(w http.ResponseWriter, r *http.Request)
+	// GetCliLoginConfig What the CLI needs to start GitHub's device flow
+	// (GET /api/v1/auth/cli/config)
+	GetCliLoginConfig(w http.ResponseWriter, r *http.Request)
+	// ListCliTokens List CLI tokens (own; every user's for the owner)
+	// (GET /api/v1/auth/cli/tokens)
+	ListCliTokens(w http.ResponseWriter, r *http.Request)
+	// RevokeCliToken Revoke a CLI token
+	// (DELETE /api/v1/auth/cli/tokens/{tokenId})
+	RevokeCliToken(w http.ResponseWriter, r *http.Request, tokenId TokenId)
+	// SignOut End this session
+	// (POST /api/v1/auth/logout)
+	SignOut(w http.ResponseWriter, r *http.Request)
+	// ListBackups Backups with date, size and check result
+	// (GET /api/v1/backups)
+	ListBackups(w http.ResponseWriter, r *http.Request)
+	// RunBackup Write a backup now
+	// (POST /api/v1/backups)
+	RunBackup(w http.ResponseWriter, r *http.Request)
+	// RunBackupDrill Restore the newest backup into a temporary folder and check it
+	// (POST /api/v1/backups/drills)
+	RunBackupDrill(w http.ResponseWriter, r *http.Request)
+	// RestoreBackup Restore a backup
+	// (POST /api/v1/backups/{backupId}/restore)
+	RestoreBackup(w http.ResponseWriter, r *http.Request, backupId BackupId, params RestoreBackupParams)
+	// GetCaCertificate Download the controller's CA certificate
+	// (GET /api/v1/ca.pem)
+	GetCaCertificate(w http.ResponseWriter, r *http.Request)
+	// ListDoctorFindings The latest finding per check and subject
+	// (GET /api/v1/doctor/findings)
+	ListDoctorFindings(w http.ResponseWriter, r *http.Request, params ListDoctorFindingsParams)
+	// RunDoctor Run the doctor now
+	// (POST /api/v1/doctor/runs)
+	RunDoctor(w http.ResponseWriter, r *http.Request)
+	// GetDoctorRun A doctor run with its findings
+	// (GET /api/v1/doctor/runs/{runId})
+	GetDoctorRun(w http.ResponseWriter, r *http.Request, runId RunId)
+	// StreamEvents The live view as server-sent events
+	// (GET /api/v1/events)
+	StreamEvents(w http.ResponseWriter, r *http.Request, params StreamEventsParams)
+	// GetAppInstallUrl GitHub's page to install the App on more repositories
+	// (GET /api/v1/github/install-url)
+	GetAppInstallUrl(w http.ResponseWriter, r *http.Request)
+	// ListInstallations The App's installations the user can see
+	// (GET /api/v1/github/installations)
+	ListInstallations(w http.ResponseWriter, r *http.Request)
+	// ListRepositories Repositories of the installations, with pool state and policy
+	// (GET /api/v1/github/repositories)
+	ListRepositories(w http.ResponseWriter, r *http.Request, params ListRepositoriesParams)
+	// GetInstallCommand The install command per OS, without a join code
+	// (GET /api/v1/install-command)
+	GetInstallCommand(w http.ResponseWriter, r *http.Request)
+	// ListJobs Queued, running and finished jobs, newest first
+	// (GET /api/v1/jobs)
+	ListJobs(w http.ResponseWriter, r *http.Request, params ListJobsParams)
+	// GetJob One job attempt with its timing
+	// (GET /api/v1/jobs/{jobId})
+	GetJob(w http.ResponseWriter, r *http.Request, jobId JobId)
+	// CreateJoinCode Make a one-time join code and the install commands
+	// (POST /api/v1/join-codes)
+	CreateJoinCode(w http.ResponseWriter, r *http.Request)
+	// RevokeJoinCode Withdraw an unused join code
+	// (DELETE /api/v1/join-codes/{joinCodeId})
+	RevokeJoinCode(w http.ResponseWriter, r *http.Request, joinCodeId JoinCodeId)
+	// GetJoinCode A join code's state (never its value)
+	// (GET /api/v1/join-codes/{joinCodeId})
+	GetJoinCode(w http.ResponseWriter, r *http.Request, joinCodeId JoinCodeId)
+	// ListMachines Every machine with state, backends, load and slots
+	// (GET /api/v1/machines)
+	ListMachines(w http.ResponseWriter, r *http.Request)
+	// RemoveMachine Remove a machine after a drain; revokes its key
+	// (DELETE /api/v1/machines/{machineId})
+	RemoveMachine(w http.ResponseWriter, r *http.Request, machineId MachineId, params RemoveMachineParams)
+	// GetMachine One machine with facts, backends, settings and running jobs
+	// (GET /api/v1/machines/{machineId})
+	GetMachine(w http.ResponseWriter, r *http.Request, machineId MachineId)
+	// UpdateMachine Change a machine's settings
+	// (PATCH /api/v1/machines/{machineId})
+	UpdateMachine(w http.ResponseWriter, r *http.Request, machineId MachineId)
+	// GetMachineChange A change waiting for a drain, and the jobs it waits for
+	// (GET /api/v1/machines/{machineId}/changes/{changeId})
+	GetMachineChange(w http.ResponseWriter, r *http.Request, machineId MachineId, changeId ChangeId)
+	// DecideMachineChange Answer a change that needs you after the drain timeout
+	// (POST /api/v1/machines/{machineId}/changes/{changeId})
+	DecideMachineChange(w http.ResponseWriter, r *http.Request, machineId MachineId, changeId ChangeId)
+	// DrainMachine Stop new jobs on a machine; running jobs finish
+	// (POST /api/v1/machines/{machineId}/drain)
+	DrainMachine(w http.ResponseWriter, r *http.Request, machineId MachineId)
+	// GetMachineLoad Load history at 15-second steps, up to 24 hours
+	// (GET /api/v1/machines/{machineId}/load)
+	GetMachineLoad(w http.ResponseWriter, r *http.Request, machineId MachineId, params GetMachineLoadParams)
+	// RedetectMachine Check again; the agent detects facts and backends now
+	// (POST /api/v1/machines/{machineId}/redetect)
+	RedetectMachine(w http.ResponseWriter, r *http.Request, machineId MachineId)
+	// ResumeMachine Return a drained machine to active
+	// (POST /api/v1/machines/{machineId}/resume)
+	ResumeMachine(w http.ResponseWriter, r *http.Request, machineId MachineId, params ResumeMachineParams)
+	// ListSlots Slot holders and the waiting queue of a machine
+	// (GET /api/v1/machines/{machineId}/slots)
+	ListSlots(w http.ResponseWriter, r *http.Request, machineId MachineId)
+	// FreeStaleSlots Free stale slots now
+	// (POST /api/v1/machines/{machineId}/slots/free-stale)
+	FreeStaleSlots(w http.ResponseWriter, r *http.Request, machineId MachineId)
+	// GetSession The signed-in user, role and CSRF token
+	// (GET /api/v1/me)
+	GetSession(w http.ResponseWriter, r *http.Request)
+	// GetPreferences The user's own view preferences
+	// (GET /api/v1/me/preferences)
+	GetPreferences(w http.ResponseWriter, r *http.Request)
+	// UpdatePreferences Save the user's own view preferences
+	// (PUT /api/v1/me/preferences)
+	UpdatePreferences(w http.ResponseWriter, r *http.Request)
+	// GetOverview The overview snapshot
+	// (GET /api/v1/overview)
+	GetOverview(w http.ResponseWriter, r *http.Request)
+	// GetRepository One repository with its policy and variable status
+	// (GET /api/v1/repositories/{repositoryId})
+	GetRepository(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
+	// UpdateRepositoryPolicy Change a repository's policy
+	// (PATCH /api/v1/repositories/{repositoryId}/policy)
+	UpdateRepositoryPolicy(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
+	// GetRepositoryRunsOn Workflow `runs-on` findings for a repository
+	// (GET /api/v1/repositories/{repositoryId}/runs-on)
+	GetRepositoryRunsOn(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
+	// PlanRepositoryChanges Plan turning the pool on or off for repositories
+	// (POST /api/v1/repository-plans)
+	PlanRepositoryChanges(w http.ResponseWriter, r *http.Request)
+	// GetRepositoryPlan A repository plan with its outcome
+	// (GET /api/v1/repository-plans/{planId})
+	GetRepositoryPlan(w http.ResponseWriter, r *http.Request, planId PlanId)
+	// ApplyRepositoryChanges Apply a repository plan after a yes
+	// (POST /api/v1/repository-plans/{planId}/apply)
+	ApplyRepositoryChanges(w http.ResponseWriter, r *http.Request, planId PlanId)
+	// PlanRunners Plan adding runners on a machine
+	// (POST /api/v1/runner-plans)
+	PlanRunners(w http.ResponseWriter, r *http.Request)
+	// GetRunnerPlan A runner plan with its outcome
+	// (GET /api/v1/runner-plans/{planId})
+	GetRunnerPlan(w http.ResponseWriter, r *http.Request, planId PlanId)
+	// CreateRunners Apply a runner plan (add, or replace an unmanaged runner)
+	// (POST /api/v1/runner-plans/{planId}/apply)
+	CreateRunners(w http.ResponseWriter, r *http.Request, planId PlanId)
+	// ListRunners Every runner, managed or not
+	// (GET /api/v1/runners)
+	ListRunners(w http.ResponseWriter, r *http.Request, params ListRunnersParams)
+	// DeleteRunner Remove a runner after a drain, with a remove token
+	// (DELETE /api/v1/runners/{runnerId})
+	DeleteRunner(w http.ResponseWriter, r *http.Request, runnerId RunnerId, params DeleteRunnerParams)
+	// GetRunner One runner
+	// (GET /api/v1/runners/{runnerId})
+	GetRunner(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
+	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
+	// (POST /api/v1/runners/{runnerId}/replace)
+	PlanRunnerReplacement(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
+	// GetSettings Controller settings (retention, backup time, stream limits)
+	// (GET /api/v1/settings)
+	GetSettings(w http.ResponseWriter, r *http.Request)
+	// UpdateSettings Change controller settings
+	// (PATCH /api/v1/settings)
+	UpdateSettings(w http.ResponseWriter, r *http.Request)
+	// GetPoolSettings Defaults for new machines
+	// (GET /api/v1/settings/pool)
+	GetPoolSettings(w http.ResponseWriter, r *http.Request)
+	// UpdatePoolSettings Change the defaults for new machines
+	// (PUT /api/v1/settings/pool)
+	UpdatePoolSettings(w http.ResponseWriter, r *http.Request)
+	// GetQueueSettings The order of service of the slot queue
+	// (GET /api/v1/settings/queue)
+	GetQueueSettings(w http.ResponseWriter, r *http.Request)
+	// UpdateQueueSettings Change the order of service
+	// (PUT /api/v1/settings/queue)
+	UpdateQueueSettings(w http.ResponseWriter, r *http.Request)
+	// GetSetupState First-run state; what the setup page shows
+	// (GET /api/v1/setup)
+	GetSetupState(w http.ResponseWriter, r *http.Request)
+	// StartAppManifest Start GitHub's App manifest flow
+	// (POST /api/v1/setup/github-app)
+	StartAppManifest(w http.ResponseWriter, r *http.Request)
+	// RedeemSetupLink Trade a one-time setup code for a setup cookie
+	// (POST /api/v1/setup/redeem)
+	RedeemSetupLink(w http.ResponseWriter, r *http.Request)
+	// ListUsers Users allowed to sign in, with their roles
+	// (GET /api/v1/users)
+	ListUsers(w http.ResponseWriter, r *http.Request)
+	// AddUser Allow a GitHub login as admin or viewer
+	// (POST /api/v1/users)
+	AddUser(w http.ResponseWriter, r *http.Request)
+	// RemoveUser Remove a user; ends their sessions and CLI tokens
+	// (DELETE /api/v1/users/{userId})
+	RemoveUser(w http.ResponseWriter, r *http.Request, userId UserId)
+	// UpdateUserRole Change a user's role
+	// (PATCH /api/v1/users/{userId})
+	UpdateUserRole(w http.ResponseWriter, r *http.Request, userId UserId)
+	// CompleteAppManifest GitHub's redirect after the App is created
+	// (GET /auth/github/app-created)
+	CompleteAppManifest(w http.ResponseWriter, r *http.Request, params CompleteAppManifestParams)
+	// CompleteSignIn GitHub OAuth callback; makes the session
+	// (GET /auth/github/callback)
+	CompleteSignIn(w http.ResponseWriter, r *http.Request, params CompleteSignInParams)
+	// StartSignIn Start web sign-in with the App's user OAuth flow
+	// (GET /auth/github/login)
+	StartSignIn(w http.ResponseWriter, r *http.Request, params StartSignInParams)
+	// RedeemTrayLink Sign in from a one-time tray link
+	// (GET /auth/link)
+	RedeemTrayLink(w http.ResponseWriter, r *http.Request, params RedeemTrayLinkParams)
 	// GetHealth Liveness and database check
 	// (GET /healthz)
 	GetHealth(w http.ResponseWriter, r *http.Request)
+	// ReceiveGithubWebhook GitHub webhook deliveries
+	// (POST /webhooks/github)
+	ReceiveGithubWebhook(w http.ResponseWriter, r *http.Request, params ReceiveGithubWebhookParams)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -64,11 +2541,2077 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
+// ListAuditEvents operation middleware
+func (siw *ServerInterfaceWrapper) ListAuditEvents(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAuditEventsParams
+
+	// ------------- Optional query parameter "actor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "actor", r.URL.Query(), &params.Actor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "actor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "actor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "action" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "action", r.URL.Query(), &params.Action, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "action"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "action", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "target_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "target_type", r.URL.Query(), &params.TargetType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "target_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "target_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "target_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "target_id", r.URL.Query(), &params.TargetId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "target_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "target_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAuditEvents(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ExchangeCliToken operation middleware
+func (siw *ServerInterfaceWrapper) ExchangeCliToken(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExchangeCliToken(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCliLoginConfig operation middleware
+func (siw *ServerInterfaceWrapper) GetCliLoginConfig(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCliLoginConfig(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCliTokens operation middleware
+func (siw *ServerInterfaceWrapper) ListCliTokens(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCliTokens(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeCliToken operation middleware
+func (siw *ServerInterfaceWrapper) RevokeCliToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "tokenId" -------------
+	var tokenId TokenId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tokenId", r.PathValue("tokenId"), &tokenId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tokenId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeCliToken(w, r, tokenId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SignOut operation middleware
+func (siw *ServerInterfaceWrapper) SignOut(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SignOut(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListBackups operation middleware
+func (siw *ServerInterfaceWrapper) ListBackups(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListBackups(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RunBackup operation middleware
+func (siw *ServerInterfaceWrapper) RunBackup(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunBackup(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RunBackupDrill operation middleware
+func (siw *ServerInterfaceWrapper) RunBackupDrill(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunBackupDrill(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RestoreBackup operation middleware
+func (siw *ServerInterfaceWrapper) RestoreBackup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "backupId" -------------
+	var backupId BackupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "backupId", r.PathValue("backupId"), &backupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "backupId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RestoreBackupParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RestoreBackup(w, r, backupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCaCertificate operation middleware
+func (siw *ServerInterfaceWrapper) GetCaCertificate(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCaCertificate(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListDoctorFindings operation middleware
+func (siw *ServerInterfaceWrapper) ListDoctorFindings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListDoctorFindingsParams
+
+	// ------------- Optional query parameter "severity" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "severity", r.URL.Query(), &params.Severity, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "severity"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "severity", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "group" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "group", r.URL.Query(), &params.Group, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "group"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListDoctorFindings(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RunDoctor operation middleware
+func (siw *ServerInterfaceWrapper) RunDoctor(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunDoctor(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDoctorRun operation middleware
+func (siw *ServerInterfaceWrapper) GetDoctorRun(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", r.PathValue("runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDoctorRun(w, r, runId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StreamEvents operation middleware
+func (siw *ServerInterfaceWrapper) StreamEvents(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params StreamEventsParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "Last-Event-ID" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Last-Event-ID")]; found {
+		var LastEventID string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Last-Event-ID", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Last-Event-ID", valueList[0], &LastEventID, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Last-Event-ID", Err: err})
+			return
+		}
+
+		params.LastEventID = &LastEventID
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StreamEvents(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAppInstallUrl operation middleware
+func (siw *ServerInterfaceWrapper) GetAppInstallUrl(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAppInstallUrl(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListInstallations operation middleware
+func (siw *ServerInterfaceWrapper) ListInstallations(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListInstallations(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListRepositories operation middleware
+func (siw *ServerInterfaceWrapper) ListRepositories(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListRepositoriesParams
+
+	// ------------- Optional query parameter "installation_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "installation_id", r.URL.Query(), &params.InstallationId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "installation_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "installation_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "pool" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "pool", r.URL.Query(), &params.Pool, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "pool"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pool", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListRepositories(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetInstallCommand operation middleware
+func (siw *ServerInterfaceWrapper) GetInstallCommand(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInstallCommand(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListJobs operation middleware
+func (siw *ServerInterfaceWrapper) ListJobs(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListJobsParams
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "repository_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "repository_id", r.URL.Query(), &params.RepositoryId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "repository_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repository_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "machine_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "machine_id", r.URL.Query(), &params.MachineId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "machine_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machine_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "backend" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "backend", r.URL.Query(), &params.Backend, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "backend"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "backend", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "result" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "result", r.URL.Query(), &params.Result, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "result"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "result", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListJobs(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetJob operation middleware
+func (siw *ServerInterfaceWrapper) GetJob(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "jobId" -------------
+	var jobId JobId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "jobId", r.PathValue("jobId"), &jobId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "jobId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetJob(w, r, jobId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateJoinCode operation middleware
+func (siw *ServerInterfaceWrapper) CreateJoinCode(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateJoinCode(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeJoinCode operation middleware
+func (siw *ServerInterfaceWrapper) RevokeJoinCode(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "joinCodeId" -------------
+	var joinCodeId JoinCodeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "joinCodeId", r.PathValue("joinCodeId"), &joinCodeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "joinCodeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeJoinCode(w, r, joinCodeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetJoinCode operation middleware
+func (siw *ServerInterfaceWrapper) GetJoinCode(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "joinCodeId" -------------
+	var joinCodeId JoinCodeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "joinCodeId", r.PathValue("joinCodeId"), &joinCodeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "joinCodeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetJoinCode(w, r, joinCodeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMachines operation middleware
+func (siw *ServerInterfaceWrapper) ListMachines(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMachines(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveMachine operation middleware
+func (siw *ServerInterfaceWrapper) RemoveMachine(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RemoveMachineParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveMachine(w, r, machineId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMachine operation middleware
+func (siw *ServerInterfaceWrapper) GetMachine(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMachine(w, r, machineId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateMachine operation middleware
+func (siw *ServerInterfaceWrapper) UpdateMachine(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateMachine(w, r, machineId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMachineChange operation middleware
+func (siw *ServerInterfaceWrapper) GetMachineChange(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "changeId" -------------
+	var changeId ChangeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "changeId", r.PathValue("changeId"), &changeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "changeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMachineChange(w, r, machineId, changeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DecideMachineChange operation middleware
+func (siw *ServerInterfaceWrapper) DecideMachineChange(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "changeId" -------------
+	var changeId ChangeId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "changeId", r.PathValue("changeId"), &changeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "changeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DecideMachineChange(w, r, machineId, changeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DrainMachine operation middleware
+func (siw *ServerInterfaceWrapper) DrainMachine(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DrainMachine(w, r, machineId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMachineLoad operation middleware
+func (siw *ServerInterfaceWrapper) GetMachineLoad(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetMachineLoadParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMachineLoad(w, r, machineId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RedetectMachine operation middleware
+func (siw *ServerInterfaceWrapper) RedetectMachine(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RedetectMachine(w, r, machineId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ResumeMachine operation middleware
+func (siw *ServerInterfaceWrapper) ResumeMachine(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ResumeMachineParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ResumeMachine(w, r, machineId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListSlots operation middleware
+func (siw *ServerInterfaceWrapper) ListSlots(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListSlots(w, r, machineId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// FreeStaleSlots operation middleware
+func (siw *ServerInterfaceWrapper) FreeStaleSlots(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.FreeStaleSlots(w, r, machineId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSession operation middleware
+func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPreferences operation middleware
+func (siw *ServerInterfaceWrapper) GetPreferences(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPreferences(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePreferences operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePreferences(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetOverview operation middleware
+func (siw *ServerInterfaceWrapper) GetOverview(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOverview(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRepository operation middleware
+func (siw *ServerInterfaceWrapper) GetRepository(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "repositoryId" -------------
+	var repositoryId RepositoryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "repositoryId", r.PathValue("repositoryId"), &repositoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repositoryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRepository(w, r, repositoryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateRepositoryPolicy operation middleware
+func (siw *ServerInterfaceWrapper) UpdateRepositoryPolicy(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "repositoryId" -------------
+	var repositoryId RepositoryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "repositoryId", r.PathValue("repositoryId"), &repositoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repositoryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateRepositoryPolicy(w, r, repositoryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRepositoryRunsOn operation middleware
+func (siw *ServerInterfaceWrapper) GetRepositoryRunsOn(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "repositoryId" -------------
+	var repositoryId RepositoryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "repositoryId", r.PathValue("repositoryId"), &repositoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repositoryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRepositoryRunsOn(w, r, repositoryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PlanRepositoryChanges operation middleware
+func (siw *ServerInterfaceWrapper) PlanRepositoryChanges(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PlanRepositoryChanges(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRepositoryPlan operation middleware
+func (siw *ServerInterfaceWrapper) GetRepositoryPlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "planId" -------------
+	var planId PlanId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "planId", r.PathValue("planId"), &planId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "planId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRepositoryPlan(w, r, planId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ApplyRepositoryChanges operation middleware
+func (siw *ServerInterfaceWrapper) ApplyRepositoryChanges(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "planId" -------------
+	var planId PlanId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "planId", r.PathValue("planId"), &planId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "planId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ApplyRepositoryChanges(w, r, planId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PlanRunners operation middleware
+func (siw *ServerInterfaceWrapper) PlanRunners(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PlanRunners(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRunnerPlan operation middleware
+func (siw *ServerInterfaceWrapper) GetRunnerPlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "planId" -------------
+	var planId PlanId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "planId", r.PathValue("planId"), &planId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "planId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRunnerPlan(w, r, planId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateRunners operation middleware
+func (siw *ServerInterfaceWrapper) CreateRunners(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "planId" -------------
+	var planId PlanId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "planId", r.PathValue("planId"), &planId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "planId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateRunners(w, r, planId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListRunners operation middleware
+func (siw *ServerInterfaceWrapper) ListRunners(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListRunnersParams
+
+	// ------------- Optional query parameter "machine_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "machine_id", r.URL.Query(), &params.MachineId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "machine_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machine_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "os" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "os", r.URL.Query(), &params.Os, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "os"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "os", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "managed" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "managed", r.URL.Query(), &params.Managed, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "managed"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "managed", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListRunners(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteRunner operation middleware
+func (siw *ServerInterfaceWrapper) DeleteRunner(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "runnerId" -------------
+	var runnerId RunnerId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runnerId", r.PathValue("runnerId"), &runnerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runnerId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteRunnerParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteRunner(w, r, runnerId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRunner operation middleware
+func (siw *ServerInterfaceWrapper) GetRunner(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "runnerId" -------------
+	var runnerId RunnerId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runnerId", r.PathValue("runnerId"), &runnerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runnerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRunner(w, r, runnerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PlanRunnerReplacement operation middleware
+func (siw *ServerInterfaceWrapper) PlanRunnerReplacement(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "runnerId" -------------
+	var runnerId RunnerId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runnerId", r.PathValue("runnerId"), &runnerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runnerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PlanRunnerReplacement(w, r, runnerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateSettings operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPoolSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetPoolSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPoolSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePoolSettings operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePoolSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePoolSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetQueueSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetQueueSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetQueueSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateQueueSettings operation middleware
+func (siw *ServerInterfaceWrapper) UpdateQueueSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateQueueSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSetupState operation middleware
+func (siw *ServerInterfaceWrapper) GetSetupState(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSetupState(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartAppManifest operation middleware
+func (siw *ServerInterfaceWrapper) StartAppManifest(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartAppManifest(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RedeemSetupLink operation middleware
+func (siw *ServerInterfaceWrapper) RedeemSetupLink(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RedeemSetupLink(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListUsers operation middleware
+func (siw *ServerInterfaceWrapper) ListUsers(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListUsers(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AddUser operation middleware
+func (siw *ServerInterfaceWrapper) AddUser(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddUser(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveUser operation middleware
+func (siw *ServerInterfaceWrapper) RemoveUser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "userId" -------------
+	var userId UserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", r.PathValue("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveUser(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateUserRole operation middleware
+func (siw *ServerInterfaceWrapper) UpdateUserRole(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "userId" -------------
+	var userId UserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", r.PathValue("userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateUserRole(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CompleteAppManifest operation middleware
+func (siw *ServerInterfaceWrapper) CompleteAppManifest(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CompleteAppManifestParams
+
+	// ------------- Required query parameter "code" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "code", r.URL.Query(), &params.Code, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "code"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CompleteAppManifest(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CompleteSignIn operation middleware
+func (siw *ServerInterfaceWrapper) CompleteSignIn(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CompleteSignInParams
+
+	// ------------- Required query parameter "code" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "code", r.URL.Query(), &params.Code, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "code"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CompleteSignIn(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartSignIn operation middleware
+func (siw *ServerInterfaceWrapper) StartSignIn(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params StartSignInParams
+
+	// ------------- Optional query parameter "return_to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "return_to", r.URL.Query(), &params.ReturnTo, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "return_to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "return_to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "bind_tray" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "bind_tray", r.URL.Query(), &params.BindTray, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "bind_tray"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bind_tray", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartSignIn(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RedeemTrayLink operation middleware
+func (siw *ServerInterfaceWrapper) RedeemTrayLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RedeemTrayLinkParams
+
+	// ------------- Required query parameter "code" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "code", r.URL.Query(), &params.Code, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "code"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RedeemTrayLink(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetHealth operation middleware
 func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReceiveGithubWebhook operation middleware
+func (siw *ServerInterfaceWrapper) ReceiveGithubWebhook(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ReceiveGithubWebhookParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "X-GitHub-Event" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-GitHub-Event")]; found {
+		var XGitHubEvent string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-GitHub-Event", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-GitHub-Event", valueList[0], &XGitHubEvent, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-GitHub-Event", Err: err})
+			return
+		}
+
+		params.XGitHubEvent = XGitHubEvent
+
+	} else {
+		err := fmt.Errorf("Header parameter X-GitHub-Event is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-GitHub-Event", Err: err})
+		return
+	}
+
+	// ------------- Required header parameter "X-GitHub-Delivery" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-GitHub-Delivery")]; found {
+		var XGitHubDelivery string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-GitHub-Delivery", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-GitHub-Delivery", valueList[0], &XGitHubDelivery, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-GitHub-Delivery", Err: err})
+			return
+		}
+
+		params.XGitHubDelivery = XGitHubDelivery
+
+	} else {
+		err := fmt.Errorf("Header parameter X-GitHub-Delivery is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-GitHub-Delivery", Err: err})
+		return
+	}
+
+	// ------------- Required header parameter "X-Hub-Signature-256" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("X-Hub-Signature-256")]; found {
+		var XHubSignature256 string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "X-Hub-Signature-256", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "X-Hub-Signature-256", valueList[0], &XHubSignature256, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "X-Hub-Signature-256", Err: err})
+			return
+		}
+
+		params.XHubSignature256 = XHubSignature256
+
+	} else {
+		err := fmt.Errorf("Header parameter X-Hub-Signature-256 is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "X-Hub-Signature-256", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReceiveGithubWebhook(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -199,8 +4742,2832 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/healthz", wrapper.GetHealth)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/setup", wrapper.GetSetupState)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/setup/redeem", wrapper.RedeemSetupLink)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/setup/github-app", wrapper.StartAppManifest)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/auth/github/app-created", wrapper.CompleteAppManifest)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/auth/github/login", wrapper.StartSignIn)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/auth/github/callback", wrapper.CompleteSignIn)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/auth/link", wrapper.RedeemTrayLink)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/auth/cli/config", wrapper.GetCliLoginConfig)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/cli", wrapper.ExchangeCliToken)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/auth/cli/tokens", wrapper.ListCliTokens)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/auth/cli/tokens/{tokenId}", wrapper.RevokeCliToken)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/logout", wrapper.SignOut)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/me", wrapper.GetSession)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/me/preferences", wrapper.GetPreferences)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/me/preferences", wrapper.UpdatePreferences)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/users", wrapper.ListUsers)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/users", wrapper.AddUser)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/users/{userId}", wrapper.RemoveUser)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/users/{userId}", wrapper.UpdateUserRole)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/installations", wrapper.ListInstallations)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/install-url", wrapper.GetAppInstallUrl)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/repositories", wrapper.ListRepositories)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repository-plans", wrapper.PlanRepositoryChanges)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/repository-plans/{planId}", wrapper.GetRepositoryPlan)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repository-plans/{planId}/apply", wrapper.ApplyRepositoryChanges)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}", wrapper.GetRepository)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/policy", wrapper.UpdateRepositoryPolicy)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/runs-on", wrapper.GetRepositoryRunsOn)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings/queue", wrapper.GetQueueSettings)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/settings/queue", wrapper.UpdateQueueSettings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/machines", wrapper.ListMachines)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/machines/{machineId}", wrapper.RemoveMachine)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/machines/{machineId}", wrapper.GetMachine)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/machines/{machineId}", wrapper.UpdateMachine)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/drain", wrapper.DrainMachine)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/resume", wrapper.ResumeMachine)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/redetect", wrapper.RedetectMachine)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/machines/{machineId}/load", wrapper.GetMachineLoad)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/machines/{machineId}/slots", wrapper.ListSlots)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/slots/free-stale", wrapper.FreeStaleSlots)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/machines/{machineId}/changes/{changeId}", wrapper.GetMachineChange)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/changes/{changeId}", wrapper.DecideMachineChange)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/join-codes", wrapper.CreateJoinCode)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/join-codes/{joinCodeId}", wrapper.RevokeJoinCode)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/join-codes/{joinCodeId}", wrapper.GetJoinCode)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/install-command", wrapper.GetInstallCommand)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/ca.pem", wrapper.GetCaCertificate)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings/pool", wrapper.GetPoolSettings)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/settings/pool", wrapper.UpdatePoolSettings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners", wrapper.ListRunners)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/runner-plans", wrapper.PlanRunners)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runner-plans/{planId}", wrapper.GetRunnerPlan)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/runner-plans/{planId}/apply", wrapper.CreateRunners)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/runners/{runnerId}", wrapper.DeleteRunner)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners/{runnerId}", wrapper.GetRunner)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/runners/{runnerId}/replace", wrapper.PlanRunnerReplacement)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/jobs", wrapper.ListJobs)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/jobs/{jobId}", wrapper.GetJob)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/overview", wrapper.GetOverview)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/events", wrapper.StreamEvents)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/doctor/runs", wrapper.RunDoctor)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/doctor/runs/{runId}", wrapper.GetDoctorRun)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/doctor/findings", wrapper.ListDoctorFindings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings", wrapper.GetSettings)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/settings", wrapper.UpdateSettings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/audit", wrapper.ListAuditEvents)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/backups", wrapper.ListBackups)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/backups", wrapper.RunBackup)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/backups/drills", wrapper.RunBackupDrill)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/backups/{backupId}/restore", wrapper.RestoreBackup)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/webhooks/github", wrapper.ReceiveGithubWebhook)
 
 	return m
+}
+
+type ErrorJSONResponse ErrorEnvelope
+
+type RedirectResponseHeaders struct {
+	Location  string
+	SetCookie *string
+}
+type RedirectResponse struct {
+	Headers RedirectResponseHeaders
+}
+
+type ListAuditEventsRequestObject struct {
+	Params ListAuditEventsParams
+}
+
+type ListAuditEventsResponseObject interface {
+	VisitListAuditEventsResponse(w http.ResponseWriter) error
+}
+
+type ListAuditEvents200JSONResponse AuditPage
+
+func (response ListAuditEvents200JSONResponse) VisitListAuditEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditEventsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListAuditEventsdefaultJSONResponse) VisitListAuditEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExchangeCliTokenRequestObject struct {
+	Body *ExchangeCliTokenJSONRequestBody
+}
+
+type ExchangeCliTokenResponseObject interface {
+	VisitExchangeCliTokenResponse(w http.ResponseWriter) error
+}
+
+type ExchangeCliToken201JSONResponse CliTokenCreated
+
+func (response ExchangeCliToken201JSONResponse) VisitExchangeCliTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExchangeCliTokendefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ExchangeCliTokendefaultJSONResponse) VisitExchangeCliTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCliLoginConfigRequestObject struct {
+}
+
+type GetCliLoginConfigResponseObject interface {
+	VisitGetCliLoginConfigResponse(w http.ResponseWriter) error
+}
+
+type GetCliLoginConfig200JSONResponse CliLoginConfig
+
+func (response GetCliLoginConfig200JSONResponse) VisitGetCliLoginConfigResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCliLoginConfigdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetCliLoginConfigdefaultJSONResponse) VisitGetCliLoginConfigResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCliTokensRequestObject struct {
+}
+
+type ListCliTokensResponseObject interface {
+	VisitListCliTokensResponse(w http.ResponseWriter) error
+}
+
+type ListCliTokens200JSONResponse CliTokenList
+
+func (response ListCliTokens200JSONResponse) VisitListCliTokensResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCliTokensdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListCliTokensdefaultJSONResponse) VisitListCliTokensResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeCliTokenRequestObject struct {
+	TokenId TokenId `json:"tokenId"`
+}
+
+type RevokeCliTokenResponseObject interface {
+	VisitRevokeCliTokenResponse(w http.ResponseWriter) error
+}
+
+type RevokeCliToken204Response struct {
+}
+
+func (response RevokeCliToken204Response) VisitRevokeCliTokenResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RevokeCliTokendefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RevokeCliTokendefaultJSONResponse) VisitRevokeCliTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SignOutRequestObject struct {
+}
+
+type SignOutResponseObject interface {
+	VisitSignOutResponse(w http.ResponseWriter) error
+}
+
+type SignOut204Response struct {
+}
+
+func (response SignOut204Response) VisitSignOutResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SignOutdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response SignOutdefaultJSONResponse) VisitSignOutResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBackupsRequestObject struct {
+}
+
+type ListBackupsResponseObject interface {
+	VisitListBackupsResponse(w http.ResponseWriter) error
+}
+
+type ListBackups200JSONResponse BackupList
+
+func (response ListBackups200JSONResponse) VisitListBackupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListBackupsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListBackupsdefaultJSONResponse) VisitListBackupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunBackupRequestObject struct {
+}
+
+type RunBackupResponseObject interface {
+	VisitRunBackupResponse(w http.ResponseWriter) error
+}
+
+type RunBackup202JSONResponse Backup
+
+func (response RunBackup202JSONResponse) VisitRunBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunBackupdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RunBackupdefaultJSONResponse) VisitRunBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunBackupDrillRequestObject struct {
+}
+
+type RunBackupDrillResponseObject interface {
+	VisitRunBackupDrillResponse(w http.ResponseWriter) error
+}
+
+type RunBackupDrill202JSONResponse BackupDrill
+
+func (response RunBackupDrill202JSONResponse) VisitRunBackupDrillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunBackupDrilldefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RunBackupDrilldefaultJSONResponse) VisitRunBackupDrillResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RestoreBackupRequestObject struct {
+	BackupId BackupId `json:"backupId"`
+	Params   RestoreBackupParams
+}
+
+type RestoreBackupResponseObject interface {
+	VisitRestoreBackupResponse(w http.ResponseWriter) error
+}
+
+type RestoreBackup202JSONResponse Backup
+
+func (response RestoreBackup202JSONResponse) VisitRestoreBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RestoreBackupdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RestoreBackupdefaultJSONResponse) VisitRestoreBackupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCaCertificateRequestObject struct {
+}
+
+type GetCaCertificateResponseObject interface {
+	VisitGetCaCertificateResponse(w http.ResponseWriter) error
+}
+
+type GetCaCertificate200ApplicationxPemFileResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response GetCaCertificate200ApplicationxPemFileResponse) VisitGetCaCertificateResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/x-pem-file")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetCaCertificatedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetCaCertificatedefaultJSONResponse) VisitGetCaCertificateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDoctorFindingsRequestObject struct {
+	Params ListDoctorFindingsParams
+}
+
+type ListDoctorFindingsResponseObject interface {
+	VisitListDoctorFindingsResponse(w http.ResponseWriter) error
+}
+
+type ListDoctorFindings200JSONResponse DoctorFindingList
+
+func (response ListDoctorFindings200JSONResponse) VisitListDoctorFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDoctorFindingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListDoctorFindingsdefaultJSONResponse) VisitListDoctorFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunDoctorRequestObject struct {
+	Body *RunDoctorJSONRequestBody
+}
+
+type RunDoctorResponseObject interface {
+	VisitRunDoctorResponse(w http.ResponseWriter) error
+}
+
+type RunDoctor202JSONResponse DoctorRun
+
+func (response RunDoctor202JSONResponse) VisitRunDoctorResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunDoctordefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RunDoctordefaultJSONResponse) VisitRunDoctorResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetDoctorRunRequestObject struct {
+	RunId RunId `json:"runId"`
+}
+
+type GetDoctorRunResponseObject interface {
+	VisitGetDoctorRunResponse(w http.ResponseWriter) error
+}
+
+type GetDoctorRun200JSONResponse DoctorRun
+
+func (response GetDoctorRun200JSONResponse) VisitGetDoctorRunResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetDoctorRundefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetDoctorRundefaultJSONResponse) VisitGetDoctorRunResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StreamEventsRequestObject struct {
+	Params StreamEventsParams
+}
+
+type StreamEventsResponseObject interface {
+	VisitStreamEventsResponse(w http.ResponseWriter) error
+}
+
+type StreamEvents200TexteventStreamResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response StreamEvents200TexteventStreamResponse) VisitStreamEventsResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		// If w doesn't support flushing, fall back to io.Copy.
+		_, err := io.Copy(w, response.Body)
+		return err
+	}
+	// text/event-stream messages are typically small; use a
+	// modest buffer and flush after each chunk so clients see
+	// events immediately instead of waiting on OS buffering.
+	buf := make([]byte, 4096)
+	for {
+		n, err := response.Body.Read(buf)
+		if n > 0 {
+			if _, writeErr := w.Write(buf[:n]); writeErr != nil {
+				return writeErr
+			}
+			flusher.Flush()
+		}
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+	}
+}
+
+type StreamEventsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StreamEventsdefaultJSONResponse) VisitStreamEventsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAppInstallUrlRequestObject struct {
+}
+
+type GetAppInstallUrlResponseObject interface {
+	VisitGetAppInstallUrlResponse(w http.ResponseWriter) error
+}
+
+type GetAppInstallUrl200JSONResponse AppInstallUrl
+
+func (response GetAppInstallUrl200JSONResponse) VisitGetAppInstallUrlResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAppInstallUrldefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetAppInstallUrldefaultJSONResponse) VisitGetAppInstallUrlResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInstallationsRequestObject struct {
+}
+
+type ListInstallationsResponseObject interface {
+	VisitListInstallationsResponse(w http.ResponseWriter) error
+}
+
+type ListInstallations200JSONResponse InstallationList
+
+func (response ListInstallations200JSONResponse) VisitListInstallationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInstallationsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListInstallationsdefaultJSONResponse) VisitListInstallationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRepositoriesRequestObject struct {
+	Params ListRepositoriesParams
+}
+
+type ListRepositoriesResponseObject interface {
+	VisitListRepositoriesResponse(w http.ResponseWriter) error
+}
+
+type ListRepositories200JSONResponse RepositoryPage
+
+func (response ListRepositories200JSONResponse) VisitListRepositoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRepositoriesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListRepositoriesdefaultJSONResponse) VisitListRepositoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInstallCommandRequestObject struct {
+}
+
+type GetInstallCommandResponseObject interface {
+	VisitGetInstallCommandResponse(w http.ResponseWriter) error
+}
+
+type GetInstallCommand200JSONResponse InstallCommands
+
+func (response GetInstallCommand200JSONResponse) VisitGetInstallCommandResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInstallCommanddefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetInstallCommanddefaultJSONResponse) VisitGetInstallCommandResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListJobsRequestObject struct {
+	Params ListJobsParams
+}
+
+type ListJobsResponseObject interface {
+	VisitListJobsResponse(w http.ResponseWriter) error
+}
+
+type ListJobs200JSONResponse JobPage
+
+func (response ListJobs200JSONResponse) VisitListJobsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListJobsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListJobsdefaultJSONResponse) VisitListJobsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetJobRequestObject struct {
+	JobId JobId `json:"jobId"`
+}
+
+type GetJobResponseObject interface {
+	VisitGetJobResponse(w http.ResponseWriter) error
+}
+
+type GetJob200JSONResponse Job
+
+func (response GetJob200JSONResponse) VisitGetJobResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetJobdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetJobdefaultJSONResponse) VisitGetJobResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateJoinCodeRequestObject struct {
+	Body *CreateJoinCodeJSONRequestBody
+}
+
+type CreateJoinCodeResponseObject interface {
+	VisitCreateJoinCodeResponse(w http.ResponseWriter) error
+}
+
+type CreateJoinCode201JSONResponse JoinCodeCreated
+
+func (response CreateJoinCode201JSONResponse) VisitCreateJoinCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateJoinCodedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CreateJoinCodedefaultJSONResponse) VisitCreateJoinCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeJoinCodeRequestObject struct {
+	JoinCodeId JoinCodeId `json:"joinCodeId"`
+}
+
+type RevokeJoinCodeResponseObject interface {
+	VisitRevokeJoinCodeResponse(w http.ResponseWriter) error
+}
+
+type RevokeJoinCode204Response struct {
+}
+
+func (response RevokeJoinCode204Response) VisitRevokeJoinCodeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RevokeJoinCodedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RevokeJoinCodedefaultJSONResponse) VisitRevokeJoinCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetJoinCodeRequestObject struct {
+	JoinCodeId JoinCodeId `json:"joinCodeId"`
+}
+
+type GetJoinCodeResponseObject interface {
+	VisitGetJoinCodeResponse(w http.ResponseWriter) error
+}
+
+type GetJoinCode200JSONResponse JoinCode
+
+func (response GetJoinCode200JSONResponse) VisitGetJoinCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetJoinCodedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetJoinCodedefaultJSONResponse) VisitGetJoinCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMachinesRequestObject struct {
+}
+
+type ListMachinesResponseObject interface {
+	VisitListMachinesResponse(w http.ResponseWriter) error
+}
+
+type ListMachines200JSONResponse MachineList
+
+func (response ListMachines200JSONResponse) VisitListMachinesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMachinesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListMachinesdefaultJSONResponse) VisitListMachinesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveMachineRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	Params    RemoveMachineParams
+}
+
+type RemoveMachineResponseObject interface {
+	VisitRemoveMachineResponse(w http.ResponseWriter) error
+}
+
+type RemoveMachine202JSONResponse MachineChange
+
+func (response RemoveMachine202JSONResponse) VisitRemoveMachineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveMachinedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RemoveMachinedefaultJSONResponse) VisitRemoveMachineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMachineRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+}
+
+type GetMachineResponseObject interface {
+	VisitGetMachineResponse(w http.ResponseWriter) error
+}
+
+type GetMachine200JSONResponse Machine
+
+func (response GetMachine200JSONResponse) VisitGetMachineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMachinedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetMachinedefaultJSONResponse) VisitGetMachineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMachineRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	Body      *UpdateMachineJSONRequestBody
+}
+
+type UpdateMachineResponseObject interface {
+	VisitUpdateMachineResponse(w http.ResponseWriter) error
+}
+
+type UpdateMachine200JSONResponse Machine
+
+func (response UpdateMachine200JSONResponse) VisitUpdateMachineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMachine202JSONResponse MachineChange
+
+func (response UpdateMachine202JSONResponse) VisitUpdateMachineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMachinedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response UpdateMachinedefaultJSONResponse) VisitUpdateMachineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMachineChangeRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	ChangeId  ChangeId  `json:"changeId"`
+}
+
+type GetMachineChangeResponseObject interface {
+	VisitGetMachineChangeResponse(w http.ResponseWriter) error
+}
+
+type GetMachineChange200JSONResponse MachineChange
+
+func (response GetMachineChange200JSONResponse) VisitGetMachineChangeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMachineChangedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetMachineChangedefaultJSONResponse) VisitGetMachineChangeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DecideMachineChangeRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	ChangeId  ChangeId  `json:"changeId"`
+	Body      *DecideMachineChangeJSONRequestBody
+}
+
+type DecideMachineChangeResponseObject interface {
+	VisitDecideMachineChangeResponse(w http.ResponseWriter) error
+}
+
+type DecideMachineChange200JSONResponse MachineChange
+
+func (response DecideMachineChange200JSONResponse) VisitDecideMachineChangeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DecideMachineChangedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DecideMachineChangedefaultJSONResponse) VisitDecideMachineChangeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DrainMachineRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	Body      *DrainMachineJSONRequestBody
+}
+
+type DrainMachineResponseObject interface {
+	VisitDrainMachineResponse(w http.ResponseWriter) error
+}
+
+type DrainMachine202JSONResponse MachineChange
+
+func (response DrainMachine202JSONResponse) VisitDrainMachineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DrainMachinedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DrainMachinedefaultJSONResponse) VisitDrainMachineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMachineLoadRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	Params    GetMachineLoadParams
+}
+
+type GetMachineLoadResponseObject interface {
+	VisitGetMachineLoadResponse(w http.ResponseWriter) error
+}
+
+type GetMachineLoad200JSONResponse LoadHistory
+
+func (response GetMachineLoad200JSONResponse) VisitGetMachineLoadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMachineLoaddefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetMachineLoaddefaultJSONResponse) VisitGetMachineLoadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RedetectMachineRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+}
+
+type RedetectMachineResponseObject interface {
+	VisitRedetectMachineResponse(w http.ResponseWriter) error
+}
+
+type RedetectMachine202Response struct {
+}
+
+func (response RedetectMachine202Response) VisitRedetectMachineResponse(w http.ResponseWriter) error {
+	w.WriteHeader(202)
+	return nil
+}
+
+type RedetectMachinedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RedetectMachinedefaultJSONResponse) VisitRedetectMachineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResumeMachineRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	Params    ResumeMachineParams
+}
+
+type ResumeMachineResponseObject interface {
+	VisitResumeMachineResponse(w http.ResponseWriter) error
+}
+
+type ResumeMachine200JSONResponse Machine
+
+func (response ResumeMachine200JSONResponse) VisitResumeMachineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ResumeMachinedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ResumeMachinedefaultJSONResponse) VisitResumeMachineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSlotsRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+}
+
+type ListSlotsResponseObject interface {
+	VisitListSlotsResponse(w http.ResponseWriter) error
+}
+
+type ListSlots200JSONResponse SlotStatus
+
+func (response ListSlots200JSONResponse) VisitListSlotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListSlotsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListSlotsdefaultJSONResponse) VisitListSlotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FreeStaleSlotsRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	Body      *FreeStaleSlotsJSONRequestBody
+}
+
+type FreeStaleSlotsResponseObject interface {
+	VisitFreeStaleSlotsResponse(w http.ResponseWriter) error
+}
+
+type FreeStaleSlots200JSONResponse FreedSlotList
+
+func (response FreeStaleSlots200JSONResponse) VisitFreeStaleSlotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FreeStaleSlotsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response FreeStaleSlotsdefaultJSONResponse) VisitFreeStaleSlotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSessionRequestObject struct {
+}
+
+type GetSessionResponseObject interface {
+	VisitGetSessionResponse(w http.ResponseWriter) error
+}
+
+type GetSession200JSONResponse Session
+
+func (response GetSession200JSONResponse) VisitGetSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSessiondefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetSessiondefaultJSONResponse) VisitGetSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPreferencesRequestObject struct {
+}
+
+type GetPreferencesResponseObject interface {
+	VisitGetPreferencesResponse(w http.ResponseWriter) error
+}
+
+type GetPreferences200JSONResponse Preferences
+
+func (response GetPreferences200JSONResponse) VisitGetPreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPreferencesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetPreferencesdefaultJSONResponse) VisitGetPreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePreferencesRequestObject struct {
+	Body *UpdatePreferencesJSONRequestBody
+}
+
+type UpdatePreferencesResponseObject interface {
+	VisitUpdatePreferencesResponse(w http.ResponseWriter) error
+}
+
+type UpdatePreferences200JSONResponse Preferences
+
+func (response UpdatePreferences200JSONResponse) VisitUpdatePreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePreferencesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response UpdatePreferencesdefaultJSONResponse) VisitUpdatePreferencesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOverviewRequestObject struct {
+}
+
+type GetOverviewResponseObject interface {
+	VisitGetOverviewResponse(w http.ResponseWriter) error
+}
+
+type GetOverview200JSONResponse Overview
+
+func (response GetOverview200JSONResponse) VisitGetOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetOverviewdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetOverviewdefaultJSONResponse) VisitGetOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRepositoryRequestObject struct {
+	RepositoryId RepositoryId `json:"repositoryId"`
+}
+
+type GetRepositoryResponseObject interface {
+	VisitGetRepositoryResponse(w http.ResponseWriter) error
+}
+
+type GetRepository200JSONResponse Repository
+
+func (response GetRepository200JSONResponse) VisitGetRepositoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRepositorydefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRepositorydefaultJSONResponse) VisitGetRepositoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateRepositoryPolicyRequestObject struct {
+	RepositoryId RepositoryId `json:"repositoryId"`
+	Body         *UpdateRepositoryPolicyJSONRequestBody
+}
+
+type UpdateRepositoryPolicyResponseObject interface {
+	VisitUpdateRepositoryPolicyResponse(w http.ResponseWriter) error
+}
+
+type UpdateRepositoryPolicy200JSONResponse RepositoryPolicy
+
+func (response UpdateRepositoryPolicy200JSONResponse) VisitUpdateRepositoryPolicyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateRepositoryPolicydefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response UpdateRepositoryPolicydefaultJSONResponse) VisitUpdateRepositoryPolicyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRepositoryRunsOnRequestObject struct {
+	RepositoryId RepositoryId `json:"repositoryId"`
+}
+
+type GetRepositoryRunsOnResponseObject interface {
+	VisitGetRepositoryRunsOnResponse(w http.ResponseWriter) error
+}
+
+type GetRepositoryRunsOn200JSONResponse RunsOnFindingList
+
+func (response GetRepositoryRunsOn200JSONResponse) VisitGetRepositoryRunsOnResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRepositoryRunsOndefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRepositoryRunsOndefaultJSONResponse) VisitGetRepositoryRunsOnResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlanRepositoryChangesRequestObject struct {
+	Body *PlanRepositoryChangesJSONRequestBody
+}
+
+type PlanRepositoryChangesResponseObject interface {
+	VisitPlanRepositoryChangesResponse(w http.ResponseWriter) error
+}
+
+type PlanRepositoryChanges201JSONResponse Plan
+
+func (response PlanRepositoryChanges201JSONResponse) VisitPlanRepositoryChangesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlanRepositoryChangesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response PlanRepositoryChangesdefaultJSONResponse) VisitPlanRepositoryChangesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRepositoryPlanRequestObject struct {
+	PlanId PlanId `json:"planId"`
+}
+
+type GetRepositoryPlanResponseObject interface {
+	VisitGetRepositoryPlanResponse(w http.ResponseWriter) error
+}
+
+type GetRepositoryPlan200JSONResponse Plan
+
+func (response GetRepositoryPlan200JSONResponse) VisitGetRepositoryPlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRepositoryPlandefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRepositoryPlandefaultJSONResponse) VisitGetRepositoryPlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ApplyRepositoryChangesRequestObject struct {
+	PlanId PlanId `json:"planId"`
+	Body   *ApplyRepositoryChangesJSONRequestBody
+}
+
+type ApplyRepositoryChangesResponseObject interface {
+	VisitApplyRepositoryChangesResponse(w http.ResponseWriter) error
+}
+
+type ApplyRepositoryChanges202JSONResponse Plan
+
+func (response ApplyRepositoryChanges202JSONResponse) VisitApplyRepositoryChangesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ApplyRepositoryChangesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ApplyRepositoryChangesdefaultJSONResponse) VisitApplyRepositoryChangesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlanRunnersRequestObject struct {
+	Body *PlanRunnersJSONRequestBody
+}
+
+type PlanRunnersResponseObject interface {
+	VisitPlanRunnersResponse(w http.ResponseWriter) error
+}
+
+type PlanRunners201JSONResponse Plan
+
+func (response PlanRunners201JSONResponse) VisitPlanRunnersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlanRunnersdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response PlanRunnersdefaultJSONResponse) VisitPlanRunnersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRunnerPlanRequestObject struct {
+	PlanId PlanId `json:"planId"`
+}
+
+type GetRunnerPlanResponseObject interface {
+	VisitGetRunnerPlanResponse(w http.ResponseWriter) error
+}
+
+type GetRunnerPlan200JSONResponse Plan
+
+func (response GetRunnerPlan200JSONResponse) VisitGetRunnerPlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRunnerPlandefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRunnerPlandefaultJSONResponse) VisitGetRunnerPlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateRunnersRequestObject struct {
+	PlanId PlanId `json:"planId"`
+	Body   *CreateRunnersJSONRequestBody
+}
+
+type CreateRunnersResponseObject interface {
+	VisitCreateRunnersResponse(w http.ResponseWriter) error
+}
+
+type CreateRunners202JSONResponse Plan
+
+func (response CreateRunners202JSONResponse) VisitCreateRunnersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateRunnersdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CreateRunnersdefaultJSONResponse) VisitCreateRunnersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRunnersRequestObject struct {
+	Params ListRunnersParams
+}
+
+type ListRunnersResponseObject interface {
+	VisitListRunnersResponse(w http.ResponseWriter) error
+}
+
+type ListRunners200JSONResponse RunnerList
+
+func (response ListRunners200JSONResponse) VisitListRunnersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRunnersdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListRunnersdefaultJSONResponse) VisitListRunnersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteRunnerRequestObject struct {
+	RunnerId RunnerId `json:"runnerId"`
+	Params   DeleteRunnerParams
+}
+
+type DeleteRunnerResponseObject interface {
+	VisitDeleteRunnerResponse(w http.ResponseWriter) error
+}
+
+type DeleteRunner202JSONResponse Runner
+
+func (response DeleteRunner202JSONResponse) VisitDeleteRunnerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteRunnerdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DeleteRunnerdefaultJSONResponse) VisitDeleteRunnerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRunnerRequestObject struct {
+	RunnerId RunnerId `json:"runnerId"`
+}
+
+type GetRunnerResponseObject interface {
+	VisitGetRunnerResponse(w http.ResponseWriter) error
+}
+
+type GetRunner200JSONResponse Runner
+
+func (response GetRunner200JSONResponse) VisitGetRunnerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRunnerdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRunnerdefaultJSONResponse) VisitGetRunnerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlanRunnerReplacementRequestObject struct {
+	RunnerId RunnerId `json:"runnerId"`
+}
+
+type PlanRunnerReplacementResponseObject interface {
+	VisitPlanRunnerReplacementResponse(w http.ResponseWriter) error
+}
+
+type PlanRunnerReplacement201JSONResponse Plan
+
+func (response PlanRunnerReplacement201JSONResponse) VisitPlanRunnerReplacementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PlanRunnerReplacementdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response PlanRunnerReplacementdefaultJSONResponse) VisitPlanRunnerReplacementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSettingsRequestObject struct {
+}
+
+type GetSettingsResponseObject interface {
+	VisitGetSettingsResponse(w http.ResponseWriter) error
+}
+
+type GetSettings200JSONResponse Settings
+
+func (response GetSettings200JSONResponse) VisitGetSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSettingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetSettingsdefaultJSONResponse) VisitGetSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSettingsRequestObject struct {
+	Body *UpdateSettingsJSONRequestBody
+}
+
+type UpdateSettingsResponseObject interface {
+	VisitUpdateSettingsResponse(w http.ResponseWriter) error
+}
+
+type UpdateSettings200JSONResponse Settings
+
+func (response UpdateSettings200JSONResponse) VisitUpdateSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSettingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response UpdateSettingsdefaultJSONResponse) VisitUpdateSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPoolSettingsRequestObject struct {
+}
+
+type GetPoolSettingsResponseObject interface {
+	VisitGetPoolSettingsResponse(w http.ResponseWriter) error
+}
+
+type GetPoolSettings200JSONResponse PoolSettings
+
+func (response GetPoolSettings200JSONResponse) VisitGetPoolSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPoolSettingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetPoolSettingsdefaultJSONResponse) VisitGetPoolSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePoolSettingsRequestObject struct {
+	Body *UpdatePoolSettingsJSONRequestBody
+}
+
+type UpdatePoolSettingsResponseObject interface {
+	VisitUpdatePoolSettingsResponse(w http.ResponseWriter) error
+}
+
+type UpdatePoolSettings200JSONResponse PoolSettings
+
+func (response UpdatePoolSettings200JSONResponse) VisitUpdatePoolSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePoolSettingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response UpdatePoolSettingsdefaultJSONResponse) VisitUpdatePoolSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetQueueSettingsRequestObject struct {
+}
+
+type GetQueueSettingsResponseObject interface {
+	VisitGetQueueSettingsResponse(w http.ResponseWriter) error
+}
+
+type GetQueueSettings200JSONResponse QueueSettings
+
+func (response GetQueueSettings200JSONResponse) VisitGetQueueSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetQueueSettingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetQueueSettingsdefaultJSONResponse) VisitGetQueueSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateQueueSettingsRequestObject struct {
+	Body *UpdateQueueSettingsJSONRequestBody
+}
+
+type UpdateQueueSettingsResponseObject interface {
+	VisitUpdateQueueSettingsResponse(w http.ResponseWriter) error
+}
+
+type UpdateQueueSettings200JSONResponse QueueSettings
+
+func (response UpdateQueueSettings200JSONResponse) VisitUpdateQueueSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateQueueSettingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response UpdateQueueSettingsdefaultJSONResponse) VisitUpdateQueueSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSetupStateRequestObject struct {
+}
+
+type GetSetupStateResponseObject interface {
+	VisitGetSetupStateResponse(w http.ResponseWriter) error
+}
+
+type GetSetupState200JSONResponse SetupState
+
+func (response GetSetupState200JSONResponse) VisitGetSetupStateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSetupStatedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetSetupStatedefaultJSONResponse) VisitGetSetupStateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartAppManifestRequestObject struct {
+	Body *StartAppManifestJSONRequestBody
+}
+
+type StartAppManifestResponseObject interface {
+	VisitStartAppManifestResponse(w http.ResponseWriter) error
+}
+
+type StartAppManifest200JSONResponse AppManifestForm
+
+func (response StartAppManifest200JSONResponse) VisitStartAppManifestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartAppManifestdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StartAppManifestdefaultJSONResponse) VisitStartAppManifestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RedeemSetupLinkRequestObject struct {
+	Body *RedeemSetupLinkJSONRequestBody
+}
+
+type RedeemSetupLinkResponseObject interface {
+	VisitRedeemSetupLinkResponse(w http.ResponseWriter) error
+}
+
+type RedeemSetupLink200ResponseHeaders struct {
+	SetCookie *string
+}
+
+type RedeemSetupLink200JSONResponse struct {
+	Body    SetupState
+	Headers RedeemSetupLink200ResponseHeaders
+}
+
+func (response RedeemSetupLink200JSONResponse) VisitRedeemSetupLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RedeemSetupLinkdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RedeemSetupLinkdefaultJSONResponse) VisitRedeemSetupLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUsersRequestObject struct {
+}
+
+type ListUsersResponseObject interface {
+	VisitListUsersResponse(w http.ResponseWriter) error
+}
+
+type ListUsers200JSONResponse UserList
+
+func (response ListUsers200JSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUsersdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListUsersdefaultJSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddUserRequestObject struct {
+	Body *AddUserJSONRequestBody
+}
+
+type AddUserResponseObject interface {
+	VisitAddUserResponse(w http.ResponseWriter) error
+}
+
+type AddUser201JSONResponse User
+
+func (response AddUser201JSONResponse) VisitAddUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AddUserdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response AddUserdefaultJSONResponse) VisitAddUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveUserRequestObject struct {
+	UserId UserId `json:"userId"`
+}
+
+type RemoveUserResponseObject interface {
+	VisitRemoveUserResponse(w http.ResponseWriter) error
+}
+
+type RemoveUser204Response struct {
+}
+
+func (response RemoveUser204Response) VisitRemoveUserResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RemoveUserdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RemoveUserdefaultJSONResponse) VisitRemoveUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateUserRoleRequestObject struct {
+	UserId UserId `json:"userId"`
+	Body   *UpdateUserRoleJSONRequestBody
+}
+
+type UpdateUserRoleResponseObject interface {
+	VisitUpdateUserRoleResponse(w http.ResponseWriter) error
+}
+
+type UpdateUserRole200JSONResponse User
+
+func (response UpdateUserRole200JSONResponse) VisitUpdateUserRoleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateUserRoledefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response UpdateUserRoledefaultJSONResponse) VisitUpdateUserRoleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteAppManifestRequestObject struct {
+	Params CompleteAppManifestParams
+}
+
+type CompleteAppManifestResponseObject interface {
+	VisitCompleteAppManifestResponse(w http.ResponseWriter) error
+}
+
+type CompleteAppManifest302Response = RedirectResponse
+
+func (response CompleteAppManifest302Response) VisitCompleteAppManifestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Location", fmt.Sprint(response.Headers.Location))
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.WriteHeader(302)
+	return nil
+}
+
+type CompleteAppManifestdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CompleteAppManifestdefaultJSONResponse) VisitCompleteAppManifestResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteSignInRequestObject struct {
+	Params CompleteSignInParams
+}
+
+type CompleteSignInResponseObject interface {
+	VisitCompleteSignInResponse(w http.ResponseWriter) error
+}
+
+type CompleteSignIn302Response = RedirectResponse
+
+func (response CompleteSignIn302Response) VisitCompleteSignInResponse(w http.ResponseWriter) error {
+	w.Header().Set("Location", fmt.Sprint(response.Headers.Location))
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.WriteHeader(302)
+	return nil
+}
+
+type CompleteSignIndefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CompleteSignIndefaultJSONResponse) VisitCompleteSignInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartSignInRequestObject struct {
+	Params StartSignInParams
+}
+
+type StartSignInResponseObject interface {
+	VisitStartSignInResponse(w http.ResponseWriter) error
+}
+
+type StartSignIn302Response = RedirectResponse
+
+func (response StartSignIn302Response) VisitStartSignInResponse(w http.ResponseWriter) error {
+	w.Header().Set("Location", fmt.Sprint(response.Headers.Location))
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.WriteHeader(302)
+	return nil
+}
+
+type StartSignIndefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StartSignIndefaultJSONResponse) VisitStartSignInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RedeemTrayLinkRequestObject struct {
+	Params RedeemTrayLinkParams
+}
+
+type RedeemTrayLinkResponseObject interface {
+	VisitRedeemTrayLinkResponse(w http.ResponseWriter) error
+}
+
+type RedeemTrayLink302Response = RedirectResponse
+
+func (response RedeemTrayLink302Response) VisitRedeemTrayLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Location", fmt.Sprint(response.Headers.Location))
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.WriteHeader(302)
+	return nil
+}
+
+type RedeemTrayLinkdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RedeemTrayLinkdefaultJSONResponse) VisitRedeemTrayLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type GetHealthRequestObject struct {
@@ -238,11 +7605,258 @@ func (response GetHealth503JSONResponse) VisitGetHealthResponse(w http.ResponseW
 	return err
 }
 
+type ReceiveGithubWebhookRequestObject struct {
+	Params ReceiveGithubWebhookParams
+	Body   *ReceiveGithubWebhookJSONRequestBody
+}
+
+type ReceiveGithubWebhookResponseObject interface {
+	VisitReceiveGithubWebhookResponse(w http.ResponseWriter) error
+}
+
+type ReceiveGithubWebhook202Response struct {
+}
+
+func (response ReceiveGithubWebhook202Response) VisitReceiveGithubWebhookResponse(w http.ResponseWriter) error {
+	w.WriteHeader(202)
+	return nil
+}
+
+type ReceiveGithubWebhookdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ReceiveGithubWebhookdefaultJSONResponse) VisitReceiveGithubWebhookResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// ListAuditEvents The audit log, newest first
+	// (GET /api/v1/audit)
+	ListAuditEvents(ctx context.Context, request ListAuditEventsRequestObject) (ListAuditEventsResponseObject, error)
+	// ExchangeCliToken Trade a device-flow GitHub user token for a CLI token
+	// (POST /api/v1/auth/cli)
+	ExchangeCliToken(ctx context.Context, request ExchangeCliTokenRequestObject) (ExchangeCliTokenResponseObject, error)
+	// GetCliLoginConfig What the CLI needs to start GitHub's device flow
+	// (GET /api/v1/auth/cli/config)
+	GetCliLoginConfig(ctx context.Context, request GetCliLoginConfigRequestObject) (GetCliLoginConfigResponseObject, error)
+	// ListCliTokens List CLI tokens (own; every user's for the owner)
+	// (GET /api/v1/auth/cli/tokens)
+	ListCliTokens(ctx context.Context, request ListCliTokensRequestObject) (ListCliTokensResponseObject, error)
+	// RevokeCliToken Revoke a CLI token
+	// (DELETE /api/v1/auth/cli/tokens/{tokenId})
+	RevokeCliToken(ctx context.Context, request RevokeCliTokenRequestObject) (RevokeCliTokenResponseObject, error)
+	// SignOut End this session
+	// (POST /api/v1/auth/logout)
+	SignOut(ctx context.Context, request SignOutRequestObject) (SignOutResponseObject, error)
+	// ListBackups Backups with date, size and check result
+	// (GET /api/v1/backups)
+	ListBackups(ctx context.Context, request ListBackupsRequestObject) (ListBackupsResponseObject, error)
+	// RunBackup Write a backup now
+	// (POST /api/v1/backups)
+	RunBackup(ctx context.Context, request RunBackupRequestObject) (RunBackupResponseObject, error)
+	// RunBackupDrill Restore the newest backup into a temporary folder and check it
+	// (POST /api/v1/backups/drills)
+	RunBackupDrill(ctx context.Context, request RunBackupDrillRequestObject) (RunBackupDrillResponseObject, error)
+	// RestoreBackup Restore a backup
+	// (POST /api/v1/backups/{backupId}/restore)
+	RestoreBackup(ctx context.Context, request RestoreBackupRequestObject) (RestoreBackupResponseObject, error)
+	// GetCaCertificate Download the controller's CA certificate
+	// (GET /api/v1/ca.pem)
+	GetCaCertificate(ctx context.Context, request GetCaCertificateRequestObject) (GetCaCertificateResponseObject, error)
+	// ListDoctorFindings The latest finding per check and subject
+	// (GET /api/v1/doctor/findings)
+	ListDoctorFindings(ctx context.Context, request ListDoctorFindingsRequestObject) (ListDoctorFindingsResponseObject, error)
+	// RunDoctor Run the doctor now
+	// (POST /api/v1/doctor/runs)
+	RunDoctor(ctx context.Context, request RunDoctorRequestObject) (RunDoctorResponseObject, error)
+	// GetDoctorRun A doctor run with its findings
+	// (GET /api/v1/doctor/runs/{runId})
+	GetDoctorRun(ctx context.Context, request GetDoctorRunRequestObject) (GetDoctorRunResponseObject, error)
+	// StreamEvents The live view as server-sent events
+	// (GET /api/v1/events)
+	StreamEvents(ctx context.Context, request StreamEventsRequestObject) (StreamEventsResponseObject, error)
+	// GetAppInstallUrl GitHub's page to install the App on more repositories
+	// (GET /api/v1/github/install-url)
+	GetAppInstallUrl(ctx context.Context, request GetAppInstallUrlRequestObject) (GetAppInstallUrlResponseObject, error)
+	// ListInstallations The App's installations the user can see
+	// (GET /api/v1/github/installations)
+	ListInstallations(ctx context.Context, request ListInstallationsRequestObject) (ListInstallationsResponseObject, error)
+	// ListRepositories Repositories of the installations, with pool state and policy
+	// (GET /api/v1/github/repositories)
+	ListRepositories(ctx context.Context, request ListRepositoriesRequestObject) (ListRepositoriesResponseObject, error)
+	// GetInstallCommand The install command per OS, without a join code
+	// (GET /api/v1/install-command)
+	GetInstallCommand(ctx context.Context, request GetInstallCommandRequestObject) (GetInstallCommandResponseObject, error)
+	// ListJobs Queued, running and finished jobs, newest first
+	// (GET /api/v1/jobs)
+	ListJobs(ctx context.Context, request ListJobsRequestObject) (ListJobsResponseObject, error)
+	// GetJob One job attempt with its timing
+	// (GET /api/v1/jobs/{jobId})
+	GetJob(ctx context.Context, request GetJobRequestObject) (GetJobResponseObject, error)
+	// CreateJoinCode Make a one-time join code and the install commands
+	// (POST /api/v1/join-codes)
+	CreateJoinCode(ctx context.Context, request CreateJoinCodeRequestObject) (CreateJoinCodeResponseObject, error)
+	// RevokeJoinCode Withdraw an unused join code
+	// (DELETE /api/v1/join-codes/{joinCodeId})
+	RevokeJoinCode(ctx context.Context, request RevokeJoinCodeRequestObject) (RevokeJoinCodeResponseObject, error)
+	// GetJoinCode A join code's state (never its value)
+	// (GET /api/v1/join-codes/{joinCodeId})
+	GetJoinCode(ctx context.Context, request GetJoinCodeRequestObject) (GetJoinCodeResponseObject, error)
+	// ListMachines Every machine with state, backends, load and slots
+	// (GET /api/v1/machines)
+	ListMachines(ctx context.Context, request ListMachinesRequestObject) (ListMachinesResponseObject, error)
+	// RemoveMachine Remove a machine after a drain; revokes its key
+	// (DELETE /api/v1/machines/{machineId})
+	RemoveMachine(ctx context.Context, request RemoveMachineRequestObject) (RemoveMachineResponseObject, error)
+	// GetMachine One machine with facts, backends, settings and running jobs
+	// (GET /api/v1/machines/{machineId})
+	GetMachine(ctx context.Context, request GetMachineRequestObject) (GetMachineResponseObject, error)
+	// UpdateMachine Change a machine's settings
+	// (PATCH /api/v1/machines/{machineId})
+	UpdateMachine(ctx context.Context, request UpdateMachineRequestObject) (UpdateMachineResponseObject, error)
+	// GetMachineChange A change waiting for a drain, and the jobs it waits for
+	// (GET /api/v1/machines/{machineId}/changes/{changeId})
+	GetMachineChange(ctx context.Context, request GetMachineChangeRequestObject) (GetMachineChangeResponseObject, error)
+	// DecideMachineChange Answer a change that needs you after the drain timeout
+	// (POST /api/v1/machines/{machineId}/changes/{changeId})
+	DecideMachineChange(ctx context.Context, request DecideMachineChangeRequestObject) (DecideMachineChangeResponseObject, error)
+	// DrainMachine Stop new jobs on a machine; running jobs finish
+	// (POST /api/v1/machines/{machineId}/drain)
+	DrainMachine(ctx context.Context, request DrainMachineRequestObject) (DrainMachineResponseObject, error)
+	// GetMachineLoad Load history at 15-second steps, up to 24 hours
+	// (GET /api/v1/machines/{machineId}/load)
+	GetMachineLoad(ctx context.Context, request GetMachineLoadRequestObject) (GetMachineLoadResponseObject, error)
+	// RedetectMachine Check again; the agent detects facts and backends now
+	// (POST /api/v1/machines/{machineId}/redetect)
+	RedetectMachine(ctx context.Context, request RedetectMachineRequestObject) (RedetectMachineResponseObject, error)
+	// ResumeMachine Return a drained machine to active
+	// (POST /api/v1/machines/{machineId}/resume)
+	ResumeMachine(ctx context.Context, request ResumeMachineRequestObject) (ResumeMachineResponseObject, error)
+	// ListSlots Slot holders and the waiting queue of a machine
+	// (GET /api/v1/machines/{machineId}/slots)
+	ListSlots(ctx context.Context, request ListSlotsRequestObject) (ListSlotsResponseObject, error)
+	// FreeStaleSlots Free stale slots now
+	// (POST /api/v1/machines/{machineId}/slots/free-stale)
+	FreeStaleSlots(ctx context.Context, request FreeStaleSlotsRequestObject) (FreeStaleSlotsResponseObject, error)
+	// GetSession The signed-in user, role and CSRF token
+	// (GET /api/v1/me)
+	GetSession(ctx context.Context, request GetSessionRequestObject) (GetSessionResponseObject, error)
+	// GetPreferences The user's own view preferences
+	// (GET /api/v1/me/preferences)
+	GetPreferences(ctx context.Context, request GetPreferencesRequestObject) (GetPreferencesResponseObject, error)
+	// UpdatePreferences Save the user's own view preferences
+	// (PUT /api/v1/me/preferences)
+	UpdatePreferences(ctx context.Context, request UpdatePreferencesRequestObject) (UpdatePreferencesResponseObject, error)
+	// GetOverview The overview snapshot
+	// (GET /api/v1/overview)
+	GetOverview(ctx context.Context, request GetOverviewRequestObject) (GetOverviewResponseObject, error)
+	// GetRepository One repository with its policy and variable status
+	// (GET /api/v1/repositories/{repositoryId})
+	GetRepository(ctx context.Context, request GetRepositoryRequestObject) (GetRepositoryResponseObject, error)
+	// UpdateRepositoryPolicy Change a repository's policy
+	// (PATCH /api/v1/repositories/{repositoryId}/policy)
+	UpdateRepositoryPolicy(ctx context.Context, request UpdateRepositoryPolicyRequestObject) (UpdateRepositoryPolicyResponseObject, error)
+	// GetRepositoryRunsOn Workflow `runs-on` findings for a repository
+	// (GET /api/v1/repositories/{repositoryId}/runs-on)
+	GetRepositoryRunsOn(ctx context.Context, request GetRepositoryRunsOnRequestObject) (GetRepositoryRunsOnResponseObject, error)
+	// PlanRepositoryChanges Plan turning the pool on or off for repositories
+	// (POST /api/v1/repository-plans)
+	PlanRepositoryChanges(ctx context.Context, request PlanRepositoryChangesRequestObject) (PlanRepositoryChangesResponseObject, error)
+	// GetRepositoryPlan A repository plan with its outcome
+	// (GET /api/v1/repository-plans/{planId})
+	GetRepositoryPlan(ctx context.Context, request GetRepositoryPlanRequestObject) (GetRepositoryPlanResponseObject, error)
+	// ApplyRepositoryChanges Apply a repository plan after a yes
+	// (POST /api/v1/repository-plans/{planId}/apply)
+	ApplyRepositoryChanges(ctx context.Context, request ApplyRepositoryChangesRequestObject) (ApplyRepositoryChangesResponseObject, error)
+	// PlanRunners Plan adding runners on a machine
+	// (POST /api/v1/runner-plans)
+	PlanRunners(ctx context.Context, request PlanRunnersRequestObject) (PlanRunnersResponseObject, error)
+	// GetRunnerPlan A runner plan with its outcome
+	// (GET /api/v1/runner-plans/{planId})
+	GetRunnerPlan(ctx context.Context, request GetRunnerPlanRequestObject) (GetRunnerPlanResponseObject, error)
+	// CreateRunners Apply a runner plan (add, or replace an unmanaged runner)
+	// (POST /api/v1/runner-plans/{planId}/apply)
+	CreateRunners(ctx context.Context, request CreateRunnersRequestObject) (CreateRunnersResponseObject, error)
+	// ListRunners Every runner, managed or not
+	// (GET /api/v1/runners)
+	ListRunners(ctx context.Context, request ListRunnersRequestObject) (ListRunnersResponseObject, error)
+	// DeleteRunner Remove a runner after a drain, with a remove token
+	// (DELETE /api/v1/runners/{runnerId})
+	DeleteRunner(ctx context.Context, request DeleteRunnerRequestObject) (DeleteRunnerResponseObject, error)
+	// GetRunner One runner
+	// (GET /api/v1/runners/{runnerId})
+	GetRunner(ctx context.Context, request GetRunnerRequestObject) (GetRunnerResponseObject, error)
+	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
+	// (POST /api/v1/runners/{runnerId}/replace)
+	PlanRunnerReplacement(ctx context.Context, request PlanRunnerReplacementRequestObject) (PlanRunnerReplacementResponseObject, error)
+	// GetSettings Controller settings (retention, backup time, stream limits)
+	// (GET /api/v1/settings)
+	GetSettings(ctx context.Context, request GetSettingsRequestObject) (GetSettingsResponseObject, error)
+	// UpdateSettings Change controller settings
+	// (PATCH /api/v1/settings)
+	UpdateSettings(ctx context.Context, request UpdateSettingsRequestObject) (UpdateSettingsResponseObject, error)
+	// GetPoolSettings Defaults for new machines
+	// (GET /api/v1/settings/pool)
+	GetPoolSettings(ctx context.Context, request GetPoolSettingsRequestObject) (GetPoolSettingsResponseObject, error)
+	// UpdatePoolSettings Change the defaults for new machines
+	// (PUT /api/v1/settings/pool)
+	UpdatePoolSettings(ctx context.Context, request UpdatePoolSettingsRequestObject) (UpdatePoolSettingsResponseObject, error)
+	// GetQueueSettings The order of service of the slot queue
+	// (GET /api/v1/settings/queue)
+	GetQueueSettings(ctx context.Context, request GetQueueSettingsRequestObject) (GetQueueSettingsResponseObject, error)
+	// UpdateQueueSettings Change the order of service
+	// (PUT /api/v1/settings/queue)
+	UpdateQueueSettings(ctx context.Context, request UpdateQueueSettingsRequestObject) (UpdateQueueSettingsResponseObject, error)
+	// GetSetupState First-run state; what the setup page shows
+	// (GET /api/v1/setup)
+	GetSetupState(ctx context.Context, request GetSetupStateRequestObject) (GetSetupStateResponseObject, error)
+	// StartAppManifest Start GitHub's App manifest flow
+	// (POST /api/v1/setup/github-app)
+	StartAppManifest(ctx context.Context, request StartAppManifestRequestObject) (StartAppManifestResponseObject, error)
+	// RedeemSetupLink Trade a one-time setup code for a setup cookie
+	// (POST /api/v1/setup/redeem)
+	RedeemSetupLink(ctx context.Context, request RedeemSetupLinkRequestObject) (RedeemSetupLinkResponseObject, error)
+	// ListUsers Users allowed to sign in, with their roles
+	// (GET /api/v1/users)
+	ListUsers(ctx context.Context, request ListUsersRequestObject) (ListUsersResponseObject, error)
+	// AddUser Allow a GitHub login as admin or viewer
+	// (POST /api/v1/users)
+	AddUser(ctx context.Context, request AddUserRequestObject) (AddUserResponseObject, error)
+	// RemoveUser Remove a user; ends their sessions and CLI tokens
+	// (DELETE /api/v1/users/{userId})
+	RemoveUser(ctx context.Context, request RemoveUserRequestObject) (RemoveUserResponseObject, error)
+	// UpdateUserRole Change a user's role
+	// (PATCH /api/v1/users/{userId})
+	UpdateUserRole(ctx context.Context, request UpdateUserRoleRequestObject) (UpdateUserRoleResponseObject, error)
+	// CompleteAppManifest GitHub's redirect after the App is created
+	// (GET /auth/github/app-created)
+	CompleteAppManifest(ctx context.Context, request CompleteAppManifestRequestObject) (CompleteAppManifestResponseObject, error)
+	// CompleteSignIn GitHub OAuth callback; makes the session
+	// (GET /auth/github/callback)
+	CompleteSignIn(ctx context.Context, request CompleteSignInRequestObject) (CompleteSignInResponseObject, error)
+	// StartSignIn Start web sign-in with the App's user OAuth flow
+	// (GET /auth/github/login)
+	StartSignIn(ctx context.Context, request StartSignInRequestObject) (StartSignInResponseObject, error)
+	// RedeemTrayLink Sign in from a one-time tray link
+	// (GET /auth/link)
+	RedeemTrayLink(ctx context.Context, request RedeemTrayLinkRequestObject) (RedeemTrayLinkResponseObject, error)
 	// GetHealth Liveness and database check
 	// (GET /healthz)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
+	// ReceiveGithubWebhook GitHub webhook deliveries
+	// (POST /webhooks/github)
+	ReceiveGithubWebhook(ctx context.Context, request ReceiveGithubWebhookRequestObject) (ReceiveGithubWebhookResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -284,6 +7898,1923 @@ type strictHandler struct {
 	options     StrictHTTPServerOptions
 }
 
+// ListAuditEvents operation middleware
+func (sh *strictHandler) ListAuditEvents(w http.ResponseWriter, r *http.Request, params ListAuditEventsParams) {
+	var request ListAuditEventsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAuditEvents(ctx, request.(ListAuditEventsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAuditEvents")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListAuditEventsResponseObject); ok {
+		if err := validResponse.VisitListAuditEventsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ExchangeCliToken operation middleware
+func (sh *strictHandler) ExchangeCliToken(w http.ResponseWriter, r *http.Request) {
+	var request ExchangeCliTokenRequestObject
+
+	var body ExchangeCliTokenJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ExchangeCliToken(ctx, request.(ExchangeCliTokenRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ExchangeCliToken")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ExchangeCliTokenResponseObject); ok {
+		if err := validResponse.VisitExchangeCliTokenResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCliLoginConfig operation middleware
+func (sh *strictHandler) GetCliLoginConfig(w http.ResponseWriter, r *http.Request) {
+	var request GetCliLoginConfigRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCliLoginConfig(ctx, request.(GetCliLoginConfigRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCliLoginConfig")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCliLoginConfigResponseObject); ok {
+		if err := validResponse.VisitGetCliLoginConfigResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListCliTokens operation middleware
+func (sh *strictHandler) ListCliTokens(w http.ResponseWriter, r *http.Request) {
+	var request ListCliTokensRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCliTokens(ctx, request.(ListCliTokensRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCliTokens")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCliTokensResponseObject); ok {
+		if err := validResponse.VisitListCliTokensResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RevokeCliToken operation middleware
+func (sh *strictHandler) RevokeCliToken(w http.ResponseWriter, r *http.Request, tokenId TokenId) {
+	var request RevokeCliTokenRequestObject
+
+	request.TokenId = tokenId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeCliToken(ctx, request.(RevokeCliTokenRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeCliToken")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevokeCliTokenResponseObject); ok {
+		if err := validResponse.VisitRevokeCliTokenResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SignOut operation middleware
+func (sh *strictHandler) SignOut(w http.ResponseWriter, r *http.Request) {
+	var request SignOutRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SignOut(ctx, request.(SignOutRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SignOut")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SignOutResponseObject); ok {
+		if err := validResponse.VisitSignOutResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListBackups operation middleware
+func (sh *strictHandler) ListBackups(w http.ResponseWriter, r *http.Request) {
+	var request ListBackupsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListBackups(ctx, request.(ListBackupsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListBackups")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListBackupsResponseObject); ok {
+		if err := validResponse.VisitListBackupsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RunBackup operation middleware
+func (sh *strictHandler) RunBackup(w http.ResponseWriter, r *http.Request) {
+	var request RunBackupRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunBackup(ctx, request.(RunBackupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunBackup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunBackupResponseObject); ok {
+		if err := validResponse.VisitRunBackupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RunBackupDrill operation middleware
+func (sh *strictHandler) RunBackupDrill(w http.ResponseWriter, r *http.Request) {
+	var request RunBackupDrillRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunBackupDrill(ctx, request.(RunBackupDrillRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunBackupDrill")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunBackupDrillResponseObject); ok {
+		if err := validResponse.VisitRunBackupDrillResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RestoreBackup operation middleware
+func (sh *strictHandler) RestoreBackup(w http.ResponseWriter, r *http.Request, backupId BackupId, params RestoreBackupParams) {
+	var request RestoreBackupRequestObject
+
+	request.BackupId = backupId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RestoreBackup(ctx, request.(RestoreBackupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RestoreBackup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RestoreBackupResponseObject); ok {
+		if err := validResponse.VisitRestoreBackupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCaCertificate operation middleware
+func (sh *strictHandler) GetCaCertificate(w http.ResponseWriter, r *http.Request) {
+	var request GetCaCertificateRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCaCertificate(ctx, request.(GetCaCertificateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCaCertificate")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCaCertificateResponseObject); ok {
+		if err := validResponse.VisitGetCaCertificateResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListDoctorFindings operation middleware
+func (sh *strictHandler) ListDoctorFindings(w http.ResponseWriter, r *http.Request, params ListDoctorFindingsParams) {
+	var request ListDoctorFindingsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListDoctorFindings(ctx, request.(ListDoctorFindingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListDoctorFindings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListDoctorFindingsResponseObject); ok {
+		if err := validResponse.VisitListDoctorFindingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RunDoctor operation middleware
+func (sh *strictHandler) RunDoctor(w http.ResponseWriter, r *http.Request) {
+	var request RunDoctorRequestObject
+
+	var body RunDoctorJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunDoctor(ctx, request.(RunDoctorRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunDoctor")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunDoctorResponseObject); ok {
+		if err := validResponse.VisitRunDoctorResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetDoctorRun operation middleware
+func (sh *strictHandler) GetDoctorRun(w http.ResponseWriter, r *http.Request, runId RunId) {
+	var request GetDoctorRunRequestObject
+
+	request.RunId = runId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetDoctorRun(ctx, request.(GetDoctorRunRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetDoctorRun")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetDoctorRunResponseObject); ok {
+		if err := validResponse.VisitGetDoctorRunResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StreamEvents operation middleware
+func (sh *strictHandler) StreamEvents(w http.ResponseWriter, r *http.Request, params StreamEventsParams) {
+	var request StreamEventsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StreamEvents(ctx, request.(StreamEventsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StreamEvents")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StreamEventsResponseObject); ok {
+		if err := validResponse.VisitStreamEventsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetAppInstallUrl operation middleware
+func (sh *strictHandler) GetAppInstallUrl(w http.ResponseWriter, r *http.Request) {
+	var request GetAppInstallUrlRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAppInstallUrl(ctx, request.(GetAppInstallUrlRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAppInstallUrl")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAppInstallUrlResponseObject); ok {
+		if err := validResponse.VisitGetAppInstallUrlResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListInstallations operation middleware
+func (sh *strictHandler) ListInstallations(w http.ResponseWriter, r *http.Request) {
+	var request ListInstallationsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListInstallations(ctx, request.(ListInstallationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListInstallations")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListInstallationsResponseObject); ok {
+		if err := validResponse.VisitListInstallationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListRepositories operation middleware
+func (sh *strictHandler) ListRepositories(w http.ResponseWriter, r *http.Request, params ListRepositoriesParams) {
+	var request ListRepositoriesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListRepositories(ctx, request.(ListRepositoriesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListRepositories")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListRepositoriesResponseObject); ok {
+		if err := validResponse.VisitListRepositoriesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetInstallCommand operation middleware
+func (sh *strictHandler) GetInstallCommand(w http.ResponseWriter, r *http.Request) {
+	var request GetInstallCommandRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInstallCommand(ctx, request.(GetInstallCommandRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInstallCommand")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetInstallCommandResponseObject); ok {
+		if err := validResponse.VisitGetInstallCommandResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListJobs operation middleware
+func (sh *strictHandler) ListJobs(w http.ResponseWriter, r *http.Request, params ListJobsParams) {
+	var request ListJobsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListJobs(ctx, request.(ListJobsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListJobs")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListJobsResponseObject); ok {
+		if err := validResponse.VisitListJobsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetJob operation middleware
+func (sh *strictHandler) GetJob(w http.ResponseWriter, r *http.Request, jobId JobId) {
+	var request GetJobRequestObject
+
+	request.JobId = jobId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetJob(ctx, request.(GetJobRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetJob")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetJobResponseObject); ok {
+		if err := validResponse.VisitGetJobResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateJoinCode operation middleware
+func (sh *strictHandler) CreateJoinCode(w http.ResponseWriter, r *http.Request) {
+	var request CreateJoinCodeRequestObject
+
+	var body CreateJoinCodeJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateJoinCode(ctx, request.(CreateJoinCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateJoinCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateJoinCodeResponseObject); ok {
+		if err := validResponse.VisitCreateJoinCodeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RevokeJoinCode operation middleware
+func (sh *strictHandler) RevokeJoinCode(w http.ResponseWriter, r *http.Request, joinCodeId JoinCodeId) {
+	var request RevokeJoinCodeRequestObject
+
+	request.JoinCodeId = joinCodeId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeJoinCode(ctx, request.(RevokeJoinCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeJoinCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevokeJoinCodeResponseObject); ok {
+		if err := validResponse.VisitRevokeJoinCodeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetJoinCode operation middleware
+func (sh *strictHandler) GetJoinCode(w http.ResponseWriter, r *http.Request, joinCodeId JoinCodeId) {
+	var request GetJoinCodeRequestObject
+
+	request.JoinCodeId = joinCodeId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetJoinCode(ctx, request.(GetJoinCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetJoinCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetJoinCodeResponseObject); ok {
+		if err := validResponse.VisitGetJoinCodeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListMachines operation middleware
+func (sh *strictHandler) ListMachines(w http.ResponseWriter, r *http.Request) {
+	var request ListMachinesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMachines(ctx, request.(ListMachinesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMachines")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListMachinesResponseObject); ok {
+		if err := validResponse.VisitListMachinesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RemoveMachine operation middleware
+func (sh *strictHandler) RemoveMachine(w http.ResponseWriter, r *http.Request, machineId MachineId, params RemoveMachineParams) {
+	var request RemoveMachineRequestObject
+
+	request.MachineId = machineId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RemoveMachine(ctx, request.(RemoveMachineRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RemoveMachine")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RemoveMachineResponseObject); ok {
+		if err := validResponse.VisitRemoveMachineResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMachine operation middleware
+func (sh *strictHandler) GetMachine(w http.ResponseWriter, r *http.Request, machineId MachineId) {
+	var request GetMachineRequestObject
+
+	request.MachineId = machineId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMachine(ctx, request.(GetMachineRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMachine")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMachineResponseObject); ok {
+		if err := validResponse.VisitGetMachineResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateMachine operation middleware
+func (sh *strictHandler) UpdateMachine(w http.ResponseWriter, r *http.Request, machineId MachineId) {
+	var request UpdateMachineRequestObject
+
+	request.MachineId = machineId
+
+	var body UpdateMachineJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateMachine(ctx, request.(UpdateMachineRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateMachine")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateMachineResponseObject); ok {
+		if err := validResponse.VisitUpdateMachineResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMachineChange operation middleware
+func (sh *strictHandler) GetMachineChange(w http.ResponseWriter, r *http.Request, machineId MachineId, changeId ChangeId) {
+	var request GetMachineChangeRequestObject
+
+	request.MachineId = machineId
+	request.ChangeId = changeId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMachineChange(ctx, request.(GetMachineChangeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMachineChange")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMachineChangeResponseObject); ok {
+		if err := validResponse.VisitGetMachineChangeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DecideMachineChange operation middleware
+func (sh *strictHandler) DecideMachineChange(w http.ResponseWriter, r *http.Request, machineId MachineId, changeId ChangeId) {
+	var request DecideMachineChangeRequestObject
+
+	request.MachineId = machineId
+	request.ChangeId = changeId
+
+	var body DecideMachineChangeJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DecideMachineChange(ctx, request.(DecideMachineChangeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DecideMachineChange")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DecideMachineChangeResponseObject); ok {
+		if err := validResponse.VisitDecideMachineChangeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DrainMachine operation middleware
+func (sh *strictHandler) DrainMachine(w http.ResponseWriter, r *http.Request, machineId MachineId) {
+	var request DrainMachineRequestObject
+
+	request.MachineId = machineId
+
+	var body DrainMachineJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DrainMachine(ctx, request.(DrainMachineRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DrainMachine")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DrainMachineResponseObject); ok {
+		if err := validResponse.VisitDrainMachineResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMachineLoad operation middleware
+func (sh *strictHandler) GetMachineLoad(w http.ResponseWriter, r *http.Request, machineId MachineId, params GetMachineLoadParams) {
+	var request GetMachineLoadRequestObject
+
+	request.MachineId = machineId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMachineLoad(ctx, request.(GetMachineLoadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMachineLoad")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMachineLoadResponseObject); ok {
+		if err := validResponse.VisitGetMachineLoadResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RedetectMachine operation middleware
+func (sh *strictHandler) RedetectMachine(w http.ResponseWriter, r *http.Request, machineId MachineId) {
+	var request RedetectMachineRequestObject
+
+	request.MachineId = machineId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RedetectMachine(ctx, request.(RedetectMachineRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RedetectMachine")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RedetectMachineResponseObject); ok {
+		if err := validResponse.VisitRedetectMachineResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ResumeMachine operation middleware
+func (sh *strictHandler) ResumeMachine(w http.ResponseWriter, r *http.Request, machineId MachineId, params ResumeMachineParams) {
+	var request ResumeMachineRequestObject
+
+	request.MachineId = machineId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ResumeMachine(ctx, request.(ResumeMachineRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ResumeMachine")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ResumeMachineResponseObject); ok {
+		if err := validResponse.VisitResumeMachineResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListSlots operation middleware
+func (sh *strictHandler) ListSlots(w http.ResponseWriter, r *http.Request, machineId MachineId) {
+	var request ListSlotsRequestObject
+
+	request.MachineId = machineId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListSlots(ctx, request.(ListSlotsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListSlots")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListSlotsResponseObject); ok {
+		if err := validResponse.VisitListSlotsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// FreeStaleSlots operation middleware
+func (sh *strictHandler) FreeStaleSlots(w http.ResponseWriter, r *http.Request, machineId MachineId) {
+	var request FreeStaleSlotsRequestObject
+
+	request.MachineId = machineId
+
+	var body FreeStaleSlotsJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.FreeStaleSlots(ctx, request.(FreeStaleSlotsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "FreeStaleSlots")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(FreeStaleSlotsResponseObject); ok {
+		if err := validResponse.VisitFreeStaleSlotsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetSession operation middleware
+func (sh *strictHandler) GetSession(w http.ResponseWriter, r *http.Request) {
+	var request GetSessionRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSession(ctx, request.(GetSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSession")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSessionResponseObject); ok {
+		if err := validResponse.VisitGetSessionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPreferences operation middleware
+func (sh *strictHandler) GetPreferences(w http.ResponseWriter, r *http.Request) {
+	var request GetPreferencesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPreferences(ctx, request.(GetPreferencesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPreferences")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPreferencesResponseObject); ok {
+		if err := validResponse.VisitGetPreferencesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdatePreferences operation middleware
+func (sh *strictHandler) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
+	var request UpdatePreferencesRequestObject
+
+	var body UpdatePreferencesJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdatePreferences(ctx, request.(UpdatePreferencesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdatePreferences")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdatePreferencesResponseObject); ok {
+		if err := validResponse.VisitUpdatePreferencesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetOverview operation middleware
+func (sh *strictHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
+	var request GetOverviewRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetOverview(ctx, request.(GetOverviewRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetOverview")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetOverviewResponseObject); ok {
+		if err := validResponse.VisitGetOverviewResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRepository operation middleware
+func (sh *strictHandler) GetRepository(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId) {
+	var request GetRepositoryRequestObject
+
+	request.RepositoryId = repositoryId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRepository(ctx, request.(GetRepositoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRepository")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRepositoryResponseObject); ok {
+		if err := validResponse.VisitGetRepositoryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateRepositoryPolicy operation middleware
+func (sh *strictHandler) UpdateRepositoryPolicy(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId) {
+	var request UpdateRepositoryPolicyRequestObject
+
+	request.RepositoryId = repositoryId
+
+	var body UpdateRepositoryPolicyJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateRepositoryPolicy(ctx, request.(UpdateRepositoryPolicyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateRepositoryPolicy")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateRepositoryPolicyResponseObject); ok {
+		if err := validResponse.VisitUpdateRepositoryPolicyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRepositoryRunsOn operation middleware
+func (sh *strictHandler) GetRepositoryRunsOn(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId) {
+	var request GetRepositoryRunsOnRequestObject
+
+	request.RepositoryId = repositoryId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRepositoryRunsOn(ctx, request.(GetRepositoryRunsOnRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRepositoryRunsOn")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRepositoryRunsOnResponseObject); ok {
+		if err := validResponse.VisitGetRepositoryRunsOnResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PlanRepositoryChanges operation middleware
+func (sh *strictHandler) PlanRepositoryChanges(w http.ResponseWriter, r *http.Request) {
+	var request PlanRepositoryChangesRequestObject
+
+	var body PlanRepositoryChangesJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PlanRepositoryChanges(ctx, request.(PlanRepositoryChangesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PlanRepositoryChanges")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PlanRepositoryChangesResponseObject); ok {
+		if err := validResponse.VisitPlanRepositoryChangesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRepositoryPlan operation middleware
+func (sh *strictHandler) GetRepositoryPlan(w http.ResponseWriter, r *http.Request, planId PlanId) {
+	var request GetRepositoryPlanRequestObject
+
+	request.PlanId = planId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRepositoryPlan(ctx, request.(GetRepositoryPlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRepositoryPlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRepositoryPlanResponseObject); ok {
+		if err := validResponse.VisitGetRepositoryPlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ApplyRepositoryChanges operation middleware
+func (sh *strictHandler) ApplyRepositoryChanges(w http.ResponseWriter, r *http.Request, planId PlanId) {
+	var request ApplyRepositoryChangesRequestObject
+
+	request.PlanId = planId
+
+	var body ApplyRepositoryChangesJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ApplyRepositoryChanges(ctx, request.(ApplyRepositoryChangesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ApplyRepositoryChanges")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ApplyRepositoryChangesResponseObject); ok {
+		if err := validResponse.VisitApplyRepositoryChangesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PlanRunners operation middleware
+func (sh *strictHandler) PlanRunners(w http.ResponseWriter, r *http.Request) {
+	var request PlanRunnersRequestObject
+
+	var body PlanRunnersJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PlanRunners(ctx, request.(PlanRunnersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PlanRunners")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PlanRunnersResponseObject); ok {
+		if err := validResponse.VisitPlanRunnersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRunnerPlan operation middleware
+func (sh *strictHandler) GetRunnerPlan(w http.ResponseWriter, r *http.Request, planId PlanId) {
+	var request GetRunnerPlanRequestObject
+
+	request.PlanId = planId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRunnerPlan(ctx, request.(GetRunnerPlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRunnerPlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRunnerPlanResponseObject); ok {
+		if err := validResponse.VisitGetRunnerPlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateRunners operation middleware
+func (sh *strictHandler) CreateRunners(w http.ResponseWriter, r *http.Request, planId PlanId) {
+	var request CreateRunnersRequestObject
+
+	request.PlanId = planId
+
+	var body CreateRunnersJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateRunners(ctx, request.(CreateRunnersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateRunners")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateRunnersResponseObject); ok {
+		if err := validResponse.VisitCreateRunnersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListRunners operation middleware
+func (sh *strictHandler) ListRunners(w http.ResponseWriter, r *http.Request, params ListRunnersParams) {
+	var request ListRunnersRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListRunners(ctx, request.(ListRunnersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListRunners")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListRunnersResponseObject); ok {
+		if err := validResponse.VisitListRunnersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteRunner operation middleware
+func (sh *strictHandler) DeleteRunner(w http.ResponseWriter, r *http.Request, runnerId RunnerId, params DeleteRunnerParams) {
+	var request DeleteRunnerRequestObject
+
+	request.RunnerId = runnerId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteRunner(ctx, request.(DeleteRunnerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteRunner")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteRunnerResponseObject); ok {
+		if err := validResponse.VisitDeleteRunnerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRunner operation middleware
+func (sh *strictHandler) GetRunner(w http.ResponseWriter, r *http.Request, runnerId RunnerId) {
+	var request GetRunnerRequestObject
+
+	request.RunnerId = runnerId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRunner(ctx, request.(GetRunnerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRunner")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRunnerResponseObject); ok {
+		if err := validResponse.VisitGetRunnerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PlanRunnerReplacement operation middleware
+func (sh *strictHandler) PlanRunnerReplacement(w http.ResponseWriter, r *http.Request, runnerId RunnerId) {
+	var request PlanRunnerReplacementRequestObject
+
+	request.RunnerId = runnerId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PlanRunnerReplacement(ctx, request.(PlanRunnerReplacementRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PlanRunnerReplacement")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PlanRunnerReplacementResponseObject); ok {
+		if err := validResponse.VisitPlanRunnerReplacementResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetSettings operation middleware
+func (sh *strictHandler) GetSettings(w http.ResponseWriter, r *http.Request) {
+	var request GetSettingsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSettings(ctx, request.(GetSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSettingsResponseObject); ok {
+		if err := validResponse.VisitGetSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateSettings operation middleware
+func (sh *strictHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
+	var request UpdateSettingsRequestObject
+
+	var body UpdateSettingsJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateSettings(ctx, request.(UpdateSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateSettingsResponseObject); ok {
+		if err := validResponse.VisitUpdateSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPoolSettings operation middleware
+func (sh *strictHandler) GetPoolSettings(w http.ResponseWriter, r *http.Request) {
+	var request GetPoolSettingsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPoolSettings(ctx, request.(GetPoolSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPoolSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPoolSettingsResponseObject); ok {
+		if err := validResponse.VisitGetPoolSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdatePoolSettings operation middleware
+func (sh *strictHandler) UpdatePoolSettings(w http.ResponseWriter, r *http.Request) {
+	var request UpdatePoolSettingsRequestObject
+
+	var body UpdatePoolSettingsJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdatePoolSettings(ctx, request.(UpdatePoolSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdatePoolSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdatePoolSettingsResponseObject); ok {
+		if err := validResponse.VisitUpdatePoolSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetQueueSettings operation middleware
+func (sh *strictHandler) GetQueueSettings(w http.ResponseWriter, r *http.Request) {
+	var request GetQueueSettingsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetQueueSettings(ctx, request.(GetQueueSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetQueueSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetQueueSettingsResponseObject); ok {
+		if err := validResponse.VisitGetQueueSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateQueueSettings operation middleware
+func (sh *strictHandler) UpdateQueueSettings(w http.ResponseWriter, r *http.Request) {
+	var request UpdateQueueSettingsRequestObject
+
+	var body UpdateQueueSettingsJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateQueueSettings(ctx, request.(UpdateQueueSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateQueueSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateQueueSettingsResponseObject); ok {
+		if err := validResponse.VisitUpdateQueueSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetSetupState operation middleware
+func (sh *strictHandler) GetSetupState(w http.ResponseWriter, r *http.Request) {
+	var request GetSetupStateRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSetupState(ctx, request.(GetSetupStateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSetupState")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSetupStateResponseObject); ok {
+		if err := validResponse.VisitGetSetupStateResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartAppManifest operation middleware
+func (sh *strictHandler) StartAppManifest(w http.ResponseWriter, r *http.Request) {
+	var request StartAppManifestRequestObject
+
+	var body StartAppManifestJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartAppManifest(ctx, request.(StartAppManifestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartAppManifest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartAppManifestResponseObject); ok {
+		if err := validResponse.VisitStartAppManifestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RedeemSetupLink operation middleware
+func (sh *strictHandler) RedeemSetupLink(w http.ResponseWriter, r *http.Request) {
+	var request RedeemSetupLinkRequestObject
+
+	var body RedeemSetupLinkJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RedeemSetupLink(ctx, request.(RedeemSetupLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RedeemSetupLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RedeemSetupLinkResponseObject); ok {
+		if err := validResponse.VisitRedeemSetupLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListUsers operation middleware
+func (sh *strictHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
+	var request ListUsersRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListUsers(ctx, request.(ListUsersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListUsers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListUsersResponseObject); ok {
+		if err := validResponse.VisitListUsersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AddUser operation middleware
+func (sh *strictHandler) AddUser(w http.ResponseWriter, r *http.Request) {
+	var request AddUserRequestObject
+
+	var body AddUserJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AddUser(ctx, request.(AddUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AddUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AddUserResponseObject); ok {
+		if err := validResponse.VisitAddUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RemoveUser operation middleware
+func (sh *strictHandler) RemoveUser(w http.ResponseWriter, r *http.Request, userId UserId) {
+	var request RemoveUserRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RemoveUser(ctx, request.(RemoveUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RemoveUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RemoveUserResponseObject); ok {
+		if err := validResponse.VisitRemoveUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateUserRole operation middleware
+func (sh *strictHandler) UpdateUserRole(w http.ResponseWriter, r *http.Request, userId UserId) {
+	var request UpdateUserRoleRequestObject
+
+	request.UserId = userId
+
+	var body UpdateUserRoleJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateUserRole(ctx, request.(UpdateUserRoleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateUserRole")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateUserRoleResponseObject); ok {
+		if err := validResponse.VisitUpdateUserRoleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CompleteAppManifest operation middleware
+func (sh *strictHandler) CompleteAppManifest(w http.ResponseWriter, r *http.Request, params CompleteAppManifestParams) {
+	var request CompleteAppManifestRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CompleteAppManifest(ctx, request.(CompleteAppManifestRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CompleteAppManifest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CompleteAppManifestResponseObject); ok {
+		if err := validResponse.VisitCompleteAppManifestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CompleteSignIn operation middleware
+func (sh *strictHandler) CompleteSignIn(w http.ResponseWriter, r *http.Request, params CompleteSignInParams) {
+	var request CompleteSignInRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CompleteSignIn(ctx, request.(CompleteSignInRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CompleteSignIn")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CompleteSignInResponseObject); ok {
+		if err := validResponse.VisitCompleteSignInResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartSignIn operation middleware
+func (sh *strictHandler) StartSignIn(w http.ResponseWriter, r *http.Request, params StartSignInParams) {
+	var request StartSignInRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartSignIn(ctx, request.(StartSignInRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartSignIn")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartSignInResponseObject); ok {
+		if err := validResponse.VisitStartSignInResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RedeemTrayLink operation middleware
+func (sh *strictHandler) RedeemTrayLink(w http.ResponseWriter, r *http.Request, params RedeemTrayLinkParams) {
+	var request RedeemTrayLinkRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RedeemTrayLink(ctx, request.(RedeemTrayLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RedeemTrayLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RedeemTrayLinkResponseObject); ok {
+		if err := validResponse.VisitRedeemTrayLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetHealth operation middleware
 func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 	var request GetHealthRequestObject
@@ -301,6 +9832,39 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetHealthResponseObject); ok {
 		if err := validResponse.VisitGetHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReceiveGithubWebhook operation middleware
+func (sh *strictHandler) ReceiveGithubWebhook(w http.ResponseWriter, r *http.Request, params ReceiveGithubWebhookParams) {
+	var request ReceiveGithubWebhookRequestObject
+
+	request.Params = params
+
+	var body ReceiveGithubWebhookJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReceiveGithubWebhook(ctx, request.(ReceiveGithubWebhookRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReceiveGithubWebhook")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReceiveGithubWebhookResponseObject); ok {
+		if err := validResponse.VisitReceiveGithubWebhookResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

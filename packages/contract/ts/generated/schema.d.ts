@@ -21,26 +21,2403 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * First-run state; what the setup page shows
+         * @description github-integration R5.1, web-console R5.14 and R5.15.
+         */
+        get: operations["getSetupState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/redeem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trade a one-time setup code for a setup cookie
+         * @description github-integration R5.1, web-console R5.14. The code works once and expires. The answer sets an HttpOnly setup cookie.
+         */
+        post: operations["redeemSetupLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/setup/github-app": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start GitHub's App manifest flow
+         * @description github-integration R5.2 and R5.4. Needs the setup cookie. Returns the manifest and the GitHub URL the browser posts it to.
+         */
+        post: operations["startAppManifest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/github/app-created": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GitHub's redirect after the App is created
+         * @description github-integration R5.3. Trades the code once through `POST /app-manifests/{code}/conversions`; secrets go to the OS secret store, never the database. Redirects to the setup page.
+         */
+        get: operations["completeAppManifest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/github/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Start web sign-in with the App's user OAuth flow
+         * @description github-integration R5.8. Sets a random state and a PKCE verifier and redirects to GitHub. `return_to` must be a same-origin path (web-console R5.9). `bind_tray` binds this GitHub user to the calling OS user of the tray (owner decision for M1, tray R5.6).
+         */
+        get: operations["startSignIn"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/github/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GitHub OAuth callback; makes the session
+         * @description github-integration R5.8 to R5.10 and R5.13. Checks state and PKCE, resolves the GitHub user id, makes the session cookie and redirects to the kept path. A user not on the list gets the no-access page.
+         */
+        get: operations["completeSignIn"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sign in from a one-time tray link
+         * @description tray R5.7 and R6.1. The code is 128 random bits, valid 60 seconds, usable once, stored only as a hash. Marks it used in the transaction that makes the session, then redirects to a URL without the code.
+         */
+        get: operations["redeemTrayLink"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/cli/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What the CLI needs to start GitHub's device flow
+         * @description github-integration R5.14. The App's client id is public.
+         */
+        get: operations["getCliLoginConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/cli": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trade a device-flow GitHub user token for a CLI token
+         * @description github-integration R5.14 and R5.15. The controller checks the GitHub token, drops it, and returns its own CLI token once. The token expires after 30 days.
+         */
+        post: operations["exchangeCliToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/cli/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List CLI tokens (own; every user's for the owner)
+         * @description github-integration R5.15.
+         */
+        get: operations["listCliTokens"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/cli/tokens/{tokenId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke a CLI token
+         * @description github-integration R5.15. The owner or the token's user.
+         */
+        delete: operations["revokeCliToken"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End this session
+         * @description web-console R5.12. Sessions end only at sign-out (owner decision for M1).
+         */
+        post: operations["signOut"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The signed-in user, role and CSRF token
+         * @description web-console 4.1, github-integration R5.9 and R5.12.
+         */
+        get: operations["getSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The user's own view preferences
+         * @description web-console 4.9 Appearance (UX-60).
+         */
+        get: operations["getPreferences"];
+        /** Save the user's own view preferences */
+        put: operations["updatePreferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Users allowed to sign in, with their roles
+         * @description github-integration R5.11, web-console R5.28.
+         */
+        get: operations["listUsers"];
+        put?: never;
+        /**
+         * Allow a GitHub login as admin or viewer
+         * @description github-integration R5.11. The login is resolved to a user id when added.
+         */
+        post: operations["addUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a user; ends their sessions and CLI tokens
+         * @description web-console R5.28. The owner cannot remove themselves.
+         */
+        delete: operations["removeUser"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a user's role
+         * @description github-integration R5.10 and R5.12. There is always exactly one owner; handing over ownership names both users and needs `confirm`.
+         */
+        patch: operations["updateUserRole"];
+        trace?: never;
+    };
+    "/api/v1/github/installations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The App's installations the user can see
+         * @description github-integration R5.17.
+         */
+        get: operations["listInstallations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/github/install-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GitHub's page to install the App on more repositories
+         * @description web-console 4.3.
+         */
+        get: operations["getAppInstallUrl"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/github/repositories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Repositories of the installations, with pool state and policy
+         * @description github-integration R5.18. Each row says whether the user has GitHub admin rights on it (R5.19), its pool state and its variable status.
+         */
+        get: operations["listRepositories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repository-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Plan turning the pool on or off for repositories
+         * @description github-integration R5.20 and R5.29, web-console R5.18. Nothing changes. The plan names each variable to write or delete and the workflows that still use a variable that would go.
+         */
+        post: operations["planRepositoryChanges"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repository-plans/{planId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A repository plan with its outcome
+         * @description web-console R5.19 (done after reload shows the stored outcome).
+         */
+        get: operations["getRepositoryPlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repository-plans/{planId}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply a repository plan after a yes
+         * @description github-integration R5.19, R5.20, R5.28 and R5.29. Needs admin or owner and GitHub admin on each repository. A stale plan is refused.
+         */
+        post: operations["applyRepositoryChanges"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repositories/{repositoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One repository with its policy and variable status
+         * @description github-integration R5.18, R5.25 and R5.28.
+         */
+        get: operations["getRepository"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repositories/{repositoryId}/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a repository's policy
+         * @description github-integration R5.25 to R5.27, scheduling R5.4, R5.8 to R5.10. Turning fork jobs on needs `confirm_fork_risk`.
+         */
+        patch: operations["updateRepositoryPolicy"];
+        trace?: never;
+    };
+    "/api/v1/repositories/{repositoryId}/runs-on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Workflow `runs-on` findings for a repository
+         * @description github-integration R5.30.
+         */
+        get: operations["getRepositoryRunsOn"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The order of service of the slot queue
+         * @description scheduling R5.8 to R5.10; owner decision for M1 (queue order is configurable).
+         */
+        get: operations["getQueueSettings"];
+        /** Change the order of service */
+        put: operations["updateQueueSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/machines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every machine with state, backends, load and slots
+         * @description machines R5.50.
+         */
+        get: operations["listMachines"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/machines/{machineId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One machine with facts, backends, settings and running jobs
+         * @description machines R5.10 to R5.13, R5.22, R5.30.
+         */
+        get: operations["getMachine"];
+        put?: never;
+        post?: never;
+        /**
+         * Remove a machine after a drain; revokes its key
+         * @description machines R5.31 and R6.4. Without `confirm=true` it answers 409 needs_confirmation naming the machine, its runners and running jobs.
+         */
+        delete: operations["removeMachine"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a machine's settings
+         * @description machines R5.22 to R5.26 and R5.52. A change that restarts runners goes through drain and answers 202 with the pending change; it needs `confirm` once the jobs it waits for are named.
+         */
+        patch: operations["updateMachine"];
+        trace?: never;
+    };
+    "/api/v1/machines/{machineId}/drain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop new jobs on a machine; running jobs finish
+         * @description machines R5.30 to R5.33.
+         */
+        post: operations["drainMachine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/machines/{machineId}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Return a drained machine to active
+         * @description machines R5.34. A waiting change is cancelled first, with `confirm`.
+         */
+        post: operations["resumeMachine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/machines/{machineId}/redetect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check again; the agent detects facts and backends now
+         * @description machines R5.13.
+         */
+        post: operations["redetectMachine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/machines/{machineId}/load": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Load history at 15-second steps, up to 24 hours
+         * @description machines R6.8.
+         */
+        get: operations["getMachineLoad"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/machines/{machineId}/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Slot holders and the waiting queue of a machine
+         * @description scheduling R5.58 (status).
+         */
+        get: operations["listSlots"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/machines/{machineId}/slots/free-stale": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Free stale slots now
+         * @description scheduling R5.37. Freeing a live slot names the job and needs `confirm`.
+         */
+        post: operations["freeStaleSlots"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/machines/{machineId}/changes/{changeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A change waiting for a drain, and the jobs it waits for
+         * @description machines R5.30 to R5.33.
+         */
+        get: operations["getMachineChange"];
+        put?: never;
+        /**
+         * Answer a change that needs you after the drain timeout
+         * @description machines R5.33. Wait longer, cancel the change, or stop the named jobs (needs `confirm`).
+         */
+        post: operations["decideMachineChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/join-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make a one-time join code and the install commands
+         * @description machines R5.3 to R5.6 (M1 by owner decision). The code shows once, in this answer only. A new code makes the old unused one invalid.
+         */
+        post: operations["createJoinCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/join-codes/{joinCodeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A join code's state (never its value)
+         * @description web-console R5.17. The wizard polls until joined, expired or withdrawn.
+         */
+        get: operations["getJoinCode"];
+        put?: never;
+        post?: never;
+        /** Withdraw an unused join code */
+        delete: operations["revokeJoinCode"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/install-command": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The install command per OS, without a join code
+         * @description operations R5.1 and machines R5.3. Carries the controller address, agent port and certificate fingerprint. The join code is added only by createJoinCode.
+         */
+        get: operations["getInstallCommand"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ca.pem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the controller's CA certificate
+         * @description Owner decision for M1 (console TLS, one-click CA download). Public data.
+         */
+        get: operations["getCaCertificate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/pool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Defaults for new machines
+         * @description machines R5.22; owner decision for M1 (slots sized from cores and memory).
+         */
+        get: operations["getPoolSettings"];
+        /** Change the defaults for new machines */
+        put: operations["updatePoolSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every runner, managed or not
+         * @description runners R5.2, R5.3, R5.5 and R5.7.
+         */
+        get: operations["listRunners"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runner-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Plan adding runners on a machine
+         * @description runners R5.1 and R5.36. Refuses a machine without an allowed backend for the OS and kind, or a label that is not generic, with the reason.
+         */
+        post: operations["planRunners"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runner-plans/{planId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A runner plan with its outcome */
+        get: operations["getRunnerPlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runner-plans/{planId}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply a runner plan (add, or replace an unmanaged runner)
+         * @description runners R5.1 and R5.6. Each step that needs a yes is named in `approved_steps`; a replace step waits until the new runner is online.
+         */
+        post: operations["createRunners"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runners/{runnerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One runner */
+        get: operations["getRunner"];
+        put?: never;
+        post?: never;
+        /**
+         * Remove a runner after a drain, with a remove token
+         * @description runners R5.4. Without `confirm=true` it answers 409 needs_confirmation naming what goes and the job it waits for.
+         */
+        delete: operations["deleteRunner"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runners/{runnerId}/replace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Plan replacing a runner not made by CRSP with a managed one
+         * @description runners R5.6; owner decision for M1 (nothing changes silently). The plan adds the new runner first, then one step per removal, each needing its own yes. Apply it with createRunners.
+         */
+        post: operations["planRunnerReplacement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Queued, running and finished jobs, newest first
+         * @description observability R5.1, R5.5, R5.7 to R5.11; scheduling R5.6. Queued jobs carry their wait reason.
+         */
+        get: operations["listJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One job attempt with its timing */
+        get: operations["getJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The overview snapshot
+         * @description web-console 4.2, observability R5.1 and R5.15.
+         */
+        get: operations["getOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The live view as server-sent events
+         * @description observability R5.2, R5.3, R6.3 and R6.4. The first event is a snapshot. Each `data:` line is one LiveEvent in JSON; the SSE `event:` field is its `type` and the SSE `id:` field its `id`. A comment line every 15 seconds keeps the stream open.
+         */
+        get: operations["streamEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/doctor/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the doctor now
+         * @description doctor 7.1. Progress comes on the event stream.
+         */
+        post: operations["runDoctor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/doctor/runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A doctor run with its findings */
+        get: operations["getDoctorRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/doctor/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest finding per check and subject */
+        get: operations["listDoctorFindings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Controller settings (retention, backup time, stream limits)
+         * @description observability R5.32 and R6.8, operations R5.21.
+         */
+        get: operations["getSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change controller settings
+         * @description observability R5.32. A value outside its floor and ceiling is refused with the range.
+         */
+        patch: operations["updateSettings"];
+        trace?: never;
+    };
+    "/api/v1/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The audit log, newest first
+         * @description observability R5.24 to R5.27. Viewers may read it (owner decision for M1). Read-only: no operation edits or deletes a row.
+         */
+        get: operations["listAuditEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Backups with date, size and check result
+         * @description operations R5.24.
+         */
+        get: operations["listBackups"];
+        put?: never;
+        /**
+         * Write a backup now
+         * @description operations R5.21, R5.22 and R5.24. Never holds a secret.
+         */
+        post: operations["runBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backups/drills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore the newest backup into a temporary folder and check it
+         * @description operations R5.27.
+         */
+        post: operations["runBackupDrill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backups/{backupId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a backup
+         * @description operations R5.25 and R5.26. Without `confirm=true` it answers 409 needs_confirmation naming what it replaces. Backs up the current state first. Secrets are re-imported from the OS store or asked for.
+         */
+        post: operations["restoreBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhooks/github": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * GitHub webhook deliveries
+         * @description github-integration R5.36 and R6.5. Authorised by the `X-Hub-Signature-256` signature (constant-time compare), not a session; a bad signature gets 401 before the body is parsed. Bodies over 25 MB are refused. Deliveries are de-duplicated by `X-GitHub-Delivery`.
+         */
+        post: operations["receiveGithubWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @example {
+         *       "status": "ok",
+         *       "version": "v0.1.0"
+         *     }
+         */
         Health: {
             /** @enum {string} */
             status: "ok";
             version: string;
         };
+        /**
+         * @example {
+         *       "error": {
+         *         "code": "needs_confirmation",
+         *         "message": "Removing runner crsp-linux-1 waits for 1 running job.",
+         *         "details": [
+         *           {
+         *             "kind": "job",
+         *             "id": "81234567",
+         *             "text": "owner/app ci.yml test (started 14:05)"
+         *           }
+         *         ]
+         *       }
+         *     }
+         */
         ErrorEnvelope: {
-            error: {
-                /** @description Stable machine-readable code. */
-                code: string;
-                /** @description Human-readable text. Never contains secrets. */
-                message: string;
+            error: components["schemas"]["ErrorBody"];
+        };
+        ErrorBody: {
+            /** @description Stable machine-readable code. */
+            code: string;
+            /** @description Human-readable text. Never contains secrets. */
+            message: string;
+            /** @description For needs_confirmation, each item that goes or job it waits for; for bad_request, each field problem. */
+            details?: components["schemas"]["ErrorDetail"][];
+        };
+        ErrorDetail: {
+            /** @example field */
+            kind: string;
+            id?: string;
+            text: string;
+        };
+        /** @enum {string} */
+        Role: "owner" | "admin" | "viewer";
+        /** @enum {string} */
+        OS: "linux" | "windows" | "macos";
+        /** @enum {string} */
+        Arch: "x64" | "arm64";
+        /** @enum {string} */
+        Theme: "system" | "dark" | "light";
+        /** @enum {string} */
+        RunnerKind: "persistent" | "ephemeral";
+        /** @enum {string} */
+        Isolation: "microVM" | "VM" | "container" | "persistent";
+        /** @enum {string} */
+        RunnerState: "creating" | "idle" | "busy" | "draining" | "updating" | "offline" | "failed" | "removing";
+        /**
+         * @description active and drained are set by the user; draining while a drain waits.
+         * @enum {string}
+         */
+        MachineState: "active" | "draining" | "drained" | "removing";
+        /** @enum {string} */
+        BackendName: "persistent" | "docker" | "podman" | "nerdctl" | "wsl2" | "hyperv" | "kvm" | "tart" | "firecracker";
+        /** @enum {string} */
+        JobResult: "success" | "failure" | "cancelled" | "timed_out" | "lost";
+        /**
+         * @description observability R5.5.
+         * @enum {string}
+         */
+        WaitReason: "free_slot" | "load_over_budget" | "no_runner_with_labels" | "repository_parallel_limit" | "machine_drained" | "quiet_hours" | "unknown";
+        /** @enum {string} */
+        Severity: "ok" | "info" | "skip" | "warn" | "fail";
+        /** @enum {string} */
+        VariableStatus: "ok" | "missing" | "wrong" | "not_managed";
+        /**
+         * @example {
+         *       "has_app": false,
+         *       "has_owner": false,
+         *       "setup_link_redeemed": true,
+         *       "steps": {
+         *         "connect_github": "todo",
+         *         "first_machine": "todo",
+         *         "first_repository": "todo"
+         *       }
+         *     }
+         */
+        SetupState: {
+            has_app: boolean;
+            has_owner: boolean;
+            /** @description True when this browser holds a valid setup cookie. */
+            setup_link_redeemed: boolean;
+            app?: components["schemas"]["GitHubApp"];
+            steps: {
+                /** @enum {string} */
+                connect_github: "todo" | "done";
+                /** @enum {string} */
+                first_machine: "todo" | "done";
+                /** @enum {string} */
+                first_repository: "todo" | "done";
             };
         };
+        RedeemSetupLinkRequest: {
+            code: string;
+        };
+        StartAppManifestRequest: {
+            /** @enum {string} */
+            account_type: "user" | "organization";
+            /** @description The organization login when account_type is organization. */
+            organization?: string;
+            /** @example crsp-home */
+            app_name: string;
+            /**
+             * @description Console addresses; each gets `/auth/github/callback` (R5.4).
+             * @example [
+             *       "http://127.0.0.1:8460",
+             *       "https://pool.lan:8460"
+             *     ]
+             */
+            console_urls: string[];
+        };
+        AppManifestForm: {
+            /** @example https://github.com/settings/apps/new?state=abc */
+            post_url: string;
+            manifest: {
+                [key: string]: unknown;
+            };
+            state: string;
+        };
+        /**
+         * @example {
+         *       "id": 1234567,
+         *       "slug": "crsp-home",
+         *       "owner_login": "luis-mc",
+         *       "html_url": "https://github.com/apps/crsp-home",
+         *       "webhook_active": false
+         *     }
+         */
+        GitHubApp: {
+            /** Format: int64 */
+            id: number;
+            slug: string;
+            owner_login: string;
+            html_url: string;
+            webhook_active: boolean;
+            permissions?: {
+                [key: string]: string;
+            };
+        };
+        CliLoginConfig: {
+            /** @example Iv23liExample */
+            client_id: string;
+            /** @example https://github.com/login/device/code */
+            device_code_url: string;
+            /** @example https://github.com/login/device */
+            verification_url: string;
+        };
+        ExchangeCliTokenRequest: {
+            /** @description The device-flow user token. Checked once and dropped. */
+            github_credential: string;
+            /**
+             * @description A label for the token list, such as the host name.
+             * @example laptop
+             */
+            name: string;
+        };
+        CliToken: {
+            id: string;
+            name: string;
+            /** Format: int64 */
+            user_id: number;
+            user_login: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: date-time */
+            last_used_at?: string;
+            /** Format: date-time */
+            revoked_at?: string;
+        };
+        CliTokenCreated: {
+            /** @description Shown once; the controller keeps only its hash. */
+            token: string;
+            info: components["schemas"]["CliToken"];
+        };
+        CliTokenList: {
+            items: components["schemas"]["CliToken"][];
+        };
+        /**
+         * @example {
+         *       "user": {
+         *         "id": 583231,
+         *         "login": "luis-mc",
+         *         "role": "owner",
+         *         "added_at": "2026-11-14T10:00:00Z"
+         *       },
+         *       "csrf": "5d1c0e"
+         *     }
+         */
+        Session: {
+            user: components["schemas"]["User"];
+            /** @description Send as X-CSRF-Token on every change. */
+            csrf: string;
+        };
+        /**
+         * @example {
+         *       "theme": "dark"
+         *     }
+         */
+        Preferences: {
+            theme: components["schemas"]["Theme"];
+        };
+        /**
+         * @example {
+         *       "id": 583231,
+         *       "login": "luis-mc",
+         *       "role": "owner",
+         *       "added_at": "2026-11-14T10:00:00Z"
+         *     }
+         */
+        User: {
+            /**
+             * Format: int64
+             * @description The numeric GitHub user id (R5.9).
+             */
+            id: number;
+            login: string;
+            role: components["schemas"]["Role"];
+            added_by?: string;
+            /** Format: date-time */
+            added_at: string;
+            /** Format: date-time */
+            last_sign_in_at?: string;
+        };
+        UserList: {
+            items: components["schemas"]["User"][];
+        };
+        AddUserRequest: {
+            /** @example octocat */
+            login: string;
+            /** @enum {string} */
+            role: "admin" | "viewer";
+        };
+        UpdateUserRoleRequest: {
+            role: components["schemas"]["Role"];
+            /** @description Needed to hand over the owner role. */
+            confirm?: boolean;
+        };
+        /**
+         * @example {
+         *       "id": 4455667,
+         *       "account_login": "luis-mc",
+         *       "account_type": "User",
+         *       "suspended": false,
+         *       "repository_selection": "selected"
+         *     }
+         */
+        Installation: {
+            /** Format: int64 */
+            id: number;
+            account_login: string;
+            /** @enum {string} */
+            account_type: "User" | "Organization";
+            suspended: boolean;
+            /** @enum {string} */
+            repository_selection: "all" | "selected";
+            /** @description github-integration R5.24. */
+            missing_permissions?: string[];
+        };
+        InstallationList: {
+            items: components["schemas"]["Installation"][];
+            stale: components["schemas"]["Staleness"];
+        };
+        /** @description Set when GitHub did not answer and the last copy is shown (UX-53). */
+        Staleness: {
+            stale: boolean;
+            /** Format: date-time */
+            as_of?: string;
+        };
+        AppInstallUrl: {
+            /** @example https://github.com/apps/crsp-home/installations/new */
+            url: string;
+        };
+        /**
+         * @example {
+         *       "id": 700100,
+         *       "full_name": "luis-mc/app",
+         *       "owner": "luis-mc",
+         *       "name": "app",
+         *       "installation_id": 4455667,
+         *       "visibility": "private",
+         *       "default_branch": "main",
+         *       "pool_on": true,
+         *       "user_is_github_admin": true,
+         *       "variables": [
+         *         {
+         *           "name": "CRSP_RUNS_ON_LINUX",
+         *           "status": "ok",
+         *           "value": "[\"self-hosted\",\"linux\",\"x64\"]"
+         *         }
+         *       ],
+         *       "policy": {
+         *         "priority": 0,
+         *         "max_parallel_jobs": 2,
+         *         "allow_fork_pull_requests": false,
+         *         "labels": [
+         *           "self-hosted",
+         *           "linux",
+         *           "x64"
+         *         ],
+         *         "runner_groups": []
+         *       }
+         *     }
+         */
+        Repository: {
+            /** Format: int64 */
+            id: number;
+            full_name: string;
+            owner: string;
+            name: string;
+            /** Format: int64 */
+            installation_id: number;
+            /** @enum {string} */
+            visibility: "public" | "private" | "internal";
+            default_branch?: string;
+            pool_on: boolean;
+            /** @description github-integration R5.19; without it the switch is disabled with this reason. */
+            user_is_github_admin: boolean;
+            variables: components["schemas"]["RepositoryVariable"][];
+            policy: components["schemas"]["RepositoryPolicy"];
+        };
+        RepositoryVariable: {
+            /** @enum {string} */
+            name: "CRSP_RUNS_ON_LINUX" | "CRSP_RUNS_ON_WINDOWS" | "CRSP_RUNS_ON_MACOS";
+            status: components["schemas"]["VariableStatus"];
+            /** @description The JSON list of labels as written. */
+            value?: string;
+            /** Format: date-time */
+            written_at?: string;
+        };
+        RepositoryPolicy: {
+            /** @description Higher goes first (scheduling R5.8). */
+            priority: number;
+            max_parallel_jobs: number;
+            allow_fork_pull_requests: boolean;
+            /** @description Generic labels only (github-integration R5.27). */
+            labels: string[];
+            runner_groups: string[];
+            /** @description May lower the machine budget for this repository's jobs, never raise it (scheduling R5.4). */
+            budget_memory_pct?: number;
+            budget_cpu_pct?: number;
+            /** Format: date-time */
+            updated_at?: string;
+            updated_by?: string;
+        };
+        /**
+         * @example {
+         *       "priority": 10,
+         *       "max_parallel_jobs": 3
+         *     }
+         */
+        RepositoryPolicyUpdate: {
+            priority?: number;
+            max_parallel_jobs?: number;
+            allow_fork_pull_requests?: boolean;
+            /** @description Needed to turn fork jobs on (github-integration R5.26). */
+            confirm_fork_risk?: boolean;
+            labels?: string[];
+            runner_groups?: string[];
+            budget_memory_pct?: number;
+            budget_cpu_pct?: number;
+        };
+        RepositoryPage: {
+            items: components["schemas"]["Repository"][];
+            next_cursor?: string;
+            stale: components["schemas"]["Staleness"];
+        };
+        /**
+         * @example {
+         *       "changes": [
+         *         {
+         *           "repository_id": 700100,
+         *           "pool": "on"
+         *         }
+         *       ]
+         *     }
+         */
+        PlanRepositoryChangesRequest: {
+            changes: {
+                /** Format: int64 */
+                repository_id: number;
+                /** @enum {string} */
+                pool: "on" | "off";
+            }[];
+        };
+        RunsOnFinding: {
+            /** @example .github/workflows/ci.yml */
+            path: string;
+            line: number;
+            labels: string[];
+            /** @enum {string} */
+            kind: "no_runner_with_labels" | "not_generic" | "uses_variable" | "hosted";
+            text: string;
+        };
+        RunsOnFindingList: {
+            items: components["schemas"]["RunsOnFinding"][];
+            /** Format: date-time */
+            checked_at?: string;
+        };
+        /**
+         * @example {
+         *       "order": [
+         *         "priority",
+         *         "event_class",
+         *         "fair_share",
+         *         "queued_at"
+         *       ],
+         *       "fair_share": true,
+         *       "no_runner_wait_minutes": 2
+         *     }
+         */
+        QueueSettings: {
+            /** @description The order of service keys, first decides first (scheduling R5.8). Default priority, event_class, fair_share, queued_at. */
+            order: ("priority" | "event_class" | "fair_share" | "queued_at")[];
+            /** @description Round-robin by repository within a priority (scheduling R5.9). */
+            fair_share: boolean;
+            /** @description Minutes before "no runner with the labels" is raised (observability R5.5). */
+            no_runner_wait_minutes: number;
+        };
+        /**
+         * @description A planned change. Nothing changes until it is applied. Each step names what it does; steps that delete need their own yes (UX-62).
+         * @example {
+         *       "id": "01JCRSPPLAN0001",
+         *       "area": "runners",
+         *       "state": "planned",
+         *       "created_at": "2026-11-14T10:00:00Z",
+         *       "created_by": "luis-mc",
+         *       "steps": [
+         *         {
+         *           "id": "s1",
+         *           "action": "add_runner",
+         *           "text": "Add persistent runner crsp-linux-1 on machine box-1",
+         *           "needs_yes": false,
+         *           "state": "planned"
+         *         }
+         *       ]
+         *     }
+         */
+        Plan: {
+            id: string;
+            /** @enum {string} */
+            area: "repositories" | "runners";
+            /** @enum {string} */
+            state: "planned" | "applying" | "done" | "failed" | "stopped" | "stale";
+            /** Format: date-time */
+            created_at: string;
+            created_by: string;
+            steps: components["schemas"]["PlanStep"][];
+        };
+        PlanStep: {
+            id: string;
+            /** @enum {string} */
+            action: "pool_on" | "pool_off" | "write_variable" | "delete_variable" | "add_runner" | "stop_old_service" | "remove_old_runner" | "delete_old_folder";
+            text: string;
+            target?: string;
+            needs_yes: boolean;
+            /** @description The step this one waits for, such as the new runner being online. */
+            waits_for?: string;
+            /** @enum {string} */
+            state: "planned" | "running" | "done" | "failed" | "skipped" | "waiting";
+            error?: string;
+        };
+        /**
+         * @example {
+         *       "approved_steps": [
+         *         "s1",
+         *         "s2"
+         *       ]
+         *     }
+         */
+        ApplyPlanRequest: {
+            /** @description Ids of the steps the user said yes to. */
+            approved_steps: string[];
+        };
+        /**
+         * @example {
+         *       "id": "m_01JCRSP0001",
+         *       "name": "box-1",
+         *       "os": "linux",
+         *       "arch": "x64",
+         *       "state": "active",
+         *       "online": true,
+         *       "is_controller": true,
+         *       "backends": [
+         *         {
+         *           "name": "persistent",
+         *           "present": true,
+         *           "usable": true,
+         *           "allowed": true
+         *         }
+         *       ],
+         *       "settings": {
+         *         "budget_memory_pct": 85,
+         *         "budget_cpu_pct": 60,
+         *         "job_slots": 2,
+         *         "light_slots": 1,
+         *         "heavy_slots": 1,
+         *         "allowed_backends": [
+         *           "persistent"
+         *         ],
+         *         "drain_timeout_minutes": 60,
+         *         "windows_symlink_right": false
+         *       },
+         *       "load": {
+         *         "memory_pct": 41.5,
+         *         "cpu_pct": 12,
+         *         "memory_known": true,
+         *         "cpu_known": true,
+         *         "sampled_at": "2026-11-14T10:00:00Z",
+         *         "stale": false
+         *       },
+         *       "slots_used": 1,
+         *       "last_seen_at": "2026-11-14T10:00:05Z"
+         *     }
+         */
+        Machine: {
+            id: string;
+            name: string;
+            os: components["schemas"]["OS"];
+            arch: components["schemas"]["Arch"];
+            state: components["schemas"]["MachineState"];
+            online: boolean;
+            /** @description The controller's own machine (machines R5.1); it has no special path. */
+            is_controller: boolean;
+            facts?: components["schemas"]["MachineFacts"];
+            backends: components["schemas"]["BackendSupport"][];
+            settings: components["schemas"]["MachineSettings"];
+            load?: components["schemas"]["Load"];
+            slots_used: number;
+            running_jobs?: components["schemas"]["Job"][];
+            pending_change?: components["schemas"]["MachineChange"];
+            /** Format: date-time */
+            last_seen_at: string;
+            /** Format: date-time */
+            joined_at?: string;
+        };
+        MachineList: {
+            items: components["schemas"]["Machine"][];
+        };
+        /** @description machines R5.10. */
+        MachineFacts: {
+            host_name?: string;
+            os_name?: string;
+            os_version?: string;
+            kernel_version?: string;
+            cpu_model?: string;
+            cores?: number;
+            threads?: number;
+            /** Format: int64 */
+            memory_bytes?: number;
+            /** Format: int64 */
+            disk_total_bytes?: number;
+            /** Format: int64 */
+            disk_free_bytes?: number;
+            gpus?: {
+                vendor?: string;
+                model?: string;
+                /** Format: int64 */
+                memory_bytes?: number;
+            }[];
+            agent_version?: string;
+            /** Format: date-time */
+            detected_at?: string;
+        };
+        /** @description machines R5.11 and R5.12. */
+        BackendSupport: {
+            name: components["schemas"]["BackendName"];
+            present: boolean;
+            usable: boolean;
+            allowed: boolean;
+            version?: string;
+            /** @description Why it is not usable, such as "no /dev/kvm". */
+            reason?: string;
+            rootless?: boolean;
+        };
+        /** @description machines R5.22, scheduling R5.1. */
+        MachineSettings: {
+            budget_memory_pct: number;
+            budget_cpu_pct: number;
+            job_slots: number;
+            light_slots: number;
+            heavy_slots: number;
+            light_jobs?: string[];
+            heavy_jobs?: string[];
+            slot_max_age_minutes?: number;
+            gate_poll_seconds?: number;
+            gate_max_wait_minutes?: number;
+            /** @enum {string} */
+            gate_on_timeout?: "fail" | "run";
+            allowed_backends: components["schemas"]["BackendName"][];
+            /** Format: int64 */
+            cache_cap_bytes?: number;
+            drain_timeout_minutes: number;
+            /** @description Owner decision for M1; grant "create symbolic links" to Windows runner accounts. */
+            windows_symlink_right: boolean;
+        };
+        /**
+         * @example {
+         *       "job_slots": 3,
+         *       "budget_cpu_pct": 70
+         *     }
+         */
+        MachineSettingsUpdate: {
+            name?: string;
+            budget_memory_pct?: number;
+            budget_cpu_pct?: number;
+            job_slots?: number;
+            light_slots?: number;
+            heavy_slots?: number;
+            light_jobs?: string[];
+            heavy_jobs?: string[];
+            /** @enum {string} */
+            gate_on_timeout?: "fail" | "run";
+            allowed_backends?: components["schemas"]["BackendName"][];
+            /** Format: int64 */
+            cache_cap_bytes?: number;
+            drain_timeout_minutes?: number;
+            windows_symlink_right?: boolean;
+            /** @description The yes once the jobs a restart waits for are named. */
+            confirm?: boolean;
+        };
+        Load: {
+            memory_pct?: number;
+            cpu_pct?: number;
+            memory_known: boolean;
+            cpu_known: boolean;
+            unknown_reason?: string;
+            /** Format: date-time */
+            sampled_at: string;
+            /** @description Older than 20 seconds (machines R6.7). */
+            stale: boolean;
+        };
+        LoadHistory: {
+            items: {
+                /** Format: date-time */
+                at: string;
+                memory_pct?: number;
+                cpu_pct?: number;
+            }[];
+        };
+        DrainRequest: {
+            reason?: string;
+        };
+        /** @description A change that waits for a drain (machines R5.30 to R5.33). */
+        MachineChange: {
+            id: string;
+            machine_id: string;
+            /** @enum {string} */
+            kind: "drain" | "settings" | "remove" | "agent_update" | "runner_update" | "service_restart";
+            /** @enum {string} */
+            state: "waiting" | "running" | "done" | "cancelled" | "needs_you";
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            deadline_at?: string;
+            waiting_for: components["schemas"]["Job"][];
+        };
+        MachineChangeDecision: {
+            /** @enum {string} */
+            decision: "wait_longer" | "cancel" | "stop_jobs";
+            wait_minutes?: number;
+            confirm?: boolean;
+        };
+        CreateJoinCodeRequest: {
+            /** @description Default 15, ceiling 1440 (machines R5.4). */
+            ttl_minutes?: number;
+        };
+        JoinCode: {
+            id: string;
+            /** @enum {string} */
+            state: "waiting" | "joined" | "expired" | "revoked";
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            expires_at: string;
+            /** @description Set once an agent joined with it. */
+            machine_id?: string;
+        };
+        JoinCodeCreated: {
+            /** @description The one-time code, shown once. */
+            code: string;
+            join_code: components["schemas"]["JoinCode"];
+            commands: components["schemas"]["InstallCommands"];
+        };
+        InstallCommands: {
+            /** @example pool.lan */
+            controller_address: string;
+            /** @example 8461 */
+            agent_port: number;
+            /** @description The controller certificate fingerprint the agent pins. */
+            cert_sha256: string;
+            items: {
+                os: components["schemas"]["OS"];
+                command: string;
+            }[];
+        };
+        /**
+         * @example {
+         *       "budget_memory_pct": 85,
+         *       "budget_cpu_pct": 60,
+         *       "size_slots_from_machine": true,
+         *       "default_job_slots": 2,
+         *       "drain_timeout_minutes": 60
+         *     }
+         */
+        PoolSettings: {
+            budget_memory_pct: number;
+            budget_cpu_pct: number;
+            /** @description Size a new machine's slots from its cores and memory within the budget. */
+            size_slots_from_machine: boolean;
+            default_job_slots: number;
+            drain_timeout_minutes: number;
+        };
+        /**
+         * @example {
+         *       "id": "r_01JCRSP0001",
+         *       "name": "crsp-linux-1",
+         *       "machine_id": "m_01JCRSP0001",
+         *       "os": "linux",
+         *       "arch": "x64",
+         *       "kind": "persistent",
+         *       "backend": "persistent",
+         *       "isolation": "persistent",
+         *       "labels": [
+         *         "self-hosted",
+         *         "linux",
+         *         "x64"
+         *       ],
+         *       "scope": {
+         *         "kind": "repository",
+         *         "repository_id": 700100
+         *       },
+         *       "runner_version": "2.330.0",
+         *       "state": "idle",
+         *       "managed": true,
+         *       "keeps_state": true
+         *     }
+         */
+        Runner: {
+            id: string;
+            name: string;
+            machine_id: string;
+            os: components["schemas"]["OS"];
+            arch: components["schemas"]["Arch"];
+            kind: components["schemas"]["RunnerKind"];
+            backend: components["schemas"]["BackendName"];
+            isolation: components["schemas"]["Isolation"];
+            labels: string[];
+            scope: components["schemas"]["RunnerScope"];
+            runner_version?: string;
+            state: components["schemas"]["RunnerState"];
+            /** @description False for a runner not made by CRSP (runners R5.5). */
+            managed: boolean;
+            /** @description True for a persistent runner (runners R5.7, UX-61). */
+            keeps_state: boolean;
+            /** Format: int64 */
+            github_runner_id?: number;
+            current_job?: components["schemas"]["Job"];
+            /** Format: date-time */
+            created_at?: string;
+        };
+        RunnerScope: {
+            /** @enum {string} */
+            kind: "repository" | "organization";
+            /** Format: int64 */
+            repository_id?: number;
+            organization?: string;
+            runner_group?: string;
+        };
+        RunnerList: {
+            items: components["schemas"]["Runner"][];
+        };
+        /**
+         * @example {
+         *       "os": "linux",
+         *       "kind": "persistent",
+         *       "machine_id": "m_01JCRSP0001",
+         *       "count": 2,
+         *       "labels": [
+         *         "self-hosted",
+         *         "linux",
+         *         "x64"
+         *       ],
+         *       "scope": {
+         *         "kind": "repository",
+         *         "repository_id": 700100
+         *       }
+         *     }
+         */
+        PlanRunnersRequest: {
+            os: components["schemas"]["OS"];
+            kind: components["schemas"]["RunnerKind"];
+            machine_id: string;
+            count: number;
+            labels?: string[];
+            scope: components["schemas"]["RunnerScope"];
+        };
+        /**
+         * @description One job attempt (observability R5.7, R5.8).
+         * @example {
+         *       "id": 1,
+         *       "repository": "luis-mc/app",
+         *       "repository_id": 700100,
+         *       "run_id": 11223344,
+         *       "run_attempt": 1,
+         *       "github_job_id": 81234567,
+         *       "workflow": "ci.yml",
+         *       "job_name": "test",
+         *       "labels": [
+         *         "self-hosted",
+         *         "linux",
+         *         "x64"
+         *       ],
+         *       "state": "queued",
+         *       "wait_reason": "free_slot",
+         *       "wait_text": "waits for a free slot on box-1 (2 of 2 taken)"
+         *     }
+         */
+        Job: {
+            /** Format: int64 */
+            id: number;
+            repository: string;
+            /** Format: int64 */
+            repository_id?: number;
+            /** Format: int64 */
+            run_id: number;
+            run_attempt: number;
+            /** Format: int64 */
+            github_job_id: number;
+            workflow?: string;
+            job_name: string;
+            head_sha?: string;
+            trigger?: string;
+            labels: string[];
+            /** @enum {string} */
+            state: "queued" | "running" | "done";
+            wait_reason?: components["schemas"]["WaitReason"];
+            /** @description The reason with its machine, numbers or labels. */
+            wait_text?: string;
+            machine_id?: string;
+            runner_id?: string;
+            runner_name?: string;
+            backend?: string;
+            isolation?: components["schemas"]["Isolation"];
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            queued_at?: string;
+            /** Format: date-time */
+            slot_at?: string;
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: date-time */
+            completed_at?: string;
+            github_wait_seconds?: number;
+            slot_wait_seconds?: number;
+            run_seconds?: number;
+            result?: components["schemas"]["JobResult"];
+            html_url?: string;
+        };
+        JobPage: {
+            items: components["schemas"]["Job"][];
+            next_cursor?: string;
+            stale: components["schemas"]["Staleness"];
+        };
+        Slot: {
+            /** @enum {string} */
+            kind: "ci" | "light" | "heavy";
+            number: number;
+            /** Format: date-time */
+            taken_at: string;
+            repository: string;
+            /** Format: int64 */
+            run_id: number;
+            run_attempt: number;
+            job: string;
+            runner_id?: string;
+            stale_reason?: string;
+        };
+        Ticket: {
+            id: string;
+            repository: string;
+            /** Format: int64 */
+            run_id: number;
+            run_attempt: number;
+            job: string;
+            priority?: number;
+            event_class?: number;
+            /** Format: date-time */
+            queued_at: string;
+            /** Format: date-time */
+            beat_at?: string;
+            /** Format: date-time */
+            expires_at?: string;
+            /** @description 1 is first in line. */
+            place: number;
+            wait_reason?: components["schemas"]["WaitReason"];
+        };
+        SlotStatus: {
+            machine_id: string;
+            slots: components["schemas"]["Slot"][];
+            tickets: components["schemas"]["Ticket"][];
+        };
+        FreeSlotsRequest: {
+            /** @description Live slots to free by hand; needs confirm. */
+            slots?: {
+                /** @enum {string} */
+                kind: "ci" | "light" | "heavy";
+                number: number;
+            }[];
+            confirm?: boolean;
+        };
+        FreedSlotList: {
+            items: {
+                slot: components["schemas"]["Slot"];
+                reason: string;
+            }[];
+        };
+        Overview: {
+            machines: components["schemas"]["Machine"][];
+            queued_count: number;
+            queued?: components["schemas"]["Job"][];
+            running: components["schemas"]["Job"][];
+            /** @description Per OS (observability R5.15). */
+            minutes_saved_today?: {
+                os: components["schemas"]["OS"];
+                minutes: number;
+            }[];
+            /** @description Open the stream with this as Last-Event-ID. */
+            last_event_id: string;
+        };
+        /**
+         * @description One event of the stream (observability 7, live stream). `data` holds the field of the matching type; the others are absent.
+         * @example {
+         *       "id": "1042",
+         *       "type": "machine.load",
+         *       "at": "2026-11-14T10:00:05Z",
+         *       "load": {
+         *         "machine_id": "m_01JCRSP0001",
+         *         "load": {
+         *           "memory_pct": 41.5,
+         *           "cpu_pct": 12,
+         *           "memory_known": true,
+         *           "cpu_known": true,
+         *           "sampled_at": "2026-11-14T10:00:05Z",
+         *           "stale": false
+         *         },
+         *         "slots_used": 1
+         *       }
+         *     }
+         */
+        LiveEvent: {
+            id: string;
+            /** @enum {string} */
+            type: "snapshot" | "job.queued" | "job.waiting" | "job.started" | "job.finished" | "machine.load" | "machine.state" | "runner.state" | "saved.today" | "doctor.progress" | "plan.progress" | "change.progress";
+            /** Format: date-time */
+            at: string;
+            /** @description True on a snapshot sent because missed events were no longer kept (R5.3). */
+            replay_gap?: boolean;
+            snapshot?: components["schemas"]["Overview"];
+            job?: components["schemas"]["Job"];
+            machine?: components["schemas"]["Machine"];
+            load?: {
+                machine_id: string;
+                load: components["schemas"]["Load"];
+                slots_used?: number;
+            };
+            runner?: components["schemas"]["Runner"];
+            doctor_run?: components["schemas"]["DoctorRun"];
+            plan?: components["schemas"]["Plan"];
+            change?: components["schemas"]["MachineChange"];
+        };
+        DoctorScope: {
+            machines?: string[];
+            repositories?: number[];
+            checks?: string[];
+        };
+        /** @description doctor 7.4. */
+        DoctorRun: {
+            id: string;
+            /** @enum {string} */
+            trigger: "web" | "cli" | "schedule" | "system";
+            /** @enum {string} */
+            state: "running" | "done" | "failed";
+            scope?: components["schemas"]["DoctorScope"];
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            finished_at?: string;
+            worst?: components["schemas"]["Severity"];
+            counts: {
+                [key: string]: number;
+            };
+            findings: components["schemas"]["DoctorFinding"][];
+        };
+        /**
+         * @example {
+         *       "check": "workflow.labels",
+         *       "subject": {
+         *         "kind": "repository",
+         *         "id": "700100",
+         *         "name": "luis-mc/app"
+         *       },
+         *       "severity": "fail",
+         *       "title": "No online runner carries [self-hosted, linux, arm64]",
+         *       "detail": ".github/workflows/ci.yml:12 needs [self-hosted, linux, arm64]",
+         *       "fix": {
+         *         "text": "Add a runner with these labels, or use fromJSON(vars.CRSP_RUNS_ON_LINUX).",
+         *         "link": "/runners"
+         *       },
+         *       "needs_admin": false,
+         *       "milestone": 1,
+         *       "checked_at": "2026-11-14T10:00:12Z"
+         *     }
+         */
+        DoctorFinding: {
+            /** @example workflow.labels */
+            check: string;
+            subject: {
+                kind: string;
+                id: string;
+                name: string;
+            };
+            severity: components["schemas"]["Severity"];
+            title: string;
+            detail?: string;
+            fix: {
+                text: string;
+                command?: string;
+                link?: string;
+            };
+            needs_admin: boolean;
+            milestone: number;
+            /** Format: date-time */
+            checked_at: string;
+        };
+        DoctorFindingList: {
+            items: components["schemas"]["DoctorFinding"][];
+            /** Format: date-time */
+            last_run_at?: string;
+        };
+        /**
+         * @description observability R6.8 retention (days unless named), operations R5.21 backup time.
+         * @example {
+         *       "retention_job_history_days": 90,
+         *       "retention_logs_days": 14,
+         *       "retention_logs_mib_per_machine": 512,
+         *       "retention_audit_days": 400,
+         *       "retention_load_raw_hours": 24,
+         *       "backup_time_local": "03:00",
+         *       "backup_keep_days": 14,
+         *       "max_event_streams": 50
+         *     }
+         */
+        Settings: {
+            retention_job_history_days?: number;
+            retention_logs_days?: number;
+            retention_logs_mib_per_machine?: number;
+            retention_audit_days?: number;
+            retention_load_raw_hours?: number;
+            /**
+             * @description HH:MM, 24-hour local time.
+             * @example 03:00
+             */
+            backup_time_local?: string;
+            backup_keep_days?: number;
+            max_event_streams?: number;
+        };
+        /**
+         * @description observability R5.24.
+         * @example {
+         *       "id": 77,
+         *       "at": "2026-11-14T10:00:00Z",
+         *       "actor": "luis-mc",
+         *       "actor_id": "583231",
+         *       "source": "web",
+         *       "action": "machine.drain",
+         *       "target_type": "machine",
+         *       "target_id": "m_01JCRSP0001",
+         *       "summary": "state active -> draining",
+         *       "result": "done"
+         *     }
+         */
+        AuditEvent: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            /** @description GitHub login, `system`, or the machine for agent actions. */
+            actor: string;
+            actor_id?: string;
+            /** @enum {string} */
+            source: "web" | "cli" | "tray" | "api" | "agent" | "system";
+            /** @example machine.drain */
+            action: string;
+            target_type: string;
+            target_id: string;
+            /** @description Short before-and-after summary; redacted. */
+            summary: string;
+            /** @enum {string} */
+            result: "done" | "refused";
+        };
+        AuditPage: {
+            items: components["schemas"]["AuditEvent"][];
+            next_cursor?: string;
+        };
+        Backup: {
+            id: string;
+            /** @example crsp-backup-2026-11-14-0300.tar.gz */
+            file: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: int64 */
+            size_bytes?: number;
+            /** Format: int64 */
+            schema_version?: number;
+            /** @enum {string} */
+            state: "writing" | "good" | "failed";
+            /** @description PRAGMA integrity_check result. */
+            check_result?: string;
+        };
+        BackupList: {
+            items: components["schemas"]["Backup"][];
+            last_drill?: components["schemas"]["BackupDrill"];
+        };
+        BackupDrill: {
+            id: string;
+            backup_id?: string;
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            finished_at?: string;
+            /** @enum {string} */
+            state: "running" | "passed" | "failed";
+            detail?: string;
+        };
     };
-    responses: never;
-    parameters: never;
+    responses: {
+        /** @description Any error, in the error envelope. */
+        Error: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
+        };
+        /** @description A redirect. May set or clear a cookie. */
+        Redirect: {
+            headers: {
+                Location: string;
+                "Set-Cookie"?: string;
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
+    };
+    parameters: {
+        OAuthCode: string;
+        OAuthState: string;
+        /** @description Opaque cursor from the previous page's `next_cursor`. */
+        Cursor: string;
+        Limit: number;
+        From: string;
+        To: string;
+        /** @description The yes to a question card that named what goes (UX-62). */
+        Confirm: boolean;
+        /** @description The numeric GitHub user id. */
+        UserId: number;
+        TokenId: string;
+        /** @description The numeric GitHub repository id. */
+        RepositoryId: number;
+        PlanId: string;
+        MachineId: string;
+        ChangeId: string;
+        JoinCodeId: string;
+        RunnerId: string;
+        JobId: number;
+        RunId: string;
+        BackupId: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -74,6 +2451,1684 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+        };
+    };
+    getSetupState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The first-run state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupState"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    redeemSetupLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RedeemSetupLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description The code was good; the setup cookie is set. */
+            200: {
+                headers: {
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupState"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    startAppManifest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartAppManifestRequest"];
+            };
+        };
+        responses: {
+            /** @description The manifest form to post to GitHub. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppManifestForm"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    completeAppManifest: {
+        parameters: {
+            query: {
+                code: components["parameters"]["OAuthCode"];
+                state: components["parameters"]["OAuthState"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            302: components["responses"]["Redirect"];
+            default: components["responses"]["Error"];
+        };
+    };
+    startSignIn: {
+        parameters: {
+            query?: {
+                return_to?: string;
+                /** @description A one-time tray binding code from the local channel. */
+                bind_tray?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            302: components["responses"]["Redirect"];
+            default: components["responses"]["Error"];
+        };
+    };
+    completeSignIn: {
+        parameters: {
+            query: {
+                code: components["parameters"]["OAuthCode"];
+                state: components["parameters"]["OAuthState"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            302: components["responses"]["Redirect"];
+            default: components["responses"]["Error"];
+        };
+    };
+    redeemTrayLink: {
+        parameters: {
+            query: {
+                code: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            302: components["responses"]["Redirect"];
+            default: components["responses"]["Error"];
+        };
+    };
+    getCliLoginConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Device flow settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CliLoginConfig"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    exchangeCliToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExchangeCliTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description The CLI token. Shown once. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CliTokenCreated"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listCliTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tokens, without their values. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CliTokenList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    revokeCliToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tokenId: components["parameters"]["TokenId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    signOut: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The session ended; the cookie is cleared. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The preferences. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Preferences"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updatePreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Preferences"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Preferences"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The users. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    addUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Added. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    removeUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub user id. */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateUserRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub user id. */
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description Changed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listInstallations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The installations. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstallationList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAppInstallUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The URL. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppInstallUrl"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listRepositories: {
+        parameters: {
+            query?: {
+                installation_id?: number;
+                pool?: "on" | "off";
+                /** @description Search by name. */
+                q?: string;
+                /** @description Opaque cursor from the previous page's `next_cursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of repositories. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoryPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    planRepositoryChanges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanRepositoryChangesRequest"];
+            };
+        };
+        responses: {
+            /** @description The plan. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRepositoryPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: components["parameters"]["PlanId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The plan. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    applyRepositoryChanges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: components["parameters"]["PlanId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyPlanRequest"];
+            };
+        };
+        responses: {
+            /** @description Applying; progress comes on the event stream and getRepositoryPlan. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRepository: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub repository id. */
+                repositoryId: components["parameters"]["RepositoryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The repository. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Repository"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateRepositoryPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub repository id. */
+                repositoryId: components["parameters"]["RepositoryId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RepositoryPolicyUpdate"];
+            };
+        };
+        responses: {
+            /** @description The new policy. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoryPolicy"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRepositoryRunsOn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub repository id. */
+                repositoryId: components["parameters"]["RepositoryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The findings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunsOnFindingList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getQueueSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The queue settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateQueueSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QueueSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listMachines: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The machines. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getMachine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The machine. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Machine"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    removeMachine: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removal waits for the drain. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineChange"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateMachine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MachineSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Saved; takes effect for the next job. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Machine"];
+                };
+            };
+            /** @description Saved; waits for a drain. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineChange"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    drainMachine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DrainRequest"];
+            };
+        };
+        responses: {
+            /** @description Draining. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineChange"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    resumeMachine: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Active again. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Machine"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    redetectMachine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Asked; the result comes on the event stream. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getMachineLoad: {
+        parameters: {
+            query?: {
+                from?: components["parameters"]["From"];
+                to?: components["parameters"]["To"];
+            };
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The samples, oldest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadHistory"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listSlots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Slots and tickets. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlotStatus"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    freeStaleSlots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FreeSlotsRequest"];
+            };
+        };
+        responses: {
+            /** @description Each freed slot and its reason. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FreedSlotList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getMachineChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+                changeId: components["parameters"]["ChangeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineChange"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    decideMachineChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+                changeId: components["parameters"]["ChangeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MachineChangeDecision"];
+            };
+        };
+        responses: {
+            /** @description The change after the answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineChange"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createJoinCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateJoinCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description The code and the commands that carry it. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JoinCodeCreated"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getJoinCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                joinCodeId: components["parameters"]["JoinCodeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JoinCode"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    revokeJoinCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                joinCodeId: components["parameters"]["JoinCodeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Withdrawn. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getInstallCommand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The commands. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstallCommands"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getCaCertificate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The CA certificate in PEM. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/x-pem-file": string;
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPoolSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pool defaults. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PoolSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updatePoolSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PoolSettings"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PoolSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listRunners: {
+        parameters: {
+            query?: {
+                machine_id?: string;
+                os?: components["schemas"]["OS"];
+                state?: components["schemas"]["RunnerState"];
+                managed?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The runners. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunnerList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    planRunners: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanRunnersRequest"];
+            };
+        };
+        responses: {
+            /** @description The plan. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRunnerPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: components["parameters"]["PlanId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The plan. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createRunners: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: components["parameters"]["PlanId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyPlanRequest"];
+            };
+        };
+        responses: {
+            /** @description Applying. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRunner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runnerId: components["parameters"]["RunnerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The runner. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Runner"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteRunner: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path: {
+                runnerId: components["parameters"]["RunnerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removing; waits for the drain. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Runner"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    planRunnerReplacement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runnerId: components["parameters"]["RunnerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The plan. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listJobs: {
+        parameters: {
+            query?: {
+                state?: "queued" | "running" | "done";
+                repository_id?: number;
+                machine_id?: string;
+                backend?: string;
+                result?: components["schemas"]["JobResult"];
+                from?: components["parameters"]["From"];
+                to?: components["parameters"]["To"];
+                /** @description Opaque cursor from the previous page's `next_cursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of jobs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The job. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Overview"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    streamEvents: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Last-Event-ID"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The stream. Each data line is a LiveEvent. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    runDoctor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DoctorScope"];
+            };
+        };
+        responses: {
+            /** @description Started. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoctorRun"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getDoctorRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The run. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoctorRun"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listDoctorFindings: {
+        parameters: {
+            query?: {
+                severity?: components["schemas"]["Severity"];
+                group?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The findings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoctorFindingList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Settings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Settings"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Settings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listAuditEvents: {
+        parameters: {
+            query?: {
+                actor?: string;
+                action?: string;
+                target_type?: string;
+                target_id?: string;
+                from?: components["parameters"]["From"];
+                to?: components["parameters"]["To"];
+                /** @description Opaque cursor from the previous page's `next_cursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of audit events. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listBackups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The backups, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    runBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Started. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Backup"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    runBackupDrill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Started. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupDrill"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    restoreBackup: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path: {
+                backupId: components["parameters"]["BackupId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restoring; the controller restarts. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Backup"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    receiveGithubWebhook: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-GitHub-Event": string;
+                "X-GitHub-Delivery": string;
+                "X-Hub-Signature-256": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Taken. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
         };
     };
 }
