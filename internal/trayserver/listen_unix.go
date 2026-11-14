@@ -3,6 +3,7 @@
 package trayserver
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net"
@@ -32,7 +33,7 @@ func Listen(path string, logger *slog.Logger) (net.Listener, error) {
 		}
 		_ = os.Remove(path)
 	}
-	ln, err := net.Listen("unix", path)
+	ln, err := (&net.ListenConfig{}).Listen(context.Background(), "unix", path)
 	if err != nil {
 		return nil, err
 	}

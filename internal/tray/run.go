@@ -25,7 +25,7 @@ func NeedsRelaunch(own, service string) bool {
 // returns at once. The new tray waits up to 20 s for this one to release the
 // single-instance lock (--wait).
 func Relaunch(exe string) error {
-	cmd := exec.Command(exe, "tray", "--wait", "20s", "--updated") //nolint:gosec // our own binary
+	cmd := exec.CommandContext(context.Background(), exe, "tray", "--wait", "20s", "--updated") //nolint:gosec // our own binary
 	if err := cmd.Start(); err != nil {
 		return err
 	}

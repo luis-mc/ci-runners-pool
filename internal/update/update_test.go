@@ -197,7 +197,6 @@ type fakeDrainer struct {
 	jobs      []Job
 	begun     []Kind
 	cancelled int
-	timeout   int
 }
 
 func (d *fakeDrainer) RunningJobs(context.Context) ([]Job, error) { return d.jobs, nil }

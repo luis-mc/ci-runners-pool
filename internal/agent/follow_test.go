@@ -14,11 +14,10 @@ import (
 // fakeUpdater is the agent's update manager: it records the asked version and
 // walks through the states a real one reports.
 type fakeUpdater struct {
-	mu     sync.Mutex
-	asked  []string
-	st     update.Status
-	err    error
-	onFlow func()
+	mu    sync.Mutex
+	asked []string
+	st    update.Status
+	err   error
 }
 
 func (f *fakeUpdater) Follow(_ context.Context, v string) (update.Status, error) {

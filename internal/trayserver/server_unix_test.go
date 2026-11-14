@@ -84,7 +84,7 @@ func TestChannelReadsPeerUserFromTheOS(t *testing.T) {
 	fb := &fakeBackend{}
 	c, path := start(t, fb)
 	// A hand-made request that claims to be someone else: the extra field is ignored.
-	conn, err := net.Dial("unix", path)
+	conn, err := (&net.Dialer{}).DialContext(context.Background(), "unix", path)
 	if err != nil {
 		t.Fatal(err)
 	}

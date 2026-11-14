@@ -159,7 +159,7 @@ func (d *UpdateDrainer) BeginDrain(_ context.Context, kind update.Kind, _ string
 					return // the service is about to stop
 				}
 				if !errors.Is(err, update.ErrNotIdle) {
-					d.CancelDrain(context.Background(), "")
+					_ = d.CancelDrain(context.Background(), "")
 					return
 				}
 			}

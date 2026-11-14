@@ -34,7 +34,7 @@ func Spawn(ctx context.Context, exe string, p Plan, planPath string) (int, error
 			_ = out // fall through to a plain detached start
 		}
 	}
-	cmd := exec.Command(copyPath, "update-helper", planPath) //nolint:gosec // our own copy
+	cmd := exec.CommandContext(context.WithoutCancel(ctx), copyPath, "update-helper", planPath) //nolint:gosec // our own copy
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = nil, nil, nil
 	if err := cmd.Start(); err != nil {
