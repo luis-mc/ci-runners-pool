@@ -181,7 +181,7 @@ func TestSSEFormatAndServe(t *testing.T) {
 	s, _ := h.Subscribe(context.Background(), 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/api/v1/events", nil).WithContext(ctx)
+	req := httptest.NewRequestWithContext(ctx, "GET", "/api/v1/events", nil)
 	go func() {
 		time.Sleep(60 * time.Millisecond)
 		cancel()
