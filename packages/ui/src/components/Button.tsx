@@ -97,3 +97,28 @@ export function TextLink({ to, children }: { to: string; children: ReactNode }) 
     </Link>
   );
 }
+
+/** A button that opens an address on another site in a new tab (the run on GitHub). */
+export function ExternalButton({
+  href,
+  children,
+  kind = 'default',
+}: {
+  href: string;
+  children: ReactNode;
+  kind?: ButtonKind | undefined;
+}) {
+  return (
+    <a
+      href={href}
+      className="ds-button"
+      data-kind={kind}
+      data-button
+      role="button"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {children}
+    </a>
+  );
+}

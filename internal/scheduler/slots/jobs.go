@@ -34,9 +34,12 @@ type JobRecord struct {
 	WaitText     string
 	MachineID    string
 	RunnerName   string
-	CreatedAt    time.Time
-	StartedAt    time.Time
-	CompletedAt  time.Time
+	// Backend and Isolation are the runner's, empty while no runner is known.
+	Backend     string
+	Isolation   string
+	CreatedAt   time.Time
+	StartedAt   time.Time
+	CompletedAt time.Time
 	// QueuedAt and SlotAt come from the slot log: when the job took its ticket and its slot.
 	QueuedAt time.Time
 	SlotAt   time.Time
@@ -47,6 +50,7 @@ type JobFilter struct {
 	State        JobState
 	RepositoryID int64
 	MachineID    string
+	Backend      string
 	Result       string
 	From, To     time.Time
 	// After is the id of the last job of the previous page (newest first, so smaller ids follow).

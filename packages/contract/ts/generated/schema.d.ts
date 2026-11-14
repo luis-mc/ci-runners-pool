@@ -1302,6 +1302,291 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exports/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export the job history as a file
+         * @description web-console R5.24, observability R5.7 to R5.11. Takes the filters of listJobs and holds every matching row (no paging), in the order the list shows. The file is named for what it holds then the stamp, such as `crsp-jobs-2026-11-14-1005.csv`, and says so in `Content-Disposition`.
+         */
+        get: operations["exportJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export the audit log as a file
+         * @description web-console 4.9, observability R5.24 to R5.27. Takes the filters of listAuditEvents and holds every matching row, newest first. Named `crsp-audit-<stamp>.csv` or `.json`. Summaries are redacted as in the list.
+         */
+        get: operations["exportAuditEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export the configuration without any secret
+         * @description web-console R5.29, operations R5.26. A YAML file with no token, key, password or signing secret; a secret is named only as set or not set. Named `crsp-config-<stamp>.yaml`.
+         */
+        get: operations["exportConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repository-plans/{planId}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop a repository plan that is applying
+         * @description web-console section 11. The step that runs finishes; no later step starts; the plan ends `stopped`. A plan that is not applying answers 409 conflict. Progress comes on the event stream (`plan.progress`).
+         */
+        post: operations["stopRepositoryPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runner-plans/{planId}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop a runner plan that is applying
+         * @description web-console section 11. The step that runs finishes; no later step starts; the plan ends `stopped`. A plan that is not applying answers 409 conflict. Progress comes on the event stream (`plan.progress`).
+         */
+        post: operations["stopRunnerPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Images per machine and OS, with layers and sizes
+         * @description web-console R5.25, runners R5.32 and R5.33.
+         */
+        get: operations["listImages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/images/{imageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One image with its layers */
+        get: operations["getImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/images/{imageId}/layers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Turn tool layers on or off for an image
+         * @description web-console R5.25, runners R5.32. Saves the layer choice; the image keeps serving until rebuildImage. `needs_rebuild` on the answer says a rebuild is due.
+         */
+        put: operations["updateImageLayers"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/images/{imageId}/rebuild": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rebuild an image after a drain
+         * @description web-console R5.25 and R5.30, runners R5.35. Without `confirm=true` it answers 409 needs_confirmation naming the machine, the runners and the jobs it waits for. With it, the machine drains and a MachineChange of kind `image_rebuild` is returned; watch it with getMachineChange on `machine_id` and `change.progress` events. A build failure keeps the old image.
+         */
+        post: operations["rebuildImage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/caches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Caches per machine with size against cap
+         * @description web-console R5.25, caches R5.8 to R5.14. The Actions cache, git mirrors, the tool cache and the registry mirror.
+         */
+        get: operations["listCaches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/caches/{cacheId}/wipe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Empty one cache
+         * @description web-console R5.25 and R5.30. Without `confirm=true` it answers 409 needs_confirmation naming the cache, its size and the jobs that use it. An entry being read or written is not removed.
+         */
+        post: operations["wipeCache"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notification-channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Notification channels the caller may see
+         * @description web-console 4.9, notifications R5.6 to R5.9. Personal channels (email, desktop) are the caller's own; webhooks are pool-wide. A secret is never returned, only whether one is set.
+         */
+        get: operations["listNotificationChannels"];
+        put?: never;
+        /**
+         * Add a notification channel
+         * @description notifications R5.7 to R5.9 and R5.19. Any signed-in user adds a personal channel (email, desktop); a webhook needs admin or owner and an HTTPS URL, else 403 forbidden. Secrets in the request are write-only.
+         */
+        post: operations["createNotificationChannel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notification-channels/{channelId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a notification channel
+         * @description Without `confirm=true` it answers 409 needs_confirmation naming the channel and the events it carries (UX-62).
+         */
+        delete: operations["deleteNotificationChannel"];
+        options?: never;
+        head?: never;
+        /**
+         * Change a notification channel
+         * @description notifications R5.7 to R5.9. The kind never changes. A field left out keeps its value; a secret left out stays, a secret sent as an empty string is removed.
+         */
+        patch: operations["updateNotificationChannel"];
+        trace?: never;
+    };
+    "/api/v1/notification-channels/{channelId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a test notice through a channel
+         * @description notifications R5.9. Sends one clearly marked test notice and answers what happened. A failed delivery is a 200 with `ok: false` and the reason, not an error.
+         */
+        post: operations["testNotificationChannel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/github": {
         parameters: {
             query?: never;
@@ -1991,7 +2276,7 @@ export interface components {
             id: string;
             machine_id: string;
             /** @enum {string} */
-            kind: "drain" | "settings" | "remove" | "agent_update" | "runner_update" | "service_restart";
+            kind: "drain" | "settings" | "remove" | "agent_update" | "controller_update" | "runner_update" | "service_restart" | "image_rebuild";
             /** @enum {string} */
             state: "waiting" | "running" | "done" | "cancelled" | "needs_you";
             /** Format: date-time */
@@ -2312,7 +2597,7 @@ export interface components {
         LiveEvent: {
             id: string;
             /** @enum {string} */
-            type: "snapshot" | "job.queued" | "job.waiting" | "job.started" | "job.finished" | "machine.load" | "machine.state" | "runner.state" | "saved.today" | "doctor.progress" | "plan.progress" | "change.progress";
+            type: "snapshot" | "job.queued" | "job.waiting" | "job.started" | "job.finished" | "machine.load" | "machine.state" | "runner.state" | "saved.today" | "doctor.progress" | "plan.progress" | "change.progress" | "image.state" | "cache.state" | "update.status";
             /** Format: date-time */
             at: string;
             /** @description True on a snapshot sent because missed events were no longer kept (R5.3). */
@@ -2329,6 +2614,9 @@ export interface components {
             doctor_run?: components["schemas"]["DoctorRun"];
             plan?: components["schemas"]["Plan"];
             change?: components["schemas"]["MachineChange"];
+            image?: components["schemas"]["Image"];
+            cache?: components["schemas"]["Cache"];
+            update?: components["schemas"]["UpdateStatus"];
         };
         DoctorScope: {
             machines?: string[];
@@ -2537,6 +2825,230 @@ export interface components {
             state: "running" | "passed" | "failed";
             detail?: string;
         };
+        ImageLayer: {
+            /** @example browsers */
+            id: string;
+            /** @example Browsers for Playwright */
+            name: string;
+            enabled: boolean;
+            /** Format: int64 */
+            size_bytes: number;
+        };
+        /**
+         * @description One image on one machine (runners R5.32 and R5.33).
+         * @example {
+         *       "id": "img_01JCRSP0001",
+         *       "machine_id": "m_01JCRSP0001",
+         *       "os": "linux",
+         *       "base": "ubuntu-24.04",
+         *       "layers": [
+         *         {
+         *           "id": "build-tools",
+         *           "name": "Build tools",
+         *           "enabled": true,
+         *           "size_bytes": 612368384
+         *         }
+         *       ],
+         *       "size_bytes": 2147483648,
+         *       "built_at": "2026-11-13T22:00:00Z",
+         *       "newest": true,
+         *       "needs_rebuild": false,
+         *       "state": "ready"
+         *     }
+         */
+        Image: {
+            id: string;
+            machine_id: string;
+            os: components["schemas"]["OS"];
+            /**
+             * @description The base image.
+             * @example ubuntu-24.04
+             */
+            base: string;
+            layers: components["schemas"]["ImageLayer"][];
+            /** Format: int64 */
+            size_bytes: number;
+            /** Format: date-time */
+            built_at?: string;
+            /** @description True for the newest image kept for this machine and OS. */
+            newest: boolean;
+            /** @description The saved layers differ from the built ones. */
+            needs_rebuild?: boolean;
+            /** @enum {string} */
+            state: "ready" | "rebuilding" | "failed";
+            /** @description Why the last build failed; the old image keeps serving. */
+            error?: string;
+        };
+        ImageList: {
+            items: components["schemas"]["Image"][];
+        };
+        /**
+         * @example {
+         *       "enabled_layers": [
+         *         "build-tools",
+         *         "browsers"
+         *       ]
+         *     }
+         */
+        UpdateImageLayersRequest: {
+            /** @description Ids of the layers that are on. Every other layer is off. */
+            enabled_layers: string[];
+        };
+        /** @enum {string} */
+        CacheKind: "actions_cache" | "git_mirror" | "tool_cache" | "registry_mirror";
+        /**
+         * @description One cache on one machine (caches R5.8 to R5.14).
+         * @example {
+         *       "id": "cch_01JCRSP0001",
+         *       "kind": "tool_cache",
+         *       "machine_id": "m_01JCRSP0001",
+         *       "size_bytes": 3221225472,
+         *       "cap_bytes": 10737418240,
+         *       "entry_count": 42,
+         *       "state": "ready"
+         *     }
+         */
+        Cache: {
+            id: string;
+            kind: components["schemas"]["CacheKind"];
+            machine_id: string;
+            /** Format: int64 */
+            size_bytes: number;
+            /**
+             * Format: int64
+             * @description Absent when the cache has no cap.
+             */
+            cap_bytes?: number;
+            entry_count?: number;
+            /** Format: date-time */
+            last_wiped_at?: string;
+            /** @enum {string} */
+            state: "ready" | "wiping";
+        };
+        CacheList: {
+            items: components["schemas"]["Cache"][];
+        };
+        /**
+         * @description The stable event types of notifications R5.1.
+         * @enum {string}
+         */
+        NotificationEvent: "machine.offline" | "job.waiting" | "disk.low" | "runner.outdated" | "doctor.finding" | "update.available";
+        /** @enum {string} */
+        NotificationKind: "email" | "webhook" | "desktop";
+        /**
+         * @description The lowest doctor severity the channel gets (notifications R5.4).
+         * @enum {string}
+         */
+        NotificationSeverity: "info" | "warning" | "error";
+        /** @description How an email channel sends. The password is never returned. */
+        SmtpSettings: {
+            host: string;
+            port: number;
+            username?: string;
+            from?: string;
+            has_password: boolean;
+        };
+        /**
+         * @description One channel. No secret is returned: `secret_set` and `smtp.has_password` say only whether one is set.
+         * @example {
+         *       "id": "nch_01JCRSP0001",
+         *       "kind": "webhook",
+         *       "name": "Team chat",
+         *       "scope": "pool",
+         *       "enabled": true,
+         *       "events": [
+         *         "machine.offline",
+         *         "job.waiting"
+         *       ],
+         *       "min_severity": "warning",
+         *       "url": "https://hooks.example.com/crsp",
+         *       "secret_set": true
+         *     }
+         */
+        NotificationChannel: {
+            id: string;
+            kind: components["schemas"]["NotificationKind"];
+            name: string;
+            /**
+             * @description Email and desktop are personal; a webhook is pool-wide.
+             * @enum {string}
+             */
+            scope: "personal" | "pool";
+            enabled: boolean;
+            events: components["schemas"]["NotificationEvent"][];
+            min_severity: components["schemas"]["NotificationSeverity"];
+            /** @description Email address (kind email). */
+            address?: string;
+            /** @description HTTPS URL (kind webhook). */
+            url?: string;
+            /** @description A webhook signing secret is set. Always false for other kinds. */
+            secret_set: boolean;
+            smtp?: components["schemas"]["SmtpSettings"];
+            /** Format: date-time */
+            last_test_at?: string;
+            last_test_ok?: boolean;
+        };
+        NotificationChannelList: {
+            items: components["schemas"]["NotificationChannel"][];
+        };
+        /**
+         * @example {
+         *       "kind": "webhook",
+         *       "name": "Team chat",
+         *       "events": [
+         *         "machine.offline"
+         *       ],
+         *       "min_severity": "warning",
+         *       "url": "https://hooks.example.com/crsp",
+         *       "secret": "s3cret-signing-key"
+         *     }
+         */
+        NotificationChannelInput: {
+            kind: components["schemas"]["NotificationKind"];
+            name: string;
+            /** @default true */
+            enabled: boolean;
+            events: components["schemas"]["NotificationEvent"][];
+            min_severity?: components["schemas"]["NotificationSeverity"];
+            address?: string;
+            url?: string;
+            /** @description Webhook signing secret. Write-only. */
+            secret?: string;
+            smtp?: {
+                host: string;
+                port: number;
+                username?: string;
+                from?: string;
+                /** @description SMTP password. Write-only. */
+                password?: string;
+            };
+        };
+        /** @description Every field is optional; `kind` cannot change. */
+        NotificationChannelUpdate: {
+            name?: string;
+            enabled?: boolean;
+            events?: components["schemas"]["NotificationEvent"][];
+            min_severity?: components["schemas"]["NotificationSeverity"];
+            address?: string;
+            url?: string;
+            /** @description New signing secret; an empty string removes it. */
+            secret?: string;
+            smtp?: {
+                host?: string;
+                port?: number;
+                username?: string;
+                from?: string;
+                /** @description New SMTP password; an empty string removes it. */
+                password?: string;
+            };
+        };
+        NotificationTestResult: {
+            ok: boolean;
+            /** @description What happened, or why delivery failed. */
+            message?: string;
+            /** Format: date-time */
+            sent_at: string;
+        };
     };
     responses: {
         /** @description Any error, in the error envelope. */
@@ -2546,6 +3058,19 @@ export interface components {
             };
             content: {
                 "application/json": components["schemas"]["ErrorEnvelope"];
+            };
+        };
+        /** @description The export as a file. `Content-Disposition` carries the file name, named for what the file holds then the stamp (UX-39). */
+        ExportFile: {
+            headers: {
+                /** @example attachment; filename="crsp-jobs-2026-11-14-1005.csv" */
+                "Content-Disposition": string;
+                [name: string]: unknown;
+            };
+            content: {
+                "text/csv": string;
+                "application/json": string;
+                "application/yaml": string;
             };
         };
         /** @description A redirect. May set or clear a cookie. */
@@ -2583,6 +3108,9 @@ export interface components {
         JobId: number;
         RunId: string;
         BackupId: string;
+        ImageId: string;
+        CacheId: string;
+        ChannelId: string;
     };
     requestBodies: never;
     headers: never;
@@ -4374,6 +4902,378 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Backup"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    exportJobs: {
+        parameters: {
+            query?: {
+                format?: "csv" | "json";
+                state?: "queued" | "running" | "done";
+                repository_id?: number;
+                machine_id?: string;
+                backend?: string;
+                result?: components["schemas"]["JobResult"];
+                from?: components["parameters"]["From"];
+                to?: components["parameters"]["To"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ExportFile"];
+            default: components["responses"]["Error"];
+        };
+    };
+    exportAuditEvents: {
+        parameters: {
+            query?: {
+                format?: "csv" | "json";
+                actor?: string;
+                action?: string;
+                target_type?: string;
+                target_id?: string;
+                from?: components["parameters"]["From"];
+                to?: components["parameters"]["To"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ExportFile"];
+            default: components["responses"]["Error"];
+        };
+    };
+    exportConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ExportFile"];
+            default: components["responses"]["Error"];
+        };
+    };
+    stopRepositoryPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: components["parameters"]["PlanId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stopping; the plan after the request. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    stopRunnerPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: components["parameters"]["PlanId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stopping; the plan after the request. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listImages: {
+        parameters: {
+            query?: {
+                machine_id?: string;
+                os?: components["schemas"]["OS"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The images, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imageId: components["parameters"]["ImageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The image. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Image"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateImageLayers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imageId: components["parameters"]["ImageId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateImageLayersRequest"];
+            };
+        };
+        responses: {
+            /** @description The image with the saved layers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Image"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    rebuildImage: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path: {
+                imageId: components["parameters"]["ImageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Draining, then building. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MachineChange"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listCaches: {
+        parameters: {
+            query?: {
+                machine_id?: string;
+                kind?: components["schemas"]["CacheKind"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caches. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CacheList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    wipeCache: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path: {
+                cacheId: components["parameters"]["CacheId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Wiping. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cache"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listNotificationChannels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The channels. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationChannelList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createNotificationChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationChannelInput"];
+            };
+        };
+        responses: {
+            /** @description The channel. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationChannel"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteNotificationChannel: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateNotificationChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationChannelUpdate"];
+            };
+        };
+        responses: {
+            /** @description The channel. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationChannel"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    testNotificationChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                channelId: components["parameters"]["ChannelId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The result of the test. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationTestResult"];
                 };
             };
             default: components["responses"]["Error"];

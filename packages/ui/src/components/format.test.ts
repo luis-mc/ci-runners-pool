@@ -5,6 +5,7 @@ import {
   formatCount,
   formatDate,
   formatDateTime,
+  formatDuration,
   formatFileStamp,
   formatNumber,
   formatPast,
@@ -51,5 +52,15 @@ describe('format (content.md)', () => {
     expect(formatAgo(at, new Date(2026, 10, 2, 19, 30).getTime())).toBe('5 h ago');
     expect(formatTimeLeft(90_000)).toBe('about 2 min left');
     expect(formatTimeLeft(20_000)).toBe('less than 1 min left');
+  });
+
+  it('writes a length of time in short words, never negative', () => {
+    expect(formatDuration(0)).toBe('0 s');
+    expect(formatDuration(45)).toBe('45 s');
+    expect(formatDuration(252)).toBe('4 min 12 s');
+    expect(formatDuration(300)).toBe('5 min');
+    expect(formatDuration(3900)).toBe('1 h 5 min');
+    expect(formatDuration(7200)).toBe('2 h');
+    expect(formatDuration(-5)).toBe('0 s');
   });
 });

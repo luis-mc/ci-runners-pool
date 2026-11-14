@@ -246,7 +246,7 @@ Settings hold configuration only (UX-52). Sub-pages sit under one Settings area,
 | Appearance | The user's theme: system, dark or light (UX-60) | `getPreferences`, `updatePreferences` | A one-choice list saved at once (component 13) | M1 |
 | Budgets | The pool's default load budget, slots and drain timeout for new machines | `getPoolSettings`, `updatePoolSettings` | Save; a change that restarts runners names the jobs it waits for (UX-62) | later |
 | Notifications | Channels (email, webhook, desktop) and the events each one gets | `listNotificationChannels`, `createNotificationChannel`, `updateNotificationChannel`, `deleteNotificationChannel`, `testNotificationChannel` | Add, edit, delete (question card), send a test | later (milestone 8) |
-| Updates | The runner version and the agent version, and when they update | `getUpdateStatus`, `updateUpdatePolicy`, `startUpdate` | Update now: a question card that names the machines and the jobs the drain waits for (UX-62) | later (milestone 3) |
+| Updates | The runner version and the agent version, and when they update | `getUpdateStatus`, `checkForUpdate`, `applyUpdate`, `updateSettings` (auto_update) | Update now: a question card that names the machines and the jobs the drain waits for (UX-62) | later (milestone 3) |
 | Audit log | Who changed what, and when | `listAuditEvents`, `exportAuditEvents` | Export (component 29, UX-39) | later |
 | Config export | The configuration as a file, without secrets | `exportConfig` | Export, named for what it holds then the file stamp (UX-39) | later (milestone 8) |
 
@@ -321,11 +321,11 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.23** (built, CRSP24) — The runners screen lists runners live with their isolation word, labels, state, job and age. It adds runners only on machines whose backends support the chosen OS, and deletes runners.
 
-**R5.24** — The jobs screen shows the queue with each job's wait reason, and the history with filters by repository, machine, result and time range. Export holds every row of the filter, in the order shown.
+**R5.24** (built, CRSP35) — The jobs screen shows the queue with each job's wait reason, and the history with filters by repository, machine, result and time range. Each row opens the detail, with a link to the run on GitHub. Export holds every row of the filter, in the order shown.
 
 **R5.25** — The images and caches screen shows images with layers and sizes, and caches with size and cap. It changes layers, rebuilds an image after a drain, and wipes a cache.
 
-**R5.26** — The doctor screen lists every finding with its status and fix, and runs the doctor on demand.
+**R5.26** (built, CRSP35) — The doctor screen lists every finding with its status and fix, and runs the doctor on demand.
 
 **R5.27** (built, CRSP24) — The settings area has the seven sub-pages of section 4.9.
 
@@ -435,8 +435,9 @@ flowchart LR
 | Users | `listUsers`, `addUser`, `updateUserRole`, `removeUser`, `getPreferences`, `updatePreferences` | `web-console` (this spec) |
 | Settings | `getPoolSettings`, `updatePoolSettings` | `machines` |
 | Notifications | `listNotificationChannels`, `createNotificationChannel`, `updateNotificationChannel`, `deleteNotificationChannel`, `testNotificationChannel` | `notifications` |
-| Updates and export | `getUpdateStatus`, `updateUpdatePolicy`, `startUpdate`, `exportConfig` | `operations` |
+| Updates and export | `getUpdateStatus`, `checkForUpdate`, `applyUpdate`, `restartService`, `exportConfig` | `operations` |
 | Audit | `listAuditEvents`, `exportAuditEvents` | `observability` |
+| Stop a plan | `stopRepositoryPlan`, `stopRunnerPlan` | `github-integration`, `runners` |
 
 **Errors.** Every error uses the `ErrorEnvelope` of the contract. The console reads its `code`: `session_expired` opens the session-ended dialog (R5.11), `forbidden` refreshes the role, and anything else shows could-not-load with the message (UX-28).
 
@@ -484,9 +485,9 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.21 | Vitest | `apps/web/src/screens/repositories/Repositories.test.tsx` |
 | R5.22 | Vitest | `apps/web/src/screens/machines/Machines.test.tsx` |
 | R5.23 | Vitest | `apps/web/src/screens/runners/Runners.test.tsx` |
-| R5.24 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/jobs/Jobs.test.tsx` |
+| R5.24 | Vitest, Go test, Playwright e2e | `apps/web/src/screens/jobs/Jobs.test.tsx`, `internal/api/handlers_jobs_export_test.go` (Export holds every row, newest first), `internal/store/jobs_backend_test.go`, `e2e/tests/web-console/jobs-doctor.spec.ts` |
 | R5.25 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/images/ImagesAndCaches.test.tsx` |
-| R5.26 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/doctor/Doctor.test.tsx` |
+| R5.26 | Vitest, Playwright e2e | `apps/web/src/screens/doctor/Doctor.test.tsx`, `e2e/tests/web-console/jobs-doctor.spec.ts` |
 | R5.27 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` (M1 sub-pages: Users and roles, Appearance, Retention, Backups) |
 | R5.28 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` (the Go side stays NOT YET IMPLEMENTED: `internal/api/users_test.go`) |
 | R5.29 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/settings/ConfigExport.test.tsx` |
@@ -543,15 +544,17 @@ For the product:
 
 ## 11. Not built yet
 
+Built by CRSP35: the jobs screen (queue with wait reasons, history on a time axis with filters, detail with the run on GitHub, Export of the filter, backed by `exportJobs`) and the doctor screen (findings by area, Run the doctor with progress) (R5.24, R5.26).
+
 Built by CRSP24: the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups (all against the M1 contract and a mocked API in tests).
 
 **NOT YET IMPLEMENTED:**
 
-- the jobs, images and caches and doctor screens (R5.24 to R5.26): their menu entries open a page that says in which milestone they arrive;
+- the images and caches screen (R5.25): its menu entries open a page that says in which milestone it arrives;
 - the later settings sub-pages: Budgets, Notifications, Updates, Audit log, Config export (R5.29);
 - the serving side: `internal/webui/webui.go` serves over TLS and sends the headers of R6.3 (R5.1, R6.3), the session cookie and CSRF checks (R6.1, R6.2), the role checks (R6.5);
 - an automated axe check in both themes (R6.6), the performance budgets (R6.12), the offline check (R6.13);
-- a way to stop a repository or runner plan that is applying: the contract has no operation for it, so those wizards offer Stop only on Joining.
+- Stop on a repository or runner plan that is applying: the contract now has `stopRepositoryPlan` and `stopRunnerPlan` (CRSP32), but the wizards still offer Stop only on Joining until they call them; the server side answers 501 for now.
 
 ## 12. Code map
 
@@ -572,10 +575,15 @@ Source: apps/web/src/screens/machines/Machines.tsx
 Source: apps/web/src/screens/machines/AddMachine.tsx
 Source: apps/web/src/screens/runners/Runners.tsx
 Source: apps/web/src/screens/runners/AddRunners.tsx
+Source: apps/web/src/screens/jobs/Jobs.tsx
+Source: apps/web/src/screens/doctor/Doctor.tsx
 Source: apps/web/src/screens/settings/Settings.tsx
 Source: apps/web/src/screens/setup/Setup.tsx
 Source: packages/ui/src/index.ts
 Source: packages/ui/src/components/Wizard.tsx
+Source: packages/ui/src/components/TimeAxis.tsx
+Source: packages/ui/src/components/Export.tsx
 Source: packages/ui/src/components.css
 Source: packages/contract/openapi.yaml
+Source: internal/api/handlers_jobs_export.go
 Source: internal/webui/webui.go

@@ -9,6 +9,8 @@ import { LiveProvider } from './live/LiveProvider';
 import type { EventSourceFactory } from './live/store';
 import { AppShell } from './shell/Shell';
 import { FaultBoundary } from './screens/common';
+import { DoctorScreen } from './screens/doctor/Doctor';
+import { JobDetail, JobsList } from './screens/jobs/Jobs';
 import { Later, NotFound } from './screens/Later';
 import { MachineDetail, MachinesList } from './screens/machines/Machines';
 import { AddMachinePage } from './screens/machines/AddMachine';
@@ -102,12 +104,8 @@ export function App({
               <Route path="machines/:id" element={<MachineDetail />} />
               <Route path="runners" element={<RunnersList />} />
               <Route path="runners/add" element={<AddRunnersPage />} />
-              <Route
-                path="jobs/*"
-                element={
-                  <Later title="Jobs" what="The job history" milestone="milestone 2" />
-                }
-              />
+              <Route path="jobs" element={<JobsList />} />
+              <Route path="jobs/:id" element={<JobDetail />} />
               <Route
                 path="images"
                 element={
@@ -128,12 +126,7 @@ export function App({
                   />
                 }
               />
-              <Route
-                path="doctor"
-                element={
-                  <Later title="Doctor" what="The doctor" milestone="milestone 2" />
-                }
-              />
+              <Route path="doctor" element={<DoctorScreen />} />
               <Route path="settings/updates/review" element={<UpdateReviewPage />} />
               <Route path="settings" element={<SettingsLayout />}>
                 <Route index element={<Navigate to="users" replace />} />
