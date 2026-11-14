@@ -9,12 +9,155 @@ import (
 )
 
 type AuditLog struct {
-	ID      int64
-	At      string
-	Actor   string
-	Action  string
-	Subject string
-	Detail  string
+	ID         int64
+	At         string
+	Actor      string
+	Action     string
+	Subject    string
+	Detail     string
+	ActorID    string
+	Source     string
+	TargetType string
+	Result     string
+}
+
+type Backup struct {
+	ID            string
+	File          string
+	CreatedAt     string
+	SizeBytes     int64
+	SchemaVersion int64
+	State         string
+	CheckResult   string
+	CheckedAt     sql.NullString
+	DeletedAt     sql.NullString
+}
+
+type CliToken struct {
+	ID           string
+	Hash         string
+	GithubUserID int64
+	Name         string
+	CreatedAt    string
+	ExpiresAt    string
+	LastUsedAt   sql.NullString
+	RevokedAt    sql.NullString
+}
+
+type DoctorFinding struct {
+	ID          int64
+	RunID       string
+	CheckID     string
+	SubjectKind string
+	SubjectID   string
+	SubjectName string
+	Severity    string
+	Title       string
+	Detail      string
+	Fix         string
+	NeedsAdmin  int64
+	Milestone   int64
+	CheckedAt   string
+}
+
+type DoctorRun struct {
+	ID         string
+	Trigger    string
+	State      string
+	Scope      string
+	StartedBy  string
+	StartedAt  string
+	FinishedAt sql.NullString
+	Worst      sql.NullString
+	Counts     string
+}
+
+type DoctorState struct {
+	CheckID     string
+	SubjectKind string
+	SubjectID   string
+	Severity    string
+	FindingID   sql.NullInt64
+	Since       string
+}
+
+type GhJob struct {
+	ID                int64
+	RepositoryID      int64
+	RunID             int64
+	RunAttempt        int64
+	Workflow          string
+	JobName           string
+	HeadSha           string
+	HeadBranch        string
+	Event             string
+	FromFork          int64
+	Labels            string
+	Status            string
+	Conclusion        sql.NullString
+	RunnerName        sql.NullString
+	PlacedMachineID   sql.NullString
+	WaitReason        sql.NullString
+	WaitText          sql.NullString
+	CreatedAtGithub   sql.NullString
+	StartedAtGithub   sql.NullString
+	CompletedAtGithub sql.NullString
+	UpdatedAt         string
+}
+
+type GithubApp struct {
+	ID            int64
+	Slug          string
+	ClientID      string
+	OwnerLogin    string
+	OwnerType     string
+	HtmlUrl       string
+	WebhookActive int64
+	Permissions   string
+	GoneAt        sql.NullString
+	CreatedAt     string
+}
+
+type Installation struct {
+	ID                  int64
+	AccountLogin        string
+	AccountType         string
+	RepositorySelection string
+	Permissions         string
+	SuspendedAt         sql.NullString
+	RemovedAt           sql.NullString
+	UpdatedAt           string
+}
+
+type JobHistory struct {
+	ID           int64
+	RepositoryID int64
+	Repository   string
+	RunID        int64
+	RunAttempt   int64
+	GithubJobID  int64
+	Workflow     string
+	JobName      string
+	HeadSha      string
+	Trigger      string
+	Labels       string
+	MachineID    sql.NullString
+	RunnerID     sql.NullString
+	RunnerName   sql.NullString
+	Backend      sql.NullString
+	Isolation    sql.NullString
+	Os           sql.NullString
+	State        string
+	CreatedAt    sql.NullString
+	QueuedAt     sql.NullString
+	SlotAt       sql.NullString
+	StartedAt    sql.NullString
+	CompletedAt  sql.NullString
+	GithubWaitMs sql.NullInt64
+	SlotWaitMs   sql.NullInt64
+	RunMs        sql.NullInt64
+	Result       sql.NullString
+	HtmlUrl      string
 }
 
 type JobQueue struct {
@@ -31,8 +174,328 @@ type JobQueue struct {
 	CreatedAt   string
 }
 
+type JoinCode struct {
+	ID        string
+	CodeHash  string
+	Kind      string
+	CreatedBy string
+	CreatedAt string
+	ExpiresAt string
+	UsedAt    sql.NullString
+	RevokedAt sql.NullString
+	MachineID sql.NullString
+}
+
+type LinkCode struct {
+	CodeHash     string
+	GithubUserID int64
+	Purpose      string
+	TargetPath   string
+	ExpiresAt    string
+	UsedAt       sql.NullString
+}
+
+type Machine struct {
+	ID           string
+	Name         string
+	Os           string
+	Arch         string
+	Facts        string
+	Backends     string
+	State        string
+	IsController int64
+	AgentVersion string
+	Online       int64
+	LastSeenAt   sql.NullString
+	JoinedAt     string
+	RemovedAt    sql.NullString
+}
+
+type MachineChange struct {
+	ID         string
+	MachineID  string
+	Kind       string
+	State      string
+	Detail     string
+	StartedBy  string
+	StartedAt  string
+	DeadlineAt string
+	FinishedAt sql.NullString
+}
+
+type MachineKey struct {
+	Hash      string
+	MachineID string
+	CreatedAt string
+	RevokedAt sql.NullString
+}
+
+type MachineLoad struct {
+	MachineID string
+	SampledAt string
+	MemoryPct sql.NullFloat64
+	CpuPct    sql.NullFloat64
+	SlotsUsed int64
+}
+
+type MachineSetting struct {
+	MachineID           string
+	Version             int64
+	BudgetMemoryPct     int64
+	BudgetCpuPct        int64
+	JobSlots            int64
+	LightSlots          int64
+	HeavySlots          int64
+	LightJobs           string
+	HeavyJobs           string
+	SlotMaxAgeMinutes   int64
+	GatePollSeconds     int64
+	GateMaxWaitMinutes  int64
+	GateOnTimeout       string
+	AllowedBackends     string
+	CacheCapBytes       int64
+	DrainTimeoutMinutes int64
+	WindowsSymlinkRight int64
+	UpdatedAt           string
+	UpdatedBy           string
+}
+
+type ManagedVariable struct {
+	RepositoryID int64
+	Name         string
+	Value        string
+	Status       string
+	WrittenAt    string
+	CheckedAt    sql.NullString
+}
+
+type Plan struct {
+	ID        string
+	Area      string
+	State     string
+	StateHash string
+	Steps     string
+	CreatedBy string
+	CreatedAt string
+	UpdatedAt string
+}
+
+type RepoPolicy struct {
+	RepositoryID    int64
+	Priority        int64
+	MaxParallelJobs int64
+	AllowForkPrs    int64
+	Labels          string
+	RunnerGroups    string
+	BudgetMemoryPct sql.NullInt64
+	BudgetCpuPct    sql.NullInt64
+	UpdatedAt       string
+	UpdatedBy       string
+}
+
+type Repository struct {
+	ID             int64
+	InstallationID int64
+	FullName       string
+	Owner          string
+	Name           string
+	Visibility     string
+	DefaultBranch  string
+	Archived       int64
+	PoolOn         int64
+	PoolChangedAt  sql.NullString
+	PoolChangedBy  sql.NullString
+	UpdatedAt      string
+}
+
+type RestoreDrill struct {
+	ID         string
+	BackupID   sql.NullString
+	StartedAt  string
+	FinishedAt sql.NullString
+	State      string
+	Detail     string
+}
+
+type Runner struct {
+	ID             string
+	Name           string
+	MachineID      string
+	Os             string
+	Arch           string
+	Kind           string
+	Backend        string
+	Isolation      string
+	Labels         string
+	ScopeKind      string
+	RepositoryID   sql.NullInt64
+	Organization   sql.NullString
+	RunnerGroup    sql.NullString
+	GithubRunnerID sql.NullInt64
+	RunnerVersion  string
+	State          string
+	Managed        int64
+	ServiceName    string
+	Account        string
+	Folder         string
+	CurrentJobID   sql.NullInt64
+	CreatedAt      string
+	UpdatedAt      string
+}
+
+type RunnerEvent struct {
+	ID        int64
+	RunnerID  string
+	At        string
+	FromState string
+	ToState   string
+	Detail    string
+}
+
+type RunnerUsage struct {
+	ID                int64
+	RunnerID          string
+	Repository        string
+	RunID             int64
+	RunAttempt        int64
+	Job               string
+	CpuMs             int64
+	MemoryPeakBytes   int64
+	MemoryMedianBytes int64
+	DiskUsedBytes     int64
+	WallMs            int64
+	ReportedAt        string
+}
+
+type RunsOnFinding struct {
+	ID           int64
+	RepositoryID int64
+	Path         string
+	Line         int64
+	Labels       string
+	Kind         string
+	Text         string
+	FoundAt      string
+}
+
 type SchemaMetum struct {
 	Key       string
 	Value     string
 	UpdatedAt string
+}
+
+type Session struct {
+	IDHash       string
+	GithubUserID int64
+	CsrfHash     string
+	Source       string
+	CreatedAt    string
+	LastSeenAt   string
+	EndedAt      sql.NullString
+}
+
+type Setting struct {
+	Key       string
+	Value     string
+	UpdatedAt string
+	UpdatedBy string
+}
+
+type SetupCode struct {
+	CodeHash  string
+	CreatedAt string
+	ExpiresAt string
+	UsedAt    sql.NullString
+}
+
+type Slot struct {
+	MachineID     string
+	Kind          string
+	Number        int64
+	Claim         string
+	Repository    string
+	RepositoryID  sql.NullInt64
+	RunID         int64
+	RunAttempt    int64
+	Job           string
+	GithubJobID   sql.NullInt64
+	Shard         string
+	RunnerName    string
+	HolderMachine string
+	HolderPid     int64
+	GatePid       int64
+	QueuedAt      string
+	TakenAt       string
+	ExpiresAt     string
+}
+
+type SlotLog struct {
+	ID         int64
+	MachineID  string
+	At         string
+	Event      string
+	Kind       string
+	Number     sql.NullInt64
+	Repository string
+	RunID      int64
+	RunAttempt int64
+	Job        string
+	Shard      string
+	RunnerName string
+	QueuedAt   sql.NullString
+	SlotAt     sql.NullString
+	ReleasedAt sql.NullString
+	Reason     string
+}
+
+type SlotTicket struct {
+	ID            string
+	MachineID     string
+	Repository    string
+	RepositoryID  sql.NullInt64
+	RunID         int64
+	RunAttempt    int64
+	Job           string
+	GithubJobID   sql.NullInt64
+	Shard         string
+	RunnerName    string
+	Kind          string
+	RepoPriority  int64
+	EventClass    int64
+	QueuedAtNs    int64
+	RandomSuffix  int64
+	BeatAt        string
+	ExpiresAt     string
+	HolderMachine string
+	HolderPid     int64
+	GatePid       int64
+	WaitReason    sql.NullString
+}
+
+type TrayBinding struct {
+	MachineID    string
+	OsUserID     string
+	GithubUserID int64
+	CreatedAt    string
+}
+
+type User struct {
+	GithubUserID int64
+	Login        string
+	Role         string
+	AddedBy      string
+	AddedAt      string
+	LastSignInAt sql.NullString
+}
+
+type UserPreference struct {
+	GithubUserID int64
+	Theme        string
+	UpdatedAt    string
+}
+
+type WebhookDelivery struct {
+	DeliveryID string
+	Event      string
+	ReceivedAt string
 }
