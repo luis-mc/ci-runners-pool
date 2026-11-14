@@ -559,3 +559,58 @@ func TestDeviceFlowDenied(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 }
+
+func TestMissingPermissions(t *testing.T) { // R5.24
+	full := map[string]string{"administration": "write", "actions": "read", "actions_variables": "write",
+		"contents": "read", "metadata": "read", "organization_self_hosted_runners": "write"}
+	if m := MissingPermissions(full); len(m) != 0 {
+		t.Fatalf("%v", m)
+	}
+	weak := map[string]string{"administration": "read", "actions": "write", "contents": "read", "metadata": "read"}
+	got := MissingPermissions(weak)
+	want := []string{"actions_variables", "administration", "organization_self_hosted_runners"}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("got %v want %v (a stronger grant counts, a weaker one is missing)", got, want)
+	}
+	if len(RequiredPermissions) != 6 {
+		t.Fatal("the set is exactly the R5.23 table")
+	}
+}
+
+func TestAppLevelListings(t *testing.T) { // R5.22
+	e := newEnv(t)
+	ctx := context.Background()
+	e.fake.AddInstall(10, "alice", "User")
+	e.fake.AddInstall(11, "acme", "Organization")
+	e.fake.AddRepo(1, 10, "alice", "a", true)
+	e.fake.AddRepo(2, 10, "alice", "b", false)
+	ins, err := e.client.ListAppInstallations(ctx)
+	if err != nil || len(ins) != 2 {
+		t.Fatalf("%+v %v", ins, err)
+	}
+	repos, err := e.client.ListAppRepositories(ctx, 10)
+	if err != nil || len(repos) != 2 || repos[1].Visibility != "public" || repos[0].Admin {
+		t.Fatalf("%+v %v", repos, err)
+	}
+}
+
+func TestCollaboratorPermissionAndForkApproval(t *testing.T) { // R5.19, R5.26
+	e := newEnv(t)
+	ctx := context.Background()
+	e.fake.AddUser(1, "alice")
+	e.fake.AddUser(2, "bob")
+	e.fake.AddInstall(10, "alice", "User")
+	e.fake.AddRepo(1, 10, "alice", "a", true, 1)
+	if p, err := e.client.CollaboratorPermission(ctx, 10, "alice", "a", "alice"); err != nil || p != "admin" {
+		t.Fatalf("%q %v", p, err)
+	}
+	if p, _ := e.client.CollaboratorPermission(ctx, 10, "alice", "a", "bob"); p == "admin" {
+		t.Fatal("bob is not admin")
+	}
+	if err := e.client.SetForkApproval(ctx, 10, "alice", "a", ForkApprovalAllOutside); err != nil {
+		t.Fatal(err)
+	}
+	if e.fake.ForkApprovalOf("alice/a") != ForkApprovalAllOutside {
+		t.Fatal("fork approval policy not set")
+	}
+}

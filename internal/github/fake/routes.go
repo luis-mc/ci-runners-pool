@@ -66,6 +66,43 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request) {
 		s.userInstallations(w, r)
 	case r.Method == "GET" && strings.HasPrefix(p, "/user/installations/") && strings.HasSuffix(p, "/repositories"):
 		s.userRepositories(w, r)
+	case r.Method == "GET" && p == "/app/installations":
+		if !s.checkJWT(bearer(r)) {
+			unauthorized(w)
+			return
+		}
+		ids := make([]int64, 0, len(s.Installs))
+		for id := range s.Installs {
+			ids = append(ids, id)
+		}
+		sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+		items := []map[string]any{}
+		for _, id := range ids {
+			items = append(items, s.installJSON(s.Installs[id]))
+		}
+		writeJSON(w, 200, items)
+	case r.Method == "GET" && p == "/installation/repositories":
+		id, ok := s.installFor(r)
+		if !ok {
+			unauthorized(w)
+			return
+		}
+		var repos []*Repo
+		for _, rp := range s.Repos {
+			if rp.Installation == id {
+				repos = append(repos, rp)
+			}
+		}
+		sort.Slice(repos, func(i, j int) bool { return repos[i].ID < repos[j].ID })
+		from, to, link := page(r, len(repos))
+		items := []map[string]any{}
+		for _, rp := range repos[from:to] {
+			items = append(items, s.repoJSON(rp, 0))
+		}
+		if link != "" {
+			w.Header().Set("Link", link)
+		}
+		writeJSON(w, 200, map[string]any{"total_count": len(repos), "repositories": items})
 	case strings.HasPrefix(p, "/app/installations/"):
 		s.appInstallations(w, r)
 	case strings.HasPrefix(p, "/repos/"):
@@ -264,6 +301,24 @@ func (s *Server) repoRoutes(w http.ResponseWriter, r *http.Request) {
 		s.variableRoutes(w, r, full, strings.TrimPrefix(strings.TrimPrefix(rest, "actions/variables"), "/"))
 	case strings.HasPrefix(rest, "contents/"):
 		s.contents(w, r, full, strings.TrimPrefix(rest, "contents/"))
+	case strings.HasPrefix(rest, "collaborators/") && strings.HasSuffix(rest, "/permission"):
+		login := strings.TrimSuffix(strings.TrimPrefix(rest, "collaborators/"), "/permission")
+		for _, u := range s.Users {
+			if strings.EqualFold(u.Login, login) {
+				perm := "write"
+				if rp.Admins[u.ID] {
+					perm = "admin"
+				}
+				writeJSON(w, 200, map[string]any{"permission": perm})
+				return
+			}
+		}
+		notFound(w)
+	case rest == "actions/permissions/fork-pr-contributor-approval" && r.Method == "PUT":
+		var in map[string]string
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		s.ForkApproval[full] = in["approval_policy"]
+		w.WriteHeader(204)
 	case rest == "actions/runs" && r.Method == "GET":
 		s.runs(w, r, full)
 	case strings.HasPrefix(rest, "actions/runs/") && strings.HasSuffix(rest, "/jobs"):

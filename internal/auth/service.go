@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"regexp"
 	"strconv"
 	"sync"
@@ -42,6 +43,7 @@ type Service struct {
 	mu                sync.Mutex
 	usedManifestCodes map[string]bool
 	setupCookies      map[string]time.Time // hash -> expiry
+	userTokens        map[int64]github.UserToken
 }
 
 // New returns a Service.
@@ -56,7 +58,7 @@ func New(store Store, cfg Config) *Service {
 		cfg.ConsoleURLs = func() []string { return nil }
 	}
 	return &Service{cfg: cfg, store: store, states: newStates(cfg.Now),
-		usedManifestCodes: map[string]bool{}, setupCookies: map[string]time.Time{}}
+		usedManifestCodes: map[string]bool{}, setupCookies: map[string]time.Time{}, userTokens: map[int64]github.UserToken{}}
 }
 
 func secretKey(appID int64, name string) secrets.Key { return github.SecretKey(appID, name) }
@@ -83,4 +85,32 @@ func (s *Service) auditUser(ctx context.Context, p Principal, action, targetType
 // Audit lets another package (repos) write an audit row as a principal.
 func (s *Service) Audit(ctx context.Context, p Principal, action, targetType, subject, detail string) {
 	s.auditUser(ctx, p, action, targetType, subject, detail)
+}
+
+// ErrGitHubSessionExpired means the GitHub user token that listing and the
+// admin check need is gone or old: the person signs in with GitHub again. The
+// token is held in memory only and never written anywhere (R6.2).
+var ErrGitHubSessionExpired = errors.New("sign in with GitHub again")
+
+// GitHubToken returns the user's GitHub token from this process's memory.
+func (s *Service) GitHubToken(userID int64) (github.UserToken, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t, ok := s.userTokens[userID]
+	if !ok || (!t.ExpiresAt.IsZero() && !s.cfg.Now().Before(t.ExpiresAt)) {
+		return github.UserToken{}, ErrGitHubSessionExpired
+	}
+	return t, nil
+}
+
+func (s *Service) holdToken(userID int64, t github.UserToken) {
+	s.mu.Lock()
+	s.userTokens[userID] = t
+	s.mu.Unlock()
+}
+
+func (s *Service) dropToken(userID int64) {
+	s.mu.Lock()
+	delete(s.userTokens, userID)
+	s.mu.Unlock()
 }

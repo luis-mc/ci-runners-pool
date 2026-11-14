@@ -96,3 +96,37 @@ func TestCSRF(t *testing.T) {
 		t.Fatal("a CLI principal has no session csrf")
 	}
 }
+
+func TestGitHubTokenInMemoryOnly(t *testing.T) { // R6.2
+	e := newEnv(t)
+	ctx := context.Background()
+	si := e.ownerSignIn(1, "alice")
+	tok, err := e.svc.GitHubToken(1)
+	if err != nil || tok.Value == "" {
+		t.Fatalf("%v", err)
+	}
+	noSecretIn(t, e.store.Dump(), tok.Value)
+	for _, k := range e.secrets.Keys() {
+		v, _ := e.secrets.Get(ctx, k)
+		if string(v) == tok.Value {
+			t.Fatal("the user token must not be stored")
+		}
+	}
+	e.advance(9 * time.Hour) // GitHub user tokens last 8 hours
+	if _, err := e.svc.GitHubToken(1); !errors.Is(err, ErrGitHubSessionExpired) {
+		t.Fatalf("%v", err)
+	}
+	// Web session still lives; only GitHub-backed calls ask for a new sign-in.
+	if _, err := e.svc.Authenticate(ctx, si.Cookie); err != nil {
+		t.Fatal(err)
+	}
+	e.signIn(1, "")
+	p, _ := e.svc.Authenticate(ctx, si.Cookie)
+	if _, err := e.svc.GitHubToken(1); err != nil {
+		t.Fatal(err)
+	}
+	_ = e.svc.SignOut(ctx, p)
+	if _, err := e.svc.GitHubToken(1); !errors.Is(err, ErrGitHubSessionExpired) {
+		t.Fatal("sign-out drops the token")
+	}
+}

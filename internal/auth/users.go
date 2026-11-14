@@ -93,6 +93,7 @@ func (s *Service) UpdateRole(ctx context.Context, p Principal, id int64, role Ro
 			return User{}, err
 		}
 		_ = s.store.EndUserSessions(ctx, id)
+		s.dropToken(id)
 		s.auditUser(ctx, p, "user.role_changed", "user", target.Login, string(target.Role)+" to "+string(role))
 	}
 	return s.store.GetUser(ctx, id)
@@ -113,6 +114,7 @@ func (s *Service) RemoveUser(ctx context.Context, p Principal, id int64) error {
 	}
 	now := s.cfg.Now()
 	_ = s.store.EndUserSessions(ctx, id)
+	s.dropToken(id)
 	_ = s.store.RevokeUserCLITokens(ctx, id, now)
 	if err := s.store.DeleteUser(ctx, id); err != nil {
 		return err

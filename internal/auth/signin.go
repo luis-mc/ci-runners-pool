@@ -129,7 +129,11 @@ func (s *Service) CompleteSignIn(ctx context.Context, code, state, origin string
 	if err != nil {
 		return SignedIn{}, err
 	}
-	return s.finishSignIn(ctx, gu, data)
+	si, err := s.finishSignIn(ctx, gu, data)
+	if err == nil {
+		s.holdToken(gu.ID, tok)
+	}
+	return si, err
 }
 
 func (s *Service) finishSignIn(ctx context.Context, gu github.User, data map[string]string) (SignedIn, error) {
@@ -227,6 +231,7 @@ func (s *Service) SignOut(ctx context.Context, p Principal) error {
 	if err := s.store.EndSession(ctx, p.SessionHash); err != nil {
 		return err
 	}
+	s.dropToken(p.UserID)
 	s.auditUser(ctx, p, "auth.signout", "session", p.Login, "")
 	return nil
 }

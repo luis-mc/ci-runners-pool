@@ -8,18 +8,13 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 )
 
 // Permissions is the exact set the App asks for, and no others (R5.23). The
 // keys are GitHub's manifest permission names.
-var Permissions = map[string]string{
-	"administration":                   "write",
-	"actions":                          "read",
-	"actions_variables":                "write",
-	"contents":                         "read",
-	"metadata":                         "read",
-	"organization_self_hosted_runners": "write",
-}
+var Permissions = github.RequiredPermissions
 
 // Events the App subscribes to.
 var Events = []string{"workflow_job"}

@@ -106,7 +106,9 @@ type Server struct {
 	OAuthCodes     map[string]int64
 	OAuthVerifiers map[string]string // code -> expected PKCE challenge
 	// DeviceCodes: device code -> approving user id (0 pending, -1 denied).
-	DeviceCodes        map[string]int64
+	DeviceCodes map[string]int64
+	// ForkApproval is the fork pull request approval policy per repository.
+	ForkApproval       map[string]string
 	DeviceSlowDownOnce bool
 	devicePolls        int
 	// ClientSecret is what the token endpoint demands.
@@ -126,6 +128,7 @@ type Server struct {
 	// retry and limit tests. A status of 403 with FailRateLimit set is a
 	// primary rate limit.
 	failNext       []int
+	failMatch      []failRule
 	FailRateLimit  bool
 	FailRetryAfter string
 	// Now is the clock for token expiry.
@@ -138,7 +141,7 @@ func New() *Server {
 		Users: map[int64]*User{}, UserTokens: map[string]int64{}, Installs: map[int64]*Install{},
 		Repos: map[int64]*Repo{}, Variables: map[string]map[string]string{},
 		Runners: map[string][]*Runner{}, WorkflowFiles: map[string]map[string]string{},
-		ManifestCodes: map[string]bool{}, OAuthCodes: map[string]int64{}, OAuthVerifiers: map[string]string{}, DeviceCodes: map[string]int64{},
+		ManifestCodes: map[string]bool{}, OAuthCodes: map[string]int64{}, OAuthVerifiers: map[string]string{}, DeviceCodes: map[string]int64{}, ForkApproval: map[string]string{},
 		instTokens: map[string]int64{}, removeToks: map[string]bool{}, regToks: map[string]bool{},
 		RateLimit: 5000, RateRemaining: 5000, RateReset: time.Now().Add(time.Hour).Unix(),
 		AppID: 1234567, nextID: 1000, Now: time.Now,
@@ -171,6 +174,20 @@ func (s *Server) FailNext(statuses ...int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.failNext = append(s.failNext, statuses...)
+}
+
+type failRule struct {
+	substr string
+	status int
+	left   int
+}
+
+// FailMatching makes the next n calls whose path contains substr answer with
+// status, and lets every other call through.
+func (s *Server) FailMatching(substr string, status, n int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.failMatch = append(s.failMatch, failRule{substr: substr, status: status, left: n})
 }
 
 // Lock runs fn with the state locked, for tests that edit state while the
@@ -298,6 +315,16 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	if len(s.failNext) > 0 {
 		forced, s.failNext = s.failNext[0], s.failNext[1:]
 	}
+	if forced == 0 {
+		for i := range s.failMatch {
+			fr := &s.failMatch[i]
+			if fr.left > 0 && strings.Contains(r.URL.Path, fr.substr) {
+				fr.left--
+				forced = fr.status
+				break
+			}
+		}
+	}
 	limit, rem, reset := s.RateLimit, s.RateRemaining, s.RateReset
 	failRL, retryAfter := s.FailRateLimit, s.FailRetryAfter
 	s.mu.Unlock()
@@ -419,4 +446,11 @@ func page(r *http.Request, total int) (from, to int, link string) {
 		link = fmt.Sprintf(`<%s%s?%s>; rel="next"`, "http://"+r.Host, r.URL.Path, q.Encode())
 	}
 	return
+}
+
+// ForkApprovalOf returns the fork approval policy the controller set.
+func (s *Server) ForkApprovalOf(fullName string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.ForkApproval[fullName]
 }
