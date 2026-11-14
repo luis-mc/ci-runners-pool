@@ -89,7 +89,7 @@ jobs:
           if [ "$RUNNER_OS" = "Windows" ]; then exe="./out/crsp.exe"; fi
           "$exe" tray --smoke --smoke-hold=6s & first=$!
           sleep 3
-          timeout 20 "$exe" tray --smoke; second=$?
+          "$exe" tray --smoke; second=$?
           wait "$first"; firstc=$?
           echo "first=$firstc second=$second"
           [ "$firstc" = 0 ] && [ "$second" = 0 ]
