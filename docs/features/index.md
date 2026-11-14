@@ -8,19 +8,19 @@
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### cli
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### controller
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### tray
 
@@ -30,7 +30,7 @@ No feature lists this app yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ## By topic
 
@@ -44,19 +44,19 @@ No feature lists this topic yet.
 
 ### install
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### isolation
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### machines
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### observability
 
@@ -64,29 +64,29 @@ No feature lists this topic yet.
 
 ### operations
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### runners
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### scheduling
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### security
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ### ui
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ## By status
 
@@ -94,7 +94,7 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
 
 ## Gaps
 

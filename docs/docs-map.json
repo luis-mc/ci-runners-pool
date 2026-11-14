@@ -1,14 +1,11 @@
 {
   "schema": 1,
   "map": {
-    "internal/agent/**": [
-      "docs/features/machines/spec.md"
+    "internal/backend/**": [
+      "docs/features/runners/spec.md"
     ],
-    "internal/load/**": [
-      "docs/features/machines/spec.md"
-    ],
-    "internal/machines/**": [
-      "docs/features/machines/spec.md"
+    "internal/runners/**": [
+      "docs/features/runners/spec.md"
     ]
   }
 }

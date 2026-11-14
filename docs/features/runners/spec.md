@@ -1,0 +1,381 @@
+---
+id: runners
+title: Runners and isolation backends
+apps: [controller, agent, web-console, cli]
+topics: [runners, isolation, security, machines, ui]
+status: proposed
+version: 0.1.0
+owner: owner
+type: reference
+code:
+  - internal/runners/**
+  - internal/backend/**
+design_system: [UX-4, UX-5, UX-6, UX-9, UX-13, UX-19, UX-25, UX-29, UX-30, UX-38, UX-53, UX-58, UX-61, UX-62]
+last_verified: 2026-11-14
+artifact:
+generator: luismc-docs 2.6.1
+---
+# Runners and isolation backends
+
+**NOT YET IMPLEMENTED.** Nothing in this spec is built. Each requirement names the milestone that builds it (M1 to M6, from [the product brief](../../overview/product.md#milestones)).
+
+Related: [product brief](../../overview/product.md), [decision 0003, isolation backends](../../architecture/decisions/0003-isolation-backends.md), [decision 0004, agent link](../../architecture/decisions/0004-agent-link.md), [decision 0005, product boundary](../../architecture/decisions/0005-product-boundary.md).
+
+## 1. In one paragraph
+
+A runner is a GitHub Actions self-hosted runner that the product creates, watches and removes on one of the user's machines. The user creates runners in the web console or the CLI, per OS, and only on machines that support that OS and isolation. Milestone 1 builds persistent runners on Windows, Linux and macOS: each runs as an OS service under its own non-admin account. Later milestones add ephemeral runners: one fresh container, VM or microVM per job, started with a just-in-time (JIT) config and thrown away after the job. Every kind of runner sits behind one backend interface.
+
+## 2. Why
+
+**Problem.** Runners made by hand drift. They run as a strong account (NETWORK SERVICE or LocalSystem), carry project labels, keep state between jobs and are hard to remove cleanly. The dev-standards runner pool fixed this for one Windows PC with Docker Desktop, at the cost of many failures (the learnings in the product brief). This feature carries that work into the product, for every OS.
+
+**Users.** One person or a small team that runs CI for many repositories on their own machines.
+
+**Goals.**
+
+- Create, update and remove runners from the console, with no manual steps on the machine after the agent is installed.
+- Use the best isolation each machine supports, behind one interface (decision 0003).
+- Keep each runner's rights as small as the job allows.
+- Never cut a running job.
+
+**Non-goals.**
+
+- GitHub-hosted runners.
+- Scheduling and the slot queue (the `scheduling` feature). This spec only says when a runner starts and stops.
+- Caches and the registry mirror server (milestone 7, the `caching` feature). This spec only says how runners use them.
+- Cloud machines.
+
+## 3. How it works
+
+```mermaid
+flowchart LR
+  user[User in console] --> pick[Pick OS and kind]
+  pick --> machines[Machines that support it]
+  machines --> review[Review: account, rights, folder, labels]
+  review --> ctrl[Controller]
+  ctrl -- agent link --> agent[Node agent]
+  agent --> backend{Backend}
+  backend --> persistent[Persistent service]
+  backend --> eph[Ephemeral: container, VM, microVM]
+  persistent --> gh[GitHub runner online]
+  eph --> gh
+  gh --> job[Job runs]
+  job -- ephemeral --> clean[Stop and clean up]
+```
+
+The steps in words:
+
+1. The user opens Runners and chooses Create. They pick the OS and the kind (persistent or ephemeral).
+2. The console lists only machines whose agent reports that OS and an allowed backend for that kind. Other machines are shown with the reason they cannot take it.
+3. Review shows what will happen on the machine: the account, its rights, the folder, the service, the labels and the runner version. Nothing has changed yet.
+4. The controller sends the plan to the agent over the agent link. The agent runs it through the backend.
+5. A persistent runner registers once and stays. Its service runs jobs until the user removes or updates it.
+6. An ephemeral runner gets a JIT config for one job. It starts, takes one job, and is stopped and cleaned up when the job ends.
+7. The agent streams setup logs and runner logs, and reports usage, to the controller.
+
+```mermaid
+stateDiagram-v2
+  [*] --> creating
+  creating --> idle
+  creating --> failed
+  idle --> busy
+  busy --> idle: persistent
+  busy --> removing: ephemeral, job done
+  idle --> draining: update or remove asked
+  busy --> draining: update or remove asked
+  draining --> updating
+  draining --> removing
+  updating --> idle
+  idle --> offline
+  offline --> idle
+  removing --> [*]
+  failed --> removing
+```
+
+## 4. Screens and states
+
+No mocks yet. The Runners screen and the Create runner wizard follow design system v1.
+
+- Runners list: one row per runner with machine, OS, backend, isolation, labels, state, current job and age. Rows compare more than three facts, so it is a table (design system UX-25). Age keeps ageing (UX-53).
+- Isolation: every row and detail names the isolation, and a persistent runner says it keeps state between jobs (design system UX-61).
+- State: each state is a word, a glyph and a colour (design system UX-58), read from one source (UX-19).
+- Create runner: a wizard (design system UX-5) that ends with Review, Creating, Done (UX-30). A machine that cannot take the runner is shown disabled with its reason (UX-38).
+- Remove runner, remove an image, replace an old runner: the question card names each item that goes, and a busy runner names its job and waits for the drain (design system UX-62, UX-9).
+- Empty state: no machine supports the chosen OS. It says why and links to Machines (design system UX-6).
+- Busy state: buttons that start work stay busy until the server answers (design system UX-13). A drain shows what it waits for and until when (UX-29).
+
+## 5. Functional requirements
+
+Every requirement below is **NOT YET IMPLEMENTED**. "Port" names the dev-standards source (repository `luis-mc/dev-standards`, spec `docs/features/runner-pool/spec.md`, requirement IDs as `DS R5.n`).
+
+### 5.1 Lifecycle from the console
+
+**R5.1** (M1) — **Create per OS, only where supported.** The console and the CLI create a runner from an OS, a kind (persistent or ephemeral) and a machine. The machine choice lists only machines whose agent reports that OS and a backend that is allowed on that machine and supports the kind. The controller refuses any other request with the reason (for example `machine mac-1: no allowed backend for Windows`).
+
+**R5.2** (M1) — **One runner record.** Each runner has: id, name, machine, OS, architecture, kind, backend, isolation (`microVM`, `VM`, `container` or `persistent`), labels, scope (repository, or organization runner group), runner version, state and current job. The record lives in the controller's database.
+
+**R5.3** (M1) — **States.** A runner is in one state: `creating`, `idle`, `busy`, `draining`, `updating`, `offline`, `failed` or `removing`. The agent reports changes; the controller stores them and pushes them to the console.
+
+**R5.4** (M1) — **Remove with a yes and a drain.** Removing a runner lists what goes (the GitHub registration, the service, the account, the folder) and needs a yes (design system UX-62). A busy runner drains first: it takes no new job and is removed when its job ends, or when the drain timeout the user set runs out. The idle check runs right before the removal. Removal from GitHub uses a remove token, never a registration token, and its result is checked (port DS R5.32, DL315).
+
+**R5.5** (M1) — **Find runners already on a machine.** The agent lists existing runners from the OS service list, not only from folders: Windows `Win32_Service` entries named `actions.runner.*` (path gives the folder, `StartName` the account), Linux systemd units `actions.runner.*`, macOS launchd jobs `actions.runner.*`. A runner whose folder the agent cannot read is still reported, and the checks that need admin rights say so (port DS R5.38). The console shows a runner it did not create as `not managed`.
+
+**R5.6** (M1) — **Replace a hand-made runner only after the new one is online.** When a repository already has a self-hosted runner for the same OS that the product did not create, the plan can add steps after the new runner: stop and delete the old service, remove the old runner from GitHub, delete its folder. Each step needs its own yes naming it. A step waits while the new runner is not online, the runner list cannot be read, or the old runner has a job (port DS R5.33).
+
+**R5.7** (M1) — **Isolation is named.** The console, the CLI and the API name each runner's isolation. A persistent runner is marked as keeping state between jobs (design system UX-61).
+
+### 5.2 Backend interface
+
+**R5.8** (M1) — **One interface.** Every backend implements: `Detect` (is it present and usable here), `PrepareImage`, `Start` (with a JIT config, or a registration for a persistent runner), `StreamLogs`, `Stop`, `CleanUp` and `ReportUsage` (decision 0003). The agent calls backends only through this interface.
+
+**R5.9** (M1) — **Detect and allow.** At start and every 10 minutes the agent reports which backends work on the machine and why the others do not (for example `firecracker: no /dev/kvm`). The user allows backends per machine. A backend that is present but not allowed is never used.
+
+**R5.10** (M1) — **Clean up always.** After `Stop`, the agent calls `CleanUp`, also after an error or a timeout. `CleanUp` is safe to call twice. An ephemeral runner leaves no container, VM, overlay disk, network or temp folder behind. A persistent runner's `CleanUp` (on removal) removes the service, the account and the folder.
+
+**R5.11** (M1) — **Logs.** `StreamLogs` sends the setup log and the runner's own log lines to the controller as they come. Known secrets (tokens, passwords, JIT configs) are replaced by `***` before they leave the agent.
+
+**R5.12** (M1) — **Usage.** `ReportUsage` gives, per runner and per job: CPU time, peak and median memory, disk used, and wall time. The agent sends it at least every 15 seconds while a job runs, and once at the end.
+
+### 5.3 Persistent runners on Windows (M1)
+
+**R5.13** (M1) — **A service with its own account.** Each Windows persistent runner is a Windows service that runs as its own local account, never NETWORK SERVICE, LocalSystem or an administrator. The account name is `crp-<short slug>`: at most 20 characters, lower-case letters, digits and hyphens, the same for the same runner on every run; a name that does not fit or is taken gets a 4-character hash (port DS R5.31, `test_dl310_windows_runner.py` slug tests).
+
+**R5.14** (M1) — **Account rights.** The account is a member of the local group `ci-runners-pool-runners`, has "log on as a service", and is denied interactive and remote desktop logon. It gets "create symbolic links" (`SeCreateSymbolicLinkPrivilege`) only when the runner's settings ask for it (for example a tool layer that needs symlinks, such as cargo-xwin). A rerun adds or removes the right to match the settings (port DS R5.31, changed: dev-standards gives it to every account).
+
+**R5.15** (M1) — **Password never kept.** The account password is random. It is made inside the process that registers the service, set on the account and passed only to the runner's service registration. It is never in the plan, the database, a log, the output or a file. A rerun makes a new one only when the service is registered again (port DS R5.31).
+
+**R5.16** (M1) — **Folder locked to the account.** The runner folder grants Full control to its account, Administrators and SYSTEM only. Inheritance is off.
+
+**R5.17** (M1) — **PowerShell hooks that call the all-users binary.** The runner `.env` sets `ACTIONS_RUNNER_HOOK_JOB_STARTED` and `ACTIONS_RUNNER_HOOK_JOB_COMPLETED` to `.ps1` files, never `.cmd` (the runner refuses `.cmd`). Each hook calls the `ci-runners-pool` binary installed for all users (under `Program Files`), never a copy in a user profile. The `.env` also sets `PSExecutionPolicyPreference=RemoteSigned` for the runner's processes only; the machine policy is not changed (port DS R5.31, learnings 4).
+
+**R5.18** (M1) — **No cmd quoting.** The agent registers services and scheduled tasks through the Windows service API or PowerShell cmdlets (`New-Service`, `Register-ScheduledTask`) with each argument passed on its own. It never builds a cmd-quoted command line, because PowerShell 5.1 mangles quotes to native programs (port DS R5.32, learning 5).
+
+**R5.19** (M1) — **Remove the old registration before locking the folder.** When a runner is registered again in place (for example with another account), the agent first removes the old registration with a remove token and checks the exit code. On failure it stops and leaves the old runner and folder as they were. Only after a good removal does it lock the folder to the new account (port DS R5.32, DL315, `test_dl315_runner_remove_token.py`).
+
+**R5.20** (M1) — **Reruns are safe.** A runner whose name, folder, labels, account, rights and `.env` all match is reported `already` and not touched. One with another account is registered again in place (R5.19). One with only a stale `.env` has the file rewritten and the service restarted, without a new password (port DS R5.32).
+
+### 5.4 Persistent runners on Linux (M1)
+
+**R5.21** (M1) — **A systemd unit with its own user.** Each Linux persistent runner is a systemd system unit that runs as its own system user `crp-<short slug>` (same naming as R5.13). The user has no login shell, no password and no sudo rights, and is in the group `ci-runners-pool-runners`.
+
+**R5.22** (M1) — **Folder and unit hardening.** The runner folder is owned by its user, mode `0700`. The unit sets `NoNewPrivileges=yes`, `PrivateTmp=yes`, `ProtectSystem=strict` with the runner folder in `ReadWritePaths`, and `Restart=on-failure`. The hooks are `.sh` files that call `/usr/local/bin/ci-runners-pool`.
+
+### 5.5 Persistent runners on macOS (M1)
+
+**R5.23** (M1) — **A launchd daemon with its own user.** Each macOS persistent runner is a launchd daemon in `/Library/LaunchDaemons` with `UserName` set to its own hidden user `crp-<short slug>` (no login shell, not an admin, not shown at login). The folder is owned by that user, mode `0700`. The hooks are `.sh` files that call `/usr/local/bin/ci-runners-pool`.
+
+**R5.24** (M1) — **All three OS together.** Milestone 1 ships R5.13 to R5.23 for Windows, Linux and macOS in the same release. Each OS backend is built only into the binary for that OS.
+
+### 5.6 Ephemeral JIT runners
+
+**R5.25** (M2) — **One runner per job with a JIT config.** For an ephemeral runner the controller asks GitHub for a JIT config for one job and hands it to the agent. The runner takes one job and exits. The JIT config is passed in memory or in a file only the runner can read, and is deleted at start. It is never stored in the database or logged.
+
+**R5.26** (M2) — **Nothing carries over.** After the job, the agent calls `Stop` and `CleanUp` (R5.10). The next job gets a new runner from the image. No state passes between jobs except the shared caches the user turned on.
+
+**R5.27** (M2) — **Containers on Linux and WSL2.** The container backend uses rootless Podman, or Docker when Podman is not there. The job runs as a non-root user. The container never runs with `--privileged` and never gets the Docker socket. When the machine allows KVM for that runner, `/dev/kvm` is passed with `--device` only. Memory and CPU caps come from the machine's load budget.
+
+**R5.28** (M4) — **Hyper-V and WSL2 VMs on Windows.** The Hyper-V backend starts a VM per job from a prepared disk with a differencing disk on top, and deletes the differencing disk after the job. The WSL2 backend starts a Linux microVM or container per job inside WSL2.
+
+**R5.29** (M5) — **Tart VMs on macOS, at most two.** The Tart backend clones a VM per job from a prepared image. The agent never runs more than two macOS VMs on one Mac at once, counting VMs it did not start. A third job waits for a free VM and says why.
+
+**R5.30** (M6) — **MicroVMs with snapshots.** On Linux with KVM, the Firecracker or Cloud Hypervisor backend boots an image once, takes a snapshot, and starts each job from that snapshot. The snapshot is keyed by image, kernel, vCPU count and memory; a change of any of them makes a new snapshot. After a restore the guest clock is set from the host and the guest random pool is reseeded (port DS R5.29).
+
+**R5.31** (M2) — **Best backend first.** When the user does not choose, the agent uses the first allowed backend in the order of decision 0003 for that OS (for Linux with `/dev/kvm`: microVM, then container, then persistent).
+
+### 5.7 Images
+
+**R5.32** (M2) — **Base images with tool layers.** Each OS has a few base images. The user turns tool layers on per pool: build tools, browsers for Playwright, packaging tools, cross-compilers. The layer list of an image is shown with its size (port DS R5.9, R5.11).
+
+**R5.33** (M2) — **Build once per machine, keep the newest few.** An image is keyed by its base, its layers and its pinned versions. A machine builds each key once and reuses it. It keeps the newest 3 images per OS (a setting) and deletes older ones that no runner uses.
+
+**R5.34** (M2) — **Pull through the registry mirror.** When the pool has a registry mirror, image pulls go through it. When the mirror cannot be reached, pulls go to the upstream registry and the console says so once.
+
+**R5.35** (M2) — **Rebuild with drain.** A rebuild builds the new image while the old one keeps serving jobs. Runners switch to the new image only when idle; the idle check runs right before the switch. A build failure keeps the old image and says `the rebuild failed: <reason>` (port DS R5.10, R5.13, R5.15; learning 1).
+
+### 5.8 Labels
+
+**R5.36** (M1) — **Generic labels only.** A runner carries only `self-hosted`, its OS, its architecture, `docker`, `kvm`, `gpu` and the pool name. Each capability label is added only when the agent has checked it works (for example `kvm` only when `/dev/kvm` is usable by the runner). The controller refuses any other label with the reason (port DS R5.36, R5.37; learning 7).
+
+### 5.9 Runner version
+
+**R5.37** (M1) — **Pinned runner version with SHA-256.** The binary carries one pinned GitHub runner version per OS and architecture, each with its SHA-256. A download whose hash does not match is deleted and refused. A hash that is not 64 hex characters, or is one repeated character, is treated as wrong (port DS R5.14).
+
+**R5.38** (M1) — **Auto-update with drain.** Persistent runners are registered with the runner's own self-update turned off. When a release of the product pins a newer runner version, or GitHub marks the running version as deprecated, the agent updates each runner: it drains it, replaces the runner files, and starts it again. The idle check runs right before the swap. An ephemeral runner uses the new version from its next job.
+
+## 6. Non-functional requirements
+
+All **NOT YET IMPLEMENTED**.
+
+**R6.1** (M1) — **No privileged containers, KVM as a device.** No backend ever starts a container with `--privileged`, a host PID or network namespace, or the Docker or Podman socket mounted. KVM is passed only as `--device /dev/kvm`.
+
+**R6.2** (M1) — **No secret is kept.** Registration tokens, remove tokens, JIT configs and account passwords are fetched or made when needed and dropped after use. None is written to the database, a log, a plan, the API output or the console.
+
+**R6.3** (M1) — **Least rights.** The agent's admin work (making accounts, services, groups) runs in one install-time helper the user approves. Runner accounts are never administrators. A persistent runner's account can write only its own folder and the shared tool cache.
+
+**R6.4** (M1) — **Never cut a running job.** Any change that stops a runner (remove, update, image switch, backend change) drains first and checks for an idle runner right before it acts, not earlier. The drain timeout is a setting (default 60 minutes). On timeout the change waits and asks the user; it never stops the job by itself.
+
+**R6.5** (M2) — **Start times.** With a warm image, an ephemeral container runner is online in GitHub within 15 s of the job being assigned (median over 20 starts). A microVM from a snapshot is online within 5 s (M6).
+
+**R6.6** (M5) — **Hard limit of two macOS VMs.** The two-VM limit per Mac (R5.29) cannot be raised by a setting.
+
+**R6.7** (M1) — **Logs kept for a while.** Runner setup logs are kept for 14 days or 200 MB per machine, whichever comes first. Usage figures are kept for 90 days.
+
+**R6.8** (M1) — **Audit.** Every create, update, remove and adopt of a runner writes an audit entry: who, what, when, which machine.
+
+**R6.9** (M1) — **Tested on the real OS.** Each OS backend has build-tagged tests that run on that OS in CI. A Windows hook is tested as the service account runs it (product brief rule "Test as the real caller").
+
+## 7. Design
+
+```mermaid
+flowchart TB
+  subgraph controller[Controller]
+    api[Runners API] --> store[(SQLite: runners, images, audit)]
+    api --> gh[GitHub client: registration, remove, JIT tokens]
+    api --> link[Agent link server]
+  end
+  subgraph agent[Node agent]
+    linkc[Agent link client] --> mgr[internal/runners: lifecycle, plans]
+    mgr --> iface[internal/backend: Backend interface]
+    iface --> win[persistent-windows]
+    iface --> lin[persistent-linux]
+    iface --> mac[persistent-macos]
+    iface --> ctr[container M2]
+    iface --> hv[hyperv, wsl2 M4]
+    iface --> tart[tart M5]
+    iface --> mvm[firecracker, cloud-hypervisor M6]
+  end
+  link <--> linkc
+```
+
+**Packages (planned).**
+
+- `internal/runners`: the runner record, states, plans (each step with its yes, deletions named), drain and the idle check, label rules, runner version pins.
+- `internal/backend`: the `Backend` interface and one sub-package per backend. Windows, Linux and macOS code sits behind build tags.
+
+**Interface (sketch, Go).**
+
+```go
+type Backend interface {
+    Name() string
+    Detect(ctx context.Context) (Support, error)
+    PrepareImage(ctx context.Context, spec ImageSpec) (ImageRef, error)
+    Start(ctx context.Context, r RunnerSpec, cfg StartConfig) (Handle, error) // JIT config or registration
+    StreamLogs(ctx context.Context, h Handle, out chan<- LogLine) error
+    Stop(ctx context.Context, h Handle) error
+    CleanUp(ctx context.Context, h Handle) error // idempotent
+    ReportUsage(ctx context.Context, h Handle) (Usage, error)
+}
+```
+
+**Data (planned tables).** `runners` (the R5.2 record), `runner_events` (state changes), `images` (key, OS, layers, size, machine, last used), `runner_usage` (per job). Tokens and passwords have no column.
+
+**Agent link.** The controller sends plans and tokens to the agent over the agent link (decision 0004). A token travels once, for one step.
+
+## 8. Failure modes
+
+| Dependency or failure | Behaviour | Why |
+|---|---|---|
+| GitHub API cannot be reached | Fail closed: no create, no remove; running runners keep running | A half-made registration is worse than a wait. |
+| Remove token step fails | Fail closed: stop, keep the old runner and folder (R5.19) | A failed removal must leave a working runner. |
+| Runner list cannot be read | Fail closed: no replace, no drain-based change (R5.6, R6.4) | Without the list the agent cannot know a job is running. |
+| Image build fails | Keep the old image; runners keep working (R5.35) | Never break the working path. |
+| Registry mirror down | Fail open: pull from upstream, say so once (R5.34) | The mirror is a speed-up, not a dependency. |
+| Agent loses the controller | Persistent runners keep running jobs; no new ephemeral runner starts | GitHub assigns jobs to persistent runners directly. |
+| Backend `CleanUp` fails | Retry at the next agent start; report the leftover in the doctor | Leftovers fill the disk. |
+| Third macOS VM asked | Wait (R5.29) | Apple's licence. |
+| Runner download hash differs | Fail closed: delete the file, refuse (R5.37) | A wrong binary runs with the runner's rights. |
+
+## 9. How it is proven
+
+No test exists yet. Each row names the planned Go test file and test. Ported tests name their dev-standards source.
+
+| Requirement | Test |
+|---|---|
+| R5.1 | planned: internal/runners/create_test.go TestCreateOnlyOnSupportingMachine; e2e/runners-create.spec.ts |
+| R5.2 | planned: internal/runners/record_test.go TestRunnerRecordFields |
+| R5.3 | planned: internal/runners/state_test.go TestStateTransitions |
+| R5.4 | planned: internal/runners/remove_test.go TestRemoveDrainsAndUsesRemoveToken; e2e/runners-remove.spec.ts |
+| R5.5 | planned: internal/backend/windows/detect_test.go TestFindFromServiceList (port of test_dl318_doctor_locked_runner.py); linux and macos detect_test.go |
+| R5.6 | planned: internal/runners/replace_test.go TestReplaceOnlyAfterNewOnline |
+| R5.7 | planned: apps/console runners list test TestIsolationNamed; internal/api runners_test.go TestIsolationInResponse |
+| R5.8 | planned: internal/backend/contract_test.go TestEveryBackendImplementsInterface |
+| R5.9 | planned: internal/backend/detect_test.go TestDetectReportsReasons; TestNotAllowedNeverUsed |
+| R5.10 | planned: internal/backend/contract_test.go TestCleanUpAfterErrorAndTwice |
+| R5.11 | planned: internal/backend/logs_test.go TestSecretsRedacted |
+| R5.12 | planned: internal/backend/usage_test.go TestUsageInterval |
+| R5.13 | planned: internal/backend/windows/account_test.go TestAccountName (port of test_dl310_windows_runner.py slug tests) |
+| R5.14 | planned: internal/backend/windows/account_test.go TestAccountRights; TestSymlinkRightOnlyWhenAsked (port of test_account_rights_and_group) |
+| R5.15 | planned: internal/backend/windows/register_test.go TestNoPasswordInPlanOrLog (port of test_plan_holds_no_password_and_no_token) |
+| R5.16 | planned: internal/backend/windows/folder_test.go TestFolderAcl (port of test_folder_rights) |
+| R5.17 | planned: internal/backend/windows/hooks_test.go TestPs1HooksCallAllUsersBinary (port of test_no_cmd_hook_and_no_second_machine_folder) |
+| R5.18 | planned: internal/backend/windows/register_test.go TestNoCmdQuotedCommandLine |
+| R5.19 | planned: internal/backend/windows/register_test.go TestRemoveBeforeLock; TestRemoveFailureStops (port of test_dl315_runner_remove_token.py) |
+| R5.20 | planned: internal/backend/windows/register_test.go TestRerunAlready; TestStaleEnvOnlyRewrites (port of test_dl310 rerun tests) |
+| R5.21 | planned: internal/backend/linux/systemd_test.go TestUnitUserAndGroup |
+| R5.22 | planned: internal/backend/linux/systemd_test.go TestUnitHardeningAndFolderMode |
+| R5.23 | planned: internal/backend/macos/launchd_test.go TestDaemonPlistUserAndFolder |
+| R5.24 | planned: CI matrix job runners-persistent on windows, ubuntu and macos (build-tagged tests above) |
+| R5.25 | planned: internal/runners/jit_test.go TestJitConfigNotStored |
+| R5.26 | planned: internal/backend/container/container_test.go TestNothingCarriesOver |
+| R5.27 | planned: internal/backend/container/container_test.go TestNoPrivilegedNoSocketKvmDevice |
+| R5.28 | planned: internal/backend/hyperv/hyperv_test.go TestDifferencingDiskDeleted; internal/backend/wsl2/wsl2_test.go |
+| R5.29 | planned: internal/backend/tart/tart_test.go TestAtMostTwoVms |
+| R5.30 | planned: internal/backend/microvm/snapshot_test.go TestSnapshotKeyAndRestore (port of test_dl281_vm_check.py) |
+| R5.31 | planned: internal/backend/choose_test.go TestBestBackendFirst |
+| R5.32 | planned: internal/runners/images_test.go TestLayersListed |
+| R5.33 | planned: internal/runners/images_test.go TestBuildOnceKeepNewest |
+| R5.34 | planned: internal/runners/images_test.go TestMirrorFallback |
+| R5.35 | planned: internal/runners/images_test.go TestRebuildDrainsAndKeepsOldOnFailure (port of test_dl289_refresh_drain.py) |
+| R5.36 | planned: internal/runners/labels_test.go TestGenericLabelsOnly (port of test_dl316_windows_only_generic.py) |
+| R5.37 | planned: internal/runners/version_test.go TestPinnedHash (port of test_dl310 pin tests and test_dl165_pool_refresh_hash_result.py) |
+| R5.38 | planned: internal/runners/update_test.go TestUpdateDrainsThenSwaps |
+| R6.1 | planned: internal/backend/container/container_test.go TestNoPrivilegedNoSocketKvmDevice; guards/no-privileged check |
+| R6.2 | planned: internal/runners/secrets_test.go TestNoTokenOrPasswordStoredOrLogged |
+| R6.3 | planned: internal/backend/windows/account_test.go TestNotAdmin; linux and macos user tests |
+| R6.4 | planned: internal/runners/drain_test.go TestIdleCheckRightBeforeAct; TestTimeoutAsksNeverKills |
+| R6.5 | planned: internal/backend/container/perf_test.go TestStartTime (M2); microvm perf_test.go (M6) |
+| R6.6 | planned: internal/backend/tart/tart_test.go TestLimitNotConfigurable |
+| R6.7 | planned: internal/runners/retention_test.go TestLogAndUsageRetention |
+| R6.8 | planned: internal/runners/audit_test.go TestAuditEntries |
+| R6.9 | planned: CI job runners-windows-service runs hooks as the service account; build tags checked in internal/backend |
+
+## 10. Decisions
+
+| ID | Question | Chosen | Date |
+|---|---|---|---|
+| RN-1 | Isolation model | Backend plugins behind one interface, chosen per machine and label (decision 0003) | 2026-11-13 |
+| RN-2 | What milestone 1 builds | Persistent runners on Windows, Linux and macOS together | 2026-11-14 |
+| RN-3 | Where runners are created | From the web console (and CLI), per OS, only on machines that support it | 2026-11-14 |
+| RN-4 | Windows runner account | Own local non-admin account; log on as a service; interactive logon denied; folder locked to it | 2026-11-13 |
+| RN-5 | Labels | Generic only; workflows target runners by `CRP_RUNS_ON_*` repository variables | 2026-11-14 |
+| RN-6 | Containers | Never privileged; KVM as a device | 2026-11-13 |
+| RN-7 | Tart limit | At most two macOS VMs per Mac, enforced | 2026-11-13 |
+
+Open questions for the owner (proposed answers are in the requirements until decided):
+
+1. R5.14: the symlink right only when asked (brief), while dev-standards gives it to every account (DL319). Confirm "only when asked".
+2. R5.13, R5.21, R5.23: account prefix `crp-` and group `ci-runners-pool-runners`. Confirm names.
+3. R5.33: keep the newest 3 images per OS. Confirm the default.
+4. R6.4: drain timeout default 60 minutes. Confirm.
+5. R6.7: log retention 14 days or 200 MB per machine; usage 90 days. Confirm.
+6. R5.5: should the product offer to adopt a hand-made runner, or only replace it (R5.6)?
+7. R5.21: Linux runners as systemd system units (admin needed at install). Confirm against user units.
+8. R5.25: JIT configs per job through the runner scale set client (`actions/scaleset`), or the plain `generate-jitconfig` API? The proposal is scale sets.
+9. R6.5: start-time budgets (15 s container, 5 s microVM). Confirm.
+
+## 11. Not built yet
+
+Everything. The seams that change:
+
+- M1: `internal/runners` and `internal/backend` with the three persistent backends; Runners screen; runner API in `packages/contract/openapi.yaml`; agent link messages in `packages/contract/proto`.
+- M2: container backend, JIT flow, images and layers.
+- M4: Hyper-V and WSL2 VM backends.
+- M5: Tart backend.
+- M6: Firecracker and Cloud Hypervisor backends with snapshots.
+- M7: the registry mirror server that R5.34 uses.
+
+## 12. Code map
+
+No code yet. Planned paths: `internal/runners/`, `internal/backend/` (one folder per backend), the runners part of `packages/contract/openapi.yaml` and `packages/contract/proto`, and the Runners screen of the web console. `Source:` lines are added with the code.
+
+## Versions
