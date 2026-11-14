@@ -6,31 +6,31 @@
 
 ### agent
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this app yet.
 
 ### cli
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
 
 ### controller
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
 
 ### tray
 
-No feature lists this app yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
 
 ### web-console
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
 
 ## By topic
 
@@ -52,45 +52,39 @@ No feature lists this topic yet.
 
 ### machines
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### observability
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
 
 ### operations
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
 
 ### runners
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### scheduling
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### security
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
 
 ### ui
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
 
 ## By status
 
@@ -98,8 +92,8 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
 
 ## Gaps
 
-- app tray: no feature spec lists it
+- app agent: no feature spec lists it
