@@ -7,7 +7,7 @@ status: proposed
 version: 0.1.0
 owner: owner
 type: reference
-code: [internal/update/**, internal/backup/**, internal/configio/**, internal/install/**]
+code: [internal/update/**, internal/backup/**, internal/configio/**, internal/install/**, installer/**, cmd/crsp/service_*.go]
 design_system: [components 4, components 9, components 16, components 18, components 34, UX-5, UX-6, UX-9, UX-13, UX-26, UX-29, UX-30, UX-34, UX-38, UX-62]
 last_verified: 2026-11-14
 artifact:
@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-**Partly built (CRSP18).** Built: the config file and schema (R5.8, R5.9), the per-OS folders (R5.10), the daily backup, restore and drill (R5.21 to R5.25, R5.27, the secret list of R5.26 as `backup.MissingSecrets`). Everything else below is **NOT YET IMPLEMENTED**: planned, with its milestone.
+**Partly built (CRSP18).** Built: the Windows MSI installer (R5.7, R5.35 to R5.41), the config file and schema (R5.8, R5.9), the per-OS folders (R5.10), the daily backup, restore and drill (R5.21 to R5.25, R5.27, the secret list of R5.26 as `backup.MissingSecrets`). Everything else below is **NOT YET IMPLEMENTED**: planned, with its milestone.
 
 ## 1. In one paragraph
 
@@ -138,7 +138,7 @@ Each requirement names its milestone (M1 to M8, product brief). Those not named 
 
 **R5.6** (M1) — On first start the controller makes its TLS certificate, opens ports 8460 and 8461 (or the configured ports), and prints a one-time link to the first-run wizard. The tray opens that link. The wizard itself is in the GitHub spec.
 
-**R5.7** (M8) — Installers per OS (MSI, pkg, deb and rpm) install the same files and services as R5.2 to R5.4.
+**R5.7** (M1 for Windows, M8 for the rest) — Installers per OS install the same files and services as R5.2 to R5.4. The Windows MSI is built (R5.35 to R5.41). pkg, deb and rpm, and signed installers, come later (macOS and Linux: task CRSP21; signing: M8).
 
 ### Config file and data folder
 
@@ -205,6 +205,22 @@ The data folder holds the database, `backups/`, `logs/` and `updates/`. It is re
 **R5.30** (M8) — `crsp config apply <plan-id>` applies exactly that plan. It refuses if the pool changed since the plan. Removals need an explicit yes that names each one. Changes that restart runners drain first (R5.14). Each change is written to the audit log.
 
 **R5.31** (M8) — The console offers export and import under Settings; import is a wizard that ends with Review, the work, and Done.
+
+### Windows installer (MSI)
+
+**R5.35** (M1) — Windows installs through `crsp-windows-amd64.msi` or `crsp-windows-arm64.msi`, built with WiX Toolset v5 (pinned to 5.0.2) on `windows-latest` by `release.yml` and published for edge and stable releases. Both are listed in `SHA256SUMS` and covered by the provenance attestation. They are not signed in v0.1.0. The MSI `ProductVersion` is the release version (`1.2.3` becomes `1.2.3.0`); an edge build is the next patch after the latest stable tag with the run number as fourth field.
+
+**R5.36** (M1) — The MSI is per machine and installs to `%ProgramFiles%\crsp`. It installs `crsp.exe`; registers the one service `crsp` (`crsp.exe controller`, automatic start, delayed, restart after a crash, account `NT SERVICE\crsp`) and starts it; adds the install folder to the system `PATH`; adds a Start Menu shortcut (`crsp tray`); starts the tray at every user's sign-in (`HKLM\...\Run`, value `crsp-tray`); and adds an inbound firewall rule, TCP 8460 and 8461, on the Private profile only, never Public. It makes `%ProgramData%\crsp` readable by Administrators, SYSTEM and the service account only (R5.10). It writes the file `install-kind` next to `crsp.exe`, containing `msi`; the updater reads it to choose the update method.
+
+**R5.37** (M1) — Uninstall removes the program, the service, the `PATH` entry, the shortcut, the autostart value, the firewall rule and `install-kind`. With the dialogs (`msiexec /x crsp-windows-<arch>.msi`, and Settings > Apps > crsp) it asks "Also delete my data", unticked by default. Silent uninstall keeps the data folder; `REMOVEDATA=1` deletes it. Data is the config file, the database, the audit log, backups and the CA.
+
+**R5.38** (M1) — The UpgradeCode is fixed: `C1D62442-6DB4-4FF0-9F28-A1CE3121B332`. A newer MSI replaces the installed one in place and keeps the data folder; the same `a.b.c` replaces itself; a lower version is refused (exit 1603, `A newer version of crsp is already installed.` in the log).
+
+**R5.39** (M1) — The command the self-updater runs, from an elevated process, is exactly `msiexec /i crsp-windows-<arch>.msi /qn /norestart /l*v <log>`. It stops the tray and the service (and the `crsp-agent` service when it runs from the install folder, which is started again afterwards), replaces the files, and starts the service again. No run needs a reboot. The updater reads the result from the exit code (0 done, 1603 refused or failed) and from `<log>`.
+
+**R5.40** (M1) — A failed install or upgrade rolls back: Windows Installer puts the old version back and a rollback action starts the old service again. The `/l*v` log records the rollback.
+
+**R5.41** (M1) — `crsp.exe` run by the service manager reports its state through the Windows service protocol: Stop ends the controller as SIGTERM does, a non-zero end makes the service manager restart it, and the log goes to `%ProgramData%\crsp\logs\crsp.log`. `crsp tray` detaches from its console window.
 
 ### Uninstall
 
@@ -297,7 +313,14 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R5.4 | planned: internal/install/account_test.go TestServiceRunsAsNonAdmin |
 | R5.5 | planned: internal/install/join_test.go TestJoinStoresKeyInSecretStore |
 | R5.6 | planned: cmd/crsp first-run e2e TestFirstStartPrintsOneTimeLink |
-| R5.7 | planned: installer smoke jobs in build.yml per OS (M8) |
+| R5.7 | Windows: R5.35 to R5.41 below; macOS and Linux: planned (CRSP21) |
+| R5.35 | installer/smoke.ps1 (`.github/workflows/installer.yml`, x64 install; arm64 builds and extracts), .github/workflows/release.yml asset count |
+| R5.36 | installer/smoke.ps1: service, account, failure actions, PATH, firewall rule (Private, 8460, 8461), shortcut, autostart, data ACL, `install-kind` |
+| R5.37 | installer/smoke.ps1 silent uninstall keeps data and leaves nothing; `REMOVEDATA=1`; installer/ui-test.ps1 drives the dialog |
+| R5.38 | installer/smoke.ps1: silent upgrade, refused downgrade |
+| R5.39 | installer/smoke.ps1: the exact command, new service process, data kept |
+| R5.40 | installer/smoke.ps1: failed upgrade (a test build that fails after the files are in) leaves the old version running |
+| R5.41 | installer/smoke.ps1: service runs and listens on 8460; the service log file exists |
 | R5.8 | internal/config/config_test.go TestFileThenEnvOverride, TestReportsAllProblems |
 | R5.9 | internal/config/config_test.go TestRefusesPlaceholders, TestRefusesUnknownKeysWrongTypesAndSecrets |
 | R5.10 | internal/config/config_test.go TestDataFolderPerOS |
@@ -357,7 +380,7 @@ Built in CRSP18: see the status line at the top. The seams:
 
 - `internal/config/config.go` reads `config.toml` and the `CRSP_*` variables (R5.8 to R5.10). `crsp config check` (the command) is the CLI's.
 - `.github/workflows/release.yml` publishes archives, `SHA256SUMS` and provenance today. The updater reads exactly these. It will also need `install.sh` and `install.ps1` as release assets (R5.1), and the `edge` release keeps its tag name so the checker can find it.
-- Code signing and installers (R5.7) come in milestone 8.
+- Code signing (M8) and the macOS and Linux installers (R5.7, CRSP21). The Windows MSI is built.
 
 **Open owner questions.**
 
@@ -374,6 +397,8 @@ Built in CRSP18: see the status line at the top. The seams:
 ## 12. Code map
 
 Source: internal/config/config.go
+Source: installer/crsp.wxs
+Source: cmd/crsp/service_windows.go
 Source: internal/backup/service.go
 Source: internal/backup/archive.go
 Source: internal/backup/start.go

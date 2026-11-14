@@ -96,6 +96,11 @@
                               Scope="any" />
       </Component>
 
+      <!-- Tells the updater how this copy was installed (CRSP19): the text "msi". Removed with the product. -->
+      <Component Id="InstallKind">
+        <File Id="InstallKindFile" Name="install-kind" Source="install-kind" KeyPath="yes" />
+      </Component>
+
       <!-- The Start Menu shortcut opens the tray. Not advertised: a plain shortcut starts the tray and nothing else. -->
       <Component Id="StartMenuShortcut">
         <Shortcut Id="CrspShortcut"
@@ -222,7 +227,33 @@
                   Impersonate="no"
                   Return="ignore" />
 
+    <!--
+      A failed run rolls back: Windows Installer puts the old version back
+      (service, files, rule, PATH), and this rollback action starts the old
+      service again, because rollback does not start what it re-registers.
+      Scheduled before StopServiceEarly, so it runs after everything else is undone.
+    -->
+    <SetProperty Id="StartServicesRollback"
+                 Value="&quot;[System64Folder]sc.exe&quot; start crsp"
+                 Before="StartServicesRollback"
+                 Sequence="execute" />
+    <CustomAction Id="StartServicesRollback"
+                  BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+                  DllEntry="WixQuietExec"
+                  Execute="rollback"
+                  Impersonate="no"
+                  Return="ignore" />
+    <?ifdef FailAfterInstall?>
+    <!-- Test builds only (build.ps1 -FailAfterInstall): the run fails after the files are in, to test the rollback. -->
+    <SetProperty Id="FailNow" Value="&quot;[System64Folder]cmd.exe&quot; /c exit 1" Before="FailNow" Sequence="execute" />
+    <CustomAction Id="FailNow" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="check" />
+    <?endif?>
+
     <InstallExecuteSequence>
+      <Custom Action="StartServicesRollback" Before="StopServiceEarly" Condition="NOT REMOVE~=&quot;ALL&quot;" />
+      <?ifdef FailAfterInstall?>
+      <Custom Action="FailNow" After="StartServices2" Condition="NOT REMOVE~=&quot;ALL&quot;" />
+      <?endif?>
       <!-- First of all, in every run: nothing holds the program's files from here on. -->
       <Custom Action="StopServiceEarly" After="InstallInitialize" />
       <Custom Action="EndProgramProcesses" After="StopServices" />
@@ -251,7 +282,7 @@
       </Dialog>
     </UI>
     <InstallUISequence>
-      <Show Dialog="RemoveDataDlg" Before="ProgressDlg"
+      <Show Dialog="RemoveDataDlg" After="CostFinalize"
             Condition="Installed AND REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
     </InstallUISequence>
   </Package>

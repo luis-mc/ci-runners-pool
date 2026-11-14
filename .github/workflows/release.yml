@@ -131,9 +131,11 @@ jobs:
               *)         tar -C stage -czf "dist/crsp-${target}.tar.gz" "crsp-${target}" ;;
             esac
           done
+          # Installer assets join the archives here. One line per installer kind:
+          # the Windows MSIs now; pkg, deb and rpm come with CRSP21.
           cp msi/crsp-windows-amd64.msi msi/crsp-windows-arm64.msi dist/
           count=$(find dist -type f | wc -l)
-          [ "$count" -eq 8 ] || { echo "::error::expected 6 archives and 2 MSIs, found $count"; exit 1; }
+          [ "$count" -eq 8 ] || { echo "::error::expected 6 archives and 2 MSIs (raise the count with each installer kind), found $count"; exit 1; }
           (cd dist && sha256sum crsp-* > SHA256SUMS)
           cat dist/SHA256SUMS
 

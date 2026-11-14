@@ -12,12 +12,14 @@ param(
   [Parameter(Mandatory)][string]$Msi,
   [string]$UpgradeMsi = '',
   [string]$DowngradeMsi = '',
+  [string]$FailingMsi = '',
   [string]$LogDir = (Join-Path $PSScriptRoot 'out\logs')
 )
 $ErrorActionPreference = 'Continue'
 $Msi = (Resolve-Path $Msi).Path
 if ($UpgradeMsi) { $UpgradeMsi = (Resolve-Path $UpgradeMsi).Path }
 if ($DowngradeMsi) { $DowngradeMsi = (Resolve-Path $DowngradeMsi).Path }
+if ($FailingMsi) { $FailingMsi = (Resolve-Path $FailingMsi).Path }
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 $LogDir = (Resolve-Path $LogDir).Path
 $progDir = Join-Path $env:ProgramFiles 'crsp'
@@ -79,6 +81,7 @@ if ($r) {
 Check 'Start Menu shortcut' (Test-Path (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'crsp.lnk'))
 $run = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Name 'crsp-tray' -ErrorAction SilentlyContinue).'crsp-tray'
 Check 'tray autostart at sign-in' ($run -like '*crsp.exe" tray') $run
+Check 'install-kind marker says msi' ((Get-Content (Join-Path $progDir 'install-kind') -Raw -ErrorAction SilentlyContinue).Trim() -eq 'msi')
 Check 'data folder exists' (Test-Path $dataDir)
 $acl = (Get-Acl $dataDir).Access | ForEach-Object { "$($_.IdentityReference)" }
 Check 'data folder ACL has no Users group' (-not ($acl -match 'BUILTIN\\Users')) ($acl -join '; ')
@@ -106,12 +109,23 @@ if ($UpgradeMsi) {
   Check 'PATH has the folder once' (@($path -split ';' | Where-Object { $_.TrimEnd('\') -ieq $progDir }).Count -eq 1)
   $Msi = $UpgradeMsi
 }
+$installedVersion = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\crsp').DisplayVersion
 if ($DowngradeMsi) {
   Write-Host "== downgrade is refused $DowngradeMsi"
   $rc = Msiexec @('/i', "`"$DowngradeMsi`"") (Join-Path $LogDir 'downgrade.log')
   $dlog = Get-Content (Join-Path $LogDir 'downgrade.log') -Raw
   Check 'downgrade refused (exit 1603, "newer version" message)' ($rc -eq 1603 -and $dlog -match 'A newer version of crsp is already installed') "exit $rc"
   Check 'service still running after refused downgrade' ((SvcState) -eq 'Running')
+}
+
+if ($FailingMsi) {
+  Write-Host "== a failed upgrade rolls back $FailingMsi"
+  $rc = Msiexec @('/i', "`"$FailingMsi`"") (Join-Path $LogDir 'failed-upgrade.log')
+  Check 'failed upgrade exits non-zero (1603)' ($rc -eq 1603) "exit $rc"
+  Check 'old version still installed after rollback' (@(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -eq 'crsp' -and $_.SystemComponent -ne 1 -and $_.DisplayVersion -eq $installedVersion }).Count -eq 1) "wanted $installedVersion"
+  Check 'service running again after rollback' (WaitRunning) ("state " + (SvcState))
+  Check 'firewall rule and PATH intact after rollback' ($null -ne (Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue) -and [bool]([Environment]::GetEnvironmentVariable('Path','Machine') -split ';' | Where-Object { $_.TrimEnd('\') -ieq $progDir }))
+  Check 'msiexec log shows the rollback' ((Get-Content (Join-Path $LogDir 'failed-upgrade.log') -Raw) -match 'Rollback')
 }
 
 Write-Host "== silent uninstall keeps data"

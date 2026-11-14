@@ -17,7 +17,8 @@ param(
   [string]$Out = (Join-Path $PSScriptRoot 'out'),
   [string]$EdgeBase = '0.1.0',
   [int]$Build = 0,
-  [string]$ProductVersion = ''
+  [string]$ProductVersion = '',
+  [switch]$FailAfterInstall
 )
 $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
@@ -67,6 +68,7 @@ try {
     -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext -ext WixToolset.Firewall.wixext `
     -d "ProductVersion=$ProductVersion" -d "CrspExe=$Exe" `
     -d "ServiceSid=$serviceSid" -d "LicenseRtf=$rtf" `
+    @(if ($FailAfterInstall) { '-d'; 'FailAfterInstall=1' }) `
     -o $msi | Out-Host
   if ($LASTEXITCODE -ne 0) { throw 'wix build failed' }
 } finally { Pop-Location }

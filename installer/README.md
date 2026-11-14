@@ -1,6 +1,6 @@
 # crsp Windows installer (MSI)
 
-`crsp-windows-x64.msi` and `crsp-windows-arm64.msi`, built with WiX Toolset v5 (pinned to 5.0.2 in `dotnet-tools.json`; the UI, Util and Firewall extensions at the same version). The release workflow builds them on `windows-latest`; the feature spec is `docs/features/operations/spec.md` (R5.7, R5.29 to R5.34).
+`crsp-windows-amd64.msi` and `crsp-windows-arm64.msi`, built with WiX Toolset v5 (pinned to 5.0.2 in `dotnet-tools.json`; the UI, Util and Firewall extensions at the same version). The release workflow builds them on `windows-latest`; the feature spec is `docs/features/operations/spec.md` (R5.7, R5.35 to R5.41).
 
 ## Identity (never change)
 
@@ -42,7 +42,7 @@ Windows Installer compares the first three fields only. An edge build has the sa
 Run from an elevated process (the package is per machine):
 
 ```text
-msiexec /i crsp-windows-<arch>.msi /qn /norestart /l*v <log>
+msiexec /i crsp-windows-<amd64|arm64>.msi /qn /norestart /l*v <log>
 ```
 
 This is both the first install and the upgrade. On an upgrade it stops the `crsp` service and the tray, replaces the files, and starts the service again. Data is kept. The self-updater (CRSP19) runs exactly this command; its log path is its choice (suggested: `%ProgramData%\crsp\logs\msi-update.log`).
@@ -50,9 +50,9 @@ This is both the first install and the upgrade. On an upgrade it stops the `crsp
 Exit codes: `0` done; `1603` refused (a newer version is installed, the log has `A newer version of crsp is already installed.`) or failed; `3010` never (no run needs a reboot).
 
 ```text
-msiexec /x crsp-windows-<arch>.msi /qn /norestart /l*v <log>                 keeps the data folder
-msiexec /x crsp-windows-<arch>.msi /qn /norestart REMOVEDATA=1 /l*v <log>    also deletes it
-msiexec /x crsp-windows-<arch>.msi                                           full dialogs, with the "Also delete my data" box
+msiexec /x crsp-windows-<amd64|arm64>.msi /qn /norestart /l*v <log>                 keeps the data folder
+msiexec /x crsp-windows-<amd64|arm64>.msi /qn /norestart REMOVEDATA=1 /l*v <log>    also deletes it
+msiexec /x crsp-windows-<amd64|arm64>.msi                                           full dialogs, with the "Also delete my data" box
 ```
 
 Settings > Apps > crsp > Uninstall runs the last form (the package adds its own Apps entry that starts it with the dialogs).

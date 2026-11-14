@@ -68,6 +68,8 @@ jobs:
         run: |
           ./installer/build.ps1 -Arch x64 -Exe installer/out/crsp.exe -Version 0.1.1 -Out installer/out/v0.1.1
           ./installer/build.ps1 -Arch x64 -Exe installer/out/crsp.exe -Version 0.0.9 -Out installer/out/v0.0.9
+          # An upgrade that fails after the files are in, to test the rollback.
+          ./installer/build.ps1 -Arch x64 -Exe installer/out/crsp.exe -Version 0.1.2 -Out installer/out/v0.1.2 -FailAfterInstall
 
       - name: Install, upgrade, downgrade and uninstall
         if: ${{ matrix.arch == 'x64' }}
@@ -76,7 +78,13 @@ jobs:
             -Msi installer/out/v0.1.0/crsp-windows-amd64.msi `
             -UpgradeMsi installer/out/v0.1.1/crsp-windows-amd64.msi `
             -DowngradeMsi installer/out/v0.0.9/crsp-windows-amd64.msi `
+            -FailingMsi installer/out/v0.1.2/crsp-windows-amd64.msi `
             -LogDir installer/out/logs
+
+      # Drives the "Also delete my data" dialog with UI Automation on the runner's desktop.
+      - name: Uninstall dialog
+        if: ${{ matrix.arch == 'x64' }}
+        run: ./installer/ui-test.ps1 -Msi installer/out/v0.1.0/crsp-windows-amd64.msi
 
       - name: Administrative extract (no install)
         run: |

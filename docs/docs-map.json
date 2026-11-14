@@ -19,6 +19,12 @@
     "cmd/crsp/**": [
       "docs/features/cli/spec.md"
     ],
+    "cmd/crsp/service_*.go": [
+      "docs/features/operations/spec.md"
+    ],
+    "installer/**": [
+      "docs/features/operations/spec.md"
+    ],
     "internal/agent/**": [
       "docs/features/machines/spec.md"
     ],
