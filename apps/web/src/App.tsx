@@ -25,6 +25,7 @@ import {
   ThemeApplier,
   UsersSettings,
 } from './screens/settings/Settings';
+import { UpdateReviewPage, UpdatesSettings } from './screens/settings/Updates';
 import { SetupPage } from './screens/setup/Setup';
 
 /** No valid session: every path but /sign-in and /setup goes to /sign-in and keeps the path (R5.8). */
@@ -133,6 +134,7 @@ export function App({
                   <Later title="Doctor" what="The doctor" milestone="milestone 2" />
                 }
               />
+              <Route path="settings/updates/review" element={<UpdateReviewPage />} />
               <Route path="settings" element={<SettingsLayout />}>
                 <Route index element={<Navigate to="users" replace />} />
                 <Route path="users" element={<UsersSettings />} />
@@ -159,12 +161,7 @@ export function App({
                     />
                   }
                 />
-                <Route
-                  path="updates"
-                  element={
-                    <Later title="Updates" what="Updates" milestone="milestone 3" />
-                  }
-                />
+                <Route path="updates" element={<UpdatesSettings />} />
                 <Route
                   path="audit"
                   element={
