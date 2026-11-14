@@ -16,6 +16,9 @@ if (-not (Test-Path -LiteralPath $crsp)) {
     Stop-WithWarning "crsp is not installed at $crsp, so this job ran without the queue and the load gate. Reinstall crsp for all users on this machine, then run 'crsp doctor --check runner.hooks'. The job was not stopped."
 }
 $env:CRSP_HOOK_DIR = $PSScriptRoot
+# Nothing a hook starts may ask for a login (scheduling R5.62).
+$env:GIT_TERMINAL_PROMPT = '0'
+$env:GCM_INTERACTIVE = 'never'
 try {
     & $crsp hook $hook @args
 } catch {

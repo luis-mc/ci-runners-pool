@@ -40,6 +40,8 @@ type Env struct {
 	Getenv func(string) string
 	Stdout io.Writer
 	Stderr io.Writer
+	// Setenv sets a variable of this process; nil is os.Setenv (tests replace it).
+	Setenv func(key, value string)
 	// Client overrides the socket client (tests, an in-process agent).
 	Client Client
 	// Sleep, Now and Measure override the real ones (tests).
@@ -60,8 +62,11 @@ func Run(ctx context.Context, args []string, e Env) int {
 		_, _ = fmt.Fprintln(e.Stderr, "usage: crsp hook job-started|job-completed [flags]")
 		return 2
 	}
+	// First thing, before any other step: nothing a hook starts may ask for a login.
+	e.applyNonInteractive()
 	if e.Getenv(ProbeEnv) == "1" && (args[0] == "job-started" || args[0] == "job-completed") {
 		_, _ = fmt.Fprintln(e.Stdout, ProbeOK)
+		_, _ = fmt.Fprintln(e.Stdout, NonInteractiveOK)
 		return 0
 	}
 	switch args[0] {
@@ -87,13 +92,30 @@ func jobFromEnv(getenv func(string) string) scheduler.JobRef {
 
 func (e Env) client() Client {
 	if e.Client != nil {
-		return e.Client
+		return &helloOnce{Client: e.Client}
 	}
 	path := e.Getenv(SocketEnv)
 	if path == "" {
 		path = DefaultSocket()
 	}
-	return &SocketClient{Path: path}
+	return &helloOnce{Client: &SocketClient{Path: path, Timeout: CallTimeout}}
+}
+
+// helloOnce asks the agent for hello one time. The answer, or the failure, is
+// kept: a slow agent costs the hook one limit, not one per step (R5.62).
+type helloOnce struct {
+	Client
+	done  bool
+	hello Hello
+	err   error
+}
+
+func (h *helloOnce) Hello(ctx context.Context) (Hello, error) {
+	if !h.done {
+		h.hello, h.err = h.Client.Hello(ctx)
+		h.done = true
+	}
+	return h.hello, h.err
 }
 
 // logger writes each line to stdout (the job's Set up job step) and the agent log file.
@@ -164,6 +186,7 @@ func runStarted(ctx context.Context, args []string, e Env) int {
 	}
 	// The gate settings come from the agent when it answers (flag and env still win, R5.5).
 	if cfg.Client != nil {
+		log(fmt.Sprintf("job-started: asking the agent for the gate settings (limit %.0f s)", CallTimeout.Seconds()))
 		if h, err := cfg.Client.Hello(ctx); err == nil {
 			cfg.Gate = slots.ResolveGate(*maxWait, *poll, *onTimeout, e.Getenv, h.Settings)
 		}
