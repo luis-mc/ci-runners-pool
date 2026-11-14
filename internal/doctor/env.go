@@ -152,6 +152,26 @@ type Runner struct {
 	ListenerKnown  bool
 	ListenerPIDs   []int
 	ServiceRunning bool
+	// ToolCache is what the agent saw in the runner's tool cache; nil when it
+	// did not look (R5.35).
+	ToolCache *ToolCacheProbe
+}
+
+// ToolCacheProbe is what the agent found in a runner's tool cache (_work/_tool
+// or the configured tool cache folder), seen as the runner's account.
+type ToolCacheProbe struct {
+	// Dir is the folder that was looked at.
+	Dir string
+	// Err is set when the account could not read a file there (for example
+	// "Access is denied"). File is the file that failed.
+	Err  string
+	File string
+	// OwnerKnown is true when the agent read the owner and inheritance of the
+	// files instead of opening one. WrongOwner lists files whose owner is not
+	// the runner account; NotInherited lists files with inheritance off.
+	OwnerKnown   bool
+	WrongOwner   []string
+	NotInherited []string
 }
 
 // HookProbe is the result of one run of a runner's real job-started hook script

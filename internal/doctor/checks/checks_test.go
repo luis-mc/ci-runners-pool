@@ -694,3 +694,29 @@ func TestRunnerListener(t *testing.T) {
 		}
 	}
 }
+
+// R5.35: the runner account must be able to read its tool cache.
+func TestRunnerToolCache(t *testing.T) {
+	ok, bad, owner, none := persistent("r1", "crsp-ok"), persistent("r2", "crsp-bad"), persistent("r3", "crsp-owner"), persistent("r4", "crsp-none")
+	dir := `C:\ProgramData\crsp\runners\crsp-bad`
+	ok.ToolCache = &doctor.ToolCacheProbe{Dir: dir}
+	bad.ToolCache = &doctor.ToolCacheProbe{Dir: dir, File: "_work/_tool/lld-link.exe", Err: "Access is denied"}
+	owner.ToolCache = &doctor.ToolCacheProbe{Dir: dir, OwnerKnown: true, WrongOwner: []string{"a.exe"}, NotInherited: []string{"b.exe"}}
+	fl := &fleet{machines: []doctor.Machine{healthyMachine()}, runners: []doctor.Runner{ok, bad, owner, none}}
+	got := map[string]doctor.Finding{}
+	for _, f := range run(t, doctor.Env{Fleet: fl}, "runner.toolcache") {
+		got[f.Subject.Name] = f
+	}
+	if got["crsp-ok"].Severity != doctor.OK || got["crsp-none"].Severity != doctor.Skip {
+		t.Errorf("ok=%+v none=%+v", got["crsp-ok"], got["crsp-none"])
+	}
+	for _, n := range []string{"crsp-bad", "crsp-owner"} {
+		f := got[n]
+		if f.Severity != doctor.Fail || !strings.Contains(f.Fix.Command, "takeown /F "+dir+" /R /D Y") || !strings.Contains(f.Fix.Command, "icacls "+dir+" /reset /T /C") {
+			t.Errorf("%s = %+v", n, f)
+		}
+	}
+	if !strings.Contains(got["crsp-bad"].Detail, "Access is denied") || !strings.Contains(got["crsp-owner"].Detail, "another owner") {
+		t.Errorf("detail: %q / %q", got["crsp-bad"].Detail, got["crsp-owner"].Detail)
+	}
+}

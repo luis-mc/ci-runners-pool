@@ -434,3 +434,53 @@ func runnerLabelsGeneric(ctx context.Context, env doctor.Env) []doctor.Finding {
 	}
 	return out
 }
+
+// toolCacheFixCommands are the two commands that put a tool cache right after
+// an account switch (runners R5.58).
+func toolCacheFixCommands(dir string) string {
+	return "takeown /F " + dir + " /R /D Y && icacls " + dir + " /reset /T /C"
+}
+
+// runnerToolCache is R5.35: the runner's own account can read its tool cache.
+// A runner moved from one account to another can keep files with the old owner
+// and explicit entries, and then every job that runs a tool from the cache
+// fails with "Access is denied". The agent opens a file there as the runner
+// account; when it cannot, it reports the owner and inheritance flags.
+func runnerToolCache(ctx context.Context, env doctor.Env) []doctor.Finding {
+	rs, ms, out := persistentRunners(ctx, env, "runner.toolcache")
+	for _, r := range rs {
+		m := ms[r.MachineID]
+		f := doctor.Finding{Check: "runner.toolcache", Subject: runnerSubject(r)}
+		p := r.ToolCache
+		switch {
+		case !isOnline(env, m):
+			out = append(out, offlineSkip("runner.toolcache", m))
+			continue
+		case p == nil:
+			f.Severity, f.Title = doctor.Skip, "The tool cache of "+r.Name+" was not looked at"
+			f.Detail = "The agent on " + m.Name + " did not try to read the tool cache as the runner's account."
+			f.Fix = doctor.Fix{Text: "Update the agent on " + m.Name + " and run the checks again.", Command: "crsp doctor --check runner.toolcache"}
+		case p.Err != "" || len(p.WrongOwner) > 0 || len(p.NotInherited) > 0:
+			f.Severity, f.Title = doctor.Fail, r.Name+" cannot read its tool cache"
+			var parts []string
+			if p.Err != "" {
+				parts = append(parts, fmt.Sprintf("Opening %s failed: %s.", p.File, p.Err))
+			}
+			if len(p.WrongOwner) > 0 {
+				parts = append(parts, fmt.Sprintf("%d file(s) have another owner, for example %s.", len(p.WrongOwner), p.WrongOwner[0]))
+			}
+			if len(p.NotInherited) > 0 {
+				parts = append(parts, fmt.Sprintf("%d file(s) do not inherit access, for example %s.", len(p.NotInherited), p.NotInherited[0]))
+			}
+			f.Detail = strings.Join(parts, " ")
+			f.Fix = doctor.Fix{
+				Text:    "Take ownership of the runner folder and reset every file to inherited access, from an administrator shell on " + m.Name + ".",
+				Command: toolCacheFixCommands(p.Dir),
+			}
+		default:
+			f.Severity, f.Title = doctor.OK, r.Name+" can read its tool cache"
+		}
+		out = append(out, f)
+	}
+	return out
+}
