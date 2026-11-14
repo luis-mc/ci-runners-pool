@@ -124,6 +124,11 @@ func TestUnitHardeningAndFolderMode(t *testing.T) {
 	if !strings.Contains(env, "ACTIONS_RUNNER_HOOK_JOB_STARTED=/var/lib/crsp/runners/box-1/hooks/job-started.sh") {
 		t.Errorf(".env:\n%s", env)
 	}
+	for _, want := range []string{"CI_TOOLS_DIR=/var/lib/crsp/runners/box-1/cache/tools\n", "CI_TOOLS_QUOTA_GIB=20\n", "CRSP_RUST_CACHE_CAP_GIB=40\n"} {
+		if !strings.Contains(env, want) {
+			t.Errorf(".env lacks %q:\n%s", want, env)
+		}
+	}
 	if i, j := r.index("systemctl daemon-reload"), r.index("systemctl enable --now"); i < 0 || j < i {
 		t.Error("daemon-reload then enable --now")
 	}

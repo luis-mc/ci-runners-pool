@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/load"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
@@ -37,6 +38,11 @@ type GateConfig struct {
 	GateID                        string
 	// Measure reads this machine's load for the request and for the load-only wait.
 	Measure func() load.Reading
+	// Disk reads the free space of the runner's volume for the disk guard
+	// (caches R5.38). Nil turns the guard off. A read error never holds a job.
+	Disk func() (runnercache.Disk, error)
+	// MinFreePct is the guard threshold; 0 takes the default (10%).
+	MinFreePct int
 	// Log writes one line; it goes to the job's Set up job step and the agent log (R5.21).
 	Log func(string)
 	// Top names the top processes for hold and timeout lines (R5.46); may be nil.
@@ -93,6 +99,10 @@ func RunGate(ctx context.Context, cfg GateConfig) int {
 		cfg.Measure = func() load.Reading { return load.Reading{} }
 	}
 	budget := cfg.budget()
+
+	if code, held := diskHold(ctx, &cfg, start, poll, maxWait); held {
+		return code
+	}
 
 	// Ask the agent who we are. A failure here is the load-only fallback.
 	if cfg.Client != nil {
@@ -228,6 +238,47 @@ func loadOnlyWait(ctx context.Context, cfg *GateConfig, start time.Time, poll, m
 		cfg.sleep(ctx, poll)
 		if ctx.Err() != nil {
 			return ExitTimeout
+		}
+	}
+}
+
+// diskHold holds the job while the runner's volume has under the minimum free
+// space (caches R5.38). The job waits and is not failed; it goes on as soon as
+// the guard lets go (with a 2 point margin, so it does not flap). The guard
+// uses the gate's maximum wait; when that passes the job fails and can be
+// re-run, whatever the on-timeout rule says, because a job that runs on a full
+// disk can stop every runner on the machine. The second result is true when
+// the hook has its answer (the exit code); false means go on to the queue.
+func diskHold(ctx context.Context, cfg *GateConfig, start time.Time, poll, maxWait time.Duration) (int, bool) {
+	if cfg.Disk == nil {
+		return 0, false
+	}
+	g := runnercache.NewGuard(cfg.MinFreePct)
+	began := false
+	for {
+		d, err := cfg.Disk()
+		if err != nil {
+			cfg.logf("disk guard: cannot read the disk (%v); the job goes on", err)
+			return 0, false
+		}
+		held, why := g.Check(d)
+		if !held {
+			if began {
+				cfg.logf("disk guard: %.1f%% free, the job goes on after %.0f s", d.FreePct(), cfg.now().Sub(start).Seconds())
+			}
+			return 0, false
+		}
+		if !began {
+			cfg.logf("disk guard: holding the job: %s (poll %d s, max wait %d min)", why, cfg.Gate.PollSec, cfg.Gate.MaxWaitMin)
+			began = true
+		}
+		if timedOut(cfg.now().Sub(start), poll, maxWait) {
+			cfg.logf("disk guard: timed out after waiting for disk space (%s); the job fails and can be re-run", why)
+			return ExitTimeout, true
+		}
+		cfg.sleep(ctx, poll)
+		if ctx.Err() != nil {
+			return ExitTimeout, true
 		}
 	}
 }
