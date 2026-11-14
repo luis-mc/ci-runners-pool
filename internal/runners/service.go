@@ -33,6 +33,9 @@ type Service struct {
 	NewID                         func() string
 	// OnDrainWarn is called once at the warn time with the blocking job.
 	OnDrainWarn func(runnerID, job string)
+	// Background runs long work (a plan apply, a drain) off the request. The
+	// default is a goroutine; tests run it inline.
+	Background func(func())
 
 	mu sync.Mutex // one plan apply at a time
 }
@@ -197,11 +200,11 @@ func (s *Service) PlanReplacement(ctx context.Context, runnerID, actor string) (
 		{ID: "s1", Action: ActAddRunner, Target: n.Name, State: "planned",
 			Text: fmt.Sprintf("Add persistent runner %s on machine %s", n.Name, m.Name)},
 		{ID: "s2", Action: ActStopOldService, Target: old.ServiceName, NeedsYes: true, WaitsFor: "s1", State: "planned",
-			Text: fmt.Sprintf("Stop and delete the old service %s on machine %s", old.ServiceName, m.Name)},
+			Text: fmt.Sprintf("Stop the old service %s on machine %s", old.ServiceName, m.Name)},
 		{ID: "s3", Action: ActRemoveOldRunner, Target: old.Name, NeedsYes: true, WaitsFor: "s2", State: "planned",
 			Text: fmt.Sprintf("Remove the old runner %s from GitHub (with a remove token)", old.Name)},
-		{ID: "s4", Action: ActDeleteOldFolder, Target: old.Folder, NeedsYes: true, WaitsFor: "s3", State: "planned",
-			Text: fmt.Sprintf("Delete the old runner folder %s on machine %s", old.Folder, m.Name)},
+		{ID: "s4", Action: ActDeleteOldFolder, Target: old.ServiceName, NeedsYes: true, WaitsFor: "s3", State: "planned",
+			Text: fmt.Sprintf("Delete the old service entry, its account and the runner folder %s on machine %s", old.Folder, m.Name)},
 	}
 	return p, s.Store.SavePlan(ctx, p)
 }
@@ -219,6 +222,46 @@ func (s *Service) Get(ctx context.Context, id string) (Record, error) {
 // List returns runners, managed or not (runners R5.2, R5.5).
 func (s *Service) List(ctx context.Context, f Filter) ([]Record, error) {
 	return s.Store.ListRunners(ctx, f)
+}
+
+func (s *Service) background(f func()) {
+	if s.Background != nil {
+		s.Background(f)
+		return
+	}
+	go f()
+}
+
+// StartApply checks the request and runs Apply in the background, so the
+// request answers `applying` at once (the API answers 202).
+func (s *Service) StartApply(ctx context.Context, planID string, approved []string, actor string) (Plan, error) {
+	p, err := s.Store.GetPlan(ctx, planID)
+	if err != nil {
+		return Plan{}, err
+	}
+	if p.State == PlanDone || p.State == PlanFailed {
+		return p, refuse("plan %s is %s and cannot be applied again", p.ID, p.State)
+	}
+	for _, id := range approved {
+		found := false
+		for _, st := range p.Steps {
+			found = found || st.ID == id
+		}
+		if !found {
+			return p, refuse("step %s is not in plan %s", id, p.ID)
+		}
+	}
+	p.State = PlanApplying
+	bg := context.WithoutCancel(ctx)
+	s.background(func() { _, _ = s.Apply(bg, planID, approved, actor) })
+	return p, nil
+}
+
+// StartRemove runs the drain and removal of a confirmed BeginRemove in the
+// background.
+func (s *Service) StartRemove(ctx context.Context, finish func(context.Context) error) {
+	bg := context.WithoutCancel(ctx)
+	s.background(func() { _ = finish(bg) })
 }
 
 // Apply runs the steps of a plan in order. A step that needs a yes runs only
@@ -376,25 +419,19 @@ func (s *Service) runStep(ctx context.Context, p Plan, st Step, actor string) er
 		if err != nil {
 			return err
 		}
-		return s.removeRegistration(ctx, old, actor, "runner.replaced")
+		return s.removeRegistration(ctx, old, actor, "runner.old_deregistered", true)
 	case ActDeleteOldFolder:
-		old := Record{}
-		if r, err := s.Store.GetRunner(ctx, p.OldRunnerID); err == nil {
-			old = r
-		} else if !errors.Is(err, ErrNotFound) {
+		old, err := s.Store.GetRunner(ctx, p.OldRunnerID)
+		if err != nil {
 			return err
 		}
-		if old.Folder == "" {
-			for _, a := range p.Steps {
-				if a.Action == ActDeleteOldFolder {
-					old.Folder, old.MachineID = a.Target, p.Adds[0].MachineID
-				}
-			}
-		}
-		if err := s.Agent.DeleteFolder(ctx, old.MachineID, old.Folder); err != nil {
+		if err := s.Agent.CleanUp(ctx, old.MachineID, old.ServiceName); err != nil {
 			return err
 		}
-		s.audit(ctx, actor, "runner.old_folder_deleted", old.MachineID, old.ID, old.Folder)
+		if err := s.Store.DeleteRunner(ctx, old.ID); err != nil {
+			return err
+		}
+		s.audit(ctx, actor, "runner.replaced", old.MachineID, old.ID, old.Folder)
 		return nil
 	}
 	return fmt.Errorf("unknown step action %s", st.Action)
@@ -446,7 +483,7 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 // removeRegistration removes a runner from GitHub with a remove token, never a
 // registration token, and checks the result (runners R5.4, R5.19, DL315). On
 // failure the runner and its folder stay as they were.
-func (s *Service) removeRegistration(ctx context.Context, r Record, actor, action string) error {
+func (s *Service) removeRegistration(ctx context.Context, r Record, actor, action string, keepFiles bool) error {
 	t, err := s.Resolver.Resolve(ctx, r.Scope)
 	if err != nil {
 		return fmt.Errorf("resolve scope: %w", err)
@@ -455,8 +492,12 @@ func (s *Service) removeRegistration(ctx context.Context, r Record, actor, actio
 	if err != nil {
 		return fmt.Errorf("remove token: %w", err)
 	}
-	if err := s.Agent.RemoveRunner(ctx, r.MachineID, RemoveRequest{RunnerID: r.ID, ServiceName: r.ServiceName, RemoveToken: token}); err != nil {
+	if err := s.Agent.RemoveRunner(ctx, r.MachineID, RemoveRequest{RunnerID: r.ID, ServiceName: r.ServiceName, RemoveToken: token, KeepFiles: keepFiles}); err != nil {
 		return fmt.Errorf("removal failed, the runner is left as it was: %w", err)
+	}
+	if keepFiles {
+		s.audit(ctx, actor, action, r.MachineID, r.ID, r.Name)
+		return nil
 	}
 	if err := s.Store.DeleteRunner(ctx, r.ID); err != nil {
 		return err
@@ -513,7 +554,7 @@ func (s *Service) finishRemove(ctx context.Context, r Record, prev State, actor 
 	}
 	err := d.Act(ctx, func(ctx context.Context) error {
 		_ = s.Store.SetRunnerState(ctx, r.ID, Removing, "idle; removing")
-		return s.removeRegistration(ctx, r, actor, "runner.remove")
+		return s.removeRegistration(ctx, r, actor, "runner.remove", false)
 	})
 	if err != nil {
 		// The runner still works: put it back. A timeout asks the user; it never

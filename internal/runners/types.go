@@ -177,6 +177,9 @@ type RemoveRequest struct {
 	ServiceName string
 	// RemoveToken deregisters the runner from GitHub; used once.
 	RemoveToken string
+	// KeepFiles deregisters only: the service entry, account and folder stay
+	// until a later step with its own yes (a replace, runners R5.6).
+	KeepFiles bool
 }
 
 // Agent is what the controller needs from a machine's agent, through the agent
@@ -185,11 +188,13 @@ type Agent interface {
 	AddRunner(ctx context.Context, machineID string, spec backend.RunnerSpec, cfg backend.StartConfig) (backend.Handle, error)
 	// StopService stops a service without removing anything.
 	StopService(ctx context.Context, machineID, serviceName string) error
-	// RemoveRunner deregisters the runner with the remove token (checked), then
-	// deletes its service and account. It leaves the folder.
+	// RemoveRunner deregisters the runner with the remove token and checks the
+	// result. Unless KeepFiles is set it then cleans up: the service, the
+	// account and the folder.
 	RemoveRunner(ctx context.Context, machineID string, req RemoveRequest) error
-	// DeleteFolder deletes a runner folder (a replace step with its own yes).
-	DeleteFolder(ctx context.Context, machineID, folder string) error
+	// CleanUp deletes the service entry, the account and the folder of a
+	// runner (the last replace step, with its own yes).
+	CleanUp(ctx context.Context, machineID, serviceName string) error
 }
 
 // Auditor writes the audit entry of every add, remove and replace (R6.8).

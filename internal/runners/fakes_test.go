@@ -163,8 +163,8 @@ func (a *fakeAgent) RemoveRunner(_ context.Context, _ string, req RemoveRequest)
 	a.removed = append(a.removed, req)
 	return nil
 }
-func (a *fakeAgent) DeleteFolder(_ context.Context, _ string, f string) error {
-	a.folders = append(a.folders, f)
+func (a *fakeAgent) CleanUp(_ context.Context, _ string, svc string) error {
+	a.folders = append(a.folders, svc)
 	return nil
 }
 

@@ -42,19 +42,9 @@ func (s *server) CreateJoinCode(_ context.Context, _ gen.CreateJoinCodeRequestOb
 	return gen.CreateJoinCodedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// CreateRunners is not built yet.
-func (s *server) CreateRunners(_ context.Context, _ gen.CreateRunnersRequestObject) (gen.CreateRunnersResponseObject, error) {
-	return gen.CreateRunnersdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // DecideMachineChange is not built yet.
 func (s *server) DecideMachineChange(_ context.Context, _ gen.DecideMachineChangeRequestObject) (gen.DecideMachineChangeResponseObject, error) {
 	return gen.DecideMachineChangedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// DeleteRunner is not built yet.
-func (s *server) DeleteRunner(_ context.Context, _ gen.DeleteRunnerRequestObject) (gen.DeleteRunnerResponseObject, error) {
-	return gen.DeleteRunnerdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // DrainMachine is not built yet.
@@ -157,16 +147,6 @@ func (s *server) GetRepositoryRunsOn(_ context.Context, _ gen.GetRepositoryRunsO
 	return gen.GetRepositoryRunsOndefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// GetRunner is not built yet.
-func (s *server) GetRunner(_ context.Context, _ gen.GetRunnerRequestObject) (gen.GetRunnerResponseObject, error) {
-	return gen.GetRunnerdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// GetRunnerPlan is not built yet.
-func (s *server) GetRunnerPlan(_ context.Context, _ gen.GetRunnerPlanRequestObject) (gen.GetRunnerPlanResponseObject, error) {
-	return gen.GetRunnerPlandefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // GetSession is not built yet.
 func (s *server) GetSession(_ context.Context, _ gen.GetSessionRequestObject) (gen.GetSessionResponseObject, error) {
 	return gen.GetSessiondefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
@@ -222,11 +202,6 @@ func (s *server) ListRepositories(_ context.Context, _ gen.ListRepositoriesReque
 	return gen.ListRepositoriesdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// ListRunners is not built yet.
-func (s *server) ListRunners(_ context.Context, _ gen.ListRunnersRequestObject) (gen.ListRunnersResponseObject, error) {
-	return gen.ListRunnersdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // ListSlots is not built yet.
 func (s *server) ListSlots(_ context.Context, _ gen.ListSlotsRequestObject) (gen.ListSlotsResponseObject, error) {
 	return gen.ListSlotsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
@@ -240,16 +215,6 @@ func (s *server) ListUsers(_ context.Context, _ gen.ListUsersRequestObject) (gen
 // PlanRepositoryChanges is not built yet.
 func (s *server) PlanRepositoryChanges(_ context.Context, _ gen.PlanRepositoryChangesRequestObject) (gen.PlanRepositoryChangesResponseObject, error) {
 	return gen.PlanRepositoryChangesdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// PlanRunnerReplacement is not built yet.
-func (s *server) PlanRunnerReplacement(_ context.Context, _ gen.PlanRunnerReplacementRequestObject) (gen.PlanRunnerReplacementResponseObject, error) {
-	return gen.PlanRunnerReplacementdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// PlanRunners is not built yet.
-func (s *server) PlanRunners(_ context.Context, _ gen.PlanRunnersRequestObject) (gen.PlanRunnersResponseObject, error) {
-	return gen.PlanRunnersdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // ReceiveGithubWebhook is not built yet.

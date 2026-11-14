@@ -24,6 +24,8 @@ type Options struct {
 	Version string
 	DB      Pinger
 	Logger  *slog.Logger
+	// Runners serves the runner operations; nil answers 501 (runners R5.1 to R5.7).
+	Runners RunnersService
 }
 
 type server struct {

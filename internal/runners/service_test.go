@@ -313,10 +313,13 @@ func TestReplaceOnlyAfterNewOnline(t *testing.T) {
 	if len(r.ag.stopped) != 1 || r.ag.stopped[0] != old.ServiceName {
 		t.Errorf("stopped = %v", r.ag.stopped)
 	}
-	if len(r.ag.removed) != 1 || r.ag.removed[0].RemoveToken != "REMOVE-TOKEN-1" {
+	if len(r.ag.removed) != 1 || r.ag.removed[0].RemoveToken != "REMOVE-TOKEN-1" || !r.ag.removed[0].KeepFiles {
 		t.Errorf("removed = %+v", r.ag.removed)
 	}
-	if len(r.ag.folders) != 1 || r.ag.folders[0] != old.Folder {
+	if _, err := r.store.GetRunner(ctx, old.ID); !errors.Is(err, ErrNotFound) {
+		t.Error("the old record goes with the cleanup")
+	}
+	if len(r.ag.folders) != 1 || r.ag.folders[0] != old.ServiceName {
 		t.Errorf("folders = %v", r.ag.folders)
 	}
 	if len(r.ag.added) != 1 {
