@@ -32,7 +32,27 @@ All five are one Go binary, `crsp` (decision 0001).
 - Ports: 8460 for the console and API (HTTPS), 8461 for the agent link (gRPC over TLS). Both can be changed in config.
 - Repository variables the product writes: `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`, `CRSP_RUNS_ON_MACOS` (JSON lists of labels). Workflows say `runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_LINUX) }}`.
 - Milestone 1 builds persistent runners for Windows, Linux and macOS together.
-- Task IDs and branches: `CRSP<n>-<slug>`.
+- Task IDs and branches: `CRSP<n>-<slug>`. CRP1 to CRP14 keep their labels.
+
+## Owner decisions for milestone 1 (2026-11-14)
+
+- Drain: a change that must restart runners waits for running jobs. After 30 minutes it keeps waiting, warns, and names the blocking job. It never kills a job.
+- Default job slots for a new machine are sized from its cores and memory within the load budget, as dev-standards does. The user can change them.
+- When a job-started hook cannot reach the controller or agent, it waits on local load only and logs it. A controller outage never stalls CI.
+- Queue order: repository priority first, then fair share (round-robin by repository) within a priority. The per-repository parallel limit always applies. Fair share, priority and limits are in M1. Queue order and every repository attribute are configurable in the web console.
+- Windows runner accounts get "create symbolic links" only when a machine or label setting asks for it.
+- Runners not made by CRSP are shown as not managed. A Replace action removes each one with a remove token after a yes and creates a managed one. Nothing is changed silently.
+- Controller config is one TOML file with one validated schema. Config as code uses the same format.
+- Daily backup of the database and config, and the restore drill, are in M1. Backups never hold secrets; a restore re-imports them from the OS store or asks for them.
+- Console TLS: the controller makes its own small CA and server certificate. The installer or tray adds the CA to the local trust store after a yes. Other computers get a one-click CA download. Agents pin the certificate at join.
+- Console sessions never expire by time. They end at sign-out.
+- The tray's Open link signs in as the GitHub user bound to that OS user. The binding is made once, by a GitHub sign-in from the tray. Loopback only.
+- Join codes and the install command are in M1. The M1 agent on the controller's machine uses the same join path.
+- Turning the pool off for a repository deletes its `CRSP_RUNS_ON_*` variables after a yes. The question names the variables and the workflows still using them.
+- The doctor starts in M1 with core checks: machine, agent, persistent runners, GitHub App, variables, workflow labels. Each later milestone adds its checks.
+- CLI and console use the verb "add", never "create" (`crsp runner add`, `crsp machine add`).
+- Retention: job history 90 days, logs 14 days and 512 MiB per machine, audit log 400 days. Viewers may read logs and the audit log. All changeable in Settings.
+- Dev GitHub App: redirect `http://127.0.0.1:8460/auth/github/callback` (GitHub refuses `https://localhost`); webhooks off for the dev controller.
 
 ## Accounts and GitHub
 

@@ -11,3 +11,30 @@ Feature decisions come from each feature's `decisions.json` (and the Decisions t
 | cross-cutting | 0003-isolation-backends | [Isolation backends as plugins behind one interface, chosen per machine and label](decisions/0003-isolation-backends.md) |  | accepted | 2026-11-13 |
 | cross-cutting | 0004-agent-link | [Agents connect outbound to the controller over gRPC with a per-machine key](decisions/0004-agent-link.md) |  | accepted | 2026-11-13 |
 | cross-cutting | 0005-product-boundary | [Self-hosted machines first, a tray per OS, no dependency on the delivery plugin](decisions/0005-product-boundary.md) |  | accepted | 2026-11-13 |
+| caches | D1 | [Which cache protocol to serve](../features/caches/spec.md) | The v2 Twirp cache service only; v1 is not served (current toolkit uses v2 on github.com) | decided | 2026-11-14 (proposed) |
+| caches | D2 | [How to send `actions/cache` to the pool](../features/caches/spec.md) | A runner patched at install for the pinned runner version (section 7.2); owner to confirm (Q1) | decided | 2026-11-14 (proposed) |
+| caches | D3 | [Tool cache language](../features/caches/spec.md) | A Go port of `ci_tool.py` inside the one binary, with its tests ported | decided | 2026-11-14 (proposed) |
+| caches | D4 | [Wipe at drain timeout](../features/caches/spec.md) | Delete nothing and say so; never cut a job | decided | 2026-11-14 (proposed) |
+| cli | D1 | [How does the CLI sign in?](../features/cli/spec.md) | GitHub device flow through the controller; the CLI keeps only a controller token (decision 0002). | decided | 2026-11-13 |
+| cli | D2 | [How does the CLI reach the API?](../features/cli/spec.md) | The Go client generated from the same OpenAPI contract as the web console (decision 0001). | decided | 2026-11-13 |
+| cli | D3 | [How does a headless machine open the console?](../features/cli/spec.md) | `crsp open` prints a one-time link (decision 0005). | decided | 2026-11-13 |
+| doctor | D1 | [Does the doctor repair?](../features/doctor/spec.md) | No. It reads only; each finding gives words, a command and a link to where the fix lives (UX-52) | decided | 2026-11-14 |
+| doctor | D2 | [Severity levels](../features/doctor/spec.md) | `ok`, `info`, `skip`, `warn`, `fail`; `needs_admin` is a flag on `skip` | decided | 2026-11-14 |
+| doctor | D3 | [CLI exit codes](../features/doctor/spec.md) | 0 healthy, 1 worst `warn`, 2 worst `fail`, 3 could not run | decided | 2026-11-14 |
+| doctor | D4 | [Variable names](../features/doctor/spec.md) | `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`, `CRSP_RUNS_ON_MACOS`, from the product brief (decision 0002 still says `CRSP_RUNS_ON_LINUX`) | decided | 2026-11-14 |
+| doctor | D5 | [How runners are found](../features/doctor/spec.md) | From the OS service list first, then the database; never only by reading runner folders (learning 6) | decided | 2026-11-14 |
+| doctor | D6 | [Which milestone starts the doctor](../features/doctor/spec.md) | Milestone 1, with the checks of milestone 1 parts, since every milestone ends with the doctor covering its parts | decided | 2026-11-14 |
+| observability | D1 | [SSE or WebSocket for the live view?](../features/observability/spec.md) | SSE: one-way flow, plain `net/http`, built-in reconnect and replay, no extra library (section 7) | decided | 2026-11-14 |
+| observability | D2 | [Where do runner and agent logs live?](../features/observability/spec.md) | A separate SQLite file `logs.db` with FTS5, so log volume never blocks the scheduler | decided | 2026-11-14 |
+| observability | D3 | [How is an audit row kept with its change?](../features/observability/spec.md) | Same transaction; no audit row, no change | decided | 2026-11-14 |
+| observability | D4 | [Where does the per-minute rate come from?](../features/observability/spec.md) | A table copied from GitHub's Actions runner pricing, with source URL and date, which the owner can change | decided | 2026-11-14 |
+| observability | D5 | [How are minutes counted?](../features/observability/spec.md) | Each job's run time rounded up to the whole minute, as GitHub bills | decided | 2026-11-14 |
+| observability | D6 | [Error tracking?](../features/observability/spec.md) | Local only: structured logs, crash files, doctor (stack profile, section 14) | decided | 2026-11-13 |
+| scheduling | D1 | [Where do slots, tickets and the slot log live?](../features/scheduling/spec.md) | In the controller's SQLite tables, not lock files in a shared folder. A take is one transaction (decision 0001). | decided | 2026-11-14 |
+| scheduling | D2 | [Who judges whether a holder is dead?](../features/scheduling/spec.md) | The agent of the holder's machine judges the process; the controller judges ages on its own clock. This replaces "same host only" (learning 2). | decided | 2026-11-14 |
+| scheduling | D3 | [The order of service](../features/scheduling/spec.md) | Repository priority, then event class, then fair share, then queued time. Proposed; the owner confirms (section 11). | decided | 2026-11-14 |
+| scheduling | D4 | [A repository at its parallel limit](../features/scheduling/spec.md) | Its ticket is passed over, not the whole queue held. | decided | 2026-11-14 |
+| scheduling | D5 | [The ci-wait marker and claim-lost exit 3](../features/scheduling/spec.md) | Not ported. They serve the dev-standards cloud fallback, which this product does not have. | decided | 2026-11-14 |
+| scheduling | D6 | [`load_guard.py`](../features/scheduling/spec.md) | Only its rules are ported: hold new work, never kill, fail open, a project may lower but never raise. The tool-call classifier is not. | decided | 2026-11-14 |
+| scheduling | D7 | [CPU smoothing](../features/scheduling/spec.md) | Kept as in the source: the mean of up to 3 samples in 30 s. The median of 5 samples is only for sizing (R5.47). | decided | 2026-11-14 |
+| scheduling | D8 | [Gate when the load cannot be measured](../features/scheduling/spec.md) | Fail open, as in the source. | decided | 2026-11-14 |
