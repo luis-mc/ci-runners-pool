@@ -171,14 +171,6 @@ func errorFor(err error) (int, string, string) {
 	return http.StatusInternalServerError, CodeInternal, "internal error"
 }
 
-func (a *GitHubArea) fail(w http.ResponseWriter, err error) {
-	status, code, msg := errorFor(err)
-	if status == http.StatusInternalServerError {
-		a.log().Error("github area: request failed", "err", err)
-	}
-	WriteError(w, status, code, msg)
-}
-
 // failure builds the default response of a generated operation.
 func failure(err error) (int, gen.ErrorEnvelope) {
 	status, code, msg := errorFor(err)

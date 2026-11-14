@@ -39,7 +39,7 @@ func TestEveryChangeNeedsCSRFTokenAndOwnOrigin(t *testing.T) {
 		}
 		call := func(headers map[string]string, origin string) (int, string) {
 			t.Helper()
-			var oh map[string]string = map[string]string{}
+			oh := map[string]string{}
 			for k, v := range headers {
 				oh[k] = v
 			}

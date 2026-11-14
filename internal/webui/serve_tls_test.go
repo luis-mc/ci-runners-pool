@@ -51,6 +51,15 @@ func serveWithCA(t *testing.T) running {
 	return running{addr: ln.Addr().String(), pool: pool}
 }
 
+// fetchURL makes one GET; the caller closes the body when the error is nil.
+func fetchURL(c *http.Client, url string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Do(req)
+}
+
 func client(pool *x509.CertPool, minV, maxV uint16) *http.Client {
 	return &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: minV, MaxVersion: maxV, ServerName: "localhost"},
@@ -61,7 +70,7 @@ func client(pool *x509.CertPool, minV, maxV uint16) *http.Client {
 // CA made, and the security headers are on the answer.
 func TestConsoleIsServedOverTLSWithTheControllerCA(t *testing.T) {
 	r := serveWithCA(t)
-	resp, err := client(r.pool, tls.VersionTLS13, tls.VersionTLS13).Get("https://" + r.addr + "/machines")
+	resp, err := fetchURL(client(r.pool, tls.VersionTLS13, tls.VersionTLS13), "https://"+r.addr+"/machines")
 	if err != nil {
 		t.Fatalf("a client that trusts the controller CA must get the console: %v", err)
 	}
@@ -81,8 +90,9 @@ func TestConsoleIsServedOverTLSWithTheControllerCA(t *testing.T) {
 // R5.1: a client that does not trust the CA is refused, not served.
 func TestConsoleRefusesAClientThatDoesNotTrustTheCA(t *testing.T) {
 	r := serveWithCA(t)
-	_, err := client(x509.NewCertPool(), tls.VersionTLS13, tls.VersionTLS13).Get("https://" + r.addr + "/")
+	resp, err := fetchURL(client(x509.NewCertPool(), tls.VersionTLS13, tls.VersionTLS13), "https://"+r.addr+"/")
 	if err == nil {
+		_ = resp.Body.Close()
 		t.Fatal("the certificate must not verify against an empty trust store")
 	}
 }
@@ -90,8 +100,9 @@ func TestConsoleRefusesAClientThatDoesNotTrustTheCA(t *testing.T) {
 // R5.1: TLS 1.3 only: an older protocol version is refused.
 func TestConsoleRefusesOlderTLS(t *testing.T) {
 	r := serveWithCA(t)
-	_, err := client(r.pool, tls.VersionTLS12, tls.VersionTLS12).Get("https://" + r.addr + "/")
+	resp, err := fetchURL(client(r.pool, tls.VersionTLS12, tls.VersionTLS12), "https://"+r.addr+"/")
 	if err == nil {
+		_ = resp.Body.Close()
 		t.Fatal("TLS 1.2 must be refused")
 	}
 }
