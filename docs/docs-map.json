@@ -1,4 +1,17 @@
 {
   "schema": 1,
-  "map": {}
+  "map": {
+    "internal/backup/**": [
+      "docs/features/operations/spec.md"
+    ],
+    "internal/configio/**": [
+      "docs/features/operations/spec.md"
+    ],
+    "internal/install/**": [
+      "docs/features/operations/spec.md"
+    ],
+    "internal/update/**": [
+      "docs/features/operations/spec.md"
+    ]
+  }
 }
