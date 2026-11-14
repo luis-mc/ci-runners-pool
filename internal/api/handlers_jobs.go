@@ -93,11 +93,19 @@ func jobResult(conclusion string) *gen.JobResult {
 	return &r
 }
 
+func isolation(v string) *gen.Isolation {
+	if v == "" {
+		return nil
+	}
+	i := gen.Isolation(v)
+	return &i
+}
+
 func toJob(j slots.JobRecord) gen.Job {
 	out := gen.Job{
 		Id: j.ID, Repository: j.Repository, RepositoryId: ptr(j.RepositoryID), RunId: j.RunID, RunAttempt: j.RunAttempt,
 		GithubJobId: j.ID, Workflow: ptr(j.Workflow), JobName: j.JobName, HeadSha: ptr(j.HeadSHA), Trigger: ptr(j.Trigger),
-		Labels: j.Labels, State: gen.JobState(j.State), MachineId: ptr(j.MachineID), RunnerName: ptr(j.RunnerName),
+		Labels: j.Labels, State: gen.JobState(j.State), MachineId: ptr(j.MachineID), RunnerName: ptr(j.RunnerName), Backend: ptr(j.Backend), Isolation: isolation(j.Isolation),
 		CreatedAt: tptr(j.CreatedAt), QueuedAt: tptr(j.QueuedAt), SlotAt: tptr(j.SlotAt), StartedAt: tptr(j.StartedAt),
 		CompletedAt: tptr(j.CompletedAt), GithubWaitSeconds: secs(j.CreatedAt, j.StartedAt),
 		SlotWaitSeconds: secs(j.QueuedAt, j.SlotAt), RunSeconds: secs(j.StartedAt, j.CompletedAt), Result: jobResult(j.Conclusion),
@@ -140,6 +148,9 @@ func (s *server) ListJobs(ctx context.Context, req gen.ListJobsRequestObject) (g
 	}
 	if p.MachineId != nil {
 		f.MachineID = *p.MachineId
+	}
+	if p.Backend != nil {
+		f.Backend = *p.Backend
 	}
 	if p.Result != nil {
 		f.Result = string(*p.Result)

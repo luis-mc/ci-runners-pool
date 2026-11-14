@@ -43,6 +43,11 @@ Each action has one word. The Never use column lists words that must not stand i
 | Restart the service | Stop and start the service after the running jobs end. | Reboot, Reset |
 | Automatic updates | The switch that lets a newer stable release install by itself after the running jobs end. | Auto-upgrade |
 | Quit tray | Close the tray icon only. The service keeps running. | Exit, Close |
+| Export | Write every row of the shown list, in the order shown, to a file. It changes nothing. | Download, Save as |
+| Run the doctor | Start the doctor now. While it runs the button says Running the doctor. | Scan, Check, Run checks |
+| Widen the range | Show a longer time range when the range shown has nothing. | Expand, Zoom |
+| Zoom in, Zoom out | Show a shorter or a longer time range on a time axis. | Narrow, Expand |
+| Show earlier | Load the rows before the last one on a time axis. It is also loaded by itself as the end nears the screen. | Load more, More |
 
 Add a row for each action the project needs. A new action gets a word that is not used above.
 
@@ -129,6 +134,7 @@ A message is one or two short sentences in plain words. It names the thing, neve
 | Past moment | The exact time first, then how long ago. | 2026-11-02 14:30 (5 h ago) |
 | Time left | Short words, never seconds. | about 2 min left |
 | Sentence | Minutes only, and the time zone is never named. | Published 2026-11-02 14:30. |
+| Duration | Short words, seconds kept, never negative. | 45 s, 4 min 12 s, 1 h 5 min |
 
 ## Labels
 

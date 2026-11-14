@@ -62,11 +62,6 @@ func (s *server) ExportConfig(_ context.Context, _ gen.ExportConfigRequestObject
 	return gen.ExportConfigdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// ExportJobs is not built yet.
-func (s *server) ExportJobs(_ context.Context, _ gen.ExportJobsRequestObject) (gen.ExportJobsResponseObject, error) {
-	return gen.ExportJobsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // GetImage is not built yet.
 func (s *server) GetImage(_ context.Context, _ gen.GetImageRequestObject) (gen.GetImageResponseObject, error) {
 	return gen.GetImagedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil

@@ -850,3 +850,78 @@ body {
     inline-size: 100%;
   }
 }
+
+/* component 24: time axis list */
+.ds-axis {
+  display: grid;
+  gap: var(--ds-space-4);
+  min-inline-size: 0;
+}
+.ds-axis__range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-3);
+}
+.ds-axis__range-text {
+  flex: 1 1 12rem;
+  color: var(--ds-color-text-muted);
+}
+.ds-axis__chart {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ds-space-1);
+  block-size: var(--ds-space-7);
+  padding-block: var(--ds-space-1);
+  border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
+}
+.ds-axis__bar {
+  flex: 1 1 0;
+  max-inline-size: var(--ds-space-5);
+  background: var(--ds-color-primary);
+  border-radius: var(--ds-radius-1);
+}
+.ds-axis__period {
+  display: grid;
+  gap: var(--ds-space-2);
+  min-inline-size: 0;
+}
+.ds-axis__head {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-3);
+  margin: 0;
+  font-size: var(--ds-size-3);
+  font-weight: var(--ds-weight-semibold);
+}
+.ds-axis__rows {
+  display: grid;
+  gap: var(--ds-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-axis__row {
+  display: grid;
+  gap: var(--ds-space-2);
+  min-inline-size: 0;
+  padding: var(--ds-space-3);
+  border: var(--ds-border-thin) solid var(--ds-color-divider);
+  border-radius: var(--ds-radius-3);
+  overflow-wrap: anywhere;
+}
+.ds-axis__row[data-active],
+.ds-axis__row:focus-visible {
+  border-color: var(--ds-color-focus);
+}
+.ds-axis__end {
+  display: flex;
+  justify-content: center;
+}
+
+/* component 29: table export */
+.ds-export {
+  display: inline-grid;
+  gap: var(--ds-space-2);
+  min-inline-size: 0;
+}
