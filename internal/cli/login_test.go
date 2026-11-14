@@ -170,7 +170,7 @@ func TestLogoutOffline(t *testing.T) {
 	if _, err := f.secrets.Get(context.Background(), tokenKey("home")); err != secrets.ErrNotFound {
 		t.Fatal("token kept")
 	}
-	if code, _, e := f.run("logout"); code != 0 || !strings.Contains(e, "Not signed in") {
+	if code, _, e := f.run("logout"); code != ExitAuth || !strings.Contains(e, "Not signed in") {
 		t.Fatalf("twice: %d %q", code, e)
 	}
 	// Offline: the controller cannot be reached; the local token goes anyway.

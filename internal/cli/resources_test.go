@@ -142,31 +142,10 @@ func TestWaitsForJobsAndTimeout(t *testing.T) {
 		}
 		writeJSON(w, 200, change("waiting", job))
 	})
-	code, _, errOut := f.run("machine", "drain", "build-01", "--yes", "--drain-timeout", "1h")
+	code, _, errOut := f.run("machine", "drain", "build-01", "--yes")
 	if code != 0 || !strings.Contains(errOut, "Waiting for 1 jobs to end on build-01") || !strings.Contains(errOut, "drained") {
 		t.Fatalf("%d %q", code, errOut)
 	}
-
-	// Never ends: the timeout passes (the test clock moves 1 min a reading).
-	f2 := newFixture(t)
-	f2.machines(machineJSON("build-01", "active", true, job))
-	f2.reply("POST /api/v1/machines/m_build-01/drain", 202, change("waiting", job))
-	f2.reply("GET /api/v1/machines/m_build-01/changes/c1", 200, change("waiting", job))
-	f2.reply("POST /api/v1/machines/m_build-01/changes/c1", 200, change("done"))
-	code, _, errOut = f2.run("machine", "drain", "build-01", "--yes", "--drain-timeout", "3m")
-	if code != ExitFailed || !strings.Contains(errOut, "still run") || f2.called("POST /api/v1/machines/m_build-01/changes") {
-		t.Fatalf("no stop-jobs: %d %q %v", code, errOut, f2.calls)
-	}
-	// With --stop-jobs the controller is asked to stop them.
-	var decision map[string]any
-	f2.handle("POST /api/v1/machines/m_build-01/changes/c1", func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewDecoder(r.Body).Decode(&decision)
-		writeJSON(w, 200, change("done"))
-	})
-	f2.handle("GET /api/v1/machines/m_build-01/changes/c1", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, change("done"))
-	})
-	_ = decision
 }
 
 func TestViewerChangeExits3(t *testing.T) {
@@ -176,30 +155,6 @@ func TestViewerChangeExits3(t *testing.T) {
 	code, _, errOut := f.run("machine", "drain", "build-01", "--yes")
 	if code != ExitAuth || !strings.Contains(errOut, "needs the admin role") {
 		t.Fatalf("%d %q", code, errOut)
-	}
-}
-
-func TestStopJobsDecision(t *testing.T) {
-	f := newFixture(t)
-	job := jobJSON(7, "luis-mc/app", "test", "running")
-	f.machines(machineJSON("build-01", "active", true, job))
-	f.reply("POST /api/v1/machines/m_build-01/drain", 202, change("waiting", job))
-	var decision map[string]any
-	f.handle("POST /api/v1/machines/m_build-01/changes/c1", func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewDecoder(r.Body).Decode(&decision)
-		writeJSON(w, 200, change("running"))
-	})
-	var n atomic.Int32
-	f.handle("GET /api/v1/machines/m_build-01/changes/c1", func(w http.ResponseWriter, r *http.Request) {
-		if n.Add(1) > 1 {
-			writeJSON(w, 200, change("done"))
-			return
-		}
-		writeJSON(w, 200, change("waiting", job))
-	})
-	code, _, e := f.run("machine", "drain", "build-01", "--yes", "--drain-timeout", "2m", "--stop-jobs")
-	if code != 0 || decision["decision"] != "stop_jobs" || decision["confirm"] != true {
-		t.Fatalf("%d %v %q", code, decision, e)
 	}
 }
 

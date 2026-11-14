@@ -79,7 +79,7 @@ func cmdRunner() *command {
 					yesFlag(fs)
 				},
 				run: func(c *call, _ []string) error { return c.runnerAdd() }},
-			{name: "remove", summary: "remove a runner after its job ends", args: "NAME [--drain-timeout 60m] [--stop-jobs] [--yes]",
+			{name: "remove", summary: "remove a runner after its job ends", args: "NAME [--yes]",
 				flags: drainFlags,
 				run:   func(c *call, args []string) error { return c.runnerRemove(args) }},
 		},
@@ -222,7 +222,7 @@ func (c *call) runnerAdd() error {
 
 func (c *call) runnerRemove(args []string) error {
 	if len(args) != 1 {
-		return fail(ExitUsage, "Usage: crsp runner remove NAME [--drain-timeout 60m] [--stop-jobs] [--yes]")
+		return fail(ExitUsage, "Usage: crsp runner remove NAME [--yes]")
 	}
 	s, err := c.open()
 	if err != nil {
@@ -249,9 +249,17 @@ func (c *call) runnerRemove(args []string) error {
 	if err := c.confirm(title, items, c.yesFlag()); err != nil {
 		return err
 	}
-	timeout, _ := time.ParseDuration(c.fs.Lookup("drain-timeout").Value.String())
-	if timeout <= 0 {
-		timeout = time.Hour
+	// The runner's machine sets the drain timeout; the default is 60 minutes.
+	// Past it the command keeps waiting and warns (never cuts the job).
+	timeout := time.Hour
+	if run.MachineId != "" {
+		if ms, err := c.machines(s); err == nil {
+			for _, m := range ms {
+				if m.Id == run.MachineId && m.Settings.DrainTimeoutMinutes > 0 {
+					timeout = time.Duration(m.Settings.DrainTimeoutMinutes) * time.Minute
+				}
+			}
+		}
 	}
 	yes := true
 	d, err := s.client.DeleteRunnerWithResponse(c.env.Context, run.Id, &client.DeleteRunnerParams{Confirm: &yes})
@@ -261,7 +269,8 @@ func (c *call) runnerRemove(args []string) error {
 	if err := apiError(d.StatusCode(), d.Body); err != nil {
 		return err
 	}
-	deadline := c.env.Now().Add(timeout)
+	started := c.env.Now()
+	var lastWarn time.Time
 	if run.CurrentJob != nil {
 		_, _ = fmt.Fprintf(c.env.Stderr, "Waiting for 1 job to end on %s.\n", run.Name)
 	}
@@ -279,8 +288,9 @@ func (c *call) runnerRemove(args []string) error {
 		if g.JSON200 != nil && g.JSON200.State == client.RunnerStateFailed {
 			return fail(ExitFailed, "Removing runner %s failed. Run crsp doctor.", run.Name)
 		}
-		if !c.env.Now().Before(deadline) {
-			return fail(ExitFailed, "The job did not end within %s. It still runs; nothing more changed. Run it again later.", timeout)
+		if waited := c.env.Now().Sub(started); waited >= timeout && c.env.Now().Sub(lastWarn) >= stillDrainingEvery {
+			lastWarn = c.env.Now()
+			_, _ = fmt.Fprintf(c.env.Stderr, "Still draining %s: 1 job running, waited %s. Nothing is stopped; press Ctrl-C to stop waiting (the removal goes on).\n", run.Name, waited.Round(time.Minute))
 		}
 		if err := c.sleep(2 * time.Second); err != nil {
 			return err

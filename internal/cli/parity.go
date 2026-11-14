@@ -18,7 +18,7 @@ var operationCommands = map[string]string{
 	"createJoinCode":         "machine add",
 	"drainMachine":           "machine drain",
 	"getMachineChange":       "machine drain|remove",
-	"decideMachineChange":    "machine drain|remove --stop-jobs",
+	"decideMachineChange":    "machine drain|remove (a stop-jobs decision does not exist; crsp never cuts a job)",
 	"removeMachine":          "machine remove",
 	"resumeMachine":          "machine resume",
 	"listRunners":            "runner list",
