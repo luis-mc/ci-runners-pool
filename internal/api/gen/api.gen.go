@@ -734,19 +734,19 @@ func (e RepositoryVisibility) Valid() bool {
 
 // Defines values for RepositoryVariableName.
 const (
-	CRSPRUNSONLINUX   RepositoryVariableName = "RUNS_ON_LINUX"
-	CRSPRUNSONMACOS   RepositoryVariableName = "RUNS_ON_MACOS"
-	CRSPRUNSONWINDOWS RepositoryVariableName = "RUNS_ON_WINDOWS"
+	RUNSONLINUX   RepositoryVariableName = "RUNS_ON_LINUX"
+	RUNSONMACOS   RepositoryVariableName = "RUNS_ON_MACOS"
+	RUNSONWINDOWS RepositoryVariableName = "RUNS_ON_WINDOWS"
 )
 
 // Valid indicates whether the value is a known member of the RepositoryVariableName enum.
 func (e RepositoryVariableName) Valid() bool {
 	switch e {
-	case CRSPRUNSONLINUX:
+	case RUNSONLINUX:
 		return true
-	case CRSPRUNSONMACOS:
+	case RUNSONMACOS:
 		return true
-	case CRSPRUNSONWINDOWS:
+	case RUNSONWINDOWS:
 		return true
 	default:
 		return false
