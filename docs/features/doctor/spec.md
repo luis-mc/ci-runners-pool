@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader: product, design, UX. The bottom half (5 to 12) is for engineers.
 
-NOT YET IMPLEMENTED. Nothing in this spec is built yet. Each check names the milestone that adds it.
+Partly built (CRSP23): the engine, the check interface, the M1 core checks, the API routes and `crsp doctor` exist. Everything marked NOT YET IMPLEMENTED below is still to do. Each check names the milestone that adds it.
 
 ## 1. In one paragraph
 
@@ -97,61 +97,61 @@ States:
 
 ### 5.1 Runs
 
-**R5.1** — A doctor run has a scope: all, or a list of machines, repositories and check ID prefixes. It runs every check in scope and returns one finding per check and subject. NOT YET IMPLEMENTED (milestone 1).
+**R5.1** — A doctor run has a scope: all, or a list of machines, repositories and check ID prefixes. It runs every check in scope and returns one finding per check and subject. Built (CRSP23).
 
-**R5.2** — A finding has: check ID, subject (kind, ID, name), severity, title, detail, fix, `needs_admin`, milestone, and the time it was checked. NOT YET IMPLEMENTED (milestone 1).
+**R5.2** — A finding has: check ID, subject (kind, ID, name), severity, title, detail, fix, `needs_admin`, milestone, and the time it was checked. Built (CRSP23).
 
-**R5.3** — Severities, best to worst: `ok`, `info`, `skip`, `warn`, `fail`. `skip` means not checked, with the reason. The run's result is its worst severity. NOT YET IMPLEMENTED (milestone 1).
+**R5.3** — Severities, best to worst: `ok`, `info`, `skip`, `warn`, `fail`. `skip` means not checked, with the reason. The run's result is its worst severity. Built (CRSP23).
 
-**R5.4** — Every finding that is not `ok` has a fix: one or more sentences that say what to do, and, where one exists, a CLI command and a console link. NOT YET IMPLEMENTED (milestone 1).
+**R5.4** — Every finding that is not `ok` has a fix: one or more sentences that say what to do, and, where one exists, a CLI command and a console link. Built (CRSP23): the engine fills a generic fix when a check gives none.
 
-**R5.5** — A check that cannot run (a timeout, an unreachable agent, GitHub not reachable, no rights) returns `skip` with the reason. It never returns `ok`. NOT YET IMPLEMENTED (milestone 1).
+**R5.5** — A check that cannot run (a timeout, an unreachable agent, GitHub not reachable, no rights) returns `skip` with the reason. It never returns `ok`. Built (CRSP23): a check that does not finish in time is `skip`.
 
-**R5.6** — A check that crashes returns `fail` with "check crashed" and the error. The other checks still run. NOT YET IMPLEMENTED (milestone 1).
+**R5.6** — A check that crashes returns `fail` with "check crashed" and the error. The other checks still run. Built (CRSP23).
 
-**R5.7** — The doctor never changes state: no write to GitHub, the database (other than its own run records), a machine or a runner. NOT YET IMPLEMENTED (milestone 1).
+**R5.7** — The doctor never changes state: no write to GitHub, the database (other than its own run records), a machine or a runner. Built (CRSP23): the sources a check reads (`doctor.Fleet`, `doctor.GitHub`) have no write method.
 
-**R5.8** — Only one run per scope runs at a time. A second request for the same scope joins the running run and gets its ID. NOT YET IMPLEMENTED (milestone 1).
+**R5.8** — Only one run per scope runs at a time. A second request for the same scope joins the running run and gets its ID. Built (CRSP23).
 
 ### 5.2 Machines and backends
 
-**R5.9** — Machine checks: agent online, load figures fresh, load within budget, disk space, clock, slot queue health, and the machine config readable by runner accounts. See the catalogue (7.2). NOT YET IMPLEMENTED (milestones 1 and 3).
+**R5.9** — Machine checks: agent online, load figures fresh, load within budget, disk space, clock, slot queue health, and the machine config readable by runner accounts. See the catalogue (7.2). Built (CRSP23): `machine.online`, `machine.load.fresh`, `machine.load.budget`, `machine.disk`. NOT YET IMPLEMENTED: clock, slot queue health, machine config (milestones 1 and 3).
 
 **R5.10** — Backend checks, for each backend a machine allows: it is still detected and works, and it keeps the isolation rules of decision 0003 (no Docker socket in jobs, no privileged container, KVM as a device, caps set and applied, image layers present, macOS VM limit). See 7.2. NOT YET IMPLEMENTED (milestones 2, 4, 5, 6).
 
 ### 5.3 Runners
 
-**R5.11** — The agent finds the runners on its machine from the OS service list: Windows services named `actions.runner.*`, systemd units `actions.runner.*.service`, launchd jobs `actions.runner.*`. It does not need to read the runner folder to find a runner (learning 6). A runner in the service list that the product does not manage is an `info` finding. NOT YET IMPLEMENTED (milestone 1).
+**R5.11** — The agent finds the runners on its machine from the OS service list: Windows services named `actions.runner.*`, systemd units `actions.runner.*.service`, launchd jobs `actions.runner.*`. It does not need to read the runner folder to find a runner (learning 6). A runner in the service list that the product does not manage is an `info` finding. Built (CRSP23): the parsers and command lines for Windows, systemd and launchd; the agent calling them lands with the agent link.
 
-**R5.12** — Each managed runner is checked: registered on GitHub and online there, service present and running, runner version current, both job hooks set and usable. GitHub runners with the pool's name prefix that no machine has are a `warn` finding. NOT YET IMPLEMENTED (milestone 1).
+**R5.12** — Each managed runner is checked: registered on GitHub and online there, service present and running, runner version current, both job hooks set and usable. GitHub runners with the pool's name prefix that no machine has are a `warn` finding. Built (CRSP23): registered, service, orphan. NOT YET IMPLEMENTED: runner version.
 
-**R5.13** — When the agent cannot read a runner folder (it is locked to the runner's account), the checks that need it return `skip` with `needs_admin: true`. The fix says how to run them as an administrator on that machine (`crsp doctor --local`). The runner itself is still found and its service checks still run. NOT YET IMPLEMENTED (milestone 1).
+**R5.13** — When the agent cannot read a runner folder (it is locked to the runner's account), the checks that need it return `skip` with `needs_admin: true`. The fix says how to run them as an administrator on that machine (`crsp doctor --local`). The runner itself is still found and its service checks still run. Built (CRSP23) for the hook check (`runner.hooks`); the CLI `--local` part is NOT YET IMPLEMENTED.
 
-**R5.14** — The hook check fails when a job-started or job-completed hook is missing, ends in `.cmd`, points into a user profile, or, on Windows, is a `.ps1` that the service account's execution policy would block (learning 4). An execution policy that cannot be read is `skip`, not `fail`. NOT YET IMPLEMENTED (milestone 1).
+**R5.14** — The hook check fails when a job-started or job-completed hook is missing, ends in `.cmd`, points into a user profile, or, on Windows, is a `.ps1` that the service account's execution policy would block (learning 4). An execution policy that cannot be read is `skip`, not `fail`. Built (CRSP23): the check reports the problems the agent finds; reading the hooks and the execution policy is the agent's part, NOT YET IMPLEMENTED.
 
 **R5.15** — The version check is `warn` when a newer runner release exists and `fail` when GitHub no longer accepts the runner's version. NOT YET IMPLEMENTED (milestone 1).
 
 ### 5.4 GitHub App
 
-**R5.16** — GitHub App checks: installed on every account that has a pool repository and not suspended; the installation grants every permission the product needs; an installation token can be made now from the stored private key; the rate limit is not nearly used up; recent webhook deliveries succeed. NOT YET IMPLEMENTED (milestone 1).
+**R5.16** — GitHub App checks: installed on every account that has a pool repository and not suspended; the installation grants every permission the product needs; an installation token can be made now from the stored private key; the rate limit is not nearly used up; recent webhook deliveries succeed. Built (CRSP23): installation and permissions. NOT YET IMPLEMENTED: token, rate limit, webhook deliveries.
 
 ### 5.5 Repository variables and workflows
 
-**R5.17** — For each pool repository and each OS that has runners for it, `CRSP_RUNS_ON_<OS>` is set, is a JSON list of strings, and equals the labels the product would write. Unset where a workflow uses it is `fail`; different is `warn`. A variable set for an OS with no online runner is `fail` (its jobs would queue forever). NOT YET IMPLEMENTED (milestone 1).
+**R5.17** — For each pool repository and each OS that has runners for it, `CRSP_RUNS_ON_<OS>` is set, is a JSON list of strings, and equals the labels the product would write. Unset where a workflow uses it is `fail`; different is `warn`. A variable set for an OS with no online runner is `fail` (its jobs would queue forever). Built (CRSP23).
 
-**R5.18** — For each pool repository, the doctor reads every workflow file on the default branch and every job's `runs-on`: a string, a flow list, a block list, or `${{ fromJSON(vars.NAME) }}` with an optional `|| '<default>'`, resolved through the repository variable. A label set with `self-hosted` must be carried in full by at least one online runner; otherwise `fail`, with file and line. GitHub-hosted label sets are skipped. An expression it cannot resolve (a matrix value) is `info`, "not checked". NOT YET IMPLEMENTED (milestone 1).
+**R5.18** — For each pool repository, the doctor reads every workflow file on the default branch and every job's `runs-on`: a string, a flow list, a block list, or `${{ fromJSON(vars.NAME) }}` with an optional `|| '<default>'`, resolved through the repository variable. A label set with `self-hosted` must be carried in full by at least one online runner; otherwise `fail`, with file and line. GitHub-hosted label sets are skipped. An expression it cannot resolve (a matrix value) is `info`, "not checked". Built (CRSP23).
 
-**R5.19** — A self-hosted job with literal labels instead of `fromJSON(vars.CRSP_RUNS_ON_*)` is `warn`. A runner label that is not generic (not `self-hosted`, an OS, an architecture, `docker`, `kvm`, `gpu` or a pool name) is `warn` (learning 7). NOT YET IMPLEMENTED (milestone 1).
+**R5.19** — A self-hosted job with literal labels instead of `fromJSON(vars.CRSP_RUNS_ON_*)` is `warn`. A runner label that is not generic (not `self-hosted`, an OS, an architecture, `docker`, `kvm`, `gpu` or a pool name) is `warn` (learning 7). Built (CRSP23).
 
 ### 5.6 Where it runs
 
 **R5.20** — Console: the Doctor screen of section 4 starts runs, shows progress and findings live, and filters by severity, group and machine. NOT YET IMPLEMENTED (milestone 1).
 
-**R5.21** — CLI: `crsp doctor` starts a run through the controller's API and prints the findings, worst first, one block per finding with its fix. Flags: `--machine NAME`, `--repo OWNER/NAME`, `--check PREFIX` (each may repeat), `--min-severity info|warn|fail` (default `warn`: hides `ok`, `info` and `skip` from text output), `--json`, `--local`. NOT YET IMPLEMENTED (milestone 1).
+**R5.21** — CLI: `crsp doctor` starts a run through the controller's API and prints the findings, worst first, one block per finding with its fix. Flags: `--machine NAME`, `--repo OWNER/NAME`, `--check PREFIX` (each may repeat), `--min-severity info|warn|fail` (default `warn`: hides `ok`, `info` and `skip` from text output), `--json`, `--local`. Built (CRSP23) without `--local`.
 
-**R5.22** — CLI exit code by the worst severity: 0 when nothing is `warn` or `fail`, 1 when the worst is `warn`, 2 when the worst is `fail`, 3 when the run could not happen (bad flags, controller not reachable, not signed in). NOT YET IMPLEMENTED (milestone 1).
+**R5.22** — CLI exit code by the worst severity: 0 when nothing is `warn` or `fail`, 1 when the worst is `warn`, 2 when the worst is `fail`, 3 when the run could not happen (bad flags, controller not reachable, not signed in). Built (CRSP23) with the owner's CRSP23 codes: exit 1 when the worst is `fail`; 0 for `warn` and below; 3 when the run could not happen. This replaces the codes written here.
 
-**R5.23** — `--json` prints one JSON object (schema in 7.4) with every finding, `ok` ones included, whatever `--min-severity` says. NOT YET IMPLEMENTED (milestone 1).
+**R5.23** — `--json` prints one JSON object (schema in 7.4) with every finding, `ok` ones included, whatever `--min-severity` says. Built (CRSP23).
 
 **R5.24** — `--local` runs the machine, backend and runner checks of this machine in the process, without the controller. It is the way to run the checks that need admin, from an administrator shell. It prints the same findings and uses the same exit codes. NOT YET IMPLEMENTED (milestone 1).
 
@@ -392,46 +392,46 @@ Not ported, with the reason:
 
 ## 9. How it is proven
 
-All tests are planned (NOT YET IMPLEMENTED). Paths are where they will live.
+Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT YET IMPLEMENTED.
 
 | Requirement | Test |
 |---|---|
-| R5.1 | internal/doctor/engine_test.go TestScope (planned) |
-| R5.2 | internal/doctor/finding_test.go TestFindingFields (planned) |
-| R5.3 | internal/doctor/severity_test.go TestOrderAndWorst (planned) |
-| R5.4 | internal/doctor/registry_test.go TestEveryNonOkFindingHasAFix, runs every check against failing fakes (planned) |
-| R5.5 | internal/doctor/engine_test.go TestUnrunnableIsSkipNeverOk (planned) |
-| R5.6 | internal/doctor/engine_test.go TestCrashIsolated (planned; port of test_machine.py pool crash case) |
+| R5.1 | internal/doctor/engine_test.go TestScopeByCheckPrefix; internal/doctor/checks/checks_test.go TestMachineScopeAppliesToMachineChecks |
+| R5.2 | internal/doctor/engine_test.go TestRunResultIsWorstSeverityWithCounts |
+| R5.3 | internal/doctor/engine_test.go TestRunResultIsWorstSeverityWithCounts |
+| R5.4 | internal/doctor/engine_test.go TestEveryNotOkFindingHasAFix; internal/doctor/checks/checks_test.go TestMachineOnline |
+| R5.5 | internal/doctor/engine_test.go TestSlowCheckIsSkipNotOk; internal/doctor/checks/checks_test.go TestRunnerService, TestRunnerRegistered, TestUnlistableRunnersSkip |
+| R5.6 | internal/doctor/engine_test.go TestCrashIsolated |
 | R5.7 | internal/doctor/registry_test.go TestChecksAreReadOnly, fakes record and refuse writes (planned) |
-| R5.8 | internal/doctor/engine_test.go TestSecondRequestJoinsRun (planned) |
+| R5.8 | internal/doctor/engine_test.go TestSecondRunOfSameScopeJoinsTheFirst |
 | R5.9 | internal/doctor/checks/machine/*_test.go (planned; ports in 7.3) |
 | R5.10 | internal/doctor/checks/backend/*_test.go (planned; ports in 7.3) |
-| R5.11 | internal/doctor/svclist/svclist_test.go (planned; port of test_service_rows) |
-| R5.12 | internal/doctor/checks/runner/registered_test.go, service_test.go, orphan_test.go (planned) |
-| R5.13 | internal/doctor/checks/runner/locked_test.go (planned; port of test_dl318 Locked) |
+| R5.11 | internal/doctor/svclist/svclist_test.go |
+| R5.12 | internal/doctor/checks/checks_test.go TestRunnerRegistered, TestRunnerService, TestRunnerOrphan, TestRunnerDetected |
+| R5.13 | internal/doctor/checks/checks_test.go TestRunnerHooksNeedAdmin |
 | R5.14 | internal/doctor/checks/runner/hooks_test.go (planned; port of RunnerExecutionPolicyTests and DoctorHookAndPush) |
 | R5.15 | internal/doctor/checks/runner/version_test.go (planned) |
-| R5.16 | internal/doctor/checks/github/app_test.go (planned; fake GitHub server) |
-| R5.17 | internal/doctor/checks/repovars/vars_test.go (planned) |
-| R5.18 | internal/doctor/runson/runson_test.go and internal/doctor/checks/workflow/labels_test.go (planned; port of sc_runner_health and Workflows) |
-| R5.19 | internal/doctor/checks/workflow/labels_test.go TestGeneric and TestNonGenericRunnerLabel (planned) |
+| R5.16 | internal/doctor/checks/checks_test.go TestAppInstallationAndPermissions, TestAppRateLimitIsSkipWithResetTime |
+| R5.17 | internal/doctor/checks/checks_test.go TestRepoVars, TestRepoVarsRunner |
+| R5.18 | internal/doctor/runson/runson_test.go; internal/doctor/checks/checks_test.go TestWorkflowLabels, TestWorkflowUnresolved |
+| R5.19 | internal/doctor/checks/checks_test.go TestWorkflowGeneric, TestRunnerLabelsGeneric |
 | R5.20 | apps/web Doctor screen test (Vitest) and e2e/tests/doctor.spec.ts covering the states of section 4 (planned) |
-| R5.21 | internal/doctor/cli/cli_test.go TestFlagsAndTextOutput (planned) |
-| R5.22 | internal/doctor/cli/cli_test.go TestExitCodes (planned; port of test_cli_exit_codes_and_output) |
-| R5.23 | internal/doctor/cli/cli_test.go TestJSONHasEveryFinding (planned) |
+| R5.21 | internal/doctor/cli/cli_test.go TestFlagsAndTextOutput; cmd/crsp/doctor_test.go |
+| R5.22 | internal/doctor/cli/cli_test.go TestExitCodes; cmd/crsp/doctor_test.go TestDoctorCommandExitCodes |
+| R5.23 | internal/doctor/cli/cli_test.go TestJSONHasEveryFinding |
 | R5.24 | internal/doctor/cli/cli_test.go TestLocalRunsWithoutController (planned) |
 | R5.25 | internal/doctor/schedule_test.go TestIntervalsAndStartRuns, fake clock (planned) |
 | R5.26 | internal/doctor/diff_test.go TestOpenedResolvedNoRepeat (planned) |
 | R5.27 | internal/doctor/diff_test.go TestBriefNotificationCases (planned) |
 | R5.28 | internal/doctor/registry_test.go TestMilestoneGating and TestEveryCheckHasATest (planned) |
-| R6.1 | internal/doctor/engine_bench_test.go BenchmarkFullRun with 10 machines, 50 runners, 100 repositories of fakes; TestCheckTimeout (planned) |
-| R6.2 | internal/doctor/checks/github/budget_test.go TestCallCountAndLowRateSkip (planned) |
-| R6.3 | internal/doctor/redact_test.go TestNoSecretInFindingsLogsEventsJSON (planned) |
-| R6.4 | internal/doctor/api_test.go TestRoles (planned) |
+| R6.1 | internal/doctor/engine_test.go TestSlowCheckIsSkipNotOk (the timeout); benchmark planned |
+| R6.2 | internal/doctor/checks/checks_test.go TestCallCountBudget |
+| R6.3 | internal/doctor/engine_test.go TestSecretsAreRedactedInFindings |
+| R6.4 | planned: internal/doctor/api_test.go TestRoles (roles come with the auth layer); internal/api/handlers_live_test.go TestDoctorRoutes covers the routes |
 | R6.5 | internal/doctor/store_test.go TestRetention (planned) |
 | R6.6 | internal/doctor/checks/machine/disk_test.go TestBusyMachineSkipsDiskScan (planned) |
 | R6.7 | e2e/tests/doctor.spec.ts layout at 360, 393 and 1300 px and axe scan (planned) |
-| R6.8 | internal/doctor/api_test.go TestSameRunSameFindings across API, CLI text and JSON (planned) |
+| R6.8 | internal/api/handlers_live_test.go TestDoctorRoutes (API); internal/doctor/cli/cli_test.go (CLI) |
 
 ## 10. Decisions
 
@@ -446,14 +446,14 @@ All tests are planned (NOT YET IMPLEMENTED). Paths are where they will live.
 
 ## 11. Not built yet
 
-Everything is NOT YET IMPLEMENTED. The seams that change as it is built:
+The seams that change as it is built:
 
 - The `Check` interface and registry in `internal/doctor`: each milestone adds checks there.
 - The OpenAPI paths `/api/v1/doctor/*` and the `RunChecks` call in `agent.proto`.
 - The notifications feature reads `doctor.finding.opened` and `doctor.finding.resolved` events (milestone 8).
 - Open questions for the owner (until answered, the choices in section 10 stand):
   1. The brief lists the doctor under milestone 2 but says every milestone ends with the doctor covering its parts. Start it in milestone 1 (D6)?
-  2. Should a `warn` make the CLI exit 1 (D3), or only `fail` exit non-zero?
+  2. Answered in CRSP23: only `fail` exits 1; `warn` exits 0 (see R5.22).
   3. Decision 0002 says `CRSP_RUNS_ON_LINUX`; the brief says `CRSP_RUNS_ON_*`. Update decision 0002 to match (D4)?
   4. UX-58 has no glyph for a warning. Add one in the next design-system version (for example `! warn` in Needs you amber)?
   5. Schedule defaults: full run every 30 minutes and quick run every 60 s (R5.25). Right?
@@ -461,11 +461,25 @@ Everything is NOT YET IMPLEMENTED. The seams that change as it is built:
 
 ## 12. Code map
 
-No code exists yet. Planned files (no `Source:` lines until they exist):
+Built (CRSP23):
 
-- `internal/doctor/`: engine, check interface, registry, severities, redaction, diff, schedule, store.
-- `internal/doctor/checks/{machine,backend,runner,github,repovars,workflow,controller}/`: the checks.
+- `internal/doctor/`: engine, check interface, registry, severities, redaction, store (in memory), API conversion.
+- `internal/doctor/checks/`: the M1 core checks in one package, one file per group (spec 7.1 planned one package per group).
 - `internal/doctor/runson/`: `runs-on` parser and label resolver.
 - `internal/doctor/svclist/`: runner discovery from the OS service list.
-- `internal/doctor/cli/`: the `doctor` CLI command.
+- `internal/doctor/cli/`: the `doctor` CLI command and its HTTP client.
+- `internal/doctor/wire/`: one constructor for the doctor and one for the live view.
+- `internal/api/handlers_doctor.go`: the three doctor routes.
+
+Source: internal/doctor/doctor.go
+Source: internal/doctor/engine.go
+Source: internal/doctor/checks/checks.go
+Source: internal/doctor/runson/runson.go
+Source: internal/doctor/svclist/svclist.go
+Source: internal/doctor/cli/cli.go
+Source: internal/doctor/wire/wire.go
+Source: internal/api/handlers_doctor.go
+
+Still planned: the diff that makes `doctor.finding.*` events, the schedule, the SQLite store adapter, backend and controller checks, `--local`.
+
 - Outside this spec's globs: the Doctor screen in `apps/web/`, the API paths in `packages/contract/openapi.yaml`, `RunChecks` in `packages/contract/proto/agent/v1/agent.proto`.

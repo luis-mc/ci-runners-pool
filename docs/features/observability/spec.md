@@ -9,6 +9,7 @@ owner: owner
 type: reference
 code:
   - internal/events/**
+  - internal/overview/**
   - internal/history/**
   - internal/audit/**
   - internal/logs/**
@@ -19,7 +20,7 @@ generator: luismc-docs 2.6.1
 ---
 # Observability
 
-NOT YET IMPLEMENTED. Nothing in this spec is built. Every requirement names the milestone that builds it.
+Partly built (CRSP23): the live stream (R5.1 to R5.3, R6.2 load throttle, R6.3) and minutes saved today (R5.15). Everything else is NOT YET IMPLEMENTED. Every requirement names the milestone that builds it.
 
 ## 1. In one paragraph
 
@@ -297,13 +298,13 @@ The live view flows one way: controller to browser. Commands go through the norm
 
 ## 9. How it is proven
 
-Every test below is planned and NOT YET IMPLEMENTED. The paths are where each test will live.
+Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT YET IMPLEMENTED; their paths are where each test will live.
 
 | Requirement | Test |
 |---|---|
-| R5.1 | planned: internal/events/snapshot_test.go TestSnapshotHasQueueRunningMachines; e2e/overview.spec.ts "overview shows queue, running and load" |
-| R5.2 | planned: internal/events/sse_test.go TestStreamStartsWithSnapshotThenChanges |
-| R5.3 | planned: internal/events/sse_test.go TestReconnectReplaysMissed, TestReconnectPastBufferGetsSnapshot |
+| R5.1 | internal/overview/overview_test.go TestGetBuildsOverview, TestQueueListIsCappedButCountIsExact; internal/api/handlers_live_test.go TestGetOverview (the e2e screen test is planned) |
+| R5.2 | internal/events/hub_test.go TestFirstEventIsSnapshotThenChangesInOrder; internal/api/handlers_live_test.go TestStreamEventsSnapshotThenChanges |
+| R5.3 | internal/events/hub_test.go TestReplayByLastEventID, TestReplayGapSendsMarkedSnapshot, TestReplayAgeLimit; internal/api/handlers_live_test.go TestStreamEventsReplayByLastEventID |
 | R5.4 | planned: apps/web/src/live/store.test.ts "overview and strip read one store" |
 | R5.5 | planned: internal/events/waitreason_test.go TestWaitReasons, TestNoRunnerWithLabelsAfterThreshold |
 | R5.6 | planned: apps/web/src/live/clock.test.ts "ages tick and pause while hidden"; apps/web/src/live/status.test.ts |
@@ -315,7 +316,7 @@ Every test below is planned and NOT YET IMPLEMENTED. The paths are where each te
 | R5.12 | planned: internal/history/store_test.go TestFinishedRowNeverRefetched, TestGitHubFailureKeepsRowsAndMarksStale |
 | R5.13 | planned: internal/history/commit_test.go TestAllRunsDoneNeedsEveryRun, TestSlowestJobShare, TestBookkeepingStepsSkipped |
 | R5.14 | planned: internal/history/export_test.go TestExportHasEveryRowInOrder |
-| R5.15 | planned: internal/history/savings_test.go TestMinutesRoundUpPerJob, TestTodayByOS |
+| R5.15 | internal/overview/overview_test.go TestRoundUpMinutes, TestGetBuildsOverview (the minutes sum itself is a store query, planned: internal/history/savings_test.go) |
 | R5.16 | planned: internal/history/savings_test.go TestMoneyUsesMatchingRate; internal/history/rates_test.go TestRateTableHasSourceAndDate |
 | R5.17 | planned: internal/history/rates_test.go TestOverrideAndResetWriteAudit |
 | R5.18 | planned: internal/history/savings_test.go TestPublicRepoSavesNoMoney |
@@ -334,8 +335,8 @@ Every test below is planned and NOT YET IMPLEMENTED. The paths are where each te
 | R5.31 | planned: internal/logs/crash_test.go TestUnreportedCrashShownOnce |
 | R5.32 | planned: internal/logs/retention_test.go TestHourlyJobDeletesPastLimit, TestOutOfRangeRefused |
 | R6.1 | planned: internal/events/latency_test.go TestP95UnderTwoSeconds |
-| R6.2 | planned: internal/events/load_test.go TestMedianOfThree, TestOneLoadEventPerFiveSeconds |
-| R6.3 | planned: internal/events/hub_test.go TestHeartbeat, TestSlowSubscriberClosed, TestStreamCap, TestPublisherNeverBlocks |
+| R6.2 | internal/events/hub_test.go TestLoadThrottlePerMachine (the median of three is the machines feature) |
+| R6.3 | internal/events/hub_test.go TestSSEFormatAndServe (heartbeat), TestSlowSubscriberIsClosedAndNeverBlocksPublisher, TestStreamCap; internal/api/handlers_live_test.go TestStreamEventsTooManyStreams |
 | R6.4 | planned: internal/events/sse_test.go TestNoDataBeforeAuth, TestStreamClosesOnRoleRemoved; internal/audit/query_test.go TestViewerRefused |
 | R6.5 | planned: internal/logs/redact_test.go TestKnownValuesAndShapesRedacted |
 | R6.6 | planned: internal/logs/redact_sinks_test.go TestNoSecretInAnySink |
@@ -378,9 +379,20 @@ Everything. The seams that change when it is built:
 
 ## 12. Code map
 
-Nothing exists yet. Planned files, in the globs of the front matter:
+Built (CRSP23):
 
-- internal/events/ (hub, SSE handler, snapshot, wait reasons)
+- internal/events/ (hub, SSE writer)
+- internal/overview/ (overview and snapshot builder)
+- internal/api/handlers_live.go (overview and stream routes)
+
+Source: internal/events/hub.go
+Source: internal/events/sse.go
+Source: internal/overview/overview.go
+Source: internal/api/handlers_live.go
+
+Planned files, in the globs of the front matter:
+
+- internal/events/ (wait reasons)
 - internal/history/ (store, timing, savings, rates.json)
 - internal/audit/ (writer, reader, chain, retention)
 - internal/logs/ (slog setup, redactor, rotation, crash files, agent buffer, logs.db, search, retention)

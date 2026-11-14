@@ -79,6 +79,9 @@
     "internal/notify/**": [
       "docs/features/notifications/spec.md"
     ],
+    "internal/overview/**": [
+      "docs/features/observability/spec.md"
+    ],
     "internal/repos/**": [
       "docs/features/github-integration/spec.md"
     ],
