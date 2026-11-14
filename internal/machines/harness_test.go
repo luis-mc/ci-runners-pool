@@ -132,6 +132,10 @@ func (e *env) session(machineID, key string, hello *agentv1.Hello) (*fakeAgent, 
 		hello.Facts = testFacts("box")
 	}
 	if err := st.Send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_Hello{Hello: hello}}); err != nil {
+		// On io.EOF the real error is on the receive side.
+		if _, rerr := st.Receive(); rerr != nil {
+			err = rerr
+		}
 		cancel()
 		return nil, err
 	}

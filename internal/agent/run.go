@@ -264,6 +264,10 @@ func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 		Holders: &agentv1.HolderReport{Running: running},
 	}
 	if err := l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_Hello{Hello: hello}}); err != nil {
+		// On io.EOF the real error, such as "unauthenticated", is on the receive side.
+		if _, rerr := l.stream.Receive(); rerr != nil {
+			err = rerr
+		}
 		return classify(err)
 	}
 	ack, err := l.stream.Receive()
