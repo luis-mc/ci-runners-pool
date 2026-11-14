@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
 )
@@ -58,6 +59,10 @@ type DoneConfig struct {
 	Workspace string
 	KeepWork  bool
 	Log       func(string)
+	// Caches are the cache folders to bring under their quota between jobs
+	// (caches R5.37). CacheFS is the file access for them; nil is the real one.
+	Caches  []runnercache.Cap
+	CacheFS runnercache.FS
 }
 
 // RunJobDone frees every slot of every kind the job holds with the outcome ran
@@ -109,5 +114,26 @@ func RunJobDone(ctx context.Context, cfg DoneConfig) (code int) {
 			}
 		}
 	}
+	sweepCaches(&cfg, log)
 	return 0
+}
+
+// sweepCaches evicts the oldest entries of each cache over its quota. The job
+// that ran here is done and the runner takes no other job before this hook
+// ends, so no job reads the folder now (caches R5.37).
+func sweepCaches(cfg *DoneConfig, log func(string, ...any)) {
+	fsys := cfg.CacheFS
+	if fsys == nil {
+		fsys = runnercache.OSFS{}
+	}
+	for _, c := range cfg.Caches {
+		res, err := runnercache.Enforce(fsys, c.Dir, c.Bytes, false)
+		switch {
+		case err != nil:
+			log("%s %s: eviction skipped (%v)", c.Name, c.Dir, err)
+		case len(res.Removed) > 0:
+			log("%s over its quota: removed %d entries, %d MiB to %d MiB (quota %d MiB)",
+				c.Name, len(res.Removed), res.Before>>20, res.After>>20, res.Quota>>20)
+		}
+	}
 }

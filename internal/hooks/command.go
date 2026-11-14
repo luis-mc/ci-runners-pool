@@ -178,7 +178,7 @@ func runCompleted(ctx context.Context, args []string, e Env) int {
 	}
 	return RunJobDone(ctx, DoneConfig{
 		Client: e.client(), Job: jobFromEnv(e.Getenv), Workspace: e.Getenv("GITHUB_WORKSPACE"), KeepWork: *keep,
-		Log: e.logger(*logPath),
+		Log: e.logger(*logPath), Caches: runnercache.CapsFromEnv(e.Getenv),
 	})
 }
 

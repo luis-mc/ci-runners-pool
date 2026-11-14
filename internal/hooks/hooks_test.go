@@ -476,3 +476,46 @@ func TestDiskGuardFailsOpenOnReadError(t *testing.T) {
 		t.Fatalf("exit %d\n%s", code, w.text())
 	}
 }
+
+// Caches R5.37: the job-completed hook evicts the oldest entries over the quota, and never fails.
+func TestJobDoneEvictsOldestOverQuota(t *testing.T) {
+	dir := t.TempDir()
+	mk := func(name string, size int, age time.Duration) {
+		d := filepath.Join(dir, name)
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		f := filepath.Join(d, "blob")
+		if err := os.WriteFile(f, make([]byte, size), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		ts := time.Now().Add(-age)
+		_ = os.Chtimes(f, ts, ts)
+		_ = os.Chtimes(d, ts, ts)
+	}
+	mk("old", 600, 3*time.Hour)
+	mk("new", 600, time.Minute)
+	var lines []string
+	code := hooks.RunJobDone(context.Background(), hooks.DoneConfig{
+		Log:    func(l string) { lines = append(lines, l) },
+		Caches: []runnercache.Cap{{Name: "tool cache", Dir: dir, Bytes: 700}},
+	})
+	if code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "old")); !os.IsNotExist(err) {
+		t.Fatal("old entry kept")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "new")); err != nil {
+		t.Fatal("new entry removed")
+	}
+	if !strings.Contains(strings.Join(lines, "\n"), "tool cache over its quota: removed 1 entries") {
+		t.Fatalf("log: %v", lines)
+	}
+	// a cache folder that cannot be read never fails the hook
+	code = hooks.RunJobDone(context.Background(), hooks.DoneConfig{Log: func(string) {},
+		Caches: []runnercache.Cap{{Name: "tool cache", Dir: filepath.Join(dir, "new", "blob"), Bytes: 1}}})
+	if code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+}

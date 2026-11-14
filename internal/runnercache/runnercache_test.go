@@ -225,3 +225,21 @@ func TestEnvExportsToolsDirAndQuotas(t *testing.T) {
 		t.Fatalf("not per runner: %q %q", a, b)
 	}
 }
+
+func TestCapsFromEnv(t *testing.T) {
+	get := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
+	caps := runnercache.CapsFromEnv(get(map[string]string{
+		"CI_TOOLS_DIR": "/r/cache/tools", "CI_TOOLS_QUOTA_GIB": "20",
+		"CARGO_TARGET_DIR": "/r/cache/rust-target", "CRSP_RUST_CACHE_CAP_GIB": "40",
+	}))
+	if len(caps) != 2 || caps[0].Bytes != 20<<30 || caps[1].Dir != "/r/cache/rust-target" || caps[1].Bytes != 40<<30 {
+		t.Fatalf("%+v", caps)
+	}
+	// a runner the product did not set up, or a bad quota, evicts nothing
+	if c := runnercache.CapsFromEnv(get(nil)); len(c) != 0 {
+		t.Fatalf("%+v", c)
+	}
+	if c := runnercache.CapsFromEnv(get(map[string]string{"CI_TOOLS_DIR": "/x", "CI_TOOLS_QUOTA_GIB": "abc"})); len(c) != 0 {
+		t.Fatalf("%+v", c)
+	}
+}

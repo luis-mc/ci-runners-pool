@@ -3,6 +3,7 @@ package runnercache
 import (
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 // Names of the values a runner exports to its jobs.
@@ -47,3 +48,31 @@ func EnvJoin(runnerFolder string, q Quota, join func(...string) string) map[stri
 }
 
 func itoa(n int) string { return strconv.Itoa(n) }
+
+// Cap is one cache folder with its quota in bytes.
+type Cap struct {
+	Name  string
+	Dir   string
+	Bytes int64
+}
+
+// CapsFromEnv reads the caches a job sees in its environment: the tool cache
+// (CI_TOOLS_DIR with CI_TOOLS_QUOTA_GIB) and the Rust build cache
+// (CARGO_TARGET_DIR with CRSP_RUST_CACHE_CAP_GIB). A cache with no folder or
+// no usable quota is left out, so a runner that was not set up by the
+// product evicts nothing.
+func CapsFromEnv(getenv func(string) string) []Cap {
+	var out []Cap
+	for _, c := range []struct{ name, dir, quota string }{
+		{"tool cache", EnvToolsDir, EnvToolQuota},
+		{"Rust build cache", EnvRustDir, EnvRustCap},
+	} {
+		dir := getenv(c.dir)
+		gib, err := strconv.Atoi(strings.TrimSpace(getenv(c.quota)))
+		if dir == "" || err != nil || gib <= 0 {
+			continue
+		}
+		out = append(out, Cap{Name: c.name, Dir: dir, Bytes: int64(gib) * GiB})
+	}
+	return out
+}
