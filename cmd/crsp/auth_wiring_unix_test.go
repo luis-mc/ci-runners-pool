@@ -57,7 +57,13 @@ func newFlow(t *testing.T) *flow {
 	mux := http.NewServeMux()
 	api.Register(mux, api.Options{Version: "test", DB: db, Logger: logger, GitHub: area})
 
-	sock := filepath.Join(t.TempDir(), "tray.sock")
+	// A short path: macOS limits a socket path to 104 bytes, t.TempDir() is longer.
+	dir, err := os.MkdirTemp("", "crsp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	sock := filepath.Join(dir, "t.sock")
 	ln, err := trayserver.Listen(sock, logger)
 	if err != nil {
 		t.Fatal(err)
