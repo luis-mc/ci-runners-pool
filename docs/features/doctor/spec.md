@@ -179,6 +179,8 @@ States:
 
 **R5.34** (M2, v0.3.0, NOT YET IMPLEMENTED) — **Cache checks.** `cache.cap` warns when a runner's or lane's cache is over its quota (caches R5.36). `cache.disk` warns when free disk on a cache drive is under 10% (the same limit as the disk guard, caches R5.38, which already fails `machine.guard.disk` at the limit). The doctor deletes nothing (R5.7).
 
+**R5.35** (M1, Built OPS3) — **Tool cache access.** The tool cache check (`runner.toolcache`) is `ok` when the runner's own account can read the files in its tool cache (`_work/_tool` or the configured tool cache folder). The agent opens a file there as the runner account; when that is not possible it reads the owner and the inheritance flag of the files. It is `fail` when a file cannot be opened ("Access is denied"), has another owner than the runner account, or does not inherit access; the detail names the file, and the fix is the two commands `takeown /F <folder> /R /D Y` and `icacls <folder> /reset /T /C` (runners R5.57). An agent that did not look gives `skip`. Built (OPS3): the check and the `ToolCacheProbe` data; the agent filling `ToolCache` is NOT YET IMPLEMENTED, as for R5.14 and R5.30.
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -278,6 +280,7 @@ Runners:
 | `runner.version` | A newer runner release exists (warn); GitHub no longer accepts this version (fail) | warn, fail | Update the runner (drains first) | no | 1 |
 | `runner.hooks` | A job hook missing, ending in `.cmd`, pointing into a user profile, or blocked by the execution policy | fail | Set the hooks again from the Runners screen | yes | 1 |
 | `runner.listener` | A runner with more than one `Runner.Listener`, a listener beside a stopped service (warn: a service with no listener) | fail, warn | Stop and start the runner from the Runners screen when it is idle; crsp waits for the listener itself to end | no | 1 |
+| `runner.toolcache` | The runner account cannot read a file in its tool cache, or the file has another owner or does not inherit access | fail | Run `takeown /F <folder> /R /D Y` and `icacls <folder> /reset /T /C` from an administrator shell | no | 1 |
 | `runner.hookrun` | The real job-started hook, run as the service account in probe mode, cannot start, exits non-zero, prints a crsp warning, or does not reach crsp | fail | Install crsp for all users again; set the hooks again | no | 1 |
 | `runner.machine` | The runner reads another machine config or hook folder than the pool | warn | Set the hooks again | yes | 1 |
 | `runner.env` | Runner env lacks the tool cache settings | warn | Set the runner env again | yes | 2 |
@@ -446,6 +449,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.32 | planned: internal/doctor/checks/kvm_test.go TestKvmHostFailOnlyWhenOn, TestWslconfigNested (v0.6.0; port of test_dl343_kvm_autoload.py) |
 | R5.33 | planned: internal/doctor/checks/coverage_test.go TestCapabilitiesFromWorkflowText, TestUnknownJobIsInfo (v0.2.0) |
 | R5.34 | planned: internal/doctor/checks/cache_test.go TestCacheOverQuotaWarns, TestDiskUnderTenPercentWarns (v0.3.0; port of test_dl342_cache_cap.py) |
+| R5.35 | internal/doctor/checks/checks_test.go TestRunnerToolCache | new |
 | R6.1 | internal/doctor/engine_test.go TestSlowCheckIsSkipNotOk (the timeout); benchmark planned |
 | R6.2 | internal/doctor/checks/checks_test.go TestCallCountBudget |
 | R6.3 | internal/doctor/engine_test.go TestSecretsAreRedactedInFindings |
