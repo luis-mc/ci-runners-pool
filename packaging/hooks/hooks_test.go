@@ -26,7 +26,7 @@ func runSh(t *testing.T, name, crsp string) (string, int, string) {
 	if err := os.WriteFile(script, body, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command("/bin/sh", script)
+	cmd := exec.CommandContext(t.Context(), "/bin/sh", script)
 	cmd.Env = append(os.Environ(), "CRSP_BIN="+crsp)
 	out, err := cmd.CombinedOutput()
 	code := 0
@@ -105,7 +105,7 @@ func TestPs1HookWarnsWhenCrspIsMissing(t *testing.T) {
 		t.Fatal(err)
 	}
 	missing := filepath.Join(dir, "no-crsp.exe")
-	cmd := exec.Command(pwsh, "-NoProfile", "-File", script)
+	cmd := exec.CommandContext(t.Context(), pwsh, "-NoProfile", "-File", script)
 	cmd.Env = append(os.Environ(), "CRSP_BIN="+missing)
 	out, err := cmd.CombinedOutput()
 	if err != nil || !strings.HasPrefix(string(out), "::warning title=crsp::crsp is not installed at "+missing) {

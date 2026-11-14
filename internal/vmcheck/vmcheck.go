@@ -272,10 +272,10 @@ func Verify(ctx context.Context, src Source, name string, d Distro) (Result, err
 		return Result{}, err
 	}
 	res.Published = img.Digest
-	switch {
-	case cached == "":
+	switch cached {
+	case "":
 		res.Status, res.Detail = Missing, "no image of "+name+" is cached; the first run downloads "+img.Name
-	case cached == img.Digest:
+	case img.Digest:
 		res.Status, res.Detail = Current, name+" matches "+img.Name
 	default:
 		res.Status, res.Detail = Stale, name+" is behind "+img.Name+"; the next run downloads it"
