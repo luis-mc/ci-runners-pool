@@ -3,14 +3,9 @@ package main
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"net/url"
 
-	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
-	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
-	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
-	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 )
 
 // trayMachineID names this machine in tray bindings. The local channel serves
@@ -58,18 +53,4 @@ func (l authLinks) LinkFor(ctx context.Context, osUser, target string) (string, 
 	default:
 		return "", errors.New("could not make a sign-in link; sign in with GitHub in the console")
 	}
-}
-
-// newAuthArea builds the sign-in service on the controller's database and the
-// GitHub area of the API. Secrets stay in the OS secret store (github-integration R6.1).
-func newAuthArea(db *store.Store, sec secrets.Store, console string, logger *slog.Logger) (*api.GitHubArea, authLinks) {
-	gh := github.New(github.Config{Secrets: sec, Logger: logger})
-	svc := auth.New(db.Auth(), auth.Config{GitHub: gh, Secrets: sec,
-		ConsoleURLs: func() []string { return []string{console} },
-		OnApp:       func(a auth.AppRecord) { gh.UseApp(a.ID, a.ClientID) }})
-	// After a restart the client must know the App again.
-	if a, err := db.Auth().GetApp(context.Background()); err == nil {
-		gh.UseApp(a.ID, a.ClientID)
-	}
-	return &api.GitHubArea{Auth: svc, Logger: logger}, authLinks{svc: svc, console: console}
 }
