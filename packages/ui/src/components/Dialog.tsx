@@ -1,6 +1,6 @@
 // Component 9: one overlay. A centred dialog changes data; it traps focus, locks the page, closes on Escape
 // and returns focus to the opener (UX-35, UX-43..UX-48). Never stacked on another overlay.
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useId, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from './Button';
 
@@ -37,7 +37,9 @@ export function Dialog({
   const box = useRef<HTMLDivElement>(null);
   const opener = useRef<Element | null>(null);
 
-  useEffect(() => {
+  // Layout effect: focus is inside the dialog before it is painted, so Escape
+  // pressed the moment the dialog shows reaches its key handler.
+  useLayoutEffect(() => {
     opener.current = document.activeElement;
     const root = document.getElementById('root');
     const prevOverflow = document.body.style.overflow;
