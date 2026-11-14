@@ -249,12 +249,12 @@
     <?endif?>
 
     <InstallExecuteSequence>
-      <Custom Action="StartServicesRollback" Before="StopServiceEarly" Condition="NOT REMOVE~=&quot;ALL&quot;" />
+      <Custom Action="StartServicesRollback" Before="StopServiceEarly" />
       <?ifdef FailAfterInstall?>
       <Custom Action="FailNow" After="StartServices2" Condition="NOT REMOVE~=&quot;ALL&quot;" />
       <?endif?>
       <!-- First of all, in every run: nothing holds the program's files from here on. -->
-      <Custom Action="StopServiceEarly" Before="RemoveExistingProducts" />
+      <Custom Action="StopServiceEarly" After="RemoveExistingProducts" />
       <Custom Action="EndProgramProcesses" After="StopServices" />
       <Custom Action="StartServices2" After="StartServices" Condition="NOT REMOVE~=&quot;ALL&quot;" />
       <Custom Action="RemoveData" After="EndProgramProcesses"
