@@ -138,6 +138,8 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 
 **R5.10** — Per-repository parallel limit: a ticket whose repository already runs its maximum parallel jobs in the pool is passed over. Tickets of other repositories behind it may take a free slot. The passed ticket keeps its place. M1. Built. Source: none (new; product brief, repositories and policies).
 
+**R5.10a** — The order of service is a setting (owner decision for M1). An admin sets the order of the four keys (repository priority, event class, fair share, time queued; each once, first decides first), switches fair share on or off, and sets the minutes a job waits before "no runner with the labels" is raised (1 to 60, default 2; observability R5.5), in Settings, Budgets (`getQueueSettings`, `updateQueueSettings`). The default is the order of R5.8. A list that is not each key exactly once is refused with the reason and nothing changes. Each change writes one audit row. M1. Built for the setting and its API (CRSP37). NOT YET IMPLEMENTED: the slot queue and the wait-reason code still use the fixed order of R5.8 and the 2 minutes; they have to read the setting.
+
 **R5.11** — "First in line" means first in the order of service among tickets that are not passed over by R5.10. M1. Built. Source: `runner_load_gate.py` `_ci_wait`.
 
 ### 5.3 The job-started gate
@@ -369,6 +371,7 @@ A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTE
 | R5.8 | `internal/scheduler/slots/slots_test.go` TestOrderOfService; `internal/scheduler/gate_test.go` TestPriorityAndFairShareThroughTheGate | `test_machine.py` Queue `test_order_ready_pr_and_default_branch_first_then_first_come` |
 | R5.9 | `internal/scheduler/slots/slots_test.go` TestFairShare | new |
 | R5.10 | `internal/scheduler/slots/slots_test.go` TestParallelLimitPassesOver; `internal/scheduler/gate_test.go` TestParallelLimitPassesOverInTheGate | new |
+| R5.10a | `internal/settings/pool_test.go` TestQueueOrderMustBeAPermutation; `internal/api/handlers_pool_test.go` TestQueueSettingsGetPutAndRefuse | new |
 | R5.11 | `internal/scheduler/slots/slots_test.go` TestFirstInLineSkipsPassedTickets | new |
 | R5.12 | `internal/scheduler/gate_test.go` TestFreeSlotQuietMachineGoesAtOnce; `internal/hooks/hooks_test.go` TestFreeSlotQuietMachineGoesAtOnce | `test_machine.py` Gate `test_free_slot_and_quiet_machine_goes_at_once`, `test_main_with_the_layer_takes_a_slot_and_job_done_frees_it` |
 | R5.13 | `internal/scheduler/gate_test.go` TestTicketAheadHoldsEvenWithFreeSlot | `test_machine.py` Gate `test_a_ticket_ahead_holds_this_job_even_with_a_free_slot`, `test_waits_for_load_then_goes_and_keeps_the_wait_marker_while_waiting` |
@@ -464,6 +467,7 @@ Built in CRSP21 (M1): the slot queue, the gate, the job hooks, the dead-holder a
 - M3: placement across machines (R5.48, R5.49), the liveness judge for holders on other machines (R5.32), maintenance windows and quiet hours (R5.55 to R5.57).
 - The webhook and poll intake of GitHub jobs (R5.52, R5.53) and the other `job_queue` follow-ups (R5.54) belong to github-integration and the agent link.
 - The agent side of the hook socket (`hooks.Serve` is the protocol; the agent wires it to its controller stream), the `crsp slots` commands and the console views belong to the agent, CLI and web-console features.
+- The order setting (R5.10a): the queue (`slots`) and the wait-reason code do not read `getQueueSettings` yet; the order, fair share and the no-runner wait are stored and shown, not applied.
 - A hook-side wake on a freed slot: the engine's `Wake` is built; the agent stream that forwards it is not.
 
 Open owner questions:

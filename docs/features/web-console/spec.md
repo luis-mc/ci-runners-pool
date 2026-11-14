@@ -244,7 +244,7 @@ Settings hold configuration only (UX-52). Sub-pages sit under one Settings area,
 |---|---|---|---|---|
 | Users and roles | Who may sign in, as owner, admin or viewer | `listUsers`, `addUser`, `updateUserRole`, `removeUser` | Add a GitHub login with a role; change a role; remove a user (question card naming the login, UX-62) | M1 |
 | Appearance | The user's theme: system, dark or light (UX-60) | `getPreferences`, `updatePreferences` | A one-choice list saved at once (component 13) | M1 |
-| Budgets | The pool's default load budget, slots and drain timeout for new machines | `getPoolSettings`, `updatePoolSettings` | Save; a change that restarts runners names the jobs it waits for (UX-62) | later |
+| Budgets | The pool's default load budget, slots and drain timeout for new machines, and the order of the queue | `getPoolSettings`, `updatePoolSettings`, `getQueueSettings`, `updateQueueSettings` | Save (admin); a change that restarts runners names the jobs it waits for (UX-62). A pool default only reaches machines that join later, so the page says no runner restarts and no job is waited for | M1 (built, CRSP37) |
 | Notifications | Channels (email, webhook, desktop) and the events each one gets | `listNotificationChannels`, `createNotificationChannel`, `updateNotificationChannel`, `deleteNotificationChannel`, `testNotificationChannel` | Add, edit, delete (question card), send a test | later (milestone 8) |
 | Updates | The runner version and the agent version, and when they update | `getUpdateStatus`, `checkForUpdate`, `applyUpdate`, `updateSettings` (auto_update) | Update now: a question card that names the machines and the jobs the drain waits for (UX-62) | later (milestone 3) |
 | Audit log | Who changed what, and when | `listAuditEvents`, `exportAuditEvents` | Export (component 29, UX-39) | later |
@@ -327,7 +327,7 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.26** — The doctor screen lists every finding with its status and fix, and runs the doctor on demand.
 
-**R5.27** (built, CRSP24) — The settings area has the seven sub-pages of section 4.9.
+**R5.27** (built, CRSP24; Budgets built, CRSP37) — The settings area has the seven sub-pages of section 4.9. Budgets is one form with Cancel and Save: the memory and CPU budget, job slots, drain timeout and sizing of slots for new machines, and the four queue keys in order, fair share and the no-runner wait. A repeated key is refused on the page before anything is sent. A viewer sees the form, and Save is off with its reason.
 
 **R5.28** (built, CRSP24) — Users and roles adds a GitHub login with a role, changes a role and removes a user. There is always exactly one owner, and the owner cannot remove themselves or lose the owner role.
 
@@ -488,7 +488,7 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.24 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/jobs/Jobs.test.tsx` |
 | R5.25 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/images/ImagesAndCaches.test.tsx` |
 | R5.26 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/doctor/Doctor.test.tsx` |
-| R5.27 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` (M1 sub-pages: Users and roles, Appearance, Retention, Backups) |
+| R5.27 | Vitest, Playwright | `apps/web/src/screens/settings/Settings.test.tsx` (M1 sub-pages: Users and roles, Appearance, Retention, Backups); `apps/web/src/screens/settings/Budgets.test.tsx`; `e2e/tests/web-console/flows.spec.ts` (Budgets flows); `e2e/tests/design-layout.spec.ts` (settings budgets, 360, 393, 1300 px) |
 | R5.28 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` (the Go side stays NOT YET IMPLEMENTED: `internal/api/users_test.go`) |
 | R5.29 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/settings/ConfigExport.test.tsx` |
 | R5.30 | Vitest, Playwright e2e | the question-card tests in each screen test file, `e2e/tests/web-console/flows.spec.ts` |
@@ -544,12 +544,13 @@ For the product:
 
 ## 11. Not built yet
 
-Built by CRSP24: the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups (all against the M1 contract and a mocked API in tests).
+Built by CRSP24: the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups (all against the M1 contract and a mocked API in tests). Built by CRSP37: the Budgets sub-page.
 
 **NOT YET IMPLEMENTED:**
 
 - the jobs, images and caches and doctor screens (R5.24 to R5.26): their menu entries open a page that says in which milestone they arrive;
-- the later settings sub-pages: Budgets, Notifications, Updates, Audit log, Config export (R5.29);
+- the later settings sub-pages: Notifications, Updates, Audit log, Config export (R5.29);
+- Budgets: a pool change that restarts runners and names the jobs it waits for (UX-62). Today a pool default reaches only machines that join later, so nothing restarts and the page says so; the controller lists no job a pool change waits for because none does yet (machines R5.22a);
 - the serving side: `internal/webui/webui.go` serves over TLS and sends the headers of R6.3 (R5.1, R6.3), the session cookie and CSRF checks (R6.1, R6.2), the role checks (R6.5);
 - an automated axe check in both themes (R6.6), the performance budgets (R6.12), the offline check (R6.13);
 - Stop on a repository or runner plan that is applying: the contract now has `stopRepositoryPlan` and `stopRunnerPlan` (CRSP32), but the wizards still offer Stop only on Joining until they call them; the server side answers 501 for now.
