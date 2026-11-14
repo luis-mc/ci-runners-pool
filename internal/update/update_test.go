@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -194,18 +195,29 @@ func TestExtractBinaryOnlyTheBinary(t *testing.T) {
 // ---------------------------------------------------------------- manager
 
 type fakeDrainer struct {
+	mu        sync.Mutex
 	jobs      []Job
 	begun     []Kind
 	cancelled int
 }
 
-func (d *fakeDrainer) RunningJobs(context.Context) ([]Job, error) { return d.jobs, nil }
+func (d *fakeDrainer) RunningJobs(context.Context) ([]Job, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.jobs, nil
+}
+
+func (d *fakeDrainer) cancelCount() int { d.mu.Lock(); defer d.mu.Unlock(); return d.cancelled }
 func (d *fakeDrainer) BeginDrain(_ context.Context, k Kind, _ string) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	d.begun = append(d.begun, k)
 	return nil
 }
 func (d *fakeDrainer) DrainTimeoutMinutes(context.Context) int { return 60 }
 func (d *fakeDrainer) CancelDrain(context.Context, string) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	d.cancelled++
 	return nil
 }
@@ -594,8 +606,8 @@ func TestAutoUpdateCancelsDrainAfterTheLimit(t *testing.T) {
 	}
 	time.Sleep(200 * time.Millisecond)
 	st := h.m.Status(context.Background())
-	if h.d.cancelled != 1 || st.State != StateIdle || !strings.Contains(st.Error, "tries again at the next check") {
-		t.Fatalf("cancelled=%d %+v", h.d.cancelled, st)
+	if h.d.cancelCount() != 1 || st.State != StateIdle || !strings.Contains(st.Error, "tries again at the next check") {
+		t.Fatalf("cancelled=%d %+v", h.d.cancelCount(), st)
 	}
 	if len(h.spawns) != 0 {
 		t.Fatal("a job was running; nothing may install")
@@ -701,8 +713,8 @@ func TestFollowPostponesAfterTheDrainLimitAndRetries(t *testing.T) {
 	}
 	time.Sleep(200 * time.Millisecond)
 	st := h.m.Status(context.Background())
-	if h.d.cancelled != 1 || st.State != StateIdle || len(h.spawns) != 0 {
-		t.Fatalf("a running job is never cut: cancelled=%d %+v", h.d.cancelled, st)
+	if h.d.cancelCount() != 1 || st.State != StateIdle || len(h.spawns) != 0 {
+		t.Fatalf("a running job is never cut: cancelled=%d %+v", h.d.cancelCount(), st)
 	}
 	if _, err := h.m.Follow(context.Background(), "1.5.0"); err != nil || len(h.d.begun) != 2 {
 		t.Fatalf("the next ask tries again: %v %v", err, h.d.begun)
