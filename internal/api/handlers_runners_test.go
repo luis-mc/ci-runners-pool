@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"io"
 	"log/slog"
 	"net/http"
@@ -75,7 +76,7 @@ func (f *fakeRunners) StartRemove(ctx context.Context, finish func(context.Conte
 
 func runnersMux(svc RunnersService) *http.ServeMux {
 	mux := http.NewServeMux()
-	Register(mux, Options{Version: "t", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Runners: svc})
+	Register(mux, Options{Version: "t", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Runners: svc, Authn: asRole(auth.RoleOwner)})
 	return mux
 }
 

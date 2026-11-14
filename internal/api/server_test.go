@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"io"
 	"log/slog"
 	"net/http"
@@ -17,7 +18,7 @@ func (f fakeDB) Ping(context.Context) error { return f.err }
 
 func newMux(db Pinger) *http.ServeMux {
 	mux := http.NewServeMux()
-	Register(mux, Options{Version: "test", DB: db, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	Register(mux, Options{Version: "test", DB: db, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Authn: asRole(auth.RoleOwner)})
 	return mux
 }
 

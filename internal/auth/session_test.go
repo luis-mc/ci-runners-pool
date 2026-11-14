@@ -60,25 +60,16 @@ func TestUnknownAndEmptyCookie(t *testing.T) {
 	}
 }
 
-func TestSessionCookieAttributes(t *testing.T) { // R5.13
-	c := SessionCookie("v", false)
-	if !c.HttpOnly || c.SameSite != http.SameSiteLaxMode || c.Secure || c.Path != "/" {
-		t.Fatalf("loopback cookie: %+v", c)
+func TestSessionCookieAttributes(t *testing.T) { // web-console R6.1
+	c := SessionCookie("v")
+	if !c.HttpOnly || !c.Secure || c.SameSite != http.SameSiteLaxMode || c.Path != "/" || c.Domain != "" {
+		t.Fatalf("session cookie must be HttpOnly, Secure, Lax and host-only: %+v", c)
 	}
 	if c.MaxAge <= 0 {
 		t.Fatal("a browser restart must not sign anyone out")
 	}
-	s := SessionCookie("v", true)
-	if !s.Secure {
-		t.Fatal("Secure on every non-loopback address")
-	}
-	for host, want := range map[string]bool{"127.0.0.1:8460": false, "[::1]:8460": false, "pool.lan:8460": true, "10.0.0.2:8460": true} {
-		if CookieSecure(host) != want {
-			t.Errorf("CookieSecure(%q) != %v", host, want)
-		}
-	}
-	if ClearCookie("x", false).MaxAge >= 0 {
-		t.Fatal("clear")
+	if cl := ClearCookie("x"); cl.MaxAge >= 0 || !cl.Secure || !cl.HttpOnly {
+		t.Fatalf("clear: %+v", cl)
 	}
 }
 

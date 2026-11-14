@@ -52,6 +52,10 @@ type Options struct {
 	Live LiveService
 	// Doctor serves the doctor routes (handlers_doctor.go). Nil answers 501.
 	Doctor DoctorService
+	// Authn says who a request acts as. Nil uses the GitHub area's sessions and
+	// CLI tokens; with neither, every operation that needs a role answers 401.
+	// A test passes a fixed principal.
+	Authn Authenticator
 }
 
 type server struct {
@@ -66,14 +70,17 @@ func Register(mux *http.ServeMux, opts Options) {
 	if opts.Logger == nil {
 		opts.Logger = slog.Default()
 	}
-	var strictMW []gen.StrictMiddlewareFunc
 	var httpMW []gen.MiddlewareFunc
+	authn := opts.Authn
 	if opts.GitHub != nil {
-		strictMW = append(strictMW, opts.GitHub.StrictMiddleware())
 		httpMW = append(httpMW, opts.GitHub.HTTPMiddleware())
-	} else {
-		strictMW = append(strictMW, unwiredGitHub())
+		if authn == nil {
+			authn = opts.GitHub
+		}
 	}
+	// One middleware checks every operation: who signed in, the role of its
+	// x-auth, the Origin and the CSRF token of a change (R6.2, R6.5).
+	strictMW := []gen.StrictMiddlewareFunc{newAuthz(authn, opts.GitHub != nil, opts.Logger).middleware()}
 	strict := gen.NewStrictHandlerWithOptions(&server{opts: opts}, strictMW, gen.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
 			opts.Logger.Debug("bad request", "err", err)
