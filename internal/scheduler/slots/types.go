@@ -128,7 +128,7 @@ type Tx interface {
 	AllTickets() ([]Ticket, error)
 	Ticket(id string) (t Ticket, ok bool, err error)
 	InsertTicket(t Ticket) error
-	BeatTicket(id string, expiresAt time.Time) (bool, error)
+	BeatTicket(id string, beatAt, expiresAt time.Time) (bool, error)
 	SetTicketWait(id, reason string) error
 	DeleteTicket(id string) (bool, error)
 
