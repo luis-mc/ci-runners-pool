@@ -2,6 +2,7 @@ package contexts_test
 
 import (
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -70,7 +71,7 @@ func TestNoTokenInFile(t *testing.T) {
 	if strings.Contains(strings.ToLower(strings.ReplaceAll(string(raw), "No tokens are kept here", "")), "token") {
 		t.Fatalf("config file mentions a token: %s", raw)
 	}
-	if info, _ := os.Stat(contexts.Path(dir)); info.Mode().Perm() != 0o600 {
+	if info, _ := os.Stat(contexts.Path(dir)); runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("mode %v", info.Mode())
 	}
 }

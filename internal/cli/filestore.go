@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
@@ -34,7 +35,8 @@ func (s *FileStore) load() (map[string]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", secrets.ErrUnavailable, err)
 	}
-	if info.Mode().Perm()&0o077 != 0 {
+	// Windows has no Unix mode bits; the file sits in the user's profile, whose ACL limits it.
+	if runtime.GOOS != "windows" && info.Mode().Perm()&0o077 != 0 {
 		return nil, fmt.Errorf("%w: %s must have mode 0600", secrets.ErrUnavailable, s.Path)
 	}
 	raw, err := os.ReadFile(s.Path)

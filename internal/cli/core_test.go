@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -303,7 +304,7 @@ func TestNoTokenInFile(t *testing.T) {
 		t.Fatalf("config file: %s", raw)
 	}
 	info, _ := os.Stat(contexts.Path(f.dir))
-	if info.Mode().Perm() != 0o600 {
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("mode %v", info.Mode())
 	}
 }
@@ -314,7 +315,7 @@ func TestFallbackFileMode(t *testing.T) {
 	if err := s.Put(t.Context(), "k", []byte("v")); err != nil {
 		t.Fatal(err)
 	}
-	if info, _ := os.Stat(p); info.Mode().Perm() != 0o600 {
+	if info, _ := os.Stat(p); runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("mode %v", info.Mode())
 	}
 	if v, err := s.Get(t.Context(), "k"); err != nil || string(v) != "v" {
@@ -323,11 +324,13 @@ func TestFallbackFileMode(t *testing.T) {
 	if _, err := s.Get(t.Context(), "missing"); err != secrets.ErrNotFound {
 		t.Fatal(err)
 	}
-	if err := os.Chmod(p, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.Get(t.Context(), "k"); err == nil || !strings.Contains(err.Error(), "0600") {
-		t.Fatalf("a wide file was read: %v", err)
+	if runtime.GOOS != "windows" {
+		if err := os.Chmod(p, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.Get(t.Context(), "k"); err == nil || !strings.Contains(err.Error(), "0600") {
+			t.Fatalf("a wide file was read: %v", err)
+		}
 	}
 	_ = os.Chmod(p, 0o600)
 	if err := s.Delete(t.Context(), "k"); err != nil {
