@@ -1,0 +1,8 @@
+# remove keeps the data; purge deletes it.
+case "$1" in
+  remove) if have_systemd; then systemctl daemon-reload || true; fi ;;
+  purge)
+    if have_systemd; then systemctl daemon-reload || true; fi
+    rm -rf /var/lib/crsp /etc/crsp
+    ;;
+esac

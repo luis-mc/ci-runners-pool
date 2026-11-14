@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=CI Runners Shared Pool
+Comment=Tray icon for the crsp service
+Exec=/usr/bin/crsp tray
+Terminal=false
+X-GNOME-Autostart-enabled=true

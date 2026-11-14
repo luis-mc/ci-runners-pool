@@ -1,0 +1,2 @@
+# Erase keeps the data (rpm has no purge).
+if [ "$1" -eq 0 ] && have_systemd; then systemctl daemon-reload || true; fi

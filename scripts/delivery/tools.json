@@ -202,5 +202,24 @@
         "bin": "config.cmd"
       }
     }
+  },
+  "nfpm": {
+    "version": "2.49.0",
+    "platforms": {
+      "linux_x64": {
+        "kind": "archive",
+        "url": "https://github.com/goreleaser/nfpm/releases/download/v2.49.0/nfpm_2.49.0_Linux_x86_64.tar.gz",
+        "sha256": "2afaa5ffb5e3493402e31e7c67a5a1fb42133e3f66fc315ca0051934125561c7",
+        "bin_dir": ".",
+        "bin": "nfpm"
+      },
+      "linux_arm64": {
+        "kind": "archive",
+        "url": "https://github.com/goreleaser/nfpm/releases/download/v2.49.0/nfpm_2.49.0_Linux_arm64.tar.gz",
+        "sha256": "d4eee71839e92c68cbd3b101640bad32d2856fc551acae0635be9118e48c9d9c",
+        "bin_dir": ".",
+        "bin": "nfpm"
+      }
+    }
   }
 }

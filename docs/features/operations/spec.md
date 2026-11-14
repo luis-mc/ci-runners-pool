@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-**Partly built (CRSP18).** Built: the Windows MSI installer (R5.7, R5.35 to R5.41), the config file and schema (R5.8, R5.9), the per-OS folders (R5.10), the daily backup, restore and drill (R5.21 to R5.25, R5.27, the secret list of R5.26 as `backup.MissingSecrets`). Everything else below is **NOT YET IMPLEMENTED**: planned, with its milestone.
+**Partly built (CRSP18, OPS1).** Built: the installers for Windows (MSI, R5.35 to R5.41), macOS (pkg) and Linux (deb and rpm) (R5.7), the config file and schema (R5.8, R5.9), the per-OS folders (R5.10), the daily backup, restore and drill (R5.21 to R5.25, R5.27, the secret list of R5.26 as `backup.MissingSecrets`). Everything else below is **NOT YET IMPLEMENTED**: planned, with its milestone.
 
 ## 1. In one paragraph
 
@@ -138,7 +138,24 @@ Each requirement names its milestone (M1 to M8, product brief). Those not named 
 
 **R5.6** (M1) — On first start the controller makes its TLS certificate, opens ports 8460 and 8461 (or the configured ports), and prints a one-time link to the first-run wizard. The tray opens that link. The wizard itself is in the GitHub spec.
 
-**R5.7** (M1 for Windows, M8 for the rest) — Installers per OS install the same files and services as R5.2 to R5.4. The Windows MSI is built (R5.35 to R5.41). pkg, deb and rpm, and signed installers, come later (macOS and Linux: task CRSP21; signing: M8).
+**R5.7** (M1 for Windows, M8 for the rest) — Installers per OS (MSI, pkg, deb and rpm) install the same files and services as R5.2 to R5.4. The Windows MSI is built (R5.35 to R5.41; task CRSP18). The macOS `.pkg` and the Linux `.deb` and `.rpm` are built (OPS1). Signed installers come in M8.
+#### macOS and Linux installers (OPS1)
+
+Release assets: `crsp-darwin-<arch>.pkg`, `crsp-linux-<arch>.deb` and `crsp-linux-<arch>.rpm`, with `<arch>` as in the `.tar.gz` names. They are listed in `SHA256SUMS` and carry a build provenance attestation. They are not signed or notarized yet (milestone 8). Edge builds get the version `<next patch after the latest stable tag>~edge.<run>` (deb, rpm) or `<next patch>.<run>` (pkg), so a later edge build sorts above an earlier one and the stable release above both.
+
+| | Linux (`.deb`, `.rpm`) | macOS (`.pkg`) |
+|---|---|---|
+| Binary | `/usr/bin/crsp` | `/usr/local/bin/crsp` |
+| Service | systemd unit `crsp` (`/usr/lib/systemd/system/crsp.service`), `ExecStart=/usr/bin/crsp controller`, enabled and started | LaunchDaemon label `crsp` (`/Library/LaunchDaemons/crsp.plist`), runs `/usr/local/bin/crsp controller` |
+| Tray start | `/etc/xdg/autostart/crsp-tray.desktop` | `/Library/LaunchAgents/dev.luismc.crsp.tray.plist` |
+| Install marker | `/usr/share/crsp/install-kind` holds `deb` or `rpm` | `/usr/local/share/crsp/install-kind` holds `pkg` |
+| Data | `/var/lib/crsp` (0700), `/etc/crsp` (0750), owned by root | `/Library/Application Support/crsp` (0700), owned by root |
+| Remove | `apt remove` and `rpm -e` keep the data; `apt purge` deletes `/var/lib/crsp` and `/etc/crsp` (rpm has no purge) | `sudo crsp-uninstall` keeps the data; `--delete-data` also deletes it and the log |
+
+- The controller service runs as root on Linux and macOS (owner decision, 2026-11-14): it manages runner services and accounts and applies package upgrades for auto-update. This is the exception to the non-admin account of R5.4 for these two installers; there is no `crsp` or `_crsp` account.
+- Installing over an older version (upgrade) keeps the data, stops the service before the files are replaced and starts it again afterwards.
+- The marker tells the updater (R5.11 to R5.18) which package manager owns the files.
+- If systemd is not running (a plain container), the files are installed and the service starts at the next boot.
 
 ### Config file and data folder
 
@@ -313,7 +330,7 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R5.4 | planned: internal/install/account_test.go TestServiceRunsAsNonAdmin (Linux, macOS); Windows: installer/smoke.ps1 checks the service runs as LocalSystem |
 | R5.5 | planned: internal/install/join_test.go TestJoinStoresKeyInSecretStore |
 | R5.6 | planned: cmd/crsp first-run e2e TestFirstStartPrintsOneTimeLink |
-| R5.7 | Windows: R5.35 to R5.41 below; macOS and Linux: planned (CRSP21) |
+| R5.7 | Windows: R5.35 to R5.41 below; macOS and Linux: `.github/workflows/installer-unix.yml` smoke jobs for the deb (systemd on the runner), the rpm (Fedora container) and the pkg (macOS runner): install, upgrade, remove, purge or uninstall |
 | R5.35 | installer/smoke.ps1 (`.github/workflows/installer.yml`, x64 install; arm64 builds and extracts), .github/workflows/release.yml asset count |
 | R5.36 | installer/smoke.ps1: service, account, failure actions, PATH, firewall rule (Private, 8460, 8461), shortcut, autostart, data ACL, `install-kind` |
 | R5.37 | installer/smoke.ps1 silent uninstall keeps data and leaves nothing; `REMOVEDATA=1`; installer/ui-test.ps1 drives the dialog |
@@ -380,7 +397,7 @@ Built in CRSP18: see the status line at the top. The seams:
 
 - `internal/config/config.go` reads `config.toml` and the `CRSP_*` variables (R5.8 to R5.10). `crsp config check` (the command) is the CLI's.
 - `.github/workflows/release.yml` publishes archives, `SHA256SUMS` and provenance today. The updater reads exactly these. It will also need `install.sh` and `install.ps1` as release assets (R5.1), and the `edge` release keeps its tag name so the checker can find it.
-- Code signing (M8) and the macOS and Linux installers (R5.7, CRSP21). The Windows MSI is built.
+- Code signing and notarization come in milestone 8. The installers for Windows (MSI), macOS (pkg) and Linux (deb, rpm) are built.
 
 **Open owner questions.**
 
