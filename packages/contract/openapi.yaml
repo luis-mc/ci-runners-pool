@@ -4821,7 +4821,7 @@ components:
         events: [machine.offline]
         min_severity: warning
         url: https://hooks.example.com/crsp
-        secret: s3cret-signing-key
+        secret: "<webhook signing secret>"
     NotificationChannelUpdate:
       type: object
       description: Every field is optional; `kind` cannot change.

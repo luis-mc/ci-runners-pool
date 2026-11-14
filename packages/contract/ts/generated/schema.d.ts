@@ -3011,7 +3011,7 @@ export interface components {
          *       ],
          *       "min_severity": "warning",
          *       "url": "https://hooks.example.com/crsp",
-         *       "secret": "s3cret-signing-key"
+         *       "secret": "<webhook signing secret>"
          *     }
          */
         NotificationChannelInput: {
