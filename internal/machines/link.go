@@ -181,16 +181,37 @@ func (l *Link) Session(ctx context.Context, stream *connect.BidiStream[agentv1.S
 	defer func() { cancel(); <-done }()
 
 	reply := func(r *agentv1.SessionResponse) { _ = svc.sessions.send(m.ID, r) }
-	for {
-		req, err := stream.Receive()
-		if err != nil {
-			if ctx.Err() != nil {
-				return nil
+	// Receive blocks on the request body and does not see ctx; read in its own
+	// goroutine so a kick (key revoked, newer session) ends the handler at once.
+	type recv struct {
+		msg *agentv1.SessionRequest
+		err error
+	}
+	in := make(chan recv)
+	go func() {
+		for {
+			req, err := stream.Receive()
+			select {
+			case in <- recv{req, err}:
+			case <-ctx.Done():
+				return
 			}
-			return err
+			if err != nil {
+				return
+			}
 		}
-		_ = svc.MarkSeen(ctx, m.ID)
-		svc.dispatch(ctx, m.ID, hello.GetAgentVersion(), req, reply)
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case r := <-in:
+			if r.err != nil {
+				return r.err
+			}
+			_ = svc.MarkSeen(ctx, m.ID)
+			svc.dispatch(ctx, m.ID, hello.GetAgentVersion(), r.msg, reply)
+		}
 	}
 }
 

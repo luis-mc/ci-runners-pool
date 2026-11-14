@@ -211,3 +211,9 @@ func drainStatus(cmd string, idle bool, jobs ...*agentv1.JobRef) *agentv1.Sessio
 }
 
 func ptr[T any](v T) *T { return &v }
+
+func machinesHooks(onHello func(*agentv1.Hello)) machines.Hooks {
+	return machines.Hooks{OnHello: func(_ context.Context, _ string, h *agentv1.Hello) { onHello(h) }}
+}
+
+func machinesUpdateSlots(n int) machines.SettingsUpdate { return machines.SettingsUpdate{JobSlots: &n} }
