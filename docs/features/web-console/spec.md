@@ -23,7 +23,7 @@ generator: luismc-docs 2.6.0
 
 The top half (sections 1 to 4) is for every reader: product, design, UX. The bottom half (5 to 12) is for engineers.
 
-The M1 console is built (CRSP24): the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups. Requirements marked (built, CRSP24) are built. Everything else in this spec is **NOT YET IMPLEMENTED**: the jobs, images and caches and doctor screens, the later settings sub-pages, and the server side of serving (R5.1, R5.2, R6.1 to R6.5, R6.12, R6.13).
+The M1 console is built (CRSP24): the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups. Requirements marked (built, CRSP24) are built. The serving side is built (CRSP33): HTTPS, the headers, the session cookie, the CSRF and Origin checks and the role check on every operation (R5.1, R6.1 to R6.5). Everything else in this spec is **NOT YET IMPLEMENTED**: the jobs, images and caches and doctor screens, the later settings sub-pages, the SPA fallback test (R5.2), and R6.12 and R6.13.
 
 ## 1. In one paragraph
 
@@ -257,11 +257,11 @@ Settings hold configuration only (UX-52). Sub-pages sit under one Settings area,
 
 ## 5. Functional requirements
 
-Requirements marked (built, CRSP24) are built. The others are **NOT YET IMPLEMENTED**.
+Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are **NOT YET IMPLEMENTED**.
 
 ### Serving and the shell
 
-**R5.1** — The controller serves the console and its API on one HTTPS port, 8460 by default, set in config. It serves no plain-HTTP console.
+**R5.1** (built, CRSP33) — The controller serves the console and its API on one HTTPS port, 8460 by default, set in config. It serves no plain-HTTP console. The certificate is the one the controller's own CA made (`internal/tlsca`, the one the agent link uses), TLS 1.3 only.
 
 **R5.2** — Any path that is not under `/api/` returns the console, so a deep link opens its screen after sign-in. An unknown console path shows the not-found state with a link to the overview.
 
@@ -341,17 +341,17 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 ## 6. Non-functional requirements
 
-Requirements marked (built, CRSP24) are built. The others are **NOT YET IMPLEMENTED**.
+Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are **NOT YET IMPLEMENTED**.
 
-**R6.1** — The session lives in a cookie that is `HttpOnly`, `Secure`, `SameSite=Lax` and host-only. Its value is a random 256-bit id. The controller stores only its hash. Idle and total lifetimes are set in config (owner question Q12).
+**R6.1** (built, CRSP33) — The session lives in a cookie that is `HttpOnly`, `Secure`, `SameSite=Lax` and host-only. Its value is a random 256-bit id. The controller stores only its hash. Idle and total lifetimes are set in config (owner question Q12). Built: the cookie and the hash. Not built: the lifetimes. Until the owner answers Q12, the owner decision for M1 stands: a session ends at sign-out, when its user is removed, and when their role changes (`internal/auth`, `TestSessionNeverExpiresByTime`).
 
-**R6.2** — Every request that changes something carries a per-session CSRF token, and the controller refuses a request whose `Origin` is not the console's own.
+**R6.2** (built, CRSP33) — Every request that changes something carries a per-session CSRF token, and the controller refuses a request whose `Origin` is not the console's own. Section 7 says how.
 
-**R6.3** — The console loads nothing from outside the controller: no CDN, font host, analytics or avatar image. The controller sends a Content Security Policy with `default-src 'self'`, no inline script, and `frame-ancestors 'none'`.
+**R6.3** (built, CRSP33) — The console loads nothing from outside the controller: no CDN, font host, analytics or avatar image. The controller sends a Content Security Policy with `default-src 'self'`, no inline script, and `frame-ancestors 'none'`. The browser half (no outside request while the console runs) is the Playwright check in section 9, not built.
 
-**R6.4** — No secret reaches the browser: not the App private key, the webhook secret, a GitHub token or an agent key. A join code shows only in its wizard, once, and never in a URL, log or audit entry.
+**R6.4** (built, CRSP33) — No secret reaches the browser: not the App private key, the webhook secret, a GitHub token or an agent key. A join code shows only in its wizard, once, and never in a URL, log or audit entry.
 
-**R6.5** — The API checks the role on every operation (its `x-auth`), whatever the console shows. A viewer's change request gets 403.
+**R6.5** (built, CRSP33) — The API checks the role on every operation (its `x-auth`), whatever the console shows. A viewer's change request gets 403. An operation with no role rule is refused, not opened.
 
 **R6.6** — Every screen, in the dark and the light theme, has no serious or critical accessibility violation (axe), one `h1`, landmarks, and a visible focus (UX-17, UX-59).
 
@@ -401,7 +401,8 @@ flowchart LR
 - `apps/web/src/screens/<area>/`: one folder per screen.
 - `packages/ui/src/`: the shared components of design system v1. A screen extends a component there and never copies it (UX-2).
 - `packages/contract/`: the OpenAPI contract and the generated client (decision 0001).
-- `internal/webui/`: serves the built console with `go:embed`, with the SPA fallback of R5.2 and the headers of R6.3.
+- `internal/webui/`: serves the built console with `go:embed`, with the SPA fallback of R5.2 (`webui.go`), the headers of R6.3 (`security.go`) and the TLS server of R5.1 (`serve.go`).
+- `internal/api/authz.go`: the one gate in front of every operation: who is signed in, the role of its `x-auth`, the Origin and the CSRF token (R6.2, R6.5).
 
 **Routes.**
 
@@ -438,6 +439,16 @@ flowchart LR
 | Updates and export | `getUpdateStatus`, `updateUpdatePolicy`, `startUpdate`, `exportConfig` | `operations` |
 | Audit | `listAuditEvents`, `exportAuditEvents` | `observability` |
 
+**Serving and request checks (CRSP33).**
+
+- **HTTPS (R5.1).** `webui.NewServer` serves the console and the API on `listen_addr` with `tlsca.Authority.ServerTLS()`: TLS 1.3 only, the certificate of the controller's own CA, which also covers `localhost`, `127.0.0.1` and `::1`. A client that speaks plain HTTP to the port gets TLS's refusal, never a page. The only plain-HTTP listeners left are not the console: the backup restore drill's throwaway listener on a loopback port (`internal/backup`) and the tests' `httptest` servers.
+- **Headers (R6.3).** `webui.Secure` wraps the whole mux, so the console, the API and every error carry: `Content-Security-Policy` (`default-src 'self'`, `script-src 'self'`, `style-src 'self'`, `img-src 'self' data:`, `connect-src 'self'`, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`), `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy: same-origin`, and a `Permissions-Policy` that turns the camera, microphone, location and payment off. There is no `form-action`: the App manifest form posts to GitHub.
+- **Session cookie (R6.1).** `crsp_session`: `HttpOnly`, `Secure` (on every address, loopback too), `SameSite=Lax`, `Path=/`, no `Domain`. The value is 32 random bytes, URL-safe; the database holds its SHA-256. The setup cookie has the same flags.
+- **CSRF token (R6.2).** The token of a session is `hex(HMAC-SHA256(key = session id, "crsp-csrf"))`. The controller keeps no copy: it computes the token from the cookie it receives. `getSession` (`GET /api/v1/me`) returns it as `csrf`; the console holds it in memory only (`apps/web/src/api/api.tsx`) and sends it in `X-CSRF-Token` on every request that is not GET or HEAD. A page on another site cannot read it, and another session's token fails. A CLI bearer token is not a browser session: it has no cookie to ride on, so it needs neither the token nor an Origin.
+- **Origin (R6.2).** On a change made with a session, the `Origin` header must be there and equal the address the browser used (scheme, host and port). A change on a public operation (the setup form) is refused when it has an `Origin` that is not the console's own; a client with no `Origin` (curl, the CLI) is not a browser and passes. Reads are not checked.
+- **Roles (R6.5).** `x-auth` of the contract is copied into two Go tables (`githubAreaAuth` in `handlers_auth.go`, `otherAreaAuth` in `authz.go`). `TestEveryOperationHasItsRole` fails when an operation has no entry or a different one, so the first work on a new operation is its row in a table. The gate runs before any handler: not signed in is 401; a role below `x-auth` is 403; an operation with no entry is 403. A role below the need gets 403 even where the area behind the operation is not built, so a refused request learns nothing about it.
+- **No secret reaches the browser (R6.4).** The contract's response schemas hold no field named like a secret (private key, webhook or client secret, token, password, agent key), except `CliTokenCreated.token`, which goes once to the CLI that asked. The join code is `JoinCodeCreated.join_code`, shown in its wizard. Tests: section 9.
+
 **Errors.** Every error uses the `ErrorEnvelope` of the contract. The console reads its `code`: `session_expired` opens the session-ended dialog (R5.11), `forbidden` refreshes the role, and anything else shows could-not-load with the message (UX-28).
 
 **Data kept in the browser.** Only per-person view choices, such as the activity strip being open (component 27) and the last filter. No API data and no secret is stored in the browser.
@@ -461,7 +472,7 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 
 | Requirement | Kind | Test |
 |---|---|---|
-| R5.1 | Go test | NOT YET IMPLEMENTED: `internal/webui/serve_tls_test.go` |
+| R5.1 | Go test | `internal/webui/serve_tls_test.go` (TLS 1.3 with the CA's certificate, an untrusting client and TLS 1.2 refused, no plain-HTTP console, no serving without a certificate) |
 | R5.2 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/webui/webui_test.go` (SPA fallback), `e2e/tests/web-console/deep-link.spec.ts` |
 | R5.3 | Vitest | `apps/web/src/shell/Shell.test.tsx` |
 | R5.4 | Vitest, Playwright e2e | `apps/web/src/shell/Shell.test.tsx`, `e2e/tests/web-console/keyboard.spec.ts` |
@@ -493,11 +504,11 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.30 | Vitest, Playwright e2e | the question-card tests in each screen test file, `e2e/tests/web-console/flows.spec.ts` |
 | R5.31 | Vitest | the loading, empty and could-not-load tests in each screen test file |
 | R5.32 | Vitest | `packages/ui/src/components/format.test.ts` |
-| R6.1 | Go test | NOT YET IMPLEMENTED: `internal/api/session_cookie_test.go` |
-| R6.2 | Go test | NOT YET IMPLEMENTED: `internal/api/csrf_test.go` |
-| R6.3 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/webui/headers_test.go`, `e2e/tests/web-console/no-external-requests.spec.ts` |
-| R6.4 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/api/no_secrets_test.go`, `e2e/tests/web-console/no-secrets.spec.ts` |
-| R6.5 | Go test | NOT YET IMPLEMENTED: `internal/api/route_coverage_test.go` (x-auth on every route) and `internal/api/roles_test.go` |
+| R6.1 | Go test | `internal/api/session_cookie_test.go` (flags, 256-bit value, only the hash stored), `internal/auth/session_test.go` (cookie attributes). The lifetimes of Q12 are not built. |
+| R6.2 | Go test, Vitest | `internal/api/csrf_test.go` (every changing operation of the contract: no token, wrong token, no, foreign or null Origin, per-session token), `apps/web/src/api/csrf.test.tsx` and `apps/web/src/shell/Shell.test.tsx` (the console sends it) |
+| R6.3 | Go test, Playwright e2e | `internal/webui/headers_test.go`; NOT YET IMPLEMENTED: `e2e/tests/web-console/no-external-requests.spec.ts` |
+| R6.4 | Go test, Playwright e2e | `internal/api/no_secrets_test.go` (the contract's response schemas, and the answers of a signed-in console against the stored secrets); NOT YET IMPLEMENTED: `e2e/tests/web-console/no-secrets.spec.ts` |
+| R6.5 | Go test | `internal/api/route_coverage_test.go` (x-auth on every route) and `internal/api/roles_test.go` (every operation of the contract against every role) |
 | R6.6 | Playwright e2e | NOT YET IMPLEMENTED: `e2e/tests/web-console/a11y.spec.ts` (axe, both themes) |
 | R6.7 | design kit guard (Playwright) | `e2e/tests/design-layout.spec.ts` on `scripts/design/dom-layout.ts` at 360, 393 and 1300 px |
 | R6.8 | design kit guard | `scripts/design/raw-controls.test.ts`, `scripts/design/no-app-css.test.ts`, `scripts/design/raw-inputs.test.ts` |
@@ -543,13 +554,16 @@ For the product:
 
 ## 11. Not built yet
 
+Built by CRSP33: the serving side (R5.1, R6.1 to R6.5): HTTPS with the CA's certificate, the R6.3 headers, the Secure session cookie, the CSRF token and Origin checks, and the role check of every operation.
+
 Built by CRSP24: the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups (all against the M1 contract and a mocked API in tests).
 
 **NOT YET IMPLEMENTED:**
 
 - the jobs, images and caches and doctor screens (R5.24 to R5.26): their menu entries open a page that says in which milestone they arrive;
 - the later settings sub-pages: Budgets, Notifications, Updates, Audit log, Config export (R5.29);
-- the serving side: `internal/webui/webui.go` serves over TLS and sends the headers of R6.3 (R5.1, R6.3), the session cookie and CSRF checks (R6.1, R6.2), the role checks (R6.5);
+- the session lifetimes of R6.1 (owner question Q12), the SPA fallback test of R5.2, the browser checks `no-external-requests.spec.ts` (R6.3) and `no-secrets.spec.ts` (R6.4);
+- the controller binary does not mount the GitHub area yet (`cmd/crsp/main.go` passes no `Options.GitHub`), so nobody can sign in there: every operation that needs a role answers 401 and the sign-in operations answer 501, until the area is wired;
 - an automated axe check in both themes (R6.6), the performance budgets (R6.12), the offline check (R6.13);
 - a way to stop a repository or runner plan that is applying: the contract has no operation for it, so those wizards offer Stop only on Joining.
 
@@ -579,3 +593,6 @@ Source: packages/ui/src/components/Wizard.tsx
 Source: packages/ui/src/components.css
 Source: packages/contract/openapi.yaml
 Source: internal/webui/webui.go
+Source: internal/webui/security.go
+Source: internal/webui/serve.go
+Source: internal/api/authz.go

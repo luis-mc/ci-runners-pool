@@ -158,7 +158,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 **R5.12** (M1, built) — **Roles.** A viewer can read every screen and change nothing. An admin can change pool, policy, machines and runners, but not users. The owner can do everything. Every API operation declares its role in `x-auth`, and the route-coverage test checks it.
 
-**R5.13** (M1, built) — **Sessions.** A web session is a random id in a cookie (`HttpOnly`, `SameSite=Lax`, and `Secure` on every non-loopback address). The database keeps only a hash of the id. A session ends after 12 hours idle or 7 days, at sign-out, and when the user is removed or their role changes.
+**R5.13** (M1, built) — **Sessions.** A web session is a random id in a cookie (`HttpOnly`, `SameSite=Lax`, and `Secure` on every address, because the console is HTTPS only: web-console R5.1, R6.1). The database keeps only a hash of the id. A session ends after 12 hours idle or 7 days, at sign-out, and when the user is removed or their role changes.
 
 **R5.14** (M1, built) — **CLI device flow.** `crsp login` runs GitHub's device flow with the App's client id. It shows the code and the URL, and waits at the interval GitHub gives. It sends the GitHub user token once to the controller, which checks it with `POST /applications/{client_id}/token` and that the user is allowed. The controller returns its own CLI token. The CLI keeps that token in the OS secret store and drops the GitHub token.
 
