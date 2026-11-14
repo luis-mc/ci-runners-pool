@@ -133,7 +133,7 @@ export function AuditLogSettings() {
                     busy={more.busy}
                     busyLabel="Loading more"
                   >
-                    Show more
+                    Load more
                   </Button>
                 ) : null}
               </Stack>
