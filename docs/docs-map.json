@@ -1,4 +1,11 @@
 {
   "schema": 1,
-  "map": {}
+  "map": {
+    "internal/backend/**": [
+      "docs/features/runners/spec.md"
+    ],
+    "internal/runners/**": [
+      "docs/features/runners/spec.md"
+    ]
+  }
 }
