@@ -3813,7 +3813,16 @@ components:
           type: boolean
         state:
           type: string
-          enum: [idle, checking, waiting_for_jobs, downloading, installing, restarting, failed]
+          enum:
+            [
+              idle,
+              checking,
+              waiting_for_jobs,
+              downloading,
+              installing,
+              restarting,
+              failed,
+            ]
           description: waiting_for_jobs is the drain. failed carries `error`.
         auto_update:
           type: boolean
