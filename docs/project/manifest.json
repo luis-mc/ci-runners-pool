@@ -1,0 +1,24 @@
+{
+  "spec": "ARTIFACTSPEC 1.0.0",
+  "project": "CI Runners Shared Pool",
+  "timezone": "Europe/Lisbon",
+  "timezone_label": "Lisbon",
+  "windows_timezone": "GMT Standard Time",
+  "design": "default",
+  "default_branch": "main",
+  "merged_status": "Live",
+  "full_progress_artifact": {
+    "key": "full-progress",
+    "title": "Full Progress: CI Runners Shared Pool",
+    "file": "full-progress-ci-runners-shared-pool.html",
+    "url": "https://claude.ai/artifact/XQbWU86Mtt6zmDpHaHVeC7",
+    "published_sha256": "5603cf7bbd7be94245d4d31d1d2503ecc04739b1e5c219da5ea7a8a21cc3057b",
+    "published_at": "2026-11-14T08:26+00:00",
+    "published_fingerprint": "776663d1356fb566a2b8fad75ddc68a741b90fd6ab7c1ade084d6d0df318be5c"
+  },
+  "feature_artifacts": [],
+  "project_prefixes": [
+    "CRSP"
+  ],
+  "updated": "2026-11-14T08:27+00:00"
+}
