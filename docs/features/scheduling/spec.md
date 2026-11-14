@@ -391,7 +391,7 @@ A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTE
 | R5.34 | `internal/scheduler/gate_test.go` TestTicketExpiry; `internal/scheduler/slots/slots_test.go` TestTicketExpiryRule | `test_machine.py` Queue `test_dead_gate_and_old_tickets_are_dropped`; `test_dl292_ticket_heartbeat.py` `test_other_host_fresh_beat_stays`, `test_other_host_old_beat_dropped_and_logged`, `test_limit_follows_poll_sec`, `test_old_ticket_without_beat_ts_uses_queued_ts`, `test_same_host_dead_pid_still_dropped` |
 | R5.35 | `internal/scheduler/gate_test.go` TestReconcileOnAgentReconnect | new |
 | R5.36 | `internal/scheduler/gate_test.go` TestCompletedOnGitHubFreesLeftovers | new |
-| R5.37 | `internal/scheduler/gate_test.go` TestFreeStaleCommand; `internal/api/handlers_jobs_test.go` TestFreeStaleCommand | new (from `machine_slots.py` `main`) |
+| R5.37 | `internal/scheduler/gate_test.go` TestFreeStaleCommand; `internal/scheduler/api_jobs_test.go` TestAPIFreeStaleCommand | new (from `machine_slots.py` `main`) |
 | R5.38 | `internal/scheduler/gate_test.go` TestLogRowsAndTrim | `test_machine.py` SlotLog `test_log_lines_and_trim` |
 | R5.39 | `internal/scheduler/gate_test.go` TestLogRowsAndTrim | `test_machine.py` SlotLog `test_log_lines_and_trim` |
 | R5.40 | `internal/scheduler/load/load_test.go` TestMemoryParsers | `test_load.py` Parsers `test_linux`, `test_macos`; `test_machine.py` HostLoad `test_parsers` |
@@ -412,7 +412,7 @@ A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTE
 | R5.55 | planned: internal/scheduler/windows_test.go TestMaintenanceWindowTakesNoNewJob | new |
 | R5.56 | planned: internal/scheduler/windows_test.go TestQuietHoursSettingsInForce | new |
 | R5.57 | planned: internal/scheduler/windows_test.go TestWindowStartStopsNoJob | new |
-| R5.58 | `internal/scheduler/gate_test.go` TestStatus; `internal/api/handlers_jobs_test.go` TestListSlots | `test_machine.py` SlotsCommand `test_slots_command_prints_holders_queue_and_waits`; `test_dl270_light_slot_listing.py` `test_free_and_held_light_slot`, `test_light_slots_after_ci_slots`, `test_zero_light_slots_prints_no_light_line`, `test_json_keeps_light_slots`, `test_stale_light_lock_is_flagged_and_ok_line_counts_both` |
+| R5.58 | `internal/scheduler/gate_test.go` TestStatus; `internal/scheduler/api_jobs_test.go` TestAPIListSlots | `test_machine.py` SlotsCommand `test_slots_command_prints_holders_queue_and_waits`; `test_dl270_light_slot_listing.py` `test_free_and_held_light_slot`, `test_light_slots_after_ci_slots`, `test_zero_light_slots_prints_no_light_line`, `test_json_keeps_light_slots`, `test_stale_light_lock_is_flagged_and_ok_line_counts_both` |
 | R5.59 | `internal/hooks/hooks_test.go` TestHookWrappers | `test_machine.py` ShardAndMarker `test_no_cmd_wrappers_ship`; `test_dl324_runner_policy.py` `test_env_keeps_hooks_first`; `test_dl289_refresh_drain.py` `test_hooks_still_exec_their_python`; `test_runner_pool.py` `test_hook_files_are_copied_with_the_full_python_path` |
 | R6.1 | `internal/hooks/hooks_test.go` TestQuietGateUnderTwoSeconds | `test_load.py` Cache `test_no_sleep_and_delta_from_saved_raw` |
 | R6.2 | `internal/scheduler/gate_test.go` TestTwoTakersNeverShareASlot | `test_machine.py` Slots `test_race_two_processes_never_share_one_slot` |

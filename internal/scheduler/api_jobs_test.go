@@ -1,4 +1,4 @@
-package api_test
+package scheduler_test
 
 import (
 	"context"
@@ -67,7 +67,7 @@ func (f *fixture) take(gate string, run int64, job string) {
 }
 
 // R5.58 through the API: the same status the CLI and console read.
-func TestListSlots(t *testing.T) {
+func TestAPIListSlots(t *testing.T) {
 	f := newFixture(t)
 	f.take("a", 1, "build")
 	f.take("b", 2, "build")
@@ -92,7 +92,7 @@ func TestListSlots(t *testing.T) {
 }
 
 // R5.37 through the API: a live slot needs a yes that names the job; a stale one does not.
-func TestFreeStaleCommand(t *testing.T) {
+func TestAPIFreeStaleCommand(t *testing.T) {
 	f := newFixture(t)
 	f.take("a", 1, "build")
 	rec, body := f.do("POST", "/api/v1/machines/m1/slots/free-stale", "")
@@ -128,7 +128,7 @@ func TestFreeStaleCommand(t *testing.T) {
 }
 
 // observability R5.7 and scheduling R5.52: listJobs and getJob over the GitHub job rows.
-func TestListAndGetJobs(t *testing.T) {
+func TestAPIListAndGetJobs(t *testing.T) {
 	f := newFixture(t)
 	ctx := context.Background()
 	if err := f.st.SetRepoPolicyForTests(ctx, 7, "o/r", slots.Policy{MaxParallel: 5}); err != nil {
@@ -176,12 +176,11 @@ func TestListAndGetJobs(t *testing.T) {
 	if done["state"] != "done" || done["result"] != "success" || done["run_seconds"].(float64) != 60 || done["github_wait_seconds"].(float64) != 30 {
 		t.Fatalf("done job %v", done)
 	}
-	rec, body = f.do("GET", "/api/v1/jobs?state=queued", "")
+	_, body = f.do("GET", "/api/v1/jobs?state=queued", "")
 	if len(body["items"].([]any)) != 1 {
 		t.Fatalf("state filter: %v", body)
 	}
-	rec, _ = f.do("GET", "/api/v1/jobs?state=bogus", "")
-	if rec.Code != 400 {
+	if rec, _ := f.do("GET", "/api/v1/jobs?state=bogus", ""); rec.Code != 400 {
 		t.Fatalf("bad state: %d", rec.Code)
 	}
 	rec, body = f.do("GET", "/api/v1/jobs/102", "")
@@ -194,7 +193,7 @@ func TestListAndGetJobs(t *testing.T) {
 }
 
 // With nothing wired the routes still answer with the not-built envelope.
-func TestNotWiredAnswers501(t *testing.T) {
+func TestAPINotWiredAnswers501(t *testing.T) {
 	mux := http.NewServeMux()
 	api.Register(mux, api.Options{Version: "t", Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	rec := httptest.NewRecorder()

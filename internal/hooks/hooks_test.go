@@ -287,7 +287,7 @@ func (panicClient) Release(context.Context, string, scheduler.JobRef, []string) 
 func TestHookOverTheAgentSocket(t *testing.T) {
 	w := newWorld(t)
 	sock := filepath.Join(t.TempDir(), "agent.sock")
-	ln, err := net.Listen("unix", sock)
+	ln, err := (&net.ListenConfig{}).Listen(context.Background(), "unix", sock)
 	if err != nil {
 		t.Skipf("unix sockets are not available here: %v", err)
 	}
