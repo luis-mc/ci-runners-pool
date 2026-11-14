@@ -1,0 +1,482 @@
+---
+id: scheduling
+title: Scheduling, slots and load budget
+apps: [controller, agent, cli, web-console]
+topics: [scheduling, machines, runners, github, observability]
+status: proposed
+version: 0.1.0
+owner: owner
+type: reference
+code: ["internal/scheduler/**", "internal/slots/**"]
+design_system: [UX-6, UX-14, UX-17, UX-19, UX-29, UX-34, UX-38, UX-41, UX-52, UX-53, UX-58, UX-62, components 15, components 16, components 17, components 19]
+last_verified: 2026-11-14
+artifact:
+generator: luismc-docs 2.6.1
+---
+# Scheduling, slots and load budget
+
+The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
+
+Nothing in this spec is built yet. Every requirement is NOT YET IMPLEMENTED. Each requirement names its milestone (M1, M2 or M3) and the dev-standards file it is ported from.
+
+## 1. In one paragraph
+
+Each machine in the pool has one queue for every job that wants to run there, whatever runner or repository it comes from. The machine has a fixed number of job slots and a load budget (by default at or below 85% memory and 60% CPU in total). When a job starts, a hook holds it until three things are true: it is first in line, a slot is free, and the machine is under its budget. When the job ends, a second hook frees the slot. Slots and queue tickets left behind by dead jobs, lost machines or cancelled runs are found and freed. With more machines, the controller places each job on a machine by label, then free capacity, then warm caches. Repositories share the pool fairly, with a priority and a parallel limit each, and a machine can have quiet hours.
+
+## 2. Why
+
+**Problem.** Several runners on one computer, from several repositories, start jobs at the same time. Without one queue they overload the machine: memory runs out, builds fail, and the owner's own work freezes. The dev-standards pool solved this on one Windows PC with lock files, queue tickets and two runner hooks. This product ports that logic to its controller and agents, and extends it to many machines.
+
+**Users.**
+
+- The owner of the machines: wants CI to use the machines without taking them over.
+- Repository admins: want their jobs to start soon and in a fair order.
+- Viewers: want to see why a job waits.
+
+**Goals.**
+
+- One queue and one slot count per machine, across all runners and repositories.
+- A job never starts while the machine is over its budget, unless the wait times out and the machine is set to let it run.
+- A slot is never lost: every slot held by a job that is gone is freed and logged.
+- The order of service is clear and can be shown.
+- Measurement never blocks CI: when the machine cannot be measured, the job goes.
+
+**Non-goals.**
+
+- Killing, suspending or slowing any process. The scheduler only holds new jobs (learning 13).
+- Managing GitHub-hosted runners.
+- Sizing container or VM caps. That is the machines and runners specs; this spec only reads the same measurements.
+- The dev-standards ci-wait marker and its cloud fallback (exit 3, "claim lost"). This product has no cloud fallback. See D5.
+- The dev-standards load guard for Claude Code tool calls (`load_guard.py` `classify`, the local heavy limit). Only its rules are ported. See D6.
+
+## 3. How it works
+
+```mermaid
+flowchart TD
+  gh[GitHub assigns a job to a runner] --> hs[Runner runs the job-started hook]
+  hs --> ag[Hook asks the machine's agent]
+  ag --> ct[Controller: write a ticket in the machine queue]
+  ct --> chk{First in line, slot free, load under budget?}
+  chk -- no --> wait[Hold the job; beat the ticket; poll every 15 s]
+  wait --> sweep[Free dead holders and old tickets]
+  sweep --> chk
+  wait -- 30 min passed --> to{on_timeout}
+  to -- fail --> fail[Job fails with a clear log line]
+  to -- run --> go2[Job runs without a slot]
+  chk -- yes --> take[Take the slot, drop the ticket]
+  take --> run[Job runs]
+  run --> hd[Runner runs the job-completed hook]
+  hd --> free[Free the slot, log it, empty the work folder]
+  free --> wake[Wake the next waiting job]
+```
+
+The steps in words:
+
+1. GitHub gives a job to a persistent runner on a machine.
+2. The runner runs its job-started hook. The hook is the product's own binary, called through a small `.ps1` or `.sh` wrapper.
+3. The hook asks the agent on the same machine for a slot. The agent asks the controller.
+4. The controller writes a queue ticket for the job in that machine's queue.
+5. The hook waits until the ticket is first in line, a slot is free and the machine is under its budget. While it waits, it beats the ticket every poll, and the controller frees slots and tickets whose owners are gone.
+6. When all three are true, the controller gives the job a slot and removes its ticket. The job runs.
+7. If the wait reaches 30 minutes, the job fails with a log line that says what it waited for (or, if the machine is set to `run`, it runs without a slot).
+8. When the job ends, the job-completed hook frees the slot, logs the result and empties the job's work folder.
+9. Freeing the slot wakes the next waiting job.
+
+Short jobs (smoke tests, cleanup) can use a separate light slot, so they do not wait behind long builds. Heavy jobs (integration or end-to-end tests) can be limited to one at a time with a heavy slot.
+
+With more machines (M3), the controller picks the machine before a runner starts: first the machines whose labels match, then the one with the most free capacity, then the one that ran this repository last.
+
+## 4. Screens and states
+
+This feature has no screen of its own. It feeds the Overview, Machines and Jobs screens (product brief, screens 2, 4 and 6). The screens follow design system v1; rules are cited, not repeated here.
+
+- **Overview.** Per machine: slots in use out of the total, a load bar for memory and one for CPU against the budget, and the number of jobs waiting. The overview only shows and links (UX-52). Bars have a text equivalent (UX-17, UX-41; components 16).
+- **Machines, detail.** A slots list: each slot with its state, the repository, run, job, runner and age (components 15). A stale slot is marked in words, not only by colour (UX-58; components 17). The queue below it lists each ticket with its repository, job, priority and wait time. Ages keep ageing while the page is open (UX-53).
+- **Jobs, queue tab.** Every waiting job, with the reason it waits in one line ("2 ahead in the queue; memory 91% > 85%"). A wait names what it waits for (UX-29, UX-38). Waiting shows as `◷ waiting` (UX-58).
+- **Free a slot by hand** (admin). The question card names the job that holds the slot and asks for a yes (UX-62).
+
+States:
+
+| State | What the user sees |
+|---|---|
+| Empty | "No jobs wait. 2 of 2 slots free." with a link to the machine (UX-6; components 19) |
+| Busy | Slots in use, waiting jobs with their reasons, load bars |
+| Over budget | The load bar over the budget line, with the figures in words ("memory 91%, budget 85%") |
+| Not measured | "Load not measured: jobs start without a load check." as a Note (UX-26) |
+| Agent offline | The machine shows offline; its slots show the holders as last known, with "agent offline since 14:05" |
+| Error | Could not load names what, why and what next (UX-28) |
+
+Running state comes from one source, the controller's slot and queue tables, streamed to the console (UX-19, UX-34).
+
+## 5. Functional requirements
+
+Milestones: **M1** is one machine with persistent runners (slot queue and load gate). **M2** is ephemeral JIT runners. **M3** is many machines (placement). Every requirement below is NOT YET IMPLEMENTED.
+
+Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/delivery/scripts/` unless a longer path is given.
+
+### 5.1 Machine settings
+
+**R5.1** — Each machine has one scheduling setting set, with these defaults: load budget memory 85% and CPU 60%; job slots 2; light slots 1; heavy slots 1 (0 means no heavy limit); slot maximum age 120 minutes; gate maximum wait 30 minutes; gate poll 15 seconds; on timeout `fail`; light jobs `smoke`, `prune`, `prune-*`, `cleanup`, `remove-train`, `decide`, `delete-*`, `runners`; heavy jobs none. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `DEFAULT_CONFIG`.
+
+**R5.2** — A bad setting value is dropped and the default stays. A budget percent must be above 0 and at most 100. Slot counts must be whole numbers: job slots at least 1, light and heavy slots at least 0, slot maximum age at least 1. Maximum wait and poll must be 0 or more. On timeout must be `fail` or `run`. A true or false value is never a number. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `normalise_config`, `_num`.
+
+**R5.3** — Writing the settings refuses an unknown key and names it. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `write_machine_config`.
+
+**R5.4** — A repository may lower the load budget for its own jobs, never raise it above the machine's. A value outside 1 to 100 is ignored. M1. NOT YET IMPLEMENTED. Source: `load.py` `limits`.
+
+**R5.5** — Gate settings resolve in this order, first found wins: a hook command-line flag, then the runner's environment (`CRP_GATE_MAX_WAIT_MIN`, `CRP_GATE_POLL_SEC`, `CRP_GATE_ON_TIMEOUT`), then the machine settings, then the defaults. A poll below 0 counts as 0. An unknown on-timeout value counts as `fail`. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `settings`.
+
+### 5.2 The queue and the order of service
+
+**R5.6** — Each machine has one queue for every job that waits for a slot there, from every runner and every repository. A waiting job holds exactly one ticket. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `enqueue`, `queue_list`.
+
+**R5.7** — A job's event class is 0 for a ready (not draft) pull request or a run on the repository's default branch, and 1 for anything else. A draft pull request is class 1. The class is read from the job's event payload. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `priority_from_event`.
+
+**R5.8** — The order of service is: higher repository priority first, then lower event class, then fair share (R5.9), then the earlier queued time. Ties on the same nanosecond break by a random suffix fixed at enqueue. The dev-standards order is event class then queued time; the repository priority and fair share are new (see D3). M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `enqueue` (ticket name `<priority>-<ns>-<random>`).
+
+**R5.9** — Fair share: among tickets with the same repository priority and event class, the ticket whose repository has the fewest jobs running in the pool goes first. M1. NOT YET IMPLEMENTED. Source: none (new; product brief, scheduling).
+
+**R5.10** — Per-repository parallel limit: a ticket whose repository already runs its maximum parallel jobs in the pool is passed over. Tickets of other repositories behind it may take a free slot. The passed ticket keeps its place. M1. NOT YET IMPLEMENTED. Source: none (new; product brief, repositories and policies).
+
+**R5.11** — "First in line" means first in the order of service among tickets that are not passed over by R5.10. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `_ci_wait`.
+
+### 5.3 The job-started gate
+
+**R5.12** — Each persistent runner has a job-started hook (`ACTIONS_RUNNER_HOOK_JOB_STARTED`). The hook takes a ticket and holds the job until the ticket is first in line, a job slot is free, and the machine is under its load budget. It then takes the slot, removes the ticket and exits 0, so the job runs. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `_ci_wait`, `main`.
+
+**R5.13** — The gate checks in this order: first in line, then a free slot, and measures the load only when both hold. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `_ci_wait`.
+
+**R5.14** — Taking a slot is atomic. Two jobs never hold the same slot. A job that loses the race for a slot keeps waiting with the reason "lost the race for the slot". M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `take_slot`, `_create_new`.
+
+**R5.15** — Each slot that is taken gets a new random token. A slot is freed only by a caller that shows the token it holds. A slot that was freed and taken again in between is left with its new holder. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `take_slot`, `_remove_if_token`, `free_slot`.
+
+**R5.16** — On every poll, before it checks its own ticket, the gate frees stale slots (R5.31 to R5.33) and logs each one it freed with the slot, the reason and the job that held it. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `_ci_wait` (`free_stale` loop).
+
+**R5.17** — The gate polls every poll interval (default 15 s). It also wakes at once when a slot on its machine is freed. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `_ci_wait` (poll); the wake is new.
+
+**R5.18** — While it waits, the gate beats its ticket on every poll. A beat changes only the beat time, never the ticket's place. A beat never makes a ticket that is gone. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `beat`.
+
+**R5.19** — If the gate finds its own ticket gone, it writes the ticket again. It keeps the first queued time when that is younger than the slot maximum age, so the job keeps its place; otherwise it queues as new. The log says the ticket was gone and why. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `_ci_wait`, `_ticket_state`.
+
+**R5.20** — The gate times out when the next poll would pass the maximum wait (default 30 min). With `fail` it exits 1, so the job fails and can be re-run. With `run` it exits 0 and the job runs without a slot. Either way the ticket is removed and the log line names the reasons it waited for and the top processes. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `_timed_out`, `wait`.
+
+**R5.21** — The gate logs one line when it starts holding, with the reasons and the poll and wait settings. It logs "still holding" only when the reasons change. It logs "slot N taken after S s" when it gets a slot. The reasons are "N ahead in the queue", "no free slot (all N busy)", "memory X% > Y%", "CPU X% > Y%" and "lost the race for the slot". Lines go to the job's "Set up job" step and to the agent log. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `_ci_wait`, `_got`.
+
+**R5.22** — When the load cannot be measured, the gate takes a slot without a load check and logs why. It never holds a job because the machine cannot be measured. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `_ci_wait`, `wait`.
+
+**R5.23** — When the hook cannot reach its agent, or the agent cannot reach the controller, the gate falls back to a load-only wait on this machine: it polls the load until under budget, with the same maximum wait and on-timeout rule. When it cannot measure either, it exits 0 and logs why. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `main` (`OSError` path), `wait`.
+
+**R5.24** — A light job is a job whose job key or shard matches a light-jobs entry, exactly or as a glob, while light slots are above 0. A light job takes a free light slot at once, with no ticket, when the load is under budget. It never takes a job slot while a light slot is free. When every light slot is busy, it takes a ticket and waits in the normal queue for a job slot. Logs name a light slot `light-N`. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `is_light_job`, `slot_label`; `runner_load_gate.py` `_ci_wait`.
+
+**R5.25** — A heavy job is a job whose job key or shard matches a heavy-jobs entry, exactly or as a glob, while heavy slots are above 0. An entry `owner/repo:pattern` applies to that repository only. Heavy wins over light. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `is_heavy_job`.
+
+**R5.26** — A heavy job first takes a heavy slot, holding no job slot and no ticket while it waits. It then goes through the normal queue with the rest of its maximum wait. If it gets no job slot, its heavy slot is freed (outcome `no-ci-slot`); on an error it is freed too (outcome `error`). Normal jobs keep flowing while a heavy job waits. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `queue_wait`, `_heavy_wait`.
+
+**R5.27** — The scheduler only holds new jobs. It never kills, suspends, signals or lowers the priority of any process. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` (module doc), `load.py` (module doc), `load_guard.py` (module doc).
+
+### 5.4 The job-completed hook
+
+**R5.28** — Each persistent runner has a job-completed hook (`ACTIONS_RUNNER_HOOK_JOB_COMPLETED`). It finds every slot of every kind held by this job, matched on repository, run id, run attempt (1 when missing) and job key, and frees each with the outcome `ran`. A job that held no slot logs "this job held no slot". M1. NOT YET IMPLEMENTED. Source: `runner_job_done.py` `done`; `machine_slots.py` `find_held`.
+
+**R5.29** — The hook empties the job's work folder (`GITHUB_WORKSPACE`) only when the path lies inside a `_work` folder and is not `_work` itself. The folder itself stays. Entries it cannot remove are counted in the log. A `--keep-work` flag skips this. M1. NOT YET IMPLEMENTED. Source: `runner_job_done.py` `work_folder`, `empty_folder`.
+
+**R5.30** — The job-completed hook always exits 0, even on an error, and logs the error. A hook that fails here would fail a job that already finished. M1. NOT YET IMPLEMENTED. Source: `runner_job_done.py` `main`.
+
+### 5.5 Dead holders, expiry and leftovers
+
+**R5.31** — Every slot and ticket records its holder: the machine, the holder process, and the gate process. The holder process is the runner worker: the hook's parent, skipping a `cmd`, `powershell` or `pwsh` shell between them on Windows. An override environment value may name it. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `holder_pid`, `_windows_parent`.
+
+**R5.32** — A slot whose holder process is gone is freed at once, logged as `stale-freed` with the reason "holder process gone". Liveness is judged by the agent of the holder's machine, not by the machine that runs the sweep. An unknown process id counts as alive. "Access denied" counts as alive. Nothing is freed on a guess. M1 (one machine), M3 (across machines). NOT YET IMPLEMENTED. Source: `machine_slots.py` `pid_alive`, `_holder_gone`, `free_stale`; learning 2.
+
+**R5.33** — Any slot older than the slot maximum age (default 120 min) is freed, logged with the reason "older than N min". A slot whose holder record cannot be read is freed only by age. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `free_stale`.
+
+**R5.34** — A ticket is dropped when its gate process is gone, when it is older than the slot maximum age, or when its last beat (or its queued time, if it never beat) is older than the larger of 4 poll intervals and 120 s. The last rule applies to a ticket from any machine and is logged as `ticket-dropped` with the reason "no heartbeat". M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `queue_list`, `beat_limit_sec`; learning 2.
+
+**R5.35** — When a machine's agent reconnects, it reports the holder processes still alive on it. The controller frees every slot and ticket of that machine whose holder is not in the report. M1. NOT YET IMPLEMENTED. Source: none (new; decision 0004 consequences; learning 2).
+
+**R5.36** — Cancelled-job leftovers: when GitHub reports a job as completed (including cancelled), any slot or ticket still held for that job (repository, run id, run attempt, job) is freed with the outcome `completed-on-github` and logged. M1. NOT YET IMPLEMENTED. Source: none (new; learning 2).
+
+**R5.37** — An admin can free stale slots on demand (CLI `ci-runners-pool slots free-stale`, and the API). The answer lists each freed slot and its reason. Freeing a live slot by hand names the job and asks for a yes first. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `main` (`free-stale`).
+
+### 5.6 The slot log
+
+**R5.38** — The controller writes one slot-log row for every slot taken, every slot freed and every ticket dropped. A row holds repository, run id, run attempt, job, shard, runner, queued at, slot at, released at, slot number, slot kind (none for a job slot), and outcome (`ran`, `stale-freed`, `no-ci-slot`, `error`, `ticket-dropped`, `completed-on-github`). M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `_log_entry`, `take_slot`, `free_slot`, `queue_list`.
+
+**R5.39** — The slot log keeps the last 5000 rows per machine. A slot-log write that fails never holds or fails a job. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `write_log`, `LOG_MAX_LINES`.
+
+### 5.7 Load measurement
+
+**R5.40** — Memory use is (total − available) / total, in percent. Linux reads `/proc/meminfo` (`MemAvailable`, else `MemFree` + `Buffers` + `Cached`). Windows reads `GlobalMemoryStatusEx`. macOS reads `vm_stat` (free, inactive and speculative pages count as available) and `hw.memsize`. M1. NOT YET IMPLEMENTED. Source: `load.py` `parse_meminfo`, `_windows_memory`, `parse_vm_stat`.
+
+**R5.41** — CPU use is the change in raw busy and total counters since the previous sample. Linux reads the first `cpu` line of `/proc/stat` (idle and iowait count as idle). Windows reads `GetSystemTimes` (kernel time includes idle). macOS reads the last line of `top -l 2`. A measurement never sleeps. With no previous sample younger than 10 minutes, CPU is the 1-minute load average per core, capped at 100%. With neither, CPU is unknown and memory decides. M1. NOT YET IMPLEMENTED. Source: `load.py` `parse_proc_stat`, `cpu_between`, `_windows_times`, `parse_top_cpu`, `measure_now`, `_loadavg_cpu`.
+
+**R5.42** — A sample younger than 10 s is reused, so a burst of hooks costs one measurement. The CPU figure is the mean of the known CPU values of up to 3 samples from the last 30 s; unknown CPU counts as 0. Memory is the latest sample. A cache that cannot be read or written is ignored. M1. NOT YET IMPLEMENTED. Source: `load.py` `sample`, `_own_sample`, `_smooth`, `CACHE_TTL`, `HISTORY_WINDOW`, `HISTORY_MAX`.
+
+**R5.43** — The agent publishes its machine's load every 15 s. A reader inside a VM or container uses the published figure when it is at most 60 s old, and its own figure otherwise, marking the source as `file`, `own` or `stale`. M1. NOT YET IMPLEMENTED. Source: `load.py` `write_host_load`, `read_host_load`, `_combine`; `machine_slots.py` `HOST_LOAD_MAX_AGE`.
+
+**R5.44** — Inside a container, the reader also reads cgroup v2: memory is `memory.current` over `memory.max` (none when uncapped), CPU is the `usage_usec` change over the CPUs in `cpu.max` (or all CPUs), capped at 100%. The gate decides on the worse of the host and the container. M2. NOT YET IMPLEMENTED. Source: `load.py` `measure_container`, `parse_cpu_stat`, `parse_cpu_max`, `_combine`.
+
+**R5.45** — A machine is over budget when memory is strictly above the memory budget or CPU is strictly above the CPU budget. Each exceeded budget is named with its figures, for example "memory 91% > 85%". M1. NOT YET IMPLEMENTED. Source: `load.py` `over`, `_n`.
+
+**R5.46** — Hold and timeout lines name the top 5 processes by CPU and by memory, names only. A failure to list processes never fails anything. M1. NOT YET IMPLEMENTED. Source: `load.py` `top_processes`, `parse_ps`, `parse_powershell_csv`; `load_guard.py` `running_heavy_text`.
+
+**R5.47** — On Windows with WSL2, the memory held by the WSL VM is the larger of its working set and its private bytes, and never less than what its containers use. Docker is read through the Windows `docker` CLI first, then `wsl docker`. Memory used for sizing is the median of 5 samples taken 1 s apart; a fresh published load figure wins when it is larger. This read is shared with the machines spec. M2. NOT YET IMPLEMENTED. Source: `delivery_runner_pool.py` `wsl_vm_parts`, `wsl_vm_gib`, `docker_run`, `container_gib`, `detect_host`, `median`.
+
+### 5.8 Placement across machines
+
+**R5.48** — A job can run only on a machine that is active (not drained), online, outside a maintenance window, has a backend allowed for the job's OS, and carries every label the job asks for. When no machine fits, the job waits and the console says which label or rule no machine meets. M3. NOT YET IMPLEMENTED. Source: none (new; product brief, scheduling; decision 0003).
+
+**R5.49** — Among fitting machines, the controller picks the one with the most free job slots; on a tie, the one with the most room under its budget (the smaller of memory room and CPU room); on a tie, the one that ran a job of this repository most recently (warm caches). M3. NOT YET IMPLEMENTED. Source: none (new; product brief, scheduling).
+
+**R5.50** — For an ephemeral runner, the controller takes the slot on the chosen machine when it places the job, in the same transaction that records the placement and enqueues the start-runner work for that machine's agent. The slot is freed when GitHub reports the job completed or the runner is gone. M2 (one machine), M3 (many). NOT YET IMPLEMENTED. Source: none (new; decision 0002).
+
+### 5.9 Demand and the job queue table
+
+**R5.51** — The first demand signal is the runner scale-set API: per scale set, `TotalAssignedJobs` from the long-poll message session, read through `github.com/actions/scaleset`, as the github-integration spec sets out. The controller wants that many runners for the scale set, minus the runners already busy or starting. M2. NOT YET IMPLEMENTED. Source: none (decision 0002).
+
+**R5.52** — Fallbacks, in order: the `workflow_job` webhook (`queued`, `in_progress`, `completed`), then polling the REST API. In M1 they feed the queue view and the leftover sweep (R5.36). M1 (webhook and poll), M2 (as demand for JIT runners). NOT YET IMPLEMENTED. Source: none (decision 0002).
+
+**R5.53** — The same job reported twice (webhook and poll, or a retried webhook) makes one job record, keyed by GitHub's job id. M1. NOT YET IMPLEMENTED. Source: none (new).
+
+**R5.54** — Every state change that needs follow-up work inserts its row in the `job_queue` table in the same SQLite transaction as the change. This covers: a job queued (place it), a slot freed (wake waiting gates), a job completed (sweep its leftovers), an agent reconnected (reconcile holders). No outbox is used. M1. NOT YET IMPLEMENTED. Source: none (stack profile, section 11; decision 0001).
+
+### 5.10 Quiet hours and maintenance windows
+
+**R5.55** — A machine can have maintenance windows: days and a start and end time in the machine's time zone. In a window, the machine takes no new job. Running jobs finish. M3. NOT YET IMPLEMENTED. Source: none (new; product brief, machines).
+
+**R5.56** — A machine can have quiet hours with their own job slot count and load budget, for example 1 slot and 50% memory by day so the owner can work, and the full settings at night. The gate and placement use the settings in force at each check. M3. NOT YET IMPLEMENTED. Source: none (new; product brief, scheduling).
+
+**R5.57** — When a window or quiet hours start, no running job is stopped. If slots in use exceed the new count, no new job starts until the count drops below it. M3. NOT YET IMPLEMENTED. Source: none (learning 1).
+
+### 5.11 Status and hook install
+
+**R5.58** — Status per machine: each slot of each kind with free or held, and for a held slot the repository, run id, job, shard, runner, holder process, age in seconds and a stale flag; and each ticket with repository, run id, job, shard, priority and wait in seconds. Light and heavy slots are listed after job slots. With no light slots, no light line is shown. The API, the CLI (`ci-runners-pool slots`, also `--json`) and the console read the same status. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `status`, `_status_kind`.
+
+**R5.59** — The hooks are set in each persistent runner's `.env` file as its first lines. On Windows the hooks are `.ps1` files, never `.cmd`. A hook calls the product binary by its full path, installed for all users, never one in a user profile. The wrapper passes its arguments through and returns the binary's exit code. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.ps1`, `runner_load_gate.sh`, `runner_job_done.ps1`, `runner_job_done.sh`; learning 4.
+
+## 6. Non-functional requirements
+
+**R6.1** — With a free slot and a machine under budget, the job-started hook returns within 2 s. No measurement sleeps. M1. NOT YET IMPLEMENTED. Source: `load.py` `measure_now`.
+
+**R6.2** — Two concurrent takers that each take and free one slot 500 times never hold it at the same time. M1. NOT YET IMPLEMENTED. Source: `test_machine.py` `test_race_two_processes_never_share_one_slot`.
+
+**R6.3** — Every scheduler query runs under a context deadline (10 s when the caller sets none), and the database uses a 5 s busy timeout and WAL mode. M1. NOT YET IMPLEMENTED. Source: none (stack profile, section 14).
+
+**R6.4** — Ticket and beat ages are measured on the controller's clock, so clock skew between machines cannot expire a live ticket. M1. NOT YET IMPLEMENTED. Source: none (new; learning 2).
+
+**R6.5** — Scheduler logs and the slot log hold no token, key or secret. They hold repository, run id, job, runner and machine names only. M1. NOT YET IMPLEMENTED. Source: none (product rules).
+
+**R6.6** — Fail open: an unmeasurable load, an unwritable log or an unreadable cache never holds or fails a job. The job-completed hook never fails a job. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `wait`; `machine_slots.py` `write_log`; `runner_job_done.py` `main`.
+
+**R6.7** — Measurement works on Windows, Linux and macOS, amd64 and arm64, with `CGO_ENABLED=0`. M1. NOT YET IMPLEMENTED. Source: none (decision 0001).
+
+**R6.8** — Limits, default and ceiling:
+
+| Setting | Default | Allowed |
+|---|---|---|
+| Memory budget | 85% | above 0, at most 100 |
+| CPU budget | 60% | above 0, at most 100 |
+| Job slots | 2 | 1 or more |
+| Light slots | 1 | 0 or more |
+| Heavy slots | 1 | 0 or more (0 = no limit) |
+| Slot maximum age | 120 min | 1 or more |
+| Gate maximum wait | 30 min | 0 or more |
+| Gate poll | 15 s | 0 or more |
+| Ticket beat limit | max(4 × poll, 120 s) | derived |
+| Slot log | 5000 rows per machine | fixed |
+| Published load age | 60 s | fixed |
+| Sample reuse | 10 s | fixed |
+
+M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `DEFAULT_CONFIG`, `normalise_config`, `beat_limit_sec`, `LOG_MAX_LINES`, `HOST_LOAD_MAX_AGE`; `load.py` `CACHE_TTL`.
+
+## 7. Design
+
+```mermaid
+flowchart LR
+  subgraph machine[Machine]
+    runner[Persistent runner] -- job-started / job-completed --> hook[ci-runners-pool hook]
+    hook -- local socket or named pipe --> agent[Agent]
+    agent --> probe[Load probe]
+  end
+  agent -- gRPC stream, decision 0004 --> gate[Scheduler: gate service]
+  subgraph controller[Controller]
+    gate --> store[(SQLite)]
+    sweep[Sweeper] --> store
+    place[Placement, M3] --> store
+    demand[Demand: scale set, webhook, poll] --> store
+    store --> jq[job_queue worker]
+    jq --> gate
+    jq --> place
+    jq --> sweep
+  end
+```
+
+**Go packages.**
+
+- `internal/slots`: the pure slot and ticket logic. Settings and validation, the order of service, take and free with tokens, the stale rules, the slot log. No network.
+- `internal/scheduler`: the gate service, the hook command, the sweeper, placement, demand intake, quiet hours, status.
+- `internal/scheduler/load`: the load probe per OS, the sample cache, cgroup v2 and the WSL VM read.
+
+**Tables** (SQLite, goose migrations). Free means no row.
+
+| Table | Key | Holds |
+|---|---|---|
+| `machine_sched` | machine id | the settings of R5.1 |
+| `repo_policy` | repository | priority, maximum parallel jobs, lowered budget |
+| `slots` | machine id, kind (`ci`, `light`, `heavy`), slot number | token, repository, run id, run attempt, job, shard, runner, holder machine, holder process, gate process, taken at |
+| `slot_tickets` | id | machine id, repository, run id, run attempt, job, shard, runner, repository priority, event class, queued at (ns), random suffix, beat at, holder machine, holder process, gate process |
+| `slot_log` | id | the row of R5.38 |
+| `machine_windows` | id | machine id, kind (`maintenance`, `quiet`), days, start, end, time zone, slots, budget |
+| `gh_jobs` | GitHub job id | repository, run id, attempt, job, labels, status, placed machine |
+| `job_queue` | id | kind (`place_job`, `wake_gates`, `sweep_job`, `reconcile_machine`), payload, run after |
+
+A take is one transaction: check the ticket is first, count free slots, insert the slot row (the key makes a second insert fail), delete the ticket, insert the log row, all or nothing.
+
+**Hook protocol.** The hook sends the job's identity (from the runner's environment), its event class, and its holder and gate process ids to the agent. The agent keeps one stream per waiting hook to the controller. The controller answers `go` (with the slot), `wait` (with the reasons) or `timeout`. A closed stream removes the ticket at once; the beat limit is the backstop.
+
+**Interfaces with other specs.** Machines (budget, drain, windows, agent online state), runners (hook install, persistent and JIT runners), github-integration (scale set, `workflow_job`, job ids), observability (live views), doctor (hook and machine checks).
+
+## 8. Failure modes
+
+| Dependency | Fails | Why |
+|---|---|---|
+| Load probe | Open: the job goes without a load check, logged | A broken probe must not stop CI. The budget protects the owner, and memory alone still decides when only CPU is unknown. |
+| Agent, from the hook | Open to a load-only wait, then the on-timeout rule | Same as dev-standards when the machine folder is unusable. The machine is still protected by its load. |
+| Controller, from the agent | Open to a load-only wait (M1). In M3 the machine takes no new placement while offline | The slot count cannot be kept without the controller; the load budget still can. |
+| SQLite busy | Retry within the query deadline, then as "controller unreachable" | One writer at a time (decision 0001). |
+| Slot-log write | Open: ignored | A log must not hold a job. |
+| Job-completed hook | Open: exit 0; the slot is freed later by R5.32 to R5.36 | A finished job must not fail. |
+| GitHub (demand, completed events) | Closed for new JIT runners (none start without demand); leftovers wait for the slot maximum age | No demand means no work to place. Age still frees every slot. |
+| Clock skew between machines | Ages are measured on the controller clock | A skewed agent clock cannot expire a live ticket (R6.4). |
+
+## 9. How it is proven
+
+Every test is planned and NOT YET IMPLEMENTED. Planned Go paths are written without backticks until the files exist. "Ported from" names the dev-standards test under `claude/plugins/delivery/tests/`.
+
+| Requirement | Test | Ported from |
+|---|---|---|
+| R5.1 | planned: internal/slots/config_test.go TestDefaults | `test_machine.py` Config `test_defaults_roundtrip_and_bad_values`; `test_dl310_windows_runner.py` `test_limits_are_the_pool_defaults` |
+| R5.2 | planned: internal/slots/config_test.go TestBadValuesKeepDefaults | `test_machine.py` Config `test_defaults_roundtrip_and_bad_values`; `test_dl267_light_slot.py` `test_config_validation` |
+| R5.3 | planned: internal/slots/config_test.go TestWriteRefusesUnknownKeys | `test_machine.py` Config `test_write_refuses_unknown_keys`; `test_dl327_heavy_slots.py` `test_config_round_trip` |
+| R5.4 | planned: internal/scheduler/load/limits_test.go TestRepoCanLowerNeverRaise | `test_machine.py` Limits `test_project_can_lower_never_raise`; `test_load.py` Limits `test_precedence_project_over_machine_over_default` |
+| R5.5 | planned: internal/scheduler/gate_test.go TestSettingsPrecedence | `test_load.py` Gate `test_settings_precedence`; `test_machine.py` Gate `test_settings_read_machine_json_over_the_old_file` |
+| R5.6 | planned: internal/slots/queue_test.go TestOneQueuePerMachine | `test_machine.py` Queue `test_order_ready_pr_and_default_branch_first_then_first_come` |
+| R5.7 | planned: internal/slots/queue_test.go TestEventClass | `test_machine.py` Queue `test_priority_from_the_event_file` |
+| R5.8 | planned: internal/slots/order_test.go TestOrderOfService | `test_machine.py` Queue `test_order_ready_pr_and_default_branch_first_then_first_come` |
+| R5.9 | planned: internal/slots/order_test.go TestFairShare | new |
+| R5.10 | planned: internal/slots/order_test.go TestParallelLimitPassesOver | new |
+| R5.11 | planned: internal/slots/order_test.go TestFirstInLineSkipsPassedTickets | new |
+| R5.12 | planned: internal/scheduler/gate_test.go TestFreeSlotQuietMachineGoesAtOnce | `test_machine.py` Gate `test_free_slot_and_quiet_machine_goes_at_once`, `test_main_with_the_layer_takes_a_slot_and_job_done_frees_it` |
+| R5.13 | planned: internal/scheduler/gate_test.go TestTicketAheadHoldsEvenWithFreeSlot | `test_machine.py` Gate `test_a_ticket_ahead_holds_this_job_even_with_a_free_slot`, `test_waits_for_load_then_goes_and_keeps_the_wait_marker_while_waiting` |
+| R5.14 | planned: internal/slots/slots_test.go TestTakeUntilFullFreeAndTakeAgain | `test_machine.py` Slots `test_take_until_full_free_and_take_again` |
+| R5.15 | planned: internal/slots/slots_test.go TestFreeWithWrongTokenKeepsTheSlot | `test_machine.py` Slots `test_free_with_a_wrong_token_keeps_the_lock` |
+| R5.16 | planned: internal/scheduler/gate_test.go TestStaleSlotFreedWhileWaiting | `test_machine.py` Gate `test_a_stale_slot_is_freed_while_waiting` |
+| R5.17 | planned: internal/scheduler/gate_test.go TestFreedSlotWakesWaitingGate | new (poll part: `test_dl292_ticket_heartbeat.py` `test_poll_loop_beats_each_poll_without_renaming`) |
+| R5.18 | planned: internal/slots/queue_test.go TestBeatKeepsPlaceNeverRecreates | `test_dl292_ticket_heartbeat.py` `test_enqueue_sets_beat_ts`, `test_beat_keeps_the_file_name`, `test_beat_does_not_recreate_a_missing_ticket`, `test_poll_loop_beats_each_poll_without_renaming` |
+| R5.19 | planned: internal/scheduler/gate_test.go TestDroppedTicketQueuedAgainKeepsPlace | `test_dl200_gate_vanished_ticket.py` `test_dropped_ticket_is_queued_again_and_the_job_gets_a_slot`, `test_a_leaked_getpid_patch_does_not_hide_the_gate_ticket`; `test_dl292_ticket_heartbeat.py` `test_dropped_ticket_is_queued_again_with_its_old_queued_ts` |
+| R5.20 | planned: internal/scheduler/gate_test.go TestTimeout | `test_machine.py` Gate `test_all_slots_busy_times_out_with_exit_1_and_removes_ticket_and_marker`, `test_on_timeout_run_goes_without_a_slot`, `test_main_over_the_load_limit_times_out_with_exit_1`; `test_load.py` Gate `test_times_out_with_clear_log`, `test_timeout_run_mode_lets_job_go` |
+| R5.21 | planned: internal/scheduler/gate_test.go TestLogLines | `test_load.py` Gate `test_waits_then_passes_and_logs_what_it_waited_for`, `test_passes_at_once_when_under` |
+| R5.22 | planned: internal/scheduler/gate_test.go TestUnmeasurableLoadDoesNotHold | `test_machine.py` Gate `test_unmeasurable_load_does_not_hold_the_job`; `test_load.py` Gate `test_unmeasurable_fails_open` |
+| R5.23 | planned: internal/scheduler/gate_test.go TestNoAgentFallsBackToLoadOnlyWait | `test_machine.py` Gate `test_main_without_the_layer_is_the_old_load_gate`; `test_load.py` Gate `test_script_end_to_end` |
+| R5.24 | planned: internal/scheduler/gate_light_test.go TestLightSlots | `test_dl267_light_slot.py` `test_light_job_takes_light_1_while_both_ci_slots_are_held`, `test_second_light_job_takes_a_free_ci_slot`, `test_second_light_job_waits_when_no_slot_is_free`, `test_light_slots_zero_is_todays_behaviour`, `test_load_over_the_limit_holds_a_light_job`, `test_glob_match_on_delivery_shard` |
+| R5.25 | planned: internal/slots/kinds_test.go TestHeavyMatch | `test_dl327_heavy_slots.py` `test_exact_glob_and_repo_prefix`, `test_zero_heavy_slots_means_no_limit`, `test_heavy_beats_light`; `test_dl267_light_slot.py` `test_heavy_job_never_takes_a_light_slot` |
+| R5.26 | planned: internal/scheduler/gate_heavy_test.go TestHeavySlots | `test_dl327_heavy_slots.py` `test_heavy_takes_both_slots_and_release_frees_both`, `test_second_heavy_waits_and_holds_no_ci_slot`, `test_normal_job_flows_while_heavy_waits`, `test_waiting_heavy_runs_after_release`, `test_heavy_slot_freed_when_ci_wait_times_out` |
+| R5.27 | planned: internal/scheduler/nokill_test.go TestNoProcessSignalled | new (guard: no call to process kill or signal APIs in the scheduler packages) |
+| R5.28 | planned: internal/scheduler/jobdone_test.go TestFreesEveryKindHeldByTheJob | `test_machine.py` Slots `test_find_held_matches_the_job`; `test_dl267_light_slot.py` `test_job_completed_frees_light_1` |
+| R5.29 | planned: internal/scheduler/jobdone_test.go TestWorkFolder | `test_machine.py` JobDone `test_work_folder_only_inside__work`, `test_empties_the_workspace_and_keeps_the_folder` |
+| R5.30 | planned: internal/scheduler/jobdone_test.go TestNeverFails | `test_machine.py` JobDone `test_main_never_fails` |
+| R5.31 | planned: internal/slots/holder_test.go TestHolderSkipsShell | new (from `machine_slots.py` `holder_pid`) |
+| R5.32 | planned: internal/scheduler/sweep_test.go TestDeadHolderFreedByItsMachine | `test_machine.py` Slots `test_dead_holder_is_freed_at_once_and_logged`, `test_live_holder_and_other_host_stay_old_slot_is_freed`; `test_dl327_heavy_slots.py` `test_dead_holder_is_freed` |
+| R5.33 | planned: internal/scheduler/sweep_test.go TestOldSlotFreedByAge | `test_machine.py` Slots `test_live_holder_and_other_host_stay_old_slot_is_freed`, `test_unreadable_lock_is_only_freed_by_age`; `test_dl267_light_slot.py` `test_stale_light_lock_is_freed_like_a_ci_lock` |
+| R5.34 | planned: internal/slots/queue_test.go TestTicketExpiry | `test_machine.py` Queue `test_dead_gate_and_old_tickets_are_dropped`; `test_dl292_ticket_heartbeat.py` `test_other_host_fresh_beat_stays`, `test_other_host_old_beat_dropped_and_logged`, `test_limit_follows_poll_sec`, `test_old_ticket_without_beat_ts_uses_queued_ts`, `test_same_host_dead_pid_still_dropped` |
+| R5.35 | planned: internal/scheduler/sweep_test.go TestReconcileOnAgentReconnect | new |
+| R5.36 | planned: internal/scheduler/sweep_test.go TestCompletedOnGitHubFreesLeftovers | new |
+| R5.37 | planned: internal/scheduler/status_test.go TestFreeStaleCommand | new (from `machine_slots.py` `main`) |
+| R5.38 | planned: internal/slots/log_test.go TestLogRows | `test_machine.py` SlotLog `test_log_lines_and_trim` |
+| R5.39 | planned: internal/slots/log_test.go TestLogTrimAndFailOpen | `test_machine.py` SlotLog `test_log_lines_and_trim` |
+| R5.40 | planned: internal/scheduler/load/parse_test.go TestMemoryParsers | `test_load.py` Parsers `test_linux`, `test_macos`; `test_machine.py` HostLoad `test_parsers` |
+| R5.41 | planned: internal/scheduler/load/cpu_test.go TestCPUDeltaAndFallbacks | `test_load.py` Parsers `test_windows_cpu_from_times`; Cache `test_no_sleep_and_delta_from_saved_raw`, `test_delta_and_fallbacks`, `test_unmeasurable_raises` |
+| R5.42 | planned: internal/scheduler/load/cache_test.go TestReuseAndSmoothing | `test_load.py` Cache `test_reuse_within_ttl_and_smoothing`, `test_unwritable_cache_still_works`, `test_default_cache_is_per_user_not_shared_temp`, `test_write_leaves_no_temp_file_and_makes_folder`, `test_corrupt_cache_is_ignored` |
+| R5.43 | planned: internal/scheduler/load/host_test.go TestPublishedLoad | `test_machine.py` HostLoad `test_fresh_host_file_wins_over_own_figures`, `test_stale_host_file_falls_back_to_own_figures`, `test_no_host_file_is_own`, `test_write_mode_writes_host_load_json` |
+| R5.44 | planned: internal/scheduler/load/cgroup_test.go TestContainerFigures | `test_machine.py` HostLoad `test_container_figures_from_cgroup_v2`, `test_the_worse_of_host_and_container_decides` |
+| R5.45 | planned: internal/scheduler/load/over_test.go TestOverNamesTheNumbers | `test_load.py` Limits `test_over_names_the_numbers` |
+| R5.46 | planned: internal/scheduler/load/top_test.go TestTopProcesses | `test_load.py` Parsers `test_process_names` |
+| R5.47 | planned: internal/scheduler/load/wsl_test.go TestWSLVMAndDockerRead | `test_dl177_pool_measure.py` VmReadTests (4), DockerReadTests (5), HostTests (6); `test_dl176_pool_resize.py` MedianTests `test_a_spike_does_not_cut_the_cap`, `test_sampling_sleeps_between_reads_through_the_probe`, `test_even_count_uses_the_middle_pair`, `test_three_resize_plans_with_different_spikes_agree` |
+| R5.48 | planned: internal/scheduler/placement_test.go TestFittingMachines | new |
+| R5.49 | planned: internal/scheduler/placement_test.go TestRankCapacityThenRoomThenWarmth | new |
+| R5.50 | planned: internal/scheduler/placement_test.go TestPlacementTakesSlotInOneTransaction | new |
+| R5.51 | planned: internal/scheduler/demand_test.go TestScaleSetDemand | new |
+| R5.52 | planned: internal/scheduler/demand_test.go TestWebhookThenPollFallback | new |
+| R5.53 | planned: internal/scheduler/demand_test.go TestSameJobTwiceIsOneRecord | new |
+| R5.54 | planned: internal/scheduler/txenqueue_test.go TestEnqueueInSameTransaction | new |
+| R5.55 | planned: internal/scheduler/windows_test.go TestMaintenanceWindowTakesNoNewJob | new |
+| R5.56 | planned: internal/scheduler/windows_test.go TestQuietHoursSettingsInForce | new |
+| R5.57 | planned: internal/scheduler/windows_test.go TestWindowStartStopsNoJob | new |
+| R5.58 | planned: internal/scheduler/status_test.go TestStatus | `test_machine.py` SlotsCommand `test_slots_command_prints_holders_queue_and_waits`; `test_dl270_light_slot_listing.py` `test_free_and_held_light_slot`, `test_light_slots_after_ci_slots`, `test_zero_light_slots_prints_no_light_line`, `test_json_keeps_light_slots`, `test_stale_light_lock_is_flagged_and_ok_line_counts_both` |
+| R5.59 | planned: internal/scheduler/hookscript_test.go TestHookWrappers | `test_machine.py` ShardAndMarker `test_no_cmd_wrappers_ship`; `test_dl324_runner_policy.py` `test_env_keeps_hooks_first`; `test_dl289_refresh_drain.py` `test_hooks_still_exec_their_python`; `test_runner_pool.py` `test_hook_files_are_copied_with_the_full_python_path` |
+| R6.1 | planned: internal/scheduler/gate_bench_test.go TestQuietGateUnderTwoSeconds | `test_load.py` Cache `test_no_sleep_and_delta_from_saved_raw` |
+| R6.2 | planned: internal/slots/race_test.go TestTwoTakersNeverShareASlot | `test_machine.py` Slots `test_race_two_processes_never_share_one_slot` |
+| R6.3 | planned: internal/scheduler/store_test.go TestQueriesHaveDeadline | new |
+| R6.4 | planned: internal/scheduler/sweep_test.go TestSkewedAgentClockKeepsTicket | new |
+| R6.5 | planned: internal/scheduler/logs_test.go TestNoSecretsInLogs | new |
+| R6.6 | planned: internal/scheduler/failopen_test.go TestFailOpen | `test_machine.py` Gate `test_unmeasurable_load_does_not_hold_the_job`; JobDone `test_main_never_fails`; `test_load.py` Cache `test_unwritable_cache_still_works` |
+| R6.7 | planned: internal/scheduler/load/platform_test.go TestBuildsWithoutCgo (CI matrix) | new |
+| R6.8 | planned: internal/slots/config_test.go TestLimitsTable | `test_machine.py` Config `test_defaults_roundtrip_and_bad_values` |
+
+### Ported tests not in the table above
+
+These dev-standards tests touch the same modules but are not ported here, or go to another spec.
+
+| dev-standards test | Where it goes |
+|---|---|
+| `test_machine.py` Config `test_machine_dir_env_programdata_and_posix` | Not ported: the machine folder is replaced by SQLite (D1). |
+| `test_machine.py` Gate `test_claim_lost_exits_3_and_frees_the_slot`; ShardAndMarker (all but `test_no_cmd_wrappers_ship`); Templates `test_every_ci_job_sets_delivery_shard` | Not ported: the ci-wait marker (D5). The shard name itself is kept in R5.24 and R5.25. |
+| `test_machine.py` LocalHeavy (7 tests); `test_load.py` Classify, Refusal, Hooks, Schema, Dl54HeavyHolderTests, Dl54HooksJsonTests; `test_dl253_heavy_release.py` | Not ported: Claude Code tool-call guard (D6). |
+| `test_machine.py` DoctorMachine (6), DoctorHookAndPush (6); `test_load.py` DoctorRunner (4); `test_doctor.py` `test_not_windows_or_not_ps1_skips`; `test_dl310_windows_runner.py` `test_another_machine_folder_warns` | Doctor spec: hook, machine and slot checks. |
+| `test_dl310_windows_runner.py` `test_content`, `test_the_script_rewrites_the_env_every_run_even_without_registering` | Runners spec: Windows service setup. |
+| `test_dl118_rearm_unstoppable.py`; `test_dl289_refresh_drain.py` (except `test_hooks_still_exec_their_python`) | Runners and operations specs: watchers and drain. |
+| Other `test_*pool*.py` (images, layers, tool cache, browsers, sizing caps, routes) | Machines, runners and caching specs. |
+
+## 10. Decisions
+
+| ID | Question | Chosen | Date |
+|---|---|---|---|
+| D1 | Where do slots, tickets and the slot log live? | In the controller's SQLite tables, not lock files in a shared folder. A take is one transaction (decision 0001). | 2026-11-14 |
+| D2 | Who judges whether a holder is dead? | The agent of the holder's machine judges the process; the controller judges ages on its own clock. This replaces "same host only" (learning 2). | 2026-11-14 |
+| D3 | The order of service | Repository priority, then event class, then fair share, then queued time. Proposed; the owner confirms (section 11). | 2026-11-14 |
+| D4 | A repository at its parallel limit | Its ticket is passed over, not the whole queue held. | 2026-11-14 |
+| D5 | The ci-wait marker and claim-lost exit 3 | Not ported. They serve the dev-standards cloud fallback, which this product does not have. | 2026-11-14 |
+| D6 | `load_guard.py` | Only its rules are ported: hold new work, never kill, fail open, a project may lower but never raise. The tool-call classifier is not. | 2026-11-14 |
+| D7 | CPU smoothing | Kept as in the source: the mean of up to 3 samples in 30 s. The median of 5 samples is only for sizing (R5.47). | 2026-11-14 |
+| D8 | Gate when the load cannot be measured | Fail open, as in the source. | 2026-11-14 |
+
+## 11. Not built yet
+
+Everything in this spec is NOT YET IMPLEMENTED. The seams that will change:
+
+- `internal/slots`: settings, order of service, take and free, stale rules, slot log (M1).
+- `internal/scheduler`: gate service, hook command, job-completed hook, sweeper, status (M1); demand intake (M1 webhook and poll, M2 scale set); placement (M2, M3); quiet hours and maintenance windows (M3).
+- `internal/scheduler/load`: probes per OS (M1); cgroup v2 and WSL VM (M2).
+- `packages/contract/proto/agent/v1/agent.proto`: the gate stream and the holder report.
+- `packages/contract/openapi.yaml`: status and free-stale.
+
+Open owner questions:
+
+1. Order of service: should repository priority come before the event class (ready pull request or default branch first), as D3 proposes, or after it?
+2. Milestones: fair share, repository priority and the parallel limit are marked M1, quiet hours and maintenance windows M3, the scale-set demand signal M2. Is that right?
+3. When the hook cannot reach the agent or the controller, should the gate fall back to a load-only wait (the source behaviour, R5.23), or hold the job until the maximum wait?
+4. Placement: should cache warmth only break ties (R5.49), or win when free capacity differs by less than one slot?
+5. Defaults: keep the dev-standards defaults (2 job slots, 1 light, 1 heavy, 30 min wait, on timeout `fail`), or size the job slots from the machine's budget at join?
+6. Quiet hours: is the model "fewer slots and a lower budget by day" (R5.56) right, and is the machine's own time zone the one to use?
+
+## 12. Code map
+
+No code exists yet, so there are no `Source:` lines. Planned files, to become `Source:` lines when they exist:
+
+- `internal/slots/config.go`, `order.go`, `slots.go`, `queue.go`, `log.go`, `holder.go`
+- `internal/scheduler/gate.go`, `hook.go`, `jobdone.go`, `sweep.go`, `placement.go`, `demand.go`, `windows.go`, `status.go`
+- `internal/scheduler/load/load.go`, `load_linux.go`, `load_windows.go`, `load_darwin.go`, `cgroup.go`, `wsl_windows.go`
+- `internal/store/migrations/` (the tables of section 7)
+- Hook wrappers: `job-started.ps1`, `job-completed.ps1`, `job-started.sh`, `job-completed.sh`, written by the runners feature at install
+
+Ported from (github.com/luis-mc/dev-standards, `claude/plugins/delivery/scripts/`): `machine_slots.py`, `runner_load_gate.py`, `runner_load_gate.ps1`, `runner_load_gate.sh`, `runner_job_done.py`, `runner_job_done.ps1`, `runner_job_done.sh`, `load.py`, `load_guard.py`, `delivery_runner_pool.py` (WSL VM, Docker and median reads only).
