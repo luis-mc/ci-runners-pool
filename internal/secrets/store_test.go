@@ -105,9 +105,9 @@ type fakeTool struct {
 
 func exitErr(t *testing.T, code int) error {
 	t.Helper()
-	err := exec.Command("sh", "-c", "exit "+string(rune('0'+code%10))).Run()
+	err := exec.CommandContext(context.Background(), "sh", "-c", "exit "+string(rune('0'+code%10))).Run()
 	if code == 44 {
-		err = exec.Command("sh", "-c", "exit 44").Run()
+		err = exec.CommandContext(context.Background(), "sh", "-c", "exit 44").Run()
 	}
 	var ee *exec.ExitError
 	if !errors.As(err, &ee) {

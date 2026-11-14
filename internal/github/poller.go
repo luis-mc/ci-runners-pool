@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"errors"
-	"sync"
 	"time"
 )
 
@@ -36,7 +35,6 @@ type Poller struct {
 	// Now is a seam for tests.
 	Now func() time.Time
 
-	mu    sync.Mutex
 	known map[int64]Job
 }
 

@@ -177,7 +177,6 @@ type req struct {
 	bearer  string
 	etag    string
 	write   bool
-	noAuth  bool
 	headers map[string]string
 	// installation, when set, charges the call to that installation's budget.
 	installation int64

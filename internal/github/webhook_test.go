@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -36,7 +37,7 @@ func newHook(t *testing.T) (*WebhookHandler, *recEvents, []byte) {
 }
 
 func deliver(h http.Handler, secret, body []byte, sig, id, event string) int {
-	r := httptest.NewRequest("POST", "/webhooks/github", strings.NewReader(string(body)))
+	r := httptest.NewRequestWithContext(context.Background(), "POST", "/webhooks/github", strings.NewReader(string(body)))
 	if sig == "" && secret != nil {
 		sig = Sign(secret, body)
 	}

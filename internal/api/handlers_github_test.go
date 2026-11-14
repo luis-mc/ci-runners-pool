@@ -135,14 +135,24 @@ func (c cookies) absorb(r *http.Response) {
 	}
 }
 
-func (h *harness) do(method, path string, body any, c cookies, headers map[string]string) (*http.Response, []byte) {
+// reply is what a test needs from a response; the body is already read and
+// closed.
+type reply struct {
+	StatusCode int
+	Header     http.Header
+	cookies    []*http.Cookie
+}
+
+func (r *reply) Cookies() []*http.Cookie { return r.cookies }
+
+func (h *harness) do(method, path string, body any, c cookies, headers map[string]string) (*reply, []byte) {
 	h.t.Helper()
 	var rd io.Reader
 	if body != nil {
 		b, _ := json.Marshal(body)
 		rd = bytes.NewReader(b)
 	}
-	req, _ := http.NewRequest(method, h.srv.URL+path, rd)
+	req, _ := http.NewRequestWithContext(context.Background(), method, h.srv.URL+path, rd)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
@@ -161,7 +171,7 @@ func (h *harness) do(method, path string, body any, c cookies, headers map[strin
 	if c != nil {
 		c.absorb(res)
 	}
-	return res, b
+	return &reply{StatusCode: res.StatusCode, Header: res.Header, cookies: res.Cookies()}, b
 }
 
 func errCode(b []byte) string {
@@ -670,7 +680,7 @@ func TestWebhookRouteChecksSignatureOnRawBody(t *testing.T) { // R5.36, R6.5
 	h.setup(1, "alice")
 	body := fake.WorkflowJobQueuedEvent()
 	post := func(sig string) int {
-		req, _ := http.NewRequest("POST", h.srv.URL+"/webhooks/github", bytes.NewReader(body))
+		req, _ := http.NewRequestWithContext(context.Background(), "POST", h.srv.URL+"/webhooks/github", bytes.NewReader(body))
 		req.Header.Set("X-GitHub-Event", "workflow_job")
 		req.Header.Set("X-GitHub-Delivery", "d-"+sig[:12])
 		req.Header.Set("X-Hub-Signature-256", sig)
@@ -695,17 +705,19 @@ func TestUnwiredAreaAnswers501(t *testing.T) {
 	Register(mux, Options{Version: "t", DB: okPinger{}})
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
-	res, err := http.Get(srv.URL + "/api/v1/me")
-	if err != nil {
-		t.Fatal(err)
+	get := func(path string) int {
+		req, _ := http.NewRequestWithContext(context.Background(), "GET", srv.URL+path, nil)
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = res.Body.Close()
+		return res.StatusCode
 	}
-	_ = res.Body.Close()
-	if res.StatusCode != http.StatusNotImplemented {
-		t.Fatalf("%d", res.StatusCode)
+	if c := get("/api/v1/me"); c != http.StatusNotImplemented {
+		t.Fatalf("%d", c)
 	}
-	res, _ = http.Get(srv.URL + "/healthz")
-	_ = res.Body.Close()
-	if res.StatusCode != 200 {
+	if c := get("/healthz"); c != 200 {
 		t.Fatal("health still works")
 	}
 }
