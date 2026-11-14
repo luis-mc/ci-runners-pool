@@ -34,4 +34,8 @@ var operationCommands = map[string]string{
 	"runBackup":              "backup",
 	"listBackups":            "restore",
 	"restoreBackup":          "restore",
+	"getUpdateStatus":        "update status",
+	"checkForUpdate":         "update check",
+	"applyUpdate":            "update apply",
+	"restartService":         "restart",
 }
