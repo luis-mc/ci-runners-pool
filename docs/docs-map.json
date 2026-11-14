@@ -1,17 +1,11 @@
 {
   "schema": 1,
   "map": {
-    "internal/backup/**": [
-      "docs/features/operations/spec.md"
+    "apps/web/src/**": [
+      "docs/features/web-console/spec.md"
     ],
-    "internal/configio/**": [
-      "docs/features/operations/spec.md"
-    ],
-    "internal/install/**": [
-      "docs/features/operations/spec.md"
-    ],
-    "internal/update/**": [
-      "docs/features/operations/spec.md"
+    "packages/ui/src/**": [
+      "docs/features/web-console/spec.md"
     ]
   }
 }

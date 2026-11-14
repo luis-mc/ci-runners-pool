@@ -6,33 +6,27 @@
 
 ### agent
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this app yet.
 
 ### cli
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this app yet.
 
 ### controller
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
+| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | proposed | 0.1.0 | 2026-11-14 |
 
 ### tray
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this app yet.
 
 ### web-console
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
+| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | proposed | 0.1.0 | 2026-11-14 |
 
 ## By topic
 
@@ -42,13 +36,13 @@ No feature lists this topic yet.
 
 ### github
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | proposed | 0.1.0 | 2026-11-14 |
 
 ### install
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### isolation
 
@@ -64,15 +58,11 @@ No feature lists this topic yet.
 
 ### operations
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### runners
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### scheduling
 
@@ -82,11 +72,13 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
+| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | proposed | 0.1.0 | 2026-11-14 |
 
 ### ui
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | proposed | 0.1.0 | 2026-11-14 |
 
 ## By status
 
@@ -94,8 +86,10 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
+| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | proposed | 0.1.0 | 2026-11-14 |
 
 ## Gaps
 
-None.
+- app agent: no feature spec lists it
+- app cli: no feature spec lists it
+- app tray: no feature spec lists it
