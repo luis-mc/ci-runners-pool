@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 ---
 # Runners and isolation backends
 
-**NOT YET IMPLEMENTED.** Nothing in this spec is built. Each requirement names the milestone that builds it (M1 to M6, from [the product brief](../../overview/product.md#milestones)).
+**PARTLY BUILT (CRSP22).** The M1 persistent runner backends for Windows, Linux and macOS, the runner rules, the plan and apply flow and the runner API operations are built. Requirements not listed under "Built" in section 5 are **NOT YET IMPLEMENTED**. Each requirement names the milestone that builds it (M1 to M6, from [the product brief](../../overview/product.md#milestones)).
 
 Related: [product brief](../../overview/product.md), [decision 0003, isolation backends](../../architecture/decisions/0003-isolation-backends.md), [decision 0004, agent link](../../architecture/decisions/0004-agent-link.md), [decision 0005, product boundary](../../architecture/decisions/0005-product-boundary.md).
 
@@ -106,7 +106,7 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 
 ## 5. Functional requirements
 
-Every requirement below is **NOT YET IMPLEMENTED**. "Port" names the dev-standards source (repository `luis-mc/dev-standards`, spec `docs/features/runner-pool/spec.md`, requirement IDs as `DS R5.n`).
+**Built by CRSP22:** R5.1 to R5.8, R5.10, R5.13 to R5.24, R5.36, R5.37, R6.1 to R6.4 and R6.8 (their store and agent link adapters are listed in section 11). **Built in part:** R5.5 (the finders are built; the console list that shows `not managed` is not), R5.9 (`Detect` is built; the allow list belongs to `machines`), R5.11 (`StreamLogs` takes a redactor; the secret list is not wired), R5.12 (`ReportUsage` is built; the 15-second sender is not). **Not built:** R5.38, R6.7, R6.9 (CI jobs). Every other requirement is **NOT YET IMPLEMENTED**. "Port" names the dev-standards source (repository `luis-mc/dev-standards`, spec `docs/features/runner-pool/spec.md`, requirement IDs as `DS R5.n`).
 
 ### 5.1 Lifecycle from the console
 
@@ -287,34 +287,34 @@ type Backend interface {
 
 ## 9. How it is proven
 
-No test exists yet. Each row names the planned Go test file and test. Ported tests name their dev-standards source.
+Rows that name a test file are built and run in CI; rows that say `planned:` are not built yet. Ported tests name their dev-standards source.
 
 | Requirement | Test |
 |---|---|
-| R5.1 | planned: internal/runners/create_test.go TestCreateOnlyOnSupportingMachine; e2e/runners-create.spec.ts |
-| R5.2 | planned: internal/runners/record_test.go TestRunnerRecordFields |
-| R5.3 | planned: internal/runners/state_test.go TestStateTransitions |
-| R5.4 | planned: internal/runners/remove_test.go TestRemoveDrainsAndUsesRemoveToken; e2e/runners-remove.spec.ts |
-| R5.5 | planned: internal/backend/windows/detect_test.go TestFindFromServiceList (port of test_dl318_doctor_locked_runner.py); linux and macos detect_test.go |
-| R5.6 | planned: internal/runners/replace_test.go TestReplaceOnlyAfterNewOnline |
-| R5.7 | planned: apps/console runners list test TestIsolationNamed; internal/api runners_test.go TestIsolationInResponse |
-| R5.8 | planned: internal/backend/contract_test.go TestEveryBackendImplementsInterface |
+| R5.1 | internal/runners/service_test.go TestCreateOnlyOnSupportingMachine; internal/api/handlers_runners_test.go TestPlanRefusalCarriesReason |
+| R5.2 | internal/runners/service_test.go TestRunnerRecordFields |
+| R5.3 | internal/runners/runners_test.go TestStateTransitions |
+| R5.4 | internal/runners/service_test.go TestRemoveDrainsAndUsesRemoveToken, TestRemoveFailureKeepsRunner; internal/api/handlers_runners_test.go TestDeleteNeedsConfirmation |
+| R5.5 | internal/backend/windows/windows_test.go TestFindFromServiceList, TestFindReportsUnreadableFolder (port of test_dl318_doctor_locked_runner.py); internal/backend/linux/linux_test.go TestFindFromUnitList; internal/backend/macos/macos_test.go TestFindFromLaunchd; internal/runners/service_test.go TestReportFoundStoresNotManaged |
+| R5.6 | internal/runners/service_test.go TestReplaceOnlyAfterNewOnline, TestReplaceWithoutYesChangesNothing, TestReplaceRemovalFailureStops |
+| R5.7 | internal/api/handlers_runners_test.go TestIsolationInResponse |
+| R5.8 | internal/backend/registry/registry_test.go TestEveryBackendImplementsInterface |
 | R5.9 | planned: internal/backend/detect_test.go TestDetectReportsReasons; TestNotAllowedNeverUsed |
-| R5.10 | planned: internal/backend/contract_test.go TestCleanUpAfterErrorAndTwice |
+| R5.10 | internal/backend/windows/windows_test.go TestCleanUpTwice; internal/backend/linux/linux_test.go TestCleanUpTwice; internal/backend/macos/macos_test.go TestCleanUpTwice; internal/runners/localagent_test.go TestLocalAgentRemoveOrder |
 | R5.11 | planned: internal/backend/logs_test.go TestSecretsRedacted |
 | R5.12 | planned: internal/backend/usage_test.go TestUsageInterval |
-| R5.13 | planned: internal/backend/windows/account_test.go TestAccountName (port of test_dl310_windows_runner.py slug tests) |
-| R5.14 | planned: internal/backend/windows/account_test.go TestAccountRights; TestSymlinkRightOnlyWhenAsked (port of test_account_rights_and_group) |
-| R5.15 | planned: internal/backend/windows/register_test.go TestNoPasswordInPlanOrLog (port of test_plan_holds_no_password_and_no_token) |
-| R5.16 | planned: internal/backend/windows/folder_test.go TestFolderAcl (port of test_folder_rights) |
-| R5.17 | planned: internal/backend/windows/hooks_test.go TestPs1HooksCallAllUsersBinary (port of test_no_cmd_hook_and_no_second_machine_folder) |
-| R5.18 | planned: internal/backend/windows/register_test.go TestNoCmdQuotedCommandLine |
-| R5.19 | planned: internal/backend/windows/register_test.go TestRemoveBeforeLock; TestRemoveFailureStops (port of test_dl315_runner_remove_token.py) |
-| R5.20 | planned: internal/backend/windows/register_test.go TestRerunAlready; TestStaleEnvOnlyRewrites (port of test_dl310 rerun tests) |
-| R5.21 | planned: internal/backend/linux/systemd_test.go TestUnitUserAndGroup |
-| R5.22 | planned: internal/backend/linux/systemd_test.go TestUnitHardeningAndFolderMode |
-| R5.23 | planned: internal/backend/macos/launchd_test.go TestDaemonPlistUserAndFolder |
-| R5.24 | planned: CI matrix job runners-persistent on windows, ubuntu and macos (build-tagged tests above) |
+| R5.13 | internal/runners/runners_test.go TestAccountName (port of the slug tests of test_dl310_windows_runner.py) |
+| R5.14 | internal/backend/windows/windows_test.go TestAccountRights, TestSymlinkRightOnlyWhenAsked, TestSymlinkChangeUpdatesRightOnly |
+| R5.15 | internal/backend/windows/windows_test.go TestNoPasswordInPlanOrLog (port of test_plan_holds_no_password_and_no_token) |
+| R5.16 | internal/backend/windows/windows_test.go TestFolderAcl (port of test_folder_rights) |
+| R5.17 | internal/backend/windows/windows_test.go TestPs1HooksCallAllUsersBinary (port of test_no_cmd_hook_and_no_second_machine_folder) |
+| R5.18 | internal/backend/windows/windows_test.go TestNoCmdQuotedCommandLine |
+| R5.19 | internal/backend/windows/windows_test.go TestRemoveBeforeLock, TestRemoveFailureStops (port of test_dl315_runner_remove_token.py); internal/backend/linux/linux_test.go and internal/backend/macos/macos_test.go TestReregisterRemovesFirstAndStopsOnFailure |
+| R5.20 | internal/backend/persistent/persistent_test.go TestDecide; internal/backend/windows/windows_test.go TestRerunAlready, TestStaleEnvOnlyRewrites (port of the test_dl310 rerun tests) |
+| R5.21 | internal/backend/linux/linux_test.go TestUnitUserAndGroup |
+| R5.22 | internal/backend/linux/linux_test.go TestUnitHardeningAndFolderMode |
+| R5.23 | internal/backend/macos/macos_test.go TestDaemonPlistUserAndFolder, TestHiddenUser |
+| R5.24 | internal/backend/registry/registry_test.go TestRegistryHoldsOnlyThisOS; build-tagged files internal/backend/registry/registry_{windows,linux,darwin}.go (the CI matrix job is not added) |
 | R5.25 | planned: internal/runners/jit_test.go TestJitConfigNotStored |
 | R5.26 | planned: internal/backend/container/container_test.go TestNothingCarriesOver |
 | R5.27 | planned: internal/backend/container/container_test.go TestNoPrivilegedNoSocketKvmDevice |
@@ -326,17 +326,17 @@ No test exists yet. Each row names the planned Go test file and test. Ported tes
 | R5.33 | planned: internal/runners/images_test.go TestBuildOnceKeepNewest |
 | R5.34 | planned: internal/runners/images_test.go TestMirrorFallback |
 | R5.35 | planned: internal/runners/images_test.go TestRebuildDrainsAndKeepsOldOnFailure (port of test_dl289_refresh_drain.py) |
-| R5.36 | planned: internal/runners/labels_test.go TestGenericLabelsOnly (port of test_dl316_windows_only_generic.py) |
-| R5.37 | planned: internal/runners/version_test.go TestPinnedHash (port of test_dl310 pin tests and test_dl165_pool_refresh_hash_result.py) |
+| R5.36 | internal/runners/runners_test.go TestGenericLabelsOnly (port of test_dl316_windows_only_generic.py); internal/runners/service_test.go TestPlanRefusesProjectLabels |
+| R5.37 | internal/runners/runners_test.go TestPinnedHash, TestValidSHA256 (port of the test_dl310 pin tests and test_dl165_pool_refresh_hash_result.py); internal/backend/windows/windows_test.go TestWrongHashRefused; linux and macos TestWrongHashRefused |
 | R5.38 | planned: internal/runners/update_test.go TestUpdateDrainsThenSwaps |
-| R6.1 | planned: internal/backend/container/container_test.go TestNoPrivilegedNoSocketKvmDevice; guards/no-privileged check |
-| R6.2 | planned: internal/runners/secrets_test.go TestNoTokenOrPasswordStoredOrLogged |
-| R6.3 | planned: internal/backend/windows/account_test.go TestNotAdmin; linux and macos user tests |
-| R6.4 | planned: internal/runners/drain_test.go TestIdleCheckRightBeforeAct; TestTimeoutAsksNeverKills |
+| R6.1 | no backend in M1 starts a container; nothing to test until M2 |
+| R6.2 | internal/runners/service_test.go TestNoTokenOrPasswordStoredOrLogged; internal/backend/linux/linux_test.go TestTokenOnlyInEnvAndUpdateOff |
+| R6.3 | internal/backend/windows/windows_test.go TestAccountRights (never in Administrators); internal/backend/linux/linux_test.go TestUnitUserAndGroup; internal/backend/macos/macos_test.go TestHiddenUser |
+| R6.4 | internal/runners/runners_test.go TestIdleCheckRightBeforeAct, TestTimeoutAsksNeverKills, TestDrainFailsClosed; internal/runners/service_test.go TestRemoveFailsClosedAndTimeoutAsks |
 | R6.5 | planned: internal/backend/container/perf_test.go TestStartTime (M2); microvm perf_test.go (M6) |
 | R6.6 | planned: internal/backend/tart/tart_test.go TestLimitNotConfigurable |
 | R6.7 | planned: internal/runners/retention_test.go TestLogAndUsageRetention |
-| R6.8 | planned: internal/runners/audit_test.go TestAuditEntries |
+| R6.8 | internal/runners/service_test.go TestAuditEntries |
 | R6.9 | planned: CI job runners-windows-service runs hooks as the service account; build tags checked in internal/backend |
 
 ## 10. Decisions
@@ -365,7 +365,7 @@ Open questions for the owner (proposed answers are in the requirements until dec
 
 ## 11. Not built yet
 
-Everything. The seams that change:
+Built by CRSP22: the three persistent backends, the runner rules, plan and apply, and the runner API operations. Still to do in M1: the store adapter for `runners.Store` (the tables exist; CRSP18 owns `internal/store`), the agent link adapter for `runners.Agent` (CRSP20; `runners.LocalAgent` already runs each call on a machine), the GitHub adapter and scope resolver (CRSP19), the secret redactor for logs (R5.11), the 15-second usage sender (R5.12), auto-update (R5.38), log and usage retention (R6.7), the `crsp hook` command the hooks call (CLI), the CI matrix jobs (R5.24, R6.9) and the Runners screen. The scripts that create accounts, folders ACLs and services were written without a Windows, Linux or macOS machine to run them on; the first real run is the CI matrix job. The seams that change:
 
 - M1: `internal/runners` and `internal/backend` with the three persistent backends; Runners screen; runner API in `packages/contract/openapi.yaml`; agent link messages in `packages/contract/proto`.
 - M2: container backend, JIT flow, images and layers.
@@ -376,6 +376,14 @@ Everything. The seams that change:
 
 ## 12. Code map
 
-No code yet. Planned paths: `internal/runners/`, `internal/backend/` (one folder per backend), the runners part of `packages/contract/openapi.yaml` and `packages/contract/proto`, and the Runners screen of the web console. `Source:` lines are added with the code.
+- `internal/runners/`: labels (`labels.go`), pinned versions and SHA-256 (`version.go`), account names (`account.go`), states (`state.go`), drain and idle check (`drain.go`), plans, apply, replace, remove and found runners (`service.go`, `types.go`), the agent-side executor (`localagent.go`).
+- `internal/backend/`: the `Backend` interface (`backend.go`), the optional `Finder` and `Deregisterer` (`ext.go`).
+- `internal/backend/sys/`: the command, file and download seams, with fakes in `sys/sysfake`.
+- `internal/backend/persistent/`: shared .env, meta file, rerun decision, pinned download.
+- `internal/backend/windows/`, `linux/`, `macos/`: one persistent backend each. `registry/` holds the build-tagged files that put one of them in each binary.
+- `internal/api/handlers_runners.go`: the runner operations of `packages/contract/openapi.yaml`.
+- `packaging/hooks/`: the .ps1 and .sh hook scripts.
+
+Source: internal/runners/service.go, internal/backend/windows/windows.go, internal/backend/linux/linux.go, internal/backend/macos/macos.go, internal/api/handlers_runners.go
 
 ## Versions

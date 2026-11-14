@@ -23,8 +23,12 @@ func TestEveryBackendImplementsInterface(t *testing.T) {
 		if b.Name() != backend.Persistent {
 			t.Errorf("%s: name %s", name, b.Name())
 		}
-		var _ backend.Finder = b.(backend.Finder)
-		var _ backend.Deregisterer = b.(backend.Deregisterer)
+		if _, ok := b.(backend.Finder); !ok {
+			t.Errorf("%s: no Finder", name)
+		}
+		if _, ok := b.(backend.Deregisterer); !ok {
+			t.Errorf("%s: no Deregisterer", name)
+		}
 	}
 }
 
