@@ -1,4 +1,11 @@
 {
   "schema": 1,
-  "map": {}
+  "map": {
+    "apps/web/src/**": [
+      "docs/features/web-console/spec.md"
+    ],
+    "packages/ui/src/**": [
+      "docs/features/web-console/spec.md"
+    ]
+  }
 }
