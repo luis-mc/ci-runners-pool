@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"io"
 	"log/slog"
 	"net/http"
@@ -37,7 +38,7 @@ func liveMux(maxStreams int) (*http.ServeMux, *events.MemHub) {
 	ov.Events = hub2
 	mux := http.NewServeMux()
 	Register(mux, Options{Version: "t", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Live: Live{Overviews: ov, Hub: hub2, KeepAlive: 20 * time.Millisecond}})
+		Live: Live{Overviews: ov, Hub: hub2, KeepAlive: 20 * time.Millisecond}, Authn: asRole(auth.RoleOwner)})
 	return mux, hub2
 }
 
@@ -134,7 +135,7 @@ func doctorMux() *http.ServeMux {
 	}))
 	eng := &doctor.Engine{Registry: reg, Store: doctor.NewMemStore(), Env: func(context.Context) (doctor.Env, error) { return doctor.Env{}, nil }}
 	mux := http.NewServeMux()
-	Register(mux, Options{Version: "t", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Doctor: &doctor.Service{Engine: eng}})
+	Register(mux, Options{Version: "t", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Doctor: &doctor.Service{Engine: eng}, Authn: asRole(auth.RoleOwner)})
 	return mux
 }
 

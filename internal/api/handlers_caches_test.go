@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"io"
 	"log/slog"
 	"net/http"
@@ -48,7 +49,7 @@ func (f *fakeCaches) BeginWipe(_ context.Context, actor audit.Actor, id string, 
 
 func cachesMux(svc CachesService) *http.ServeMux {
 	mux := http.NewServeMux()
-	Register(mux, Options{Version: "t", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Caches: svc})
+	Register(mux, Options{Version: "t", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Caches: svc, Authn: asRole(auth.RoleOwner)})
 	return mux
 }
 

@@ -147,6 +147,16 @@ func (r *reply) Cookies() []*http.Cookie { return r.cookies }
 
 func (h *harness) do(method, path string, body any, c cookies, headers map[string]string) (*reply, []byte) {
 	h.t.Helper()
+	origin := ""
+	if method != "GET" && method != "HEAD" {
+		origin = h.srv.URL // a browser always sends it on a change
+	}
+	return h.doRaw(method, path, body, c, headers, origin)
+}
+
+// doRaw is do with an explicit Origin header; "" sends none.
+func (h *harness) doRaw(method, path string, body any, c cookies, headers map[string]string, origin string) (*reply, []byte) {
+	h.t.Helper()
 	var rd io.Reader
 	if body != nil {
 		b, _ := json.Marshal(body)
@@ -158,6 +168,9 @@ func (h *harness) do(method, path string, body any, c cookies, headers map[strin
 	}
 	if c != nil {
 		req.Header.Set("Cookie", c.header())
+	}
+	if origin != "" {
+		req.Header.Set("Origin", origin)
 	}
 	for k, v := range headers {
 		req.Header.Set(k, v)
@@ -313,8 +326,8 @@ func TestSessionCookieFlags(t *testing.T) { // R5.13
 			ck = x
 		}
 	}
-	if ck == nil || !ck.HttpOnly || ck.SameSite != http.SameSiteLaxMode || ck.Secure || ck.MaxAge <= 0 {
-		t.Fatalf("loopback session cookie: %+v", ck)
+	if ck == nil || !ck.HttpOnly || ck.SameSite != http.SameSiteLaxMode || !ck.Secure || ck.MaxAge <= 0 {
+		t.Fatalf("session cookie: %+v", ck)
 	}
 }
 
@@ -715,7 +728,12 @@ func TestUnwiredAreaAnswers501(t *testing.T) {
 		_ = res.Body.Close()
 		return res.StatusCode
 	}
-	if c := get("/api/v1/me"); c != http.StatusNotImplemented {
+	// Nobody can sign in without the area, so a role-gated route is closed (401),
+	// and a public route of the area says it is not built (501).
+	if c := get("/api/v1/me"); c != http.StatusUnauthorized {
+		t.Fatalf("%d", c)
+	}
+	if c := get("/api/v1/setup"); c != http.StatusNotImplemented {
 		t.Fatalf("%d", c)
 	}
 	if c := get("/healthz"); c != 200 {

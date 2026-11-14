@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"io"
 	"log/slog"
 	"net/http"
@@ -45,7 +46,7 @@ func newOpsEnv(t *testing.T) *opsEnv {
 		},
 	})
 	mux = http.NewServeMux()
-	Register(mux, Options{Version: "test", DB: db, Logger: log, Settings: ops.Settings, Audit: ops.Audit, Backup: ops.Backup,
+	Register(mux, Options{Version: "test", DB: db, Logger: log, Settings: ops.Settings, Audit: ops.Audit, Backup: ops.Backup, Authn: asRole(auth.RoleOwner),
 		Config: configexport.Source{Version: "test", Settings: ops.Settings, Secrets: secretstest.New(),
 			Named: []configexport.NamedSecret{{Name: "Controller certificate key", Key: "crsp/controller/ca-key"}}},
 		Now: func() time.Time { return time.Date(2026, 11, 14, 10, 5, 0, 0, time.Local) }})

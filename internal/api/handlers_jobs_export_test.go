@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"io"
 	"log/slog"
 	"net/http"
@@ -46,7 +47,7 @@ func (f *fakeJobs) MachineExists(context.Context, string) (bool, error) { return
 
 func jobsMux(j slots.Jobs) *http.ServeMux {
 	mux := http.NewServeMux()
-	Register(mux, Options{Version: "t", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Jobs: j})
+	Register(mux, Options{Version: "t", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Jobs: j, Authn: asRole(auth.RoleOwner)})
 	return mux
 }
 

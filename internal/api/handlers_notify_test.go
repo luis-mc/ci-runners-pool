@@ -100,6 +100,7 @@ func (e *notifyEnv) do(as, method, path string, body any) (int, []byte) {
 		u := e.users[as]
 		req.Header.Set("Cookie", u.c.header())
 		req.Header.Set("X-CSRF-Token", u.csrf)
+		req.Header.Set("Origin", e.srv.URL)
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

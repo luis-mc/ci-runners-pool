@@ -51,7 +51,7 @@ type Config struct {
 	File string
 	// DataDir holds the database, backups/, logs/ and updates/.
 	DataDir string
-	// ListenAddr is the console and API address (HTTPS later), host:port.
+	// ListenAddr is the console and API address (HTTPS only), host:port.
 	ListenAddr string
 	// AgentAddr is the agent link address (gRPC over TLS), host:port.
 	AgentAddr string

@@ -236,19 +236,18 @@ func (s *Service) SignOut(ctx context.Context, p Principal) error {
 	return nil
 }
 
-// SessionCookie builds the cookie. It is HttpOnly and SameSite=Lax, and
-// Secure on every non-loopback address (R5.13). It has no time limit short of
-// the browser's own cap, so a browser restart does not sign anyone out.
-func SessionCookie(value string, secure bool) *http.Cookie {
-	return &http.Cookie{Name: SessionCookieName, Value: value, Path: "/", HttpOnly: true, Secure: secure,
+// SessionCookie builds the session cookie (web-console R6.1): HttpOnly,
+// Secure, SameSite=Lax and host-only (no Domain). The console is served over
+// HTTPS only, so Secure holds on every address, loopback included. The cookie
+// has no time limit short of the browser's own cap, so a browser restart does
+// not sign anyone out.
+func SessionCookie(value string) *http.Cookie {
+	return &http.Cookie{Name: SessionCookieName, Value: value, Path: "/", HttpOnly: true, Secure: true,
 		SameSite: http.SameSiteLaxMode, MaxAge: 400 * 24 * 3600}
 }
 
 // ClearCookie ends the cookie in the browser.
-func ClearCookie(name string, secure bool) *http.Cookie {
-	return &http.Cookie{Name: name, Value: "", Path: "/", HttpOnly: true, Secure: secure,
+func ClearCookie(name string) *http.Cookie {
+	return &http.Cookie{Name: name, Value: "", Path: "/", HttpOnly: true, Secure: true,
 		SameSite: http.SameSiteLaxMode, MaxAge: -1}
 }
-
-// CookieSecure is true for every address but loopback (R5.13).
-func CookieSecure(host string) bool { return !IsLoopbackHost(host) }
