@@ -145,6 +145,7 @@ func runController() error {
 	defer hub.Stop()
 
 	um := startUpdates(ctx, cfg, logger, mr, ops.Settings, idle)
+	startTrayChannel(ctx, logger, trayBackend{Updates: um, Drain: machineDrainer{svc: mr.Service}, Console: consoleURL(cfg.ListenAddr)})
 
 	mux := http.NewServeMux()
 	queue := scheduler.NewEngine(db, scheduler.WithLogger(logger))
