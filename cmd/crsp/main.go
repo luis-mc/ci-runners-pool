@@ -19,6 +19,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/hooks"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
 )
@@ -41,6 +42,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	case "controller":
 		return report(stderr, runController())
+	case "hook":
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		return hooks.Run(ctx, args[1:], hooks.Env{Stdout: stdout, Stderr: stderr})
 	case "agent":
 		return report(stderr, errors.New("agent mode is not implemented in this build"))
 	case "help", "--help", "-h":
@@ -59,6 +64,7 @@ func usage(w io.Writer) {
 Commands:
   controller   run the controller: web console, API and scheduling
   agent        run the agent on a runner machine (not implemented yet)
+  hook         job-started and job-completed, called by each runner's hooks
   version      print the version
 
 Configuration is read from CRSP_* environment variables; see .env.example.
