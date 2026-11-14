@@ -78,6 +78,7 @@ Added as the old pool keeps running real projects' CI. Newest last.
 18. **Log the decision before the slow step** (14 Nov). The gate logged "slot taken" only after the marker call, so the hang showed as silence. Write the state change first, then do anything that can block.
 19. **Supervise the listener, not its wrapper** (14 Nov). In the Linux container, the wrapper scripts of three runners exited while their listeners kept running and held the GitHub session. The supervisor saw the wrapper gone and started a second listener every few minutes; GitHub refused each with "a session for this runner already exists". Jobs still ran, but the log filled and the pool looked broken. Track the listener process (or the runner's own session state) and never start a second listener for a registered runner.
 20. **A stuck job blocks every drain** (14 Nov). An image swap waited the full 45-minute drain behind a job that was itself hung (lesson 17), then gave up, and the pool stayed on the old image. A drain should show which job holds it and for how long, flag jobs far past their usual time, and offer the owner a named choice; it should never wait silently.
+21. **An operation waits only for the runners it touches** (14 Nov). A Linux container recreate was refused because the same repository's Windows service runner was busy, although the recreate never touches it. Busy and drain checks are scoped to the runners the operation stops; unrelated runners are shown, not counted.
 
 ## 4. Capabilities projects use today
 
