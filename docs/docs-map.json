@@ -1,14 +1,8 @@
 {
   "schema": 1,
   "map": {
-    "internal/cache/**": [
-      "docs/features/caches/spec.md"
-    ],
-    "internal/mirror/**": [
-      "docs/features/caches/spec.md"
-    ],
-    "internal/tools/**": [
-      "docs/features/caches/spec.md"
+    "internal/doctor/**": [
+      "docs/features/doctor/spec.md"
     ]
   }
 }

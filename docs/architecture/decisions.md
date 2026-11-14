@@ -11,7 +11,9 @@ Feature decisions come from each feature's `decisions.json` (and the Decisions t
 | cross-cutting | 0003-isolation-backends | [Isolation backends as plugins behind one interface, chosen per machine and label](decisions/0003-isolation-backends.md) |  | accepted | 2026-11-13 |
 | cross-cutting | 0004-agent-link | [Agents connect outbound to the controller over gRPC with a per-machine key](decisions/0004-agent-link.md) |  | accepted | 2026-11-13 |
 | cross-cutting | 0005-product-boundary | [Self-hosted machines first, a tray per OS, no dependency on the delivery plugin](decisions/0005-product-boundary.md) |  | accepted | 2026-11-13 |
-| caches | D1 | [Which cache protocol to serve](../features/caches/spec.md) | The v2 Twirp cache service only; v1 is not served (current toolkit uses v2 on github.com) | decided | 2026-11-14 (proposed) |
-| caches | D2 | [How to send `actions/cache` to the pool](../features/caches/spec.md) | A runner patched at install for the pinned runner version (section 7.2); owner to confirm (Q1) | decided | 2026-11-14 (proposed) |
-| caches | D3 | [Tool cache language](../features/caches/spec.md) | A Go port of `ci_tool.py` inside the one binary, with its tests ported | decided | 2026-11-14 (proposed) |
-| caches | D4 | [Wipe at drain timeout](../features/caches/spec.md) | Delete nothing and say so; never cut a job | decided | 2026-11-14 (proposed) |
+| doctor | D1 | [Does the doctor repair?](../features/doctor/spec.md) | No. It reads only; each finding gives words, a command and a link to where the fix lives (UX-52) | decided | 2026-11-14 |
+| doctor | D2 | [Severity levels](../features/doctor/spec.md) | `ok`, `info`, `skip`, `warn`, `fail`; `needs_admin` is a flag on `skip` | decided | 2026-11-14 |
+| doctor | D3 | [CLI exit codes](../features/doctor/spec.md) | 0 healthy, 1 worst `warn`, 2 worst `fail`, 3 could not run | decided | 2026-11-14 |
+| doctor | D4 | [Variable names](../features/doctor/spec.md) | `CRP_RUNS_ON_LINUX`, `CRP_RUNS_ON_WINDOWS`, `CRP_RUNS_ON_MACOS`, from the product brief (decision 0002 still says `CI_RUNS_ON`) | decided | 2026-11-14 |
+| doctor | D5 | [How runners are found](../features/doctor/spec.md) | From the OS service list first, then the database; never only by reading runner folders (learning 6) | decided | 2026-11-14 |
+| doctor | D6 | [Which milestone starts the doctor](../features/doctor/spec.md) | Milestone 1, with the checks of milestone 1 parts, since every milestone ends with the doctor covering its parts | decided | 2026-11-14 |
