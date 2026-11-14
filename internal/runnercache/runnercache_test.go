@@ -219,9 +219,10 @@ func TestEnvExportsToolsDirAndQuotas(t *testing.T) {
 			t.Errorf("%s = %q, want %q", k, kv[k], v)
 		}
 	}
-	a := runnercache.Env("/srv/r1", runnercache.Quota{})["CI_TOOLS_DIR"]
-	b := runnercache.Env("/srv/r2", runnercache.Quota{})["CI_TOOLS_DIR"]
-	if a == b || !strings.HasPrefix(a, "/srv/r1") {
+	r1, r2 := filepath.Join(string(filepath.Separator)+"srv", "r1"), filepath.Join(string(filepath.Separator)+"srv", "r2")
+	a := runnercache.Env(r1, runnercache.Quota{})["CI_TOOLS_DIR"]
+	b := runnercache.Env(r2, runnercache.Quota{})["CI_TOOLS_DIR"]
+	if a == b || a != filepath.Join(r1, "cache", "tools") {
 		t.Fatalf("not per runner: %q %q", a, b)
 	}
 }
