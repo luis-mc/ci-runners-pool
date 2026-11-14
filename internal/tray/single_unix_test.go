@@ -33,7 +33,7 @@ func TestSecondInstanceExits0(t *testing.T) {
 
 func TestSocketClientOverUnix(t *testing.T) {
 	sock := filepath.Join(t.TempDir(), "t.sock")
-	ln, err := net.Listen("unix", sock)
+	ln, err := (&net.ListenConfig{}).Listen(context.Background(), "unix", sock)
 	if err != nil {
 		t.Fatal(err)
 	}

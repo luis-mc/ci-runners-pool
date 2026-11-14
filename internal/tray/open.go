@@ -69,14 +69,16 @@ func (o *Opener) notify(title, body string) {
 
 // OSLauncher opens target with the OS default handler.
 func OSLauncher(target string) error {
+	// The launched program outlives this call, so it takes no cancelable context.
+	ctx := context.Background()
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", target)
+		cmd = exec.CommandContext(ctx, "rundll32", "url.dll,FileProtocolHandler", target)
 	case "darwin":
-		cmd = exec.Command("open", target)
+		cmd = exec.CommandContext(ctx, "open", target)
 	default:
-		cmd = exec.Command("xdg-open", target)
+		cmd = exec.CommandContext(ctx, "xdg-open", target)
 	}
 	if err := cmd.Start(); err != nil {
 		return err

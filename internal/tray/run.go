@@ -61,7 +61,7 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 	defer cancel()
 
 	client := NewClient()
-	var cur Status = Status{State: StateStarting}
+	cur := Status{State: StateStarting}
 	curCh := make(chan Status, 1)
 	current := func() Status {
 		select {

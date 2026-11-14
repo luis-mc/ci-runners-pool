@@ -73,7 +73,7 @@ func (c *Client) Call(ctx context.Context, call string) (Response, error) {
 		return Response{}, err
 	}
 	line, err := bufio.NewReader(conn).ReadBytes('\n')
-	if err != nil && !(errors.Is(err, io.EOF) && len(line) > 0) {
+	if err != nil && (!errors.Is(err, io.EOF) || len(line) == 0) {
 		if ctx.Err() != nil {
 			return Response{}, ctx.Err()
 		}
