@@ -95,7 +95,7 @@ States a person sees:
 
 - **Empty:** "No machines yet. Run `crsp machine add` to add one."
 - **Waiting:** "Waiting for 2 jobs to end on build-01 (about 4 min left)."
-- **Needs you:** "This removes runner linux-03 and stops 1 running job. Type yes to go on:"
+- **Needs you:** "This removes runner linux-03 and waits for 1 running job. Type yes to go on:"
 - **Problem:** "Could not reach the controller at https://pool.lan:8460. The connection timed out. Make sure the address is right, then try again."
 - **Done:** "Runner linux-03 removed."
 
@@ -167,6 +167,19 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 | 7 | Conflict: the state changed since it was read; nothing changed |
 | 8 | `doctor` found a problem, or `config import --dry-run` found changes |
 
+**Refusals exit non-zero.** A command that is refused MUST exit with a non-zero code and MUST say what it did not do. It never prints a refusal and exits 0. The code says why:
+
+| The refusal | Code | Example message |
+|---|---|---|
+| A needed yes was not given (no `--yes` and no terminal, or an answer other than yes) | 5 | `Nothing changed. Run it again with --yes to go on without a question.` |
+| The role is too low, or there is no sign-in (including `logout` with no token) | 3 | `Draining a machine needs the admin role.` |
+| A precondition failed because the state changed or does not allow it (already drained, a change already waiting) | 7 | `the machine is already drained` |
+| The thing does not exist | 4 | `No machine "nope".` |
+| A bad flag, a missing argument, a removed flag (`--stop-jobs`, `--drain-timeout`), or a command that is not built yet | 2 | `error: update is not built yet (planned for M3). Nothing changed.` |
+| The controller refused for another reason, or the change was cancelled or needs the user | 1 | `The change was cancelled. Nothing more changed.` |
+| The controller cannot be reached | 6 | `Could not reach the controller.` |
+
+With `--json`, a refusal prints the contract's `ErrorEnvelope` to stderr and uses the same code. A drain that is past its timeout is not a refusal: see R5.16.
 **R5.13** — Colour MUST be off when stdout is not a terminal, when `NO_COLOR` is set, or with `--no-color`. No meaning MUST rest on colour alone.
 
 ### Changes that remove or stop
@@ -175,7 +188,7 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 
 **R5.15** — With `--yes`, the command MUST skip the question but still print the list. Without `--yes` and without a terminal, it MUST change nothing and exit 5.
 
-**R5.16** — `machine drain`, `machine remove`, `runner remove` and `update` MUST NOT cut a running job. They wait until the jobs end, or until `--drain-timeout` (default from the machine's drain timeout) passes. They show what they wait for. When the timeout passes, they stop the named jobs only if `--stop-jobs` was given; otherwise they exit 1 and change nothing more.
+**R5.16** — `machine drain`, `machine remove` and `runner remove` MUST NOT cut a running job. They wait until the jobs end. The drain timeout is one per machine (its setting, default 60 minutes); the commands have no `--drain-timeout` and no `--stop-jobs`. They show what they wait for. When the machine's drain timeout passes they keep waiting, print `Still draining <machine>: N jobs running, waited X. Nothing is stopped.` on stderr at most every 5 minutes, and exit 0 only when the change is done. Ctrl-C stops the waiting, not the drain on the controller. A change that is cancelled or needs the user exits 1 and says that no job was stopped. `update` follows the update spec (an automatic update postpones).
 
 ### Resource commands
 
@@ -269,11 +282,11 @@ Tests are planned unless marked built. Planned paths are written in plain text u
 | R5.9 | built: internal/cli/login_test.go TestOneTimeLinkPrinted |
 | R5.10 | built: internal/cli/output/output_test.go TestTableAndFormats |
 | R5.11 | built: internal/cli/core_test.go TestJSONErrorEnvelopeOnStderr; internal/cli/resources_test.go TestWatchNDJSON; internal/cli/output/output_test.go TestJSONGolden |
-| R5.12 | built: internal/cli/core_test.go TestStatusToExitCode, TestUnreachableExits6, TestNotSignedInExits3 |
+| R5.12 | built: internal/cli/core_test.go TestStatusToExitCode, TestUnreachableExits6, TestNotSignedInExits3; internal/cli/exitcodes_test.go TestRefusalsExitNonZero (one case per refusal path), TestRefusalWrongAnswerAndNotSignedIn, TestRefusalJSONEnvelope |
 | R5.13 | built: internal/cli/output/output_test.go TestNoColor; internal/cli/core_test.go TestNoColor |
 | R5.14 | built: internal/cli/resources_test.go TestDestructiveListsWhatGoes |
 | R5.15 | built: internal/cli/resources_test.go TestYesFlagAndNoTerminal |
-| R5.16 | built: internal/cli/resources_test.go TestWaitsForJobsAndTimeout, TestStopJobsDecision |
+| R5.16 | built: internal/cli/resources_test.go TestWaitsForJobsAndTimeout; internal/cli/exitcodes_test.go TestDrainPastTimeoutWarnsAndKeepsWaiting |
 | R5.17 | built: internal/cli/resources_test.go TestRepoCommands, TestRepoPlanOutcomes, TestForkWarning |
 | R5.18 | built: internal/cli/resources_test.go TestMachineListAndAdd |
 | R5.19 | built: internal/cli/resources_test.go TestRunnerCreateRefusesUnsupported, TestRunnerListAndRemove |
@@ -327,7 +340,7 @@ NOT YET IMPLEMENTED:
 - `login` runs GitHub's device flow with the URLs from `getCliLoginConfig` (the contract's shape) and then calls `exchangeCliToken`. The sequence diagram in section 3 shows the controller doing the polling; the contract does not.
 - `machine add --name` is printed as a hint only: the contract's join code has no name field.
 - `runner add --backend` is checked against the machine's backends on the client; the contract's plan request has no backend field.
-- `runner remove --stop-jobs` is accepted for symmetry; the contract has no operation to stop one runner's job, so it only waits and times out.
+- The contract still lists a `stop_jobs` decision (`decideMachineChange`). The controller refuses it with 400 and the CLI never sends it; removing it from the contract is a follow-up that touches the generated client (CRSP19 changes the same files).
 - Operations with `x-cli: none` in the contract (users, settings, audit, repository plans for other areas, slots, setup, webhooks) have no command yet (open question 7).
 
 ## 12. Code map

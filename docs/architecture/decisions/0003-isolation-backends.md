@@ -61,5 +61,5 @@ Rules every backend keeps:
 - Milestones add backends in order: persistent runners (1), containers on Linux and WSL2 (2), Windows service accounts and Hyper-V or WSL2 VMs (4), Tart (5), microVMs (6).
 - Each backend has its own tests and its own doctor checks.
 - A machine with no allowed backend for a label cannot take that label's jobs, and the console says why.
-- Changes that restart runners (an image rebuild, an agent update, a new cap) drain first: they wait until the machine has no running job, or until the drain timeout the user set.
+- Changes that restart runners (an image rebuild, an agent update, a new cap) drain first: they wait until the machine has no running job. The drain timeout (one per machine, default 60 minutes) only starts a warning; crsp never stops a job.
   The check for an idle machine runs right before the restart, not earlier.

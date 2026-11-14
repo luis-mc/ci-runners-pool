@@ -116,7 +116,7 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 
 **R5.3** (M1) — **States.** A runner is in one state: `creating`, `idle`, `busy`, `draining`, `updating`, `offline`, `failed` or `removing`. The agent reports changes; the controller stores them and pushes them to the console.
 
-**R5.4** (M1) — **Remove with a yes and a drain.** Removing a runner lists what goes (the GitHub registration, the service, the account, the folder) and needs a yes (design system UX-62). A busy runner drains first: it takes no new job and is removed when its job ends, or when the drain timeout the user set runs out. The idle check runs right before the removal. Removal from GitHub uses a remove token, never a registration token, and its result is checked (port DS R5.32, DL315).
+**R5.4** (M1) — **Remove with a yes and a drain.** Removing a runner lists what goes (the GitHub registration, the service, the account, the folder) and needs a yes (design system UX-62). A busy runner drains first: it takes no new job and is removed when its job ends, and keeps waiting past the machine's drain timeout (machines R5.33), with a warning. The idle check runs right before the removal. Removal from GitHub uses a remove token, never a registration token, and its result is checked (port DS R5.32, DL315).
 
 **R5.5** (M1) — **Find runners already on a machine.** The agent lists existing runners from the OS service list, not only from folders: Windows `Win32_Service` entries named `actions.runner.*` (path gives the folder, `StartName` the account), Linux systemd units `actions.runner.*`, macOS launchd jobs `actions.runner.*`. A runner whose folder the agent cannot read is still reported, and the checks that need admin rights say so (port DS R5.38). The console shows a runner it did not create as `not managed`.
 
@@ -212,7 +212,7 @@ All **NOT YET IMPLEMENTED**.
 
 **R6.3** (M1) — **Least rights.** The agent's admin work (making accounts, services, groups) runs in one install-time helper the user approves. Runner accounts are never administrators. A persistent runner's account can write only its own folder and the shared tool cache.
 
-**R6.4** (M1) — **Never cut a running job.** Any change that stops a runner (remove, update, image switch, backend change) drains first and checks for an idle runner right before it acts, not earlier. The drain timeout is a setting (default 60 minutes). On timeout the change waits and asks the user; it never stops the job by itself.
+**R6.4** (M1) — **Never cut a running job.** Any change that stops a runner (remove, update, image switch, backend change) drains first and checks for an idle runner right before it acts, not earlier. The drain timeout is one setting per machine (default 60 minutes, machines R5.33). When it passes the change keeps waiting and warns "still draining, N jobs running, waited X"; it never stops the job.
 
 **R6.5** (M2) — **Start times.** With a warm image, an ephemeral container runner is online in GitHub within 15 s of the job being assigned (median over 20 starts). A microVM from a snapshot is online within 5 s (M6).
 
@@ -332,7 +332,7 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R6.1 | no backend in M1 starts a container; nothing to test until M2 |
 | R6.2 | internal/runners/service_test.go TestNoTokenOrPasswordStoredOrLogged; internal/backend/linux/linux_test.go TestTokenOnlyInEnvAndUpdateOff |
 | R6.3 | internal/backend/windows/windows_test.go TestAccountRights (never in Administrators); internal/backend/linux/linux_test.go TestUnitUserAndGroup; internal/backend/macos/macos_test.go TestHiddenUser |
-| R6.4 | internal/runners/runners_test.go TestIdleCheckRightBeforeAct, TestTimeoutAsksNeverKills, TestDrainFailsClosed; internal/runners/service_test.go TestRemoveFailsClosedAndTimeoutAsks |
+| R6.4 | internal/runners/runners_test.go TestIdleCheckRightBeforeAct, TestTimeoutWarnsNeverKills, TestDrainFailsClosed; internal/runners/service_test.go TestRemoveFailsClosedAndTimeoutAsks |
 | R6.5 | planned: internal/backend/container/perf_test.go TestStartTime (M2); microvm perf_test.go (M6) |
 | R6.6 | planned: internal/backend/tart/tart_test.go TestLimitNotConfigurable |
 | R6.7 | planned: internal/runners/retention_test.go TestLogAndUsageRetention |
@@ -356,7 +356,7 @@ Open questions for the owner (proposed answers are in the requirements until dec
 1. R5.14: the symlink right only when asked (brief), while dev-standards gives it to every account (DL319). Confirm "only when asked".
 2. R5.13, R5.21, R5.23: account prefix `crp-` and group `crsp-runners`. Confirm names.
 3. R5.33: keep the newest 3 images per OS. Confirm the default.
-4. R6.4: drain timeout default 60 minutes. Confirm.
+4. R6.4: drain timeout default 60 minutes, one per machine. Decided by the owner (2026-11-14).
 5. R6.7: log retention 14 days or 200 MB per machine; usage 90 days. Confirm.
 6. R5.5: should the product offer to adopt a hand-made runner, or only replace it (R5.6)?
 7. R5.21: Linux runners as systemd system units (admin needed at install). Confirm against user units.

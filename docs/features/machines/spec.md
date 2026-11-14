@@ -92,7 +92,7 @@ The Machines screen and the Add machine wizard follow design system v1 ([ux-rule
 | Add machine | Wizard: pick the OS, copy the command, wait for the machine to join, Done | UX-5, UX-29, UX-30, UX-54 |
 | Waiting for join | Names what it waits for and when the code expires | UX-29, UX-6 |
 | Draining | Names each job it waits for and the time left before the drain timeout | UX-29, UX-34 |
-| Drain timed out | Needs you: the jobs still running and the choices | UX-26, UX-38 |
+| Drain past its timeout | Still draining: a Needs you message that says "still draining, N jobs running, waited X", names the jobs, and offers wait longer or cancel. No choice stops a job | UX-26, UX-38 |
 | Remove machine | Question card that lists every item that goes | UX-9, UX-62 |
 | Offline | Offline state word, last seen, what the agent was doing | UX-58, UX-6 |
 | Load unknown | "Load unknown" with the reason; the machine takes no new job | UX-26, UX-28 |
@@ -165,7 +165,7 @@ Ported from dev-standards `claude/plugins/delivery/scripts/load.py` and `load_gu
 | Job slots | 2 | 0 to 64 |
 | Allowed backends | persistent runner only | any usable backend (R5.11) |
 | Cache size cap | 20 GiB | 1 GiB to the free disk |
-| Drain timeout | 60 minutes | 5 minutes to 24 hours |
+| Drain timeout (one per machine) | 60 minutes | 5 minutes to 24 hours |
 | Maintenance windows | none | weekly windows, local time |
 | Quiet hours | none | weekly windows, local time, with their own budget and slots |
 
@@ -193,7 +193,7 @@ Ported from runner-pool R5.10 (no rebuild under a running job) and learning 1 of
 
 **R5.32** (M1) — The idle check runs right before the restart, in the same step that keeps new jobs out. If a job started since the drain began, the change waits again. An idle check taken earlier never counts.
 
-**R5.33** (M1) — When the drain timeout passes with jobs still running, the change does not run and nothing is stopped. The machine shows "Needs you" with the jobs still running and three choices: wait longer, cancel the change, or stop those jobs now. Stopping jobs names each one and asks for a yes (UX-62).
+**R5.33** (M1) — **One drain timeout per machine.** It is the machine setting `drain_timeout_minutes` (default 60 minutes, 5 minutes to 24 hours). When it passes with jobs still running, crsp never stops a job: it keeps waiting and warns. The change stays waiting and the machine stays draining; nothing is stopped and nothing is offered that stops a job (no "stop those jobs now", no `stop_jobs` decision). The controller records the timeout once in the audit log and raises one warning (an alert event) that names the machine, the change and the jobs. The console and the CLI show "still draining, N jobs running, waited X" and the jobs. The user may wait longer (5 minutes to 24 hours from now) or cancel the change; both leave the jobs running. An automatic update does not wait past its limit: it postpones and tries again at the next check (operations spec, CRSP19).
 
 **R5.34** (M1) — **Resume** returns a drained machine to active. A change that is still waiting is cancelled first, after a yes.
 
@@ -316,7 +316,7 @@ The machine key travels as connection metadata on every call after join.
 | OS secret store | Unavailable at join | Join fails with the reason; no key is written to a plain file except the Linux 0600 fallback | Never store a secret in the clear |
 | Certificate pin | Mismatch | Fail closed: the agent refuses to connect | A changed certificate may be another controller |
 | Controller database | Unavailable | The controller refuses joins and settings changes; agents keep their last settings | Agents stay safe without the controller |
-| Drain | Timeout passes | Nothing stops; the user decides (R5.33) | Never cut a job without a yes |
+| Drain | Timeout passes | Keep waiting and warn once; nothing stops (R5.33) | Never cut a job |
 | GitHub, at removal | Remove token refused | Removal reports the runner it could not deregister and keeps the item listed | A failure must leave a visible state, not a silent orphan |
 
 ## 9. How it is proven
@@ -357,7 +357,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.30 | internal/machines/drain_test.go | planned |
 | R5.31 | internal/machines/drain_test.go | planned |
 | R5.32 | internal/agent/drain_idle_test.go | planned |
-| R5.33 | internal/machines/drain_timeout_test.go | planned |
+| R5.33 | internal/machines/drain_timeout_test.go TestDrainTimeoutWarnsAndKeepsWaiting, TestDrainTimeoutIsPerMachine, TestNoDecisionStopsJobs | built |
 | R5.34 | internal/machines/drain_test.go | planned |
 | R5.35 | internal/machines/offline_test.go | planned |
 | R5.36 | internal/agent/backoff_test.go | planned |
@@ -395,7 +395,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | 0004 | How does an agent reach the controller? | Outbound gRPC over TLS, per-machine key, pinned controller certificate | 2026-11-13 |
 | 0003 | How do machines differ in isolation? | Backends behind one interface; detected per machine, allowed by the user | 2026-11-13 |
 | 0005 | Which comes first, machines or runners? | Machines first; any LAN computer; ported, never imported, from dev-standards | 2026-11-13 |
-| M-1 | What happens when a drain times out? | Proposed: nothing stops; the user chooses (R5.33). Waiting for the owner | 2026-11-14 |
+| M-1 | What happens when a drain times out? | One drain timeout per machine, default 60 minutes. crsp never stops a job: it keeps waiting and warns (R5.33). Owner decision | 2026-11-14 |
 | M-2 | Which backends are allowed by default? | Proposed: persistent runner only; the user turns others on. Waiting for the owner | 2026-11-14 |
 
 Open questions for the owner are listed in `docs/work/CRP4-report.md` on this branch.

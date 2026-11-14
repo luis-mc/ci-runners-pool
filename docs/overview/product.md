@@ -75,7 +75,7 @@ See decision 0002.
 - Add a machine by running one install command that the console shows, with a one-time join code. The agent connects outbound to the controller over TLS; no inbound port opens on the machine (decision 0004).
 - The agent detects and reports: OS and version, CPU and architecture, memory, disk, isolation backends (Docker, Podman, containerd or nerdctl, WSL2, Hyper-V, KVM, Apple Virtualization through Tart, Firecracker), GPU, and measured load.
 - Per machine: active or drained, the load budget (default: at or below 85% memory and 60% CPU in total), the number of job slots, the backends allowed, a cache size cap, and maintenance windows.
-- Drain, never kill: changes that restart runners (image rebuilds, agent updates, a new cap) wait until the machine has no running job, or until a drain timeout the user set, and say what they wait for.
+- Drain, never kill: changes that restart runners (image rebuilds, agent updates, a new cap) wait until the machine has no running job and say what they wait for. The drain timeout (one per machine, default 60 minutes) only starts a warning; crsp never stops the job.
 
 ## Runners and isolation backends
 
