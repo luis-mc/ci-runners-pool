@@ -1,4 +1,32 @@
 {
   "schema": 1,
-  "map": {}
+  "map": {
+    "apps/web/src/features/auth/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "apps/web/src/features/repositories/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "apps/web/src/features/setup/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "apps/web/src/features/users/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "internal/auth/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "internal/cli/auth/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "internal/github/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "internal/repos/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "internal/secrets/**": [
+      "docs/features/github-integration/spec.md"
+    ]
+  }
 }
