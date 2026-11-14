@@ -17,11 +17,29 @@ const SCREENS: { name: string; path: string; ready: string }[] = [
   { name: 'settings users', path: '/settings/users', ready: 'Settings' },
   { name: 'settings appearance', path: '/settings/appearance', ready: 'Settings' },
   { name: 'settings retention', path: '/settings/retention', ready: 'Settings' },
+  { name: 'settings audit log', path: '/settings/audit', ready: 'Settings' },
+  { name: 'settings config export', path: '/settings/export', ready: 'Settings' },
 ];
 
 for (const screen of SCREENS) {
   test(`layout: ${screen.name}`, async ({ page }) => {
-    await signedIn().install(page);
+    await signedIn()
+      .on('GET', '/api/v1/audit', {
+        items: [
+          {
+            id: 1,
+            at: '2026-11-14T10:00:00Z',
+            actor: 'octo',
+            source: 'web',
+            action: 'machine.drain',
+            target_type: 'machine',
+            target_id: 'm1',
+            summary: 'drained build-1',
+            result: 'done',
+          },
+        ],
+      })
+      .install(page);
     await page.goto(screen.path);
     await expect(
       page.getByRole('heading', { level: 1, name: screen.ready }),
