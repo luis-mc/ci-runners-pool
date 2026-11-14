@@ -56,12 +56,9 @@ func Register(mux *http.ServeMux, opts Options) {
 func (s *server) GetHealth(ctx context.Context, _ gen.GetHealthRequestObject) (gen.GetHealthResponseObject, error) {
 	if err := s.opts.DB.Ping(ctx); err != nil {
 		s.opts.Logger.Error("health: database down", "err", err)
-		return gen.GetHealth503JSONResponse{Error: struct {
-			Code    string `json:"code"`
-			Message string `json:"message"`
-		}{Code: CodeUnavailable, Message: "database is not available"}}, nil
+		return gen.GetHealth503JSONResponse{Error: gen.ErrorBody{Code: CodeUnavailable, Message: "database is not available"}}, nil
 	}
-	return gen.GetHealth200JSONResponse{Status: gen.Ok, Version: s.opts.Version}, nil
+	return gen.GetHealth200JSONResponse{Status: gen.HealthStatusOk, Version: s.opts.Version}, nil
 }
 
 // Recover turns a panic in any handler into a 500 with the error envelope.

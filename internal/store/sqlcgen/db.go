@@ -7,6 +7,7 @@ package sqlcgen
 import (
 	"context"
 	"database/sql"
+	"fmt"
 )
 
 type DBTX interface {
@@ -20,12 +21,1528 @@ func New(db DBTX) *Queries {
 	return &Queries{db: db}
 }
 
+func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
+	q := Queries{db: db}
+	var err error
+	if q.beatTicketStmt, err = db.PrepareContext(ctx, beatTicket); err != nil {
+		return nil, fmt.Errorf("error preparing query BeatTicket: %w", err)
+	}
+	if q.countJobsByStateStmt, err = db.PrepareContext(ctx, countJobsByState); err != nil {
+		return nil, fmt.Errorf("error preparing query CountJobsByState: %w", err)
+	}
+	if q.countMachineSlotsStmt, err = db.PrepareContext(ctx, countMachineSlots); err != nil {
+		return nil, fmt.Errorf("error preparing query CountMachineSlots: %w", err)
+	}
+	if q.countRepositoryRunningStmt, err = db.PrepareContext(ctx, countRepositoryRunning); err != nil {
+		return nil, fmt.Errorf("error preparing query CountRepositoryRunning: %w", err)
+	}
+	if q.countUsersStmt, err = db.PrepareContext(ctx, countUsers); err != nil {
+		return nil, fmt.Errorf("error preparing query CountUsers: %w", err)
+	}
+	if q.deleteAuditBeforeStmt, err = db.PrepareContext(ctx, deleteAuditBefore); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteAuditBefore: %w", err)
+	}
+	if q.deleteJobHistoryBeforeStmt, err = db.PrepareContext(ctx, deleteJobHistoryBefore); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteJobHistoryBefore: %w", err)
+	}
+	if q.deleteJobTicketsStmt, err = db.PrepareContext(ctx, deleteJobTickets); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteJobTickets: %w", err)
+	}
+	if q.deleteMachineLoadBeforeStmt, err = db.PrepareContext(ctx, deleteMachineLoadBefore); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteMachineLoadBefore: %w", err)
+	}
+	if q.deleteManagedVariableStmt, err = db.PrepareContext(ctx, deleteManagedVariable); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteManagedVariable: %w", err)
+	}
+	if q.deleteRunnerStmt, err = db.PrepareContext(ctx, deleteRunner); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteRunner: %w", err)
+	}
+	if q.deleteRunnerUsageBeforeStmt, err = db.PrepareContext(ctx, deleteRunnerUsageBefore); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteRunnerUsageBefore: %w", err)
+	}
+	if q.deleteRunsOnFindingsStmt, err = db.PrepareContext(ctx, deleteRunsOnFindings); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteRunsOnFindings: %w", err)
+	}
+	if q.deleteTicketStmt, err = db.PrepareContext(ctx, deleteTicket); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteTicket: %w", err)
+	}
+	if q.deleteUserStmt, err = db.PrepareContext(ctx, deleteUser); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteUser: %w", err)
+	}
+	if q.deleteWebhookDeliveriesBeforeStmt, err = db.PrepareContext(ctx, deleteWebhookDeliveriesBefore); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteWebhookDeliveriesBefore: %w", err)
+	}
+	if q.endSessionStmt, err = db.PrepareContext(ctx, endSession); err != nil {
+		return nil, fmt.Errorf("error preparing query EndSession: %w", err)
+	}
+	if q.endUserSessionsStmt, err = db.PrepareContext(ctx, endUserSessions); err != nil {
+		return nil, fmt.Errorf("error preparing query EndUserSessions: %w", err)
+	}
+	if q.enqueueJobStmt, err = db.PrepareContext(ctx, enqueueJob); err != nil {
+		return nil, fmt.Errorf("error preparing query EnqueueJob: %w", err)
+	}
+	if q.findJoinCodeByHashStmt, err = db.PrepareContext(ctx, findJoinCodeByHash); err != nil {
+		return nil, fmt.Errorf("error preparing query FindJoinCodeByHash: %w", err)
+	}
+	if q.finishBackupStmt, err = db.PrepareContext(ctx, finishBackup); err != nil {
+		return nil, fmt.Errorf("error preparing query FinishBackup: %w", err)
+	}
+	if q.finishDoctorRunStmt, err = db.PrepareContext(ctx, finishDoctorRun); err != nil {
+		return nil, fmt.Errorf("error preparing query FinishDoctorRun: %w", err)
+	}
+	if q.finishRestoreDrillStmt, err = db.PrepareContext(ctx, finishRestoreDrill); err != nil {
+		return nil, fmt.Errorf("error preparing query FinishRestoreDrill: %w", err)
+	}
+	if q.freeJobSlotsStmt, err = db.PrepareContext(ctx, freeJobSlots); err != nil {
+		return nil, fmt.Errorf("error preparing query FreeJobSlots: %w", err)
+	}
+	if q.freeSlotStmt, err = db.PrepareContext(ctx, freeSlot); err != nil {
+		return nil, fmt.Errorf("error preparing query FreeSlot: %w", err)
+	}
+	if q.freeSlotByClaimStmt, err = db.PrepareContext(ctx, freeSlotByClaim); err != nil {
+		return nil, fmt.Errorf("error preparing query FreeSlotByClaim: %w", err)
+	}
+	if q.getActiveCliTokenStmt, err = db.PrepareContext(ctx, getActiveCliToken); err != nil {
+		return nil, fmt.Errorf("error preparing query GetActiveCliToken: %w", err)
+	}
+	if q.getActiveSessionStmt, err = db.PrepareContext(ctx, getActiveSession); err != nil {
+		return nil, fmt.Errorf("error preparing query GetActiveSession: %w", err)
+	}
+	if q.getBackupStmt, err = db.PrepareContext(ctx, getBackup); err != nil {
+		return nil, fmt.Errorf("error preparing query GetBackup: %w", err)
+	}
+	if q.getDoctorRunStmt, err = db.PrepareContext(ctx, getDoctorRun); err != nil {
+		return nil, fmt.Errorf("error preparing query GetDoctorRun: %w", err)
+	}
+	if q.getGitHubAppStmt, err = db.PrepareContext(ctx, getGitHubApp); err != nil {
+		return nil, fmt.Errorf("error preparing query GetGitHubApp: %w", err)
+	}
+	if q.getGitHubJobStmt, err = db.PrepareContext(ctx, getGitHubJob); err != nil {
+		return nil, fmt.Errorf("error preparing query GetGitHubJob: %w", err)
+	}
+	if q.getJobHistoryStmt, err = db.PrepareContext(ctx, getJobHistory); err != nil {
+		return nil, fmt.Errorf("error preparing query GetJobHistory: %w", err)
+	}
+	if q.getJoinCodeStmt, err = db.PrepareContext(ctx, getJoinCode); err != nil {
+		return nil, fmt.Errorf("error preparing query GetJoinCode: %w", err)
+	}
+	if q.getMachineStmt, err = db.PrepareContext(ctx, getMachine); err != nil {
+		return nil, fmt.Errorf("error preparing query GetMachine: %w", err)
+	}
+	if q.getMachineByKeyStmt, err = db.PrepareContext(ctx, getMachineByKey); err != nil {
+		return nil, fmt.Errorf("error preparing query GetMachineByKey: %w", err)
+	}
+	if q.getMachineChangeStmt, err = db.PrepareContext(ctx, getMachineChange); err != nil {
+		return nil, fmt.Errorf("error preparing query GetMachineChange: %w", err)
+	}
+	if q.getMachineSettingsStmt, err = db.PrepareContext(ctx, getMachineSettings); err != nil {
+		return nil, fmt.Errorf("error preparing query GetMachineSettings: %w", err)
+	}
+	if q.getMetaStmt, err = db.PrepareContext(ctx, getMeta); err != nil {
+		return nil, fmt.Errorf("error preparing query GetMeta: %w", err)
+	}
+	if q.getOpenMachineChangeStmt, err = db.PrepareContext(ctx, getOpenMachineChange); err != nil {
+		return nil, fmt.Errorf("error preparing query GetOpenMachineChange: %w", err)
+	}
+	if q.getOwnerStmt, err = db.PrepareContext(ctx, getOwner); err != nil {
+		return nil, fmt.Errorf("error preparing query GetOwner: %w", err)
+	}
+	if q.getPlanStmt, err = db.PrepareContext(ctx, getPlan); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPlan: %w", err)
+	}
+	if q.getPreferencesStmt, err = db.PrepareContext(ctx, getPreferences); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPreferences: %w", err)
+	}
+	if q.getRepoPolicyStmt, err = db.PrepareContext(ctx, getRepoPolicy); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRepoPolicy: %w", err)
+	}
+	if q.getRepositoryStmt, err = db.PrepareContext(ctx, getRepository); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRepository: %w", err)
+	}
+	if q.getRepositoryByNameStmt, err = db.PrepareContext(ctx, getRepositoryByName); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRepositoryByName: %w", err)
+	}
+	if q.getRunnerStmt, err = db.PrepareContext(ctx, getRunner); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRunner: %w", err)
+	}
+	if q.getRunnerByServiceStmt, err = db.PrepareContext(ctx, getRunnerByService); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRunnerByService: %w", err)
+	}
+	if q.getSettingStmt, err = db.PrepareContext(ctx, getSetting); err != nil {
+		return nil, fmt.Errorf("error preparing query GetSetting: %w", err)
+	}
+	if q.getTicketStmt, err = db.PrepareContext(ctx, getTicket); err != nil {
+		return nil, fmt.Errorf("error preparing query GetTicket: %w", err)
+	}
+	if q.getTrayBindingStmt, err = db.PrepareContext(ctx, getTrayBinding); err != nil {
+		return nil, fmt.Errorf("error preparing query GetTrayBinding: %w", err)
+	}
+	if q.getUserStmt, err = db.PrepareContext(ctx, getUser); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUser: %w", err)
+	}
+	if q.insertAuditEntryStmt, err = db.PrepareContext(ctx, insertAuditEntry); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertAuditEntry: %w", err)
+	}
+	if q.insertAuditEventStmt, err = db.PrepareContext(ctx, insertAuditEvent); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertAuditEvent: %w", err)
+	}
+	if q.insertBackupStmt, err = db.PrepareContext(ctx, insertBackup); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertBackup: %w", err)
+	}
+	if q.insertCliTokenStmt, err = db.PrepareContext(ctx, insertCliToken); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertCliToken: %w", err)
+	}
+	if q.insertDoctorFindingStmt, err = db.PrepareContext(ctx, insertDoctorFinding); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertDoctorFinding: %w", err)
+	}
+	if q.insertDoctorRunStmt, err = db.PrepareContext(ctx, insertDoctorRun); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertDoctorRun: %w", err)
+	}
+	if q.insertJoinCodeStmt, err = db.PrepareContext(ctx, insertJoinCode); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertJoinCode: %w", err)
+	}
+	if q.insertLinkCodeStmt, err = db.PrepareContext(ctx, insertLinkCode); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertLinkCode: %w", err)
+	}
+	if q.insertMachineStmt, err = db.PrepareContext(ctx, insertMachine); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertMachine: %w", err)
+	}
+	if q.insertMachineChangeStmt, err = db.PrepareContext(ctx, insertMachineChange); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertMachineChange: %w", err)
+	}
+	if q.insertMachineKeyStmt, err = db.PrepareContext(ctx, insertMachineKey); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertMachineKey: %w", err)
+	}
+	if q.insertMachineLoadStmt, err = db.PrepareContext(ctx, insertMachineLoad); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertMachineLoad: %w", err)
+	}
+	if q.insertMachineSettingsStmt, err = db.PrepareContext(ctx, insertMachineSettings); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertMachineSettings: %w", err)
+	}
+	if q.insertPlanStmt, err = db.PrepareContext(ctx, insertPlan); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertPlan: %w", err)
+	}
+	if q.insertRestoreDrillStmt, err = db.PrepareContext(ctx, insertRestoreDrill); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertRestoreDrill: %w", err)
+	}
+	if q.insertRunnerStmt, err = db.PrepareContext(ctx, insertRunner); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertRunner: %w", err)
+	}
+	if q.insertRunnerEventStmt, err = db.PrepareContext(ctx, insertRunnerEvent); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertRunnerEvent: %w", err)
+	}
+	if q.insertRunsOnFindingStmt, err = db.PrepareContext(ctx, insertRunsOnFinding); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertRunsOnFinding: %w", err)
+	}
+	if q.insertSessionStmt, err = db.PrepareContext(ctx, insertSession); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertSession: %w", err)
+	}
+	if q.insertSetupCodeStmt, err = db.PrepareContext(ctx, insertSetupCode); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertSetupCode: %w", err)
+	}
+	if q.insertSlotStmt, err = db.PrepareContext(ctx, insertSlot); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertSlot: %w", err)
+	}
+	if q.insertSlotLogStmt, err = db.PrepareContext(ctx, insertSlotLog); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertSlotLog: %w", err)
+	}
+	if q.insertTicketStmt, err = db.PrepareContext(ctx, insertTicket); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertTicket: %w", err)
+	}
+	if q.insertUserStmt, err = db.PrepareContext(ctx, insertUser); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertUser: %w", err)
+	}
+	if q.insertWebhookDeliveryStmt, err = db.PrepareContext(ctx, insertWebhookDelivery); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertWebhookDelivery: %w", err)
+	}
+	if q.lastDoctorRunStmt, err = db.PrepareContext(ctx, lastDoctorRun); err != nil {
+		return nil, fmt.Errorf("error preparing query LastDoctorRun: %w", err)
+	}
+	if q.lastRestoreDrillStmt, err = db.PrepareContext(ctx, lastRestoreDrill); err != nil {
+		return nil, fmt.Errorf("error preparing query LastRestoreDrill: %w", err)
+	}
+	if q.listAuditEventsStmt, err = db.PrepareContext(ctx, listAuditEvents); err != nil {
+		return nil, fmt.Errorf("error preparing query ListAuditEvents: %w", err)
+	}
+	if q.listBackupsStmt, err = db.PrepareContext(ctx, listBackups); err != nil {
+		return nil, fmt.Errorf("error preparing query ListBackups: %w", err)
+	}
+	if q.listCliTokensStmt, err = db.PrepareContext(ctx, listCliTokens); err != nil {
+		return nil, fmt.Errorf("error preparing query ListCliTokens: %w", err)
+	}
+	if q.listExpiredSlotsStmt, err = db.PrepareContext(ctx, listExpiredSlots); err != nil {
+		return nil, fmt.Errorf("error preparing query ListExpiredSlots: %w", err)
+	}
+	if q.listExpiredTicketsStmt, err = db.PrepareContext(ctx, listExpiredTickets); err != nil {
+		return nil, fmt.Errorf("error preparing query ListExpiredTickets: %w", err)
+	}
+	if q.listInstallationsStmt, err = db.PrepareContext(ctx, listInstallations); err != nil {
+		return nil, fmt.Errorf("error preparing query ListInstallations: %w", err)
+	}
+	if q.listJobHistoryStmt, err = db.PrepareContext(ctx, listJobHistory); err != nil {
+		return nil, fmt.Errorf("error preparing query ListJobHistory: %w", err)
+	}
+	if q.listLatestFindingsStmt, err = db.PrepareContext(ctx, listLatestFindings); err != nil {
+		return nil, fmt.Errorf("error preparing query ListLatestFindings: %w", err)
+	}
+	if q.listMachineLoadStmt, err = db.PrepareContext(ctx, listMachineLoad); err != nil {
+		return nil, fmt.Errorf("error preparing query ListMachineLoad: %w", err)
+	}
+	if q.listMachineSlotsStmt, err = db.PrepareContext(ctx, listMachineSlots); err != nil {
+		return nil, fmt.Errorf("error preparing query ListMachineSlots: %w", err)
+	}
+	if q.listMachineTicketsStmt, err = db.PrepareContext(ctx, listMachineTickets); err != nil {
+		return nil, fmt.Errorf("error preparing query ListMachineTickets: %w", err)
+	}
+	if q.listMachinesStmt, err = db.PrepareContext(ctx, listMachines); err != nil {
+		return nil, fmt.Errorf("error preparing query ListMachines: %w", err)
+	}
+	if q.listManagedVariablesStmt, err = db.PrepareContext(ctx, listManagedVariables); err != nil {
+		return nil, fmt.Errorf("error preparing query ListManagedVariables: %w", err)
+	}
+	if q.listOpenGitHubJobsStmt, err = db.PrepareContext(ctx, listOpenGitHubJobs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListOpenGitHubJobs: %w", err)
+	}
+	if q.listPoolRepositoriesStmt, err = db.PrepareContext(ctx, listPoolRepositories); err != nil {
+		return nil, fmt.Errorf("error preparing query ListPoolRepositories: %w", err)
+	}
+	if q.listRepositoriesStmt, err = db.PrepareContext(ctx, listRepositories); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRepositories: %w", err)
+	}
+	if q.listRunFindingsStmt, err = db.PrepareContext(ctx, listRunFindings); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRunFindings: %w", err)
+	}
+	if q.listRunnersStmt, err = db.PrepareContext(ctx, listRunners); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRunners: %w", err)
+	}
+	if q.listRunsOnFindingsStmt, err = db.PrepareContext(ctx, listRunsOnFindings); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRunsOnFindings: %w", err)
+	}
+	if q.listSettingsStmt, err = db.PrepareContext(ctx, listSettings); err != nil {
+		return nil, fmt.Errorf("error preparing query ListSettings: %w", err)
+	}
+	if q.listUsersStmt, err = db.PrepareContext(ctx, listUsers); err != nil {
+		return nil, fmt.Errorf("error preparing query ListUsers: %w", err)
+	}
+	if q.markBackupDeletedStmt, err = db.PrepareContext(ctx, markBackupDeleted); err != nil {
+		return nil, fmt.Errorf("error preparing query MarkBackupDeleted: %w", err)
+	}
+	if q.markInstallationRemovedStmt, err = db.PrepareContext(ctx, markInstallationRemoved); err != nil {
+		return nil, fmt.Errorf("error preparing query MarkInstallationRemoved: %w", err)
+	}
+	if q.markMachineRemovedStmt, err = db.PrepareContext(ctx, markMachineRemoved); err != nil {
+		return nil, fmt.Errorf("error preparing query MarkMachineRemoved: %w", err)
+	}
+	if q.markMachineSeenStmt, err = db.PrepareContext(ctx, markMachineSeen); err != nil {
+		return nil, fmt.Errorf("error preparing query MarkMachineSeen: %w", err)
+	}
+	if q.markMachinesOfflineStmt, err = db.PrepareContext(ctx, markMachinesOffline); err != nil {
+		return nil, fmt.Errorf("error preparing query MarkMachinesOffline: %w", err)
+	}
+	if q.recordSignInStmt, err = db.PrepareContext(ctx, recordSignIn); err != nil {
+		return nil, fmt.Errorf("error preparing query RecordSignIn: %w", err)
+	}
+	if q.renameMachineStmt, err = db.PrepareContext(ctx, renameMachine); err != nil {
+		return nil, fmt.Errorf("error preparing query RenameMachine: %w", err)
+	}
+	if q.revokeCliTokenStmt, err = db.PrepareContext(ctx, revokeCliToken); err != nil {
+		return nil, fmt.Errorf("error preparing query RevokeCliToken: %w", err)
+	}
+	if q.revokeJoinCodeStmt, err = db.PrepareContext(ctx, revokeJoinCode); err != nil {
+		return nil, fmt.Errorf("error preparing query RevokeJoinCode: %w", err)
+	}
+	if q.revokeMachineKeysStmt, err = db.PrepareContext(ctx, revokeMachineKeys); err != nil {
+		return nil, fmt.Errorf("error preparing query RevokeMachineKeys: %w", err)
+	}
+	if q.revokeOpenJoinCodesStmt, err = db.PrepareContext(ctx, revokeOpenJoinCodes); err != nil {
+		return nil, fmt.Errorf("error preparing query RevokeOpenJoinCodes: %w", err)
+	}
+	if q.revokeUserCliTokensStmt, err = db.PrepareContext(ctx, revokeUserCliTokens); err != nil {
+		return nil, fmt.Errorf("error preparing query RevokeUserCliTokens: %w", err)
+	}
+	if q.setGitHubJobWaitStmt, err = db.PrepareContext(ctx, setGitHubJobWait); err != nil {
+		return nil, fmt.Errorf("error preparing query SetGitHubJobWait: %w", err)
+	}
+	if q.setJobCompletedStmt, err = db.PrepareContext(ctx, setJobCompleted); err != nil {
+		return nil, fmt.Errorf("error preparing query SetJobCompleted: %w", err)
+	}
+	if q.setJobSlotStmt, err = db.PrepareContext(ctx, setJobSlot); err != nil {
+		return nil, fmt.Errorf("error preparing query SetJobSlot: %w", err)
+	}
+	if q.setJobStartedStmt, err = db.PrepareContext(ctx, setJobStarted); err != nil {
+		return nil, fmt.Errorf("error preparing query SetJobStarted: %w", err)
+	}
+	if q.setMachineChangeStateStmt, err = db.PrepareContext(ctx, setMachineChangeState); err != nil {
+		return nil, fmt.Errorf("error preparing query SetMachineChangeState: %w", err)
+	}
+	if q.setMachineStateStmt, err = db.PrepareContext(ctx, setMachineState); err != nil {
+		return nil, fmt.Errorf("error preparing query SetMachineState: %w", err)
+	}
+	if q.setManagedVariableStatusStmt, err = db.PrepareContext(ctx, setManagedVariableStatus); err != nil {
+		return nil, fmt.Errorf("error preparing query SetManagedVariableStatus: %w", err)
+	}
+	if q.setMetaStmt, err = db.PrepareContext(ctx, setMeta); err != nil {
+		return nil, fmt.Errorf("error preparing query SetMeta: %w", err)
+	}
+	if q.setPreferencesStmt, err = db.PrepareContext(ctx, setPreferences); err != nil {
+		return nil, fmt.Errorf("error preparing query SetPreferences: %w", err)
+	}
+	if q.setRepositoryPoolStmt, err = db.PrepareContext(ctx, setRepositoryPool); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRepositoryPool: %w", err)
+	}
+	if q.setRunnerRegistrationStmt, err = db.PrepareContext(ctx, setRunnerRegistration); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRunnerRegistration: %w", err)
+	}
+	if q.setRunnerStateStmt, err = db.PrepareContext(ctx, setRunnerState); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRunnerState: %w", err)
+	}
+	if q.setSettingStmt, err = db.PrepareContext(ctx, setSetting); err != nil {
+		return nil, fmt.Errorf("error preparing query SetSetting: %w", err)
+	}
+	if q.setTicketWaitReasonStmt, err = db.PrepareContext(ctx, setTicketWaitReason); err != nil {
+		return nil, fmt.Errorf("error preparing query SetTicketWaitReason: %w", err)
+	}
+	if q.slotLogCutoffStmt, err = db.PrepareContext(ctx, slotLogCutoff); err != nil {
+		return nil, fmt.Errorf("error preparing query SlotLogCutoff: %w", err)
+	}
+	if q.sumRunMinutesSinceStmt, err = db.PrepareContext(ctx, sumRunMinutesSince); err != nil {
+		return nil, fmt.Errorf("error preparing query SumRunMinutesSince: %w", err)
+	}
+	if q.touchSessionStmt, err = db.PrepareContext(ctx, touchSession); err != nil {
+		return nil, fmt.Errorf("error preparing query TouchSession: %w", err)
+	}
+	if q.trimSlotLogStmt, err = db.PrepareContext(ctx, trimSlotLog); err != nil {
+		return nil, fmt.Errorf("error preparing query TrimSlotLog: %w", err)
+	}
+	if q.updateMachineFactsStmt, err = db.PrepareContext(ctx, updateMachineFacts); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateMachineFacts: %w", err)
+	}
+	if q.updateMachineSettingsStmt, err = db.PrepareContext(ctx, updateMachineSettings); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateMachineSettings: %w", err)
+	}
+	if q.updatePlanStmt, err = db.PrepareContext(ctx, updatePlan); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdatePlan: %w", err)
+	}
+	if q.updateUserRoleStmt, err = db.PrepareContext(ctx, updateUserRole); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateUserRole: %w", err)
+	}
+	if q.upsertDoctorStateStmt, err = db.PrepareContext(ctx, upsertDoctorState); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertDoctorState: %w", err)
+	}
+	if q.upsertGitHubAppStmt, err = db.PrepareContext(ctx, upsertGitHubApp); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertGitHubApp: %w", err)
+	}
+	if q.upsertGitHubJobStmt, err = db.PrepareContext(ctx, upsertGitHubJob); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertGitHubJob: %w", err)
+	}
+	if q.upsertInstallationStmt, err = db.PrepareContext(ctx, upsertInstallation); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertInstallation: %w", err)
+	}
+	if q.upsertJobHistoryStmt, err = db.PrepareContext(ctx, upsertJobHistory); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertJobHistory: %w", err)
+	}
+	if q.upsertManagedVariableStmt, err = db.PrepareContext(ctx, upsertManagedVariable); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertManagedVariable: %w", err)
+	}
+	if q.upsertRepoPolicyStmt, err = db.PrepareContext(ctx, upsertRepoPolicy); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertRepoPolicy: %w", err)
+	}
+	if q.upsertRepositoryStmt, err = db.PrepareContext(ctx, upsertRepository); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertRepository: %w", err)
+	}
+	if q.upsertRunnerUsageStmt, err = db.PrepareContext(ctx, upsertRunnerUsage); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertRunnerUsage: %w", err)
+	}
+	if q.upsertTrayBindingStmt, err = db.PrepareContext(ctx, upsertTrayBinding); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertTrayBinding: %w", err)
+	}
+	if q.useJoinCodeStmt, err = db.PrepareContext(ctx, useJoinCode); err != nil {
+		return nil, fmt.Errorf("error preparing query UseJoinCode: %w", err)
+	}
+	if q.useLinkCodeStmt, err = db.PrepareContext(ctx, useLinkCode); err != nil {
+		return nil, fmt.Errorf("error preparing query UseLinkCode: %w", err)
+	}
+	if q.useSetupCodeStmt, err = db.PrepareContext(ctx, useSetupCode); err != nil {
+		return nil, fmt.Errorf("error preparing query UseSetupCode: %w", err)
+	}
+	return &q, nil
+}
+
+func (q *Queries) Close() error {
+	var err error
+	if q.beatTicketStmt != nil {
+		if cerr := q.beatTicketStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing beatTicketStmt: %w", cerr)
+		}
+	}
+	if q.countJobsByStateStmt != nil {
+		if cerr := q.countJobsByStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countJobsByStateStmt: %w", cerr)
+		}
+	}
+	if q.countMachineSlotsStmt != nil {
+		if cerr := q.countMachineSlotsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countMachineSlotsStmt: %w", cerr)
+		}
+	}
+	if q.countRepositoryRunningStmt != nil {
+		if cerr := q.countRepositoryRunningStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countRepositoryRunningStmt: %w", cerr)
+		}
+	}
+	if q.countUsersStmt != nil {
+		if cerr := q.countUsersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countUsersStmt: %w", cerr)
+		}
+	}
+	if q.deleteAuditBeforeStmt != nil {
+		if cerr := q.deleteAuditBeforeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteAuditBeforeStmt: %w", cerr)
+		}
+	}
+	if q.deleteJobHistoryBeforeStmt != nil {
+		if cerr := q.deleteJobHistoryBeforeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteJobHistoryBeforeStmt: %w", cerr)
+		}
+	}
+	if q.deleteJobTicketsStmt != nil {
+		if cerr := q.deleteJobTicketsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteJobTicketsStmt: %w", cerr)
+		}
+	}
+	if q.deleteMachineLoadBeforeStmt != nil {
+		if cerr := q.deleteMachineLoadBeforeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteMachineLoadBeforeStmt: %w", cerr)
+		}
+	}
+	if q.deleteManagedVariableStmt != nil {
+		if cerr := q.deleteManagedVariableStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteManagedVariableStmt: %w", cerr)
+		}
+	}
+	if q.deleteRunnerStmt != nil {
+		if cerr := q.deleteRunnerStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteRunnerStmt: %w", cerr)
+		}
+	}
+	if q.deleteRunnerUsageBeforeStmt != nil {
+		if cerr := q.deleteRunnerUsageBeforeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteRunnerUsageBeforeStmt: %w", cerr)
+		}
+	}
+	if q.deleteRunsOnFindingsStmt != nil {
+		if cerr := q.deleteRunsOnFindingsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteRunsOnFindingsStmt: %w", cerr)
+		}
+	}
+	if q.deleteTicketStmt != nil {
+		if cerr := q.deleteTicketStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteTicketStmt: %w", cerr)
+		}
+	}
+	if q.deleteUserStmt != nil {
+		if cerr := q.deleteUserStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteUserStmt: %w", cerr)
+		}
+	}
+	if q.deleteWebhookDeliveriesBeforeStmt != nil {
+		if cerr := q.deleteWebhookDeliveriesBeforeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteWebhookDeliveriesBeforeStmt: %w", cerr)
+		}
+	}
+	if q.endSessionStmt != nil {
+		if cerr := q.endSessionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing endSessionStmt: %w", cerr)
+		}
+	}
+	if q.endUserSessionsStmt != nil {
+		if cerr := q.endUserSessionsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing endUserSessionsStmt: %w", cerr)
+		}
+	}
+	if q.enqueueJobStmt != nil {
+		if cerr := q.enqueueJobStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing enqueueJobStmt: %w", cerr)
+		}
+	}
+	if q.findJoinCodeByHashStmt != nil {
+		if cerr := q.findJoinCodeByHashStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing findJoinCodeByHashStmt: %w", cerr)
+		}
+	}
+	if q.finishBackupStmt != nil {
+		if cerr := q.finishBackupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing finishBackupStmt: %w", cerr)
+		}
+	}
+	if q.finishDoctorRunStmt != nil {
+		if cerr := q.finishDoctorRunStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing finishDoctorRunStmt: %w", cerr)
+		}
+	}
+	if q.finishRestoreDrillStmt != nil {
+		if cerr := q.finishRestoreDrillStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing finishRestoreDrillStmt: %w", cerr)
+		}
+	}
+	if q.freeJobSlotsStmt != nil {
+		if cerr := q.freeJobSlotsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing freeJobSlotsStmt: %w", cerr)
+		}
+	}
+	if q.freeSlotStmt != nil {
+		if cerr := q.freeSlotStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing freeSlotStmt: %w", cerr)
+		}
+	}
+	if q.freeSlotByClaimStmt != nil {
+		if cerr := q.freeSlotByClaimStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing freeSlotByClaimStmt: %w", cerr)
+		}
+	}
+	if q.getActiveCliTokenStmt != nil {
+		if cerr := q.getActiveCliTokenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getActiveCliTokenStmt: %w", cerr)
+		}
+	}
+	if q.getActiveSessionStmt != nil {
+		if cerr := q.getActiveSessionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getActiveSessionStmt: %w", cerr)
+		}
+	}
+	if q.getBackupStmt != nil {
+		if cerr := q.getBackupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getBackupStmt: %w", cerr)
+		}
+	}
+	if q.getDoctorRunStmt != nil {
+		if cerr := q.getDoctorRunStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getDoctorRunStmt: %w", cerr)
+		}
+	}
+	if q.getGitHubAppStmt != nil {
+		if cerr := q.getGitHubAppStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getGitHubAppStmt: %w", cerr)
+		}
+	}
+	if q.getGitHubJobStmt != nil {
+		if cerr := q.getGitHubJobStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getGitHubJobStmt: %w", cerr)
+		}
+	}
+	if q.getJobHistoryStmt != nil {
+		if cerr := q.getJobHistoryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getJobHistoryStmt: %w", cerr)
+		}
+	}
+	if q.getJoinCodeStmt != nil {
+		if cerr := q.getJoinCodeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getJoinCodeStmt: %w", cerr)
+		}
+	}
+	if q.getMachineStmt != nil {
+		if cerr := q.getMachineStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getMachineStmt: %w", cerr)
+		}
+	}
+	if q.getMachineByKeyStmt != nil {
+		if cerr := q.getMachineByKeyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getMachineByKeyStmt: %w", cerr)
+		}
+	}
+	if q.getMachineChangeStmt != nil {
+		if cerr := q.getMachineChangeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getMachineChangeStmt: %w", cerr)
+		}
+	}
+	if q.getMachineSettingsStmt != nil {
+		if cerr := q.getMachineSettingsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getMachineSettingsStmt: %w", cerr)
+		}
+	}
+	if q.getMetaStmt != nil {
+		if cerr := q.getMetaStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getMetaStmt: %w", cerr)
+		}
+	}
+	if q.getOpenMachineChangeStmt != nil {
+		if cerr := q.getOpenMachineChangeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getOpenMachineChangeStmt: %w", cerr)
+		}
+	}
+	if q.getOwnerStmt != nil {
+		if cerr := q.getOwnerStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getOwnerStmt: %w", cerr)
+		}
+	}
+	if q.getPlanStmt != nil {
+		if cerr := q.getPlanStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPlanStmt: %w", cerr)
+		}
+	}
+	if q.getPreferencesStmt != nil {
+		if cerr := q.getPreferencesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPreferencesStmt: %w", cerr)
+		}
+	}
+	if q.getRepoPolicyStmt != nil {
+		if cerr := q.getRepoPolicyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRepoPolicyStmt: %w", cerr)
+		}
+	}
+	if q.getRepositoryStmt != nil {
+		if cerr := q.getRepositoryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRepositoryStmt: %w", cerr)
+		}
+	}
+	if q.getRepositoryByNameStmt != nil {
+		if cerr := q.getRepositoryByNameStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRepositoryByNameStmt: %w", cerr)
+		}
+	}
+	if q.getRunnerStmt != nil {
+		if cerr := q.getRunnerStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRunnerStmt: %w", cerr)
+		}
+	}
+	if q.getRunnerByServiceStmt != nil {
+		if cerr := q.getRunnerByServiceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRunnerByServiceStmt: %w", cerr)
+		}
+	}
+	if q.getSettingStmt != nil {
+		if cerr := q.getSettingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getSettingStmt: %w", cerr)
+		}
+	}
+	if q.getTicketStmt != nil {
+		if cerr := q.getTicketStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getTicketStmt: %w", cerr)
+		}
+	}
+	if q.getTrayBindingStmt != nil {
+		if cerr := q.getTrayBindingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getTrayBindingStmt: %w", cerr)
+		}
+	}
+	if q.getUserStmt != nil {
+		if cerr := q.getUserStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserStmt: %w", cerr)
+		}
+	}
+	if q.insertAuditEntryStmt != nil {
+		if cerr := q.insertAuditEntryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertAuditEntryStmt: %w", cerr)
+		}
+	}
+	if q.insertAuditEventStmt != nil {
+		if cerr := q.insertAuditEventStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertAuditEventStmt: %w", cerr)
+		}
+	}
+	if q.insertBackupStmt != nil {
+		if cerr := q.insertBackupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertBackupStmt: %w", cerr)
+		}
+	}
+	if q.insertCliTokenStmt != nil {
+		if cerr := q.insertCliTokenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertCliTokenStmt: %w", cerr)
+		}
+	}
+	if q.insertDoctorFindingStmt != nil {
+		if cerr := q.insertDoctorFindingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertDoctorFindingStmt: %w", cerr)
+		}
+	}
+	if q.insertDoctorRunStmt != nil {
+		if cerr := q.insertDoctorRunStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertDoctorRunStmt: %w", cerr)
+		}
+	}
+	if q.insertJoinCodeStmt != nil {
+		if cerr := q.insertJoinCodeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertJoinCodeStmt: %w", cerr)
+		}
+	}
+	if q.insertLinkCodeStmt != nil {
+		if cerr := q.insertLinkCodeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertLinkCodeStmt: %w", cerr)
+		}
+	}
+	if q.insertMachineStmt != nil {
+		if cerr := q.insertMachineStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertMachineStmt: %w", cerr)
+		}
+	}
+	if q.insertMachineChangeStmt != nil {
+		if cerr := q.insertMachineChangeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertMachineChangeStmt: %w", cerr)
+		}
+	}
+	if q.insertMachineKeyStmt != nil {
+		if cerr := q.insertMachineKeyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertMachineKeyStmt: %w", cerr)
+		}
+	}
+	if q.insertMachineLoadStmt != nil {
+		if cerr := q.insertMachineLoadStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertMachineLoadStmt: %w", cerr)
+		}
+	}
+	if q.insertMachineSettingsStmt != nil {
+		if cerr := q.insertMachineSettingsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertMachineSettingsStmt: %w", cerr)
+		}
+	}
+	if q.insertPlanStmt != nil {
+		if cerr := q.insertPlanStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertPlanStmt: %w", cerr)
+		}
+	}
+	if q.insertRestoreDrillStmt != nil {
+		if cerr := q.insertRestoreDrillStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertRestoreDrillStmt: %w", cerr)
+		}
+	}
+	if q.insertRunnerStmt != nil {
+		if cerr := q.insertRunnerStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertRunnerStmt: %w", cerr)
+		}
+	}
+	if q.insertRunnerEventStmt != nil {
+		if cerr := q.insertRunnerEventStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertRunnerEventStmt: %w", cerr)
+		}
+	}
+	if q.insertRunsOnFindingStmt != nil {
+		if cerr := q.insertRunsOnFindingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertRunsOnFindingStmt: %w", cerr)
+		}
+	}
+	if q.insertSessionStmt != nil {
+		if cerr := q.insertSessionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertSessionStmt: %w", cerr)
+		}
+	}
+	if q.insertSetupCodeStmt != nil {
+		if cerr := q.insertSetupCodeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertSetupCodeStmt: %w", cerr)
+		}
+	}
+	if q.insertSlotStmt != nil {
+		if cerr := q.insertSlotStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertSlotStmt: %w", cerr)
+		}
+	}
+	if q.insertSlotLogStmt != nil {
+		if cerr := q.insertSlotLogStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertSlotLogStmt: %w", cerr)
+		}
+	}
+	if q.insertTicketStmt != nil {
+		if cerr := q.insertTicketStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertTicketStmt: %w", cerr)
+		}
+	}
+	if q.insertUserStmt != nil {
+		if cerr := q.insertUserStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertUserStmt: %w", cerr)
+		}
+	}
+	if q.insertWebhookDeliveryStmt != nil {
+		if cerr := q.insertWebhookDeliveryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertWebhookDeliveryStmt: %w", cerr)
+		}
+	}
+	if q.lastDoctorRunStmt != nil {
+		if cerr := q.lastDoctorRunStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing lastDoctorRunStmt: %w", cerr)
+		}
+	}
+	if q.lastRestoreDrillStmt != nil {
+		if cerr := q.lastRestoreDrillStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing lastRestoreDrillStmt: %w", cerr)
+		}
+	}
+	if q.listAuditEventsStmt != nil {
+		if cerr := q.listAuditEventsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listAuditEventsStmt: %w", cerr)
+		}
+	}
+	if q.listBackupsStmt != nil {
+		if cerr := q.listBackupsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listBackupsStmt: %w", cerr)
+		}
+	}
+	if q.listCliTokensStmt != nil {
+		if cerr := q.listCliTokensStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listCliTokensStmt: %w", cerr)
+		}
+	}
+	if q.listExpiredSlotsStmt != nil {
+		if cerr := q.listExpiredSlotsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listExpiredSlotsStmt: %w", cerr)
+		}
+	}
+	if q.listExpiredTicketsStmt != nil {
+		if cerr := q.listExpiredTicketsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listExpiredTicketsStmt: %w", cerr)
+		}
+	}
+	if q.listInstallationsStmt != nil {
+		if cerr := q.listInstallationsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listInstallationsStmt: %w", cerr)
+		}
+	}
+	if q.listJobHistoryStmt != nil {
+		if cerr := q.listJobHistoryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listJobHistoryStmt: %w", cerr)
+		}
+	}
+	if q.listLatestFindingsStmt != nil {
+		if cerr := q.listLatestFindingsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listLatestFindingsStmt: %w", cerr)
+		}
+	}
+	if q.listMachineLoadStmt != nil {
+		if cerr := q.listMachineLoadStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listMachineLoadStmt: %w", cerr)
+		}
+	}
+	if q.listMachineSlotsStmt != nil {
+		if cerr := q.listMachineSlotsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listMachineSlotsStmt: %w", cerr)
+		}
+	}
+	if q.listMachineTicketsStmt != nil {
+		if cerr := q.listMachineTicketsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listMachineTicketsStmt: %w", cerr)
+		}
+	}
+	if q.listMachinesStmt != nil {
+		if cerr := q.listMachinesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listMachinesStmt: %w", cerr)
+		}
+	}
+	if q.listManagedVariablesStmt != nil {
+		if cerr := q.listManagedVariablesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listManagedVariablesStmt: %w", cerr)
+		}
+	}
+	if q.listOpenGitHubJobsStmt != nil {
+		if cerr := q.listOpenGitHubJobsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listOpenGitHubJobsStmt: %w", cerr)
+		}
+	}
+	if q.listPoolRepositoriesStmt != nil {
+		if cerr := q.listPoolRepositoriesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listPoolRepositoriesStmt: %w", cerr)
+		}
+	}
+	if q.listRepositoriesStmt != nil {
+		if cerr := q.listRepositoriesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRepositoriesStmt: %w", cerr)
+		}
+	}
+	if q.listRunFindingsStmt != nil {
+		if cerr := q.listRunFindingsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRunFindingsStmt: %w", cerr)
+		}
+	}
+	if q.listRunnersStmt != nil {
+		if cerr := q.listRunnersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRunnersStmt: %w", cerr)
+		}
+	}
+	if q.listRunsOnFindingsStmt != nil {
+		if cerr := q.listRunsOnFindingsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRunsOnFindingsStmt: %w", cerr)
+		}
+	}
+	if q.listSettingsStmt != nil {
+		if cerr := q.listSettingsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listSettingsStmt: %w", cerr)
+		}
+	}
+	if q.listUsersStmt != nil {
+		if cerr := q.listUsersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listUsersStmt: %w", cerr)
+		}
+	}
+	if q.markBackupDeletedStmt != nil {
+		if cerr := q.markBackupDeletedStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing markBackupDeletedStmt: %w", cerr)
+		}
+	}
+	if q.markInstallationRemovedStmt != nil {
+		if cerr := q.markInstallationRemovedStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing markInstallationRemovedStmt: %w", cerr)
+		}
+	}
+	if q.markMachineRemovedStmt != nil {
+		if cerr := q.markMachineRemovedStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing markMachineRemovedStmt: %w", cerr)
+		}
+	}
+	if q.markMachineSeenStmt != nil {
+		if cerr := q.markMachineSeenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing markMachineSeenStmt: %w", cerr)
+		}
+	}
+	if q.markMachinesOfflineStmt != nil {
+		if cerr := q.markMachinesOfflineStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing markMachinesOfflineStmt: %w", cerr)
+		}
+	}
+	if q.recordSignInStmt != nil {
+		if cerr := q.recordSignInStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing recordSignInStmt: %w", cerr)
+		}
+	}
+	if q.renameMachineStmt != nil {
+		if cerr := q.renameMachineStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing renameMachineStmt: %w", cerr)
+		}
+	}
+	if q.revokeCliTokenStmt != nil {
+		if cerr := q.revokeCliTokenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing revokeCliTokenStmt: %w", cerr)
+		}
+	}
+	if q.revokeJoinCodeStmt != nil {
+		if cerr := q.revokeJoinCodeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing revokeJoinCodeStmt: %w", cerr)
+		}
+	}
+	if q.revokeMachineKeysStmt != nil {
+		if cerr := q.revokeMachineKeysStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing revokeMachineKeysStmt: %w", cerr)
+		}
+	}
+	if q.revokeOpenJoinCodesStmt != nil {
+		if cerr := q.revokeOpenJoinCodesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing revokeOpenJoinCodesStmt: %w", cerr)
+		}
+	}
+	if q.revokeUserCliTokensStmt != nil {
+		if cerr := q.revokeUserCliTokensStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing revokeUserCliTokensStmt: %w", cerr)
+		}
+	}
+	if q.setGitHubJobWaitStmt != nil {
+		if cerr := q.setGitHubJobWaitStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setGitHubJobWaitStmt: %w", cerr)
+		}
+	}
+	if q.setJobCompletedStmt != nil {
+		if cerr := q.setJobCompletedStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setJobCompletedStmt: %w", cerr)
+		}
+	}
+	if q.setJobSlotStmt != nil {
+		if cerr := q.setJobSlotStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setJobSlotStmt: %w", cerr)
+		}
+	}
+	if q.setJobStartedStmt != nil {
+		if cerr := q.setJobStartedStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setJobStartedStmt: %w", cerr)
+		}
+	}
+	if q.setMachineChangeStateStmt != nil {
+		if cerr := q.setMachineChangeStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setMachineChangeStateStmt: %w", cerr)
+		}
+	}
+	if q.setMachineStateStmt != nil {
+		if cerr := q.setMachineStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setMachineStateStmt: %w", cerr)
+		}
+	}
+	if q.setManagedVariableStatusStmt != nil {
+		if cerr := q.setManagedVariableStatusStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setManagedVariableStatusStmt: %w", cerr)
+		}
+	}
+	if q.setMetaStmt != nil {
+		if cerr := q.setMetaStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setMetaStmt: %w", cerr)
+		}
+	}
+	if q.setPreferencesStmt != nil {
+		if cerr := q.setPreferencesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setPreferencesStmt: %w", cerr)
+		}
+	}
+	if q.setRepositoryPoolStmt != nil {
+		if cerr := q.setRepositoryPoolStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRepositoryPoolStmt: %w", cerr)
+		}
+	}
+	if q.setRunnerRegistrationStmt != nil {
+		if cerr := q.setRunnerRegistrationStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRunnerRegistrationStmt: %w", cerr)
+		}
+	}
+	if q.setRunnerStateStmt != nil {
+		if cerr := q.setRunnerStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRunnerStateStmt: %w", cerr)
+		}
+	}
+	if q.setSettingStmt != nil {
+		if cerr := q.setSettingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setSettingStmt: %w", cerr)
+		}
+	}
+	if q.setTicketWaitReasonStmt != nil {
+		if cerr := q.setTicketWaitReasonStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setTicketWaitReasonStmt: %w", cerr)
+		}
+	}
+	if q.slotLogCutoffStmt != nil {
+		if cerr := q.slotLogCutoffStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing slotLogCutoffStmt: %w", cerr)
+		}
+	}
+	if q.sumRunMinutesSinceStmt != nil {
+		if cerr := q.sumRunMinutesSinceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing sumRunMinutesSinceStmt: %w", cerr)
+		}
+	}
+	if q.touchSessionStmt != nil {
+		if cerr := q.touchSessionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing touchSessionStmt: %w", cerr)
+		}
+	}
+	if q.trimSlotLogStmt != nil {
+		if cerr := q.trimSlotLogStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing trimSlotLogStmt: %w", cerr)
+		}
+	}
+	if q.updateMachineFactsStmt != nil {
+		if cerr := q.updateMachineFactsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateMachineFactsStmt: %w", cerr)
+		}
+	}
+	if q.updateMachineSettingsStmt != nil {
+		if cerr := q.updateMachineSettingsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateMachineSettingsStmt: %w", cerr)
+		}
+	}
+	if q.updatePlanStmt != nil {
+		if cerr := q.updatePlanStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updatePlanStmt: %w", cerr)
+		}
+	}
+	if q.updateUserRoleStmt != nil {
+		if cerr := q.updateUserRoleStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateUserRoleStmt: %w", cerr)
+		}
+	}
+	if q.upsertDoctorStateStmt != nil {
+		if cerr := q.upsertDoctorStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertDoctorStateStmt: %w", cerr)
+		}
+	}
+	if q.upsertGitHubAppStmt != nil {
+		if cerr := q.upsertGitHubAppStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertGitHubAppStmt: %w", cerr)
+		}
+	}
+	if q.upsertGitHubJobStmt != nil {
+		if cerr := q.upsertGitHubJobStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertGitHubJobStmt: %w", cerr)
+		}
+	}
+	if q.upsertInstallationStmt != nil {
+		if cerr := q.upsertInstallationStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertInstallationStmt: %w", cerr)
+		}
+	}
+	if q.upsertJobHistoryStmt != nil {
+		if cerr := q.upsertJobHistoryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertJobHistoryStmt: %w", cerr)
+		}
+	}
+	if q.upsertManagedVariableStmt != nil {
+		if cerr := q.upsertManagedVariableStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertManagedVariableStmt: %w", cerr)
+		}
+	}
+	if q.upsertRepoPolicyStmt != nil {
+		if cerr := q.upsertRepoPolicyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertRepoPolicyStmt: %w", cerr)
+		}
+	}
+	if q.upsertRepositoryStmt != nil {
+		if cerr := q.upsertRepositoryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertRepositoryStmt: %w", cerr)
+		}
+	}
+	if q.upsertRunnerUsageStmt != nil {
+		if cerr := q.upsertRunnerUsageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertRunnerUsageStmt: %w", cerr)
+		}
+	}
+	if q.upsertTrayBindingStmt != nil {
+		if cerr := q.upsertTrayBindingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertTrayBindingStmt: %w", cerr)
+		}
+	}
+	if q.useJoinCodeStmt != nil {
+		if cerr := q.useJoinCodeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing useJoinCodeStmt: %w", cerr)
+		}
+	}
+	if q.useLinkCodeStmt != nil {
+		if cerr := q.useLinkCodeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing useLinkCodeStmt: %w", cerr)
+		}
+	}
+	if q.useSetupCodeStmt != nil {
+		if cerr := q.useSetupCodeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing useSetupCodeStmt: %w", cerr)
+		}
+	}
+	return err
+}
+
+func (q *Queries) exec(ctx context.Context, stmt *sql.Stmt, query string, args ...interface{}) (sql.Result, error) {
+	switch {
+	case stmt != nil && q.tx != nil:
+		return q.tx.StmtContext(ctx, stmt).ExecContext(ctx, args...)
+	case stmt != nil:
+		return stmt.ExecContext(ctx, args...)
+	default:
+		return q.db.ExecContext(ctx, query, args...)
+	}
+}
+
+func (q *Queries) query(ctx context.Context, stmt *sql.Stmt, query string, args ...interface{}) (*sql.Rows, error) {
+	switch {
+	case stmt != nil && q.tx != nil:
+		return q.tx.StmtContext(ctx, stmt).QueryContext(ctx, args...)
+	case stmt != nil:
+		return stmt.QueryContext(ctx, args...)
+	default:
+		return q.db.QueryContext(ctx, query, args...)
+	}
+}
+
+func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, args ...interface{}) *sql.Row {
+	switch {
+	case stmt != nil && q.tx != nil:
+		return q.tx.StmtContext(ctx, stmt).QueryRowContext(ctx, args...)
+	case stmt != nil:
+		return stmt.QueryRowContext(ctx, args...)
+	default:
+		return q.db.QueryRowContext(ctx, query, args...)
+	}
+}
+
 type Queries struct {
-	db DBTX
+	db                                DBTX
+	tx                                *sql.Tx
+	beatTicketStmt                    *sql.Stmt
+	countJobsByStateStmt              *sql.Stmt
+	countMachineSlotsStmt             *sql.Stmt
+	countRepositoryRunningStmt        *sql.Stmt
+	countUsersStmt                    *sql.Stmt
+	deleteAuditBeforeStmt             *sql.Stmt
+	deleteJobHistoryBeforeStmt        *sql.Stmt
+	deleteJobTicketsStmt              *sql.Stmt
+	deleteMachineLoadBeforeStmt       *sql.Stmt
+	deleteManagedVariableStmt         *sql.Stmt
+	deleteRunnerStmt                  *sql.Stmt
+	deleteRunnerUsageBeforeStmt       *sql.Stmt
+	deleteRunsOnFindingsStmt          *sql.Stmt
+	deleteTicketStmt                  *sql.Stmt
+	deleteUserStmt                    *sql.Stmt
+	deleteWebhookDeliveriesBeforeStmt *sql.Stmt
+	endSessionStmt                    *sql.Stmt
+	endUserSessionsStmt               *sql.Stmt
+	enqueueJobStmt                    *sql.Stmt
+	findJoinCodeByHashStmt            *sql.Stmt
+	finishBackupStmt                  *sql.Stmt
+	finishDoctorRunStmt               *sql.Stmt
+	finishRestoreDrillStmt            *sql.Stmt
+	freeJobSlotsStmt                  *sql.Stmt
+	freeSlotStmt                      *sql.Stmt
+	freeSlotByClaimStmt               *sql.Stmt
+	getActiveCliTokenStmt             *sql.Stmt
+	getActiveSessionStmt              *sql.Stmt
+	getBackupStmt                     *sql.Stmt
+	getDoctorRunStmt                  *sql.Stmt
+	getGitHubAppStmt                  *sql.Stmt
+	getGitHubJobStmt                  *sql.Stmt
+	getJobHistoryStmt                 *sql.Stmt
+	getJoinCodeStmt                   *sql.Stmt
+	getMachineStmt                    *sql.Stmt
+	getMachineByKeyStmt               *sql.Stmt
+	getMachineChangeStmt              *sql.Stmt
+	getMachineSettingsStmt            *sql.Stmt
+	getMetaStmt                       *sql.Stmt
+	getOpenMachineChangeStmt          *sql.Stmt
+	getOwnerStmt                      *sql.Stmt
+	getPlanStmt                       *sql.Stmt
+	getPreferencesStmt                *sql.Stmt
+	getRepoPolicyStmt                 *sql.Stmt
+	getRepositoryStmt                 *sql.Stmt
+	getRepositoryByNameStmt           *sql.Stmt
+	getRunnerStmt                     *sql.Stmt
+	getRunnerByServiceStmt            *sql.Stmt
+	getSettingStmt                    *sql.Stmt
+	getTicketStmt                     *sql.Stmt
+	getTrayBindingStmt                *sql.Stmt
+	getUserStmt                       *sql.Stmt
+	insertAuditEntryStmt              *sql.Stmt
+	insertAuditEventStmt              *sql.Stmt
+	insertBackupStmt                  *sql.Stmt
+	insertCliTokenStmt                *sql.Stmt
+	insertDoctorFindingStmt           *sql.Stmt
+	insertDoctorRunStmt               *sql.Stmt
+	insertJoinCodeStmt                *sql.Stmt
+	insertLinkCodeStmt                *sql.Stmt
+	insertMachineStmt                 *sql.Stmt
+	insertMachineChangeStmt           *sql.Stmt
+	insertMachineKeyStmt              *sql.Stmt
+	insertMachineLoadStmt             *sql.Stmt
+	insertMachineSettingsStmt         *sql.Stmt
+	insertPlanStmt                    *sql.Stmt
+	insertRestoreDrillStmt            *sql.Stmt
+	insertRunnerStmt                  *sql.Stmt
+	insertRunnerEventStmt             *sql.Stmt
+	insertRunsOnFindingStmt           *sql.Stmt
+	insertSessionStmt                 *sql.Stmt
+	insertSetupCodeStmt               *sql.Stmt
+	insertSlotStmt                    *sql.Stmt
+	insertSlotLogStmt                 *sql.Stmt
+	insertTicketStmt                  *sql.Stmt
+	insertUserStmt                    *sql.Stmt
+	insertWebhookDeliveryStmt         *sql.Stmt
+	lastDoctorRunStmt                 *sql.Stmt
+	lastRestoreDrillStmt              *sql.Stmt
+	listAuditEventsStmt               *sql.Stmt
+	listBackupsStmt                   *sql.Stmt
+	listCliTokensStmt                 *sql.Stmt
+	listExpiredSlotsStmt              *sql.Stmt
+	listExpiredTicketsStmt            *sql.Stmt
+	listInstallationsStmt             *sql.Stmt
+	listJobHistoryStmt                *sql.Stmt
+	listLatestFindingsStmt            *sql.Stmt
+	listMachineLoadStmt               *sql.Stmt
+	listMachineSlotsStmt              *sql.Stmt
+	listMachineTicketsStmt            *sql.Stmt
+	listMachinesStmt                  *sql.Stmt
+	listManagedVariablesStmt          *sql.Stmt
+	listOpenGitHubJobsStmt            *sql.Stmt
+	listPoolRepositoriesStmt          *sql.Stmt
+	listRepositoriesStmt              *sql.Stmt
+	listRunFindingsStmt               *sql.Stmt
+	listRunnersStmt                   *sql.Stmt
+	listRunsOnFindingsStmt            *sql.Stmt
+	listSettingsStmt                  *sql.Stmt
+	listUsersStmt                     *sql.Stmt
+	markBackupDeletedStmt             *sql.Stmt
+	markInstallationRemovedStmt       *sql.Stmt
+	markMachineRemovedStmt            *sql.Stmt
+	markMachineSeenStmt               *sql.Stmt
+	markMachinesOfflineStmt           *sql.Stmt
+	recordSignInStmt                  *sql.Stmt
+	renameMachineStmt                 *sql.Stmt
+	revokeCliTokenStmt                *sql.Stmt
+	revokeJoinCodeStmt                *sql.Stmt
+	revokeMachineKeysStmt             *sql.Stmt
+	revokeOpenJoinCodesStmt           *sql.Stmt
+	revokeUserCliTokensStmt           *sql.Stmt
+	setGitHubJobWaitStmt              *sql.Stmt
+	setJobCompletedStmt               *sql.Stmt
+	setJobSlotStmt                    *sql.Stmt
+	setJobStartedStmt                 *sql.Stmt
+	setMachineChangeStateStmt         *sql.Stmt
+	setMachineStateStmt               *sql.Stmt
+	setManagedVariableStatusStmt      *sql.Stmt
+	setMetaStmt                       *sql.Stmt
+	setPreferencesStmt                *sql.Stmt
+	setRepositoryPoolStmt             *sql.Stmt
+	setRunnerRegistrationStmt         *sql.Stmt
+	setRunnerStateStmt                *sql.Stmt
+	setSettingStmt                    *sql.Stmt
+	setTicketWaitReasonStmt           *sql.Stmt
+	slotLogCutoffStmt                 *sql.Stmt
+	sumRunMinutesSinceStmt            *sql.Stmt
+	touchSessionStmt                  *sql.Stmt
+	trimSlotLogStmt                   *sql.Stmt
+	updateMachineFactsStmt            *sql.Stmt
+	updateMachineSettingsStmt         *sql.Stmt
+	updatePlanStmt                    *sql.Stmt
+	updateUserRoleStmt                *sql.Stmt
+	upsertDoctorStateStmt             *sql.Stmt
+	upsertGitHubAppStmt               *sql.Stmt
+	upsertGitHubJobStmt               *sql.Stmt
+	upsertInstallationStmt            *sql.Stmt
+	upsertJobHistoryStmt              *sql.Stmt
+	upsertManagedVariableStmt         *sql.Stmt
+	upsertRepoPolicyStmt              *sql.Stmt
+	upsertRepositoryStmt              *sql.Stmt
+	upsertRunnerUsageStmt             *sql.Stmt
+	upsertTrayBindingStmt             *sql.Stmt
+	useJoinCodeStmt                   *sql.Stmt
+	useLinkCodeStmt                   *sql.Stmt
+	useSetupCodeStmt                  *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db: tx,
+		db:                                tx,
+		tx:                                tx,
+		beatTicketStmt:                    q.beatTicketStmt,
+		countJobsByStateStmt:              q.countJobsByStateStmt,
+		countMachineSlotsStmt:             q.countMachineSlotsStmt,
+		countRepositoryRunningStmt:        q.countRepositoryRunningStmt,
+		countUsersStmt:                    q.countUsersStmt,
+		deleteAuditBeforeStmt:             q.deleteAuditBeforeStmt,
+		deleteJobHistoryBeforeStmt:        q.deleteJobHistoryBeforeStmt,
+		deleteJobTicketsStmt:              q.deleteJobTicketsStmt,
+		deleteMachineLoadBeforeStmt:       q.deleteMachineLoadBeforeStmt,
+		deleteManagedVariableStmt:         q.deleteManagedVariableStmt,
+		deleteRunnerStmt:                  q.deleteRunnerStmt,
+		deleteRunnerUsageBeforeStmt:       q.deleteRunnerUsageBeforeStmt,
+		deleteRunsOnFindingsStmt:          q.deleteRunsOnFindingsStmt,
+		deleteTicketStmt:                  q.deleteTicketStmt,
+		deleteUserStmt:                    q.deleteUserStmt,
+		deleteWebhookDeliveriesBeforeStmt: q.deleteWebhookDeliveriesBeforeStmt,
+		endSessionStmt:                    q.endSessionStmt,
+		endUserSessionsStmt:               q.endUserSessionsStmt,
+		enqueueJobStmt:                    q.enqueueJobStmt,
+		findJoinCodeByHashStmt:            q.findJoinCodeByHashStmt,
+		finishBackupStmt:                  q.finishBackupStmt,
+		finishDoctorRunStmt:               q.finishDoctorRunStmt,
+		finishRestoreDrillStmt:            q.finishRestoreDrillStmt,
+		freeJobSlotsStmt:                  q.freeJobSlotsStmt,
+		freeSlotStmt:                      q.freeSlotStmt,
+		freeSlotByClaimStmt:               q.freeSlotByClaimStmt,
+		getActiveCliTokenStmt:             q.getActiveCliTokenStmt,
+		getActiveSessionStmt:              q.getActiveSessionStmt,
+		getBackupStmt:                     q.getBackupStmt,
+		getDoctorRunStmt:                  q.getDoctorRunStmt,
+		getGitHubAppStmt:                  q.getGitHubAppStmt,
+		getGitHubJobStmt:                  q.getGitHubJobStmt,
+		getJobHistoryStmt:                 q.getJobHistoryStmt,
+		getJoinCodeStmt:                   q.getJoinCodeStmt,
+		getMachineStmt:                    q.getMachineStmt,
+		getMachineByKeyStmt:               q.getMachineByKeyStmt,
+		getMachineChangeStmt:              q.getMachineChangeStmt,
+		getMachineSettingsStmt:            q.getMachineSettingsStmt,
+		getMetaStmt:                       q.getMetaStmt,
+		getOpenMachineChangeStmt:          q.getOpenMachineChangeStmt,
+		getOwnerStmt:                      q.getOwnerStmt,
+		getPlanStmt:                       q.getPlanStmt,
+		getPreferencesStmt:                q.getPreferencesStmt,
+		getRepoPolicyStmt:                 q.getRepoPolicyStmt,
+		getRepositoryStmt:                 q.getRepositoryStmt,
+		getRepositoryByNameStmt:           q.getRepositoryByNameStmt,
+		getRunnerStmt:                     q.getRunnerStmt,
+		getRunnerByServiceStmt:            q.getRunnerByServiceStmt,
+		getSettingStmt:                    q.getSettingStmt,
+		getTicketStmt:                     q.getTicketStmt,
+		getTrayBindingStmt:                q.getTrayBindingStmt,
+		getUserStmt:                       q.getUserStmt,
+		insertAuditEntryStmt:              q.insertAuditEntryStmt,
+		insertAuditEventStmt:              q.insertAuditEventStmt,
+		insertBackupStmt:                  q.insertBackupStmt,
+		insertCliTokenStmt:                q.insertCliTokenStmt,
+		insertDoctorFindingStmt:           q.insertDoctorFindingStmt,
+		insertDoctorRunStmt:               q.insertDoctorRunStmt,
+		insertJoinCodeStmt:                q.insertJoinCodeStmt,
+		insertLinkCodeStmt:                q.insertLinkCodeStmt,
+		insertMachineStmt:                 q.insertMachineStmt,
+		insertMachineChangeStmt:           q.insertMachineChangeStmt,
+		insertMachineKeyStmt:              q.insertMachineKeyStmt,
+		insertMachineLoadStmt:             q.insertMachineLoadStmt,
+		insertMachineSettingsStmt:         q.insertMachineSettingsStmt,
+		insertPlanStmt:                    q.insertPlanStmt,
+		insertRestoreDrillStmt:            q.insertRestoreDrillStmt,
+		insertRunnerStmt:                  q.insertRunnerStmt,
+		insertRunnerEventStmt:             q.insertRunnerEventStmt,
+		insertRunsOnFindingStmt:           q.insertRunsOnFindingStmt,
+		insertSessionStmt:                 q.insertSessionStmt,
+		insertSetupCodeStmt:               q.insertSetupCodeStmt,
+		insertSlotStmt:                    q.insertSlotStmt,
+		insertSlotLogStmt:                 q.insertSlotLogStmt,
+		insertTicketStmt:                  q.insertTicketStmt,
+		insertUserStmt:                    q.insertUserStmt,
+		insertWebhookDeliveryStmt:         q.insertWebhookDeliveryStmt,
+		lastDoctorRunStmt:                 q.lastDoctorRunStmt,
+		lastRestoreDrillStmt:              q.lastRestoreDrillStmt,
+		listAuditEventsStmt:               q.listAuditEventsStmt,
+		listBackupsStmt:                   q.listBackupsStmt,
+		listCliTokensStmt:                 q.listCliTokensStmt,
+		listExpiredSlotsStmt:              q.listExpiredSlotsStmt,
+		listExpiredTicketsStmt:            q.listExpiredTicketsStmt,
+		listInstallationsStmt:             q.listInstallationsStmt,
+		listJobHistoryStmt:                q.listJobHistoryStmt,
+		listLatestFindingsStmt:            q.listLatestFindingsStmt,
+		listMachineLoadStmt:               q.listMachineLoadStmt,
+		listMachineSlotsStmt:              q.listMachineSlotsStmt,
+		listMachineTicketsStmt:            q.listMachineTicketsStmt,
+		listMachinesStmt:                  q.listMachinesStmt,
+		listManagedVariablesStmt:          q.listManagedVariablesStmt,
+		listOpenGitHubJobsStmt:            q.listOpenGitHubJobsStmt,
+		listPoolRepositoriesStmt:          q.listPoolRepositoriesStmt,
+		listRepositoriesStmt:              q.listRepositoriesStmt,
+		listRunFindingsStmt:               q.listRunFindingsStmt,
+		listRunnersStmt:                   q.listRunnersStmt,
+		listRunsOnFindingsStmt:            q.listRunsOnFindingsStmt,
+		listSettingsStmt:                  q.listSettingsStmt,
+		listUsersStmt:                     q.listUsersStmt,
+		markBackupDeletedStmt:             q.markBackupDeletedStmt,
+		markInstallationRemovedStmt:       q.markInstallationRemovedStmt,
+		markMachineRemovedStmt:            q.markMachineRemovedStmt,
+		markMachineSeenStmt:               q.markMachineSeenStmt,
+		markMachinesOfflineStmt:           q.markMachinesOfflineStmt,
+		recordSignInStmt:                  q.recordSignInStmt,
+		renameMachineStmt:                 q.renameMachineStmt,
+		revokeCliTokenStmt:                q.revokeCliTokenStmt,
+		revokeJoinCodeStmt:                q.revokeJoinCodeStmt,
+		revokeMachineKeysStmt:             q.revokeMachineKeysStmt,
+		revokeOpenJoinCodesStmt:           q.revokeOpenJoinCodesStmt,
+		revokeUserCliTokensStmt:           q.revokeUserCliTokensStmt,
+		setGitHubJobWaitStmt:              q.setGitHubJobWaitStmt,
+		setJobCompletedStmt:               q.setJobCompletedStmt,
+		setJobSlotStmt:                    q.setJobSlotStmt,
+		setJobStartedStmt:                 q.setJobStartedStmt,
+		setMachineChangeStateStmt:         q.setMachineChangeStateStmt,
+		setMachineStateStmt:               q.setMachineStateStmt,
+		setManagedVariableStatusStmt:      q.setManagedVariableStatusStmt,
+		setMetaStmt:                       q.setMetaStmt,
+		setPreferencesStmt:                q.setPreferencesStmt,
+		setRepositoryPoolStmt:             q.setRepositoryPoolStmt,
+		setRunnerRegistrationStmt:         q.setRunnerRegistrationStmt,
+		setRunnerStateStmt:                q.setRunnerStateStmt,
+		setSettingStmt:                    q.setSettingStmt,
+		setTicketWaitReasonStmt:           q.setTicketWaitReasonStmt,
+		slotLogCutoffStmt:                 q.slotLogCutoffStmt,
+		sumRunMinutesSinceStmt:            q.sumRunMinutesSinceStmt,
+		touchSessionStmt:                  q.touchSessionStmt,
+		trimSlotLogStmt:                   q.trimSlotLogStmt,
+		updateMachineFactsStmt:            q.updateMachineFactsStmt,
+		updateMachineSettingsStmt:         q.updateMachineSettingsStmt,
+		updatePlanStmt:                    q.updatePlanStmt,
+		updateUserRoleStmt:                q.updateUserRoleStmt,
+		upsertDoctorStateStmt:             q.upsertDoctorStateStmt,
+		upsertGitHubAppStmt:               q.upsertGitHubAppStmt,
+		upsertGitHubJobStmt:               q.upsertGitHubJobStmt,
+		upsertInstallationStmt:            q.upsertInstallationStmt,
+		upsertJobHistoryStmt:              q.upsertJobHistoryStmt,
+		upsertManagedVariableStmt:         q.upsertManagedVariableStmt,
+		upsertRepoPolicyStmt:              q.upsertRepoPolicyStmt,
+		upsertRepositoryStmt:              q.upsertRepositoryStmt,
+		upsertRunnerUsageStmt:             q.upsertRunnerUsageStmt,
+		upsertTrayBindingStmt:             q.upsertTrayBindingStmt,
+		useJoinCodeStmt:                   q.useJoinCodeStmt,
+		useLinkCodeStmt:                   q.useLinkCodeStmt,
+		useSetupCodeStmt:                  q.useSetupCodeStmt,
 	}
 }

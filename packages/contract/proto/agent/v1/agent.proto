@@ -1,48 +1,560 @@
 syntax = "proto3";
 
+// Agent link, milestone 1 (decision 0004; machines R5.1 to R5.39, R6.1, R6.2;
+// scheduling R5.12 to R5.36; runners R5.3 to R5.12; observability R5.20 to
+// R5.23; doctor 7.1).
+//
+// Versioning: the package is agent.v1. Fields are only added within v1; a
+// field or message is never renumbered or reused (`reserved` instead). A change
+// that breaks an old agent goes to agent.v2, and the controller serves both
+// while agents update. Each side also sends PROTOCOL_VERSION in Hello and
+// HelloAck, so a newer minor version can tell what the other side knows.
+//
+// Transport: connect-go over TLS 1.3 only, port 8461 by default. The agent
+// dials out; the controller never connects in (R5.9). After Join, every call
+// carries the machine key as `authorization: Bearer <machine key>` and the
+// machine id as `crsp-machine-id`; the agent checks the pinned certificate on
+// every connection (R5.8, R6.1). A revoked or unknown key gets
+// CODE_UNAUTHENTICATED and the agent stops retrying (R5.39).
+//
+// Secrets: join codes, machine keys, registration and remove tokens never go
+// to a log or the database in clear (R6.2). A token travels once, for one step.
 package agent.v1;
 
 option go_package = "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1;agentv1";
 
-// AgentService is the link from an agent to its controller. The agent dials out;
-// the controller never connects in.
-service AgentService {
-  // Register enrols an agent. Placeholder shape: the real fields land with the
-  // enrolment design in milestone 1.
-  rpc Register(RegisterRequest) returns (RegisterResponse);
+// PROTOCOL_VERSION is the minor version of agent.v1 this file describes.
+// Version 1 is milestone 1.
+enum ProtocolVersion {
+  PROTOCOL_VERSION_UNSPECIFIED = 0;
+  PROTOCOL_VERSION_1 = 1;
+}
 
-  // Session is the long-lived bidirectional stream between agent and controller.
+// AgentService is the link from an agent to its controller.
+service AgentService {
+  // Join trades a one-time join code (or, for the controller's own agent, a
+  // local join credential) for a machine key, and gives the agent the
+  // certificate fingerprint to pin. machines R5.1, R5.3 to R5.7.
+  rpc Join(JoinRequest) returns (JoinResponse);
+
+  // Session is the one long-lived bidirectional stream between agent and
+  // controller. The agent sends Hello first; the controller answers HelloAck
+  // with the settings in force. machines R5.24, R5.35 to R5.38.
   rpc Session(stream SessionRequest) returns (stream SessionResponse);
 }
 
-message RegisterRequest {
-  string agent_name = 1;
-  string os = 2;
-  string arch = 3;
+// ---------------------------------------------------------------- Join
+
+message JoinRequest {
+  oneof credential {
+    // The one-time code from the install command. Hashed on the controller.
+    string join_code = 1;
+    // A one-time credential the controller writes for its own machine's agent,
+    // readable only by the agent account (machines R5.1: same path, no code).
+    string local_credential = 2;
+  }
+  // What the machine is, so it shows at once in the Add machine wizard.
+  Facts facts = 3;
+  // The agent's binary version.
+  string agent_version = 4;
+  ProtocolVersion protocol_version = 5;
 }
 
-message RegisterResponse {
-  string agent_id = 1;
+message JoinResponse {
+  string machine_id = 1;
+  // The machine key. Shown to the agent once; the agent stores it in the OS
+  // secret store and the controller keeps only its hash (machines R5.7, R6.2).
+  string machine_credential = 2;
+  // SHA-256 of the controller certificate, hex. The agent pins it and refuses
+  // any other (machines R5.5, R5.8).
+  string cert_sha256 = 3;
+  // The settings for this machine, so the gate works before the first session.
+  MachineSettings settings = 4;
 }
 
+// ---------------------------------------------------------------- Session
+
+// SessionRequest is one message from the agent.
 message SessionRequest {
   oneof message {
-    Heartbeat heartbeat = 1;
-    LoadReport load_report = 2;
+    Hello hello = 1;
+    Heartbeat heartbeat = 2;
+    LoadReport load_report = 3;
+    Facts facts = 4;
+    RunnerStates runner_states = 5;
+    HolderReport holder_report = 6;
+    GateRequest gate_request = 7;
+    GateBeat gate_beat = 8;
+    GateCancel gate_cancel = 9;
+    JobCompleted job_completed = 10;
+    LogBatch log_batch = 11;
+    CommandResult command_result = 12;
+    DrainStatus drain_status = 13;
+    CheckResults check_results = 14;
+    UsageReport usage_report = 15;
   }
 }
 
+// SessionResponse is one message from the controller.
 message SessionResponse {
   oneof message {
-    Heartbeat heartbeat = 1;
+    HelloAck hello_ack = 1;
+    Heartbeat heartbeat = 2;
+    MachineSettings settings = 3;
+    GateDecision gate_decision = 4;
+    ReleaseAck release_ack = 5;
+    AddRunner add_runner = 6;
+    RemoveRunner remove_runner = 7;
+    DrainRunner drain_runner = 8;
+    Drain drain = 9;
+    Resume resume = 10;
+    Redetect redetect = 11;
+    RunChecks run_checks = 12;
+    MachineRemoved machine_removed = 13;
   }
 }
 
+// Hello opens a session. On reconnect it carries what the agent runs now, so
+// the controller can reconcile (machines R5.38, scheduling R5.35).
+message Hello {
+  string machine_id = 1;
+  string agent_version = 2;
+  ProtocolVersion protocol_version = 3;
+  // The version of the last settings the agent got, so the controller sends
+  // newer ones only.
+  int64 settings_version = 4;
+  Facts facts = 5;
+  LoadReport load = 6;
+  RunnerStates runners = 7;
+  HolderReport holders = 8;
+}
+
+message HelloAck {
+  ProtocolVersion protocol_version = 1;
+  string controller_version = 2;
+  // The settings in force; absent when the agent's are current.
+  MachineSettings settings = 3;
+  // Heartbeat interval the controller expects (default 10 s, R5.35).
+  int32 heartbeat_seconds = 4;
+}
+
+// Heartbeat goes both ways every 10 seconds. The controller marks a machine
+// offline after 30 seconds without one (machines R5.35).
 message Heartbeat {
   int64 sent_at_unix_ms = 1;
 }
 
-// LoadReport is a placeholder; the measured fields are decided with the scheduler.
+// ---------------------------------------------------------------- facts and load
+
+// Facts are what the agent detects at start, every 10 minutes, and on
+// Redetect (machines R5.10, R5.11, R5.13).
+message Facts {
+  string host_name = 1;
+  string os = 2; // linux, windows or macos
+  string os_name = 3;
+  string os_version = 4;
+  string kernel_version = 5;
+  string arch = 6; // x64 or arm64
+  string cpu_model = 7;
+  int32 cores = 8;
+  int32 threads = 9;
+  int64 memory_bytes = 10;
+  int64 disk_total_bytes = 11;
+  int64 disk_free_bytes = 12;
+  repeated Gpu gpus = 13;
+  repeated BackendSupport backends = 14;
+  int64 detected_at_unix_ms = 15;
+}
+
+message Gpu {
+  string vendor = 1;
+  string model = 2;
+  int64 memory_bytes = 3;
+}
+
+// BackendSupport says whether one isolation backend works here (R5.11).
+// Detected is not allowed: the user allows backends per machine (R5.12).
+message BackendSupport {
+  // persistent, docker, podman, nerdctl, wsl2, hyperv, kvm, tart or firecracker.
+  string name = 1;
+  bool present = 2;
+  bool usable = 3;
+  string version = 4;
+  // Why it is not usable, such as "no /dev/kvm".
+  string reason = 5;
+  bool rootless = 6;
+}
+
+// LoadReport is the measured load (machines R5.15 to R5.20, scheduling R5.40
+// to R5.45). The agent sends it every 15 seconds and with Hello.
 message LoadReport {
   int64 sampled_at_unix_ms = 1;
+  double memory_pct = 2;
+  bool memory_known = 3;
+  double cpu_pct = 4;
+  bool cpu_known = 5;
+  // Why a figure is unknown; shown in the console (R5.20).
+  string unknown_reason = 6;
+  // Windows with WSL2: the WSL VM's memory (R5.17).
+  int64 wsl_vm_bytes = 7;
+  // Memory used by containers, when read.
+  int64 containers_bytes = 8;
+  // Slots this machine's gates hold, by kind.
+  int32 slots_used = 9;
+  int32 light_slots_used = 10;
+  int32 heavy_slots_used = 11;
+  // True when an agent in a container decided on the worse of host and
+  // container (R5.19).
+  bool cgroup_limited = 12;
+}
+
+// ---------------------------------------------------------------- runners
+
+enum RunnerState {
+  RUNNER_STATE_UNSPECIFIED = 0;
+  RUNNER_STATE_CREATING = 1;
+  RUNNER_STATE_IDLE = 2;
+  RUNNER_STATE_BUSY = 3;
+  RUNNER_STATE_DRAINING = 4;
+  RUNNER_STATE_UPDATING = 5;
+  RUNNER_STATE_OFFLINE = 6;
+  RUNNER_STATE_FAILED = 7;
+  RUNNER_STATE_REMOVING = 8;
+}
+
+// RunnerStates is the full list of runners the agent sees, sent on change and
+// with Hello. It includes runners CRSP did not make, found from the OS service
+// list (runners R5.3, R5.5).
+message RunnerStates {
+  repeated RunnerStatus runners = 1;
+}
+
+message RunnerStatus {
+  // The controller's runner id; empty for a runner CRSP did not make.
+  string runner_id = 1;
+  string name = 2;
+  RunnerState state = 3;
+  bool managed = 4;
+  string backend = 5;
+  // The service entry (Windows service, systemd unit, launchd job).
+  string service_name = 6;
+  // The runner folder; reported even when the agent cannot read it.
+  string folder = 7;
+  // The account the service runs as.
+  string account = 8;
+  string runner_version = 9;
+  repeated string labels = 10;
+  // The job the runner runs now.
+  JobRef current_job = 11;
+  // True when the agent could not read the folder (needs admin; learning 6).
+  bool folder_unreadable = 12;
+}
+
+// AddRunner asks the agent to register and start a persistent runner (M1) or
+// an ephemeral one (M2). runners R5.1, R5.8, R5.13 to R5.24.
+message AddRunner {
+  string command_id = 1;
+  RunnerSpec runner = 2;
+  oneof start {
+    // A registration token for a persistent runner; used once, then dropped.
+    string registration = 3;
+    // An encoded JIT config for an ephemeral runner (M2); used once.
+    string jit_config = 4;
+  }
+}
+
+message RunnerSpec {
+  string runner_id = 1;
+  string name = 2;
+  string os = 3;
+  string arch = 4;
+  string kind = 5; // persistent or ephemeral
+  string backend = 6;
+  repeated string labels = 7;
+  // https://github.com/<owner>[/<repo>]
+  string github_url = 8;
+  string runner_group = 9;
+  // Pinned runner version and SHA-256 per OS and arch (runners R5.37).
+  string runner_version = 10;
+  string runner_sha256 = 11;
+  // Windows: grant "create symbolic links" to the runner account (owner
+  // decision for M1, runners R5.14).
+  bool windows_symlink_right = 12;
+}
+
+// RemoveRunner removes a runner after a drain. The idle check runs right
+// before the removal (runners R5.4, R5.19, R6.4).
+message RemoveRunner {
+  string command_id = 1;
+  string runner_id = 2;
+  // For a runner CRSP did not make, its service name instead of an id.
+  string service_name = 3;
+  // A remove token; GitHub refuses a registration token here. Used once.
+  string removal = 4;
+  // How long to wait for a running job before asking the user.
+  int32 drain_timeout_seconds = 5;
+  // Also delete the runner folder (a replace step with its own yes).
+  bool delete_folder = 6;
+}
+
+// DrainRunner stops a runner taking new jobs; running jobs finish.
+message DrainRunner {
+  string command_id = 1;
+  string runner_id = 2;
+}
+
+// UsageReport is per runner and job, at least every 15 seconds while a job
+// runs and once at the end (runners R5.12).
+message UsageReport {
+  string runner_id = 1;
+  JobRef job = 2;
+  int64 cpu_ms = 3;
+  int64 memory_peak_bytes = 4;
+  int64 memory_median_bytes = 5;
+  int64 disk_used_bytes = 6;
+  int64 wall_ms = 7;
+  bool final = 8;
+}
+
+// ---------------------------------------------------------------- gate
+
+// JobRef identifies one job attempt, as the runner's environment gives it.
+message JobRef {
+  string repository = 1; // owner/name
+  int64 run_id = 2;
+  int32 run_attempt = 3;
+  // The job key (GITHUB_JOB) and, when GitHub gives it, the numeric job id.
+  string job = 4;
+  int64 github_job_id = 5;
+  string shard = 6;
+  string runner_name = 7;
+}
+
+// Holder names the processes that hold a slot or ticket (scheduling R5.31).
+message Holder {
+  // The runner worker (the hook's parent, skipping a shell).
+  int64 holder_pid = 1;
+  // The gate process that waits.
+  int64 gate_pid = 2;
+  // Process start time, so a reused pid is not taken as alive.
+  int64 holder_started_unix_ms = 3;
+}
+
+// GateRequest is a job-started hook asking for a slot (scheduling R5.12 to
+// R5.26). gate_id is chosen by the agent and names this wait until it ends.
+message GateRequest {
+  string gate_id = 1;
+  JobRef job = 2;
+  // 0 for a ready pull request or the default branch, 1 otherwise (R5.7).
+  int32 event_class = 3;
+  Holder holder = 4;
+  // The queued time to keep when the ticket was lost (R5.19); 0 when new.
+  int64 first_queued_unix_ns = 5;
+  // Repository-lowered budget from the runner environment, if any (R5.4).
+  int32 budget_memory_pct = 6;
+  int32 budget_cpu_pct = 7;
+}
+
+// GateBeat keeps a waiting ticket alive; it never changes its place (R5.18).
+message GateBeat {
+  string gate_id = 1;
+}
+
+// GateCancel drops a ticket at once, for a hook that went away.
+message GateCancel {
+  string gate_id = 1;
+}
+
+enum SlotKind {
+  SLOT_KIND_UNSPECIFIED = 0;
+  SLOT_KIND_CI = 1;
+  SLOT_KIND_LIGHT = 2;
+  SLOT_KIND_HEAVY = 3;
+}
+
+// SlotGrant is a slot taken for a job. The claim (a random token) frees it (R5.15).
+message SlotGrant {
+  SlotKind kind = 1;
+  int32 number = 2;
+  string claim = 3;
+  int64 taken_at_unix_ms = 4;
+}
+
+// GateDecision answers a GateRequest or a GateBeat.
+message GateDecision {
+  string gate_id = 1;
+  oneof decision {
+    Go go = 2;
+    Wait wait = 3;
+    Timeout timeout = 4;
+  }
+
+  message Go {
+    repeated SlotGrant slots = 1;
+    // Milliseconds spent waiting for the slot (observability R5.8).
+    int64 slot_wait_ms = 2;
+  }
+
+  message Wait {
+    // free_slot, load_over_budget, repository_parallel_limit, machine_drained,
+    // quiet_hours, lost_race or unknown (observability R5.5).
+    repeated string reasons = 1;
+    // The reasons in words, with their figures.
+    string text = 2;
+    int32 place = 3;
+    int32 poll_seconds = 4;
+  }
+
+  message Timeout {
+    // fail exits 1; run lets the job go (scheduling R5.20).
+    string on_timeout = 1;
+  }
+}
+
+// JobCompleted is the job-completed hook. The controller frees every slot and
+// ticket of the job (scheduling R5.28).
+message JobCompleted {
+  JobRef job = 1;
+  repeated string claims = 2;
+  int64 completed_at_unix_ms = 3;
+}
+
+message ReleaseAck {
+  JobRef job = 1;
+  int32 slots_freed = 2;
+}
+
+// HolderReport lists the holder processes still alive on this machine. The
+// controller frees every slot and ticket of the machine whose holder is not
+// listed (scheduling R5.32, R5.35).
+message HolderReport {
+  repeated Holder alive = 1;
+  repeated JobRef running = 2;
+}
+
+// ---------------------------------------------------------------- settings and drain
+
+// MachineSettings reach the agent within 5 seconds of a save; the agent keeps
+// the last ones and applies them while the link is down (machines R5.22,
+// R5.24, scheduling R5.1).
+message MachineSettings {
+  int64 version = 1;
+  string state = 2; // active, draining or drained
+  int32 budget_memory_pct = 3;
+  int32 budget_cpu_pct = 4;
+  int32 job_slots = 5;
+  int32 light_slots = 6;
+  int32 heavy_slots = 7;
+  repeated string light_jobs = 8;
+  repeated string heavy_jobs = 9;
+  int32 slot_max_age_minutes = 10;
+  int32 gate_poll_seconds = 11;
+  int32 gate_max_wait_minutes = 12;
+  string gate_on_timeout = 13; // fail or run
+  repeated string allowed_backends = 14;
+  int64 cache_cap_bytes = 15;
+  int32 drain_timeout_minutes = 16;
+  bool windows_symlink_right = 17;
+}
+
+// Drain stops new jobs on the machine for a change that restarts runners or
+// the agent (machines R5.30 to R5.33). The idle check runs right before the
+// change, in the step that keeps new jobs out.
+message Drain {
+  string command_id = 1;
+  // drain, settings, remove, agent_update, runner_update or service_restart.
+  string change_kind = 2;
+  int32 timeout_seconds = 3;
+}
+
+// Resume returns a drained machine to active (R5.34).
+message Resume {
+  string command_id = 1;
+}
+
+// DrainStatus names what a drain waits for (R5.30).
+message DrainStatus {
+  string command_id = 1;
+  bool idle = 2;
+  repeated JobRef waiting_for = 3;
+}
+
+// Redetect asks for Facts now (Check again, R5.13).
+message Redetect {
+  string command_id = 1;
+}
+
+// MachineRemoved tells the agent its key was revoked; it stops retrying and
+// waits for a new join (R5.39).
+message MachineRemoved {
+  string reason = 1;
+}
+
+// CommandResult answers every command that carries a command_id.
+message CommandResult {
+  string command_id = 1;
+  bool ok = 2;
+  // A redacted error, safe to show.
+  string error = 3;
+  // already, done, waiting or failed (runners R5.20 reruns).
+  string outcome = 4;
+}
+
+// ---------------------------------------------------------------- logs
+
+enum LogLevel {
+  LOG_LEVEL_UNSPECIFIED = 0;
+  LOG_LEVEL_DEBUG = 1;
+  LOG_LEVEL_INFO = 2;
+  LOG_LEVEL_WARN = 3;
+  LOG_LEVEL_ERROR = 4;
+}
+
+// LogBatch carries runner setup and agent log lines, already redacted, in
+// order. After an outage the buffered lines come first (observability R5.20,
+// R5.23; runners R5.11).
+message LogBatch {
+  repeated LogLine lines = 1;
+  // Lines dropped because the disk buffer was full.
+  int64 dropped = 2;
+}
+
+message LogLine {
+  int64 at_unix_ms = 1;
+  LogLevel level = 2;
+  string component = 3;
+  string message = 4;
+  string runner_id = 5;
+  JobRef job = 6;
+  // Extra slog attributes as JSON.
+  string attrs_json = 7;
+}
+
+// ---------------------------------------------------------------- doctor
+
+// RunChecks asks the agent for its machine, backend and runner checks
+// (doctor 7.1, core M1 checks).
+message RunChecks {
+  string command_id = 1;
+  repeated string checks = 2;
+}
+
+message CheckResults {
+  string command_id = 1;
+  repeated CheckResult results = 2;
+  bool done = 3;
+}
+
+message CheckResult {
+  string check = 1;
+  string subject_kind = 2;
+  string subject_id = 3;
+  string subject_name = 4;
+  string severity = 5; // ok, info, skip, warn or fail
+  string title = 6;
+  string detail = 7;
+  string fix_text = 8;
+  string fix_command = 9;
+  bool needs_admin = 10;
+  int64 checked_at_unix_ms = 11;
 }

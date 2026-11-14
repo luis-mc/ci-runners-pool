@@ -7,11 +7,20 @@ import (
 )
 
 // Stable error codes of the envelope {"error":{"code":"...","message":"..."}}.
+// The list is the one in packages/contract/openapi.yaml (info.description).
 const (
-	CodeBadRequest  = "bad_request"
-	CodeNotFound    = "not_found"
-	CodeInternal    = "internal"
-	CodeUnavailable = "unavailable"
+	CodeBadRequest        = "bad_request"
+	CodeUnauthenticated   = "unauthenticated"
+	CodeSessionExpired    = "session_expired"
+	CodeForbidden         = "forbidden"
+	CodeNotFound          = "not_found"
+	CodeConflict          = "conflict"
+	CodeRateLimited       = "rate_limited"
+	CodeNeedsConfirmation = "needs_confirmation"
+	CodeGitHubUnavailable = "github_unavailable"
+	CodeNotImplemented    = "not_implemented"
+	CodeInternal          = "internal"
+	CodeUnavailable       = "unavailable"
 )
 
 // ErrorEnvelope is the one JSON error shape every API failure uses.

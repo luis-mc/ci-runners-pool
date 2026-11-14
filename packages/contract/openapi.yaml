@@ -1,16 +1,52 @@
 openapi: 3.1.0
 info:
   title: CI Runners Shared Pool API
-  version: 0.0.0
+  version: 0.1.0
   description: >-
-    Controller API. Every operation must declare `x-auth` and `x-rate-limit`
-    (STACKSPEC 11.1); the route-coverage test in internal/api fails otherwise.
+    Controller API, milestone 1 contract (CRSP17). Every operation declares
+    `x-auth` (public, user, admin or owner) and `x-rate-limit` (STACKSPEC 11.1);
+    the route-coverage test in internal/api fails otherwise. `user` means any
+    signed-in user (the viewer role and up). A request that changes something
+    carries the session's CSRF token in `X-CSRF-Token` and must come from the
+    console's own origin (web-console R6.2). A CLI token in
+    `Authorization: Bearer` is accepted wherever a session is (github-integration
+    R5.15). Every error uses the ErrorEnvelope. Stable error codes: bad_request,
+    unauthenticated, session_expired, forbidden, not_found, conflict,
+    rate_limited, needs_confirmation, github_unavailable, not_implemented,
+    internal, unavailable.
 servers:
   - url: /
+tags:
+  - name: health
+  - name: setup
+    description: First run (github-integration R5.1 to R5.6)
+  - name: auth
+    description: Sign-in, sessions, CLI tokens, tray links (github-integration R5.8 to R5.16, tray R5.6 to R5.10)
+  - name: users
+    description: Users, roles and preferences (github-integration R5.10 to R5.12, web-console 4.9)
+  - name: repositories
+    description: Installations, repositories, policies, variables (github-integration R5.17 to R5.30)
+  - name: machines
+    description: Machines, join codes, settings, drain (machines R5.1 to R5.52)
+  - name: runners
+    description: Runners and plans (runners R5.1 to R5.7)
+  - name: jobs
+    description: Queue, slots and history (scheduling, observability R5.7 to R5.12)
+  - name: live
+    description: Overview and the event stream (observability R5.1 to R5.6)
+  - name: doctor
+    description: Doctor runs and findings (doctor 7.1)
+  - name: settings
+    description: Controller settings and the audit log (observability R5.24 to R5.32)
+  - name: backups
+    description: Backup, restore and drill (operations R5.21 to R5.27)
+  - name: webhooks
+    description: GitHub webhook intake (github-integration R5.36)
 paths:
   /healthz:
     get:
       operationId: getHealth
+      tags: [health]
       summary: Liveness and database check
       x-auth: public
       x-rate-limit: 60/minute/ip
@@ -27,7 +63,1744 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+
+  # ---------------------------------------------------------------- setup
+  /api/v1/setup:
+    get:
+      operationId: getSetupState
+      tags: [setup]
+      summary: First-run state; what the setup page shows
+      description: github-integration R5.1, web-console R5.14 and R5.15.
+      x-auth: public
+      x-rate-limit: 60/minute/ip
+      responses:
+        '200':
+          description: The first-run state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetupState'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/setup/redeem:
+    post:
+      operationId: redeemSetupLink
+      tags: [setup]
+      summary: Trade a one-time setup code for a setup cookie
+      description: >-
+        github-integration R5.1, web-console R5.14. The code works once and
+        expires. The answer sets an HttpOnly setup cookie.
+      x-auth: public
+      x-rate-limit: 10/minute/ip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedeemSetupLinkRequest'
+      responses:
+        '200':
+          description: The code was good; the setup cookie is set.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetupState'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/setup/github-app:
+    post:
+      operationId: startAppManifest
+      tags: [setup]
+      summary: Start GitHub's App manifest flow
+      description: >-
+        github-integration R5.2 and R5.4. Needs the setup cookie. Returns the
+        manifest and the GitHub URL the browser posts it to.
+      x-auth: public
+      x-rate-limit: 10/minute/ip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartAppManifestRequest'
+      responses:
+        '200':
+          description: The manifest form to post to GitHub.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppManifestForm'
+        default:
+          $ref: '#/components/responses/Error'
+  /auth/github/app-created:
+    get:
+      operationId: completeAppManifest
+      tags: [setup]
+      summary: GitHub's redirect after the App is created
+      description: >-
+        github-integration R5.3. Trades the code once through
+        `POST /app-manifests/{code}/conversions`; secrets go to the OS secret
+        store, never the database. Redirects to the setup page.
+      x-auth: public
+      x-rate-limit: 10/minute/ip
+      parameters:
+        - $ref: '#/components/parameters/OAuthCode'
+        - $ref: '#/components/parameters/OAuthState'
+      responses:
+        '302':
+          $ref: '#/components/responses/Redirect'
+        default:
+          $ref: '#/components/responses/Error'
+
+  # ---------------------------------------------------------------- auth
+  /auth/github/login:
+    get:
+      operationId: startSignIn
+      tags: [auth]
+      summary: Start web sign-in with the App's user OAuth flow
+      description: >-
+        github-integration R5.8. Sets a random state and a PKCE verifier and
+        redirects to GitHub. `return_to` must be a same-origin path
+        (web-console R5.9). `bind_tray` binds this GitHub user to the calling
+        OS user of the tray (owner decision for M1, tray R5.6).
+      x-auth: public
+      x-rate-limit: 20/minute/ip
+      parameters:
+        - name: return_to
+          in: query
+          required: false
+          schema:
+            type: string
+            example: /machines
+        - name: bind_tray
+          in: query
+          required: false
+          description: A one-time tray binding code from the local channel.
+          schema:
+            type: string
+      responses:
+        '302':
+          $ref: '#/components/responses/Redirect'
+        default:
+          $ref: '#/components/responses/Error'
+  /auth/github/callback:
+    get:
+      operationId: completeSignIn
+      tags: [auth]
+      summary: GitHub OAuth callback; makes the session
+      description: >-
+        github-integration R5.8 to R5.10 and R5.13. Checks state and PKCE,
+        resolves the GitHub user id, makes the session cookie and redirects to
+        the kept path. A user not on the list gets the no-access page.
+      x-auth: public
+      x-rate-limit: 20/minute/ip
+      parameters:
+        - $ref: '#/components/parameters/OAuthCode'
+        - $ref: '#/components/parameters/OAuthState'
+      responses:
+        '302':
+          $ref: '#/components/responses/Redirect'
+        default:
+          $ref: '#/components/responses/Error'
+  /auth/link:
+    get:
+      operationId: redeemTrayLink
+      tags: [auth]
+      summary: Sign in from a one-time tray link
+      description: >-
+        tray R5.7 and R6.1. The code is 128 random bits, valid 60 seconds,
+        usable once, stored only as a hash. Marks it used in the transaction
+        that makes the session, then redirects to a URL without the code.
+      x-auth: public
+      x-rate-limit: 20/minute/ip
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          $ref: '#/components/responses/Redirect'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/auth/cli/config:
+    get:
+      operationId: getCliLoginConfig
+      tags: [auth]
+      summary: What the CLI needs to start GitHub's device flow
+      description: github-integration R5.14. The App's client id is public.
+      x-auth: public
+      x-rate-limit: 60/minute/ip
+      responses:
+        '200':
+          description: Device flow settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CliLoginConfig'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/auth/cli:
+    post:
+      operationId: exchangeCliToken
+      tags: [auth]
+      summary: Trade a device-flow GitHub user token for a CLI token
+      description: >-
+        github-integration R5.14 and R5.15. The controller checks the GitHub
+        token, drops it, and returns its own CLI token once. The token expires
+        after 30 days.
+      x-auth: public
+      x-rate-limit: 10/minute/ip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExchangeCliTokenRequest'
+      responses:
+        '201':
+          description: The CLI token. Shown once.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CliTokenCreated'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/auth/cli/tokens:
+    get:
+      operationId: listCliTokens
+      tags: [auth]
+      summary: List CLI tokens (own; every user's for the owner)
+      description: github-integration R5.15.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The tokens, without their values.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CliTokenList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/auth/cli/tokens/{tokenId}:
+    delete:
+      operationId: revokeCliToken
+      tags: [auth]
+      summary: Revoke a CLI token
+      description: github-integration R5.15. The owner or the token's user.
+      x-auth: user
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/TokenId'
+      responses:
+        '204':
+          description: Revoked.
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/auth/logout:
+    post:
+      operationId: signOut
+      tags: [auth]
+      summary: End this session
+      description: web-console R5.12. Sessions end only at sign-out (owner decision for M1).
+      x-auth: user
+      x-rate-limit: 60/minute/user
+      responses:
+        '204':
+          description: The session ended; the cookie is cleared.
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/me:
+    get:
+      operationId: getSession
+      tags: [auth]
+      summary: The signed-in user, role and CSRF token
+      description: web-console 4.1, github-integration R5.9 and R5.12.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        default:
+          $ref: '#/components/responses/Error'
+
+  # ---------------------------------------------------------------- users
+  /api/v1/me/preferences:
+    get:
+      operationId: getPreferences
+      tags: [users]
+      summary: The user's own view preferences
+      description: web-console 4.9 Appearance (UX-60).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The preferences.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: updatePreferences
+      tags: [users]
+      summary: Save the user's own view preferences
+      x-auth: user
+      x-rate-limit: 60/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Preferences'
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: Users allowed to sign in, with their roles
+      description: github-integration R5.11, web-console R5.28.
+      x-auth: owner
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The users.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserList'
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: addUser
+      tags: [users]
+      summary: Allow a GitHub login as admin or viewer
+      description: github-integration R5.11. The login is resolved to a user id when added.
+      x-auth: owner
+      x-rate-limit: 60/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddUserRequest'
+      responses:
+        '201':
+          description: Added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/users/{userId}:
+    patch:
+      operationId: updateUserRole
+      tags: [users]
+      summary: Change a user's role
+      description: >-
+        github-integration R5.10 and R5.12. There is always exactly one owner;
+        handing over ownership names both users and needs `confirm`.
+      x-auth: owner
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRoleRequest'
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: removeUser
+      tags: [users]
+      summary: Remove a user; ends their sessions and CLI tokens
+      description: web-console R5.28. The owner cannot remove themselves.
+      x-auth: owner
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
+          description: Removed.
+        default:
+          $ref: '#/components/responses/Error'
+
+  # ---------------------------------------------------------------- repositories
+  /api/v1/github/installations:
+    get:
+      operationId: listInstallations
+      tags: [repositories]
+      summary: The App's installations the user can see
+      description: github-integration R5.17.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      responses:
+        '200':
+          description: The installations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstallationList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/github/install-url:
+    get:
+      operationId: getAppInstallUrl
+      tags: [repositories]
+      summary: GitHub's page to install the App on more repositories
+      description: web-console 4.3.
+      x-auth: admin
+      x-rate-limit: 120/minute/user
+      responses:
+        '200':
+          description: The URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppInstallUrl'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/github/repositories:
+    get:
+      operationId: listRepositories
+      tags: [repositories]
+      summary: Repositories of the installations, with pool state and policy
+      description: >-
+        github-integration R5.18. Each row says whether the user has GitHub
+        admin rights on it (R5.19), its pool state and its variable status.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      parameters:
+        - name: installation_id
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: pool
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [on, off]
+        - name: q
+          in: query
+          required: false
+          description: Search by name.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: One page of repositories.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryPage'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/repository-plans:
+    post:
+      operationId: planRepositoryChanges
+      tags: [repositories]
+      summary: Plan turning the pool on or off for repositories
+      description: >-
+        github-integration R5.20 and R5.29, web-console R5.18. Nothing changes.
+        The plan names each variable to write or delete and the workflows that
+        still use a variable that would go.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanRepositoryChangesRequest'
+      responses:
+        '201':
+          description: The plan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/repository-plans/{planId}:
+    get:
+      operationId: getRepositoryPlan
+      tags: [repositories]
+      summary: A repository plan with its outcome
+      description: web-console R5.19 (done after reload shows the stored outcome).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+      responses:
+        '200':
+          description: The plan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/repository-plans/{planId}/apply:
+    post:
+      operationId: applyRepositoryChanges
+      tags: [repositories]
+      summary: Apply a repository plan after a yes
+      description: >-
+        github-integration R5.19, R5.20, R5.28 and R5.29. Needs admin or owner
+        and GitHub admin on each repository. A stale plan is refused.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplyPlanRequest'
+      responses:
+        '202':
+          description: Applying; progress comes on the event stream and getRepositoryPlan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/repositories/{repositoryId}:
+    get:
+      operationId: getRepository
+      tags: [repositories]
+      summary: One repository with its policy and variable status
+      description: github-integration R5.18, R5.25 and R5.28.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+      responses:
+        '200':
+          description: The repository.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Repository'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/repositories/{repositoryId}/policy:
+    patch:
+      operationId: updateRepositoryPolicy
+      tags: [repositories]
+      summary: Change a repository's policy
+      description: >-
+        github-integration R5.25 to R5.27, scheduling R5.4, R5.8 to R5.10.
+        Turning fork jobs on needs `confirm_fork_risk`.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepositoryPolicyUpdate'
+      responses:
+        '200':
+          description: The new policy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryPolicy'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/repositories/{repositoryId}/runs-on:
+    get:
+      operationId: getRepositoryRunsOn
+      tags: [repositories]
+      summary: Workflow `runs-on` findings for a repository
+      description: github-integration R5.30.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+      responses:
+        '200':
+          description: The findings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunsOnFindingList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/settings/queue:
+    get:
+      operationId: getQueueSettings
+      tags: [repositories]
+      summary: The order of service of the slot queue
+      description: scheduling R5.8 to R5.10; owner decision for M1 (queue order is configurable).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The queue settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueSettings'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: updateQueueSettings
+      tags: [repositories]
+      summary: Change the order of service
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueueSettings'
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueSettings'
+        default:
+          $ref: '#/components/responses/Error'
+
+  # ---------------------------------------------------------------- machines
+  /api/v1/machines:
+    get:
+      operationId: listMachines
+      tags: [machines]
+      summary: Every machine with state, backends, load and slots
+      description: machines R5.50.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The machines.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MachineList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}:
+    get:
+      operationId: getMachine
+      tags: [machines]
+      summary: One machine with facts, backends, settings and running jobs
+      description: machines R5.10 to R5.13, R5.22, R5.30.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+      responses:
+        '200':
+          description: The machine.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Machine'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: updateMachine
+      tags: [machines]
+      summary: Change a machine's settings
+      description: >-
+        machines R5.22 to R5.26 and R5.52. A change that restarts runners goes
+        through drain and answers 202 with the pending change; it needs
+        `confirm` once the jobs it waits for are named.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MachineSettingsUpdate'
+      responses:
+        '200':
+          description: Saved; takes effect for the next job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Machine'
+        '202':
+          description: Saved; waits for a drain.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MachineChange'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: removeMachine
+      tags: [machines]
+      summary: Remove a machine after a drain; revokes its key
+      description: >-
+        machines R5.31 and R6.4. Without `confirm=true` it answers 409
+        needs_confirmation naming the machine, its runners and running jobs.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+        - $ref: '#/components/parameters/Confirm'
+      responses:
+        '202':
+          description: Removal waits for the drain.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MachineChange'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}/drain:
+    post:
+      operationId: drainMachine
+      tags: [machines]
+      summary: Stop new jobs on a machine; running jobs finish
+      description: machines R5.30 to R5.33.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DrainRequest'
+      responses:
+        '202':
+          description: Draining.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MachineChange'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}/resume:
+    post:
+      operationId: resumeMachine
+      tags: [machines]
+      summary: Return a drained machine to active
+      description: machines R5.34. A waiting change is cancelled first, with `confirm`.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+        - $ref: '#/components/parameters/Confirm'
+      responses:
+        '200':
+          description: Active again.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Machine'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}/redetect:
+    post:
+      operationId: redetectMachine
+      tags: [machines]
+      summary: Check again; the agent detects facts and backends now
+      description: machines R5.13.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+      responses:
+        '202':
+          description: Asked; the result comes on the event stream.
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}/load:
+    get:
+      operationId: getMachineLoad
+      tags: [machines]
+      summary: Load history at 15-second steps, up to 24 hours
+      description: machines R6.8.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+      responses:
+        '200':
+          description: The samples, oldest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoadHistory'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}/slots:
+    get:
+      operationId: listSlots
+      tags: [jobs]
+      summary: Slot holders and the waiting queue of a machine
+      description: scheduling R5.58 (status).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+      responses:
+        '200':
+          description: Slots and tickets.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotStatus'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}/slots/free-stale:
+    post:
+      operationId: freeStaleSlots
+      tags: [jobs]
+      summary: Free stale slots now
+      description: scheduling R5.37. Freeing a live slot names the job and needs `confirm`.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FreeSlotsRequest'
+      responses:
+        '200':
+          description: Each freed slot and its reason.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FreedSlotList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}/changes/{changeId}:
+    get:
+      operationId: getMachineChange
+      tags: [machines]
+      summary: A change waiting for a drain, and the jobs it waits for
+      description: machines R5.30 to R5.33.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+        - $ref: '#/components/parameters/ChangeId'
+      responses:
+        '200':
+          description: The change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MachineChange'
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: decideMachineChange
+      tags: [machines]
+      summary: Answer a change that needs you after the drain timeout
+      description: >-
+        machines R5.33. Wait longer, cancel the change, or stop the named jobs
+        (needs `confirm`).
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+        - $ref: '#/components/parameters/ChangeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MachineChangeDecision'
+      responses:
+        '200':
+          description: The change after the answer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MachineChange'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/join-codes:
+    post:
+      operationId: createJoinCode
+      tags: [machines]
+      summary: Make a one-time join code and the install commands
+      description: >-
+        machines R5.3 to R5.6 (M1 by owner decision). The code shows once, in
+        this answer only. A new code makes the old unused one invalid.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJoinCodeRequest'
+      responses:
+        '201':
+          description: The code and the commands that carry it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JoinCodeCreated'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/join-codes/{joinCodeId}:
+    get:
+      operationId: getJoinCode
+      tags: [machines]
+      summary: A join code's state (never its value)
+      description: web-console R5.17. The wizard polls until joined, expired or withdrawn.
+      x-auth: admin
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/JoinCodeId'
+      responses:
+        '200':
+          description: The state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JoinCode'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: revokeJoinCode
+      tags: [machines]
+      summary: Withdraw an unused join code
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/JoinCodeId'
+      responses:
+        '204':
+          description: Withdrawn.
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/install-command:
+    get:
+      operationId: getInstallCommand
+      tags: [machines]
+      summary: The install command per OS, without a join code
+      description: >-
+        operations R5.1 and machines R5.3. Carries the controller address,
+        agent port and certificate fingerprint. The join code is added only by
+        createJoinCode.
+      x-auth: admin
+      x-rate-limit: 120/minute/user
+      responses:
+        '200':
+          description: The commands.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstallCommands'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/ca.pem:
+    get:
+      operationId: getCaCertificate
+      tags: [machines]
+      summary: Download the controller's CA certificate
+      description: Owner decision for M1 (console TLS, one-click CA download). Public data.
+      x-auth: public
+      x-rate-limit: 30/minute/ip
+      responses:
+        '200':
+          description: The CA certificate in PEM.
+          content:
+            application/x-pem-file:
+              schema:
+                type: string
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/settings/pool:
+    get:
+      operationId: getPoolSettings
+      tags: [machines]
+      summary: Defaults for new machines
+      description: machines R5.22; owner decision for M1 (slots sized from cores and memory).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The pool defaults.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoolSettings'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: updatePoolSettings
+      tags: [machines]
+      summary: Change the defaults for new machines
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PoolSettings'
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoolSettings'
+        default:
+          $ref: '#/components/responses/Error'
+
+  # ---------------------------------------------------------------- runners
+  /api/v1/runners:
+    get:
+      operationId: listRunners
+      tags: [runners]
+      summary: Every runner, managed or not
+      description: runners R5.2, R5.3, R5.5 and R5.7.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: machine_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: os
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/OS'
+        - name: state
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/RunnerState'
+        - name: managed
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: The runners.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunnerList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/runner-plans:
+    post:
+      operationId: planRunners
+      tags: [runners]
+      summary: Plan adding runners on a machine
+      description: >-
+        runners R5.1 and R5.36. Refuses a machine without an allowed backend
+        for the OS and kind, or a label that is not generic, with the reason.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanRunnersRequest'
+      responses:
+        '201':
+          description: The plan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/runner-plans/{planId}:
+    get:
+      operationId: getRunnerPlan
+      tags: [runners]
+      summary: A runner plan with its outcome
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+      responses:
+        '200':
+          description: The plan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/runner-plans/{planId}/apply:
+    post:
+      operationId: createRunners
+      tags: [runners]
+      summary: Apply a runner plan (add, or replace an unmanaged runner)
+      description: >-
+        runners R5.1 and R5.6. Each step that needs a yes is named in
+        `approved_steps`; a replace step waits until the new runner is online.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplyPlanRequest'
+      responses:
+        '202':
+          description: Applying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/runners/{runnerId}:
+    get:
+      operationId: getRunner
+      tags: [runners]
+      summary: One runner
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RunnerId'
+      responses:
+        '200':
+          description: The runner.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Runner'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteRunner
+      tags: [runners]
+      summary: Remove a runner after a drain, with a remove token
+      description: >-
+        runners R5.4. Without `confirm=true` it answers 409
+        needs_confirmation naming what goes and the job it waits for.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RunnerId'
+        - $ref: '#/components/parameters/Confirm'
+      responses:
+        '202':
+          description: Removing; waits for the drain.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Runner'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/runners/{runnerId}/replace:
+    post:
+      operationId: planRunnerReplacement
+      tags: [runners]
+      summary: Plan replacing a runner not made by CRSP with a managed one
+      description: >-
+        runners R5.6; owner decision for M1 (nothing changes silently). The
+        plan adds the new runner first, then one step per removal, each
+        needing its own yes. Apply it with createRunners.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RunnerId'
+      responses:
+        '201':
+          description: The plan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        default:
+          $ref: '#/components/responses/Error'
+
+  # ---------------------------------------------------------------- jobs and live
+  /api/v1/jobs:
+    get:
+      operationId: listJobs
+      tags: [jobs]
+      summary: Queued, running and finished jobs, newest first
+      description: >-
+        observability R5.1, R5.5, R5.7 to R5.11; scheduling R5.6. Queued jobs
+        carry their wait reason.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [queued, running, done]
+        - name: repository_id
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: machine_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: backend
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: result
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/JobResult'
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: One page of jobs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobPage'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/jobs/{jobId}:
+    get:
+      operationId: getJob
+      tags: [jobs]
+      summary: One job attempt with its timing
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: The job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/overview:
+    get:
+      operationId: getOverview
+      tags: [live]
+      summary: The overview snapshot
+      description: web-console 4.2, observability R5.1 and R5.15.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Overview'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/events:
+    get:
+      operationId: streamEvents
+      tags: [live]
+      summary: The live view as server-sent events
+      description: >-
+        observability R5.2, R5.3, R6.3 and R6.4. The first event is a snapshot.
+        Each `data:` line is one LiveEvent in JSON; the SSE `event:` field is
+        its `type` and the SSE `id:` field its `id`. A comment line every 15
+        seconds keeps the stream open.
+      x-auth: user
+      x-rate-limit: 10/minute/user
+      parameters:
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The stream. Each data line is a LiveEvent.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        default:
+          $ref: '#/components/responses/Error'
+
+  # ---------------------------------------------------------------- doctor
+  /api/v1/doctor/runs:
+    post:
+      operationId: runDoctor
+      tags: [doctor]
+      summary: Run the doctor now
+      description: doctor 7.1. Progress comes on the event stream.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoctorScope'
+      responses:
+        '202':
+          description: Started.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorRun'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/doctor/runs/{runId}:
+    get:
+      operationId: getDoctorRun
+      tags: [doctor]
+      summary: A doctor run with its findings
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+      responses:
+        '200':
+          description: The run.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorRun'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/doctor/findings:
+    get:
+      operationId: listDoctorFindings
+      tags: [doctor]
+      summary: The latest finding per check and subject
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: severity
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Severity'
+        - name: group
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The findings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorFindingList'
+        default:
+          $ref: '#/components/responses/Error'
+
+  # ---------------------------------------------------------------- settings and audit
+  /api/v1/settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Controller settings (retention, backup time, stream limits)
+      description: observability R5.32 and R6.8, operations R5.21.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Change controller settings
+      description: observability R5.32. A value outside its floor and ceiling is refused with the range.
+      x-auth: owner
+      x-rate-limit: 60/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Settings'
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/audit:
+    get:
+      operationId: listAuditEvents
+      tags: [settings]
+      summary: The audit log, newest first
+      description: >-
+        observability R5.24 to R5.27. Viewers may read it (owner decision for
+        M1). Read-only: no operation edits or deletes a row.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      parameters:
+        - name: actor
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: target_type
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: target_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: One page of audit events.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditPage'
+        default:
+          $ref: '#/components/responses/Error'
+
+  # ---------------------------------------------------------------- backups
+  /api/v1/backups:
+    get:
+      operationId: listBackups
+      tags: [backups]
+      summary: Backups with date, size and check result
+      description: operations R5.24.
+      x-auth: admin
+      x-rate-limit: 120/minute/user
+      responses:
+        '200':
+          description: The backups, newest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupList'
+        default:
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: runBackup
+      tags: [backups]
+      summary: Write a backup now
+      description: operations R5.21, R5.22 and R5.24. Never holds a secret.
+      x-auth: admin
+      x-rate-limit: 5/minute/user
+      responses:
+        '202':
+          description: Started.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Backup'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/backups/drills:
+    post:
+      operationId: runBackupDrill
+      tags: [backups]
+      summary: Restore the newest backup into a temporary folder and check it
+      description: operations R5.27.
+      x-auth: admin
+      x-rate-limit: 2/minute/user
+      responses:
+        '202':
+          description: Started.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupDrill'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/backups/{backupId}/restore:
+    post:
+      operationId: restoreBackup
+      tags: [backups]
+      summary: Restore a backup
+      description: >-
+        operations R5.25 and R5.26. Without `confirm=true` it answers 409
+        needs_confirmation naming what it replaces. Backs up the current state
+        first. Secrets are re-imported from the OS store or asked for.
+      x-auth: owner
+      x-rate-limit: 2/minute/user
+      parameters:
+        - $ref: '#/components/parameters/BackupId'
+        - $ref: '#/components/parameters/Confirm'
+      responses:
+        '202':
+          description: Restoring; the controller restarts.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Backup'
+        default:
+          $ref: '#/components/responses/Error'
+
+  # ---------------------------------------------------------------- webhooks
+  /webhooks/github:
+    post:
+      operationId: receiveGithubWebhook
+      tags: [webhooks]
+      summary: GitHub webhook deliveries
+      description: >-
+        github-integration R5.36 and R6.5. Authorised by the
+        `X-Hub-Signature-256` signature (constant-time compare), not a session;
+        a bad signature gets 401 before the body is parsed. Bodies over 25 MB
+        are refused. Deliveries are de-duplicated by `X-GitHub-Delivery`.
+      x-auth: public
+      x-rate-limit: 600/minute/ip
+      parameters:
+        - name: X-GitHub-Event
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: X-GitHub-Delivery
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: X-Hub-Signature-256
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '202':
+          description: Taken.
+        default:
+          $ref: '#/components/responses/Error'
+
 components:
+  parameters:
+    OAuthCode:
+      name: code
+      in: query
+      required: true
+      schema:
+        type: string
+    OAuthState:
+      name: state
+      in: query
+      required: true
+      schema:
+        type: string
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque cursor from the previous page's `next_cursor`.
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    From:
+      name: from
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+    To:
+      name: to
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date-time
+    Confirm:
+      name: confirm
+      in: query
+      required: false
+      description: The yes to a question card that named what goes (UX-62).
+      schema:
+        type: boolean
+        default: false
+    UserId:
+      name: userId
+      in: path
+      required: true
+      description: The numeric GitHub user id.
+      schema:
+        type: integer
+        format: int64
+    TokenId:
+      name: tokenId
+      in: path
+      required: true
+      schema:
+        type: string
+    RepositoryId:
+      name: repositoryId
+      in: path
+      required: true
+      description: The numeric GitHub repository id.
+      schema:
+        type: integer
+        format: int64
+    PlanId:
+      name: planId
+      in: path
+      required: true
+      schema:
+        type: string
+    MachineId:
+      name: machineId
+      in: path
+      required: true
+      schema:
+        type: string
+    ChangeId:
+      name: changeId
+      in: path
+      required: true
+      schema:
+        type: string
+    JoinCodeId:
+      name: joinCodeId
+      in: path
+      required: true
+      schema:
+        type: string
+    RunnerId:
+      name: runnerId
+      in: path
+      required: true
+      schema:
+        type: string
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    RunId:
+      name: runId
+      in: path
+      required: true
+      schema:
+        type: string
+    BackupId:
+      name: backupId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    Error:
+      description: Any error, in the error envelope.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Redirect:
+      description: A redirect. May set or clear a cookie.
+      headers:
+        Location:
+          required: true
+          schema:
+            type: string
+        Set-Cookie:
+          schema:
+            type: string
+
   schemas:
     Health:
       type: object
@@ -38,17 +1811,1889 @@ components:
           enum: [ok]
         version:
           type: string
+      example:
+        status: ok
+        version: v0.1.0
     ErrorEnvelope:
       type: object
       required: [error]
       properties:
         error:
+          $ref: '#/components/schemas/ErrorBody'
+      example:
+        error:
+          code: needs_confirmation
+          message: Removing runner crsp-linux-1 waits for 1 running job.
+          details:
+            - kind: job
+              id: '81234567'
+              text: owner/app ci.yml test (started 14:05)
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Stable machine-readable code.
+        message:
+          type: string
+          description: Human-readable text. Never contains secrets.
+        details:
+          type: array
+          description: >-
+            For needs_confirmation, each item that goes or job it waits for;
+            for bad_request, each field problem.
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+    ErrorDetail:
+      type: object
+      required: [kind, text]
+      properties:
+        kind:
+          type: string
+          example: field
+        id:
+          type: string
+        text:
+          type: string
+
+    # ---------- shared enums
+    Role:
+      type: string
+      enum: [owner, admin, viewer]
+    OS:
+      type: string
+      enum: [linux, windows, macos]
+    Arch:
+      type: string
+      enum: [x64, arm64]
+    Theme:
+      type: string
+      enum: [system, dark, light]
+    RunnerKind:
+      type: string
+      enum: [persistent, ephemeral]
+    Isolation:
+      type: string
+      enum: [microVM, VM, container, persistent]
+    RunnerState:
+      type: string
+      enum: [creating, idle, busy, draining, updating, offline, failed, removing]
+    MachineState:
+      type: string
+      description: active and drained are set by the user; draining while a drain waits.
+      enum: [active, draining, drained, removing]
+    BackendName:
+      type: string
+      enum: [persistent, docker, podman, nerdctl, wsl2, hyperv, kvm, tart, firecracker]
+    JobResult:
+      type: string
+      enum: [success, failure, cancelled, timed_out, lost]
+    WaitReason:
+      type: string
+      description: observability R5.5.
+      enum:
+        [
+          free_slot,
+          load_over_budget,
+          no_runner_with_labels,
+          repository_parallel_limit,
+          machine_drained,
+          quiet_hours,
+          unknown,
+        ]
+    Severity:
+      type: string
+      enum: [ok, info, skip, warn, fail]
+    VariableStatus:
+      type: string
+      enum: [ok, missing, wrong, not_managed]
+
+    # ---------- setup and auth
+    SetupState:
+      type: object
+      required: [has_app, has_owner, setup_link_redeemed, steps]
+      properties:
+        has_app:
+          type: boolean
+        has_owner:
+          type: boolean
+        setup_link_redeemed:
+          type: boolean
+          description: True when this browser holds a valid setup cookie.
+        app:
+          $ref: '#/components/schemas/GitHubApp'
+        steps:
           type: object
-          required: [code, message]
+          required: [connect_github, first_machine, first_repository]
           properties:
-            code:
+            connect_github:
               type: string
-              description: Stable machine-readable code.
-            message:
+              enum: [todo, done]
+            first_machine:
               type: string
-              description: Human-readable text. Never contains secrets.
+              enum: [todo, done]
+            first_repository:
+              type: string
+              enum: [todo, done]
+      example:
+        has_app: false
+        has_owner: false
+        setup_link_redeemed: true
+        steps:
+          connect_github: todo
+          first_machine: todo
+          first_repository: todo
+    RedeemSetupLinkRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+    StartAppManifestRequest:
+      type: object
+      required: [account_type, app_name, console_urls]
+      properties:
+        account_type:
+          type: string
+          enum: [user, organization]
+        organization:
+          type: string
+          description: The organization login when account_type is organization.
+        app_name:
+          type: string
+          example: crsp-home
+        console_urls:
+          type: array
+          description: Console addresses; each gets `/auth/github/callback` (R5.4).
+          items:
+            type: string
+          example: ['http://127.0.0.1:8460', 'https://pool.lan:8460']
+    AppManifestForm:
+      type: object
+      required: [post_url, manifest, state]
+      properties:
+        post_url:
+          type: string
+          example: https://github.com/settings/apps/new?state=abc
+        manifest:
+          type: object
+          additionalProperties: true
+        state:
+          type: string
+    GitHubApp:
+      type: object
+      required: [id, slug, owner_login, html_url, webhook_active]
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        owner_login:
+          type: string
+        html_url:
+          type: string
+        webhook_active:
+          type: boolean
+        permissions:
+          type: object
+          additionalProperties:
+            type: string
+      example:
+        id: 1234567
+        slug: crsp-home
+        owner_login: luis-mc
+        html_url: https://github.com/apps/crsp-home
+        webhook_active: false
+    CliLoginConfig:
+      type: object
+      required: [client_id, device_code_url, verification_url]
+      properties:
+        client_id:
+          type: string
+          example: Iv23liExample
+        device_code_url:
+          type: string
+          example: https://github.com/login/device/code
+        verification_url:
+          type: string
+          example: https://github.com/login/device
+    ExchangeCliTokenRequest:
+      type: object
+      required: [github_credential, name]
+      properties:
+        github_credential:
+          type: string
+          description: The device-flow user token. Checked once and dropped.
+        name:
+          type: string
+          description: A label for the token list, such as the host name.
+          example: laptop
+    CliToken:
+      type: object
+      required: [id, name, user_id, user_login, created_at, expires_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        user_id:
+          type: integer
+          format: int64
+        user_login:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        last_used_at:
+          type: string
+          format: date-time
+        revoked_at:
+          type: string
+          format: date-time
+    CliTokenCreated:
+      type: object
+      required: [token, info]
+      properties:
+        token:
+          type: string
+          description: Shown once; the controller keeps only its hash.
+        info:
+          $ref: '#/components/schemas/CliToken'
+    CliTokenList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CliToken'
+    Session:
+      type: object
+      required: [user, csrf]
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        csrf:
+          type: string
+          description: Send as X-CSRF-Token on every change.
+      example:
+        user:
+          id: 583231
+          login: luis-mc
+          role: owner
+          added_at: '2026-11-14T10:00:00Z'
+        csrf: 5d1c0e
+    Preferences:
+      type: object
+      required: [theme]
+      properties:
+        theme:
+          $ref: '#/components/schemas/Theme'
+      example:
+        theme: dark
+
+    # ---------- users
+    User:
+      type: object
+      required: [id, login, role, added_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: The numeric GitHub user id (R5.9).
+        login:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+        added_by:
+          type: string
+        added_at:
+          type: string
+          format: date-time
+        last_sign_in_at:
+          type: string
+          format: date-time
+      example:
+        id: 583231
+        login: luis-mc
+        role: owner
+        added_at: '2026-11-14T10:00:00Z'
+    UserList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    AddUserRequest:
+      type: object
+      required: [login, role]
+      properties:
+        login:
+          type: string
+          example: octocat
+        role:
+          type: string
+          enum: [admin, viewer]
+    UpdateUserRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          $ref: '#/components/schemas/Role'
+        confirm:
+          type: boolean
+          description: Needed to hand over the owner role.
+
+    # ---------- repositories
+    Installation:
+      type: object
+      required: [id, account_login, account_type, suspended, repository_selection]
+      properties:
+        id:
+          type: integer
+          format: int64
+        account_login:
+          type: string
+        account_type:
+          type: string
+          enum: [User, Organization]
+        suspended:
+          type: boolean
+        repository_selection:
+          type: string
+          enum: [all, selected]
+        missing_permissions:
+          type: array
+          description: github-integration R5.24.
+          items:
+            type: string
+      example:
+        id: 4455667
+        account_login: luis-mc
+        account_type: User
+        suspended: false
+        repository_selection: selected
+    InstallationList:
+      type: object
+      required: [items, stale]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Installation'
+        stale:
+          $ref: '#/components/schemas/Staleness'
+    Staleness:
+      type: object
+      description: Set when GitHub did not answer and the last copy is shown (UX-53).
+      required: [stale]
+      properties:
+        stale:
+          type: boolean
+        as_of:
+          type: string
+          format: date-time
+    AppInstallUrl:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          example: https://github.com/apps/crsp-home/installations/new
+    Repository:
+      type: object
+      required:
+        [
+          id,
+          full_name,
+          owner,
+          name,
+          installation_id,
+          visibility,
+          pool_on,
+          user_is_github_admin,
+          variables,
+          policy,
+        ]
+      properties:
+        id:
+          type: integer
+          format: int64
+        full_name:
+          type: string
+        owner:
+          type: string
+        name:
+          type: string
+        installation_id:
+          type: integer
+          format: int64
+        visibility:
+          type: string
+          enum: [public, private, internal]
+        default_branch:
+          type: string
+        pool_on:
+          type: boolean
+        user_is_github_admin:
+          type: boolean
+          description: github-integration R5.19; without it the switch is disabled with this reason.
+        variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepositoryVariable'
+        policy:
+          $ref: '#/components/schemas/RepositoryPolicy'
+      example:
+        id: 700100
+        full_name: luis-mc/app
+        owner: luis-mc
+        name: app
+        installation_id: 4455667
+        visibility: private
+        default_branch: main
+        pool_on: true
+        user_is_github_admin: true
+        variables:
+          - name: CRSP_RUNS_ON_LINUX
+            status: ok
+            value: '["self-hosted","linux","x64"]'
+        policy:
+          priority: 0
+          max_parallel_jobs: 2
+          allow_fork_pull_requests: false
+          labels: [self-hosted, linux, x64]
+          runner_groups: []
+    RepositoryVariable:
+      type: object
+      required: [name, status]
+      properties:
+        name:
+          type: string
+          enum: [CRSP_RUNS_ON_LINUX, CRSP_RUNS_ON_WINDOWS, CRSP_RUNS_ON_MACOS]
+        status:
+          $ref: '#/components/schemas/VariableStatus'
+        value:
+          type: string
+          description: The JSON list of labels as written.
+        written_at:
+          type: string
+          format: date-time
+    RepositoryPolicy:
+      type: object
+      required:
+        [priority, max_parallel_jobs, allow_fork_pull_requests, labels, runner_groups]
+      properties:
+        priority:
+          type: integer
+          description: Higher goes first (scheduling R5.8).
+          minimum: -100
+          maximum: 100
+        max_parallel_jobs:
+          type: integer
+          minimum: 1
+          maximum: 256
+        allow_fork_pull_requests:
+          type: boolean
+        labels:
+          type: array
+          description: Generic labels only (github-integration R5.27).
+          items:
+            type: string
+        runner_groups:
+          type: array
+          items:
+            type: string
+        budget_memory_pct:
+          type: integer
+          description: May lower the machine budget for this repository's jobs, never raise it (scheduling R5.4).
+          minimum: 1
+          maximum: 100
+        budget_cpu_pct:
+          type: integer
+          minimum: 1
+          maximum: 100
+        updated_at:
+          type: string
+          format: date-time
+        updated_by:
+          type: string
+    RepositoryPolicyUpdate:
+      type: object
+      properties:
+        priority:
+          type: integer
+          minimum: -100
+          maximum: 100
+        max_parallel_jobs:
+          type: integer
+          minimum: 1
+          maximum: 256
+        allow_fork_pull_requests:
+          type: boolean
+        confirm_fork_risk:
+          type: boolean
+          description: Needed to turn fork jobs on (github-integration R5.26).
+        labels:
+          type: array
+          items:
+            type: string
+        runner_groups:
+          type: array
+          items:
+            type: string
+        budget_memory_pct:
+          type: integer
+          minimum: 1
+          maximum: 100
+        budget_cpu_pct:
+          type: integer
+          minimum: 1
+          maximum: 100
+      example:
+        priority: 10
+        max_parallel_jobs: 3
+    RepositoryPage:
+      type: object
+      required: [items, stale]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Repository'
+        next_cursor:
+          type: string
+        stale:
+          $ref: '#/components/schemas/Staleness'
+    PlanRepositoryChangesRequest:
+      type: object
+      required: [changes]
+      properties:
+        changes:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [repository_id, pool]
+            properties:
+              repository_id:
+                type: integer
+                format: int64
+              pool:
+                type: string
+                enum: [on, off]
+      example:
+        changes:
+          - repository_id: 700100
+            pool: on
+    RunsOnFinding:
+      type: object
+      required: [path, line, labels, kind, text]
+      properties:
+        path:
+          type: string
+          example: .github/workflows/ci.yml
+        line:
+          type: integer
+        labels:
+          type: array
+          items:
+            type: string
+        kind:
+          type: string
+          enum: [no_runner_with_labels, not_generic, uses_variable, hosted]
+        text:
+          type: string
+    RunsOnFindingList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunsOnFinding'
+        checked_at:
+          type: string
+          format: date-time
+    QueueSettings:
+      type: object
+      required: [order, fair_share, no_runner_wait_minutes]
+      properties:
+        order:
+          type: array
+          description: >-
+            The order of service keys, first decides first (scheduling R5.8).
+            Default priority, event_class, fair_share, queued_at.
+          items:
+            type: string
+            enum: [priority, event_class, fair_share, queued_at]
+        fair_share:
+          type: boolean
+          description: Round-robin by repository within a priority (scheduling R5.9).
+        no_runner_wait_minutes:
+          type: integer
+          description: Minutes before "no runner with the labels" is raised (observability R5.5).
+          minimum: 1
+          maximum: 60
+      example:
+        order: [priority, event_class, fair_share, queued_at]
+        fair_share: true
+        no_runner_wait_minutes: 2
+
+    # ---------- plans (repositories and runners)
+    Plan:
+      type: object
+      description: >-
+        A planned change. Nothing changes until it is applied. Each step names
+        what it does; steps that delete need their own yes (UX-62).
+      required: [id, area, state, created_at, created_by, steps]
+      properties:
+        id:
+          type: string
+        area:
+          type: string
+          enum: [repositories, runners]
+        state:
+          type: string
+          enum: [planned, applying, done, failed, stopped, stale]
+        created_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanStep'
+      example:
+        id: 01JCRSPPLAN0001
+        area: runners
+        state: planned
+        created_at: '2026-11-14T10:00:00Z'
+        created_by: luis-mc
+        steps:
+          - id: s1
+            action: add_runner
+            text: Add persistent runner crsp-linux-1 on machine box-1
+            needs_yes: false
+            state: planned
+    PlanStep:
+      type: object
+      required: [id, action, text, needs_yes, state]
+      properties:
+        id:
+          type: string
+        action:
+          type: string
+          enum:
+            [
+              pool_on,
+              pool_off,
+              write_variable,
+              delete_variable,
+              add_runner,
+              stop_old_service,
+              remove_old_runner,
+              delete_old_folder,
+            ]
+        text:
+          type: string
+        target:
+          type: string
+        needs_yes:
+          type: boolean
+        waits_for:
+          type: string
+          description: The step this one waits for, such as the new runner being online.
+        state:
+          type: string
+          enum: [planned, running, done, failed, skipped, waiting]
+        error:
+          type: string
+    ApplyPlanRequest:
+      type: object
+      required: [approved_steps]
+      properties:
+        approved_steps:
+          type: array
+          description: Ids of the steps the user said yes to.
+          items:
+            type: string
+      example:
+        approved_steps: [s1, s2]
+
+    # ---------- machines
+    Machine:
+      type: object
+      required:
+        [
+          id,
+          name,
+          os,
+          arch,
+          state,
+          online,
+          is_controller,
+          backends,
+          settings,
+          slots_used,
+          last_seen_at,
+        ]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        os:
+          $ref: '#/components/schemas/OS'
+        arch:
+          $ref: '#/components/schemas/Arch'
+        state:
+          $ref: '#/components/schemas/MachineState'
+        online:
+          type: boolean
+        is_controller:
+          type: boolean
+          description: The controller's own machine (machines R5.1); it has no special path.
+        facts:
+          $ref: '#/components/schemas/MachineFacts'
+        backends:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackendSupport'
+        settings:
+          $ref: '#/components/schemas/MachineSettings'
+        load:
+          $ref: '#/components/schemas/Load'
+        slots_used:
+          type: integer
+        running_jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+        pending_change:
+          $ref: '#/components/schemas/MachineChange'
+        last_seen_at:
+          type: string
+          format: date-time
+        joined_at:
+          type: string
+          format: date-time
+      example:
+        id: m_01JCRSP0001
+        name: box-1
+        os: linux
+        arch: x64
+        state: active
+        online: true
+        is_controller: true
+        backends:
+          - name: persistent
+            present: true
+            usable: true
+            allowed: true
+        settings:
+          budget_memory_pct: 85
+          budget_cpu_pct: 60
+          job_slots: 2
+          light_slots: 1
+          heavy_slots: 1
+          allowed_backends: [persistent]
+          drain_timeout_minutes: 60
+          windows_symlink_right: false
+        load:
+          memory_pct: 41.5
+          cpu_pct: 12.0
+          memory_known: true
+          cpu_known: true
+          sampled_at: '2026-11-14T10:00:00Z'
+          stale: false
+        slots_used: 1
+        last_seen_at: '2026-11-14T10:00:05Z'
+    MachineList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Machine'
+    MachineFacts:
+      type: object
+      description: machines R5.10.
+      properties:
+        host_name:
+          type: string
+        os_name:
+          type: string
+        os_version:
+          type: string
+        kernel_version:
+          type: string
+        cpu_model:
+          type: string
+        cores:
+          type: integer
+        threads:
+          type: integer
+        memory_bytes:
+          type: integer
+          format: int64
+        disk_total_bytes:
+          type: integer
+          format: int64
+        disk_free_bytes:
+          type: integer
+          format: int64
+        gpus:
+          type: array
+          items:
+            type: object
+            properties:
+              vendor:
+                type: string
+              model:
+                type: string
+              memory_bytes:
+                type: integer
+                format: int64
+        agent_version:
+          type: string
+        detected_at:
+          type: string
+          format: date-time
+    BackendSupport:
+      type: object
+      description: machines R5.11 and R5.12.
+      required: [name, present, usable, allowed]
+      properties:
+        name:
+          $ref: '#/components/schemas/BackendName'
+        present:
+          type: boolean
+        usable:
+          type: boolean
+        allowed:
+          type: boolean
+        version:
+          type: string
+        reason:
+          type: string
+          description: Why it is not usable, such as "no /dev/kvm".
+        rootless:
+          type: boolean
+    MachineSettings:
+      type: object
+      description: machines R5.22, scheduling R5.1.
+      required:
+        [
+          budget_memory_pct,
+          budget_cpu_pct,
+          job_slots,
+          light_slots,
+          heavy_slots,
+          allowed_backends,
+          drain_timeout_minutes,
+          windows_symlink_right,
+        ]
+      properties:
+        budget_memory_pct:
+          type: integer
+          minimum: 10
+          maximum: 95
+        budget_cpu_pct:
+          type: integer
+          minimum: 10
+          maximum: 95
+        job_slots:
+          type: integer
+          minimum: 0
+          maximum: 64
+        light_slots:
+          type: integer
+          minimum: 0
+          maximum: 64
+        heavy_slots:
+          type: integer
+          minimum: 0
+          maximum: 64
+        light_jobs:
+          type: array
+          items:
+            type: string
+        heavy_jobs:
+          type: array
+          items:
+            type: string
+        slot_max_age_minutes:
+          type: integer
+          minimum: 1
+        gate_poll_seconds:
+          type: integer
+          minimum: 1
+        gate_max_wait_minutes:
+          type: integer
+          minimum: 1
+        gate_on_timeout:
+          type: string
+          enum: [fail, run]
+        allowed_backends:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackendName'
+        cache_cap_bytes:
+          type: integer
+          format: int64
+        drain_timeout_minutes:
+          type: integer
+          minimum: 5
+          maximum: 1440
+        windows_symlink_right:
+          type: boolean
+          description: Owner decision for M1; grant "create symbolic links" to Windows runner accounts.
+    MachineSettingsUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        budget_memory_pct:
+          type: integer
+          minimum: 10
+          maximum: 95
+        budget_cpu_pct:
+          type: integer
+          minimum: 10
+          maximum: 95
+        job_slots:
+          type: integer
+          minimum: 0
+          maximum: 64
+        light_slots:
+          type: integer
+          minimum: 0
+          maximum: 64
+        heavy_slots:
+          type: integer
+          minimum: 0
+          maximum: 64
+        light_jobs:
+          type: array
+          items:
+            type: string
+        heavy_jobs:
+          type: array
+          items:
+            type: string
+        gate_on_timeout:
+          type: string
+          enum: [fail, run]
+        allowed_backends:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackendName'
+        cache_cap_bytes:
+          type: integer
+          format: int64
+        drain_timeout_minutes:
+          type: integer
+          minimum: 5
+          maximum: 1440
+        windows_symlink_right:
+          type: boolean
+        confirm:
+          type: boolean
+          description: The yes once the jobs a restart waits for are named.
+      example:
+        job_slots: 3
+        budget_cpu_pct: 70
+    Load:
+      type: object
+      required: [memory_known, cpu_known, sampled_at, stale]
+      properties:
+        memory_pct:
+          type: number
+        cpu_pct:
+          type: number
+        memory_known:
+          type: boolean
+        cpu_known:
+          type: boolean
+        unknown_reason:
+          type: string
+        sampled_at:
+          type: string
+          format: date-time
+        stale:
+          type: boolean
+          description: Older than 20 seconds (machines R6.7).
+    LoadHistory:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [at]
+            properties:
+              at:
+                type: string
+                format: date-time
+              memory_pct:
+                type: number
+              cpu_pct:
+                type: number
+    DrainRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+    MachineChange:
+      type: object
+      description: A change that waits for a drain (machines R5.30 to R5.33).
+      required: [id, machine_id, kind, state, started_at, waiting_for]
+      properties:
+        id:
+          type: string
+        machine_id:
+          type: string
+        kind:
+          type: string
+          enum: [drain, settings, remove, agent_update, runner_update, service_restart]
+        state:
+          type: string
+          enum: [waiting, running, done, cancelled, needs_you]
+        started_at:
+          type: string
+          format: date-time
+        deadline_at:
+          type: string
+          format: date-time
+        waiting_for:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+    MachineChangeDecision:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          type: string
+          enum: [wait_longer, cancel, stop_jobs]
+        wait_minutes:
+          type: integer
+          minimum: 5
+          maximum: 1440
+        confirm:
+          type: boolean
+    CreateJoinCodeRequest:
+      type: object
+      properties:
+        ttl_minutes:
+          type: integer
+          description: Default 15, ceiling 1440 (machines R5.4).
+          minimum: 1
+          maximum: 1440
+    JoinCode:
+      type: object
+      required: [id, state, created_at, expires_at]
+      properties:
+        id:
+          type: string
+        state:
+          type: string
+          enum: [waiting, joined, expired, revoked]
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        machine_id:
+          type: string
+          description: Set once an agent joined with it.
+    JoinCodeCreated:
+      type: object
+      required: [code, join_code, commands]
+      properties:
+        code:
+          type: string
+          description: The one-time code, shown once.
+        join_code:
+          $ref: '#/components/schemas/JoinCode'
+        commands:
+          $ref: '#/components/schemas/InstallCommands'
+    InstallCommands:
+      type: object
+      required: [controller_address, agent_port, cert_sha256, items]
+      properties:
+        controller_address:
+          type: string
+          example: pool.lan
+        agent_port:
+          type: integer
+          example: 8461
+        cert_sha256:
+          type: string
+          description: The controller certificate fingerprint the agent pins.
+        items:
+          type: array
+          items:
+            type: object
+            required: [os, command]
+            properties:
+              os:
+                $ref: '#/components/schemas/OS'
+              command:
+                type: string
+    PoolSettings:
+      type: object
+      required:
+        [
+          budget_memory_pct,
+          budget_cpu_pct,
+          size_slots_from_machine,
+          default_job_slots,
+          drain_timeout_minutes,
+        ]
+      properties:
+        budget_memory_pct:
+          type: integer
+          minimum: 10
+          maximum: 95
+        budget_cpu_pct:
+          type: integer
+          minimum: 10
+          maximum: 95
+        size_slots_from_machine:
+          type: boolean
+          description: Size a new machine's slots from its cores and memory within the budget.
+        default_job_slots:
+          type: integer
+          minimum: 0
+          maximum: 64
+        drain_timeout_minutes:
+          type: integer
+          minimum: 5
+          maximum: 1440
+      example:
+        budget_memory_pct: 85
+        budget_cpu_pct: 60
+        size_slots_from_machine: true
+        default_job_slots: 2
+        drain_timeout_minutes: 60
+
+    # ---------- runners
+    Runner:
+      type: object
+      required:
+        [
+          id,
+          name,
+          machine_id,
+          os,
+          arch,
+          kind,
+          backend,
+          isolation,
+          labels,
+          scope,
+          state,
+          managed,
+          keeps_state,
+        ]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        machine_id:
+          type: string
+        os:
+          $ref: '#/components/schemas/OS'
+        arch:
+          $ref: '#/components/schemas/Arch'
+        kind:
+          $ref: '#/components/schemas/RunnerKind'
+        backend:
+          $ref: '#/components/schemas/BackendName'
+        isolation:
+          $ref: '#/components/schemas/Isolation'
+        labels:
+          type: array
+          items:
+            type: string
+        scope:
+          $ref: '#/components/schemas/RunnerScope'
+        runner_version:
+          type: string
+        state:
+          $ref: '#/components/schemas/RunnerState'
+        managed:
+          type: boolean
+          description: False for a runner not made by CRSP (runners R5.5).
+        keeps_state:
+          type: boolean
+          description: True for a persistent runner (runners R5.7, UX-61).
+        github_runner_id:
+          type: integer
+          format: int64
+        current_job:
+          $ref: '#/components/schemas/Job'
+        created_at:
+          type: string
+          format: date-time
+      example:
+        id: r_01JCRSP0001
+        name: crsp-linux-1
+        machine_id: m_01JCRSP0001
+        os: linux
+        arch: x64
+        kind: persistent
+        backend: persistent
+        isolation: persistent
+        labels: [self-hosted, linux, x64]
+        scope:
+          kind: repository
+          repository_id: 700100
+        runner_version: 2.330.0
+        state: idle
+        managed: true
+        keeps_state: true
+    RunnerScope:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          enum: [repository, organization]
+        repository_id:
+          type: integer
+          format: int64
+        organization:
+          type: string
+        runner_group:
+          type: string
+    RunnerList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Runner'
+    PlanRunnersRequest:
+      type: object
+      required: [os, kind, machine_id, count, scope]
+      properties:
+        os:
+          $ref: '#/components/schemas/OS'
+        kind:
+          $ref: '#/components/schemas/RunnerKind'
+        machine_id:
+          type: string
+        count:
+          type: integer
+          minimum: 1
+          maximum: 64
+        labels:
+          type: array
+          items:
+            type: string
+        scope:
+          $ref: '#/components/schemas/RunnerScope'
+      example:
+        os: linux
+        kind: persistent
+        machine_id: m_01JCRSP0001
+        count: 2
+        labels: [self-hosted, linux, x64]
+        scope:
+          kind: repository
+          repository_id: 700100
+
+    # ---------- jobs, slots, live
+    Job:
+      type: object
+      description: One job attempt (observability R5.7, R5.8).
+      required:
+        [id, repository, run_id, run_attempt, github_job_id, job_name, state, labels]
+      properties:
+        id:
+          type: integer
+          format: int64
+        repository:
+          type: string
+        repository_id:
+          type: integer
+          format: int64
+        run_id:
+          type: integer
+          format: int64
+        run_attempt:
+          type: integer
+        github_job_id:
+          type: integer
+          format: int64
+        workflow:
+          type: string
+        job_name:
+          type: string
+        head_sha:
+          type: string
+        trigger:
+          type: string
+        labels:
+          type: array
+          items:
+            type: string
+        state:
+          type: string
+          enum: [queued, running, done]
+        wait_reason:
+          $ref: '#/components/schemas/WaitReason'
+        wait_text:
+          type: string
+          description: The reason with its machine, numbers or labels.
+        machine_id:
+          type: string
+        runner_id:
+          type: string
+        runner_name:
+          type: string
+        backend:
+          type: string
+        isolation:
+          $ref: '#/components/schemas/Isolation'
+        created_at:
+          type: string
+          format: date-time
+        queued_at:
+          type: string
+          format: date-time
+        slot_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        github_wait_seconds:
+          type: integer
+        slot_wait_seconds:
+          type: integer
+        run_seconds:
+          type: integer
+        result:
+          $ref: '#/components/schemas/JobResult'
+        html_url:
+          type: string
+      example:
+        id: 1
+        repository: luis-mc/app
+        repository_id: 700100
+        run_id: 11223344
+        run_attempt: 1
+        github_job_id: 81234567
+        workflow: ci.yml
+        job_name: test
+        labels: [self-hosted, linux, x64]
+        state: queued
+        wait_reason: free_slot
+        wait_text: waits for a free slot on box-1 (2 of 2 taken)
+    JobPage:
+      type: object
+      required: [items, stale]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+        next_cursor:
+          type: string
+        stale:
+          $ref: '#/components/schemas/Staleness'
+    Slot:
+      type: object
+      required: [kind, number, taken_at, repository, run_id, run_attempt, job]
+      properties:
+        kind:
+          type: string
+          enum: [ci, light, heavy]
+        number:
+          type: integer
+        taken_at:
+          type: string
+          format: date-time
+        repository:
+          type: string
+        run_id:
+          type: integer
+          format: int64
+        run_attempt:
+          type: integer
+        job:
+          type: string
+        runner_id:
+          type: string
+        stale_reason:
+          type: string
+    Ticket:
+      type: object
+      required: [id, repository, run_id, run_attempt, job, queued_at, place]
+      properties:
+        id:
+          type: string
+        repository:
+          type: string
+        run_id:
+          type: integer
+          format: int64
+        run_attempt:
+          type: integer
+        job:
+          type: string
+        priority:
+          type: integer
+        event_class:
+          type: integer
+        queued_at:
+          type: string
+          format: date-time
+        beat_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        place:
+          type: integer
+          description: 1 is first in line.
+        wait_reason:
+          $ref: '#/components/schemas/WaitReason'
+    SlotStatus:
+      type: object
+      required: [machine_id, slots, tickets]
+      properties:
+        machine_id:
+          type: string
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/Slot'
+        tickets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
+    FreeSlotsRequest:
+      type: object
+      properties:
+        slots:
+          type: array
+          description: Live slots to free by hand; needs confirm.
+          items:
+            type: object
+            required: [kind, number]
+            properties:
+              kind:
+                type: string
+                enum: [ci, light, heavy]
+              number:
+                type: integer
+        confirm:
+          type: boolean
+    FreedSlotList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [slot, reason]
+            properties:
+              slot:
+                $ref: '#/components/schemas/Slot'
+              reason:
+                type: string
+    Overview:
+      type: object
+      required: [machines, queued_count, running, last_event_id]
+      properties:
+        machines:
+          type: array
+          items:
+            $ref: '#/components/schemas/Machine'
+        queued_count:
+          type: integer
+        queued:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+        running:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+        minutes_saved_today:
+          type: array
+          description: Per OS (observability R5.15).
+          items:
+            type: object
+            required: [os, minutes]
+            properties:
+              os:
+                $ref: '#/components/schemas/OS'
+              minutes:
+                type: integer
+        last_event_id:
+          type: string
+          description: Open the stream with this as Last-Event-ID.
+    LiveEvent:
+      type: object
+      description: >-
+        One event of the stream (observability 7, live stream). `data` holds
+        the field of the matching type; the others are absent.
+      required: [id, type, at]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+            [
+              snapshot,
+              job.queued,
+              job.waiting,
+              job.started,
+              job.finished,
+              machine.load,
+              machine.state,
+              runner.state,
+              saved.today,
+              doctor.progress,
+              plan.progress,
+              change.progress,
+            ]
+        at:
+          type: string
+          format: date-time
+        replay_gap:
+          type: boolean
+          description: True on a snapshot sent because missed events were no longer kept (R5.3).
+        snapshot:
+          $ref: '#/components/schemas/Overview'
+        job:
+          $ref: '#/components/schemas/Job'
+        machine:
+          $ref: '#/components/schemas/Machine'
+        load:
+          type: object
+          required: [machine_id, load]
+          properties:
+            machine_id:
+              type: string
+            load:
+              $ref: '#/components/schemas/Load'
+            slots_used:
+              type: integer
+        runner:
+          $ref: '#/components/schemas/Runner'
+        doctor_run:
+          $ref: '#/components/schemas/DoctorRun'
+        plan:
+          $ref: '#/components/schemas/Plan'
+        change:
+          $ref: '#/components/schemas/MachineChange'
+      example:
+        id: '1042'
+        type: machine.load
+        at: '2026-11-14T10:00:05Z'
+        load:
+          machine_id: m_01JCRSP0001
+          load:
+            memory_pct: 41.5
+            cpu_pct: 12
+            memory_known: true
+            cpu_known: true
+            sampled_at: '2026-11-14T10:00:05Z'
+            stale: false
+          slots_used: 1
+
+    # ---------- doctor
+    DoctorScope:
+      type: object
+      properties:
+        machines:
+          type: array
+          items:
+            type: string
+        repositories:
+          type: array
+          items:
+            type: integer
+            format: int64
+        checks:
+          type: array
+          items:
+            type: string
+    DoctorRun:
+      type: object
+      description: doctor 7.4.
+      required: [id, trigger, state, started_at, counts, findings]
+      properties:
+        id:
+          type: string
+        trigger:
+          type: string
+          enum: [web, cli, schedule, system]
+        state:
+          type: string
+          enum: [running, done, failed]
+        scope:
+          $ref: '#/components/schemas/DoctorScope'
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+        worst:
+          $ref: '#/components/schemas/Severity'
+        counts:
+          type: object
+          additionalProperties:
+            type: integer
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/DoctorFinding'
+    DoctorFinding:
+      type: object
+      required: [check, subject, severity, title, fix, needs_admin, milestone, checked_at]
+      properties:
+        check:
+          type: string
+          example: workflow.labels
+        subject:
+          type: object
+          required: [kind, id, name]
+          properties:
+            kind:
+              type: string
+            id:
+              type: string
+            name:
+              type: string
+        severity:
+          $ref: '#/components/schemas/Severity'
+        title:
+          type: string
+        detail:
+          type: string
+        fix:
+          type: object
+          required: [text]
+          properties:
+            text:
+              type: string
+            command:
+              type: string
+            link:
+              type: string
+        needs_admin:
+          type: boolean
+        milestone:
+          type: integer
+        checked_at:
+          type: string
+          format: date-time
+      example:
+        check: workflow.labels
+        subject:
+          kind: repository
+          id: '700100'
+          name: luis-mc/app
+        severity: fail
+        title: No online runner carries [self-hosted, linux, arm64]
+        detail: .github/workflows/ci.yml:12 needs [self-hosted, linux, arm64]
+        fix:
+          text: Add a runner with these labels, or use fromJSON(vars.CRSP_RUNS_ON_LINUX).
+          link: /runners
+        needs_admin: false
+        milestone: 1
+        checked_at: '2026-11-14T10:00:12Z'
+    DoctorFindingList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DoctorFinding'
+        last_run_at:
+          type: string
+          format: date-time
+
+    # ---------- settings and audit
+    Settings:
+      type: object
+      description: observability R6.8 retention (days unless named), operations R5.21 backup time.
+      properties:
+        retention_job_history_days:
+          type: integer
+          minimum: 7
+          maximum: 400
+        retention_logs_days:
+          type: integer
+          minimum: 1
+          maximum: 90
+        retention_logs_mib_per_machine:
+          type: integer
+          minimum: 64
+          maximum: 10240
+        retention_audit_days:
+          type: integer
+          minimum: 90
+          maximum: 1825
+        retention_load_raw_hours:
+          type: integer
+          minimum: 1
+          maximum: 168
+        backup_time_local:
+          type: string
+          description: HH:MM, 24-hour local time.
+          example: '03:00'
+        backup_keep_days:
+          type: integer
+          minimum: 1
+          maximum: 365
+        max_event_streams:
+          type: integer
+          minimum: 1
+          maximum: 200
+      example:
+        retention_job_history_days: 90
+        retention_logs_days: 14
+        retention_logs_mib_per_machine: 512
+        retention_audit_days: 400
+        retention_load_raw_hours: 24
+        backup_time_local: '03:00'
+        backup_keep_days: 14
+        max_event_streams: 50
+    AuditEvent:
+      type: object
+      description: observability R5.24.
+      required: [id, at, actor, source, action, target_type, target_id, summary, result]
+      properties:
+        id:
+          type: integer
+          format: int64
+        at:
+          type: string
+          format: date-time
+        actor:
+          type: string
+          description: GitHub login, `system`, or the machine for agent actions.
+        actor_id:
+          type: string
+        source:
+          type: string
+          enum: [web, cli, tray, api, agent, system]
+        action:
+          type: string
+          example: machine.drain
+        target_type:
+          type: string
+        target_id:
+          type: string
+        summary:
+          type: string
+          description: Short before-and-after summary; redacted.
+        result:
+          type: string
+          enum: [done, refused]
+      example:
+        id: 77
+        at: '2026-11-14T10:00:00Z'
+        actor: luis-mc
+        actor_id: '583231'
+        source: web
+        action: machine.drain
+        target_type: machine
+        target_id: m_01JCRSP0001
+        summary: state active -> draining
+        result: done
+    AuditPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+        next_cursor:
+          type: string
+
+    # ---------- backups
+    Backup:
+      type: object
+      required: [id, file, created_at, state]
+      properties:
+        id:
+          type: string
+        file:
+          type: string
+          example: crsp-backup-2026-11-14-0300.tar.gz
+        created_at:
+          type: string
+          format: date-time
+        size_bytes:
+          type: integer
+          format: int64
+        schema_version:
+          type: integer
+          format: int64
+        state:
+          type: string
+          enum: [writing, good, failed]
+        check_result:
+          type: string
+          description: PRAGMA integrity_check result.
+    BackupList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Backup'
+        last_drill:
+          $ref: '#/components/schemas/BackupDrill'
+    BackupDrill:
+      type: object
+      required: [id, started_at, state]
+      properties:
+        id:
+          type: string
+        backup_id:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+        state:
+          type: string
+          enum: [running, passed, failed]
+        detail:
+          type: string
