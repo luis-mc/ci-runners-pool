@@ -193,3 +193,19 @@ export function NumberField({
 export function Hidden({ children }: { children: ReactNode }) {
   return <span className="ds-visually-hidden">{children}</span>;
 }
+
+/** Leave the page by posting a form to another address (GitHub's App manifest flow needs a POST). */
+export function postForm(url: string, fields: Readonly<Record<string, string>>): void {
+  const form = document.createElement('form');
+  form.method = 'post';
+  form.action = url;
+  for (const [name, value] of Object.entries(fields)) {
+    const field = document.createElement('input');
+    field.type = 'hidden';
+    field.name = name;
+    field.value = value;
+    form.appendChild(field);
+  }
+  document.body.appendChild(form);
+  form.submit();
+}

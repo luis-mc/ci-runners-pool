@@ -91,7 +91,7 @@ export function Table<T>({
                 key={key}
                 data-list-row
                 data-selected={selected?.has(key) || undefined}
-                tabIndex={onOpen ? 0 : undefined}
+                tabIndex={0}
                 onDoubleClick={onOpen ? () => onOpen(row) : undefined}
                 onKeyDown={
                   onOpen

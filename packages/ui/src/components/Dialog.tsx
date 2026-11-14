@@ -1,6 +1,7 @@
 // Component 9: one overlay. A centred dialog changes data; it traps focus, locks the page, closes on Escape
 // and returns focus to the opener (UX-35, UX-43..UX-48). Never stacked on another overlay.
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from './Button';
 
 const FOCUSABLE =
@@ -72,7 +73,7 @@ export function Dialog({
     }
   };
 
-  return (
+  return createPortal(
     <div className="ds-overlay" data-layout-group>
       <div
         ref={box}
@@ -117,7 +118,8 @@ export function Dialog({
           ) : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

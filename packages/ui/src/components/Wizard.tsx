@@ -37,8 +37,10 @@ export interface WizardProps {
   /** What the loading step is reading ("Reading the controller"). Said once (UX-38). */
   reading?: string | undefined;
   /** The work step's live line: the item in hand, n of N, the time left (UX-29). */
-  progress?: { text: string; value?: number; max?: number };
+  progress?: { text: string; value?: number | undefined; max?: number | undefined } | undefined;
   canStop?: boolean | undefined;
+  /** Stop was pressed and the work has not ended yet. */
+  stopping?: boolean | undefined;
   onStop?: (() => void) | undefined;
   onBack?: (() => void) | undefined;
   onStep?: ((index: number) => void) | undefined;
@@ -48,6 +50,8 @@ export interface WizardProps {
   donePrimary?: { label: string; onPress: () => void };
   onStartAgain?: (() => void) | undefined;
   onTryAgain?: (() => void) | undefined;
+  /** The first step the user acts on (a read-only step before it has no Back). */
+  firstStep?: number | undefined;
   /** Show "Nothing has changed yet." (on the Review step). */
   review?: boolean | undefined;
   /** The words for the state a stored run is in, said once above the content. */
@@ -174,13 +178,19 @@ export function Wizard(p: WizardProps) {
             <Button
               part="back"
               onPress={p.onBack}
-              disabled={current === 0 && p.phase !== 'loading' ? true : false}
+              disabled={p.phase !== 'loading' && current <= (p.firstStep ?? 0)}
             >
               Back
             </Button>
           ) : null}
           {canStopNow ? (
-            <Button part="stop" kind="stop" onPress={p.onStop}>
+            <Button
+              part="stop"
+              kind="stop"
+              onPress={p.onStop}
+              busy={p.stopping}
+              busyLabel="Stopping"
+            >
               Stop
             </Button>
           ) : null}
