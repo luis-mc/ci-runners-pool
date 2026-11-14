@@ -99,7 +99,7 @@ func TestCallLimitsAreShortAndExplicit(t *testing.T) {
 func silentAgent(t *testing.T) (path string, accepted *atomic.Int32) {
 	t.Helper()
 	path = filepath.Join(t.TempDir(), "slow.sock")
-	ln, err := net.Listen("unix", path)
+	ln, err := (&net.ListenConfig{}).Listen(context.Background(), "unix", path)
 	if err != nil {
 		t.Skipf("no unix socket here: %v", err)
 	}
