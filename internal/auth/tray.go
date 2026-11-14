@@ -29,7 +29,12 @@ func (s *Service) IssueLink(ctx context.Context, userID int64, purpose, target s
 	code := RandomToken(16)
 	err := s.store.InsertLinkCode(ctx, LinkCode{Hash: Hash(code), UserID: userID, Purpose: purpose,
 		TargetPath: SafeReturnTo(target), ExpiresAt: s.cfg.Now().Add(LinkTTL)})
-	return code, err
+	if err != nil {
+		return "", err
+	}
+	u, _ := s.store.GetUser(ctx, userID)
+	s.audit(ctx, "tray", "auth.link_issued", "session", u.Login, purpose, "done")
+	return code, nil
 }
 
 // IssueLinkForOSUser makes a sign-in link for the GitHub user bound to an OS
@@ -46,6 +51,7 @@ func (s *Service) IssueLinkForOSUser(ctx context.Context, machineID, osUserID, t
 // CreateBindTicket makes the ticket the tray hands to /auth/github/login
 // (bind_tray) so the GitHub sign-in binds that GitHub user to the OS user.
 func (s *Service) CreateBindTicket(machineID, osUserID string) string {
+	s.audit(context.Background(), "tray", "auth.bind_started", "session", "", "an OS user has no binding yet", "done")
 	return s.states.put("bind", StateTTL, map[string]string{"machine": machineID, "os_user": osUserID})
 }
 

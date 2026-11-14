@@ -15,7 +15,7 @@ import (
 
 // LinkIssuer makes a one-time sign-in link for an OS user of this machine
 // (internal/auth Service.IssueLinkForOSUser and CreateBindTicket sit behind it).
-// The controller has no sign-in wired yet, so the zero value is nil.
+// The controller wires it in newAuthArea; a nil value (tests) gives plain addresses.
 type LinkIssuer interface {
 	LinkFor(ctx context.Context, osUser, target string) (string, error)
 }
