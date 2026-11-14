@@ -1,0 +1,10 @@
+# remove keeps the data; purge deletes it and the account.
+case "$1" in
+  remove) if have_systemd; then systemctl daemon-reload || true; fi ;;
+  purge)
+    if have_systemd; then systemctl daemon-reload || true; fi
+    rm -rf /var/lib/crsp /etc/crsp
+    if getent passwd crsp >/dev/null 2>&1; then userdel crsp >/dev/null 2>&1 || true; fi
+    if getent group crsp >/dev/null 2>&1; then groupdel crsp >/dev/null 2>&1 || true; fi
+    ;;
+esac

@@ -1,0 +1,18 @@
+[Unit]
+Description=CI Runners Shared Pool controller (crsp)
+Documentation=https://github.com/luis-mc/ci-runners-shared-pool
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=crsp
+Group=crsp
+ExecStart=/usr/bin/crsp controller
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,57 @@
+#!/bin/sh
+# Runs after the files are laid down, on a first install and on an upgrade.
+# Everything here is safe to run twice. The data folder is created, never emptied.
+LABEL=crsp
+TRAY=dev.luismc.crsp.tray
+ACCOUNT=_crsp
+DATA="/Library/Application Support/crsp"
+PLIST="/Library/LaunchDaemons/$LABEL.plist"
+
+# A free id from 200 to 299 that no user and no group uses (the runner backend
+# takes 300 to 399).
+free_id() {
+  used="$( { dscl . -list /Users UniqueID; dscl . -list /Groups PrimaryGroupID; } | awk '{print $2}')"
+  id=200
+  while [ "$id" -lt 300 ]; do
+    echo "$used" | grep -qx "$id" || { echo "$id"; return 0; }
+    id=$((id + 1))
+  done
+  return 1
+}
+
+if ! dscl . -read "/Users/$ACCOUNT" >/dev/null 2>&1; then
+  id="$(free_id)" || { echo "crsp: no free account id between 200 and 299" >&2; exit 1; }
+  dscl . -create "/Groups/$ACCOUNT"
+  dscl . -create "/Groups/$ACCOUNT" PrimaryGroupID "$id"
+  dscl . -create "/Groups/$ACCOUNT" RealName "crsp service"
+  dscl . -create "/Users/$ACCOUNT"
+  dscl . -create "/Users/$ACCOUNT" UniqueID "$id"
+  dscl . -create "/Users/$ACCOUNT" PrimaryGroupID "$id"
+  dscl . -create "/Users/$ACCOUNT" UserShell /usr/bin/false
+  dscl . -create "/Users/$ACCOUNT" RealName "crsp service"
+  dscl . -create "/Users/$ACCOUNT" NFSHomeDirectory /var/empty
+  dscl . -create "/Users/$ACCOUNT" IsHidden 1
+fi
+
+mkdir -p "$DATA"
+chown "$ACCOUNT:$ACCOUNT" "$DATA"
+chmod 0700 "$DATA"
+touch /var/log/crsp.log
+chown "$ACCOUNT:$ACCOUNT" /var/log/crsp.log
+chmod 0640 /var/log/crsp.log
+
+chown root:wheel "$PLIST" /Library/LaunchAgents/$TRAY.plist
+chmod 0644 "$PLIST" /Library/LaunchAgents/$TRAY.plist
+
+# Enable and start the service. A start that fails does not fail the install;
+# the log is /var/log/crsp.log.
+launchctl enable "system/$LABEL" >/dev/null 2>&1 || true
+launchctl bootstrap system "$PLIST" || echo "crsp: the service did not start; see /var/log/crsp.log" >&2
+
+# Tray: /Library/LaunchAgents runs it at every user login. Start it now for the
+# user who is at the console, if there is one.
+console="$(stat -f %u /dev/console 2>/dev/null || echo 0)"
+if [ "$console" != 0 ] && [ -n "$console" ]; then
+  launchctl bootstrap "gui/$console" "/Library/LaunchAgents/$TRAY.plist" >/dev/null 2>&1 || true
+fi
+exit 0
