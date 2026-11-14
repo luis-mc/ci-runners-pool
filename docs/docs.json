@@ -1,8 +1,26 @@
 {
   "schema": 1,
   "docspec": "1.0.0",
-  "apps": [],
-  "topics": [],
+  "apps": [
+    "controller",
+    "agent",
+    "web-console",
+    "cli",
+    "tray"
+  ],
+  "topics": [
+    "github",
+    "machines",
+    "runners",
+    "isolation",
+    "scheduling",
+    "caching",
+    "security",
+    "observability",
+    "operations",
+    "ui",
+    "install"
+  ],
   "record_dir": "docs/project",
   "default_branch": "main",
   "stale_days": 90
