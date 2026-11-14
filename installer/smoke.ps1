@@ -128,7 +128,13 @@ if ($FailingMsi) {
   # What the log says about the rollback, so a failure can be read in the CI output.
   Select-String -Path (Join-Path $LogDir 'failed-upgrade.log') -Pattern 'Action start|Action ended|Rollback|return value 3|Error|error \d+|Removing|RemoveExistingProducts|Product:' |
     Where-Object { $_.Line -match 'RemoveExistingProducts|FailNow|Rollback|StartServicesRollback|InstallFiles|StartServices|return value 3|Error |Product:|InstallFinalize|InstallInitialize' } |
-    Select-Object -First 80 | ForEach-Object { Write-Host "  LOG $($_.Line.Trim())" }
+    Select-Object -First 30 | ForEach-Object { Write-Host "  LOG $($_.Line.Trim())" }
+  Write-Host '--- end of the failed-upgrade log (last 70 lines)'
+  Get-Content (Join-Path $LogDir 'failed-upgrade.log') -Tail 70 | ForEach-Object { Write-Host "  TAIL $_" }
+  Write-Host '--- state after the failed upgrade'
+  Write-Host ("  service: " + ((Get-Service crsp -ErrorAction SilentlyContinue | Out-String).Trim()))
+  Write-Host ("  Program Files\crsp exists: " + (Test-Path $progDir))
+  Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -eq 'crsp' } | ForEach-Object { Write-Host "  ARP crsp $($_.DisplayVersion) SystemComponent=$($_.SystemComponent) $($_.PSChildName)" }
   Check 'msiexec log shows the rollback' ((Get-Content (Join-Path $LogDir 'failed-upgrade.log') -Raw) -match 'Rollback')
 }
 

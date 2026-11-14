@@ -171,7 +171,7 @@
 
     <!-- WixQuietExec puts what a command prints into the MSI log. -->
     <SetProperty Id="StopServiceEarly"
-                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Stop-Service -Name crsp -ErrorAction SilentlyContinue; $a = Get-CimInstance Win32_Service -Filter 'Name=''crsp-agent''' -ErrorAction SilentlyContinue; if ($a -and $a.State -eq 'Running' -and $a.PathName -like '*[INSTALLFOLDER]*') { Stop-Service -Name crsp-agent -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Force -Path '[DATAFOLDER]' | Out-Null; Set-Content -Path '[DATAFOLDER]agent-was-running.flag' -Value 1 }&quot;"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Stop-Service -Name crsp -ErrorAction SilentlyContinue; $a = Get-CimInstance Win32_Service -Filter 'Name=''crsp-agent''' -ErrorAction SilentlyContinue; if ($a -and $a.State -eq 'Running' -and $a.PathName -like '*[INSTALLFOLDER]*') [\{] Stop-Service -Name crsp-agent -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Force -Path '[DATAFOLDER]' | Out-Null; Set-Content -Path '[DATAFOLDER]agent-was-running.flag' -Value 1 [\}]&quot;"
                  Before="StopServiceEarly"
                  Sequence="execute" />
     <CustomAction Id="StopServiceEarly"
@@ -189,7 +189,7 @@
       waits for a reboot. Only programs under this product's own folder.
     -->
     <SetProperty Id="EndProgramProcesses"
-                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$folder = '[INSTALLFOLDER]'; Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($folder, 'OrdinalIgnoreCase') } | ForEach-Object { try { $_.Kill(); $_.WaitForExit(15000) | Out-Null } catch { } }&quot;"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$folder = '[INSTALLFOLDER]'; Get-Process | Where-Object [\{] $_.Path -and $_.Path.StartsWith($folder, 'OrdinalIgnoreCase') [\}] | ForEach-Object [\{] try [\{] $_.Kill(); $_.WaitForExit(15000) | Out-Null [\}] catch [\{] [\}] [\}]&quot;"
                  Before="EndProgramProcesses"
                  Sequence="execute" />
     <CustomAction Id="EndProgramProcesses"
@@ -201,7 +201,7 @@
 
     <!-- The service is left running whatever the run did ("already running" is not a failure); the agent service is started again when this run stopped it. -->
     <SetProperty Id="StartServices2"
-                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Start-Service -Name crsp -ErrorAction SilentlyContinue; if (Test-Path '[DATAFOLDER]agent-was-running.flag') { Remove-Item '[DATAFOLDER]agent-was-running.flag' -Force; Start-Service -Name crsp-agent -ErrorAction SilentlyContinue }&quot;"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Start-Service -Name crsp -ErrorAction SilentlyContinue; if (Test-Path '[DATAFOLDER]agent-was-running.flag') [\{] Remove-Item '[DATAFOLDER]agent-was-running.flag' -Force; Start-Service -Name crsp-agent -ErrorAction SilentlyContinue [\}]&quot;"
                  Before="StartServices2"
                  Sequence="execute" />
     <CustomAction Id="StartServices2"

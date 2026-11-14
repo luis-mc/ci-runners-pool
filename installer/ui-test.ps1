@@ -51,6 +51,11 @@ function Run-Pass([bool]$tick, [string]$name) {
     if (-not $p.WaitForExit(30000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
     Start-Sleep 3
     $txt = if (Test-Path $log) { Get-Content $log -Raw } else { '' }
+    Write-Host '--- UI lines of the msiexec /x log'
+    if (Test-Path $log) { Select-String -Path $log -Pattern 'RemoveDataDlg|Dialog|UILevel|Doing action: (ExecuteAction|CostFinalize|ProgressDlg)|Action start .*(ExecuteAction|CostFinalize|WelcomeEulaDlg|ProgressDlg|MaintenanceWelcome)|REMOVE|Installed =' | Select-Object -First 60 | ForEach-Object { Write-Host "  UILOG $($_.Line.Trim())" } }
+    $rt = [System.Windows.Automation.AutomationElement]::RootElement
+    Write-Host '--- top-level windows'
+    foreach ($e in $rt.FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)) { Write-Host "  WIN '$($e.Current.Name)' pid $($e.Current.ProcessId)" }
     Check 'log: the RemoveDataDlg action ran (required)' ($txt -match 'Action start [^\r\n]*RemoveDataDlg')
     if ($UiRequired) { Check 'UI Automation found the uninstall dialog window' $false } else { Write-Host 'NOTE  no dialog window to drive on this session; the log check above is the proof' }
     # Clean up what the interrupted run may have left.
