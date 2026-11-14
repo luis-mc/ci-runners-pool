@@ -3,6 +3,7 @@ package machines_test
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
 	"sync"
@@ -44,6 +45,15 @@ type notes struct {
 	mu    sync.Mutex
 	state []string
 	load  []string
+	// overdue holds one entry per DrainOverdue call: "<machine> <kind> <waited> <jobs>".
+	overdue []string
+}
+
+// DrainOverdue records the warning for a drain that passed its timeout (R5.33).
+func (n *notes) DrainOverdue(id, kind string, waited time.Duration, jobs []machines.JobRef) {
+	n.mu.Lock()
+	n.overdue = append(n.overdue, fmt.Sprintf("%s %s %s %d", id, kind, waited, len(jobs)))
+	n.mu.Unlock()
 }
 
 func (n *notes) MachineChanged(id string) { n.mu.Lock(); n.state = append(n.state, id); n.mu.Unlock() }
