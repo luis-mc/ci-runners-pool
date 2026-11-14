@@ -51,9 +51,12 @@ var githubAreaAuth = map[string]string{
 	"getPreferences": authUser, "updatePreferences": authUser,
 	"listUsers": authOwner, "addUser": authOwner, "updateUserRole": authOwner, "removeUser": authOwner,
 	"listInstallations": authUser, "getAppInstallUrl": authAdmin, "listRepositories": authUser,
-	"planRepositoryChanges": authAdmin, "getRepositoryPlan": authUser, "applyRepositoryChanges": authAdmin,
+	"planRepositoryChanges": authAdmin, "stopRepositoryPlan": authAdmin, "getRepositoryPlan": authUser, "applyRepositoryChanges": authAdmin,
 	"getRepository": authUser, "updateRepositoryPolicy": authAdmin, "getRepositoryRunsOn": authUser,
 	"receiveGithubWebhook": authPublic,
+	// CRSP37 notification channels: any signed-in user; a webhook needs an admin (checked in the service).
+	"listNotificationChannels": authUser, "createNotificationChannel": authUser, "updateNotificationChannel": authUser,
+	"deleteNotificationChannel": authUser, "testNotificationChannel": authUser,
 }
 
 // operationIDs maps the generated handler names to openapi operation ids.
@@ -201,7 +204,7 @@ func errorFor(err error) (int, string, string) {
 		return http.StatusNotFound, CodeNotFound, "not found"
 	case errors.Is(err, auth.ErrNeedsConfirm), errors.Is(err, repos.ErrForkNeedsConfirm):
 		return http.StatusConflict, CodeNeedsConfirmation, err.Error()
-	case errors.Is(err, auth.ErrConflict), errors.Is(err, repos.ErrPlanStale), errors.Is(err, repos.ErrPlanNotPlanned),
+	case errors.Is(err, auth.ErrConflict), errors.Is(err, repos.ErrPlanStale), errors.Is(err, repos.ErrPlanNotPlanned), errors.Is(err, repos.ErrPlanNotApplying),
 		errors.Is(err, repos.ErrNothingToChange), errors.Is(err, auth.ErrSetupDone):
 		return http.StatusConflict, CodeConflict, err.Error()
 	case errors.Is(err, auth.ErrBadState), errors.Is(err, auth.ErrBadCode), errors.Is(err, auth.ErrInsecure), errors.As(err, &inv):

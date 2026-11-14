@@ -169,6 +169,8 @@ Ported from dev-standards `claude/plugins/delivery/scripts/load.py` and `load_gu
 | Maintenance windows | none | weekly windows, local time |
 | Quiet hours | none | weekly windows, local time, with their own budget and slots |
 
+**R5.22a** (M1) (built, CRSP37) — The pool has its own defaults for a machine that joins: memory budget (10 to 95%, default 85%), CPU budget (10 to 95%, default 60%), whether slots are sized from the machine's cores and memory within the budget (default yes), job slots when they are not sized or the machine does not report its size (0 to 64, default 2) and the drain timeout (5 to 1440 minutes, default 60). An admin changes them in Settings, Budgets (`getPoolSettings`, `updatePoolSettings`); each change writes one audit row. A change reaches only machines that join afterwards. A machine that already joined keeps its own settings, so the change restarts no runner and waits for no running job (UX-62). A machine that already joined is changed in its own settings (R5.22).
+
 **R5.23** (M1) — A machine starts a new job only when all hold: its state is active, a slot is free, measured load is under the budget in force, the job's backend is allowed, and no maintenance window is open. The job-started gate on the machine checks this right before the job runs (runner-pool R5.2, DL-79). Placement across machines is the scheduling spec.
 
 **R5.24** (M1) — A setting saved in the console or CLI reaches the agent within 5 seconds while it is online. The agent keeps the last settings it got and applies them while the link is down.
@@ -364,6 +366,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.20 | internal/load/unknown_test.go | planned |
 | R5.21 | internal/load/measure_only_test.go | planned |
 | R5.22 | internal/machines/settings_test.go | planned |
+| R5.22a | internal/machines/pool_defaults_test.go; internal/settings/pool_test.go; internal/api/handlers_pool_test.go | built, CRSP37 |
 | R5.23 | internal/agent/gate_test.go | planned; ports runner-pool R5.2 cases |
 | R5.24 | internal/agent/settings_cache_test.go | planned |
 | R5.25 | internal/machines/settings_test.go | planned |
@@ -431,6 +434,7 @@ Everything not named as built at the top is NOT YET IMPLEMENTED. The seams that 
 - `packages/contract/openapi.yaml`: machine endpoints for the console and CLI.
 - `cmd/crsp/main.go`: the `agent` mode and the `machines` subcommands.
 - `internal/config/config.go`: the agent link port (8461) and the controller address for the agent.
+- Pool defaults (R5.22a, CRSP37): built for a machine that joins. Not built: applying a changed pool default to machines that already joined. That would restart runners, so it has to name the jobs it waits for (UX-62) through the drain of R5.30.
 
 ## 12. Code map
 

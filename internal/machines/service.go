@@ -65,6 +65,20 @@ type Options struct {
 	// rebuild, service restart) once the machine is idle; it runs in the step
 	// that keeps new jobs out (R5.32). Nil means nothing else to do.
 	OnIdle func(ctx context.Context, c Change) error
+	// PoolDefaults gives the pool's defaults for a machine that joins
+	// (Settings, Budgets: machines R5.22). Nil, or an error, means the
+	// built-in defaults. Changing them never touches a machine that already
+	// joined, so no running job waits for it.
+	PoolDefaults func(ctx context.Context) (PoolDefaults, error)
+}
+
+// PoolDefaults are the settings a new machine starts with.
+type PoolDefaults struct {
+	BudgetMemoryPct      int
+	BudgetCPUPct         int
+	SizeSlotsFromMachine bool
+	JobSlots             int
+	DrainTimeoutMinutes  int
 }
 
 // Service is the controller side of machines.
@@ -333,6 +347,15 @@ func (s *Service) Join(ctx context.Context, in JoinInput) (JoinResult, error) {
 	}
 	set := DefaultSettings()
 	set.JobSlots = defaultSlots(f)
+	if s.o.PoolDefaults != nil {
+		if d, err := s.o.PoolDefaults(ctx); err == nil {
+			set.BudgetMemoryPct, set.BudgetCPUPct, set.DrainTimeoutMinutes = d.BudgetMemoryPct, d.BudgetCPUPct, d.DrainTimeoutMinutes
+			set.JobSlots = d.JobSlots
+			if d.SizeSlotsFromMachine {
+				set.JobSlots = defaultSlotsFor(f, d.BudgetMemoryPct, d.BudgetCPUPct, d.JobSlots)
+			}
+		}
+	}
 	base := strings.TrimSpace(f.HostName)
 	if base == "" {
 		base = f.OS + "-machine"
@@ -360,12 +383,18 @@ func (s *Service) Join(ctx context.Context, in JoinInput) (JoinResult, error) {
 // defaultSlots sizes slots from the budget like dev-standards (DL79, DL176)
 // when the facts say how big the machine is; the default 2 otherwise.
 func defaultSlots(f Facts) int {
-	if f.Threads <= 0 || f.MemoryBytes <= 0 {
-		return DefaultSettings().JobSlots
-	}
 	d := DefaultSettings()
-	cpus := f.Threads * d.BudgetCPUPct / 100
-	byMem := int(float64(f.MemoryBytes) / (1 << 30) * float64(d.BudgetMemoryPct) / 100 / 1.5)
+	return defaultSlotsFor(f, d.BudgetMemoryPct, d.BudgetCPUPct, d.JobSlots)
+}
+
+// defaultSlotsFor sizes slots from the facts within the given budget; unknown
+// facts give fallback.
+func defaultSlotsFor(f Facts, memPct, cpuPct, fallback int) int {
+	if f.Threads <= 0 || f.MemoryBytes <= 0 {
+		return fallback
+	}
+	cpus := f.Threads * cpuPct / 100
+	byMem := int(float64(f.MemoryBytes) / (1 << 30) * float64(memPct) / 100 / 1.5)
 	n := cpus
 	if byMem < n {
 		n = byMem

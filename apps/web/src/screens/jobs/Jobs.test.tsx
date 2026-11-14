@@ -340,7 +340,7 @@ describe('Export (component 29, UX-39)', () => {
     await screen.findByText('ci.yml / test');
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     expect(
-      await screen.findByText(/Could not export. The file could not be written./),
+      await screen.findByText(/Could not export jobs\. The file could not be written\./),
     ).toBeTruthy();
     expect(
       screen.getByRole<HTMLButtonElement>('button', { name: 'Export' }).disabled,

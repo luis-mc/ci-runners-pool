@@ -1,5 +1,5 @@
 // The routes of the jobs and doctor screens for the mocked controller API (CRSP35).
-import type { Mock } from './fixtures';
+import type { Call, Mock } from './fixtures';
 
 export const queuedJob = {
   id: 5,
@@ -60,12 +60,14 @@ export function jobsAndDoctor(
   history = [1, 2, 3].map((i) => doneJob(i)),
 ): Mock {
   return mock
-    .on('GET', '/api/v1/jobs', (call) =>
+    .on('GET', '/api/v1/jobs', (call: Call) =>
       call.query.get('state') === 'queued'
         ? { items: [queuedJob], stale: { stale: false } }
         : { items: history, stale: { stale: false } },
     )
-    .on('GET', '/api/v1/jobs/:id', (_call, params) => doneJob(Number(params.id)))
+    .on('GET', '/api/v1/jobs/:id', (_call: Call, params: Record<string, string>) =>
+      doneJob(Number(params.id)),
+    )
     .on('GET', '/api/v1/doctor/findings', {
       items: [
         finding(),

@@ -29,14 +29,14 @@ var jobsExportColumns = []string{
 	"run_seconds", "url",
 }
 
-// exportFile is an export answer: the bytes, their type and the file name.
-type exportFile struct {
+// jobsExportFile is an export answer: the bytes, their type and the file name.
+type jobsExportFile struct {
 	contentType string
 	filename    string
 	body        []byte
 }
 
-func (e exportFile) VisitExportJobsResponse(w http.ResponseWriter) error {
+func (e jobsExportFile) VisitExportJobsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", e.contentType)
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", e.filename))
 	w.Header().Set("Content-Length", strconv.Itoa(len(e.body)))
@@ -169,7 +169,7 @@ func (s *server) ExportJobs(ctx context.Context, req gen.ExportJobsRequestObject
 		if err != nil {
 			return nil, err
 		}
-		return exportFile{contentType: "application/json", filename: name, body: b}, nil
+		return jobsExportFile{contentType: "application/json", filename: name, body: b}, nil
 	}
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)
@@ -185,5 +185,5 @@ func (s *server) ExportJobs(ctx context.Context, req gen.ExportJobsRequestObject
 	if err := w.Error(); err != nil {
 		return nil, err
 	}
-	return exportFile{contentType: "text/csv", filename: name, body: buf.Bytes()}, nil
+	return jobsExportFile{contentType: "text/csv", filename: name, body: buf.Bytes()}, nil
 }

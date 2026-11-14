@@ -173,7 +173,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 
 ## 14. Form field family
 
-- **Used for:** a field (name, help, box, error), a toggle (saved at once) and a check box (waits for Save). Boxes come in three widths.
+- **Used for:** a field (name, help, box, error), a toggle (saved at once) and a check box (waits for Save). Boxes come in three widths. A field for a secret (a password) hides what is typed; the screen never fills it in again and says beside it whether one is set.
 - **Looks:** a name above a box, a help line below it and an error line in the Problem tone when needed.
 - **Source:** `src/ui/field`
 - **Rules:** UX-20, UX-21, UX-22, UX-23, UX-24.

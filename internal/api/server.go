@@ -10,10 +10,12 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/events"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/settings"
@@ -37,6 +39,12 @@ type Options struct {
 	Settings *settings.Service
 	Audit    *audit.Log
 	Backup   *backup.Service
+	// Config writes the configuration export (exportConfig); nil answers 501.
+	Config ConfigExporter
+	// Now stamps export file names; nil uses the clock.
+	Now func() time.Time
+	// Events receives plan.progress after a stop request; nil publishes nothing.
+	Events events.Publisher
 	// Update serves the update and restart routes (handlers_update.go). Nil answers 501.
 	Update UpdateService
 	// GitHub is the GitHub integration area (setup, sign-in, users,
@@ -56,6 +64,8 @@ type Options struct {
 	Doctor DoctorService
 	// Caches serves the caches routes (handlers_caches.go). Nil answers 501.
 	Caches CachesService
+	// Notify serves the notification channel routes (handlers_notify.go). Nil answers 501.
+	Notify NotifyService
 }
 
 type server struct {

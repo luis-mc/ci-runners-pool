@@ -1,7 +1,7 @@
 // Component 29: table export (UX-39). One quiet button at the end of a table's toolbar. The file holds every row
 // of the filter in the order shown; the server writes it (formula-looking text neutralised) and names it for what
 // it holds, then the date and time. The button is busy until the file arrives (UX-13); a failure is one line under
-// it (UX-27).
+// it (UX-27). A page gives `run` (the part saves the file the page returns) or `onExport` (the page saves it).
 import { useState } from 'react';
 import { Button } from './Button';
 import { formatFileStamp } from './format';
@@ -19,33 +19,48 @@ export function fileNameOf(disposition: string | null | undefined): string | und
   return m?.[1] ? decodeURIComponent(m[1]) : undefined;
 }
 
+export interface ExportButtonProps {
+  /** What the file holds, in a few words ("jobs", "the audit log"): names the file when the server gave no name, and the failure line. */
+  what: string;
+  /** Asks for the file; the part saves it. */
+  run?: (() => Promise<ExportedFile>) | undefined;
+  /** Asks for the file and saves it itself. Rejects with an Error whose message says why it failed. */
+  onExport?: (() => Promise<void>) | undefined;
+  /** The button word. */
+  label?: string | undefined;
+  disabled?: boolean | undefined;
+  reason?: string | undefined;
+}
+
+function save(file: ExportedFile, what: string) {
+  const url = URL.createObjectURL(file.blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download =
+    file.filename ??
+    `crsp-${what.replace(/\s+/g, '-')}-${formatFileStamp(new Date())}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function ExportButton({
   what,
   run,
+  onExport,
+  label = 'Export',
   disabled,
   reason,
-}: {
-  /** What the file holds, in one lower-case word: "jobs". Names the file when the server gave no name. */
-  what: string;
-  run: () => Promise<ExportedFile>;
-  disabled?: boolean | undefined;
-  reason?: string | undefined;
-}) {
+}: ExportButtonProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const go = async () => {
     setBusy(true);
     setError(undefined);
     try {
-      const file = await run();
-      const url = URL.createObjectURL(file.blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = file.filename ?? `crsp-${what}-${formatFileStamp(new Date())}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      if (run) save(await run(), what);
+      else await onExport?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'The file could not be made.');
     } finally {
@@ -61,10 +76,12 @@ export function ExportButton({
         disabled={disabled}
         reason={reason}
       >
-        Export
+        {label}
       </Button>
       {error ? (
-        <Message tone="problem">Could not export. {error} Try again.</Message>
+        <Message tone="problem">
+          Could not export {what}. {error}
+        </Message>
       ) : null}
     </span>
   );

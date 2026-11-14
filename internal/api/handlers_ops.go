@@ -163,22 +163,26 @@ func (s *server) ListAuditEvents(ctx context.Context, req gen.ListAuditEventsReq
 	}
 	out := gen.AuditPage{Items: make([]gen.AuditEvent, 0, len(page.Items))}
 	for _, e := range page.Items {
-		ev := gen.AuditEvent{
-			Id: e.ID, At: e.At, Action: e.Action, Actor: e.Actor, Summary: e.Summary,
-			TargetType: e.TargetType, TargetId: e.TargetID,
-			Result: gen.AuditEventResult(e.Result), Source: gen.AuditEventSource(e.Source),
-		}
-		if e.ActorID != "" {
-			id := e.ActorID
-			ev.ActorId = &id
-		}
-		out.Items = append(out.Items, ev)
+		out.Items = append(out.Items, toGenAuditEvent(e))
 	}
 	if page.NextCursor != "" {
 		c := page.NextCursor
 		out.NextCursor = &c
 	}
 	return gen.ListAuditEvents200JSONResponse(out), nil
+}
+
+func toGenAuditEvent(e audit.Event) gen.AuditEvent {
+	ev := gen.AuditEvent{
+		Id: e.ID, At: e.At, Action: e.Action, Actor: e.Actor, Summary: e.Summary,
+		TargetType: e.TargetType, TargetId: e.TargetID,
+		Result: gen.AuditEventResult(e.Result), Source: gen.AuditEventSource(e.Source),
+	}
+	if e.ActorID != "" {
+		id := e.ActorID
+		ev.ActorId = &id
+	}
+	return ev
 }
 
 func toGenBackup(b backup.Backup) gen.Backup {

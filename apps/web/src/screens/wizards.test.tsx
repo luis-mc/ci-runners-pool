@@ -234,7 +234,7 @@ const poolDriver: WizardDriver = {
     }
     renderApp(api, path);
     await step('Turn on the pool');
-    const snap = () => read(state, 'Turn on the pool', false);
+    const snap = () => read(state, 'Turn on the pool', state === 'running');
     if (state === 'loading') return snap();
     if (path.includes('plan=')) {
       await screen.findByRole('button', { name: STORED });
@@ -289,7 +289,7 @@ const runnersDriver: WizardDriver = {
     }
     renderApp(api, path);
     await step('Add runners');
-    const snap = () => read(state, 'Add runners', false);
+    const snap = () => read(state, 'Add runners', state === 'running');
     if (state === 'loading') return snap();
     if (path.includes('plan=')) {
       await screen.findByRole('button', { name: STORED });
@@ -537,6 +537,61 @@ describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
     expect(api.count('DELETE', '/api/v1/join-codes/j1')).toBe(1);
     expect(screen.getByRole('button', { name: 'Start again' })).toBeTruthy();
   });
+
+  // web-console 11, UX-30: Stop on an applying plan. The step that runs finishes, the plan ends `stopped`,
+  // and the wizard still ends at Done saying what was done and what is left.
+  for (const area of ['repository', 'runner'] as const) {
+    it(`Stop on a ${area} plan that is applying ends at Done with what is left`, async () => {
+      const repo = area === 'repository';
+      const prefix = repo ? '/api/v1/repository-plans' : '/api/v1/runner-plans';
+      let stopped = false;
+      const steps = (state: string) => [
+        {
+          id: 's1',
+          action: repo ? 'pool_on' : 'add_runner',
+          text: 'First step',
+          needs_yes: false,
+          state: 'done',
+        },
+        {
+          id: 's2',
+          action: repo ? 'write_variable' : 'add_runner',
+          text: 'Second step',
+          needs_yes: false,
+          state: state === 'stopped' ? 'skipped' : 'planned',
+        },
+      ];
+      const mk = (state: string) => ({
+        ...(repo ? plan(state) : rplan(state)),
+        steps: steps(state),
+      });
+      const api = signedIn()
+        .on('GET', '/api/v1/machines', { items: [machine()] })
+        .on('GET', '/api/v1/github/repositories', {
+          items: [repository({ pool_on: !repo })],
+          stale: { stale: false },
+        })
+        .on('POST', prefix, mk('planned'))
+        .on('POST', `${prefix}/:id/apply`, mk('applying'))
+        .on('GET', `${prefix}/:id`, () => (stopped ? mk('stopped') : mk('applying')))
+        .on('POST', `${prefix}/:id/stop`, () => {
+          stopped = true;
+          return mk('applying');
+        });
+      renderApp(api, repo ? '/repositories/turn-on' : '/runners/add');
+      if (repo)
+        fireEvent.click(await screen.findByRole('checkbox', { name: 'Select octo/app' }));
+      else fireEvent.click(await screen.findByRole('radio', { name: 'octo/app' }));
+      await press('Next');
+      await screen.findByText(/Nothing has changed yet/);
+      await press(repo ? 'Turn on 1 repository' : 'Add 1 runner');
+      fireEvent.click(await screen.findByRole('button', { name: 'Stop' }));
+      await screen.findByText(/Stopped\. 1 steps were done and 1 are left/);
+      expect(api.count('POST', `${prefix}/${repo ? 'p1' : 'rp1'}/stop`)).toBe(1);
+      expect(screen.getByRole('button', { name: 'Start again' })).toBeTruthy();
+      expect(screen.getByText('First step')).toBeTruthy();
+    });
+  }
 
   it('Review counts again after a change to an earlier step', async () => {
     const api = signedIn()

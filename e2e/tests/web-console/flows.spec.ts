@@ -319,3 +319,54 @@ test('Wipe a cache asks first, names the cache, its size and the job, and wipes 
     'Wiping Tool cache of crsp-linux-1, waiting for octo/app e2e',
   );
 });
+const POOL = {
+  budget_memory_pct: 85,
+  budget_cpu_pct: 60,
+  size_slots_from_machine: true,
+  default_job_slots: 2,
+  drain_timeout_minutes: 60,
+};
+const QUEUE = {
+  order: ['priority', 'event_class', 'fair_share', 'queued_at'],
+  fair_share: true,
+  no_runner_wait_minutes: 2,
+};
+
+test('The admin saves the Budgets with Save and the page says no job is waited for', async ({
+  page,
+}) => {
+  const mock = signedIn()
+    .on('GET', '/api/v1/settings/pool', POOL)
+    .on('GET', '/api/v1/settings/queue', QUEUE)
+    .on('PUT', '/api/v1/settings/pool', POOL)
+    .on('PUT', '/api/v1/settings/queue', QUEUE);
+  await mock.install(page);
+  await page.goto('/settings/budgets');
+  await expect(page.getByText(/no running job is waited for/)).toBeVisible();
+  await expect(page.getByRole('button', { name: /Drain timeout/ })).toContainText('60');
+  await page.getByRole('checkbox', { name: /Size the slots/ }).uncheck();
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect.poll(() => mock.count('PUT', '/api/v1/settings/pool')).toBe(1);
+  await expect.poll(() => mock.count('PUT', '/api/v1/settings/queue')).toBe(1);
+  await expect(page.getByText('Settings saved.')).toBeVisible();
+});
+
+test('The Budgets refuse a repeated order key and Cancel puts the values back', async ({
+  page,
+}) => {
+  const mock = signedIn()
+    .on('GET', '/api/v1/settings/pool', POOL)
+    .on('GET', '/api/v1/settings/queue', QUEUE);
+  await mock.install(page);
+  await page.goto('/settings/budgets');
+  await page.getByRole('radio', { name: 'Repository priority' }).nth(1).check();
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(
+    page.getByText('Each of the four order keys must be used once.'),
+  ).toBeVisible();
+  expect(mock.count('PUT', '/api/v1/settings/pool')).toBe(0);
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await expect(
+    page.getByRole('radio', { name: 'Repository priority' }).first(),
+  ).toBeChecked();
+});
