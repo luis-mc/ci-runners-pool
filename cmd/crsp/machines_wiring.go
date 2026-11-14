@@ -38,7 +38,7 @@ func (m *machinesRuntime) Close() { m.stop() }
 // startMachines makes the controller's CA, serves the agent link (TLS 1.3, port
 // 8461), and starts the controller's own agent, which joins without a code over
 // loopback like any other agent (machines R5.1, R5.2, decision 0004).
-func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger) (*machinesRuntime, error) {
+func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, idle *idleHook) (*machinesRuntime, error) {
 	secretsDir := filepath.Join(cfg.DataDir, "secrets", "controller")
 	store, err := agent.NewFileStore(secretsDir)
 	if err != nil {
@@ -70,6 +70,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	// lands the repository is in memory, so machines and keys last until restart.
 	svc := machines.New(machines.Options{
 		Repo: machines.NewMemRepo(), ControllerAddress: public, AgentPort: port, Fingerprint: ca.Fingerprint(),
+		OnIdle: idle.call,
 	})
 	svc.SetHooks(machines.Hooks{ControllerVersion: version})
 

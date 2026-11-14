@@ -3,7 +3,7 @@ id: doctor
 title: Doctor
 apps: [controller, agent, web-console, cli]
 topics: [observability, operations, machines, runners, github]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference
@@ -21,7 +21,7 @@ Partly built (CRSP23): the engine, the check interface, the M1 core checks, the 
 
 ## 1. In one paragraph
 
-The doctor checks that the whole pool is healthy and says how to fix each problem. It looks at every machine, every isolation backend, every runner, the GitHub App, the repository variables `CRSP_RUNS_ON_*`, the `runs-on` labels of every workflow, and the runner hooks. Each problem is a finding with a severity and one clear fix. The user runs it from the Doctor screen of the web console, from the CLI (`crsp doctor`), or lets the controller run it on a schedule. New findings feed the notifications. The doctor only reads. It never changes anything.
+The doctor checks that the whole pool is healthy and says how to fix each problem. It looks at every machine, every isolation backend, every runner, the GitHub App, the repository variables `RUNS_ON_*`, the `runs-on` labels of every workflow, and the runner hooks. Each problem is a finding with a severity and one clear fix. The user runs it from the Doctor screen of the web console, from the CLI (`crsp doctor`), or lets the controller run it on a schedule. New findings feed the notifications. The doctor only reads. It never changes anything.
 
 ## 2. Why
 
@@ -115,7 +115,7 @@ States:
 
 ### 5.2 Machines and backends
 
-**R5.9** — Machine checks: agent online, load figures fresh, load within budget, disk space, clock, slot queue health, and the machine config readable by runner accounts. See the catalogue (7.2). Built (CRSP23): `machine.online`, `machine.load.fresh`, `machine.load.budget`, `machine.disk`. NOT YET IMPLEMENTED: clock, slot queue health, machine config (milestones 1 and 3).
+**R5.9** — Machine checks: agent online, load figures fresh, load within budget, disk space, clock, slot queue health, and the machine config readable by runner accounts. See the catalogue (7.2). Built (CRSP23): `machine.online`, `machine.load.fresh`, `machine.load.budget`, `machine.disk`; built (CRSP21): `machine.guard.disk`. NOT YET IMPLEMENTED: clock, slot queue health, machine config (milestones 1 and 3).
 
 **R5.10** — Backend checks, for each backend a machine allows: it is still detected and works, and it keeps the isolation rules of decision 0003 (no Docker socket in jobs, no privileged container, KVM as a device, caps set and applied, image layers present, macOS VM limit). See 7.2. NOT YET IMPLEMENTED (milestones 2, 4, 5, 6).
 
@@ -137,11 +137,11 @@ States:
 
 ### 5.5 Repository variables and workflows
 
-**R5.17** — For each pool repository and each OS that has runners for it, `CRSP_RUNS_ON_<OS>` is set, is a JSON list of strings, and equals the labels the product would write. Unset where a workflow uses it is `fail`; different is `warn`. A variable set for an OS with no online runner is `fail` (its jobs would queue forever). Built (CRSP23).
+**R5.17** — For each pool repository and each OS that has runners for it, `RUNS_ON_<OS>` is set, is a JSON list of strings, and equals the labels the product would write. Unset where a workflow uses it is `fail`; different is `warn`. A variable set for an OS with no online runner is `fail` (its jobs would queue forever). Built (CRSP23).
 
 **R5.18** — For each pool repository, the doctor reads every workflow file on the default branch and every job's `runs-on`: a string, a flow list, a block list, or `${{ fromJSON(vars.NAME) }}` with an optional `|| '<default>'`, resolved through the repository variable. A label set with `self-hosted` must be carried in full by at least one online runner; otherwise `fail`, with file and line. GitHub-hosted label sets are skipped. An expression it cannot resolve (a matrix value) is `info`, "not checked". Built (CRSP23).
 
-**R5.19** — A self-hosted job with literal labels instead of `fromJSON(vars.CRSP_RUNS_ON_*)` is `warn`. A runner label that is not generic (not `self-hosted`, an OS, an architecture, `docker`, `kvm`, `gpu` or a pool name) is `warn` (learning 7). Built (CRSP23).
+**R5.19** — A self-hosted job with literal labels instead of `fromJSON(vars.RUNS_ON_*)` is `warn`. A runner label that is not generic (not `self-hosted`, an OS, an architecture, `docker`, `kvm`, `gpu` or a pool name) is `warn` (learning 7). Built (CRSP23).
 
 ### 5.6 Where it runs
 
@@ -166,6 +166,8 @@ States:
 ### 5.8 Milestones
 
 **R5.28** — Each milestone adds the checks of the parts it builds, as the catalogue marks them. A milestone is not done until its checks exist with tests. A check for a part that is not built yet does not appear in a run. NOT YET IMPLEMENTED (every milestone).
+
+**R5.29** — The hook run check (`runner.hookrun`) runs each persistent runner's real `job-started` hook script as the runner's service account with `CRSP_HOOK_PROBE=1`, so it takes no slot and starts no job, and reads its exit code and output. A hook is fine when it exits 0 and prints `crsp hook ok`. It is `fail` when the script cannot start, exits non-zero, prints a `::warning` annotation (crsp missing or broken, scheduling R5.61), or does not reach crsp. Hooks depend on nothing but the shell the runner already uses. An agent that did not run the hook gives `skip`. Problems the hooks wrote to `crsp-hook-problem.txt` show in `runner.hooks` (R5.14). Built (CRSP22): the check; the agent running the hook as the account is NOT YET IMPLEMENTED.
 
 ## 6. Non-functional requirements
 
@@ -229,6 +231,7 @@ Machines:
 | `machine.load.fresh` | The load figures are older than 60 s | fail | Restart the agent; it measures every 15 s | no | 1 |
 | `machine.load.budget` | Memory or CPU median over the budget for more than 10 minutes | warn | Lower slots or raise the budget on the Machines screen | no | 1 |
 | `machine.disk` | Free space on the work volume under 15% or 10 GB (warn), under 5% or 2 GB (fail); total size of runner work folders | warn, fail | Clean the work folders of idle runners: `crsp runners clean-work --machine NAME` | no | 1 |
+| `machine.guard.disk` | Free space on the runner volume under 10%, where the job-started gate holds new jobs (they wait, they are not failed) until 12% is free | fail | Free space on the volume, or lower the cache quotas: `crsp runners clean-work --machine NAME` | no | 1 |
 | `machine.clock` | Clock differs from the controller or from GitHub's `Date` header by over 30 s (warn) or 120 s (fail) | warn, fail | Turn on time sync (NTP) on that machine | no | 1 |
 | `machine.config` | The machine config the hooks read is missing or not readable by runner accounts | fail | Grant read rights; the command per OS | no | 1 |
 | `machine.slots` | A slot held by a dead holder or past `slot_stale_min`; a queue ticket older than that | fail | `crsp slots free-stale --machine NAME` (the next job gate also frees them) | no | 1 |
@@ -264,6 +267,7 @@ Runners:
 | `runner.service` | Service missing, stopped, or not set to start with the machine | fail | Start the service; set it to automatic | no | 1 |
 | `runner.version` | A newer runner release exists (warn); GitHub no longer accepts this version (fail) | warn, fail | Update the runner (drains first) | no | 1 |
 | `runner.hooks` | A job hook missing, ending in `.cmd`, pointing into a user profile, or blocked by the execution policy | fail | Set the hooks again from the Runners screen | yes | 1 |
+| `runner.hookrun` | The real job-started hook, run as the service account in probe mode, cannot start, exits non-zero, prints a crsp warning, or does not reach crsp | fail | Install crsp for all users again; set the hooks again | no | 1 |
 | `runner.machine` | The runner reads another machine config or hook folder than the pool | warn | Set the hooks again | yes | 1 |
 | `runner.env` | Runner env lacks the tool cache settings | warn | Set the runner env again | yes | 2 |
 | `runner.account` | A Windows runner service runs as a shared, system or admin account, or outside the runner group | warn | Replace it with its own non-admin account (learning 4) | no | 4 |
@@ -282,11 +286,11 @@ Repositories and workflows:
 
 | Check | Finds | Severity | Fix | Admin | M |
 |---|---|---|---|---|---|
-| `repo.vars` | `CRSP_RUNS_ON_<OS>` unset where used (fail), not a JSON list (fail), different from the product's value (warn) | fail, warn | Set it from the Repositories screen; the `gh variable set` command | no | 1 |
-| `repo.vars.runner` | A `CRSP_RUNS_ON_<OS>` whose labels no online runner carries | fail | Add or start a runner with those labels | no | 1 |
+| `repo.vars` | `RUNS_ON_<OS>` unset where used (fail), not a JSON list (fail), different from the product's value (warn) | fail, warn | Set it from the Repositories screen; the `gh variable set` command | no | 1 |
+| `repo.vars.runner` | A `RUNS_ON_<OS>` whose labels no online runner carries | fail | Add or start a runner with those labels | no | 1 |
 | `repo.forks` | A public repository lets fork pull requests reach the pool | warn | Turn fork jobs off unless meant | no | 2 |
-| `workflow.labels` | A self-hosted `runs-on` label set no online runner carries, with file and line | fail | Add a runner with the labels, or change the workflow to `fromJSON(vars.CRSP_RUNS_ON_<OS>)` | no | 1 |
-| `workflow.generic` | A self-hosted job with literal labels | warn | Use `${{ fromJSON(vars.CRSP_RUNS_ON_<OS>) }}` | no | 1 |
+| `workflow.labels` | A self-hosted `runs-on` label set no online runner carries, with file and line | fail | Add a runner with the labels, or change the workflow to `fromJSON(vars.RUNS_ON_<OS>)` | no | 1 |
+| `workflow.generic` | A self-hosted job with literal labels | warn | Use `${{ fromJSON(vars.RUNS_ON_<OS>) }}` | no | 1 |
 | `workflow.unresolved` | A `runs-on` expression the doctor cannot resolve | info | None needed; it says it was not checked | no | 1 |
 | `runner.labels.generic` | A runner carries a label that is not generic | warn | Remove the label; target by repository variable | no | 1 |
 
@@ -306,6 +310,7 @@ Each port brings its tests (decision 0005). Source paths are in dev-standards; `
 | Check | Ported from | Source tests | Planned Go test |
 |---|---|---|---|
 | `machine.load.fresh` | DS `machine_items` (`machine.hostload`) | `test_machine.py` HostLoad, DoctorMachine | `internal/doctor/checks/machine/load_test.go` TestLoadFresh |
+| `machine.guard.disk` | new (caches R5.38) | none | `internal/doctor/checks/checks_test.go` TestDiskGuard |
 | `machine.disk` | DS `machine_items` (`machine.disk`), `clean_work` | `test_machine.py` `test_disk_warning_and_clean_work` | `internal/doctor/checks/machine/disk_test.go` TestDisk |
 | `machine.config` | DS `machine_items` (`machine.config`) | `test_machine.py` `test_option_1_without_machine_json_fails` | `internal/doctor/checks/machine/config_test.go` TestConfigReadable |
 | `machine.slots` | DS `machine_items` (`machine.slots`) | `test_machine.py` `test_healthy_layer_and_stale_slot_and_old_files` | `internal/doctor/checks/machine/slots_test.go` TestStaleSlotsAndTickets |
@@ -362,7 +367,7 @@ Not ported, with the reason:
       "severity": "fail",
       "title": "No online runner carries [self-hosted, linux, arm64]",
       "detail": ".github/workflows/ci.yml:12 needs [self-hosted, linux, arm64]",
-      "fix": {"text": "Add a runner with these labels, or use fromJSON(vars.CRSP_RUNS_ON_LINUX).", "command": null, "link": "/runners"},
+      "fix": {"text": "Add a runner with these labels, or use fromJSON(vars.RUNS_ON_LINUX).", "command": null, "link": "/runners"},
       "needs_admin": false,
       "milestone": 1,
       "checked_at": "2026-11-14T10:00:12Z"
@@ -424,6 +429,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.26 | internal/doctor/diff_test.go TestOpenedResolvedNoRepeat (planned) |
 | R5.27 | internal/doctor/diff_test.go TestBriefNotificationCases (planned) |
 | R5.28 | internal/doctor/registry_test.go TestMilestoneGating and TestEveryCheckHasATest (planned) |
+| R5.29 | internal/doctor/checks/checks_test.go TestRunnerHookRun; internal/hooks/visibility_test.go TestProbeAnswersWithoutTheGate |
 | R6.1 | internal/doctor/engine_test.go TestSlowCheckIsSkipNotOk (the timeout); benchmark planned |
 | R6.2 | internal/doctor/checks/checks_test.go TestCallCountBudget |
 | R6.3 | internal/doctor/engine_test.go TestSecretsAreRedactedInFindings |
@@ -454,7 +460,7 @@ The seams that change as it is built:
 - Open questions for the owner (until answered, the choices in section 10 stand):
   1. The brief lists the doctor under milestone 2 but says every milestone ends with the doctor covering its parts. Start it in milestone 1 (D6)?
   2. Answered in CRSP23: only `fail` exits 1; `warn` exits 0 (see R5.22).
-  3. Decision 0002 says `CRSP_RUNS_ON_LINUX`; the brief says `CRSP_RUNS_ON_*`. Update decision 0002 to match (D4)?
+  3. Decision 0002 still shows `CRSP_RUNS_ON_LINUX` as an example; the product writes `RUNS_ON_*` (D4, D300).
   4. UX-58 has no glyph for a warning. Add one in the next design-system version (for example `! warn` in Needs you amber)?
   5. Schedule defaults: full run every 30 minutes and quick run every 60 s (R5.25). Right?
   6. May viewers start a run, or only read findings (R6.4)?

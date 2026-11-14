@@ -893,19 +893,19 @@ func (e RepositoryVisibility) Valid() bool {
 
 // Defines values for RepositoryVariableName.
 const (
-	CRSPRUNSONLINUX   RepositoryVariableName = "CRSP_RUNS_ON_LINUX"
-	CRSPRUNSONMACOS   RepositoryVariableName = "CRSP_RUNS_ON_MACOS"
-	CRSPRUNSONWINDOWS RepositoryVariableName = "CRSP_RUNS_ON_WINDOWS"
+	RUNSONLINUX   RepositoryVariableName = "RUNS_ON_LINUX"
+	RUNSONMACOS   RepositoryVariableName = "RUNS_ON_MACOS"
+	RUNSONWINDOWS RepositoryVariableName = "RUNS_ON_WINDOWS"
 )
 
 // Valid indicates whether the value is a known member of the RepositoryVariableName enum.
 func (e RepositoryVariableName) Valid() bool {
 	switch e {
-	case CRSPRUNSONLINUX:
+	case RUNSONLINUX:
 		return true
-	case CRSPRUNSONMACOS:
+	case RUNSONMACOS:
 		return true
-	case CRSPRUNSONWINDOWS:
+	case RUNSONWINDOWS:
 		return true
 	default:
 		return false
@@ -1170,60 +1170,33 @@ func (e Theme) Valid() bool {
 	}
 }
 
-// Defines values for UpdatePartPart.
+// Defines values for UpdateStatusState.
 const (
-	UpdatePartPartAgent      UpdatePartPart = "agent"
-	UpdatePartPartController UpdatePartPart = "controller"
+	UpdateStatusStateChecking       UpdateStatusState = "checking"
+	UpdateStatusStateDownloading    UpdateStatusState = "downloading"
+	UpdateStatusStateFailed         UpdateStatusState = "failed"
+	UpdateStatusStateIdle           UpdateStatusState = "idle"
+	UpdateStatusStateInstalling     UpdateStatusState = "installing"
+	UpdateStatusStateRestarting     UpdateStatusState = "restarting"
+	UpdateStatusStateWaitingForJobs UpdateStatusState = "waiting_for_jobs"
 )
 
-// Valid indicates whether the value is a known member of the UpdatePartPart enum.
-func (e UpdatePartPart) Valid() bool {
+// Valid indicates whether the value is a known member of the UpdateStatusState enum.
+func (e UpdateStatusState) Valid() bool {
 	switch e {
-	case UpdatePartPartAgent:
+	case UpdateStatusStateChecking:
 		return true
-	case UpdatePartPartController:
+	case UpdateStatusStateDownloading:
 		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for UpdatePartState.
-const (
-	UpdatePartStateAvailable UpdatePartState = "available"
-	UpdatePartStateCurrent   UpdatePartState = "current"
-	UpdatePartStateFailed    UpdatePartState = "failed"
-	UpdatePartStateUpdating  UpdatePartState = "updating"
-	UpdatePartStateWaiting   UpdatePartState = "waiting"
-)
-
-// Valid indicates whether the value is a known member of the UpdatePartState enum.
-func (e UpdatePartState) Valid() bool {
-	switch e {
-	case UpdatePartStateAvailable:
+	case UpdateStatusStateFailed:
 		return true
-	case UpdatePartStateCurrent:
+	case UpdateStatusStateIdle:
 		return true
-	case UpdatePartStateFailed:
+	case UpdateStatusStateInstalling:
 		return true
-	case UpdatePartStateUpdating:
+	case UpdateStatusStateRestarting:
 		return true
-	case UpdatePartStateWaiting:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for UpdateStatusChannel.
-const (
-	Stable UpdateStatusChannel = "stable"
-)
-
-// Valid indicates whether the value is a known member of the UpdateStatusChannel enum.
-func (e UpdateStatusChannel) Valid() bool {
-	switch e {
-	case Stable:
+	case UpdateStatusStateWaitingForJobs:
 		return true
 	default:
 		return false
@@ -2004,19 +1977,16 @@ type MachineSettingsUpdateGateOnTimeout string
 // MachineState active and drained are set by the user; draining while a drain waits.
 type MachineState string
 
-// NotificationChannel One channel. No secret is returned: `has_secret` and `smtp.has_password` say only whether one is set.
+// NotificationChannel One channel. No secret is returned: `secret_set` and `smtp.has_password` say only whether one is set.
 type NotificationChannel struct {
 	// Address Email address (kind email).
-	Address *string             `json:"address,omitempty"`
-	Enabled bool                `json:"enabled"`
-	Events  []NotificationEvent `json:"events"`
-
-	// HasSecret A webhook signing secret is set. Always false for other kinds.
-	HasSecret  bool             `json:"has_secret"`
-	Id         string           `json:"id"`
-	Kind       NotificationKind `json:"kind"`
-	LastTestAt *time.Time       `json:"last_test_at,omitempty"`
-	LastTestOk *bool            `json:"last_test_ok,omitempty"`
+	Address    *string             `json:"address,omitempty"`
+	Enabled    bool                `json:"enabled"`
+	Events     []NotificationEvent `json:"events"`
+	Id         string              `json:"id"`
+	Kind       NotificationKind    `json:"kind"`
+	LastTestAt *time.Time          `json:"last_test_at,omitempty"`
+	LastTestOk *bool               `json:"last_test_ok,omitempty"`
 
 	// MinSeverity The lowest doctor severity the channel gets (notifications R5.4).
 	MinSeverity NotificationSeverity `json:"min_severity"`
@@ -2024,6 +1994,9 @@ type NotificationChannel struct {
 
 	// Scope Email and desktop are personal; a webhook is pool-wide.
 	Scope NotificationChannelScope `json:"scope"`
+
+	// SecretSet A webhook signing secret is set. Always false for other kinds.
+	SecretSet bool `json:"secret_set"`
 
 	// Smtp How an email channel sends. The password is never returned.
 	Smtp *SmtpSettings `json:"smtp,omitempty"`
@@ -2372,7 +2345,9 @@ type Session struct {
 
 // Settings observability R6.8 retention (days unless named), operations R5.21 backup time.
 type Settings struct {
-	BackupKeepDays *int `json:"backup_keep_days,omitempty"`
+	// AutoUpdate operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first.
+	AutoUpdate     *bool `json:"auto_update,omitempty"`
+	BackupKeepDays *int  `json:"backup_keep_days,omitempty"`
 
 	// BackupTimeLocal HH:MM, 24-hour local time.
 	BackupTimeLocal            *string `json:"backup_time_local,omitempty"`
@@ -2464,12 +2439,6 @@ type StartAppManifestRequest struct {
 // StartAppManifestRequestAccountType defines model for StartAppManifestRequest.AccountType.
 type StartAppManifestRequestAccountType string
 
-// StartUpdateRequest defines model for StartUpdateRequest.
-type StartUpdateRequest struct {
-	// MachineIds Only these machines. Absent means the controller, then every agent.
-	MachineIds *[]string `json:"machine_ids,omitempty"`
-}
-
 // Theme defines model for Theme.
 type Theme string
 
@@ -2499,58 +2468,38 @@ type UpdateImageLayersRequest struct {
 	EnabledLayers []string `json:"enabled_layers"`
 }
 
-// UpdatePart One part that runs a version of crsp (the controller or an agent).
-type UpdatePart struct {
-	AvailableVersion *string         `json:"available_version,omitempty"`
-	Error            *string         `json:"error,omitempty"`
-	MachineId        string          `json:"machine_id"`
-	MachineName      *string         `json:"machine_name,omitempty"`
-	Part             UpdatePartPart  `json:"part"`
-	State            UpdatePartState `json:"state"`
-	Version          string          `json:"version"`
-
-	// WaitingFor Jobs the drain waits for.
-	WaitingFor *[]Job `json:"waiting_for,omitempty"`
+// UpdateJob defines model for UpdateJob.
+type UpdateJob struct {
+	Job        string  `json:"job"`
+	Repository string  `json:"repository"`
+	RunId      int64   `json:"run_id"`
+	Workflow   *string `json:"workflow,omitempty"`
 }
 
-// UpdatePartPart defines model for UpdatePart.Part.
-type UpdatePartPart string
-
-// UpdatePartState defines model for UpdatePart.State.
-type UpdatePartState string
-
-// UpdatePolicy operations R5.11, R5.14 and R5.15. The channel is `stable` and cannot change.
-type UpdatePolicy struct {
-	// AutoUpdate On installs a stable build in its window after the drain; off asks first.
-	AutoUpdate          *bool `json:"auto_update,omitempty"`
-	CheckIntervalHours  *int  `json:"check_interval_hours,omitempty"`
-	DrainTimeoutMinutes *int  `json:"drain_timeout_minutes,omitempty"`
-}
-
-// UpdateRun defines model for UpdateRun.
-type UpdateRun struct {
-	Changes []MachineChange `json:"changes"`
-	Version *string         `json:"version,omitempty"`
-}
-
-// UpdateStatus defines model for UpdateStatus.
+// UpdateStatus operations R5.11 to R5.18, tray R5.18.
 type UpdateStatus struct {
-	// AvailableVersion The newest stable build offered, absent when the pool is current.
-	AvailableVersion *string             `json:"available_version,omitempty"`
-	Channel          UpdateStatusChannel `json:"channel"`
-	LastCheckAt      *time.Time          `json:"last_check_at,omitempty"`
-	NextCheckAt      *time.Time          `json:"next_check_at,omitempty"`
-	Parts            []UpdatePart        `json:"parts"`
+	AutoUpdate          bool       `json:"auto_update"`
+	CheckedAt           *time.Time `json:"checked_at,omitempty"`
+	CurrentVersion      string     `json:"current_version"`
+	DrainTimeoutMinutes *int       `json:"drain_timeout_minutes,omitempty"`
 
-	// Policy operations R5.11, R5.14 and R5.15. The channel is `stable` and cannot change.
-	Policy UpdatePolicy `json:"policy"`
+	// Error Which check or step failed, in words.
+	Error *string `json:"error,omitempty"`
 
-	// RunnerVersion The pinned GitHub runner version (operations R5.19).
-	RunnerVersion *string `json:"runner_version,omitempty"`
+	// LatestVersion The newest stable release found; absent before the first look.
+	LatestVersion *string `json:"latest_version,omitempty"`
+	ReleaseUrl    *string `json:"release_url,omitempty"`
+
+	// RunningJobs Jobs running on this machine that the drain waits for.
+	RunningJobs []UpdateJob `json:"running_jobs"`
+
+	// State waiting_for_jobs is the drain. failed carries `error`.
+	State           UpdateStatusState `json:"state"`
+	UpdateAvailable bool              `json:"update_available"`
 }
 
-// UpdateStatusChannel defines model for UpdateStatus.Channel.
-type UpdateStatusChannel string
+// UpdateStatusState waiting_for_jobs is the drain. failed carries `error`.
+type UpdateStatusState string
 
 // UpdateUserRoleRequest defines model for UpdateUserRoleRequest.
 type UpdateUserRoleRequest struct {
@@ -2596,6 +2545,9 @@ type ChannelId = string
 
 // Confirm defines model for Confirm.
 type Confirm = bool
+
+// Confirmed defines model for Confirmed.
+type Confirmed = bool
 
 // Cursor defines model for Cursor.
 type Cursor = string
@@ -2810,10 +2762,16 @@ type DeleteRunnerParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
-// StartUpdateParams defines parameters for StartUpdate.
-type StartUpdateParams struct {
-	// Confirm The yes to a question card that named what goes (UX-62).
-	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+// RestartServiceParams defines parameters for RestartService.
+type RestartServiceParams struct {
+	// Confirmed The yes to the Review step that named the running jobs (tray R5.16).
+	Confirmed *Confirmed `form:"confirmed,omitempty" json:"confirmed,omitempty"`
+}
+
+// ApplyUpdateParams defines parameters for ApplyUpdate.
+type ApplyUpdateParams struct {
+	// Confirmed The yes to the Review step that named the running jobs (tray R5.16).
+	Confirmed *Confirmed `form:"confirmed,omitempty" json:"confirmed,omitempty"`
 }
 
 // CompleteAppManifestParams defines parameters for CompleteAppManifest.
@@ -2913,12 +2871,6 @@ type StartAppManifestJSONRequestBody = StartAppManifestRequest
 
 // RedeemSetupLinkJSONRequestBody defines body for RedeemSetupLink for application/json ContentType.
 type RedeemSetupLinkJSONRequestBody = RedeemSetupLinkRequest
-
-// UpdateUpdatePolicyJSONRequestBody defines body for UpdateUpdatePolicy for application/json ContentType.
-type UpdateUpdatePolicyJSONRequestBody = UpdatePolicy
-
-// StartUpdateJSONRequestBody defines body for StartUpdate for application/json ContentType.
-type StartUpdateJSONRequestBody = StartUpdateRequest
 
 // AddUserJSONRequestBody defines body for AddUser for application/json ContentType.
 type AddUserJSONRequestBody = AddUserRequest
@@ -3141,6 +3093,9 @@ type ServerInterface interface {
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
+	// RestartService Restart the service after a drain
+	// (POST /api/v1/service/restart)
+	RestartService(w http.ResponseWriter, r *http.Request, params RestartServiceParams)
 	// GetSettings Controller settings (retention, backup time, stream limits)
 	// (GET /api/v1/settings)
 	GetSettings(w http.ResponseWriter, r *http.Request)
@@ -3168,15 +3123,15 @@ type ServerInterface interface {
 	// RedeemSetupLink Trade a one-time setup code for a setup cookie
 	// (POST /api/v1/setup/redeem)
 	RedeemSetupLink(w http.ResponseWriter, r *http.Request)
-	// GetUpdateStatus Controller and agent versions, the policy and what is offered
-	// (GET /api/v1/updates)
+	// GetUpdateStatus The running version, the newest stable release, and the state of an update
+	// (GET /api/v1/update)
 	GetUpdateStatus(w http.ResponseWriter, r *http.Request)
-	// UpdateUpdatePolicy Change auto-update, the check interval and the drain rules
-	// (PATCH /api/v1/updates/policy)
-	UpdateUpdatePolicy(w http.ResponseWriter, r *http.Request)
-	// StartUpdate Update now
-	// (POST /api/v1/updates/start)
-	StartUpdate(w http.ResponseWriter, r *http.Request, params StartUpdateParams)
+	// ApplyUpdate Update to the newest stable release after a drain
+	// (POST /api/v1/update/apply)
+	ApplyUpdate(w http.ResponseWriter, r *http.Request, params ApplyUpdateParams)
+	// CheckForUpdate Look for a newer stable release now
+	// (POST /api/v1/update/check)
+	CheckForUpdate(w http.ResponseWriter, r *http.Request)
 	// ListUsers Users allowed to sign in, with their roles
 	// (GET /api/v1/users)
 	ListUsers(w http.ResponseWriter, r *http.Request)
@@ -5481,6 +5436,39 @@ func (siw *ServerInterfaceWrapper) PlanRunnerReplacement(w http.ResponseWriter, 
 	handler.ServeHTTP(w, r)
 }
 
+// RestartService operation middleware
+func (siw *ServerInterfaceWrapper) RestartService(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RestartServiceParams
+
+	// ------------- Optional query parameter "confirmed" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirmed", r.URL.Query(), &params.Confirmed, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirmed"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirmed", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RestartService(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSettings operation middleware
 func (siw *ServerInterfaceWrapper) GetSettings(w http.ResponseWriter, r *http.Request) {
 
@@ -5621,11 +5609,30 @@ func (siw *ServerInterfaceWrapper) GetUpdateStatus(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
-// UpdateUpdatePolicy operation middleware
-func (siw *ServerInterfaceWrapper) UpdateUpdatePolicy(w http.ResponseWriter, r *http.Request) {
+// ApplyUpdate operation middleware
+func (siw *ServerInterfaceWrapper) ApplyUpdate(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ApplyUpdateParams
+
+	// ------------- Optional query parameter "confirmed" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirmed", r.URL.Query(), &params.Confirmed, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirmed"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirmed", Err: err})
+		}
+		return
+	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.UpdateUpdatePolicy(w, r)
+		siw.Handler.ApplyUpdate(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -5635,30 +5642,11 @@ func (siw *ServerInterfaceWrapper) UpdateUpdatePolicy(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
-// StartUpdate operation middleware
-func (siw *ServerInterfaceWrapper) StartUpdate(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-	_ = err
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params StartUpdateParams
-
-	// ------------- Optional query parameter "confirm" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
-	if err != nil {
-		var requiredError *runtime.RequiredParameterError
-		if errors.As(err, &requiredError) {
-			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
-		} else {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
-		}
-		return
-	}
+// CheckForUpdate operation middleware
+func (siw *ServerInterfaceWrapper) CheckForUpdate(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.StartUpdate(w, r, params)
+		siw.Handler.CheckForUpdate(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6211,6 +6199,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/doctor/findings", wrapper.ListDoctorFindings)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings", wrapper.GetSettings)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/settings", wrapper.UpdateSettings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/update", wrapper.GetUpdateStatus)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/update/check", wrapper.CheckForUpdate)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/update/apply", wrapper.ApplyUpdate)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/service/restart", wrapper.RestartService)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/audit", wrapper.ListAuditEvents)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/backups", wrapper.ListBackups)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/backups", wrapper.RunBackup)
@@ -6232,9 +6224,6 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/notification-channels/{channelId}", wrapper.DeleteNotificationChannel)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/notification-channels/{channelId}", wrapper.UpdateNotificationChannel)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/notification-channels/{channelId}/test", wrapper.TestNotificationChannel)
-	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/updates", wrapper.GetUpdateStatus)
-	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/updates/policy", wrapper.UpdateUpdatePolicy)
-	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/updates/start", wrapper.StartUpdate)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/webhooks/github", wrapper.ReceiveGithubWebhook)
 
 	return m
@@ -9139,6 +9128,45 @@ func (response PlanRunnerReplacementdefaultJSONResponse) VisitPlanRunnerReplacem
 	return err
 }
 
+type RestartServiceRequestObject struct {
+	Params RestartServiceParams
+}
+
+type RestartServiceResponseObject interface {
+	VisitRestartServiceResponse(w http.ResponseWriter) error
+}
+
+type RestartService202JSONResponse UpdateStatus
+
+func (response RestartService202JSONResponse) VisitRestartServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RestartServicedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RestartServicedefaultJSONResponse) VisitRestartServiceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetSettingsRequestObject struct {
 }
 
@@ -9534,57 +9562,17 @@ func (response GetUpdateStatusdefaultJSONResponse) VisitGetUpdateStatusResponse(
 	return err
 }
 
-type UpdateUpdatePolicyRequestObject struct {
-	Body *UpdateUpdatePolicyJSONRequestBody
+type ApplyUpdateRequestObject struct {
+	Params ApplyUpdateParams
 }
 
-type UpdateUpdatePolicyResponseObject interface {
-	VisitUpdateUpdatePolicyResponse(w http.ResponseWriter) error
+type ApplyUpdateResponseObject interface {
+	VisitApplyUpdateResponse(w http.ResponseWriter) error
 }
 
-type UpdateUpdatePolicy200JSONResponse UpdateStatus
+type ApplyUpdate202JSONResponse UpdateStatus
 
-func (response UpdateUpdatePolicy200JSONResponse) VisitUpdateUpdatePolicyResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type UpdateUpdatePolicydefaultJSONResponse struct {
-	Body       ErrorEnvelope
-	StatusCode int
-}
-
-func (response UpdateUpdatePolicydefaultJSONResponse) VisitUpdateUpdatePolicyResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type StartUpdateRequestObject struct {
-	Params StartUpdateParams
-	Body   *StartUpdateJSONRequestBody
-}
-
-type StartUpdateResponseObject interface {
-	VisitStartUpdateResponse(w http.ResponseWriter) error
-}
-
-type StartUpdate202JSONResponse UpdateRun
-
-func (response StartUpdate202JSONResponse) VisitStartUpdateResponse(w http.ResponseWriter) error {
+func (response ApplyUpdate202JSONResponse) VisitApplyUpdateResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -9596,12 +9584,50 @@ func (response StartUpdate202JSONResponse) VisitStartUpdateResponse(w http.Respo
 	return err
 }
 
-type StartUpdatedefaultJSONResponse struct {
+type ApplyUpdatedefaultJSONResponse struct {
 	Body       ErrorEnvelope
 	StatusCode int
 }
 
-func (response StartUpdatedefaultJSONResponse) VisitStartUpdateResponse(w http.ResponseWriter) error {
+func (response ApplyUpdatedefaultJSONResponse) VisitApplyUpdateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckForUpdateRequestObject struct {
+}
+
+type CheckForUpdateResponseObject interface {
+	VisitCheckForUpdateResponse(w http.ResponseWriter) error
+}
+
+type CheckForUpdate200JSONResponse UpdateStatus
+
+func (response CheckForUpdate200JSONResponse) VisitCheckForUpdateResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckForUpdatedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CheckForUpdatedefaultJSONResponse) VisitCheckForUpdateResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -10188,6 +10214,9 @@ type StrictServerInterface interface {
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(ctx context.Context, request PlanRunnerReplacementRequestObject) (PlanRunnerReplacementResponseObject, error)
+	// RestartService Restart the service after a drain
+	// (POST /api/v1/service/restart)
+	RestartService(ctx context.Context, request RestartServiceRequestObject) (RestartServiceResponseObject, error)
 	// GetSettings Controller settings (retention, backup time, stream limits)
 	// (GET /api/v1/settings)
 	GetSettings(ctx context.Context, request GetSettingsRequestObject) (GetSettingsResponseObject, error)
@@ -10215,15 +10244,15 @@ type StrictServerInterface interface {
 	// RedeemSetupLink Trade a one-time setup code for a setup cookie
 	// (POST /api/v1/setup/redeem)
 	RedeemSetupLink(ctx context.Context, request RedeemSetupLinkRequestObject) (RedeemSetupLinkResponseObject, error)
-	// GetUpdateStatus Controller and agent versions, the policy and what is offered
-	// (GET /api/v1/updates)
+	// GetUpdateStatus The running version, the newest stable release, and the state of an update
+	// (GET /api/v1/update)
 	GetUpdateStatus(ctx context.Context, request GetUpdateStatusRequestObject) (GetUpdateStatusResponseObject, error)
-	// UpdateUpdatePolicy Change auto-update, the check interval and the drain rules
-	// (PATCH /api/v1/updates/policy)
-	UpdateUpdatePolicy(ctx context.Context, request UpdateUpdatePolicyRequestObject) (UpdateUpdatePolicyResponseObject, error)
-	// StartUpdate Update now
-	// (POST /api/v1/updates/start)
-	StartUpdate(ctx context.Context, request StartUpdateRequestObject) (StartUpdateResponseObject, error)
+	// ApplyUpdate Update to the newest stable release after a drain
+	// (POST /api/v1/update/apply)
+	ApplyUpdate(ctx context.Context, request ApplyUpdateRequestObject) (ApplyUpdateResponseObject, error)
+	// CheckForUpdate Look for a newer stable release now
+	// (POST /api/v1/update/check)
+	CheckForUpdate(ctx context.Context, request CheckForUpdateRequestObject) (CheckForUpdateResponseObject, error)
 	// ListUsers Users allowed to sign in, with their roles
 	// (GET /api/v1/users)
 	ListUsers(ctx context.Context, request ListUsersRequestObject) (ListUsersResponseObject, error)
@@ -12201,6 +12230,32 @@ func (sh *strictHandler) PlanRunnerReplacement(w http.ResponseWriter, r *http.Re
 	}
 }
 
+// RestartService operation middleware
+func (sh *strictHandler) RestartService(w http.ResponseWriter, r *http.Request, params RestartServiceParams) {
+	var request RestartServiceRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RestartService(ctx, request.(RestartServiceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RestartService")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RestartServiceResponseObject); ok {
+		if err := validResponse.VisitRestartServiceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetSettings operation middleware
 func (sh *strictHandler) GetSettings(w http.ResponseWriter, r *http.Request) {
 	var request GetSettingsRequestObject
@@ -12476,30 +12531,25 @@ func (sh *strictHandler) GetUpdateStatus(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-// UpdateUpdatePolicy operation middleware
-func (sh *strictHandler) UpdateUpdatePolicy(w http.ResponseWriter, r *http.Request) {
-	var request UpdateUpdatePolicyRequestObject
+// ApplyUpdate operation middleware
+func (sh *strictHandler) ApplyUpdate(w http.ResponseWriter, r *http.Request, params ApplyUpdateParams) {
+	var request ApplyUpdateRequestObject
 
-	var body UpdateUpdatePolicyJSONRequestBody
-	if err := runtime.BindJSONBody(r, &body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.UpdateUpdatePolicy(ctx, request.(UpdateUpdatePolicyRequestObject))
+		return sh.ssi.ApplyUpdate(ctx, request.(ApplyUpdateRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "UpdateUpdatePolicy")
+		handler = middleware(handler, "ApplyUpdate")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(UpdateUpdatePolicyResponseObject); ok {
-		if err := validResponse.VisitUpdateUpdatePolicyResponse(w); err != nil {
+	} else if validResponse, ok := response.(ApplyUpdateResponseObject); ok {
+		if err := validResponse.VisitApplyUpdateResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -12507,35 +12557,23 @@ func (sh *strictHandler) UpdateUpdatePolicy(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-// StartUpdate operation middleware
-func (sh *strictHandler) StartUpdate(w http.ResponseWriter, r *http.Request, params StartUpdateParams) {
-	var request StartUpdateRequestObject
-
-	request.Params = params
-
-	var body StartUpdateJSONRequestBody
-	if err := runtime.BindJSONBody(r, &body); err != nil {
-		if !errors.Is(err, io.EOF) {
-			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-			return
-		}
-	} else {
-		request.Body = &body
-	}
+// CheckForUpdate operation middleware
+func (sh *strictHandler) CheckForUpdate(w http.ResponseWriter, r *http.Request) {
+	var request CheckForUpdateRequestObject
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.StartUpdate(ctx, request.(StartUpdateRequestObject))
+		return sh.ssi.CheckForUpdate(ctx, request.(CheckForUpdateRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "StartUpdate")
+		handler = middleware(handler, "CheckForUpdate")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(StartUpdateResponseObject); ok {
-		if err := validResponse.VisitStartUpdateResponse(w); err != nil {
+	} else if validResponse, ok := response.(CheckForUpdateResponseObject); ok {
+		if err := validResponse.VisitCheckForUpdateResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

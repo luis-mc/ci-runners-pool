@@ -7,7 +7,7 @@
 # luismc-docs builds docs that an older pin judges stale (G1). Keep it current
 # with `python3 <claude-setup>/assets/ci_pin.py --bump` (`--check` exits 1 when stale).
 #   luis-mc/dev-standards  the marketplace repository, as owner/name
-#   91285de9e59a654d7c2a2b2246df638420fa1038   a tag or full commit SHA (not a branch)
+#   e037c67489c9a0abe6aa8f8454768d0e4ed38211   a tag or full commit SHA (not a branch)
 #   claude/plugins/docs/scripts        path of the docs plugin scripts inside that checkout
 #   claude/plugins/docs/skills/spec-check/assets/spec_check.py          path of spec_check.py inside that checkout: claude/plugins/docs/skills/spec-check/assets/spec_check.py
 #   main      the repository's default branch (claude-setup reads it

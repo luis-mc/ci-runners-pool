@@ -312,6 +312,45 @@ func runnerHooks(ctx context.Context, env doctor.Env) []doctor.Finding {
 	return out
 }
 
+// hookProbeOK is what a working hook prints in probe mode (internal/hooks ProbeOK).
+// The check keeps its own copy so the doctor does not import the hook runtime.
+const hookProbeOK = "crsp hook ok"
+
+// runnerHookRun reports what happened when the agent ran each runner's real
+// job-started hook as the service account (R5.29). A hook needs only the shell
+// the runner already uses; it is not allowed to depend on anything else. A
+// hook that cannot start, exits non-zero, prints a ::warning annotation, or
+// does not reach crsp is a fail: its jobs would run without the queue and the
+// load gate.
+func runnerHookRun(ctx context.Context, env doctor.Env) []doctor.Finding {
+	rs, ms, out := persistentRunners(ctx, env, "runner.hookrun")
+	for _, r := range rs {
+		m := ms[r.MachineID]
+		f := doctor.Finding{Check: "runner.hookrun", Subject: runnerSubject(r)}
+		switch p := r.HookProbe; {
+		case !isOnline(env, m):
+			out = append(out, offlineSkip("runner.hookrun", m))
+			continue
+		case p == nil:
+			f.Severity, f.Title = doctor.Skip, "The job hook of "+r.Name+" was not run"
+			f.Detail = "The agent on " + m.Name + " did not run the hook as the runner's service account."
+			f.Fix = doctor.Fix{Text: "Update the agent on " + m.Name + " and run the checks again.", Command: "crsp doctor --check runner.hookrun"}
+		case p.Err != "":
+			f.Severity, f.Title = doctor.Fail, "The job hook of "+r.Name+" cannot start"
+			f.Detail = p.Err
+			f.Fix = doctor.Fix{Text: "Set the hooks again from the Runners screen.", Link: "/runners"}
+		case p.ExitCode != 0 || strings.Contains(p.Output, "::warning") || !strings.Contains(p.Output, hookProbeOK):
+			f.Severity, f.Title = doctor.Fail, "The job hook of "+r.Name+" does not reach crsp"
+			f.Detail = fmt.Sprintf("Exit %d. %s", p.ExitCode, strings.TrimSpace(p.Output))
+			f.Fix = doctor.Fix{Text: "Install crsp for all users on " + m.Name + " again, then run the check again.", Command: "crsp doctor --check runner.hookrun"}
+		default:
+			f.Severity, f.Title = doctor.OK, "The job hook of "+r.Name+" reaches crsp"
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
 var genericLabels = map[string]bool{
 	"self-hosted": true, "linux": true, "windows": true, "macos": true,
 	"x64": true, "x86": true, "arm": true, "arm64": true,

@@ -21,6 +21,9 @@ playwright-report/
 .claude/artifacts-local.json
 .claude/artifacts-record.lock
 .claude/worktrees/
+installer/.wix/
+installer/out/
+*.wixpdb
 # luismc-delivery: compiled Python (do not edit this block)
 __pycache__/
 *.pyc

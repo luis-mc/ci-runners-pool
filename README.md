@@ -9,10 +9,9 @@ A `tray` mode is planned.
 
 ## Status
 
-Pre-alpha. Milestone 1 is in progress.
-Only the repository skeleton exists.
-The controller starts, answers `/healthz` and serves a placeholder web console.
-The agent mode is not implemented yet.
+Pre-release. Milestone 1 is built and not yet released (v0.1.0 is next).
+The controller, the agent, the web console, the CLI, the tray, the slot queue and load gate, persistent runners for Windows, Linux and macOS, backup and the doctor core checks exist.
+The feature specs in `docs/features/` say per requirement what is built and what is not.
 
 ## Build from source
 

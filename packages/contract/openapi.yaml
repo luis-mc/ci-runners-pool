@@ -46,8 +46,8 @@ tags:
     description: Caches per machine (caches R5.8 to R5.14, web-console R5.25)
   - name: notifications
     description: Notification channels (notifications R5.7 to R5.9)
-  - name: updates
-    description: Controller and agent updates (operations R5.11 to R5.18)
+  - name: update
+    description: Self-update and service restart with drain (operations R5.11 to R5.18, tray R5.15 to R5.18)
   - name: webhooks
     description: GitHub webhook intake (github-integration R5.36)
 paths:
@@ -1607,6 +1607,83 @@ paths:
                 $ref: '#/components/schemas/Settings'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/update:
+    get:
+      operationId: getUpdateStatus
+      tags: [update]
+      summary: The running version, the newest stable release, and the state of an update
+      description: operations R5.11, tray R5.18. Stable releases only.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The update status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/update/check:
+    post:
+      operationId: checkForUpdate
+      tags: [update]
+      summary: Look for a newer stable release now
+      description: operations R5.11. Downloads nothing. With auto-update on and a newer release, the update then starts by itself and drains first.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      responses:
+        '200':
+          description: The update status after the look.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/update/apply:
+    post:
+      operationId: applyUpdate
+      tags: [update]
+      summary: Update to the newest stable release after a drain
+      description: >-
+        tray R5.16 to R5.18, operations R5.12 to R5.14. Without `confirmed=true`
+        it changes nothing and answers 409 needs_confirmation with one `job`
+        detail per running job. With it, the machine drains (no new jobs, running
+        jobs finish up to the drain timeout), the download is verified (SHA-256
+        and build provenance) and installed.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/Confirmed'
+      responses:
+        '202':
+          description: Draining or installing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/service/restart:
+    post:
+      operationId: restartService
+      tags: [update]
+      summary: Restart the service after a drain
+      description: tray R5.15 to R5.17. Same confirmation rule as applyUpdate.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/Confirmed'
+      responses:
+        '202':
+          description: Draining, then restarting.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/audit:
     get:
       operationId: listAuditEvents
@@ -2196,89 +2273,6 @@ paths:
           $ref: '#/components/responses/Error'
 
   # ---------------------------------------------------------------- updates (CRSP32)
-  /api/v1/updates:
-    get:
-      operationId: getUpdateStatus
-      x-cli: none
-      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
-      tags: [updates]
-      summary: Controller and agent versions, the policy and what is offered
-      description: >-
-        web-console 4.9, operations R5.11 to R5.18. The channel is `stable`
-        only. Auto-update is on by default.
-      x-auth: user
-      x-rate-limit: 120/minute/user
-      responses:
-        '200':
-          description: The status.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UpdateStatus'
-        default:
-          $ref: '#/components/responses/Error'
-  /api/v1/updates/policy:
-    patch:
-      operationId: updateUpdatePolicy
-      x-cli: none
-      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
-      tags: [updates]
-      summary: Change auto-update, the check interval and the drain rules
-      description: >-
-        operations R5.11, R5.14 and R5.15. A field left out keeps its value. A
-        value outside its range is refused with the range.
-      x-auth: admin
-      x-rate-limit: 30/minute/user
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdatePolicy'
-      responses:
-        '200':
-          description: The status after the change.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UpdateStatus'
-        default:
-          $ref: '#/components/responses/Error'
-  /api/v1/updates/start:
-    post:
-      operationId: startUpdate
-      x-cli: none
-      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
-      tags: [updates]
-      summary: Update now
-      description: >-
-        operations R5.14 to R5.18. Without `confirm=true` it answers 409
-        needs_confirmation naming the version, the machines and the jobs the
-        drain waits for (UX-62). The controller goes first, then agents one at a
-        time. Each machine gets a MachineChange of kind `controller_update` or
-        `agent_update`; watch them with getMachineChange and `change.progress`.
-        Answers 409 conflict when nothing newer is offered.
-      x-auth: owner
-      x-rate-limit: 5/minute/user
-      parameters:
-        - $ref: '#/components/parameters/Confirm'
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StartUpdateRequest'
-      responses:
-        '202':
-          description: Draining, then updating.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UpdateRun'
-        default:
-          $ref: '#/components/responses/Error'
-
-  # ---------------------------------------------------------------- webhooks
   /webhooks/github:
     post:
       operationId: receiveGithubWebhook
@@ -2371,6 +2365,14 @@ components:
       in: query
       required: false
       description: The yes to a question card that named what goes (UX-62).
+      schema:
+        type: boolean
+        default: false
+    Confirmed:
+      name: confirmed
+      in: query
+      required: false
+      description: The yes to the Review step that named the running jobs (tray R5.16).
       schema:
         type: boolean
         default: false
@@ -2973,7 +2975,7 @@ components:
         pool_on: true
         user_is_github_admin: true
         variables:
-          - name: CRSP_RUNS_ON_LINUX
+          - name: RUNS_ON_LINUX
             status: ok
             value: '["self-hosted","linux","x64"]'
         policy:
@@ -2988,7 +2990,7 @@ components:
       properties:
         name:
           type: string
-          enum: [CRSP_RUNS_ON_LINUX, CRSP_RUNS_ON_WINDOWS, CRSP_RUNS_ON_MACOS]
+          enum: [RUNS_ON_LINUX, RUNS_ON_WINDOWS, RUNS_ON_MACOS]
         status:
           $ref: '#/components/schemas/VariableStatus'
         value:
@@ -4256,7 +4258,7 @@ components:
         title: No online runner carries [self-hosted, linux, arm64]
         detail: .github/workflows/ci.yml:12 needs [self-hosted, linux, arm64]
         fix:
-          text: Add a runner with these labels, or use fromJSON(vars.CRSP_RUNS_ON_LINUX).
+          text: Add a runner with these labels, or use fromJSON(vars.RUNS_ON_LINUX).
           link: /runners
         needs_admin: false
         milestone: 1
@@ -4310,6 +4312,9 @@ components:
           type: integer
           minimum: 1
           maximum: 200
+        auto_update:
+          type: boolean
+          description: operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first.
       example:
         retention_job_history_days: 90
         retention_logs_days: 14
@@ -4319,6 +4324,71 @@ components:
         backup_time_local: '03:00'
         backup_keep_days: 14
         max_event_streams: 50
+        auto_update: true
+    UpdateStatus:
+      type: object
+      description: operations R5.11 to R5.18, tray R5.18.
+      required: [current_version, update_available, state, auto_update, running_jobs]
+      properties:
+        current_version:
+          type: string
+          example: 1.4.0
+        latest_version:
+          type: string
+          description: The newest stable release found; absent before the first look.
+        update_available:
+          type: boolean
+        state:
+          type: string
+          enum:
+            [
+              idle,
+              checking,
+              waiting_for_jobs,
+              downloading,
+              installing,
+              restarting,
+              failed,
+            ]
+          description: waiting_for_jobs is the drain. failed carries `error`.
+        auto_update:
+          type: boolean
+        checked_at:
+          type: string
+          format: date-time
+        error:
+          type: string
+          description: Which check or step failed, in words.
+        running_jobs:
+          type: array
+          description: Jobs running on this machine that the drain waits for.
+          items:
+            $ref: '#/components/schemas/UpdateJob'
+        drain_timeout_minutes:
+          type: integer
+        release_url:
+          type: string
+          format: uri
+      example:
+        current_version: 1.4.0
+        latest_version: 1.5.0
+        update_available: true
+        state: idle
+        auto_update: true
+        running_jobs: []
+    UpdateJob:
+      type: object
+      required: [repository, run_id, job]
+      properties:
+        repository:
+          type: string
+        workflow:
+          type: string
+        run_id:
+          type: integer
+          format: int64
+        job:
+          type: string
     AuditEvent:
       type: object
       description: observability R5.24.
@@ -4565,7 +4635,15 @@ components:
     NotificationEvent:
       type: string
       description: The stable event types of notifications R5.1.
-      enum: [machine.offline, job.waiting, disk.low, runner.outdated, doctor.finding, update.available]
+      enum:
+        [
+          machine.offline,
+          job.waiting,
+          disk.low,
+          runner.outdated,
+          doctor.finding,
+          update.available,
+        ]
     NotificationKind:
       type: string
       enum: [email, webhook, desktop]
@@ -4591,9 +4669,9 @@ components:
     NotificationChannel:
       type: object
       description: >-
-        One channel. No secret is returned: `has_secret` and `smtp.has_password`
+        One channel. No secret is returned: `secret_set` and `smtp.has_password`
         say only whether one is set.
-      required: [id, kind, name, scope, enabled, events, min_severity, has_secret]
+      required: [id, kind, name, scope, enabled, events, min_severity, secret_set]
       properties:
         id:
           type: string
@@ -4619,7 +4697,7 @@ components:
         url:
           type: string
           description: HTTPS URL (kind webhook).
-        has_secret:
+        secret_set:
           type: boolean
           description: A webhook signing secret is set. Always false for other kinds.
         smtp:
@@ -4638,7 +4716,7 @@ components:
         events: [machine.offline, job.waiting]
         min_severity: warning
         url: https://hooks.example.com/crsp
-        has_secret: true
+        secret_set: true
     NotificationChannelList:
       type: object
       required: [items]
@@ -4746,110 +4824,3 @@ components:
           format: date-time
 
     # ---------- updates (CRSP32)
-    UpdatePolicy:
-      type: object
-      description: operations R5.11, R5.14 and R5.15. The channel is `stable` and cannot change.
-      properties:
-        auto_update:
-          type: boolean
-          description: On installs a stable build in its window after the drain; off asks first.
-          default: true
-        check_interval_hours:
-          type: integer
-          minimum: 1
-          maximum: 168
-          default: 6
-        drain_timeout_minutes:
-          type: integer
-          minimum: 1
-          maximum: 1440
-          default: 60
-      example:
-        auto_update: true
-        check_interval_hours: 6
-        drain_timeout_minutes: 60
-    UpdatePart:
-      type: object
-      description: One part that runs a version of crsp (the controller or an agent).
-      required: [part, machine_id, version, state]
-      properties:
-        part:
-          type: string
-          enum: [controller, agent]
-        machine_id:
-          type: string
-        machine_name:
-          type: string
-        version:
-          type: string
-        available_version:
-          type: string
-        state:
-          type: string
-          enum: [current, available, waiting, updating, failed]
-        waiting_for:
-          type: array
-          description: Jobs the drain waits for.
-          items:
-            $ref: '#/components/schemas/Job'
-        error:
-          type: string
-    UpdateStatus:
-      type: object
-      required: [channel, policy, parts]
-      properties:
-        channel:
-          type: string
-          enum: [stable]
-        policy:
-          $ref: '#/components/schemas/UpdatePolicy'
-        last_check_at:
-          type: string
-          format: date-time
-        next_check_at:
-          type: string
-          format: date-time
-        available_version:
-          type: string
-          description: The newest stable build offered, absent when the pool is current.
-        runner_version:
-          type: string
-          description: The pinned GitHub runner version (operations R5.19).
-        parts:
-          type: array
-          items:
-            $ref: '#/components/schemas/UpdatePart'
-      example:
-        channel: stable
-        policy:
-          auto_update: true
-          check_interval_hours: 6
-          drain_timeout_minutes: 60
-        last_check_at: '2026-11-14T09:00:00Z'
-        available_version: v0.2.0
-        runner_version: 2.321.0
-        parts:
-          - part: controller
-            machine_id: m_01JCRSP0001
-            machine_name: box-1
-            version: v0.1.0
-            available_version: v0.2.0
-            state: available
-    StartUpdateRequest:
-      type: object
-      properties:
-        machine_ids:
-          type: array
-          description: Only these machines. Absent means the controller, then every agent.
-          items:
-            type: string
-    UpdateRun:
-      type: object
-      required: [changes]
-      properties:
-        version:
-          type: string
-        changes:
-          type: array
-          items:
-            $ref: '#/components/schemas/MachineChange'

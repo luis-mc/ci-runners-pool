@@ -30,13 +30,13 @@ All five are one Go binary, `crsp` (decision 0001).
 - The web console is reachable on the local network over TLS. Every user signs in with GitHub. The tray's one-time link also works on the controller's machine.
 - Users: the first person to sign in becomes the owner. The owner allows other GitHub users as admin or viewer. Turning the pool on for a repository also needs admin rights on that repository in GitHub.
 - Ports: 8460 for the console and API (HTTPS), 8461 for the agent link (gRPC over TLS). Both can be changed in config.
-- Repository variables the product writes: `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`, `CRSP_RUNS_ON_MACOS` (JSON lists of labels). Workflows say `runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_LINUX) }}`.
+- Repository variables the product writes: `RUNS_ON_LINUX`, `RUNS_ON_WINDOWS`, `RUNS_ON_MACOS` (JSON lists of lowercase labels, such as `["self-hosted","linux","x64"]`). A variable exists only while the repository has a crsp runner for that OS and the pool is on for it; unset means GitHub-hosted. Workflows say `runs-on: ${{ fromJSON(vars.RUNS_ON_LINUX) }}`.
 - Milestone 1 builds persistent runners for Windows, Linux and macOS together.
 - Task IDs and branches: `CRSP<n>-<slug>`. CRP1 to CRP14 keep their labels.
 
 ## Owner decisions for milestone 1 (2026-11-14)
 
-- Drain: a change that must restart runners waits for running jobs. After 30 minutes it keeps waiting, warns, and names the blocking job. It never kills a job.
+- Drain: a change that must restart runners waits for running jobs. After the drain timeout (one per machine, default 60 minutes) it keeps waiting, warns, and names the blocking job. It never kills a job.
 - Default job slots for a new machine are sized from its cores and memory within the load budget, as dev-standards does. The user can change them.
 - When a job-started hook cannot reach the controller or agent, it waits on local load only and logs it. A controller outage never stalls CI.
 - Queue order: repository priority first, then fair share (round-robin by repository) within a priority. The per-repository parallel limit always applies. Fair share, priority and limits are in M1. Queue order and every repository attribute are configurable in the web console.
@@ -48,7 +48,7 @@ All five are one Go binary, `crsp` (decision 0001).
 - Console sessions never expire by time. They end at sign-out.
 - The tray's Open link signs in as the GitHub user bound to that OS user. The binding is made once, by a GitHub sign-in from the tray. Loopback only.
 - Join codes and the install command are in M1. The M1 agent on the controller's machine uses the same join path.
-- Turning the pool off for a repository deletes its `CRSP_RUNS_ON_*` variables after a yes. The question names the variables and the workflows still using them.
+- Turning the pool off for a repository deletes its `RUNS_ON_*` variables after a yes. The question names the variables and the workflows still using them.
 - The doctor starts in M1 with core checks: machine, agent, persistent runners, GitHub App, variables, workflow labels. Each later milestone adds its checks.
 - CLI and console use the verb "add", never "create" (`crsp runner add`, `crsp machine add`).
 - Retention: job history 90 days, logs 14 days and 512 MiB per machine, audit log 400 days. Viewers may read logs and the audit log. All changeable in Settings.
@@ -75,7 +75,7 @@ See decision 0002.
 - Add a machine by running one install command that the console shows, with a one-time join code. The agent connects outbound to the controller over TLS; no inbound port opens on the machine (decision 0004).
 - The agent detects and reports: OS and version, CPU and architecture, memory, disk, isolation backends (Docker, Podman, containerd or nerdctl, WSL2, Hyper-V, KVM, Apple Virtualization through Tart, Firecracker), GPU, and measured load.
 - Per machine: active or drained, the load budget (default: at or below 85% memory and 60% CPU in total), the number of job slots, the backends allowed, a cache size cap, and maintenance windows.
-- Drain, never kill: changes that restart runners (image rebuilds, agent updates, a new cap) wait until the machine has no running job, or until a drain timeout the user set, and say what they wait for.
+- Drain, never kill: changes that restart runners (image rebuilds, agent updates, a new cap) wait until the machine has no running job and say what they wait for. The drain timeout (one per machine, default 60 minutes) only starts a warning; crsp never stops the job.
 
 ## Runners and isolation backends
 
@@ -176,14 +176,14 @@ dev-standards (github.com/luis-mc/dev-standards, public; same owner, so its code
 
 ## Milestones
 
-1. **One machine, persistent runners**: controller and agent, GitHub App sign-in, list repositories, turn the pool on for one repository, register persistent runners (Windows, Linux, macOS), slot queue and load budget, live overview. Ship it.
+1. **One machine, persistent runners**: controller and agent, GitHub App sign-in, list repositories, turn the pool on for one repository, register persistent runners (Windows, Linux, macOS), slot queue and load budget, live overview. Ship it. It also has join codes and the install command, and the daily backup with the restore drill.
 2. **Ephemeral containers on Linux and WSL2**: JIT runners, one container per job, images with layers, tool cache, doctor. Move this repository's CI onto it.
-3. **More machines**: join codes, outbound agents, placement by label and load, drain, agent auto-update.
+3. **More machines**: outbound agents on more machines (join codes are built in M1), placement by label and load, drain, agent auto-update.
 4. **Windows**: service-account runners with the learnings above, then Hyper-V or WSL2 VMs.
 5. **macOS**: Tart VMs and persistent runners on Apple Silicon.
 6. **MicroVMs**: Firecracker or Cloud Hypervisor per job where KVM exists, with snapshots.
 7. **Caches**: Actions cache server, git mirror, registry mirror.
-8. **Product polish**: notifications, config as code with a dry-run plan, backup, minutes-saved report, public docs site, installers per OS, code signing.
+8. **Product polish**: notifications, config as code with a dry-run plan, minutes-saved report, public docs site, installers per OS, code signing.
 
 Each milestone ends with: a feature spec updated, tests for every requirement, the doctor covering the new parts, a release with notes, and a real run on real machines.
 

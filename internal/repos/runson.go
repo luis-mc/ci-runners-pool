@@ -128,9 +128,9 @@ func (r *RunsOnJob) fill(v string) {
 //
 //   - self-hosted labels that no runner of the pool carries: fail
 //     (no_runner_with_labels);
-//   - self-hosted labels written out instead of fromJSON(vars.CRSP_RUNS_ON_<OS>):
+//   - self-hosted labels written out instead of fromJSON(vars.RUNS_ON_<OS>):
 //     warning (not_generic);
-//   - a CRSP_RUNS_ON_<OS> variable the workflow reads that is not set: fail
+//   - a RUNS_ON_<OS> variable the workflow reads that is not set: fail
 //     (uses_variable).
 //
 // vars are the repository's variables as GitHub holds them; pool lists the
@@ -181,17 +181,17 @@ func Check(path string, jobs []RunsOnJob, vars map[string]string, pool [][]strin
 }
 
 func isPoolVar(n string) bool {
-	return n == "CRSP_RUNS_ON_LINUX" || n == "CRSP_RUNS_ON_WINDOWS" || n == "CRSP_RUNS_ON_MACOS"
+	return n == "RUNS_ON_LINUX" || n == "RUNS_ON_WINDOWS" || n == "RUNS_ON_MACOS"
 }
 
 func varFor(labels []string) string {
 	switch {
 	case hasLabel(labels, "windows"):
-		return "CRSP_RUNS_ON_WINDOWS"
+		return "RUNS_ON_WINDOWS"
 	case hasLabel(labels, "macos"):
-		return "CRSP_RUNS_ON_MACOS"
+		return "RUNS_ON_MACOS"
 	}
-	return "CRSP_RUNS_ON_LINUX"
+	return "RUNS_ON_LINUX"
 }
 
 func hasLabel(labels []string, want string) bool {
@@ -220,7 +220,7 @@ func carried(want []string, pool [][]string) bool {
 	return false
 }
 
-// VariablesRead lists, per CRSP_RUNS_ON_* variable, the workflow files that
+// VariablesRead lists, per RUNS_ON_* variable, the workflow files that
 // read it, for the question that names them when the pool is turned off
 // (R5.29).
 func VariablesRead(files map[string][]byte) map[string][]string {
@@ -244,7 +244,7 @@ func VariablesRead(files map[string][]byte) map[string][]string {
 	return out
 }
 
-var pools = map[string]bool{"CRSP_RUNS_ON_LINUX": true, "CRSP_RUNS_ON_WINDOWS": true, "CRSP_RUNS_ON_MACOS": true}
+var pools = map[string]bool{"RUNS_ON_LINUX": true, "RUNS_ON_WINDOWS": true, "RUNS_ON_MACOS": true}
 
 func appendUnique(s []string, v string) []string {
 	for _, x := range s {

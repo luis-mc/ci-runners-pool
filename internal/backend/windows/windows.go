@@ -26,6 +26,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"github.com/luis-mc/ci-runners-shared-pool/packaging/hooks"
 )
@@ -171,11 +172,11 @@ func (b *Backend) PrepareImage(context.Context, backend.ImageSpec) (backend.Imag
 func (b *Backend) want(r backend.RunnerSpec, account string) (persistent.Meta, string) {
 	folder := b.Folder(r.Name)
 	hookDir := Join(folder, "hooks")
-	env := persistent.Env(map[string]string{
-		"ACTIONS_RUNNER_HOOK_JOB_STARTED":   Join(hookDir, "job-started.ps1"),
-		"ACTIONS_RUNNER_HOOK_JOB_COMPLETED": Join(hookDir, "job-completed.ps1"),
-		"PSExecutionPolicyPreference":       "RemoteSigned",
-	})
+	kv := runnercache.EnvJoin(folder, r.CacheQuota, Join)
+	kv["ACTIONS_RUNNER_HOOK_JOB_STARTED"] = Join(hookDir, "job-started.ps1")
+	kv["ACTIONS_RUNNER_HOOK_JOB_COMPLETED"] = Join(hookDir, "job-completed.ps1")
+	kv["PSExecutionPolicyPreference"] = "RemoteSigned"
+	env := persistent.Env(kv)
 	return persistent.Meta{
 		Name: r.Name, Account: account, Folder: folder,
 		Service:   persistent.ServiceName(r.GitHubURL, r.Name),

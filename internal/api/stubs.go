@@ -72,11 +72,6 @@ func (s *server) GetImage(_ context.Context, _ gen.GetImageRequestObject) (gen.G
 	return gen.GetImagedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// GetUpdateStatus is not built yet.
-func (s *server) GetUpdateStatus(_ context.Context, _ gen.GetUpdateStatusRequestObject) (gen.GetUpdateStatusResponseObject, error) {
-	return gen.GetUpdateStatusdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // ListCaches is not built yet.
 func (s *server) ListCaches(_ context.Context, _ gen.ListCachesRequestObject) (gen.ListCachesResponseObject, error) {
 	return gen.ListCachesdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
@@ -95,11 +90,6 @@ func (s *server) ListNotificationChannels(_ context.Context, _ gen.ListNotificat
 // RebuildImage is not built yet.
 func (s *server) RebuildImage(_ context.Context, _ gen.RebuildImageRequestObject) (gen.RebuildImageResponseObject, error) {
 	return gen.RebuildImagedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// StartUpdate is not built yet.
-func (s *server) StartUpdate(_ context.Context, _ gen.StartUpdateRequestObject) (gen.StartUpdateResponseObject, error) {
-	return gen.StartUpdatedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // StopRepositoryPlan is not built yet.
@@ -125,11 +115,6 @@ func (s *server) UpdateImageLayers(_ context.Context, _ gen.UpdateImageLayersReq
 // UpdateNotificationChannel is not built yet.
 func (s *server) UpdateNotificationChannel(_ context.Context, _ gen.UpdateNotificationChannelRequestObject) (gen.UpdateNotificationChannelResponseObject, error) {
 	return gen.UpdateNotificationChanneldefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// UpdateUpdatePolicy is not built yet.
-func (s *server) UpdateUpdatePolicy(_ context.Context, _ gen.UpdateUpdatePolicyRequestObject) (gen.UpdateUpdatePolicyResponseObject, error) {
-	return gen.UpdateUpdatePolicydefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // WipeCache is not built yet.

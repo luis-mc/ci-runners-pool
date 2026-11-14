@@ -27,8 +27,8 @@ func (s *Service) MarkSeen(ctx context.Context, machineID string) error {
 }
 
 // Tick does the periodic work: it marks a machine that sent nothing for 30
-// seconds offline (R5.35), moves a drain that passed its timeout to "needs
-// you" without stopping anything (R5.33), and drops load older than 24 hours
+// seconds offline (R5.35), warns once when a drain passed its timeout, keeps
+// it waiting and stops nothing (R5.33), and drops load older than 24 hours
 // (R6.8). The controller calls it every few seconds.
 func (s *Service) Tick(ctx context.Context) error {
 	now := s.now()
@@ -50,12 +50,17 @@ func (s *Service) Tick(ctx context.Context) error {
 		return err
 	}
 	for _, c := range cs {
-		if c.State == ChangeWaiting && now.After(c.Deadline) {
-			c.State = ChangeNeedsYou
+		if c.State == ChangeWaiting && now.After(c.Deadline) && c.Detail.OverdueSince.IsZero() {
+			// The drain timeout passed. The change stays waiting, nothing is
+			// stopped, and the warning goes out once (R5.33).
+			c.Detail.OverdueSince = now
 			if err := s.o.Repo.UpdateChange(ctx, c); err != nil {
 				return err
 			}
 			_ = s.o.Repo.Audit(ctx, "system", "machine.drain.timeout", c.MachineID, c.Kind)
+			if n, ok := s.o.Notify.(DrainOverdueNotifier); ok {
+				n.DrainOverdue(c.MachineID, c.Kind, now.Sub(c.StartedAt), s.runningJobs(c.MachineID))
+			}
 			s.notifyMachine(c.MachineID)
 		}
 	}

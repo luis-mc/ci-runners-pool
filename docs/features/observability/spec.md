@@ -3,7 +3,7 @@ id: observability
 title: Observability
 apps: [controller, agent, web-console, cli]
 topics: [observability, scheduling, machines, runners, security, operations, ui]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference

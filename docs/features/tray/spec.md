@@ -3,7 +3,7 @@ id: tray
 title: Tray
 apps: [tray, cli]
 topics: [ui, install, operations, security]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference
@@ -16,11 +16,11 @@ generator: luismc-docs 2.6.1
 ---
 # Tray
 
-PARTLY BUILT (CRSP26). The tray side of M1 is built: menu, status, Open, stopped state, log folder, autostart, single instance, Linux tray-host probe, `crsp tray --smoke`, CI smoke. NOT YET IMPLEMENTED: the service side of the local channel (R5.8, R6.8), the one-time link endpoint and bindings (R5.7, R5.9, R6.1), the installer rule (R5.22), the idle-resource check (R6.4) and the content-words guard (R6.7). Everything marked (M3) and (M8) is planned.
+PARTLY BUILT (CRSP26, CRSP19). The tray side of M1 is built: menu, status, Open, stopped state, log folder, autostart, single instance, Linux tray-host probe, `crsp tray --smoke`, CI smoke. CRSP19 added the full menu (version header, Look for updates, Restart the service, Open on GitHub, Quit tray), the update item, and self-update on all OSes with drain (Restart and Update moved from M3 into this milestone). The service side of the local channel is built (CRSP19: `internal/trayserver`; R5.8, R6.8, `status` with the update fields, `check`, `link` with a target). NOT YET IMPLEMENTED: the one-time link endpoint wiring and bindings in the controller process (R5.7, R5.9, R6.1: the auth service exists but the controller does not construct it yet), the installer rule (R5.22), the idle-resource check (R6.4) and the content-words guard (R6.7). Everything marked (M8) is planned.
 
 ## 1. In one paragraph
 
-The tray is a small icon on each desktop machine in the pool. It shows whether the local service is fine, how many jobs run and wait, and why the service stopped if it did. **Open** starts the web console in the browser, already signed in, through a one-time link. Later, the tray also restarts and updates the service, after it names the jobs that would stop and the user says yes, and it shows notices such as "machine offline". The tray is the `tray` mode of the one `crsp` binary (decision [0001](../../architecture/decisions/0001-stack.md)). Headless Linux has no tray; `crsp open` prints the same one-time link (decision [0005](../../architecture/decisions/0005-product-boundary.md)).
+The tray is a small icon on each desktop machine in the pool. It shows whether the local service is fine, how many jobs run and wait, and why the service stopped if it did. **Open** starts the web console in the browser, already signed in, through a one-time link. The tray also shows the version and whether it is up to date, looks for updates, and restarts the service: a restart, or an update with Automatic updates off, opens the console at a Review step that names the running jobs and asks the yes. With Automatic updates on (the default) a newer stable release installs by itself after the machine has drained. Later, it shows notices such as "machine offline". The tray is the `tray` mode of the one `crsp` binary (decision [0001](../../architecture/decisions/0001-stack.md)). Headless Linux has no tray; `crsp open` prints the same one-time link (decision [0005](../../architecture/decisions/0005-product-boundary.md)).
 
 ## 2. Why
 
@@ -47,7 +47,8 @@ The tray is a small icon on each desktop machine in the pool. It shows whether t
 | Milestone | What the tray does |
 |---|---|
 | M1 (one machine, persistent runners) | Open, status in the tooltip and the menu, service-stopped state with exit code, Open log folder, Quit, autostart, single instance, GNOME fallback, CI smoke on Windows, Linux and macOS. Runs on the controller's machine. `crsp open` on headless Linux. |
-| M3 (more machines, agent auto-update) | Open and status on agent-only machines. Restart and Update with drain. |
+| M1, CRSP19 | Version header, Look for updates, Restart the service, Open on GitHub, Quit tray. Update with drain on Windows, macOS and Linux (Automatic updates on by default). The service side is the controller's machine. |
+| M3 (more machines, agent auto-update) | Open and status on agent-only machines; agents update to the controller's version. |
 | M8 (product polish) | Notices. |
 
 ## 3. How it works
@@ -85,17 +86,24 @@ The steps in words:
 
 The tray has an icon, a tooltip and one menu. It has no window of its own. Status words follow UX-58; the state is always a word and a glyph, never a colour alone (UX-17, UX-26). Times follow UX-18. Words not yet in `docs/design-system/v1/content.md` are listed in section 11 for the owner to add.
 
-**Menu (M1).**
+**Menu (the same on Windows, macOS and Linux).**
 
 | Item | Kind | Notes |
 |---|---|---|
-| Status line, for example `✓ ok · 2 running · 1 waiting` | Text, not pressable | Same text as the tooltip. |
-| Open | Action | Opens the console, signed in. Word from content.md. |
+| `CI Runners Shared Pool <version> - up to date` | Text, grey, not pressable | Reads `- update <v> available` when a newer stable release exists, `- updating…` while an update drains, downloads or installs, and ends with ` · auto-update off` when Automatic updates is off. With no answer from the service it shows only the name and version. |
+| `Service: Running · N jobs running · M waiting` | Text, grey, not pressable | The state is a word: Running, Waiting, Failed, Stopped or Starting. Stopped reads `Service: Stopped at 14:30 · exit code 3`. The tooltip keeps the glyph form (R5.2). |
+| (separator) | | |
+| Open CI Runners Shared Pool | Action. It is not bold: the owner accepted a plain entry, and the menu has no default-entry code path. | Opens the console, signed in, through a one-time link. |
+| Look for updates | Action | Asks the service to look for a newer stable release now and says the result in one notice. |
+| Update to `<version>` | Action | Shown only when a newer release waits for a yes, that is, Automatic updates is off. Opens the console Review step. |
+| Restart the service | Action | Opens the console Review step. Never restarts without that yes. |
 | Open log folder | Action | Opens the service's log folder in the file manager. |
-| Start at login | Switch with a tick | Turns the autostart entry on or off. On by default. |
-| Quit | Action | Closes the tray only. The service keeps running. |
+| Open on GitHub | Action | Opens the repository page in the browser. |
+| ✓ Start at login | Switch with a tick | Turns the autostart entry on or off. On by default. |
+| (separator) | | |
+| Quit tray | Action | Closes the tray only. The service keeps running. |
 
-**Menu (later).** Restart (M3), Update to `<version>` (M3, shown only when an update exists), and a Notices item with a count (M8).
+**Menu (later).** A Notices item with a count (M8).
 
 **States.**
 
@@ -111,15 +119,15 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 - Waiting: the tray never blocks on the service; a slow answer keeps the last state for up to 15 s, then shows Starting or Stopped.
 - Error: Open that fails shows one desktop notice in the Problem tone: what failed, why, what next (UX-26).
 
-**Confirmation for Restart and Update (M3).** The tray does not draw its own question. It opens the console at a Review step through a one-time link. The Review step names each running job on this machine and says "Nothing has changed yet." (UX-30, UX-62). The question card follows UX-9.
+**Confirmation for Restart and Update.** The tray does not draw its own question. It opens the console at a Review step (`/settings/updates/review?kind=restart` or `kind=update`) through a one-time link. The Review step names each running job on this machine and says "Nothing has changed yet." (UX-30, UX-62). The question card follows UX-9. With Automatic updates on, an update needs no yes: it downloads, verifies, drains and installs by itself, and the header reads `- updating…`.
 
 ## 5. Functional requirements
 
 ### Menu and status
 
-**R5.1** — The tray menu MUST hold, in this order: the status line, Open, Open log folder, Start at login, Quit. (M1)
+**R5.1** — The tray menu MUST hold, in this order, on Windows, macOS and Linux: the version line, the service line, a separator, Open CI Runners Shared Pool, Look for updates, Update to `<version>` (only when a newer release waits for a yes), Restart the service, Open log folder, Open on GitHub, Start at login, a separator, Quit tray. The first two lines are grey text. (M1, CRSP19)
 
-**R5.2** — The status line and the tooltip MUST show the same text: product name, state word with its UX-58 glyph, running job count and waiting job count. A stopped service shows the stop time and exit code instead of counts. (M1)
+**R5.2** — The service line MUST read `Service: <word> · N jobs running · M waiting` with the state as a word (UX-58). The tooltip MUST show the same facts with the UX-58 glyph: product name, glyph and state word, running job count and waiting job count. A stopped service shows the stop time and exit code instead of counts, in both. (M1, CRSP19)
 
 **R5.3** — The tray MUST ask the local service for status every 5 seconds and update the icon, tooltip and status line within 10 seconds of a change. (M1)
 
@@ -151,13 +159,19 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 ### Restart and update with drain
 
-**R5.15** — Restart MUST open the console at the restart Review step through a one-time link. The Review step MUST name each job running on this machine (repository, workflow, run number) and say how long the drain may wait. (M3)
+**R5.15** — Restart the service MUST open the console at the restart Review step through a one-time link. The Review step MUST name each job running on this machine (repository, workflow, run number) and say how long the drain may wait. (M1, CRSP19)
 
-**R5.16** — The service's restart and update endpoints MUST refuse a request without `confirmed=true`, and answer with the list of running jobs. (M3)
+**R5.16** — The service's restart and update endpoints (`POST /api/v1/service/restart`, `POST /api/v1/update/apply`) MUST refuse a request without `confirmed=true`, change nothing, and answer 409 `needs_confirmation` with one detail per running job. (M1, CRSP19)
 
-**R5.17** — After a yes, the service MUST drain: start no new job here, wait for running jobs to end or for the drain timeout, then restart or install. It MUST never stop a running job before the timeout (product learning 1). (M3)
+**R5.17** — After a yes (or, for an update, with Automatic updates on), the service MUST drain: start no new job here, wait for running jobs to end or for the drain timeout, then restart or install. It MUST check once more that no job runs right before the install, and MUST never stop a running job before the timeout (product learning 1). (M1, CRSP19)
 
-**R5.18** — The tray MUST show Update to `<version>` only when the controller reports a newer signed release. The update MUST install only after a yes on the Review step, and the tray MUST come back on the new version within 30 seconds of the install. (M3)
+**R5.18** — The tray MUST show Update to `<version>` only when the controller reports a newer stable release and Automatic updates is off. With it off, the update MUST install only after a yes on the Review step. With it on, the update installs by itself after the drain. After the install the tray MUST come back on the new version within 30 seconds: when the service reports a newer version than the tray's own, the tray starts the new binary and quits. (M1, CRSP19)
+
+**R5.28** — Automatic updates MUST be on by default on every OS, and the user MUST be able to turn it off and on in the console (Settings, Updates) and with `crsp update auto on|off`. The choice is the controller setting `auto_update`, and the version line of the menu MUST say `· auto-update off` when it is off. (M1, CRSP19)
+
+**R5.29** — The tray MUST ask the service to look for updates only through the local channel call `check`; it never talks to GitHub itself. Update, restart and Look for updates MUST NOT need a network port in the tray (R6.3). (M1, CRSP19)
+
+**R5.30** — Open on GitHub MUST open `https://github.com/luis-mc/ci-runners-shared-pool` in the default browser. (M1, CRSP19)
 
 ### Notices
 
@@ -226,7 +240,7 @@ flowchart LR
 ```
 
 - **Package.** `internal/tray` holds the menu, the status poller, the autostart writers per OS (build tags), the single-instance lock, and the Linux tray-host probe. `fyne.io/systray` draws the icon and menu.
-- **Local channel.** One small request-response protocol (JSON lines) on the named pipe `\\.\pipe\crsp-tray` or the socket `/run/crsp/tray.sock` (Linux) or `/var/run/crsp/tray.sock` (macOS). Calls: `status`, `link` (returns a one-time URL), `notices` (M8), `restart` and `update` (M3, need `confirmed=true`). The service reads the caller's OS user from the pipe or the socket.
+- **Local channel.** One small request-response protocol (JSON lines) on the named pipe `\\.\pipe\crsp-tray` or the socket `/run/crsp/tray.sock` (Linux) or `/var/run/crsp/tray.sock` (macOS). Calls: `status` (also carries `version`, `auto_update`, `latest_version`, `update_available`, `update_state`), `link` (returns a one-time URL; an optional `target` is the console path to land on, for the Review steps), `check` (look for a newer stable release, answers like `status`), `notices` (M8). Restart and update are not channel calls: the tray opens the console Review step with `link`, and the console calls the HTTP API (`POST /api/v1/update/apply?confirmed=true`, `POST /api/v1/service/restart?confirmed=true`). The service reads the caller's OS user from the pipe or the socket.
 - **One-time link.** The controller stores `link_codes(hash, github_user_id, purpose, target_path, expires_at, used_at)`. The URL is `https://<host>:8460/auth/link?code=<code>`. The console marks the code used in the same transaction that makes the session, then redirects to `target_path`.
 - **Bindings.** The controller stores `tray_bindings(machine_id, os_user_id, github_user_id, created_at)`. `os_user_id` is the Windows SID or the Unix uid.
 - **Service state.** Windows: `QueryServiceStatusEx` (exit code from `dwWin32ExitCode` or `dwServiceSpecificExitCode`). macOS: `launchctl print` (last exit code). Linux: `systemctl show -p ActiveState,ExecMainStatus,ExecMainExitTimestamp`. None of these needs admin.
@@ -252,24 +266,27 @@ Rows marked built have tests that exist and run in CI. Rows marked planned are n
 
 | Requirement | Test |
 |---|---|
-| R5.1 | built: internal/tray/tray_test.go, TestMenuOrderM1 |
-| R5.2 | built: internal/tray/tray_test.go, TestStatusTextPerState |
+| R5.1 | built: internal/tray/menu_test.go, TestMenuOrder, TestUpdateItemOnlyWhenNewerAndAutoOff |
+| R5.2 | built: internal/tray/menu_test.go, TestServiceLinePerState, TestHeaderPerUpdateState; internal/tray/tray_test.go, TestStatusTextPerState (tooltip) |
 | R5.3 | built: internal/tray/tray_test.go, TestPollerUpdatesWithin10s (injected clock) |
 | R5.4 | built: internal/tray/tray_test.go, TestIconPerStateDiffersByGlyph |
 | R5.5 | built: internal/tray/tray_test.go, TestQuitLeavesServiceRunning (the client has no stop call) |
 | R5.6 | built: internal/tray/tray_test.go, TestOpenAsksLinkAndLaunchesBrowser, TestClientStatusAndLink (fake channel and browser) |
 | R5.7 | planned: internal/api/link_test.go, TestLinkSignsInOnceAndStripsCode, TestLinkExpiredShowsSignIn |
-| R5.8 | planned: internal/tray/channel_windows_test.go and internal/tray/channel_unix_test.go, TestChannelRejectsRemoteAndReadsPeerUser |
+| R5.8 | built: internal/trayserver/server_unix_test.go, TestChannelReadsPeerUserFromTheOS (Linux; the caller's uid comes from SO_PEERCRED, a spoofed field in the request is ignored), TestChannelClosedWhenCallerUnknownAndBadCalls; Windows (client process SID, PIPE_REJECT_REMOTE_CLIENTS) and macOS (LOCAL_PEERCRED) built, compiled in CI only |
 | R5.9 | planned: internal/api/binding_test.go, TestUnboundUserGetsSignInThenBinding, TestOwnerRemovesBinding |
 | R5.10 | built (client side): internal/tray/tray_test.go, TestOpenCommandPrintsLink; the service side of the `link` call is not built |
 | R5.11 | planned: internal/agent/link_test.go, TestAgentAsksControllerForLink |
 | R5.12 | built: internal/tray/tray_test.go, TestStoppedStateWithExitCode, TestPollerKeepsLastThenAsksOS (Linux parser tested; Windows and macOS readers built, run only in CI smoke) |
 | R5.13 | built: internal/tray/tray_test.go, TestLogFolderPathPerOS |
 | R5.14 | built: internal/tray/tray_test.go, TestOpenWhileStoppedShowsProblem |
-| R5.15 | planned: e2e/tray-restart-review.spec.ts, restart Review names running jobs |
-| R5.16 | planned: internal/api/restart_test.go, TestRestartRefusedWithoutConfirmed, TestUpdateRefusedWithoutConfirmed |
-| R5.17 | planned: internal/api/drain_test.go, TestDrainWaitsForJobsThenRestarts |
-| R5.18 | planned: internal/tray/update_test.go, TestUpdateItemOnlyWhenNewer; CI smoke of update on each OS |
+| R5.15 | built: internal/tray/menu_test.go, TestRestartAndUpdateOpenTheReviewStep; apps/web/src/screens/settings/Updates.test.tsx, Review step names the running jobs; apps/web/src/screens/wizards.test.tsx, update wizard in the ten states |
+| R5.16 | built: internal/api/handlers_update_test.go, TestRestartAndUpdateRefusedWithoutConfirmed, TestRestartAndUpdateWithConfirmed |
+| R5.17 | built: internal/update/update_test.go, TestAutoOnDownloadsVerifiesThenDrainsThenInstallsOnIdle (a running job stops the install), TestApplyRefusedWithoutConfirmedListsJobs |
+| R5.18 | built: internal/tray/menu_test.go, TestUpdateItemOnlyWhenNewerAndAutoOff, TestTrayRelaunchesWhenServiceIsNewer; internal/update/update_test.go (helper per OS). The real install on each OS is not run in CI yet (needs CRSP18's MSI) |
+| R5.28 | built: internal/settings/settings_test.go, TestAutoUpdateDefaultsOnAndToggles; internal/api/handlers_update_test.go, TestSettingsAutoUpdateDefaultOnAndToggle; internal/cli/cmd_update_test.go, TestUpdateAutoTogglesTheSetting; apps/web/src/screens/settings/Updates.test.tsx |
+| R5.29 | built: internal/tray/menu_test.go, TestClientCarriesUpdateFieldsAndTarget, TestLookForUpdatesSaysTheResult |
+| R5.30 | built: internal/tray/menu_test.go, TestOpenOnGitHubOpensTheRepository |
 | R5.19 | planned: internal/tray/notices_test.go, TestNoticeShownOncePerChangeAcrossRestart |
 | R5.20 | planned: internal/tray/notices_test.go, TestNoticeClickOpensLink |
 | R5.21 | built: internal/tray/tray_test.go, TestAutostartOnOff (XDG and LaunchAgent writers; the Windows Run-key writer is built, not unit tested) |
@@ -286,7 +303,7 @@ Rows marked built have tests that exist and run in CI. Rows marked planned are n
 | R6.5 | built: internal/tray/tray_test.go, TestTooltipCutAt127 |
 | R6.6 | built: internal/tray/tray_test.go, TestSlowServiceTimesOutIn3s |
 | R6.7 | planned: guards/content-words test over internal/tray strings |
-| R6.8 | planned: internal/tray/channel_unix_test.go, TestSocketMode0660; internal/tray/channel_windows_test.go, TestPipeRejectsRemote |
+| R6.8 | built (Unix): internal/trayserver/server_unix_test.go, TestSocketMode0660; the Windows pipe refuses remote clients with PIPE_REJECT_REMOTE_CLIENTS and is open to local signed-in users only (SDDL), not run in CI yet |
 
 ## 10. Decisions
 
@@ -297,15 +314,17 @@ Rows marked built have tests that exist and run in CI. Rows marked planned are n
 | T3 | Scope of single instance | Per logon session (`Local\` on Windows), so fast user switching and remote desktop each get a tray. From the comics-organizer tray. | 2026-11-14 |
 | T4 | Linux desktop with no tray area | One notice, then exit 2; no fallback window. Proposed; open question 4. | 2026-11-14 |
 | T5 | Who does a one-time link sign in? | The GitHub user bound once to this machine and OS user. Proposed; open question 1. | 2026-11-14 |
+| T7 | Where is the yes for Restart and Update asked, and when is it not needed? | On the console Review step, never in the tray (owner, 2026-11-14). With Automatic updates on (default, all OSes) an update needs no yes: it drains and installs by itself. Restart always needs the Review step. | 2026-11-14 |
 | T6 | How is the tray proven? | CI starts the built binary on each OS (smoke), because two trays once passed every test and crashed at start (comics-organizer). | 2026-11-14 |
 
 ## 11. Not built yet
 
-Built in CRSP26: the tray process and everything it runs in the user's session. Not built: the service side of the local channel, the link endpoint and the bindings (another task owns them), so `crsp tray` and `crsp open` need a service that answers `status` and `link` as JSON lines on the channel (`internal/tray/channel.go` defines the lines).
+Built in CRSP26: the tray process and everything it runs in the user's session. Built in CRSP19: the service side of the local channel (`internal/trayserver`, wired in `cmd/crsp/tray_wiring.go`): `status` (with version, auto_update, latest, update state, running jobs of the controller's machine), `check`, and `link`. The socket is `/run/crsp/tray.sock` or `/var/run/crsp/tray.sock` (mode 0660, group `crsp` when it exists; `CRSP_TRAY_SOCKET` overrides), the pipe is `\\.\pipe\crsp-tray`. Not built: the one-time link endpoint and the bindings. The controller does not construct the auth service yet, so `link` answers the plain console address on the target path (it signs nobody in, and a target that is not a path on this console is dropped); once the auth service is wired, `trayBackend.Links` makes real one-time links for the bound OS user, and an unbound user gets the bind sign-in (R5.9). `status` fills `State` with `ok` and does not yet count waiting jobs or runners.
 
 Seams that will change:
 
-- M3 adds the agent-only path (R5.11) and Restart and Update (R5.15 to R5.18); the local channel gains `restart` and `update`.
+- M3 adds the agent-only path (R5.11). Restart and Update (R5.15 to R5.18) are built in CRSP19 for the controller's machine; an agent-only machine updates to the controller's version over the agent link (operations R5.39 to R5.41, CRSP19).
+- The Windows install of an update needs the MSI assets of CRSP18 (`crsp-windows-<arch>.msi`, in SHA256SUMS and attested). The MSI must also bring the tray back after an upgrade; until it does, the tray relaunches itself only when it survives the install.
 - M8 adds notices (R5.19, R5.20); the channel gains `notices`.
 
 Open owner questions:
@@ -324,9 +343,13 @@ Source: internal/tray/poller.go
 Source: internal/tray/channel.go
 Source: internal/tray/channel_unix.go
 Source: internal/tray/channel_windows.go
+Source: internal/trayserver/server.go
+Source: cmd/crsp/tray_wiring.go
 Source: internal/tray/open.go
 Source: internal/tray/open_cmd.go
 Source: internal/tray/menu.go
+Source: internal/update/manager.go
+Source: apps/web/src/screens/settings/Updates.tsx
 Source: internal/tray/icon.go
 Source: internal/tray/run.go
 Source: internal/tray/autostart.go

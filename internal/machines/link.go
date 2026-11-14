@@ -136,6 +136,9 @@ func (l *Link) Session(ctx context.Context, stream *connect.BidiStream[agentv1.S
 		runners = append(runners, r.GetName())
 	}
 	svc.SetRunning(m.ID, jobs, runners)
+	svc.mu.Lock()
+	delete(svc.updates, m.ID) // a new session: the agent restarted or reconnected, so an old report is stale
+	svc.mu.Unlock()
 	if svc.hooks.OnHello != nil {
 		svc.hooks.OnHello(ctx, m.ID, hello)
 	}
@@ -223,6 +226,8 @@ func (s *Service) dispatch(ctx context.Context, id, agentVersion string, req *ag
 		_ = s.HandleLoad(ctx, id, msg.LoadReport)
 	case *agentv1.SessionRequest_Facts:
 		_ = s.HandleFacts(ctx, id, agentVersion, msg.Facts)
+	case *agentv1.SessionRequest_UpdateReport:
+		s.handleUpdateReport(ctx, id, msg.UpdateReport)
 	case *agentv1.SessionRequest_DrainStatus:
 		_ = s.HandleDrainStatus(ctx, id, msg.DrainStatus)
 	case *agentv1.SessionRequest_HolderReport:

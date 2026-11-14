@@ -13,7 +13,8 @@ import (
 
 // Request is one JSON line sent over the local channel (spec section 7).
 type Request struct {
-	Call string `json:"call"` // status | link
+	Call   string `json:"call"`             // status | link | check
+	Target string `json:"target,omitempty"` // call=link: the console path to open, "" for the start page
 }
 
 // Response is one JSON line answered by the service.
@@ -27,6 +28,14 @@ type Response struct {
 	Fault   string `json:"fault,omitempty"`
 	URL     string `json:"url,omitempty"` // call=link
 	LogDir  string `json:"log_dir,omitempty"`
+
+	// Version and update fields (operations R5.11 to R5.18). An older service
+	// leaves them out; the tray then shows no update state and assumes auto-update on.
+	Version         string `json:"version,omitempty"`
+	AutoUpdate      *bool  `json:"auto_update,omitempty"`
+	LatestVersion   string `json:"latest_version,omitempty"`
+	UpdateAvailable bool   `json:"update_available,omitempty"`
+	UpdateState     string `json:"update_state,omitempty"`
 }
 
 // Dialer opens the local channel: a named pipe on Windows, a Unix socket elsewhere.
@@ -45,6 +54,10 @@ func NewClient() *Client {
 
 // Call sends one request and reads one response line.
 func (c *Client) Call(ctx context.Context, call string) (Response, error) {
+	return c.call(ctx, Request{Call: call})
+}
+
+func (c *Client) call(ctx context.Context, req Request) (Response, error) {
 	to := c.Timeout
 	if to <= 0 {
 		to = 3 * time.Second
@@ -69,7 +82,7 @@ func (c *Client) Call(ctx context.Context, call string) (Response, error) {
 		case <-done:
 		}
 	}()
-	if err := json.NewEncoder(conn).Encode(Request{Call: call}); err != nil {
+	if err := json.NewEncoder(conn).Encode(req); err != nil {
 		return Response{}, err
 	}
 	line, err := bufio.NewReader(conn).ReadBytes('\n')
@@ -95,16 +108,37 @@ func (c *Client) Status(ctx context.Context) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
+	return statusFrom(r), nil
+}
+
+func statusFrom(r Response) Status {
 	st := r.State
 	if st == "" {
 		st = StateHealthy
 	}
-	return Status{State: st, Running: r.Running, Waiting: r.Waiting, Runners: r.Runners, Fault: r.Fault}, nil
+	return Status{
+		State: st, Running: r.Running, Waiting: r.Waiting, Runners: r.Runners, Fault: r.Fault, Version: r.Version,
+		Update: UpdateInfo{Latest: r.LatestVersion, Available: r.UpdateAvailable, State: r.UpdateState, AutoOff: r.AutoUpdate != nil && !*r.AutoUpdate},
+	}
+}
+
+// Check asks the service to look for a newer stable release now (Look for updates).
+func (c *Client) Check(ctx context.Context) (Status, error) {
+	r, err := c.Call(ctx, "check")
+	if err != nil {
+		return Status{}, err
+	}
+	return statusFrom(r), nil
 }
 
 // Link asks the service for a one-time sign-in URL (R5.6).
-func (c *Client) Link(ctx context.Context) (string, error) {
-	r, err := c.Call(ctx, "link")
+func (c *Client) Link(ctx context.Context) (string, error) { return c.LinkTo(ctx, "") }
+
+// LinkTo asks for a one-time link that lands on a console path, for example the
+// restart or update Review step (tray R5.15). The service signs the user in as
+// for Open; the path is only where the console goes after sign-in.
+func (c *Client) LinkTo(ctx context.Context, target string) (string, error) {
+	r, err := c.call(ctx, Request{Call: "link", Target: target})
 	if err != nil {
 		return "", err
 	}

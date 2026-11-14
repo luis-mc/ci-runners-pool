@@ -12,6 +12,23 @@ type LinkSource interface {
 	Link(ctx context.Context) (string, error)
 }
 
+// TargetLinkSource asks for a one-time link that lands on a console path.
+type TargetLinkSource interface {
+	LinkTo(ctx context.Context, target string) (string, error)
+}
+
+// UpdateChecker asks the service to look for a newer stable release now.
+type UpdateChecker interface {
+	Check(ctx context.Context) (Status, error)
+}
+
+// Review steps of the console, opened through a one-time link. The question
+// (the yes) is asked there, never in the tray (tray R5.15, R5.18; decision T2).
+const (
+	ReviewUpdatePath  = "/settings/updates/review?kind=update"
+	ReviewRestartPath = "/settings/updates/review?kind=restart"
+)
+
 // Notifier shows one desktop notice (Problem tone: what failed, why, what next).
 type Notifier func(title, body string)
 
@@ -21,6 +38,9 @@ type Launcher func(target string) error
 // Opener implements Open and Open log folder.
 type Opener struct {
 	Links   LinkSource
+	Targets TargetLinkSource // for the Review steps; nil when the service cannot
+	Checker UpdateChecker
+	Version string // this tray's own version, for the "up to date" notice
 	Browser Launcher
 	Files   Launcher
 	Notify  Notifier
@@ -31,6 +51,50 @@ type Opener struct {
 
 // Open asks for a one-time link and opens it in the browser (R5.6, R5.14).
 func (o *Opener) Open(ctx context.Context) error {
+	return o.open(ctx, "Could not open the console", func() (string, error) { return o.Links.Link(ctx) })
+}
+
+// OpenReview opens the console at the Review step of an update or a restart. It
+// names the running jobs and asks the yes; nothing changes before that.
+func (o *Opener) OpenReview(ctx context.Context, path string) error {
+	if o.Targets == nil {
+		o.notify("Could not open the console", "This service cannot open a Review step. Open the console and go to Settings, Updates.")
+		return fmt.Errorf("no target links")
+	}
+	return o.open(ctx, "Could not open the Review step", func() (string, error) { return o.Targets.LinkTo(ctx, path) })
+}
+
+// OpenGitHub opens the repository page.
+func (o *Opener) OpenGitHub() error {
+	if err := o.Browser(RepoURL); err != nil {
+		o.notify("No browser found", "Paste this address into a browser: "+RepoURL)
+		return err
+	}
+	return nil
+}
+
+// LookForUpdates asks the service to look now and says the result in one notice.
+func (o *Opener) LookForUpdates(ctx context.Context) error {
+	if o.Checker == nil {
+		return fmt.Errorf("no update checker")
+	}
+	st, err := o.Checker.Check(ctx)
+	if err != nil {
+		o.notify("Could not look for updates", err.Error()+". Check the status line, then try again.")
+		return err
+	}
+	switch {
+	case st.Update.Available && st.Update.AutoOff:
+		o.notify("Update "+st.Update.Latest+" available", "Pick Update to "+st.Update.Latest+" in this menu. Running jobs finish first.")
+	case st.Update.Available:
+		o.notify("Update "+st.Update.Latest+" available", "It installs by itself once running jobs have finished.")
+	default:
+		o.notify("Up to date", ProductName+" "+o.Version+" is the newest stable release.")
+	}
+	return nil
+}
+
+func (o *Opener) open(ctx context.Context, failTitle string, link func() (string, error)) error {
 	if o.Current != nil {
 		if st := o.Current(); st.State == StateStopped {
 			o.notify("Service stopped",
@@ -38,9 +102,9 @@ func (o *Opener) Open(ctx context.Context) error {
 			return fmt.Errorf("service stopped, exit code %d", st.ExitCode)
 		}
 	}
-	url, err := o.Links.Link(ctx)
+	url, err := link()
 	if err != nil {
-		o.notify("Could not open the console", "The service did not give a sign-in link: "+err.Error()+". Check the status line, then try again.")
+		o.notify(failTitle, "The service did not give a sign-in link: "+err.Error()+". Check the status line, then try again.")
 		return err
 	}
 	if err := o.Browser(url); err != nil {

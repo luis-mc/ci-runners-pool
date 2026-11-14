@@ -46,7 +46,7 @@ func TestEveryCommandHasHelp(t *testing.T) {
 
 func TestUnbuiltCommandExits2(t *testing.T) {
 	f := newFixture(t)
-	for _, c := range [][]string{{"config", "export"}, {"update"}, {"tray"}} {
+	for _, c := range [][]string{{"config", "export"}, {"tray"}} {
 		code, _, errOut := f.run(c...)
 		if code != 2 || !strings.Contains(errOut, "not built yet") {
 			t.Errorf("%v: exit %d, %q", c, code, errOut)

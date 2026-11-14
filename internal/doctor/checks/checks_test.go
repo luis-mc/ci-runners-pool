@@ -129,7 +129,7 @@ func only(t *testing.T, fs []doctor.Finding, check string) doctor.Finding {
 func TestEveryRegisteredCheckIsM1AndHasAnID(t *testing.T) {
 	reg := doctor.NewRegistry()
 	Register(reg)
-	if len(reg.All()) != 17 {
+	if len(reg.All()) != 19 {
 		t.Fatalf("checks: %v", reg.SortedIDs())
 	}
 	for _, c := range reg.All() {
@@ -218,6 +218,32 @@ func TestDisk(t *testing.T) {
 		}
 		if f.Severity == doctor.Fail && !strings.Contains(f.Fix.Command, "clean-work --machine "+f.Subject.Name) {
 			t.Errorf("fix command = %q", f.Fix.Command)
+		}
+	}
+}
+
+// Caches R5.38: the doctor reports a machine whose volume is under the guard limit.
+func TestDiskGuard(t *testing.T) {
+	mk := func(name string, free, total int64) doctor.Machine {
+		m := healthyMachine()
+		m.ID, m.Name, m.DiskFreeBytes, m.DiskTotalBytes = name, name, i64(free), i64(total)
+		return m
+	}
+	unknown := healthyMachine()
+	unknown.ID, unknown.Name, unknown.DiskFreeBytes = "u", "u", nil
+	fs := run(t, doctor.Env{Fleet: &fleet{machines: []doctor.Machine{
+		mk("fine", 300*gib, 500*gib),
+		mk("edge", 50*gib, 500*gib), // exactly 10%: not held
+		mk("held", 49*gib, 500*gib), // 9.8%
+		unknown,
+	}}}, "machine.guard.disk")
+	want := map[string]doctor.Severity{"fine": doctor.OK, "edge": doctor.OK, "held": doctor.Fail, "u": doctor.Skip}
+	for _, f := range fs {
+		if want[f.Subject.Name] != f.Severity {
+			t.Errorf("%s = %s, want %s", f.Subject.Name, f.Severity, want[f.Subject.Name])
+		}
+		if f.Subject.Name == "held" && !strings.Contains(f.Title, "held") {
+			t.Errorf("title %q", f.Title)
 		}
 	}
 }
@@ -425,29 +451,29 @@ func TestAppRateLimitIsSkipWithResetTime(t *testing.T) {
 func TestRepoVars(t *testing.T) {
 	g := newGH()
 	exp := map[string]string{
-		"CRSP_RUNS_ON_LINUX":   `["self-hosted","linux","crsp-home"]`,
-		"CRSP_RUNS_ON_WINDOWS": `["self-hosted","windows","crsp-home"]`,
-		"CRSP_RUNS_ON_MACOS":   `["self-hosted","macos","crsp-home"]`,
+		"RUNS_ON_LINUX":   `["self-hosted","linux","crsp-home"]`,
+		"RUNS_ON_WINDOWS": `["self-hosted","windows","crsp-home"]`,
+		"RUNS_ON_MACOS":   `["self-hosted","macos","crsp-home"]`,
 	}
 	g.vars["o/r"] = []github.Variable{
-		{Name: "CRSP_RUNS_ON_LINUX", Value: `["crsp-home","Linux","self-hosted"]`}, // same set, other order and case: fine
-		{Name: "CRSP_RUNS_ON_WINDOWS", Value: `not json`},
+		{Name: "RUNS_ON_LINUX", Value: `["crsp-home","Linux","self-hosted"]`}, // same set, other order and case: fine
+		{Name: "RUNS_ON_WINDOWS", Value: `not json`},
 	} // MACOS unset
-	g.files["o/r"] = []github.WorkflowFile{{Path: ".github/workflows/ci.yml", Content: []byte("jobs:\n  a:\n    runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_MACOS) }}\n")}}
+	g.files["o/r"] = []github.WorkflowFile{{Path: ".github/workflows/ci.yml", Content: []byte("jobs:\n  a:\n    runs-on: ${{ fromJSON(vars.RUNS_ON_MACOS) }}\n")}}
 	fs := run(t, doctor.Env{GitHub: g, Fleet: &fleet{repos: []doctor.Repository{repo(1, "o/r", exp)}}}, "repo.vars")
 	fs = forCheck(fs, "repo.vars")
 	sev := map[string]doctor.Severity{}
 	for _, f := range fs {
 		sev[f.Subject.ID] = f.Severity
 	}
-	if sev["1:CRSP_RUNS_ON_LINUX"] != doctor.OK || sev["1:CRSP_RUNS_ON_WINDOWS"] != doctor.Fail || sev["1:CRSP_RUNS_ON_MACOS"] != doctor.Fail {
+	if sev["1:RUNS_ON_LINUX"] != doctor.OK || sev["1:RUNS_ON_WINDOWS"] != doctor.Fail || sev["1:RUNS_ON_MACOS"] != doctor.Fail {
 		t.Fatalf("severities = %v", sev)
 	}
 	// Different from the product's value is warn; unset and unused is warn.
 	g2 := newGH()
-	g2.vars["o/r"] = []github.Variable{{Name: "CRSP_RUNS_ON_LINUX", Value: `["self-hosted","linux"]`}}
+	g2.vars["o/r"] = []github.Variable{{Name: "RUNS_ON_LINUX", Value: `["self-hosted","linux"]`}}
 	fs = run(t, doctor.Env{GitHub: g2, Fleet: &fleet{repos: []doctor.Repository{repo(1, "o/r", map[string]string{
-		"CRSP_RUNS_ON_LINUX": exp["CRSP_RUNS_ON_LINUX"], "CRSP_RUNS_ON_MACOS": exp["CRSP_RUNS_ON_MACOS"]})}}}, "repo.vars")
+		"RUNS_ON_LINUX": exp["RUNS_ON_LINUX"], "RUNS_ON_MACOS": exp["RUNS_ON_MACOS"]})}}}, "repo.vars")
 	fs = forCheck(fs, "repo.vars")
 	for _, f := range fs {
 		if f.Severity != doctor.Warn || f.Fix.Command == "" || !strings.Contains(f.Fix.Command, "gh variable set") {
@@ -459,8 +485,8 @@ func TestRepoVars(t *testing.T) {
 func TestRepoVarsRunner(t *testing.T) {
 	g := newGH()
 	g.vars["o/r"] = []github.Variable{
-		{Name: "CRSP_RUNS_ON_LINUX", Value: `["self-hosted","linux"]`},
-		{Name: "CRSP_RUNS_ON_WINDOWS", Value: `["self-hosted","windows"]`},
+		{Name: "RUNS_ON_LINUX", Value: `["self-hosted","linux"]`},
+		{Name: "RUNS_ON_WINDOWS", Value: `["self-hosted","windows"]`},
 	}
 	g.runners["o/r"] = []github.Runner{
 		{Name: "a", Status: "online", Labels: []string{"self-hosted", "Linux", "X64"}},
@@ -471,7 +497,7 @@ func TestRepoVarsRunner(t *testing.T) {
 	for _, f := range fs {
 		sev[f.Subject.ID] = f.Severity
 	}
-	if sev["1:CRSP_RUNS_ON_LINUX"] != doctor.OK || sev["1:CRSP_RUNS_ON_WINDOWS"] != doctor.Fail {
+	if sev["1:RUNS_ON_LINUX"] != doctor.OK || sev["1:RUNS_ON_WINDOWS"] != doctor.Fail {
 		t.Fatalf("severities = %v", sev)
 	}
 }
@@ -484,16 +510,16 @@ jobs:
   literal:
     runs-on: [self-hosted, linux, arm64]
   viavar:
-    runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_LINUX) }}
+    runs-on: ${{ fromJSON(vars.RUNS_ON_LINUX) }}
   matrix:
     runs-on: ${{ matrix.os }}
   unsetvar:
-    runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_WINDOWS) }}
+    runs-on: ${{ fromJSON(vars.RUNS_ON_WINDOWS) }}
 `
 
 func workflowEnv() (doctor.Env, *gh) {
 	g := newGH()
-	g.vars["o/r"] = []github.Variable{{Name: "CRSP_RUNS_ON_LINUX", Value: `["self-hosted","linux"]`}}
+	g.vars["o/r"] = []github.Variable{{Name: "RUNS_ON_LINUX", Value: `["self-hosted","linux"]`}}
 	g.runners["o/r"] = []github.Runner{
 		{Name: "a", Status: "online", Labels: []string{"self-hosted", "Linux", "X64"}},
 		{Name: "off", Status: "offline", Labels: []string{"self-hosted", "Linux", "ARM64"}},
@@ -531,7 +557,7 @@ func TestWorkflowLabels(t *testing.T) {
 func TestWorkflowGeneric(t *testing.T) {
 	env, _ := workflowEnv()
 	f := only(t, run(t, env, "workflow.generic"), "workflow.generic")
-	if f.Severity != doctor.Warn || !strings.Contains(f.Detail, "literal") || strings.Contains(f.Detail, "viavar") || !strings.Contains(f.Fix.Text, "fromJSON(vars.CRSP_RUNS_ON") {
+	if f.Severity != doctor.Warn || !strings.Contains(f.Detail, "literal") || strings.Contains(f.Detail, "viavar") || !strings.Contains(f.Fix.Text, "fromJSON(vars.RUNS_ON") {
 		t.Fatalf("got %+v", f)
 	}
 }
@@ -542,7 +568,7 @@ func TestWorkflowUnresolved(t *testing.T) {
 	if f.Severity != doctor.Info {
 		t.Fatalf("got %+v", f)
 	}
-	for _, want := range []string{"matrix.os", "CRSP_RUNS_ON_WINDOWS, which is not set", "broken.yml is not valid YAML"} {
+	for _, want := range []string{"matrix.os", "RUNS_ON_WINDOWS, which is not set", "broken.yml is not valid YAML"} {
 		if !strings.Contains(f.Detail, want) {
 			t.Errorf("detail lacks %q:\n%s", want, f.Detail)
 		}
@@ -564,7 +590,7 @@ func TestCallCountBudget(t *testing.T) {
 	env, g := workflowEnv()
 	g.inst[7] = github.Installation{ID: 7, AccountLogin: "o", AccountType: "User", Permissions: RequiredPermissions}
 	f := env.Fleet.(*fleet)
-	f.repos[0].Expected = map[string]string{"CRSP_RUNS_ON_LINUX": `["self-hosted","linux"]`}
+	f.repos[0].Expected = map[string]string{"RUNS_ON_LINUX": `["self-hosted","linux"]`}
 	reg := doctor.NewRegistry()
 	Register(reg)
 	e := &doctor.Engine{Registry: reg, Store: doctor.NewMemStore(), Now: func() time.Time { return now },
@@ -599,5 +625,40 @@ func TestSkipForUnknownErrorKeepsTheReason(t *testing.T) {
 	f := skipFor("x.y", controllerSubject, "Thing", errors.New("weird"))
 	if f.Severity != doctor.Skip || !strings.Contains(f.Detail, "weird") {
 		t.Fatalf("got %+v", f)
+	}
+}
+
+// R5.29: the doctor reports what the real hook did when run as the service account.
+func TestRunnerHookRun(t *testing.T) {
+	mk := func(name string, p *doctor.HookProbe) doctor.Runner {
+		r := persistent("id-"+name, name)
+		r.HookProbe = p
+		return r
+	}
+	rs := []doctor.Runner{
+		mk("crsp-ok", &doctor.HookProbe{Output: "crsp hook ok\n"}),
+		mk("crsp-missing", &doctor.HookProbe{Output: "::warning title=crsp::crsp is not installed at /usr/local/bin/crsp, so this job ran without the queue and the load gate.\n"}),
+		mk("crsp-exit", &doctor.HookProbe{ExitCode: 2, Output: "boom"}),
+		mk("crsp-nostart", &doctor.HookProbe{Err: "powershell.exe: access denied"}),
+		mk("crsp-silent", &doctor.HookProbe{Output: ""}),
+		mk("crsp-unrun", nil),
+	}
+	fl := &fleet{machines: []doctor.Machine{healthyMachine()}, runners: rs}
+	got := map[string]doctor.Finding{}
+	for _, f := range forCheck(run(t, doctor.Env{Fleet: fl}, "runner.hookrun"), "runner.hookrun") {
+		got[f.Subject.Name] = f
+	}
+	want := map[string]doctor.Severity{"crsp-ok": doctor.OK, "crsp-missing": doctor.Fail, "crsp-exit": doctor.Fail,
+		"crsp-nostart": doctor.Fail, "crsp-silent": doctor.Fail, "crsp-unrun": doctor.Skip}
+	for name, sev := range want {
+		if got[name].Severity != sev {
+			t.Errorf("%s = %+v, want %s", name, got[name], sev)
+		}
+		if sev != doctor.OK && got[name].Fix.Text == "" {
+			t.Errorf("%s has no fix", name)
+		}
+	}
+	if d := got["crsp-missing"].Detail; !strings.Contains(d, "crsp is not installed") {
+		t.Errorf("detail does not carry the annotation: %q", d)
 	}
 }

@@ -894,19 +894,19 @@ func (e RepositoryVisibility) Valid() bool {
 
 // Defines values for RepositoryVariableName.
 const (
-	CRSPRUNSONLINUX   RepositoryVariableName = "CRSP_RUNS_ON_LINUX"
-	CRSPRUNSONMACOS   RepositoryVariableName = "CRSP_RUNS_ON_MACOS"
-	CRSPRUNSONWINDOWS RepositoryVariableName = "CRSP_RUNS_ON_WINDOWS"
+	RUNSONLINUX   RepositoryVariableName = "RUNS_ON_LINUX"
+	RUNSONMACOS   RepositoryVariableName = "RUNS_ON_MACOS"
+	RUNSONWINDOWS RepositoryVariableName = "RUNS_ON_WINDOWS"
 )
 
 // Valid indicates whether the value is a known member of the RepositoryVariableName enum.
 func (e RepositoryVariableName) Valid() bool {
 	switch e {
-	case CRSPRUNSONLINUX:
+	case RUNSONLINUX:
 		return true
-	case CRSPRUNSONMACOS:
+	case RUNSONMACOS:
 		return true
-	case CRSPRUNSONWINDOWS:
+	case RUNSONWINDOWS:
 		return true
 	default:
 		return false
@@ -1171,60 +1171,33 @@ func (e Theme) Valid() bool {
 	}
 }
 
-// Defines values for UpdatePartPart.
+// Defines values for UpdateStatusState.
 const (
-	UpdatePartPartAgent      UpdatePartPart = "agent"
-	UpdatePartPartController UpdatePartPart = "controller"
+	UpdateStatusStateChecking       UpdateStatusState = "checking"
+	UpdateStatusStateDownloading    UpdateStatusState = "downloading"
+	UpdateStatusStateFailed         UpdateStatusState = "failed"
+	UpdateStatusStateIdle           UpdateStatusState = "idle"
+	UpdateStatusStateInstalling     UpdateStatusState = "installing"
+	UpdateStatusStateRestarting     UpdateStatusState = "restarting"
+	UpdateStatusStateWaitingForJobs UpdateStatusState = "waiting_for_jobs"
 )
 
-// Valid indicates whether the value is a known member of the UpdatePartPart enum.
-func (e UpdatePartPart) Valid() bool {
+// Valid indicates whether the value is a known member of the UpdateStatusState enum.
+func (e UpdateStatusState) Valid() bool {
 	switch e {
-	case UpdatePartPartAgent:
+	case UpdateStatusStateChecking:
 		return true
-	case UpdatePartPartController:
+	case UpdateStatusStateDownloading:
 		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for UpdatePartState.
-const (
-	UpdatePartStateAvailable UpdatePartState = "available"
-	UpdatePartStateCurrent   UpdatePartState = "current"
-	UpdatePartStateFailed    UpdatePartState = "failed"
-	UpdatePartStateUpdating  UpdatePartState = "updating"
-	UpdatePartStateWaiting   UpdatePartState = "waiting"
-)
-
-// Valid indicates whether the value is a known member of the UpdatePartState enum.
-func (e UpdatePartState) Valid() bool {
-	switch e {
-	case UpdatePartStateAvailable:
+	case UpdateStatusStateFailed:
 		return true
-	case UpdatePartStateCurrent:
+	case UpdateStatusStateIdle:
 		return true
-	case UpdatePartStateFailed:
+	case UpdateStatusStateInstalling:
 		return true
-	case UpdatePartStateUpdating:
+	case UpdateStatusStateRestarting:
 		return true
-	case UpdatePartStateWaiting:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for UpdateStatusChannel.
-const (
-	Stable UpdateStatusChannel = "stable"
-)
-
-// Valid indicates whether the value is a known member of the UpdateStatusChannel enum.
-func (e UpdateStatusChannel) Valid() bool {
-	switch e {
-	case Stable:
+	case UpdateStatusStateWaitingForJobs:
 		return true
 	default:
 		return false
@@ -2005,19 +1978,16 @@ type MachineSettingsUpdateGateOnTimeout string
 // MachineState active and drained are set by the user; draining while a drain waits.
 type MachineState string
 
-// NotificationChannel One channel. No secret is returned: `has_secret` and `smtp.has_password` say only whether one is set.
+// NotificationChannel One channel. No secret is returned: `secret_set` and `smtp.has_password` say only whether one is set.
 type NotificationChannel struct {
 	// Address Email address (kind email).
-	Address *string             `json:"address,omitempty"`
-	Enabled bool                `json:"enabled"`
-	Events  []NotificationEvent `json:"events"`
-
-	// HasSecret A webhook signing secret is set. Always false for other kinds.
-	HasSecret  bool             `json:"has_secret"`
-	Id         string           `json:"id"`
-	Kind       NotificationKind `json:"kind"`
-	LastTestAt *time.Time       `json:"last_test_at,omitempty"`
-	LastTestOk *bool            `json:"last_test_ok,omitempty"`
+	Address    *string             `json:"address,omitempty"`
+	Enabled    bool                `json:"enabled"`
+	Events     []NotificationEvent `json:"events"`
+	Id         string              `json:"id"`
+	Kind       NotificationKind    `json:"kind"`
+	LastTestAt *time.Time          `json:"last_test_at,omitempty"`
+	LastTestOk *bool               `json:"last_test_ok,omitempty"`
 
 	// MinSeverity The lowest doctor severity the channel gets (notifications R5.4).
 	MinSeverity NotificationSeverity `json:"min_severity"`
@@ -2025,6 +1995,9 @@ type NotificationChannel struct {
 
 	// Scope Email and desktop are personal; a webhook is pool-wide.
 	Scope NotificationChannelScope `json:"scope"`
+
+	// SecretSet A webhook signing secret is set. Always false for other kinds.
+	SecretSet bool `json:"secret_set"`
 
 	// Smtp How an email channel sends. The password is never returned.
 	Smtp *SmtpSettings `json:"smtp,omitempty"`
@@ -2373,7 +2346,9 @@ type Session struct {
 
 // Settings observability R6.8 retention (days unless named), operations R5.21 backup time.
 type Settings struct {
-	BackupKeepDays *int `json:"backup_keep_days,omitempty"`
+	// AutoUpdate operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first.
+	AutoUpdate     *bool `json:"auto_update,omitempty"`
+	BackupKeepDays *int  `json:"backup_keep_days,omitempty"`
 
 	// BackupTimeLocal HH:MM, 24-hour local time.
 	BackupTimeLocal            *string `json:"backup_time_local,omitempty"`
@@ -2465,12 +2440,6 @@ type StartAppManifestRequest struct {
 // StartAppManifestRequestAccountType defines model for StartAppManifestRequest.AccountType.
 type StartAppManifestRequestAccountType string
 
-// StartUpdateRequest defines model for StartUpdateRequest.
-type StartUpdateRequest struct {
-	// MachineIds Only these machines. Absent means the controller, then every agent.
-	MachineIds *[]string `json:"machine_ids,omitempty"`
-}
-
 // Theme defines model for Theme.
 type Theme string
 
@@ -2500,58 +2469,38 @@ type UpdateImageLayersRequest struct {
 	EnabledLayers []string `json:"enabled_layers"`
 }
 
-// UpdatePart One part that runs a version of crsp (the controller or an agent).
-type UpdatePart struct {
-	AvailableVersion *string         `json:"available_version,omitempty"`
-	Error            *string         `json:"error,omitempty"`
-	MachineId        string          `json:"machine_id"`
-	MachineName      *string         `json:"machine_name,omitempty"`
-	Part             UpdatePartPart  `json:"part"`
-	State            UpdatePartState `json:"state"`
-	Version          string          `json:"version"`
-
-	// WaitingFor Jobs the drain waits for.
-	WaitingFor *[]Job `json:"waiting_for,omitempty"`
+// UpdateJob defines model for UpdateJob.
+type UpdateJob struct {
+	Job        string  `json:"job"`
+	Repository string  `json:"repository"`
+	RunId      int64   `json:"run_id"`
+	Workflow   *string `json:"workflow,omitempty"`
 }
 
-// UpdatePartPart defines model for UpdatePart.Part.
-type UpdatePartPart string
-
-// UpdatePartState defines model for UpdatePart.State.
-type UpdatePartState string
-
-// UpdatePolicy operations R5.11, R5.14 and R5.15. The channel is `stable` and cannot change.
-type UpdatePolicy struct {
-	// AutoUpdate On installs a stable build in its window after the drain; off asks first.
-	AutoUpdate          *bool `json:"auto_update,omitempty"`
-	CheckIntervalHours  *int  `json:"check_interval_hours,omitempty"`
-	DrainTimeoutMinutes *int  `json:"drain_timeout_minutes,omitempty"`
-}
-
-// UpdateRun defines model for UpdateRun.
-type UpdateRun struct {
-	Changes []MachineChange `json:"changes"`
-	Version *string         `json:"version,omitempty"`
-}
-
-// UpdateStatus defines model for UpdateStatus.
+// UpdateStatus operations R5.11 to R5.18, tray R5.18.
 type UpdateStatus struct {
-	// AvailableVersion The newest stable build offered, absent when the pool is current.
-	AvailableVersion *string             `json:"available_version,omitempty"`
-	Channel          UpdateStatusChannel `json:"channel"`
-	LastCheckAt      *time.Time          `json:"last_check_at,omitempty"`
-	NextCheckAt      *time.Time          `json:"next_check_at,omitempty"`
-	Parts            []UpdatePart        `json:"parts"`
+	AutoUpdate          bool       `json:"auto_update"`
+	CheckedAt           *time.Time `json:"checked_at,omitempty"`
+	CurrentVersion      string     `json:"current_version"`
+	DrainTimeoutMinutes *int       `json:"drain_timeout_minutes,omitempty"`
 
-	// Policy operations R5.11, R5.14 and R5.15. The channel is `stable` and cannot change.
-	Policy UpdatePolicy `json:"policy"`
+	// Error Which check or step failed, in words.
+	Error *string `json:"error,omitempty"`
 
-	// RunnerVersion The pinned GitHub runner version (operations R5.19).
-	RunnerVersion *string `json:"runner_version,omitempty"`
+	// LatestVersion The newest stable release found; absent before the first look.
+	LatestVersion *string `json:"latest_version,omitempty"`
+	ReleaseUrl    *string `json:"release_url,omitempty"`
+
+	// RunningJobs Jobs running on this machine that the drain waits for.
+	RunningJobs []UpdateJob `json:"running_jobs"`
+
+	// State waiting_for_jobs is the drain. failed carries `error`.
+	State           UpdateStatusState `json:"state"`
+	UpdateAvailable bool              `json:"update_available"`
 }
 
-// UpdateStatusChannel defines model for UpdateStatus.Channel.
-type UpdateStatusChannel string
+// UpdateStatusState waiting_for_jobs is the drain. failed carries `error`.
+type UpdateStatusState string
 
 // UpdateUserRoleRequest defines model for UpdateUserRoleRequest.
 type UpdateUserRoleRequest struct {
@@ -2597,6 +2546,9 @@ type ChannelId = string
 
 // Confirm defines model for Confirm.
 type Confirm = bool
+
+// Confirmed defines model for Confirmed.
+type Confirmed = bool
 
 // Cursor defines model for Cursor.
 type Cursor = string
@@ -2811,10 +2763,16 @@ type DeleteRunnerParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
-// StartUpdateParams defines parameters for StartUpdate.
-type StartUpdateParams struct {
-	// Confirm The yes to a question card that named what goes (UX-62).
-	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+// RestartServiceParams defines parameters for RestartService.
+type RestartServiceParams struct {
+	// Confirmed The yes to the Review step that named the running jobs (tray R5.16).
+	Confirmed *Confirmed `form:"confirmed,omitempty" json:"confirmed,omitempty"`
+}
+
+// ApplyUpdateParams defines parameters for ApplyUpdate.
+type ApplyUpdateParams struct {
+	// Confirmed The yes to the Review step that named the running jobs (tray R5.16).
+	Confirmed *Confirmed `form:"confirmed,omitempty" json:"confirmed,omitempty"`
 }
 
 // CompleteAppManifestParams defines parameters for CompleteAppManifest.
@@ -2914,12 +2872,6 @@ type StartAppManifestJSONRequestBody = StartAppManifestRequest
 
 // RedeemSetupLinkJSONRequestBody defines body for RedeemSetupLink for application/json ContentType.
 type RedeemSetupLinkJSONRequestBody = RedeemSetupLinkRequest
-
-// UpdateUpdatePolicyJSONRequestBody defines body for UpdateUpdatePolicy for application/json ContentType.
-type UpdateUpdatePolicyJSONRequestBody = UpdatePolicy
-
-// StartUpdateJSONRequestBody defines body for StartUpdate for application/json ContentType.
-type StartUpdateJSONRequestBody = StartUpdateRequest
 
 // AddUserJSONRequestBody defines body for AddUser for application/json ContentType.
 type AddUserJSONRequestBody = AddUserRequest
@@ -3652,6 +3604,13 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/runners/{runnerId}/replace (the `PlanRunnerReplacement` operationId).
 	PlanRunnerReplacement(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// RestartService Restart the service after a drain
+	//
+	// tray R5.15 to R5.17. Same confirmation rule as applyUpdate.
+	//
+	// Corresponds with POST /api/v1/service/restart (the `RestartService` operationId).
+	RestartService(ctx context.Context, params *RestartServiceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetSettings Controller settings (retention, backup time, stream limits)
 	//
 	// observability R5.32 and R6.8, operations R5.21.
@@ -3762,48 +3721,26 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/setup/redeem (the `RedeemSetupLink` operationId).
 	RedeemSetupLink(ctx context.Context, body RedeemSetupLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetUpdateStatus Controller and agent versions, the policy and what is offered
+	// GetUpdateStatus The running version, the newest stable release, and the state of an update
 	//
-	// web-console 4.9, operations R5.11 to R5.18. The channel is `stable` only. Auto-update is on by default.
+	// operations R5.11, tray R5.18. Stable releases only.
 	//
-	// Corresponds with GET /api/v1/updates (the `GetUpdateStatus` operationId).
+	// Corresponds with GET /api/v1/update (the `GetUpdateStatus` operationId).
 	GetUpdateStatus(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// UpdateUpdatePolicyWithBody Change auto-update, the check interval and the drain rules
+	// ApplyUpdate Update to the newest stable release after a drain
 	//
-	// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+	// tray R5.16 to R5.18, operations R5.12 to R5.14. Without `confirmed=true` it changes nothing and answers 409 needs_confirmation with one `job` detail per running job. With it, the machine drains (no new jobs, running jobs finish up to the drain timeout), the download is verified (SHA-256 and build provenance) and installed.
 	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
-	UpdateUpdatePolicyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// Corresponds with POST /api/v1/update/apply (the `ApplyUpdate` operationId).
+	ApplyUpdate(ctx context.Context, params *ApplyUpdateParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// UpdateUpdatePolicy Change auto-update, the check interval and the drain rules
+	// CheckForUpdate Look for a newer stable release now
 	//
-	// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+	// operations R5.11. Downloads nothing. With auto-update on and a newer release, the update then starts by itself and drains first.
 	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
-	UpdateUpdatePolicy(ctx context.Context, body UpdateUpdatePolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// StartUpdateWithBody Update now
-	//
-	// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
-	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
-	StartUpdateWithBody(ctx context.Context, params *StartUpdateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// StartUpdate Update now
-	//
-	// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
-	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
-	StartUpdate(ctx context.Context, params *StartUpdateParams, body StartUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// Corresponds with POST /api/v1/update/check (the `CheckForUpdate` operationId).
+	CheckForUpdate(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListUsers Users allowed to sign in, with their roles
 	//
@@ -5415,6 +5352,23 @@ func (c *Client) PlanRunnerReplacement(ctx context.Context, runnerId RunnerId, r
 	return c.Client.Do(req)
 }
 
+// RestartService Restart the service after a drain
+//
+// tray R5.15 to R5.17. Same confirmation rule as applyUpdate.
+//
+// Corresponds with POST /api/v1/service/restart (the `RestartService` operationId).
+func (c *Client) RestartService(ctx context.Context, params *RestartServiceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRestartServiceRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetSettings Controller settings (retention, backup time, stream limits)
 //
 // observability R5.32 and R6.8, operations R5.21.
@@ -5665,11 +5619,11 @@ func (c *Client) RedeemSetupLink(ctx context.Context, body RedeemSetupLinkJSONRe
 	return c.Client.Do(req)
 }
 
-// GetUpdateStatus Controller and agent versions, the policy and what is offered
+// GetUpdateStatus The running version, the newest stable release, and the state of an update
 //
-// web-console 4.9, operations R5.11 to R5.18. The channel is `stable` only. Auto-update is on by default.
+// operations R5.11, tray R5.18. Stable releases only.
 //
-// Corresponds with GET /api/v1/updates (the `GetUpdateStatus` operationId).
+// Corresponds with GET /api/v1/update (the `GetUpdateStatus` operationId).
 func (c *Client) GetUpdateStatus(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetUpdateStatusRequest(c.Server)
 	if err != nil {
@@ -5682,15 +5636,13 @@ func (c *Client) GetUpdateStatus(ctx context.Context, reqEditors ...RequestEdito
 	return c.Client.Do(req)
 }
 
-// UpdateUpdatePolicyWithBody Change auto-update, the check interval and the drain rules
+// ApplyUpdate Update to the newest stable release after a drain
 //
-// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+// tray R5.16 to R5.18, operations R5.12 to R5.14. Without `confirmed=true` it changes nothing and answers 409 needs_confirmation with one `job` detail per running job. With it, the machine drains (no new jobs, running jobs finish up to the drain timeout), the download is verified (SHA-256 and build provenance) and installed.
 //
-// Takes any type of body and a specified content type.
-//
-// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
-func (c *Client) UpdateUpdatePolicyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateUpdatePolicyRequestWithBody(c.Server, contentType, body)
+// Corresponds with POST /api/v1/update/apply (the `ApplyUpdate` operationId).
+func (c *Client) ApplyUpdate(ctx context.Context, params *ApplyUpdateParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewApplyUpdateRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -5701,53 +5653,13 @@ func (c *Client) UpdateUpdatePolicyWithBody(ctx context.Context, contentType str
 	return c.Client.Do(req)
 }
 
-// UpdateUpdatePolicy Change auto-update, the check interval and the drain rules
+// CheckForUpdate Look for a newer stable release now
 //
-// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+// operations R5.11. Downloads nothing. With auto-update on and a newer release, the update then starts by itself and drains first.
 //
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
-func (c *Client) UpdateUpdatePolicy(ctx context.Context, body UpdateUpdatePolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateUpdatePolicyRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// StartUpdateWithBody Update now
-//
-// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
-//
-// Takes any type of body and a specified content type.
-//
-// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
-func (c *Client) StartUpdateWithBody(ctx context.Context, params *StartUpdateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewStartUpdateRequestWithBody(c.Server, params, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// StartUpdate Update now
-//
-// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
-//
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
-func (c *Client) StartUpdate(ctx context.Context, params *StartUpdateParams, body StartUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewStartUpdateRequest(c.Server, params, body)
+// Corresponds with POST /api/v1/update/check (the `CheckForUpdate` operationId).
+func (c *Client) CheckForUpdate(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCheckForUpdateRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -9295,6 +9207,60 @@ func NewPlanRunnerReplacementRequest(server string, runnerId RunnerId) (*http.Re
 	return req, nil
 }
 
+// NewRestartServiceRequest constructs an http.Request for the RestartService method
+func NewRestartServiceRequest(server string, params *RestartServiceParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/service/restart")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Confirmed != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirmed", *params.Confirmed, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetSettingsRequest constructs an http.Request for the GetSettings method
 func NewGetSettingsRequest(server string) (*http.Request, error) {
 	var err error
@@ -9612,7 +9578,7 @@ func NewGetUpdateStatusRequest(server string) (*http.Request, error) {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/v1/updates")
+	operationPath := fmt.Sprintf("/api/v1/update")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9630,19 +9596,8 @@ func NewGetUpdateStatusRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewUpdateUpdatePolicyRequest calls the generic UpdateUpdatePolicy builder with application/json body
-func NewUpdateUpdatePolicyRequest(server string, body UpdateUpdatePolicyJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewUpdateUpdatePolicyRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewUpdateUpdatePolicyRequestWithBody constructs an http.Request for the UpdateUpdatePolicy method, with any body, and a specified content type
-func NewUpdateUpdatePolicyRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewApplyUpdateRequest constructs an http.Request for the ApplyUpdate method
+func NewApplyUpdateRequest(server string, params *ApplyUpdateParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -9650,47 +9605,7 @@ func NewUpdateUpdatePolicyRequestWithBody(server string, contentType string, bod
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/v1/updates/policy")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewStartUpdateRequest calls the generic StartUpdate builder with application/json body
-func NewStartUpdateRequest(server string, params *StartUpdateParams, body StartUpdateJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewStartUpdateRequestWithBody(server, params, "application/json", bodyReader)
-}
-
-// NewStartUpdateRequestWithBody constructs an http.Request for the StartUpdate method, with any body, and a specified content type
-func NewStartUpdateRequestWithBody(server string, params *StartUpdateParams, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/updates/start")
+	operationPath := fmt.Sprintf("/api/v1/update/apply")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -9709,9 +9624,9 @@ func NewStartUpdateRequestWithBody(server string, params *StartUpdateParams, con
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
 
-		if params.Confirm != nil {
+		if params.Confirmed != nil {
 
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirm", *params.Confirm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirmed", *params.Confirmed, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -9727,12 +9642,37 @@ func NewStartUpdateRequestWithBody(server string, params *StartUpdateParams, con
 		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
-	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Add("Content-Type", contentType)
+	return req, nil
+}
+
+// NewCheckForUpdateRequest constructs an http.Request for the CheckForUpdate method
+func NewCheckForUpdateRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/update/check")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -11015,6 +10955,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/runners/{runnerId}/replace (the `PlanRunnerReplacement` operationId).
 	PlanRunnerReplacementWithResponse(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*PlanRunnerReplacementResponse, error)
 
+	// RestartServiceWithResponse Restart the service after a drain
+	//
+	// tray R5.15 to R5.17. Same confirmation rule as applyUpdate.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/service/restart (the `RestartService` operationId).
+	RestartServiceWithResponse(ctx context.Context, params *RestartServiceParams, reqEditors ...RequestEditorFn) (*RestartServiceResponse, error)
+
 	// GetSettingsWithResponse Controller settings (retention, backup time, stream limits)
 	//
 	// observability R5.32 and R6.8, operations R5.21.
@@ -11133,50 +11082,32 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/setup/redeem (the `RedeemSetupLink` operationId).
 	RedeemSetupLinkWithResponse(ctx context.Context, body RedeemSetupLinkJSONRequestBody, reqEditors ...RequestEditorFn) (*RedeemSetupLinkResponse, error)
 
-	// GetUpdateStatusWithResponse Controller and agent versions, the policy and what is offered
+	// GetUpdateStatusWithResponse The running version, the newest stable release, and the state of an update
 	//
-	// web-console 4.9, operations R5.11 to R5.18. The channel is `stable` only. Auto-update is on by default.
+	// operations R5.11, tray R5.18. Stable releases only.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
-	// Corresponds with GET /api/v1/updates (the `GetUpdateStatus` operationId).
+	// Corresponds with GET /api/v1/update (the `GetUpdateStatus` operationId).
 	GetUpdateStatusWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUpdateStatusResponse, error)
 
-	// UpdateUpdatePolicyWithBodyWithResponse Change auto-update, the check interval and the drain rules
+	// ApplyUpdateWithResponse Update to the newest stable release after a drain
 	//
-	// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+	// tray R5.16 to R5.18, operations R5.12 to R5.14. Without `confirmed=true` it changes nothing and answers 409 needs_confirmation with one `job` detail per running job. With it, the machine drains (no new jobs, running jobs finish up to the drain timeout), the download is verified (SHA-256 and build provenance) and installed.
 	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	// Returns a wrapper object for the known response body format(s).
 	//
-	// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
-	UpdateUpdatePolicyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateUpdatePolicyResponse, error)
+	// Corresponds with POST /api/v1/update/apply (the `ApplyUpdate` operationId).
+	ApplyUpdateWithResponse(ctx context.Context, params *ApplyUpdateParams, reqEditors ...RequestEditorFn) (*ApplyUpdateResponse, error)
 
-	// UpdateUpdatePolicyWithResponse Change auto-update, the check interval and the drain rules
+	// CheckForUpdateWithResponse Look for a newer stable release now
 	//
-	// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+	// operations R5.11. Downloads nothing. With auto-update on and a newer release, the update then starts by itself and drains first.
 	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	// Returns a wrapper object for the known response body format(s).
 	//
-	// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
-	UpdateUpdatePolicyWithResponse(ctx context.Context, body UpdateUpdatePolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUpdatePolicyResponse, error)
-
-	// StartUpdateWithBodyWithResponse Update now
-	//
-	// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
-	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
-	StartUpdateWithBodyWithResponse(ctx context.Context, params *StartUpdateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartUpdateResponse, error)
-
-	// StartUpdateWithResponse Update now
-	//
-	// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
-	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
-	StartUpdateWithResponse(ctx context.Context, params *StartUpdateParams, body StartUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*StartUpdateResponse, error)
+	// Corresponds with POST /api/v1/update/check (the `CheckForUpdate` operationId).
+	CheckForUpdateWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*CheckForUpdateResponse, error)
 
 	// ListUsersWithResponse Users allowed to sign in, with their roles
 	//
@@ -14654,6 +14585,54 @@ func (r PlanRunnerReplacementResponse) ContentType() string {
 	return ""
 }
 
+type RestartServiceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *UpdateStatus
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r RestartServiceResponse) GetJSON202() *UpdateStatus {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r RestartServiceResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RestartServiceResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RestartServiceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RestartServiceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RestartServiceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetSettingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -15141,7 +15120,55 @@ func (r GetUpdateStatusResponse) ContentType() string {
 	return ""
 }
 
-type UpdateUpdatePolicyResponse struct {
+type ApplyUpdateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *UpdateStatus
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r ApplyUpdateResponse) GetJSON202() *UpdateStatus {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ApplyUpdateResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ApplyUpdateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ApplyUpdateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ApplyUpdateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ApplyUpdateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CheckForUpdateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
@@ -15151,22 +15178,22 @@ type UpdateUpdatePolicyResponse struct {
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r UpdateUpdatePolicyResponse) GetJSON200() *UpdateStatus {
+func (r CheckForUpdateResponse) GetJSON200() *UpdateStatus {
 	return r.JSON200
 }
 
 // GetJSONDefault returns the response for an HTTP default `application/json` response
-func (r UpdateUpdatePolicyResponse) GetJSONDefault() *Error {
+func (r CheckForUpdateResponse) GetJSONDefault() *Error {
 	return r.JSONDefault
 }
 
 // GetBody returns the raw response body bytes
-func (r UpdateUpdatePolicyResponse) GetBody() []byte {
+func (r CheckForUpdateResponse) GetBody() []byte {
 	return r.Body
 }
 
 // Status returns HTTPResponse.Status
-func (r UpdateUpdatePolicyResponse) Status() string {
+func (r CheckForUpdateResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -15174,7 +15201,7 @@ func (r UpdateUpdatePolicyResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r UpdateUpdatePolicyResponse) StatusCode() int {
+func (r CheckForUpdateResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -15182,55 +15209,7 @@ func (r UpdateUpdatePolicyResponse) StatusCode() int {
 }
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r UpdateUpdatePolicyResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-type StartUpdateResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON202 the response for an HTTP 202 `application/json` response
-	JSON202 *UpdateRun
-	// JSONDefault the response for an HTTP default `application/json` response
-	JSONDefault *Error
-}
-
-// GetJSON202 returns the response for an HTTP 202 `application/json` response
-func (r StartUpdateResponse) GetJSON202() *UpdateRun {
-	return r.JSON202
-}
-
-// GetJSONDefault returns the response for an HTTP default `application/json` response
-func (r StartUpdateResponse) GetJSONDefault() *Error {
-	return r.JSONDefault
-}
-
-// GetBody returns the raw response body bytes
-func (r StartUpdateResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r StartUpdateResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r StartUpdateResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r StartUpdateResponse) ContentType() string {
+func (r CheckForUpdateResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -16979,6 +16958,21 @@ func (c *ClientWithResponses) PlanRunnerReplacementWithResponse(ctx context.Cont
 	return ParsePlanRunnerReplacementResponse(rsp)
 }
 
+// RestartServiceWithResponse Restart the service after a drain
+//
+// tray R5.15 to R5.17. Same confirmation rule as applyUpdate.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/service/restart (the `RestartService` operationId).
+func (c *ClientWithResponses) RestartServiceWithResponse(ctx context.Context, params *RestartServiceParams, reqEditors ...RequestEditorFn) (*RestartServiceResponse, error) {
+	rsp, err := c.RestartService(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRestartServiceResponse(rsp)
+}
+
 // GetSettingsWithResponse Controller settings (retention, backup time, stream limits)
 //
 // observability R5.32 and R6.8, operations R5.21.
@@ -17181,13 +17175,13 @@ func (c *ClientWithResponses) RedeemSetupLinkWithResponse(ctx context.Context, b
 	return ParseRedeemSetupLinkResponse(rsp)
 }
 
-// GetUpdateStatusWithResponse Controller and agent versions, the policy and what is offered
+// GetUpdateStatusWithResponse The running version, the newest stable release, and the state of an update
 //
-// web-console 4.9, operations R5.11 to R5.18. The channel is `stable` only. Auto-update is on by default.
+// operations R5.11, tray R5.18. Stable releases only.
 //
 // Returns a wrapper object for the known response body format(s).
 //
-// Corresponds with GET /api/v1/updates (the `GetUpdateStatus` operationId).
+// Corresponds with GET /api/v1/update (the `GetUpdateStatus` operationId).
 func (c *ClientWithResponses) GetUpdateStatusWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetUpdateStatusResponse, error) {
 	rsp, err := c.GetUpdateStatus(ctx, reqEditors...)
 	if err != nil {
@@ -17196,64 +17190,34 @@ func (c *ClientWithResponses) GetUpdateStatusWithResponse(ctx context.Context, r
 	return ParseGetUpdateStatusResponse(rsp)
 }
 
-// UpdateUpdatePolicyWithBodyWithResponse Change auto-update, the check interval and the drain rules
+// ApplyUpdateWithResponse Update to the newest stable release after a drain
 //
-// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+// tray R5.16 to R5.18, operations R5.12 to R5.14. Without `confirmed=true` it changes nothing and answers 409 needs_confirmation with one `job` detail per running job. With it, the machine drains (no new jobs, running jobs finish up to the drain timeout), the download is verified (SHA-256 and build provenance) and installed.
 //
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+// Returns a wrapper object for the known response body format(s).
 //
-// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
-func (c *ClientWithResponses) UpdateUpdatePolicyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateUpdatePolicyResponse, error) {
-	rsp, err := c.UpdateUpdatePolicyWithBody(ctx, contentType, body, reqEditors...)
+// Corresponds with POST /api/v1/update/apply (the `ApplyUpdate` operationId).
+func (c *ClientWithResponses) ApplyUpdateWithResponse(ctx context.Context, params *ApplyUpdateParams, reqEditors ...RequestEditorFn) (*ApplyUpdateResponse, error) {
+	rsp, err := c.ApplyUpdate(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseUpdateUpdatePolicyResponse(rsp)
+	return ParseApplyUpdateResponse(rsp)
 }
 
-// UpdateUpdatePolicyWithResponse Change auto-update, the check interval and the drain rules
+// CheckForUpdateWithResponse Look for a newer stable release now
 //
-// operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
+// operations R5.11. Downloads nothing. With auto-update on and a newer release, the update then starts by itself and drains first.
 //
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+// Returns a wrapper object for the known response body format(s).
 //
-// Corresponds with PATCH /api/v1/updates/policy (the `UpdateUpdatePolicy` operationId).
-func (c *ClientWithResponses) UpdateUpdatePolicyWithResponse(ctx context.Context, body UpdateUpdatePolicyJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUpdatePolicyResponse, error) {
-	rsp, err := c.UpdateUpdatePolicy(ctx, body, reqEditors...)
+// Corresponds with POST /api/v1/update/check (the `CheckForUpdate` operationId).
+func (c *ClientWithResponses) CheckForUpdateWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*CheckForUpdateResponse, error) {
+	rsp, err := c.CheckForUpdate(ctx, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseUpdateUpdatePolicyResponse(rsp)
-}
-
-// StartUpdateWithBodyWithResponse Update now
-//
-// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
-//
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
-func (c *ClientWithResponses) StartUpdateWithBodyWithResponse(ctx context.Context, params *StartUpdateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartUpdateResponse, error) {
-	rsp, err := c.StartUpdateWithBody(ctx, params, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseStartUpdateResponse(rsp)
-}
-
-// StartUpdateWithResponse Update now
-//
-// operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
-//
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with POST /api/v1/updates/start (the `StartUpdate` operationId).
-func (c *ClientWithResponses) StartUpdateWithResponse(ctx context.Context, params *StartUpdateParams, body StartUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*StartUpdateResponse, error) {
-	rsp, err := c.StartUpdate(ctx, params, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseStartUpdateResponse(rsp)
+	return ParseCheckForUpdateResponse(rsp)
 }
 
 // ListUsersWithResponse Users allowed to sign in, with their roles
@@ -19801,6 +19765,39 @@ func ParsePlanRunnerReplacementResponse(rsp *http.Response) (*PlanRunnerReplacem
 	return response, nil
 }
 
+// ParseRestartServiceResponse parses an HTTP response from a RestartServiceWithResponse call
+func ParseRestartServiceResponse(rsp *http.Response) (*RestartServiceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RestartServiceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest UpdateStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetSettingsResponse parses an HTTP response from a GetSettingsWithResponse call
 func ParseGetSettingsResponse(rsp *http.Response) (*GetSettingsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -20144,26 +20141,26 @@ func ParseGetUpdateStatusResponse(rsp *http.Response) (*GetUpdateStatusResponse,
 	return response, nil
 }
 
-// ParseUpdateUpdatePolicyResponse parses an HTTP response from a UpdateUpdatePolicyWithResponse call
-func ParseUpdateUpdatePolicyResponse(rsp *http.Response) (*UpdateUpdatePolicyResponse, error) {
+// ParseApplyUpdateResponse parses an HTTP response from a ApplyUpdateWithResponse call
+func ParseApplyUpdateResponse(rsp *http.Response) (*ApplyUpdateResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &UpdateUpdatePolicyResponse{
+	response := &ApplyUpdateResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
 		var dest UpdateStatus
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON200 = &dest
+		response.JSON202 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error
@@ -20177,26 +20174,26 @@ func ParseUpdateUpdatePolicyResponse(rsp *http.Response) (*UpdateUpdatePolicyRes
 	return response, nil
 }
 
-// ParseStartUpdateResponse parses an HTTP response from a StartUpdateWithResponse call
-func ParseStartUpdateResponse(rsp *http.Response) (*StartUpdateResponse, error) {
+// ParseCheckForUpdateResponse parses an HTTP response from a CheckForUpdateWithResponse call
+func ParseCheckForUpdateResponse(rsp *http.Response) (*CheckForUpdateResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &StartUpdateResponse{
+	response := &CheckForUpdateResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest UpdateRun
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest UpdateStatus
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error

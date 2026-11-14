@@ -3,7 +3,7 @@ id: github-integration
 title: GitHub integration
 apps: [controller, web-console, cli]
 topics: [github, security, runners, install]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference
@@ -26,7 +26,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-No code exists yet. Every requirement is NOT YET IMPLEMENTED. Each one names the milestone that builds it (M1 to M8, from the product brief).
+The M1 sign-in, session, repository and policy requirements marked built have tests in section 9. A requirement not marked built is NOT YET IMPLEMENTED. Each one names the milestone that builds it (M1 to M8, from the product brief).
 
 ## 1. In one paragraph
 
@@ -46,7 +46,7 @@ Each controller registers its own GitHub App in the first-run wizard. People sig
 
 - One-click App creation with the exact permissions the product needs, no more.
 - Sign-in that acts as the user, so a user sees only what GitHub lets them see.
-- Runners that work with `runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_LINUX) }}` without the user writing labels by hand.
+- Runners that work with `runs-on: ${{ fromJSON(vars.RUNS_ON_LINUX) }}` without the user writing labels by hand.
 - No secret in the database, config files, logs or test fixtures.
 
 **Non-goals.**
@@ -77,7 +77,7 @@ sequenceDiagram
   C->>C: First user becomes owner
   O->>C: Turn the pool on for a repository
   C->>G: Check admin right as the user
-  C->>G: Write CRSP_RUNS_ON_* variables (installation token)
+  C->>G: Write RUNS_ON_* variables (installation token)
   C->>G: Fetch registration or JIT config when a runner starts
   G-->>C: Demand (scale-set session, workflow_job webhook, or polling)
 ```
@@ -158,7 +158,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 **R5.12** (M1, built) — **Roles.** A viewer can read every screen and change nothing. An admin can change pool, policy, machines and runners, but not users. The owner can do everything. Every API operation declares its role in `x-auth`, and the route-coverage test checks it.
 
-**R5.13** (M1, built) — **Sessions.** A web session is a random id in a cookie (`HttpOnly`, `SameSite=Lax`, and `Secure` on every non-loopback address). The database keeps only a hash of the id. A session ends after 12 hours idle or 7 days, at sign-out, and when the user is removed or their role changes.
+**R5.13** (M1, built) — **Sessions.** A web session is a random id in a cookie (`HttpOnly`, `SameSite=Lax`, and `Secure` on every non-loopback address). The database keeps only a hash of the id. A session never expires by time (owner decision for M1). It ends at sign-out, when the user is removed, and when their role changes.
 
 **R5.14** (M1, built) — **CLI device flow.** `crsp login` runs GitHub's device flow with the App's client id. It shows the code and the URL, and waits at the interval GitHub gives. It sends the GitHub user token once to the controller, which checks it with `POST /applications/{client_id}/token` and that the user is allowed. The controller returns its own CLI token. The CLI keeps that token in the OS secret store and drops the GitHub token.
 
@@ -188,7 +188,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 |---|---|---|---|
 | Repository | Administration | Read and write | Repository runners, registration and remove tokens, JIT configs, fork approval setting |
 | Repository | Actions | Read | Workflow runs and jobs for polling; `workflow_job` events |
-| Repository | Variables | Read and write | `CRSP_RUNS_ON_*` variables |
+| Repository | Variables | Read and write | `RUNS_ON_*` variables |
 | Repository | Contents | Read | Reading `.github/workflows/` for the `runs-on` check |
 | Repository | Metadata | Read | Required by GitHub |
 | Organization | Self-hosted runners | Read and write | Organization runners and runner groups (R5.21) |
@@ -204,21 +204,21 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 - Priority. Default normal. Enforced by the scheduling spec (M3).
 - Fork pull requests. Default off (R5.26).
 
-**R5.26** (M1, built) — **Fork pull requests off by default.** For a public repository, jobs from pull requests whose head repository is a fork never run on the pool unless the policy allows it. Two guards apply. The controller sets the repository's fork-approval setting to require approval for all outside contributors. The runner's job-started hook reads the event payload and fails a forked pull request job at once, before any step runs, with a message that names the policy. Turning it on asks first with a warning that fork code runs on the user's machines.
+**R5.26** (M1, built in part: the fork-approval setting is built; the job-started hook guard is NOT YET IMPLEMENTED and untested, so fork protection is not built until its hook test passes) — **Fork pull requests off by default.** For a public repository, jobs from pull requests whose head repository is a fork never run on the pool unless the policy allows it. Two guards apply. The controller sets the repository's fork-approval setting to require approval for all outside contributors. The runner's job-started hook reads the event payload and fails a forked pull request job at once, before any step runs, with a message that names the policy. Turning it on asks first with a warning that fork code runs on the user's machines.
 
 **R5.27** (M1, built) — **Labels stay generic.** A label that is not generic is refused in a policy. A runner that carries a leftover non-generic label loses it only after a yes that names the label, and only when no workflow names it. When a workflow still names it, the console lists the files that must switch to the variable. (Source: runner-pool R5.37, DL316.)
 
 ### 5.6 Repository variables and `runs-on`
 
-**R5.28** (M1, built) — **Variables kept correct.** For each enabled repository the controller writes `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS` and `CRSP_RUNS_ON_MACOS`. Each is a JSON list of labels, for example `["self-hosted","Linux","crsp-home"]`. A variable is written only for an OS the policy enables and some machine can serve. The controller writes them on enable and on policy change, and checks them every 10 minutes. A value changed outside the product is restored, logged in the audit log, and shown as drift on the repository row. (Source: runner-pool R5.36, which used `CRSP_RUNS_ON_WINDOWS`.)
+**R5.28** (M1, built) — **Variables kept correct.** The controller writes `RUNS_ON_LINUX`, `RUNS_ON_WINDOWS` and `RUNS_ON_MACOS` as repository Actions variables (D300). Each is a JSON list of labels, for example `["self-hosted","linux","x64"]`; an unset variable means GitHub-hosted. A variable is set for an OS only while the repository has at least one crsp runner for that OS and the pool is on for it (the policy enables the OS). It is deleted when the repository has no runner for that OS, or the pool is turned off for that OS. The controller writes and deletes them on enable, on policy change and when a runner is added or removed, and checks them every 10 minutes. Labels are case-insensitive: they are compared ignoring case and written lowercase (`linux`, not `Linux`). A value that differs only in case is not drift. A value changed outside the product is restored, logged in the audit log, and shown as drift on the repository row. On upgrade the controller deletes the `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS` and `CRSP_RUNS_ON_MACOS` variables it created earlier (only names its store lists as written by it), whatever the pool state, then writes the new ones. (Source: runner-pool R5.36, D300.)
 
-**R5.29** (M1, built) — **Variables when the pool is off.** Turning the pool off names the variables the controller would delete. It deletes them only after a yes. The question says that workflows that read them will fail to start.
+**R5.29** (M1, built) — **Variables when the pool is off.** Turning the pool off for a repository names the `RUNS_ON_*` variables the controller would delete. It deletes them only after a yes. The question says that workflows that read them will fail to start.
 
 **R5.30** (M1, built) — **`runs-on` check.** The controller reads every file in `.github/workflows/` of an enabled repository on enable, on policy change and every hour (with ETags). It reports a finding with file and line when:
 
 - a self-hosted job names a literal label set that no runner of the pool carries (fail);
-- a self-hosted job uses literal labels instead of `fromJSON(vars.CRSP_RUNS_ON_<OS>)` (warning);
-- a workflow reads a `CRSP_RUNS_ON_<OS>` variable that is not set (fail).
+- a self-hosted job uses literal labels instead of `fromJSON(vars.RUNS_ON_<OS>)` (warning);
+- a workflow reads a `RUNS_ON_<OS>` variable that is not set (fail).
 
 Findings show on the repository row and feed the doctor. (Source: runner-pool R5.39; DELIVERYSPEC DL-09.)
 
@@ -262,7 +262,7 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R6.9** (M1, built) — **Tests use a fake GitHub.** No test calls github.com. Tests run against a fake GitHub API server in `internal/github/githubfake` that serves recorded real responses as fixtures. Fixtures are recorded from the dev App with a recorder that scrubs every token, key and secret before writing. A guard test fails when a fixture holds a token pattern or a PEM block.
 
-**R6.10** (M1, NOT YET IMPLEMENTED) — **Data kept.** The database keeps per user: GitHub id, login, role, who added them, and dates. Sessions keep a hashed id and expire as R5.13 says. The data inventory (stack profile section 7) lists these fields before the first release.
+**R6.10** (M1, NOT YET IMPLEMENTED) — **Data kept.** The database keeps per user: GitHub id, login, role, who added them, and dates. Sessions keep a hashed id and end as R5.13 says. The data inventory (stack profile section 7) lists these fields before the first release.
 
 **R6.11** (M1, NOT YET IMPLEMENTED) — **Limits.** The repository list handles at least 1,000 repositories per installation, 100 per page from GitHub and the console's pager on screen. The first page shows within 3 seconds on a normal home connection.
 
@@ -294,7 +294,7 @@ flowchart LR
 
 **Packages.**
 
-- `internal/secrets`: one interface (`Get`, `Put`, `Delete` by key) with one implementation per OS store and the 0600 file fallback. Keys look like `crp/github-app/<app-id>/private-key`.
+- `internal/secrets`: one interface (`Get`, `Put`, `Delete` by key) with one implementation per OS store and the 0600 file fallback. Keys look like `crsp/github-app/<app-id>/private-key`.
 - `internal/github`: the App client (JWT signing, installation token cache), a typed REST client over `go-github`, the scale-set adapter over `github.com/actions/scaleset`, the webhook handler, and the poller. One `Demand` interface hides the three demand sources.
 - `internal/github/githubfake`: the fake GitHub server and the fixture recorder for tests.
 - `internal/auth`: the manifest flow handlers, web OAuth with state and PKCE, the device-flow exchange, sessions, CLI tokens and role checks.
@@ -372,9 +372,9 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.23 | internal/auth/manifest_test.go |
 | R5.24 | internal/github/client_test.go |
 | R5.25 | internal/repos/policy_test.go |
-| R5.26 | internal/repos/policy_test.go |
+| R5.26 | internal/repos/policy_test.go (approval setting); planned: internal/hooks/forkpr_test.go TestForkPullRequestFailsAtJobStart (hook guard) |
 | R5.27 | internal/repos/labels_test.go |
-| R5.28 | internal/repos/variables_test.go |
+| R5.28 | internal/repos/variables_test.go (set and delete per OS on runner add and remove, delete when the policy turns an OS off, delete with the pool off, migration of old names, case-insensitive compare and lowercase labels); internal/github/fake (variable names upper case, `VariableNames`) |
 | R5.29 | internal/repos/variables_test.go |
 | R5.30 | internal/repos/runson_test.go |
 | R5.31 | internal/github/client_test.go |
@@ -402,7 +402,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 
 | ID | Question | Chosen | Date |
 |---|---|---|---|
-| GI-1 | Variable names | `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`, `CRSP_RUNS_ON_MACOS` (product brief, 2026-11-14). Decision 0002 still shows the older `CRSP_RUNS_ON_LINUX` names as an example. | 2026-11-14 |
+| GI-1 | Variable names | `RUNS_ON_LINUX`, `RUNS_ON_WINDOWS`, `RUNS_ON_MACOS` (product brief, 2026-11-14). Replaces the older `CRSP_RUNS_ON_*` names (D300, CRSP25); the controller deletes those on upgrade (R5.28). Decision 0002 still shows the old name as an example. | 2026-11-14 |
 | GI-2 | How the first owner is protected on a network | A one-time setup code from the terminal or tray gates the wizard and the owner claim (R5.1, R5.10). | 2026-11-14 |
 | GI-3 | How the CLI authenticates to the controller | Device flow to GitHub, then a controller CLI token; the GitHub token is dropped (R5.14). | 2026-11-14 |
 | GI-4 | How fork pull requests are kept off | Fork approval setting plus a job-started hook guard (R5.26). | 2026-11-14 |

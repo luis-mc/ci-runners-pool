@@ -1138,6 +1138,86 @@ export interface paths {
         patch: operations["updateSettings"];
         trace?: never;
     };
+    "/api/v1/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The running version, the newest stable release, and the state of an update
+         * @description operations R5.11, tray R5.18. Stable releases only.
+         */
+        get: operations["getUpdateStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/update/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Look for a newer stable release now
+         * @description operations R5.11. Downloads nothing. With auto-update on and a newer release, the update then starts by itself and drains first.
+         */
+        post: operations["checkForUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/update/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Update to the newest stable release after a drain
+         * @description tray R5.16 to R5.18, operations R5.12 to R5.14. Without `confirmed=true` it changes nothing and answers 409 needs_confirmation with one `job` detail per running job. With it, the machine drains (no new jobs, running jobs finish up to the drain timeout), the download is verified (SHA-256 and build provenance) and installed.
+         */
+        post: operations["applyUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restart the service after a drain
+         * @description tray R5.15 to R5.17. Same confirmation rule as applyUpdate.
+         */
+        post: operations["restartService"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit": {
         parameters: {
             query?: never;
@@ -1507,66 +1587,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/updates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Controller and agent versions, the policy and what is offered
-         * @description web-console 4.9, operations R5.11 to R5.18. The channel is `stable` only. Auto-update is on by default.
-         */
-        get: operations["getUpdateStatus"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/updates/policy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Change auto-update, the check interval and the drain rules
-         * @description operations R5.11, R5.14 and R5.15. A field left out keeps its value. A value outside its range is refused with the range.
-         */
-        patch: operations["updateUpdatePolicy"];
-        trace?: never;
-    };
-    "/api/v1/updates/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Update now
-         * @description operations R5.14 to R5.18. Without `confirm=true` it answers 409 needs_confirmation naming the version, the machines and the jobs the drain waits for (UX-62). The controller goes first, then agents one at a time. Each machine gets a MachineChange of kind `controller_update` or `agent_update`; watch them with getMachineChange and `change.progress`. Answers 409 conflict when nothing newer is offered.
-         */
-        post: operations["startUpdate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/webhooks/github": {
         parameters: {
             query?: never;
@@ -1894,7 +1914,7 @@ export interface components {
          *       "user_is_github_admin": true,
          *       "variables": [
          *         {
-         *           "name": "CRSP_RUNS_ON_LINUX",
+         *           "name": "RUNS_ON_LINUX",
          *           "status": "ok",
          *           "value": "[\"self-hosted\",\"linux\",\"x64\"]"
          *         }
@@ -1931,7 +1951,7 @@ export interface components {
         };
         RepositoryVariable: {
             /** @enum {string} */
-            name: "CRSP_RUNS_ON_LINUX" | "CRSP_RUNS_ON_WINDOWS" | "CRSP_RUNS_ON_MACOS";
+            name: "RUNS_ON_LINUX" | "RUNS_ON_WINDOWS" | "RUNS_ON_MACOS";
             status: components["schemas"]["VariableStatus"];
             /** @description The JSON list of labels as written. */
             value?: string;
@@ -2618,7 +2638,7 @@ export interface components {
          *       "title": "No online runner carries [self-hosted, linux, arm64]",
          *       "detail": ".github/workflows/ci.yml:12 needs [self-hosted, linux, arm64]",
          *       "fix": {
-         *         "text": "Add a runner with these labels, or use fromJSON(vars.CRSP_RUNS_ON_LINUX).",
+         *         "text": "Add a runner with these labels, or use fromJSON(vars.RUNS_ON_LINUX).",
          *         "link": "/runners"
          *       },
          *       "needs_admin": false,
@@ -2662,7 +2682,8 @@ export interface components {
          *       "retention_load_raw_hours": 24,
          *       "backup_time_local": "03:00",
          *       "backup_keep_days": 14,
-         *       "max_event_streams": 50
+         *       "max_event_streams": 50,
+         *       "auto_update": true
          *     }
          */
         Settings: {
@@ -2678,6 +2699,48 @@ export interface components {
             backup_time_local?: string;
             backup_keep_days?: number;
             max_event_streams?: number;
+            /** @description operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first. */
+            auto_update?: boolean;
+        };
+        /**
+         * @description operations R5.11 to R5.18, tray R5.18.
+         * @example {
+         *       "current_version": "1.4.0",
+         *       "latest_version": "1.5.0",
+         *       "update_available": true,
+         *       "state": "idle",
+         *       "auto_update": true,
+         *       "running_jobs": []
+         *     }
+         */
+        UpdateStatus: {
+            /** @example 1.4.0 */
+            current_version: string;
+            /** @description The newest stable release found; absent before the first look. */
+            latest_version?: string;
+            update_available: boolean;
+            /**
+             * @description waiting_for_jobs is the drain. failed carries `error`.
+             * @enum {string}
+             */
+            state: "idle" | "checking" | "waiting_for_jobs" | "downloading" | "installing" | "restarting" | "failed";
+            auto_update: boolean;
+            /** Format: date-time */
+            checked_at?: string;
+            /** @description Which check or step failed, in words. */
+            error?: string;
+            /** @description Jobs running on this machine that the drain waits for. */
+            running_jobs: components["schemas"]["UpdateJob"][];
+            drain_timeout_minutes?: number;
+            /** Format: uri */
+            release_url?: string;
+        };
+        UpdateJob: {
+            repository: string;
+            workflow?: string;
+            /** Format: int64 */
+            run_id: number;
+            job: string;
         };
         /**
          * @description observability R5.24.
@@ -2871,7 +2934,7 @@ export interface components {
             has_password: boolean;
         };
         /**
-         * @description One channel. No secret is returned: `has_secret` and `smtp.has_password` say only whether one is set.
+         * @description One channel. No secret is returned: `secret_set` and `smtp.has_password` say only whether one is set.
          * @example {
          *       "id": "nch_01JCRSP0001",
          *       "kind": "webhook",
@@ -2884,7 +2947,7 @@ export interface components {
          *       ],
          *       "min_severity": "warning",
          *       "url": "https://hooks.example.com/crsp",
-         *       "has_secret": true
+         *       "secret_set": true
          *     }
          */
         NotificationChannel: {
@@ -2904,7 +2967,7 @@ export interface components {
             /** @description HTTPS URL (kind webhook). */
             url?: string;
             /** @description A webhook signing secret is set. Always false for other kinds. */
-            has_secret: boolean;
+            secret_set: boolean;
             smtp?: components["schemas"]["SmtpSettings"];
             /** Format: date-time */
             last_test_at?: string;
@@ -2971,84 +3034,6 @@ export interface components {
             /** Format: date-time */
             sent_at: string;
         };
-        /**
-         * @description operations R5.11, R5.14 and R5.15. The channel is `stable` and cannot change.
-         * @example {
-         *       "auto_update": true,
-         *       "check_interval_hours": 6,
-         *       "drain_timeout_minutes": 60
-         *     }
-         */
-        UpdatePolicy: {
-            /**
-             * @description On installs a stable build in its window after the drain; off asks first.
-             * @default true
-             */
-            auto_update: boolean;
-            /** @default 6 */
-            check_interval_hours: number;
-            /** @default 60 */
-            drain_timeout_minutes: number;
-        };
-        /** @description One part that runs a version of crsp (the controller or an agent). */
-        UpdatePart: {
-            /** @enum {string} */
-            part: "controller" | "agent";
-            machine_id: string;
-            machine_name?: string;
-            version: string;
-            available_version?: string;
-            /** @enum {string} */
-            state: "current" | "available" | "waiting" | "updating" | "failed";
-            /** @description Jobs the drain waits for. */
-            waiting_for?: components["schemas"]["Job"][];
-            error?: string;
-        };
-        /**
-         * @example {
-         *       "channel": "stable",
-         *       "policy": {
-         *         "auto_update": true,
-         *         "check_interval_hours": 6,
-         *         "drain_timeout_minutes": 60
-         *       },
-         *       "last_check_at": "2026-11-14T09:00:00Z",
-         *       "available_version": "v0.2.0",
-         *       "runner_version": "2.321.0",
-         *       "parts": [
-         *         {
-         *           "part": "controller",
-         *           "machine_id": "m_01JCRSP0001",
-         *           "machine_name": "box-1",
-         *           "version": "v0.1.0",
-         *           "available_version": "v0.2.0",
-         *           "state": "available"
-         *         }
-         *       ]
-         *     }
-         */
-        UpdateStatus: {
-            /** @enum {string} */
-            channel: "stable";
-            policy: components["schemas"]["UpdatePolicy"];
-            /** Format: date-time */
-            last_check_at?: string;
-            /** Format: date-time */
-            next_check_at?: string;
-            /** @description The newest stable build offered, absent when the pool is current. */
-            available_version?: string;
-            /** @description The pinned GitHub runner version (operations R5.19). */
-            runner_version?: string;
-            parts: components["schemas"]["UpdatePart"][];
-        };
-        StartUpdateRequest: {
-            /** @description Only these machines. Absent means the controller, then every agent. */
-            machine_ids?: string[];
-        };
-        UpdateRun: {
-            version?: string;
-            changes: components["schemas"]["MachineChange"][];
-        };
     };
     responses: {
         /** @description Any error, in the error envelope. */
@@ -3093,6 +3078,8 @@ export interface components {
         To: string;
         /** @description The yes to a question card that named what goes (UX-62). */
         Confirm: boolean;
+        /** @description The yes to the Review step that named the running jobs (tray R5.16). */
+        Confirmed: boolean;
         /** @description The numeric GitHub user id. */
         UserId: number;
         TokenId: string;
@@ -4695,6 +4682,96 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    getUpdateStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The update status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateStatus"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    checkForUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The update status after the look. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateStatus"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    applyUpdate: {
+        parameters: {
+            query?: {
+                /** @description The yes to the Review step that named the running jobs (tray R5.16). */
+                confirmed?: components["parameters"]["Confirmed"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Draining or installing. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateStatus"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    restartService: {
+        parameters: {
+            query?: {
+                /** @description The yes to the Review step that named the running jobs (tray R5.16). */
+                confirmed?: components["parameters"]["Confirmed"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Draining, then restarting. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateStatus"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     listAuditEvents: {
         parameters: {
             query?: {
@@ -5182,80 +5259,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationTestResult"];
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    getUpdateStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The status. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UpdateStatus"];
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    updateUpdatePolicy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdatePolicy"];
-            };
-        };
-        responses: {
-            /** @description The status after the change. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UpdateStatus"];
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    startUpdate: {
-        parameters: {
-            query?: {
-                /** @description The yes to a question card that named what goes (UX-62). */
-                confirm?: components["parameters"]["Confirm"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["StartUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description Draining, then updating. */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UpdateRun"];
                 };
             };
             default: components["responses"]["Error"];

@@ -7,7 +7,7 @@ status: proposed
 version: 0.1.0
 owner: owner
 type: reference
-code: ["internal/cache/**", "internal/mirror/**", "internal/tools/**"]
+code: ["internal/cache/**", "internal/mirror/**", "internal/tools/**", "internal/runnercache/**", "internal/vmcheck/**"]
 design_system: [UX-4, UX-6, UX-9, UX-11, UX-13, UX-17, UX-18, UX-19, UX-25, UX-26, UX-28, UX-29, UX-34, UX-38, UX-41, UX-58, UX-62]
 last_verified: 2026-11-14
 artifact:
@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-**NOT YET IMPLEMENTED.** Nothing in this spec is built. The tool cache is planned for milestone 2. The Actions cache server, git mirror, registry mirror, cache warmth and wipe are planned for milestone 7. The package proxy has no milestone yet.
+**PARTLY BUILT (CRSP21, CRSP26).** Milestone 1 builds the per-runner cache quotas with eviction, the disk guard, the per-runner `CI_TOOLS_DIR` and the `vm_check` port (R5.36 to R5.40, built). Every other requirement is **NOT YET IMPLEMENTED**. The shared per-machine tool cache is planned for milestone 2. The Actions cache server, git mirror, registry mirror, cache warmth and wipe are planned for milestone 7. The package proxy has no milestone yet.
 
 ## 1. In one paragraph
 
@@ -141,7 +141,7 @@ States:
 
 Ported from dev-standards `claude/plugins/delivery/templates/shared/scripts/delivery/ci_tool.py` and `tools.json` (decision 0005). Its tests are ported with it (section 9).
 
-**R5.14** — Each machine has one shared tool cache folder that survives jobs. The agent makes it available to every job at one fixed path and sets `CI_TOOLS_DIR` to it. It is never the job's temp folder or workspace. The layout is `<dir>/<tool>/<version>/<file>`.
+**R5.14** — Each machine has one shared tool cache folder that survives jobs. The agent makes it available to every job at one fixed path and sets `CI_TOOLS_DIR` to it. Until this milestone-2 folder exists, a persistent runner gets its own folder instead (R5.39). It is never the job's temp folder or workspace. The layout is `<dir>/<tool>/<version>/<file>`.
 
 **R5.15** — Pins use the `tools.json` format: per tool a `version` and per platform (`linux_x64`, `linux_arm64`, `darwin_x64`, `darwin_arm64`, `windows_x64`) an entry with `kind` (`file`, `archive`, `wheel`, `crate`), `url`, `sha256`, and optional `file`, `bin` and `bin_dir`.
 
@@ -160,6 +160,20 @@ Ported from dev-standards `claude/plugins/delivery/templates/shared/scripts/deli
 **R5.22** — An archive, wheel or crate is unpacked once per platform. An entry whose path leaves the target folder is refused and nothing is unpacked. A crate is built once with `cargo install --locked`; a failed build leaves nothing behind.
 
 **R5.23** — The binary has the commands `crsp tool <name> [--platform P] [--exe NAME] [--dir]` and `crsp tool fetch <url> --sha256 <hex> --name <tool>/<version>/<file>`. Each prints one absolute path and nothing else on standard output. Exit codes: 0 done, 1 a download, checksum or unpack failure (one line on standard error with the URL, the attempt count and the last error), 2 a usage error.
+
+### Runner cache quotas and disk guard (milestone 1)
+
+Owner decision of 2026-11-14 (CRSP21, CRSP26; dev-standards D302): on 14 Nov an old-pool runner's Rust build cache reached 320 GB, filled the system drive and stopped every runner. Persistent runners keep their caches between jobs, so the cap is built with them and not with the milestone 7 caches. Sizes are declared in configuration and checked, never measured live to decide a size.
+
+**R5.36** (M1) — **A declared quota per runner cache.** Each persistent runner has two caches under its own folder, `cache/tools` (the tool cache) and `cache/rust-target` (the Rust build cache), each with a quota. The quotas are config keys: `cache_tool_gib` (default 20) and `cache_rust_gib` (default 40), the same for every runner. A key that is absent or 0 takes its default; a negative value is refused. The only measurement is the bytes the folder holds, to compare with the quota. Built (CRSP21, CRSP26).
+
+**R5.37** (M1) — **Eviction between jobs, oldest first.** The job-completed hook brings each cache under its quota. It removes whole top-level entries (a tool version, a build profile folder), the least recently used first, and stops as soon as the folder fits. "Used" is the newest modification time of any file in the entry; a tie goes by path. A job that reuses a cached entry keeps it from the next eviction by touching it. Nothing is evicted while a job runs: the hook runs after the job, and a runner that is busy removes nothing. An eviction that fails is logged and never fails the hook. Built (CRSP21).
+
+**R5.38** (M1) — **Disk guard in the job-started gate.** When the volume of the runner's cache folder has under 10% free (`cache_min_free_pct`, default 10, 1 to 50), the gate holds new jobs on that machine. They wait and are not failed. The hook writes one log line that names the free share, which reaches the job's Set up job step. The hold ends when 12% is free (the limit plus 2 points, so it does not flap). The hold counts against the gate's maximum wait; when that passes the job fails and can be re-run, also when the on-timeout rule is `run`, because a job that runs on a full disk can stop every runner on the machine. A disk that cannot be read never holds a job. The doctor check `machine.guard.disk` fails for a machine under the limit and says why jobs wait. Built (CRSP21).
+
+**R5.39** (M1) — **A tool cache folder per runner.** Each persistent runner's `.env` sets `CI_TOOLS_DIR` to its own `<runner folder>/cache/tools`, `CARGO_TARGET_DIR` to its own `<runner folder>/cache/rust-target`, and the quotas as `CI_TOOLS_QUOTA_GIB` and `CRSP_RUST_CACHE_CAP_GIB`. Two runners never share a folder, so one runner cannot fill another's quota. The delivery scripts `ci_tool.py` and `rust_ci.py` read these values. Built (CRSP26).
+
+**R5.40** (M1) — **`vm_check` in crsp.** The catalogue of expected VM images (the data of `scripts/delivery/vm-images.json`) and the logic of `scripts/delivery/vm_check.py` are in `internal/vmcheck`: checksum file parsing (BSD and sums formats, newest file for a `*` pattern), cache keys for bases and snapshots, the check that the cached image is the published one (`current`, `stale`, `missing`, `offline`), the host readiness report of a `kvm` runner (`/dev/kvm`, the six tools, a writable cache), the SELinux verdict and the prune plan. Booting a VM is not in this port; it comes with the KVM backend (runners M6). The plugin scripts are not edited. Built (CRSP26).
 
 ### Registry mirror (milestone 7)
 
@@ -185,13 +199,15 @@ Ported from dev-standards `claude/plugins/delivery/templates/shared/scripts/deli
 
 **R5.31** — Before a wipe, the console and the CLI list each item that goes with its size and the total, and ask for a yes (UX-62, UX-9). The CLI asks too, unless `--yes` is given. Nothing is deleted before the yes.
 
-**R5.32** — A wipe waits until no running job uses what it would delete, names the jobs it waits for, and stops at the drain timeout the owner set. The check for idle runs right before the delete (product brief, learning 1). A wipe that reaches the timeout deletes nothing and says so.
+**R5.32** — A wipe waits until no running job uses what it would delete, names the jobs it waits for, and, past the machine's drain timeout, keeps waiting and warns (machines R5.33). The check for idle runs right before the delete (product brief, learning 1). A wipe that still waits deletes nothing and says "still draining, N jobs running, waited X".
 
 **R5.33** — During and after a pool wipe, a restore of a wiped entry is a cache miss, never an error.
 
 **R5.34** — Every wipe and every cap change is written to the audit log: who, what, when, items and bytes freed.
 
 **R5.35** — Changing the cache server, git mirror or registry mirror setting for a pool takes effect only for runners started after the change. Runners that need a restart for it drain first.
+
+**R5.41** (after v0.1.0, NOT YET IMPLEMENTED) — **Playwright browsers path.** Each machine keeps one folder for Playwright browsers inside the tool cache folder (R5.14). The agent sets `PLAYWRIGHT_BROWSERS_PATH` to it for every job, so a job that needs a browser not in the runner image (runners R5.44) downloads it once per machine, SHA-256 checked, and later jobs reuse it. Until this is built, jobs that need it run on GitHub-hosted runners.
 
 ## 6. Non-functional requirements
 
@@ -279,11 +295,11 @@ flowchart TB
 | Registry upstream | Cached tag served, marked stale | Open | Jobs keep running offline; the console shows the risk. |
 | Registry blob digest | Blob refused | Closed | Never serve content that does not match its digest. |
 | Identity of a request | Request refused | Closed | Never leak one repository's cache to another. |
-| Wipe drain | Wipe stops at the timeout, nothing deleted | Closed | Never cut a running job (learning 1). |
+| Wipe drain | Past the timeout the wipe keeps waiting and warns, nothing deleted | Closed | Never cut a running job (learning 1). |
 
 ## 9. How it is proven
 
-All tests are planned. None exist yet (NOT YET IMPLEMENTED). Paths are written without code marks until the files exist.
+Rows for R5.36 to R5.40 are built and run in CI. Every other row is planned: none of those tests exist yet (NOT YET IMPLEMENTED). Paths are written without code marks until the files exist.
 
 | Requirement | Planned test |
 |---|---|
@@ -300,7 +316,7 @@ All tests are planned. None exist yet (NOT YET IMPLEMENTED). Paths are written w
 | R5.11 | internal/mirror/git_refresh_test.go (all refs incl. refs/pull/*, webhook and timer) |
 | R5.12 | internal/mirror/git_rewrite_test.go (fetch from mirror, push to GitHub) |
 | R5.13 | internal/mirror/git_miss_test.go (missing commit refreshes; failed refresh falls back) |
-| R5.14 | internal/tools/dir_test.go (port of test_dl115_ci_tool.py test_ci_tools_dir_is_honoured) |
+| R5.14 | internal/tools/dir_test.go (port of test_dl115_ci_tool.py test_ci_tools_dir_is_honoured; planned, M2) |
 | R5.15 | internal/tools/pins_test.go (port of test_ds199_tool_fetch.py test_every_pin_has_url_and_sha, test_missing_pin_and_platform) |
 | R5.16 | internal/tools/fetch_test.go (port of test_dl115_ci_tool.py test_first_fetch_downloads_and_verifies, test_second_fetch_makes_no_request, test_corrupted_cache_is_replaced, test_wrong_pin_exits_1_and_leaves_no_file) |
 | R5.17 | internal/tools/fetch_test.go (no temporary file after success, failure or kill) |
@@ -318,10 +334,16 @@ All tests are planned. None exist yet (NOT YET IMPLEMENTED). Paths are written w
 | R5.29 | internal/api/caches_test.go; apps/web/src/caches/CachesScreen.test.tsx |
 | R5.30 | internal/api/caches_wipe_test.go (owner and admin may, viewer refused) |
 | R5.31 | internal/api/caches_wipe_test.go (list and total before yes; nothing deleted without yes); e2e/caches/wipe.spec.ts |
-| R5.32 | internal/cache/wipe_drain_test.go (waits for named jobs; idle check right before delete; timeout deletes nothing) |
+| R5.32 | internal/cache/wipe_drain_test.go (waits for named jobs; idle check right before delete; still waiting past the timeout deletes nothing) |
 | R5.33 | internal/cache/wipe_drain_test.go (restore during wipe is a miss) |
 | R5.34 | internal/api/caches_wipe_test.go (audit entry fields) |
 | R5.35 | internal/cache/settings_test.go (new runners only; restart drains) |
+| R5.36 | internal/runnercache/runnercache_test.go TestQuotaDefaultsAndValidate, TestScanCountsBytesPerEntry; internal/config/config_test.go TestCacheQuotaKeys |
+| R5.37 | internal/runnercache/runnercache_test.go TestEvictionOrderOldestFirstUntilItFits, TestEvictionStopsAsSoonAsItFits, TestEvictionTieBreaksByPath, TestUnderQuotaRemovesNothing, TestNeverEvictsWhileARunnerIsBusy, TestTouchKeepsAReusedEntry, TestSweepAppliesToolQuotaAndRustCapSeparately; internal/hooks/hooks_test.go TestJobDoneEvictsOldestOverQuota |
+| R5.38 | internal/runnercache/runnercache_test.go TestGuardHoldsUnderTenPercentAndResumesWithMargin, TestGuardReasonAndUnknownDisk; internal/hooks/hooks_test.go TestDiskGuardHoldsAndResumes, TestDiskGuardTimeoutFailsWithoutSlotEvenOnTimeoutRun, TestDiskGuardFailsOpenOnReadError; internal/doctor/checks/checks_test.go TestDiskGuard |
+| R5.39 | internal/runnercache/runnercache_test.go TestEnvExportsToolsDirAndQuotas, TestCapsFromEnv; internal/backend/linux/linux_test.go and internal/backend/windows/windows_test.go (the runner env file holds CI_TOOLS_DIR); internal/runners/service_test.go TestAddPassesCacheQuotaToTheAgent |
+| R5.40 | internal/vmcheck/vmcheck_test.go (catalogue, TestParseChecksumsBSDAndSums, TestResolveChecksumURLPicksNewestListed, TestKeys, TestVerifyComparesCachedWithPublished, TestReadiness, TestSELinuxVerdict, TestPrunePlanKeepsNewestPerDistroAndOldTempFiles, TestCatalogueMatchesThePluginFile) |
+| R5.41 | planned: internal/cache/playwright_test.go TestBrowsersPathSharedPerMachine (after v0.1.0) |
 | R6.1 | internal/cache/bench_test.go (lookup p95 with 100,000 entries; 1 GiB download speed) |
 | R6.2 | internal/cache/evict_test.go (default 20 GiB, ceiling, refuse under 10% free) |
 | R6.3 | internal/cache/integrity_test.go (changed blob becomes a miss and is deleted) |
@@ -354,7 +376,7 @@ Open questions for the owner:
 
 ## 11. Not built yet
 
-Everything above is NOT YET IMPLEMENTED. In addition:
+Built in milestone 1: R5.36 to R5.40. Not built there: the folders are made by the runner's first job, not by the agent at install; the alert of the disk guard is the job log line and the doctor finding (no notification yet); the quotas are the same for every runner (a per-machine value waits for the machine settings, whose `cache_cap_bytes` is stored but not yet read by the quota); the VM boot of `vm_check`. Everything else above is NOT YET IMPLEMENTED. In addition:
 
 - **Package proxy** (npm, PyPI, crates, apt): no milestone. The seam is the registry mirror's upstream list and the agent's engine settings (R5.25); a package proxy would add per-ecosystem settings (`npm_config_registry`, `PIP_INDEX_URL`, Cargo `source.replacement`, apt proxy) the same way.
 - **Cache sharing between pools**: not planned. The seam is the pool column in `cache_entries`.
@@ -362,13 +384,19 @@ Everything above is NOT YET IMPLEMENTED. In addition:
 
 ## 12. Code map
 
+Built (milestone 1):
+
+- internal/runnercache/ (quota, scan and oldest-first eviction, disk guard, the runner's cache environment, the real disk read per OS)
+- internal/vmcheck/ (port of `vm_check.py` logic and `vm-images.json` data)
+- internal/hooks/gate.go `diskHold` and internal/hooks/jobdone.go `sweepCaches` call them; internal/config/config.go has the keys; internal/backend/{windows,linux,macos} write the `.env`.
+
 No code yet. Planned folders, from the `code:` globs:
 
 - internal/cache/ (Actions cache server, eviction, warmth, wipe)
 - internal/mirror/ (git mirror, registry mirror)
 - internal/tools/ (tool cache, port of dev-standards `ci_tool.py`)
 
-Source lines are added when the files exist.
+Source: internal/runnercache/evict.go, internal/runnercache/guard.go, internal/runnercache/env.go, internal/vmcheck/vmcheck.go, internal/hooks/gate.go, internal/hooks/jobdone.go
 
 Ported from (dev-standards, read-only):
 

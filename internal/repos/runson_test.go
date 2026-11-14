@@ -14,9 +14,9 @@ jobs:
   scalar:
     runs-on: ubuntu-latest
   viavar:
-    runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_LINUX) }}
+    runs-on: ${{ fromJSON(vars.RUNS_ON_LINUX) }}
   withdefault:
-    runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_MACOS || '["macos-latest"]') }}
+    runs-on: ${{ fromJSON(vars.RUNS_ON_MACOS || '["macos-latest"]') }}
   block:
     runs-on:
       - self-hosted
@@ -46,10 +46,10 @@ func TestParseRunsOnForms(t *testing.T) { // R5.30
 	if !reflect.DeepEqual(by["scalar"].Literal, []string{"ubuntu-latest"}) {
 		t.Fatalf("%+v", by["scalar"])
 	}
-	if by["viavar"].Var != "CRSP_RUNS_ON_LINUX" || len(by["viavar"].Literal) != 0 {
+	if by["viavar"].Var != "RUNS_ON_LINUX" || len(by["viavar"].Literal) != 0 {
 		t.Fatalf("%+v", by["viavar"])
 	}
-	if by["withdefault"].Var != "CRSP_RUNS_ON_MACOS" || !reflect.DeepEqual(by["withdefault"].Default, []string{"macos-latest"}) {
+	if by["withdefault"].Var != "RUNS_ON_MACOS" || !reflect.DeepEqual(by["withdefault"].Default, []string{"macos-latest"}) {
 		t.Fatalf("%+v", by["withdefault"])
 	}
 	if !reflect.DeepEqual(by["block"].Literal, []string{"self-hosted", "Windows"}) {
@@ -74,7 +74,7 @@ func TestParseRunsOnBadFiles(t *testing.T) {
 var poolSets = [][]string{{"self-hosted", "Linux", "X64", "docker", "crsp-home"}}
 
 func TestCheckFindings(t *testing.T) { // R5.30
-	vars := map[string]string{"CRSP_RUNS_ON_LINUX": `["self-hosted","Linux","X64"]`}
+	vars := map[string]string{"RUNS_ON_LINUX": `["self-hosted","Linux","X64"]`}
 	got := Check(".github/workflows/ci.yml", ParseRunsOn([]byte(wf)), vars, poolSets)
 	kinds := map[string]Finding{}
 	for _, f := range got {
@@ -122,7 +122,7 @@ func TestCheckLiteralInsteadOfVariableWarns(t *testing.T) { // R5.30
 	jobs := ParseRunsOn([]byte("jobs:\n  a:\n    runs-on: [self-hosted, Linux, docker]\n"))
 	got := Check("w.yml", jobs, nil, poolSets)
 	if len(got) != 1 || got[0].Kind != KindNotGeneric || got[0].Severity() != SeverityWarning ||
-		!contains(got[0].Text, "fromJSON(vars.CRSP_RUNS_ON_LINUX)") {
+		!contains(got[0].Text, "fromJSON(vars.RUNS_ON_LINUX)") {
 		t.Fatalf("%+v", got)
 	}
 }
@@ -137,12 +137,12 @@ func contains(s, sub string) bool {
 }
 
 func TestCheckVariableNotSetFails(t *testing.T) { // R5.30
-	jobs := ParseRunsOn([]byte("jobs:\n  a:\n    runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_WINDOWS) }}\n  b:\n    runs-on: ${{ fromJSON(vars.OTHER_VAR) }}\n"))
+	jobs := ParseRunsOn([]byte("jobs:\n  a:\n    runs-on: ${{ fromJSON(vars.RUNS_ON_WINDOWS) }}\n  b:\n    runs-on: ${{ fromJSON(vars.OTHER_VAR) }}\n"))
 	got := Check("w.yml", jobs, map[string]string{}, poolSets)
 	if len(got) != 1 || got[0].Kind != KindUsesVar || got[0].Line != 3 || got[0].Severity() != SeverityFail {
 		t.Fatalf("an unset CRSP variable fails; an unrelated variable is not ours: %+v", got)
 	}
-	bad := Check("w.yml", jobs[:1], map[string]string{"CRSP_RUNS_ON_WINDOWS": "not json"}, poolSets)
+	bad := Check("w.yml", jobs[:1], map[string]string{"RUNS_ON_WINDOWS": "not json"}, poolSets)
 	if len(bad) != 1 || bad[0].Kind != KindUsesVar {
 		t.Fatalf("%+v", bad)
 	}
@@ -158,12 +158,12 @@ func TestOfflineCaseInsensitiveLabels(t *testing.T) {
 
 func TestVariablesRead(t *testing.T) { // R5.29
 	files := map[string][]byte{
-		"a.yml": []byte("jobs:\n  a:\n    runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_LINUX) }}\n"),
-		"b.yml": []byte("jobs:\n  b:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ${{ vars.CRSP_RUNS_ON_WINDOWS }}\n"),
+		"a.yml": []byte("jobs:\n  a:\n    runs-on: ${{ fromJSON(vars.RUNS_ON_LINUX) }}\n"),
+		"b.yml": []byte("jobs:\n  b:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ${{ vars.RUNS_ON_WINDOWS }}\n"),
 		"c.yml": []byte("jobs:\n  c:\n    runs-on: ubuntu-latest\n"),
 	}
 	got := VariablesRead(files)
-	if !reflect.DeepEqual(got["CRSP_RUNS_ON_LINUX"], []string{"a.yml"}) || !reflect.DeepEqual(got["CRSP_RUNS_ON_WINDOWS"], []string{"b.yml"}) || len(got) != 2 {
+	if !reflect.DeepEqual(got["RUNS_ON_LINUX"], []string{"a.yml"}) || !reflect.DeepEqual(got["RUNS_ON_WINDOWS"], []string{"b.yml"}) || len(got) != 2 {
 		t.Fatalf("%v", got)
 	}
 }
@@ -205,7 +205,7 @@ func TestCheckRunsOnEndToEndWithETags(t *testing.T) { // R5.30, R6.6
 		t.Fatal("the second check sends the ETag")
 	}
 	// A fix in the workflow clears findings.
-	e.fake.SetWorkflow("alice/secret", ".github/workflows/ci.yml", "jobs:\n  a:\n    runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_LINUX) }}\n")
+	e.fake.SetWorkflow("alice/secret", ".github/workflows/ci.yml", "jobs:\n  a:\n    runs-on: ${{ fromJSON(vars.RUNS_ON_LINUX) }}\n")
 	_ = e.svc.CheckRunsOn(ctx, 101)
 	if fs, _ := e.svc.Findings(ctx, 101); len(fs) != 0 {
 		t.Fatalf("%+v", fs)

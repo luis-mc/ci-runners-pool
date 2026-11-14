@@ -1,0 +1,47 @@
+# nfpm config for the .deb and .rpm (operations R5.7). build.sh sets ARCH
+# (amd64|arm64), VERSION (already in deb/rpm form), RELEASE, KIND (deb|rpm),
+# BIN (the crsp binary) and SCRIPTS (the assembled maintainer scripts).
+name: crsp
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+version_schema: none
+release: ${RELEASE}
+section: admin
+priority: optional
+maintainer: luis-mc <noreply@users.noreply.github.com>
+description: |
+  CI Runners Shared Pool: one controller for shared self-hosted GitHub Actions runners.
+  Installs the crsp binary, the crsp systemd service and the tray autostart entry.
+vendor: luis-mc
+homepage: https://github.com/luis-mc/ci-runners-shared-pool
+license: MIT
+contents:
+  - src: ${BIN}
+    dst: /usr/bin/crsp
+    file_info: { mode: 0755 }
+  - src: installer/linux/crsp.service
+    dst: /usr/lib/systemd/system/crsp.service
+    file_info: { mode: 0644 }
+  - src: installer/linux/crsp-tray.desktop
+    dst: /etc/xdg/autostart/crsp-tray.desktop
+    file_info: { mode: 0644 }
+  - src: ${KINDFILE}
+    dst: /usr/share/crsp/install-kind
+    file_info: { mode: 0644 }
+  - src: LICENSE
+    dst: /usr/share/doc/crsp/LICENSE
+    file_info: { mode: 0644 }
+overrides:
+  deb:
+    scripts:
+      preinstall: ${SCRIPTS}/deb-preinst.sh
+      postinstall: ${SCRIPTS}/deb-postinst.sh
+      preremove: ${SCRIPTS}/deb-prerm.sh
+      postremove: ${SCRIPTS}/deb-postrm.sh
+  rpm:
+    scripts:
+      preinstall: ${SCRIPTS}/rpm-pre.sh
+      postinstall: ${SCRIPTS}/rpm-post.sh
+      preremove: ${SCRIPTS}/rpm-preun.sh
+      postremove: ${SCRIPTS}/rpm-postun.sh

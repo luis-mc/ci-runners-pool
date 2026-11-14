@@ -3,11 +3,11 @@ id: operations
 title: Operations
 apps: [controller, agent, tray, cli, web-console]
 topics: [operations, install, security, runners]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference
-code: [internal/update/**, internal/backup/**, internal/configio/**, internal/install/**]
+code: [internal/update/**, internal/backup/**, internal/configio/**, internal/install/**, installer/**, cmd/crsp/service_*.go]
 design_system: [components 4, components 9, components 16, components 18, components 34, UX-5, UX-6, UX-9, UX-13, UX-26, UX-29, UX-30, UX-34, UX-38, UX-62]
 last_verified: 2026-11-14
 artifact:
@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-**Partly built (CRSP18).** Built: the config file and schema (R5.8, R5.9), the per-OS folders (R5.10), the daily backup, restore and drill (R5.21 to R5.25, R5.27, the secret list of R5.26 as `backup.MissingSecrets`). Everything else below is **NOT YET IMPLEMENTED**: planned, with its milestone.
+**Partly built (CRSP18, OPS1).** Built: the installers for Windows (MSI, R5.35 to R5.41), macOS (pkg) and Linux (deb and rpm) (R5.7), the config file and schema (R5.8, R5.9), the per-OS folders (R5.10), the daily backup, restore and drill (R5.21 to R5.25, R5.27, the secret list of R5.26 as `backup.MissingSecrets`). Everything else below is **NOT YET IMPLEMENTED**: planned, with its milestone.
 
 ## 1. In one paragraph
 
@@ -75,7 +75,7 @@ flowchart TD
 1. Every 6 hours the controller asks GitHub Releases for the newest build on its channel: `edge` (built from every merge to `main`) or stable (`v*` tags).
 2. A newer build is downloaded. Its SHA-256 must match `SHA256SUMS`, and its build provenance attestation must name this repository's release workflow. Any mismatch stops the update.
 3. With the policy `ask` (the default), the tray or the console asks first. The question names the jobs the update waits for.
-4. The machine drains: it takes no new jobs and waits for running jobs to end, or for the drain timeout. The idle check runs right before the restart (learning 1).
+4. The machine drains: it takes no new jobs and waits for running jobs to end. Past the drain timeout it keeps waiting and warns; only an automatic update postpones instead (R5.33 on CRSP19). The idle check runs right before the restart (learning 1).
 5. On the controller, the database is backed up before the new build can migrate it.
 6. The old binary is kept. The new one takes its place. The service restarts.
 7. If the new build is not healthy within 60 seconds, the old binary and the backup come back, the service restarts, and that build is marked bad. It is never tried again on its own.
@@ -132,13 +132,30 @@ Each requirement names its milestone (M1 to M8, product brief). Those not named 
 
 **R5.3** (M1) — On a desktop machine, install also adds the tray to start at login: a per-user startup entry on Windows, a LaunchAgent on macOS, an XDG autostart entry on Linux (decision 0005). A headless Linux machine gets no tray.
 
-**R5.4** (M1) — Install runs the service as a dedicated non-admin account where the OS allows it. Steps that need admin rights are one step, listed before the user says yes.
+**R5.4** (M1) — On Linux and macOS install runs the service as a dedicated non-admin account where the OS allows it. On Windows the controller service runs as LocalSystem: it manages the runner services and their accounts and runs the MSI upgrade for auto-update (R5.39), which a non-admin account cannot do. Steps that need admin rights are one step, listed before the user says yes.
 
-**R5.5** (M3) — Agent install takes the one-time join code from the console's install command (`--join <code>`) and stores the machine key in the OS secret store (decision 0004).
+**R5.5** (M1) — Agent install takes the one-time join code from the console's install command (`--join <code>`) and stores the machine key in the OS secret store (decision 0004).
 
 **R5.6** (M1) — On first start the controller makes its TLS certificate, opens ports 8460 and 8461 (or the configured ports), and prints a one-time link to the first-run wizard. The tray opens that link. The wizard itself is in the GitHub spec.
 
-**R5.7** (M8) — Installers per OS (MSI, pkg, deb and rpm) install the same files and services as R5.2 to R5.4.
+**R5.7** (M1 for Windows, M8 for the rest) — Installers per OS (MSI, pkg, deb and rpm) install the same files and services as R5.2 to R5.4. The Windows MSI is built (R5.35 to R5.41; task CRSP18). The macOS `.pkg` and the Linux `.deb` and `.rpm` are built (OPS1). Signed installers come in M8.
+#### macOS and Linux installers (OPS1)
+
+Release assets: `crsp-darwin-<arch>.pkg`, `crsp-linux-<arch>.deb` and `crsp-linux-<arch>.rpm`, with `<arch>` as in the `.tar.gz` names. They are listed in `SHA256SUMS` and carry a build provenance attestation. They are not signed or notarized yet (milestone 8). Edge builds get the version `<next patch after the latest stable tag>~edge.<run>` (deb, rpm) or `<next patch>.<run>` (pkg), so a later edge build sorts above an earlier one and the stable release above both.
+
+| | Linux (`.deb`, `.rpm`) | macOS (`.pkg`) |
+|---|---|---|
+| Binary | `/usr/bin/crsp` | `/usr/local/bin/crsp` |
+| Service | systemd unit `crsp` (`/usr/lib/systemd/system/crsp.service`), `ExecStart=/usr/bin/crsp controller`, enabled and started | LaunchDaemon label `crsp` (`/Library/LaunchDaemons/crsp.plist`), runs `/usr/local/bin/crsp controller` |
+| Tray start | `/etc/xdg/autostart/crsp-tray.desktop` | `/Library/LaunchAgents/dev.luismc.crsp.tray.plist` |
+| Install marker | `/usr/share/crsp/install-kind` holds `deb` or `rpm` | `/usr/local/share/crsp/install-kind` holds `pkg` |
+| Data | `/var/lib/crsp` (0700), `/etc/crsp` (0750), owned by root | `/Library/Application Support/crsp` (0700), owned by root |
+| Remove | `apt remove` and `rpm -e` keep the data; `apt purge` deletes `/var/lib/crsp` and `/etc/crsp` (rpm has no purge) | `sudo crsp-uninstall` keeps the data; `--delete-data` also deletes it and the log |
+
+- The controller service runs as root on Linux and macOS (owner decision, 2026-11-14): it manages runner services and accounts and applies package upgrades for auto-update. This is the exception to the non-admin account of R5.4 for these two installers; there is no `crsp` or `_crsp` account.
+- Installing over an older version (upgrade) keeps the data, stops the service before the files are replaced and starts it again afterwards.
+- The marker tells the updater (R5.11 to R5.18) which package manager owns the files.
+- If systemd is not running (a plain container), the files are installed and the service starts at the next boot.
 
 ### Config file and data folder
 
@@ -154,7 +171,7 @@ Each requirement names its milestone (M1 to M8, product brief). Those not named 
 | Linux | `/var/lib/crsp` | `/etc/crsp/config.toml` |
 | macOS | `/Library/Application Support/crsp` | `/Library/Application Support/crsp/config.toml` |
 
-The data folder holds the database, `backups/`, `logs/` and `updates/`. It is readable only by the service account and admins.
+The data folder holds the database, `backups/`, `logs/` and `updates/`. It is readable only by the service account and admins (on Windows, Administrators and SYSTEM).
 
 ### Self-update
 
@@ -164,7 +181,7 @@ The data folder holds the database, `backups/`, `logs/` and `updates/`. It is re
 
 **R5.13** (M3) — Before the swap, the new binary runs `self-check`: it starts, prints its version and database schema version, and exits. A build whose schema version is older than the database is refused (no downgrade; migrations go forward only).
 
-**R5.14** (M3) — An update on a machine drains first: no new jobs start there, and the update waits until no job runs or until the drain timeout (default 60 minutes). The idle check runs right before the restart. The wait says what it waits for.
+**R5.14** (M3) — An update on a machine drains first: no new jobs start there, and the update waits until no job runs. The drain timeout is one per machine (default 60 minutes, machines R5.33): when it passes the update keeps waiting and warns, and never stops a job. An automatic update postpones instead (R5.33). The idle check runs right before the restart. The wait says what it waits for.
 
 **R5.15** (M3) — With the policy `ask` (default), nothing installs until a user says yes: in the tray on that machine, or in the console for a headless machine. The question names the version and the running jobs it waits for. With the policy `auto`, the update runs in the machine's maintenance window.
 
@@ -173,6 +190,34 @@ The data folder holds the database, `backups/`, `logs/` and `updates/`. It is re
 **R5.17** (M3) — The old binary is kept as the previous build. If the new build is not healthy within 60 seconds after start, the previous binary (and, on the controller, the pre-update backup) come back, the service restarts, and the build is marked bad. A bad build is not offered again until a newer one appears.
 
 **R5.18** (M3) — The controller updates first. Agents then update one machine at a time to the controller's version. The tray updates with the binary on its machine. A controller accepts agents of its own version and of the previous release.
+
+#### Self-update as built in CRSP19 (owner decisions of 2026-11-14)
+
+These rules narrow R5.11 to R5.18 for the controller's machine, on Windows, macOS and Linux. Code: `internal/update`; API `GET /api/v1/update`, `POST /api/v1/update/check`, `POST /api/v1/update/apply`, `POST /api/v1/service/restart`; setting `auto_update`; CLI `crsp update status|check|apply|auto`, `crsp restart`.
+
+**R5.31** (M1) — Automatic updates is the controller setting `auto_update`, ON by default. With it on, a newer stable release installs with no question after the drain. With it off, `update/apply` needs `confirmed=true` from the console Review step. The pre-release `edge` is never offered, and a development or edge build is never replaced.
+
+**R5.32** (M1) — The controller checks every 6 hours (first check one minute after start) and installs any time the drain allows. Agent-only machines do not check GitHub for the latest release; they follow the controller's version (R5.39 to R5.41).
+
+**R5.33** (M1) — An automatic update drains this machine (no new jobs) and waits up to 60 minutes for running jobs. If a job still runs then, the drain is cancelled, the machine takes jobs again, and the next check retries. Right before the install the manager checks again that no job runs. A running job is never cut.
+
+**R5.34** (M1) — Each download is verified before the drain: its SHA-256 against `SHA256SUMS`, and its build provenance attestation, checked inside `crsp` with sigstore-go (no `gh` needed): the bundle comes from the GitHub attestations API for the file's SHA-256, and must verify against the embedded Sigstore public-good trust root (certificate chain, transparency log entry, signed timestamp), name the file's SHA-256 as its subject, and carry a signing certificate issued to GitHub Actions for the workflow `.github/workflows/release.yml` of this repository (any ref). Any failure, a missing attestation, or no network fails closed and nothing installs. The trust root is `internal/update/sigstoreroot/trusted_root.json`, copied from `sigstore/root-signing`; a build carries the root of its day, so a rotation of Sigstore keys needs a new release. The dependency is pinned in `go.mod` (sigstore-go v1.4.0) and adds about 7.7 MB to the stripped binary. The unpacked binary also runs `version` as a self-check.
+
+**R5.35** (M1) — The service runs as LocalSystem on Windows and as root on Linux and macOS, so the controller applies the update itself. The release asset follows the install kind, read from the marker file `install-kind`: next to the binary first, then `/usr/share/crsp` (deb, rpm), then `/usr/local/share/crsp` (pkg); on Windows next to `crsp.exe` in `Program Files\crsp`; no marker means `tarball` (and `msi` on Windows): `msi` runs `msiexec /i <file> /qn /norestart /l*v %ProgramData%\crsp\logs\msi-update.log`; `pkg` runs `installer -pkg <file> -target /`; `deb` runs `apt-get install -y ./<file>` (fallback `dpkg -i`); `rpm` runs `rpm -U <file>`; `tarball` swaps the binary atomically and keeps the old one as `<binary>.previous`. Assets: `crsp-windows-<arch>.msi`, `crsp-darwin-<arch>.pkg`, `crsp-linux-<arch>.deb`, `crsp-linux-<arch>.rpm`, `crsp-<os>-<arch>.tar.gz`.
+
+**R5.36** (M1) — On Windows the controller starts `msiexec` itself, detached (the MSI upgrade stops every process that runs from the install folder, `crsp.exe` included), writes `pending-msi.json` and ends that path: no helper waits. After the service restarts it settles the pending install: the running version equal to the target is a success (the result is written, the failure count cleared); the log line `MainEngineThread is returning N` with a bad code is a failure, reported with the code and the log path and counted for the retry rule (R5.37); a log without that line for longer than 45 minutes is a failure too. On Linux and macOS the install runs in a helper process (`crsp update-helper`, a copy of the binary in the update folder) that outlives the service: a transient systemd unit on Linux, its own session on macOS. It holds a machine-wide install lock (stale after 45 minutes or when its process is gone), writes a log, and reports `result.json`. After the install it waits up to 60 s for `/healthz` to report the new version (an agent has no console port: the helper waits for the service manager to say the service is active, and still active 10 s later); a tarball install that is not healthy puts the previous binary back and restarts.
+
+**R5.37** (M1) — A failed install keeps the old version (Windows Installer rolls back; the tarball swap is undone; on Windows the failure is read from the log after the restart), the console and the tray header show `update failed` with the log path, and the automatic path retries at the next check, at most 3 times per version, waiting 1 h, then 4 h. A build that did not become healthy is never tried again on its own.
+
+**R5.38** (M1) — After an automatic update the tray shows one notice `Updated to <version>` and its header shows the version.
+
+**R5.39** (M1) — Agent-only machines follow the controller. After the controller runs a new version, the controller asks each connected agent machine whose version is older to update to the controller's version, over the agent link (message `UpdateAgent`). It asks again every 10 minutes (first 2 minutes after start) until the agent runs the same version, or the agent says an update is in progress. It never asks an agent of the same or a newer version, an agent whose version is not a stable one, or when the controller itself is a development or edge build. The controller's own machine is not an agent here.
+
+**R5.40** (M1) — The agent downloads that release itself from GitHub, with the same checks as R5.34 (SHA-256 and attestation), then drains with the same rule as R5.33: no new jobs, running jobs finish and are never cut, and after 60 minutes the drain is cancelled, the machine takes jobs again, the agent says `postponed`, and the controller's next ask retries. Right before the install it checks once more that no job runs. The apply is the one of R5.35 for the agent's install kind. After the install the helper waits for the service to be active (R5.36) and rolls a tarball install back when it is not. The retry rule of R5.37 (three tries per version, 1 h then 4 h) is kept on the agent.
+
+**R5.41** (M1) — The agent reports its progress to the controller (message `UpdateReport`: `idle`, `waiting_for_jobs` with the jobs it waits for, `downloading`, `installing`, `restarting`, `postponed`, `failed`, `unsupported`). The controller audits `installing`, `failed`, `postponed` and `unsupported`. An agent that runs as an account that cannot install (root or an elevated token is needed) says `unsupported` and downloads nothing; the agent accounts of machines R5.44 are such accounts (see open question 10).
+
+Tests: `internal/update/update_test.go` (decisions, verify, lock, backoff, helper per OS and package kind, drain limit), `internal/update/attest_test.go` (fake Sigstore with a fake attestation bundle; fail closed on another workflow, repository, issuer, file, trust root or no attestation), `internal/update/follower_test.go`, `internal/agent/follow_test.go` (a real controller link with a fake updater: ask, wait, postpone, install, unsupported), `internal/api/handlers_update_test.go`, `internal/settings/settings_test.go`, `internal/cli/cmd_update_test.go`, `apps/web/src/screens/settings/Updates.test.tsx`. Not yet run: a real install on each OS in CI, which needs the installer assets of CRSP18 and OPS1; a real attestation of a released asset against the embedded trust root (the tests use a fake Sigstore).
 
 ### GitHub runner version
 
@@ -205,6 +250,22 @@ The data folder holds the database, `backups/`, `logs/` and `updates/`. It is re
 **R5.30** (M8) — `crsp config apply <plan-id>` applies exactly that plan. It refuses if the pool changed since the plan. Removals need an explicit yes that names each one. Changes that restart runners drain first (R5.14). Each change is written to the audit log.
 
 **R5.31** (M8) — The console offers export and import under Settings; import is a wizard that ends with Review, the work, and Done.
+
+### Windows installer (MSI)
+
+**R5.35** (M1) — Windows installs through `crsp-windows-amd64.msi` or `crsp-windows-arm64.msi`, built with WiX Toolset v5 (pinned to 5.0.2) on `windows-latest` by `release.yml` and published for edge and stable releases. Both are listed in `SHA256SUMS` and covered by the provenance attestation. They are not signed in v0.1.0. The MSI `ProductVersion` is the release version (`1.2.3` becomes `1.2.3.0`); an edge build is the next patch after the latest stable tag with the run number as fourth field.
+
+**R5.36** (M1) — The MSI is per machine and installs to `%ProgramFiles%\crsp`. It installs `crsp.exe`; registers the one service `crsp` (`crsp.exe controller`, automatic start, delayed, restart after a crash, account LocalSystem) and starts it; adds the install folder to the system `PATH`; adds a Start Menu shortcut (`crsp tray`); starts the tray at every user's sign-in (`HKLM\...\Run`, value `crsp-tray`); and adds an inbound firewall rule, TCP 8460 and 8461, on the Private profile only, never Public. It makes `%ProgramData%\crsp` readable by Administrators and SYSTEM only (R5.10; the service is LocalSystem). It writes the file `install-kind` next to `crsp.exe`, containing `msi`; the updater reads it to choose the update method.
+
+**R5.37** (M1) — Uninstall removes the program, the service, the `PATH` entry, the shortcut, the autostart value, the firewall rule and `install-kind`. With the dialogs (`msiexec /x crsp-windows-<arch>.msi`, and Settings > Apps > crsp) it asks "Also delete my data", unticked by default; CI proves the dialog from the built MSI's tables (the dialog, its checkbox bound to `REMOVEDATA`, default 0, and its place in the UI sequence); a hosted runner cannot show msiexec's windows, so the UI Automation drive in `installer/ui-test.ps1` runs only where a desktop exists. Silent uninstall keeps the data folder; `REMOVEDATA=1` deletes it. Data is the config file, the database, the audit log, backups and the CA.
+
+**R5.38** (M1) — The UpgradeCode is fixed: `C1D62442-6DB4-4FF0-9F28-A1CE3121B332`. A newer MSI replaces the installed one in place and keeps the data folder; the same `a.b.c` replaces itself; a lower version is refused (exit 1603, `A newer version of crsp is already installed.` in the log).
+
+**R5.39** (M1) — The command the self-updater runs, from an elevated process, is exactly `msiexec /i crsp-windows-<arch>.msi /qn /norestart /l*v <log>`. It stops the tray and the service (and the `crsp-agent` service when it runs from the install folder, which is started again afterwards), replaces the files, and starts the service again. No run needs a reboot. The updater reads the result from the exit code (0 done, 1603 refused or failed) and from `<log>`. The upgrade ends every process that runs from the install folder, `crsp.exe` itself included, so the updater must start `msiexec` detached (a new process outside the service's process and job) and exit at once; it cannot wait for `msiexec` from inside the folder. The updater is task CRSP19.
+
+**R5.40** (M1) — A failed install or upgrade rolls back: Windows Installer puts the old version back and a rollback action starts the old service again. The `/l*v` log records the rollback.
+
+**R5.41** (M1) — `crsp.exe` run by the service manager reports its state through the Windows service protocol: Stop ends the controller as SIGTERM does, a non-zero end makes the service manager restart it, and the log goes to `%ProgramData%\crsp\logs\crsp.log`. `crsp tray` detaches from its console window.
 
 ### Uninstall
 
@@ -278,7 +339,7 @@ flowchart LR
 | GitHub Releases down | Fail closed: no update, retry next check | The running build still works |
 | Provenance or checksum check fails | Fail closed: refuse, keep the running build, Problem message | A wrong binary would run with the agent's rights |
 | New build does not start | Roll back binary and database, mark build bad | Learning 1: the pool must keep working |
-| Drain timeout reached | Ask again (policy ask) or wait for the next window (auto); never cut the job | Learning 1 |
+| Drain timeout reached | Ask: keep waiting and warn. Auto: postpone to the next check. Never cut the job | Learning 1 |
 | Backup write or check fails | Delete the bad file, keep the old ones, doctor Problem | A bad backup is worse than none |
 | Disk full | Skip the backup, keep old ones, doctor Problem | Never prune the last good backup |
 | OS secret store missing after restore | Controller starts; doctor lists each missing secret | Secrets are never in a backup |
@@ -294,10 +355,17 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R5.1 | planned: scripts/install/install_test.sh and install_test.ps1, run in CI on each OS against a release build |
 | R5.2 | planned: internal/install/service_windows_test.go, service_linux_test.go, service_darwin_test.go TestInstallRegistersService (CI on each OS) |
 | R5.3 | planned: internal/install/tray_test.go TestTrayStartEntryPerOS |
-| R5.4 | planned: internal/install/account_test.go TestServiceRunsAsNonAdmin |
+| R5.4 | planned: internal/install/account_test.go TestServiceRunsAsNonAdmin (Linux, macOS); Windows: installer/smoke.ps1 checks the service runs as LocalSystem |
 | R5.5 | planned: internal/install/join_test.go TestJoinStoresKeyInSecretStore |
 | R5.6 | planned: cmd/crsp first-run e2e TestFirstStartPrintsOneTimeLink |
-| R5.7 | planned: installer smoke jobs in build.yml per OS (M8) |
+| R5.7 | Windows: R5.35 to R5.41 below; macOS and Linux: `.github/workflows/installer-unix.yml` smoke jobs for the deb (systemd on the runner), the rpm (Fedora container) and the pkg (macOS runner): install, upgrade, remove, purge or uninstall |
+| R5.35 | installer/smoke.ps1 (`.github/workflows/installer.yml`, x64 install; arm64 builds and extracts), .github/workflows/release.yml asset count |
+| R5.36 | installer/smoke.ps1: service, account, failure actions, PATH, firewall rule (Private, 8460, 8461), shortcut, autostart, data ACL, `install-kind` |
+| R5.37 | installer/smoke.ps1 silent uninstall keeps data and leaves nothing; `REMOVEDATA=1`; installer/ui-test.ps1 drives the dialog |
+| R5.38 | installer/smoke.ps1: silent upgrade, refused downgrade |
+| R5.39 | installer/smoke.ps1: the exact command, new service process, data kept |
+| R5.40 | installer/smoke.ps1: failed upgrade (a test build that fails after the files are in) leaves the old version running |
+| R5.41 | installer/smoke.ps1: service runs and listens on 8460; the service log file exists |
 | R5.8 | internal/config/config_test.go TestFileThenEnvOverride, TestReportsAllProblems |
 | R5.9 | internal/config/config_test.go TestRefusesPlaceholders, TestRefusesUnknownKeysWrongTypesAndSecrets |
 | R5.10 | internal/config/config_test.go TestDataFolderPerOS |
@@ -357,7 +425,7 @@ Built in CRSP18: see the status line at the top. The seams:
 
 - `internal/config/config.go` reads `config.toml` and the `CRSP_*` variables (R5.8 to R5.10). `crsp config check` (the command) is the CLI's.
 - `.github/workflows/release.yml` publishes archives, `SHA256SUMS` and provenance today. The updater reads exactly these. It will also need `install.sh` and `install.ps1` as release assets (R5.1), and the `edge` release keeps its tag name so the checker can find it.
-- Code signing and installers (R5.7) come in milestone 8.
+- Code signing and notarization come in milestone 8. The installers for Windows (MSI), macOS (pkg) and Linux (deb, rpm) are built.
 
 **Open owner questions.**
 
@@ -365,15 +433,18 @@ Built in CRSP18: see the status line at the top. The seams:
 2. Backups sit on the same disk as the database. Add an optional second folder (for example a network share) for copies?
 3. Secrets are not backed up. On a new machine the owner re-enters the GitHub App key, and agents must re-join if the TLS key is lost. Accept, or add a passphrase-encrypted secrets export?
 4. Default update policy for headless machines: `ask` in the console (proposed) or `auto` in a maintenance window?
-5. The brief puts backup in milestone 8; the stack profile needs a restore drill before the first release. Confirm backup, restore and drill move to milestone 1.
+5. Decided (CRSP27): backup, restore and the drill are in milestone 1; the brief now says so. Only the console screens stay in milestone 8 (OP-6).
 6. The install script checks SHA-256 only; provenance is checked from the first self-update on, and signed installers come in milestone 8. Accept?
 7. Move the runner pin within 7 days of a new GitHub runner release (proposed)?
 8. Should a controller uninstall with `--purge-data` also offer to delete the repository variables and the GitHub App, or only say how?
 9. When a user switches from edge to stable and the newest stable is older, wait for the next stable (proposed)?
+10. **Who installs an agent update?** The agent runs as an unprivileged account (machines R5.44), and an install needs root or LocalSystem. As built, an agent that cannot install says `unsupported` (R5.41). Options: run the agent service as root and LocalSystem like the controller (the owner's decision for the controller); or a root-run update unit that downloads and verifies the release itself, and is started by the agent with no plan from it.
 
 ## 12. Code map
 
 Source: internal/config/config.go
+Source: installer/crsp.wxs
+Source: cmd/crsp/service_windows.go
 Source: internal/backup/service.go
 Source: internal/backup/archive.go
 Source: internal/backup/start.go

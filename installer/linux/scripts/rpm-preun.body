@@ -1,0 +1,4 @@
+# $1 is 0 on erase and 1 on upgrade (the old copy's %preun runs after the new %post).
+if [ "$1" -eq 0 ] && have_systemd; then
+  systemctl disable --now crsp.service >/dev/null 2>&1 || true
+fi

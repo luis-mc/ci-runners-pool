@@ -1,0 +1,30 @@
+#!/bin/sh
+# Runs after the files are laid down, on a first install and on an upgrade.
+# Everything here is safe to run twice. The data folder is created, never emptied.
+LABEL=crsp
+TRAY=dev.luismc.crsp.tray
+DATA="/Library/Application Support/crsp"
+PLIST="/Library/LaunchDaemons/$LABEL.plist"
+
+mkdir -p "$DATA"
+chown root:wheel "$DATA"
+chmod 0700 "$DATA"
+touch /var/log/crsp.log
+chown root:wheel /var/log/crsp.log
+chmod 0640 /var/log/crsp.log
+
+chown root:wheel "$PLIST" /Library/LaunchAgents/$TRAY.plist
+chmod 0644 "$PLIST" /Library/LaunchAgents/$TRAY.plist
+
+# Enable and start the service. A start that fails does not fail the install;
+# the log is /var/log/crsp.log.
+launchctl enable "system/$LABEL" >/dev/null 2>&1 || true
+launchctl bootstrap system "$PLIST" || echo "crsp: the service did not start; see /var/log/crsp.log" >&2
+
+# Tray: /Library/LaunchAgents runs it at every user login. Start it now for the
+# user who is at the console, if there is one.
+console="$(stat -f %u /dev/console 2>/dev/null || echo 0)"
+if [ "$console" != 0 ] && [ -n "$console" ]; then
+  launchctl bootstrap "gui/$console" "/Library/LaunchAgents/$TRAY.plist" >/dev/null 2>&1 || true
+fi
+exit 0
