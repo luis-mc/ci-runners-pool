@@ -341,7 +341,7 @@ All tests are planned. None exist yet (NOT YET IMPLEMENTED). Paths are written w
 | D1 | Which cache protocol to serve | The v2 Twirp cache service only; v1 is not served (current toolkit uses v2 on github.com) | 2026-11-14 (proposed) |
 | D2 | How to send `actions/cache` to the pool | A runner patched at install for the pinned runner version (section 7.2); owner to confirm (Q1) | 2026-11-14 (proposed) |
 | D3 | Tool cache language | A Go port of `ci_tool.py` inside the one binary, with its tests ported | 2026-11-14 (proposed) |
-| D4 | Wipe at drain timeout | Keep waiting, warn, delete nothing; never cut a job | 2026-11-14 |
+| D4 | Wipe at drain timeout | Delete nothing and say so; never cut a job | 2026-11-14 (proposed) |
 
 Open questions for the owner:
 
