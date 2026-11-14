@@ -143,7 +143,7 @@ func New() *Server {
 		Runners: map[string][]*Runner{}, WorkflowFiles: map[string]map[string]string{},
 		ManifestCodes: map[string]bool{}, OAuthCodes: map[string]int64{}, OAuthVerifiers: map[string]string{}, DeviceCodes: map[string]int64{}, ForkApproval: map[string]string{},
 		instTokens: map[string]int64{}, removeToks: map[string]bool{}, regToks: map[string]bool{},
-		RateLimit: 5000, RateRemaining: 5000, RateReset: time.Now().Add(time.Hour).Unix(),
+		RateLimit: 5000, RateRemaining: 5000,
 		AppID: 1234567, nextID: 1000, Now: time.Now,
 		ClientSecret: "FAKE-CLIENT-SECRET-NOT-REAL",
 	}
@@ -326,6 +326,9 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	limit, rem, reset := s.RateLimit, s.RateRemaining, s.RateReset
+	if reset == 0 {
+		reset = s.Now().Add(time.Hour).Unix()
+	}
 	failRL, retryAfter := s.FailRateLimit, s.FailRetryAfter
 	s.mu.Unlock()
 

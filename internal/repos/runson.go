@@ -24,7 +24,9 @@ type RunsOnJob struct {
 	Unresolved bool
 }
 
-var fromJSONRE = regexp.MustCompile(`^\s*\$\{\{\s*fromJSON\(\s*vars\.([A-Za-z0-9_]+)\s*\)\s*(?:\|\|\s*(?:'([^']*)'|"([^"]*)"))?\s*\}\}\s*$`)
+// fromJSON(vars.NAME) and fromJSON(vars.NAME || '[...]'); a default after the
+// closing parenthesis is accepted too.
+var fromJSONRE = regexp.MustCompile(`^\s*\$\{\{\s*fromJSON\(\s*vars\.([A-Za-z0-9_]+)\s*(?:\|\|\s*(?:'([^']*)'|"([^"]*)"))?\s*\)\s*(?:\|\|\s*(?:'([^']*)'|"([^"]*)"))?\s*\}\}\s*$`)
 
 // ParseRunsOn reads the runs-on of every job in a workflow file: a string, a
 // flow list, a block list, or fromJSON(vars.NAME) with an optional default. A
@@ -105,9 +107,12 @@ func (r *RunsOnJob) fill(v string) {
 		return
 	}
 	r.Var = m[1]
-	def := m[2]
-	if def == "" {
-		def = m[3]
+	def := ""
+	for _, g := range m[2:] {
+		if g != "" {
+			def = g
+			break
+		}
 	}
 	if def != "" {
 		var labels []string
