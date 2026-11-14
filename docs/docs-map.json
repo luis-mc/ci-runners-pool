@@ -1,8 +1,110 @@
 {
   "schema": 1,
   "map": {
+    "apps/web/src/**": [
+      "docs/features/web-console/spec.md"
+    ],
+    "apps/web/src/features/auth/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "apps/web/src/features/repositories/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "apps/web/src/features/setup/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "apps/web/src/features/users/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "cmd/ci-runners-pool/**": [
+      "docs/features/cli/spec.md"
+    ],
+    "internal/agent/**": [
+      "docs/features/machines/spec.md"
+    ],
+    "internal/audit/**": [
+      "docs/features/observability/spec.md"
+    ],
+    "internal/auth/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "internal/backend/**": [
+      "docs/features/runners/spec.md"
+    ],
+    "internal/backup/**": [
+      "docs/features/operations/spec.md"
+    ],
+    "internal/cache/**": [
+      "docs/features/caches/spec.md"
+    ],
+    "internal/cli/**": [
+      "docs/features/cli/spec.md"
+    ],
+    "internal/cli/auth/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "internal/configio/**": [
+      "docs/features/operations/spec.md"
+    ],
+    "internal/doctor/**": [
+      "docs/features/doctor/spec.md"
+    ],
+    "internal/events/**": [
+      "docs/features/observability/spec.md"
+    ],
+    "internal/github/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "internal/history/**": [
+      "docs/features/observability/spec.md"
+    ],
+    "internal/install/**": [
+      "docs/features/operations/spec.md"
+    ],
+    "internal/load/**": [
+      "docs/features/machines/spec.md"
+    ],
+    "internal/logs/**": [
+      "docs/features/observability/spec.md"
+    ],
+    "internal/machines/**": [
+      "docs/features/machines/spec.md"
+    ],
+    "internal/mail/**": [
+      "docs/features/notifications/spec.md"
+    ],
+    "internal/mirror/**": [
+      "docs/features/caches/spec.md"
+    ],
+    "internal/notify/**": [
+      "docs/features/notifications/spec.md"
+    ],
+    "internal/repos/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "internal/runners/**": [
+      "docs/features/runners/spec.md"
+    ],
+    "internal/scheduler/**": [
+      "docs/features/scheduling/spec.md"
+    ],
+    "internal/secrets/**": [
+      "docs/features/github-integration/spec.md"
+    ],
+    "internal/slots/**": [
+      "docs/features/scheduling/spec.md"
+    ],
+    "internal/tools/**": [
+      "docs/features/caches/spec.md"
+    ],
     "internal/tray/**": [
       "docs/features/tray/spec.md"
+    ],
+    "internal/update/**": [
+      "docs/features/operations/spec.md"
+    ],
+    "packages/ui/src/**": [
+      "docs/features/web-console/spec.md"
     ]
   }
 }
