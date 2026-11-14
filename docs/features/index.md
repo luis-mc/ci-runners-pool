@@ -6,19 +6,21 @@
 
 ### agent
 
-No feature lists this app yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
 
 ### cli
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | proposed | 0.1.0 | 2026-11-14 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
 
 ### controller
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | proposed | 0.1.0 | 2026-11-14 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
 
 ### tray
 
@@ -28,7 +30,7 @@ No feature lists this app yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | proposed | 0.1.0 | 2026-11-14 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
 
 ## By topic
 
@@ -38,15 +40,13 @@ No feature lists this topic yet.
 
 ### github
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### install
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | proposed | 0.1.0 | 2026-11-14 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
 
 ### isolation
 
@@ -54,7 +54,9 @@ No feature lists this topic yet.
 
 ### machines
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
 
 ### observability
 
@@ -62,23 +64,25 @@ No feature lists this topic yet.
 
 ### operations
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
 
 ### runners
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### scheduling
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
 
 ### security
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | proposed | 0.1.0 | 2026-11-14 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
 
 ### ui
 
@@ -90,9 +94,8 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | proposed | 0.1.0 | 2026-11-14 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | proposed | 0.1.0 | 2026-11-14 |
 
 ## Gaps
 
-- app agent: no feature spec lists it
 - app tray: no feature spec lists it
