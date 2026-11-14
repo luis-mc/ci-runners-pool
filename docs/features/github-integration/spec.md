@@ -242,6 +242,8 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R5.38** (M1, NOT YET IMPLEMENTED) — **Reconcile.** Whatever the source, the controller reconciles its job view with REST every 5 minutes. A missed webhook or a broken session never leaves a job waiting unseen for longer than that.
 
+**R5.39** (M1, v0.2.0, NOT YET IMPLEMENTED) — **Legacy variable names during the move (transition).** A repository setting `legacy_vars` (off by default) makes the product also write `CI_RUNS_ON` (the Linux label list) and `CI_RUNS_ON_WINDOWS` (the Windows one) with the same JSON as `RUNS_ON_LINUX` and `RUNS_ON_WINDOWS`, and delete them under the same rules (R5.28, R5.29). It exists because workflows that follow the old dev-standards templates read those names until dev-standards moves to `RUNS_ON_*` (its decisions D300, D307). The console shows when it is on and the doctor warns when it stays on after no workflow reads the old names. It never touches `NIGHTLY_RUNS_ON`, which the owner sets by hand. A repository moves from the old pool to crsp by this variable alone; it moves back by setting the old labels again.
+
 ## 6. Non-functional requirements
 
 **R6.1** (M1, NOT YET IMPLEMENTED) — **Secrets only in the OS secret store.** The App private key, client secret, webhook secret, CLI tokens and any GitHub user refresh token live only in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service, or a file with mode 0600 when no service exists. They never go to the database, config files, environment files, logs, crash files, API responses or the audit log.
@@ -385,6 +387,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.36 | internal/github/webhook_test.go; internal/api/handlers_github_test.go |
 | R5.37 | internal/github/poller_test.go |
 | R5.38 | planned: internal/github/reconcile_test.go |
+| R5.39 | planned: internal/github/variables_test.go TestLegacyNamesWrittenAndRemovedWithSetting (v0.2.0) |
 | R6.1 | planned: internal/secrets/store_test.go; internal/store/no_secrets_test.go (schema has no secret column) |
 | R6.2 | internal/github/client_test.go |
 | R6.3 | planned: internal/logging/redact_test.go |

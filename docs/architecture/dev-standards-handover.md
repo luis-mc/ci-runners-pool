@@ -42,7 +42,7 @@ This replaces the `CRSP_RUNS_ON_*` names in the specs today.
 
 - `vm_check.py` and `vm-images.json`: boot test VMs on `kvm` runners.
 - The Rust build-cache cap and the shared tool-cache mode: per-runner cache quotas and eviction belong to the pool.
-- The pinned download and build logic of `ci_tool.py` and `rust_ci.py` stay in delivery, because projects also run them on GitHub-hosted runners (the dev-standards owner is asked to confirm this scope).
+- The pinned download and build logic of `ci_tool.py` and `rust_ci.py` stay in delivery, because projects also run them on GitHub-hosted runners. Confirmed by the dev-standards owner (D308): only the cache parts move (the shared-cache mode, the Rust cache cap, the per-runner quotas); jobs read `CI_TOOLS_DIR`. See [caches](../features/caches/spec.md) R5.44.
 
 ### What crsp does not take
 
@@ -84,4 +84,4 @@ Added as the old pool keeps running real projects' CI. Newest last.
 
 These run on the old pool and have no crsp requirement yet: Linux containers with KVM; a Wine prefix per runner with `TMPDIR` unset; LLVM and clang-cl for cargo-xwin, plus the symlink right on Windows; Playwright browsers in the image; a Postgres per runner with its own roles; WSL memory sizing. Until crsp has them, those jobs use GitHub-hosted runners.
 
-The requirements for these are written, marked not built, after v0.1.0: [runners](../features/runners/spec.md) R5.41 to R5.45 (containers with KVM, Wine, LLVM, Playwright, Postgres roles), [machines](../features/machines/spec.md) R5.53 and R5.54 (KVM on WSL2, WSL memory), and [caches](../features/caches/spec.md) R5.41 (Playwright browsers folder).
+The [parity plan](parity-plan.md) lists every capability, the releases that build them and the test that decides when the old pool can go. The requirements for these are written, marked not built, after v0.1.0: [runners](../features/runners/spec.md) R5.41 to R5.45 (containers with KVM, Wine, LLVM, Playwright, Postgres roles), [machines](../features/machines/spec.md) R5.53 and R5.54 (KVM on WSL2, WSL memory), and [caches](../features/caches/spec.md) R5.41 (Playwright browsers folder).
