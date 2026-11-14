@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/pressly/goose/v3"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/store/sqlcgen"
 )
 
 // TestIntegrationMigrationsDownAndUp proves every migration's Down undoes its
@@ -51,5 +53,19 @@ func TestIntegrationAuditLogIsAppendOnly(t *testing.T) {
 	_, err := s.db.ExecContext(ctx, `UPDATE audit_log SET action = 'changed'`)
 	if err == nil || !strings.Contains(err.Error(), "append-only") {
 		t.Fatalf("update of audit_log: err = %v, want append-only refusal", err)
+	}
+}
+
+// TestIntegrationEveryQueryPrepares checks every sqlc query against the
+// migrated schema of a real SQLite file, so a query that names a missing
+// table or column fails here, not in a feature branch.
+func TestIntegrationEveryQueryPrepares(t *testing.T) {
+	s := openTemp(t)
+	q, err := sqlcgen.Prepare(context.Background(), s.db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := q.Close(); err != nil {
+		t.Fatal(err)
 	}
 }

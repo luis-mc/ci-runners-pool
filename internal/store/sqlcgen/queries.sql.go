@@ -15,7 +15,7 @@ SELECT count(*) FROM job_queue WHERE state = ?
 `
 
 func (q *Queries) CountJobsByState(ctx context.Context, state string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countJobsByState, state)
+	row := q.queryRow(ctx, q.countJobsByStateStmt, countJobsByState, state)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -34,7 +34,7 @@ type EnqueueJobParams struct {
 }
 
 func (q *Queries) EnqueueJob(ctx context.Context, arg EnqueueJobParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, enqueueJob, arg.Kind, arg.Payload, arg.DedupeID)
+	row := q.queryRow(ctx, q.enqueueJobStmt, enqueueJob, arg.Kind, arg.Payload, arg.DedupeID)
 	var id int64
 	err := row.Scan(&id)
 	return id, err
@@ -45,7 +45,7 @@ SELECT value FROM schema_meta WHERE key = ?
 `
 
 func (q *Queries) GetMeta(ctx context.Context, key string) (string, error) {
-	row := q.db.QueryRowContext(ctx, getMeta, key)
+	row := q.queryRow(ctx, q.getMetaStmt, getMeta, key)
 	var value string
 	err := row.Scan(&value)
 	return value, err
@@ -64,7 +64,7 @@ type InsertAuditEntryParams struct {
 }
 
 func (q *Queries) InsertAuditEntry(ctx context.Context, arg InsertAuditEntryParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, insertAuditEntry,
+	row := q.queryRow(ctx, q.insertAuditEntryStmt, insertAuditEntry,
 		arg.Actor,
 		arg.Action,
 		arg.Subject,
@@ -87,6 +87,6 @@ type SetMetaParams struct {
 }
 
 func (q *Queries) SetMeta(ctx context.Context, arg SetMetaParams) error {
-	_, err := q.db.ExecContext(ctx, setMeta, arg.Key, arg.Value)
+	_, err := q.exec(ctx, q.setMetaStmt, setMeta, arg.Key, arg.Value)
 	return err
 }

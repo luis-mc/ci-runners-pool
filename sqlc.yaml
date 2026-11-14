@@ -8,3 +8,5 @@ sql:
         package: sqlcgen
         out: internal/store/sqlcgen
         emit_interface: false
+        # Prepare() lets a test check every query against the real schema.
+        emit_prepared_queries: true
