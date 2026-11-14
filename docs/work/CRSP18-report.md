@@ -1,6 +1,6 @@
 # CRSP18 report (live)
 
-Status: started. Updated after every step.
+Status: config, audit, settings built and tested. Backup, retention, handlers next.
 
 ## Plan
 1. config: TOML file, strict schema, placeholders and secrets refused, CRSP_* overrides, per-OS dirs (R5.8-R5.10).
@@ -12,4 +12,4 @@ Status: started. Updated after every step.
 7. docs: change notes, spec status, test paths.
 
 ## Done
-(nothing yet)
+- config (TOML, strict, per-OS dirs, env override), audit (Record, RecordTx, List, Prune), settings (ranges, audit in same tx), store ops. All with tests.
