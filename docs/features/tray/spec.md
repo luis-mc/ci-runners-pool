@@ -16,7 +16,7 @@ generator: luismc-docs 2.6.1
 ---
 # Tray
 
-NOT YET IMPLEMENTED. Nothing in this spec is built. Every requirement below is planned.
+PARTLY BUILT (CRSP26). The tray side of M1 is built: menu, status, Open, stopped state, log folder, autostart, single instance, Linux tray-host probe, `crsp tray --smoke`, CI smoke. NOT YET IMPLEMENTED: the service side of the local channel (R5.8, R6.8), the one-time link endpoint and bindings (R5.7, R5.9, R6.1), the installer rule (R5.22), the idle-resource check (R6.4) and the content-words guard (R6.7). Everything marked (M3) and (M8) is planned.
 
 ## 1. In one paragraph
 
@@ -248,43 +248,43 @@ flowchart LR
 
 ## 9. How it is proven
 
-All tests are planned; none exist yet. Paths are where each test will live.
+Rows marked built have tests that exist and run in CI. Rows marked planned are not built yet.
 
 | Requirement | Test |
 |---|---|
-| R5.1 | planned: internal/tray/menu_test.go, TestMenuOrderM1 |
-| R5.2 | planned: internal/tray/status_test.go, TestStatusTextPerState |
-| R5.3 | planned: internal/tray/poller_test.go, TestPollerUpdatesWithin10s (fake clock) |
-| R5.4 | planned: internal/tray/icon_test.go, TestIconPerStateDiffersByGlyph |
-| R5.5 | planned: internal/tray/menu_test.go, TestQuitLeavesServiceRunning |
-| R5.6 | planned: internal/tray/open_test.go, TestOpenAsksLinkAndLaunchesBrowser (fake channel and browser) |
+| R5.1 | built: internal/tray/tray_test.go, TestMenuOrderM1 |
+| R5.2 | built: internal/tray/tray_test.go, TestStatusTextPerState |
+| R5.3 | built: internal/tray/tray_test.go, TestPollerUpdatesWithin10s (injected clock) |
+| R5.4 | built: internal/tray/tray_test.go, TestIconPerStateDiffersByGlyph |
+| R5.5 | built: internal/tray/tray_test.go, TestQuitLeavesServiceRunning (the client has no stop call) |
+| R5.6 | built: internal/tray/tray_test.go, TestOpenAsksLinkAndLaunchesBrowser, TestClientStatusAndLink (fake channel and browser) |
 | R5.7 | planned: internal/api/link_test.go, TestLinkSignsInOnceAndStripsCode, TestLinkExpiredShowsSignIn |
 | R5.8 | planned: internal/tray/channel_windows_test.go and internal/tray/channel_unix_test.go, TestChannelRejectsRemoteAndReadsPeerUser |
 | R5.9 | planned: internal/api/binding_test.go, TestUnboundUserGetsSignInThenBinding, TestOwnerRemovesBinding |
-| R5.10 | planned: cmd/crsp/open_test.go, TestOpenCommandPrintsLink |
+| R5.10 | built (client side): internal/tray/tray_test.go, TestOpenCommandPrintsLink; the service side of the `link` call is not built |
 | R5.11 | planned: internal/agent/link_test.go, TestAgentAsksControllerForLink |
-| R5.12 | planned: internal/tray/svcstate_windows_test.go, internal/tray/svcstate_darwin_test.go, internal/tray/svcstate_linux_test.go, TestStoppedStateWithExitCode |
-| R5.13 | planned: internal/tray/logfolder_test.go, TestLogFolderPathPerOS |
-| R5.14 | planned: internal/tray/open_test.go, TestOpenWhileStoppedShowsProblem |
+| R5.12 | built: internal/tray/tray_test.go, TestStoppedStateWithExitCode, TestPollerKeepsLastThenAsksOS (Linux parser tested; Windows and macOS readers built, run only in CI smoke) |
+| R5.13 | built: internal/tray/tray_test.go, TestLogFolderPathPerOS |
+| R5.14 | built: internal/tray/tray_test.go, TestOpenWhileStoppedShowsProblem |
 | R5.15 | planned: e2e/tray-restart-review.spec.ts, restart Review names running jobs |
 | R5.16 | planned: internal/api/restart_test.go, TestRestartRefusedWithoutConfirmed, TestUpdateRefusedWithoutConfirmed |
 | R5.17 | planned: internal/api/drain_test.go, TestDrainWaitsForJobsThenRestarts |
 | R5.18 | planned: internal/tray/update_test.go, TestUpdateItemOnlyWhenNewer; CI smoke of update on each OS |
 | R5.19 | planned: internal/tray/notices_test.go, TestNoticeShownOncePerChangeAcrossRestart |
 | R5.20 | planned: internal/tray/notices_test.go, TestNoticeClickOpensLink |
-| R5.21 | planned: internal/tray/autostart_windows_test.go, internal/tray/autostart_darwin_test.go, internal/tray/autostart_linux_test.go, TestAutostartOnOff |
+| R5.21 | built: internal/tray/tray_test.go, TestAutostartOnOff (XDG and LaunchAgent writers; the Windows Run-key writer is built, not unit tested) |
 | R5.22 | planned: internal/install/headless_test.go, TestHeadlessWritesNoAutostart |
-| R5.23 | planned: internal/tray/single_test.go, TestSecondInstanceExits0, TestOtherSessionStarts (Windows) |
-| R5.24 | planned: internal/tray/sni_linux_test.go, TestNoSNIHostNoticeOnceThenExit2 (private session D-Bus) |
-| R5.25 | planned: internal/tray/sni_linux_test.go, TestNoSessionExit3 |
-| R5.26 | planned: CI job tray-smoke in .github/workflows/build.yml, on windows-latest, ubuntu-latest (dbus-run-session with an SNI host) and macos-latest |
-| R5.27 | planned: CI job tray-smoke in .github/workflows/build.yml, second-instance step |
+| R5.23 | built: internal/tray/single_unix_test.go, TestSecondInstanceExits0; CI smoke second-instance step. Windows mutex built, proven by CI smoke only |
+| R5.24 | built: internal/tray/sni_linux_test.go (probe); CI smoke "no tray area exits 2" under a private session D-Bus. The notice-once-per-version flag: internal/tray/tray_test.go, TestNoticeOncePerVersion |
+| R5.25 | built: internal/tray/sni_linux_test.go, TestNoSessionExit3 |
+| R5.26 | built: .github/workflows/tray-smoke.yml, job smoke on ubuntu-latest (xvfb, SNI host), windows-latest and macos-latest |
+| R5.27 | built: .github/workflows/tray-smoke.yml, second-instance step |
 | R6.1 | planned: internal/api/link_test.go, TestLinkCodeEntropyExpiryHashNotLogged |
-| R6.2 | planned: internal/tray/state_test.go, TestTrayStateHoldsNoSecret |
+| R6.2 | built: internal/tray/tray_test.go, TestTrayStateHoldsNoSecret |
 | R6.3 | planned: internal/tray/privilege_test.go, TestTrayOpensNoPort; CI tray-smoke checks no listening port |
 | R6.4 | planned: CI job tray-smoke, idle memory and CPU sample over 5 minutes (nightly) |
-| R6.5 | planned: internal/tray/status_test.go, TestTooltipCutAt127 |
-| R6.6 | planned: internal/tray/poller_test.go, TestSlowServiceTimesOutIn3s |
+| R6.5 | built: internal/tray/tray_test.go, TestTooltipCutAt127 |
+| R6.6 | built: internal/tray/tray_test.go, TestSlowServiceTimesOutIn3s |
 | R6.7 | planned: guards/content-words test over internal/tray strings |
 | R6.8 | planned: internal/tray/channel_unix_test.go, TestSocketMode0660; internal/tray/channel_windows_test.go, TestPipeRejectsRemote |
 
@@ -301,7 +301,7 @@ All tests are planned; none exist yet. Paths are where each test will live.
 
 ## 11. Not built yet
 
-Everything here is NOT YET IMPLEMENTED. `internal/tray/` does not exist yet; `cmd/crsp/main.go` will add the `tray` and `open` modes.
+Built in CRSP26: the tray process and everything it runs in the user's session. Not built: the service side of the local channel, the link endpoint and the bindings (another task owns them), so `crsp tray` and `crsp open` need a service that answers `status` and `link` as JSON lines on the channel (`internal/tray/channel.go` defines the lines).
 
 Seams that will change:
 
@@ -319,8 +319,25 @@ Open owner questions:
 
 ## 12. Code map
 
-Planned, NOT YET IMPLEMENTED (no `Source:` lines until the files exist):
+Source: internal/tray/status.go
+Source: internal/tray/poller.go
+Source: internal/tray/channel.go
+Source: internal/tray/channel_unix.go
+Source: internal/tray/channel_windows.go
+Source: internal/tray/open.go
+Source: internal/tray/open_cmd.go
+Source: internal/tray/menu.go
+Source: internal/tray/icon.go
+Source: internal/tray/run.go
+Source: internal/tray/autostart.go
+Source: internal/tray/single_unix.go
+Source: internal/tray/single_windows.go
+Source: internal/tray/svcstate_linux.go
+Source: internal/tray/sni_linux.go
+Source: internal/tray/state.go
+Source: internal/tray/logfolder.go
+Source: cmd/crsp/main.go
+Source: .github/workflows/tray-smoke.yml
+Source: packaging/autostart/README.md
 
-- internal/tray/ (menu, status poller, icons, autostart per OS, single instance, Linux tray-host probe, local channel client)
-- cmd/crsp/main.go (the `tray` and `open` modes)
-- .github/workflows/build.yml (tray smoke job)
+Also: autostart_windows.go, autostart_other.go, svcstate_darwin.go, svcstate_windows.go, notify_*.go and sni_other.go are the per-OS parts; internal/tray/testdata/snihost is the StatusNotifierWatcher stand-in for the Linux smoke.

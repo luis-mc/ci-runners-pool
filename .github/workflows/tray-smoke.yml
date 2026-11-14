@@ -1,0 +1,95 @@
+name: Tray smoke
+
+# Starts the built `crsp tray` on each OS and checks it does not crash at start
+# (tray R5.26, R5.27; decision 0005). Windows and macOS use the runner's desktop;
+# Linux runs under xvfb with a StatusNotifierItem host on a private session bus.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'internal/tray/**'
+      - 'cmd/crsp/**'
+      - 'packaging/autostart/**'
+      - '.github/workflows/tray-smoke.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'internal/tray/**'
+      - 'cmd/crsp/**'
+      - 'packaging/autostart/**'
+      - '.github/workflows/tray-smoke.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: tray-smoke-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: tray-smoke ${{ matrix.os }}
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build (macOS needs cgo)
+        env:
+          CGO_ENABLED: ${{ matrix.os == 'macos-latest' && '1' || '0' }}
+        run: |
+          exe=""
+          if [ "$RUNNER_OS" = "Windows" ]; then exe=".exe"; fi
+          mkdir -p out
+          go build -trimpath -o "out/crsp${exe}" ./cmd/crsp
+          if [ "$RUNNER_OS" = "Linux" ]; then go build -o out/snihost ./internal/tray/testdata/snihost; fi
+      - name: Install xvfb and dbus (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb dbus
+      - name: Smoke (Linux, xvfb, SNI host)
+        if: runner.os == 'Linux'
+        run: |
+          cat > out/smoke.sh <<'SCRIPT'
+          set -u
+          ./out/snihost & host=$!
+          sleep 1
+          ./out/crsp tray --smoke --smoke-hold=6s & first=$!
+          sleep 3
+          ./out/crsp tray --smoke; second=$?
+          wait "$first"; firstc=$?
+          kill "$host" 2>/dev/null || true
+          echo "first=$firstc second=$second"
+          [ "$firstc" = 0 ] && [ "$second" = 0 ]
+          SCRIPT
+          timeout 60 xvfb-run -a dbus-run-session -- bash out/smoke.sh
+      - name: Smoke (Linux, no tray area exits 2)
+        if: runner.os == 'Linux'
+        run: |
+          set +e
+          XDG_CONFIG_HOME="$(mktemp -d)" timeout 30 xvfb-run -a dbus-run-session -- ./out/crsp tray --smoke
+          code=$?
+          echo "exit=$code"
+          [ "$code" = 2 ]
+      - name: Smoke (Windows and macOS)
+        if: runner.os != 'Linux'
+        run: |
+          exe="./out/crsp"
+          if [ "$RUNNER_OS" = "Windows" ]; then exe="./out/crsp.exe"; fi
+          "$exe" tray --smoke --smoke-hold=6s & first=$!
+          sleep 3
+          "$exe" tray --smoke; second=$?
+          wait "$first"; firstc=$?
+          echo "first=$firstc second=$second"
+          [ "$firstc" = 0 ] && [ "$second" = 0 ]
