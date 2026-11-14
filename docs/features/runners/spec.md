@@ -202,6 +202,20 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 
 **R5.38** (M1) — **Auto-update with drain.** Persistent runners are registered with the runner's own self-update turned off. When a release of the product pins a newer runner version, or GitHub marks the running version as deprecated, the agent updates each runner: it drains it, replaces the runner files, and starts it again. The idle check runs right before the swap. An ephemeral runner uses the new version from its next job.
 
+### 5.11 Parity with the old pool (after v0.1.0)
+
+The dev-standards runner pool covered these cases ([handover page](../../architecture/dev-standards-handover.md), section 4). Each requirement below targets a milestone after v0.1.0 and is **NOT YET IMPLEMENTED**. Until this is built, jobs that need it run on GitHub-hosted runners.
+
+**R5.39** (after v0.1.0, NOT YET IMPLEMENTED) — **Linux containers with KVM.** A Linux runner in a container (R5.27) on a machine whose `/dev/kvm` the agent has checked as usable by the runner gets the `kvm` label (R5.36) and the device through `--device /dev/kvm`, never `--privileged`. A test VM boot job (the `vm_check.py` case of the handover page) runs in it. When `/dev/kvm` is missing or not usable the runner has no `kvm` label and the doctor says why (machines R5.53).
+
+**R5.40** (after v0.1.0, NOT YET IMPLEMENTED) — **A Wine prefix per runner.** A Linux runner image that has the `wine` layer gives each runner its own Wine prefix in the runner's own folder, set by `WINEPREFIX`. `TMPDIR` is not set in the runner's job environment, because a set `TMPDIR` breaks Wine's startup. Two runners never share a prefix. A prefix is made on first use and removed with the runner.
+
+**R5.41** (after v0.1.0, NOT YET IMPLEMENTED) — **LLVM and clang-cl for cargo-xwin.** A Linux image layer `llvm` holds a pinned LLVM (SHA-256 checked, R5.37 rule) with `clang-cl`, `lld-link` and `llvm-lib` on the `PATH`, so `cargo-xwin` builds Windows targets. The layer has a self-check that runs `clang-cl --version`. On a Windows runner the symlink right that `cargo-xwin` and Rust tooling need follows R5.14: given only when the machine or label setting asks for it.
+
+**R5.42** (after v0.1.0, NOT YET IMPLEMENTED) — **Playwright browsers in the image.** An image layer `playwright` holds the Chromium, Firefox and WebKit builds for one pinned Playwright version and their system packages, at a fixed path set by `PLAYWRIGHT_BROWSERS_PATH` (caches R5.36). The layer's self-check launches each browser headless once. A job that finds the browsers there downloads nothing.
+
+**R5.43** (after v0.1.0, NOT YET IMPLEMENTED) — **Postgres roles per runner.** Where a machine offers a Postgres server to jobs, each runner gets its own role and its own database owned by it, with a random password the agent keeps in the OS secret store and puts only in that runner's job environment. A role cannot connect to another runner's database. The role and database go with the runner when it is removed. No secret is written to a log (R6.2).
+
 ## 6. Non-functional requirements
 
 All **NOT YET IMPLEMENTED**.
@@ -329,6 +343,11 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.36 | internal/runners/runners_test.go TestGenericLabelsOnly (port of test_dl316_windows_only_generic.py); internal/runners/service_test.go TestPlanRefusesProjectLabels |
 | R5.37 | internal/runners/runners_test.go TestPinnedHash, TestValidSHA256 (port of the test_dl310 pin tests and test_dl165_pool_refresh_hash_result.py); internal/backend/windows/windows_test.go TestWrongHashRefused; linux and macos TestWrongHashRefused |
 | R5.38 | planned: internal/runners/update_test.go TestUpdateDrainsThenSwaps |
+| R5.39 | planned: internal/backend/linux/kvm_test.go TestKVMDeviceOnlyAndLabelNeedsUsable |
+| R5.40 | planned: internal/backend/linux/wine_test.go TestPrefixPerRunnerAndTmpdirUnset |
+| R5.41 | planned: internal/runners/images_test.go TestLLVMLayerSelfCheckAndPinnedHash; internal/backend/windows/symlink_test.go TestSymlinkRightOnlyWhenAsked |
+| R5.42 | planned: internal/runners/images_test.go TestPlaywrightLayerSelfCheck |
+| R5.43 | planned: internal/runners/postgres_test.go TestRolePerRunnerIsolatedAndRemoved |
 | R6.1 | no backend in M1 starts a container; nothing to test until M2 |
 | R6.2 | internal/runners/service_test.go TestNoTokenOrPasswordStoredOrLogged; internal/backend/linux/linux_test.go TestTokenOnlyInEnvAndUpdateOff |
 | R6.3 | internal/backend/windows/windows_test.go TestAccountRights (never in Administrators); internal/backend/linux/linux_test.go TestUnitUserAndGroup; internal/backend/macos/macos_test.go TestHiddenUser |
@@ -373,6 +392,7 @@ Built by CRSP22: the three persistent backends, the runner rules, plan and apply
 - M5: Tart backend.
 - M6: Firecracker and Cloud Hypervisor backends with snapshots.
 - M7: the registry mirror server that R5.34 uses.
+- After v0.1.0: the parity requirements R5.39 to R5.43 (Linux containers with KVM, Wine prefix, LLVM, Playwright browsers, Postgres roles).
 
 ## 12. Code map
 

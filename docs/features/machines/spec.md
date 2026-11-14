@@ -241,6 +241,14 @@ Ported from runner-pool R5.10 (no rebuild under a running job) and learning 1 of
 
 **R5.52** (M1) — Settings, drain, resume and removal need the admin or owner role. Viewers see machines and load only.
 
+### 5.11 Parity with the old pool (after v0.1.0)
+
+Each requirement below targets a milestone after v0.1.0 and is **NOT YET IMPLEMENTED**. Until this is built, jobs that need it run on GitHub-hosted runners. Source: the handover page ([section 3 items 8 and 13](../../architecture/dev-standards-handover.md)).
+
+**R5.53** (after v0.1.0, NOT YET IMPLEMENTED) — **KVM on WSL2.** On Windows with WSL2, after `wsl --shutdown` or a reboot `/dev/kvm` is gone until the module `kvm_intel` or `kvm_amd` is loaded in the WSL VM. The agent checks `nestedVirtualization=true` in the user's `.wslconfig` and reports it as the backend reason when it is off ("nested virtualization is off in .wslconfig"); it never edits that file without a yes. When it is on and `/dev/kvm` is missing, the agent loads the module through a one-shot privileged helper that exits after the load; runners are never privileged. The `kvm` label (runners R5.36) is added only after `/dev/kvm` is usable. The step runs again at every WSL start.
+
+**R5.54** (after v0.1.0, NOT YET IMPLEMENTED) — **WSL memory sizing.** The agent reads the `memory=` and `processors=` values of `.wslconfig` and the memory the WSL VM holds (R5.17), and shows them in the machine facts. The runner count and per-runner memory cap are set from the declared value, never from a live reading. It exports the CPU limit to jobs and splits it per runner, so `nproc` in a container matches the cap. A declared value above what the machine can give is refused with the reason. A change to `.wslconfig` needs `wsl --shutdown`, so the console says it waits for the machine to drain (R5.30).
+
 ## 6. Non-functional requirements
 
 **R6.1** (M1) — The agent link uses TLS 1.3 only. A connection without a valid pinned certificate and a valid machine key is refused.
@@ -377,6 +385,8 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.50 | apps/web/src/machines/Machines.test.tsx | planned |
 | R5.51 | cmd/crsp/machines_cmd_test.go | planned |
 | R5.52 | internal/api/machines_auth_test.go | planned |
+| R5.53 | internal/agent/wsl_kvm_test.go | planned; after v0.1.0 |
+| R5.54 | internal/agent/wsl_memory_test.go | planned; after v0.1.0 |
 | R6.1 | internal/machines/tls_test.go | planned |
 | R6.2 | internal/machines/secrets_test.go | planned |
 | R6.3 | internal/machines/joincode_test.go | planned |
@@ -402,7 +412,7 @@ Open questions for the owner are listed in `docs/work/CRP4-report.md` on this br
 
 ## 11. Not built yet
 
-Everything in this spec is NOT YET IMPLEMENTED. The seams that will change:
+Everything not named as built at the top is NOT YET IMPLEMENTED. The seams that will change:
 
 - `packages/contract/proto/agent/v1/agent.proto`: `Register` becomes `Join`; session messages grow (section 7).
 - `internal/store/migrations`: new tables for machines, keys, join codes, settings and load.

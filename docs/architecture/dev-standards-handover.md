@@ -73,3 +73,5 @@ Each item is a mistake the dev-standards pool made and then patched.
 ## 4. Capabilities projects use today
 
 These run on the old pool and have no crsp requirement yet: Linux containers with KVM; a Wine prefix per runner with `TMPDIR` unset; LLVM and clang-cl for cargo-xwin, plus the symlink right on Windows; Playwright browsers in the image; a Postgres per runner with its own roles; WSL memory sizing. Until crsp has them, those jobs use GitHub-hosted runners.
+
+The requirements for these are written, marked not built, after v0.1.0: [runners](../features/runners/spec.md) R5.39 to R5.43 (containers with KVM, Wine, LLVM, Playwright, Postgres roles), [machines](../features/machines/spec.md) R5.53 and R5.54 (KVM on WSL2, WSL memory), and [caches](../features/caches/spec.md) R5.36 (Playwright browsers folder).
