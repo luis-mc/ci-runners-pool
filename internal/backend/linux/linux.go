@@ -359,7 +359,6 @@ func (b *Backend) Deregister(ctx context.Context, h backend.Handle, removeToken 
 	return nil
 }
 
-
 // CleanUp removes the unit, the user and the folder; safe to call twice
 // (runners R5.10).
 func (b *Backend) CleanUp(ctx context.Context, h backend.Handle) error {
