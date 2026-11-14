@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"github.com/luis-mc/ci-runners-shared-pool/internal/api/client"
 	"sort"
 	"strconv"
 	"strings"
@@ -41,3 +42,15 @@ func deref[T any](p *T) T {
 	}
 	return *p
 }
+
+func asExit(err error, target **exitError) bool {
+	ee, ok := err.(*exitError)
+	if ok {
+		*target = ee
+	}
+	return ok
+}
+
+func clientListParams() client.ListRepositoriesParams { return client.ListRepositoriesParams{} }
+
+func clientRunnersParams() client.ListRunnersParams { return client.ListRunnersParams{} }

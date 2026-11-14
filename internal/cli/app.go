@@ -144,10 +144,12 @@ type command struct {
 	summary string
 	// milestone is set when the command is not built yet (R5.1).
 	milestone string
-	subs    []*command
-	flags   func(c *call, fs *flag.FlagSet)
-	run     func(c *call, args []string) error
-	args    string // usage text for positionals
+	subs      []*command
+	flags     func(c *call, fs *flag.FlagSet)
+	run       func(c *call, args []string) error
+	args      string // usage text for positionals
+	// raw passes every argument to run without flag parsing (long-running modes).
+	raw bool
 }
 
 func (c *command) find(name string) *command {
@@ -217,6 +219,9 @@ func nonFlags(args []string) []string {
 
 func execute(env *Env, root, cmd *command, path, rest []string) int {
 	c := &call{env: env, cmd: cmd}
+	if cmd.raw && cmd.milestone == "" && !(len(rest) == 1 && (rest[0] == "--help" || rest[0] == "-h")) {
+		return c.report(cmd.run(c, rest))
+	}
 	fs := flag.NewFlagSet("crsp "+strings.Join(path, " "), flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	c.fs = fs

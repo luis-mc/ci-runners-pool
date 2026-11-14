@@ -1,23 +1,26 @@
 // Command crsp manages shared self-hosted GitHub Actions runners.
 //
 // Modes: controller (config, GitHub, scheduling, web app and API), agent (runs
-// on every machine and dials the controller), version. The tray mode comes later.
+// on every machine and dials the controller), tray (comes later). Every other
+// command is the command line for people and scripts, in internal/cli. A mode
+// is added with one line in the Modes map of run.
 package main
 
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"runtime/debug"
 	"syscall"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/cli"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
@@ -31,54 +34,36 @@ func main() {
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
-	if len(args) == 0 {
-		usage(stderr)
-		return 2
-	}
-	switch args[0] {
-	case "version", "--version", "-v":
-		_, _ = fmt.Fprintln(stdout, versionString())
-		return 0
-	case "controller":
-		return report(stderr, runController())
-	case "agent":
-		return report(stderr, errors.New("agent mode is not implemented in this build"))
-	case "help", "--help", "-h":
-		usage(stdout)
-		return 0
-	default:
-		_, _ = fmt.Fprintf(stderr, "unknown command %q\n\n", args[0])
-		usage(stderr)
-		return 2
-	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return cli.Run(&cli.Env{
+		Stdin:       os.Stdin,
+		Stdout:      stdout,
+		Stderr:      stderr,
+		IsTerminal:  stdinIsTerminal,
+		OpenBrowser: openBrowser,
+		Version:     version,
+		GoVersion:   goVersion(),
+		Context:     ctx,
+		Modes: map[string]cli.ModeFunc{
+			"controller": func(context.Context, []string) error { return runController() },
+			"agent": func(context.Context, []string) error {
+				return errors.New("agent mode is not implemented in this build")
+			},
+		},
+	}, args)
 }
 
-func usage(w io.Writer) {
-	_, _ = fmt.Fprint(w, `Usage: crsp <command>
-
-Commands:
-  controller   run the controller: web console, API and scheduling
-  agent        run the agent on a runner machine (not implemented yet)
-  version      print the version
-
-Configuration is read from CRSP_* environment variables; see .env.example.
-`)
-}
-
-func report(stderr io.Writer, err error) int {
-	if err == nil {
-		return 0
-	}
-	_, _ = fmt.Fprintln(stderr, "error:", err)
-	return 1
-}
-
-func versionString() string {
-	v := version
+func goVersion() string {
 	if info, ok := debug.ReadBuildInfo(); ok {
-		v += " (" + info.GoVersion + ")"
+		return info.GoVersion
 	}
-	return "crsp " + v
+	return runtime.Version()
+}
+
+func stdinIsTerminal() bool {
+	fi, err := os.Stdin.Stat()
+	return err == nil && fi.Mode()&os.ModeCharDevice != 0
 }
 
 func runController() error {
