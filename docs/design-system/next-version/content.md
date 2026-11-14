@@ -47,6 +47,7 @@ Each action has one word. The Never use column lists words that must not stand i
 | Export config | Save the configuration as a file, without any secret. | Download config, Backup config |
 | Exporting | The busy word of Export, while the controller builds the file. | Downloading |
 | Load more | Read the next rows of a list that has more on the controller. | Show more, Next page |
+| Send test | Send one clearly marked test notice through a channel and say what happened. It changes nothing else. | Test, Ping, Verify, Send a test |
 
 Add a row for each action the project needs. A new action gets a word that is not used above.
 
@@ -140,6 +141,22 @@ A message is one or two short sentences in plain words. It names the thing, neve
 - A headline says where the user is: "Reports", not "reports/list".
 - A field name is a noun: "Title", not "Enter the title".
 - Mark only optional fields, with "(optional)" after the name.
+
+## Notification words
+
+The events, severities and channel kinds of the notifications feature, as people read them (notifications R5.1, R5.4). The stable type names stay in the API and in webhook bodies; the screen shows these words.
+
+| Word | Meaning |
+|---|---|
+| Machine offline | A machine's agent link has been down longer than the grace time. |
+| Job waiting | A queued job has waited longer than the set time. |
+| Disk low | Free space on a machine's work disk is below the threshold. |
+| Runner outdated | A runner's version is older than the pinned version. |
+| Doctor finding | The doctor reports a new finding. |
+| Update available | A newer stable release exists. |
+| Info, Warning, Error | The lowest severity a channel gets. |
+| Email, Webhook, Desktop | The kinds of channel. |
+| Channel | One way of being told: an email address, a webhook or a desktop notice. |
 
 ## Component words
 

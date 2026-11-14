@@ -40,6 +40,7 @@ const TABS = [
   { id: 'retention', label: 'Retention' },
   { id: 'backups', label: 'Backups' },
   { id: 'budgets', label: 'Budgets' },
+  { id: 'notifications', label: 'Notifications' },
   { id: 'updates', label: 'Updates' },
   { id: 'audit', label: 'Audit log' },
   { id: 'export', label: 'Config export' },

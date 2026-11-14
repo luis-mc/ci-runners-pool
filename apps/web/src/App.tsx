@@ -27,6 +27,7 @@ import {
 } from './screens/settings/Settings';
 import { BudgetsSettings } from './screens/settings/Budgets';
 import { AuditLogSettings, ConfigExportSettings } from './screens/settings/AuditLog';
+import { NotificationsSettings } from './screens/settings/Notifications';
 import { UpdateReviewPage, UpdatesSettings } from './screens/settings/Updates';
 import { SetupPage } from './screens/setup/Setup';
 
@@ -144,16 +145,7 @@ export function App({
                 <Route path="retention" element={<RetentionSettings />} />
                 <Route path="backups" element={<BackupsSettings />} />
                 <Route path="budgets" element={<BudgetsSettings />} />
-                <Route
-                  path="notifications"
-                  element={
-                    <Later
-                      title="Notifications"
-                      what="Notifications"
-                      milestone="milestone 8"
-                    />
-                  }
-                />
+                <Route path="notifications" element={<NotificationsSettings />} />
                 <Route path="updates" element={<UpdatesSettings />} />
                 <Route path="audit" element={<AuditLogSettings />} />
                 <Route path="export" element={<ConfigExportSettings />} />

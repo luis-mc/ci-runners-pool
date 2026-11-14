@@ -29,8 +29,10 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor/wire"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/events"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/hooks"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/notify"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/overview"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tlsca"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tray"
@@ -157,6 +159,13 @@ func runController() error {
 	um := startUpdates(ctx, cfg, logger, mr, ops.Settings, idle)
 	startTrayChannel(ctx, logger, trayBackend{Updates: um, Drain: machineDrainer{svc: mr.Service}, Console: consoleURL(cfg.ListenAddr)})
 
+	// Notification channels: their secrets live only in the OS secret store (notifications R6.2).
+	secretStore, err := secrets.Open(ctx, cfg.DataDir)
+	if err != nil {
+		return fmt.Errorf("open the secret store: %w", err)
+	}
+	notifier := notify.New(notify.Config{DB: db, Secrets: secretStore, Logger: logger})
+
 	mux := http.NewServeMux()
 	queue := scheduler.NewEngine(db, scheduler.WithLogger(logger))
 	go scheduler.RunSweeper(ctx, queue, logger, 30*time.Second)
@@ -165,7 +174,7 @@ func runController() error {
 		Settings: ops.Settings, Audit: ops.Audit, Backup: ops.Backup,
 		Machines: mr.Service, CA: mr.CA, Update: um,
 		Jobs: db, Slots: queue,
-		Live: live, Events: hub,
+		Live: live, Events: hub, Notify: notifier,
 		Config: configexport.Source{
 			Version: version, Config: cfg, Settings: ops.Settings, Secrets: mr.Secrets,
 			Named: []configexport.NamedSecret{

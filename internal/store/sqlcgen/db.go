@@ -54,6 +54,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteManagedVariableStmt, err = db.PrepareContext(ctx, deleteManagedVariable); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteManagedVariable: %w", err)
 	}
+	if q.deleteNotificationChannelStmt, err = db.PrepareContext(ctx, deleteNotificationChannel); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteNotificationChannel: %w", err)
+	}
 	if q.deleteRunnerStmt, err = db.PrepareContext(ctx, deleteRunner); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteRunner: %w", err)
 	}
@@ -141,6 +144,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getMetaStmt, err = db.PrepareContext(ctx, getMeta); err != nil {
 		return nil, fmt.Errorf("error preparing query GetMeta: %w", err)
 	}
+	if q.getNotificationChannelStmt, err = db.PrepareContext(ctx, getNotificationChannel); err != nil {
+		return nil, fmt.Errorf("error preparing query GetNotificationChannel: %w", err)
+	}
 	if q.getOpenMachineChangeStmt, err = db.PrepareContext(ctx, getOpenMachineChange); err != nil {
 		return nil, fmt.Errorf("error preparing query GetOpenMachineChange: %w", err)
 	}
@@ -218,6 +224,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.insertMachineSettingsStmt, err = db.PrepareContext(ctx, insertMachineSettings); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertMachineSettings: %w", err)
+	}
+	if q.insertNotificationChannelStmt, err = db.PrepareContext(ctx, insertNotificationChannel); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertNotificationChannel: %w", err)
 	}
 	if q.insertPlanStmt, err = db.PrepareContext(ctx, insertPlan); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertPlan: %w", err)
@@ -299,6 +308,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listManagedVariablesStmt, err = db.PrepareContext(ctx, listManagedVariables); err != nil {
 		return nil, fmt.Errorf("error preparing query ListManagedVariables: %w", err)
+	}
+	if q.listNotificationChannelsStmt, err = db.PrepareContext(ctx, listNotificationChannels); err != nil {
+		return nil, fmt.Errorf("error preparing query ListNotificationChannels: %w", err)
 	}
 	if q.listOpenGitHubJobsStmt, err = db.PrepareContext(ctx, listOpenGitHubJobs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListOpenGitHubJobs: %w", err)
@@ -384,6 +396,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.setMetaStmt, err = db.PrepareContext(ctx, setMeta); err != nil {
 		return nil, fmt.Errorf("error preparing query SetMeta: %w", err)
 	}
+	if q.setNotificationChannelTestStmt, err = db.PrepareContext(ctx, setNotificationChannelTest); err != nil {
+		return nil, fmt.Errorf("error preparing query SetNotificationChannelTest: %w", err)
+	}
 	if q.setPreferencesStmt, err = db.PrepareContext(ctx, setPreferences); err != nil {
 		return nil, fmt.Errorf("error preparing query SetPreferences: %w", err)
 	}
@@ -419,6 +434,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.updateMachineSettingsStmt, err = db.PrepareContext(ctx, updateMachineSettings); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateMachineSettings: %w", err)
+	}
+	if q.updateNotificationChannelStmt, err = db.PrepareContext(ctx, updateNotificationChannel); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateNotificationChannel: %w", err)
 	}
 	if q.updatePlanStmt, err = db.PrepareContext(ctx, updatePlan); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdatePlan: %w", err)
@@ -518,6 +536,11 @@ func (q *Queries) Close() error {
 	if q.deleteManagedVariableStmt != nil {
 		if cerr := q.deleteManagedVariableStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteManagedVariableStmt: %w", cerr)
+		}
+	}
+	if q.deleteNotificationChannelStmt != nil {
+		if cerr := q.deleteNotificationChannelStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteNotificationChannelStmt: %w", cerr)
 		}
 	}
 	if q.deleteRunnerStmt != nil {
@@ -665,6 +688,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getMetaStmt: %w", cerr)
 		}
 	}
+	if q.getNotificationChannelStmt != nil {
+		if cerr := q.getNotificationChannelStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getNotificationChannelStmt: %w", cerr)
+		}
+	}
 	if q.getOpenMachineChangeStmt != nil {
 		if cerr := q.getOpenMachineChangeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getOpenMachineChangeStmt: %w", cerr)
@@ -793,6 +821,11 @@ func (q *Queries) Close() error {
 	if q.insertMachineSettingsStmt != nil {
 		if cerr := q.insertMachineSettingsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing insertMachineSettingsStmt: %w", cerr)
+		}
+	}
+	if q.insertNotificationChannelStmt != nil {
+		if cerr := q.insertNotificationChannelStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertNotificationChannelStmt: %w", cerr)
 		}
 	}
 	if q.insertPlanStmt != nil {
@@ -928,6 +961,11 @@ func (q *Queries) Close() error {
 	if q.listManagedVariablesStmt != nil {
 		if cerr := q.listManagedVariablesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listManagedVariablesStmt: %w", cerr)
+		}
+	}
+	if q.listNotificationChannelsStmt != nil {
+		if cerr := q.listNotificationChannelsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listNotificationChannelsStmt: %w", cerr)
 		}
 	}
 	if q.listOpenGitHubJobsStmt != nil {
@@ -1070,6 +1108,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing setMetaStmt: %w", cerr)
 		}
 	}
+	if q.setNotificationChannelTestStmt != nil {
+		if cerr := q.setNotificationChannelTestStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setNotificationChannelTestStmt: %w", cerr)
+		}
+	}
 	if q.setPreferencesStmt != nil {
 		if cerr := q.setPreferencesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing setPreferencesStmt: %w", cerr)
@@ -1128,6 +1171,11 @@ func (q *Queries) Close() error {
 	if q.updateMachineSettingsStmt != nil {
 		if cerr := q.updateMachineSettingsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateMachineSettingsStmt: %w", cerr)
+		}
+	}
+	if q.updateNotificationChannelStmt != nil {
+		if cerr := q.updateNotificationChannelStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateNotificationChannelStmt: %w", cerr)
 		}
 	}
 	if q.updatePlanStmt != nil {
@@ -1254,6 +1302,7 @@ type Queries struct {
 	deleteJobTicketsStmt              *sql.Stmt
 	deleteMachineLoadBeforeStmt       *sql.Stmt
 	deleteManagedVariableStmt         *sql.Stmt
+	deleteNotificationChannelStmt     *sql.Stmt
 	deleteRunnerStmt                  *sql.Stmt
 	deleteRunnerUsageBeforeStmt       *sql.Stmt
 	deleteRunsOnFindingsStmt          *sql.Stmt
@@ -1283,6 +1332,7 @@ type Queries struct {
 	getMachineChangeStmt              *sql.Stmt
 	getMachineSettingsStmt            *sql.Stmt
 	getMetaStmt                       *sql.Stmt
+	getNotificationChannelStmt        *sql.Stmt
 	getOpenMachineChangeStmt          *sql.Stmt
 	getOwnerStmt                      *sql.Stmt
 	getPlanStmt                       *sql.Stmt
@@ -1309,6 +1359,7 @@ type Queries struct {
 	insertMachineKeyStmt              *sql.Stmt
 	insertMachineLoadStmt             *sql.Stmt
 	insertMachineSettingsStmt         *sql.Stmt
+	insertNotificationChannelStmt     *sql.Stmt
 	insertPlanStmt                    *sql.Stmt
 	insertRestoreDrillStmt            *sql.Stmt
 	insertRunnerStmt                  *sql.Stmt
@@ -1336,6 +1387,7 @@ type Queries struct {
 	listMachineTicketsStmt            *sql.Stmt
 	listMachinesStmt                  *sql.Stmt
 	listManagedVariablesStmt          *sql.Stmt
+	listNotificationChannelsStmt      *sql.Stmt
 	listOpenGitHubJobsStmt            *sql.Stmt
 	listPoolRepositoriesStmt          *sql.Stmt
 	listRepositoriesStmt              *sql.Stmt
@@ -1364,6 +1416,7 @@ type Queries struct {
 	setMachineStateStmt               *sql.Stmt
 	setManagedVariableStatusStmt      *sql.Stmt
 	setMetaStmt                       *sql.Stmt
+	setNotificationChannelTestStmt    *sql.Stmt
 	setPreferencesStmt                *sql.Stmt
 	setRepositoryPoolStmt             *sql.Stmt
 	setRunnerRegistrationStmt         *sql.Stmt
@@ -1376,6 +1429,7 @@ type Queries struct {
 	trimSlotLogStmt                   *sql.Stmt
 	updateMachineFactsStmt            *sql.Stmt
 	updateMachineSettingsStmt         *sql.Stmt
+	updateNotificationChannelStmt     *sql.Stmt
 	updatePlanStmt                    *sql.Stmt
 	updateUserRoleStmt                *sql.Stmt
 	upsertDoctorStateStmt             *sql.Stmt
@@ -1407,6 +1461,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteJobTicketsStmt:              q.deleteJobTicketsStmt,
 		deleteMachineLoadBeforeStmt:       q.deleteMachineLoadBeforeStmt,
 		deleteManagedVariableStmt:         q.deleteManagedVariableStmt,
+		deleteNotificationChannelStmt:     q.deleteNotificationChannelStmt,
 		deleteRunnerStmt:                  q.deleteRunnerStmt,
 		deleteRunnerUsageBeforeStmt:       q.deleteRunnerUsageBeforeStmt,
 		deleteRunsOnFindingsStmt:          q.deleteRunsOnFindingsStmt,
@@ -1436,6 +1491,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getMachineChangeStmt:              q.getMachineChangeStmt,
 		getMachineSettingsStmt:            q.getMachineSettingsStmt,
 		getMetaStmt:                       q.getMetaStmt,
+		getNotificationChannelStmt:        q.getNotificationChannelStmt,
 		getOpenMachineChangeStmt:          q.getOpenMachineChangeStmt,
 		getOwnerStmt:                      q.getOwnerStmt,
 		getPlanStmt:                       q.getPlanStmt,
@@ -1462,6 +1518,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		insertMachineKeyStmt:              q.insertMachineKeyStmt,
 		insertMachineLoadStmt:             q.insertMachineLoadStmt,
 		insertMachineSettingsStmt:         q.insertMachineSettingsStmt,
+		insertNotificationChannelStmt:     q.insertNotificationChannelStmt,
 		insertPlanStmt:                    q.insertPlanStmt,
 		insertRestoreDrillStmt:            q.insertRestoreDrillStmt,
 		insertRunnerStmt:                  q.insertRunnerStmt,
@@ -1489,6 +1546,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listMachineTicketsStmt:            q.listMachineTicketsStmt,
 		listMachinesStmt:                  q.listMachinesStmt,
 		listManagedVariablesStmt:          q.listManagedVariablesStmt,
+		listNotificationChannelsStmt:      q.listNotificationChannelsStmt,
 		listOpenGitHubJobsStmt:            q.listOpenGitHubJobsStmt,
 		listPoolRepositoriesStmt:          q.listPoolRepositoriesStmt,
 		listRepositoriesStmt:              q.listRepositoriesStmt,
@@ -1517,6 +1575,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		setMachineStateStmt:               q.setMachineStateStmt,
 		setManagedVariableStatusStmt:      q.setManagedVariableStatusStmt,
 		setMetaStmt:                       q.setMetaStmt,
+		setNotificationChannelTestStmt:    q.setNotificationChannelTestStmt,
 		setPreferencesStmt:                q.setPreferencesStmt,
 		setRepositoryPoolStmt:             q.setRepositoryPoolStmt,
 		setRunnerRegistrationStmt:         q.setRunnerRegistrationStmt,
@@ -1529,6 +1588,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		trimSlotLogStmt:                   q.trimSlotLogStmt,
 		updateMachineFactsStmt:            q.updateMachineFactsStmt,
 		updateMachineSettingsStmt:         q.updateMachineSettingsStmt,
+		updateNotificationChannelStmt:     q.updateNotificationChannelStmt,
 		updatePlanStmt:                    q.updatePlanStmt,
 		updateUserRoleStmt:                q.updateUserRoleStmt,
 		upsertDoctorStateStmt:             q.upsertDoctorStateStmt,
