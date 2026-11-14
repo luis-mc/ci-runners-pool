@@ -3,6 +3,7 @@ package doctor
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
@@ -17,6 +18,52 @@ type Env struct {
 	Fleet Fleet
 	// GitHub is nil when the App is not set up; GitHub checks then skip.
 	GitHub GitHub
+	// PoolName is the pool's name label; RunnerPrefix starts the name of every
+	// runner the product makes (default "crsp-").
+	PoolName     string
+	RunnerPrefix string
+
+	memo *memo
+}
+
+// DefaultRunnerPrefix starts the name of runners the product makes.
+const DefaultRunnerPrefix = "crsp-"
+
+// Prefix returns the runner name prefix in use.
+func (e Env) Prefix() string {
+	if e.RunnerPrefix != "" {
+		return e.RunnerPrefix
+	}
+	return DefaultRunnerPrefix
+}
+
+type memoEntry struct {
+	once sync.Once
+	val  any
+	err  error
+}
+
+type memo struct {
+	mu sync.Mutex
+	m  map[string]*memoEntry
+}
+
+// Memo runs fn once per key in one run and returns its result to every
+// caller, so a full run reads each repository's variables, workflow files and
+// runner list once (R6.2). Without a run (nil memo) it just calls fn.
+func (e Env) Memo(key string, fn func() (any, error)) (any, error) {
+	if e.memo == nil {
+		return fn()
+	}
+	e.memo.mu.Lock()
+	ent, ok := e.memo.m[key]
+	if !ok {
+		ent = &memoEntry{}
+		e.memo.m[key] = ent
+	}
+	e.memo.mu.Unlock()
+	ent.once.Do(func() { ent.val, ent.err = fn() })
+	return ent.val, ent.err
 }
 
 // ErrUnreachable is returned by a source that could not be reached (an agent

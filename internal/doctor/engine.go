@@ -161,6 +161,7 @@ func (e *Engine) execute(ctx context.Context, run Run) {
 	}
 	env.Scope = run.Scope
 	env.Now = run.StartedAt
+	env.memo = &memo{m: map[string]*memoEntry{}}
 	checks := e.Registry.Selected(run.Scope)
 
 	var (

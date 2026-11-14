@@ -14,4 +14,4 @@ Status: started 2026-11-14. Updated after each push.
 - Data access goes through interfaces my packages declare (no import of internal/store); the SQLite adapters land with CRSP18.
 
 ## Done
-- (nothing yet)
+- events hub + SSE, overview builder, doctor engine, runson, svclist, M1 checks (17), all with tests; pushed.
