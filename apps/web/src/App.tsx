@@ -25,6 +25,7 @@ import {
   ThemeApplier,
   UsersSettings,
 } from './screens/settings/Settings';
+import { AuditLogSettings, ConfigExportSettings } from './screens/settings/AuditLog';
 import { UpdateReviewPage, UpdatesSettings } from './screens/settings/Updates';
 import { SetupPage } from './screens/setup/Setup';
 
@@ -162,26 +163,8 @@ export function App({
                   }
                 />
                 <Route path="updates" element={<UpdatesSettings />} />
-                <Route
-                  path="audit"
-                  element={
-                    <Later
-                      title="Audit log"
-                      what="The audit log"
-                      milestone="a later milestone"
-                    />
-                  }
-                />
-                <Route
-                  path="export"
-                  element={
-                    <Later
-                      title="Config export"
-                      what="Config export"
-                      milestone="milestone 8"
-                    />
-                  }
-                />
+                <Route path="audit" element={<AuditLogSettings />} />
+                <Route path="export" element={<ConfigExportSettings />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Route>

@@ -19,3 +19,4 @@ export * from './components/Dialog';
 export * from './components/Controls';
 export * from './components/Wizard';
 export * from './components/Shell';
+export * from './components/TableExport';

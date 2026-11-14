@@ -20,7 +20,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { TIMING } from '../../timing';
-import { unwrap, useClient } from '../../api/api';
+import { ApiError, errorText, unwrap, useClient } from '../../api/api';
 import { useLiveState } from '../../live/LiveProvider';
 import {
   allRepositories,
@@ -51,10 +51,13 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
   const [picked, setPicked] = useState<Set<number>>(new Set(preselected));
   const [plan, setPlan] = useState<Plan | undefined>(undefined);
   const [problem, setProblem] = useState<string | undefined>(undefined);
+  const [stopping, setStopping] = useState(false);
+  const [stopError, setStopError] = useState<string | undefined>(undefined);
   const running = useRef(false);
 
   const settle = useCallback((p: Plan, afterReload: boolean) => {
     setPlan(p);
+    setStopping(false);
     setStep(4);
     if (p.state === 'done') setPhase(afterReload ? 'done-after-reload' : 'done');
     else if (p.state === 'stopped') setPhase('stopped');
@@ -164,6 +167,27 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
     }
   };
 
+  // Stop (web-console 11, UX-30): the step that runs finishes, no later step starts, and the wizard ends
+  // at Done saying what was done and what is left. The plan's own state tells when it has ended.
+  const stop = async () => {
+    if (!plan) return;
+    setStopping(true);
+    setStopError(undefined);
+    try {
+      await unwrap(
+        client.POST('/api/v1/repository-plans/{planId}/stop', {
+          params: { path: { planId: plan.id } },
+        }),
+      );
+    } catch (e) {
+      // 409: the plan has already ended; the next read shows how.
+      if (!(e instanceof ApiError && e.status === 409)) {
+        setStopError(errorText(e));
+        setStopping(false);
+      }
+    }
+  };
+
   const startAgain = () => {
     const next = new URLSearchParams();
     setParams(next, { replace: true });
@@ -263,6 +287,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
             Paused. The page closed while the plan ran. Start again to plan what is left.
           </Message>
         ) : null}
+        {stopError ? <Message tone="problem">Could not stop. {stopError}</Message> : null}
         <Facts
           items={(shown?.steps ?? []).map((s) => ({
             name: s.text,
@@ -333,6 +358,9 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
             }
           : undefined
       }
+      canStop={phase === 'running' && Boolean(plan)}
+      stopping={stopping}
+      onStop={() => void stop()}
       onBack={() => {
         const i = Math.max(1, step - 1);
         setStep(i);

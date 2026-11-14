@@ -40,6 +40,8 @@ const TABS = [
   { id: 'retention', label: 'Retention' },
   { id: 'backups', label: 'Backups' },
   { id: 'updates', label: 'Updates' },
+  { id: 'audit', label: 'Audit log' },
+  { id: 'export', label: 'Config export' },
 ];
 
 export function SettingsLayout() {
