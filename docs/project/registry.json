@@ -1,6 +1,6 @@
 {
   "spec": "ARTIFACTSPEC 1.0.0",
-  "updated": "2026-11-14T08:27+00:00",
+  "updated": "2026-11-14T10:30+00:00",
   "tasks": [
     {
       "id": "CRSP1",
@@ -20,9 +20,9 @@
       "status": "Needs you",
       "item": "Review milestone 1 on a real machine",
       "detail": "Owner tries first-run wizard, add machine, add runner; then tag v0.1.0.",
-      "expected": "14 Nov ~10:00",
-      "changed": "2026-11-14T03:17+00:00",
-      "expected_basis": "owner awake 09:00; about 1 h to try"
+      "expected": "14 Nov; when the owner reviews",
+      "changed": "2026-11-14T10:23+00:00",
+      "expected_basis": "waits on owner's real-machine check"
     },
     {
       "id": "CRSP3",
@@ -149,14 +149,26 @@
       "id": "CRSP14",
       "owner": "project",
       "app": "",
-      "status": "Running",
+      "status": "Live",
       "item": "Commit the Full Progress record to main",
       "detail": "docs/project/ and .gitignore lines via PR, merged on green",
-      "expected": "14 Nov ~09:00",
-      "changed": "2026-11-14T08:27+00:00",
-      "expected_basis": "PR CI ~25 min",
+      "expected": "14 Nov",
+      "changed": "2026-11-14T08:48+00:00",
       "no_release": "record only, ships nothing",
       "started": "2026-11-14T08:25+00:00"
+    },
+    {
+      "id": "CRSP15",
+      "owner": "project",
+      "app": "",
+      "status": "Running",
+      "item": "Bump dev-standards CI pin to luismc-docs 2.6.1",
+      "detail": "ci_pin.py --bump in dev-standards.yml, plus record changes; PR, merge on green",
+      "expected": "14 Nov ~10:55",
+      "changed": "2026-11-14T10:30+00:00",
+      "expected_basis": "PR CI ~17 min (last ci.yml run), start 10:35",
+      "no_release": "CI config and record only",
+      "started": "2026-11-14T10:30+00:00"
     }
   ]
 }
