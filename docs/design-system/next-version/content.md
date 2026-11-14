@@ -31,6 +31,13 @@ Each action has one word. The Never use column lists words that must not stand i
 | Done | The last step of a wizard: what really happened, never the plan. Its one primary is the next action. | Finish, Finished, Complete, Result, OK |
 | Search | Look for text in a list. | Find, Look up |
 | Sort | Order a list by a column. | Order, Arrange |
+| Sign in with GitHub | Start the GitHub sign-in. | Log in, Login |
+| Sign out | End the session. | Log out, Logout |
+| Drain | Stop a machine taking new jobs and wait for the running ones. | Pause, Disable |
+| Resume | Let a drained machine take jobs again. | Enable, Undrain |
+| Turn on | Let a repository use the pool. | Enable, Activate |
+| Turn off | Stop a repository using the pool. | Disable, Deactivate |
+| Copy | Copy a command or a value. It changes nothing. | Clipboard |
 
 Add a row for each action the project needs. A new action gets a word that is not used above.
 

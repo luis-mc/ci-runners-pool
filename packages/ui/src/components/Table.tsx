@@ -1,0 +1,170 @@
+// Component 15: tables and list rows. Use a table only to compare three or more facts (UX-25). Column heads
+// sort. A wide table may scroll sideways inside its frame, the page never does (UX-49). j and k move the
+// active row, Enter opens it (UX-57): the shell sets `data-list-row` and the handler reads it.
+import { useMemo, useState, type ReactNode } from 'react';
+
+export interface Column<T> {
+  id: string;
+  header: string;
+  cell: (row: T) => ReactNode;
+  /** A sort value. A column without one does not sort. */
+  sort?: ((row: T) => string | number) | undefined;
+}
+
+export function Table<T>({
+  caption,
+  columns,
+  rows,
+  rowKey,
+  onOpen,
+  selected,
+  onToggle,
+  toggleLabel,
+}: {
+  caption: string;
+  columns: readonly Column<T>[];
+  rows: readonly T[];
+  rowKey: (row: T) => string;
+  onOpen?: ((row: T) => void) | undefined;
+  /** Keys of the chosen rows, with `onToggle` to change one (a choice list). */
+  selected?: ReadonlySet<string> | undefined;
+  onToggle?: ((key: string) => void) | undefined;
+  toggleLabel?: ((row: T) => string) | undefined;
+}) {
+  const [sortBy, setSortBy] = useState<{ id: string; dir: 1 | -1 } | null>(null);
+  const sorted = useMemo(() => {
+    const col = columns.find((c) => c.id === sortBy?.id);
+    if (!col?.sort || !sortBy) return rows;
+    const get = col.sort;
+    return [...rows].sort((a, b) => {
+      const x = get(a);
+      const y = get(b);
+      return (x < y ? -1 : x > y ? 1 : 0) * sortBy.dir;
+    });
+  }, [rows, columns, sortBy]);
+  return (
+    <div className="ds-table-frame">
+      <table className="ds-table">
+        <caption className="ds-visually-hidden">{caption}</caption>
+        <thead>
+          <tr>
+            {onToggle ? <th scope="col" className="ds-table__pick" /> : null}
+            {columns.map((c) => (
+              <th
+                key={c.id}
+                scope="col"
+                aria-sort={
+                  sortBy?.id === c.id
+                    ? sortBy.dir === 1
+                      ? 'ascending'
+                      : 'descending'
+                    : undefined
+                }
+              >
+                {c.sort ? (
+                  <button
+                    type="button"
+                    className="ds-table__sort"
+                    onClick={() =>
+                      setSortBy((s) =>
+                        s?.id === c.id
+                          ? { id: c.id, dir: s.dir === 1 ? -1 : 1 }
+                          : { id: c.id, dir: 1 },
+                      )
+                    }
+                  >
+                    {c.header}
+                    {sortBy?.id === c.id ? (sortBy.dir === 1 ? ' ▲' : ' ▼') : ''}
+                  </button>
+                ) : (
+                  c.header
+                )}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((row) => {
+            const key = rowKey(row);
+            return (
+              <tr
+                key={key}
+                data-list-row
+                data-selected={selected?.has(key) || undefined}
+                tabIndex={0}
+                onDoubleClick={onOpen ? () => onOpen(row) : undefined}
+                onKeyDown={
+                  onOpen
+                    ? (e) => {
+                        if (e.key === 'Enter' && e.target === e.currentTarget)
+                          onOpen(row);
+                      }
+                    : undefined
+                }
+              >
+                {onToggle ? (
+                  <td className="ds-table__pick">
+                    <input
+                      type="checkbox"
+                      className="ds-checkbox"
+                      checked={selected?.has(key) ?? false}
+                      aria-label={toggleLabel ? toggleLabel(row) : key}
+                      onChange={() => onToggle(key)}
+                    />
+                  </td>
+                ) : null}
+                {columns.map((c) => (
+                  <td key={c.id} data-label={c.header}>
+                    {c.cell(row)}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Component 10: long lists page. */
+export function Pager({
+  page,
+  pages,
+  onPage,
+  label,
+}: {
+  page: number;
+  pages: number;
+  onPage: (page: number) => void;
+  label: string;
+}) {
+  if (pages <= 1) return null;
+  return (
+    <nav className="ds-pager" aria-label={label} data-layout-group>
+      <button
+        type="button"
+        className="ds-button"
+        disabled={page <= 1}
+        onClick={() => onPage(page - 1)}
+      >
+        Back
+      </button>
+      <span className="ds-pager__where">
+        Page {page} of {pages}
+      </span>
+      <button
+        type="button"
+        className="ds-button"
+        disabled={page >= pages}
+        onClick={() => onPage(page + 1)}
+      >
+        Next
+      </button>
+    </nav>
+  );
+}
+
+export function paginate<T>(rows: readonly T[], page: number, size: number): T[] {
+  return rows.slice((page - 1) * size, page * size);
+}

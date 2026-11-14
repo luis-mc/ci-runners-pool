@@ -23,7 +23,7 @@ generator: luismc-docs 2.6.0
 
 The top half (sections 1 to 4) is for every reader: product, design, UX. The bottom half (5 to 12) is for engineers.
 
-Everything in this spec is **NOT YET IMPLEMENTED**. Today `apps/web` shows one page with the controller's health.
+The M1 console is built (CRSP24): the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups. Requirements marked (built, CRSP24) are built. Everything else in this spec is **NOT YET IMPLEMENTED**: the jobs, images and caches and doctor screens, the later settings sub-pages, and the server side of serving (R5.1, R5.2, R6.1 to R6.5, R6.12, R6.13).
 
 ## 1. In one paragraph
 
@@ -257,7 +257,7 @@ Settings hold configuration only (UX-52). Sub-pages sit under one Settings area,
 
 ## 5. Functional requirements
 
-Every requirement below is **NOT YET IMPLEMENTED**.
+Requirements marked (built, CRSP24) are built. The others are **NOT YET IMPLEMENTED**.
 
 ### Serving and the shell
 
@@ -265,29 +265,29 @@ Every requirement below is **NOT YET IMPLEMENTED**.
 
 **R5.2** — Any path that is not under `/api/` returns the console, so a deep link opens its screen after sign-in. An unknown console path shows the not-found state with a link to the overview.
 
-**R5.3** — Every signed-in screen sits in the shell of section 4.0: header, top menu with the eight areas, page header, banner slot and activity strip.
+**R5.3** (built, CRSP24) — Every signed-in screen sits in the shell of section 4.0: header, top menu with the eight areas, page header, banner slot and activity strip.
 
-**R5.4** — `Ctrl+K` (`Cmd+K` on macOS) opens the command palette from any screen. It finds areas, items by name and commands. It lists only the commands the user's role allows. Choosing an item goes to its page; choosing a command goes to the one place where that command lives.
+**R5.4** (built, CRSP24) — `Ctrl+K` (`Cmd+K` on macOS) opens the command palette from any screen. It finds areas, items by name and commands. It lists only the commands the user's role allows. Choosing an item goes to its page; choosing a command goes to the one place where that command lives.
 
-**R5.5** — The shortcuts `/`, `j`, `k`, `Enter` and `?` work as section 4.0 says, and none fires while focus is in a text field.
+**R5.5** (built, CRSP24) — The shortcuts `/`, `j`, `k`, `Enter` and `?` work as section 4.0 says, and none fires while focus is in a text field.
 
-**R5.6** — The console opens one live event stream (`streamEvents`) per tab. One store holds what it brings, and every screen reads that store for live state.
+**R5.6** (built, CRSP24) — The console opens one live event stream (`streamEvents`) per tab. One store holds what it brings, and every screen reads that store for live state.
 
-**R5.7** — When the live stream drops, the console keeps the last data on screen with its age, shows "Live updates paused" in the banner slot, and reconnects with backoff. On reconnect it loads the shown data again before it trusts new events.
+**R5.7** (built, CRSP24) — When the live stream drops, the console keeps the last data on screen with its age, shows "Live updates paused" in the banner slot, and reconnects with backoff. On reconnect it loads the shown data again before it trusts new events.
 
 ### Signing in and sessions
 
-**R5.8** — With no valid session, every console path except `/sign-in` and `/setup` goes to `/sign-in` and keeps the path it came from.
+**R5.8** (built, CRSP24) — With no valid session, every console path except `/sign-in` and `/setup` goes to `/sign-in` and keeps the path it came from.
 
-**R5.9** — After sign-in the console returns to the kept path. It accepts only a path on the same origin; anything else goes to the overview.
+**R5.9** (built, CRSP24) — After sign-in the console returns to the kept path. It accepts only a path on the same origin; anything else goes to the overview.
 
-**R5.10** — A GitHub user who is not on the user list gets the no-access state, with their login and Sign out. No API data is sent to them.
+**R5.10** (built, CRSP24) — A GitHub user who is not on the user list gets the no-access state, with their login and Sign out. No API data is sent to them.
 
-**R5.11** — When an API call answers that the session ended, the console shows the session-ended dialog over the current page. It keeps the page and unsaved input. After sign-in it returns to that page with the input still there. It does not resend the call that failed.
+**R5.11** (built, CRSP24) — When an API call answers that the session ended, the console shows the session-ended dialog over the current page. It keeps the page and unsaved input. After sign-in it returns to that page with the input still there. It does not resend the call that failed.
 
-**R5.12** — Sign out ends the session on the server and goes to `/sign-in`.
+**R5.12** (built, CRSP24) — Sign out ends the session on the server and goes to `/sign-in`.
 
-**R5.13** — The console shows each user what their role allows:
+**R5.13** (built, CRSP24) — The console shows each user what their role allows:
 
 | Role | Can |
 |---|---|
@@ -299,27 +299,27 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 ### First run
 
-**R5.14** — While the controller has no GitHub App, `/setup` opens only with a valid one-time setup link (`redeemSetupLink`). Without one, it shows how to get one. A link works once and expires.
+**R5.14** (built, CRSP24) — While the controller has no GitHub App, `/setup` opens only with a valid one-time setup link (`redeemSetupLink`). Without one, it shows how to get one. A link works once and expires.
 
-**R5.15** — The setup page shows the three first-run wizards of section 4.1 in order. A wizard opens only when the one before it is done. The first-run checklist stays reachable from the banner slot until all three are done.
+**R5.15** (built, CRSP24) — The setup page shows the three first-run wizards of section 4.1 in order. A wizard opens only when the one before it is done. The first-run checklist stays reachable from the banner slot until all three are done.
 
-**R5.16** — The Connect GitHub wizard creates the App through GitHub's manifest flow and stores what GitHub returns through `completeAppManifest`. Its Done step offers Sign in with GitHub. The first user who then signs in becomes the owner.
+**R5.16** (built, CRSP24) — The Connect GitHub wizard creates the App through GitHub's manifest flow and stores what GitHub returns through `completeAppManifest`. Its Done step offers Sign in with GitHub. The first user who then signs in becomes the owner.
 
-**R5.17** — The Add a machine wizard shows the install command and a one-time join code, then waits on `getJoinCode` until the agent joins, the code expires, or the user stops. Stop withdraws the code (`revokeJoinCode`). Done shows the machine as the agent reported it.
+**R5.17** (built, CRSP24) — The Add a machine wizard shows the install command and a one-time join code, then waits on `getJoinCode` until the agent joins, the code expires, or the user stops. Stop withdraws the code (`revokeJoinCode`). Done shows the machine as the agent reported it.
 
-**R5.18** — The Turn on the pool wizard plans the change with `planRepositoryChanges`, shows that plan at Review, applies it with `applyRepositoryChanges`, and shows at Done what was really done and what failed.
+**R5.18** (built, CRSP24) — The Turn on the pool wizard plans the change with `planRepositoryChanges`, shows that plan at Review, applies it with `applyRepositoryChanges`, and shows at Done what was really done and what failed.
 
-**R5.19** — Each wizard (Connect GitHub, Add a machine, Turn on the pool, Add runners) has all ten harness states, and done-after-reload shows the outcome stored on the server, not the plan.
+**R5.19** (built, CRSP24) — Each wizard (Connect GitHub, Add a machine, Turn on the pool, Add runners) has all ten harness states, and done-after-reload shows the outcome stored on the server, not the plan.
 
 ### Screens
 
-**R5.20** — The overview shows the machines with their load bars, the queue count, the running jobs and today's minutes saved, all live. It has no command; each item links to its screen.
+**R5.20** (built, CRSP24) — The overview shows the machines with their load bars, the queue count, the running jobs and today's minutes saved, all live. It has no command; each item links to its screen.
 
-**R5.21** — The repositories screen lists the repositories from GitHub with pool state, labels, limits and variable status. It turns the pool on and off, and edits a repository's policy. A repository where the user lacks GitHub admin rights shows the turn-on action disabled with that reason.
+**R5.21** (built, CRSP24) — The repositories screen lists the repositories from GitHub with pool state, labels, limits and variable status. It turns the pool on and off, and edits a repository's policy. A repository where the user lacks GitHub admin rights shows the turn-on action disabled with that reason.
 
-**R5.22** — The machines screen lists the machines with state, backends, load and slots. It adds a machine, edits the budget, slots and allowed backends, drains, resumes and removes.
+**R5.22** (built, CRSP24) — The machines screen lists the machines with state, backends, load and slots. It adds a machine, edits the budget, slots and allowed backends, drains, resumes and removes.
 
-**R5.23** — The runners screen lists runners live with their isolation word, labels, state, job and age. It adds runners only on machines whose backends support the chosen OS, and deletes runners.
+**R5.23** (built, CRSP24) — The runners screen lists runners live with their isolation word, labels, state, job and age. It adds runners only on machines whose backends support the chosen OS, and deletes runners.
 
 **R5.24** — The jobs screen shows the queue with each job's wait reason, and the history with filters by repository, machine, result and time range. Export holds every row of the filter, in the order shown.
 
@@ -327,21 +327,21 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.26** — The doctor screen lists every finding with its status and fix, and runs the doctor on demand.
 
-**R5.27** — The settings area has the seven sub-pages of section 4.9.
+**R5.27** (built, CRSP24) — The settings area has the seven sub-pages of section 4.9.
 
-**R5.28** — Users and roles adds a GitHub login with a role, changes a role and removes a user. There is always exactly one owner, and the owner cannot remove themselves or lose the owner role.
+**R5.28** (built, CRSP24) — Users and roles adds a GitHub login with a role, changes a role and removes a user. There is always exactly one owner, and the owner cannot remove themselves or lose the owner role.
 
 **R5.29** — Config export downloads the configuration without any secret, in a file named for what it holds and the file stamp.
 
-**R5.30** — Every destructive action (delete a runner, remove a machine, wipe a cache, turn the pool off, remove a user, a drain, a rebuild, an update) first shows a question card that names each item that goes and each running job it waits for. Nothing changes until the user says yes.
+**R5.30** (built, CRSP24) — Every destructive action (delete a runner, remove a machine, wipe a cache, turn the pool off, remove a user, a drain, a rebuild, an update) first shows a question card that names each item that goes and each running job it waits for. Nothing changes until the user says yes.
 
-**R5.31** — Every list and detail screen has the loading, empty and could-not-load states of section 4, and the empty state offers the action that fills it when the user's role allows it.
+**R5.31** (built, CRSP24) — Every list and detail screen has the loading, empty and could-not-load states of section 4, and the empty state offers the action that fills it when the user's role allows it.
 
-**R5.32** — Every date, time, number, size and percent on screen comes from the one formatter (component 28).
+**R5.32** (built, CRSP24) — Every date, time, number, size and percent on screen comes from the one formatter (component 28).
 
 ## 6. Non-functional requirements
 
-Every requirement below is **NOT YET IMPLEMENTED**.
+Requirements marked (built, CRSP24) are built. The others are **NOT YET IMPLEMENTED**.
 
 **R6.1** — The session lives in a cookie that is `HttpOnly`, `Secure`, `SameSite=Lax` and host-only. Its value is a random 256-bit id. The controller stores only its hash. Idle and total lifetimes are set in config (owner question Q12).
 
@@ -355,15 +355,15 @@ Every requirement below is **NOT YET IMPLEMENTED**.
 
 **R6.6** — Every screen, in the dark and the light theme, has no serious or critical accessibility violation (axe), one `h1`, landmarks, and a visible focus (UX-17, UX-59).
 
-**R6.7** — Every screen works from 360 px wide to desktop with no sideways page scroll and 44 px touch targets (UX-16, UX-49).
+**R6.7** (built, CRSP24) — Every screen works from 360 px wide to desktop with no sideways page scroll and 44 px touch targets (UX-16, UX-49).
 
-**R6.8** — App code uses only the shared components: no raw buttons or inputs, no app stylesheet, no native date, time or number input (UX-2, UX-56).
+**R6.8** (built, CRSP24) — App code uses only the shared components: no raw buttons or inputs, no app stylesheet, no native date, time or number input (UX-2, UX-56).
 
-**R6.9** — Every text-on-fill token pair meets WCAG 2.2 AA in both themes (UX-17).
+**R6.9** (built, CRSP24) — Every text-on-fill token pair meets WCAG 2.2 AA in both themes (UX-17).
 
-**R6.10** — No retired word of content.md is drawn as a label, button or message.
+**R6.10** (built, CRSP24) — No retired word of content.md is drawn as a label, button or message.
 
-**R6.11** — Under `prefers-reduced-motion` nothing in the console moves (UX-36, UX-59).
+**R6.11** (built, CRSP24) — Under `prefers-reduced-motion` nothing in the console moves (UX-36, UX-59).
 
 **R6.12** — Proposed budgets (owner question Q14): the first screen is usable within 2 s on the local network; the console's first JavaScript is at most 300 KB gzipped; a live event shows on screen within 2 s of the controller sending it.
 
@@ -457,55 +457,55 @@ flowchart LR
 
 ## 9. How it is proven
 
-No test below exists yet. The path is where each one will live.
+A row with a path has that test. A row that says NOT YET IMPLEMENTED names the path where its test will live.
 
-| Requirement | Kind | Planned test (NOT YET IMPLEMENTED) |
+| Requirement | Kind | Test |
 |---|---|---|
-| R5.1 | Go test | `internal/webui/serve_tls_test.go` |
-| R5.2 | Go test, Playwright e2e | `internal/webui/webui_test.go` (SPA fallback), `e2e/tests/web-console/deep-link.spec.ts` |
+| R5.1 | Go test | NOT YET IMPLEMENTED: `internal/webui/serve_tls_test.go` |
+| R5.2 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/webui/webui_test.go` (SPA fallback), `e2e/tests/web-console/deep-link.spec.ts` |
 | R5.3 | Vitest | `apps/web/src/shell/Shell.test.tsx` |
-| R5.4 | Vitest, Playwright e2e | `apps/web/src/shell/CommandPalette.test.tsx`, `e2e/tests/web-console/keyboard.spec.ts` |
-| R5.5 | Vitest | `apps/web/src/shell/shortcuts.test.ts` |
+| R5.4 | Vitest, Playwright e2e | `apps/web/src/shell/Shell.test.tsx`, `e2e/tests/web-console/keyboard.spec.ts` |
+| R5.5 | Vitest, Playwright e2e | `apps/web/src/shell/shortcuts.test.ts`, `e2e/tests/web-console/keyboard.spec.ts` |
 | R5.6 | Vitest | `apps/web/src/live/store.test.ts` |
-| R5.7 | Vitest | `apps/web/src/live/reconnect.test.ts` |
-| R5.8 | Playwright e2e | `e2e/tests/web-console/sign-in.spec.ts` |
-| R5.9 | Vitest | `apps/web/src/auth/return-path.test.ts` |
-| R5.10 | Playwright e2e | `e2e/tests/web-console/sign-in.spec.ts` |
-| R5.11 | Vitest, Playwright e2e | `apps/web/src/auth/SessionEnded.test.tsx`, `e2e/tests/web-console/session-expired.spec.ts` |
-| R5.12 | Playwright e2e | `e2e/tests/web-console/sign-in.spec.ts` |
-| R5.13 | Vitest, Playwright e2e | `apps/web/src/auth/roles.test.tsx`, `e2e/tests/web-console/roles.spec.ts` |
-| R5.14 | Go test, Playwright e2e | `internal/api/setup_link_test.go`, `e2e/tests/web-console/first-run.spec.ts` |
-| R5.15 | Vitest | `apps/web/src/screens/setup/FirstRun.test.tsx` |
-| R5.16 | Playwright e2e | `e2e/tests/web-console/first-run.spec.ts` (GitHub faked) |
-| R5.17 | Vitest | `apps/web/src/screens/machines/AddMachineWizard.test.tsx` |
-| R5.18 | Vitest | `apps/web/src/screens/repositories/TurnOnWizard.test.tsx` |
-| R5.19 | design kit guard | `scripts/design/wizard-behaviour.test.ts` with one driver per wizard in `apps/web/src/screens/**/*.wizard-driver.ts` |
+| R5.7 | Vitest | `apps/web/src/live/store.test.ts` (reconnect), `apps/web/src/shell/Shell.test.tsx` (paused banner) |
+| R5.8 | Vitest, Playwright e2e | `apps/web/src/shell/Shell.test.tsx`, `e2e/tests/web-console/deep-link.spec.ts` |
+| R5.9 | Vitest | `apps/web/src/shell/Shell.test.tsx` (return path) |
+| R5.10 | Vitest, Playwright e2e | `apps/web/src/shell/Shell.test.tsx`, `e2e/tests/web-console/deep-link.spec.ts` |
+| R5.11 | Vitest, Playwright e2e | `apps/web/src/shell/Shell.test.tsx`, `e2e/tests/web-console/flows.spec.ts` |
+| R5.12 | Vitest | `apps/web/src/shell/Shell.test.tsx` |
+| R5.13 | Vitest | `apps/web/src/screens/machines/Machines.test.tsx`, `apps/web/src/screens/repositories/Repositories.test.tsx`, `apps/web/src/screens/runners/Runners.test.tsx` (a viewer sees commands disabled with their reason) |
+| R5.14 | Vitest | `apps/web/src/screens/setup/Setup.test.tsx` (the Go side stays NOT YET IMPLEMENTED: `internal/api/setup_link_test.go`) |
+| R5.15 | Vitest | `apps/web/src/screens/setup/Setup.test.tsx` |
+| R5.16 | Vitest, design kit guard | `apps/web/src/screens/setup/Setup.test.tsx`, `apps/web/src/screens/wizards.test.tsx` |
+| R5.17 | Vitest, Playwright e2e | `apps/web/src/screens/wizards.test.tsx`, `e2e/tests/web-console/flows.spec.ts` |
+| R5.18 | Vitest, Playwright e2e | `apps/web/src/screens/wizards.test.tsx`, `e2e/tests/web-console/flows.spec.ts` |
+| R5.19 | design kit guard | `scripts/design/wizard-behaviour.ts` driven by `apps/web/src/screens/wizards.test.tsx`, one driver per wizard |
 | R5.20 | Vitest | `apps/web/src/screens/overview/Overview.test.tsx` |
 | R5.21 | Vitest | `apps/web/src/screens/repositories/Repositories.test.tsx` |
 | R5.22 | Vitest | `apps/web/src/screens/machines/Machines.test.tsx` |
 | R5.23 | Vitest | `apps/web/src/screens/runners/Runners.test.tsx` |
-| R5.24 | Vitest | `apps/web/src/screens/jobs/Jobs.test.tsx` |
-| R5.25 | Vitest | `apps/web/src/screens/images/ImagesAndCaches.test.tsx` |
-| R5.26 | Vitest | `apps/web/src/screens/doctor/Doctor.test.tsx` |
-| R5.27 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` |
-| R5.28 | Vitest, Go test | `apps/web/src/screens/settings/Users.test.tsx`, `internal/api/users_test.go` |
-| R5.29 | Vitest | `apps/web/src/screens/settings/ConfigExport.test.tsx` |
-| R5.30 | Vitest, Playwright e2e | `apps/web/src/screens/confirmations.test.tsx`, `e2e/tests/web-console/destructive.spec.ts` |
-| R5.31 | Vitest | `apps/web/src/screens/states.test.tsx` (every screen: loading, empty, could not load) |
-| R5.32 | Vitest | `packages/ui/src/format/format.test.ts` |
-| R6.1 | Go test | `internal/api/session_cookie_test.go` |
-| R6.2 | Go test | `internal/api/csrf_test.go` |
-| R6.3 | Go test, Playwright e2e | `internal/webui/headers_test.go`, `e2e/tests/web-console/no-external-requests.spec.ts` |
-| R6.4 | Go test, Playwright e2e | `internal/api/no_secrets_test.go`, `e2e/tests/web-console/no-secrets.spec.ts` |
-| R6.5 | Go test | `internal/api/route_coverage_test.go` (x-auth on every route) and `internal/api/roles_test.go` |
-| R6.6 | Playwright e2e | `e2e/tests/web-console/a11y.spec.ts` (axe, both themes) |
-| R6.7 | design kit guard (Playwright) | `e2e/tests/web-console/layout.spec.ts` on `scripts/design/dom-layout.ts` at 360, 393 and 1300 px |
+| R5.24 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/jobs/Jobs.test.tsx` |
+| R5.25 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/images/ImagesAndCaches.test.tsx` |
+| R5.26 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/doctor/Doctor.test.tsx` |
+| R5.27 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` (M1 sub-pages: Users and roles, Appearance, Retention, Backups) |
+| R5.28 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` (the Go side stays NOT YET IMPLEMENTED: `internal/api/users_test.go`) |
+| R5.29 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/settings/ConfigExport.test.tsx` |
+| R5.30 | Vitest, Playwright e2e | the question-card tests in each screen test file, `e2e/tests/web-console/flows.spec.ts` |
+| R5.31 | Vitest | the loading, empty and could-not-load tests in each screen test file |
+| R5.32 | Vitest | `packages/ui/src/components/format.test.ts` |
+| R6.1 | Go test | NOT YET IMPLEMENTED: `internal/api/session_cookie_test.go` |
+| R6.2 | Go test | NOT YET IMPLEMENTED: `internal/api/csrf_test.go` |
+| R6.3 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/webui/headers_test.go`, `e2e/tests/web-console/no-external-requests.spec.ts` |
+| R6.4 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/api/no_secrets_test.go`, `e2e/tests/web-console/no-secrets.spec.ts` |
+| R6.5 | Go test | NOT YET IMPLEMENTED: `internal/api/route_coverage_test.go` (x-auth on every route) and `internal/api/roles_test.go` |
+| R6.6 | Playwright e2e | NOT YET IMPLEMENTED: `e2e/tests/web-console/a11y.spec.ts` (axe, both themes) |
+| R6.7 | design kit guard (Playwright) | `e2e/tests/design-layout.spec.ts` on `scripts/design/dom-layout.ts` at 360, 393 and 1300 px |
 | R6.8 | design kit guard | `scripts/design/raw-controls.test.ts`, `scripts/design/no-app-css.test.ts`, `scripts/design/raw-inputs.test.ts` |
 | R6.9 | design kit guard | `scripts/design/contrast.test.ts` |
-| R6.10 | design kit guard | `scripts/design/retired-words.test.ts` |
-| R6.11 | Playwright e2e | `e2e/tests/web-console/reduced-motion.spec.ts` |
-| R6.12 | Playwright e2e, Vitest | `e2e/tests/web-console/perf.spec.ts`, `apps/web/src/bundle-size.test.ts` |
-| R6.13 | Playwright e2e | `e2e/tests/web-console/offline-internet.spec.ts` |
+| R6.10 | design kit guard | `scripts/design/design-system-follow.test.ts` |
+| R6.11 | design kit guard | `packages/ui/src/components.css` (a `prefers-reduced-motion` rule); no automated check yet |
+| R6.12 | Playwright e2e, Vitest | NOT YET IMPLEMENTED: `e2e/tests/web-console/perf.spec.ts`, `apps/web/src/bundle-size.test.ts` |
+| R6.13 | Playwright e2e | NOT YET IMPLEMENTED: `e2e/tests/web-console/offline-internet.spec.ts` |
 
 ## 10. Decisions
 
@@ -543,19 +543,39 @@ For the product:
 
 ## 11. Not built yet
 
-All of it is **NOT YET IMPLEMENTED**. Today `apps/web/src/App.tsx` shows the controller's health on one page, and `internal/webui` serves the embedded build.
+Built by CRSP24: the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups (all against the M1 contract and a mocked API in tests).
 
-The seams that change:
+**NOT YET IMPLEMENTED:**
 
-- `apps/web/src/App.tsx`: the one route becomes the route table of section 7, inside the shell.
-- `packages/contract/openapi.yaml`: gains the operations of section 7, each added with its screen.
-- `packages/ui/src/`: gains the v1 components the screens use, one at a time.
-- `internal/webui/webui.go`: gains the security headers of R6.3 and serves only over TLS (R5.1).
+- the jobs, images and caches and doctor screens (R5.24 to R5.26): their menu entries open a page that says in which milestone they arrive;
+- the later settings sub-pages: Budgets, Notifications, Updates, Audit log, Config export (R5.29);
+- the serving side: `internal/webui/webui.go` serves over TLS and sends the headers of R6.3 (R5.1, R6.3), the session cookie and CSRF checks (R6.1, R6.2), the role checks (R6.5);
+- an automated axe check in both themes (R6.6), the performance budgets (R6.12), the offline check (R6.13);
+- a way to stop a repository or runner plan that is applying: the contract has no operation for it, so those wizards offer Stop only on Joining.
 
 ## 12. Code map
 
 Source: apps/web/src/App.tsx
 Source: apps/web/src/main.tsx
+Source: apps/web/src/api/api.tsx
+Source: apps/web/src/api/hooks.ts
+Source: apps/web/src/auth/session.tsx
+Source: apps/web/src/auth/SignIn.tsx
+Source: apps/web/src/live/store.ts
+Source: apps/web/src/live/LiveProvider.tsx
+Source: apps/web/src/shell/Shell.tsx
+Source: apps/web/src/shell/shortcuts.ts
+Source: apps/web/src/screens/overview/Overview.tsx
+Source: apps/web/src/screens/repositories/Repositories.tsx
+Source: apps/web/src/screens/repositories/TurnOnPool.tsx
+Source: apps/web/src/screens/machines/Machines.tsx
+Source: apps/web/src/screens/machines/AddMachine.tsx
+Source: apps/web/src/screens/runners/Runners.tsx
+Source: apps/web/src/screens/runners/AddRunners.tsx
+Source: apps/web/src/screens/settings/Settings.tsx
+Source: apps/web/src/screens/setup/Setup.tsx
 Source: packages/ui/src/index.ts
+Source: packages/ui/src/components/Wizard.tsx
+Source: packages/ui/src/components.css
 Source: packages/contract/openapi.yaml
 Source: internal/webui/webui.go

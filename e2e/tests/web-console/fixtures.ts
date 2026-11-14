@@ -1,0 +1,228 @@
+// A mocked controller API for the console e2e specs. No spec calls the real GitHub API or the real controller API:
+// every /api/ request is answered here (CRSP24).
+import type { Page, Route } from '@playwright/test';
+
+export interface Call {
+  method: string;
+  path: string;
+  query: URLSearchParams;
+  body: unknown;
+}
+
+type Handler = (call: Call, params: Record<string, string>) => unknown;
+
+export const owner = {
+  id: 1,
+  login: 'octo',
+  role: 'owner',
+  added_at: '2026-11-01T10:00:00Z',
+};
+export const viewer = {
+  id: 2,
+  login: 'view',
+  role: 'viewer',
+  added_at: '2026-11-02T10:00:00Z',
+};
+
+export const machine = (over: Record<string, unknown> = {}) => ({
+  id: 'm1',
+  name: 'build-1',
+  os: 'linux',
+  arch: 'x64',
+  state: 'active',
+  online: true,
+  is_controller: false,
+  backends: [
+    { name: 'docker', present: true, usable: true, allowed: true, version: '27' },
+  ],
+  settings: {
+    budget_memory_pct: 80,
+    budget_cpu_pct: 80,
+    job_slots: 4,
+    light_slots: 2,
+    heavy_slots: 2,
+    allowed_backends: ['docker'],
+    drain_timeout_minutes: 30,
+    windows_symlink_right: false,
+  },
+  load: {
+    memory_pct: 40,
+    cpu_pct: 20,
+    memory_known: true,
+    cpu_known: true,
+    sampled_at: '2026-11-14T10:00:00Z',
+    stale: false,
+  },
+  slots_used: 1,
+  last_seen_at: '2026-11-14T10:00:00Z',
+  running_jobs: [
+    {
+      id: 9,
+      repository: 'octo/app',
+      run_id: 1,
+      run_attempt: 1,
+      github_job_id: 1,
+      job_name: 'e2e',
+      labels: [],
+      state: 'running',
+    },
+  ],
+  ...over,
+});
+
+export const repository = (over: Record<string, unknown> = {}) => ({
+  id: 7,
+  full_name: 'octo/app',
+  owner: 'octo',
+  name: 'app',
+  installation_id: 1,
+  visibility: 'private',
+  pool_on: false,
+  user_is_github_admin: true,
+  variables: [],
+  policy: {
+    priority: 10,
+    max_parallel_jobs: 2,
+    allow_fork_pull_requests: false,
+    labels: ['self-hosted'],
+    runner_groups: [],
+  },
+  ...over,
+});
+
+export const runner = (over: Record<string, unknown> = {}) => ({
+  id: 'r1',
+  name: 'crsp-linux-1',
+  machine_id: 'm1',
+  os: 'linux',
+  arch: 'x64',
+  kind: 'persistent',
+  backend: 'persistent',
+  isolation: 'persistent',
+  labels: ['self-hosted'],
+  scope: { kind: 'repository', repository_id: 7 },
+  state: 'idle',
+  managed: true,
+  keeps_state: true,
+  ...over,
+});
+
+export const overview = (machines: unknown[] = [machine()]) => ({
+  machines,
+  queued_count: 2,
+  running: [],
+  last_event_id: '1',
+});
+
+export class Mock {
+  readonly calls: Call[] = [];
+  private handlers: { method: string; parts: string[]; fn: Handler }[] = [];
+
+  on(method: string, path: string, reply: unknown): this {
+    this.handlers.unshift({
+      method,
+      parts: path.split('/'),
+      fn: typeof reply === 'function' ? (reply as Handler) : () => reply,
+    });
+    return this;
+  }
+
+  count(method: string, path: string): number {
+    return this.calls.filter((c) => c.method === method && c.path === path).length;
+  }
+
+  async install(page: Page): Promise<void> {
+    await page.route('**/api/v1/events', (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' },
+        body: `event: snapshot\nid: 1\ndata: ${JSON.stringify({ id: '1', type: 'snapshot', at: '2026-11-14T10:00:00Z', snapshot: overview() })}\n\n`,
+      }),
+    );
+    await page.route('**/api/v1/**', (route) => this.answer(route));
+  }
+
+  private async answer(route: Route): Promise<void> {
+    const req = route.request();
+    const url = new URL(req.url());
+    const text = req.postData();
+    const call: Call = {
+      method: req.method(),
+      path: url.pathname,
+      query: url.searchParams,
+      body: text ? (JSON.parse(text) as unknown) : undefined,
+    };
+    this.calls.push(call);
+    const parts = url.pathname.split('/');
+    for (const h of this.handlers) {
+      if (h.method !== call.method || h.parts.length !== parts.length) continue;
+      const params: Record<string, string> = {};
+      const ok = h.parts.every((p, i) => {
+        if (p.startsWith(':')) {
+          params[p.slice(1)] = parts[i] ?? '';
+          return true;
+        }
+        return p === parts[i];
+      });
+      if (!ok) continue;
+      const out = h.fn(call, params);
+      if (out === undefined) return route.fulfill({ status: 204 });
+      if (out && typeof out === 'object' && 'status' in out && 'error' in out)
+        return route.fulfill({
+          status: (out as { status: number }).status,
+          json: { error: (out as { error: unknown }).error },
+        });
+      return route.fulfill({ status: 200, json: out });
+    }
+    return route.fulfill({
+      status: 404,
+      json: {
+        error: { code: 'not_found', message: `No mock for ${call.method} ${call.path}` },
+      },
+    });
+  }
+}
+
+export const failure = (
+  status: number,
+  code: string,
+  message: string,
+  details: unknown[] = [],
+) => ({
+  status,
+  error: { code, message, details },
+});
+
+/** The routes every signed-in screen needs. */
+export function signedIn(user: unknown = owner): Mock {
+  return new Mock()
+    .on('GET', '/api/v1/me', { user, csrf: 'tok' })
+    .on('GET', '/api/v1/me/preferences', { theme: 'dark' })
+    .on('GET', '/api/v1/overview', overview())
+    .on('GET', '/api/v1/setup', {
+      has_app: true,
+      has_owner: true,
+      setup_link_redeemed: true,
+      steps: { connect_github: 'done', first_machine: 'done', first_repository: 'done' },
+    })
+    .on('GET', '/api/v1/machines', { items: [machine()] })
+    .on('GET', '/api/v1/machines/:id', machine())
+    .on('GET', '/api/v1/repositories/:id', repository())
+    .on('GET', '/api/v1/runners', { items: [runner()] })
+    .on('GET', '/api/v1/github/repositories', {
+      items: [repository()],
+      stale: { stale: false },
+    })
+    .on('GET', '/api/v1/users', {
+      items: [
+        owner,
+        {
+          id: 3,
+          login: 'alice',
+          role: 'admin',
+          added_by: 'octo',
+          added_at: '2026-11-03T09:00:00Z',
+        },
+      ],
+    });
+}
