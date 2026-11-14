@@ -82,6 +82,7 @@ func toGenSettings(st settings.Settings) gen.Settings {
 		BackupTimeLocal:            &t,
 		BackupKeepDays:             intPtr(st.BackupKeepDays),
 		MaxEventStreams:            intPtr(st.MaxEventStreams),
+		AutoUpdate:                 &st.AutoUpdate,
 	}
 }
 
@@ -120,6 +121,7 @@ func (s *server) UpdateSettings(ctx context.Context, req gen.UpdateSettingsReque
 		BackupTimeLocal:            b.BackupTimeLocal,
 		BackupKeepDays:             b.BackupKeepDays,
 		MaxEventStreams:            b.MaxEventStreams,
+		AutoUpdate:                 b.AutoUpdate,
 	})
 	if err != nil {
 		return fail(s.opsError(err))

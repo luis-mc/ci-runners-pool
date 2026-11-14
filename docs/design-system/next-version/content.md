@@ -38,6 +38,11 @@ Each action has one word. The Never use column lists words that must not stand i
 | Turn on | Let a repository use the pool. | Enable, Activate |
 | Turn off | Stop a repository using the pool. | Disable, Deactivate |
 | Copy | Copy a command or a value. It changes nothing. | Clipboard |
+| Look for updates | Ask GitHub for a newer stable release now. It downloads nothing. | Check for updates, Refresh |
+| Update to N | Install release N after the running jobs end. N is the version. | Upgrade, Install |
+| Restart the service | Stop and start the service after the running jobs end. | Reboot, Reset |
+| Automatic updates | The switch that lets a newer stable release install by itself after the running jobs end. | Auto-upgrade |
+| Quit tray | Close the tray icon only. The service keeps running. | Exit, Close |
 
 Add a row for each action the project needs. A new action gets a word that is not used above.
 

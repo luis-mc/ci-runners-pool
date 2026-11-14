@@ -32,6 +32,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tray"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
 )
 
@@ -55,6 +56,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
 		return hooks.Run(ctx, args[1:], hooks.Env{Stdout: stdout, Stderr: stderr})
+	}
+	if len(args) > 0 && args[0] == "update-helper" {
+		// The detached install helper (internal/update); it outlives the service it restarts.
+		return update.RunHelper(context.Background(), args[1:], stderr)
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -136,7 +141,8 @@ func runController() error {
 		},
 	})
 
-	mr, err := startMachines(ctx, cfg, logger)
+	idle := &idleHook{}
+	mr, err := startMachines(ctx, cfg, logger, idle)
 	if err != nil {
 		return err
 	}
@@ -146,13 +152,16 @@ func runController() error {
 	hub, live := wire.NewLive(overview.EmptySource{}, events.Options{})
 	defer hub.Stop()
 
+	um := startUpdates(ctx, cfg, logger, mr, ops.Settings, idle)
+	startTrayChannel(ctx, logger, trayBackend{Updates: um, Drain: machineDrainer{svc: mr.Service}, Console: consoleURL(cfg.ListenAddr)})
+
 	mux := http.NewServeMux()
 	queue := scheduler.NewEngine(db, scheduler.WithLogger(logger))
 	go scheduler.RunSweeper(ctx, queue, logger, 30*time.Second)
 	api.Register(mux, api.Options{
 		Version: version, DB: db, Logger: logger,
 		Settings: ops.Settings, Audit: ops.Audit, Backup: ops.Backup,
-		Machines: mr.Service, CA: mr.CA,
+		Machines: mr.Service, CA: mr.CA, Update: um,
 		Jobs: db, Slots: queue,
 		Live: live,
 	})

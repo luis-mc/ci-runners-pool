@@ -40,6 +40,8 @@ tags:
     description: Controller settings and the audit log (observability R5.24 to R5.32)
   - name: backups
     description: Backup, restore and drill (operations R5.21 to R5.27)
+  - name: update
+    description: Self-update and service restart with drain (operations R5.11 to R5.18, tray R5.15 to R5.18)
   - name: webhooks
     description: GitHub webhook intake (github-integration R5.36)
 paths:
@@ -1599,6 +1601,83 @@ paths:
                 $ref: '#/components/schemas/Settings'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/update:
+    get:
+      operationId: getUpdateStatus
+      tags: [update]
+      summary: The running version, the newest stable release, and the state of an update
+      description: operations R5.11, tray R5.18. Stable releases only.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The update status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/update/check:
+    post:
+      operationId: checkForUpdate
+      tags: [update]
+      summary: Look for a newer stable release now
+      description: operations R5.11. Downloads nothing. With auto-update on and a newer release, the update then starts by itself and drains first.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      responses:
+        '200':
+          description: The update status after the look.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/update/apply:
+    post:
+      operationId: applyUpdate
+      tags: [update]
+      summary: Update to the newest stable release after a drain
+      description: >-
+        tray R5.16 to R5.18, operations R5.12 to R5.14. Without `confirmed=true`
+        it changes nothing and answers 409 needs_confirmation with one `job`
+        detail per running job. With it, the machine drains (no new jobs, running
+        jobs finish up to the drain timeout), the download is verified (SHA-256
+        and build provenance) and installed.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/Confirmed'
+      responses:
+        '202':
+          description: Draining or installing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/service/restart:
+    post:
+      operationId: restartService
+      tags: [update]
+      summary: Restart the service after a drain
+      description: tray R5.15 to R5.17. Same confirmation rule as applyUpdate.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/Confirmed'
+      responses:
+        '202':
+          description: Draining, then restarting.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/audit:
     get:
       operationId: listAuditEvents
@@ -1816,6 +1895,14 @@ components:
       in: query
       required: false
       description: The yes to a question card that named what goes (UX-62).
+      schema:
+        type: boolean
+        default: false
+    Confirmed:
+      name: confirmed
+      in: query
+      required: false
+      description: The yes to the Review step that named the running jobs (tray R5.16).
       schema:
         type: boolean
         default: false
@@ -3698,6 +3785,9 @@ components:
           type: integer
           minimum: 1
           maximum: 200
+        auto_update:
+          type: boolean
+          description: operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first.
       example:
         retention_job_history_days: 90
         retention_logs_days: 14
@@ -3707,6 +3797,71 @@ components:
         backup_time_local: '03:00'
         backup_keep_days: 14
         max_event_streams: 50
+        auto_update: true
+    UpdateStatus:
+      type: object
+      description: operations R5.11 to R5.18, tray R5.18.
+      required: [current_version, update_available, state, auto_update, running_jobs]
+      properties:
+        current_version:
+          type: string
+          example: 1.4.0
+        latest_version:
+          type: string
+          description: The newest stable release found; absent before the first look.
+        update_available:
+          type: boolean
+        state:
+          type: string
+          enum:
+            [
+              idle,
+              checking,
+              waiting_for_jobs,
+              downloading,
+              installing,
+              restarting,
+              failed,
+            ]
+          description: waiting_for_jobs is the drain. failed carries `error`.
+        auto_update:
+          type: boolean
+        checked_at:
+          type: string
+          format: date-time
+        error:
+          type: string
+          description: Which check or step failed, in words.
+        running_jobs:
+          type: array
+          description: Jobs running on this machine that the drain waits for.
+          items:
+            $ref: '#/components/schemas/UpdateJob'
+        drain_timeout_minutes:
+          type: integer
+        release_url:
+          type: string
+          format: uri
+      example:
+        current_version: 1.4.0
+        latest_version: 1.5.0
+        update_available: true
+        state: idle
+        auto_update: true
+        running_jobs: []
+    UpdateJob:
+      type: object
+      required: [repository, run_id, job]
+      properties:
+        repository:
+          type: string
+        workflow:
+          type: string
+        run_id:
+          type: integer
+          format: int64
+        job:
+          type: string
     AuditEvent:
       type: object
       description: observability R5.24.
