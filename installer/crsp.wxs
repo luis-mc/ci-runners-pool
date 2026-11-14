@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The crsp MSI for Windows (operations R5.7), for WiX v5 (pinned in
+  dotnet-tools.json). build.ps1 builds it for x64 and arm64 and defines:
+
+    ProductVersion  a.b.c.d for the MSI (build.ps1 maps the release version)
+    CrspExe         the crsp.exe to install
+    ServiceSid      the SID of NT SERVICE\crsp (build.ps1 computes it)
+    LicenseRtf      the licence text shown by the install dialog
+
+  What is installed where:
+    %ProgramFiles%\crsp    crsp.exe; replaced by every upgrade
+    %ProgramData%\crsp     the data folder (R5.10): config.toml, the database,
+                           backups, logs, the CA. Administrators, SYSTEM and the
+                           service account only. Kept by every upgrade and by a
+                           silent uninstall; removed at uninstall only when the
+                           user ticks the box (REMOVEDATA=1).
+
+  The service is `crsp.exe controller` under the virtual account NT SERVICE\crsp
+  (R5.4), named "crsp" like internal/tray.ServiceName.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:fw="http://wixtoolset.org/schemas/v4/wxs/firewall">
+  <Package Name="crsp"
+           Manufacturer="Luis Carvalho"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="C1D62442-6DB4-4FF0-9F28-A1CE3121B332"
+           Scope="perMachine"
+           InstallerVersion="500"
+           Compressed="yes">
+    <SummaryInformation Description="CI Runners Shared Pool (crsp)" />
+
+    <!--
+      Every release is a major upgrade: the old version is removed and the new
+      one installed; the data folder is not the program's to remove. A lower
+      version is refused. The same a.b.c replaces itself (edge builds differ
+      only in the fourth field, which Windows Installer ignores).
+    -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."
+                  AllowSameVersionUpgrades="yes" />
+
+    <!-- Restart Manager is off: the service and the tray are stopped by this package itself, so no run needs a reboot. -->
+    <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="crsp" />
+    </StandardDirectory>
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="DATAFOLDER" Name="crsp" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Crsp" Title="crsp" Level="1">
+      <ComponentGroupRef Id="Program" />
+      <ComponentGroupRef Id="DataFolder" />
+    </Feature>
+
+    <ComponentGroup Id="Program" Directory="INSTALLFOLDER">
+      <!-- crsp.exe, the service, its restart policy, the PATH entry and the firewall rule -->
+      <Component Id="CrspProgram">
+        <File Id="CrspExe" Source="$(var.CrspExe)" KeyPath="yes" />
+
+        <ServiceInstall Id="CrspService"
+                        Name="crsp"
+                        DisplayName="CI Runners Shared Pool (crsp)"
+                        Description="The crsp controller: web console, API and scheduling for the shared pool of CI runners."
+                        Type="ownProcess"
+                        Start="auto"
+                        ErrorControl="normal"
+                        Account="NT SERVICE\crsp"
+                        Arguments="controller"
+                        Vital="yes">
+          <ServiceConfig DelayedAutoStart="yes" FailureActionsWhen="failedToStopOrReturnedError" OnInstall="yes" OnReinstall="yes" />
+          <util:ServiceConfig FirstFailureActionType="restart"
+                              SecondFailureActionType="restart"
+                              ThirdFailureActionType="restart"
+                              RestartServiceDelayInSeconds="5"
+                              ResetPeriodInDays="1" />
+        </ServiceInstall>
+        <!-- Stop waits until the service has ended; Start brings it back after an install or an upgrade. -->
+        <ServiceControl Id="CrspServiceControl" Name="crsp" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+
+        <Environment Id="CrspPath" Name="PATH" Value="[INSTALLFOLDER]" Action="set" Part="last" System="yes" Permanent="no" />
+
+        <!-- Inbound, Private profile only (never Public); removed with the product. -->
+        <fw:FirewallException Id="CrspFirewall"
+                              Name="crsp console and agent link (private networks)"
+                              Description="Lets crsp listen on 8460 (console and API) and 8461 (agent link) on private networks."
+                              Program="[#CrspExe]"
+                              Protocol="tcp"
+                              Port="8460,8461"
+                              Profile="private"
+                              Scope="any" />
+      </Component>
+
+      <!-- The Start Menu shortcut opens the tray. Not advertised: a plain shortcut starts the tray and nothing else. -->
+      <Component Id="StartMenuShortcut">
+        <Shortcut Id="CrspShortcut"
+                  Directory="ProgramMenuFolder"
+                  Name="crsp"
+                  Description="CI Runners Shared Pool tray"
+                  Target="[#CrspExe]"
+                  Arguments="tray"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Show="minimized"
+                  Advertise="no" />
+        <RegistryValue Root="HKLM" Key="Software\crsp\Installed" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <!-- The tray starts at every user's sign-in (R5.3). -->
+      <Component Id="TrayAutostart">
+        <RegistryValue Root="HKLM"
+                       Key="Software\Microsoft\Windows\CurrentVersion\Run"
+                       Name="crsp-tray"
+                       Type="string"
+                       Value="&quot;[#CrspExe]&quot; tray"
+                       KeyPath="yes" />
+      </Component>
+
+      <!--
+        The program's entry in Settings > Apps, in place of the MSI's own
+        (hidden, ARPSYSTEMCOMPONENT). Settings runs an MSI's own uninstall with
+        basic UI, where the remove-data question cannot show; this entry runs
+        msiexec /x with the full dialogs. The quiet one keeps the data.
+      -->
+      <Component Id="UninstallEntry">
+        <RegistryKey Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\crsp">
+          <RegistryValue Name="DisplayName" Type="string" Value="[ProductName]" KeyPath="yes" />
+          <RegistryValue Name="DisplayVersion" Type="string" Value="[ProductVersion]" />
+          <RegistryValue Name="Publisher" Type="string" Value="[Manufacturer]" />
+          <RegistryValue Name="DisplayIcon" Type="string" Value="[#CrspExe]" />
+          <RegistryValue Name="InstallLocation" Type="string" Value="[INSTALLFOLDER]" />
+          <RegistryValue Name="UninstallString" Type="string" Value="MsiExec.exe /x [ProductCode]" />
+          <RegistryValue Name="QuietUninstallString" Type="string" Value="MsiExec.exe /x [ProductCode] /qn /norestart" />
+          <RegistryValue Name="NoModify" Type="integer" Value="1" />
+          <RegistryValue Name="NoRepair" Type="integer" Value="1" />
+        </RegistryKey>
+      </Component>
+    </ComponentGroup>
+
+    <!--
+      %ProgramData%\crsp, made by the MSI with its ACL as SDDL (Windows
+      Installer 5 PermissionEx): owned by Administrators, protected from the
+      inherited rights that let every user create files, full control for
+      Administrators, SYSTEM and the service's account (by SID: the ACL is set
+      before the service, and its account name, exists). The key path is a value
+      under HKLM, which every account can read.
+    -->
+    <ComponentGroup Id="DataFolder" Directory="DATAFOLDER">
+      <Component Id="DataFolderComponent">
+        <CreateFolder>
+          <PermissionEx Sddl="O:BAD:PAI(A;OICI;FA;;;BA)(A;OICI;FA;;;SY)(A;OICI;FA;;;$(var.ServiceSid))" />
+        </CreateFolder>
+        <RegistryValue Root="HKLM" Key="Software\crsp\Installed" Name="DataFolder" Type="string" Value="[DATAFOLDER]" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Property Id="ARPSYSTEMCOMPONENT" Value="1" />
+
+    <!--
+      Uninstall asks whether to remove the data folder, default no. Silently,
+      `msiexec /x <msi> /qn` keeps it and REMOVEDATA=1 removes it. A major
+      upgrade never removes it (UPGRADINGPRODUCTCODE is set while the old
+      version is removed).
+    -->
+    <Property Id="REMOVEDATA" Value="0" Secure="yes" />
+
+    <!-- WixQuietExec puts what a command prints into the MSI log. -->
+    <SetProperty Id="StopServiceEarly"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Stop-Service -Name crsp -ErrorAction SilentlyContinue; $a = Get-CimInstance Win32_Service -Filter 'Name=''crsp-agent''' -ErrorAction SilentlyContinue; if ($a -and $a.State -eq 'Running' -and $a.PathName -like '*[INSTALLFOLDER]*') { Stop-Service -Name crsp-agent -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Force -Path '[DATAFOLDER]' | Out-Null; Set-Content -Path '[DATAFOLDER]agent-was-running.flag' -Value 1 }&quot;"
+                 Before="StopServiceEarly"
+                 Sequence="execute" />
+    <CustomAction Id="StopServiceEarly"
+                  BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!--
+      The tray runs crsp.exe from the program folder as the signed-in user, so
+      it holds the file the package replaces. After the service has stopped,
+      anything still running from the program folder is ended and waited for,
+      as SYSTEM, before a file is replaced or removed: otherwise the new file
+      waits for a reboot. Only programs under this product's own folder.
+    -->
+    <SetProperty Id="EndProgramProcesses"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$folder = '[INSTALLFOLDER]'; Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($folder, 'OrdinalIgnoreCase') } | ForEach-Object { try { $_.Kill(); $_.WaitForExit(15000) | Out-Null } catch { } }&quot;"
+                 Before="EndProgramProcesses"
+                 Sequence="execute" />
+    <CustomAction Id="EndProgramProcesses"
+                  BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- The service is left running whatever the run did ("already running" is not a failure); the agent service is started again when this run stopped it. -->
+    <SetProperty Id="StartServices2"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Start-Service -Name crsp -ErrorAction SilentlyContinue; if (Test-Path '[DATAFOLDER]agent-was-running.flag') { Remove-Item '[DATAFOLDER]agent-was-running.flag' -Force; Start-Service -Name crsp-agent -ErrorAction SilentlyContinue }&quot;"
+                 Before="StartServices2"
+                 Sequence="execute" />
+    <CustomAction Id="StartServices2"
+                  BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- The data folder's contents, removed at uninstall only on request, after the service has stopped. -->
+    <SetProperty Id="RemoveData"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Remove-Item -LiteralPath '[DATAFOLDER]' -Recurse -Force -ErrorAction SilentlyContinue&quot;"
+                 Before="RemoveData"
+                 Sequence="execute" />
+    <CustomAction Id="RemoveData"
+                  BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <!-- First of all, in every run: nothing holds the program's files from here on. -->
+      <Custom Action="StopServiceEarly" After="InstallInitialize" />
+      <Custom Action="EndProgramProcesses" After="StopServices" />
+      <Custom Action="StartServices2" After="StartServices" Condition="NOT REMOVE~=&quot;ALL&quot;" />
+      <Custom Action="RemoveData" After="EndProgramProcesses"
+              Condition="REMOVE~=&quot;ALL&quot; AND REMOVEDATA=&quot;1&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+
+    <!-- The dialogs: the minimal install page, and on uninstall one question. -->
+    <ui:WixUI Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
+
+    <UI>
+      <Dialog Id="RemoveDataDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="340" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Remove [ProductName]" />
+        <Control Id="Body" Type="Text" X="25" Y="50" Width="320" Height="40" Transparent="yes" NoPrefix="yes"
+                 Text="This removes the crsp program, its Windows service, the PATH entry, the Start Menu shortcut, the tray autostart and the firewall rule." />
+        <Control Id="RemoveDataCheck" Type="CheckBox" X="25" Y="110" Width="320" Height="36" Property="REMOVEDATA" CheckBoxValue="1"
+                 Text="Also delete my data: the config file, the database, the audit log, backups and the certificate authority in [DATAFOLDER]. This cannot be undone." />
+        <Control Id="Remove" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="Remove">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="EndDialog" Value="Exit" />
+        </Control>
+      </Dialog>
+    </UI>
+    <InstallUISequence>
+      <Show Dialog="RemoveDataDlg" Before="ProgressDlg"
+            Condition="Installed AND REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallUISequence>
+  </Package>
+</Wix>
