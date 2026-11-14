@@ -118,7 +118,7 @@ export class Mock {
   readonly calls: Call[] = [];
   private handlers: { method: string; parts: string[]; fn: Handler }[] = [];
 
-  on(method: string, path: string, reply: unknown | Handler): this {
+  on(method: string, path: string, reply: unknown): this {
     this.handlers.unshift({
       method,
       parts: path.split('/'),
