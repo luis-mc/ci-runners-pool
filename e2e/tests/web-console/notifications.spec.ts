@@ -3,7 +3,7 @@
 // card; and the DOM layout of the page at 360, 393 and 1300 px.
 import { expect, test } from '@playwright/test';
 import { expectDomLayout } from '../../../scripts/design/dom-layout';
-import { failure, signedIn } from './fixtures';
+import { failure, signedIn, type Call } from './fixtures';
 
 const hook = (over: Record<string, unknown> = {}) => ({
   id: 'nch_1',
@@ -46,13 +46,13 @@ test('Add a webhook, send a test, edit it and delete it with a question card', a
   const gate = new Promise<void>((r) => (release = r));
   const mock = signedIn()
     .on('GET', '/api/v1/notification-channels', () => ({ items: channels }))
-    .on('POST', '/api/v1/notification-channels', (call) => {
+    .on('POST', '/api/v1/notification-channels', (call: Call) => {
       const b = call.body as Record<string, unknown>;
       expect(String(b.secret)).toHaveLength(64);
       channels = [...channels, hook({ name: b.name, url: b.url })];
       return hook({ name: b.name, url: b.url });
     })
-    .on('PATCH', '/api/v1/notification-channels/:id', (call) => {
+    .on('PATCH', '/api/v1/notification-channels/:id', (call: Call) => {
       const b = call.body as Record<string, unknown>;
       channels = channels.map((c) =>
         (c as { id: string }).id === 'nch_1' ? hook({ name: b.name }) : c,

@@ -245,13 +245,14 @@ Settings hold configuration only (UX-52). Sub-pages sit under one Settings area,
 | Users and roles | Who may sign in, as owner, admin or viewer | `listUsers`, `addUser`, `updateUserRole`, `removeUser` | Add a GitHub login with a role; change a role; remove a user (question card naming the login, UX-62) | M1 |
 | Appearance | The user's theme: system, dark or light (UX-60) | `getPreferences`, `updatePreferences` | A one-choice list saved at once (component 13) | M1 |
 | Budgets | The pool's default load budget, slots and drain timeout for new machines | `getPoolSettings`, `updatePoolSettings` | Save; a change that restarts runners names the jobs it waits for (UX-62) | later |
-| Notifications | Channels (email, webhook, desktop) and the events each one gets | `listNotificationChannels`, `createNotificationChannel`, `updateNotificationChannel`, `deleteNotificationChannel`, `testNotificationChannel` | Add, edit, delete (question card), send a test | later (milestone 8) |
+| Notifications | Channels (email, webhook, desktop) and the events each one gets | `listNotificationChannels`, `createNotificationChannel`, `updateNotificationChannel`, `deleteNotificationChannel`, `testNotificationChannel` | Add, edit, delete (question card), Send test | M1 for channels and Send test (built, CRSP37); event delivery later (milestone 8) |
 | Updates | The runner version and the agent version, and when they update | `getUpdateStatus`, `checkForUpdate`, `applyUpdate`, `updateSettings` (auto_update) | Update now: a question card that names the machines and the jobs the drain waits for (UX-62) | later (milestone 3) |
 | Audit log | Who changed what, and when | `listAuditEvents`, `exportAuditEvents` | Export (component 29, UX-39) | later |
 | Config export | The configuration as a file, without secrets | `exportConfig` | Export, named for what it holds then the file stamp (UX-39) | later (milestone 8) |
 
 - **Users and roles:** a table (component 15) of GitHub login, role, added by, added at, last sign-in. There is one owner. The owner's own row has no Remove. The roles are in section 5.
 - **States:** each sub-page has loading, could not load and, for lists, empty ("No other users yet. Add a GitHub login to let someone in.").
+- **Notifications (built, CRSP37):** a table (component 15) of the channels with name, kind, where it sends, events, lowest severity, on or off and the last test; one form (Add and Edit) that ends with Cancel and Save (UX-24); **Send test** per row, busy and disabled while it runs, one result line under the table (UX-13, UX-27, UX-38); **Delete** with a question card that names the channel and the events it stops carrying (UX-62, R5.30). A secret is never shown again. A viewer sees only their own channels and cannot pick a webhook, with the reason beside it. Empty: "No channels yet. Add a channel to be told when a machine, job or disk needs you."
 - **Detail:** budgets are in `machines` and `scheduling`; notifications in `notifications`; updates, backup and config export in `operations`; the audit log in `observability`.
 - **Components:** 1, 3, 7, 8, 9, 13, 14, 15, 17, 19, 22, 24, 29, 37.
 
@@ -488,12 +489,12 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.24 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/jobs/Jobs.test.tsx` |
 | R5.25 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/images/ImagesAndCaches.test.tsx` |
 | R5.26 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/doctor/Doctor.test.tsx` |
-| R5.27 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` (M1 sub-pages: Users and roles, Appearance, Retention, Backups) |
+| R5.27 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` (M1 sub-pages: Users and roles, Appearance, Retention, Backups); `apps/web/src/screens/settings/Notifications.test.tsx` (the Notifications sub-page), `e2e/tests/web-console/notifications.spec.ts` |
 | R5.28 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` (the Go side stays NOT YET IMPLEMENTED: `internal/api/users_test.go`) |
 | R5.29 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/settings/ConfigExport.test.tsx` |
-| R5.30 | Vitest, Playwright e2e | the question-card tests in each screen test file, `e2e/tests/web-console/flows.spec.ts` |
-| R5.31 | Vitest | the loading, empty and could-not-load tests in each screen test file |
-| R5.32 | Vitest | `packages/ui/src/components/format.test.ts` |
+| R5.30 | Vitest, Playwright e2e | the question-card tests in each screen test file, `e2e/tests/web-console/flows.spec.ts`, `apps/web/src/screens/settings/Notifications.test.tsx`, `e2e/tests/web-console/notifications.spec.ts` (delete a channel) |
+| R5.31 | Vitest | the loading, empty and could-not-load tests in each screen test file, `apps/web/src/screens/settings/Notifications.test.tsx` |
+| R5.32 | Vitest | `packages/ui/src/components/format.test.ts`, `apps/web/src/screens/settings/Notifications.test.tsx` (last test time) |
 | R6.1 | Go test | NOT YET IMPLEMENTED: `internal/api/session_cookie_test.go` |
 | R6.2 | Go test | NOT YET IMPLEMENTED: `internal/api/csrf_test.go` |
 | R6.3 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/webui/headers_test.go`, `e2e/tests/web-console/no-external-requests.spec.ts` |
@@ -544,12 +545,14 @@ For the product:
 
 ## 11. Not built yet
 
+Built by CRSP37: the settings sub-page Notifications (channels, add and edit, Send test, delete with a question card) against the five notification operations.
+
 Built by CRSP24: the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups (all against the M1 contract and a mocked API in tests).
 
 **NOT YET IMPLEMENTED:**
 
 - the jobs, images and caches and doctor screens (R5.24 to R5.26): their menu entries open a page that says in which milestone they arrive;
-- the later settings sub-pages: Budgets, Notifications, Updates, Audit log, Config export (R5.29);
+- the later settings sub-pages: Budgets, Audit log, Config export (R5.29). Notifications is built (CRSP37) for channels and Send test; the delivery of events to a channel is NOT YET IMPLEMENTED (notifications spec, section 11);
 - the serving side: `internal/webui/webui.go` serves over TLS and sends the headers of R6.3 (R5.1, R6.3), the session cookie and CSRF checks (R6.1, R6.2), the role checks (R6.5);
 - an automated axe check in both themes (R6.6), the performance budgets (R6.12), the offline check (R6.13);
 - Stop on a repository or runner plan that is applying: the contract now has `stopRepositoryPlan` and `stopRunnerPlan` (CRSP32), but the wizards still offer Stop only on Joining until they call them; the server side answers 501 for now.
@@ -574,6 +577,7 @@ Source: apps/web/src/screens/machines/AddMachine.tsx
 Source: apps/web/src/screens/runners/Runners.tsx
 Source: apps/web/src/screens/runners/AddRunners.tsx
 Source: apps/web/src/screens/settings/Settings.tsx
+Source: apps/web/src/screens/settings/Notifications.tsx
 Source: apps/web/src/screens/setup/Setup.tsx
 Source: packages/ui/src/index.ts
 Source: packages/ui/src/components/Wizard.tsx
