@@ -502,3 +502,60 @@ func TestParsePrivateKey(t *testing.T) {
 		t.Fatal("key layout changed")
 	}
 }
+
+func TestCheckUserToken(t *testing.T) { // R5.14
+	e := newEnv(t)
+	tok := e.fake.AddUser(9, "carol")
+	u, err := e.client.CheckUserToken(context.Background(), UserToken{Value: tok})
+	if err != nil || u.ID != 9 || u.Login != "carol" {
+		t.Fatalf("%+v %v", u, err)
+	}
+	if _, err := e.client.CheckUserToken(context.Background(), UserToken{Value: "ghu_notmine"}); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("a token of another App: %v", err)
+	}
+}
+
+func TestDeviceFlow(t *testing.T) { // R5.14
+	e := newEnv(t)
+	ctx := context.Background()
+	e.fake.AddUser(9, "carol")
+	e.fake.DeviceSlowDownOnce = true
+	dc, err := e.client.StartDevice(ctx)
+	if err != nil || dc.UserCode == "" || dc.Interval != 5*time.Second {
+		t.Fatalf("%+v %v", dc, err)
+	}
+	approved := false
+	e.client.cfg.Sleep = func(_ context.Context, d time.Duration) error {
+		e.mu.Lock()
+		e.sleeps = append(e.sleeps, d)
+		n := len(e.sleeps)
+		e.mu.Unlock()
+		if n == 3 && !approved {
+			approved = true
+			e.fake.ApproveDevice(dc.DeviceCode, 9)
+		}
+		return nil
+	}
+	tok, err := e.client.WaitDevice(ctx, dc)
+	if err != nil || tok.Value == "" {
+		t.Fatalf("%v", err)
+	}
+	if e.sleeps[0] != 5*time.Second || e.sleeps[1] != 10*time.Second {
+		t.Fatalf("must wait the interval, and 5 s longer after slow_down: %v", e.sleeps)
+	}
+	if u, _ := e.client.CurrentUser(ctx, tok); u.ID != 9 {
+		t.Fatalf("%+v", u)
+	}
+}
+
+func TestDeviceFlowDenied(t *testing.T) {
+	e := newEnv(t)
+	dc, err := e.client.StartDevice(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.fake.ApproveDevice(dc.DeviceCode, -1)
+	if _, err := e.client.WaitDevice(context.Background(), dc); !errors.Is(err, ErrDeviceDenied) {
+		t.Fatalf("%v", err)
+	}
+}

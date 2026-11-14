@@ -105,6 +105,10 @@ type Server struct {
 	ManifestCodes  map[string]bool // unused codes
 	OAuthCodes     map[string]int64
 	OAuthVerifiers map[string]string // code -> expected PKCE challenge
+	// DeviceCodes: device code -> approving user id (0 pending, -1 denied).
+	DeviceCodes        map[string]int64
+	DeviceSlowDownOnce bool
+	devicePolls        int
 	// ClientSecret is what the token endpoint demands.
 	ClientSecret string
 	PEM          string
@@ -134,7 +138,7 @@ func New() *Server {
 		Users: map[int64]*User{}, UserTokens: map[string]int64{}, Installs: map[int64]*Install{},
 		Repos: map[int64]*Repo{}, Variables: map[string]map[string]string{},
 		Runners: map[string][]*Runner{}, WorkflowFiles: map[string]map[string]string{},
-		ManifestCodes: map[string]bool{}, OAuthCodes: map[string]int64{}, OAuthVerifiers: map[string]string{},
+		ManifestCodes: map[string]bool{}, OAuthCodes: map[string]int64{}, OAuthVerifiers: map[string]string{}, DeviceCodes: map[string]int64{},
 		instTokens: map[string]int64{}, removeToks: map[string]bool{}, regToks: map[string]bool{},
 		RateLimit: 5000, RateRemaining: 5000, RateReset: time.Now().Add(time.Hour).Unix(),
 		AppID: 1234567, nextID: 1000, Now: time.Now,

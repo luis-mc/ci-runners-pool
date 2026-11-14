@@ -22,6 +22,16 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request) {
 		s.convert(w, strings.TrimSuffix(strings.TrimPrefix(p, "/app-manifests/"), "/conversions"))
 	case r.Method == "POST" && p == "/login/oauth/access_token":
 		s.oauthToken(w, r)
+	case r.Method == "POST" && p == "/login/device/code":
+		var in map[string]string
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		s.nextID++
+		code := fmt.Sprintf("FAKEDEVICE%d", s.nextID)
+		s.DeviceCodes[code] = 0
+		writeJSON(w, 200, map[string]any{"device_code": code, "user_code": "ABCD-1234",
+			"verification_uri": s.URL + "/login/device", "expires_in": 900, "interval": 5})
+	case r.Method == "POST" && strings.HasPrefix(p, "/applications/") && strings.HasSuffix(p, "/token"):
+		s.checkToken(w, r)
 	case r.Method == "GET" && p == "/app":
 		if !s.checkJWT(bearer(r)) {
 			unauthorized(w)
@@ -83,6 +93,10 @@ func (s *Server) convert(w http.ResponseWriter, code string) {
 func (s *Server) oauthToken(w http.ResponseWriter, r *http.Request) {
 	var in map[string]string
 	_ = json.NewDecoder(r.Body).Decode(&in)
+	if dc := in["device_code"]; dc != "" {
+		s.deviceToken(w, dc)
+		return
+	}
 	uid, ok := s.OAuthCodes[in["code"]]
 	if !ok || in["client_secret"] != s.ClientSecret {
 		writeJSON(w, 200, map[string]string{"error": "bad_verification_code"})
@@ -461,4 +475,64 @@ func (s *Server) HasRegistrationToken(tok string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.regToks[tok]
+}
+
+// ApproveDevice approves a device code for a user, or denies it with 0.
+func (s *Server) ApproveDevice(code string, userID int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.DeviceCodes[code] = userID
+}
+
+// DeviceCodeIssued returns the last device code the fake handed out.
+func (s *Server) DeviceCodeIssued() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	last := ""
+	for c := range s.DeviceCodes {
+		if c > last {
+			last = c
+		}
+	}
+	return last
+}
+
+func (s *Server) deviceToken(w http.ResponseWriter, code string) {
+	uid, known := s.DeviceCodes[code]
+	switch {
+	case !known:
+		writeJSON(w, 200, map[string]string{"error": "bad_verification_code"})
+	case uid == 0:
+		s.devicePolls++
+		if s.DeviceSlowDownOnce && s.devicePolls == 1 {
+			writeJSON(w, 200, map[string]string{"error": "slow_down", "interval": "10"})
+			return
+		}
+		writeJSON(w, 200, map[string]string{"error": "authorization_pending"})
+	case uid < 0:
+		writeJSON(w, 200, map[string]string{"error": "access_denied"})
+	default:
+		tok := "ghu_" + "FAKE" + strconv.FormatInt(uid, 10) + strings.Repeat("d", 20)
+		s.UserTokens[tok] = uid
+		delete(s.DeviceCodes, code)
+		writeJSON(w, 200, map[string]any{"access_token": tok, "token_type": "bearer"})
+	}
+}
+
+// checkToken answers POST /applications/{client_id}/token (R5.14).
+func (s *Server) checkToken(w http.ResponseWriter, r *http.Request) {
+	user, pass, ok := r.BasicAuth()
+	if !ok || pass != s.ClientSecret || user == "" {
+		unauthorized(w)
+		return
+	}
+	var in map[string]string
+	_ = json.NewDecoder(r.Body).Decode(&in)
+	uid, found := s.UserTokens[in["access_token"]]
+	if !found {
+		notFound(w)
+		return
+	}
+	u := s.Users[uid]
+	writeJSON(w, 200, map[string]any{"user": map[string]any{"id": u.ID, "login": u.Login}})
 }
