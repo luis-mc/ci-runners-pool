@@ -1,11 +1,11 @@
 {
   "schema": 1,
   "map": {
-    "internal/backend/**": [
-      "docs/features/runners/spec.md"
+    "internal/scheduler/**": [
+      "docs/features/scheduling/spec.md"
     ],
-    "internal/runners/**": [
-      "docs/features/runners/spec.md"
+    "internal/slots/**": [
+      "docs/features/scheduling/spec.md"
     ]
   }
 }

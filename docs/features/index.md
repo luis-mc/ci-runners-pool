@@ -8,19 +8,19 @@
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
 
 ### cli
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
 
 ### controller
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
 
 ### tray
 
@@ -30,7 +30,7 @@ No feature lists this app yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
 
 ## By topic
 
@@ -40,7 +40,9 @@ No feature lists this topic yet.
 
 ### github
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
 
 ### install
 
@@ -48,19 +50,19 @@ No feature lists this topic yet.
 
 ### isolation
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### machines
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
 
 ### observability
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
 
 ### operations
 
@@ -70,23 +72,21 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
 
 ### scheduling
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
 
 ### security
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### ui
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ## By status
 
@@ -94,7 +94,7 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | proposed | 0.1.0 | 2026-11-14 |
+| [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | proposed | 0.1.0 | 2026-11-14 |
 
 ## Gaps
 
