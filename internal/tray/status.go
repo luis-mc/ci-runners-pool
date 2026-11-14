@@ -44,6 +44,8 @@ type Status struct {
 	Fault     string    // StateFailed: why
 	StoppedAt time.Time // StateStopped
 	ExitCode  int       // StateStopped
+	Version   string    // the version the service runs, "" when it does not say
+	Update    UpdateInfo
 }
 
 // Text is the status line and the tooltip body (R5.2), without the product name.
