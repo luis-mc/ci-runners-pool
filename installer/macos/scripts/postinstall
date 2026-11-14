@@ -3,41 +3,14 @@
 # Everything here is safe to run twice. The data folder is created, never emptied.
 LABEL=crsp
 TRAY=dev.luismc.crsp.tray
-ACCOUNT=_crsp
 DATA="/Library/Application Support/crsp"
 PLIST="/Library/LaunchDaemons/$LABEL.plist"
 
-# A free id from 200 to 299 that no user and no group uses (the runner backend
-# takes 300 to 399).
-free_id() {
-  used="$( { dscl . -list /Users UniqueID; dscl . -list /Groups PrimaryGroupID; } | awk '{print $2}')"
-  id=200
-  while [ "$id" -lt 300 ]; do
-    echo "$used" | grep -qx "$id" || { echo "$id"; return 0; }
-    id=$((id + 1))
-  done
-  return 1
-}
-
-if ! dscl . -read "/Users/$ACCOUNT" >/dev/null 2>&1; then
-  id="$(free_id)" || { echo "crsp: no free account id between 200 and 299" >&2; exit 1; }
-  dscl . -create "/Groups/$ACCOUNT"
-  dscl . -create "/Groups/$ACCOUNT" PrimaryGroupID "$id"
-  dscl . -create "/Groups/$ACCOUNT" RealName "crsp service"
-  dscl . -create "/Users/$ACCOUNT"
-  dscl . -create "/Users/$ACCOUNT" UniqueID "$id"
-  dscl . -create "/Users/$ACCOUNT" PrimaryGroupID "$id"
-  dscl . -create "/Users/$ACCOUNT" UserShell /usr/bin/false
-  dscl . -create "/Users/$ACCOUNT" RealName "crsp service"
-  dscl . -create "/Users/$ACCOUNT" NFSHomeDirectory /var/empty
-  dscl . -create "/Users/$ACCOUNT" IsHidden 1
-fi
-
 mkdir -p "$DATA"
-chown "$ACCOUNT:$ACCOUNT" "$DATA"
+chown root:wheel "$DATA"
 chmod 0700 "$DATA"
 touch /var/log/crsp.log
-chown "$ACCOUNT:$ACCOUNT" /var/log/crsp.log
+chown root:wheel /var/log/crsp.log
 chmod 0640 /var/log/crsp.log
 
 chown root:wheel "$PLIST" /Library/LaunchAgents/$TRAY.plist

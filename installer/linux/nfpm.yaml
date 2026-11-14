@@ -40,8 +40,6 @@ overrides:
       preremove: ${SCRIPTS}/deb-prerm.sh
       postremove: ${SCRIPTS}/deb-postrm.sh
   rpm:
-    depends:
-      - shadow-utils
     scripts:
       preinstall: ${SCRIPTS}/rpm-pre.sh
       postinstall: ${SCRIPTS}/rpm-post.sh

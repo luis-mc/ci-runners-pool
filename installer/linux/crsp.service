@@ -6,13 +6,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=crsp
-Group=crsp
+User=root
 ExecStart=/usr/bin/crsp controller
 Restart=always
 RestartSec=5
-NoNewPrivileges=true
-PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target

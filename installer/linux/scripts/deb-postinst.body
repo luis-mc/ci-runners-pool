@@ -1,6 +1,5 @@
 case "$1" in
   configure)
-    crsp_user
     crsp_dirs
     crsp_start
     ;;

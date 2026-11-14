@@ -11,7 +11,6 @@ DATA="/Library/Application Support/crsp"
 fail() { echo "SMOKE FAIL: $*" >&2; exit 1; }
 ok() { echo "ok: $*"; }
 need() { [ -e "$1" ] || fail "missing $1"; }
-gone() { [ ! -e "$1" ] || [ -L "$1" ] && { [ ! -e "$1" ] && [ ! -L "$1" ] || fail "still there: $1"; } || true; }
 
 echo "== expand $old (no install)"
 tmp="$(mktemp -d)"
@@ -33,9 +32,8 @@ check_installed() {
   [ "$(cat /usr/local/share/crsp/install-kind)" = pkg ] || fail "install-kind is not pkg"
   plutil -lint /Library/LaunchDaemons/crsp.plist /Library/LaunchAgents/dev.luismc.crsp.tray.plist
   /usr/local/bin/crsp --version
-  dscl . -read /Users/_crsp UniqueID >/dev/null || fail "no _crsp account"
   [ "$(sudo stat -f %Lp "$DATA")" = 700 ] || fail "data folder mode"
-  [ "$(sudo stat -f %Su "$DATA")" = _crsp ] || fail "data folder owner"
+  [ "$(sudo stat -f %Su "$DATA")" = root ] || fail "data folder owner"
   sudo launchctl print system/crsp >/dev/null || fail "service crsp is not loaded"
   sleep 3
   sudo launchctl print system/crsp | grep -E "state =|pid =|last exit" || true
@@ -72,6 +70,5 @@ sudo installer -pkg "$new" -target /
 [ "$(sudo cat "$DATA/keep.txt")" = keep ] || fail "reinstall lost the data"
 sudo /usr/local/bin/crsp-uninstall --delete-data
 [ ! -e "$DATA" ] || fail "data folder left after --delete-data"
-if dscl . -read /Users/_crsp >/dev/null 2>&1; then fail "_crsp account left"; fi
 ok "data deleted"
 echo "SMOKE OK (pkg)"

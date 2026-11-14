@@ -3,8 +3,6 @@
 <plist version="1.0">
 <dict>
   <key>Label</key><string>crsp</string>
-  <key>UserName</key><string>_crsp</string>
-  <key>GroupName</key><string>_crsp</string>
   <key>ProgramArguments</key>
   <array><string>/usr/local/bin/crsp</string><string>controller</string></array>
   <key>WorkingDirectory</key><string>/Library/Application Support/crsp</string>

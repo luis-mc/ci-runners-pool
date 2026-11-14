@@ -36,9 +36,9 @@ check_installed() {
     rpm) have="$(rpm -q --qf '%{VERSION}' crsp)" ;;
   esac
   case "$have" in "$want"*) ;; *) fail "package version is $have, want $want" ;; esac
-  getent passwd crsp >/dev/null || fail "no crsp user"
   [ "$(stat -c %a /var/lib/crsp)" = "700" ] || fail "data folder mode is $(stat -c %a /var/lib/crsp), want 700"
-  [ "$(stat -c %U /var/lib/crsp)" = "crsp" ] || fail "data folder owner is not crsp"
+  [ "$(stat -c %U /var/lib/crsp)" = "root" ] || fail "data folder owner is not root"
+  grep -q '^User=root$' /usr/lib/systemd/system/crsp.service || fail "unit must run as root"
   grep -q '^ExecStart=/usr/bin/crsp controller$' /usr/lib/systemd/system/crsp.service || fail "unit ExecStart"
   grep -q '^Exec=/usr/bin/crsp tray$' /etc/xdg/autostart/crsp-tray.desktop || fail "desktop Exec"
   if [ "$sysd" = 1 ]; then
@@ -110,7 +110,6 @@ if [ "$kind" = deb ]; then
   apt-get purge -y crsp
   gone /var/lib/crsp
   gone /etc/crsp
-  if getent passwd crsp >/dev/null; then fail "purge left the crsp user"; fi
   ok "purged, data deleted"
 else
   rpm -e crsp

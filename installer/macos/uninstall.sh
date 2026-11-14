@@ -2,7 +2,7 @@
 # Uninstalls crsp (installed by crsp-darwin-<arch>.pkg). Run with sudo:
 #
 #   sudo crsp-uninstall                 removes the program and the service, keeps the data
-#   sudo crsp-uninstall --delete-data   also deletes the data folder, the log and the service account
+#   sudo crsp-uninstall --delete-data   also deletes the data folder, and the log
 #
 # The data folder is /Library/Application Support/crsp (config, database,
 # audit log, backups, CA).
@@ -44,8 +44,6 @@ pkgutil --forget dev.luismc.crsp >/dev/null 2>&1 || true
 if [ "$delete_data" = 1 ]; then
   rm -rf "$DATA"
   rm -f /var/log/crsp.log
-  dscl . -delete /Users/_crsp >/dev/null 2>&1 || true
-  dscl . -delete /Groups/_crsp >/dev/null 2>&1 || true
   echo "crsp removed. Data deleted."
 else
   echo "crsp removed. Data kept in $DATA (delete it with: sudo crsp-uninstall --delete-data, or install again to use it)."

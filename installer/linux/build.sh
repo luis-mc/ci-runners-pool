@@ -36,9 +36,14 @@ done
 for kind in deb rpm; do
   printf '%s\n' "$kind" > "$work/install-kind-$kind"
   version="$("$here/version.sh" "$release" "$run" "$kind")"
+  # nfpm does not expand variables in file paths, so fill the template ourselves.
   ARCH="$arch" VERSION="$version" RELEASE=1 KIND="$kind" BIN="$bin" SCRIPTS="$work/scripts" \
-    KINDFILE="$work/install-kind-$kind" \
-    "$NFPM" package --config "$here/nfpm.yaml" --packager "$kind" --target "$work/crsp.$kind"
+    KINDFILE="$work/install-kind-$kind" python3 -c '
+import os, re, sys
+t = open(sys.argv[1]).read()
+sys.stdout.write(re.sub(r"\$\{(\w+)\}", lambda m: os.environ[m.group(1)], t))
+' "$here/nfpm.yaml" > "$work/nfpm-$kind.yaml"
+  "$NFPM" package --config "$work/nfpm-$kind.yaml" --packager "$kind" --target "$work/crsp.$kind"
   cp "$work/crsp.$kind" "$out/crsp-linux-$arch.$kind"
   echo "built $out/crsp-linux-$arch.$kind (version $version)"
 done
