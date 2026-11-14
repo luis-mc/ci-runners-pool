@@ -41,6 +41,8 @@ const TABS = [
   { id: 'backups', label: 'Backups' },
   { id: 'budgets', label: 'Budgets' },
   { id: 'updates', label: 'Updates' },
+  { id: 'audit', label: 'Audit log' },
+  { id: 'export', label: 'Config export' },
 ];
 
 export function SettingsLayout() {

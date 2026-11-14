@@ -43,6 +43,10 @@ Each action has one word. The Never use column lists words that must not stand i
 | Restart the service | Stop and start the service after the running jobs end. | Reboot, Reset |
 | Automatic updates | The switch that lets a newer stable release install by itself after the running jobs end. | Auto-upgrade |
 | Quit tray | Close the tray icon only. The service keeps running. | Exit, Close |
+| Export | Save every row of a table as a file, in the order shown (component 29). | Download, Save as |
+| Export config | Save the configuration as a file, without any secret. | Download config, Backup config |
+| Exporting | The busy word of Export, while the controller builds the file. | Downloading |
+| Load more | Read the next rows of a list that has more on the controller. | Show more, Next page |
 
 Add a row for each action the project needs. A new action gets a word that is not used above.
 

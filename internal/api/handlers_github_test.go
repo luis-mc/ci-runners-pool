@@ -343,6 +343,7 @@ func TestRolesEnforcedPerOperation(t *testing.T) { // R5.12
 	adminOnly := []call{
 		{"POST", "/api/v1/repository-plans", map[string]any{"changes": []map[string]any{{"repository_id": 1, "pool": "on"}}}},
 		{"POST", "/api/v1/repository-plans/x/apply", map[string]any{"approved_steps": []string{}}},
+		{"POST", "/api/v1/repository-plans/x/stop", nil},
 		{"PATCH", "/api/v1/repositories/1/policy", map[string]any{"priority": 1}},
 		{"GET", "/api/v1/github/install-url", nil},
 	}
@@ -761,4 +762,29 @@ func TestAuthTableMatchesOpenAPI(t *testing.T) {
 		}
 	}
 	_ = time.Second
+}
+
+// Stop (web-console 11): a plan that is not applying answers 409; an unknown
+// plan 404; the plan keeps its state.
+func TestStopRepositoryPlanOverHTTP(t *testing.T) {
+	h := newHarness(t)
+	owner, csrf := h.setup(1, "alice")
+	hdr := map[string]string{"X-CSRF-Token": csrf}
+	h.fake.AddInstall(10, "alice", "User", 1)
+	h.fake.AddRepo(100, 10, "alice", "app", true, 1)
+	_, _ = h.do("GET", "/api/v1/github/repositories", nil, owner, nil)
+	_, b := h.do("POST", "/api/v1/repository-plans", map[string]any{"changes": []map[string]any{{"repository_id": 100, "pool": "on"}}}, owner, hdr)
+	var plan struct{ ID string }
+	_ = json.Unmarshal(b, &plan)
+	res, b := h.do("POST", "/api/v1/repository-plans/"+plan.ID+"/stop", nil, owner, hdr)
+	if res.StatusCode != 409 || errCode(b) != CodeConflict || !strings.Contains(string(b), "nothing to stop") {
+		t.Fatalf("planned: %d %s", res.StatusCode, b)
+	}
+	if res, b = h.do("POST", "/api/v1/repository-plans/nope/stop", nil, owner, hdr); res.StatusCode != 404 {
+		t.Fatalf("unknown: %d %s", res.StatusCode, b)
+	}
+	_, b = h.do("GET", "/api/v1/repository-plans/"+plan.ID, nil, owner, nil)
+	if !strings.Contains(string(b), `"planned"`) {
+		t.Fatalf("a refused stop changed the plan: %s", b)
+	}
 }

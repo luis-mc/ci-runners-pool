@@ -32,16 +32,6 @@ func (s *server) DeleteNotificationChannel(_ context.Context, _ gen.DeleteNotifi
 	return gen.DeleteNotificationChanneldefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// ExportAuditEvents is not built yet.
-func (s *server) ExportAuditEvents(_ context.Context, _ gen.ExportAuditEventsRequestObject) (gen.ExportAuditEventsResponseObject, error) {
-	return gen.ExportAuditEventsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// ExportConfig is not built yet.
-func (s *server) ExportConfig(_ context.Context, _ gen.ExportConfigRequestObject) (gen.ExportConfigResponseObject, error) {
-	return gen.ExportConfigdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // ExportJobs is not built yet.
 func (s *server) ExportJobs(_ context.Context, _ gen.ExportJobsRequestObject) (gen.ExportJobsResponseObject, error) {
 	return gen.ExportJobsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
@@ -70,16 +60,6 @@ func (s *server) ListNotificationChannels(_ context.Context, _ gen.ListNotificat
 // RebuildImage is not built yet.
 func (s *server) RebuildImage(_ context.Context, _ gen.RebuildImageRequestObject) (gen.RebuildImageResponseObject, error) {
 	return gen.RebuildImagedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// StopRepositoryPlan is not built yet.
-func (s *server) StopRepositoryPlan(_ context.Context, _ gen.StopRepositoryPlanRequestObject) (gen.StopRepositoryPlanResponseObject, error) {
-	return gen.StopRepositoryPlandefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// StopRunnerPlan is not built yet.
-func (s *server) StopRunnerPlan(_ context.Context, _ gen.StopRunnerPlanRequestObject) (gen.StopRunnerPlanResponseObject, error) {
-	return gen.StopRunnerPlandefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // TestNotificationChannel is not built yet.

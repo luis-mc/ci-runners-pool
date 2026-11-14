@@ -23,6 +23,8 @@ const SCREENS: { name: string; path: string; ready: string; loads?: string[] }[]
     ready: 'Settings',
     loads: ['/api/v1/settings/pool', '/api/v1/settings/queue'],
   },
+  { name: 'settings audit log', path: '/settings/audit', ready: 'Settings' },
+  { name: 'settings config export', path: '/settings/export', ready: 'Settings' },
 ];
 
 for (const screen of SCREENS) {
@@ -43,6 +45,21 @@ for (const screen of SCREENS) {
           no_runner_wait_minutes: 2,
         });
     }
+    mock.on('GET', '/api/v1/audit', {
+      items: [
+        {
+          id: 1,
+          at: '2026-11-14T10:00:00Z',
+          actor: 'octo',
+          source: 'web',
+          action: 'machine.drain',
+          target_type: 'machine',
+          target_id: 'm1',
+          summary: 'drained build-1',
+          result: 'done',
+        },
+      ],
+    });
     await mock.install(page);
     await page.goto(screen.path);
     await expect(

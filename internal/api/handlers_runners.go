@@ -18,6 +18,7 @@ type RunnersService interface {
 	PlanAdd(ctx context.Context, req runners.AddRequest, actor string) (runners.Plan, error)
 	PlanReplacement(ctx context.Context, runnerID, actor string) (runners.Plan, error)
 	GetPlan(ctx context.Context, id string) (runners.Plan, error)
+	StopPlan(ctx context.Context, planID, actor string) (runners.Plan, error)
 	StartApply(ctx context.Context, planID string, approved []string, actor string) (runners.Plan, error)
 	BeginRemove(ctx context.Context, id string, confirm bool, actor string) (runners.Record, func(context.Context) error, error)
 	StartRemove(ctx context.Context, finish func(context.Context) error)
@@ -262,4 +263,19 @@ func (s *server) DeleteRunner(ctx context.Context, req gen.DeleteRunnerRequestOb
 	}
 	s.opts.Runners.StartRemove(ctx, finish)
 	return gen.DeleteRunner202JSONResponse(toGenRunner(r)), nil
+}
+
+// StopRunnerPlan implements POST /api/v1/runner-plans/{planId}/stop.
+func (s *server) StopRunnerPlan(ctx context.Context, req gen.StopRunnerPlanRequestObject) (gen.StopRunnerPlanResponseObject, error) {
+	if s.opts.Runners == nil {
+		return gen.StopRunnerPlandefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
+	}
+	p, err := s.opts.Runners.StopPlan(ctx, req.PlanId, actorFrom(ctx))
+	if err != nil {
+		code, body := runnerFail(err)
+		return gen.StopRunnerPlandefaultJSONResponse{StatusCode: code, Body: body}, nil
+	}
+	out := toGenPlan(p)
+	s.publishPlan(out)
+	return gen.StopRunnerPlan202JSONResponse(out), nil
 }
