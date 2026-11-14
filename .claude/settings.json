@@ -57,5 +57,12 @@
     "claude-sonnet-5-5": {
       "effortLevel": "medium"
     }
+  },
+  "permissions": {
+    "allow": [
+      "Bash(gh pr create:*)",
+      "Bash(gh pr ready:*)",
+      "Bash(gh pr edit:*)"
+    ]
   }
 }
