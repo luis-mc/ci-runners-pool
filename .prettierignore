@@ -31,3 +31,5 @@ scripts/delivery/ci-shards.example.json
 scripts/delivery/windows-build-tools.example.json
 scripts/delivery/windows-real.example.json
 # luismc-delivery: end of installer copies
+# luismc-delivery: plugin-owned scripts, formatted upstream
+scripts/delivery/
