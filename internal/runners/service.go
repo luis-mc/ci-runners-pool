@@ -28,7 +28,7 @@ type Service struct {
 	// PoolName is the one pool label a runner may carry.
 	PoolName string
 	// CacheQuota is the declared cache sizing every new runner gets (runners
-	// R5.40); a zero value takes the defaults.
+	// R5.39); a zero value takes the defaults.
 	CacheQuota runnercache.Quota
 	// Drain settings; the idle check and clock are replaceable for tests.
 	Poll, WarnAfter, DrainTimeout time.Duration

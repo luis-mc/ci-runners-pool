@@ -447,7 +447,7 @@ func TestAuditEntries(t *testing.T) {
 	}
 }
 
-// Runners R5.40: a new runner gets the declared cache quota of the service.
+// Runners R5.39: a new runner gets the declared cache quota of the service.
 func TestAddPassesCacheQuotaToTheAgent(t *testing.T) {
 	r := newRig(machine("linux", "x64", true))
 	r.svc.CacheQuota = runnercache.Quota{ToolGiB: 7, RustGiB: 50}

@@ -122,7 +122,7 @@ type Result struct {
 
 // Enforce brings the cache folder under its quota by removing the least
 // recently used entries first, and stops as soon as the folder fits. It runs
-// only between jobs: when busy is true it removes nothing (caches R5.36).
+// only between jobs: when busy is true it removes nothing (caches R5.37).
 func Enforce(fsys FS, dir string, quota int64, busy bool) (Result, error) {
 	es, err := Scan(fsys, dir)
 	if err != nil {

@@ -254,6 +254,8 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 
 **R5.59** — The hooks are set in each persistent runner's `.env` file as its first lines. On Windows the hooks are `.ps1` files, never `.cmd`. A hook calls the product binary by its full path, installed for all users, never one in a user profile. The wrapper passes its arguments through and returns the binary's exit code. M1. Built: the wrappers and the `.env` lines. The runners feature writes them at install. Source: `runner_load_gate.ps1`, `runner_load_gate.sh`, `runner_job_done.ps1`, `runner_job_done.sh`; learning 4.
 
+**R5.60** — **Disk guard.** Before the gate asks for a slot, it reads the free space of the volume of the runner's tool cache (`CI_TOOLS_DIR`, else the job's workspace). Under 10% free (`CRSP_DISK_MIN_FREE_PCT`, default 10) it holds the job without a ticket or slot, logs `disk guard: holding the job` with the free share, and polls like the gate. It goes on to the queue when 12% is free. The hold counts against the maximum wait; at the limit the job fails and can be re-run, whatever the on-timeout rule says. A disk that cannot be read never holds a job (R6.6). M1. Built (CRSP21). Source: new (caches R5.38, dev-standards lesson 1).
+
 ## 6. Non-functional requirements
 
 **R6.1** — With a free slot and a machine under budget, the job-started hook returns within 2 s. No measurement sleeps. M1. Built. Source: `load.py` `measure_now`.
@@ -414,6 +416,7 @@ A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTE
 | R5.57 | planned: internal/scheduler/windows_test.go TestWindowStartStopsNoJob | new |
 | R5.58 | `internal/scheduler/gate_test.go` TestStatus; `internal/scheduler/api_jobs_test.go` TestAPIListSlots | `test_machine.py` SlotsCommand `test_slots_command_prints_holders_queue_and_waits`; `test_dl270_light_slot_listing.py` `test_free_and_held_light_slot`, `test_light_slots_after_ci_slots`, `test_zero_light_slots_prints_no_light_line`, `test_json_keeps_light_slots`, `test_stale_light_lock_is_flagged_and_ok_line_counts_both` |
 | R5.59 | `internal/hooks/hooks_test.go` TestHookWrappers | `test_machine.py` ShardAndMarker `test_no_cmd_wrappers_ship`; `test_dl324_runner_policy.py` `test_env_keeps_hooks_first`; `test_dl289_refresh_drain.py` `test_hooks_still_exec_their_python`; `test_runner_pool.py` `test_hook_files_are_copied_with_the_full_python_path` |
+| R5.60 | `internal/hooks/hooks_test.go` TestDiskGuardHoldsAndResumes, TestDiskGuardTimeoutFailsWithoutSlotEvenOnTimeoutRun, TestDiskGuardFailsOpenOnReadError | new, none in dev-standards |
 | R6.1 | `internal/hooks/hooks_test.go` TestQuietGateUnderTwoSeconds | `test_load.py` Cache `test_no_sleep_and_delta_from_saved_raw` |
 | R6.2 | `internal/scheduler/gate_test.go` TestTwoTakersNeverShareASlot | `test_machine.py` Slots `test_race_two_processes_never_share_one_slot` |
 | R6.3 | `internal/scheduler/guard_test.go` TestQueriesHaveDeadline | new |

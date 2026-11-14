@@ -94,7 +94,7 @@ type RunnerSpec struct {
 	WindowsSymlinkRight bool
 	// CacheQuota is the declared cache sizing of this runner. A zero value
 	// takes the defaults. The runner exports CI_TOOLS_DIR and the quotas to
-	// its jobs (runners R5.40).
+	// its jobs (runners R5.39).
 	CacheQuota runnercache.Quota
 }
 

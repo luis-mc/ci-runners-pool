@@ -181,7 +181,7 @@ Ported from dev-standards `claude/plugins/delivery/scripts/load.py` and `load_gu
 
 **R5.28** (M3) — During quiet hours the machine uses its quiet budget and quiet slot count instead of the normal ones. This leaves room for the owner's own work by day. Running jobs are never cut when quiet hours start.
 
-**R5.29** (M7) — The agent keeps its caches under the cache size cap and evicts the least recently used entries first. The cap is stored from M1; it is enforced when the caches land.
+**R5.29** (M1) — The agent keeps its caches under the cache size cap and evicts the least recently used entries first. Milestone 1 enforces the per-runner quotas of the persistent runners (caches R5.36 and R5.37, config keys `cache_tool_gib` and `cache_rust_gib`) between jobs. The machine setting `cache_cap_bytes` is stored from M1 and returned by the machine API; it does not yet change the quotas (they are the same for every runner). The pool caches of milestone 7 use the setting when they land.
 
 ### 5.6 Drain, never kill
 
@@ -353,7 +353,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.26 | internal/machines/drain_test.go | planned |
 | R5.27 | internal/machines/windows_test.go | planned |
 | R5.28 | internal/machines/quiet_hours_test.go | planned |
-| R5.29 | internal/agent/cache_cap_test.go | planned (M7) |
+| R5.29 | internal/runnercache/runnercache_test.go TestEvictionOrderOldestFirstUntilItFits, TestNeverEvictsWhileARunnerIsBusy; internal/hooks/hooks_test.go TestJobDoneEvictsOldestOverQuota | built for the runner quotas; planned (M7) for the machine setting |
 | R5.30 | internal/machines/drain_test.go | planned |
 | R5.31 | internal/machines/drain_test.go | planned |
 | R5.32 | internal/agent/drain_idle_test.go | planned |

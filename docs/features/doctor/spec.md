@@ -115,7 +115,7 @@ States:
 
 ### 5.2 Machines and backends
 
-**R5.9** — Machine checks: agent online, load figures fresh, load within budget, disk space, clock, slot queue health, and the machine config readable by runner accounts. See the catalogue (7.2). Built (CRSP23): `machine.online`, `machine.load.fresh`, `machine.load.budget`, `machine.disk`. NOT YET IMPLEMENTED: clock, slot queue health, machine config (milestones 1 and 3).
+**R5.9** — Machine checks: agent online, load figures fresh, load within budget, disk space, clock, slot queue health, and the machine config readable by runner accounts. See the catalogue (7.2). Built (CRSP23): `machine.online`, `machine.load.fresh`, `machine.load.budget`, `machine.disk`; built (CRSP21): `machine.guard.disk`. NOT YET IMPLEMENTED: clock, slot queue health, machine config (milestones 1 and 3).
 
 **R5.10** — Backend checks, for each backend a machine allows: it is still detected and works, and it keeps the isolation rules of decision 0003 (no Docker socket in jobs, no privileged container, KVM as a device, caps set and applied, image layers present, macOS VM limit). See 7.2. NOT YET IMPLEMENTED (milestones 2, 4, 5, 6).
 
@@ -229,6 +229,7 @@ Machines:
 | `machine.load.fresh` | The load figures are older than 60 s | fail | Restart the agent; it measures every 15 s | no | 1 |
 | `machine.load.budget` | Memory or CPU median over the budget for more than 10 minutes | warn | Lower slots or raise the budget on the Machines screen | no | 1 |
 | `machine.disk` | Free space on the work volume under 15% or 10 GB (warn), under 5% or 2 GB (fail); total size of runner work folders | warn, fail | Clean the work folders of idle runners: `crsp runners clean-work --machine NAME` | no | 1 |
+| `machine.guard.disk` | Free space on the runner volume under 10%, where the job-started gate holds new jobs (they wait, they are not failed) until 12% is free | fail | Free space on the volume, or lower the cache quotas: `crsp runners clean-work --machine NAME` | no | 1 |
 | `machine.clock` | Clock differs from the controller or from GitHub's `Date` header by over 30 s (warn) or 120 s (fail) | warn, fail | Turn on time sync (NTP) on that machine | no | 1 |
 | `machine.config` | The machine config the hooks read is missing or not readable by runner accounts | fail | Grant read rights; the command per OS | no | 1 |
 | `machine.slots` | A slot held by a dead holder or past `slot_stale_min`; a queue ticket older than that | fail | `crsp slots free-stale --machine NAME` (the next job gate also frees them) | no | 1 |
@@ -306,6 +307,7 @@ Each port brings its tests (decision 0005). Source paths are in dev-standards; `
 | Check | Ported from | Source tests | Planned Go test |
 |---|---|---|---|
 | `machine.load.fresh` | DS `machine_items` (`machine.hostload`) | `test_machine.py` HostLoad, DoctorMachine | `internal/doctor/checks/machine/load_test.go` TestLoadFresh |
+| `machine.guard.disk` | new (caches R5.38) | none | `internal/doctor/checks/checks_test.go` TestDiskGuard |
 | `machine.disk` | DS `machine_items` (`machine.disk`), `clean_work` | `test_machine.py` `test_disk_warning_and_clean_work` | `internal/doctor/checks/machine/disk_test.go` TestDisk |
 | `machine.config` | DS `machine_items` (`machine.config`) | `test_machine.py` `test_option_1_without_machine_json_fails` | `internal/doctor/checks/machine/config_test.go` TestConfigReadable |
 | `machine.slots` | DS `machine_items` (`machine.slots`) | `test_machine.py` `test_healthy_layer_and_stale_slot_and_old_files` | `internal/doctor/checks/machine/slots_test.go` TestStaleSlotsAndTickets |

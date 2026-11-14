@@ -10,6 +10,7 @@ type: reference
 code:
   - internal/runners/**
   - internal/backend/**
+  - internal/runnercache/**
 design_system: [UX-4, UX-5, UX-6, UX-9, UX-13, UX-19, UX-25, UX-29, UX-30, UX-38, UX-53, UX-58, UX-61, UX-62]
 last_verified: 2026-11-14
 artifact:
@@ -106,7 +107,7 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 
 ## 5. Functional requirements
 
-**Built by CRSP22:** R5.1 to R5.8, R5.10, R5.13 to R5.24, R5.36, R5.37, R6.1 to R6.4 and R6.8 (their store and agent link adapters are listed in section 11). **Built in part:** R5.5 (the finders are built; the console list that shows `not managed` is not), R5.9 (`Detect` is built; the allow list belongs to `machines`), R5.11 (`StreamLogs` takes a redactor; the secret list is not wired), R5.12 (`ReportUsage` is built; the 15-second sender is not). **Not built:** R5.38, R6.7, R6.9 (CI jobs). Every other requirement is **NOT YET IMPLEMENTED**. "Port" names the dev-standards source (repository `luis-mc/dev-standards`, spec `docs/features/runner-pool/spec.md`, requirement IDs as `DS R5.n`).
+**Built by CRSP22:** R5.1 to R5.8, R5.10, R5.13 to R5.24, R5.36, R5.37, R6.1 to R6.4 and R6.8 (R5.39 is built by CRSP21 and CRSP26) (their store and agent link adapters are listed in section 11). **Built in part:** R5.5 (the finders are built; the console list that shows `not managed` is not), R5.9 (`Detect` is built; the allow list belongs to `machines`), R5.11 (`StreamLogs` takes a redactor; the secret list is not wired), R5.12 (`ReportUsage` is built; the 15-second sender is not). **Not built:** R5.38, R6.7, R6.9 (CI jobs). Every other requirement is **NOT YET IMPLEMENTED**. "Port" names the dev-standards source (repository `luis-mc/dev-standards`, spec `docs/features/runner-pool/spec.md`, requirement IDs as `DS R5.n`).
 
 ### 5.1 Lifecycle from the console
 
@@ -191,6 +192,10 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 **R5.34** (M2) — **Pull through the registry mirror.** When the pool has a registry mirror, image pulls go through it. When the mirror cannot be reached, pulls go to the upstream registry and the console says so once.
 
 **R5.35** (M2) — **Rebuild with drain.** A rebuild builds the new image while the old one keeps serving jobs. Runners switch to the new image only when idle; the idle check runs right before the switch. A build failure keeps the old image and says `the rebuild failed: <reason>` (port DS R5.10, R5.13, R5.15; learning 1).
+
+### 5.10 Runner caches (M1)
+
+**R5.39** (M1) — **Cache folders, quotas and disk guard.** Each persistent runner has its own tool cache and Rust build cache folders under its folder, exported to its jobs as `CI_TOOLS_DIR` and `CARGO_TARGET_DIR`, with the quotas declared in configuration (default 20 GiB and 40 GiB). The job-completed hook evicts the oldest entries over a quota, between jobs only. The job-started gate holds new jobs while the volume has under 10% free, and the doctor reports it. The rules, the defaults and the tests are caches R5.36 to R5.39. Built (CRSP21, CRSP26). Replaces the milestone 7 plan for the cache cap.
 
 ### 5.8 Labels
 
@@ -329,6 +334,7 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.36 | internal/runners/runners_test.go TestGenericLabelsOnly (port of test_dl316_windows_only_generic.py); internal/runners/service_test.go TestPlanRefusesProjectLabels |
 | R5.37 | internal/runners/runners_test.go TestPinnedHash, TestValidSHA256 (port of the test_dl310 pin tests and test_dl165_pool_refresh_hash_result.py); internal/backend/windows/windows_test.go TestWrongHashRefused; linux and macos TestWrongHashRefused |
 | R5.38 | planned: internal/runners/update_test.go TestUpdateDrainsThenSwaps |
+| R5.39 | internal/runners/service_test.go TestAddPassesCacheQuotaToTheAgent; internal/backend/linux/linux_test.go and internal/backend/windows/windows_test.go (`.env` holds `CI_TOOLS_DIR`); internal/runnercache/runnercache_test.go and internal/hooks/hooks_test.go (quota, eviction, disk guard: caches R5.36 to R5.38) |
 | R6.1 | no backend in M1 starts a container; nothing to test until M2 |
 | R6.2 | internal/runners/service_test.go TestNoTokenOrPasswordStoredOrLogged; internal/backend/linux/linux_test.go TestTokenOnlyInEnvAndUpdateOff |
 | R6.3 | internal/backend/windows/windows_test.go TestAccountRights (never in Administrators); internal/backend/linux/linux_test.go TestUnitUserAndGroup; internal/backend/macos/macos_test.go TestHiddenUser |
@@ -380,6 +386,7 @@ Built by CRSP22: the three persistent backends, the runner rules, plan and apply
 - `internal/backend/`: the `Backend` interface (`backend.go`), the optional `Finder` and `Deregisterer` (`ext.go`).
 - `internal/backend/sys/`: the command, file and download seams, with fakes in `sys/sysfake`.
 - `internal/backend/persistent/`: shared .env, meta file, rerun decision, pinned download.
+- `internal/runnercache/`: the per-runner cache quota, eviction, disk guard and cache environment (R5.39).
 - `internal/backend/windows/`, `linux/`, `macos/`: one persistent backend each. `registry/` holds the build-tagged files that put one of them in each binary.
 - `internal/api/handlers_runners.go`: the runner operations of `packages/contract/openapi.yaml`.
 - `packaging/hooks/`: the .ps1 and .sh hook scripts.

@@ -57,7 +57,7 @@ type Config struct {
 	AgentAddr string
 	// LogLevel is the minimum level written to the structured log.
 	LogLevel slog.Level
-	// Cache is the declared cache sizing per runner (runners R5.40): tool
+	// Cache is the declared cache sizing per runner (runners R5.39): tool
 	// cache quota, Rust build cache cap and the disk guard threshold.
 	Cache runnercache.Quota
 }
