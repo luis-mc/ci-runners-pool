@@ -14,7 +14,7 @@ import (
 
 // LinkIssuer makes a one-time sign-in link for an OS user of this machine
 // (internal/auth Service.IssueLinkForOSUser and CreateBindTicket sit behind it).
-// The controller has no sign-in wired yet, so the zero value is nil.
+// The controller wires it in newAuthArea; a nil value (tests) gives plain addresses.
 type LinkIssuer interface {
 	LinkFor(ctx context.Context, osUser, target string) (string, error)
 }
@@ -75,7 +75,7 @@ func consoleURL(listen string) string {
 	if port == "" {
 		port = "8460"
 	}
-	return "http://" + net.JoinHostPort(host, port)
+	return "https://" + net.JoinHostPort(host, port)
 }
 
 // startTrayChannel serves the local channel until ctx ends. A failure to open

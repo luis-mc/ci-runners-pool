@@ -152,6 +152,16 @@ describe('sessions (R5.8 to R5.12)', () => {
     expect(assign).toHaveBeenCalledWith('/auth/github/login?return_to=%2Fmachines');
   });
 
+  it('says the tray link expired and offers GitHub sign-in (tray R5.7)', async () => {
+    const api = signedIn().on('GET', '/api/v1/me', () =>
+      apiError(401, 'unauthenticated', 'Sign in.'),
+    );
+    renderApp(api, '/sign-in?error=link_expired');
+    expect(await screen.findByText(/sign-in link from the tray expired/)).toBeTruthy();
+    expect(screen.queryByText(/GitHub did not let you in/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Sign in with GitHub' })).toBeTruthy();
+  });
+
   it('refuses a return path that is not on this origin (R5.9)', async () => {
     const { safeReturnPath } = await import('../auth/session');
     expect(safeReturnPath('/machines/m1')).toBe('/machines/m1');

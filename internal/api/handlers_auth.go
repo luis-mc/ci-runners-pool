@@ -348,7 +348,13 @@ func (s *server) RedeemTrayLink(ctx context.Context, req gen.RedeemTrayLinkReque
 	r := requestFrom(ctx)
 	si, err := a.Auth.RedeemLink(ctx, req.Params.Code, r.RemoteAddr)
 	if err != nil {
-		_, code, _ := errorFor(err)
+		// The sign-in page says the link expired and offers GitHub (tray R5.7).
+		code := "link_expired"
+		if errors.Is(err, auth.ErrLoopbackOnly) {
+			code = "link_local_only"
+		} else if !errors.Is(err, auth.ErrBadCode) {
+			_, code, _ = errorFor(err)
+		}
 		return a.redirectWithError("/sign-in", code, nil), nil
 	}
 	c := auth.SessionCookie(si.Cookie).String()

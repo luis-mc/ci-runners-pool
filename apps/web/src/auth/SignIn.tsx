@@ -30,7 +30,13 @@ export function SignInPage() {
     <main>
       <Page frame="narrow">
         <PageHeader title="Sign in" lead="CI Runners Shared Pool" />
-        {failed ? (
+        {failed === 'link_expired' || failed === 'link_local_only' ? (
+          <Message tone="problem">
+            {failed === 'link_expired'
+              ? 'The sign-in link from the tray expired or was already used. Choose Open in the tray again, or sign in with GitHub.'
+              : 'The sign-in link from the tray works on the computer that made it only. Sign in with GitHub here.'}
+          </Message>
+        ) : failed ? (
           <Message tone="problem">
             Sign-in failed. GitHub did not let you in ({failed}). Try again.
           </Message>
