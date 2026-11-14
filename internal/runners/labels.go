@@ -20,6 +20,7 @@ var fixedLabels = map[string]bool{
 	"docker":      true,
 	"kvm":         true,
 	"gpu":         true,
+	LightLabel:    true,
 }
 
 // capabilityLabels are added only when the agent has checked they work.

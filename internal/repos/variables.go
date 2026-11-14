@@ -291,7 +291,13 @@ func (s *Service) ReconcileVariables(ctx context.Context, repoID int64) error {
 			return err
 		}
 	}
-	return nil
+	// The light runner is kept the same way: put back, and placed again when a
+	// machine gained a light slot since the last check (R5.65).
+	pol2, err := s.policyOrDefault(ctx, repoID)
+	if err != nil {
+		return err
+	}
+	return s.syncLight(bg, System, r, pol2)
 }
 
 func driftWas(exists bool, got string) string {

@@ -142,12 +142,13 @@ func cmdRepo() *command {
 				run: func(c *call, args []string) error { return c.setPool(args, "on") }},
 			{name: "disable", summary: "turn the pool off for a repository", args: "OWNER/NAME [--yes]", flags: func(c *call, fs *flag.FlagSet) { yesFlag(fs) },
 				run: func(c *call, args []string) error { return c.setPool(args, "off") }},
-			{name: "policy", summary: "show or change a repository's policy", args: "OWNER/NAME [--labels A,B] [--max-parallel N] [--priority N] [--allow-fork-prs] [--yes]",
+			{name: "policy", summary: "show or change a repository's policy", args: "OWNER/NAME [--labels A,B] [--max-parallel N] [--priority N] [--allow-fork-prs] [--light-runner=true|false] [--yes]",
 				flags: func(c *call, fs *flag.FlagSet) {
 					fs.String("labels", "", "generic labels, comma separated")
 					fs.Int("max-parallel", 0, "most jobs at once")
 					fs.Int("priority", 0, "higher goes first")
 					fs.Bool("allow-fork-prs", false, "run jobs from fork pull requests")
+					fs.Bool("light-runner", true, "keep a light runner for jobs that last seconds")
 					yesFlag(fs)
 				},
 				run: func(c *call, args []string) error { return c.repoPolicy(args) }},
@@ -295,6 +296,10 @@ func (c *call) repoPolicy(args []string) error {
 		n := mustInt(c.fs.Lookup("priority").Value.String())
 		upd.Priority, changed = &n, true
 	}
+	if set["light-runner"] {
+		b := c.fs.Lookup("light-runner").Value.String() == "true"
+		upd.LightRunner, changed = &b, true
+	}
 	if set["allow-fork-prs"] {
 		b := c.fs.Lookup("allow-fork-prs").Value.String() == "true"
 		upd.AllowForkPullRequests, changed = &b, true
@@ -322,8 +327,8 @@ func (c *call) repoPolicy(args []string) error {
 	if c.g.json {
 		return output.JSON(c.env.Stdout, policy)
 	}
-	_, _ = fmt.Fprintf(c.env.Stdout, "Repository:      %s\nLabels:          %s\nMax parallel:    %d\nPriority:        %d\nFork PRs:        %s\n",
-		repo.FullName, strings.Join(policy.Labels, ", "), policy.MaxParallelJobs, policy.Priority, onOff(policy.AllowForkPullRequests))
+	_, _ = fmt.Fprintf(c.env.Stdout, "Repository:      %s\nLabels:          %s\nMax parallel:    %d\nPriority:        %d\nFork PRs:        %s\nLight runner:    %s\n",
+		repo.FullName, strings.Join(policy.Labels, ", "), policy.MaxParallelJobs, policy.Priority, onOff(policy.AllowForkPullRequests), onOff(policy.LightRunner))
 	if changed {
 		_, _ = fmt.Fprintln(c.env.Stderr, "Policy saved.")
 	}

@@ -168,6 +168,17 @@ The words of the images and caches screen (web-console 4.7).
 - A field name is a noun: "Title", not "Enter the title".
 - Mark only optional fields, with "(optional)" after the name.
 
+## Light runner words
+
+The words of the repository policy form for the light runner (scheduling R5.65).
+
+| Word | Meaning |
+|---|---|
+| Light runner | A runner kept free for jobs that last seconds, so they do not wait behind a long build. |
+| Keep a light runner for short jobs | The switch on the policy form. On by default. |
+| A light runner is kept free for jobs that last seconds, so they do not wait behind a long build. A workflow uses it with runs-on: ${{ vars.RUNS_ON_LIGHT }}. | The note under the switch. |
+| No light runner is online for {os} on {repository} | The doctor finding when the runner is missing. |
+
 ## Notification words
 
 The events, severities and channel kinds of the notifications feature, as people read them (notifications R5.1, R5.4). The stable type names stay in the API and in webhook bodies; the screen shows these words.

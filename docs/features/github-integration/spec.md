@@ -203,6 +203,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 - Maximum parallel jobs. Default 2. Enforced by the scheduling spec (M1).
 - Priority. Default normal. Enforced by the scheduling spec (M3).
 - Fork pull requests. Default off (R5.26).
+- Light runner. Default on. Keeps one light runner per OS for the repository and writes `RUNS_ON_LIGHT` (scheduling R5.65, runners R5.57).
 
 **R5.26** (M1, built in part: the fork-approval setting is built; the job-started hook guard is NOT YET IMPLEMENTED and untested, so fork protection is not built until its hook test passes) — **Fork pull requests off by default.** For a public repository, jobs from pull requests whose head repository is a fork never run on the pool unless the policy allows it. Two guards apply. The controller sets the repository's fork-approval setting to require approval for all outside contributors. The runner's job-started hook reads the event payload and fails a forked pull request job at once, before any step runs, with a message that names the policy. Turning it on asks first with a warning that fork code runs on the user's machines.
 

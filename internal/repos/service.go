@@ -19,7 +19,9 @@ type Config struct {
 	Tokens   TokenSource
 	Audit    Auditor
 	Capacity Capacity
-	Now      func() time.Time
+	// Light keeps the light runners; nil means none are kept.
+	Light LightRunners
+	Now   func() time.Time
 	// OnProgress, when set, is called with the plan after each step and when
 	// the plan ends or is stopped (the plan.progress event).
 	OnProgress func(Plan)
@@ -48,6 +50,10 @@ func New(cfg Config) *Service {
 	return &Service{cfg: cfg, admin: map[int64]map[int64]bool{}, synced: map[int64]time.Time{},
 		etags: map[int64]map[string]string{}, cache: map[int64]map[string][]byte{}, stops: map[string]bool{}, running: map[string]bool{}}
 }
+
+// SetLight sets who keeps the light runners. The wiring calls it once the
+// runners service exists, which is after this one.
+func (s *Service) SetLight(l LightRunners) { s.cfg.Light = l }
 
 // ErrNotAdmin: the user lacks the GitHub admin permission on the repository.
 type ErrNotAdmin struct{ Repo string }
@@ -292,6 +298,9 @@ func (s *Service) UpdatePolicy(ctx context.Context, p auth.Principal, id int64, 
 		if err := s.syncVariables(ctx, p, r, np); err != nil {
 			return np, err
 		}
+		if err := s.syncLight(ctx, p, r, np); err != nil {
+			return np, err
+		}
 		_ = s.CheckRunsOn(ctx, id)
 	}
 	return np, nil
@@ -331,6 +340,9 @@ func describePolicy(a, b Policy) string {
 	}
 	if strings.Join(a.RunnerGroups, ",") != strings.Join(b.RunnerGroups, ",") {
 		d = append(d, "runner groups "+strings.Join(b.RunnerGroups, ","))
+	}
+	if a.LightRunner != b.LightRunner {
+		d = append(d, fmt.Sprintf("light runner %t to %t", a.LightRunner, b.LightRunner))
 	}
 	if a.BudgetMemoryPct != b.BudgetMemoryPct || a.BudgetCPUPct != b.BudgetCPUPct {
 		d = append(d, "budget")

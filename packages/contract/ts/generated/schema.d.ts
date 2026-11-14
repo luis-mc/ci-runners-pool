@@ -1928,7 +1928,8 @@ export interface components {
          *           "linux",
          *           "x64"
          *         ],
-         *         "runner_groups": []
+         *         "runner_groups": [],
+         *         "light_runner": true
          *       }
          *     }
          */
@@ -1951,7 +1952,7 @@ export interface components {
         };
         RepositoryVariable: {
             /** @enum {string} */
-            name: "RUNS_ON_LINUX" | "RUNS_ON_WINDOWS" | "RUNS_ON_MACOS";
+            name: "RUNS_ON_LINUX" | "RUNS_ON_WINDOWS" | "RUNS_ON_MACOS" | "RUNS_ON_LIGHT";
             status: components["schemas"]["VariableStatus"];
             /** @description The JSON list of labels as written. */
             value?: string;
@@ -1966,6 +1967,8 @@ export interface components {
             /** @description Generic labels only (github-integration R5.27). */
             labels: string[];
             runner_groups: string[];
+            /** @description Keep one light runner per OS for this repository and write RUNS_ON_LIGHT, so jobs that last seconds do not queue behind a long build (scheduling R5.65). On by default. */
+            light_runner: boolean;
             /** @description May lower the machine budget for this repository's jobs, never raise it (scheduling R5.4). */
             budget_memory_pct?: number;
             budget_cpu_pct?: number;
@@ -1983,6 +1986,8 @@ export interface components {
             priority?: number;
             max_parallel_jobs?: number;
             allow_fork_pull_requests?: boolean;
+            /** @description Turn the light runner on or off (scheduling R5.65). */
+            light_runner?: boolean;
             /** @description Needed to turn fork jobs on (github-integration R5.26). */
             confirm_fork_risk?: boolean;
             labels?: string[];

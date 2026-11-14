@@ -231,6 +231,32 @@ func TestLightSlots(t *testing.T) {
 	}
 }
 
+// R5.65: a job on a light runner takes a light slot whatever its job key is,
+// and when the light slot is busy it waits for it, never for a job slot.
+func TestLightRunnerTakesLightSlotOnly(t *testing.T) {
+	e := newEnv(t)
+	lj := func(run int64, name string) scheduler.JobRef {
+		j := job("o/r", run, name)
+		j.RunnerName = "crsp-light-r-linux"
+		return j
+	}
+	g := goes(t, e.gate(e.req("a", lj(1, "build"), 1, quiet)))
+	if g.Kind != scheduler.SlotLight || g.Number != 1 {
+		t.Fatalf("grant %+v", g)
+	}
+	// the light slot is busy, both job slots are free: still no job slot
+	waits(t, e.gate(e.req("b", lj(2, "build"), 1, quiet)), scheduler.WaitFreeSlot)
+	if len(e.status(m1).Tickets) != 0 {
+		t.Fatal("a light runner job took a ticket")
+	}
+	if _, err := e.eng.Release(context.Background(), m1, lj(1, "build"), nil); err != nil {
+		t.Fatal(err)
+	}
+	if g = goes(t, e.gate(e.req("b", lj(2, "build"), 1, quiet))); g.Kind != scheduler.SlotLight {
+		t.Fatalf("grant %+v", g)
+	}
+}
+
 // R5.24: light slots at 0 mean no light handling.
 func TestLightOffMeansNormalQueue(t *testing.T) {
 	e := newEnv(t)

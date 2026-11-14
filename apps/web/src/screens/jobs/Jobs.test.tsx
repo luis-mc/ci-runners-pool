@@ -77,6 +77,7 @@ function jobsApi(items: { queue?: Job[]; history?: Job[]; next?: string } = {}) 
             priority: 10,
             max_parallel_jobs: 2,
             allow_fork_pull_requests: false,
+            light_runner: true,
             labels: [],
             runner_groups: [],
           },
