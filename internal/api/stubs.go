@@ -22,26 +22,6 @@ func (s *server) CreateConsoleLink(_ context.Context, _ gen.CreateConsoleLinkReq
 	return gen.CreateConsoleLinkdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// GetPoolSettings is not built yet.
-func (s *server) GetPoolSettings(_ context.Context, _ gen.GetPoolSettingsRequestObject) (gen.GetPoolSettingsResponseObject, error) {
-	return gen.GetPoolSettingsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// GetQueueSettings is not built yet.
-func (s *server) GetQueueSettings(_ context.Context, _ gen.GetQueueSettingsRequestObject) (gen.GetQueueSettingsResponseObject, error) {
-	return gen.GetQueueSettingsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// UpdatePoolSettings is not built yet.
-func (s *server) UpdatePoolSettings(_ context.Context, _ gen.UpdatePoolSettingsRequestObject) (gen.UpdatePoolSettingsResponseObject, error) {
-	return gen.UpdatePoolSettingsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// UpdateQueueSettings is not built yet.
-func (s *server) UpdateQueueSettings(_ context.Context, _ gen.UpdateQueueSettingsRequestObject) (gen.UpdateQueueSettingsResponseObject, error) {
-	return gen.UpdateQueueSettingsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // CreateNotificationChannel is not built yet.
 func (s *server) CreateNotificationChannel(_ context.Context, _ gen.CreateNotificationChannelRequestObject) (gen.CreateNotificationChannelResponseObject, error) {
 	return gen.CreateNotificationChanneldefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil

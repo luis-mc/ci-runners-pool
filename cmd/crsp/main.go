@@ -142,7 +142,7 @@ func runController() error {
 	})
 
 	idle := &idleHook{}
-	mr, err := startMachines(ctx, cfg, logger, idle)
+	mr, err := startMachines(ctx, cfg, logger, idle, poolDefaults(ops.Settings))
 	if err != nil {
 		return err
 	}
