@@ -93,7 +93,7 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 | `CI Runners Shared Pool <version> - up to date` | Text, grey, not pressable | Reads `- update <v> available` when a newer stable release exists, `- updating…` while an update drains, downloads or installs, and ends with ` · auto-update off` when Automatic updates is off. With no answer from the service it shows only the name and version. |
 | `Service: Running · N jobs running · M waiting` | Text, grey, not pressable | The state is a word: Running, Waiting, Failed, Stopped or Starting. Stopped reads `Service: Stopped at 14:30 · exit code 3`. The tooltip keeps the glyph form (R5.2). |
 | (separator) | | |
-| Open CI Runners Shared Pool | Action, the default (bold) entry where the OS can draw one | Opens the console, signed in, through a one-time link. |
+| Open CI Runners Shared Pool | Action. It is not bold: the owner accepted a plain entry, and the menu has no default-entry code path. | Opens the console, signed in, through a one-time link. |
 | Look for updates | Action | Asks the service to look for a newer stable release now and says the result in one notice. |
 | Update to `<version>` | Action | Shown only when a newer release waits for a yes, that is, Automatic updates is off. Opens the console Review step. |
 | Restart the service | Action | Opens the console Review step. Never restarts without that yes. |

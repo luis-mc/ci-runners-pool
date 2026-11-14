@@ -39,7 +39,7 @@ func TestMenuOrder(t *testing.T) {
 			t.Errorf("item %d = %q want %q", i, vis[i].Label, w)
 		}
 	}
-	if vis[0].Action || vis[1].Action || !vis[3].Default || !vis[3].Action {
+	if vis[0].Action || vis[1].Action || !vis[3].Action {
 		t.Error("the two top lines are text; Open is the default entry")
 	}
 	if !vis[8].Switch || !vis[8].Checked || !vis[2].Separator || !vis[9].Separator {

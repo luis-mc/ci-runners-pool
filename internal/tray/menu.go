@@ -45,7 +45,6 @@ type MenuItem struct {
 	Switch    bool // has a tick
 	Checked   bool
 	Separator bool
-	Default   bool // the bold default entry, where the OS can draw one
 	Hidden    bool // present in the model, not shown
 }
 
@@ -138,7 +137,7 @@ func BuildMenu(version string, st Status, startAtLogin bool) []MenuItem {
 		{ID: IDHeader, Label: Header(version, st)},
 		{ID: IDService, Label: st.ServiceLine()},
 		{ID: IDSep1, Separator: true},
-		{ID: IDOpen, Label: LabelOpen, Action: true, Default: true},
+		{ID: IDOpen, Label: LabelOpen, Action: true},
 		{ID: IDCheck, Label: LabelCheck, Action: true},
 		{ID: IDUpdate, Label: updateLabel + st.Update.Latest, Action: true, Hidden: !showUpdate},
 		{ID: IDRestart, Label: LabelRestart, Action: true},
