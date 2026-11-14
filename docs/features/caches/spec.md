@@ -207,6 +207,8 @@ Owner decision of 2026-11-14 (CRSP21, CRSP26; dev-standards D302): on 14 Nov an 
 
 **R5.35** — Changing the cache server, git mirror or registry mirror setting for a pool takes effect only for runners started after the change. Runners that need a restart for it drain first.
 
+**R5.41** (after v0.1.0, NOT YET IMPLEMENTED) — **Playwright browsers path.** Each machine keeps one folder for Playwright browsers inside the tool cache folder (R5.14). The agent sets `PLAYWRIGHT_BROWSERS_PATH` to it for every job, so a job that needs a browser not in the runner image (runners R5.44) downloads it once per machine, SHA-256 checked, and later jobs reuse it. Until this is built, jobs that need it run on GitHub-hosted runners.
+
 ## 6. Non-functional requirements
 
 **R6.1** — Performance: `GetCacheEntryDownloadURL` answers within 50 ms at the 95th percentile with 100,000 entries in the index. A 1 GiB entry downloads from the server on loopback at 200 MB/s or more.
@@ -341,6 +343,7 @@ Rows for R5.36 to R5.40 are built and run in CI. Every other row is planned: non
 | R5.38 | internal/runnercache/runnercache_test.go TestGuardHoldsUnderTenPercentAndResumesWithMargin, TestGuardReasonAndUnknownDisk; internal/hooks/hooks_test.go TestDiskGuardHoldsAndResumes, TestDiskGuardTimeoutFailsWithoutSlotEvenOnTimeoutRun, TestDiskGuardFailsOpenOnReadError; internal/doctor/checks/checks_test.go TestDiskGuard |
 | R5.39 | internal/runnercache/runnercache_test.go TestEnvExportsToolsDirAndQuotas, TestCapsFromEnv; internal/backend/linux/linux_test.go and internal/backend/windows/windows_test.go (the runner env file holds CI_TOOLS_DIR); internal/runners/service_test.go TestAddPassesCacheQuotaToTheAgent |
 | R5.40 | internal/vmcheck/vmcheck_test.go (catalogue, TestParseChecksumsBSDAndSums, TestResolveChecksumURLPicksNewestListed, TestKeys, TestVerifyComparesCachedWithPublished, TestReadiness, TestSELinuxVerdict, TestPrunePlanKeepsNewestPerDistroAndOldTempFiles, TestCatalogueMatchesThePluginFile) |
+| R5.41 | planned: internal/cache/playwright_test.go TestBrowsersPathSharedPerMachine (after v0.1.0) |
 | R6.1 | internal/cache/bench_test.go (lookup p95 with 100,000 entries; 1 GiB download speed) |
 | R6.2 | internal/cache/evict_test.go (default 20 GiB, ceiling, refuse under 10% free) |
 | R6.3 | internal/cache/integrity_test.go (changed blob becomes a miss and is deleted) |

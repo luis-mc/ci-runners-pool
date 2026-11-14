@@ -3,7 +3,7 @@ id: runners
 title: Runners and isolation backends
 apps: [controller, agent, web-console, cli]
 topics: [runners, isolation, security, machines, ui]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference
@@ -209,6 +209,20 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 
 **R5.40** (M1) — **A missing or broken crsp never hides.** The `.ps1` and `.sh` hooks keep the job going when `crsp` is not installed, cannot start, or cannot be reached (a bad install must not fail CI), but each prints the GitHub Actions annotation `::warning title=crsp::...` on its own line. The text says what failed (`crsp is not installed at <path>` or `crsp at <path> could not run (...)`), that the job ran without the queue and the load gate, and what to do (reinstall crsp for all users on this machine, then run `crsp doctor --check runner.hooks`). The hook also writes the line to `crsp-hook-problem.txt` next to the scripts, which the agent reads into the runner's hook problems for the doctor (doctor R5.14). `CRSP_BIN` overrides the binary path, for tests. The same applies to every OS. Built.
 
+### 5.11 Parity with the old pool (after v0.1.0)
+
+The dev-standards runner pool covered these cases ([handover page](../../architecture/dev-standards-handover.md), section 4). Each requirement below targets a milestone after v0.1.0 and is **NOT YET IMPLEMENTED**. Until this is built, jobs that need it run on GitHub-hosted runners.
+
+**R5.41** (after v0.1.0, NOT YET IMPLEMENTED) — **Linux containers with KVM.** A Linux runner in a container (R5.27) on a machine whose `/dev/kvm` the agent has checked as usable by the runner gets the `kvm` label (R5.36) and the device through `--device /dev/kvm`, never `--privileged`. A test VM boot job (the `vm_check.py` case of the handover page) runs in it. When `/dev/kvm` is missing or not usable the runner has no `kvm` label and the doctor says why (machines R5.53).
+
+**R5.42** (after v0.1.0, NOT YET IMPLEMENTED) — **A Wine prefix per runner.** A Linux runner image that has the `wine` layer gives each runner its own Wine prefix in the runner's own folder, set by `WINEPREFIX`. `TMPDIR` is not set in the runner's job environment, because a set `TMPDIR` breaks Wine's startup. Two runners never share a prefix. A prefix is made on first use and removed with the runner.
+
+**R5.43** (after v0.1.0, NOT YET IMPLEMENTED) — **LLVM and clang-cl for cargo-xwin.** A Linux image layer `llvm` holds a pinned LLVM (SHA-256 checked, R5.37 rule) with `clang-cl`, `lld-link` and `llvm-lib` on the `PATH`, so `cargo-xwin` builds Windows targets. The layer has a self-check that runs `clang-cl --version`. On a Windows runner the symlink right that `cargo-xwin` and Rust tooling need follows R5.14: given only when the machine or label setting asks for it.
+
+**R5.44** (after v0.1.0, NOT YET IMPLEMENTED) — **Playwright browsers in the image.** An image layer `playwright` holds the Chromium, Firefox and WebKit builds for one pinned Playwright version and their system packages, at a fixed path set by `PLAYWRIGHT_BROWSERS_PATH` (caches R5.41). The layer's self-check launches each browser headless once. A job that finds the browsers there downloads nothing.
+
+**R5.45** (after v0.1.0, NOT YET IMPLEMENTED) — **Postgres roles per runner.** Where a machine offers a Postgres server to jobs, each runner gets its own role and its own database owned by it, with a random password the agent keeps in the OS secret store and puts only in that runner's job environment. A role cannot connect to another runner's database. The role and database go with the runner when it is removed. No secret is written to a log (R6.2).
+
 ## 6. Non-functional requirements
 
 All **NOT YET IMPLEMENTED**.
@@ -338,6 +352,11 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.38 | planned: internal/runners/update_test.go TestUpdateDrainsThenSwaps |
 | R5.39 | internal/runners/service_test.go TestAddPassesCacheQuotaToTheAgent; internal/backend/linux/linux_test.go and internal/backend/windows/windows_test.go (the runner env file holds CI_TOOLS_DIR); internal/runnercache/runnercache_test.go and internal/hooks/hooks_test.go (quota, eviction, disk guard: caches R5.36 to R5.38) |
 | R5.40 | packaging/hooks/hooks_test.go TestShHookWarnsWhenCrspIsMissing, TestShHookWarnsWhenCrspCannotRun, TestShHookPassesCrspExitCodeAndStaysQuiet, TestPs1HookWarnsWhenCrspIsMissing |
+| R5.41 | planned: internal/backend/linux/kvm_test.go TestKVMDeviceOnlyAndLabelNeedsUsable |
+| R5.42 | planned: internal/backend/linux/wine_test.go TestPrefixPerRunnerAndTmpdirUnset |
+| R5.43 | planned: internal/runners/images_test.go TestLLVMLayerSelfCheckAndPinnedHash; internal/backend/windows/symlink_test.go TestSymlinkRightOnlyWhenAsked |
+| R5.44 | planned: internal/runners/images_test.go TestPlaywrightLayerSelfCheck |
+| R5.45 | planned: internal/runners/postgres_test.go TestRolePerRunnerIsolatedAndRemoved |
 | R6.1 | no backend in M1 starts a container; nothing to test until M2 |
 | R6.2 | internal/runners/service_test.go TestNoTokenOrPasswordStoredOrLogged; internal/backend/linux/linux_test.go TestTokenOnlyInEnvAndUpdateOff |
 | R6.3 | internal/backend/windows/windows_test.go TestAccountRights (never in Administrators); internal/backend/linux/linux_test.go TestUnitUserAndGroup; internal/backend/macos/macos_test.go TestHiddenUser |
@@ -363,7 +382,7 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 Open questions for the owner (proposed answers are in the requirements until decided):
 
 1. R5.14: the symlink right only when asked (brief), while dev-standards gives it to every account (DL319). Confirm "only when asked".
-2. R5.13, R5.21, R5.23: account prefix `crp-` and group `crsp-runners`. Confirm names.
+2. R5.13, R5.21, R5.23: account prefix `crsp-` and group `crsp-runners` are built (`internal/runners/account.go`). Confirm names.
 3. R5.33: keep the newest 3 images per OS. Confirm the default.
 4. R6.4: drain timeout default 60 minutes, one per machine. Decided by the owner (2026-11-14).
 5. R6.7: log retention 14 days or 200 MB per machine; usage 90 days. Confirm.
@@ -382,6 +401,7 @@ Built by CRSP22: the three persistent backends, the runner rules, plan and apply
 - M5: Tart backend.
 - M6: Firecracker and Cloud Hypervisor backends with snapshots.
 - M7: the registry mirror server that R5.34 uses.
+- After v0.1.0: the parity requirements R5.41 to R5.45 (Linux containers with KVM, Wine prefix, LLVM, Playwright browsers, Postgres roles).
 
 ## 12. Code map
 

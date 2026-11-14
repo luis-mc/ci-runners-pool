@@ -3,7 +3,7 @@ id: machines
 title: Machines
 apps: [controller, agent, web-console, cli]
 topics: [machines, security, install, scheduling, operations]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference
@@ -18,7 +18,7 @@ generator: luismc-docs 2.6.1
 ---
 # Machines
 
-NOT YET IMPLEMENTED. Every requirement below is planned. Each one names its milestone: **M1** (one machine, the controller's own) or **M3** (more machines), or a later one where it says so.
+PARTLY BUILT (CRSP20). The M1 agent link, join codes, machine keys, detection, load measurement, settings, drain and the controller's own agent are built; see the change note. Not built: R5.14, R5.27 to R5.29, R5.49, R6.9, R6.10. Every requirement not built is NOT YET IMPLEMENTED. Each one names its milestone: **M1** (one machine, the controller's own) or **M3** (more machines, placement and removal), or a later one where it says so.
 
 Sources: the product brief ([product.md](../../overview/product.md)), decisions [0003](../../architecture/decisions/0003-isolation-backends.md), [0004](../../architecture/decisions/0004-agent-link.md) and [0005](../../architecture/decisions/0005-product-boundary.md). Requirements ported from dev-standards cite their origin there: `docs/features/runner-pool/spec.md` (runner-pool R5.x) and `docs/architecture/DELIVERYSPEC.md` (DL-x).
 
@@ -70,7 +70,7 @@ flowchart LR
 ```
 
 1. In milestone 1 the controller starts its own agent on the same machine. It joins without a code.
-2. From milestone 3 the user presses **Add machine**. The console shows the install command for each OS with a one-time join code.
+2. From milestone 1 the user presses **Add machine**. The console shows the install command for each OS with a one-time join code.
 3. The user runs it on the new machine. The one step that needs admin rights lists what it does and asks first. It installs the agent as a service under its own account.
 4. The agent dials the controller on port 8461. It checks the controller's certificate against the fingerprint in the command and keeps it. It shows the join code.
 5. The controller checks the code, uses it up and issues a key for this machine. The agent keeps the key in the OS secret store.
@@ -109,15 +109,15 @@ The overview shows machines and load and only links here (UX-52). Busy buttons f
 
 ### 5.2 Join
 
-**R5.3** (M3) — **Add machine** shows one install command per OS (Windows, Linux, macOS). The command carries the controller address, port 8461, the controller certificate's SHA-256 fingerprint and a one-time join code.
+**R5.3** (M1) — **Add machine** shows one install command per OS (Windows, Linux, macOS). The command carries the controller address, port 8461, the controller certificate's SHA-256 fingerprint and a one-time join code.
 
-**R5.4** (M3) — A join code works once. It expires after 15 minutes by default (ceiling 24 hours). The console shows when it expires. A new code makes the old unused one invalid.
+**R5.4** (M1) — A join code works once. It expires after 15 minutes by default (ceiling 24 hours). The console shows when it expires. A new code makes the old unused one invalid.
 
-**R5.5** (M3) — At join the agent checks the controller certificate against the fingerprint in the command. On a mismatch it stops and says so. It never joins a controller it cannot verify.
+**R5.5** (M1) — At join the agent checks the controller certificate against the fingerprint in the command. On a mismatch it stops and says so. It never joins a controller it cannot verify.
 
-**R5.6** (M3) — At join the controller checks the code, marks it used, and issues a key for this machine only. A used, expired or unknown code is refused with the reason ("this code was already used", "this code expired at 14:05").
+**R5.6** (M1) — At join the controller checks the code, marks it used, and issues a key for this machine only. A used, expired or unknown code is refused with the reason ("this code was already used", "this code expired at 14:05").
 
-**R5.7** (M3) — The agent keeps its key and the pinned certificate in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service or a file with mode 0600 owned by the agent account.
+**R5.7** (M1) — The agent keeps its key and the pinned certificate in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service or a file with mode 0600 owned by the agent account.
 
 **R5.8** (M1) — Every connection after join proves the machine's key over TLS and checks the pinned certificate. The controller refuses an unknown or revoked key.
 
@@ -141,7 +141,7 @@ Ported from dev-standards `claude/plugins/delivery/scripts/load.py` and `load_gu
 
 **R5.15** (M1) — The agent measures total memory use % and total CPU use % of the machine. Windows: `GlobalMemoryStatusEx` and `GetSystemTimes`. Linux: `/proc/meminfo` and `/proc/stat`. macOS: `vm_stat` with `hw.memsize`, and CPU from `host_processor_info` or `top`. CPU is the delta of raw counters between two samples, never a sleep inside a hook.
 
-**R5.16** (M1) — The agent samples every 5 seconds. The figure that decides is the median of the last 5 samples, so one spike does not decide (DL176).
+**R5.16** (M1) — The agent samples every 5 seconds. The figure that decides is the median of the last 5 samples, so one spike does not decide (DL176). The one-shot job hooks use their own cached mean of up to 3 samples in 30 s (scheduling R5.42, D7); both rules are built and apply to different readers.
 
 **R5.17** (M1) — On Windows with WSL2, the WSL VM's memory is the larger of the `vmmem` or `vmmemWSL` working set and its private bytes, and at least the memory its containers use (DL177). Windows trims the working set, so it alone reads too low.
 
@@ -217,7 +217,7 @@ Ported from runner-pool R5.10 (no rebuild under a running job) and learning 1 of
 
 **R5.42** (M3) — If the machine is offline, removal still revokes the key and deregisters its runners from GitHub. The console says the agent will learn this on its next connect (R5.39) and that its local files stay until it is uninstalled.
 
-**R5.43** (M3) — A removed machine joins again only with a new join code. It gets a new key.
+**R5.43** (M1) — A removed machine joins again only with a new join code. It gets a new key.
 
 ### 5.9 Least privilege and the service
 
@@ -237,9 +237,17 @@ Ported from runner-pool R5.10 (no rebuild under a running job) and learning 1 of
 
 **R5.50** (M1) — The Machines screen lists every machine with its state, OS, backends, load against budget, slots used and last seen. Load updates live (server-sent events).
 
-**R5.51** (M1) — The CLI has the same powers: `crsp machines list`, `show`, `set`, `drain`, `resume`, and from M3 `join-code` and `remove`. A destructive command lists what goes and asks for a yes; `--yes` answers it in a script.
+**R5.51** (M1) — The CLI has the same powers: `crsp machines list`, `show`, `set`, `drain`, `resume`, `join-code` (M1), and from M3 `remove`. A destructive command lists what goes and asks for a yes; `--yes` answers it in a script.
 
 **R5.52** (M1) — Settings, drain, resume and removal need the admin or owner role. Viewers see machines and load only.
+
+### 5.11 Parity with the old pool (after v0.1.0)
+
+Each requirement below targets a milestone after v0.1.0 and is **NOT YET IMPLEMENTED**. Until this is built, jobs that need it run on GitHub-hosted runners. Source: the handover page ([section 3 items 8 and 13](../../architecture/dev-standards-handover.md)).
+
+**R5.53** (after v0.1.0, NOT YET IMPLEMENTED) — **KVM on WSL2.** On Windows with WSL2, after `wsl --shutdown` or a reboot `/dev/kvm` is gone until the module `kvm_intel` or `kvm_amd` is loaded in the WSL VM. The agent checks `nestedVirtualization=true` in the user's `.wslconfig` and reports it as the backend reason when it is off ("nested virtualization is off in .wslconfig"); it never edits that file without a yes. When it is on and `/dev/kvm` is missing, the agent loads the module through a one-shot privileged helper that exits after the load; runners are never privileged. The `kvm` label (runners R5.36) is added only after `/dev/kvm` is usable. The step runs again at every WSL start.
+
+**R5.54** (after v0.1.0, NOT YET IMPLEMENTED) — **WSL memory sizing.** The agent reads the `memory=` and `processors=` values of `.wslconfig` and the memory the WSL VM holds (R5.17), and shows them in the machine facts. The runner count and per-runner memory cap are set from the declared value, never from a live reading. It exports the CPU limit to jobs and splits it per runner, so `nproc` in a container matches the cap. A declared value above what the machine can give is refused with the reason. A change to `.wslconfig` needs `wsl --shutdown`, so the console says it waits for the machine to drain (R5.30).
 
 ## 6. Non-functional requirements
 
@@ -247,7 +255,7 @@ Ported from runner-pool R5.10 (no rebuild under a running job) and learning 1 of
 
 **R6.2** (M1) — No key, join code or certificate private key is written to the database, a log or the console in clear. The controller stores join codes and machine keys only as hashes.
 
-**R6.3** (M3) — A join code has at least 128 bits of entropy. After 10 failed join attempts from one address in one minute, that address is refused for 5 minutes.
+**R6.3** (M1) — A join code has at least 128 bits of entropy. After 10 failed join attempts from one address in one minute, that address is refused for 5 minutes.
 
 **R6.4** (M1) — Every join, settings change, drain, resume, removal and key revocation is written to the audit log: who, what, when.
 
@@ -377,6 +385,8 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.50 | apps/web/src/machines/Machines.test.tsx | planned |
 | R5.51 | cmd/crsp/machines_cmd_test.go | planned |
 | R5.52 | internal/api/machines_auth_test.go | planned |
+| R5.53 | internal/agent/wsl_kvm_test.go | planned; after v0.1.0 |
+| R5.54 | internal/agent/wsl_memory_test.go | planned; after v0.1.0 |
 | R6.1 | internal/machines/tls_test.go | planned |
 | R6.2 | internal/machines/secrets_test.go | planned |
 | R6.3 | internal/machines/joincode_test.go | planned |
@@ -402,7 +412,7 @@ Open questions for the owner are listed in `docs/work/CRP4-report.md` on this br
 
 ## 11. Not built yet
 
-Everything in this spec is NOT YET IMPLEMENTED. The seams that will change:
+Everything not named as built at the top is NOT YET IMPLEMENTED. The seams that will change:
 
 - `packages/contract/proto/agent/v1/agent.proto`: `Register` becomes `Join`; session messages grow (section 7).
 - `internal/store/migrations`: new tables for machines, keys, join codes, settings and load.

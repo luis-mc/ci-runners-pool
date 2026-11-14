@@ -36,7 +36,7 @@ All five are one Go binary, `crsp` (decision 0001).
 
 ## Owner decisions for milestone 1 (2026-11-14)
 
-- Drain: a change that must restart runners waits for running jobs. After 30 minutes it keeps waiting, warns, and names the blocking job. It never kills a job.
+- Drain: a change that must restart runners waits for running jobs. After the drain timeout (one per machine, default 60 minutes) it keeps waiting, warns, and names the blocking job. It never kills a job.
 - Default job slots for a new machine are sized from its cores and memory within the load budget, as dev-standards does. The user can change them.
 - When a job-started hook cannot reach the controller or agent, it waits on local load only and logs it. A controller outage never stalls CI.
 - Queue order: repository priority first, then fair share (round-robin by repository) within a priority. The per-repository parallel limit always applies. Fair share, priority and limits are in M1. Queue order and every repository attribute are configurable in the web console.
@@ -176,14 +176,14 @@ dev-standards (github.com/luis-mc/dev-standards, public; same owner, so its code
 
 ## Milestones
 
-1. **One machine, persistent runners**: controller and agent, GitHub App sign-in, list repositories, turn the pool on for one repository, register persistent runners (Windows, Linux, macOS), slot queue and load budget, live overview. Ship it.
+1. **One machine, persistent runners**: controller and agent, GitHub App sign-in, list repositories, turn the pool on for one repository, register persistent runners (Windows, Linux, macOS), slot queue and load budget, live overview. Ship it. It also has join codes and the install command, and the daily backup with the restore drill.
 2. **Ephemeral containers on Linux and WSL2**: JIT runners, one container per job, images with layers, tool cache, doctor. Move this repository's CI onto it.
-3. **More machines**: join codes, outbound agents, placement by label and load, drain, agent auto-update.
+3. **More machines**: outbound agents on more machines (join codes are built in M1), placement by label and load, drain, agent auto-update.
 4. **Windows**: service-account runners with the learnings above, then Hyper-V or WSL2 VMs.
 5. **macOS**: Tart VMs and persistent runners on Apple Silicon.
 6. **MicroVMs**: Firecracker or Cloud Hypervisor per job where KVM exists, with snapshots.
 7. **Caches**: Actions cache server, git mirror, registry mirror.
-8. **Product polish**: notifications, config as code with a dry-run plan, backup, minutes-saved report, public docs site, installers per OS, code signing.
+8. **Product polish**: notifications, config as code with a dry-run plan, minutes-saved report, public docs site, installers per OS, code signing.
 
 Each milestone ends with: a feature spec updated, tests for every requirement, the doctor covering the new parts, a release with notes, and a real run on real machines.
 

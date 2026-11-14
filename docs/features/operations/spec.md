@@ -3,7 +3,7 @@ id: operations
 title: Operations
 apps: [controller, agent, tray, cli, web-console]
 topics: [operations, install, security, runners]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference
@@ -134,7 +134,7 @@ Each requirement names its milestone (M1 to M8, product brief). Those not named 
 
 **R5.4** (M1) — On Linux and macOS install runs the service as a dedicated non-admin account where the OS allows it. On Windows the controller service runs as LocalSystem: it manages the runner services and their accounts and runs the MSI upgrade for auto-update (R5.39), which a non-admin account cannot do. Steps that need admin rights are one step, listed before the user says yes.
 
-**R5.5** (M3) — Agent install takes the one-time join code from the console's install command (`--join <code>`) and stores the machine key in the OS secret store (decision 0004).
+**R5.5** (M1) — Agent install takes the one-time join code from the console's install command (`--join <code>`) and stores the machine key in the OS secret store (decision 0004).
 
 **R5.6** (M1) — On first start the controller makes its TLS certificate, opens ports 8460 and 8461 (or the configured ports), and prints a one-time link to the first-run wizard. The tray opens that link. The wizard itself is in the GitHub spec.
 
@@ -405,7 +405,7 @@ Built in CRSP18: see the status line at the top. The seams:
 2. Backups sit on the same disk as the database. Add an optional second folder (for example a network share) for copies?
 3. Secrets are not backed up. On a new machine the owner re-enters the GitHub App key, and agents must re-join if the TLS key is lost. Accept, or add a passphrase-encrypted secrets export?
 4. Default update policy for headless machines: `ask` in the console (proposed) or `auto` in a maintenance window?
-5. The brief puts backup in milestone 8; the stack profile needs a restore drill before the first release. Confirm backup, restore and drill move to milestone 1.
+5. Decided (CRSP27): backup, restore and the drill are in milestone 1; the brief now says so. Only the console screens stay in milestone 8 (OP-6).
 6. The install script checks SHA-256 only; provenance is checked from the first self-update on, and signed installers come in milestone 8. Accept?
 7. Move the runner pin within 7 days of a new GitHub runner release (proposed)?
 8. Should a controller uninstall with `--purge-data` also offer to delete the repository variables and the GitHub App, or only say how?

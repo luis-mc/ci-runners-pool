@@ -3,7 +3,7 @@ id: cli
 title: Command line (CLI)
 apps: [cli, controller, agent, tray]
 topics: [operations, security, github, machines, runners, install]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference
@@ -108,7 +108,7 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 | Command | What it does | Milestone | Owner spec of the behaviour |
 |---|---|---|---|
 | `controller` | Run the controller (built today) | built | `web-console`, `github-integration` |
-| `agent` | Run the agent; `agent join` uses a join command | M1 (join: M3) | `machines` |
+| `agent` | Run the agent; `agent join` uses a join command | M1 | `machines` |
 | `tray` | Run the tray in the user's session | M8 | `tray` |
 | `version` | Print the version (built today) | built | this spec |
 | `login` | Sign in with the device flow | M1 | `github-integration` |
@@ -117,13 +117,13 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 | `context list\|use\|remove` | Choose between controllers | M1 | this spec |
 | `repo list\|enable\|disable\|policy` | Repositories and their pool policy | M1 | `github-integration`, `scheduling` |
 | `machine list` | List machines with load and slots | M1 | `machines` |
-| `machine add` | Print a join command with a one-time code | M3 | `machines` |
+| `machine add` | Print a join command with a one-time code | M1 | `machines` |
 | `machine drain\|remove` | Drain or remove a machine | M3 | `machines` |
 | `runner list\|create\|remove` | Runners on machines | M1 | `runners` |
 | `job list\|watch` | Queue and history; live view | M1 | `scheduling` |
 | `doctor` | Run every check and print fixes | M2 | `doctor` |
 | `config export\|import --dry-run\|apply` | Configuration as a file | M8 | `config-as-code` |
-| `backup\|restore` | Back up and restore the controller | M8 | `backup` |
+| `backup\|restore` | Back up and restore the controller | M1 | `backup` |
 | `update` | Update this machine's binary, with drain | M3 | `updates` |
 | `completion bash\|zsh\|fish\|powershell` | Print a shell completion script | M1 | this spec |
 
@@ -334,7 +334,7 @@ Built in milestone 1 (CRSP25): `controller`, `agent` and `tray` dispatch, `versi
 
 NOT YET IMPLEMENTED:
 
-- `config export|import|apply` (M8), `update` (M3), the `tray` mode (M8), `agent join` (M3, with `machines`). Each says it is not built yet and exits 2.
+- `config export|import|apply` (M8), `update` (M3), the `tray` mode (M8). Each says it is not built yet and exits 2.
 - `backup --out FILE`: the contract has no download operation, so `backup` starts a backup on the controller and names its file. A download operation is needed first.
 - OS secret stores (Windows Credential Manager, macOS Keychain, Linux Secret Service): the CLI uses the 0600 file store behind `internal/secrets` until each store lands. The file is refused when its mode is wider than 0600.
 - `login` runs GitHub's device flow with the URLs from `getCliLoginConfig` (the contract's shape) and then calls `exchangeCliToken`. The sequence diagram in section 3 shows the controller doing the polling; the contract does not.

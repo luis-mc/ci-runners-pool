@@ -3,7 +3,7 @@ id: doctor
 title: Doctor
 apps: [controller, agent, web-console, cli]
 topics: [observability, operations, machines, runners, github]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference
