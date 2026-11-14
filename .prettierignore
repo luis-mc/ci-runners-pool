@@ -33,3 +33,6 @@ scripts/delivery/windows-real.example.json
 # luismc-delivery: end of installer copies
 # luismc-delivery: plugin-owned scripts, formatted upstream
 scripts/delivery/
+
+# WiX sources: XML that Prettier has no parser for.
+installer/*.wxs

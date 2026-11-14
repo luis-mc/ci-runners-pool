@@ -4,14 +4,14 @@
 
 ## Identity (never change)
 
-| | |
-|---|---|
-| UpgradeCode | `C1D62442-6DB4-4FF0-9F28-A1CE3121B332` |
-| Product name | `crsp` |
-| Service | `crsp` (`crsp.exe controller`, account LocalSystem) |
-| Install folder | `%ProgramFiles%\crsp` |
-| Data folder | `%ProgramData%\crsp` (kept by upgrade and by a silent uninstall) |
-| Firewall rule | `crsp console and agent link (private networks)`, inbound TCP 8460 and 8461, Private profile only |
+|                |                                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------- |
+| UpgradeCode    | `C1D62442-6DB4-4FF0-9F28-A1CE3121B332`                                                            |
+| Product name   | `crsp`                                                                                            |
+| Service        | `crsp` (`crsp.exe controller`, account LocalSystem)                                               |
+| Install folder | `%ProgramFiles%\crsp`                                                                             |
+| Data folder    | `%ProgramData%\crsp` (kept by upgrade and by a silent uninstall)                                  |
+| Firewall rule  | `crsp console and agent link (private networks)`, inbound TCP 8460 and 8461, Private profile only |
 
 The UpgradeCode is what lets a newer MSI replace an older one. Changing it makes the next install a second product next to the first.
 
@@ -30,10 +30,10 @@ Needs the .NET SDK (the WiX tool is restored from `dotnet-tools.json`). `-Arch a
 
 `build.ps1` maps the release version to the MSI `ProductVersion`:
 
-| Release version | ProductVersion |
-|---|---|
-| `1.2.3`, `v1.2.3`, `1.2.3-rc1` | `1.2.3.0` |
-| `edge-<sha>` | `<next patch after the latest stable tag>.<run number>`, for example `0.1.1.57` |
+| Release version                | ProductVersion                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| `1.2.3`, `v1.2.3`, `1.2.3-rc1` | `1.2.3.0`                                                                       |
+| `edge-<sha>`                   | `<next patch after the latest stable tag>.<run number>`, for example `0.1.1.57` |
 
 Windows Installer compares the first three fields only. An edge build has the same `a.b.c` as the next stable release, so the stable release (same `a.b.c`) replaces it, and a later edge build replaces an earlier one (`AllowSameVersionUpgrades`). A lower `a.b.c` is refused (see below).
 
