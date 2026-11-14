@@ -1,0 +1,47 @@
+// Package registry is the set of backends built into this binary for this OS
+// (runners R5.24). Each OS file is behind a build tag, so the Windows backend
+// is compiled only into the Windows binary, and so on.
+package registry
+
+import (
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
+)
+
+// Registry implements backend.Registry over a fixed list.
+type Registry struct{ list []backend.Backend }
+
+var _ backend.Registry = (*Registry)(nil)
+
+// All returns every backend compiled in, best first.
+func (r *Registry) All() []backend.Backend { return r.list }
+
+// Get returns the backend with the name.
+func (r *Registry) Get(name backend.Name) (backend.Backend, bool) {
+	for _, b := range r.list {
+		if b.Name() == name {
+			return b, true
+		}
+	}
+	return nil, false
+}
+
+// With builds a registry from backends, for tests and other seams.
+func With(b ...backend.Backend) *Registry { return &Registry{list: b} }
+
+// RealDeps wires the real command runner, file system and downloader. The log
+// function receives setup log lines; redact removes known secrets first.
+func RealDeps(logLine func(step, msg string), redact func(string) string) sys.Deps {
+	return sys.Deps{
+		Cmd:     sys.ExecCommands{},
+		FS:      sys.OSFS{},
+		Fetch:   sys.HTTPFetcher{},
+		Verify:  runners.VerifyFile,
+		Redact:  redact,
+		LogLine: logLine,
+	}
+}
+
+// Platform is the registry for this OS with the production layout.
+func Platform(d sys.Deps) *Registry { return &Registry{list: platform(d)} }
