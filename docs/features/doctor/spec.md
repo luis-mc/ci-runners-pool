@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader: product, design, UX. The bottom half (5 to 12) is for engineers.
 
-Partly built (CRSP23): the engine, the check interface, the M1 core checks, the API routes and `crsp doctor` exist. Everything marked NOT YET IMPLEMENTED below is still to do. Each check names the milestone that adds it.
+Partly built (CRSP23, wired into the controller by CRSP41 in `cmd/crsp/areas_wiring.go`: the doctor routes answer, runs are kept in memory, the OS service list of a machine is not read yet so those checks skip): the engine, the check interface, the M1 core checks, the API routes and `crsp doctor` exist. Everything marked NOT YET IMPLEMENTED below is still to do. Each check names the milestone that adds it.
 
 ## 1. In one paragraph
 
