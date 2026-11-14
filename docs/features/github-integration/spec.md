@@ -178,7 +178,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 **R5.21** (M3, NOT YET IMPLEMENTED) — **Pool per organization.** An admin who is an owner of a GitHub organization can turn the pool on for the organization. The controller then uses organization runners in a runner group named for the pool, with selected repositories only. Repository-level runners are used for personal accounts.
 
-**R5.22** (M1, NOT YET IMPLEMENTED) — **Installation changes.** The controller follows installation changes (repositories added or removed, App suspended or uninstalled) by webhook when on, and by a reconcile every 10 minutes. A repository that leaves the installation is turned off, and the console says why.
+**R5.22** (M1, built in part: the webhook route and the 10-minute reconcile run in the controller since CRSP41; the console reason text for a repository that left is NOT YET IMPLEMENTED) — **Installation changes.** The controller follows installation changes (repositories added or removed, App suspended or uninstalled) by webhook when on, and by a reconcile every 10 minutes. A repository that leaves the installation is turned off, and the console says why.
 
 ### 5.4 Permissions
 
@@ -411,7 +411,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 
 ## 11. Not built yet
 
-Built by CRSP19: the requirements marked built. Still NOT YET IMPLEMENTED: R5.6 (hourly health loop), R5.7, R5.21, R5.22 (webhook-driven), R5.33, R5.34, R5.35, R5.38, R6.1 (key import from a file and the no-secret-column test), R6.3, R6.4, R6.10 to R6.12. The production SQL store, the wiring in `cmd/crsp/main.go` and the web screens are also open. The seams:
+Built by CRSP19: the requirements marked built. Still NOT YET IMPLEMENTED: R5.6 (hourly health loop), R5.7, R5.21, R5.22 (webhook-driven), R5.33, R5.34, R5.35, R5.38, R6.1 (key import from a file and the no-secret-column test), R6.3, R6.4, R6.10 to R6.12. The controller wiring is built by CRSP41 (`cmd/crsp/areas_wiring.go`: the App record, users, sessions, repositories and the one-time setup link printed at start; the webhook route; the RUNS_ON restore every 10 minutes). The production SQL store is also open: users, sessions and the App record last until the controller restarts. The web screens are open too. The seams:
 
 - The HTTP contract: `packages/contract/openapi.yaml` gains the operations of section 7.
 - The schema: a new goose migration in `internal/store/migrations/` adds the tables of section 7.
