@@ -25,12 +25,14 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/cli"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/configexport"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor/wire"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/events"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/hooks"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/overview"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/tlsca"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tray"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
@@ -163,7 +165,14 @@ func runController() error {
 		Settings: ops.Settings, Audit: ops.Audit, Backup: ops.Backup,
 		Machines: mr.Service, CA: mr.CA, Update: um,
 		Jobs: db, Slots: queue,
-		Live: live,
+		Live: live, Events: hub,
+		Config: configexport.Source{
+			Version: version, Config: cfg, Settings: ops.Settings, Secrets: mr.Secrets,
+			Named: []configexport.NamedSecret{
+				{Name: "Controller certificate authority key", Key: tlsca.CAKeySecret},
+				{Name: "Controller server key", Key: tlsca.ServerKeySecret},
+			},
+		},
 	})
 	mux.Handle("/", webui.Handler())
 

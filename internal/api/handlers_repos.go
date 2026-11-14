@@ -235,6 +235,18 @@ func (s *server) ApplyRepositoryChanges(ctx context.Context, req gen.ApplyReposi
 	return gen.ApplyRepositoryChanges202JSONResponse(toPlan(plan)), nil
 }
 
+// StopRepositoryPlan implements POST /api/v1/repository-plans/{planId}/stop.
+func (s *server) StopRepositoryPlan(ctx context.Context, req gen.StopRepositoryPlanRequestObject) (gen.StopRepositoryPlanResponseObject, error) {
+	plan, err := s.ghArea().Repos.StopPlan(ctx, s.principal(ctx), req.PlanId)
+	if err != nil {
+		code, body := failure(err)
+		return gen.StopRepositoryPlandefaultJSONResponse{StatusCode: code, Body: body}, nil
+	}
+	out := toPlan(plan)
+	s.publishPlan(out)
+	return gen.StopRepositoryPlan202JSONResponse(out), nil
+}
+
 // GetRepository implements GET /api/v1/repositories/{repositoryId}.
 func (s *server) GetRepository(ctx context.Context, req gen.GetRepositoryRequestObject) (gen.GetRepositoryResponseObject, error) {
 	v, err := s.ghArea().Repos.Get(ctx, s.principal(ctx), req.RepositoryId)

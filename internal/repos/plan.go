@@ -29,6 +29,9 @@ var ErrPlanStale = errors.New("the plan is out of date; make a new one")
 // ErrPlanNotPlanned: a plan applies once.
 var ErrPlanNotPlanned = errors.New("this plan was already applied")
 
+// ErrPlanNotApplying: only a plan that is applying can be stopped.
+var ErrPlanNotApplying = errors.New("this plan is not applying, so there is nothing to stop")
+
 // PlanChanges makes a plan that turns the pool on or off for repositories.
 // Nothing changes until ApplyPlan. A plan that turns the pool off names each
 // variable it would delete and the workflows that still read it, and each
@@ -224,9 +227,22 @@ func (s *Service) ApplyPlan(ctx context.Context, p auth.Principal, id string, ap
 	}
 	plan.State = PlanApplying
 	_ = s.cfg.Store.UpdatePlan(ctx, plan)
+	s.beginRun(plan.ID)
+	defer s.endRun(plan.ID)
 
 	for i := range plan.Steps {
 		st := &plan.Steps[i]
+		if s.stopAsked(plan.ID) {
+			// The step that ran has finished; no later step starts (web-console 11).
+			for j := i; j < len(plan.Steps); j++ {
+				plan.Steps[j].State = StepSkipped
+			}
+			plan.State = PlanStopped
+			plan.UpdatedAt = s.cfg.Now()
+			err := s.cfg.Store.UpdatePlan(ctx, plan)
+			s.progress(plan)
+			return plan, err
+		}
 		if st.NeedsYes && !yes[st.ID] {
 			st.State = StepSkipped
 			continue
@@ -240,17 +256,20 @@ func (s *Service) ApplyPlan(ctx context.Context, p auth.Principal, id string, ap
 			}
 			plan.UpdatedAt = s.cfg.Now()
 			_ = s.cfg.Store.UpdatePlan(ctx, plan)
+			s.progress(plan)
 			return plan, nil
 		}
 		st.State = StepDone
 		plan.UpdatedAt = s.cfg.Now()
 		_ = s.cfg.Store.UpdatePlan(ctx, plan)
+		s.progress(plan)
 	}
 	plan.State = PlanDone
 	plan.UpdatedAt = s.cfg.Now()
 	if err := s.cfg.Store.UpdatePlan(ctx, plan); err != nil {
 		return plan, err
 	}
+	s.progress(plan)
 	for id := range repos {
 		if r2, err := s.cfg.Store.GetRepository(ctx, id); err == nil && r2.PoolOn {
 			_ = s.CheckRunsOn(ctx, id)
@@ -342,4 +361,69 @@ func publicError(err error) string {
 		return "GitHub says it is gone"
 	}
 	return "the step failed"
+}
+
+// StopPlan asks a plan that is applying to stop (web-console section 11). The
+// step that runs finishes, no later step starts and the plan ends `stopped`.
+// It answers the plan as it is now; a plan that is not applying is refused
+// with ErrPlanNotApplying. A stop never cuts a running job: a step only
+// changes GitHub variables and the pool switch.
+func (s *Service) StopPlan(ctx context.Context, p auth.Principal, id string) (Plan, error) {
+	if err := auth.Require(p, auth.RoleAdmin); err != nil {
+		return Plan{}, err
+	}
+	plan, err := s.cfg.Store.GetPlan(ctx, id)
+	if err != nil {
+		return Plan{}, err
+	}
+	if plan.State != PlanApplying {
+		return plan, ErrPlanNotApplying
+	}
+	s.stopMu.Lock()
+	running := s.running[id]
+	if running {
+		s.stops[id] = true
+	}
+	s.stopMu.Unlock()
+	s.cfg.Audit.Audit(ctx, p, "plan.stop", "repository_plan", id, "stop asked while applying")
+	if !running {
+		// Nothing runs it (the controller restarted mid-apply): end it now.
+		for i := range plan.Steps {
+			if plan.Steps[i].State == StepPlanned || plan.Steps[i].State == StepRunning {
+				plan.Steps[i].State = StepSkipped
+			}
+		}
+		plan.State, plan.UpdatedAt = PlanStopped, s.cfg.Now()
+		if err := s.cfg.Store.UpdatePlan(ctx, plan); err != nil {
+			return plan, err
+		}
+	}
+	s.progress(plan)
+	return plan, nil
+}
+
+func (s *Service) stopAsked(id string) bool {
+	s.stopMu.Lock()
+	defer s.stopMu.Unlock()
+	return s.stops[id]
+}
+
+func (s *Service) beginRun(id string) {
+	s.stopMu.Lock()
+	s.running[id] = true
+	delete(s.stops, id)
+	s.stopMu.Unlock()
+}
+
+func (s *Service) endRun(id string) {
+	s.stopMu.Lock()
+	delete(s.running, id)
+	delete(s.stops, id)
+	s.stopMu.Unlock()
+}
+
+func (s *Service) progress(p Plan) {
+	if s.cfg.OnProgress != nil {
+		s.cfg.OnProgress(p)
+	}
 }

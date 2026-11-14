@@ -15,6 +15,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tlsca"
 )
 
@@ -29,6 +30,8 @@ const (
 type machinesRuntime struct {
 	Service *machines.Service
 	CA      *tlsca.Authority
+	// Secrets is the secret store of the controller, read by the config export.
+	Secrets secrets.Store
 	stop    func()
 }
 
@@ -124,7 +127,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 			logger.Error("the controller's own agent stopped", "err", err)
 		}
 	}()
-	return &machinesRuntime{Service: svc, CA: ca, stop: func() {
+	return &machinesRuntime{Service: svc, CA: ca, Secrets: store, stop: func() {
 		cancel()
 		_ = link.Close()
 		<-done

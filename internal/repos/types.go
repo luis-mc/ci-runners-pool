@@ -117,6 +117,7 @@ const (
 	PlanDone     = "done"
 	PlanFailed   = "failed"
 	PlanStale    = "stale"
+	PlanStopped  = "stopped"
 )
 
 // Step is one thing a plan does.
