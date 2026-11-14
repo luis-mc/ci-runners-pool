@@ -443,3 +443,18 @@ func (s *Store) DeleteMachineLoadBefore(ctx context.Context, cutoff time.Time) e
 	}
 	return nil
 }
+
+// MaxJobHistoryRows is the ceiling on job history rows (observability R6.8).
+const MaxJobHistoryRows = 1_000_000
+
+// TrimJobHistoryToRows deletes the oldest finished job history rows beyond max.
+func (s *Store) TrimJobHistoryToRows(ctx context.Context, max int64) (int64, error) {
+	ctx, cancel := withDeadline(ctx)
+	defer cancel()
+	res, err := s.db.ExecContext(ctx,
+		`DELETE FROM job_history WHERE state = 'done' AND id NOT IN (SELECT id FROM job_history ORDER BY id DESC LIMIT ?)`, max)
+	if err != nil {
+		return 0, fmt.Errorf("trim job history: %w", err)
+	}
+	return res.RowsAffected()
+}
