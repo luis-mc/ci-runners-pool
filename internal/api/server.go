@@ -24,6 +24,11 @@ type Options struct {
 	Version string
 	DB      Pinger
 	Logger  *slog.Logger
+	// Live serves the overview and the event stream (handlers_live.go). Nil
+	// answers 501 like an unbuilt operation.
+	Live LiveService
+	// Doctor serves the doctor routes (handlers_doctor.go). Nil answers 501.
+	Doctor DoctorService
 }
 
 type server struct {

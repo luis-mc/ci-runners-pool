@@ -108,9 +108,9 @@ type Service struct {
 
 // Run starts a run (operation runDoctor); a run of the same scope that is
 // still going is joined (R5.8).
-func (s *Service) Run(ctx context.Context, scope *gen.DoctorScope, trig Trigger, by string) (gen.DoctorRun, error) {
+func (s *Service) Run(ctx context.Context, scope *gen.DoctorScope, trigger, by string) (gen.DoctorRun, error) {
 	sc := ScopeFromAPI(scope)
-	id, _, err := s.Engine.Start(ctx, sc, trig, by)
+	id, _, err := s.Engine.Start(ctx, sc, Trigger(trigger), by)
 	if err != nil {
 		return gen.DoctorRun{}, err
 	}
@@ -162,3 +162,6 @@ func (r *Registry) SortedIDs() []string {
 	sort.Strings(ids)
 	return ids
 }
+
+// IsNotFound says whether err means a doctor run does not exist.
+func (s *Service) IsNotFound(err error) bool { return errors.Is(err, ErrNotFound) }

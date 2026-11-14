@@ -87,11 +87,6 @@ func (s *server) GetCliLoginConfig(_ context.Context, _ gen.GetCliLoginConfigReq
 	return gen.GetCliLoginConfigdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// GetDoctorRun is not built yet.
-func (s *server) GetDoctorRun(_ context.Context, _ gen.GetDoctorRunRequestObject) (gen.GetDoctorRunResponseObject, error) {
-	return gen.GetDoctorRundefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // GetInstallCommand is not built yet.
 func (s *server) GetInstallCommand(_ context.Context, _ gen.GetInstallCommandRequestObject) (gen.GetInstallCommandResponseObject, error) {
 	return gen.GetInstallCommanddefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
@@ -120,11 +115,6 @@ func (s *server) GetMachineChange(_ context.Context, _ gen.GetMachineChangeReque
 // GetMachineLoad is not built yet.
 func (s *server) GetMachineLoad(_ context.Context, _ gen.GetMachineLoadRequestObject) (gen.GetMachineLoadResponseObject, error) {
 	return gen.GetMachineLoaddefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// GetOverview is not built yet.
-func (s *server) GetOverview(_ context.Context, _ gen.GetOverviewRequestObject) (gen.GetOverviewResponseObject, error) {
-	return gen.GetOverviewdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // GetPoolSettings is not built yet.
@@ -195,11 +185,6 @@ func (s *server) ListBackups(_ context.Context, _ gen.ListBackupsRequestObject) 
 // ListCliTokens is not built yet.
 func (s *server) ListCliTokens(_ context.Context, _ gen.ListCliTokensRequestObject) (gen.ListCliTokensResponseObject, error) {
 	return gen.ListCliTokensdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// ListDoctorFindings is not built yet.
-func (s *server) ListDoctorFindings(_ context.Context, _ gen.ListDoctorFindingsRequestObject) (gen.ListDoctorFindingsResponseObject, error) {
-	return gen.ListDoctorFindingsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // ListInstallations is not built yet.
@@ -312,11 +297,6 @@ func (s *server) RunBackupDrill(_ context.Context, _ gen.RunBackupDrillRequestOb
 	return gen.RunBackupDrilldefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// RunDoctor is not built yet.
-func (s *server) RunDoctor(_ context.Context, _ gen.RunDoctorRequestObject) (gen.RunDoctorResponseObject, error) {
-	return gen.RunDoctordefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // SignOut is not built yet.
 func (s *server) SignOut(_ context.Context, _ gen.SignOutRequestObject) (gen.SignOutResponseObject, error) {
 	return gen.SignOutdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
@@ -330,11 +310,6 @@ func (s *server) StartAppManifest(_ context.Context, _ gen.StartAppManifestReque
 // StartSignIn is not built yet.
 func (s *server) StartSignIn(_ context.Context, _ gen.StartSignInRequestObject) (gen.StartSignInResponseObject, error) {
 	return gen.StartSignIndefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// StreamEvents is not built yet.
-func (s *server) StreamEvents(_ context.Context, _ gen.StreamEventsRequestObject) (gen.StreamEventsResponseObject, error) {
-	return gen.StreamEventsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // UpdateMachine is not built yet.
