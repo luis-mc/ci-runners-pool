@@ -46,10 +46,10 @@ test('Add a machine: Review, Joining with a one-time code, then Done with the ma
   await expect(page.getByText('Nothing has changed yet.')).toBeVisible();
   await expect(page.getByLabel('Install command')).toContainText('curl -fsSL');
   await page.getByRole('button', { name: 'Join a machine' }).click();
-  await expect(page.getByText('ABCD-1234')).toBeVisible();
+  await expect(page.locator('dd', { hasText: 'ABCD-1234' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Stop' })).toBeVisible();
   // The primary is busy and says so; the code is never in the address (R6.4).
-  await expect(page.getByRole('button', { name: 'Joining' })).toBeDisabled();
+  await expect(page.locator('[data-primary][aria-busy="true"]')).toBeDisabled();
   expect(page.url()).not.toContain('ABCD-1234');
   joined = true;
   await expect(page.getByText('The machine joined the pool.')).toBeVisible({
@@ -150,7 +150,7 @@ test('Drain asks first, names the running jobs, and drains on yes', async ({ pag
   });
   await mock.install(page);
   await page.goto('/machines/m1');
-  await page.getByRole('button', { name: 'Drain' }).click();
+  await page.getByRole('button', { name: 'Drain', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Drain build-1?' });
   await expect(dialog).toContainText('octo/app e2e');
   expect(mock.count('POST', '/api/v1/machines/m1/drain')).toBe(0);

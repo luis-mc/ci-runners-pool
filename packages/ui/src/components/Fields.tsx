@@ -245,11 +245,7 @@ export function Switch({
 
 /** The form's end: Cancel on the left, the one primary on the right (UX-24). */
 export function FormActions({ children }: { children: ReactNode }) {
-  return (
-    <div className="ds-form-actions" data-layout-group>
-      {children}
-    </div>
-  );
+  return <div className="ds-form-actions">{children}</div>;
 }
 
 /** A list of all the mistakes at the top of a form (UX-21). */

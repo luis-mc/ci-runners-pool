@@ -95,7 +95,7 @@ export function PageHeader({
   action?: ReactNode | undefined;
 }) {
   return (
-    <header className="ds-page-header" data-layout-group>
+    <header className="ds-page-header">
       <div className="ds-page-header__text">
         <h1 className="ds-h1">{title}</h1>
         {lead ? <p className="ds-page-header__lead">{lead}</p> : null}

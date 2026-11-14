@@ -51,9 +51,17 @@ body {
   background: var(--ds-color-surface);
   border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
 }
+.ds-header {
+  justify-content: space-between;
+}
+.ds-header__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-3);
+}
 .ds-header__product {
   font-weight: var(--ds-weight-bold);
-  margin-inline-end: auto;
 }
 .ds-topmenu {
   padding-inline: var(--ds-page-gutter);

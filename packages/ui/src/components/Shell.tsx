@@ -121,19 +121,23 @@ export function Header({
   menu?: ReactNode | undefined;
 }) {
   return (
-    <header className="ds-header" data-layout-group>
-      <span className="ds-header__product">{product}</span>
-      <span className="ds-header__status">{status}</span>
-      <span className="ds-header__live">{live}</span>
-      <button
-        type="button"
-        className="ds-button"
-        onClick={onPalette}
-        aria-keyshortcuts="Control+K Meta+K"
-      >
-        Commands <kbd className="ds-kbd">{paletteHint}</kbd>
-      </button>
-      {menu}
+    <header className="ds-header">
+      <div className="ds-header__group" data-layout-group>
+        <span className="ds-header__product">{product}</span>
+        <span className="ds-header__status">{status}</span>
+        <span className="ds-header__live">{live}</span>
+      </div>
+      <div className="ds-header__group" data-layout-group>
+        <button
+          type="button"
+          className="ds-button"
+          onClick={onPalette}
+          aria-keyshortcuts="Control+K Meta+K"
+        >
+          Commands <kbd className="ds-kbd">{paletteHint}</kbd>
+        </button>
+        {menu}
+      </div>
     </header>
   );
 }

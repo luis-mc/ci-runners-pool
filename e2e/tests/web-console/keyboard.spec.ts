@@ -22,6 +22,7 @@ test('the palette lists a command only to a role that may use it', async ({ page
     added_at: '2026-11-02T10:00:00Z',
   }).install(page);
   await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible();
   await page.keyboard.press('Control+K');
   const dialog = page.getByRole('dialog', { name: 'Commands' });
   await expect(dialog).toBeVisible();
@@ -43,7 +44,7 @@ test('/ goes to the search bar, and nothing fires while typing in it', async ({
 }) => {
   await signedIn().install(page);
   await page.goto('/machines');
-  await expect(page.getByRole('heading', { level: 1, name: 'Machines' })).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Machines' })).toBeVisible();
   await page.keyboard.press('/');
   await expect(page.getByRole('textbox', { name: 'Search machines' })).toBeFocused();
   await page.keyboard.type('?j');

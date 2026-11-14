@@ -180,8 +180,8 @@ export function Wizard(p: WizardProps) {
           <p className="ds-text">Nothing has changed yet.</p>
         ) : null}
       </div>
-      <div className="ds-action-bar" data-layout-group>
-        <div className="ds-action-bar__side">
+      <div className="ds-action-bar">
+        <div className="ds-action-bar__side" data-layout-group>
           {showBack ? (
             <Button
               part="back"
@@ -203,7 +203,9 @@ export function Wizard(p: WizardProps) {
             </Button>
           ) : null}
         </div>
-        <div className="ds-action-bar__main">{primary}</div>
+        <div className="ds-action-bar__main" data-layout-group>
+          {primary}
+        </div>
       </div>
     </div>
   );

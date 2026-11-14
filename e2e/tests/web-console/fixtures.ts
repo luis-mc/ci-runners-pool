@@ -207,6 +207,7 @@ export function signedIn(user: unknown = owner): Mock {
     })
     .on('GET', '/api/v1/machines', { items: [machine()] })
     .on('GET', '/api/v1/machines/:id', machine())
+    .on('GET', '/api/v1/repositories/:id', repository())
     .on('GET', '/api/v1/runners', { items: [runner()] })
     .on('GET', '/api/v1/github/repositories', {
       items: [repository()],
