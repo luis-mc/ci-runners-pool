@@ -9,7 +9,6 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/settings"
-	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 )
 
 // Handlers of the operations area (CRSP18): settings (observability R5.32),
@@ -180,7 +179,7 @@ func (s *server) ListAuditEvents(ctx context.Context, req gen.ListAuditEventsReq
 	return gen.ListAuditEvents200JSONResponse(out), nil
 }
 
-func toGenBackup(b store.Backup) gen.Backup {
+func toGenBackup(b backup.Backup) gen.Backup {
 	out := gen.Backup{Id: b.ID, File: b.File, CreatedAt: b.CreatedAt, State: gen.BackupState(b.State)}
 	size, schema := b.SizeBytes, b.SchemaVersion
 	out.SizeBytes, out.SchemaVersion = &size, &schema
@@ -191,7 +190,7 @@ func toGenBackup(b store.Backup) gen.Backup {
 	return out
 }
 
-func toGenDrill(d store.Drill) gen.BackupDrill {
+func toGenDrill(d backup.Drill) gen.BackupDrill {
 	out := gen.BackupDrill{Id: d.ID, StartedAt: d.StartedAt, State: gen.BackupDrillState(d.State)}
 	if d.BackupID != "" {
 		b := d.BackupID
@@ -277,7 +276,7 @@ func (s *server) RestoreBackup(ctx context.Context, req gen.RestoreBackupRequest
 	}
 	b, err := s.opts.Backup.Get(ctx, plan.BackupID)
 	if errors.Is(err, backup.ErrNotFound) {
-		b, err = store.Backup{ID: plan.BackupID, File: plan.File, CreatedAt: plan.CreatedAt, State: backup.StateGood}, nil
+		b, err = backup.Backup{ID: plan.BackupID, File: plan.File, CreatedAt: plan.CreatedAt, State: backup.StateGood}, nil
 	}
 	if err != nil {
 		return fail(s.opsError(err))

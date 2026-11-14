@@ -379,24 +379,10 @@ func Inspect(ctx context.Context, path string) (Inspection, error) {
 	if in.SchemaVersion, err = schemaVersion(ctx, db); err != nil {
 		return Inspection{}, err
 	}
-	rows, err := db.QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name != 'goose_db_version' ORDER BY name")
+	names, err := tableNames(ctx, db)
 	if err != nil {
-		return Inspection{}, fmt.Errorf("inspect tables: %w", err)
-	}
-	var names []string
-	for rows.Next() {
-		var n string
-		if err := rows.Scan(&n); err != nil {
-			_ = rows.Close()
-			return Inspection{}, err
-		}
-		names = append(names, n)
-	}
-	if err := rows.Err(); err != nil {
-		_ = rows.Close()
 		return Inspection{}, err
 	}
-	_ = rows.Close()
 	sort.Strings(names)
 	in.RowCounts = make(map[string]int64, len(names))
 	for _, n := range names {
@@ -457,4 +443,21 @@ func (s *Store) TrimJobHistoryToRows(ctx context.Context, max int64) (int64, err
 		return 0, fmt.Errorf("trim job history: %w", err)
 	}
 	return res.RowsAffected()
+}
+
+func tableNames(ctx context.Context, db *sql.DB) ([]string, error) {
+	rows, err := db.QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name != 'goose_db_version' ORDER BY name")
+	if err != nil {
+		return nil, fmt.Errorf("inspect tables: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var names []string
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return nil, err
+		}
+		names = append(names, n)
+	}
+	return names, rows.Err()
 }

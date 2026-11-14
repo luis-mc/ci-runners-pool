@@ -21,6 +21,17 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 )
 
+// Backup, Drill and DB are the store types the API shows and passes along, so
+// internal/api never imports internal/store (STACKSPEC 3.2).
+type (
+	Backup = store.Backup
+	Drill  = store.Drill
+	DB     = store.Store
+)
+
+// OpenDB opens the controller database in dataDir.
+func OpenDB(ctx context.Context, dataDir string) (*DB, error) { return store.Open(ctx, dataDir) }
+
 // Errors the API maps to status codes.
 var (
 	ErrNotFound      = store.ErrNotFound
@@ -654,7 +665,8 @@ func (s *Service) drill(ctx context.Context, archive string) (string, error) {
 		return "", fmt.Errorf("the restored database does not open: %w", err)
 	}
 	defer func() { _ = db.Close() }()
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	var lc net.ListenConfig
+	ln, err := lc.Listen(ctx, "tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", err
 	}

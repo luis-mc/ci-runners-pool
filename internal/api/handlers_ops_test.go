@@ -13,7 +13,6 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
-	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 )
 
 type opsEnv struct {
@@ -27,7 +26,7 @@ func newOpsEnv(t *testing.T) *opsEnv {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	dir := t.TempDir()
-	db, err := store.Open(ctx, dir)
+	db, err := backup.OpenDB(ctx, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +35,7 @@ func newOpsEnv(t *testing.T) *opsEnv {
 	var mux *http.ServeMux
 	ops := backup.Start(ctx, backup.StartOptions{
 		DB: db, DataDir: dir, ConfigFile: filepath.Join(dir, "config.toml"), Version: "test", Logger: log,
-		DrillHandler: func(d *store.Store) http.Handler {
+		DrillHandler: func(d *backup.DB) http.Handler {
 			m := http.NewServeMux()
 			Register(m, Options{Version: "test", DB: d, Logger: log})
 			return m
