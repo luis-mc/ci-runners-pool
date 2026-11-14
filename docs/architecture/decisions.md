@@ -17,11 +17,11 @@ Feature decisions come from each feature's `decisions.json` (and the Decisions t
 | caches | D4 | [Wipe at drain timeout](../features/caches/spec.md) | Delete nothing and say so; never cut a job | decided | 2026-11-14 (proposed) |
 | cli | D1 | [How does the CLI sign in?](../features/cli/spec.md) | GitHub device flow through the controller; the CLI keeps only a controller token (decision 0002). | decided | 2026-11-13 |
 | cli | D2 | [How does the CLI reach the API?](../features/cli/spec.md) | The Go client generated from the same OpenAPI contract as the web console (decision 0001). | decided | 2026-11-13 |
-| cli | D3 | [How does a headless machine open the console?](../features/cli/spec.md) | `ci-runners-pool open` prints a one-time link (decision 0005). | decided | 2026-11-13 |
+| cli | D3 | [How does a headless machine open the console?](../features/cli/spec.md) | `crsp open` prints a one-time link (decision 0005). | decided | 2026-11-13 |
 | doctor | D1 | [Does the doctor repair?](../features/doctor/spec.md) | No. It reads only; each finding gives words, a command and a link to where the fix lives (UX-52) | decided | 2026-11-14 |
 | doctor | D2 | [Severity levels](../features/doctor/spec.md) | `ok`, `info`, `skip`, `warn`, `fail`; `needs_admin` is a flag on `skip` | decided | 2026-11-14 |
 | doctor | D3 | [CLI exit codes](../features/doctor/spec.md) | 0 healthy, 1 worst `warn`, 2 worst `fail`, 3 could not run | decided | 2026-11-14 |
-| doctor | D4 | [Variable names](../features/doctor/spec.md) | `CRP_RUNS_ON_LINUX`, `CRP_RUNS_ON_WINDOWS`, `CRP_RUNS_ON_MACOS`, from the product brief (decision 0002 still says `CI_RUNS_ON`) | decided | 2026-11-14 |
+| doctor | D4 | [Variable names](../features/doctor/spec.md) | `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`, `CRSP_RUNS_ON_MACOS`, from the product brief (decision 0002 still says `CRSP_RUNS_ON_LINUX`) | decided | 2026-11-14 |
 | doctor | D5 | [How runners are found](../features/doctor/spec.md) | From the OS service list first, then the database; never only by reading runner folders (learning 6) | decided | 2026-11-14 |
 | doctor | D6 | [Which milestone starts the doctor](../features/doctor/spec.md) | Milestone 1, with the checks of milestone 1 parts, since every milestone ends with the doctor covering its parts | decided | 2026-11-14 |
 | observability | D1 | [SSE or WebSocket for the live view?](../features/observability/spec.md) | SSE: one-way flow, plain `net/http`, built-in reconnect and replay, no extra library (section 7) | decided | 2026-11-14 |

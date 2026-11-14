@@ -124,7 +124,7 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 
 **R5.4** — A repository may lower the load budget for its own jobs, never raise it above the machine's. A value outside 1 to 100 is ignored. M1. NOT YET IMPLEMENTED. Source: `load.py` `limits`.
 
-**R5.5** — Gate settings resolve in this order, first found wins: a hook command-line flag, then the runner's environment (`CRP_GATE_MAX_WAIT_MIN`, `CRP_GATE_POLL_SEC`, `CRP_GATE_ON_TIMEOUT`), then the machine settings, then the defaults. A poll below 0 counts as 0. An unknown on-timeout value counts as `fail`. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `settings`.
+**R5.5** — Gate settings resolve in this order, first found wins: a hook command-line flag, then the runner's environment (`CRSP_GATE_MAX_WAIT_MIN`, `CRSP_GATE_POLL_SEC`, `CRSP_GATE_ON_TIMEOUT`), then the machine settings, then the defaults. A poll below 0 counts as 0. An unknown on-timeout value counts as `fail`. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.py` `settings`.
 
 ### 5.2 The queue and the order of service
 
@@ -196,7 +196,7 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 
 **R5.36** — Cancelled-job leftovers: when GitHub reports a job as completed (including cancelled), any slot or ticket still held for that job (repository, run id, run attempt, job) is freed with the outcome `completed-on-github` and logged. M1. NOT YET IMPLEMENTED. Source: none (new; learning 2).
 
-**R5.37** — An admin can free stale slots on demand (CLI `ci-runners-pool slots free-stale`, and the API). The answer lists each freed slot and its reason. Freeing a live slot by hand names the job and asks for a yes first. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `main` (`free-stale`).
+**R5.37** — An admin can free stale slots on demand (CLI `crsp slots free-stale`, and the API). The answer lists each freed slot and its reason. Freeing a live slot by hand names the job and asks for a yes first. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `main` (`free-stale`).
 
 ### 5.6 The slot log
 
@@ -250,7 +250,7 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 
 ### 5.11 Status and hook install
 
-**R5.58** — Status per machine: each slot of each kind with free or held, and for a held slot the repository, run id, job, shard, runner, holder process, age in seconds and a stale flag; and each ticket with repository, run id, job, shard, priority and wait in seconds. Light and heavy slots are listed after job slots. With no light slots, no light line is shown. The API, the CLI (`ci-runners-pool slots`, also `--json`) and the console read the same status. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `status`, `_status_kind`.
+**R5.58** — Status per machine: each slot of each kind with free or held, and for a held slot the repository, run id, job, shard, runner, holder process, age in seconds and a stale flag; and each ticket with repository, run id, job, shard, priority and wait in seconds. Light and heavy slots are listed after job slots. With no light slots, no light line is shown. The API, the CLI (`crsp slots`, also `--json`) and the console read the same status. M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `status`, `_status_kind`.
 
 **R5.59** — The hooks are set in each persistent runner's `.env` file as its first lines. On Windows the hooks are `.ps1` files, never `.cmd`. A hook calls the product binary by its full path, installed for all users, never one in a user profile. The wrapper passes its arguments through and returns the binary's exit code. M1. NOT YET IMPLEMENTED. Source: `runner_load_gate.ps1`, `runner_load_gate.sh`, `runner_job_done.ps1`, `runner_job_done.sh`; learning 4.
 
@@ -294,7 +294,7 @@ M1. NOT YET IMPLEMENTED. Source: `machine_slots.py` `DEFAULT_CONFIG`, `normalise
 ```mermaid
 flowchart LR
   subgraph machine[Machine]
-    runner[Persistent runner] -- job-started / job-completed --> hook[ci-runners-pool hook]
+    runner[Persistent runner] -- job-started / job-completed --> hook[crsp hook]
     hook -- local socket or named pipe --> agent[Agent]
     agent --> probe[Load probe]
   end

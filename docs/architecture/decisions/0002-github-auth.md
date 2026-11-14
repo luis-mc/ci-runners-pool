@@ -64,8 +64,8 @@ Targeting:
 
 - Runners carry only generic capability labels (`self-hosted`, OS, architecture, `docker`, `kvm`, `gpu`, a pool name).
   Never a project name.
-- The product sets repository variables such as `CI_RUNS_ON` and `CI_RUNS_ON_WINDOWS` (JSON lists).
-  Workflows use `runs-on: ${{ fromJSON(vars.CI_RUNS_ON) }}`.
+- The product sets repository variables such as `CRSP_RUNS_ON_LINUX` and `CRSP_RUNS_ON_WINDOWS` (JSON lists).
+  Workflows use `runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_LINUX) }}`.
 - The product checks every workflow's `runs-on` against the labels that exist and warns on a label no runner carries.
 
 Public repositories: jobs from fork pull requests never reach the pool unless the user turns it on per repository, with a warning.

@@ -27,7 +27,7 @@ Everything in this spec is **NOT YET IMPLEMENTED**. Today `apps/web` shows one p
 
 ## 1. In one paragraph
 
-The web console is the browser app of CI Runners Pool. The controller serves it on the local network over HTTPS, on port 8460. Every user signs in with GitHub. The console has a header, a top menu, a command palette and keyboard shortcuts. It has nine screens: sign-in and first-run, overview, repositories, machines, runners, jobs, images and caches, doctor, and settings. The owner uses it to set the pool up and to change it. Admins change it too. Viewers watch it.
+The web console is the browser app of CI Runners Shared Pool. The controller serves it on the local network over HTTPS, on port 8460. Every user signs in with GitHub. The console has a header, a top menu, a command palette and keyboard shortcuts. It has nine screens: sign-in and first-run, overview, repositories, machines, runners, jobs, images and caches, doctor, and settings. The owner uses it to set the pool up and to change it. Admins change it too. Viewers watch it.
 
 ## 2. Why
 
@@ -78,7 +78,7 @@ flowchart TD
 The steps in words:
 
 1. The user opens `https://<controller>:8460`. The controller serves the console and its API from one binary (decision 0001).
-2. A fresh controller has no GitHub App yet, so nobody can sign in with GitHub. The setup page opens only through a one-time setup link. The tray's Open, `ci-runners-pool open` and the controller's first start each give one.
+2. A fresh controller has no GitHub App yet, so nobody can sign in with GitHub. The setup page opens only through a one-time setup link. The tray's Open, `crsp open` and the controller's first start each give one.
 3. The first wizard creates the controller's own GitHub App with GitHub's manifest flow (decision 0002).
 4. The user signs in with GitHub through the App's user OAuth flow. The first person to sign in becomes the owner. Later users get in only when the owner has added their GitHub login.
 5. The first-run checklist then leads through two more wizards: add the first machine, and turn the pool on for the first repository.
@@ -126,7 +126,7 @@ The states named for every list follow the design system: loading (component 16,
 **Setup page** (`/setup`)
 
 - **Purpose:** take a fresh controller to a working pool.
-- **Without a setup link:** a page that says how to get one: the tray's Open, or `ci-runners-pool open` on the controller's machine. No other action.
+- **Without a setup link:** a page that says how to get one: the tray's Open, or `crsp open` on the controller's machine. No other action.
 - **With a setup link:** the first-run checklist. It shows three wizards in order. A later one is greyed until the one before it is done (UX-5). Each is a wizard (component 4) whose behaviour comes from the shared wizard (UX-54). Each ends with Review, then its work, then Done (UX-30). The step and state words are those of content.md.
 
 | Wizard | Steps | Work step | Done shows |
@@ -156,7 +156,7 @@ The states named for every list follow the design system: loading (component 16,
 
 - **Purpose:** choose which repositories use the pool, and with which limits.
 - **Data:** `listInstallations`, `listRepositories`, `getRepository`, `updateRepositoryPolicy`, `planRepositoryChanges`, `applyRepositoryChanges`, `getAppInstallUrl`.
-- **List:** a table (component 15) of name, owner, pool on or off, labels, maximum parallel jobs, priority, and repository variable status (`CRP_RUNS_ON_LINUX`, `CRP_RUNS_ON_WINDOWS`, `CRP_RUNS_ON_MACOS`) as a status word (UX-58). Search and filters (components 11, 21, UX-31): on or off, owner, variable status. Long lists page (component 10, UX-11).
+- **List:** a table (component 15) of name, owner, pool on or off, labels, maximum parallel jobs, priority, and repository variable status (`CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`, `CRSP_RUNS_ON_MACOS`) as a status word (UX-58). Search and filters (components 11, 21, UX-31): on or off, owner, variable status. Long lists page (component 10, UX-11).
 - **Detail:** the policy form (component 14): on or off, runner groups and labels, maximum parallel jobs, priority, jobs from public forks. A form ends with Cancel and Save (UX-24). Turning fork jobs on shows a Needs-you message with the risk, and asks first (UX-9).
 - **Actions and confirmations:**
   - turn the pool on for chosen repositories: the "Turn on the pool" wizard, the same as in first run (component 4, UX-30); the selection bar names the count (component 20, UX-7);
@@ -382,7 +382,7 @@ flowchart LR
     screens --> client
     store --> client
   end
-  subgraph Controller[ci-runners-pool controller]
+  subgraph Controller[crsp controller]
     webui[internal/webui: embedded SPA]
     api[internal/api: /api/v1, sessions, roles]
     events[Event stream]
@@ -511,7 +511,7 @@ No test below exists yet. The path is where each one will live.
 
 | ID | Question | Chosen | Date |
 |---|---|---|---|
-| WC-D1 | How does a fresh controller let the first user in, before a GitHub App exists? | A one-time setup link from the tray, `ci-runners-pool open` or the controller's first start; `/setup` needs it (R5.14). Proposed; owner to confirm (Q11). | 2026-11-14 |
+| WC-D1 | How does a fresh controller let the first user in, before a GitHub App exists? | A one-time setup link from the tray, `crsp open` or the controller's first start; `/setup` needs it (R5.14). Proposed; owner to confirm (Q11). | 2026-11-14 |
 | WC-D2 | Is first run one wizard or several? | Three wizards in a checklist (Connect GitHub, Add a machine, Turn on the pool), each ending Review, work, Done (UX-30). Proposed; owner to confirm (Q10). | 2026-11-14 |
 | WC-D3 | How do screens get live data? | One server-sent event stream per tab into one store (R5.6, UX-19). | 2026-11-14 |
 | WC-D4 | Where are the app's routes? | Client routes with an SPA fallback in `internal/webui`; the API stays under `/api/v1`. | 2026-11-14 |
@@ -538,7 +538,7 @@ For the product:
 - **Q13.** Milestone 3 in the brief lists join codes, but milestone 1 needs a first machine. Is the join code in milestone 1?
 - **Q14.** Confirm the budgets of R6.12, or give others.
 - **Q15.** The console is HTTPS on the local network with a certificate the controller makes. Browsers warn on it. Accept the warning, offer a local CA to install, or let the user bring a certificate? (`operations`)
-- **Q16.** Decision 0002 names the variables `CI_RUNS_ON`, `CI_RUNS_ON_WINDOWS`; the brief names `CRP_RUNS_ON_LINUX`, `CRP_RUNS_ON_WINDOWS`, `CRP_RUNS_ON_MACOS`. This spec uses the brief's names. Confirm, and update decision 0002?
+- **Q16.** Decision 0002 names the variables `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`; the brief names `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`, `CRSP_RUNS_ON_MACOS`. This spec uses the brief's names. Confirm, and update decision 0002?
 - **Q17.** The GitHub App's callback URL is the controller address used at first run. When users open the console by another host name or IP, sign-in fails. Redirect every other host name to the first one?
 
 ## 11. Not built yet

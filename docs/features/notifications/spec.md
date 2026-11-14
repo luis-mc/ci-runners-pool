@@ -103,7 +103,7 @@ No mocks yet. The screens below cite the design system v1 by ID and add no rules
 | `disk.low` | Free space on a machine's work disk is below the threshold (default 10%, range 1% to 50%). | Free space is 2 points above the threshold. | Needs you |
 | `runner.outdated` | A runner's version is older than the pinned version, or GitHub has said it will stop accepting it. | The runner is updated or removed. | Needs you; Problem when GitHub has set a date |
 | `doctor.finding` | The doctor reports a new finding. | The finding is gone on a later run. | By the finding's severity |
-| `update.available` | A newer stable release of `ci-runners-pool` exists. | The pool runs that version. | Note |
+| `update.available` | A newer stable release of `crsp` exists. | The pool runs that version. | Note |
 
 **R5.2** — Each event MUST have a key of type plus subject. The controller MUST keep one state per key: firing or resolved, with the time of the last change.
 
@@ -123,7 +123,7 @@ No mocks yet. The screens below cite the design system v1 by ID and add no rules
 
 **R5.9** — Webhooks MUST be pool-wide. Only the owner and admins MUST be able to add, edit, remove or test them. Each webhook MUST carry its own event filter (types and lowest doctor severity).
 
-**R5.10** — Every setting in the console MUST also be readable and settable from the CLI (`ci-runners-pool notify ...`), with the same rights.
+**R5.10** — Every setting in the console MUST also be readable and settable from the CLI (`crsp notify ...`), with the same rights.
 
 ### Dedupe and rate limits
 
@@ -279,7 +279,7 @@ All tests are planned and NOT YET IMPLEMENTED. Paths are where each test will li
 | R5.7 | planned: internal/notify/rules_test.go, TestPerUserPerEventDefaults |
 | R5.8 | planned: internal/api/notify_test.go, TestThresholdsNeedAdmin |
 | R5.9 | planned: internal/api/notify_test.go, TestWebhooksNeedAdmin |
-| R5.10 | planned: cmd/ci-runners-pool/notify_test.go, TestCLIMatchesConsole |
+| R5.10 | planned: cmd/crsp/notify_test.go, TestCLIMatchesConsole |
 | R5.11 | planned: internal/notify/limits_test.go, TestFlapWindow |
 | R5.12 | planned: internal/notify/limits_test.go, TestHourlyCapAndSummary |
 | R5.13 | planned: internal/notify/limits_test.go, TestBurstIsGrouped |

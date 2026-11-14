@@ -144,7 +144,7 @@ Milestone numbers are those of the product brief.
 
 **R5.10** — (M1) The result is one of: success, failure, cancelled, timed out, lost (the runner or machine went away). `startup_failure` and `timed_out` count as failure in totals, as in `ci_runs.py`.
 
-**R5.11** — (M1) History lists newest first, filters by repository, machine, backend and result, and pages through any range. The CLI gives the same rows (`ci-runners-pool history --json`).
+**R5.11** — (M1) History lists newest first, filters by repository, machine, backend and result, and pages through any range. The CLI gives the same rows (`crsp history --json`).
 
 **R5.12** — (M1) A finished history row never changes after its job completes and is never fetched again from GitHub (the cache rule of `ci_runs.py`). A failed GitHub read keeps the stored rows and says the data is stale.
 
@@ -182,7 +182,7 @@ Milestone numbers are those of the product brief.
 
 **R5.26** — (M1) The audit log is append-only. No API, CLI or screen edits or deletes a row. Only the retention job deletes rows past their limit, and it writes its own audit row with the count.
 
-**R5.27** — (M1) Settings, Audit log lists rows newest first and filters by who, action, target and time. The CLI gives the same rows (`ci-runners-pool audit --json`).
+**R5.27** — (M1) Settings, Audit log lists rows newest first and filters by who, action, target and time. The CLI gives the same rows (`crsp audit --json`).
 
 **R5.28** — (M8) Each audit row stores the hash of the row before it. The doctor checks the chain and names the first broken row.
 
@@ -258,7 +258,7 @@ Whichever of a time or a size limit is reached first applies. The oldest data go
 - `GET /api/v1/events` returns `text/event-stream`. Event types: `snapshot`, `job.queued`, `job.waiting` (reason changed), `job.started`, `job.finished`, `machine.load`, `machine.state`, `runner.state`, `saved.today`. Each `data:` is JSON in the OpenAPI contract (`packages/contract/openapi.yaml`), so the TypeScript types are generated like the rest of the API.
 - The hub numbers events from one counter. Each subscriber has a bounded channel. A full channel closes that subscriber (R6.3); it never blocks the publisher.
 - The scheduler publishes after its transaction commits, so a client never sees a change that was rolled back.
-- The CLI's `ci-runners-pool status --watch` reads the same stream.
+- The CLI's `crsp status --watch` reads the same stream.
 
 ### History
 

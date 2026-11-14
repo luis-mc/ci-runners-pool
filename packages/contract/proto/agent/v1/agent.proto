@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package agent.v1;
 
-option go_package = "github.com/luis-mc/ci-runners-pool/internal/gen/agent/v1;agentv1";
+option go_package = "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1;agentv1";
 
 // AgentService is the link from an agent to its controller. The agent dials out;
 // the controller never connects in.

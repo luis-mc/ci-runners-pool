@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-**NOT YET IMPLEMENTED.** Nothing in this spec is built. Today the binary reads three `CRP_*` environment variables (`internal/config/config.go`) and the release workflow publishes `edge` and `v*` releases. Every requirement below is planned, with its milestone.
+**NOT YET IMPLEMENTED.** Nothing in this spec is built. Today the binary reads three `CRSP_*` environment variables (`internal/config/config.go`) and the release workflow publishes `edge` and `v*` releases. Every requirement below is planned, with its milestone.
 
 ## 1. In one paragraph
 
@@ -94,8 +94,8 @@ flowchart LR
 
 1. Once a day the controller writes one backup archive: the database, the config file and a manifest. Secrets are never in it.
 2. The copy is opened and checked before the old ones are pruned. Backups older than 14 days are deleted. The newest good backup is never deleted.
-3. `ci-runners-pool restore <file>` checks the manifest, backs up the current state, puts the backup in place, and starts the controller.
-4. `ci-runners-pool backup drill` restores the newest backup into a temporary folder, starts a controller there on a spare port, checks it, and records the result.
+3. `crsp restore <file>` checks the manifest, backs up the current state, puts the backup in place, and starts the controller.
+4. `crsp backup drill` restores the newest backup into a temporary folder, starts a controller there on a spare port, checks it, and records the result.
 
 ### Config as code
 
@@ -126,9 +126,9 @@ Each requirement names its milestone (M1 to M8, product brief). All are **NOT YE
 
 ### Install and first run
 
-**R5.1** (M1) — One command per OS installs the binary. Linux and macOS: `curl -fsSL <release>/install.sh | sh`. Windows: `irm <release>/install.ps1 | iex`. The script downloads the archive for the OS and architecture, checks its SHA-256 against `SHA256SUMS`, and runs `ci-runners-pool install`. The script does nothing else.
+**R5.1** (M1) — One command per OS installs the binary. Linux and macOS: `curl -fsSL <release>/install.sh | sh`. Windows: `irm <release>/install.ps1 | iex`. The script downloads the archive for the OS and architecture, checks its SHA-256 against `SHA256SUMS`, and runs `crsp install`. The script does nothing else.
 
-**R5.2** (M1) — `ci-runners-pool install --mode controller|agent` registers the service with the OS service manager: a Windows service (through `golang.org/x/sys/windows/svc/mgr`, never a cmd-quoted command line, learning 5), a systemd unit on Linux, a LaunchDaemon on macOS. The service starts at boot and restarts after a crash.
+**R5.2** (M1) — `crsp install --mode controller|agent` registers the service with the OS service manager: a Windows service (through `golang.org/x/sys/windows/svc/mgr`, never a cmd-quoted command line, learning 5), a systemd unit on Linux, a LaunchDaemon on macOS. The service starts at boot and restarts after a crash.
 
 **R5.3** (M1) — On a desktop machine, install also adds the tray to start at login: a per-user startup entry on Windows, a LaunchAgent on macOS, an XDG autostart entry on Linux (decision 0005). A headless Linux machine gets no tray.
 
@@ -142,7 +142,7 @@ Each requirement names its milestone (M1 to M8, product brief). All are **NOT YE
 
 ### Config file and data folder
 
-**R5.8** (M1) — The controller and the agent read one config file, `config.toml`, checked against one schema. A `CRP_*` environment variable overrides the matching key. `ci-runners-pool config check` prints every problem at once and exits non-zero.
+**R5.8** (M1) — The controller and the agent read one config file, `config.toml`, checked against one schema. A `CRSP_*` environment variable overrides the matching key. `crsp config check` prints every problem at once and exits non-zero.
 
 **R5.9** (M1) — The config check refuses: unknown keys, wrong types, values out of range, placeholder values (`<...>`, `${...}`, `changeme`, `todo`, `example` and the like), and any key that holds a secret (a private key, token or password). The service does not start with a refused config.
 
@@ -150,9 +150,9 @@ Each requirement names its milestone (M1 to M8, product brief). All are **NOT YE
 
 | OS | Data folder | Config file |
 |---|---|---|
-| Windows | `%ProgramData%\ci-runners-pool` | `%ProgramData%\ci-runners-pool\config.toml` |
-| Linux | `/var/lib/ci-runners-pool` | `/etc/ci-runners-pool/config.toml` |
-| macOS | `/Library/Application Support/ci-runners-pool` | `/Library/Application Support/ci-runners-pool/config.toml` |
+| Windows | `%ProgramData%\crsp` | `%ProgramData%\crsp\config.toml` |
+| Linux | `/var/lib/crsp` | `/etc/crsp/config.toml` |
+| macOS | `/Library/Application Support/crsp` | `/Library/Application Support/crsp/config.toml` |
 
 The data folder holds the database, `backups/`, `logs/` and `updates/`. It is readable only by the service account and admins.
 
@@ -182,35 +182,35 @@ The data folder holds the database, `backups/`, `logs/` and `updates/`. It is re
 
 ### Backup and restore
 
-**R5.21** (M1) — Every day at 03:00 local time (configurable) the controller writes one archive `crp-backup-<yyyy-mm-dd-hhmm>.tar.gz` in `backups/`. It holds a copy of the database made with `VACUUM INTO`, the config file, and a manifest with the product version, the schema version and the SHA-256 of each file. It never holds a secret.
+**R5.21** (M1) — Every day at 03:00 local time (configurable) the controller writes one archive `crsp-backup-<yyyy-mm-dd-hhmm>.tar.gz` in `backups/`. It holds a copy of the database made with `VACUUM INTO`, the config file, and a manifest with the product version, the schema version and the SHA-256 of each file. It never holds a secret.
 
 **R5.22** (M1) — After writing, the backup is opened and `PRAGMA integrity_check` must return `ok`. A failed backup is deleted, logged, and shown by the doctor.
 
 **R5.23** (M1) — Backups older than 14 days are deleted after a good backup is written. The newest good backup is never deleted, however old.
 
-**R5.24** (M1) — `ci-runners-pool backup` writes a backup now. `ci-runners-pool backup list` lists them with date, size and check result.
+**R5.24** (M1) — `crsp backup` writes a backup now. `crsp backup list` lists them with date, size and check result.
 
-**R5.25** (M1) — `ci-runners-pool restore <file>` checks the manifest and each SHA-256, refuses a backup from a newer schema, backs up the current state first, stops the controller, puts the database and config in place, starts it, and waits for it to be healthy. It names what it replaces and asks for a yes. Running jobs on other machines keep running.
+**R5.25** (M1) — `crsp restore <file>` checks the manifest and each SHA-256, refuses a backup from a newer schema, backs up the current state first, stops the controller, puts the database and config in place, starts it, and waits for it to be healthy. It names what it replaces and asks for a yes. Running jobs on other machines keep running.
 
 **R5.26** (M1) — After a restore, the doctor lists the secrets the controller still needs (for example the GitHub App private key on a new machine) and how to add each one.
 
-**R5.27** (M1) — `ci-runners-pool backup drill` restores the newest backup into a temporary folder, starts a controller there on a free local port with no GitHub traffic, checks its health and the row counts against the manifest, records the date and result, and deletes the folder. The doctor warns when no drill has passed in 90 days. One drill passes before the first release.
+**R5.27** (M1) — `crsp backup drill` restores the newest backup into a temporary folder, starts a controller there on a free local port with no GitHub traffic, checks its health and the row counts against the manifest, records the date and result, and deletes the folder. The doctor warns when no drill has passed in 90 days. One drill passes before the first release.
 
 ### Config as code
 
-**R5.28** (M8) — `ci-runners-pool config export` writes one file with the whole setup: repositories and their policies, machines and their settings (budget, slots, backends allowed, drain timeout, maintenance windows, update policy), runner definitions, image layers, notifications, users and roles, and update settings. It holds no secret, no job history, no audit log and no machine key.
+**R5.28** (M8) — `crsp config export` writes one file with the whole setup: repositories and their policies, machines and their settings (budget, slots, backends allowed, drain timeout, maintenance windows, update policy), runner definitions, image layers, notifications, users and roles, and update settings. It holds no secret, no job history, no audit log and no machine key.
 
-**R5.29** (M8) — `ci-runners-pool config plan <file>` checks the file against the schema and lists each change: added, changed (field, old value, new value) or removed, by name. It changes nothing and ends with "Nothing has changed." It gives the plan an ID tied to the current state.
+**R5.29** (M8) — `crsp config plan <file>` checks the file against the schema and lists each change: added, changed (field, old value, new value) or removed, by name. It changes nothing and ends with "Nothing has changed." It gives the plan an ID tied to the current state.
 
-**R5.30** (M8) — `ci-runners-pool config apply <plan-id>` applies exactly that plan. It refuses if the pool changed since the plan. Removals need an explicit yes that names each one. Changes that restart runners drain first (R5.14). Each change is written to the audit log.
+**R5.30** (M8) — `crsp config apply <plan-id>` applies exactly that plan. It refuses if the pool changed since the plan. Removals need an explicit yes that names each one. Changes that restart runners drain first (R5.14). Each change is written to the audit log.
 
 **R5.31** (M8) — The console offers export and import under Settings; import is a wizard that ends with Review, the work, and Done.
 
 ### Uninstall
 
-**R5.32** (M1) — `ci-runners-pool uninstall` lists what it removes and what it keeps, then asks for a yes. It removes: the services, the tray start entries, the binary, and the runners on that machine (drained first, then deregistered from GitHub with a remove token). It keeps: the data folder (database, config, backups, logs) and the secrets in the OS secret store.
+**R5.32** (M1) — `crsp uninstall` lists what it removes and what it keeps, then asks for a yes. It removes: the services, the tray start entries, the binary, and the runners on that machine (drained first, then deregistered from GitHub with a remove token). It keeps: the data folder (database, config, backups, logs) and the secrets in the OS secret store.
 
-**R5.33** (M1) — `ci-runners-pool uninstall --purge-data` also removes the data folder and this product's secrets, and lists them by name before asking.
+**R5.33** (M1) — `crsp uninstall --purge-data` also removes the data folder and this product's secrets, and lists them by name before asking.
 
 **R5.34** (M3) — Uninstalling an agent revokes its machine key on the controller. Uninstalling a controller that still has machines names them and asks again.
 
@@ -240,7 +240,7 @@ The data folder holds the database, `backups/`, `logs/` and `updates/`. It is re
 
 ```mermaid
 flowchart LR
-  subgraph bin[ci-runners-pool binary]
+  subgraph bin[crsp binary]
     install[internal/install<br/>service managers per OS]
     update[internal/update<br/>check, verify, swap, rollback]
     backup[internal/backup<br/>write, check, prune, restore, drill]
@@ -296,7 +296,7 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R5.3 | planned: internal/install/tray_test.go TestTrayStartEntryPerOS |
 | R5.4 | planned: internal/install/account_test.go TestServiceRunsAsNonAdmin |
 | R5.5 | planned: internal/install/join_test.go TestJoinStoresKeyInSecretStore |
-| R5.6 | planned: cmd/ci-runners-pool first-run e2e TestFirstStartPrintsOneTimeLink |
+| R5.6 | planned: cmd/crsp first-run e2e TestFirstStartPrintsOneTimeLink |
 | R5.7 | planned: installer smoke jobs in build.yml per OS (M8) |
 | R5.8 | planned: internal/config/file_test.go TestFileAndEnvOverride, TestCheckListsAllProblems |
 | R5.9 | planned: internal/config/file_test.go TestRefusesUnknownKeyPlaceholderSecret |
@@ -342,7 +342,7 @@ Proposed by the spec writer. The owner confirms or changes each one (see the que
 
 | ID | Question | Chosen | Date |
 |---|---|---|---|
-| OP-1 | Config file format | TOML, one file, env `CRP_*` overrides (proposed) | 2026-11-14 |
+| OP-1 | Config file format | TOML, one file, env `CRSP_*` overrides (proposed) | 2026-11-14 |
 | OP-2 | Default update channel and policy | `stable`; policy `ask` on every machine | 2026-11-14 |
 | OP-3 | Where agents get builds | From GitHub Releases, same checks; version set by the controller | 2026-11-14 |
 | OP-4 | Downgrade on channel switch | Never; wait for a stable build with a schema at least as new | 2026-11-14 |
@@ -375,4 +375,4 @@ Everything above is **NOT YET IMPLEMENTED**. The seams:
 
 Source: internal/config/config.go
 Source: .github/workflows/release.yml
-Source: cmd/ci-runners-pool/main.go
+Source: cmd/crsp/main.go

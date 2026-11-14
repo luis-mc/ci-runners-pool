@@ -1,4 +1,4 @@
-module github.com/luis-mc/ci-runners-pool
+module github.com/luis-mc/ci-runners-shared-pool
 
 go 1.27
 

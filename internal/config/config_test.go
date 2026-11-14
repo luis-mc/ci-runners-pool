@@ -35,7 +35,7 @@ func TestLoadValues(t *testing.T) {
 }
 
 func TestLoadRefusesPlaceholders(t *testing.T) {
-	for _, v := range []string{"<path>", "<...>", "changeme", "CHANGE_ME", "your-data-dir", "${CRP_DATA_DIR}", "TODO"} {
+	for _, v := range []string{"<path>", "<...>", "changeme", "CHANGE_ME", "your-data-dir", "${CRSP_DATA_DIR}", "TODO"} {
 		_, err := Load(env(map[string]string{EnvDataDir: v}))
 		if err == nil || !strings.Contains(err.Error(), "placeholder") {
 			t.Errorf("value %q: want placeholder error, got %v", v, err)

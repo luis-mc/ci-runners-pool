@@ -159,7 +159,7 @@ Ported from dev-standards `claude/plugins/delivery/templates/shared/scripts/deli
 
 **R5.22** — An archive, wheel or crate is unpacked once per platform. An entry whose path leaves the target folder is refused and nothing is unpacked. A crate is built once with `cargo install --locked`; a failed build leaves nothing behind.
 
-**R5.23** — The binary has the commands `ci-runners-pool tool <name> [--platform P] [--exe NAME] [--dir]` and `ci-runners-pool tool fetch <url> --sha256 <hex> --name <tool>/<version>/<file>`. Each prints one absolute path and nothing else on standard output. Exit codes: 0 done, 1 a download, checksum or unpack failure (one line on standard error with the URL, the attempt count and the last error), 2 a usage error.
+**R5.23** — The binary has the commands `crsp tool <name> [--platform P] [--exe NAME] [--dir]` and `crsp tool fetch <url> --sha256 <hex> --name <tool>/<version>/<file>`. Each prints one absolute path and nothing else on standard output. Exit codes: 0 done, 1 a download, checksum or unpack failure (one line on standard error with the URL, the attempt count and the last error), 2 a usage error.
 
 ### Registry mirror (milestone 7)
 
@@ -177,7 +177,7 @@ Ported from dev-standards `claude/plugins/delivery/templates/shared/scripts/deli
 
 ### Screen data (milestone 7; tool cache rows in milestone 2)
 
-**R5.29** — The API gives the Images and caches screen, per pool: Actions cache used bytes, cap, entry count, hits, misses and bytes served in the last 24 hours; per repository entries, size and last hit; per git mirror size, last refresh and status; per machine the tool cache tools, versions, platforms and size; registry mirror images, size and stale tags. The CLI shows the same data (`ci-runners-pool caches list`).
+**R5.29** — The API gives the Images and caches screen, per pool: Actions cache used bytes, cap, entry count, hits, misses and bytes served in the last 24 hours; per repository entries, size and last hit; per git mirror size, last refresh and status; per machine the tool cache tools, versions, platforms and size; registry mirror images, size and stale tags. The CLI shows the same data (`crsp caches list`).
 
 ### Wipe (milestone 7; tool cache wipe in milestone 2)
 

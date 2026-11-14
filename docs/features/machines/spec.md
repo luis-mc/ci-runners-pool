@@ -24,7 +24,7 @@ Sources: the product brief ([product.md](../../overview/product.md)), decisions 
 
 ## 1. In one paragraph
 
-A machine is any computer on the user's local network that runs the `ci-runners-pool` agent. The user adds machines before anything else. The console shows one install command with a one-time join code. The agent joins, gets its own key, and keeps one outbound TLS link to the controller. It reports what the machine is (OS, CPU, memory, disk, GPU, isolation backends) and how loaded it is. The user sets, per machine, whether it takes jobs, its load budget, its job slots and its allowed backends. Changes that restart runners wait for running jobs to finish. They never cut a job.
+A machine is any computer on the user's local network that runs the `crsp` agent. The user adds machines before anything else. The console shows one install command with a one-time join code. The agent joins, gets its own key, and keeps one outbound TLS link to the controller. It reports what the machine is (OS, CPU, memory, disk, GPU, isolation backends) and how loaded it is. The user sets, per machine, whether it takes jobs, its load budget, its job slots and its allowed backends. Changes that restart runners wait for running jobs to finish. They never cut a job.
 
 ## 2. Why
 
@@ -221,7 +221,7 @@ Ported from runner-pool R5.10 (no rebuild under a running job) and learning 1 of
 
 ### 5.9 Least privilege and the service
 
-**R5.44** (M1) — The agent runs as its own non-admin account: a virtual service account on Windows (`NT SERVICE\ci-runners-pool-agent`), a system user `crp-agent` on Linux, a hidden daemon user `_crp_agent` on macOS.
+**R5.44** (M1) — The agent runs as its own non-admin account: a virtual service account on Windows (`NT SERVICE\crsp-agent`), a system user `crsp-agent` on Linux, a hidden daemon user `_crsp_agent` on macOS.
 
 **R5.45** (M1) — Admin rights are needed in one install step only. Before it runs, it lists each admin action (create the account, install the service, grant each right, add the account to the groups a backend needs) and asks for a yes. It never runs without that yes.
 
@@ -237,7 +237,7 @@ Ported from runner-pool R5.10 (no rebuild under a running job) and learning 1 of
 
 **R5.50** (M1) — The Machines screen lists every machine with its state, OS, backends, load against budget, slots used and last seen. Load updates live (server-sent events).
 
-**R5.51** (M1) — The CLI has the same powers: `ci-runners-pool machines list`, `show`, `set`, `drain`, `resume`, and from M3 `join-code` and `remove`. A destructive command lists what goes and asks for a yes; `--yes` answers it in a script.
+**R5.51** (M1) — The CLI has the same powers: `crsp machines list`, `show`, `set`, `drain`, `resume`, and from M3 `join-code` and `remove`. A destructive command lists what goes and asks for a yes; `--yes` answers it in a script.
 
 **R5.52** (M1) — Settings, drain, resume and removal need the admin or owner role. Viewers see machines and load only.
 
@@ -375,7 +375,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.48 | internal/agent/install_plan_test.go | planned |
 | R5.49 | internal/agent/uninstall_test.go | planned |
 | R5.50 | apps/web/src/machines/Machines.test.tsx | planned |
-| R5.51 | cmd/ci-runners-pool/machines_cmd_test.go | planned |
+| R5.51 | cmd/crsp/machines_cmd_test.go | planned |
 | R5.52 | internal/api/machines_auth_test.go | planned |
 | R6.1 | internal/machines/tls_test.go | planned |
 | R6.2 | internal/machines/secrets_test.go | planned |
@@ -407,13 +407,13 @@ Everything in this spec is NOT YET IMPLEMENTED. The seams that will change:
 - `packages/contract/proto/agent/v1/agent.proto`: `Register` becomes `Join`; session messages grow (section 7).
 - `internal/store/migrations`: new tables for machines, keys, join codes, settings and load.
 - `packages/contract/openapi.yaml`: machine endpoints for the console and CLI.
-- `cmd/ci-runners-pool/main.go`: the `agent` mode and the `machines` subcommands.
+- `cmd/crsp/main.go`: the `agent` mode and the `machines` subcommands.
 - `internal/config/config.go`: the agent link port (8461) and the controller address for the agent.
 
 ## 12. Code map
 
 Source: packages/contract/proto/agent/v1/agent.proto
 Source: internal/config/config.go
-Source: cmd/ci-runners-pool/main.go
+Source: cmd/crsp/main.go
 
 Planned, not yet in the tree: `internal/agent/`, `internal/machines/`, `internal/load/`, `apps/web/src/machines/`.

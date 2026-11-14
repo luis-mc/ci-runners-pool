@@ -21,7 +21,7 @@ NOT YET IMPLEMENTED. Nothing in this spec is built yet. Each check names the mil
 
 ## 1. In one paragraph
 
-The doctor checks that the whole pool is healthy and says how to fix each problem. It looks at every machine, every isolation backend, every runner, the GitHub App, the repository variables `CRP_RUNS_ON_*`, the `runs-on` labels of every workflow, and the runner hooks. Each problem is a finding with a severity and one clear fix. The user runs it from the Doctor screen of the web console, from the CLI (`ci-runners-pool doctor`), or lets the controller run it on a schedule. New findings feed the notifications. The doctor only reads. It never changes anything.
+The doctor checks that the whole pool is healthy and says how to fix each problem. It looks at every machine, every isolation backend, every runner, the GitHub App, the repository variables `CRSP_RUNS_ON_*`, the `runs-on` labels of every workflow, and the runner hooks. Each problem is a finding with a severity and one clear fix. The user runs it from the Doctor screen of the web console, from the CLI (`crsp doctor`), or lets the controller run it on a schedule. New findings feed the notifications. The doctor only reads. It never changes anything.
 
 ## 2. Why
 
@@ -49,7 +49,7 @@ The doctor checks that the whole pool is healthy and says how to fix each proble
 ```mermaid
 flowchart LR
   t1[Console: Run checks] --> c[Controller: doctor run]
-  t2[CLI: ci-runners-pool doctor] --> c
+  t2[CLI: crsp doctor] --> c
   t3[Schedule] --> c
   c --> g[Controller checks: GitHub App, repository variables, workflows, controller]
   c --> a[Each agent: machine, backend, runner checks]
@@ -125,7 +125,7 @@ States:
 
 **R5.12** — Each managed runner is checked: registered on GitHub and online there, service present and running, runner version current, both job hooks set and usable. GitHub runners with the pool's name prefix that no machine has are a `warn` finding. NOT YET IMPLEMENTED (milestone 1).
 
-**R5.13** — When the agent cannot read a runner folder (it is locked to the runner's account), the checks that need it return `skip` with `needs_admin: true`. The fix says how to run them as an administrator on that machine (`ci-runners-pool doctor --local`). The runner itself is still found and its service checks still run. NOT YET IMPLEMENTED (milestone 1).
+**R5.13** — When the agent cannot read a runner folder (it is locked to the runner's account), the checks that need it return `skip` with `needs_admin: true`. The fix says how to run them as an administrator on that machine (`crsp doctor --local`). The runner itself is still found and its service checks still run. NOT YET IMPLEMENTED (milestone 1).
 
 **R5.14** — The hook check fails when a job-started or job-completed hook is missing, ends in `.cmd`, points into a user profile, or, on Windows, is a `.ps1` that the service account's execution policy would block (learning 4). An execution policy that cannot be read is `skip`, not `fail`. NOT YET IMPLEMENTED (milestone 1).
 
@@ -137,17 +137,17 @@ States:
 
 ### 5.5 Repository variables and workflows
 
-**R5.17** — For each pool repository and each OS that has runners for it, `CRP_RUNS_ON_<OS>` is set, is a JSON list of strings, and equals the labels the product would write. Unset where a workflow uses it is `fail`; different is `warn`. A variable set for an OS with no online runner is `fail` (its jobs would queue forever). NOT YET IMPLEMENTED (milestone 1).
+**R5.17** — For each pool repository and each OS that has runners for it, `CRSP_RUNS_ON_<OS>` is set, is a JSON list of strings, and equals the labels the product would write. Unset where a workflow uses it is `fail`; different is `warn`. A variable set for an OS with no online runner is `fail` (its jobs would queue forever). NOT YET IMPLEMENTED (milestone 1).
 
 **R5.18** — For each pool repository, the doctor reads every workflow file on the default branch and every job's `runs-on`: a string, a flow list, a block list, or `${{ fromJSON(vars.NAME) }}` with an optional `|| '<default>'`, resolved through the repository variable. A label set with `self-hosted` must be carried in full by at least one online runner; otherwise `fail`, with file and line. GitHub-hosted label sets are skipped. An expression it cannot resolve (a matrix value) is `info`, "not checked". NOT YET IMPLEMENTED (milestone 1).
 
-**R5.19** — A self-hosted job with literal labels instead of `fromJSON(vars.CRP_RUNS_ON_*)` is `warn`. A runner label that is not generic (not `self-hosted`, an OS, an architecture, `docker`, `kvm`, `gpu` or a pool name) is `warn` (learning 7). NOT YET IMPLEMENTED (milestone 1).
+**R5.19** — A self-hosted job with literal labels instead of `fromJSON(vars.CRSP_RUNS_ON_*)` is `warn`. A runner label that is not generic (not `self-hosted`, an OS, an architecture, `docker`, `kvm`, `gpu` or a pool name) is `warn` (learning 7). NOT YET IMPLEMENTED (milestone 1).
 
 ### 5.6 Where it runs
 
 **R5.20** — Console: the Doctor screen of section 4 starts runs, shows progress and findings live, and filters by severity, group and machine. NOT YET IMPLEMENTED (milestone 1).
 
-**R5.21** — CLI: `ci-runners-pool doctor` starts a run through the controller's API and prints the findings, worst first, one block per finding with its fix. Flags: `--machine NAME`, `--repo OWNER/NAME`, `--check PREFIX` (each may repeat), `--min-severity info|warn|fail` (default `warn`: hides `ok`, `info` and `skip` from text output), `--json`, `--local`. NOT YET IMPLEMENTED (milestone 1).
+**R5.21** — CLI: `crsp doctor` starts a run through the controller's API and prints the findings, worst first, one block per finding with its fix. Flags: `--machine NAME`, `--repo OWNER/NAME`, `--check PREFIX` (each may repeat), `--min-severity info|warn|fail` (default `warn`: hides `ok`, `info` and `skip` from text output), `--json`, `--local`. NOT YET IMPLEMENTED (milestone 1).
 
 **R5.22** — CLI exit code by the worst severity: 0 when nothing is `warn` or `fail`, 1 when the worst is `warn`, 2 when the worst is `fail`, 3 when the run could not happen (bad flags, controller not reachable, not signed in). NOT YET IMPLEMENTED (milestone 1).
 
@@ -228,10 +228,10 @@ Machines:
 | `machine.online` | The agent's last message is older than the offline timeout (default 90 s) | fail | Start the agent service on that machine; the command per OS | no | 1 |
 | `machine.load.fresh` | The load figures are older than 60 s | fail | Restart the agent; it measures every 15 s | no | 1 |
 | `machine.load.budget` | Memory or CPU median over the budget for more than 10 minutes | warn | Lower slots or raise the budget on the Machines screen | no | 1 |
-| `machine.disk` | Free space on the work volume under 15% or 10 GB (warn), under 5% or 2 GB (fail); total size of runner work folders | warn, fail | Clean the work folders of idle runners: `ci-runners-pool runners clean-work --machine NAME` | no | 1 |
+| `machine.disk` | Free space on the work volume under 15% or 10 GB (warn), under 5% or 2 GB (fail); total size of runner work folders | warn, fail | Clean the work folders of idle runners: `crsp runners clean-work --machine NAME` | no | 1 |
 | `machine.clock` | Clock differs from the controller or from GitHub's `Date` header by over 30 s (warn) or 120 s (fail) | warn, fail | Turn on time sync (NTP) on that machine | no | 1 |
 | `machine.config` | The machine config the hooks read is missing or not readable by runner accounts | fail | Grant read rights; the command per OS | no | 1 |
-| `machine.slots` | A slot held by a dead holder or past `slot_stale_min`; a queue ticket older than that | fail | `ci-runners-pool slots free-stale --machine NAME` (the next job gate also frees them) | no | 1 |
+| `machine.slots` | A slot held by a dead holder or past `slot_stale_min`; a queue ticket older than that | fail | `crsp slots free-stale --machine NAME` (the next job gate also frees them) | no | 1 |
 | `machine.slots.heavy` | Heavy slots above total slots, so the heavy limit never bites | warn | Lower heavy slots on the Machines screen | no | 1 |
 | `machine.agent.version` | Agent version differs from the controller's | warn | Update the agent (drains first) | no | 3 |
 | `machine.agent.key` | The agent key is missing from the OS secret store or not accepted | fail | Join the machine again with a new join code | no | 3 |
@@ -274,7 +274,7 @@ GitHub App:
 |---|---|---|---|---|---|
 | `github.app.installation` | The App is not installed, or suspended, on an account with a pool repository | fail | Install or unsuspend the App; link to its GitHub page | no | 1 |
 | `github.app.permissions` | A needed permission is missing (fail) or an update waits for approval (warn) | fail, warn | Accept the permission update; link | no | 1 |
-| `github.app.token` | No installation token can be made: key missing from the secret store, key rejected, or clock skew | fail | Restore the key, or make a new key in the App settings and store it with `ci-runners-pool github key set` | no | 1 |
+| `github.app.token` | No installation token can be made: key missing from the secret store, key rejected, or clock skew | fail | Restore the key, or make a new key in the App settings and store it with `crsp github key set` | no | 1 |
 | `github.ratelimit` | Under 10% of the hourly limit left | warn | Wait for the reset time shown | no | 1 |
 | `github.webhook` | Recent webhook deliveries failed or none arrived in 24 h while jobs ran | warn | Check that GitHub can reach the controller; the polling fallback is in use | no | 1 |
 
@@ -282,11 +282,11 @@ Repositories and workflows:
 
 | Check | Finds | Severity | Fix | Admin | M |
 |---|---|---|---|---|---|
-| `repo.vars` | `CRP_RUNS_ON_<OS>` unset where used (fail), not a JSON list (fail), different from the product's value (warn) | fail, warn | Set it from the Repositories screen; the `gh variable set` command | no | 1 |
-| `repo.vars.runner` | A `CRP_RUNS_ON_<OS>` whose labels no online runner carries | fail | Add or start a runner with those labels | no | 1 |
+| `repo.vars` | `CRSP_RUNS_ON_<OS>` unset where used (fail), not a JSON list (fail), different from the product's value (warn) | fail, warn | Set it from the Repositories screen; the `gh variable set` command | no | 1 |
+| `repo.vars.runner` | A `CRSP_RUNS_ON_<OS>` whose labels no online runner carries | fail | Add or start a runner with those labels | no | 1 |
 | `repo.forks` | A public repository lets fork pull requests reach the pool | warn | Turn fork jobs off unless meant | no | 2 |
-| `workflow.labels` | A self-hosted `runs-on` label set no online runner carries, with file and line | fail | Add a runner with the labels, or change the workflow to `fromJSON(vars.CRP_RUNS_ON_<OS>)` | no | 1 |
-| `workflow.generic` | A self-hosted job with literal labels | warn | Use `${{ fromJSON(vars.CRP_RUNS_ON_<OS>) }}` | no | 1 |
+| `workflow.labels` | A self-hosted `runs-on` label set no online runner carries, with file and line | fail | Add a runner with the labels, or change the workflow to `fromJSON(vars.CRSP_RUNS_ON_<OS>)` | no | 1 |
+| `workflow.generic` | A self-hosted job with literal labels | warn | Use `${{ fromJSON(vars.CRSP_RUNS_ON_<OS>) }}` | no | 1 |
 | `workflow.unresolved` | A `runs-on` expression the doctor cannot resolve | info | None needed; it says it was not checked | no | 1 |
 | `runner.labels.generic` | A runner carries a label that is not generic | warn | Remove the label; target by repository variable | no | 1 |
 
@@ -362,7 +362,7 @@ Not ported, with the reason:
       "severity": "fail",
       "title": "No online runner carries [self-hosted, linux, arm64]",
       "detail": ".github/workflows/ci.yml:12 needs [self-hosted, linux, arm64]",
-      "fix": {"text": "Add a runner with these labels, or use fromJSON(vars.CRP_RUNS_ON_LINUX).", "command": null, "link": "/runners"},
+      "fix": {"text": "Add a runner with these labels, or use fromJSON(vars.CRSP_RUNS_ON_LINUX).", "command": null, "link": "/runners"},
       "needs_admin": false,
       "milestone": 1,
       "checked_at": "2026-11-14T10:00:12Z"
@@ -440,7 +440,7 @@ All tests are planned (NOT YET IMPLEMENTED). Paths are where they will live.
 | D1 | Does the doctor repair? | No. It reads only; each finding gives words, a command and a link to where the fix lives (UX-52) | 2026-11-14 |
 | D2 | Severity levels | `ok`, `info`, `skip`, `warn`, `fail`; `needs_admin` is a flag on `skip` | 2026-11-14 |
 | D3 | CLI exit codes | 0 healthy, 1 worst `warn`, 2 worst `fail`, 3 could not run | 2026-11-14 |
-| D4 | Variable names | `CRP_RUNS_ON_LINUX`, `CRP_RUNS_ON_WINDOWS`, `CRP_RUNS_ON_MACOS`, from the product brief (decision 0002 still says `CI_RUNS_ON`) | 2026-11-14 |
+| D4 | Variable names | `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`, `CRSP_RUNS_ON_MACOS`, from the product brief (decision 0002 still says `CRSP_RUNS_ON_LINUX`) | 2026-11-14 |
 | D5 | How runners are found | From the OS service list first, then the database; never only by reading runner folders (learning 6) | 2026-11-14 |
 | D6 | Which milestone starts the doctor | Milestone 1, with the checks of milestone 1 parts, since every milestone ends with the doctor covering its parts | 2026-11-14 |
 
@@ -454,7 +454,7 @@ Everything is NOT YET IMPLEMENTED. The seams that change as it is built:
 - Open questions for the owner (until answered, the choices in section 10 stand):
   1. The brief lists the doctor under milestone 2 but says every milestone ends with the doctor covering its parts. Start it in milestone 1 (D6)?
   2. Should a `warn` make the CLI exit 1 (D3), or only `fail` exit non-zero?
-  3. Decision 0002 says `CI_RUNS_ON`; the brief says `CRP_RUNS_ON_*`. Update decision 0002 to match (D4)?
+  3. Decision 0002 says `CRSP_RUNS_ON_LINUX`; the brief says `CRSP_RUNS_ON_*`. Update decision 0002 to match (D4)?
   4. UX-58 has no glyph for a warning. Add one in the next design-system version (for example `! warn` in Needs you amber)?
   5. Schedule defaults: full run every 30 minutes and quick run every 60 s (R5.25). Right?
   6. May viewers start a run, or only read findings (R6.4)?

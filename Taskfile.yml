@@ -4,7 +4,7 @@ version: '3'
 
 vars:
   EXE: '{{if eq OS "windows"}}.exe{{end}}'
-  BIN: bin/ci-runners-pool{{.EXE}}
+  BIN: bin/crsp{{.EXE}}
   VERSION:
     sh: git describe --tags --always --dirty 2>/dev/null || echo dev
 
@@ -41,7 +41,7 @@ tasks:
   codegen:ts:
     desc: TypeScript client types from openapi.yaml
     cmds:
-      - pnpm --filter @crp/contract run codegen
+      - pnpm --filter @crsp/contract run codegen
 
   codegen:check:
     desc: Regenerate and fail if any generated file changed (STACKSPEC 4.1)
@@ -60,14 +60,14 @@ tasks:
     env:
       CGO_ENABLED: '0'
     cmds:
-      - go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN}} ./cmd/ci-runners-pool
+      - go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN}} ./cmd/crsp
 
   build:go:
     desc: Build the binary without rebuilding the web console
     env:
       CGO_ENABLED: '0'
     cmds:
-      - go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN}} ./cmd/ci-runners-pool
+      - go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o {{.BIN}} ./cmd/crsp
 
   test:
     desc: Go tests (fails when no test ran) and web tests
@@ -81,7 +81,7 @@ tasks:
       - bash scripts/ci/go-test.sh {{.CLI_ARGS}}
 
   e2e:
-    desc: Playwright smoke against bin/ci-runners-pool (run task build first)
+    desc: Playwright smoke against bin/crsp (run task build first)
     cmds:
       - pnpm exec playwright test
 

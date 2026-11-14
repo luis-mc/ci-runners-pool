@@ -46,7 +46,7 @@ Each controller registers its own GitHub App in the first-run wizard. People sig
 
 - One-click App creation with the exact permissions the product needs, no more.
 - Sign-in that acts as the user, so a user sees only what GitHub lets them see.
-- Runners that work with `runs-on: ${{ fromJSON(vars.CRP_RUNS_ON_LINUX) }}` without the user writing labels by hand.
+- Runners that work with `runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_LINUX) }}` without the user writing labels by hand.
 - No secret in the database, config files, logs or test fixtures.
 
 **Non-goals.**
@@ -77,7 +77,7 @@ sequenceDiagram
   C->>C: First user becomes owner
   O->>C: Turn the pool on for a repository
   C->>G: Check admin right as the user
-  C->>G: Write CRP_RUNS_ON_* variables (installation token)
+  C->>G: Write CRSP_RUNS_ON_* variables (installation token)
   C->>G: Fetch registration or JIT config when a runner starts
   G-->>C: Demand (scale-set session, workflow_job webhook, or polling)
 ```
@@ -160,7 +160,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 **R5.13** (M1, NOT YET IMPLEMENTED) — **Sessions.** A web session is a random id in a cookie (`HttpOnly`, `SameSite=Lax`, and `Secure` on every non-loopback address). The database keeps only a hash of the id. A session ends after 12 hours idle or 7 days, at sign-out, and when the user is removed or their role changes.
 
-**R5.14** (M1, NOT YET IMPLEMENTED) — **CLI device flow.** `ci-runners-pool login` runs GitHub's device flow with the App's client id. It shows the code and the URL, and waits at the interval GitHub gives. It sends the GitHub user token once to the controller, which checks it with `POST /applications/{client_id}/token` and that the user is allowed. The controller returns its own CLI token. The CLI keeps that token in the OS secret store and drops the GitHub token.
+**R5.14** (M1, NOT YET IMPLEMENTED) — **CLI device flow.** `crsp login` runs GitHub's device flow with the App's client id. It shows the code and the URL, and waits at the interval GitHub gives. It sends the GitHub user token once to the controller, which checks it with `POST /applications/{client_id}/token` and that the user is allowed. The controller returns its own CLI token. The CLI keeps that token in the OS secret store and drops the GitHub token.
 
 **R5.15** (M1, NOT YET IMPLEMENTED) — **CLI token.** A CLI token carries the user's role, expires after 30 days, and is listed in Settings. The owner or the user can revoke it.
 
@@ -188,7 +188,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 |---|---|---|---|
 | Repository | Administration | Read and write | Repository runners, registration and remove tokens, JIT configs, fork approval setting |
 | Repository | Actions | Read | Workflow runs and jobs for polling; `workflow_job` events |
-| Repository | Variables | Read and write | `CRP_RUNS_ON_*` variables |
+| Repository | Variables | Read and write | `CRSP_RUNS_ON_*` variables |
 | Repository | Contents | Read | Reading `.github/workflows/` for the `runs-on` check |
 | Repository | Metadata | Read | Required by GitHub |
 | Organization | Self-hosted runners | Read and write | Organization runners and runner groups (R5.21) |
@@ -210,15 +210,15 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 ### 5.6 Repository variables and `runs-on`
 
-**R5.28** (M1, NOT YET IMPLEMENTED) — **Variables kept correct.** For each enabled repository the controller writes `CRP_RUNS_ON_LINUX`, `CRP_RUNS_ON_WINDOWS` and `CRP_RUNS_ON_MACOS`. Each is a JSON list of labels, for example `["self-hosted","Linux","crp-home"]`. A variable is written only for an OS the policy enables and some machine can serve. The controller writes them on enable and on policy change, and checks them every 10 minutes. A value changed outside the product is restored, logged in the audit log, and shown as drift on the repository row. (Source: runner-pool R5.36, which used `CI_RUNS_ON_WINDOWS`.)
+**R5.28** (M1, NOT YET IMPLEMENTED) — **Variables kept correct.** For each enabled repository the controller writes `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS` and `CRSP_RUNS_ON_MACOS`. Each is a JSON list of labels, for example `["self-hosted","Linux","crsp-home"]`. A variable is written only for an OS the policy enables and some machine can serve. The controller writes them on enable and on policy change, and checks them every 10 minutes. A value changed outside the product is restored, logged in the audit log, and shown as drift on the repository row. (Source: runner-pool R5.36, which used `CRSP_RUNS_ON_WINDOWS`.)
 
 **R5.29** (M1, NOT YET IMPLEMENTED) — **Variables when the pool is off.** Turning the pool off names the variables the controller would delete. It deletes them only after a yes. The question says that workflows that read them will fail to start.
 
 **R5.30** (M1, NOT YET IMPLEMENTED) — **`runs-on` check.** The controller reads every file in `.github/workflows/` of an enabled repository on enable, on policy change and every hour (with ETags). It reports a finding with file and line when:
 
 - a self-hosted job names a literal label set that no runner of the pool carries (fail);
-- a self-hosted job uses literal labels instead of `fromJSON(vars.CRP_RUNS_ON_<OS>)` (warning);
-- a workflow reads a `CRP_RUNS_ON_<OS>` variable that is not set (fail).
+- a self-hosted job uses literal labels instead of `fromJSON(vars.CRSP_RUNS_ON_<OS>)` (warning);
+- a workflow reads a `CRSP_RUNS_ON_<OS>` variable that is not set (fail).
 
 Findings show on the repository row and feed the doctor. (Source: runner-pool R5.39; DELIVERYSPEC DL-09.)
 
@@ -402,7 +402,7 @@ No test exists yet. Each path is planned. The fake GitHub server and its fixture
 
 | ID | Question | Chosen | Date |
 |---|---|---|---|
-| GI-1 | Variable names | `CRP_RUNS_ON_LINUX`, `CRP_RUNS_ON_WINDOWS`, `CRP_RUNS_ON_MACOS` (product brief, 2026-11-14). Decision 0002 still shows the older `CI_RUNS_ON` names as an example. | 2026-11-14 |
+| GI-1 | Variable names | `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`, `CRSP_RUNS_ON_MACOS` (product brief, 2026-11-14). Decision 0002 still shows the older `CRSP_RUNS_ON_LINUX` names as an example. | 2026-11-14 |
 | GI-2 | How the first owner is protected on a network | A one-time setup code from the terminal or tray gates the wizard and the owner claim (R5.1, R5.10). | 2026-11-14 |
 | GI-3 | How the CLI authenticates to the controller | Device flow to GitHub, then a controller CLI token; the GitHub token is dropped (R5.14). | 2026-11-14 |
 | GI-4 | How fork pull requests are kept off | Fork approval setting plus a job-started hook guard (R5.26). | 2026-11-14 |

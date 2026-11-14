@@ -16,7 +16,7 @@
     "apps/web/src/features/users/**": [
       "docs/features/github-integration/spec.md"
     ],
-    "cmd/ci-runners-pool/**": [
+    "cmd/crsp/**": [
       "docs/features/cli/spec.md"
     ],
     "internal/agent/**": [

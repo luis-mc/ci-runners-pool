@@ -11,7 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/luis-mc/ci-runners-pool/internal/api/gen"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
 )
 
 // Pinger is what the health route needs from the database.

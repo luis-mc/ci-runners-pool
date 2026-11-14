@@ -7,7 +7,7 @@ status: proposed
 version: 0.1.0
 owner: owner
 type: reference
-code: [cmd/ci-runners-pool/**, internal/cli/**]
+code: [cmd/crsp/**, internal/cli/**]
 design_system: [content action-vocabulary, content message-wording, content dates-times-numbers]
 last_verified: 2026-11-14
 artifact:
@@ -21,7 +21,7 @@ Today the binary has three commands: `controller`, `agent` (it says it is not bu
 
 ## 1. In one paragraph
 
-`ci-runners-pool` is one program. It runs the controller, the agent and the tray. It is also the command line for people. The command line can do everything the web console can do: sign in, turn the pool on for a repository, add machines, add runners, watch jobs, run the doctor, and export or import the configuration. It suits headless machines and scripts. It talks to the controller through the same API contract as the web console. It prints plain tables for people and JSON for scripts.
+`crsp` is one program. It runs the controller, the agent and the tray. It is also the command line for people. The command line can do everything the web console can do: sign in, turn the pool on for a repository, add machines, add runners, watch jobs, run the doctor, and export or import the configuration. It suits headless machines and scripts. It talks to the controller through the same API contract as the web console. It prints plain tables for people and JSON for scripts.
 
 ## 2. Why
 
@@ -51,7 +51,7 @@ Today the binary has three commands: `controller`, `agent` (it says it is not bu
 
 ```mermaid
 flowchart LR
-  user[Person or script] --> cmd[ci-runners-pool command]
+  user[Person or script] --> cmd[crsp command]
   cmd --> ctx[Pick context: flag, env, current]
   ctx --> sec[Read token from OS secret store]
   sec --> client[Generated API client]
@@ -61,9 +61,9 @@ flowchart LR
   out -->|yes| json[JSON on stdout]
 ```
 
-1. The user runs a command, for example `ci-runners-pool machine list`.
-2. The CLI picks the controller: the `--context` flag, then the `CRP_CONTEXT` variable, then the current context in the CLI config file.
-3. It reads that context's token from the OS secret store. With no token, it says to run `ci-runners-pool login`.
+1. The user runs a command, for example `crsp machine list`.
+2. The CLI picks the controller: the `--context` flag, then the `CRSP_CONTEXT` variable, then the current context in the CLI config file.
+3. It reads that context's token from the OS secret store. With no token, it says to run `crsp login`.
 4. It calls the controller through the client generated from `packages/contract/openapi.yaml`. It checks the controller's certificate against the fingerprint it pinned at login.
 5. It prints the result: a table for people, or JSON with `--json`.
 6. It exits with a code from the table in R5.12.
@@ -93,7 +93,7 @@ The CLI has no screens. Its words follow the design system's content rules: one 
 
 States a person sees:
 
-- **Empty:** "No machines yet. Run `ci-runners-pool machine add` to add one."
+- **Empty:** "No machines yet. Run `crsp machine add` to add one."
 - **Waiting:** "Waiting for 2 jobs to end on build-01 (about 4 min left)."
 - **Needs you:** "This removes runner linux-03 and stops 1 running job. Type yes to go on:"
 - **Problem:** "Could not reach the controller at https://pool.lan:8460. The connection timed out. Make sure the address is right, then try again."
@@ -141,7 +141,7 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 
 **R5.6** — `login` MUST add or update a context (name, controller URL, pinned fingerprint) in the CLI config file and make it current. `context list` shows the contexts and marks the current one. `context use NAME` changes it. `context remove NAME` deletes the context and its token, after a yes.
 
-**R5.7** — The context MUST be picked in this order: `--context NAME`, then `CRP_CONTEXT`, then the current context in the file. `--controller URL` MUST work only for a URL that some context already pins.
+**R5.7** — The context MUST be picked in this order: `--context NAME`, then `CRSP_CONTEXT`, then the current context in the file. `--controller URL` MUST work only for a URL that some context already pins.
 
 **R5.8** — `logout` MUST delete this context's token from the secret store and ask the controller to revoke it. It MUST delete the local token even when the controller cannot be reached, and say so.
 
@@ -197,7 +197,7 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 
 **R5.25** — `completion SHELL` MUST print a completion script for bash, zsh, fish or PowerShell. Completion MUST suggest commands and flags without a network call, and names (repositories, machines, runners) from the controller when it answers within 1 second.
 
-**R5.26** — `version` MUST print `ci-runners-pool <version> (<Go version>)` and exit 0. `version --json` MUST print `{"version": ..., "go": ...}`. (Built today, without `--json`.)
+**R5.26** — `version` MUST print `crsp <version> (<Go version>)` and exit 0. `version --json` MUST print `{"version": ..., "go": ...}`. (Built today, without `--json`.)
 
 **R5.27** — A command run with no subcommand, or `help`, MUST print usage. Usage to stdout exits 0 when asked for; usage after an error goes to stderr and exits 2. (Built today.)
 
@@ -223,7 +223,7 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 
 ```mermaid
 flowchart TB
-  main[cmd/ci-runners-pool/main.go] --> modes[controller / agent / tray]
+  main[cmd/crsp/main.go] --> modes[controller / agent / tray]
   main --> cli[internal/cli: command tree, flags, prompts, exit codes]
   cli --> out[internal/cli/output: table and JSON]
   cli --> ctx[internal/cli/contexts: config file]
@@ -235,8 +235,8 @@ flowchart TB
 - **Entry.** `main.go` keeps the mode dispatch (`controller`, `agent`, `tray`). All other commands go to `internal/cli`.
 - **Client.** `packages/contract/oapi-codegen.yaml` gains a client target. The web console's TypeScript client and the Go client come from the same file. That makes R5.3 a test, not a promise.
 - **Contract operations the CLI needs.** Each is added to the contract by its owner spec: device sign-in start and poll, token revoke (`github-integration`); one-time console link (`web-console`); repositories and policy (`github-integration`, `scheduling`); machines and join codes (`machines`); runners (`runners`); jobs and the live event stream (`scheduling`); doctor (`doctor`); config export, plan and apply (`config-as-code`); backup and restore (`backup`); releases (`updates`).
-- **Config file.** `<user config dir>/ci-runners-pool/cli.toml`. Keys: `current`, and per context `url` and `fingerprint`.
-- **Secret store key.** `ci-runners-pool/cli/<context>`.
+- **Config file.** `<user config dir>/crsp/cli.toml`. Keys: `current`, and per context `url` and `fingerprint`.
+- **Secret store key.** `crsp/cli/<context>`.
 - **Prompts.** One helper prints the list of what goes, then asks, then maps the answer to go on or exit 5. Every destructive command uses it.
 - **Errors.** One function maps HTTP status and transport errors to the exit codes in R5.12. 401 and 403 map to 3, 404 to 4, 409 to 7.
 
@@ -283,8 +283,8 @@ Tests are planned unless marked built. Planned paths are written in plain text u
 | R5.23 | planned: internal/cli/backup_test.go TestBackupRestoreOwnerOnly |
 | R5.24 | planned: internal/cli/update_test.go TestChecksumAndDrain |
 | R5.25 | planned: internal/cli/completion_test.go TestScriptsAndOfflineCompletion |
-| R5.26 | built: `cmd/ci-runners-pool/main_test.go` TestRunVersion; planned: --json case |
-| R5.27 | built: `cmd/ci-runners-pool/main_test.go` TestRunUsageErrors |
+| R5.26 | built: `cmd/crsp/main_test.go` TestRunVersion; planned: --json case |
+| R5.27 | built: `cmd/crsp/main_test.go` TestRunUsageErrors |
 | R6.1 | planned: internal/cli/secrets_test.go TestNoSecretInOutputOrConfig (runs every command with a canary token) |
 | R6.2 | planned: internal/cli/contexts/contexts_test.go TestNoTokenInFile, TestFallbackFileMode |
 | R6.3 | planned: internal/cli/client_test.go TestNoInsecureFlag |
@@ -300,7 +300,7 @@ Tests are planned unless marked built. Planned paths are written in plain text u
 |---|---|---|---|
 | D1 | How does the CLI sign in? | GitHub device flow through the controller; the CLI keeps only a controller token (decision 0002). | 2026-11-13 |
 | D2 | How does the CLI reach the API? | The Go client generated from the same OpenAPI contract as the web console (decision 0001). | 2026-11-13 |
-| D3 | How does a headless machine open the console? | `ci-runners-pool open` prints a one-time link (decision 0005). | 2026-11-13 |
+| D3 | How does a headless machine open the console? | `crsp open` prints a one-time link (decision 0005). | 2026-11-13 |
 
 Open questions for the owner (not decided):
 
@@ -308,7 +308,7 @@ Open questions for the owner (not decided):
 2. Which milestone ships the `tray` mode? This spec says M8; the brief does not say.
 3. `config import` without `--dry-run`: refuse and point to `config apply` (this spec), or apply after a yes?
 4. Does `backup` include secrets (App private key, webhook secret), encrypted with a passphrase, or leave them out?
-5. Should scripts be able to pass a token in an environment variable (for example `CRP_TOKEN`), or only through `login`?
+5. Should scripts be able to pass a token in an environment variable (for example `CRSP_TOKEN`), or only through `login`?
 6. Command library: the standard `flag` package or `spf13/cobra` (built-in completion)?
 7. Commands for the remaining console screens (users, notifications, budgets, images and caches, audit log): add them here, or in their own specs? R5.3 requires them in the end.
 8. Feature folder names of other specs are assumed (`runners`, `web-console`, `tray`, `doctor`, `config-as-code`, `backup`, `updates`). Confirm them.
@@ -317,14 +317,14 @@ Open questions for the owner (not decided):
 
 Everything except `controller`, `version`, `help` and the `agent` placeholder is NOT YET IMPLEMENTED.
 
-- The seam: `run()` in `cmd/ci-runners-pool/main.go` sends any command other than the modes to `internal/cli`.
+- The seam: `run()` in `cmd/crsp/main.go` sends any command other than the modes to `internal/cli`.
 - `packages/contract/oapi-codegen.yaml` has no client target yet. The contract has only `getHealth`.
 - `version --json` is not built.
 
 ## 12. Code map
 
-Source: cmd/ci-runners-pool/main.go
-Source: cmd/ci-runners-pool/main_test.go
+Source: cmd/crsp/main.go
+Source: cmd/crsp/main_test.go
 Source: packages/contract/openapi.yaml
 Source: packages/contract/oapi-codegen.yaml
 

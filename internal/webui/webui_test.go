@@ -17,7 +17,7 @@ func get(h http.Handler, target string) *httptest.ResponseRecorder {
 
 func TestEmbeddedPlaceholderServes(t *testing.T) {
 	rec := get(Handler(), "/some/client/route")
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "CI Runners Pool") {
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "CI Runners Shared Pool") {
 		t.Fatalf("status %d body %q", rec.Code, rec.Body.String())
 	}
 }

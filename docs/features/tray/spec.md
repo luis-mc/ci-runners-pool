@@ -20,7 +20,7 @@ NOT YET IMPLEMENTED. Nothing in this spec is built. Every requirement below is p
 
 ## 1. In one paragraph
 
-The tray is a small icon on each desktop machine in the pool. It shows whether the local service is fine, how many jobs run and wait, and why the service stopped if it did. **Open** starts the web console in the browser, already signed in, through a one-time link. Later, the tray also restarts and updates the service, after it names the jobs that would stop and the user says yes, and it shows notices such as "machine offline". The tray is the `tray` mode of the one `ci-runners-pool` binary (decision [0001](../../architecture/decisions/0001-stack.md)). Headless Linux has no tray; `ci-runners-pool open` prints the same one-time link (decision [0005](../../architecture/decisions/0005-product-boundary.md)).
+The tray is a small icon on each desktop machine in the pool. It shows whether the local service is fine, how many jobs run and wait, and why the service stopped if it did. **Open** starts the web console in the browser, already signed in, through a one-time link. Later, the tray also restarts and updates the service, after it names the jobs that would stop and the user says yes, and it shows notices such as "machine offline". The tray is the `tray` mode of the one `crsp` binary (decision [0001](../../architecture/decisions/0001-stack.md)). Headless Linux has no tray; `crsp open` prints the same one-time link (decision [0005](../../architecture/decisions/0005-product-boundary.md)).
 
 ## 2. Why
 
@@ -46,7 +46,7 @@ The tray is a small icon on each desktop machine in the pool. It shows whether t
 
 | Milestone | What the tray does |
 |---|---|
-| M1 (one machine, persistent runners) | Open, status in the tooltip and the menu, service-stopped state with exit code, Open log folder, Quit, autostart, single instance, GNOME fallback, CI smoke on Windows, Linux and macOS. Runs on the controller's machine. `ci-runners-pool open` on headless Linux. |
+| M1 (one machine, persistent runners) | Open, status in the tooltip and the menu, service-stopped state with exit code, Open log folder, Quit, autostart, single instance, GNOME fallback, CI smoke on Windows, Linux and macOS. Runs on the controller's machine. `crsp open` on headless Linux. |
 | M3 (more machines, agent auto-update) | Open and status on agent-only machines. Restart and Update with drain. |
 | M8 (product polish) | Notices. |
 
@@ -58,7 +58,7 @@ flowchart LR
   auto --> one{Another tray in this session?}
   one -- yes --> quit[Exit quietly]
   one -- no --> area{Tray area found?}
-  area -- no --> note[One desktop notice: use ci-runners-pool open] --> exit2[Exit]
+  area -- no --> note[One desktop notice: use crsp open] --> exit2[Exit]
   area -- yes --> icon[Show icon]
   icon --> poll[Every 5 s: ask local service for status]
   poll -- answers --> tip[Tooltip and status line]
@@ -72,9 +72,9 @@ flowchart LR
 
 The steps in words:
 
-1. The user logs in to the desktop. The per-user autostart entry starts `ci-runners-pool tray`.
+1. The user logs in to the desktop. The per-user autostart entry starts `crsp tray`.
 2. If a tray already runs in this logon session, the new one exits at once.
-3. On Linux, if the desktop has no tray area (stock GNOME without the AppIndicator extension), the tray shows one desktop notice that points to `ci-runners-pool open`, then exits.
+3. On Linux, if the desktop has no tray area (stock GNOME without the AppIndicator extension), the tray shows one desktop notice that points to `crsp open`, then exits.
 4. The tray shows its icon. Every 5 seconds it asks the local service for its status over a local channel that only this machine can reach.
 5. If the service answers, the tooltip and the first menu line show the state and the job counts.
 6. If the service does not answer, the tray asks the OS service manager. It shows that the service stopped, when, and its exit code, and offers Open log folder.
@@ -101,11 +101,11 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 | State | Icon glyph | Tooltip text (example) |
 |---|---|---|
-| Healthy | `✓` | `ci-runners-pool: ✓ ok · 2 running · 1 waiting` |
-| Waiting (jobs wait over the limit, or load is over budget) | `◷` | `ci-runners-pool: ◷ waiting · 0 running · 4 waiting` |
-| Failed (service runs and reports a fault) | `✕` | `ci-runners-pool: ✕ failed · GitHub not reachable` |
-| Stopped | `✕` | `ci-runners-pool: ✕ stopped at 14:30 · exit code 3` |
-| Starting (no answer yet) | `▶` | `ci-runners-pool: ▶ starting` |
+| Healthy | `✓` | `crsp: ✓ ok · 2 running · 1 waiting` |
+| Waiting (jobs wait over the limit, or load is over budget) | `◷` | `crsp: ◷ waiting · 0 running · 4 waiting` |
+| Failed (service runs and reports a fault) | `✕` | `crsp: ✕ failed · GitHub not reachable` |
+| Stopped | `✕` | `crsp: ✕ stopped at 14:30 · exit code 3` |
+| Starting (no answer yet) | `▶` | `crsp: ▶ starting` |
 
 - Empty: no runners yet reads `✓ ok · no runners yet`, and Open leads to the console's first-run wizard (UX-6).
 - Waiting: the tray never blocks on the service; a slow answer keeps the last state for up to 15 s, then shows Starting or Stopped.
@@ -137,7 +137,7 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 **R5.9** — A one-time link MUST sign in as the GitHub user bound to the calling OS user on this machine. When the OS user is not bound yet, Open MUST open the console's sign-in with GitHub and, after sign-in, bind that GitHub user to this machine and OS user. The console MUST list these bindings and let the owner remove one. (M1; see open question 1)
 
-**R5.10** — `ci-runners-pool open` MUST print a one-time sign-in link to standard output, made the same way as R5.6, and open it in a browser when one is available. On headless Linux it only prints. (M1)
+**R5.10** — `crsp open` MUST print a one-time sign-in link to standard output, made the same way as R5.6, and open it in a browser when one is available. On headless Linux it only prints. (M1)
 
 **R5.11** — On a machine that runs only the agent, the agent MUST ask the controller for the one-time link over the agent link, and the link MUST point to the controller's console URL. (M3)
 
@@ -169,7 +169,7 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 **R5.21** — Install and Start at login MUST write a per-user autostart entry: Windows, a value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`; macOS, a LaunchAgent plist in `~/Library/LaunchAgents` with `RunAtLoad`; Linux desktop, a `.desktop` file in `$XDG_CONFIG_HOME/autostart` (default `~/.config/autostart`). Turning Start at login off MUST remove that entry. (M1)
 
-**R5.22** — On headless Linux the installer MUST NOT write an autostart entry, and MUST print how to use `ci-runners-pool open`. (M1)
+**R5.22** — On headless Linux the installer MUST NOT write an autostart entry, and MUST print how to use `crsp open`. (M1)
 
 ### Single instance
 
@@ -177,13 +177,13 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 ### Linux desktops without a tray area
 
-**R5.24** — On Linux the tray MUST look for a StatusNotifierItem host on the session D-Bus before it shows the icon. With none (stock GNOME without the AppIndicator extension), it MUST show one desktop notice that names `ci-runners-pool open` and the AppIndicator extension, then exit with code 2. It MUST show this notice once per version, not at every login. (M1)
+**R5.24** — On Linux the tray MUST look for a StatusNotifierItem host on the session D-Bus before it shows the icon. With none (stock GNOME without the AppIndicator extension), it MUST show one desktop notice that names `crsp open` and the AppIndicator extension, then exit with code 2. It MUST show this notice once per version, not at every login. (M1)
 
-**R5.25** — With no graphical session at all (no display and no session D-Bus), `ci-runners-pool tray` MUST print one line that names `ci-runners-pool open` and exit with code 3. (M1)
+**R5.25** — With no graphical session at all (no display and no session D-Bus), `crsp tray` MUST print one line that names `crsp open` and exit with code 3. (M1)
 
 ### CI smoke of the built binary
 
-**R5.26** — CI MUST build the release binary on Windows, Linux and macOS (macOS on a macOS runner with cgo, decision 0001), then start `ci-runners-pool tray --smoke`. The smoke MUST start the real tray loop, wait until the icon is ready, and exit 0 within 20 seconds. A crash, hang or non-zero exit MUST fail the build. (M1)
+**R5.26** — CI MUST build the release binary on Windows, Linux and macOS (macOS on a macOS runner with cgo, decision 0001), then start `crsp tray --smoke`. The smoke MUST start the real tray loop, wait until the icon is ready, and exit 0 within 20 seconds. A crash, hang or non-zero exit MUST fail the build. (M1)
 
 **R5.27** — The CI smoke MUST also start a second tray while the first runs and check that the second exits 0 at once (R5.23). (M1)
 
@@ -203,14 +203,14 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 **R6.7** — Every word the tray shows MUST come from `docs/design-system/v1/content.md` (UX-1). (M1)
 
-**R6.8** — The local channel MUST be reachable only by local users: on Windows the pipe rejects remote clients; on Linux and macOS the socket file is mode 0660, owned by the service user and the `ci-runners-pool` group. (M1)
+**R6.8** — The local channel MUST be reachable only by local users: on Windows the pipe rejects remote clients; on Linux and macOS the socket file is mode 0660, owned by the service user and the `crsp` group. (M1)
 
 ## 7. Design
 
 ```mermaid
 flowchart LR
   subgraph session[User's desktop session]
-    tray[ci-runners-pool tray]
+    tray[crsp tray]
     browser[Default browser]
   end
   subgraph services[Background services]
@@ -226,7 +226,7 @@ flowchart LR
 ```
 
 - **Package.** `internal/tray` holds the menu, the status poller, the autostart writers per OS (build tags), the single-instance lock, and the Linux tray-host probe. `fyne.io/systray` draws the icon and menu.
-- **Local channel.** One small request-response protocol (JSON lines) on the named pipe `\\.\pipe\ci-runners-pool-tray` or the socket `/run/ci-runners-pool/tray.sock` (Linux) or `/var/run/ci-runners-pool/tray.sock` (macOS). Calls: `status`, `link` (returns a one-time URL), `notices` (M8), `restart` and `update` (M3, need `confirmed=true`). The service reads the caller's OS user from the pipe or the socket.
+- **Local channel.** One small request-response protocol (JSON lines) on the named pipe `\\.\pipe\crsp-tray` or the socket `/run/crsp/tray.sock` (Linux) or `/var/run/crsp/tray.sock` (macOS). Calls: `status`, `link` (returns a one-time URL), `notices` (M8), `restart` and `update` (M3, need `confirmed=true`). The service reads the caller's OS user from the pipe or the socket.
 - **One-time link.** The controller stores `link_codes(hash, github_user_id, purpose, target_path, expires_at, used_at)`. The URL is `https://<host>:8460/auth/link?code=<code>`. The console marks the code used in the same transaction that makes the session, then redirects to `target_path`.
 - **Bindings.** The controller stores `tray_bindings(machine_id, os_user_id, github_user_id, created_at)`. `os_user_id` is the Windows SID or the Unix uid.
 - **Service state.** Windows: `QueryServiceStatusEx` (exit code from `dwWin32ExitCode` or `dwServiceSpecificExitCode`). macOS: `launchctl print` (last exit code). Linux: `systemctl show -p ActiveState,ExecMainStatus,ExecMainExitTimestamp`. None of these needs admin.
@@ -242,7 +242,7 @@ flowchart LR
 | Binding | OS user not bound | Closed: normal GitHub sign-in, then bind | Never sign in as a guessed user. |
 | Restart or update | No `confirmed=true` | Closed: refuse, list jobs | Never cut a running job (product learning 1). |
 | Drain | Timeout reached | The service restarts and names the jobs it stopped | The user set the timeout and said yes. |
-| Tray area (Linux) | No StatusNotifierItem host | Exit after one notice | The console and `ci-runners-pool open` still work. |
+| Tray area (Linux) | No StatusNotifierItem host | Exit after one notice | The console and `crsp open` still work. |
 | Notification service | OS refuses a notice | Open: the notice stays in the menu count | A missing toast must not hide the notice. |
 | Browser | No default browser | Show the link in a notice and copy it to the clipboard | The user can still paste it. |
 
@@ -261,7 +261,7 @@ All tests are planned; none exist yet. Paths are where each test will live.
 | R5.7 | planned: internal/api/link_test.go, TestLinkSignsInOnceAndStripsCode, TestLinkExpiredShowsSignIn |
 | R5.8 | planned: internal/tray/channel_windows_test.go and internal/tray/channel_unix_test.go, TestChannelRejectsRemoteAndReadsPeerUser |
 | R5.9 | planned: internal/api/binding_test.go, TestUnboundUserGetsSignInThenBinding, TestOwnerRemovesBinding |
-| R5.10 | planned: cmd/ci-runners-pool/open_test.go, TestOpenCommandPrintsLink |
+| R5.10 | planned: cmd/crsp/open_test.go, TestOpenCommandPrintsLink |
 | R5.11 | planned: internal/agent/link_test.go, TestAgentAsksControllerForLink |
 | R5.12 | planned: internal/tray/svcstate_windows_test.go, internal/tray/svcstate_darwin_test.go, internal/tray/svcstate_linux_test.go, TestStoppedStateWithExitCode |
 | R5.13 | planned: internal/tray/logfolder_test.go, TestLogFolderPathPerOS |
@@ -301,7 +301,7 @@ All tests are planned; none exist yet. Paths are where each test will live.
 
 ## 11. Not built yet
 
-Everything here is NOT YET IMPLEMENTED. `internal/tray/` does not exist yet; `cmd/ci-runners-pool/main.go` will add the `tray` and `open` modes.
+Everything here is NOT YET IMPLEMENTED. `internal/tray/` does not exist yet; `cmd/crsp/main.go` will add the `tray` and `open` modes.
 
 Seams that will change:
 
@@ -310,7 +310,7 @@ Seams that will change:
 
 Open owner questions:
 
-1. **Who may get a one-time link?** Proposed: each OS user binds once to a GitHub user by signing in from the tray; the owner can remove a binding. Alternative: any member of a local `ci-runners-pool` group signs in as the owner.
+1. **Who may get a one-time link?** Proposed: each OS user binds once to a GitHub user by signing in from the tray; the owner can remove a binding. Alternative: any member of a local `crsp` group signs in as the owner.
 2. **Restart and Update confirmation:** in the console (proposed), or a native yes/no dialog in the tray (needs a dialog helper per OS, for example zenity on Linux)?
 3. **New words for content.md:** Restart, Update, Quit, Open log folder, Start at login. Quit is new because Stop means ending running work.
 4. **GNOME without AppIndicator:** one notice then exit (proposed), or a small fallback window?
@@ -322,5 +322,5 @@ Open owner questions:
 Planned, NOT YET IMPLEMENTED (no `Source:` lines until the files exist):
 
 - internal/tray/ (menu, status poller, icons, autostart per OS, single instance, Linux tray-host probe, local channel client)
-- cmd/ci-runners-pool/main.go (the `tray` and `open` modes)
+- cmd/crsp/main.go (the `tray` and `open` modes)
 - .github/workflows/build.yml (tray smoke job)

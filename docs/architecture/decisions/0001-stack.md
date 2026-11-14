@@ -38,7 +38,7 @@ The full stack record is the Stack Profile, `docs/architecture/stack-profile.md`
 
 ## Decision
 
-Option 1: Go 1.27, one static binary named `ci-runners-pool`, with the modes `controller`, `agent`, `tray` and CLI commands.
+Option 1: Go 1.27, one static binary named `crsp`, with the modes `controller`, `agent`, `tray` and CLI commands.
 The memory Rust would save is small next to the gigabytes each runner uses.
 The official client and the faster work matter more.
 
