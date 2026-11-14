@@ -1,4 +1,11 @@
 {
   "schema": 1,
-  "map": {}
+  "map": {
+    "internal/mail/**": [
+      "docs/features/notifications/spec.md"
+    ],
+    "internal/notify/**": [
+      "docs/features/notifications/spec.md"
+    ]
+  }
 }
