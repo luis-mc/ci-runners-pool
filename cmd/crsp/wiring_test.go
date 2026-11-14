@@ -157,7 +157,7 @@ func TestControllerAnswersEveryBuiltOperation(t *testing.T) {
 func TestFirstRunFlow(t *testing.T) {
 	ctl, h := realController(t)
 	do := func(method, path, body string, cookies ...*http.Cookie) *httptest.ResponseRecorder {
-		req := httptest.NewRequest(method, path, strings.NewReader(body))
+		req := httptest.NewRequestWithContext(context.Background(), method, path, strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		for _, c := range cookies {
 			req.AddCookie(c)
