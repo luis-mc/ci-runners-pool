@@ -129,7 +129,7 @@ func only(t *testing.T, fs []doctor.Finding, check string) doctor.Finding {
 func TestEveryRegisteredCheckIsM1AndHasAnID(t *testing.T) {
 	reg := doctor.NewRegistry()
 	Register(reg)
-	if len(reg.All()) != 18 {
+	if len(reg.All()) != 19 {
 		t.Fatalf("checks: %v", reg.SortedIDs())
 	}
 	for _, c := range reg.All() {
@@ -625,5 +625,40 @@ func TestSkipForUnknownErrorKeepsTheReason(t *testing.T) {
 	f := skipFor("x.y", controllerSubject, "Thing", errors.New("weird"))
 	if f.Severity != doctor.Skip || !strings.Contains(f.Detail, "weird") {
 		t.Fatalf("got %+v", f)
+	}
+}
+
+// R5.29: the doctor reports what the real hook did when run as the service account.
+func TestRunnerHookRun(t *testing.T) {
+	mk := func(name string, p *doctor.HookProbe) doctor.Runner {
+		r := persistent("id-"+name, name)
+		r.HookProbe = p
+		return r
+	}
+	rs := []doctor.Runner{
+		mk("crsp-ok", &doctor.HookProbe{Output: "crsp hook ok\n"}),
+		mk("crsp-missing", &doctor.HookProbe{Output: "::warning title=crsp::crsp is not installed at /usr/local/bin/crsp, so this job ran without the queue and the load gate.\n"}),
+		mk("crsp-exit", &doctor.HookProbe{ExitCode: 2, Output: "boom"}),
+		mk("crsp-nostart", &doctor.HookProbe{Err: "powershell.exe: access denied"}),
+		mk("crsp-silent", &doctor.HookProbe{Output: ""}),
+		mk("crsp-unrun", nil),
+	}
+	fl := &fleet{machines: []doctor.Machine{healthyMachine()}, runners: rs}
+	got := map[string]doctor.Finding{}
+	for _, f := range forCheck(run(t, doctor.Env{Fleet: fl}, "runner.hookrun"), "runner.hookrun") {
+		got[f.Subject.Name] = f
+	}
+	want := map[string]doctor.Severity{"crsp-ok": doctor.OK, "crsp-missing": doctor.Fail, "crsp-exit": doctor.Fail,
+		"crsp-nostart": doctor.Fail, "crsp-silent": doctor.Fail, "crsp-unrun": doctor.Skip}
+	for name, sev := range want {
+		if got[name].Severity != sev {
+			t.Errorf("%s = %+v, want %s", name, got[name], sev)
+		}
+		if sev != doctor.OK && got[name].Fix.Text == "" {
+			t.Errorf("%s has no fix", name)
+		}
+	}
+	if d := got["crsp-missing"].Detail; !strings.Contains(d, "crsp is not installed") {
+		t.Errorf("detail does not carry the annotation: %q", d)
 	}
 }

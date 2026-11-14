@@ -45,6 +45,10 @@ type GateConfig struct {
 	MinFreePct int
 	// Log writes one line; it goes to the job's Set up job step and the agent log (R5.21).
 	Log func(string)
+	// Report puts a ::warning annotation on the job and records the problem
+	// for the doctor; Healthy clears the record (R5.61). Both may be nil.
+	Report  func(string)
+	Healthy func()
 	// Top names the top processes for hold and timeout lines (R5.46); may be nil.
 	Top   func() string
 	Now   func() time.Time
@@ -68,6 +72,13 @@ func (c *GateConfig) sleep(ctx context.Context, d time.Duration) {
 	select {
 	case <-t.C:
 	case <-ctx.Done():
+	}
+}
+
+// unreachable tells the owner, not only the log, that the gate is off (R5.61).
+func (c *GateConfig) unreachable(err error) {
+	if c.Report != nil {
+		c.Report(unreachableText("job-started", err))
 	}
 }
 
@@ -109,12 +120,16 @@ func RunGate(ctx context.Context, cfg GateConfig) int {
 		h, err := cfg.Client.Hello(ctx)
 		if err != nil {
 			cfg.logf("agent not reachable (%v): waiting on this machine's load only", err)
+			cfg.unreachable(err)
 			cfg.Client = nil
 		} else {
 			if cfg.MachineID == "" {
 				cfg.MachineID = h.MachineID
 			}
 			cfg.Machine = h.Settings
+			if cfg.Healthy != nil {
+				cfg.Healthy()
+			}
 			budget = cfg.budget()
 		}
 	}
@@ -151,6 +166,7 @@ func RunGate(ctx context.Context, cfg GateConfig) int {
 		if err != nil && !errors.Is(err, scheduler.ErrTicketGone) {
 			// The agent or the controller went away: wait on local load only for what is left.
 			cfg.logf("%v: waiting on this machine's load only", err)
+			cfg.unreachable(err)
 			return loadOnlyWait(ctx, &cfg, start, poll, maxWait, budget)
 		}
 		if len(dec.Go) > 0 {

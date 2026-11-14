@@ -11,8 +11,24 @@ import (
 // Release frees every slot and ticket the job holds on the machine, of every
 // kind, with the outcome ran (R5.28). When claims are given, a slot is freed
 // only with its claim (R5.15). A job that holds nothing frees nothing.
+//
+// A job-completed hook that frees nothing means the job never took a slot: its
+// job-started hook did not reach the gate (crsp missing, broken or cut off from
+// its agent, or the gate let the job go on its on-timeout rule). The engine
+// raises AlertJobStartedMissing for it (R5.61), once per call, and still
+// returns no error: the job has finished and nothing fails.
 func (e *Engine) Release(ctx context.Context, machineID string, job JobRef, claims []string) ([]Freed, error) {
-	return e.freeJob(ctx, machineID, toJob(job), claims, slots.OutcomeRan)
+	freed, err := e.freeJob(ctx, machineID, toJob(job), claims, slots.OutcomeRan)
+	if err == nil && len(freed) == 0 && machineID != "" && len(claims) == 0 {
+		a := Alert{Kind: AlertJobStartedMissing, MachineID: machineID, Job: job, At: e.now(),
+			Message: "A job ended on this machine that never took a slot, so its job-started hook did not reach crsp or the gate let it go without one. " +
+				"Run 'crsp doctor --check runner.hooks' for the runner that ran it."}
+		e.log.Warn("job ended without a slot", "machine", machineID, "repository", job.Repository, "run", job.RunID, "job", job.Job, "runner", job.RunnerName)
+		if e.alert != nil {
+			e.alert(a)
+		}
+	}
+	return freed, err
 }
 
 // CompletedOnGitHub frees leftovers of a job GitHub reports completed, on
