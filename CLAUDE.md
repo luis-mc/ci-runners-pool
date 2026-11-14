@@ -5,7 +5,7 @@
 - Agents may open pull requests, mark them ready, and edit their title and description on repositories the owner owns (`luis-mc/*`).
 - This is an exception to "never send posts in the owner's name" for pull requests only.
 - Issues, comments, reviews, emails and messages stay drafts written as files.
-- Merging stays the owner's: never auto-merge.
+- In this repository the orchestrator merges a pull request once every CI run on its head is green (owner decision, 2026-11-14). Never auto-merge; a red pull request waits for the owner.
 
 ## Context-efficiency behavior
 

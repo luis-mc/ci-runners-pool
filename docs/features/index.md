@@ -4,10 +4,78 @@
 
 ## By app
 
+### agent
+
+No feature lists this app yet.
+
+### cli
+
+No feature lists this app yet.
+
+### controller
+
+No feature lists this app yet.
+
+### tray
+
+No feature lists this app yet.
+
+### web-console
+
+No feature lists this app yet.
+
 ## By topic
+
+### caching
+
+No feature lists this topic yet.
+
+### github
+
+No feature lists this topic yet.
+
+### install
+
+No feature lists this topic yet.
+
+### isolation
+
+No feature lists this topic yet.
+
+### machines
+
+No feature lists this topic yet.
+
+### observability
+
+No feature lists this topic yet.
+
+### operations
+
+No feature lists this topic yet.
+
+### runners
+
+No feature lists this topic yet.
+
+### scheduling
+
+No feature lists this topic yet.
+
+### security
+
+No feature lists this topic yet.
+
+### ui
+
+No feature lists this topic yet.
 
 ## By status
 
 ## Gaps
 
-None.
+- app controller: no feature spec lists it
+- app agent: no feature spec lists it
+- app web-console: no feature spec lists it
+- app cli: no feature spec lists it
+- app tray: no feature spec lists it
