@@ -91,25 +91,57 @@ export function checkWizard(s: WizardSnapshot): WizardProblem[] {
     out.push({ rule, text });
   };
   for (const step of s.steps)
-    if (step.standing === 'later' && step.pressable) add('later-step-pressable', `step "${step.name}" is not reached yet but can be pressed`);
+    if (step.standing === 'later' && step.pressable)
+      add(
+        'later-step-pressable',
+        `step "${step.name}" is not reached yet but can be pressed`,
+      );
   const primaries = s.buttons.filter((b) => b.primary);
-  if (primaries.length !== 1) add('primary-count', `${primaries.length} primary buttons (exactly one wanted)`);
+  if (primaries.length !== 1)
+    add('primary-count', `${primaries.length} primary buttons (exactly one wanted)`);
   for (const b of primaries)
-    if (b.disabled && !(b.reason ?? '').trim()) add('disabled-primary-no-reason', `the primary "${b.label}" is disabled and does not say why`);
-  if (s.job.canStop && !s.buttons.some((b) => b.role === 'stop' && !b.disabled)) add('stop-missing', 'the job can stop but there is no Stop button');
-  if (s.job.canPause && !s.buttons.some((b) => b.role === 'pause' && !b.disabled)) add('pause-missing', 'the job can pause but there is no Pause button');
-  if (DONE_STATES.includes(s.state) && (!s.done || !s.done.text.trim() || s.done.counts <= 0))
+    if (b.disabled && !(b.reason ?? '').trim())
+      add(
+        'disabled-primary-no-reason',
+        `the primary "${b.label}" is disabled and does not say why`,
+      );
+  if (s.job.canStop && !s.buttons.some((b) => b.role === 'stop' && !b.disabled))
+    add('stop-missing', 'the job can stop but there is no Stop button');
+  if (s.job.canPause && !s.buttons.some((b) => b.role === 'pause' && !b.disabled))
+    add('pause-missing', 'the job can pause but there is no Pause button');
+  if (
+    DONE_STATES.includes(s.state) &&
+    (!s.done || !s.done.text.trim() || s.done.counts <= 0)
+  )
     add('done-empty', 'Done shows no result (text and counts are needed)');
   for (const b of s.buttons)
-    if (b.requestOpen && !b.disabled) add('busy-not-disabled', `"${b.label}" starts a request and is still pressable while it runs`);
+    if (b.requestOpen && !b.disabled)
+      add(
+        'busy-not-disabled',
+        `"${b.label}" starts a request and is still pressable while it runs`,
+      );
   if (s.state === 'loading') {
     // The step own data is still being read: actions stay, locked; one wait line; Back free; no Done text.
-    if (primaries.length === 0) add('loading-action-hidden', 'the primary action is hidden while loading (it must be shown, locked)');
+    if (primaries.length === 0)
+      add(
+        'loading-action-hidden',
+        'the primary action is hidden while loading (it must be shown, locked)',
+      );
     for (const b of s.buttons)
-      if (b.role !== 'back' && !b.disabled) add('loading-action-live', `"${b.label}" is pressable while the data of the step is still loading (lock it)`);
-    if (s.waitLines !== 1) add('loading-wait-not-once', `the wait is said ${s.waitLines ?? 0} times (exactly one line wanted)`);
-    if (!s.buttons.some((b) => b.role === 'back' && !b.disabled)) add('loading-back-missing', 'Back is missing or locked while loading');
-    if (s.done?.text.trim()) add('loading-done-shown', 'Done text shows while the step is still loading');
+      if (b.role !== 'back' && !b.disabled)
+        add(
+          'loading-action-live',
+          `"${b.label}" is pressable while the data of the step is still loading (lock it)`,
+        );
+    if (s.waitLines !== 1)
+      add(
+        'loading-wait-not-once',
+        `the wait is said ${s.waitLines ?? 0} times (exactly one line wanted)`,
+      );
+    if (!s.buttons.some((b) => b.role === 'back' && !b.disabled))
+      add('loading-back-missing', 'Back is missing or locked while loading');
+    if (s.done?.text.trim())
+      add('loading-done-shown', 'Done text shows while the step is still loading');
   }
   return out;
 }
@@ -124,7 +156,9 @@ export interface WizardToFix {
 
 /** The shrinking table, read from `wizard-behaviour.known.json` (ratchet): remove a row when its breach is fixed; never add a row to pass. */
 export const WIZARD_BEHAVIOUR_TO_FIX: readonly WizardToFix[] = (
-  JSON.parse(readFileSync(join(import.meta.dirname, 'wizard-behaviour.known.json'), 'utf8')) as { entries: WizardToFix[] }
+  JSON.parse(
+    readFileSync(join(import.meta.dirname, 'wizard-behaviour.known.json'), 'utf8'),
+  ) as { entries: WizardToFix[] }
 ).entries;
 
 /** Split the problems of one wizard in one state into unknown ones (fail) and stale rows (fail). */
@@ -134,7 +168,9 @@ export function judgeWizard(
   problems: readonly WizardProblem[],
   table: readonly WizardToFix[] = WIZARD_BEHAVIOUR_TO_FIX,
 ): { unknown: string[]; stale: string[] } {
-  const mine = table.filter((r) => r.wizard === wizard && (r.state === '*' || r.state === state));
+  const mine = table.filter(
+    (r) => r.wizard === wizard && (r.state === '*' || r.state === state),
+  );
   const unknown = problems
     .filter((p) => !mine.some((r) => r.rule === p.rule))
     .map((p) => `${wizard} [${state}] ${p.rule}: ${p.text}`);
@@ -142,7 +178,10 @@ export function judgeWizard(
   // `judgeAll`; a per-state row is stale when it does not happen in its own state.
   const stale = mine
     .filter((r) => r.state === state && !problems.some((p) => p.rule === r.rule))
-    .map((r) => `${wizard} [${state}]: known ${r.rule} (${r.task}) no longer happens: remove it from wizard-behaviour.known.json`);
+    .map(
+      (r) =>
+        `${wizard} [${state}]: known ${r.rule} (${r.task}) no longer happens: remove it from wizard-behaviour.known.json`,
+    );
   return { unknown, stale };
 }
 
@@ -168,8 +207,16 @@ export async function judgeAll(
   const lines: string[] = [];
   for (const d of drivers) {
     const seenStar = new Set<WizardRule>();
-    for (const dropped of droppedStates(d)) lines.push(`${d.id}: required state "${dropped}" is missing from the driver's states: a project may add states, never drop one`);
-    const states = [...WIZARD_STATES, ...(d.states ?? []).filter((s) => !(WIZARD_STATES as readonly string[]).includes(s))];
+    for (const dropped of droppedStates(d))
+      lines.push(
+        `${d.id}: required state "${dropped}" is missing from the driver's states: a project may add states, never drop one`,
+      );
+    const states = [
+      ...WIZARD_STATES,
+      ...(d.states ?? []).filter(
+        (s) => !(WIZARD_STATES as readonly string[]).includes(s),
+      ),
+    ];
     for (const state of states) {
       const problems = checkWizard(await d.open(state));
       const r = judgeWizard(d.id, state, problems, table);
@@ -178,7 +225,9 @@ export async function judgeAll(
     }
     for (const row of table)
       if (row.wizard === d.id && row.state === '*' && !seenStar.has(row.rule))
-        lines.push(`${d.id}: known ${row.rule} (${row.task}) no longer happens in any state: remove it from wizard-behaviour.known.json`);
+        lines.push(
+          `${d.id}: known ${row.rule} (${row.task}) no longer happens in any state: remove it from wizard-behaviour.known.json`,
+        );
   }
   return lines;
 }

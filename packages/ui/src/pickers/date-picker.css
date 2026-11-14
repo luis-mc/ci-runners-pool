@@ -52,7 +52,9 @@
   color: var(--ds-color-text-muted);
   padding-block: var(--ds-space-1);
 }
-.ds-datepicker__grid td { padding: var(--ds-space-0); }
+.ds-datepicker__grid td {
+  padding: var(--ds-space-0);
+}
 .ds-datepicker__day {
   inline-size: 100%;
   font-variant-numeric: tabular-nums;
@@ -70,7 +72,9 @@
   display: grid;
   gap: var(--ds-space-1);
 }
-.ds-datepicker__typed-label { font-weight: var(--ds-weight-semibold); }
+.ds-datepicker__typed-label {
+  font-weight: var(--ds-weight-semibold);
+}
 .ds-datepicker__hint {
   font-size: var(--ds-size-2);
   color: var(--ds-color-text-muted);
@@ -80,7 +84,9 @@
   padding-inline: var(--ds-space-3);
   cursor: text;
 }
-.ds-datepicker__input[aria-invalid='true'] { border-color: var(--ds-color-problem); }
+.ds-datepicker__input[aria-invalid='true'] {
+  border-color: var(--ds-color-problem);
+}
 .ds-datepicker__error {
   margin: var(--ds-space-0);
   font-size: var(--ds-size-2);

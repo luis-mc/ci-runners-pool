@@ -15,8 +15,15 @@ export function daysInMonth(y: number, m: number): number {
 
 export function isValidDay(day: Day): boolean {
   return (
-    Number.isInteger(day.y) && Number.isInteger(day.m) && Number.isInteger(day.d) &&
-    day.y >= 1 && day.y <= 9999 && day.m >= 1 && day.m <= 12 && day.d >= 1 && day.d <= daysInMonth(day.y, day.m)
+    Number.isInteger(day.y) &&
+    Number.isInteger(day.m) &&
+    Number.isInteger(day.d) &&
+    day.y >= 1 &&
+    day.y <= 9999 &&
+    day.m >= 1 &&
+    day.m <= 12 &&
+    day.d >= 1 &&
+    day.d <= daysInMonth(day.y, day.m)
   );
 }
 
@@ -95,23 +102,44 @@ export function gridKey(
   const back = (weekday(focus) - ws + 7) % 7;
   let next: Day;
   switch (e.key) {
-    case 'ArrowLeft': next = addDays(focus, -1); break;
-    case 'ArrowRight': next = addDays(focus, 1); break;
-    case 'ArrowUp': next = addDays(focus, -7); break;
-    case 'ArrowDown': next = addDays(focus, 7); break;
-    case 'Home': next = addDays(focus, -back); break;
-    case 'End': next = addDays(focus, 6 - back); break;
-    case 'PageUp': next = addMonths(focus, e.shiftKey ? -12 : -1); break;
-    case 'PageDown': next = addMonths(focus, e.shiftKey ? 12 : 1); break;
-    default: return null;
+    case 'ArrowLeft':
+      next = addDays(focus, -1);
+      break;
+    case 'ArrowRight':
+      next = addDays(focus, 1);
+      break;
+    case 'ArrowUp':
+      next = addDays(focus, -7);
+      break;
+    case 'ArrowDown':
+      next = addDays(focus, 7);
+      break;
+    case 'Home':
+      next = addDays(focus, -back);
+      break;
+    case 'End':
+      next = addDays(focus, 6 - back);
+      break;
+    case 'PageUp':
+      next = addMonths(focus, e.shiftKey ? -12 : -1);
+      break;
+    case 'PageDown':
+      next = addMonths(focus, e.shiftKey ? 12 : 1);
+      break;
+    default:
+      return null;
   }
   return clampDay(next, opts.min ?? null, opts.max ?? null);
 }
 
 /** The order of day, month and year in the locale's numeric date, such as ['d', 'm', 'y']. */
 export function fieldOrder(locale?: string): ('d' | 'm' | 'y')[] {
-  const parts = new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
-    .formatToParts(new Date(Date.UTC(2009, 2, 14)));
+  const parts = new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).formatToParts(new Date(Date.UTC(2009, 2, 14)));
   const order: ('d' | 'm' | 'y')[] = [];
   for (const p of parts) {
     if (p.type === 'day') order.push('d');
@@ -125,7 +153,9 @@ export function fieldOrder(locale?: string): ('d' | 'm' | 'y')[] {
 export function typedPattern(locale?: string): string {
   const word = { d: 'DD', m: 'MM', y: 'YYYY' } as const;
   const sep = fieldOrder(locale)[0] === 'y' ? '-' : '/';
-  return fieldOrder(locale).map((k) => word[k]).join(sep);
+  return fieldOrder(locale)
+    .map((k) => word[k])
+    .join(sep);
 }
 
 /**
@@ -147,8 +177,12 @@ export function parseTyped(text: string, locale?: string): Day | null {
 }
 
 export function formatLong(day: Day, locale?: string): string {
-  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
-    .format(new Date(Date.UTC(day.y, day.m - 1, day.d)));
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(day.y, day.m - 1, day.d)));
 }
 
 export function formatTyped(day: Day, locale?: string): string {
@@ -163,7 +197,10 @@ export function monthNames(locale?: string): string[] {
 }
 
 /** Short and long weekday names in grid order. */
-export function weekdayNames(locale: string | undefined, weekStart: WeekStart): { short: string; long: string }[] {
+export function weekdayNames(
+  locale: string | undefined,
+  weekStart: WeekStart,
+): { short: string; long: string }[] {
   const s = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' });
   const l = new Intl.DateTimeFormat(locale, { weekday: 'long', timeZone: 'UTC' });
   // 2009-03-01 was a Sunday.

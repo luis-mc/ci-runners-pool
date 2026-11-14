@@ -7,8 +7,20 @@
 import { useId, useRef, type KeyboardEvent } from 'react';
 import { Chevron } from './PickerIcon';
 import {
-  dayPeriods, formatTime, from12, hourCycleFor, parseTime, spinKey, to12, UNIT_BIG, UNIT_MAX, unitsOf,
-  type HourCycle, type TimeParts, type TimeUnits, type Unit,
+  dayPeriods,
+  formatTime,
+  from12,
+  hourCycleFor,
+  parseTime,
+  spinKey,
+  to12,
+  UNIT_BIG,
+  UNIT_MAX,
+  unitsOf,
+  type HourCycle,
+  type TimeParts,
+  type TimeUnits,
+  type Unit,
 } from './time-picker-logic';
 
 export interface TimePickerLabels {
@@ -65,7 +77,17 @@ export interface TimePickerProps {
 }
 
 export function TimePicker({
-  label, value, onChange, units = 'hm', step = 1, hourCycle, locale, quick, onDone, onCancel, labels,
+  label,
+  value,
+  onChange,
+  units = 'hm',
+  step = 1,
+  hourCycle,
+  locale,
+  quick,
+  onDone,
+  onCancel,
+  labels,
 }: TimePickerProps) {
   const words = { ...DEFAULT_TIME_PICKER_LABELS, ...labels };
   const id = useId();
@@ -82,7 +104,8 @@ export function TimePicker({
     if (v !== current) onChange(v);
   };
 
-  const unitName = (u: Unit) => ({ h: words.hours, m: words.minutes, s: words.seconds })[u];
+  const unitName = (u: Unit) =>
+    ({ h: words.hours, m: words.minutes, s: words.seconds })[u];
   const unitStep = (u: Unit) => (u === 'h' ? 1 : step);
 
   // The hour column on a 12-hour clock spins 1..12 within the chosen period.
@@ -92,7 +115,11 @@ export function TimePicker({
       const r = spinKey(k - 1, key, { max: 11, step: 1, big: UNIT_BIG.h });
       return r === null ? null : from12((r + 1) % 12, isPm);
     }
-    return spinKey(parts[u], key, { max: UNIT_MAX[u], step: unitStep(u), big: UNIT_BIG[u] });
+    return spinKey(parts[u], key, {
+      max: UNIT_MAX[u],
+      step: unitStep(u),
+      big: UNIT_BIG[u],
+    });
   };
 
   const onSpinKey = (u: Unit, i: number) => (e: KeyboardEvent<HTMLDivElement>) => {
@@ -114,7 +141,11 @@ export function TimePicker({
     if (e.key === 'Escape' && onCancel) {
       e.preventDefault();
       onCancel();
-    } else if (e.key === 'Enter' && onDone && (e.target as HTMLElement).getAttribute('role') === 'spinbutton') {
+    } else if (
+      e.key === 'Enter' &&
+      onDone &&
+      (e.target as HTMLElement).getAttribute('role') === 'spinbutton'
+    ) {
       e.preventDefault();
       onDone(current);
     }
@@ -122,30 +153,55 @@ export function TimePicker({
 
   const shown = (u: Unit) => (u === 'h' && cycle === 'h12' ? to12(parts.h).h : parts[u]);
   const valueText = (u: Unit) =>
-    ({ h: words.hoursText, m: words.minutesText, s: words.secondsText })[u].replace('{n}', String(shown(u)));
+    ({ h: words.hoursText, m: words.minutesText, s: words.secondsText })[u].replace(
+      '{n}',
+      String(shown(u)),
+    );
   const labelId = `${id}-label`;
 
   return (
-    <div className="ds-timepicker" role="group" aria-labelledby={labelId} onKeyDown={onRootKey}>
+    <div
+      className="ds-timepicker"
+      role="group"
+      aria-labelledby={labelId}
+      onKeyDown={onRootKey}
+    >
       <div className="ds-timepicker__header">
-        <span id={labelId} className="ds-timepicker__label">{label}</span>
+        <span id={labelId} className="ds-timepicker__label">
+          {label}
+        </span>
         <span className="ds-timepicker__value" aria-live="polite">
-          {cycle === 'h12' ? `${pad2(to12(parts.h).h)}${current.slice(2)} ${isPm ? pm : am}` : current}
+          {cycle === 'h12'
+            ? `${pad2(to12(parts.h).h)}${current.slice(2)} ${isPm ? pm : am}`
+            : current}
         </span>
       </div>
 
       <div className="ds-timepicker__columns">
         {cols.map((u, i) => (
           <div key={u} className="ds-timepicker__column">
-            {i > 0 && <span className="ds-timepicker__sep" aria-hidden="true">:</span>}
+            {i > 0 && (
+              <span className="ds-timepicker__sep" aria-hidden="true">
+                :
+              </span>
+            )}
             <div className="ds-timepicker__spin">
-              <button type="button" tabIndex={-1} className="ds-timepicker__key"
+              <button
+                type="button"
+                tabIndex={-1}
+                className="ds-timepicker__key"
                 aria-label={words.increase.replace('{unit}', unitName(u).toLowerCase())}
-                onClick={() => { const n = spin(u, 'ArrowUp'); if (n !== null) set({ ...parts, [u]: n }); }}>
+                onClick={() => {
+                  const n = spin(u, 'ArrowUp');
+                  if (n !== null) set({ ...parts, [u]: n });
+                }}
+              >
                 <Chevron dir="up" />
               </button>
               <div
-                ref={(el) => { refs.current[i] = el; }}
+                ref={(el) => {
+                  refs.current[i] = el;
+                }}
                 role="spinbutton"
                 tabIndex={0}
                 className="ds-timepicker__number"
@@ -158,9 +214,16 @@ export function TimePicker({
               >
                 {pad2(shown(u))}
               </div>
-              <button type="button" tabIndex={-1} className="ds-timepicker__key"
+              <button
+                type="button"
+                tabIndex={-1}
+                className="ds-timepicker__key"
                 aria-label={words.decrease.replace('{unit}', unitName(u).toLowerCase())}
-                onClick={() => { const n = spin(u, 'ArrowDown'); if (n !== null) set({ ...parts, [u]: n }); }}>
+                onClick={() => {
+                  const n = spin(u, 'ArrowDown');
+                  if (n !== null) set({ ...parts, [u]: n });
+                }}
+              >
                 <Chevron dir="down" />
               </button>
             </div>
@@ -169,8 +232,13 @@ export function TimePicker({
         {cycle === 'h12' && (
           <div className="ds-timepicker__period" role="group" aria-label={words.period}>
             {[false, true].map((p) => (
-              <button key={String(p)} type="button" className="ds-timepicker__period-option" aria-pressed={isPm === p}
-                onClick={() => set({ ...parts, h: from12(to12(parts.h).h % 12, p) })}>
+              <button
+                key={String(p)}
+                type="button"
+                className="ds-timepicker__period-option"
+                aria-pressed={isPm === p}
+                onClick={() => set({ ...parts, h: from12(to12(parts.h).h % 12, p) })}
+              >
                 {p ? pm : am}
               </button>
             ))}
@@ -183,8 +251,14 @@ export function TimePicker({
           {quick.map((q) => {
             const qp = parseTime(q.value, units);
             return (
-              <button key={q.value} type="button" className="ds-timepicker__chip" disabled={!qp}
-                aria-pressed={q.value === current} onClick={() => qp && set(qp)}>
+              <button
+                key={q.value}
+                type="button"
+                className="ds-timepicker__chip"
+                disabled={!qp}
+                aria-pressed={q.value === current}
+                onClick={() => qp && set(qp)}
+              >
                 {q.label ?? q.value}
               </button>
             );

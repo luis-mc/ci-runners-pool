@@ -38,7 +38,11 @@ export function parseColor(value: string): Rgb | null {
     if (h.length === 3 || h.length === 4) h = [...h].map((c) => c + c).join('');
     if (h.length !== 6 && h.length !== 8) return null;
     if (h.length === 8 && parseInt(h.slice(6), 16) < 255) return null;
-    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+    return [
+      parseInt(h.slice(0, 2), 16),
+      parseInt(h.slice(2, 4), 16),
+      parseInt(h.slice(4, 6), 16),
+    ];
   }
   const fn = /^rgba?\(([^)]*)\)$/.exec(v);
   if (!fn) return null;
@@ -49,7 +53,9 @@ export function parseColor(value: string): Rgb | null {
     const alpha = a.endsWith('%') ? parseFloat(a) / 100 : parseFloat(a);
     if (!(alpha >= 1)) return null;
   }
-  const rgb = parts.slice(0, 3).map((p) => (p.endsWith('%') ? (parseFloat(p) * 255) / 100 : parseFloat(p)));
+  const rgb = parts
+    .slice(0, 3)
+    .map((p) => (p.endsWith('%') ? (parseFloat(p) * 255) / 100 : parseFloat(p)));
   if (rgb.some((n) => Number.isNaN(n))) return null;
   return rgb.map((n) => Math.min(255, Math.max(0, n))) as unknown as Rgb;
 }
@@ -78,7 +84,9 @@ export function readThemes(css: string): Map<string, Tokens> {
   const stack: string[] = [];
   let buf = '';
   const themeOf = (): string | null => {
-    const inDark = stack.some((s) => s.startsWith('@media') && /prefers-color-scheme\s*:\s*dark/.test(s));
+    const inDark = stack.some(
+      (s) => s.startsWith('@media') && /prefers-color-scheme\s*:\s*dark/.test(s),
+    );
     const sel = stack.filter((s) => !s.startsWith('@')).join(' ');
     const attr = /\[data-theme\s*=\s*["']?([\w-]+)["']?\]/.exec(sel);
     if (attr) return attr[1] as string;
@@ -90,7 +98,8 @@ export function readThemes(css: string): Map<string, Tokens> {
     if (theme === null) return;
     const map = themes.get(theme) ?? new Map<string, string>();
     themes.set(theme, map);
-    for (const m of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+)/g)) map.set(m[1] as string, (m[2] as string).trim());
+    for (const m of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+)/g))
+      map.set(m[1] as string, (m[2] as string).trim());
   };
   for (const ch of text) {
     if (ch === '{') {
@@ -139,7 +148,8 @@ export function judgeContrast(css: string, config = CONFIG): Gap[] {
         continue;
       }
       const ratio = Math.round(contrastRatio(fill, ink) * 100) / 100;
-      if (contrastRatio(fill, ink) < config.minRatio) gaps.push({ theme, fill: name, text, ratio });
+      if (contrastRatio(fill, ink) < config.minRatio)
+        gaps.push({ theme, fill: name, text, ratio });
     }
   }
   return gaps;
@@ -159,8 +169,12 @@ export interface KnownEntry {
 }
 
 /** The ratchet: a gap not listed (or worse than listed) is new; a listed gap that is gone is stale. */
-export function judgeGaps(actual: readonly Gap[], known: readonly KnownEntry[]): { added: string[]; stale: string[] } {
-  const key = (e: { theme: string; fill: string; text: string }): string => `${e.theme}|${e.fill}|${e.text}`;
+export function judgeGaps(
+  actual: readonly Gap[],
+  known: readonly KnownEntry[],
+): { added: string[]; stale: string[] } {
+  const key = (e: { theme: string; fill: string; text: string }): string =>
+    `${e.theme}|${e.fill}|${e.text}`;
   const listed = new Map(known.map((e) => [key(e), e]));
   const seen = new Set<string>();
   const added: string[] = [];
@@ -171,9 +185,13 @@ export function judgeGaps(actual: readonly Gap[], known: readonly KnownEntry[]):
     const was = listed.get(key(g));
     const label = `${g.theme}: ${g.text} on ${g.fill} is ${show(g.ratio)}`;
     if (!was) added.push(`${label} (needs 4.5)`);
-    else if (g.ratio !== null && (was.ratio === null || g.ratio < was.ratio)) added.push(`${label}, worse than the listed ${show(was.ratio)}`);
+    else if (g.ratio !== null && (was.ratio === null || g.ratio < was.ratio))
+      added.push(`${label}, worse than the listed ${show(was.ratio)}`);
   }
   for (const e of known)
-    if (!seen.has(key(e))) stale.push(`${e.theme}: ${e.text} on ${e.fill} now passes: remove the entry in contrast.known.json`);
+    if (!seen.has(key(e)))
+      stale.push(
+        `${e.theme}: ${e.text} on ${e.fill} now passes: remove the entry in contrast.known.json`,
+      );
   return { added, stale };
 }

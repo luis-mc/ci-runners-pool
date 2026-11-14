@@ -15,6 +15,9 @@ for (const screen of SCREENS) {
   test(`layout: ${screen.name}`, async ({ page }) => {
     await page.goto(screen.path);
     await page.waitForLoadState('networkidle');
-    await expectDomLayout(page, screen.name, { known: KNOWN, ...(screen.primary ? { primary: screen.primary } : {}) });
+    await expectDomLayout(page, screen.name, {
+      known: KNOWN,
+      ...(screen.primary ? { primary: screen.primary } : {}),
+    });
   });
 }

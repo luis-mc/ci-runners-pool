@@ -25,7 +25,8 @@ describe('wizard behaviour', () => {
   });
 
   it('every row of the table names its task', () => {
-    for (const r of WIZARD_BEHAVIOUR_TO_FIX) expect(r.task, `${r.wizard}: task`).toMatch(/\S/);
+    for (const r of WIZARD_BEHAVIOUR_TO_FIX)
+      expect(r.task, `${r.wizard}: task`).toMatch(/\S/);
   });
 
   describe('the rules themselves', () => {
@@ -37,7 +38,13 @@ describe('wizard behaviour', () => {
         { name: 'Done', standing: 'later', pressable: false },
       ],
       buttons: [
-        { label: 'Start', primary: true, disabled: true, reason: 'Running', requestOpen: true },
+        {
+          label: 'Start',
+          primary: true,
+          disabled: true,
+          reason: 'Running',
+          requestOpen: true,
+        },
         { label: 'Stop', primary: false, disabled: false, role: 'stop' },
         { label: 'Pause', primary: false, disabled: false, role: 'pause' },
       ],
@@ -47,12 +54,22 @@ describe('wizard behaviour', () => {
 
     it('passes a good wizard', () => expect(rules(good)).toEqual([]));
     it('finds a later step that can be pressed', () => {
-      const s = { ...good, steps: [...good.steps.slice(0, 2), { name: 'Done', standing: 'later' as const, pressable: true }] };
+      const s = {
+        ...good,
+        steps: [
+          ...good.steps.slice(0, 2),
+          { name: 'Done', standing: 'later' as const, pressable: true },
+        ],
+      };
       expect(rules(s)).toEqual(['later-step-pressable']);
     });
     it('wants exactly one primary', () => {
-      expect(rules({ ...good, buttons: good.buttons.map((b) => ({ ...b, primary: false })) })).toContain('primary-count');
-      expect(rules({ ...good, buttons: good.buttons.map((b) => ({ ...b, primary: true })) })).toContain('primary-count');
+      expect(
+        rules({ ...good, buttons: good.buttons.map((b) => ({ ...b, primary: false })) }),
+      ).toContain('primary-count');
+      expect(
+        rules({ ...good, buttons: good.buttons.map((b) => ({ ...b, primary: true })) }),
+      ).toContain('primary-count');
     });
     it('wants a reason on a disabled primary', () => {
       const b = good.buttons.map((x, i) => (i === 0 ? { ...x, reason: '' } : x));
@@ -63,9 +80,16 @@ describe('wizard behaviour', () => {
       expect(rules({ ...good, buttons: b })).toEqual(['stop-missing', 'pause-missing']);
     });
     it('wants a Done that is not empty', () => {
-      const done: WizardSnapshot = { ...good, state: 'done', job: { canStop: false, canPause: false }, buttons: [{ label: 'Start again', primary: true, disabled: false }] };
+      const done: WizardSnapshot = {
+        ...good,
+        state: 'done',
+        job: { canStop: false, canPause: false },
+        buttons: [{ label: 'Start again', primary: true, disabled: false }],
+      };
       expect(rules(done)).toEqual(['done-empty']);
-      expect(rules({ ...done, done: { text: '12 files renamed', counts: 12 } })).toEqual([]);
+      expect(rules({ ...done, done: { text: '12 files renamed', counts: 12 } })).toEqual(
+        [],
+      );
     });
     it('wants a busy button disabled', () => {
       const b = good.buttons.map((x, i) => (i === 0 ? { ...x, disabled: false } : x));
@@ -85,7 +109,8 @@ describe('wizard behaviour', () => {
       waitLines: 1,
     };
     const rules = (s: WizardSnapshot): string[] => checkWizard(s).map((p) => p.rule);
-    it('passes a locked primary with Back free', () => expect(rules(loading)).toEqual([]));
+    it('passes a locked primary with Back free', () =>
+      expect(rules(loading)).toEqual([]));
     it('fails a live primary while loading', () => {
       const b = loading.buttons.map((x, i) => (i === 0 ? { ...x, disabled: false } : x));
       expect(rules({ ...loading, buttons: b })).toEqual(['loading-action-live']);
@@ -95,10 +120,14 @@ describe('wizard behaviour', () => {
       expect(rules({ ...loading, buttons: b })).toContain('loading-action-hidden');
     });
     it('fails a locked Back, a wait said twice and Done text', () => {
-      const b = loading.buttons.map((x) => (x.role === 'back' ? { ...x, disabled: true } : x));
+      const b = loading.buttons.map((x) =>
+        x.role === 'back' ? { ...x, disabled: true } : x,
+      );
       expect(rules({ ...loading, buttons: b })).toContain('loading-back-missing');
       expect(rules({ ...loading, waitLines: 2 })).toEqual(['loading-wait-not-once']);
-      expect(rules({ ...loading, done: { text: '3 done', counts: 3 } })).toEqual(['loading-done-shown']);
+      expect(rules({ ...loading, done: { text: '3 done', counts: 3 } })).toEqual([
+        'loading-done-shown',
+      ]);
     });
   });
 
@@ -124,11 +153,24 @@ describe('wizard behaviour', () => {
           };
     it('are exactly the ten of the owner list', () => {
       expect([...WIZARD_STATES]).toEqual([
-        'loading', 'first-run', 'planning', 'ready-to-review', 'running', 'paused', 'stopped', 'failed', 'done', 'done-after-reload',
+        'loading',
+        'first-run',
+        'planning',
+        'ready-to-review',
+        'running',
+        'paused',
+        'stopped',
+        'failed',
+        'done',
+        'done-after-reload',
       ]);
     });
     it('a driver that lists fewer states fails and names the dropped ones', async () => {
-      const driver: WizardDriver = { id: 'w', states: ['first-run', 'done'], open: (s) => Promise.resolve(clean(s)) };
+      const driver: WizardDriver = {
+        id: 'w',
+        states: ['first-run', 'done'],
+        open: (s) => Promise.resolve(clean(s)),
+      };
       expect(droppedStates(driver)).toHaveLength(8);
       const lines = await judgeAll([driver], []);
       expect(lines).toHaveLength(8);
@@ -149,7 +191,13 @@ describe('wizard behaviour', () => {
     });
     it('a driver with no states list runs all ten', async () => {
       const seen: string[] = [];
-      const driver: WizardDriver = { id: 'w', open: (s) => { seen.push(s); return Promise.resolve(clean(s)); } };
+      const driver: WizardDriver = {
+        id: 'w',
+        open: (s) => {
+          seen.push(s);
+          return Promise.resolve(clean(s));
+        },
+      };
       expect(await judgeAll([driver], [])).toEqual([]);
       expect(seen).toHaveLength(10);
     });
@@ -157,36 +205,49 @@ describe('wizard behaviour', () => {
 
   describe('the ratchet', () => {
     const problem = [{ rule: 'stop-missing' as const, text: 't' }];
-    const row: WizardToFix = { wizard: 'w', state: 'running', rule: 'stop-missing', task: 'T1' };
+    const row: WizardToFix = {
+      wizard: 'w',
+      state: 'running',
+      rule: 'stop-missing',
+      task: 'T1',
+    };
     it('fails a problem not on the table', () => {
       expect(judgeWizard('w', 'running', problem, []).unknown).toHaveLength(1);
     });
     it('accepts a listed problem and fails a listed row that is gone', () => {
-      expect(judgeWizard('w', 'running', problem, [row])).toEqual({ unknown: [], stale: [] });
+      expect(judgeWizard('w', 'running', problem, [row])).toEqual({
+        unknown: [],
+        stale: [],
+      });
       expect(judgeWizard('w', 'running', [], [row]).stale).toHaveLength(1);
     });
     it('a star row covers every state and goes stale when no state has the problem', async () => {
       const clean = (state: (typeof WIZARD_STATES)[number]): WizardSnapshot =>
         state === 'loading'
-        ? {
-            state,
-            steps: [],
-            buttons: [
-              { label: 'Go', primary: true, disabled: true, reason: 'Loading' },
-              { label: 'Back', primary: false, disabled: false, role: 'back' },
-            ],
-            job: { canStop: false, canPause: false },
-            waitLines: 1,
-          }
-        : {
-            state,
-            steps: [],
-            buttons: [{ label: 'Go', primary: true, disabled: false }],
-            job: { canStop: false, canPause: false },
-            done: { text: 'ok', counts: 1 },
-          };
+          ? {
+              state,
+              steps: [],
+              buttons: [
+                { label: 'Go', primary: true, disabled: true, reason: 'Loading' },
+                { label: 'Back', primary: false, disabled: false, role: 'back' },
+              ],
+              job: { canStop: false, canPause: false },
+              waitLines: 1,
+            }
+          : {
+              state,
+              steps: [],
+              buttons: [{ label: 'Go', primary: true, disabled: false }],
+              job: { canStop: false, canPause: false },
+              done: { text: 'ok', counts: 1 },
+            };
       const driver: WizardDriver = { id: 'w', open: (s) => Promise.resolve(clean(s)) };
-      const star: WizardToFix = { wizard: 'w', state: '*', rule: 'stop-missing', task: 'T1' };
+      const star: WizardToFix = {
+        wizard: 'w',
+        state: '*',
+        rule: 'stop-missing',
+        task: 'T1',
+      };
       const lines = await judgeAll([driver], [star]);
       expect(lines).toHaveLength(1);
       expect(lines[0]).toContain('no longer happens in any state');

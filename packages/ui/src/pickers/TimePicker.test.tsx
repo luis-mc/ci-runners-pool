@@ -3,11 +3,21 @@
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TimePicker, type TimePickerProps } from './TimePicker';
-import { formatTime, from12, hourCycleFor, parseTime, spinKey, to12 } from './time-picker-logic';
+import {
+  formatTime,
+  from12,
+  hourCycleFor,
+  parseTime,
+  spinKey,
+  to12,
+} from './time-picker-logic';
 import { byLabel, click, key, mount, type Mounted } from './test-dom';
 
 let m: Mounted | null = null;
-afterEach(() => { m?.unmount(); m = null; });
+afterEach(() => {
+  m?.unmount();
+  m = null;
+});
 
 describe('time logic', () => {
   it('steps and wraps', () => {
@@ -46,20 +56,40 @@ describe('time logic', () => {
   });
 });
 
-function Harness(props: Omit<TimePickerProps, 'value' | 'onChange'> & { start: string | null; spy?: (v: string) => void }) {
+function Harness(
+  props: Omit<TimePickerProps, 'value' | 'onChange'> & {
+    start: string | null;
+    spy?: (v: string) => void;
+  },
+) {
   const { start, spy, ...rest } = props;
   const [value, setValue] = useState<string | null>(start);
-  return <TimePicker {...rest} value={value} onChange={(v) => { setValue(v); spy?.(v); }} />;
+  return (
+    <TimePicker
+      {...rest}
+      value={value}
+      onChange={(v) => {
+        setValue(v);
+        spy?.(v);
+      }}
+    />
+  );
 }
 
 describe('TimePicker', () => {
-  const spins = () => [...m!.container.querySelectorAll('[role="spinbutton"]')] as HTMLElement[];
+  const spins = () =>
+    [...m!.container.querySelectorAll('[role="spinbutton"]')] as HTMLElement[];
 
   it('shows one spin button per unit', () => {
-    for (const [units, n] of [['h', 1], ['hm', 2], ['hms', 3]] as const) {
+    for (const [units, n] of [
+      ['h', 1],
+      ['hm', 2],
+      ['hms', 3],
+    ] as const) {
       m = mount(<Harness label="Time" start={null} units={units} hourCycle="h23" />);
       expect(spins()).toHaveLength(n);
-      m.unmount(); m = null;
+      m.unmount();
+      m = null;
     }
   });
 
@@ -76,7 +106,16 @@ describe('TimePicker', () => {
 
   it('arrow keys step by the step, wrap, and Right moves to the next column', () => {
     const spy = vi.fn();
-    m = mount(<Harness label="Reminder" start="23:55" units="hm" step={5} hourCycle="h23" spy={spy} />);
+    m = mount(
+      <Harness
+        label="Reminder"
+        start="23:55"
+        units="hm"
+        step={5}
+        hourCycle="h23"
+        spy={spy}
+      />,
+    );
     key(spins()[1]!, 'ArrowUp');
     expect(spy).toHaveBeenLastCalledWith('23:00');
     key(spins()[0]!, 'ArrowUp');
@@ -90,7 +129,16 @@ describe('TimePicker', () => {
 
   it('seconds step and the up and down keys work by pointer', () => {
     const spy = vi.fn();
-    m = mount(<Harness label="Rest" start="00:01:30" units="hms" step={15} hourCycle="h23" spy={spy} />);
+    m = mount(
+      <Harness
+        label="Rest"
+        start="00:01:30"
+        units="hms"
+        step={15}
+        hourCycle="h23"
+        spy={spy}
+      />,
+    );
     click(byLabel(m.container, 'More seconds'));
     expect(spy).toHaveBeenLastCalledWith('00:01:45');
     click(byLabel(m.container, 'Fewer minutes'));
@@ -106,15 +154,26 @@ describe('TimePicker', () => {
     expect(h.getAttribute('aria-valuenow')).toBe('11');
     key(h, 'ArrowUp'); // 11 AM -> 12 AM within the period
     expect(spy).toHaveBeenLastCalledWith('00:00');
-    const pm = [...m.container.querySelectorAll('[aria-pressed]')].find((b) => b.textContent === 'PM')!;
+    const pm = [...m.container.querySelectorAll('[aria-pressed]')].find(
+      (b) => b.textContent === 'PM',
+    )!;
     click(pm);
     expect(spy).toHaveBeenLastCalledWith('12:00');
   });
 
   it('a quick pick sets the value and shows as pressed', () => {
-    m = mount(<Harness label="Reminder" start="07:00" units="hm" hourCycle="h23"
-      quick={[{ value: '07:00' }, { value: '20:00' }]} />);
-    const chips = [...m.container.querySelectorAll('[role="group"] [aria-pressed]')] as HTMLElement[];
+    m = mount(
+      <Harness
+        label="Reminder"
+        start="07:00"
+        units="hm"
+        hourCycle="h23"
+        quick={[{ value: '07:00' }, { value: '20:00' }]}
+      />,
+    );
+    const chips = [
+      ...m.container.querySelectorAll('[role="group"] [aria-pressed]'),
+    ] as HTMLElement[];
     expect(chips[0]!.getAttribute('aria-pressed')).toBe('true');
     click(chips[1]!);
     expect(spins()[0]!.getAttribute('aria-valuenow')).toBe('20');
@@ -123,7 +182,16 @@ describe('TimePicker', () => {
   it('Enter is Done and Escape cancels', () => {
     const onDone = vi.fn();
     const onCancel = vi.fn();
-    m = mount(<TimePicker label="T" value="06:15" onChange={() => {}} hourCycle="h23" onDone={onDone} onCancel={onCancel} />);
+    m = mount(
+      <TimePicker
+        label="T"
+        value="06:15"
+        onChange={() => {}}
+        hourCycle="h23"
+        onDone={onDone}
+        onCancel={onCancel}
+      />,
+    );
     key(spins()[0]!, 'Enter');
     expect(onDone).toHaveBeenCalledWith('06:15');
     key(spins()[1]!, 'Escape');

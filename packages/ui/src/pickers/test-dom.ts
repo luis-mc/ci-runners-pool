@@ -30,7 +30,9 @@ export function mount(el: ReactElement): Mounted {
 
 export function key(target: Element, k: string, init: KeyboardEventInit = {}) {
   act(() => {
-    target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...init }));
+    target.dispatchEvent(
+      new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...init }),
+    );
   });
 }
 
@@ -49,7 +51,10 @@ export function focus(target: Element) {
 /** Type into a React-controlled input: set the value through the native setter, then fire input. */
 export function typeInto(input: HTMLInputElement, text: string) {
   act(() => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, text);
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+      input,
+      text,
+    );
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
 }

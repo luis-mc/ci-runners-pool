@@ -20,25 +20,41 @@ export interface Breach {
   readonly type: InputType;
 }
 
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.turbo', 'coverage', '__tests__', 'tests']);
+const SKIP_DIRS = new Set([
+  'node_modules',
+  'dist',
+  '.turbo',
+  'coverage',
+  '__tests__',
+  'tests',
+]);
 const TEST_FILE = /\.(test|spec)\./;
 // type="date", type='time', type={"number"}, type={'datetime-local'}, :type="'date'" (Vue binding of a literal).
-const TYPE_ATTR = /\btype\s*=\s*\{?\s*["'`]\s*'?(date|time|datetime-local|number)'?\s*["'`]/g;
+const TYPE_ATTR =
+  /\btype\s*=\s*\{?\s*["'`]\s*'?(date|time|datetime-local|number)'?\s*["'`]/g;
 
 function globToRegExp(glob: string): RegExp {
-  return new RegExp('^' + glob.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$');
+  return new RegExp(
+    '^' + glob.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$',
+  );
 }
 
 /** True when a repo-relative path is a test file or sits in a test folder. */
 export function isTestPath(file: string): boolean {
   const parts = file.split('/');
-  return TEST_FILE.test(parts[parts.length - 1] as string) || parts.slice(0, -1).some((p) => p === '__tests__' || p === 'tests');
+  return (
+    TEST_FILE.test(parts[parts.length - 1] as string) ||
+    parts.slice(0, -1).some((p) => p === '__tests__' || p === 'tests')
+  );
 }
 
 /** The native date, time and number inputs in one source file. */
 export function scanText(file: string, text: string, config = CONFIG): Breach[] {
   if (isTestPath(file)) return [];
-  if (!config.fileGlobs.some((g) => globToRegExp(g).test(file.split('/').pop() as string))) return [];
+  if (
+    !config.fileGlobs.some((g) => globToRegExp(g).test(file.split('/').pop() as string))
+  )
+    return [];
   const found: Breach[] = [];
   for (const m of text.matchAll(TYPE_ATTR)) found.push({ file, type: m[1] as InputType });
   return found;
@@ -73,7 +89,8 @@ export function scanTree(root: string, config = CONFIG): Breach[] {
 /** Breaches grouped to "file|type" -> count. */
 export function countBreaches(found: readonly Breach[]): Map<string, number> {
   const counts = new Map<string, number>();
-  for (const b of found) counts.set(`${b.file}|${b.type}`, (counts.get(`${b.file}|${b.type}`) ?? 0) + 1);
+  for (const b of found)
+    counts.set(`${b.file}|${b.type}`, (counts.get(`${b.file}|${b.type}`) ?? 0) + 1);
   return counts;
 }
 
@@ -101,12 +118,18 @@ export function judgeBreaches(
   for (const [key, n] of actual) {
     const [file, type] = key.split('|') as [string, string];
     const was = listed.get(key) ?? 0;
-    if (n > was) added.push(`${file}: ${n - was} new type="${type}" input${was ? ` (${was} known)` : ''}: use ${USE[type]}`);
+    if (n > was)
+      added.push(
+        `${file}: ${n - was} new type="${type}" input${was ? ` (${was} known)` : ''}: use ${USE[type]}`,
+      );
   }
   for (const [key, was] of listed) {
     const n = actual.get(key) ?? 0;
     const [file, type] = key.split('|');
-    if (n < was) stale.push(`${file}: type="${type}" known ${was}, now ${n}: lower or remove the entry in raw-inputs.known.json`);
+    if (n < was)
+      stale.push(
+        `${file}: type="${type}" known ${was}, now ${n}: lower or remove the entry in raw-inputs.known.json`,
+      );
   }
   return { added, stale };
 }

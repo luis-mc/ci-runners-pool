@@ -6,8 +6,23 @@
 // Enter or Space picks the focused day, Escape cancels.
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import {
-  clampDay, compare, formatLong, formatTyped, gridKey, isOutOfRange, monthGrid, monthNames, parseIso,
-  parseTyped, todayDay, toIso, typedPattern, weekdayNames, yearRange, type Day, type WeekStart,
+  clampDay,
+  compare,
+  formatLong,
+  formatTyped,
+  gridKey,
+  isOutOfRange,
+  monthGrid,
+  monthNames,
+  parseIso,
+  parseTyped,
+  todayDay,
+  toIso,
+  typedPattern,
+  weekdayNames,
+  yearRange,
+  type Day,
+  type WeekStart,
 } from './date-picker-logic';
 import { Chevron } from './PickerIcon';
 
@@ -58,7 +73,17 @@ export interface DatePickerProps {
 }
 
 export function DatePicker({
-  label, value, onChange, onCancel, min, max, locale, weekStart = 1, initialFocus, formatValue, labels,
+  label,
+  value,
+  onChange,
+  onCancel,
+  min,
+  max,
+  locale,
+  weekStart = 1,
+  initialFocus,
+  formatValue,
+  labels,
 }: DatePickerProps) {
   const words = { ...DEFAULT_DATE_PICKER_LABELS, ...labels };
   const id = useId();
@@ -95,7 +120,11 @@ export function DatePicker({
   const days = weekdayNames(locale, weekStart);
   const weeks = monthGrid(focus.y, focus.m, weekStart);
   const firstOfView: Day = { y: focus.y, m: focus.m, d: 1 };
-  const lastOfView: Day = { y: focus.y, m: focus.m, d: weeks.flat().filter(Boolean).length };
+  const lastOfView: Day = {
+    y: focus.y,
+    m: focus.m,
+    d: weeks.flat().filter(Boolean).length,
+  };
   const prevDisabled = Boolean(minDay && compare(firstOfView, minDay) <= 0);
   const nextDisabled = Boolean(maxDay && compare(lastOfView, maxDay) >= 0);
 
@@ -108,11 +137,21 @@ export function DatePicker({
   };
 
   const showMonth = (y: number, m: number) => {
-    setFocus(clampDay({ y, m, d: Math.min(focus.d, new Date(Date.UTC(y, m, 0)).getUTCDate()) }, minDay, maxDay));
+    setFocus(
+      clampDay(
+        { y, m, d: Math.min(focus.d, new Date(Date.UTC(y, m, 0)).getUTCDate()) },
+        minDay,
+        maxDay,
+      ),
+    );
   };
 
   const onGridKey = (e: KeyboardEvent<HTMLTableElement>) => {
-    const next = gridKey(focus, { key: e.key, shiftKey: e.shiftKey }, { min: minDay, max: maxDay, weekStart });
+    const next = gridKey(
+      focus,
+      { key: e.key, shiftKey: e.shiftKey },
+      { min: minDay, max: maxDay, weekStart },
+    );
     if (!next) return;
     e.preventDefault();
     moveFocus.current = true;
@@ -130,9 +169,11 @@ export function DatePicker({
       return;
     }
     if (isOutOfRange(day, minDay, maxDay)) {
-      setError(words.outOfRange
-        .replace('{min}', minDay ? formatLong(minDay, locale) : '')
-        .replace('{max}', maxDay ? formatLong(maxDay, locale) : ''));
+      setError(
+        words.outOfRange
+          .replace('{min}', minDay ? formatLong(minDay, locale) : '')
+          .replace('{max}', maxDay ? formatLong(maxDay, locale) : ''),
+      );
       return;
     }
     pick(day);
@@ -153,39 +194,92 @@ export function DatePicker({
   const selectedDay = selected;
 
   return (
-    <div className="ds-datepicker" role="group" aria-labelledby={labelId} onKeyDown={onRootKey}>
+    <div
+      className="ds-datepicker"
+      role="group"
+      aria-labelledby={labelId}
+      onKeyDown={onRootKey}
+    >
       <div className="ds-datepicker__header">
-        <span id={labelId} className="ds-datepicker__label">{label}</span>
-        <span className="ds-datepicker__value" aria-live="polite">{selectedDay ? (formatValue ? formatValue(toIso(selectedDay)) : formatLong(selectedDay, locale)) : ''}</span>
+        <span id={labelId} className="ds-datepicker__label">
+          {label}
+        </span>
+        <span className="ds-datepicker__value" aria-live="polite">
+          {selectedDay
+            ? formatValue
+              ? formatValue(toIso(selectedDay))
+              : formatLong(selectedDay, locale)
+            : ''}
+        </span>
       </div>
 
       <div className="ds-datepicker__nav">
-        <button type="button" className="ds-datepicker__step" aria-label={words.previousMonth}
-          disabled={prevDisabled} onClick={() => showMonth(...ym(focus.y, focus.m - 1))}>
+        <button
+          type="button"
+          className="ds-datepicker__step"
+          aria-label={words.previousMonth}
+          disabled={prevDisabled}
+          onClick={() => showMonth(...ym(focus.y, focus.m - 1))}
+        >
           <Chevron dir="left" />
         </button>
-        <select className="ds-datepicker__select" aria-label={words.month} value={focus.m}
-          onChange={(e) => showMonth(focus.y, Number(e.target.value))}>
+        <select
+          className="ds-datepicker__select"
+          aria-label={words.month}
+          value={focus.m}
+          onChange={(e) => showMonth(focus.y, Number(e.target.value))}
+        >
           {months.map((name, i) => (
-            <option key={name} value={i + 1}
-              disabled={monthOut(focus.y, i + 1, minDay, maxDay)}>{name}</option>
+            <option
+              key={name}
+              value={i + 1}
+              disabled={monthOut(focus.y, i + 1, minDay, maxDay)}
+            >
+              {name}
+            </option>
           ))}
         </select>
-        <select className="ds-datepicker__select" aria-label={words.year} value={focus.y}
-          onChange={(e) => showMonth(Number(e.target.value), focus.m)}>
-          {years.map((y) => <option key={y} value={y}>{y}</option>)}
+        <select
+          className="ds-datepicker__select"
+          aria-label={words.year}
+          value={focus.y}
+          onChange={(e) => showMonth(Number(e.target.value), focus.m)}
+        >
+          {years.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
         </select>
-        <button type="button" className="ds-datepicker__step" aria-label={words.nextMonth}
-          disabled={nextDisabled} onClick={() => showMonth(...ym(focus.y, focus.m + 1))}>
+        <button
+          type="button"
+          className="ds-datepicker__step"
+          aria-label={words.nextMonth}
+          disabled={nextDisabled}
+          onClick={() => showMonth(...ym(focus.y, focus.m + 1))}
+        >
           <Chevron dir="right" />
         </button>
       </div>
 
-      <table className="ds-datepicker__grid" role="grid" aria-labelledby={captionId} ref={gridRef} onKeyDown={onGridKey}>
-        <caption id={captionId} className="ds-datepicker__caption">{`${months[focus.m - 1]} ${focus.y}`}</caption>
+      <table
+        className="ds-datepicker__grid"
+        role="grid"
+        aria-labelledby={captionId}
+        ref={gridRef}
+        onKeyDown={onGridKey}
+      >
+        <caption
+          id={captionId}
+          className="ds-datepicker__caption"
+        >{`${months[focus.m - 1]} ${focus.y}`}</caption>
         <thead>
           <tr>
-            {days.map((d) => <th key={d.long} scope="col" abbr={d.long}>{d.short}</th>)}
+            {days.map((d) => (
+              <th key={d.long} scope="col" abbr={d.long}>
+                {d.short}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -194,7 +288,9 @@ export function DatePicker({
               {week.map((day, di) => {
                 if (!day) return <td key={di} className="ds-datepicker__blank" />;
                 const isFocus = compare(day, focus) === 0;
-                const isSelected = Boolean(selectedDay && compare(day, selectedDay) === 0);
+                const isSelected = Boolean(
+                  selectedDay && compare(day, selectedDay) === 0,
+                );
                 const out = isOutOfRange(day, minDay, maxDay);
                 return (
                   <td key={di} role="gridcell" aria-selected={isSelected}>
@@ -202,12 +298,14 @@ export function DatePicker({
                       type="button"
                       className="ds-datepicker__day"
                       tabIndex={isFocus ? 0 : -1}
-                      aria-label={`${days[di]?.long ?? ""} ${formatLong(day, locale)}`}
+                      aria-label={`${days[di]?.long ?? ''} ${formatLong(day, locale)}`}
                       aria-current={compare(day, today) === 0 ? 'date' : undefined}
                       aria-disabled={out || undefined}
                       data-selected={isSelected || undefined}
                       onClick={() => pick(day)}
-                      onFocus={() => { if (!isFocus) setFocus(day); }}
+                      onFocus={() => {
+                        if (!isFocus) setFocus(day);
+                      }}
                     >
                       {day.d}
                     </button>
@@ -220,8 +318,12 @@ export function DatePicker({
       </table>
 
       <div className="ds-datepicker__typed">
-        <label htmlFor={typedId} className="ds-datepicker__typed-label">{words.typed}</label>
-        <span id={hintId} className="ds-datepicker__hint">{typedPattern(locale)}</span>
+        <label htmlFor={typedId} className="ds-datepicker__typed-label">
+          {words.typed}
+        </label>
+        <span id={hintId} className="ds-datepicker__hint">
+          {typedPattern(locale)}
+        </span>
         <input
           id={typedId}
           className="ds-datepicker__input"
@@ -240,7 +342,11 @@ export function DatePicker({
             }
           }}
         />
-        {error && <p id={errorId} className="ds-datepicker__error" role="alert">{error}</p>}
+        {error && (
+          <p id={errorId} className="ds-datepicker__error" role="alert">
+            {error}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -253,5 +359,8 @@ function ym(y: number, m: number): [number, number] {
 
 function monthOut(y: number, m: number, min: Day | null, max: Day | null): boolean {
   const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  return Boolean((min && compare({ y, m, d: last }, min) < 0) || (max && compare({ y, m, d: 1 }, max) > 0));
+  return Boolean(
+    (min && compare({ y, m, d: last }, min) < 0) ||
+    (max && compare({ y, m, d: 1 }, max) > 0),
+  );
 }

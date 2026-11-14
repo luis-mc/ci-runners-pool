@@ -3,13 +3,32 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DatePicker } from './DatePicker';
 import {
-  addMonths, gridKey, monthGrid, parseIso, parseTyped, toIso, typedPattern, yearRange,
+  addMonths,
+  gridKey,
+  monthGrid,
+  parseIso,
+  parseTyped,
+  toIso,
+  typedPattern,
+  yearRange,
 } from './date-picker-logic';
-import { byLabel, choose, click, focus, key, mount, typeInto, type Mounted } from './test-dom';
+import {
+  byLabel,
+  choose,
+  click,
+  focus,
+  key,
+  mount,
+  typeInto,
+  type Mounted,
+} from './test-dom';
 
 const d = (iso: string) => parseIso(iso)!;
 let m: Mounted | null = null;
-afterEach(() => { m?.unmount(); m = null; });
+afterEach(() => {
+  m?.unmount();
+  m = null;
+});
 
 describe('date logic', () => {
   it('moves by day, week, month and year from the keyboard', () => {
@@ -36,7 +55,9 @@ describe('date logic', () => {
   it('never leaves min and max', () => {
     const opts = { min: d('2009-03-10'), max: d('2009-03-20') };
     expect(toIso(gridKey(d('2009-03-12'), { key: 'ArrowUp' }, opts)!)).toBe('2009-03-10');
-    expect(toIso(gridKey(d('2009-03-18'), { key: 'PageDown' }, opts)!)).toBe('2009-03-20');
+    expect(toIso(gridKey(d('2009-03-18'), { key: 'PageDown' }, opts)!)).toBe(
+      '2009-03-20',
+    );
   });
 
   it('clamps the day to a shorter month', () => {
@@ -65,7 +86,9 @@ describe('date logic', () => {
   });
 
   it('offers the years from min to max', () => {
-    expect(yearRange(d('2000-01-01'), d('2003-12-31'), d('2026-01-01'))).toEqual([2000, 2001, 2002, 2003]);
+    expect(yearRange(d('2000-01-01'), d('2003-12-31'), d('2026-01-01'))).toEqual([
+      2000, 2001, 2002, 2003,
+    ]);
   });
 });
 
@@ -74,7 +97,14 @@ describe('DatePicker', () => {
   const focused = () => grid().querySelector('button[tabindex="0"]')!;
 
   it('is a labelled group with one tab stop in the grid and the chosen day selected', () => {
-    m = mount(<DatePicker label="Date of birth" value="2009-03-14" onChange={() => {}} locale="en-GB" />);
+    m = mount(
+      <DatePicker
+        label="Date of birth"
+        value="2009-03-14"
+        onChange={() => {}}
+        locale="en-GB"
+      />,
+    );
     const group = m.container.querySelector('[role="group"]')!;
     expect(group.getAttribute('aria-labelledby')).toBeTruthy();
     expect(grid().querySelectorAll('button[tabindex="0"]')).toHaveLength(1);
@@ -87,7 +117,9 @@ describe('DatePicker', () => {
 
   it('arrow keys move the focus, Page Down changes the month, Enter picks', () => {
     const onChange = vi.fn();
-    m = mount(<DatePicker label="Day" value="2009-03-14" onChange={onChange} locale="en-GB" />);
+    m = mount(
+      <DatePicker label="Day" value="2009-03-14" onChange={onChange} locale="en-GB" />,
+    );
     focus(focused());
     key(focused(), 'ArrowRight');
     expect(focused().textContent).toBe('15');
@@ -100,20 +132,35 @@ describe('DatePicker', () => {
 
   it('disables days outside min and max and never picks them', () => {
     const onChange = vi.fn();
-    m = mount(<DatePicker label="Start" value={null} initialFocus="2026-11-10" min="2026-11-07" max="2026-11-20"
-      onChange={onChange} locale="en-GB" />);
-    const day6 = [...grid().querySelectorAll('button')].find((b) => b.textContent === '6')!;
+    m = mount(
+      <DatePicker
+        label="Start"
+        value={null}
+        initialFocus="2026-11-10"
+        min="2026-11-07"
+        max="2026-11-20"
+        onChange={onChange}
+        locale="en-GB"
+      />,
+    );
+    const day6 = [...grid().querySelectorAll('button')].find(
+      (b) => b.textContent === '6',
+    )!;
     expect(day6.getAttribute('aria-disabled')).toBe('true');
     click(day6);
     expect(onChange).not.toHaveBeenCalled();
-    expect((byLabel(m.container, 'Previous month') as HTMLButtonElement).disabled).toBe(true);
+    expect((byLabel(m.container, 'Previous month') as HTMLButtonElement).disabled).toBe(
+      true,
+    );
     expect((byLabel(m.container, 'Next month') as HTMLButtonElement).disabled).toBe(true);
     key(focused(), 'ArrowUp');
     expect(focused().textContent).toBe('7');
   });
 
   it('the month and year selects move the view', () => {
-    m = mount(<DatePicker label="Day" value="2009-03-14" onChange={() => {}} locale="en-GB" />);
+    m = mount(
+      <DatePicker label="Day" value="2009-03-14" onChange={() => {}} locale="en-GB" />,
+    );
     const year = byLabel(m.container, 'Year') as HTMLSelectElement;
     choose(year, '2010');
     expect(m.container.querySelector('caption')!.textContent).toBe('March 2010');
@@ -121,16 +168,29 @@ describe('DatePicker', () => {
 
   it('accepts a typed date and says why it refuses one', () => {
     const onChange = vi.fn();
-    m = mount(<DatePicker label="Day" value={null} min="2000-01-01" max="2010-12-31" initialFocus="2009-01-01"
-      onChange={onChange} locale="en-GB" />);
+    m = mount(
+      <DatePicker
+        label="Day"
+        value={null}
+        min="2000-01-01"
+        max="2010-12-31"
+        initialFocus="2009-01-01"
+        onChange={onChange}
+        locale="en-GB"
+      />,
+    );
     const input = m.container.querySelector('input')!;
     typeInto(input, '31/02/2009');
     key(input, 'Enter');
-    expect(m.container.querySelector('[role="alert"]')!.textContent).toBe('Type the date as DD/MM/YYYY.');
+    expect(m.container.querySelector('[role="alert"]')!.textContent).toBe(
+      'Type the date as DD/MM/YYYY.',
+    );
     expect(input.getAttribute('aria-invalid')).toBe('true');
     typeInto(input, '01/01/2020');
     key(input, 'Enter');
-    expect(m.container.querySelector('[role="alert"]')!.textContent).toContain('Pick a date from 1 January 2000');
+    expect(m.container.querySelector('[role="alert"]')!.textContent).toContain(
+      'Pick a date from 1 January 2000',
+    );
     typeInto(input, '14/03/2009');
     key(input, 'Enter');
     expect(onChange).toHaveBeenCalledWith('2009-03-14');
@@ -138,13 +198,29 @@ describe('DatePicker', () => {
   });
 
   it('shows the value through the project formatter when one is given', () => {
-    m = mount(<DatePicker label="Day" value="2009-03-14" onChange={() => {}} formatValue={(iso) => `on ${iso}`} />);
-    expect(m.container.querySelector('.ds-datepicker__value')!.textContent).toBe('on 2009-03-14');
+    m = mount(
+      <DatePicker
+        label="Day"
+        value="2009-03-14"
+        onChange={() => {}}
+        formatValue={(iso) => `on ${iso}`}
+      />,
+    );
+    expect(m.container.querySelector('.ds-datepicker__value')!.textContent).toBe(
+      'on 2009-03-14',
+    );
   });
 
   it('Escape cancels', () => {
     const onCancel = vi.fn();
-    m = mount(<DatePicker label="Day" value="2009-03-14" onChange={() => {}} onCancel={onCancel} />);
+    m = mount(
+      <DatePicker
+        label="Day"
+        value="2009-03-14"
+        onChange={() => {}}
+        onCancel={onCancel}
+      />,
+    );
     key(focused(), 'Escape');
     expect(onCancel).toHaveBeenCalledOnce();
   });

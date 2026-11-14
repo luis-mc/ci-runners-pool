@@ -6,8 +6,12 @@ import { commitValue, keyLayout, moveInGrid, pressKey } from './number-keypad-lo
 import { byLabel, click, focus, key, mount, type Mounted } from './test-dom';
 
 let m: Mounted | null = null;
-afterEach(() => { m?.unmount(); m = null; });
-const typeAll = (keys: string, opts = {}) => [...keys].reduce((b, k) => pressKey(b, k, opts), '');
+afterEach(() => {
+  m?.unmount();
+  m = null;
+});
+const typeAll = (keys: string, opts = {}) =>
+  [...keys].reduce((b, k) => pressKey(b, k, opts), '');
 
 describe('keypad logic', () => {
   it('types digits, drops a leading zero for a number and keeps it for a code', () => {
@@ -28,8 +32,14 @@ describe('keypad logic', () => {
     expect(commitValue('', {})).toEqual({ ok: false, reason: 'empty' });
     expect(commitValue('3', { min: 5 })).toEqual({ ok: false, reason: 'below' });
     expect(commitValue('7.', { decimals: 1 })).toEqual({ ok: true, value: '7' });
-    expect(commitValue('123', { kind: 'code', maxLength: 6 })).toEqual({ ok: false, reason: 'short' });
-    expect(commitValue('004211', { kind: 'code', maxLength: 6 })).toEqual({ ok: true, value: '004211' });
+    expect(commitValue('123', { kind: 'code', maxLength: 6 })).toEqual({
+      ok: false,
+      reason: 'short',
+    });
+    expect(commitValue('004211', { kind: 'code', maxLength: 6 })).toEqual({
+      ok: true,
+      value: '004211',
+    });
   });
   it('arrows move in the 3 x 4 grid and skip the empty cell', () => {
     const layout = keyLayout({});
@@ -45,21 +55,29 @@ describe('keypad logic', () => {
 });
 
 describe('NumberKeypad', () => {
-  const keyBtn = (k: string) => m!.container.querySelector<HTMLButtonElement>(`[data-keypad-key="${k}"]`)!;
+  const keyBtn = (k: string) =>
+    m!.container.querySelector<HTMLButtonElement>(`[data-keypad-key="${k}"]`)!;
   const shown = () => m!.container.querySelector('.ds-keypad__digits')!.textContent;
-  const doneBtn = () => [...m!.container.querySelectorAll('button')].find((b) => b.textContent === 'Done')!;
+  const doneBtn = () =>
+    [...m!.container.querySelectorAll('button')].find((b) => b.textContent === 'Done')!;
 
   it('is a labelled group with one tab stop, and the keys are 0-9 and Delete last digit', () => {
     m = mount(<NumberKeypad label="Reps" onDone={() => {}} />);
-    expect(m.container.querySelector('[role="group"]')!.getAttribute('aria-labelledby')).toBeTruthy();
-    expect(m.container.querySelectorAll('.ds-keypad__keys button[tabindex="0"]')).toHaveLength(1);
+    expect(
+      m.container.querySelector('[role="group"]')!.getAttribute('aria-labelledby'),
+    ).toBeTruthy();
+    expect(
+      m.container.querySelectorAll('.ds-keypad__keys button[tabindex="0"]'),
+    ).toHaveLength(1);
     expect(byLabel(m.container, 'Delete last digit')).toBeTruthy();
     expect(keyBtn('.')).toBeNull();
   });
 
   it('the first key replaces a prefilled value; digits and Backspace type from the keyboard', () => {
     const onChange = vi.fn();
-    m = mount(<NumberKeypad label="Reps" value="12" onDone={() => {}} onChange={onChange} />);
+    m = mount(
+      <NumberKeypad label="Reps" value="12" onDone={() => {}} onChange={onChange} />,
+    );
     key(keyBtn('1'), '8');
     expect(shown()).toBe('8');
     key(keyBtn('1'), '5');
@@ -70,12 +88,25 @@ describe('NumberKeypad', () => {
 
   it('Done is disabled with its reason outside the limits, and commits inside them', () => {
     const onDone = vi.fn();
-    m = mount(<NumberKeypad label="Weight" unit="kg" min={20} max={300} decimals={1} onDone={onDone} />);
+    m = mount(
+      <NumberKeypad
+        label="Weight"
+        unit="kg"
+        min={20}
+        max={300}
+        decimals={1}
+        onDone={onDone}
+      />,
+    );
     expect(doneBtn().disabled).toBe(true);
-    expect(m.container.querySelector('.ds-keypad__reason')!.textContent).toBe('Type a number.');
+    expect(m.container.querySelector('.ds-keypad__reason')!.textContent).toBe(
+      'Type a number.',
+    );
     click(keyBtn('5'));
     expect(doneBtn().disabled).toBe(true);
-    expect(m.container.querySelector('.ds-keypad__reason')!.textContent).toBe('The lowest is 20.');
+    expect(m.container.querySelector('.ds-keypad__reason')!.textContent).toBe(
+      'The lowest is 20.',
+    );
     click(keyBtn('2'));
     click(keyBtn('.'));
     click(keyBtn('5'));

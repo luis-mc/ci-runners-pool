@@ -16,7 +16,9 @@ const CONFIG = {
 };
 
 export const section = (text: string, name: string): string => {
-  const m = new RegExp(`<!-- ${name}:start -->\\r?\n([\\s\\S]*?)\\r?\n<!-- ${name}:end -->`).exec(text);
+  const m = new RegExp(
+    `<!-- ${name}:start -->\\r?\n([\\s\\S]*?)\\r?\n<!-- ${name}:end -->`,
+  ).exec(text);
   if (!m) throw new Error(`${name} table not found`);
   return m[1]!;
 };
@@ -25,7 +27,12 @@ const rows = (table: string): string[][] =>
     .split('\n')
     .filter((l) => l.startsWith('|'))
     .slice(2)
-    .map((l) => l.split('|').slice(1, -1).map((c) => c.trim()));
+    .map((l) =>
+      l
+        .split('|')
+        .slice(1, -1)
+        .map((c) => c.trim()),
+    );
 
 /** The retired words of content.md. */
 export const retiredWords = (contentMd: string): string[] =>
@@ -46,7 +53,9 @@ export const ruleTable = (uxRules: string): { id: string; guard: string }[] =>
 
 /** `design system UX-4` citations in a source text. */
 export const citations = (text: string): string[] =>
-  [...text.matchAll(/design system\s+(UX-\d+(?:[ ,]+(?:and\s+)?UX-\d+)*)/gi)].flatMap((m) => m[1]!.match(/UX-\d+/g) ?? []);
+  [...text.matchAll(/design system\s+(UX-\d+(?:[ ,]+(?:and\s+)?UX-\d+)*)/gi)].flatMap(
+    (m) => m[1]!.match(/UX-\d+/g) ?? [],
+  );
 
 /** Raw colours (#hex, rgb(), hsl()) in a text. */
 export const rawColours = (text: string): string[] =>
@@ -66,19 +75,33 @@ const text = new Map(sources.map((p) => [p, readFileSync(p, 'utf8')]));
 
 describe('the pure checks', () => {
   it('finds retired words as UI text only', () => {
-    expect(findRetired("<button>Submit</button> label('Click here')", ['Submit', 'Click here'])).toEqual(['Submit', 'Click here']);
+    expect(
+      findRetired("<button>Submit</button> label('Click here')", [
+        'Submit',
+        'Click here',
+      ]),
+    ).toEqual(['Submit', 'Click here']);
     expect(findRetired('const submitForm = () => {}', ['Submit'])).toEqual([]);
   });
   it('reads citations and raw colours', () => {
-    expect(citations('see design system UX-1, UX-4 and design system UX-2')).toEqual(['UX-1', 'UX-4', 'UX-2']);
-    expect(rawColours('color: #fff; background: rgb(1, 2, 3); id="#top"')).toEqual(['#fff', 'rgb(1, 2, 3)']);
+    expect(citations('see design system UX-1, UX-4 and design system UX-2')).toEqual([
+      'UX-1',
+      'UX-4',
+      'UX-2',
+    ]);
+    expect(rawColours('color: #fff; background: rgb(1, 2, 3); id="#top"')).toEqual([
+      '#fff',
+      'rgb(1, 2, 3)',
+    ]);
   });
 });
 
 describe('the apps follow the enforced design-system version', () => {
   it('uses no retired word as UI text', () => {
     const words = retiredWords(readDesignFile('content.md'));
-    const found = [...text].flatMap(([p, t]) => findRetired(t, words).map((w) => `${relative(repoRoot, p)}: "${w}"`));
+    const found = [...text].flatMap(([p, t]) =>
+      findRetired(t, words).map((w) => `${relative(repoRoot, p)}: "${w}"`),
+    );
     expect(found).toEqual([]);
   });
 
@@ -89,13 +112,18 @@ describe('the apps follow the enforced design-system version', () => {
     for (const r of rules) {
       expect(r.id, 'rule ID').toMatch(/^UX-\d+$/);
       const guard = r.guard.replaceAll('`', '');
-      if (guard && guard !== 'none yet') expect(existsSync(join(repoRoot, guard)), `${r.id}: guard ${guard}`).toBe(true);
+      if (guard && guard !== 'none yet')
+        expect(existsSync(join(repoRoot, guard)), `${r.id}: guard ${guard}`).toBe(true);
     }
   });
 
   it('cites only rule IDs that exist', () => {
     const ids = new Set(ruleTable(readDesignFile('ux-rules.md')).map((r) => r.id));
-    const bad = [...text].flatMap(([p, t]) => citations(t).filter((c) => !ids.has(c)).map((c) => `${relative(repoRoot, p)}: ${c}`));
+    const bad = [...text].flatMap(([p, t]) =>
+      citations(t)
+        .filter((c) => !ids.has(c))
+        .map((c) => `${relative(repoRoot, p)}: ${c}`),
+    );
     expect(bad).toEqual([]);
   });
 

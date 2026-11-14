@@ -22,7 +22,9 @@
   font-weight: var(--ds-weight-bold);
   font-variant-numeric: tabular-nums;
 }
-.ds-keypad__display[data-kind='code'] .ds-keypad__digits { font-family: var(--ds-font-mono); }
+.ds-keypad__display[data-kind='code'] .ds-keypad__digits {
+  font-family: var(--ds-font-mono);
+}
 .ds-keypad__unit {
   font-size: var(--ds-size-3);
   color: var(--ds-color-text-muted);
@@ -42,7 +44,9 @@
   background: var(--ds-color-text);
   color: var(--ds-color-surface);
 }
-.ds-keypad__key--action { font-size: var(--ds-size-3); }
+.ds-keypad__key--action {
+  font-size: var(--ds-size-3);
+}
 .ds-keypad__reason {
   margin: var(--ds-space-0);
   min-block-size: calc(var(--ds-line-height) * 1em);
@@ -58,7 +62,9 @@
   padding-inline: var(--ds-space-3);
   font-weight: var(--ds-weight-semibold);
 }
-.ds-keypad__action--quiet { border-color: transparent; }
+.ds-keypad__action--quiet {
+  border-color: transparent;
+}
 .ds-keypad__action--primary {
   background: var(--ds-color-primary);
   color: var(--ds-color-on-primary);

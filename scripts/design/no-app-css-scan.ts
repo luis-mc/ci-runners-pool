@@ -23,13 +23,27 @@ export const CONFIG = {
 };
 
 export type Kind = 'stylesheet' | 'css-in-js' | 'style-attr' | 'class-name';
-export const KINDS: readonly Kind[] = ['stylesheet', 'css-in-js', 'style-attr', 'class-name'];
+export const KINDS: readonly Kind[] = [
+  'stylesheet',
+  'css-in-js',
+  'style-attr',
+  'class-name',
+];
 export interface Breach {
   readonly file: string;
   readonly kind: Kind;
 }
 
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.turbo', 'coverage', 'e2e', 'test', 'testing', 'fixtures']);
+const SKIP_DIRS = new Set([
+  'node_modules',
+  'dist',
+  '.turbo',
+  'coverage',
+  'e2e',
+  'test',
+  'testing',
+  'fixtures',
+]);
 const TEST_FILE = /\.(test|spec|integration\.test)\.[cm]?[jt]sx?$/;
 
 function walk(dir: string, out: string[]): void {
@@ -98,7 +112,9 @@ export function scanText(file: string, text: string, kit: ReadonlySet<string>): 
   );
   for (const m of text.matchAll(/\bstyle=/g)) {
     const value = attributeValue(text, (m.index ?? 0) + m[0].length);
-    const keys = [...value.matchAll(/(?:^|[{,;\s])['"]?([a-zA-Z-][\w-]*)['"]?\s*:/g)].map((k) => k[1] as string);
+    const keys = [...value.matchAll(/(?:^|[{,;\s])['"]?([a-zA-Z-][\w-]*)['"]?\s*:/g)].map(
+      (k) => k[1] as string,
+    );
     if (keys.some((k) => !k.startsWith('--'))) add('style-attr');
   }
   for (const m of text.matchAll(/\b(?:className|class)=/g)) {
@@ -107,7 +123,9 @@ export function scanText(file: string, text: string, kit: ReadonlySet<string>): 
     const tokens: string[] = [];
     if (text[(m.index ?? 0) + m[0].length] === '{') {
       // An expression: only its literal class words can be judged; names the code passes in are the caller's.
-      for (const lit of value.replace(/\$\{[^}]*\}/g, ' ').matchAll(/(['"`])((?:(?!\1)[^\\]|\\.)*?)\1/g))
+      for (const lit of value
+        .replace(/\$\{[^}]*\}/g, ' ')
+        .matchAll(/(['"`])((?:(?!\1)[^\\]|\\.)*?)\1/g))
         tokens.push(...(lit[2] as string).split(/\s+/));
     } else {
       tokens.push(...value.split(/\s+/));
@@ -135,7 +153,8 @@ export function scanApps(root: string, config = CONFIG): Breach[] {
 /** Breaches grouped to "file|kind" -> count. */
 export function countBreaches(found: readonly Breach[]): Map<string, number> {
   const counts = new Map<string, number>();
-  for (const b of found) counts.set(`${b.file}|${b.kind}`, (counts.get(`${b.file}|${b.kind}`) ?? 0) + 1);
+  for (const b of found)
+    counts.set(`${b.file}|${b.kind}`, (counts.get(`${b.file}|${b.kind}`) ?? 0) + 1);
   return counts;
 }
 
@@ -157,12 +176,18 @@ export function judgeBreaches(
   for (const [key, n] of actual) {
     const [file, kind] = key.split('|');
     const was = listed.get(key) ?? 0;
-    if (n > was) added.push(`${file}: ${n - was} new ${kind} breach${n - was > 1 ? 'es' : ''}${was ? ` (${was} known)` : ''}`);
+    if (n > was)
+      added.push(
+        `${file}: ${n - was} new ${kind} breach${n - was > 1 ? 'es' : ''}${was ? ` (${was} known)` : ''}`,
+      );
   }
   for (const [key, was] of listed) {
     const n = actual.get(key) ?? 0;
     const [file, kind] = key.split('|');
-    if (n < was) stale.push(`${file}: ${kind} known ${was}, now ${n}: lower or remove the entry in no-app-css.known.json`);
+    if (n < was)
+      stale.push(
+        `${file}: ${kind} known ${was}, now ${n}: lower or remove the entry in no-app-css.known.json`,
+      );
   }
   return { added, stale };
 }
