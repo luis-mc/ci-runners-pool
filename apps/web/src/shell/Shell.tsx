@@ -25,6 +25,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { unwrap, useClient, type Schemas } from '../api/api';
 import { signInUrl, useSession } from '../auth/session';
 import { useLiveState } from '../live/LiveProvider';
+import { wipingLabel } from '../screens/images/labels';
 import { SHORTCUTS, handleKey, isMac } from './shortcuts';
 
 export const AREAS: readonly NavItem[] = [
@@ -247,6 +248,9 @@ export function AppShell({ children }: { children?: ReactNode }) {
           id: `change:${ev.change.id}`,
           label: `${ev.change.kind === 'drain' ? 'Draining' : 'Working on'} a machine, waiting for ${waiting} ${waiting === 1 ? 'job' : 'jobs'}`,
         };
+      }
+      if (ev.cache && ev.cache.state === 'wiping') {
+        return { id: `cache:${ev.cache.id}`, label: wipingLabel(ev.cache) };
       }
       if (ev.plan && (ev.plan.state === 'applying' || ev.plan.state === 'planned')) {
         const done = ev.plan.steps.filter((s) => s.state === 'done').length;

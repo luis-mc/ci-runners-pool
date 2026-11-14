@@ -14,6 +14,8 @@ const SCREENS: { name: string; path: string; ready: string }[] = [
   { name: 'add a machine', path: '/machines/add', ready: 'Add a machine' },
   { name: 'runners', path: '/runners', ready: 'Runners' },
   { name: 'add runners', path: '/runners/add', ready: 'Add runners' },
+  { name: 'images', path: '/images', ready: 'Images and caches' },
+  { name: 'caches', path: '/images?tab=caches', ready: 'Images and caches' },
   { name: 'settings users', path: '/settings/users', ready: 'Settings' },
   { name: 'settings appearance', path: '/settings/appearance', ready: 'Settings' },
   { name: 'settings retention', path: '/settings/retention', ready: 'Settings' },

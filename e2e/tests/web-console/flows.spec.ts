@@ -1,7 +1,15 @@
 // The main flows of the console against the mocked API: add a machine, turn on the pool, drain, delete a runner,
 // add a user, and the session-ended dialog.
 import { expect, test } from '@playwright/test';
-import { failure, machine, repository, runner, signedIn } from './fixtures';
+import {
+  cache,
+  failure,
+  machine,
+  repository,
+  runner,
+  signedIn,
+  type Call,
+} from './fixtures';
 
 const join = (state: string, extra: object = {}) => ({
   id: 'j1',
@@ -256,4 +264,58 @@ test('When the session ends the dialog shows over the page and the page stays', 
     .toBeFocused({ timeout: 2000 })
     .catch(() => undefined);
   void machine;
+});
+
+test('Images and caches opens from the menu and says that there are no images yet', async ({
+  page,
+}) => {
+  const mock = signedIn();
+  await mock.install(page);
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Images and caches' }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Images and caches' }),
+  ).toBeVisible();
+  await expect(
+    page.getByText('No images yet. Images are built when a runner first needs one.'),
+  ).toBeVisible();
+  await page.getByRole('tab', { name: 'Caches' }).click();
+  const card = page.getByRole('region', { name: 'Tool cache of crsp-linux-1' });
+  await expect(card).toContainText('3.2 GB of 10.0 GB (32%)');
+  await expect(card).toContainText('never');
+});
+
+test('Wipe a cache asks first, names the cache, its size and the job, and wipes on yes', async ({
+  page,
+}) => {
+  let wiping = false;
+  const mock = signedIn()
+    .on('GET', '/api/v1/caches', () => ({
+      items: [cache(wiping ? { state: 'wiping', waiting_for: ['octo/app e2e'] } : {})],
+    }))
+    .on('POST', '/api/v1/caches/:id/wipe', (call: Call) => {
+      if (!call.query.get('confirm'))
+        return failure(409, 'needs_confirmation', 'Needs a yes.', [
+          { kind: 'cache', id: 'c1', text: 'Tool cache of crsp-linux-1, 3.2 GB' },
+          { kind: 'job', id: '9', text: 'octo/app e2e' },
+        ]);
+      wiping = true;
+      return cache({ state: 'wiping', waiting_for: ['octo/app e2e'] });
+    });
+  await mock.install(page);
+  await page.goto('/images?tab=caches');
+  await page.getByRole('button', { name: 'Wipe', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Wipe Tool cache of crsp-linux-1?' });
+  await expect(dialog).toContainText('Tool cache of crsp-linux-1, 3.2 GB');
+  await expect(dialog).toContainText('octo/app e2e');
+  expect(mock.calls.filter((c) => c.query.get('confirm')).length).toBe(0);
+  await dialog.getByRole('button', { name: 'Wipe' }).click();
+  await expect
+    .poll(() => mock.calls.filter((c) => c.query.get('confirm') === 'true').length)
+    .toBe(1);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Wiping' })).toBeDisabled();
+  await expect(page.getByRole('region', { name: 'Running work' })).toContainText(
+    'Wiping Tool cache of crsp-linux-1, waiting for octo/app e2e',
+  );
 });

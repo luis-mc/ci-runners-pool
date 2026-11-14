@@ -67,29 +67,9 @@ func (s *server) ExportJobs(_ context.Context, _ gen.ExportJobsRequestObject) (g
 	return gen.ExportJobsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// GetImage is not built yet.
-func (s *server) GetImage(_ context.Context, _ gen.GetImageRequestObject) (gen.GetImageResponseObject, error) {
-	return gen.GetImagedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// ListCaches is not built yet.
-func (s *server) ListCaches(_ context.Context, _ gen.ListCachesRequestObject) (gen.ListCachesResponseObject, error) {
-	return gen.ListCachesdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// ListImages is not built yet.
-func (s *server) ListImages(_ context.Context, _ gen.ListImagesRequestObject) (gen.ListImagesResponseObject, error) {
-	return gen.ListImagesdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // ListNotificationChannels is not built yet.
 func (s *server) ListNotificationChannels(_ context.Context, _ gen.ListNotificationChannelsRequestObject) (gen.ListNotificationChannelsResponseObject, error) {
 	return gen.ListNotificationChannelsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// RebuildImage is not built yet.
-func (s *server) RebuildImage(_ context.Context, _ gen.RebuildImageRequestObject) (gen.RebuildImageResponseObject, error) {
-	return gen.RebuildImagedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // StopRepositoryPlan is not built yet.
@@ -107,17 +87,7 @@ func (s *server) TestNotificationChannel(_ context.Context, _ gen.TestNotificati
 	return gen.TestNotificationChanneldefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// UpdateImageLayers is not built yet.
-func (s *server) UpdateImageLayers(_ context.Context, _ gen.UpdateImageLayersRequestObject) (gen.UpdateImageLayersResponseObject, error) {
-	return gen.UpdateImageLayersdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // UpdateNotificationChannel is not built yet.
 func (s *server) UpdateNotificationChannel(_ context.Context, _ gen.UpdateNotificationChannelRequestObject) (gen.UpdateNotificationChannelResponseObject, error) {
 	return gen.UpdateNotificationChanneldefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// WipeCache is not built yet.
-func (s *server) WipeCache(_ context.Context, _ gen.WipeCacheRequestObject) (gen.WipeCacheResponseObject, error) {
-	return gen.WipeCachedefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }

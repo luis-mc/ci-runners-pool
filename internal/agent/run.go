@@ -14,6 +14,7 @@ import (
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/load"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 )
 
@@ -40,6 +41,11 @@ type Config struct {
 	Updater Updater
 	// UpdaterFor builds the Updater once the gate exists (the agent command sets it).
 	UpdaterFor func(*Gate) Updater
+	// Caches lists the runners whose cache folders the agent measures and wipes
+	// (caches R5.36, web-console R5.25); nil reports none.
+	Caches CacheSource
+	// CacheFS is the file access of the cache measure and wipe; nil is the real one.
+	CacheFS runnercache.FS
 
 	// Intervals; the defaults are the spec's (R5.35, R5.13, R5.16).
 	HeartbeatEvery time.Duration // 10 s
@@ -47,6 +53,7 @@ type Config struct {
 	RedetectEvery  time.Duration // 10 min
 	SampleEvery    time.Duration // 5 s
 	DrainPollEvery time.Duration // 2 s
+	CacheEvery     time.Duration // 5 min
 	// Backoff is the reconnect delay; Sleep waits for it (tests replace both).
 	Backoff *Backoff
 	Sleep   func(ctx context.Context, d time.Duration) error
@@ -79,7 +86,7 @@ func (c *Config) defaults() {
 		v time.Duration
 	}{
 		{&c.HeartbeatEvery, machines.HeartbeatEvery}, {&c.LoadEvery, 15 * time.Second}, {&c.RedetectEvery, 10 * time.Minute},
-		{&c.SampleEvery, load.SampleEvery}, {&c.DrainPollEvery, 2 * time.Second},
+		{&c.SampleEvery, load.SampleEvery}, {&c.DrainPollEvery, 2 * time.Second}, {&c.CacheEvery, 5 * time.Minute},
 	} {
 		if *d.p == 0 {
 			*d.p = d.v
@@ -234,6 +241,8 @@ type link struct {
 
 	followMu  sync.Mutex
 	following bool
+
+	wipes *wiper
 }
 
 func (l *link) send(m *agentv1.SessionRequest) error {
@@ -254,6 +263,7 @@ func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	l := &link{cfg: cfg}
+	l.wipes = &wiper{cfg: cfg, send: l.send, fsys: cfg.cacheFS(), poll: cfg.DrainPollEvery}
 	l.stream = newClient(pin, cfg.Controller).Session(ctx)
 	l.stream.RequestHeader().Set("Authorization", "Bearer "+key)
 	l.stream.RequestHeader().Set("Crsp-Machine-Id", id)
@@ -298,6 +308,7 @@ func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 
 	lastRecv := newStamp()
 	go l.sendLoop(ctx, cancel, lastRecv)
+	go l.cacheLoop(ctx)
 
 	for {
 		msg, err := l.stream.Receive()
@@ -434,10 +445,46 @@ func (l *link) handle(ctx context.Context, msg *agentv1.SessionResponse) error {
 		f := l.redetect(ctx)
 		_ = l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_Facts{Facts: f}})
 		_ = l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_CommandResult{CommandResult: &agentv1.CommandResult{CommandId: m.Redetect.GetCommandId(), Ok: true, Outcome: "done"}}})
+	case *agentv1.SessionResponse_MeasureCaches:
+		go l.reportCaches(ctx, m.MeasureCaches.GetCommandId())
+	case *agentv1.SessionResponse_WipeCache:
+		l.wipes.start(ctx, m.WipeCache)
 	case *agentv1.SessionResponse_UpdateAgent:
 		l.handleUpdate(ctx, m.UpdateAgent)
 	case *agentv1.SessionResponse_MachineRemoved:
 		return ErrRemoved
 	}
 	return nil
+}
+
+func (c Config) cacheFS() runnercache.FS {
+	if c.CacheFS != nil {
+		return c.CacheFS
+	}
+	return runnercache.OSFS{}
+}
+
+// reportCaches measures every runner's cache folders and sends the report. The
+// agent measures and reports; the controller lists (web-console R5.25).
+func (l *link) reportCaches(ctx context.Context, commandID string) {
+	rep := &agentv1.CacheReport{
+		CommandId: commandID, MeasuredAtUnixMs: time.Now().UnixMilli(),
+		Caches: MeasureCaches(ctx, l.cfg.Caches, l.cfg.cacheFS()),
+	}
+	_ = l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_CacheReport{CacheReport: rep}})
+}
+
+// cacheLoop reports once when the session opens and then every CacheEvery.
+func (l *link) cacheLoop(ctx context.Context) {
+	l.reportCaches(ctx, "")
+	t := time.NewTicker(l.cfg.CacheEvery)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			l.reportCaches(ctx, "")
+		}
+	}
 }

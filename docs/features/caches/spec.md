@@ -7,7 +7,7 @@ status: proposed
 version: 0.1.0
 owner: owner
 type: reference
-code: ["internal/cache/**", "internal/mirror/**", "internal/tools/**", "internal/runnercache/**", "internal/vmcheck/**"]
+code: ["internal/cache/**", "internal/mirror/**", "internal/tools/**", "internal/runnercache/**", "internal/caches/**", "internal/vmcheck/**"]
 design_system: [UX-4, UX-6, UX-9, UX-11, UX-13, UX-17, UX-18, UX-19, UX-25, UX-26, UX-28, UX-29, UX-34, UX-38, UX-41, UX-58, UX-62]
 last_verified: 2026-11-14
 artifact:
@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-**PARTLY BUILT (CRSP21, CRSP26).** Milestone 1 builds the per-runner cache quotas with eviction, the disk guard, the per-runner `CI_TOOLS_DIR` and the `vm_check` port (R5.36 to R5.40, built). Every other requirement is **NOT YET IMPLEMENTED**. The shared per-machine tool cache is planned for milestone 2. The Actions cache server, git mirror, registry mirror, cache warmth and wipe are planned for milestone 7. The package proxy has no milestone yet.
+**PARTLY BUILT (CRSP21, CRSP26, CRSP36).** Milestone 1 builds the per-runner cache quotas with eviction, the disk guard, the per-runner `CI_TOOLS_DIR`, the `vm_check` port (R5.36 to R5.40, built) and the list and wipe of those per-runner caches on the Images and caches screen (R5.42, built). Every other requirement is **NOT YET IMPLEMENTED**. The shared per-machine tool cache is planned for milestone 2. The Actions cache server, git mirror, registry mirror, cache warmth and wipe are planned for milestone 7. The package proxy has no milestone yet.
 
 ## 1. In one paragraph
 
@@ -175,6 +175,8 @@ Owner decision of 2026-11-14 (CRSP21, CRSP26; dev-standards D302): on 14 Nov an 
 
 **R5.40** (M1) — **`vm_check` in crsp.** The catalogue of expected VM images (the data of `scripts/delivery/vm-images.json`) and the logic of `scripts/delivery/vm_check.py` are in `internal/vmcheck`: checksum file parsing (BSD and sums formats, newest file for a `*` pattern), cache keys for bases and snapshots, the check that the cached image is the published one (`current`, `stale`, `missing`, `offline`), the host readiness report of a `kvm` runner (`/dev/kvm`, the six tools, a writable cache), the SELinux verdict and the prune plan. Booting a VM is not in this port; it comes with the KVM backend (runners M6). The plugin scripts are not edited. Built (CRSP26).
 
+**R5.42** (M1) — **List and wipe of the per-runner caches.** Each agent measures the tool cache and the Rust build cache of every runner it finds (size, entry count, and the quota from the runner's own environment) when its session opens, every 5 minutes, and on request, and reports them over the agent link. The controller lists them with size against cap (`listCaches`); a machine whose agent has not reported lists nothing, and no size is invented. A wipe (`wipeCache`, admin) first answers `needs_confirmation` naming the cache, its size and the running jobs of that runner; after the yes the agent keeps new jobs of that runner out, waits until it is idle, checks again right before it deletes, empties the folder (the folder stays) and reports. A job is never cut (R5.32 for these caches). The controller writes an audit entry when the wipe starts and when it ends, with the bytes freed (R5.34). A failed wipe keeps its reason and frees nothing. The cache state and the jobs a wipe waits for come from the controller, not from the page. Built (CRSP36).
+
 ### Registry mirror (milestone 7)
 
 **R5.24** — Each pool has one pull-through mirror for container images that speaks the OCI distribution API. It mirrors Docker Hub and `ghcr.io` by default; the owner can add other registries.
@@ -299,7 +301,7 @@ flowchart TB
 
 ## 9. How it is proven
 
-Rows for R5.36 to R5.40 are built and run in CI. Every other row is planned: none of those tests exist yet (NOT YET IMPLEMENTED). Paths are written without code marks until the files exist.
+Rows for R5.36 to R5.40 and R5.42 are built and run in CI. Every other row is planned: none of those tests exist yet (NOT YET IMPLEMENTED). Paths are written without code marks until the files exist.
 
 | Requirement | Planned test |
 |---|---|
@@ -343,6 +345,7 @@ Rows for R5.36 to R5.40 are built and run in CI. Every other row is planned: non
 | R5.38 | internal/runnercache/runnercache_test.go TestGuardHoldsUnderTenPercentAndResumesWithMargin, TestGuardReasonAndUnknownDisk; internal/hooks/hooks_test.go TestDiskGuardHoldsAndResumes, TestDiskGuardTimeoutFailsWithoutSlotEvenOnTimeoutRun, TestDiskGuardFailsOpenOnReadError; internal/doctor/checks/checks_test.go TestDiskGuard |
 | R5.39 | internal/runnercache/runnercache_test.go TestEnvExportsToolsDirAndQuotas, TestCapsFromEnv; internal/backend/linux/linux_test.go and internal/backend/windows/windows_test.go (the runner env file holds CI_TOOLS_DIR); internal/runners/service_test.go TestAddPassesCacheQuotaToTheAgent |
 | R5.40 | internal/vmcheck/vmcheck_test.go (catalogue, TestParseChecksumsBSDAndSums, TestResolveChecksumURLPicksNewestListed, TestKeys, TestVerifyComparesCachedWithPublished, TestReadiness, TestSELinuxVerdict, TestPrunePlanKeepsNewestPerDistroAndOldTempFiles, TestCatalogueMatchesThePluginFile) |
+| R5.42 | internal/caches/caches_test.go (list order and filters, the question names cache, size and jobs, lifecycle, audit, failure, offline); internal/api/handlers_caches_test.go (list, 409 then 202, error mapping, empty images); internal/agent/caches_test.go TestMeasureCachesSizesBothFoldersWithTheirQuota, TestGateHoldRunnerKeepsOnlyThatRunnersJobsOut, TestWipeWaitsForTheRunningJobThenEmptiesTheFolder (a real agent link); apps/web/src/screens/images/ImagesAndCaches.test.tsx |
 | R5.41 | planned: internal/cache/playwright_test.go TestBrowsersPathSharedPerMachine (after v0.1.0) |
 | R6.1 | internal/cache/bench_test.go (lookup p95 with 100,000 entries; 1 GiB download speed) |
 | R6.2 | internal/cache/evict_test.go (default 20 GiB, ceiling, refuse under 10% free) |

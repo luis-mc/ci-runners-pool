@@ -206,6 +206,7 @@ const (
 	ActionsCache   CacheKind = "actions_cache"
 	GitMirror      CacheKind = "git_mirror"
 	RegistryMirror CacheKind = "registry_mirror"
+	RustCache      CacheKind = "rust_cache"
 	ToolCache      CacheKind = "tool_cache"
 )
 
@@ -217,6 +218,8 @@ func (e CacheKind) Valid() bool {
 	case GitMirror:
 		return true
 	case RegistryMirror:
+		return true
+	case RustCache:
 		return true
 	case ToolCache:
 		return true
@@ -1469,20 +1472,34 @@ type BackupList struct {
 // Cache One cache on one machine (caches R5.8 to R5.14).
 type Cache struct {
 	// CapBytes Absent when the cache has no cap.
-	CapBytes    *int64     `json:"cap_bytes,omitempty"`
-	EntryCount  *int       `json:"entry_count,omitempty"`
-	Id          string     `json:"id"`
+	CapBytes   *int64 `json:"cap_bytes,omitempty"`
+	EntryCount *int   `json:"entry_count,omitempty"`
+
+	// Error Why the last wipe failed; nothing more was deleted.
+	Error *string `json:"error,omitempty"`
+	Id    string  `json:"id"`
+
+	// Kind `tool_cache` and `rust_cache` are the per-runner folders of milestone 1 (caches R5.36, R5.39); the others arrive with later milestones.
 	Kind        CacheKind  `json:"kind"`
 	LastWipedAt *time.Time `json:"last_wiped_at,omitempty"`
 	MachineId   string     `json:"machine_id"`
-	SizeBytes   int64      `json:"size_bytes"`
-	State       CacheState `json:"state"`
+
+	// RunnerId The runner whose folder this is, for a per-runner cache.
+	RunnerId *string `json:"runner_id,omitempty"`
+
+	// RunnerName The runner's name, for a per-runner cache.
+	RunnerName *string    `json:"runner_name,omitempty"`
+	SizeBytes  int64      `json:"size_bytes"`
+	State      CacheState `json:"state"`
+
+	// WaitingFor The running jobs a wiping cache waits for (caches R5.32).
+	WaitingFor *[]string `json:"waiting_for,omitempty"`
 }
 
 // CacheState defines model for Cache.State.
 type CacheState string
 
-// CacheKind defines model for CacheKind.
+// CacheKind `tool_cache` and `rust_cache` are the per-runner folders of milestone 1 (caches R5.36, R5.39); the others arrive with later milestones.
 type CacheKind string
 
 // CacheList defines model for CacheList.

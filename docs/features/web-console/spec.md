@@ -323,7 +323,7 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.24** — The jobs screen shows the queue with each job's wait reason, and the history with filters by repository, machine, result and time range. Export holds every row of the filter, in the order shown.
 
-**R5.25** — The images and caches screen shows images with layers and sizes, and caches with size and cap. It changes layers, rebuilds an image after a drain, and wipes a cache.
+**R5.25** (built in part, CRSP36: caches; images with milestone 2) — The images and caches screen shows images with layers and sizes, and caches with size and cap. It changes layers, rebuilds an image after a drain, and wipes a cache.
 
 **R5.26** — The doctor screen lists every finding with its status and fix, and runs the doctor on demand.
 
@@ -486,7 +486,7 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.22 | Vitest | `apps/web/src/screens/machines/Machines.test.tsx` |
 | R5.23 | Vitest | `apps/web/src/screens/runners/Runners.test.tsx` |
 | R5.24 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/jobs/Jobs.test.tsx` |
-| R5.25 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/images/ImagesAndCaches.test.tsx` |
+| R5.25 | Vitest, Playwright e2e, Go test | `apps/web/src/screens/images/ImagesAndCaches.test.tsx`, `e2e/tests/web-console/flows.spec.ts`, `e2e/tests/design-layout.spec.ts`, `internal/api/handlers_caches_test.go` (the images side stays empty until milestone 2) |
 | R5.26 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/doctor/Doctor.test.tsx` |
 | R5.27 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` (M1 sub-pages: Users and roles, Appearance, Retention, Backups) |
 | R5.28 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` (the Go side stays NOT YET IMPLEMENTED: `internal/api/users_test.go`) |
@@ -544,11 +544,12 @@ For the product:
 
 ## 11. Not built yet
 
-Built by CRSP24: the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups (all against the M1 contract and a mocked API in tests).
+Built by CRSP36: the Images and caches screen (R5.25) for caches. Built by CRSP24: the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups (all against the M1 contract and a mocked API in tests).
 
 **NOT YET IMPLEMENTED:**
 
-- the jobs, images and caches and doctor screens (R5.24 to R5.26): their menu entries open a page that says in which milestone they arrive;
+- the jobs and doctor screens (R5.24, R5.26): their menu entries open a page that says in which milestone they arrive;
+- the Images tab has no data: milestone 1 builds no images, so `listImages` returns an empty list and `getImage`, `updateImageLayers` and `rebuildImage` answer 404 `not_found` ("Images arrive with milestone 2"); layer choice, rebuild and the image rows come with the containers of milestone 2. The Caches tab shows the per-runner tool and Rust caches only (caches R5.42); the Actions cache, git mirrors and registry mirror arrive with milestone 7, and no size history exists yet, so the size/cap meter (component 40) stands in for component 31;
 - the later settings sub-pages: Budgets, Notifications, Updates, Audit log, Config export (R5.29);
 - the serving side: `internal/webui/webui.go` serves over TLS and sends the headers of R6.3 (R5.1, R6.3), the session cookie and CSRF checks (R6.1, R6.2), the role checks (R6.5);
 - an automated axe check in both themes (R6.6), the performance budgets (R6.12), the offline check (R6.13);
@@ -573,6 +574,7 @@ Source: apps/web/src/screens/machines/Machines.tsx
 Source: apps/web/src/screens/machines/AddMachine.tsx
 Source: apps/web/src/screens/runners/Runners.tsx
 Source: apps/web/src/screens/runners/AddRunners.tsx
+Source: apps/web/src/screens/images/ImagesAndCaches.tsx
 Source: apps/web/src/screens/settings/Settings.tsx
 Source: apps/web/src/screens/setup/Setup.tsx
 Source: packages/ui/src/index.ts

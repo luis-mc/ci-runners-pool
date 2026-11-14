@@ -2879,8 +2879,11 @@ export interface components {
             /** @description Ids of the layers that are on. Every other layer is off. */
             enabled_layers: string[];
         };
-        /** @enum {string} */
-        CacheKind: "actions_cache" | "git_mirror" | "tool_cache" | "registry_mirror";
+        /**
+         * @description `tool_cache` and `rust_cache` are the per-runner folders of milestone 1 (caches R5.36, R5.39); the others arrive with later milestones.
+         * @enum {string}
+         */
+        CacheKind: "actions_cache" | "git_mirror" | "tool_cache" | "registry_mirror" | "rust_cache";
         /**
          * @description One cache on one machine (caches R5.8 to R5.14).
          * @example {
@@ -2897,6 +2900,10 @@ export interface components {
             id: string;
             kind: components["schemas"]["CacheKind"];
             machine_id: string;
+            /** @description The runner whose folder this is, for a per-runner cache. */
+            runner_id?: string;
+            /** @description The runner's name, for a per-runner cache. */
+            runner_name?: string;
             /** Format: int64 */
             size_bytes: number;
             /**
@@ -2909,6 +2916,10 @@ export interface components {
             last_wiped_at?: string;
             /** @enum {string} */
             state: "ready" | "wiping";
+            /** @description The running jobs a wiping cache waits for (caches R5.32). */
+            waiting_for?: string[];
+            /** @description Why the last wipe failed; nothing more was deleted. */
+            error?: string;
         };
         CacheList: {
             items: components["schemas"]["Cache"][];

@@ -4587,7 +4587,10 @@ components:
         enabled_layers: [build-tools, browsers]
     CacheKind:
       type: string
-      enum: [actions_cache, git_mirror, tool_cache, registry_mirror]
+      description: >-
+        `tool_cache` and `rust_cache` are the per-runner folders of milestone 1
+        (caches R5.36, R5.39); the others arrive with later milestones.
+      enum: [actions_cache, git_mirror, tool_cache, registry_mirror, rust_cache]
     Cache:
       type: object
       description: One cache on one machine (caches R5.8 to R5.14).
@@ -4599,6 +4602,12 @@ components:
           $ref: '#/components/schemas/CacheKind'
         machine_id:
           type: string
+        runner_id:
+          type: string
+          description: The runner whose folder this is, for a per-runner cache.
+        runner_name:
+          type: string
+          description: The runner's name, for a per-runner cache.
         size_bytes:
           type: integer
           format: int64
@@ -4614,6 +4623,14 @@ components:
         state:
           type: string
           enum: [ready, wiping]
+        waiting_for:
+          type: array
+          description: The running jobs a wiping cache waits for (caches R5.32).
+          items:
+            type: string
+        error:
+          type: string
+          description: Why the last wipe failed; nothing more was deleted.
       example:
         id: cch_01JCRSP0001
         kind: tool_cache

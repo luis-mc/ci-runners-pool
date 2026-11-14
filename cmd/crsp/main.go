@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/cli"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
@@ -142,7 +143,7 @@ func runController() error {
 	})
 
 	idle := &idleHook{}
-	mr, err := startMachines(ctx, cfg, logger, idle)
+	mr, err := startMachines(ctx, cfg, logger, idle, audit.New(db))
 	if err != nil {
 		return err
 	}
@@ -163,7 +164,7 @@ func runController() error {
 		Settings: ops.Settings, Audit: ops.Audit, Backup: ops.Backup,
 		Machines: mr.Service, CA: mr.CA, Update: um,
 		Jobs: db, Slots: queue,
-		Live: live,
+		Live: live, Caches: mr.Caches,
 	})
 	mux.Handle("/", webui.Handler())
 

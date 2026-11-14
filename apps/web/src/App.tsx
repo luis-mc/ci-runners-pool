@@ -10,6 +10,7 @@ import type { EventSourceFactory } from './live/store';
 import { AppShell } from './shell/Shell';
 import { FaultBoundary } from './screens/common';
 import { Later, NotFound } from './screens/Later';
+import { ImagesAndCaches } from './screens/images/ImagesAndCaches';
 import { MachineDetail, MachinesList } from './screens/machines/Machines';
 import { AddMachinePage } from './screens/machines/AddMachine';
 import { Overview } from './screens/overview/Overview';
@@ -108,25 +109,10 @@ export function App({
                   <Later title="Jobs" what="The job history" milestone="milestone 2" />
                 }
               />
-              <Route
-                path="images"
-                element={
-                  <Later
-                    title="Images and caches"
-                    what="Images and caches"
-                    milestone="milestone 2 and 7"
-                  />
-                }
-              />
+              <Route path="images" element={<ImagesAndCaches />} />
               <Route
                 path="caches"
-                element={
-                  <Later
-                    title="Images and caches"
-                    what="Caches"
-                    milestone="milestone 7"
-                  />
-                }
+                element={<Navigate to="/images?tab=caches" replace />}
               />
               <Route
                 path="doctor"
