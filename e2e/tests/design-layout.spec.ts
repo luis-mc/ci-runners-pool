@@ -1,23 +1,32 @@
-import { test } from '@playwright/test';
-import { expectDomLayout, type KnownLayoutBreach } from '../../scripts/design/dom-layout';
+import { expect, test } from '@playwright/test';
+import { expectDomLayout } from '../../scripts/design/dom-layout';
+import { signedIn } from './web-console/fixtures';
 
-// Example Playwright spec for the DOM layout checker. Copy it per app, list the app's screens, and keep the
-// known list next to it (a screen that breaks a rule today, with the task that fixes it; the list only shrinks).
-// Run it with the project's e2e command. It uses the DOM only: no screenshots, no baseline images.
-const KNOWN: KnownLayoutBreach[] = [];
-
-const SCREENS: { name: string; path: string; primary?: string }[] = [
-  { name: 'home', path: '/' },
-  // { name: 'import wizard', path: '/import', primary: '[data-primary]' },
+// The DOM layout checker (design system, Enforcement kit) on the console's M1 screens, at 360, 393 and 1300 px.
+// It uses the DOM only. The known list (scripts/design/layout.known.json) is empty and only shrinks.
+const SCREENS: { name: string; path: string; ready: string }[] = [
+  { name: 'overview', path: '/', ready: 'Overview' },
+  { name: 'repositories', path: '/repositories', ready: 'Repositories' },
+  { name: 'repository detail', path: '/repositories/octo/app', ready: 'octo/app' },
+  { name: 'turn on the pool', path: '/repositories/turn-on', ready: 'Turn on the pool' },
+  { name: 'machines', path: '/machines', ready: 'Machines' },
+  { name: 'machine detail', path: '/machines/m1', ready: 'build-1' },
+  { name: 'add a machine', path: '/machines/add', ready: 'Add a machine' },
+  { name: 'runners', path: '/runners', ready: 'Runners' },
+  { name: 'add runners', path: '/runners/add', ready: 'Add runners' },
+  { name: 'settings users', path: '/settings/users', ready: 'Settings' },
+  { name: 'settings appearance', path: '/settings/appearance', ready: 'Settings' },
+  { name: 'settings retention', path: '/settings/retention', ready: 'Settings' },
 ];
 
 for (const screen of SCREENS) {
   test(`layout: ${screen.name}`, async ({ page }) => {
+    await signedIn().install(page);
     await page.goto(screen.path);
+    await expect(
+      page.getByRole('heading', { level: 1, name: screen.ready }),
+    ).toBeVisible();
     await page.waitForLoadState('networkidle');
-    await expectDomLayout(page, screen.name, {
-      known: KNOWN,
-      ...(screen.primary ? { primary: screen.primary } : {}),
-    });
+    await expectDomLayout(page, screen.name, { spaceVar: '--ds-space-' });
   });
 }

@@ -1,5 +1,5 @@
 // The route table of the console (web-console section 7). Every signed-in screen sits in the shell (R5.3).
-import { ClockProvider, Loading, Failed, Button } from '@crsp/ui';
+import { Button, ClockProvider, Failed, Loading, Page, PageHeader } from '@crsp/ui';
 import type { ApiClient } from '@crsp/contract';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { ApiProvider } from './api/api';
@@ -35,7 +35,10 @@ function Gate({ factory }: { factory: EventSourceFactory | undefined }) {
   if (s.status === 'loading')
     return (
       <main>
-        <Loading what="Loading your session" />
+        <Page>
+          <PageHeader title="CI Runners Shared Pool" />
+          <Loading what="Loading your session" />
+        </Page>
       </main>
     );
   if (s.status === 'signed-out')
@@ -51,11 +54,14 @@ function Gate({ factory }: { factory: EventSourceFactory | undefined }) {
   if (s.status === 'failed')
     return (
       <main>
-        <Failed
-          what="Could not load your session."
-          why={`${s.message} Try again.`}
-          action={<Button onPress={session.refresh}>Try again</Button>}
-        />
+        <Page>
+          <PageHeader title="CI Runners Shared Pool" />
+          <Failed
+            what="Could not load your session."
+            why={`${s.message} Try again.`}
+            action={<Button onPress={session.refresh}>Try again</Button>}
+          />
+        </Page>
       </main>
     );
   return (
