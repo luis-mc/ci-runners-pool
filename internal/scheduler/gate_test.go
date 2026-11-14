@@ -52,6 +52,9 @@ func TestOverNamesTheNumbers(t *testing.T) {
 		t.Fatalf("text %q", d.WaitText)
 	}
 	// at the budget is not over
+	if err := e.eng.Cancel(context.Background(), m1, "a"); err != nil {
+		t.Fatal(err)
+	}
 	goes(t, e.gate(e.req("b", job("o/r", 2, "x"), 1, scheduler.Load{MemoryPct: 85, MemoryKnown: true, CPUPct: 60, CPUKnown: true})))
 }
 
@@ -168,7 +171,7 @@ func TestDroppedTicketQueuedAgainKeepsPlace(t *testing.T) {
 	first.FirstQueued = e.now.Add(-3 * time.Hour)
 	e.gate(first)
 	for _, tk := range e.status(m1).Tickets {
-		if tk.GateID == "a" && !tk.QueuedAt.Equal(e.now) {
+		if tk.GateID == "a" && e.now.Sub(tk.QueuedAt) > 50*time.Millisecond {
 			t.Fatalf("old ticket kept place: %v", tk.QueuedAt)
 		}
 	}

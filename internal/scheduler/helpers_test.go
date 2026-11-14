@@ -78,6 +78,7 @@ func (e *env) gate(r scheduler.GateRequest) scheduler.Decision {
 	if err != nil {
 		e.t.Fatalf("gate %s: %v", r.GateID, err)
 	}
+	e.advance(time.Millisecond) // no two tickets share a nanosecond, so the order is the test's
 	return d
 }
 
