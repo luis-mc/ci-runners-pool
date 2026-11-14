@@ -98,7 +98,7 @@ func TestSessionCookieAttributes(t *testing.T) { // web-console R6.1, D38
 // D38: Secure on every address except 127.0.0.1 and ::1, whatever the scheme.
 func TestCookieSecureByAddress(t *testing.T) {
 	mk := func(host string, tlsOn bool) *http.Request {
-		r := httptest.NewRequest(http.MethodGet, "/", nil)
+		r := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 		r.Host = host
 		if tlsOn {
 			r.TLS = &tls.ConnectionState{}
