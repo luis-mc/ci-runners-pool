@@ -114,28 +114,6 @@ func TestVerifyChecksAndProvenance(t *testing.T) {
 	}
 }
 
-func TestGHAttesterFailsClosedWithoutGH(t *testing.T) {
-	g := GHAttester{LookPath: func(string) (string, error) { return "", errors.New("not found") }}
-	if err := g.Verify(context.Background(), "x"); err == nil || !strings.Contains(err.Error(), "provenance") {
-		t.Fatalf("%v", err)
-	}
-	var got []string
-	g = GHAttester{
-		LookPath: func(string) (string, error) { return "gh", nil },
-		Run: func(_ context.Context, name string, args ...string) ([]byte, error) {
-			got = append([]string{name}, args...)
-			return nil, nil
-		},
-	}
-	if err := g.Verify(context.Background(), "file.msi"); err != nil {
-		t.Fatal(err)
-	}
-	line := strings.Join(got, " ")
-	if !strings.Contains(line, "attestation verify file.msi") || !strings.Contains(line, "--signer-workflow "+SignerWorkflow) || !strings.Contains(line, "--repo "+Repo) {
-		t.Fatalf("the attestation must name this repository's release workflow: %s", line)
-	}
-}
-
 func TestLockExcludesAndTakesOverStale(t *testing.T) {
 	dir := t.TempDir()
 	now := time.Now()

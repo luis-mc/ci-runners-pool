@@ -105,7 +105,7 @@ func startUpdates(ctx context.Context, cfg config.Config, logger *slog.Logger, m
 	m := update.New(update.Options{
 		Current:  version,
 		Source:   update.GitHubSource{},
-		Attester: update.GHAttester{},
+		Attester: update.SigstoreAttester{},
 		Drainer:  machineDrainer{svc: mr.Service},
 		AutoUpdate: func(ctx context.Context) bool {
 			if set == nil {
