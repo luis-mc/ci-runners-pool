@@ -20,6 +20,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/tray"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
 )
 
@@ -43,6 +44,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return report(stderr, runController())
 	case "agent":
 		return report(stderr, errors.New("agent mode is not implemented in this build"))
+	case "tray":
+		return tray.Run(args[1:], tray.Options{Version: version, Stdout: stdout, Stderr: stderr})
+	case "open":
+		return tray.OpenCommand(stdout, stderr)
 	case "help", "--help", "-h":
 		usage(stdout)
 		return 0
@@ -59,6 +64,8 @@ func usage(w io.Writer) {
 Commands:
   controller   run the controller: web console, API and scheduling
   agent        run the agent on a runner machine (not implemented yet)
+  tray         show the tray icon on a desktop machine
+  open         print a one-time sign-in link and open the console
   version      print the version
 
 Configuration is read from CRSP_* environment variables; see .env.example.
