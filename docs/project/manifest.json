@@ -12,13 +12,13 @@
     "title": "Full Progress: CI Runners Shared Pool",
     "file": "full-progress-ci-runners-shared-pool.html",
     "url": "https://claude.ai/artifact/XQbWU86Mtt6zmDpHaHVeC7",
-    "published_sha256": "a3e3247ecea19594e506745ef7ea50cb8407621369e1aeadf2d9975da721308c",
-    "published_at": "2026-11-14T08:22+00:00",
-    "published_fingerprint": "b321d99300e95564c6c8a053c347afec246c8444155b1573bd1e76a4bd577536"
+    "published_sha256": "5603cf7bbd7be94245d4d31d1d2503ecc04739b1e5c219da5ea7a8a21cc3057b",
+    "published_at": "2026-11-14T08:26+00:00",
+    "published_fingerprint": "776663d1356fb566a2b8fad75ddc68a741b90fd6ab7c1ade084d6d0df318be5c"
   },
   "feature_artifacts": [],
   "project_prefixes": [
     "CRSP"
   ],
-  "updated": "2026-11-14T08:25+00:00"
+  "updated": "2026-11-14T08:27+00:00"
 }
