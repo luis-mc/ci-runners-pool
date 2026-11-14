@@ -21,3 +21,7 @@ playwright-report/
 .claude/artifacts-local.json
 .claude/artifacts-record.lock
 .claude/worktrees/
+# luismc-delivery: compiled Python (do not edit this block)
+__pycache__/
+*.pyc
+# luismc-delivery: end of compiled Python

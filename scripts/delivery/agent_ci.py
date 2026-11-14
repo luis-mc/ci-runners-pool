@@ -1,0 +1,329 @@
+#!/usr/bin/env python3
+"""Start one CI run on each agent branch whose report says CODE DONE (DELIVERYSPEC DL-81; DS26).
+
+Agents keep draft pull requests, which run no CI. When an agent has pushed its code it writes a line `CODE DONE`
+in its report (default `docs/work/{task}/REPORT.md`, then `docs/work/reports/{task}.md`, DOCSPEC R10.1; the old `docs/work/agents/reports/` and
+`docs/agents/reports/` are still read while projects migrate). This script merges that branch onto its base without a
+checkout (`git merge-tree --write-tree`), pushes the result as a two-parent commit (the branch head first, the base
+second) to `ci/<task>`, and starts the CI workflow on that ref (`gh workflow run <workflow> --ref ci/<task>`, a
+`workflow_dispatch` run), once per branch head. So the run tests the agent's code on top of the code it will be
+joined with (`--base`, default `origin/master`; the orchestrator passes `origin/release/<n>`), and a branch cut before
+the workflow had `workflow_dispatch` still gets one. A branch that conflicts with its base is reported by file and
+not run. CI plans what the branch brings since the default branch (see ci_scope.py); that run is the agent's gate.
+`cleanup.py --pr N` removes the `ci/<task>` refs of a merged train.
+
+Which branches (DL153, R13.77): a plain pass takes only the branches of agents that are open in
+.delivery/ledger.json (state not done, empty, failed, stopped or disabled), matched by branch name, or by task id when
+the row has no branch. `--task ID` and `--branch NAME` pick explicitly. `--all` scans every branch under the prefix.
+With no ledger and no flag, the script prints what to pass and starts nothing. The task id is the leading letters and
+digits (RS6, DL153) of the branch name after the prefix's last '/'; a prefix like `claude/RS` works.
+
+A stuck run: `gh run cancel` can stall on a queued run. The force-cancel API works:
+`gh api -X POST repos/{owner}/{repo}/actions/runs/{id}/force-cancel`.
+
+    agent_ci.py                              # one pass over the agents open in .delivery/ledger.json (DL153)
+    agent_ci.py --task RS6 --task DL153      # only these tasks (repeatable)
+    agent_ci.py --branch claude/RS6-x        # only these branches (repeatable)
+    agent_ci.py --all                        # every branch under the prefix (the old scan, can queue stray runs)
+    agent_ci.py --watch 60                   # a pass every 60 s
+    agent_ci.py --base origin/release/12     # merge onto a release branch
+    agent_ci.py --dry-run                    # list what would start (pushes nothing)
+
+Settings (flags, or the `agent_ci` object of scripts/delivery/ci-scope.json, then that of .delivery/config.json,
+which wins):
+    workflow       ci.yml
+    base           origin/master      ref each branch is merged onto
+    branch_prefix  claude/            agent branches are origin/<prefix>*
+    ci_prefix      ci/                the merged ref is <ci_prefix><task>
+    report         docs/work/{task}/REPORT.md        then docs/work/reports/{task}.md; {task} = the branch name after the prefix, up to the first '-'
+                   (a string, or a list tried in order; any one with the marker counts)
+    marker         ^\\s*(?:(?:[-*+]|\\d+\\.)\\s+)?(?:\\[[xX]\\]\\s*)?CODE DONE\\b   regex, matched per line
+                   (default: an optional list bullet and a ticked box may come first; `- [ ] CODE DONE` does not count)
+
+A branch that changes UI code or e2e specs also needs its e2e record (DELIVERYSPEC DL-87): the agent runs
+`scripts/delivery/branch_gate.py --e2e-only` in its sandbox, which publishes the result of the specs mapped to the
+screens it changed; without that record for the branch head, no CI is started and the line names the command
+(`require_e2e: false` in the `agent_ci` settings turns this off; a repository without gate.json is not held).
+
+A branch is skipped when its report is missing, lacks the marker, or a `workflow_dispatch` run already exists for
+its head (unsure: nothing is started); each skip prints one line with its reason (with --watch a line is printed
+again only when it changes). A push the pre-push guards refuse is printed as `FAILS the pre-push guards` with the
+guard's own lines; the pass goes on with the next branch. Exit 0; 2 for usage. Python 3.8+, standard library only.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+DEFAULTS = {"workflow": "ci.yml", "base": "origin/master", "branch_prefix": "claude/", "ci_prefix": "ci/",
+            "report": ["docs/work/{task}/REPORT.md", "docs/work/reports/{task}.md", "docs/work/agents/reports/{task}.md", "docs/agents/reports/{task}.md"],
+            "marker": r"^\s*(?:(?:[-*+]|\d+\.)\s+)?(?:\[[xX]\]\s*)?CODE DONE\b", "require_e2e": True}
+CONFIG = "scripts/delivery/ci-scope.json"
+DELIVERY_CONFIG = ".delivery/config.json"
+
+
+def git(*args: str) -> str:
+    return subprocess.run(["git", *args], capture_output=True, text=True, encoding="utf-8").stdout
+
+
+def settings(path: str = CONFIG, delivery: str = DELIVERY_CONFIG) -> dict:
+    """DEFAULTS, then the `agent_ci` object of `path`, then that of the delivery config (it wins)."""
+    out = dict(DEFAULTS)
+    for source in (path, delivery):
+        try:
+            found = json.loads(Path(source).read_text(encoding="utf-8")).get("agent_ci")
+        except (OSError, ValueError, AttributeError):
+            continue
+        if isinstance(found, dict):
+            out.update(found)
+    return out
+
+
+def branches(prefix: str) -> list[str]:
+    out = git("for-each-ref", "--format=%(refname:short)", f"refs/remotes/origin/{prefix}")
+    return [b.removeprefix("origin/") for b in out.split() if b]
+
+
+TASK_ID = re.compile(r"[A-Za-z]+\d+")
+AGENT_DONE = ("done", "empty", "failed", "stopped", "disabled")
+LEDGER = ".delivery/ledger.json"
+
+
+def task_of(branch: str, prefix: str) -> str:
+    """Strip the prefix up to its last '/', then take the leading task id (letters, digits) of what is left."""
+    rest = branch.removeprefix(prefix[:prefix.rfind("/") + 1])
+    found = TASK_ID.match(rest)
+    return found.group(0) if found else rest.split("-", 1)[0]
+
+
+def open_agents(ledger: str = LEDGER) -> tuple[set[str], set[str]] | None:
+    """(branch names, task ids of rows without a branch) of the open agents; None when there is no readable ledger."""
+    try:
+        agents = json.loads(Path(ledger).read_text(encoding="utf-8")).get("agents") or []
+    except (OSError, ValueError, AttributeError):
+        return None
+    names: set[str] = set()
+    tasks: set[str] = set()
+    for row in agents:
+        if not isinstance(row, dict) or row.get("state") in AGENT_DONE:
+            continue
+        if row.get("branch"):
+            names.add(str(row["branch"]).removeprefix("origin/"))
+        elif row.get("task"):
+            tasks.add(str(row["task"]))
+    return names, tasks
+
+
+def pick(found: list[str], cfg: dict, tasks: list[str] = (), names: list[str] = (), all_: bool = False,
+         ledger: str = LEDGER) -> list[str] | None:
+    """The branches to look at. None (with a hint printed) when nothing says which."""
+    prefix = cfg["branch_prefix"]
+    if all_:
+        return found
+    if tasks or names:
+        want = [n.removeprefix("origin/") for n in names]
+        return [b for b in dict.fromkeys(want + [b for b in found if task_of(b, prefix) in tasks])]
+    opened = open_agents(ledger)
+    if opened is None:
+        print(f"{time.strftime('%H:%M')} no {ledger}: nothing started. Pass --task ID, --branch NAME or --all.", flush=True)
+        return None
+    names_open, tasks_open = opened
+    return [b for b in found if b in names_open or task_of(b, prefix) in tasks_open]
+
+
+def ci_branch(branch: str, cfg: dict) -> str:
+    return cfg["ci_prefix"] + task_of(branch, cfg["branch_prefix"])
+
+
+LEGACY_REPORTS = ["docs/work/agents/reports/{task}.md", "docs/agents/reports/{task}.md"]
+
+
+def report_paths(cfg: dict, task: str) -> list[str]:
+    """Where the report may be: the configured path(s), then the old locations (during migration to docs/work/reports/).
+    A project that set `report` to the previous default string moves with the default."""
+    conf = cfg["report"]
+    conf = [conf] if isinstance(conf, str) else list(conf)
+    if conf == ["docs/agents/reports/{task}.md"]:
+        conf = list(DEFAULTS["report"])
+    return [p.format(task=task) for p in dict.fromkeys(conf + (LEGACY_REPORTS if conf == DEFAULTS["report"] else []))]
+
+
+def report_state(branch: str, cfg: dict) -> str:
+    """'done' (a report has the marker), 'open' (reports exist, none has it) or 'missing' (no report on the branch)."""
+    found = False
+    for path in report_paths(cfg, task_of(branch, cfg["branch_prefix"])):
+        shown = subprocess.run(["git", "show", f"origin/{branch}:{path}"], capture_output=True, text=True,
+                               encoding="utf-8")
+        if shown.returncode != 0:
+            continue
+        found = True
+        if re.search(cfg["marker"], shown.stdout, re.MULTILINE) is not None:
+            return "done"
+    return "open" if found else "missing"
+
+
+def report_says_done(branch: str, cfg: dict) -> bool:
+    return report_state(branch, cfg) == "done"
+
+
+GUARD_LINE = re.compile(r"FAIL|blocked|Push blocked|error|leak|spec notes|prettier|duplicat", re.IGNORECASE)
+
+
+def guard_message(text: str, limit: int = 12) -> list[str]:
+    """The lines of a refused push that say why: the guard's own lines, not git's hints and remote chatter."""
+    lines = [l.rstrip() for l in text.splitlines() if l.strip() and not l.startswith(("hint:", "remote:"))]
+    picked = [l for l in lines if GUARD_LINE.search(l)] or lines
+    return picked[-limit:]
+
+
+def ci_ref(branch: str, base: str, cfg: dict, push: bool = True) -> str | None:
+    """Merge `origin/<branch>` onto `base` without a checkout, push the two-parent commit to ci/<task> and return
+    that name; None when the merge conflicts or the push is refused. With push=False only the merge is checked
+    and the name is returned."""
+    mt = subprocess.run(["git", "merge-tree", "--write-tree", "--name-only", base, f"origin/{branch}"],
+                        capture_output=True, text=True, encoding="utf-8")
+    lines = mt.stdout.splitlines()
+    stamp = time.strftime("%H:%M")
+    if mt.returncode != 0:
+        # after the tree line come the conflicted file names, a blank line, then informational messages
+        files: list[str] = []
+        for line in lines[1:]:
+            if not line.strip():
+                break
+            files.append(line.strip())
+        detail = ", ".join(files[:5]) or mt.stderr.strip()
+        print(f"{stamp} {branch} conflicts with {base}: {detail}", flush=True)
+        return None
+    name = ci_branch(branch, cfg)
+    if not push:
+        return name
+    commit = subprocess.run(
+        ["git", "commit-tree", lines[0].strip(), "-p", f"origin/{branch}", "-p", base,
+         "-m", f"Manual CI run of {branch} merged onto {base}"],
+        capture_output=True, text=True, encoding="utf-8")
+    if commit.returncode != 0:
+        print(f"{stamp} could not merge {branch} onto {base}: {commit.stderr.strip()}", flush=True)
+        return None
+    pushed = subprocess.run(["git", "push", "-q", "-f", "origin", f"{commit.stdout.strip()}:refs/heads/{name}"],
+                            capture_output=True, text=True, encoding="utf-8")
+    if pushed.returncode != 0:
+        out = (pushed.stderr or "") + "\n" + (pushed.stdout or "")
+        guarded = "pre-push" in out
+        print(f"{stamp} {branch} FAILS the pre-push guards on {name} (merged onto {base}); nothing started:"
+              if guarded else f"{stamp} {branch}: push of {name} refused; nothing started:", flush=True)
+        for line in guard_message(out):
+            print(f"    {line}", flush=True)
+        return None
+
+    return name
+
+
+def started_for_ci(branch: str, sha: str, cfg: dict) -> bool:
+    """A workflow_dispatch run on ci/<task> whose head commit's first parent is `sha` is already started."""
+    out = subprocess.run(
+        ["gh", "run", "list", "--workflow", cfg["workflow"], "--branch", ci_branch(branch, cfg), "--event",
+         "workflow_dispatch", "--limit", "20", "--json", "headSha"],
+        capture_output=True, text=True, encoding="utf-8",
+    ).stdout
+    try:
+        runs = json.loads(out or "[]")
+        return any(git("rev-parse", "--verify", "-q", f"{r.get('headSha')}^1").strip() == sha
+                   for r in runs if r.get("headSha"))
+    except (json.JSONDecodeError, AttributeError):
+        return True  # unsure: never start a second run
+
+
+def e2e_missing(branch: str, base: str) -> list[str]:
+    """Reasons the branch's e2e record is not good (gate_verify.e2e_gate_check); [] when none is needed."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        import gate_verify
+        return gate_verify.e2e_gate_check(branch, base, base.split("/", 1)[0] if "/" in base else "origin")
+    except Exception as exc:  # unsure: do not hold a branch on a tool error
+        print(f"{time.strftime('%H:%M')} {branch}: e2e check unavailable ({exc}); not held", flush=True)
+        return []
+
+
+def one_pass(cfg: dict, dry_run: bool = False, said: dict | None = None, tasks: list[str] = (),
+             names: list[str] = (), all_: bool = False, ledger: str = LEDGER) -> list[str]:
+    """One pass over the agent branches. `said` (kept across passes by --watch) holds the last skip line printed per
+    branch, so a watch loop does not repeat it."""
+    said = {} if said is None else said
+
+    def skip(branch: str, why: str) -> None:
+        line = f"{branch}: skipped, {why}"
+        if said.get(branch) != line:
+            said[branch] = line
+            print(f"{time.strftime('%H:%M')} {line}", flush=True)
+
+    git("fetch", "-q", "--prune", "origin")
+    base = cfg["base"]
+    started = []
+    chosen = pick(branches(cfg["branch_prefix"]), cfg, tasks, names, all_, ledger)
+    for branch in chosen or []:
+        sha = git("rev-parse", f"origin/{branch}").strip()
+        if not sha:
+            continue
+        state = report_state(branch, cfg)
+        if state != "done":
+            paths = report_paths(cfg, task_of(branch, cfg["branch_prefix"]))[:2]
+            path = " or ".join(paths)
+            skip(branch, f"no report {path} on the branch" if state == "missing"
+                 else f"report {path} has no CODE DONE line")
+            continue
+        if started_for_ci(branch, sha, cfg):
+            skip(branch, f"CI already started for {sha[:9]} on {ci_branch(branch, cfg)}")
+            continue
+        if cfg.get("require_e2e", True):
+            missing = e2e_missing(branch, base)
+            if missing:
+                skip(branch, f"({sha[:9]}) waits for its e2e specs: " + "; ".join(missing))
+                continue
+        ref = ci_ref(branch, base, cfg, push=not dry_run)
+        if ref is None:
+            said.pop(branch, None)
+            continue
+        said.pop(branch, None)
+        stamp = time.strftime("%H:%M")
+        if dry_run:
+            print(f"{stamp} would start CI on {ref} = {branch} ({sha[:9]}) + {base}", flush=True)
+        else:
+            r = subprocess.run(["gh", "workflow", "run", cfg["workflow"], "--ref", ref],
+                               capture_output=True, text=True)
+            print(f"{stamp} CI started on {ref} = {branch} ({sha[:9]}) + {base}" if r.returncode == 0
+                  else f"{stamp} {branch}: could not start CI on {ref}: {r.stderr.strip()}", flush=True)
+        started.append(branch)
+    return started
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    p.add_argument("--watch", type=int, default=0, help="seconds between passes; 0 = one pass")
+    p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--config", default=CONFIG)
+    p.add_argument("--task", action="append", default=[], help="task id to run (repeatable)")
+    p.add_argument("--branch", dest="names", action="append", default=[],
+                   help="branch to run (repeatable)")
+    p.add_argument("--all", action="store_true", help="every branch under the prefix")
+    p.add_argument("--ledger", default=LEDGER)
+    for k in DEFAULTS:
+        if k != "require_e2e":
+            p.add_argument(f"--{k.replace('_', '-')}")
+    a = p.parse_args(argv)
+    cfg = settings(a.config)
+    cfg.update({k: getattr(a, k) for k in DEFAULTS if k != "require_e2e" and getattr(a, k)})
+    said: dict = {}
+    while True:
+        one_pass(cfg, a.dry_run, said, a.task, a.names, a.all, a.ledger)
+        if a.watch <= 0:
+            return 0
+        time.sleep(a.watch)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
