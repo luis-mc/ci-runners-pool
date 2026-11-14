@@ -23,7 +23,7 @@ $dataDir = Join-Path $env:ProgramData 'crsp'
 $failures = 0
 function Check([string]$what, [bool]$ok) { if ($ok) { Write-Host "PASS  $what" } else { Write-Host "FAIL  $what"; $script:failures++ } }
 
-function Find-Window([int]$sec = 60) {
+function Find-Window([int]$sec = 25) {
   $root = [System.Windows.Automation.AutomationElement]::RootElement
   $cond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty, 'crsp Setup')
   for ($i = 0; $i -lt $sec; $i++) {
@@ -58,6 +58,8 @@ function Run-Pass([bool]$tick, [string]$name) {
     return
   }
   Check 'the uninstall dialog appears' $true
+  # Watchdog: never let a blocked dialog hang the run.
+  $deadline = (Get-Date).AddSeconds(90)
   $cb = Find-Child $w 'ControlType.CheckBox' 'Also delete my data*'
   Check 'the dialog has the "Also delete my data" checkbox' ($null -ne $cb)
   $tp = $cb.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
@@ -66,7 +68,7 @@ function Run-Pass([bool]$tick, [string]$name) {
   $btn = Find-Child $w 'ControlType.Button' 'Remove'
   Check 'the dialog has a Remove button' ($null -ne $btn)
   $btn.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
-  $p.WaitForExit(120000) | Out-Null
+  if (-not $p.WaitForExit(90000)) { Write-Host 'FAIL  msiexec did not finish after Remove'; $script:failures++; Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
   Start-Sleep 2
 }
 
