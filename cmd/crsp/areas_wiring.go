@@ -16,18 +16,22 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/registry"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/caches"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/configexport"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor/wire"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/events"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/notify"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/overview"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/repos"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/tlsca"
 )
 
 const (
@@ -52,6 +56,10 @@ type controllerDeps struct {
 	CA       api.CAProvider
 	Updates  api.UpdateService
 	Queue    scheduler.SlotQueue
+	// Caches is the caches service of the machines runtime (web-console R5.25).
+	Caches *caches.Service
+	// MachineSecrets is the secret source the config export reads (mr.Secrets).
+	MachineSecrets secrets.Store
 	// Backends are the runner backends of the controller's own OS; nil means none.
 	Backends backend.Registry
 	Now      func() time.Time
@@ -93,7 +101,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 
 	// GitHub: client, sign-in, repositories, webhook.
 	gh := github.New(github.Config{Secrets: d.Secrets, Logger: logger})
-	authStore, repoStore := auth.NewMemStore(), repos.NewMemStore()
+	authStore, repoStore := d.DB.Auth(), repos.NewMemStore()
 	asvc := auth.New(authStore, auth.Config{
 		GitHub: gh, Secrets: d.Secrets, Now: d.Now,
 		ConsoleURLs: func() []string { return []string{console} },
@@ -167,6 +175,15 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	c.Options.Machines, c.Options.CA, c.Options.Update = d.Machines, d.CA, d.Updates
 	c.Options.Jobs, c.Options.Slots, c.Options.Live = d.DB, d.Queue, live
 	c.Options.Runners, c.Options.Doctor = runnerSvc, docSvc
+	c.Options.Caches, c.Options.Events = d.Caches, hub
+	c.Options.Notify = notify.New(notify.Config{DB: d.DB, Secrets: d.Secrets, Logger: logger})
+	c.Options.Config = configexport.Source{
+		Version: version, Config: d.Cfg, Settings: d.Ops.Settings, Secrets: d.MachineSecrets,
+		Named: []configexport.NamedSecret{
+			{Name: "Controller certificate authority key", Key: tlsca.CAKeySecret},
+			{Name: "Controller server key", Key: tlsca.ServerKeySecret},
+		},
+	}
 
 	// First run: a one-time setup link while there is no owner (github-integration R5.1).
 	code, err := asvc.NewSetupCode(ctx)
@@ -261,15 +278,23 @@ func (w webhookEvents) Installation(event string, _ []byte) {
 }
 
 // setupOrConsole is the tray's link issuer: while no owner exists the link
-// carries the one-time setup code; after that it is the plain console address.
+// carries the one-time setup code; after that it is the one-time sign-in link
+// of the signed-in OS user (next, TRAY1), or the plain console address.
 type setupOrConsole struct {
 	auth    *auth.Service
 	console string
+	// next makes the link once an owner exists; nil gives the plain address.
+	next interface {
+		LinkFor(ctx context.Context, osUser, target string) (string, error)
+	}
 }
 
-func (s setupOrConsole) LinkFor(ctx context.Context, _ string, target string) (string, error) {
+func (s setupOrConsole) LinkFor(ctx context.Context, osUser string, target string) (string, error) {
 	if code, err := s.auth.NewSetupCode(ctx); err == nil && code != "" {
 		return setupLink(s.console, code), nil
+	}
+	if s.next != nil {
+		return s.next.LinkFor(ctx, osUser, target)
 	}
 	u, err := url.Parse(s.console)
 	if err != nil {

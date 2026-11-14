@@ -73,3 +73,14 @@ export function formatTimeLeft(ms: number): string {
   if (minutes < 60) return `about ${minutes} min left`;
   return `about ${Math.round(minutes / 60)} h left`;
 }
+
+/** A length of time in short words: "45 s", "4 min 12 s", "1 h 5 min". Never negative. */
+export function formatDuration(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  if (total < 60) return `${total} s`;
+  const minutes = Math.floor(total / 60);
+  if (minutes < 60)
+    return total % 60 ? `${minutes} min ${total % 60} s` : `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return minutes % 60 ? `${hours} h ${minutes % 60} min` : `${hours} h`;
+}

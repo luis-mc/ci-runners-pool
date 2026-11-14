@@ -236,9 +236,24 @@ func (s *Service) SignOut(ctx context.Context, p Principal) error {
 	return nil
 }
 
-// SessionCookie builds the cookie. It is HttpOnly and SameSite=Lax, and
-// Secure on every non-loopback address (R5.13). It has no time limit short of
-// the browser's own cap, so a browser restart does not sign anyone out.
+// CookieSecure reports whether a cookie set on r carries the Secure flag: on
+// every address except 127.0.0.1 and ::1 (web-console R6.1, github-integration
+// R5.13). The console is TLS only off loopback, so r.TLS is set there; the
+// host check keeps a proxy or a test server from handing out a plain cookie
+// for a non-loopback name. On loopback the console is plain HTTP, and a
+// Secure cookie would never come back.
+func CookieSecure(r *http.Request) bool {
+	if r == nil {
+		return true
+	}
+	return r.TLS != nil || !IsLoopbackHost(r.Host)
+}
+
+// SessionCookie builds the session cookie (web-console R6.1): HttpOnly,
+// SameSite=Lax and host-only (no Domain), Secure when secure is set (see
+// CookieSecure). The cookie has no time limit short of the browser's own cap,
+// and the session no time limit at all (D39), so a browser restart does not
+// sign anyone out.
 func SessionCookie(value string, secure bool) *http.Cookie {
 	return &http.Cookie{Name: SessionCookieName, Value: value, Path: "/", HttpOnly: true, Secure: secure,
 		SameSite: http.SameSiteLaxMode, MaxAge: 400 * 24 * 3600}
@@ -249,6 +264,3 @@ func ClearCookie(name string, secure bool) *http.Cookie {
 	return &http.Cookie{Name: name, Value: "", Path: "/", HttpOnly: true, Secure: secure,
 		SameSite: http.SameSiteLaxMode, MaxAge: -1}
 }
-
-// CookieSecure is true for every address but loopback (R5.13).
-func CookieSecure(host string) bool { return !IsLoopbackHost(host) }

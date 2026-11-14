@@ -117,7 +117,7 @@ The overview shows machines and load and only links here (UX-52). Busy buttons f
 
 **R5.6** (M1) — At join the controller checks the code, marks it used, and issues a key for this machine only. A used, expired or unknown code is refused with the reason ("this code was already used", "this code expired at 14:05").
 
-**R5.7** (M1) — The agent keeps its key and the pinned certificate in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service or a file with mode 0600 owned by the agent account.
+**R5.7** (M1) — The agent keeps its key and the pinned certificate in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service or a file with mode 0600 owned by the account the agent runs as (root on Linux and macOS).
 
 **R5.8** (M1) — Every connection after join proves the machine's key over TLS and checks the pinned certificate. The controller refuses an unknown or revoked key.
 
@@ -127,7 +127,7 @@ The overview shows machines and load and only links here (UX-52). Busy buttons f
 
 **R5.10** (M1) — The agent reports: host name, OS name and version, kernel version, CPU model, core and thread count, architecture, total memory, total and free disk on the agent's data volume, and each GPU (vendor, model, memory).
 
-**R5.11** (M1) — The agent detects each backend and reports, for each: present or not, usable or not, its version, and the reason when it is not usable. Backends: Docker, Podman (rootless or not), containerd with nerdctl, WSL2, Hyper-V, KVM (`/dev/kvm` readable by the agent account), Tart (Apple Virtualization) and Firecracker. A persistent runner is always listed as usable.
+**R5.11** (M1) — The agent detects each backend and reports, for each: present or not, usable or not, its version, and the reason when it is not usable. Backends: Docker, Podman (rootless or not), containerd with nerdctl, WSL2, Hyper-V, KVM (`/dev/kvm` readable by the agent, which runs as root), Tart (Apple Virtualization) and Firecracker. A persistent runner is always listed as usable.
 
 **R5.12** (M1) — Detected does not mean allowed. A backend runs jobs only when the user allows it on that machine (R5.22).
 
@@ -168,6 +168,8 @@ Ported from dev-standards `claude/plugins/delivery/scripts/load.py` and `load_gu
 | Drain timeout (one per machine) | 60 minutes | 5 minutes to 24 hours |
 | Maintenance windows | none | weekly windows, local time |
 | Quiet hours | none | weekly windows, local time, with their own budget and slots |
+
+**R5.22a** (M1) (built, CRSP37) — The pool has its own defaults for a machine that joins: memory budget (10 to 95%, default 85%), CPU budget (10 to 95%, default 60%), whether slots are sized from the machine's cores and memory within the budget (default yes), job slots when they are not sized or the machine does not report its size (0 to 64, default 2) and the drain timeout (5 to 1440 minutes, default 60). An admin changes them in Settings, Budgets (`getPoolSettings`, `updatePoolSettings`); each change writes one audit row. A change reaches only machines that join afterwards. A machine that already joined keeps its own settings, so the change restarts no runner and waits for no running job (UX-62). A machine that already joined is changed in its own settings (R5.22).
 
 **R5.23** (M1) — A machine starts a new job only when all hold: its state is active, a slot is free, measured load is under the budget in force, the job's backend is allowed, and no maintenance window is open. The job-started gate on the machine checks this right before the job runs (runner-pool R5.2, DL-79). Placement across machines is the scheduling spec.
 
@@ -221,9 +223,9 @@ Ported from runner-pool R5.10 (no rebuild under a running job) and learning 1 of
 
 ### 5.9 Least privilege and the service
 
-**R5.44** (M1) — The agent runs as its own non-admin account: a virtual service account on Windows (`NT SERVICE\crsp-agent`), a system user `crsp-agent` on Linux, a hidden daemon user `_crsp_agent` on macOS.
+**R5.44** (M1, changed by CRSP42, D41) — The agent runs as LocalSystem on Windows and as root on Linux and macOS, like the controller (owner decision, 14 Nov). It needs the right to install its own update after the drain (operations R5.39 to R5.41), which a non-admin account cannot do. There is no `crsp-agent` or `_crsp_agent` account. Runner jobs do not run as the agent: each runner runs under its own non-admin per-runner account (runners R5.14, RN-4), which the agent makes. An agent installed before D41 under a non-admin account says `unsupported` to an update ask (operations R5.41) until the install command is run again.
 
-**R5.45** (M1) — Admin rights are needed in one install step only. Before it runs, it lists each admin action (create the account, install the service, grant each right, add the account to the groups a backend needs) and asks for a yes. It never runs without that yes.
+**R5.45** (M1) — Admin rights are needed in one install step only. Before it runs, it lists each admin action (create the data folder, install the service that runs as LocalSystem or root, join the controller, start the service) and asks for a yes. It never runs without that yes.
 
 **R5.46** (M1) — The agent is installed as a service that starts at boot and restarts after a crash: a Windows service, a systemd unit, a launchd LaunchDaemon (decision 0005).
 
@@ -248,6 +250,16 @@ Each requirement below targets a milestone after v0.1.0 and is **NOT YET IMPLEME
 **R5.53** (after v0.1.0, NOT YET IMPLEMENTED) — **KVM on WSL2.** On Windows with WSL2, after `wsl --shutdown` or a reboot `/dev/kvm` is gone until the module `kvm_intel` or `kvm_amd` is loaded in the WSL VM. The agent checks `nestedVirtualization=true` in the user's `.wslconfig` and reports it as the backend reason when it is off ("nested virtualization is off in .wslconfig"); it never edits that file without a yes. When it is on and `/dev/kvm` is missing, the agent loads the module through a one-shot privileged helper that exits after the load; runners are never privileged. The `kvm` label (runners R5.36) is added only after `/dev/kvm` is usable. The step runs again at every WSL start.
 
 **R5.54** (after v0.1.0, NOT YET IMPLEMENTED) — **WSL memory sizing.** The agent reads the `memory=` and `processors=` values of `.wslconfig` and the memory the WSL VM holds (R5.17), and shows them in the machine facts. The runner count and per-runner memory cap are set from the declared value, never from a live reading. It exports the CPU limit to jobs and splits it per runner, so `nproc` in a container matches the cap. A declared value above what the machine can give is refused with the reason. A change to `.wslconfig` needs `wsl --shutdown`, so the console says it waits for the machine to drain (R5.30).
+
+**R5.58** (M2, v0.3.0, NOT YET IMPLEMENTED) — **The pool size is the owner's, checked against the budget.** The owner sets the memory (GiB) and CPUs the pool may use on a machine. The setting is accepted when it fits: the memory budget (85% of the total, counting the memory used outside WSL, the WSL VM and the guests R5.54 of runners), the CPU budget (60%), the floors (4 GiB and 2 CPUs) and 1.5 GiB per CPU. Otherwise it is refused, naming the budget that is short and the nearest sizes that pass (for example "10 GiB fits 6 CPUs; 7 CPUs needs 10.5 GiB"). Memory used outside WSL is the median of about 5 samples, one second apart, so a short spike of another program does not shrink the room. A change that lowers the size below the current one needs a second, explicit confirmation, never a side effect of another change. The sizing inputs (machine total, used outside WSL, budget, room, Docker ceiling, the figure that decided) are shown with the result. Port of DS R5.20 to R5.24 and `test_dl176_pool_resize.py`.
+
+### 5.13 A stuck job and a runner set (M1)
+
+**R5.55** (M1) — **A drain names its holder.** (Lesson 20 of the old pool.) A job that does not end blocks every drain behind it. While a change waits, the console and the API show the job that holds it longest (`holder` on the change): its repository, job and runner, how long it has run, and its usual duration. The usual duration is the median of the last finished runs of the same repository and job name in the job history (at least 3 runs; with fewer there is no usual duration and nothing is flagged). The agent reports the start time of each running job (`JobRef.started_unix_ms`). The machine screen shows the holder under "Waiting for a drain". Built (CRSP38).
+
+**R5.56** (M1) — **A job far past its usual time is flagged, and the user has a named choice.** When the holder has run twice as long as its usual duration or more, the change marks it (`over_usual`), the audit log records `machine.drain.stuck` once, and the notifier is told once (`StuckNotifier`). Once the drain timeout has passed (R5.33) or the holder is flagged, the change lists its named choices (`choices`): wait longer or cancel the change. The drain never waits silently, and it offers nothing that stops a job (R5.33). The drain timeout stays 60 minutes per machine by default. Built (CRSP38).
+
+**R5.57** (M1) — **A change for a runner set waits only for that set.** (Lesson 21.) A drain, restart or image swap can name the runners it touches (`runner_names`, `Drain.runner_names`). The controller counts only the jobs on those runners (names compare without case), whatever else the machine runs, including a busy runner of the same repository. The agent keeps new jobs out of those runners only (the gate answers `runner_draining`), the machine stays active, and the change runs when no job runs on its runners. The idle check and the hold are one step, as in R5.32. Without runner names the change is the whole machine, as before. Built (CRSP38).
 
 ## 6. Non-functional requirements
 
@@ -355,6 +367,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.20 | internal/load/unknown_test.go | planned |
 | R5.21 | internal/load/measure_only_test.go | planned |
 | R5.22 | internal/machines/settings_test.go | planned |
+| R5.22a | internal/machines/pool_defaults_test.go; internal/settings/pool_test.go; internal/api/handlers_pool_test.go | built, CRSP37 |
 | R5.23 | internal/agent/gate_test.go | planned; ports runner-pool R5.2 cases |
 | R5.24 | internal/agent/settings_cache_test.go | planned |
 | R5.25 | internal/machines/settings_test.go | planned |
@@ -376,7 +389,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.41 | internal/machines/remove_test.go | planned |
 | R5.42 | internal/machines/remove_offline_test.go | planned |
 | R5.43 | internal/machines/join_test.go | planned |
-| R5.44 | internal/agent/service_account_test.go | planned |
+| R5.44 | internal/agent/plan_test.go TestServiceAccounts (built, CRSP42) |
 | R5.45 | internal/agent/install_plan_test.go | planned |
 | R5.46 | internal/agent/service_install_test.go | planned; plus a CI start of the built agent per OS |
 | R5.47 | internal/agent/service_windows_test.go | planned |
@@ -387,6 +400,10 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.52 | internal/api/machines_auth_test.go | planned |
 | R5.53 | internal/agent/wsl_kvm_test.go | planned; after v0.1.0 |
 | R5.54 | internal/agent/wsl_memory_test.go | planned; after v0.1.0 |
+| R5.55 | `internal/machines/holder_test.go` TestDrainNamesTheHolderAndHowLongItRuns; `internal/api/machines_holder_test.go` TestChangeShowsTheDrainHolderAndChoices; `apps/web/src/screens/machines/Machines.test.tsx` Machine detail, a drain that waits | new, from the 14 Nov runs of the old pool |
+| R5.56 | `internal/machines/holder_test.go` TestHolderFarPastItsUsualDurationIsFlaggedOnceWithChoices; `internal/api/machines_holder_test.go` TestChangeShowsTheDrainHolderAndChoices | new |
+| R5.57 | `internal/machines/holder_test.go` TestScopedDrainCountsOnlyItsOwnRunners; `internal/agent/drain_idle_test.go` TestScopedHoldCountsOnlyItsOwnRunners, TestHoldRunnersWithoutNamesIsTheWholeMachine | new |
+| R5.58 | internal/agent/pool_size_test.go | planned; v0.3.0 |
 | R6.1 | internal/machines/tls_test.go | planned |
 | R6.2 | internal/machines/secrets_test.go | planned |
 | R6.3 | internal/machines/joincode_test.go | planned |
@@ -419,6 +436,7 @@ Everything not named as built at the top is NOT YET IMPLEMENTED. The seams that 
 - `packages/contract/openapi.yaml`: machine endpoints for the console and CLI.
 - `cmd/crsp/main.go`: the `agent` mode and the `machines` subcommands.
 - `internal/config/config.go`: the agent link port (8461) and the controller address for the agent.
+- Pool defaults (R5.22a, CRSP37): built for a machine that joins. Not built: applying a changed pool default to machines that already joined. That would restart runners, so it has to name the jobs it waits for (UX-62) through the drain of R5.30.
 
 ## 12. Code map
 

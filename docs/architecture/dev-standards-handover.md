@@ -42,7 +42,7 @@ This replaces the `CRSP_RUNS_ON_*` names in the specs today.
 
 - `vm_check.py` and `vm-images.json`: boot test VMs on `kvm` runners.
 - The Rust build-cache cap and the shared tool-cache mode: per-runner cache quotas and eviction belong to the pool.
-- The pinned download and build logic of `ci_tool.py` and `rust_ci.py` stay in delivery, because projects also run them on GitHub-hosted runners (the dev-standards owner is asked to confirm this scope).
+- The pinned download and build logic of `ci_tool.py` and `rust_ci.py` stay in delivery, because projects also run them on GitHub-hosted runners. Confirmed by the dev-standards owner (D308): only the cache parts move (the shared-cache mode, the Rust cache cap, the per-runner quotas); jobs read `CI_TOOLS_DIR`. See [caches](../features/caches/spec.md) R5.44.
 
 ### What crsp does not take
 
@@ -70,8 +70,19 @@ Each item is a mistake the dev-standards pool made and then patched.
 15. **Truthful results.** Exit non-zero when an action was refused; say "unchanged" when nothing changed; attribute exit 137 to the memory cap that caused it.
 16. **Observability in the first release**: status, and a structured event log of slot waits, drains and OOM kills.
 
+### Learned from real project runs
+
+Added as the old pool keeps running real projects' CI. Newest last.
+
+17. **Hooks make no network calls that can ask for a login** (14 Nov). The job-start gate pushed a git marker branch after taking a slot. On a Windows service account with no stored git credential, Git Credential Manager waited for a window that never appears. Three jobs sat in "Set up runner" for 65, 95 and 15 minutes; the owner killed `git-credential-manager.exe` by hand. Rules: a hook does only local work; anything remote is optional, non-interactive (`GIT_TERMINAL_PROMPT=0`, `GCM_INTERACTIVE=never`), time-limited (seconds), and fails open with a log line. Never do remote work nobody reads: the marker had a reader only when the cloud fallback was on.
+18. **Log the decision before the slow step** (14 Nov). The gate logged "slot taken" only after the marker call, so the hang showed as silence. Write the state change first, then do anything that can block.
+19. **Supervise the listener, not its wrapper** (14 Nov). In the Linux container, the wrapper scripts of three runners exited while their listeners kept running and held the GitHub session. The supervisor saw the wrapper gone and started a second listener every few minutes; GitHub refused each with "a session for this runner already exists". Jobs still ran, but the log filled and the pool looked broken. Track the listener process (or the runner's own session state) and never start a second listener for a registered runner.
+20. **A stuck job blocks every drain** (14 Nov). An image swap waited the full 45-minute drain behind a job that was itself hung (lesson 17), then gave up, and the pool stayed on the old image. A drain should show which job holds it and for how long, flag jobs far past their usual time, and offer the owner a named choice; it should never wait silently.
+21. **An operation waits only for the runners it touches** (14 Nov). A Linux container recreate was refused because the same repository's Windows service runner was busy, although the recreate never touches it. Busy and drain checks are scoped to the runners the operation stops; unrelated runners are shown, not counted.
+22. **Light jobs need their own lane** (14 Nov). A repository had one Linux runner. A Rust test job held it for over 35 minutes (it usually takes 15), and two artifact-prune runs, each a few seconds of API calls, sat queued behind it. A per-repo runner that takes one job at a time makes housekeeping wait on the slowest build. Give light jobs (prune, labels, notices) a small lane that is always free, so they never wait behind a heavy job.
+
 ## 4. Capabilities projects use today
 
 These run on the old pool and have no crsp requirement yet: Linux containers with KVM; a Wine prefix per runner with `TMPDIR` unset; LLVM and clang-cl for cargo-xwin, plus the symlink right on Windows; Playwright browsers in the image; a Postgres per runner with its own roles; WSL memory sizing. Until crsp has them, those jobs use GitHub-hosted runners.
 
-The requirements for these are written, marked not built, after v0.1.0: [runners](../features/runners/spec.md) R5.41 to R5.45 (containers with KVM, Wine, LLVM, Playwright, Postgres roles), [machines](../features/machines/spec.md) R5.53 and R5.54 (KVM on WSL2, WSL memory), and [caches](../features/caches/spec.md) R5.41 (Playwright browsers folder).
+The [parity plan](parity-plan.md) lists every capability, the releases that build them and the test that decides when the old pool can go. The requirements for these are written, marked not built, after v0.1.0: [runners](../features/runners/spec.md) R5.41 to R5.45 (containers with KVM, Wine, LLVM, Playwright, Postgres roles), [machines](../features/machines/spec.md) R5.53 and R5.54 (KVM on WSL2, WSL memory), and [caches](../features/caches/spec.md) R5.41 (Playwright browsers folder).

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
@@ -172,7 +173,7 @@ func TestRerunAlreadyAndStaleEnv(t *testing.T) {
 	if _, err := r.b.Start(context.Background(), r.spec(), backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
 		t.Fatal(err)
 	}
-	if r.index("systemctl restart actions.runner.luis-mc-demo.box-1.service") < 0 || r.index("useradd") >= 0 || r.index("runuser") >= 0 {
+	if r.index("systemctl stop actions.runner.luis-mc-demo.box-1.service") < 0 || r.index("systemctl start actions.runner.luis-mc-demo.box-1.service") < r.index("pgrep") || r.index("useradd") >= 0 || r.index("runuser") >= 0 {
 		t.Errorf("stale env: %v", r.cmd.Texts())
 	}
 }
@@ -287,5 +288,37 @@ func TestDetect(t *testing.T) {
 	s, _ = r.b.Detect(context.Background())
 	if s.Present {
 		t.Errorf("%+v", s)
+	}
+}
+
+// runners R5.46: a listener that outlives its unit blocks the start; crsp never
+// starts a second listener for a registered runner.
+func TestRestartNeverStartsASecondListener(t *testing.T) {
+	r := started(t)
+	r.b.d.Sleep = func(context.Context, time.Duration) {}
+	r.cmd.Rules = []sysfake.Rule{{Match: "pgrep", Result: sys.Result{Stdout: "4242\n"}}}
+	r.fs.Files["/var/lib/crsp/runners/box-1/.env"] = []byte("stale\n")
+	r.cmd.Calls = nil
+	_, err := r.b.Start(context.Background(), r.spec(), backend.StartConfig{Registration: "REGTOKEN"})
+	if !errors.Is(err, persistent.ErrListenerAlive) {
+		t.Fatalf("err = %v", err)
+	}
+	if r.index("systemctl start") >= 0 || r.index("systemctl restart") >= 0 {
+		t.Errorf("a service was started beside a live listener: %v", r.cmd.Texts())
+	}
+}
+
+func TestStopWaitsForTheListenerNotTheUnit(t *testing.T) {
+	r := started(t)
+	svc := persistent.ServiceName(r.spec().GitHubURL, r.spec().Name)
+	r.cmd.Rules = []sysfake.Rule{
+		{Match: "list-unit-files", Result: sys.Result{Stdout: svc + ".service enabled\n"}},
+		{Match: "systemctl show", Result: sys.Result{Stdout: "User=crsp-box-1\nWorkingDirectory=/var/lib/crsp/runners/box-1\nExecStart={ path=/var/lib/crsp/runners/box-1/bin/runsvc.sh ; }\nActiveState=inactive\n"}},
+	}
+	if err := r.b.Stop(context.Background(), backend.Handle{Ref: svc}); err != nil {
+		t.Fatal(err)
+	}
+	if r.index("pgrep") < 0 || r.index("pgrep") < r.index("systemctl stop") {
+		t.Errorf("Stop must look for the listener after the unit stops: %v", r.cmd.Texts())
 	}
 }

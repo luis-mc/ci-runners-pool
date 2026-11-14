@@ -327,6 +327,7 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
       {resume.error ? (
         <Message tone="problem">Could not resume. {resume.error}</Message>
       ) : null}
+      {m.pending_change ? <DrainHolder change={m.pending_change} /> : null}
       <Section title="Facts">
         <Facts
           items={[
@@ -466,5 +467,46 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
         onConfirm={() => void saveAsk.confirm()}
       />
     </>
+  );
+}
+
+function minutes(seconds: number): string {
+  return `${Math.max(1, Math.round(seconds / 60))} min`;
+}
+
+/** The job that holds a drain, how long it runs and its usual time (machines R5.55, R5.56). */
+function DrainHolder({ change }: { change: Schemas['MachineChange'] }) {
+  const h = change.holder;
+  const waiting = change.waiting_for ?? [];
+  if (waiting.length === 0) return null;
+  const j = h?.job ?? waiting[0]!;
+  const runner = j.runner_name ? ` on ${j.runner_name}` : '';
+  return (
+    <Section title="Waiting for a drain">
+      <Stack gap="tight">
+        <Facts
+          items={[
+            { name: 'Holding it', value: `${j.repository} ${j.job_name}${runner}` },
+            ...(h ? [{ name: 'Running for', value: minutes(h.running_seconds) }] : []),
+            ...(h?.usual_seconds
+              ? [{ name: 'Usually', value: minutes(h.usual_seconds) }]
+              : []),
+            { name: 'Jobs it waits for', value: String(waiting.length) },
+          ]}
+        />
+        {h?.over_usual ? (
+          <Message tone="problem">
+            This job runs far past its usual time. crsp never stops a job. Wait longer, or
+            cancel the change with Resume.
+          </Message>
+        ) : null}
+        {change.choices?.length && !h?.over_usual ? (
+          <Message tone="note">
+            The drain timeout passed. crsp never stops a job. Wait longer, or cancel the
+            change with Resume.
+          </Message>
+        ) : null}
+      </Stack>
+    </Section>
   );
 }

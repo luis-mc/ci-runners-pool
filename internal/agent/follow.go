@@ -59,7 +59,7 @@ func (l *link) follow(ctx context.Context, m *agentv1.UpdateAgent) {
 		report(followIdle, "", nil)
 		return
 	case errors.Is(err, update.ErrUnprivileged):
-		report(followUnsupported, "this agent runs as an account that cannot install updates; update it by hand", nil)
+		report(followUnsupported, "this agent runs as an account that cannot install updates (it was installed before agents ran as root or LocalSystem); run the install command again on this machine", nil)
 		return
 	case errors.Is(err, update.ErrBusy), errors.Is(err, update.ErrInProgress):
 		// An install runs already: report its progress below.

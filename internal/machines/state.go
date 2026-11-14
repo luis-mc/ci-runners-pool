@@ -50,6 +50,14 @@ func (s *Service) Tick(ctx context.Context) error {
 		return err
 	}
 	for _, c := range cs {
+		// The holder's running time grows between the agent's reports: flag a job
+		// far past its usual duration as it happens (R5.56).
+		if c.State == ChangeWaiting && len(c.Detail.WaitingFor) > 0 && s.refreshHolder(ctx, &c) {
+			if err := s.o.Repo.UpdateChange(ctx, c); err != nil {
+				return err
+			}
+			s.notifyMachine(c.MachineID)
+		}
 		if c.State == ChangeWaiting && now.After(c.Deadline) && c.Detail.OverdueSince.IsZero() {
 			// The drain timeout passed. The change stays waiting, nothing is
 			// stopped, and the warning goes out once (R5.33).
@@ -59,7 +67,7 @@ func (s *Service) Tick(ctx context.Context) error {
 			}
 			_ = s.o.Repo.Audit(ctx, "system", "machine.drain.timeout", c.MachineID, c.Kind)
 			if n, ok := s.o.Notify.(DrainOverdueNotifier); ok {
-				n.DrainOverdue(c.MachineID, c.Kind, now.Sub(c.StartedAt), s.runningJobs(c.MachineID))
+				n.DrainOverdue(c.MachineID, c.Kind, now.Sub(c.StartedAt), c.Detail.WaitingFor)
 			}
 			s.notifyMachine(c.MachineID)
 		}

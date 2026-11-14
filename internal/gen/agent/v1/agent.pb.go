@@ -468,6 +468,8 @@ type SessionRequest struct {
 	//	*SessionRequest_CheckResults
 	//	*SessionRequest_UsageReport
 	//	*SessionRequest_UpdateReport
+	//	*SessionRequest_CacheReport
+	//	*SessionRequest_CacheWipeStatus
 	Message       isSessionRequest_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -654,6 +656,24 @@ func (x *SessionRequest) GetUpdateReport() *UpdateReport {
 	return nil
 }
 
+func (x *SessionRequest) GetCacheReport() *CacheReport {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_CacheReport); ok {
+			return x.CacheReport
+		}
+	}
+	return nil
+}
+
+func (x *SessionRequest) GetCacheWipeStatus() *CacheWipeStatus {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_CacheWipeStatus); ok {
+			return x.CacheWipeStatus
+		}
+	}
+	return nil
+}
+
 type isSessionRequest_Message interface {
 	isSessionRequest_Message()
 }
@@ -722,6 +742,15 @@ type SessionRequest_UpdateReport struct {
 	UpdateReport *UpdateReport `protobuf:"bytes,16,opt,name=update_report,json=updateReport,proto3,oneof"`
 }
 
+type SessionRequest_CacheReport struct {
+	// Field numbers 20 and up belong to the images and caches screen (CRSP36).
+	CacheReport *CacheReport `protobuf:"bytes,20,opt,name=cache_report,json=cacheReport,proto3,oneof"`
+}
+
+type SessionRequest_CacheWipeStatus struct {
+	CacheWipeStatus *CacheWipeStatus `protobuf:"bytes,21,opt,name=cache_wipe_status,json=cacheWipeStatus,proto3,oneof"`
+}
+
 func (*SessionRequest_Hello) isSessionRequest_Message() {}
 
 func (*SessionRequest_Heartbeat) isSessionRequest_Message() {}
@@ -754,6 +783,10 @@ func (*SessionRequest_UsageReport) isSessionRequest_Message() {}
 
 func (*SessionRequest_UpdateReport) isSessionRequest_Message() {}
 
+func (*SessionRequest_CacheReport) isSessionRequest_Message() {}
+
+func (*SessionRequest_CacheWipeStatus) isSessionRequest_Message() {}
+
 // SessionResponse is one message from the controller.
 type SessionResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -773,6 +806,8 @@ type SessionResponse struct {
 	//	*SessionResponse_RunChecks
 	//	*SessionResponse_MachineRemoved
 	//	*SessionResponse_UpdateAgent
+	//	*SessionResponse_MeasureCaches
+	//	*SessionResponse_WipeCache
 	Message       isSessionResponse_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -941,6 +976,24 @@ func (x *SessionResponse) GetUpdateAgent() *UpdateAgent {
 	return nil
 }
 
+func (x *SessionResponse) GetMeasureCaches() *MeasureCaches {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_MeasureCaches); ok {
+			return x.MeasureCaches
+		}
+	}
+	return nil
+}
+
+func (x *SessionResponse) GetWipeCache() *WipeCache {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_WipeCache); ok {
+			return x.WipeCache
+		}
+	}
+	return nil
+}
+
 type isSessionResponse_Message interface {
 	isSessionResponse_Message()
 }
@@ -1001,6 +1054,14 @@ type SessionResponse_UpdateAgent struct {
 	UpdateAgent *UpdateAgent `protobuf:"bytes,14,opt,name=update_agent,json=updateAgent,proto3,oneof"`
 }
 
+type SessionResponse_MeasureCaches struct {
+	MeasureCaches *MeasureCaches `protobuf:"bytes,20,opt,name=measure_caches,json=measureCaches,proto3,oneof"`
+}
+
+type SessionResponse_WipeCache struct {
+	WipeCache *WipeCache `protobuf:"bytes,21,opt,name=wipe_cache,json=wipeCache,proto3,oneof"`
+}
+
 func (*SessionResponse_HelloAck) isSessionResponse_Message() {}
 
 func (*SessionResponse_Heartbeat) isSessionResponse_Message() {}
@@ -1028,6 +1089,10 @@ func (*SessionResponse_RunChecks) isSessionResponse_Message() {}
 func (*SessionResponse_MachineRemoved) isSessionResponse_Message() {}
 
 func (*SessionResponse_UpdateAgent) isSessionResponse_Message() {}
+
+func (*SessionResponse_MeasureCaches) isSessionResponse_Message() {}
+
+func (*SessionResponse_WipeCache) isSessionResponse_Message() {}
 
 // Hello opens a session. On reconnect it carries what the agent runs now, so
 // the controller can reconcile (machines R5.38, scheduling R5.35).
@@ -2370,10 +2435,13 @@ type JobRef struct {
 	RunId      int64                  `protobuf:"varint,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	RunAttempt int32                  `protobuf:"varint,3,opt,name=run_attempt,json=runAttempt,proto3" json:"run_attempt,omitempty"`
 	// The job key (GITHUB_JOB) and, when GitHub gives it, the numeric job id.
-	Job           string `protobuf:"bytes,4,opt,name=job,proto3" json:"job,omitempty"`
-	GithubJobId   int64  `protobuf:"varint,5,opt,name=github_job_id,json=githubJobId,proto3" json:"github_job_id,omitempty"`
-	Shard         string `protobuf:"bytes,6,opt,name=shard,proto3" json:"shard,omitempty"`
-	RunnerName    string `protobuf:"bytes,7,opt,name=runner_name,json=runnerName,proto3" json:"runner_name,omitempty"`
+	Job         string `protobuf:"bytes,4,opt,name=job,proto3" json:"job,omitempty"`
+	GithubJobId int64  `protobuf:"varint,5,opt,name=github_job_id,json=githubJobId,proto3" json:"github_job_id,omitempty"`
+	Shard       string `protobuf:"bytes,6,opt,name=shard,proto3" json:"shard,omitempty"`
+	RunnerName  string `protobuf:"bytes,7,opt,name=runner_name,json=runnerName,proto3" json:"runner_name,omitempty"`
+	// When the job took its slot on the machine, in Unix milliseconds. Zero when
+	// not known. A drain names the job that holds it and for how long (machines R5.55).
+	StartedUnixMs int64 `protobuf:"varint,8,opt,name=started_unix_ms,json=startedUnixMs,proto3" json:"started_unix_ms,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2455,6 +2523,13 @@ func (x *JobRef) GetRunnerName() string {
 		return x.RunnerName
 	}
 	return ""
+}
+
+func (x *JobRef) GetStartedUnixMs() int64 {
+	if x != nil {
+		return x.StartedUnixMs
+	}
+	return 0
 }
 
 // Holder names the processes that hold a slot or ticket (scheduling R5.31).
@@ -3237,8 +3312,13 @@ type Drain struct {
 	// drain, settings, remove, agent_update, runner_update or service_restart.
 	ChangeKind     string `protobuf:"bytes,2,opt,name=change_kind,json=changeKind,proto3" json:"change_kind,omitempty"`
 	TimeoutSeconds int32  `protobuf:"varint,3,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// runner_names are the runners the change touches (machines R5.57). Empty
+	// means every runner of the machine. A scoped drain keeps new jobs out of
+	// these runners only and waits only for jobs that run on them; a busy runner
+	// outside the set never holds it.
+	RunnerNames   []string `protobuf:"bytes,4,rep,name=runner_names,json=runnerNames,proto3" json:"runner_names,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Drain) Reset() {
@@ -3290,6 +3370,13 @@ func (x *Drain) GetTimeoutSeconds() int32 {
 		return x.TimeoutSeconds
 	}
 	return 0
+}
+
+func (x *Drain) GetRunnerNames() []string {
+	if x != nil {
+		return x.RunnerNames
+	}
+	return nil
 }
 
 // Resume returns a drained machine to active (R5.34).
@@ -4084,6 +4171,361 @@ func (x *UpdateReport) GetWaitingFor() []*JobRef {
 	return nil
 }
 
+// MeasureCaches asks the agent to measure the cache folders of every runner it
+// sees now. The agent also reports on its own with Hello and every 5 minutes
+// (caches R5.36, R5.39).
+type MeasureCaches struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CommandId     string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MeasureCaches) Reset() {
+	*x = MeasureCaches{}
+	mi := &file_agent_v1_agent_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MeasureCaches) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MeasureCaches) ProtoMessage() {}
+
+func (x *MeasureCaches) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MeasureCaches.ProtoReflect.Descriptor instead.
+func (*MeasureCaches) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *MeasureCaches) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+// CacheReport is what the agent measured: one CacheStatus per cache folder of
+// each runner. It replaces the machine's earlier report. The agent measures and
+// reports; the controller lists (web-console R5.25).
+type CacheReport struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The MeasureCaches this answers; empty for a report the agent sent itself.
+	CommandId        string         `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	MeasuredAtUnixMs int64          `protobuf:"varint,2,opt,name=measured_at_unix_ms,json=measuredAtUnixMs,proto3" json:"measured_at_unix_ms,omitempty"`
+	Caches           []*CacheStatus `protobuf:"bytes,3,rep,name=caches,proto3" json:"caches,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *CacheReport) Reset() {
+	*x = CacheReport{}
+	mi := &file_agent_v1_agent_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CacheReport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CacheReport) ProtoMessage() {}
+
+func (x *CacheReport) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CacheReport.ProtoReflect.Descriptor instead.
+func (*CacheReport) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *CacheReport) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *CacheReport) GetMeasuredAtUnixMs() int64 {
+	if x != nil {
+		return x.MeasuredAtUnixMs
+	}
+	return 0
+}
+
+func (x *CacheReport) GetCaches() []*CacheStatus {
+	if x != nil {
+		return x.Caches
+	}
+	return nil
+}
+
+type CacheStatus struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The runner whose folder this is; its name is what the agent knows.
+	RunnerName  string `protobuf:"bytes,1,opt,name=runner_name,json=runnerName,proto3" json:"runner_name,omitempty"`
+	ServiceName string `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// tool_cache or rust_cache (caches R5.36).
+	Kind      string `protobuf:"bytes,3,opt,name=kind,proto3" json:"kind,omitempty"`
+	SizeBytes int64  `protobuf:"varint,4,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	// The declared quota, from the runner's own environment; 0 when none is set.
+	CapBytes int64 `protobuf:"varint,5,opt,name=cap_bytes,json=capBytes,proto3" json:"cap_bytes,omitempty"`
+	// Top-level entries (a tool version, a build profile folder).
+	EntryCount    int32 `protobuf:"varint,6,opt,name=entry_count,json=entryCount,proto3" json:"entry_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CacheStatus) Reset() {
+	*x = CacheStatus{}
+	mi := &file_agent_v1_agent_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CacheStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CacheStatus) ProtoMessage() {}
+
+func (x *CacheStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CacheStatus.ProtoReflect.Descriptor instead.
+func (*CacheStatus) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *CacheStatus) GetRunnerName() string {
+	if x != nil {
+		return x.RunnerName
+	}
+	return ""
+}
+
+func (x *CacheStatus) GetServiceName() string {
+	if x != nil {
+		return x.ServiceName
+	}
+	return ""
+}
+
+func (x *CacheStatus) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *CacheStatus) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *CacheStatus) GetCapBytes() int64 {
+	if x != nil {
+		return x.CapBytes
+	}
+	return 0
+}
+
+func (x *CacheStatus) GetEntryCount() int32 {
+	if x != nil {
+		return x.EntryCount
+	}
+	return 0
+}
+
+// WipeCache empties one cache folder after the runner it belongs to is idle.
+// The agent names the folder itself from its own runner list; the controller
+// never sends a path. The runner takes no new job while the wipe waits, and the
+// idle check runs right before the delete (caches R5.32, runners R6.4).
+type WipeCache struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	CommandId  string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	RunnerName string                 `protobuf:"bytes,2,opt,name=runner_name,json=runnerName,proto3" json:"runner_name,omitempty"`
+	// tool_cache or rust_cache.
+	Kind string `protobuf:"bytes,3,opt,name=kind,proto3" json:"kind,omitempty"`
+	// How long to wait for a running job before warning; it keeps waiting.
+	DrainTimeoutSeconds int32 `protobuf:"varint,4,opt,name=drain_timeout_seconds,json=drainTimeoutSeconds,proto3" json:"drain_timeout_seconds,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *WipeCache) Reset() {
+	*x = WipeCache{}
+	mi := &file_agent_v1_agent_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WipeCache) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WipeCache) ProtoMessage() {}
+
+func (x *WipeCache) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WipeCache.ProtoReflect.Descriptor instead.
+func (*WipeCache) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *WipeCache) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *WipeCache) GetRunnerName() string {
+	if x != nil {
+		return x.RunnerName
+	}
+	return ""
+}
+
+func (x *WipeCache) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *WipeCache) GetDrainTimeoutSeconds() int32 {
+	if x != nil {
+		return x.DrainTimeoutSeconds
+	}
+	return 0
+}
+
+// CacheWipeStatus says where a wipe stands. waiting repeats until the runner is
+// idle; the last report is done or failed.
+type CacheWipeStatus struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	CommandId string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	// waiting, wiping, done or failed.
+	State string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	// The jobs a waiting wipe waits for.
+	WaitingFor []*JobRef `protobuf:"bytes,3,rep,name=waiting_for,json=waitingFor,proto3" json:"waiting_for,omitempty"`
+	// Bytes removed; set when done.
+	FreedBytes int64 `protobuf:"varint,4,opt,name=freed_bytes,json=freedBytes,proto3" json:"freed_bytes,omitempty"`
+	// A redacted text safe to show; set when failed.
+	Error         string `protobuf:"bytes,5,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CacheWipeStatus) Reset() {
+	*x = CacheWipeStatus{}
+	mi := &file_agent_v1_agent_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CacheWipeStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CacheWipeStatus) ProtoMessage() {}
+
+func (x *CacheWipeStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CacheWipeStatus.ProtoReflect.Descriptor instead.
+func (*CacheWipeStatus) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *CacheWipeStatus) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *CacheWipeStatus) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *CacheWipeStatus) GetWaitingFor() []*JobRef {
+	if x != nil {
+		return x.WaitingFor
+	}
+	return nil
+}
+
+func (x *CacheWipeStatus) GetFreedBytes() int64 {
+	if x != nil {
+		return x.FreedBytes
+	}
+	return 0
+}
+
+func (x *CacheWipeStatus) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
 type GateDecision_Go struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Slots []*SlotGrant           `protobuf:"bytes,1,rep,name=slots,proto3" json:"slots,omitempty"`
@@ -4095,7 +4537,7 @@ type GateDecision_Go struct {
 
 func (x *GateDecision_Go) Reset() {
 	*x = GateDecision_Go{}
-	mi := &file_agent_v1_agent_proto_msgTypes[42]
+	mi := &file_agent_v1_agent_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4107,7 +4549,7 @@ func (x *GateDecision_Go) String() string {
 func (*GateDecision_Go) ProtoMessage() {}
 
 func (x *GateDecision_Go) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[42]
+	mi := &file_agent_v1_agent_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4152,7 +4594,7 @@ type GateDecision_Wait struct {
 
 func (x *GateDecision_Wait) Reset() {
 	*x = GateDecision_Wait{}
-	mi := &file_agent_v1_agent_proto_msgTypes[43]
+	mi := &file_agent_v1_agent_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4164,7 +4606,7 @@ func (x *GateDecision_Wait) String() string {
 func (*GateDecision_Wait) ProtoMessage() {}
 
 func (x *GateDecision_Wait) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[43]
+	mi := &file_agent_v1_agent_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4218,7 +4660,7 @@ type GateDecision_Timeout struct {
 
 func (x *GateDecision_Timeout) Reset() {
 	*x = GateDecision_Timeout{}
-	mi := &file_agent_v1_agent_proto_msgTypes[44]
+	mi := &file_agent_v1_agent_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4230,7 +4672,7 @@ func (x *GateDecision_Timeout) String() string {
 func (*GateDecision_Timeout) ProtoMessage() {}
 
 func (x *GateDecision_Timeout) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[44]
+	mi := &file_agent_v1_agent_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4272,7 +4714,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x12machine_credential\x18\x02 \x01(\tR\x11machineCredential\x12\x1f\n" +
 	"\vcert_sha256\x18\x03 \x01(\tR\n" +
 	"certSha256\x125\n" +
-	"\bsettings\x18\x04 \x01(\v2\x19.agent.v1.MachineSettingsR\bsettings\"\xab\a\n" +
+	"\bsettings\x18\x04 \x01(\v2\x19.agent.v1.MachineSettingsR\bsettings\"\xb0\b\n" +
 	"\x0eSessionRequest\x12'\n" +
 	"\x05hello\x18\x01 \x01(\v2\x0f.agent.v1.HelloH\x00R\x05hello\x123\n" +
 	"\theartbeat\x18\x02 \x01(\v2\x13.agent.v1.HeartbeatH\x00R\theartbeat\x127\n" +
@@ -4292,8 +4734,10 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\fdrain_status\x18\r \x01(\v2\x15.agent.v1.DrainStatusH\x00R\vdrainStatus\x12=\n" +
 	"\rcheck_results\x18\x0e \x01(\v2\x16.agent.v1.CheckResultsH\x00R\fcheckResults\x12:\n" +
 	"\fusage_report\x18\x0f \x01(\v2\x15.agent.v1.UsageReportH\x00R\vusageReport\x12=\n" +
-	"\rupdate_report\x18\x10 \x01(\v2\x16.agent.v1.UpdateReportH\x00R\fupdateReportB\t\n" +
-	"\amessage\"\xa4\x06\n" +
+	"\rupdate_report\x18\x10 \x01(\v2\x16.agent.v1.UpdateReportH\x00R\fupdateReport\x12:\n" +
+	"\fcache_report\x18\x14 \x01(\v2\x15.agent.v1.CacheReportH\x00R\vcacheReport\x12G\n" +
+	"\x11cache_wipe_status\x18\x15 \x01(\v2\x19.agent.v1.CacheWipeStatusH\x00R\x0fcacheWipeStatusB\t\n" +
+	"\amessage\"\x9c\a\n" +
 	"\x0fSessionResponse\x121\n" +
 	"\thello_ack\x18\x01 \x01(\v2\x12.agent.v1.HelloAckH\x00R\bhelloAck\x123\n" +
 	"\theartbeat\x18\x02 \x01(\v2\x13.agent.v1.HeartbeatH\x00R\theartbeat\x127\n" +
@@ -4312,7 +4756,10 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
 	"run_checks\x18\f \x01(\v2\x13.agent.v1.RunChecksH\x00R\trunChecks\x12C\n" +
 	"\x0fmachine_removed\x18\r \x01(\v2\x18.agent.v1.MachineRemovedH\x00R\x0emachineRemoved\x12:\n" +
-	"\fupdate_agent\x18\x0e \x01(\v2\x15.agent.v1.UpdateAgentH\x00R\vupdateAgentB\t\n" +
+	"\fupdate_agent\x18\x0e \x01(\v2\x15.agent.v1.UpdateAgentH\x00R\vupdateAgent\x12@\n" +
+	"\x0emeasure_caches\x18\x14 \x01(\v2\x17.agent.v1.MeasureCachesH\x00R\rmeasureCaches\x124\n" +
+	"\n" +
+	"wipe_cache\x18\x15 \x01(\v2\x13.agent.v1.WipeCacheH\x00R\twipeCacheB\t\n" +
 	"\amessage\"\xf1\x02\n" +
 	"\x05Hello\x12\x1d\n" +
 	"\n" +
@@ -4439,7 +4886,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x13memory_median_bytes\x18\x05 \x01(\x03R\x11memoryMedianBytes\x12&\n" +
 	"\x0fdisk_used_bytes\x18\x06 \x01(\x03R\rdiskUsedBytes\x12\x17\n" +
 	"\awall_ms\x18\a \x01(\x03R\x06wallMs\x12\x14\n" +
-	"\x05final\x18\b \x01(\bR\x05final\"\xcd\x01\n" +
+	"\x05final\x18\b \x01(\bR\x05final\"\xf5\x01\n" +
 	"\x06JobRef\x12\x1e\n" +
 	"\n" +
 	"repository\x18\x01 \x01(\tR\n" +
@@ -4451,7 +4898,8 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\rgithub_job_id\x18\x05 \x01(\x03R\vgithubJobId\x12\x14\n" +
 	"\x05shard\x18\x06 \x01(\tR\x05shard\x12\x1f\n" +
 	"\vrunner_name\x18\a \x01(\tR\n" +
-	"runnerName\"w\n" +
+	"runnerName\x12&\n" +
+	"\x0fstarted_unix_ms\x18\b \x01(\x03R\rstartedUnixMs\"w\n" +
 	"\x06Holder\x12\x1d\n" +
 	"\n" +
 	"holder_pid\x18\x01 \x01(\x03R\tholderPid\x12\x19\n" +
@@ -4529,13 +4977,14 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x10allowed_backends\x18\x0e \x03(\tR\x0fallowedBackends\x12&\n" +
 	"\x0fcache_cap_bytes\x18\x0f \x01(\x03R\rcacheCapBytes\x122\n" +
 	"\x15drain_timeout_minutes\x18\x10 \x01(\x05R\x13drainTimeoutMinutes\x122\n" +
-	"\x15windows_symlink_right\x18\x11 \x01(\bR\x13windowsSymlinkRight\"p\n" +
+	"\x15windows_symlink_right\x18\x11 \x01(\bR\x13windowsSymlinkRight\"\x93\x01\n" +
 	"\x05Drain\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x1f\n" +
 	"\vchange_kind\x18\x02 \x01(\tR\n" +
 	"changeKind\x12'\n" +
-	"\x0ftimeout_seconds\x18\x03 \x01(\x05R\x0etimeoutSeconds\"'\n" +
+	"\x0ftimeout_seconds\x18\x03 \x01(\x05R\x0etimeoutSeconds\x12!\n" +
+	"\frunner_names\x18\x04 \x03(\tR\vrunnerNames\"'\n" +
 	"\x06Resume\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\"s\n" +
@@ -4605,7 +5054,41 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x05state\x18\x03 \x01(\tR\x05state\x12\x14\n" +
 	"\x05error\x18\x04 \x01(\tR\x05error\x121\n" +
 	"\vwaiting_for\x18\x05 \x03(\v2\x10.agent.v1.JobRefR\n" +
-	"waitingFor*K\n" +
+	"waitingFor\".\n" +
+	"\rMeasureCaches\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\"\x8a\x01\n" +
+	"\vCacheReport\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12-\n" +
+	"\x13measured_at_unix_ms\x18\x02 \x01(\x03R\x10measuredAtUnixMs\x12-\n" +
+	"\x06caches\x18\x03 \x03(\v2\x15.agent.v1.CacheStatusR\x06caches\"\xc2\x01\n" +
+	"\vCacheStatus\x12\x1f\n" +
+	"\vrunner_name\x18\x01 \x01(\tR\n" +
+	"runnerName\x12!\n" +
+	"\fservice_name\x18\x02 \x01(\tR\vserviceName\x12\x12\n" +
+	"\x04kind\x18\x03 \x01(\tR\x04kind\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x04 \x01(\x03R\tsizeBytes\x12\x1b\n" +
+	"\tcap_bytes\x18\x05 \x01(\x03R\bcapBytes\x12\x1f\n" +
+	"\ventry_count\x18\x06 \x01(\x05R\n" +
+	"entryCount\"\x93\x01\n" +
+	"\tWipeCache\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x1f\n" +
+	"\vrunner_name\x18\x02 \x01(\tR\n" +
+	"runnerName\x12\x12\n" +
+	"\x04kind\x18\x03 \x01(\tR\x04kind\x122\n" +
+	"\x15drain_timeout_seconds\x18\x04 \x01(\x05R\x13drainTimeoutSeconds\"\xb0\x01\n" +
+	"\x0fCacheWipeStatus\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\x121\n" +
+	"\vwaiting_for\x18\x03 \x03(\v2\x10.agent.v1.JobRefR\n" +
+	"waitingFor\x12\x1f\n" +
+	"\vfreed_bytes\x18\x04 \x01(\x03R\n" +
+	"freedBytes\x12\x14\n" +
+	"\x05error\x18\x05 \x01(\tR\x05error*K\n" +
 	"\x0fProtocolVersion\x12 \n" +
 	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12PROTOCOL_VERSION_1\x10\x01*\xf8\x01\n" +
@@ -4647,7 +5130,7 @@ func file_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 45)
+var file_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
 var file_agent_v1_agent_proto_goTypes = []any{
 	(ProtocolVersion)(0),         // 0: agent.v1.ProtocolVersion
 	(RunnerState)(0),             // 1: agent.v1.RunnerState
@@ -4695,9 +5178,14 @@ var file_agent_v1_agent_proto_goTypes = []any{
 	(*CheckResult)(nil),          // 43: agent.v1.CheckResult
 	(*UpdateAgent)(nil),          // 44: agent.v1.UpdateAgent
 	(*UpdateReport)(nil),         // 45: agent.v1.UpdateReport
-	(*GateDecision_Go)(nil),      // 46: agent.v1.GateDecision.Go
-	(*GateDecision_Wait)(nil),    // 47: agent.v1.GateDecision.Wait
-	(*GateDecision_Timeout)(nil), // 48: agent.v1.GateDecision.Timeout
+	(*MeasureCaches)(nil),        // 46: agent.v1.MeasureCaches
+	(*CacheReport)(nil),          // 47: agent.v1.CacheReport
+	(*CacheStatus)(nil),          // 48: agent.v1.CacheStatus
+	(*WipeCache)(nil),            // 49: agent.v1.WipeCache
+	(*CacheWipeStatus)(nil),      // 50: agent.v1.CacheWipeStatus
+	(*GateDecision_Go)(nil),      // 51: agent.v1.GateDecision.Go
+	(*GateDecision_Wait)(nil),    // 52: agent.v1.GateDecision.Wait
+	(*GateDecision_Timeout)(nil), // 53: agent.v1.GateDecision.Timeout
 }
 var file_agent_v1_agent_proto_depIdxs = []int32{
 	11, // 0: agent.v1.JoinRequest.facts:type_name -> agent.v1.Facts
@@ -4719,60 +5207,66 @@ var file_agent_v1_agent_proto_depIdxs = []int32{
 	42, // 16: agent.v1.SessionRequest.check_results:type_name -> agent.v1.CheckResults
 	21, // 17: agent.v1.SessionRequest.usage_report:type_name -> agent.v1.UsageReport
 	45, // 18: agent.v1.SessionRequest.update_report:type_name -> agent.v1.UpdateReport
-	9,  // 19: agent.v1.SessionResponse.hello_ack:type_name -> agent.v1.HelloAck
-	10, // 20: agent.v1.SessionResponse.heartbeat:type_name -> agent.v1.Heartbeat
-	32, // 21: agent.v1.SessionResponse.settings:type_name -> agent.v1.MachineSettings
-	28, // 22: agent.v1.SessionResponse.gate_decision:type_name -> agent.v1.GateDecision
-	30, // 23: agent.v1.SessionResponse.release_ack:type_name -> agent.v1.ReleaseAck
-	17, // 24: agent.v1.SessionResponse.add_runner:type_name -> agent.v1.AddRunner
-	19, // 25: agent.v1.SessionResponse.remove_runner:type_name -> agent.v1.RemoveRunner
-	20, // 26: agent.v1.SessionResponse.drain_runner:type_name -> agent.v1.DrainRunner
-	33, // 27: agent.v1.SessionResponse.drain:type_name -> agent.v1.Drain
-	34, // 28: agent.v1.SessionResponse.resume:type_name -> agent.v1.Resume
-	36, // 29: agent.v1.SessionResponse.redetect:type_name -> agent.v1.Redetect
-	41, // 30: agent.v1.SessionResponse.run_checks:type_name -> agent.v1.RunChecks
-	37, // 31: agent.v1.SessionResponse.machine_removed:type_name -> agent.v1.MachineRemoved
-	44, // 32: agent.v1.SessionResponse.update_agent:type_name -> agent.v1.UpdateAgent
-	0,  // 33: agent.v1.Hello.protocol_version:type_name -> agent.v1.ProtocolVersion
-	11, // 34: agent.v1.Hello.facts:type_name -> agent.v1.Facts
-	14, // 35: agent.v1.Hello.load:type_name -> agent.v1.LoadReport
-	15, // 36: agent.v1.Hello.runners:type_name -> agent.v1.RunnerStates
-	31, // 37: agent.v1.Hello.holders:type_name -> agent.v1.HolderReport
-	0,  // 38: agent.v1.HelloAck.protocol_version:type_name -> agent.v1.ProtocolVersion
-	32, // 39: agent.v1.HelloAck.settings:type_name -> agent.v1.MachineSettings
-	12, // 40: agent.v1.Facts.gpus:type_name -> agent.v1.Gpu
-	13, // 41: agent.v1.Facts.backends:type_name -> agent.v1.BackendSupport
-	16, // 42: agent.v1.RunnerStates.runners:type_name -> agent.v1.RunnerStatus
-	1,  // 43: agent.v1.RunnerStatus.state:type_name -> agent.v1.RunnerState
-	22, // 44: agent.v1.RunnerStatus.current_job:type_name -> agent.v1.JobRef
-	18, // 45: agent.v1.AddRunner.runner:type_name -> agent.v1.RunnerSpec
-	22, // 46: agent.v1.UsageReport.job:type_name -> agent.v1.JobRef
-	22, // 47: agent.v1.GateRequest.job:type_name -> agent.v1.JobRef
-	23, // 48: agent.v1.GateRequest.holder:type_name -> agent.v1.Holder
-	2,  // 49: agent.v1.SlotGrant.kind:type_name -> agent.v1.SlotKind
-	46, // 50: agent.v1.GateDecision.go:type_name -> agent.v1.GateDecision.Go
-	47, // 51: agent.v1.GateDecision.wait:type_name -> agent.v1.GateDecision.Wait
-	48, // 52: agent.v1.GateDecision.timeout:type_name -> agent.v1.GateDecision.Timeout
-	22, // 53: agent.v1.JobCompleted.job:type_name -> agent.v1.JobRef
-	22, // 54: agent.v1.ReleaseAck.job:type_name -> agent.v1.JobRef
-	23, // 55: agent.v1.HolderReport.alive:type_name -> agent.v1.Holder
-	22, // 56: agent.v1.HolderReport.running:type_name -> agent.v1.JobRef
-	22, // 57: agent.v1.DrainStatus.waiting_for:type_name -> agent.v1.JobRef
-	40, // 58: agent.v1.LogBatch.lines:type_name -> agent.v1.LogLine
-	3,  // 59: agent.v1.LogLine.level:type_name -> agent.v1.LogLevel
-	22, // 60: agent.v1.LogLine.job:type_name -> agent.v1.JobRef
-	43, // 61: agent.v1.CheckResults.results:type_name -> agent.v1.CheckResult
-	22, // 62: agent.v1.UpdateReport.waiting_for:type_name -> agent.v1.JobRef
-	27, // 63: agent.v1.GateDecision.Go.slots:type_name -> agent.v1.SlotGrant
-	4,  // 64: agent.v1.AgentService.Join:input_type -> agent.v1.JoinRequest
-	6,  // 65: agent.v1.AgentService.Session:input_type -> agent.v1.SessionRequest
-	5,  // 66: agent.v1.AgentService.Join:output_type -> agent.v1.JoinResponse
-	7,  // 67: agent.v1.AgentService.Session:output_type -> agent.v1.SessionResponse
-	66, // [66:68] is the sub-list for method output_type
-	64, // [64:66] is the sub-list for method input_type
-	64, // [64:64] is the sub-list for extension type_name
-	64, // [64:64] is the sub-list for extension extendee
-	0,  // [0:64] is the sub-list for field type_name
+	47, // 19: agent.v1.SessionRequest.cache_report:type_name -> agent.v1.CacheReport
+	50, // 20: agent.v1.SessionRequest.cache_wipe_status:type_name -> agent.v1.CacheWipeStatus
+	9,  // 21: agent.v1.SessionResponse.hello_ack:type_name -> agent.v1.HelloAck
+	10, // 22: agent.v1.SessionResponse.heartbeat:type_name -> agent.v1.Heartbeat
+	32, // 23: agent.v1.SessionResponse.settings:type_name -> agent.v1.MachineSettings
+	28, // 24: agent.v1.SessionResponse.gate_decision:type_name -> agent.v1.GateDecision
+	30, // 25: agent.v1.SessionResponse.release_ack:type_name -> agent.v1.ReleaseAck
+	17, // 26: agent.v1.SessionResponse.add_runner:type_name -> agent.v1.AddRunner
+	19, // 27: agent.v1.SessionResponse.remove_runner:type_name -> agent.v1.RemoveRunner
+	20, // 28: agent.v1.SessionResponse.drain_runner:type_name -> agent.v1.DrainRunner
+	33, // 29: agent.v1.SessionResponse.drain:type_name -> agent.v1.Drain
+	34, // 30: agent.v1.SessionResponse.resume:type_name -> agent.v1.Resume
+	36, // 31: agent.v1.SessionResponse.redetect:type_name -> agent.v1.Redetect
+	41, // 32: agent.v1.SessionResponse.run_checks:type_name -> agent.v1.RunChecks
+	37, // 33: agent.v1.SessionResponse.machine_removed:type_name -> agent.v1.MachineRemoved
+	44, // 34: agent.v1.SessionResponse.update_agent:type_name -> agent.v1.UpdateAgent
+	46, // 35: agent.v1.SessionResponse.measure_caches:type_name -> agent.v1.MeasureCaches
+	49, // 36: agent.v1.SessionResponse.wipe_cache:type_name -> agent.v1.WipeCache
+	0,  // 37: agent.v1.Hello.protocol_version:type_name -> agent.v1.ProtocolVersion
+	11, // 38: agent.v1.Hello.facts:type_name -> agent.v1.Facts
+	14, // 39: agent.v1.Hello.load:type_name -> agent.v1.LoadReport
+	15, // 40: agent.v1.Hello.runners:type_name -> agent.v1.RunnerStates
+	31, // 41: agent.v1.Hello.holders:type_name -> agent.v1.HolderReport
+	0,  // 42: agent.v1.HelloAck.protocol_version:type_name -> agent.v1.ProtocolVersion
+	32, // 43: agent.v1.HelloAck.settings:type_name -> agent.v1.MachineSettings
+	12, // 44: agent.v1.Facts.gpus:type_name -> agent.v1.Gpu
+	13, // 45: agent.v1.Facts.backends:type_name -> agent.v1.BackendSupport
+	16, // 46: agent.v1.RunnerStates.runners:type_name -> agent.v1.RunnerStatus
+	1,  // 47: agent.v1.RunnerStatus.state:type_name -> agent.v1.RunnerState
+	22, // 48: agent.v1.RunnerStatus.current_job:type_name -> agent.v1.JobRef
+	18, // 49: agent.v1.AddRunner.runner:type_name -> agent.v1.RunnerSpec
+	22, // 50: agent.v1.UsageReport.job:type_name -> agent.v1.JobRef
+	22, // 51: agent.v1.GateRequest.job:type_name -> agent.v1.JobRef
+	23, // 52: agent.v1.GateRequest.holder:type_name -> agent.v1.Holder
+	2,  // 53: agent.v1.SlotGrant.kind:type_name -> agent.v1.SlotKind
+	51, // 54: agent.v1.GateDecision.go:type_name -> agent.v1.GateDecision.Go
+	52, // 55: agent.v1.GateDecision.wait:type_name -> agent.v1.GateDecision.Wait
+	53, // 56: agent.v1.GateDecision.timeout:type_name -> agent.v1.GateDecision.Timeout
+	22, // 57: agent.v1.JobCompleted.job:type_name -> agent.v1.JobRef
+	22, // 58: agent.v1.ReleaseAck.job:type_name -> agent.v1.JobRef
+	23, // 59: agent.v1.HolderReport.alive:type_name -> agent.v1.Holder
+	22, // 60: agent.v1.HolderReport.running:type_name -> agent.v1.JobRef
+	22, // 61: agent.v1.DrainStatus.waiting_for:type_name -> agent.v1.JobRef
+	40, // 62: agent.v1.LogBatch.lines:type_name -> agent.v1.LogLine
+	3,  // 63: agent.v1.LogLine.level:type_name -> agent.v1.LogLevel
+	22, // 64: agent.v1.LogLine.job:type_name -> agent.v1.JobRef
+	43, // 65: agent.v1.CheckResults.results:type_name -> agent.v1.CheckResult
+	22, // 66: agent.v1.UpdateReport.waiting_for:type_name -> agent.v1.JobRef
+	48, // 67: agent.v1.CacheReport.caches:type_name -> agent.v1.CacheStatus
+	22, // 68: agent.v1.CacheWipeStatus.waiting_for:type_name -> agent.v1.JobRef
+	27, // 69: agent.v1.GateDecision.Go.slots:type_name -> agent.v1.SlotGrant
+	4,  // 70: agent.v1.AgentService.Join:input_type -> agent.v1.JoinRequest
+	6,  // 71: agent.v1.AgentService.Session:input_type -> agent.v1.SessionRequest
+	5,  // 72: agent.v1.AgentService.Join:output_type -> agent.v1.JoinResponse
+	7,  // 73: agent.v1.AgentService.Session:output_type -> agent.v1.SessionResponse
+	72, // [72:74] is the sub-list for method output_type
+	70, // [70:72] is the sub-list for method input_type
+	70, // [70:70] is the sub-list for extension type_name
+	70, // [70:70] is the sub-list for extension extendee
+	0,  // [0:70] is the sub-list for field type_name
 }
 
 func init() { file_agent_v1_agent_proto_init() }
@@ -4801,6 +5295,8 @@ func file_agent_v1_agent_proto_init() {
 		(*SessionRequest_CheckResults)(nil),
 		(*SessionRequest_UsageReport)(nil),
 		(*SessionRequest_UpdateReport)(nil),
+		(*SessionRequest_CacheReport)(nil),
+		(*SessionRequest_CacheWipeStatus)(nil),
 	}
 	file_agent_v1_agent_proto_msgTypes[3].OneofWrappers = []any{
 		(*SessionResponse_HelloAck)(nil),
@@ -4817,6 +5313,8 @@ func file_agent_v1_agent_proto_init() {
 		(*SessionResponse_RunChecks)(nil),
 		(*SessionResponse_MachineRemoved)(nil),
 		(*SessionResponse_UpdateAgent)(nil),
+		(*SessionResponse_MeasureCaches)(nil),
+		(*SessionResponse_WipeCache)(nil),
 	}
 	file_agent_v1_agent_proto_msgTypes[13].OneofWrappers = []any{
 		(*AddRunner_Registration)(nil),
@@ -4833,7 +5331,7 @@ func file_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_v1_agent_proto_rawDesc), len(file_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   45,
+			NumMessages:   50,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -9,7 +9,10 @@ import { LiveProvider } from './live/LiveProvider';
 import type { EventSourceFactory } from './live/store';
 import { AppShell } from './shell/Shell';
 import { FaultBoundary } from './screens/common';
-import { Later, NotFound } from './screens/Later';
+import { DoctorScreen } from './screens/doctor/Doctor';
+import { JobDetail, JobsList } from './screens/jobs/Jobs';
+import { NotFound } from './screens/Later';
+import { ImagesAndCaches } from './screens/images/ImagesAndCaches';
 import { MachineDetail, MachinesList } from './screens/machines/Machines';
 import { AddMachinePage } from './screens/machines/AddMachine';
 import { Overview } from './screens/overview/Overview';
@@ -25,6 +28,9 @@ import {
   ThemeApplier,
   UsersSettings,
 } from './screens/settings/Settings';
+import { BudgetsSettings } from './screens/settings/Budgets';
+import { AuditLogSettings, ConfigExportSettings } from './screens/settings/AuditLog';
+import { NotificationsSettings } from './screens/settings/Notifications';
 import { UpdateReviewPage, UpdatesSettings } from './screens/settings/Updates';
 import { SetupPage } from './screens/setup/Setup';
 
@@ -102,38 +108,14 @@ export function App({
               <Route path="machines/:id" element={<MachineDetail />} />
               <Route path="runners" element={<RunnersList />} />
               <Route path="runners/add" element={<AddRunnersPage />} />
-              <Route
-                path="jobs/*"
-                element={
-                  <Later title="Jobs" what="The job history" milestone="milestone 2" />
-                }
-              />
-              <Route
-                path="images"
-                element={
-                  <Later
-                    title="Images and caches"
-                    what="Images and caches"
-                    milestone="milestone 2 and 7"
-                  />
-                }
-              />
+              <Route path="jobs" element={<JobsList />} />
+              <Route path="jobs/:id" element={<JobDetail />} />
+              <Route path="images" element={<ImagesAndCaches />} />
               <Route
                 path="caches"
-                element={
-                  <Later
-                    title="Images and caches"
-                    what="Caches"
-                    milestone="milestone 7"
-                  />
-                }
+                element={<Navigate to="/images?tab=caches" replace />}
               />
-              <Route
-                path="doctor"
-                element={
-                  <Later title="Doctor" what="The doctor" milestone="milestone 2" />
-                }
-              />
+              <Route path="doctor" element={<DoctorScreen />} />
               <Route path="settings/updates/review" element={<UpdateReviewPage />} />
               <Route path="settings" element={<SettingsLayout />}>
                 <Route index element={<Navigate to="users" replace />} />
@@ -141,47 +123,11 @@ export function App({
                 <Route path="appearance" element={<AppearanceSettings />} />
                 <Route path="retention" element={<RetentionSettings />} />
                 <Route path="backups" element={<BackupsSettings />} />
-                <Route
-                  path="budgets"
-                  element={
-                    <Later
-                      title="Budgets"
-                      what="The pool budgets"
-                      milestone="a later milestone"
-                    />
-                  }
-                />
-                <Route
-                  path="notifications"
-                  element={
-                    <Later
-                      title="Notifications"
-                      what="Notifications"
-                      milestone="milestone 8"
-                    />
-                  }
-                />
+                <Route path="budgets" element={<BudgetsSettings />} />
+                <Route path="notifications" element={<NotificationsSettings />} />
                 <Route path="updates" element={<UpdatesSettings />} />
-                <Route
-                  path="audit"
-                  element={
-                    <Later
-                      title="Audit log"
-                      what="The audit log"
-                      milestone="a later milestone"
-                    />
-                  }
-                />
-                <Route
-                  path="export"
-                  element={
-                    <Later
-                      title="Config export"
-                      what="Config export"
-                      milestone="milestone 8"
-                    />
-                  }
-                />
+                <Route path="audit" element={<AuditLogSettings />} />
+                <Route path="export" element={<ConfigExportSettings />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Route>

@@ -2,6 +2,7 @@ package agent_test
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -89,6 +90,9 @@ func TestAgentReportsFailureAndUnsupported(t *testing.T) {
 	c, id := joinedAgent(t, up)
 	_ = c.Svc.AskUpdate(id, "1.5.0")
 	waitFor(t, "unsupported", func() bool { return agentUpdate(c, id).State == "unsupported" })
+	if u := agentUpdate(c, id); !strings.Contains(u.Error, "run the install command again") {
+		t.Fatalf("the report must say how to fix it: %q", u.Error)
+	}
 
 	up2 := &fakeUpdater{err: &update.Failure{Check: "provenance", Reason: "no attestation"}}
 	c2, id2 := joinedAgent(t, up2)

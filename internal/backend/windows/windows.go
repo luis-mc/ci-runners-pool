@@ -235,7 +235,12 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 		if err := persistent.WriteMeta(b.d.FS, Join(folder, persistent.MetaFile), wantMeta); err != nil {
 			return h, err
 		}
-		return h, b.psOK(ctx, "restart", scriptRestart, env, nil)
+		// Stop, wait for the listener itself to end, start: never a second
+		// listener beside one that is still alive (runners R5.46).
+		if err := b.stopService(ctx, env, folder); err != nil {
+			return h, err
+		}
+		return h, b.psOK(ctx, "start", scriptStartService, env, nil)
 	case persistent.UpdateRights:
 		env["CRSP_SYMLINK"] = flag(r.WindowsSymlinkRight)
 		if err := b.psOK(ctx, "rights", scriptRights, env, nil); err != nil {
@@ -248,7 +253,7 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 		}
 		oldService := have.Service
 		oldEnv := map[string]string{"CRSP_FOLDER": have.Folder, "CRSP_SERVICE": oldService}
-		if err := b.psOK(ctx, "stop old service", scriptStopService, oldEnv, nil); err != nil {
+		if err := b.stopService(ctx, oldEnv, have.Folder); err != nil {
 			return h, err
 		}
 		// The old registration goes first, and its result is checked, before
@@ -354,7 +359,38 @@ func (b *Backend) writeHooksAndEnv(folder, env string) error {
 // Stop stops the service. Callers drain first and check for an idle runner
 // right before (runners R6.4).
 func (b *Backend) Stop(ctx context.Context, h backend.Handle) error {
-	return b.psOK(ctx, "stop", scriptStopService, map[string]string{"CRSP_SERVICE": h.Ref}, nil)
+	f, ok, err := b.lookup(ctx, h.Ref)
+	if err != nil {
+		return err
+	}
+	folder := ""
+	if ok {
+		folder = f.Folder
+	}
+	return b.stopService(ctx, map[string]string{"CRSP_SERVICE": h.Ref}, folder)
+}
+
+// stopService stops the service and waits until the Runner.Listener of the
+// runner folder is gone. The service wrapper being stopped is not enough: a
+// listener that outlives it keeps the session, and a second one is refused
+// (runners R5.46).
+func (b *Backend) stopService(ctx context.Context, env map[string]string, folder string) error {
+	if err := b.psOK(ctx, "stop", scriptStopService, env, nil); err != nil {
+		return err
+	}
+	if folder == "" {
+		return nil
+	}
+	return persistent.WaitNoListener(ctx, func(ctx context.Context) ([]int, error) {
+		res, err := b.ps(ctx, scriptListeners, map[string]string{"CRSP_FOLDER": folder}, nil)
+		if err != nil {
+			return nil, fmt.Errorf("list listeners: %w", err)
+		}
+		if res.ExitCode != 0 {
+			return nil, fmt.Errorf("list listeners: powershell exited %d", res.ExitCode)
+		}
+		return persistent.ParsePIDs(res.Stdout), nil
+	}, 0, 0, b.d.Sleep)
 }
 
 // Deregister removes the runner from GitHub with a remove token and checks the
@@ -367,7 +403,7 @@ func (b *Backend) Deregister(ctx context.Context, h backend.Handle, removeToken 
 	if !ok {
 		return nil // already gone
 	}
-	if err := b.psOK(ctx, "stop", scriptStopService, map[string]string{"CRSP_SERVICE": h.Ref}, nil); err != nil {
+	if err := b.stopService(ctx, map[string]string{"CRSP_SERVICE": h.Ref}, f.Folder); err != nil {
 		return err
 	}
 	if err := b.runner(ctx, "deregister", f.Folder, []string{"remove"}, removeToken); err != nil {

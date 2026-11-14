@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"io"
 	"log/slog"
 	"net/http"
@@ -54,6 +55,12 @@ func (f *fakeRunners) PlanReplacement(context.Context, string, string) (runners.
 func (f *fakeRunners) GetPlan(context.Context, string) (runners.Plan, error) {
 	return runners.Plan{}, runners.ErrNotFound
 }
+func (f *fakeRunners) StopPlan(_ context.Context, id, _ string) (runners.Plan, error) {
+	if id != "p-applying" {
+		return runners.Plan{ID: id}, &runners.RefusalError{Reason: "plan " + id + " is done, so there is nothing to stop"}
+	}
+	return runners.Plan{ID: id, Area: "runners", State: "applying"}, nil
+}
 func (f *fakeRunners) StartApply(_ context.Context, id string, approved []string, _ string) (runners.Plan, error) {
 	f.started = approved
 	return runners.Plan{ID: id, Area: "runners", State: "applying"}, nil
@@ -75,7 +82,7 @@ func (f *fakeRunners) StartRemove(ctx context.Context, finish func(context.Conte
 
 func runnersMux(svc RunnersService) *http.ServeMux {
 	mux := http.NewServeMux()
-	Register(mux, Options{Version: "t", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Runners: svc})
+	Register(mux, Options{Version: "t", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Runners: svc, Authn: asRole(auth.RoleOwner)})
 	return mux
 }
 
@@ -195,4 +202,16 @@ func TestRunnersNotWiredAnswers501(t *testing.T) {
 		t.Fatalf("%d", rec.Code)
 	}
 	assertEnvelope(t, rec, CodeNotImplemented)
+}
+
+// Stop (web-console 11): 202 with the plan while applying, 409 when it is not.
+func TestStopRunnerPlan(t *testing.T) {
+	mux := runnersMux(sample())
+	if rec := do(mux, "POST", "/api/v1/runner-plans/p-applying/stop", ""); rec.Code != 202 || !strings.Contains(rec.Body.String(), `"applying"`) {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+	rec := do(mux, "POST", "/api/v1/runner-plans/p-done/stop", "")
+	if rec.Code != 409 || !strings.Contains(rec.Body.String(), "nothing to stop") {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
 }

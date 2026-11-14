@@ -51,9 +51,12 @@ var githubAreaAuth = map[string]string{
 	"getPreferences": authUser, "updatePreferences": authUser,
 	"listUsers": authOwner, "addUser": authOwner, "updateUserRole": authOwner, "removeUser": authOwner,
 	"listInstallations": authUser, "getAppInstallUrl": authAdmin, "listRepositories": authUser,
-	"planRepositoryChanges": authAdmin, "getRepositoryPlan": authUser, "applyRepositoryChanges": authAdmin,
+	"planRepositoryChanges": authAdmin, "stopRepositoryPlan": authAdmin, "getRepositoryPlan": authUser, "applyRepositoryChanges": authAdmin,
 	"getRepository": authUser, "updateRepositoryPolicy": authAdmin, "getRepositoryRunsOn": authUser,
 	"receiveGithubWebhook": authPublic,
+	// CRSP37 notification channels: any signed-in user; a webhook needs an admin (checked in the service).
+	"listNotificationChannels": authUser, "createNotificationChannel": authUser, "updateNotificationChannel": authUser,
+	"deleteNotificationChannel": authUser, "testNotificationChannel": authUser,
 }
 
 // operationIDs maps the generated handler names to openapi operation ids.
@@ -102,63 +105,12 @@ func (a *GitHubArea) HTTPMiddleware() gen.MiddlewareFunc {
 	}
 }
 
-// StrictMiddleware authenticates a request (session cookie or CLI token) and
-// enforces the role of each of this area's operations (R5.12). Changes made
-// with a session need the X-CSRF-Token header.
-func (a *GitHubArea) StrictMiddleware() gen.StrictMiddlewareFunc {
-	return func(next gen.StrictHandlerFunc, operationID string) gen.StrictHandlerFunc {
-		op := opID(operationID)
-		need, mine := githubAreaAuth[op]
-		return func(ctx context.Context, w http.ResponseWriter, r *http.Request, req any) (any, error) {
-			ctx = context.WithValue(ctx, keyRequest, r)
-			p, err := a.authenticate(ctx, r)
-			if err == nil {
-				ctx = context.WithValue(ctx, keyPrincipal, p)
-			}
-			if !mine || need == authPublic {
-				return next(ctx, w, r, req)
-			}
-			if err != nil {
-				if errors.Is(err, auth.ErrUnauthenticated) {
-					WriteError(w, http.StatusUnauthorized, CodeUnauthenticated, "sign in first")
-				} else {
-					a.fail(w, err)
-				}
-				return nil, nil
-			}
-			if need == authAdmin && !p.Role.AtLeast(auth.RoleAdmin) || need == authOwner && !p.Role.AtLeast(auth.RoleOwner) {
-				WriteError(w, http.StatusForbidden, CodeForbidden, "your role does not allow this")
-				return nil, nil
-			}
-			if unsafeMethod(r.Method) && p.SessionHash != "" && !auth.CheckCSRF(p, r.Header.Get("X-CSRF-Token")) {
-				WriteError(w, http.StatusForbidden, CodeForbidden, "the CSRF token is missing or wrong")
-				return nil, nil
-			}
-			return next(ctx, w, r, req)
-		}
-	}
-}
-
-// unwiredGitHub answers this area's operations with 501 when the controller
-// runs without the GitHub area (a test or a partial build), instead of a nil
-// dereference.
-func unwiredGitHub() gen.StrictMiddlewareFunc {
-	return func(next gen.StrictHandlerFunc, operationID string) gen.StrictHandlerFunc {
-		if _, mine := githubAreaAuth[opID(operationID)]; !mine {
-			return next
-		}
-		return func(_ context.Context, w http.ResponseWriter, _ *http.Request, _ any) (any, error) {
-			WriteError(w, http.StatusNotImplemented, CodeNotImplemented, "the GitHub integration is not wired in this build")
-			return nil, nil
-		}
-	}
-}
-
 func unsafeMethod(m string) bool {
 	return m != http.MethodGet && m != http.MethodHead && m != http.MethodOptions
 }
 
-func (a *GitHubArea) authenticate(ctx context.Context, r *http.Request) (auth.Principal, error) {
+// Authenticate implements Authenticator: a CLI bearer token or the session cookie.
+func (a *GitHubArea) Authenticate(ctx context.Context, r *http.Request) (auth.Principal, error) {
 	if h := r.Header.Get("Authorization"); strings.HasPrefix(h, "Bearer ") {
 		return a.Auth.AuthenticateCLI(ctx, strings.TrimPrefix(h, "Bearer "))
 	}
@@ -201,7 +153,7 @@ func errorFor(err error) (int, string, string) {
 		return http.StatusNotFound, CodeNotFound, "not found"
 	case errors.Is(err, auth.ErrNeedsConfirm), errors.Is(err, repos.ErrForkNeedsConfirm):
 		return http.StatusConflict, CodeNeedsConfirmation, err.Error()
-	case errors.Is(err, auth.ErrConflict), errors.Is(err, repos.ErrPlanStale), errors.Is(err, repos.ErrPlanNotPlanned),
+	case errors.Is(err, auth.ErrConflict), errors.Is(err, repos.ErrPlanStale), errors.Is(err, repos.ErrPlanNotPlanned), errors.Is(err, repos.ErrPlanNotApplying),
 		errors.Is(err, repos.ErrNothingToChange), errors.Is(err, auth.ErrSetupDone):
 		return http.StatusConflict, CodeConflict, err.Error()
 	case errors.Is(err, auth.ErrBadState), errors.Is(err, auth.ErrBadCode), errors.Is(err, auth.ErrInsecure), errors.As(err, &inv):
@@ -220,14 +172,6 @@ func errorFor(err error) (int, string, string) {
 		return http.StatusNotFound, CodeNotFound, "GitHub says it is gone"
 	}
 	return http.StatusInternalServerError, CodeInternal, "internal error"
-}
-
-func (a *GitHubArea) fail(w http.ResponseWriter, err error) {
-	status, code, msg := errorFor(err)
-	if status == http.StatusInternalServerError {
-		a.log().Error("github area: request failed", "err", err)
-	}
-	WriteError(w, status, code, msg)
 }
 
 // failure builds the default response of a generated operation.
@@ -311,7 +255,7 @@ func (s *server) RedeemSetupLink(ctx context.Context, req gen.RedeemSetupLinkReq
 		return gen.RedeemSetupLinkdefaultJSONResponse{StatusCode: code, Body: body}, nil
 	}
 	c := &http.Cookie{Name: auth.SetupCookieName, Value: cookie, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode,
-		Secure: auth.CookieSecure(r.Host), MaxAge: int(auth.SetupCookieTTL / time.Second)}
+		Secure: auth.CookieSecure(r), MaxAge: int(auth.SetupCookieTTL / time.Second)}
 	st, _ := a.Auth.State(ctx)
 	state := a.setupState(ctx, r, st)
 	state.SetupLinkRedeemed = true
@@ -394,7 +338,7 @@ func (s *server) CompleteSignIn(ctx context.Context, req gen.CompleteSignInReque
 		_, code, _ := errorFor(err)
 		return a.redirectWithError("/sign-in", code, nil), nil
 	}
-	c := auth.SessionCookie(si.Cookie, auth.CookieSecure(r.Host)).String()
+	c := auth.SessionCookie(si.Cookie, auth.CookieSecure(r)).String()
 	return gen.RedirectResponse{Headers: gen.RedirectResponseHeaders{Location: si.ReturnTo, SetCookie: &c}}, nil
 }
 
@@ -404,10 +348,16 @@ func (s *server) RedeemTrayLink(ctx context.Context, req gen.RedeemTrayLinkReque
 	r := requestFrom(ctx)
 	si, err := a.Auth.RedeemLink(ctx, req.Params.Code, r.RemoteAddr)
 	if err != nil {
-		_, code, _ := errorFor(err)
+		// The sign-in page says the link expired and offers GitHub (tray R5.7).
+		code := "link_expired"
+		if errors.Is(err, auth.ErrLoopbackOnly) {
+			code = "link_local_only"
+		} else if !errors.Is(err, auth.ErrBadCode) {
+			_, code, _ = errorFor(err)
+		}
 		return a.redirectWithError("/sign-in", code, nil), nil
 	}
-	c := auth.SessionCookie(si.Cookie, auth.CookieSecure(r.Host)).String()
+	c := auth.SessionCookie(si.Cookie, auth.CookieSecure(r)).String()
 	return gen.RedirectResponse{Headers: gen.RedirectResponseHeaders{Location: si.ReturnTo, SetCookie: &c}}, nil
 }
 

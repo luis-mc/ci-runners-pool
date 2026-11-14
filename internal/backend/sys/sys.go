@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 // Command is one program call. Args are passed one by one, never joined into a
@@ -65,6 +66,8 @@ type Deps struct {
 	Verify  func(path, sha256 string) error
 	Redact  func(string) string
 	LogLine func(step, msg string)
+	// Sleep replaces the real wait while a listener ends (tests); nil is real.
+	Sleep func(ctx context.Context, d time.Duration)
 }
 
 // ExecCommands is the real command runner.

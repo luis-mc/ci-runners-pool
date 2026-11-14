@@ -33,7 +33,7 @@ func (f *fakeIssuer) LinkFor(_ context.Context, u, t string) (string, error) {
 
 func TestTrayLinkUsesIssuerWithTheOSCaller(t *testing.T) {
 	f := &fakeIssuer{}
-	b := trayBackend{Console: "http://127.0.0.1:8460", Links: f}
+	b := trayBackend{Console: "https://127.0.0.1:8460", Links: f}
 	if u, err := b.Link(context.Background(), trayserver.Caller{OSUser: "S-1-5-21-1"}, "/x"); err != nil || u == "" {
 		t.Fatal(u, err)
 	}

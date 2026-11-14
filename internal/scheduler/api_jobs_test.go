@@ -3,6 +3,7 @@ package scheduler_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"io"
 	"log/slog"
 	"net/http"
@@ -39,7 +40,7 @@ func newFixture(t *testing.T) *fixture {
 	f := &fixture{t: t, st: st, now: time.Date(2026, 11, 14, 10, 0, 0, 0, time.UTC)}
 	f.eng = scheduler.NewEngine(st, scheduler.WithClock(func() time.Time { return f.now }))
 	f.mux = http.NewServeMux()
-	api.Register(f.mux, api.Options{Version: "t", DB: st, Jobs: st, Slots: f.eng, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	api.Register(f.mux, api.Options{Version: "t", DB: st, Jobs: st, Slots: f.eng, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Authn: ownerAuthn{}})
 	return f
 }
 
@@ -195,10 +196,18 @@ func TestAPIListAndGetJobs(t *testing.T) {
 // With nothing wired the routes still answer with the not-built envelope.
 func TestAPINotWiredAnswers501(t *testing.T) {
 	mux := http.NewServeMux()
-	api.Register(mux, api.Options{Version: "t", Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+	api.Register(mux, api.Options{Version: "t", Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Authn: ownerAuthn{}})
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, httptest.NewRequestWithContext(context.Background(), "GET", "/api/v1/jobs", nil))
 	if rec.Code != 501 {
 		t.Fatalf("%d", rec.Code)
 	}
+}
+
+// ownerAuthn signs every request in as an owner with a CLI-style token (no
+// session, so no CSRF token or Origin): these tests are about jobs, not sign-in.
+type ownerAuthn struct{}
+
+func (ownerAuthn) Authenticate(context.Context, *http.Request) (auth.Principal, error) {
+	return auth.Principal{UserID: 1, Login: "tester", Role: auth.RoleOwner, Source: "cli", TokenID: "t"}, nil
 }

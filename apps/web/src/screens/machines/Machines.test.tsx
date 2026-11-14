@@ -207,3 +207,41 @@ describe('Machine detail', () => {
     ).toBe(true);
   });
 });
+
+describe('Machine detail, a drain that waits', () => {
+  it('names the job that holds the drain, how long it runs, and what to do when it is far past its usual time', async () => {
+    const job = {
+      id: 9,
+      github_job_id: 9,
+      job_name: 'build',
+      repository: 'octo/app',
+      run_id: 7,
+      run_attempt: 1,
+      labels: [],
+      state: 'running' as const,
+      runner_name: 'runner-1',
+    };
+    const api = signedIn().on(
+      'GET',
+      '/api/v1/machines/:id',
+      machine({
+        state: 'draining',
+        pending_change: {
+          id: 'c1',
+          machine_id: 'm1',
+          kind: 'drain',
+          state: 'waiting',
+          started_at: 'x',
+          waiting_for: [job],
+          holder: { job, running_seconds: 2700, usual_seconds: 600, over_usual: true },
+          choices: ['wait_longer', 'cancel'],
+        },
+      }),
+    );
+    renderApp(api, '/machines/m1');
+    expect(await screen.findByText('octo/app build on runner-1')).toBeTruthy();
+    expect(screen.getByText('45 min')).toBeTruthy();
+    expect(screen.getByText('10 min')).toBeTruthy();
+    expect(screen.getByText(/never stops a job/)).toBeTruthy();
+  });
+});

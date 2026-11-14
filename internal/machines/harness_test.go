@@ -47,6 +47,15 @@ type notes struct {
 	load  []string
 	// overdue holds one entry per DrainOverdue call: "<machine> <kind> <waited> <jobs>".
 	overdue []string
+	// stuck, when set, gets one line per DrainStuck call.
+	stuck func(string)
+}
+
+// DrainStuck records the alert for a holder far past its usual duration (R5.56).
+func (n *notes) DrainStuck(id, kind string, h machines.Holder, running time.Duration) {
+	if n.stuck != nil {
+		n.stuck(fmt.Sprintf("%s %s %s %s", id, kind, h.Job.Job, running))
+	}
 }
 
 // DrainOverdue records the warning for a drain that passed its timeout (R5.33).

@@ -35,7 +35,8 @@ func TestJoinRefusesAControllerItCannotVerify(t *testing.T) {
 	}
 	// Run stops on it instead of retrying.
 	stop := runAgent(t, cfg)
-	if err := stop(); err != nil && !errors.Is(err, agent.ErrPinMismatch) {
+	// stop may cancel Run before it reaches the pin check; that is not a retry.
+	if err := stop(); err != nil && !errors.Is(err, agent.ErrPinMismatch) && !errors.Is(err, context.Canceled) {
 		t.Fatalf("Run err = %v", err)
 	}
 }

@@ -10,11 +10,12 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tray"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/trayserver"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
 )
 
 // LinkIssuer makes a one-time sign-in link for an OS user of this machine
 // (internal/auth Service.IssueLinkForOSUser and CreateBindTicket sit behind it).
-// The controller has no sign-in wired yet, so the zero value is nil.
+// The controller wires it in newAuthArea; a nil value (tests) gives plain addresses.
 type LinkIssuer interface {
 	LinkFor(ctx context.Context, osUser, target string) (string, error)
 }
@@ -75,7 +76,16 @@ func consoleURL(listen string) string {
 	if port == "" {
 		port = "8460"
 	}
-	return "http://" + net.JoinHostPort(host, port)
+	return consoleScheme(host) + "://" + net.JoinHostPort(host, port)
+}
+
+// consoleScheme is http on 127.0.0.1 and ::1 and https on every other address
+// (web-console R5.1).
+func consoleScheme(host string) string {
+	if webui.IsLoopback(host) {
+		return "http"
+	}
+	return "https"
 }
 
 // startTrayChannel serves the local channel until ctx ends. A failure to open

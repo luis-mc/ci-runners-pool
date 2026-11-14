@@ -37,11 +37,22 @@ type Service struct {
 	NewID                         func() string
 	// OnDrainWarn is called once at the warn time with the blocking job.
 	OnDrainWarn func(runnerID, job string)
+	// OnDrainStep gets each drain decision before the slow step it leads to
+	// (scheduling R5.63).
+	OnDrainStep func(runnerID, line string)
 	// Background runs long work (a plan apply, a drain) off the request. The
 	// default is a goroutine; tests run it inline.
 	Background func(func())
 
+	// OnProgress, when set, is called with the plan after each step and when
+	// the plan ends or is stopped (the plan.progress event).
+	OnProgress func(Plan)
+
 	mu sync.Mutex // one plan apply at a time
+
+	stopMu  sync.Mutex
+	stops   map[string]bool // plan id -> a stop was asked while it applies
+	running map[string]bool // plan id -> Apply is running it in this process
 }
 
 func (s *Service) now() time.Time {
@@ -243,7 +254,7 @@ func (s *Service) StartApply(ctx context.Context, planID string, approved []stri
 	if err != nil {
 		return Plan{}, err
 	}
-	if p.State == PlanDone || p.State == PlanFailed {
+	if p.State == PlanDone || p.State == PlanFailed || p.State == PlanStopped {
 		return p, refuse("plan %s is %s and cannot be applied again", p.ID, p.State)
 	}
 	for _, id := range approved {
@@ -279,7 +290,7 @@ func (s *Service) Apply(ctx context.Context, planID string, approved []string, a
 	if err != nil {
 		return Plan{}, err
 	}
-	if p.State == PlanDone || p.State == PlanFailed {
+	if p.State == PlanDone || p.State == PlanFailed || p.State == PlanStopped {
 		return p, refuse("plan %s is %s and cannot be applied again", p.ID, p.State)
 	}
 	ok := map[string]bool{}
@@ -297,6 +308,8 @@ func (s *Service) Apply(ctx context.Context, planID string, approved []string, a
 	}
 	p.State = PlanApplying
 	_ = s.Store.SavePlan(ctx, p)
+	s.beginRun(p.ID)
+	defer s.endRun(p.ID)
 
 	byID := map[string]*Step{}
 	for i := range p.Steps {
@@ -306,6 +319,11 @@ func (s *Service) Apply(ctx context.Context, planID string, approved []string, a
 		st := &p.Steps[i]
 		if st.State == "done" || st.State == "skipped" || st.State == "failed" {
 			continue
+		}
+		if s.stopAsked(p.ID) {
+			// The step that ran has finished; no later step starts (web-console 11).
+			stopRemaining(&p)
+			return p, errors.Join(s.Store.SavePlan(ctx, p))
 		}
 		if st.NeedsYes && !ok[st.ID] {
 			st.State = "skipped"
@@ -335,8 +353,11 @@ func (s *Service) Apply(ctx context.Context, planID string, approved []string, a
 			continue
 		}
 		st.State, st.Error = "done", ""
+		_ = s.Store.SavePlan(ctx, p)
+		s.progress(p)
 	}
 	p.State = planOutcome(p)
+	s.progress(p)
 	return p, errors.Join(s.Store.SavePlan(ctx, p))
 }
 
@@ -554,6 +575,11 @@ func (s *Service) finishRemove(ctx context.Context, r Record, prev State, actor 
 				s.OnDrainWarn(r.ID, job)
 			}
 		},
+		OnStep: func(line string) {
+			if s.OnDrainStep != nil {
+				s.OnDrainStep(r.ID, line)
+			}
+		},
 		Idle: func(ctx context.Context) (bool, string, error) { return s.idle(ctx, r) },
 	}
 	err := d.Act(ctx, func(ctx context.Context) error {
@@ -655,4 +681,81 @@ func (s *Service) ReportFound(ctx context.Context, machineID string, found []bac
 		}
 	}
 	return nil
+}
+
+// stopRemaining ends a plan as stopped: every step that has not run is skipped.
+func stopRemaining(p *Plan) {
+	for i := range p.Steps {
+		switch p.Steps[i].State {
+		case "planned", "waiting", "running", "":
+			p.Steps[i].State = "skipped"
+			p.Steps[i].Error = "the plan was stopped before this step"
+		}
+	}
+	p.State = PlanStopped
+}
+
+// StopPlan asks a plan that is applying to stop (web-console section 11). The
+// step that runs finishes, no later step starts and the plan ends `stopped`.
+// A plan that is not applying is refused (409). A stop never cuts a running
+// job: a step only adds or removes one runner.
+func (s *Service) StopPlan(ctx context.Context, planID, actor string) (Plan, error) {
+	p, err := s.Store.GetPlan(ctx, planID)
+	if err != nil {
+		return Plan{}, err
+	}
+	if p.State != PlanApplying {
+		return p, refuse("plan %s is %s, so there is nothing to stop", p.ID, p.State)
+	}
+	s.stopMu.Lock()
+	running := s.running[planID]
+	if running {
+		if s.stops == nil {
+			s.stops = map[string]bool{}
+		}
+		s.stops[planID] = true
+	}
+	s.stopMu.Unlock()
+	if s.Audit != nil {
+		s.Audit.Audit(ctx, actor, "plan.stop", "", planID, "stop asked while applying")
+	}
+	if !running {
+		// A replacement waiting for the new runner has no step running: end it now.
+		stopRemaining(&p)
+		p.State = PlanStopped
+		if err := s.Store.SavePlan(ctx, p); err != nil {
+			return p, err
+		}
+	}
+	s.progress(p)
+	return p, nil
+}
+
+func (s *Service) stopAsked(id string) bool {
+	s.stopMu.Lock()
+	defer s.stopMu.Unlock()
+	return s.stops[id]
+}
+
+func (s *Service) beginRun(id string) {
+	s.stopMu.Lock()
+	if s.running == nil {
+		s.running = map[string]bool{}
+	}
+	s.running[id] = true
+	delete(s.stops, id)
+	s.stopMu.Unlock()
+}
+
+func (s *Service) endRun(id string) {
+	s.stopMu.Lock()
+	delete(s.running, id)
+	delete(s.stops, id)
+	s.stopMu.Unlock()
+}
+
+func (s *Service) progress(p Plan) {
+	if s.OnProgress != nil {
+		s.OnProgress(p)
+	}
 }

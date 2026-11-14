@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"io"
 	"log/slog"
 	"net/http"
@@ -10,9 +11,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/configexport"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/machines/secretstest"
 )
 
 type opsEnv struct {
@@ -42,7 +46,10 @@ func newOpsEnv(t *testing.T) *opsEnv {
 		},
 	})
 	mux = http.NewServeMux()
-	Register(mux, Options{Version: "test", DB: db, Logger: log, Settings: ops.Settings, Audit: ops.Audit, Backup: ops.Backup})
+	Register(mux, Options{Version: "test", DB: db, Logger: log, Settings: ops.Settings, Audit: ops.Audit, Backup: ops.Backup, Authn: asRole(auth.RoleOwner),
+		Config: configexport.Source{Version: "test", Settings: ops.Settings, Secrets: secretstest.New(),
+			Named: []configexport.NamedSecret{{Name: "Controller certificate key", Key: "crsp/controller/ca-key"}}},
+		Now: func() time.Time { return time.Date(2026, 11, 14, 10, 5, 0, 0, time.Local) }})
 	return &opsEnv{mux: mux, ops: ops, dir: dir}
 }
 
@@ -157,4 +164,76 @@ func TestDrillWithoutBackupIsAConflict(t *testing.T) {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
 	assertEnvelope(t, rec, CodeConflict)
+}
+
+// R5.24 to R5.27: the export holds every matching row, newest first, named for
+// what it holds then the stamp.
+func TestExportAudit(t *testing.T) {
+	e := newOpsEnv(t)
+	for i := 0; i < 3; i++ {
+		e.do("PATCH", "/api/v1/settings", `{"max_event_streams":`+string(rune('6'+i))+`0}`)
+	}
+	e.do("POST", "/api/v1/backups", "")
+	rec := e.do("GET", "/api/v1/exports/audit", "")
+	if rec.Code != 200 || rec.Header().Get("Content-Type") != "text/csv" {
+		t.Fatalf("%d %s", rec.Code, rec.Header())
+	}
+	if cd := rec.Header().Get("Content-Disposition"); cd != `attachment; filename="crsp-audit-2026-11-14-1005.csv"` {
+		t.Fatalf("Content-Disposition %q", cd)
+	}
+	lines := strings.Split(strings.TrimSpace(rec.Body.String()), "\n")
+	if len(lines) < 5 || !strings.HasPrefix(lines[0], "id,at,actor") {
+		t.Fatalf("csv: %q", rec.Body)
+	}
+	if !strings.Contains(lines[1], "backup") { // newest first
+		t.Errorf("first row is not the newest: %s", lines[1])
+	}
+	// Filter and json.
+	rec = e.do("GET", "/api/v1/exports/audit?format=json&action=settings.update", "")
+	if rec.Code != 200 || rec.Header().Get("Content-Type") != "application/json" ||
+		!strings.Contains(rec.Header().Get("Content-Disposition"), "crsp-audit-2026-11-14-1005.json") {
+		t.Fatalf("%d %v", rec.Code, rec.Header())
+	}
+	var rows []map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &rows); err != nil || len(rows) != 3 {
+		t.Fatalf("json rows %d: %v %s", len(rows), err, rec.Body)
+	}
+}
+
+// More than one page of rows still all come out.
+func TestExportAuditAllPages(t *testing.T) {
+	e := newOpsEnv(t)
+	for i := 0; i < audit.MaxPage+30; i++ {
+		if err := e.ops.Audit.Record(context.Background(), audit.System, "test.row", audit.Target{Type: "t"}, map[string]any{"summary": "=cmd"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rec := e.do("GET", "/api/v1/exports/audit?action=test.row", "")
+	if n := strings.Count(rec.Body.String(), "\n"); n != audit.MaxPage+30+1 {
+		t.Fatalf("%d lines", n)
+	}
+	if !strings.Contains(rec.Body.String(), "'=cmd") {
+		t.Error("a formula summary was not neutralised")
+	}
+}
+
+// R5.29, R5.26: YAML of the configuration; a secret only as set or not set.
+func TestExportConfig(t *testing.T) {
+	e := newOpsEnv(t)
+	rec := e.do("GET", "/api/v1/exports/config", "")
+	if rec.Code != 200 || rec.Header().Get("Content-Type") != "application/yaml" {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+	if cd := rec.Header().Get("Content-Disposition"); cd != `attachment; filename="crsp-config-2026-11-14-1005.yaml"` {
+		t.Fatalf("Content-Disposition %q", cd)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{"retention:", "time_local: \"03:00\"", "name: Controller certificate key", "state: not set"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("missing %q in\n%s", want, body)
+		}
+	}
+	if rec := e.do("GET", "/api/v1/audit?action=config.export", ""); !strings.Contains(rec.Body.String(), "config.export") {
+		t.Errorf("the export was not audited: %s", rec.Body)
+	}
 }

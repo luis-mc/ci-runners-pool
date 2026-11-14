@@ -23,11 +23,11 @@ generator: luismc-docs 2.6.0
 
 The top half (sections 1 to 4) is for every reader: product, design, UX. The bottom half (5 to 12) is for engineers.
 
-The M1 console is built (CRSP24): the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups. Requirements marked (built, CRSP24) are built. Everything else in this spec is **NOT YET IMPLEMENTED**: the jobs, images and caches and doctor screens, the later settings sub-pages, and the server side of serving (R5.1, R5.2, R6.1 to R6.5, R6.12, R6.13).
+The M1 console is built (CRSP24): the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups. Requirements marked (built, CRSP24) are built. The serving side is built (CRSP33, changed by CRSP42): plain HTTP on 127.0.0.1 and ::1, HTTPS on every other address, the headers, the session cookie, the CSRF and Origin checks and the role check on every operation (R5.1, R6.1 to R6.5). The axe, performance and offline checks are built (CRSP34: R6.6, R6.12, R6.13). The jobs, doctor, images and caches screens and the later settings sub-pages are built (CRSP35 to CRSP37). Everything else in this spec is **NOT YET IMPLEMENTED**, as listed in the last section.
 
 ## 1. In one paragraph
 
-The web console is the browser app of CI Runners Shared Pool. The controller serves it on the local network over HTTPS, on port 8460. Every user signs in with GitHub. The console has a header, a top menu, a command palette and keyboard shortcuts. It has nine screens: sign-in and first-run, overview, repositories, machines, runners, jobs, images and caches, doctor, and settings. The owner uses it to set the pool up and to change it. Admins change it too. Viewers watch it.
+The web console is the browser app of CI Runners Shared Pool. The controller serves it on port 8460: plain HTTP on 127.0.0.1 and ::1, HTTPS on every other address. Every user signs in with GitHub. The console has a header, a top menu, a command palette and keyboard shortcuts. It has nine screens: sign-in and first-run, overview, repositories, machines, runners, jobs, images and caches, doctor, and settings. The owner uses it to set the pool up and to change it. Admins change it too. Viewers watch it.
 
 ## 2. Why
 
@@ -77,7 +77,7 @@ flowchart TD
 
 The steps in words:
 
-1. The user opens `https://<controller>:8460`. The controller serves the console and its API from one binary (decision 0001).
+1. The user opens `http://127.0.0.1:8460` on the controller machine or `https://<controller>:8460` from another one. The controller serves the console and its API from one binary (decision 0001).
 2. A fresh controller has no GitHub App yet, so nobody can sign in with GitHub. The setup page opens only through a one-time setup link. The tray's Open, `crsp open` and the controller's first start each give one.
 3. The first wizard creates the controller's own GitHub App with GitHub's manifest flow (decision 0002).
 4. The user signs in with GitHub through the App's user OAuth flow. The first person to sign in becomes the owner. Later users get in only when the owner has added their GitHub login.
@@ -244,24 +244,25 @@ Settings hold configuration only (UX-52). Sub-pages sit under one Settings area,
 |---|---|---|---|---|
 | Users and roles | Who may sign in, as owner, admin or viewer | `listUsers`, `addUser`, `updateUserRole`, `removeUser` | Add a GitHub login with a role; change a role; remove a user (question card naming the login, UX-62) | M1 |
 | Appearance | The user's theme: system, dark or light (UX-60) | `getPreferences`, `updatePreferences` | A one-choice list saved at once (component 13) | M1 |
-| Budgets | The pool's default load budget, slots and drain timeout for new machines | `getPoolSettings`, `updatePoolSettings` | Save; a change that restarts runners names the jobs it waits for (UX-62) | later |
-| Notifications | Channels (email, webhook, desktop) and the events each one gets | `listNotificationChannels`, `createNotificationChannel`, `updateNotificationChannel`, `deleteNotificationChannel`, `testNotificationChannel` | Add, edit, delete (question card), send a test | later (milestone 8) |
-| Updates | The runner version and the agent version, and when they update | `getUpdateStatus`, `updateUpdatePolicy`, `startUpdate` | Update now: a question card that names the machines and the jobs the drain waits for (UX-62) | later (milestone 3) |
-| Audit log | Who changed what, and when | `listAuditEvents`, `exportAuditEvents` | Export (component 29, UX-39) | later |
-| Config export | The configuration as a file, without secrets | `exportConfig` | Export, named for what it holds then the file stamp (UX-39) | later (milestone 8) |
+| Budgets | The pool's default load budget, slots and drain timeout for new machines, and the order of the queue | `getPoolSettings`, `updatePoolSettings`, `getQueueSettings`, `updateQueueSettings` | Save (admin); a change that restarts runners names the jobs it waits for (UX-62). A pool default only reaches machines that join later, so the page says no runner restarts and no job is waited for | M1 (built, CRSP37) |
+| Notifications | Channels (email, webhook, desktop) and the events each one gets | `listNotificationChannels`, `createNotificationChannel`, `updateNotificationChannel`, `deleteNotificationChannel`, `testNotificationChannel` | Add, edit, delete (question card), Send test | M1 for channels and Send test (built, CRSP37); event delivery later (milestone 8) |
+| Updates | The runner version and the agent version, and when they update | `getUpdateStatus`, `checkForUpdate`, `applyUpdate`, `updateSettings` (auto_update) | Update now: a question card that names the machines and the jobs the drain waits for (UX-62) | later (milestone 3) |
+| Audit log | Who changed what, and when | `listAuditEvents`, `exportAuditEvents` | Export (component 29, UX-39) | built (CRSP37) |
+| Config export | The configuration as a file, without secrets | `exportConfig` | Export, named for what it holds then the file stamp (UX-39) | built (CRSP37) |
 
 - **Users and roles:** a table (component 15) of GitHub login, role, added by, added at, last sign-in. There is one owner. The owner's own row has no Remove. The roles are in section 5.
 - **States:** each sub-page has loading, could not load and, for lists, empty ("No other users yet. Add a GitHub login to let someone in.").
+- **Notifications (built, CRSP37):** a table (component 15) of the channels with name, kind, where it sends, events, lowest severity, on or off and the last test; one form (Add and Edit) that ends with Cancel and Save (UX-24); **Send test** per row, busy and disabled while it runs, one result line under the table (UX-13, UX-27, UX-38); **Delete** with a question card that names the channel and the events it stops carrying (UX-62, R5.30). A secret is never shown again. A viewer sees only their own channels and cannot pick a webhook, with the reason beside it. Empty: "No channels yet. Add a channel to be told when a machine, job or disk needs you."
 - **Detail:** budgets are in `machines` and `scheduling`; notifications in `notifications`; updates, backup and config export in `operations`; the audit log in `observability`.
 - **Components:** 1, 3, 7, 8, 9, 13, 14, 15, 17, 19, 22, 24, 29, 37.
 
 ## 5. Functional requirements
 
-Requirements marked (built, CRSP24) are built. The others are **NOT YET IMPLEMENTED**.
+Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are **NOT YET IMPLEMENTED**.
 
 ### Serving and the shell
 
-**R5.1** — The controller serves the console and its API on one HTTPS port, 8460 by default, set in config. It serves no plain-HTTP console.
+**R5.1** (built, CRSP33, changed by CRSP42, D38) — The controller serves the console and its API on one port, 8460 by default, set in config. On `127.0.0.1` and `::1` (and only there) the port speaks plain HTTP, so the default address works without a certificate warning. On every other address, a name, a LAN address or a wildcard, it speaks HTTPS only, with the certificate the controller's own CA made (`internal/tlsca`, the one the agent link uses), TLS 1.3 only, and a plain-HTTP request gets TLS's refusal, never a page. The R6.3 headers, the CSRF and Origin checks and the role check hold on both. An OAuth callback over HTTP on a non-loopback host is refused (github-integration R5.4, R6.4).
 
 **R5.2** — Any path that is not under `/api/` returns the console, so a deep link opens its screen after sign-in. An unknown console path shows the not-found state with a link to the overview.
 
@@ -321,17 +322,17 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.23** (built, CRSP24) — The runners screen lists runners live with their isolation word, labels, state, job and age. It adds runners only on machines whose backends support the chosen OS, and deletes runners.
 
-**R5.24** — The jobs screen shows the queue with each job's wait reason, and the history with filters by repository, machine, result and time range. Export holds every row of the filter, in the order shown.
+**R5.24** (built, CRSP35) — The jobs screen shows the queue with each job's wait reason, and the history with filters by repository, machine, result and time range. Each row opens the detail, with a link to the run on GitHub. Export holds every row of the filter, in the order shown.
 
-**R5.25** — The images and caches screen shows images with layers and sizes, and caches with size and cap. It changes layers, rebuilds an image after a drain, and wipes a cache.
+**R5.25** (built in part, CRSP36: caches; images with milestone 2) — The images and caches screen shows images with layers and sizes, and caches with size and cap. It changes layers, rebuilds an image after a drain, and wipes a cache.
 
-**R5.26** — The doctor screen lists every finding with its status and fix, and runs the doctor on demand.
+**R5.26** (built, CRSP35) — The doctor screen lists every finding with its status and fix, and runs the doctor on demand.
 
-**R5.27** (built, CRSP24) — The settings area has the seven sub-pages of section 4.9.
+**R5.27** (built, CRSP24; Budgets built, CRSP37) — The settings area has the seven sub-pages of section 4.9. Budgets is one form with Cancel and Save: the memory and CPU budget, job slots, drain timeout and sizing of slots for new machines, and the four queue keys in order, fair share and the no-runner wait. A repeated key is refused on the page before anything is sent. A viewer sees the form, and Save is off with its reason.
 
 **R5.28** (built, CRSP24) — Users and roles adds a GitHub login with a role, changes a role and removes a user. There is always exactly one owner, and the owner cannot remove themselves or lose the owner role.
 
-**R5.29** — Config export downloads the configuration without any secret, in a file named for what it holds and the file stamp.
+**R5.29** (built, CRSP37) — Config export downloads the configuration without any secret, in a file named for what it holds and the file stamp.
 
 **R5.30** (built, CRSP24) — Every destructive action (delete a runner, remove a machine, wipe a cache, turn the pool off, remove a user, a drain, a rebuild, an update) first shows a question card that names each item that goes and each running job it waits for. Nothing changes until the user says yes.
 
@@ -341,19 +342,19 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 ## 6. Non-functional requirements
 
-Requirements marked (built, CRSP24) are built. The others are **NOT YET IMPLEMENTED**.
+Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are **NOT YET IMPLEMENTED**.
 
-**R6.1** — The session lives in a cookie that is `HttpOnly`, `Secure`, `SameSite=Lax` and host-only. Its value is a random 256-bit id. The controller stores only its hash. The session never expires by time; it ends at sign-out, when the user is removed, or when their role changes (github-integration R5.13).
+**R6.1** (built, CRSP33, changed by CRSP42, D38, D39) — The session lives in a cookie that is `HttpOnly`, `SameSite=Lax` and host-only, and `Secure` on every address except `127.0.0.1` and `::1` (on loopback the console is plain HTTP, where a `Secure` cookie would never come back). Its value is a random 256-bit id. The controller stores only its hash. The session never expires by time, idle or absolute (D39, 14 Nov); it ends at sign-out, when the user is removed, or when their role changes (github-integration R5.13). The cookie carries a long `Max-Age`, so a browser restart does not sign anyone out.
 
-**R6.2** — Every request that changes something carries a per-session CSRF token, and the controller refuses a request whose `Origin` is not the console's own.
+**R6.2** (built, CRSP33) — Every request that changes something carries a per-session CSRF token, and the controller refuses a request whose `Origin` is not the console's own. Section 7 says how.
 
-**R6.3** — The console loads nothing from outside the controller: no CDN, font host, analytics or avatar image. The controller sends a Content Security Policy with `default-src 'self'`, no inline script, and `frame-ancestors 'none'`.
+**R6.3** (built, CRSP33) — The console loads nothing from outside the controller: no CDN, font host, analytics or avatar image. The controller sends a Content Security Policy with `default-src 'self'`, no inline script, and `frame-ancestors 'none'`. The browser half (no outside request while the console runs) is the Playwright check in section 9, not built.
 
-**R6.4** — No secret reaches the browser: not the App private key, the webhook secret, a GitHub token or an agent key. A join code shows only in its wizard, once, and never in a URL, log or audit entry.
+**R6.4** (built, CRSP33) — No secret reaches the browser: not the App private key, the webhook secret, a GitHub token or an agent key. A join code shows only in its wizard, once, and never in a URL, log or audit entry.
 
-**R6.5** — The API checks the role on every operation (its `x-auth`), whatever the console shows. A viewer's change request gets 403.
+**R6.5** (built, CRSP33) — The API checks the role on every operation (its `x-auth`), whatever the console shows. A viewer's change request gets 403. An operation with no role rule is refused, not opened.
 
-**R6.6** — Every screen, in the dark and the light theme, has no serious or critical accessibility violation (axe), one `h1`, landmarks, and a visible focus (UX-17, UX-59).
+**R6.6** (built, CRSP34) — Every screen, in the dark and the light theme, has no serious or critical accessibility violation (axe), one `h1`, landmarks, and a visible focus (UX-17, UX-59).
 
 **R6.7** (built, CRSP24) — Every screen works from 360 px wide to desktop with no sideways page scroll and 44 px touch targets (UX-16, UX-49).
 
@@ -365,9 +366,9 @@ Requirements marked (built, CRSP24) are built. The others are **NOT YET IMPLEMEN
 
 **R6.11** (built, CRSP24) — Under `prefers-reduced-motion` nothing in the console moves (UX-36, UX-59).
 
-**R6.12** — Proposed budgets (owner question Q14): the first screen is usable within 2 s on the local network; the console's first JavaScript is at most 300 KB gzipped; a live event shows on screen within 2 s of the controller sending it.
+**R6.12** (built, CRSP34, decided D40, 14 Nov) — Budgets, confirmed by the owner (D40): the first screen is usable within 2 s on the local network; the console's first JavaScript is at most 300 KB gzipped; a live event shows on screen within 2 s of the controller sending it. The numbers live in one file, `apps/web/perf-budgets.json`; the checks read it, so the owner changes a budget there. Measured at CRSP34 (Linux CI-like run): first screen usable in about 0.25 s, first JavaScript about 113 KB gzipped, live event on screen in about 20 ms.
 
-**R6.13** — The console keeps working when the internet is down: local screens load, and screens that need GitHub say so (UX-28).
+**R6.13** (built, CRSP34) — The console keeps working when the internet is down: local screens load, and screens that need GitHub say so (UX-28).
 
 ## 7. Design
 
@@ -387,7 +388,7 @@ flowchart LR
     api[internal/api: /api/v1, sessions, roles]
     events[Event stream]
   end
-  client -- HTTPS 8460 --> api
+  client -- "HTTPS 8460 (HTTP on loopback)" --> api
   client -- SSE --> events
   Browser -- GET / --> webui
   api --> gh[GitHub App]
@@ -401,7 +402,8 @@ flowchart LR
 - `apps/web/src/screens/<area>/`: one folder per screen.
 - `packages/ui/src/`: the shared components of design system v1. A screen extends a component there and never copies it (UX-2).
 - `packages/contract/`: the OpenAPI contract and the generated client (decision 0001).
-- `internal/webui/`: serves the built console with `go:embed`, with the SPA fallback of R5.2 and the headers of R6.3.
+- `internal/webui/`: serves the built console with `go:embed`, with the SPA fallback of R5.2 (`webui.go`), the headers of R6.3 (`security.go`) and the listener of R5.1 (`serve.go`: plain HTTP on a loopback listener, TLS on any other).
+- `internal/api/authz.go`: the one gate in front of every operation: who is signed in, the role of its `x-auth`, the Origin and the CSRF token (R6.2, R6.5).
 
 **Routes.**
 
@@ -435,8 +437,19 @@ flowchart LR
 | Users | `listUsers`, `addUser`, `updateUserRole`, `removeUser`, `getPreferences`, `updatePreferences` | `web-console` (this spec) |
 | Settings | `getPoolSettings`, `updatePoolSettings` | `machines` |
 | Notifications | `listNotificationChannels`, `createNotificationChannel`, `updateNotificationChannel`, `deleteNotificationChannel`, `testNotificationChannel` | `notifications` |
-| Updates and export | `getUpdateStatus`, `updateUpdatePolicy`, `startUpdate`, `exportConfig` | `operations` |
+| Updates and export | `getUpdateStatus`, `checkForUpdate`, `applyUpdate`, `restartService`, `exportConfig` | `operations` |
 | Audit | `listAuditEvents`, `exportAuditEvents` | `observability` |
+| Stop a plan | `stopRepositoryPlan`, `stopRunnerPlan` | `github-integration`, `runners` |
+
+**Serving and request checks (CRSP33).**
+
+- **Transport (R5.1, D38).** `webui.Serve` looks at the address the listener is bound to (`webui.IsLoopback`: exactly `127.0.0.1` or `::1`). A loopback listener serves plain HTTP. Any other listener (a name, a LAN address, `0.0.0.0`, `::`) serves with `tlsca.Authority.ServerTLS()`: TLS 1.3 only, the certificate of the controller's own CA, and refuses to start without a certificate. A client that speaks plain HTTP to such a port gets TLS's refusal, never a page. The tray's console address and the update health probe use `http` on loopback and `https` elsewhere. The only plain-HTTP listeners left are not the console: the backup restore drill's throwaway listener on a loopback port (`internal/backup`) and the tests' `httptest` servers.
+- **Headers (R6.3).** `webui.Secure` wraps the whole mux, so the console, the API and every error carry: `Content-Security-Policy` (`default-src 'self'`, `script-src 'self'`, `style-src 'self'`, `img-src 'self' data:`, `connect-src 'self'`, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`), `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy: same-origin`, and a `Permissions-Policy` that turns the camera, microphone, location and payment off. There is no `form-action`: the App manifest form posts to GitHub.
+- **Session cookie (R6.1).** `crsp_session`: `HttpOnly`, `Secure` unless the request came to `127.0.0.1` or `::1` (`auth.CookieSecure`: TLS, or a host that is not loopback), `SameSite=Lax`, `Path=/`, no `Domain`, `Max-Age` 400 days. The value is 32 random bytes, URL-safe; the database holds its SHA-256. The setup cookie has the same flags. There is no idle or absolute expiry in the code (D39); `last_seen_at` is informational.
+- **CSRF token (R6.2).** The token of a session is `hex(HMAC-SHA256(key = session id, "crsp-csrf"))`. The controller keeps no copy: it computes the token from the cookie it receives. `getSession` (`GET /api/v1/me`) returns it as `csrf`; the console holds it in memory only (`apps/web/src/api/api.tsx`) and sends it in `X-CSRF-Token` on every request that is not GET or HEAD. A page on another site cannot read it, and another session's token fails. A CLI bearer token is not a browser session: it has no cookie to ride on, so it needs neither the token nor an Origin.
+- **Origin (R6.2).** On a change made with a session, the `Origin` header must be there and equal the address the browser used (scheme, host and port). A change on a public operation (the setup form) is refused when it has an `Origin` that is not the console's own; a client with no `Origin` (curl, the CLI) is not a browser and passes. Reads are not checked.
+- **Roles (R6.5).** `x-auth` of the contract is copied into two Go tables (`githubAreaAuth` in `handlers_auth.go`, `otherAreaAuth` in `authz.go`). `TestEveryOperationHasItsRole` fails when an operation has no entry or a different one, so the first work on a new operation is its row in a table. The gate runs before any handler: not signed in is 401; a role below `x-auth` is 403; an operation with no entry is 403. A role below the need gets 403 even where the area behind the operation is not built, so a refused request learns nothing about it.
+- **No secret reaches the browser (R6.4).** The contract's response schemas hold no field named like a secret (private key, webhook or client secret, token, password, agent key), except `CliTokenCreated.token`, which goes once to the CLI that asked. The join code is `JoinCodeCreated.join_code`, shown in its wizard. Tests: section 9.
 
 **Errors.** Every error uses the `ErrorEnvelope` of the contract. The console reads its `code`: `session_expired` opens the session-ended dialog (R5.11), `forbidden` refreshes the role, and anything else shows could-not-load with the message (UX-28).
 
@@ -461,7 +474,7 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 
 | Requirement | Kind | Test |
 |---|---|---|
-| R5.1 | Go test | NOT YET IMPLEMENTED: `internal/webui/serve_tls_test.go` |
+| R5.1 | Go test | `internal/webui/serve_tls_test.go` (a loopback listener serves plain HTTP with the R6.3 headers; a non-loopback one serves TLS 1.3 with the CA's certificate only, refuses an untrusting client, TLS 1.2 and plain HTTP, and does not start without a certificate; `IsLoopback`), `internal/cli/login_test.go` (login over http on loopback only) |
 | R5.2 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/webui/webui_test.go` (SPA fallback), `e2e/tests/web-console/deep-link.spec.ts` |
 | R5.3 | Vitest | `apps/web/src/shell/Shell.test.tsx` |
 | R5.4 | Vitest, Playwright e2e | `apps/web/src/shell/Shell.test.tsx`, `e2e/tests/web-console/keyboard.spec.ts` |
@@ -479,33 +492,33 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.16 | Vitest, design kit guard | `apps/web/src/screens/setup/Setup.test.tsx`, `apps/web/src/screens/wizards.test.tsx` |
 | R5.17 | Vitest, Playwright e2e | `apps/web/src/screens/wizards.test.tsx`, `e2e/tests/web-console/flows.spec.ts` |
 | R5.18 | Vitest, Playwright e2e | `apps/web/src/screens/wizards.test.tsx`, `e2e/tests/web-console/flows.spec.ts` |
-| R5.19 | design kit guard | `scripts/design/wizard-behaviour.ts` driven by `apps/web/src/screens/wizards.test.tsx`, one driver per wizard |
+| R5.19 | design kit guard | `scripts/design/wizard-behaviour.ts` driven by `apps/web/src/screens/wizards.test.tsx`, one driver per wizard; Stop on an applying plan: the `Stop on a repository plan` and `Stop on a runner plan` tests in the same file, `e2e/tests/web-console/exports-stop.spec.ts` |
 | R5.20 | Vitest | `apps/web/src/screens/overview/Overview.test.tsx` |
 | R5.21 | Vitest | `apps/web/src/screens/repositories/Repositories.test.tsx` |
 | R5.22 | Vitest | `apps/web/src/screens/machines/Machines.test.tsx` |
 | R5.23 | Vitest | `apps/web/src/screens/runners/Runners.test.tsx` |
-| R5.24 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/jobs/Jobs.test.tsx` |
-| R5.25 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/images/ImagesAndCaches.test.tsx` |
-| R5.26 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/doctor/Doctor.test.tsx` |
-| R5.27 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` (M1 sub-pages: Users and roles, Appearance, Retention, Backups) |
+| R5.24 | Vitest, Go test, Playwright e2e | `apps/web/src/screens/jobs/Jobs.test.tsx`, `internal/api/handlers_jobs_export_test.go` (Export holds every row, newest first), `internal/store/jobs_backend_test.go`, `e2e/tests/web-console/jobs-doctor.spec.ts` |
+| R5.25 | Vitest, Playwright e2e, Go test | `apps/web/src/screens/images/ImagesAndCaches.test.tsx`, `e2e/tests/web-console/flows.spec.ts`, `e2e/tests/design-layout.spec.ts`, `internal/api/handlers_caches_test.go` (the images side stays empty until milestone 2) |
+| R5.26 | Vitest, Playwright e2e | `apps/web/src/screens/doctor/Doctor.test.tsx`, `e2e/tests/web-console/jobs-doctor.spec.ts` |
+| R5.27 | Vitest, Playwright | `apps/web/src/screens/settings/Settings.test.tsx` (M1 sub-pages: Users and roles, Appearance, Retention, Backups); `apps/web/src/screens/settings/Budgets.test.tsx`; `apps/web/src/screens/settings/Notifications.test.tsx`; `e2e/tests/web-console/notifications.spec.ts`; `e2e/tests/web-console/flows.spec.ts` (Budgets flows); `e2e/tests/design-layout.spec.ts` (settings budgets, 360, 393, 1300 px) |
 | R5.28 | Vitest | `apps/web/src/screens/settings/Settings.test.tsx` (the Go side stays NOT YET IMPLEMENTED: `internal/api/users_test.go`) |
-| R5.29 | Vitest | NOT YET IMPLEMENTED: `apps/web/src/screens/settings/ConfigExport.test.tsx` |
-| R5.30 | Vitest, Playwright e2e | the question-card tests in each screen test file, `e2e/tests/web-console/flows.spec.ts` |
-| R5.31 | Vitest | the loading, empty and could-not-load tests in each screen test file |
-| R5.32 | Vitest | `packages/ui/src/components/format.test.ts` |
-| R6.1 | Go test | NOT YET IMPLEMENTED: `internal/api/session_cookie_test.go` |
-| R6.2 | Go test | NOT YET IMPLEMENTED: `internal/api/csrf_test.go` |
-| R6.3 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/webui/headers_test.go`, `e2e/tests/web-console/no-external-requests.spec.ts` |
-| R6.4 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/api/no_secrets_test.go`, `e2e/tests/web-console/no-secrets.spec.ts` |
-| R6.5 | Go test | NOT YET IMPLEMENTED: `internal/api/route_coverage_test.go` (x-auth on every route) and `internal/api/roles_test.go` |
-| R6.6 | Playwright e2e | NOT YET IMPLEMENTED: `e2e/tests/web-console/a11y.spec.ts` (axe, both themes) |
+| R5.29 | Vitest, Go test, Playwright e2e | `apps/web/src/screens/settings/ConfigExport.test.tsx`, `internal/configexport/configexport_test.go`, `internal/api/handlers_ops_test.go` (TestExportConfig), `e2e/tests/web-console/exports-stop.spec.ts` |
+| R5.30 | Vitest, Playwright e2e | the question-card tests in each screen test file, `e2e/tests/web-console/flows.spec.ts`, `apps/web/src/screens/settings/Notifications.test.tsx`, `e2e/tests/web-console/notifications.spec.ts` (delete a channel) |
+| R5.31 | Vitest | the loading, empty and could-not-load tests in each screen test file, `apps/web/src/screens/settings/Notifications.test.tsx` |
+| R5.32 | Vitest | `packages/ui/src/components/format.test.ts`, `apps/web/src/screens/settings/Notifications.test.tsx` (last test time) |
+| R6.1 | Go test | `internal/api/session_cookie_test.go` (flags: not Secure on loopback, Secure off loopback; 256-bit value, only the hash stored), `internal/auth/session_test.go` (cookie attributes, `CookieSecure` by address, no time expiry, no idle expiry, survives a restart). |
+| R6.2 | Go test, Vitest | `internal/api/csrf_test.go` (every changing operation of the contract: no token, wrong token, no, foreign or null Origin, per-session token), `apps/web/src/api/csrf.test.tsx` and `apps/web/src/shell/Shell.test.tsx` (the console sends it) |
+| R6.3 | Go test, Playwright e2e | `internal/webui/headers_test.go`; NOT YET IMPLEMENTED: `e2e/tests/web-console/no-external-requests.spec.ts` |
+| R6.4 | Go test, Playwright e2e | `internal/api/no_secrets_test.go` (the contract's response schemas, and the answers of a signed-in console against the stored secrets); NOT YET IMPLEMENTED: `e2e/tests/web-console/no-secrets.spec.ts` |
+| R6.5 | Go test | `internal/api/route_coverage_test.go` (x-auth on every route) and `internal/api/roles_test.go` (every operation of the contract against every role) |
+| R6.6 | Playwright e2e | `e2e/tests/web-console/a11y.spec.ts` (axe, both themes, every screen of the route table in `apps/web/src/App.tsx`, read by `e2e/tests/web-console/routes.ts`) |
 | R6.7 | design kit guard (Playwright) | `e2e/tests/design-layout.spec.ts` on `scripts/design/dom-layout.ts` at 360, 393 and 1300 px |
 | R6.8 | design kit guard | `scripts/design/raw-controls.test.ts`, `scripts/design/no-app-css.test.ts`, `scripts/design/raw-inputs.test.ts` |
 | R6.9 | design kit guard | `scripts/design/contrast.test.ts` |
 | R6.10 | design kit guard | `scripts/design/design-system-follow.test.ts` |
 | R6.11 | design kit guard | `packages/ui/src/components.css` (a `prefers-reduced-motion` rule); no automated check yet |
-| R6.12 | Playwright e2e, Vitest | NOT YET IMPLEMENTED: `e2e/tests/web-console/perf.spec.ts`, `apps/web/src/bundle-size.test.ts` |
-| R6.13 | Playwright e2e | NOT YET IMPLEMENTED: `e2e/tests/web-console/offline-internet.spec.ts` |
+| R6.12 | Playwright e2e, Vitest | `e2e/tests/web-console/perf.spec.ts`, `apps/web/src/bundle-size.test.ts` (budgets in `apps/web/perf-budgets.json`) |
+| R6.13 | Playwright e2e | `e2e/tests/web-console/offline-internet.spec.ts` (every screen of the route table, every non-controller request blocked) |
 
 ## 10. Decisions
 
@@ -534,28 +547,38 @@ For the product:
 
 - **Q10.** Confirm WC-D2: first run as three wizards in a checklist.
 - **Q11.** Confirm WC-D1: a one-time setup link guards first run, so nobody else on the network can claim the owner role.
-- **Q12.** Session idle lifetime and total lifetime: which values?
+- **Q12.** Answered (D39, 14 Nov): there is no idle or total lifetime. A session never expires by time; it ends at sign-out, when the user is removed, or when their role changes (R6.1).
 - **Q13.** Milestone 3 in the brief lists join codes, but milestone 1 needs a first machine. Is the join code in milestone 1?
-- **Q14.** Confirm the budgets of R6.12, or give others.
-- **Q15.** The console is HTTPS on the local network with a certificate the controller makes. Browsers warn on it. Accept the warning, offer a local CA to install, or let the user bring a certificate? (`operations`)
+- **Q14.** Answered (D40, 14 Nov): the budgets of R6.12 are confirmed: 2 s to the first usable screen, 300 KB of first JavaScript gzipped, 2 s for a live event.
+- **Q15.** The console is HTTPS on every address except loopback (D38), with a certificate the controller makes. Browsers warn on it. Accept the warning, offer a local CA to install, or let the user bring a certificate? (`operations`)
 - **Q16.** Answered (D300): the variables are `RUNS_ON_LINUX`, `RUNS_ON_WINDOWS`, `RUNS_ON_MACOS`. Decision 0002 still shows an older example name.
 - **Q17.** The GitHub App's callback URL is the controller address used at first run. When users open the console by another host name or IP, sign-in fails. Redirect every other host name to the first one?
 
 ## 11. Not built yet
 
-Built by CRSP24: the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups (all against the M1 contract and a mocked API in tests).
+Built by CRSP35: the jobs screen (queue with wait reasons, history on a time axis with filters, detail with the run on GitHub, Export of the filter, backed by `exportJobs`) and the doctor screen (findings by area, Run the doctor with progress) (R5.24, R5.26).
+
+Built by CRSP37: the Budgets and Notifications sub-pages (channels, add and edit, Send test, delete with a question card), the Audit log and Config export sub-pages (with the Export button, component 29), and Stop on a repository or runner plan: the Turn on the pool and Add runners wizards offer Stop while Turning on and Registering (the shared wizard part owns the button), the step that runs finishes, no later step starts, the plan ends `stopped`, and Done says what was done and what is left (UX-30); Stop never cuts a running job.
+
+Built by CRSP33 (transport and cookie changed by CRSP42, D38): the serving side (R5.1, R6.1 to R6.5): HTTPS with the CA's certificate off loopback and plain HTTP on it, the R6.3 headers, the session cookie (Secure off loopback), the CSRF token and Origin checks, and the role check of every operation.
+
+Built by CRSP34: the axe check in both themes (R6.6), the performance budgets (R6.12) and the offline check (R6.13). The check found two headings on the five settings pages that are not built yet; they now show their title as a section.
+
+Built by CRSP36: the Images and caches screen (R5.25) for caches. Built by CRSP24: the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups (all against the M1 contract and a mocked API in tests).
 
 **NOT YET IMPLEMENTED:**
 
-- the jobs, images and caches and doctor screens (R5.24 to R5.26): their menu entries open a page that says in which milestone they arrive;
-- the later settings sub-pages: Budgets, Notifications, Updates, Audit log, Config export (R5.29);
-- the serving side: `internal/webui/webui.go` serves over TLS and sends the headers of R6.3 (R5.1, R6.3), the session cookie and CSRF checks (R6.1, R6.2), the role checks (R6.5);
-- an automated axe check in both themes (R6.6), the performance budgets (R6.12), the offline check (R6.13);
-- a way to stop a repository or runner plan that is applying: the contract has no operation for it, so those wizards offer Stop only on Joining.
+- the Images tab has no data: milestone 1 builds no images, so `listImages` returns an empty list and `getImage`, `updateImageLayers` and `rebuildImage` answer 404 `not_found` ("Images arrive with milestone 2"); layer choice, rebuild and the image rows come with the containers of milestone 2. The Caches tab shows the per-runner tool and Rust caches only (caches R5.42); the Actions cache, git mirrors and registry mirror arrive with milestone 7, and no size history exists yet, so the size/cap meter (component 40) stands in for component 31;
+- the later settings sub-pages: none (Updates is built by CRSP19; Budgets, Notifications, Audit log and Config export are built, CRSP37). The delivery of events to a notification channel is NOT YET IMPLEMENTED (notifications spec, section 11);
+- Budgets: a pool change that restarts runners and names the jobs it waits for (UX-62). Today a pool default reaches only machines that join later, so nothing restarts and the page says so; the controller lists no job a pool change waits for because none does yet (machines R5.22a);
+- the SPA fallback test of R5.2, the browser checks `no-external-requests.spec.ts` (R6.3) and `no-secrets.spec.ts` (R6.4);
+- the controller binary does not mount the GitHub area yet (`cmd/crsp/main.go` passes no `Options.GitHub`), so nobody can sign in there: every operation that needs a role answers 401 and the sign-in operations answer 501, until the area is wired;
 
 ## 12. Code map
 
 Source: apps/web/src/App.tsx
+Source: apps/web/perf-budgets.json
+Source: e2e/tests/web-console/routes.ts
 Source: apps/web/src/main.tsx
 Source: apps/web/src/api/api.tsx
 Source: apps/web/src/api/hooks.ts
@@ -572,10 +595,24 @@ Source: apps/web/src/screens/machines/Machines.tsx
 Source: apps/web/src/screens/machines/AddMachine.tsx
 Source: apps/web/src/screens/runners/Runners.tsx
 Source: apps/web/src/screens/runners/AddRunners.tsx
+Source: apps/web/src/screens/jobs/Jobs.tsx
+Source: apps/web/src/screens/doctor/Doctor.tsx
+Source: apps/web/src/screens/images/ImagesAndCaches.tsx
 Source: apps/web/src/screens/settings/Settings.tsx
+Source: apps/web/src/screens/settings/AuditLog.tsx
+Source: apps/web/src/api/download.ts
+Source: apps/web/src/screens/settings/Notifications.tsx
 Source: apps/web/src/screens/setup/Setup.tsx
 Source: packages/ui/src/index.ts
 Source: packages/ui/src/components/Wizard.tsx
+Source: packages/ui/src/components/TimeAxis.tsx
+Source: packages/ui/src/components/Export.tsx
 Source: packages/ui/src/components.css
 Source: packages/contract/openapi.yaml
+Source: internal/api/handlers_jobs_export.go
+Source: internal/api/handlers_export.go
+Source: internal/configexport/configexport.go
 Source: internal/webui/webui.go
+Source: internal/webui/security.go
+Source: internal/webui/serve.go
+Source: internal/api/authz.go

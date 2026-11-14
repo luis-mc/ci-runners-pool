@@ -10,10 +10,12 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/events"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/settings"
@@ -37,6 +39,12 @@ type Options struct {
 	Settings *settings.Service
 	Audit    *audit.Log
 	Backup   *backup.Service
+	// Config writes the configuration export (exportConfig); nil answers 501.
+	Config ConfigExporter
+	// Now stamps export file names; nil uses the clock.
+	Now func() time.Time
+	// Events receives plan.progress after a stop request; nil publishes nothing.
+	Events events.Publisher
 	// Update serves the update and restart routes (handlers_update.go). Nil answers 501.
 	Update UpdateService
 	// GitHub is the GitHub integration area (setup, sign-in, users,
@@ -54,6 +62,14 @@ type Options struct {
 	Live LiveService
 	// Doctor serves the doctor routes (handlers_doctor.go). Nil answers 501.
 	Doctor DoctorService
+	// Caches serves the caches routes (handlers_caches.go). Nil answers 501.
+	Caches CachesService
+	// Notify serves the notification channel routes (handlers_notify.go). Nil answers 501.
+	Notify NotifyService
+	// Authn says who a request acts as. Nil uses the GitHub area's sessions and
+	// CLI tokens; with neither, every operation that needs a role answers 401.
+	// A test passes a fixed principal.
+	Authn Authenticator
 }
 
 type server struct {
@@ -68,14 +84,17 @@ func Register(mux *http.ServeMux, opts Options) {
 	if opts.Logger == nil {
 		opts.Logger = slog.Default()
 	}
-	var strictMW []gen.StrictMiddlewareFunc
 	var httpMW []gen.MiddlewareFunc
+	authn := opts.Authn
 	if opts.GitHub != nil {
-		strictMW = append(strictMW, opts.GitHub.StrictMiddleware())
 		httpMW = append(httpMW, opts.GitHub.HTTPMiddleware())
-	} else {
-		strictMW = append(strictMW, unwiredGitHub())
+		if authn == nil {
+			authn = opts.GitHub
+		}
 	}
+	// One middleware checks every operation: who signed in, the role of its
+	// x-auth, the Origin and the CSRF token of a change (R6.2, R6.5).
+	strictMW := []gen.StrictMiddlewareFunc{newAuthz(authn, opts.GitHub != nil, opts.Logger).middleware()}
 	strict := gen.NewStrictHandlerWithOptions(&server{opts: opts}, strictMW, gen.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
 			opts.Logger.Debug("bad request", "err", err)

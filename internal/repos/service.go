@@ -20,6 +20,9 @@ type Config struct {
 	Audit    Auditor
 	Capacity Capacity
 	Now      func() time.Time
+	// OnProgress, when set, is called with the plan after each step and when
+	// the plan ends or is stopped (the plan.progress event).
+	OnProgress func(Plan)
 }
 
 // Service is the pool switch, policy, variables and runs-on check.
@@ -31,6 +34,10 @@ type Service struct {
 	synced map[int64]time.Time
 	etags  map[int64]map[string]string // repository id -> workflow path -> etag
 	cache  map[int64]map[string][]byte // repository id -> workflow path -> content
+
+	stopMu  sync.Mutex
+	stops   map[string]bool // plan id -> a stop was asked while it applies
+	running map[string]bool // plan id -> ApplyPlan is running it in this process
 }
 
 // New returns a Service.
@@ -39,7 +46,7 @@ func New(cfg Config) *Service {
 		cfg.Now = time.Now
 	}
 	return &Service{cfg: cfg, admin: map[int64]map[int64]bool{}, synced: map[int64]time.Time{},
-		etags: map[int64]map[string]string{}, cache: map[int64]map[string][]byte{}}
+		etags: map[int64]map[string]string{}, cache: map[int64]map[string][]byte{}, stops: map[string]bool{}, running: map[string]bool{}}
 }
 
 // ErrNotAdmin: the user lacks the GitHub admin permission on the repository.

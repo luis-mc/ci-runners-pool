@@ -43,6 +43,22 @@ func normFingerprint(s string) string {
 	return strings.ToLower(strings.NewReplacer(":", "", " ", "").Replace(s))
 }
 
+// controllerSchemeOK: https for any host, plain http for 127.0.0.1 and [::1]
+// only (D38).
+func controllerSchemeOK(u *url.URL) bool {
+	if u == nil || u.Host == "" {
+		return false
+	}
+	switch u.Scheme {
+	case "https":
+		return true
+	case "http":
+		ip := net.ParseIP(u.Hostname())
+		return ip != nil && (ip.Equal(net.IPv4(127, 0, 0, 1)) || ip.Equal(net.IPv6loopback))
+	}
+	return false
+}
+
 func hostPort(u *url.URL) string {
 	if u.Port() != "" {
 		return u.Host
@@ -71,11 +87,11 @@ func cmdLogin() *command {
 				raw = cur.URL
 			}
 			if raw == "" {
-				return fail(ExitUsage, "Which controller? Run crsp login https://HOST:PORT.")
+				return fail(ExitUsage, "Which controller? Run crsp login https://HOST:PORT (http://127.0.0.1:PORT on the controller machine).")
 			}
 			u, err := url.Parse(raw)
-			if err != nil || u.Scheme != "https" || u.Host == "" {
-				return fail(ExitUsage, "The controller address %q must start with https://.", raw)
+			if err != nil || !controllerSchemeOK(u) {
+				return fail(ExitUsage, "The controller address %q must start with https:// (http:// only for 127.0.0.1 or [::1]).", raw)
 			}
 			base := strings.TrimRight(u.String(), "/")
 			if name == "" {
@@ -86,7 +102,8 @@ func cmdLogin() *command {
 			if existing, ok := cf.ByURL(base); ok {
 				fp = existing.Fingerprint
 			}
-			if fp == "" {
+			// A loopback controller speaks plain HTTP: no certificate, no pin.
+			if fp == "" && u.Scheme == "https" {
 				seen, err := fetchFingerprint(c.env.Context, hostPort(u))
 				if err != nil {
 					return unreachable(base, err)

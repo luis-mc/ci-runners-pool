@@ -1,7 +1,9 @@
 package agent
 
 import (
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/load"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
@@ -22,7 +24,12 @@ type Gate struct {
 	have     bool
 	state    string // active, draining or drained
 	running  map[string]machines.JobRef
-	sampler  *load.Sampler
+	// scope holds the runners a scoped drain keeps new jobs out of (R5.57); nil
+	// means no scoped drain.
+	scope map[string]bool
+	// held names the runners that take no new job while a cache wipe waits.
+	held    map[string]bool
+	sampler *load.Sampler
 }
 
 // NewGate returns a gate over a load sampler. Until settings arrive it holds
@@ -69,6 +76,12 @@ func (g *Gate) Start(key string, job machines.JobRef, backend string) Decision {
 	if g.state != machines.StateActive {
 		why = append(why, "machine_"+g.state)
 	}
+	if g.scope[strings.ToLower(job.RunnerName)] {
+		why = append(why, "runner_draining")
+	}
+	if job.RunnerName != "" && g.held[job.RunnerName] {
+		why = append(why, "cache_wipe")
+	}
 	if len(g.running) >= g.settings.JobSlots {
 		why = append(why, "free_slot")
 	}
@@ -87,6 +100,9 @@ func (g *Gate) Start(key string, job machines.JobRef, backend string) Decision {
 	}
 	if len(why) > 0 {
 		return Decision{Reasons: why}
+	}
+	if job.StartedAt.IsZero() {
+		job.StartedAt = time.Now().UTC()
 	}
 	g.running[key] = job
 	return Decision{Go: true}
@@ -132,9 +148,34 @@ func (g *Gate) Hold() (idle bool, waitingFor []machines.JobRef) {
 	return len(g.running) == 0, waitingFor
 }
 
+// HoldRunners is Hold for a runner set: it keeps new jobs out of those runners
+// only and reports idle when no job runs on one of them, whatever the other
+// runners of the machine do (R5.57). The idle check and the hold are one step,
+// as in Hold (R5.32). No runner names is Hold for the whole machine.
+func (g *Gate) HoldRunners(runners []string) (idle bool, waitingFor []machines.JobRef) {
+	if len(runners) == 0 {
+		return g.Hold()
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.scope == nil {
+		g.scope = map[string]bool{}
+	}
+	for _, r := range runners {
+		g.scope[strings.ToLower(r)] = true
+	}
+	for _, j := range g.running {
+		if g.scope[strings.ToLower(j.RunnerName)] {
+			waitingFor = append(waitingFor, j)
+		}
+	}
+	return len(waitingFor) == 0, waitingFor
+}
+
 // Release lets new jobs start again (resume, R5.34).
 func (g *Gate) Release() {
 	g.mu.Lock()
+	g.scope = nil
 	g.state = machines.StateActive
 	g.mu.Unlock()
 }
@@ -150,5 +191,30 @@ func (g *Gate) State() string {
 func (g *Gate) MarkDrained() {
 	g.mu.Lock()
 	g.state = machines.StateDrained
+	g.mu.Unlock()
+}
+
+// HoldRunner keeps new jobs of one runner out and, in the same step, reports
+// whether that runner is idle and which jobs it still waits for (caches R5.32).
+// Call it again until idle is true; each call is a fresh check.
+func (g *Gate) HoldRunner(name string) (idle bool, waitingFor []machines.JobRef) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.held == nil {
+		g.held = map[string]bool{}
+	}
+	g.held[name] = true
+	for _, j := range g.running {
+		if j.RunnerName == name {
+			waitingFor = append(waitingFor, j)
+		}
+	}
+	return len(waitingFor) == 0, waitingFor
+}
+
+// ReleaseRunner lets the runner take jobs again.
+func (g *Gate) ReleaseRunner(name string) {
+	g.mu.Lock()
+	delete(g.held, name)
 	g.mu.Unlock()
 }

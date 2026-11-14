@@ -144,6 +144,12 @@ type Runner struct {
 	// HookProbe is what the agent saw when it ran the runner's job-started hook
 	// as the service account in probe mode; nil when it did not run it (R5.29).
 	HookProbe *HookProbe
+	// ListenerKnown is true when the agent looked for the runner's listener
+	// processes (Runner.Listener started from the runner folder). ListenerPIDs
+	// are their process ids; ServiceRunning is the service state (R5.30).
+	ListenerKnown  bool
+	ListenerPIDs   []int
+	ServiceRunning bool
 }
 
 // HookProbe is the result of one run of a runner's real job-started hook script

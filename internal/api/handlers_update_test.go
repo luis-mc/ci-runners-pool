@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"io"
 	"log/slog"
 	"net/http"
@@ -35,7 +36,7 @@ func (f *fakeUpdate) Apply(ctx context.Context, k update.Kind, confirmed bool, _
 
 func updateMux(f UpdateService) *http.ServeMux {
 	mux := http.NewServeMux()
-	Register(mux, Options{Version: "1.4.0", DB: okPinger{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Update: f})
+	Register(mux, Options{Version: "1.4.0", DB: okPinger{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Update: f, Authn: asRole(auth.RoleOwner)})
 	return mux
 }
 

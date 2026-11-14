@@ -226,12 +226,12 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 		if err := persistent.WriteMeta(b.d.FS, folder+"/"+persistent.MetaFile, wantMeta); err != nil {
 			return h, err
 		}
-		return h, b.restart(ctx, label)
+		return h, b.restart(ctx, label, folder)
 	case persistent.Reregister:
 		if cfg.Removal == "" {
 			return h, errors.New("registering again in place needs a remove token for the old runner")
 		}
-		if err := b.bootout(ctx, have.Service); err != nil {
+		if err := b.stopDaemon(ctx, have.Service, have.Folder); err != nil {
 			return h, err
 		}
 		if err := b.configure(ctx, "remove old registration", have.Folder, have.Account, []string{"remove"}, cfg.Removal); err != nil {
@@ -279,9 +279,28 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	return h, nil
 }
 
-func (b *Backend) restart(ctx context.Context, label string) error {
-	_, err := b.run(ctx, "restart", sys.Command{Name: "launchctl", Args: []string{"kickstart", "-k", "system/" + label}})
+// restart unloads the daemon, waits for the listener itself to end, and loads
+// it again: never a second listener beside one that is still alive (R5.46).
+func (b *Backend) restart(ctx context.Context, label, folder string) error {
+	if err := b.stopDaemon(ctx, label, folder); err != nil {
+		return err
+	}
+	_, err := b.run(ctx, "bootstrap", sys.Command{Name: "launchctl", Args: []string{"bootstrap", "system", b.plistPath(label)}})
 	return err
+}
+
+// stopDaemon unloads the daemon and waits until the listener of the runner
+// folder is gone.
+func (b *Backend) stopDaemon(ctx context.Context, label, folder string) error {
+	if err := b.bootout(ctx, label); err != nil {
+		return err
+	}
+	if folder == "" {
+		return nil
+	}
+	return persistent.WaitNoListener(ctx, func(ctx context.Context) ([]int, error) {
+		return persistent.UnixListeners(ctx, b.d.Cmd, folder)
+	}, 0, 0, b.d.Sleep)
 }
 
 // bootout unloads the daemon; a daemon that is not loaded is fine.
@@ -407,7 +426,15 @@ func (b *Backend) writeFiles(ctx context.Context, folder, user, env string) erro
 // Stop unloads the daemon. Callers drain first and check for an idle runner
 // right before (runners R6.4).
 func (b *Backend) Stop(ctx context.Context, h backend.Handle) error {
-	return b.bootout(ctx, h.Ref)
+	f, ok, err := b.lookup(ctx, h.Ref)
+	if err != nil {
+		return err
+	}
+	folder := ""
+	if ok {
+		folder = f.Folder
+	}
+	return b.stopDaemon(ctx, h.Ref, folder)
 }
 
 // Deregister removes the runner from GitHub with a remove token and checks the
@@ -420,7 +447,7 @@ func (b *Backend) Deregister(ctx context.Context, h backend.Handle, removeToken 
 	if !ok {
 		return nil
 	}
-	if err := b.bootout(ctx, h.Ref); err != nil {
+	if err := b.stopDaemon(ctx, h.Ref, f.Folder); err != nil {
 		return err
 	}
 	if err := b.configure(ctx, "deregister", f.Folder, f.Account, []string{"remove"}, removeToken); err != nil {

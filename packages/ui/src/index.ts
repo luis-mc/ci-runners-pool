@@ -14,6 +14,8 @@ export * from './components/Card';
 export * from './components/Progress';
 export * from './components/State';
 export * from './components/Table';
+export * from './components/TimeAxis';
+export * from './components/Export';
 export * from './components/Fields';
 export * from './components/Dialog';
 export * from './components/Controls';

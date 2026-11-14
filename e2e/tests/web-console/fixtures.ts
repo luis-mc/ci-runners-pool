@@ -107,6 +107,19 @@ export const runner = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+export const cache = (over: Record<string, unknown> = {}) => ({
+  id: 'c1',
+  kind: 'tool_cache',
+  machine_id: 'm1',
+  runner_id: 'r1',
+  runner_name: 'crsp-linux-1',
+  size_bytes: 3_200_000_000,
+  cap_bytes: 10_000_000_000,
+  entry_count: 42,
+  state: 'ready',
+  ...over,
+});
+
 export const overview = (machines: unknown[] = [machine()]) => ({
   machines,
   queued_count: 2,
@@ -209,6 +222,8 @@ export function signedIn(user: unknown = owner): Mock {
     .on('GET', '/api/v1/machines/:id', machine())
     .on('GET', '/api/v1/repositories/:id', repository())
     .on('GET', '/api/v1/runners', { items: [runner()] })
+    .on('GET', '/api/v1/images', { items: [] })
+    .on('GET', '/api/v1/caches', { items: [cache()] })
     .on('GET', '/api/v1/github/repositories', {
       items: [repository()],
       stale: { stale: false },

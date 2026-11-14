@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/cli"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
@@ -140,11 +141,14 @@ func runController() error {
 	})
 
 	idle := &idleHook{}
-	mr, err := startMachines(ctx, cfg, logger, idle)
+	mr, err := startMachines(ctx, cfg, logger, idle, audit.New(db), poolDefaults(ops.Settings))
 	if err != nil {
 		return err
 	}
 	defer mr.Close()
+	// A drain names the job that holds it and flags one far past its usual
+	// duration, from job history (machines R5.55, R5.56).
+	mr.Service.SetTypical(usualDuration(db))
 
 	um := startUpdates(ctx, cfg, logger, mr, ops.Settings, idle)
 	queue := scheduler.NewEngine(db, scheduler.WithLogger(logger))
@@ -156,35 +160,37 @@ func runController() error {
 	}
 	ctl, err := buildController(ctx, controllerDeps{
 		Cfg: cfg, Logger: logger, DB: db, Secrets: sec, Ops: ops,
-		Machines: mr.Service, CA: mr.CA, Updates: um, Queue: queue,
+		Machines: mr.Service, CA: mr.CA, Updates: um, Queue: queue, Caches: mr.Caches, MachineSecrets: mr.Secrets,
 	})
 	if err != nil {
 		return err
 	}
 	defer ctl.Close()
 
+	// The one-time link the tray's Open asks for over the local channel (tray R5.6 to R5.9, R6.1).
+	console := consoleURL(cfg.ListenAddr)
 	startTrayChannel(ctx, logger, trayBackend{
-		Updates: um, Drain: machineDrainer{svc: mr.Service}, Console: consoleURL(cfg.ListenAddr),
-		Links: setupOrConsole{auth: ctl.Auth, console: consoleURL(cfg.ListenAddr)},
+		Updates: um, Drain: machineDrainer{svc: mr.Service}, Console: console,
+		Links: setupOrConsole{auth: ctl.Auth, console: console, next: authLinks{svc: ctl.Auth, console: console}},
 	})
 
 	mux := http.NewServeMux()
 	api.Register(mux, ctl.Options)
 	mux.Handle("/", webui.Handler())
 
-	srv := &http.Server{
-		Addr:              cfg.ListenAddr,
-		Handler:           api.Recover(logger, mux),
-		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      60 * time.Second,
-		IdleTimeout:       2 * time.Minute,
+	// The console and its API are plain HTTP on 127.0.0.1 and ::1 only, and
+	// HTTPS only on every other address (web-console R5.1), with the
+	// certificate of the controller's own CA, the same one the agent link uses.
+	srv := webui.NewServer(cfg.ListenAddr, mr.CA.ServerTLS(), api.Recover(logger, mux))
+	ln, err := webui.Listen(ctx, cfg.ListenAddr)
+	if err != nil {
+		return err
 	}
 
 	errc := make(chan error, 1)
 	go func() {
-		logger.Info("controller listening", "addr", cfg.ListenAddr, "version", version)
-		errc <- srv.ListenAndServe()
+		logger.Info("controller listening", "addr", cfg.ListenAddr, "version", version, "tls", !webui.IsLoopback(cfg.ListenAddr))
+		errc <- webui.Serve(srv, ln)
 	}()
 
 	select {

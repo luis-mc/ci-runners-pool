@@ -7,6 +7,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
@@ -409,7 +410,8 @@ func TestStaleEnvOnlyRewrites(t *testing.T) {
 	if err := start(t, r, spec, backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
 		t.Fatal(err)
 	}
-	if len(r.cmd.Calls) != 1 || !strings.Contains(r.cmd.Calls[0].Stdin, "Restart-Service") {
+	if len(r.cmd.Calls) != 3 || !strings.Contains(r.cmd.Calls[0].Stdin, "Stop-Service") ||
+		!strings.Contains(r.cmd.Calls[1].Stdin, "Get-Process") || !strings.Contains(r.cmd.Calls[2].Stdin, "Start-Service") {
 		t.Fatalf("calls = %v", r.cmd.Texts())
 	}
 	if len(r.cmd.Calls[0].SecretEnv) != 0 {
@@ -558,5 +560,27 @@ func TestNoTokenInStartIfMissing(t *testing.T) {
 	r := newRig(t)
 	if err := start(t, r, r.spec(), backend.StartConfig{}); err == nil {
 		t.Fatal("want an error without a registration token")
+	}
+}
+
+// runners R5.46: the service wrapper being stopped is not enough; a listener
+// that is still alive blocks the start, so no second listener appears.
+func TestRestartNeverStartsASecondListener(t *testing.T) {
+	r := newRig(t)
+	r.b.d.Sleep = func(context.Context, time.Duration) {}
+	spec := r.spec()
+	if err := start(t, r, spec, backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
+		t.Fatal(err)
+	}
+	folder := `C:\ProgramData\crsp\runners\box-1`
+	r.fs.Files[folder+`\.env`] = []byte("stale\n")
+	r.cmd.Calls = nil
+	r.cmd.Rules = []sysfake.Rule{{Match: "Get-Process", Result: sys.Result{Stdout: "5120\r\n"}}}
+	err := start(t, r, spec, backend.StartConfig{Registration: "REGTOKEN"})
+	if !errors.Is(err, persistent.ErrListenerAlive) {
+		t.Fatalf("err = %v", err)
+	}
+	if idx(r, "Start-Service") >= 0 {
+		t.Error("Start-Service ran beside a live listener")
 	}
 }

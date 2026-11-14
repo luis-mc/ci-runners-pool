@@ -43,6 +43,17 @@ Each action has one word. The Never use column lists words that must not stand i
 | Restart the service | Stop and start the service after the running jobs end. | Reboot, Reset |
 | Automatic updates | The switch that lets a newer stable release install by itself after the running jobs end. | Auto-upgrade |
 | Quit tray | Close the tray icon only. The service keeps running. | Exit, Close |
+| Export | Save every row of a table or list as a file, in the order shown (component 29). It changes nothing. | Download, Save as |
+| Run the doctor | Start the doctor now. While it runs the button says Running the doctor. | Scan, Check, Run checks |
+| Widen the range | Show a longer time range when the range shown has nothing. | Expand, Zoom |
+| Zoom in, Zoom out | Show a shorter or a longer time range on a time axis. | Narrow, Expand |
+| Show earlier | Load the rows before the last one on a time axis. It is also loaded by itself as the end nears the screen. | More, Older |
+| Wipe | Empty one cache of everything it holds, after the running jobs that use it end. The cache stays. | Clear, Purge, Empty, Flush |
+| Rebuild | Build an image again after the running jobs end. The old image serves until the new one is ready. | Recreate, Refresh, Reinstall |
+| Export config | Save the configuration as a file, without any secret. | Download config, Backup config |
+| Exporting | The busy word of Export, while the controller builds the file. | Downloading |
+| Load more | Read the next rows of a list that has more on the controller. | Show more, Next page |
+| Send test | Send one clearly marked test notice through a channel and say what happened. It changes nothing else. | Test, Ping, Verify, Send a test |
 
 Add a row for each action the project needs. A new action gets a word that is not used above.
 
@@ -129,6 +140,26 @@ A message is one or two short sentences in plain words. It names the thing, neve
 | Past moment | The exact time first, then how long ago. | 2026-11-02 14:30 (5 h ago) |
 | Time left | Short words, never seconds. | about 2 min left |
 | Sentence | Minutes only, and the time zone is never named. | Published 2026-11-02 14:30. |
+| Duration | Short words, seconds kept, never negative. | 45 s, 4 min 12 s, 1 h 5 min |
+
+## Images and caches words
+
+The words of the images and caches screen (web-console 4.7).
+
+| Where | Word |
+|---|---|
+| Tabs | Images, Caches |
+| Cache kinds | Tool cache, Rust build cache, Actions cache, Git mirror, Registry mirror |
+| Empty images | No images yet. Images are built when a runner first needs one. |
+| Empty caches | No caches yet. Caches show here when a runner has been added. |
+| Question title | Wipe {cache}? Rebuild the image of {machine}, {OS}? |
+| Wiping | Wiping {cache}, waiting for {jobs} |
+| Last wiped, none | never |
+| No cap | {size}, no cap |
+| Over the cap | {size} of {cap} ({percent}), over the cap |
+| Wipe failed | Could not wipe {cache}. {why} |
+| Rebuild failed | Could not rebuild. {why} The old image keeps serving. |
+| Layers differ | The saved layers differ from the built image. Rebuild to use them. |
 
 ## Labels
 
@@ -136,6 +167,22 @@ A message is one or two short sentences in plain words. It names the thing, neve
 - A headline says where the user is: "Reports", not "reports/list".
 - A field name is a noun: "Title", not "Enter the title".
 - Mark only optional fields, with "(optional)" after the name.
+
+## Notification words
+
+The events, severities and channel kinds of the notifications feature, as people read them (notifications R5.1, R5.4). The stable type names stay in the API and in webhook bodies; the screen shows these words.
+
+| Word | Meaning |
+|---|---|
+| Machine offline | A machine's agent link has been down longer than the grace time. |
+| Job waiting | A queued job has waited longer than the set time. |
+| Disk low | Free space on a machine's work disk is below the threshold. |
+| Runner outdated | A runner's version is older than the pinned version. |
+| Doctor finding | The doctor reports a new finding. |
+| Update available | A newer stable release exists. |
+| Info, Warning, Error | The lowest severity a channel gets. |
+| Email, Webhook, Desktop | The kinds of channel. |
+| Channel | One way of being told: an email address, a webhook or a desktop notice. |
 
 ## Component words
 

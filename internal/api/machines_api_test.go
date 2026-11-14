@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"io"
 	"log/slog"
 	"net/http"
@@ -36,7 +37,7 @@ func machinesMux(t *testing.T) (*http.ServeMux, *machines.MemRepo, string) {
 		t.Fatal(err)
 	}
 	mux := http.NewServeMux()
-	Register(mux, Options{Version: "test", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Machines: svc, CA: fakeCA{}})
+	Register(mux, Options{Version: "test", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Machines: svc, CA: fakeCA{}, Authn: asRole(auth.RoleOwner)})
 	return mux, repo, res.MachineID
 }
 

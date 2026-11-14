@@ -158,7 +158,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 **R5.12** (M1, built) — **Roles.** A viewer can read every screen and change nothing. An admin can change pool, policy, machines and runners, but not users. The owner can do everything. Every API operation declares its role in `x-auth`, and the route-coverage test checks it.
 
-**R5.13** (M1, built) — **Sessions.** A web session is a random id in a cookie (`HttpOnly`, `SameSite=Lax`, and `Secure` on every non-loopback address). The database keeps only a hash of the id. A session never expires by time (owner decision for M1). It ends at sign-out, when the user is removed, and when their role changes.
+**R5.13** (M1, built) — **Sessions.** A web session is a random id in a cookie (`HttpOnly`, `SameSite=Lax`, and `Secure` on every address except `127.0.0.1` and `::1`, where the console is plain HTTP: web-console R5.1, R6.1). The database keeps only a hash of the id. A session never expires by time, idle or absolute (owner decisions for M1 and D39, 14 Nov). It ends at sign-out, when the user is removed, and when their role changes.
 
 **R5.14** (M1, built) — **CLI device flow.** `crsp login` runs GitHub's device flow with the App's client id. It shows the code and the URL, and waits at the interval GitHub gives. It sends the GitHub user token once to the controller, which checks it with `POST /applications/{client_id}/token` and that the user is allowed. The controller returns its own CLI token. The CLI keeps that token in the OS secret store and drops the GitHub token.
 
@@ -242,6 +242,8 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R5.38** (M1, NOT YET IMPLEMENTED) — **Reconcile.** Whatever the source, the controller reconciles its job view with REST every 5 minutes. A missed webhook or a broken session never leaves a job waiting unseen for longer than that.
 
+**R5.39** (M1, v0.2.0, NOT YET IMPLEMENTED) — **Legacy variable names during the move (transition).** A repository setting `legacy_vars` (off by default) makes the product also write `CI_RUNS_ON` (the Linux label list) and `CI_RUNS_ON_WINDOWS` (the Windows one) with the same JSON as `RUNS_ON_LINUX` and `RUNS_ON_WINDOWS`, and delete them under the same rules (R5.28, R5.29). It exists because workflows that follow the old dev-standards templates read those names until dev-standards moves to `RUNS_ON_*` (its decisions D300, D307). The console shows when it is on and the doctor warns when it stays on after no workflow reads the old names. It never touches `NIGHTLY_RUNS_ON`, which the owner sets by hand. A repository moves from the old pool to crsp by this variable alone; it moves back by setting the old labels again.
+
 ## 6. Non-functional requirements
 
 **R6.1** (M1, NOT YET IMPLEMENTED) — **Secrets only in the OS secret store.** The App private key, client secret, webhook secret, CLI tokens and any GitHub user refresh token live only in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service, or a file with mode 0600 when no service exists. They never go to the database, config files, environment files, logs, crash files, API responses or the audit log.
@@ -250,7 +252,7 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R6.3** (M1, NOT YET IMPLEMENTED) — **Redaction.** The logger redacts every value that matches a GitHub token prefix (`ghs_`, `ghu_`, `ghr_`, `gho_`, `ghp_`, `github_pat_`), a PEM block, or a known secret value. A test feeds each kind through every log path and finds none in the output.
 
-**R6.4** (M1, NOT YET IMPLEMENTED) — **Transport.** Any non-loopback console address serves only HTTPS. Plain HTTP is allowed only on `127.0.0.1` and `::1`. An OAuth callback that arrives over HTTP on a non-loopback host is refused.
+**R6.4** (M1, built, CRSP33, changed by CRSP42, D38) — **Transport.** Any non-loopback console address serves only HTTPS, with the controller CA's certificate (TLS 1.3). Plain HTTP is served only on `127.0.0.1` and `::1`. An OAuth callback that arrives over HTTP on a non-loopback host is refused (`ErrInsecure`). The callback of a local controller stays `http://127.0.0.1:<port>/auth/github/callback` (R5.4).
 
 **R6.5** (M1, built) — **Webhook safety.** A delivery without a valid signature gets 401 and is not parsed. The signature is compared in constant time. A body over 25 MB is refused. Webhooks are off for a local-only controller (R5.5).
 
@@ -359,7 +361,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.10 | internal/auth/oauth_test.go; internal/auth/users_test.go |
 | R5.11 | internal/auth/users_test.go; internal/api/handlers_github_test.go |
 | R5.12 | internal/api/handlers_github_test.go (roles per operation; table equals openapi x-auth) |
-| R5.13 | internal/auth/session_test.go; internal/api/handlers_github_test.go (cookie flags, sign-out) |
+| R5.13 | internal/auth/session_test.go (no time or idle expiry, restart, cookie flags by address); internal/api/handlers_github_test.go, internal/api/session_cookie_test.go (cookie flags, sign-out) |
 | R5.14 | internal/auth/cli_test.go; internal/api/handlers_github_test.go |
 | R5.15 | internal/auth/cli_test.go; internal/api/handlers_github_test.go |
 | R5.16 | internal/auth/audit_test.go |
@@ -385,10 +387,11 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.36 | internal/github/webhook_test.go; internal/api/handlers_github_test.go |
 | R5.37 | internal/github/poller_test.go |
 | R5.38 | planned: internal/github/reconcile_test.go |
+| R5.39 | planned: internal/github/variables_test.go TestLegacyNamesWrittenAndRemovedWithSetting (v0.2.0) |
 | R6.1 | planned: internal/secrets/store_test.go; internal/store/no_secrets_test.go (schema has no secret column) |
 | R6.2 | internal/github/client_test.go |
 | R6.3 | planned: internal/logging/redact_test.go |
-| R6.4 | planned: internal/api/tls_policy_test.go |
+| R6.4 | internal/webui/serve_tls_test.go (loopback serves HTTP, anything else TLS only); internal/auth/oauth_test.go TestCallbackOverHTTPOnNonLoopbackRefused; internal/auth/callback_urls_test.go |
 | R6.5 | internal/github/webhook_test.go; internal/api/handlers_github_test.go |
 | R6.6 | internal/github/client_test.go |
 | R6.7 | internal/github/client_test.go |

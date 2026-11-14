@@ -48,6 +48,8 @@ const EVENT_TYPES: readonly LiveEvent['type'][] = [
   'doctor.progress',
   'plan.progress',
   'change.progress',
+  'image.state',
+  'cache.state',
 ];
 
 const KIND: Record<string, string> = {
@@ -63,6 +65,8 @@ const KIND: Record<string, string> = {
   'doctor.progress': 'doctor',
   'plan.progress': 'plans',
   'change.progress': 'changes',
+  'image.state': 'images',
+  'cache.state': 'caches',
 };
 
 export class LiveStore {
@@ -152,6 +156,19 @@ export class LiveStore {
     if (!this.state.overview) this.set({ overview: o });
   }
 
+  /**
+   * Keep the strip in step with a cache the screen has just read or wiped (UX-19, UX-34): a wiping cache is
+   * running work, a ready one is not. It changes no version, so no list reloads because of it.
+   */
+  trackCache(cache: Schemas['Cache']): void {
+    const key = `cache:${cache.id}`;
+    const progress = { ...this.state.progress };
+    putCache(progress, { id: 'local', type: 'cache.state', at: '', cache });
+    const before = JSON.stringify(this.state.progress[key]?.cache);
+    if (JSON.stringify(progress[key]?.cache) === before) return;
+    this.set({ progress });
+  }
+
   /** Apply one event to the store. */
   apply(ev: LiveEvent): void {
     const kind = KIND[ev.type] ?? ev.type;
@@ -169,8 +186,16 @@ export class LiveStore {
     if (ev.type === 'plan.progress' && ev.plan) progress[`plan:${ev.plan.id}`] = ev;
     if (ev.type === 'change.progress' && ev.change)
       progress[`change:${ev.change.id}`] = ev;
+    if (ev.type === 'cache.state' && ev.cache) putCache(progress, ev);
     this.set({ status: 'live', lastEventAt: this.now(), overview, versions, progress });
   }
+}
+
+function putCache(progress: Record<string, LiveEvent>, ev: LiveEvent): void {
+  const c = ev.cache;
+  if (!c) return;
+  if (c.state === 'wiping') progress[`cache:${c.id}`] = ev;
+  else delete progress[`cache:${c.id}`];
 }
 
 function reduceOverview(o: Overview, ev: LiveEvent): Overview {

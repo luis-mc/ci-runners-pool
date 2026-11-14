@@ -65,7 +65,7 @@ func agentConfig(f *agentFlags, logger *slog.Logger) (agent.Config, error) {
 	if err != nil {
 		return agent.Config{}, err
 	}
-	return agent.Config{Controller: f.controller, Pin: f.fingerprint, JoinCode: f.joinCode, Secrets: store, DataDir: f.dataDir, Version: version, Logger: logger}, nil
+	return agent.Config{Controller: f.controller, Pin: f.fingerprint, JoinCode: f.joinCode, Secrets: store, DataDir: f.dataDir, Version: version, Logger: logger, Caches: agentCacheSource()}, nil
 }
 
 func agentRun(args []string, stderr io.Writer) error {

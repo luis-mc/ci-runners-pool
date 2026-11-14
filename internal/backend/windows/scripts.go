@@ -114,9 +114,14 @@ New-Service -Name $env:CRSP_SERVICE -BinaryPathName $exe -DisplayName ('CRSP run
 Start-Service -Name $env:CRSP_SERVICE
 `
 
-	// scriptRestart restarts a service (a stale .env was rewritten).
-	scriptRestart = scriptHeader + `
-Restart-Service -Name $env:CRSP_SERVICE -Force
+	// scriptListeners prints the process id of every Runner.Listener that runs
+	// from CRSP_FOLDER, one per line. The service wrapper is not counted: the
+	// listener holds the runner's session with GitHub (runners R5.46).
+	scriptListeners = scriptHeader + `
+$want = (Join-Path (Join-Path $env:CRSP_FOLDER 'bin') 'Runner.Listener') + '.exe'
+Get-Process -Name 'Runner.Listener' -ErrorAction SilentlyContinue |
+    Where-Object { $_.Path -and ($_.Path -ieq $want) } |
+    ForEach-Object { $_.Id }
 `
 
 	scriptStartService = scriptHeader + `

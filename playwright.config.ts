@@ -16,7 +16,9 @@ import { defineConfig } from '@playwright/test';
 //   E2E_QUARANTINE=only     ONLY the quarantined ones (CI's non-blocking step)
 //
 // The specs run against the built binary (bin/crsp), which serves the
-// embedded web console. Set E2E_BINARY to use another path.
+// embedded web console over HTTPS only (web-console R5.1) with a certificate of its
+// own CA, which the browser does not trust: the specs ignore certificate errors
+// (tests only). Set E2E_BINARY to use another path.
 
 interface Quarantined {
   spec: string;

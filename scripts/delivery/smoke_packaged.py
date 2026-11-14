@@ -44,11 +44,13 @@ import json
 import os
 import queue
 import signal
+import ssl
 import subprocess
 import sys
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -161,9 +163,23 @@ def pump(stream, lines: "queue.Queue[str | None]") -> None:
         lines.put(None)
 
 
+def probe_context(url: str) -> "ssl.SSLContext | None":
+    """The controller serves plain HTTP on loopback and HTTPS with a certificate of its own CA on
+    every other address (web-console R5.1), which the smoke run does not trust. A loopback https
+    URL is probed without certificate verification:
+    the probe only asks whether the process answers. Every other URL is verified as usual."""
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme != "https" or parts.hostname not in ("127.0.0.1", "::1", "localhost"):
+        return None
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
+
+
 def probe(url: str) -> bool:
     try:
-        with urllib.request.urlopen(url, timeout=3) as resp:  # noqa: S310 - the product's own health URL
+        with urllib.request.urlopen(url, timeout=3, context=probe_context(url)) as resp:  # noqa: S310 - the product's own health URL
             return 200 <= resp.status < 300
     except (urllib.error.URLError, OSError, ValueError):
         return False

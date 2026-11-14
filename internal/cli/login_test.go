@@ -249,3 +249,43 @@ func freshCert(t *testing.T) tls.Certificate {
 	}
 	return tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}
 }
+
+// D38: a controller on 127.0.0.1 speaks plain HTTP: login needs no fingerprint
+// and saves none. A plain-HTTP address that is not loopback is refused.
+func TestLoginOverPlainHTTPOnLoopback(t *testing.T) {
+	f := newFixture(t)
+	f.dir = t.TempDir()
+	f.secrets = &memSecrets{}
+	plain := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f.mu.Lock()
+		h := f.routes[r.Method+" "+r.URL.Path]
+		f.mu.Unlock()
+		if h == nil {
+			writeJSON(w, 404, apiErr("not_found", "no such route"))
+			return
+		}
+		h(w, r)
+	}))
+	t.Cleanup(plain.Close)
+	gh := fakeGitHub(t, false)
+	var ex map[string]any
+	f.loginHandlers(gh, &ex)
+	if !strings.HasPrefix(plain.URL, "http://127.0.0.1:") {
+		t.Fatalf("test server not on loopback: %s", plain.URL)
+	}
+	code, _, errOut := f.run("login", plain.URL, "--name", "local", "--token-name", "laptop")
+	if code != 0 || !strings.Contains(errOut, "Signed in to local as luis-mc") {
+		t.Fatalf("%d %q", code, errOut)
+	}
+	cf, err := contexts.Load(f.dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c, ok := cf.ByURL(plain.URL); !ok || c.Fingerprint != "" {
+		t.Fatalf("context %+v %v", c, ok)
+	}
+	code, _, errOut = f.run("login", "http://192.168.1.20:8460", "--name", "lan")
+	if code != ExitUsage || !strings.Contains(errOut, "must start with https://") {
+		t.Fatalf("plain http off loopback: %d %q", code, errOut)
+	}
+}

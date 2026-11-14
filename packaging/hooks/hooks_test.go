@@ -112,3 +112,42 @@ func TestPs1HookWarnsWhenCrspIsMissing(t *testing.T) {
 		t.Fatalf("err %v output %q", err, out)
 	}
 }
+
+// CRSP38, scheduling R5.62: both scripts of both families turn prompts off
+// before they call crsp, so nothing a hook starts can wait for a login.
+func TestScriptsTurnPromptsOffBeforeCallingCrsp(t *testing.T) {
+	for _, name := range []string{"job-started", "job-completed"} {
+		sh, err := Unix(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ps, err := Windows(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for kind, body := range map[string]string{"sh": string(sh), "ps1": string(ps)} {
+			call := strings.Index(body, `"$crsp" hook`)
+			if kind == "ps1" {
+				call = strings.Index(body, "& $crsp hook")
+			}
+			for _, want := range []string{"GIT_TERMINAL_PROMPT", "GCM_INTERACTIVE"} {
+				at := strings.Index(body, want)
+				if at < 0 || call < 0 || at > call {
+					t.Errorf("%s.%s: %s must be set before crsp is called (set at %d, call at %d)", name, kind, want, at, call)
+				}
+			}
+		}
+	}
+}
+
+// R5.62: with the real shell script, the child sees prompts turned off.
+func TestShHookExportsNonInteractiveEnvToCrsp(t *testing.T) {
+	fake := filepath.Join(t.TempDir(), "crsp")
+	if err := os.WriteFile(fake, []byte("#!/bin/sh\necho \"git=$GIT_TERMINAL_PROMPT gcm=$GCM_INTERACTIVE\"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	out, code, _ := runSh(t, "job-started", fake)
+	if code != 0 || out != "git=0 gcm=never\n" {
+		t.Fatalf("exit %d output %q", code, out)
+	}
+}

@@ -391,6 +391,8 @@ const jobCols = `j.id, COALESCE(r.full_name, ''), j.repository_id, j.run_id, j.r
 	COALESCE((SELECT t.wait_reason FROM slot_tickets t WHERE t.repository = r.full_name AND t.run_id = j.run_id
 		AND t.run_attempt = j.run_attempt AND t.job = j.job_name LIMIT 1), j.wait_reason, ''),
 	COALESCE(j.wait_text, ''), COALESCE(j.placed_machine_id, ''), COALESCE(j.runner_name, ''),
+	COALESCE((SELECT x.backend FROM runners x WHERE x.machine_id = j.placed_machine_id AND x.name = j.runner_name), ''),
+	COALESCE((SELECT x.isolation FROM runners x WHERE x.machine_id = j.placed_machine_id AND x.name = j.runner_name), ''),
 	COALESCE(j.created_at_github, ''), COALESCE(j.started_at_github, ''), COALESCE(j.completed_at_github, ''),
 	COALESCE((SELECT l.queued_at FROM slot_log l WHERE l.event = 'taken' AND l.repository = r.full_name AND l.run_id = j.run_id
 		AND l.run_attempt = j.run_attempt AND l.job = j.job_name ORDER BY l.id DESC LIMIT 1), ''),
@@ -403,7 +405,7 @@ func scanJob(sc interface{ Scan(...any) error }) (slots.JobRecord, error) {
 	var j slots.JobRecord
 	var labels, status, created, started, completed, queued, slot string
 	if err := sc.Scan(&j.ID, &j.Repository, &j.RepositoryID, &j.RunID, &j.RunAttempt, &j.Workflow, &j.JobName, &j.HeadSHA,
-		&j.Trigger, &labels, &status, &j.Conclusion, &j.WaitReason, &j.WaitText, &j.MachineID, &j.RunnerName,
+		&j.Trigger, &labels, &status, &j.Conclusion, &j.WaitReason, &j.WaitText, &j.MachineID, &j.RunnerName, &j.Backend, &j.Isolation,
 		&created, &started, &completed, &queued, &slot); err != nil {
 		return j, err
 	}
@@ -448,6 +450,9 @@ func (s *Store) ListJobs(ctx context.Context, f slots.JobFilter) ([]slots.JobRec
 	}
 	if f.MachineID != "" {
 		where, args = append(where, `j.placed_machine_id = ?`), append(args, f.MachineID)
+	}
+	if f.Backend != "" {
+		where, args = append(where, `EXISTS (SELECT 1 FROM runners x WHERE x.machine_id = j.placed_machine_id AND x.name = j.runner_name AND x.backend = ?)`), append(args, f.Backend)
 	}
 	if f.Result != "" {
 		where, args = append(where, `j.conclusion = ?`), append(args, f.Result)
