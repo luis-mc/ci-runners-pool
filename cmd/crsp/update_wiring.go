@@ -130,5 +130,25 @@ func startUpdates(ctx context.Context, cfg config.Config, logger *slog.Logger, m
 	}
 	idle.fn.Store(&fn)
 	go m.Run(ctx, time.Minute, 6*time.Hour)
+	// Connected agent machines follow the controller's version (operations R5.39).
+	fol := &update.Follower{Fleet: machineFleet{svc: mr.Service}, Current: version, Logger: logger.With("component", "follow")}
+	go fol.Run(ctx, 2*time.Minute)
 	return m
 }
+
+// machineFleet shows the machines service to the follower.
+type machineFleet struct{ svc *machines.Service }
+
+func (f machineFleet) Agents(ctx context.Context) ([]update.Agent, error) {
+	as, err := f.svc.Agents(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]update.Agent, 0, len(as))
+	for _, a := range as {
+		out = append(out, update.Agent{ID: a.ID, Name: a.Name, Version: a.Version, Updating: a.Update.Active(), UpdatingSince: a.Update.At})
+	}
+	return out, nil
+}
+
+func (f machineFleet) AskUpdate(id, v string) error { return f.svc.AskUpdate(id, v) }

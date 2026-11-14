@@ -212,6 +212,7 @@ func (s *Service) finishRemove(ctx context.Context, actor string, m Machine) {
 	delete(s.loads, m.ID)
 	delete(s.running, m.ID)
 	delete(s.runners, m.ID)
+	delete(s.updates, m.ID)
 	s.mu.Unlock()
 	s.notifyMachine(m.ID)
 }

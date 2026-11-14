@@ -80,6 +80,7 @@ type Service struct {
 	runners  map[string][]string
 	fails    map[string][]time.Time
 	blocked  map[string]time.Time
+	updates  map[string]AgentUpdate
 }
 
 // New returns a Service.
@@ -94,6 +95,7 @@ func New(o Options) *Service {
 		o: o, sessions: newSessions(),
 		loads: map[string]Load{}, lastKept: map[string]time.Time{}, running: map[string][]JobRef{},
 		runners: map[string][]string{}, fails: map[string][]time.Time{}, blocked: map[string]time.Time{},
+		updates: map[string]AgentUpdate{},
 	}
 }
 
