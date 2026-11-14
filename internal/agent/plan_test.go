@@ -31,11 +31,12 @@ func (r *recExec) WriteFile(_ context.Context, f agent.File) error {
 	return nil
 }
 
-var opts = agent.InstallOptions{Binary: "/usr/local/bin/crsp", Controller: "pool.lan:8461", Fingerprint: strings.Repeat("ab", 32), JoinCode: "CODE", BackendGroups: []string{"docker", "kvm"}}
+var opts = agent.InstallOptions{Binary: "/usr/local/bin/crsp", Controller: "pool.lan:8461", Fingerprint: strings.Repeat("ab", 32), JoinCode: "CODE"}
 
-// R5.44: the agent runs as its own non-admin account on every OS.
+// R5.44, D41: the agent runs as LocalSystem on Windows and as root on Linux and
+// macOS, like the controller.
 func TestServiceAccounts(t *testing.T) {
-	want := map[string]string{"windows": `NT SERVICE\crsp-agent`, "linux": "crsp-agent", "darwin": "_crsp_agent"}
+	want := map[string]string{"windows": "LocalSystem", "linux": "root", "darwin": "root"}
 	for goos, acct := range want {
 		p, err := agent.BuildInstallPlan(goos, opts)
 		if err != nil || p.Account != acct {
@@ -43,13 +44,31 @@ func TestServiceAccounts(t *testing.T) {
 		}
 	}
 	lin, _ := agent.BuildInstallPlan("linux", opts)
-	unit := lin.Steps[len(lin.Steps)-3].Files[0].Body
-	if !strings.Contains(unit, "User=crsp-agent") || strings.Contains(unit, "User=root") {
+	unit := lin.Steps[1].Files[0].Body
+	if !strings.Contains(unit, "User=root") || strings.Contains(unit, "User=crsp-agent") || strings.Contains(unit, "NoNewPrivileges") {
 		t.Fatalf("unit:\n%s", unit)
 	}
 	mac, _ := agent.BuildInstallPlan("darwin", opts)
-	if body := mac.Steps[1].Files[0].Body; !strings.Contains(body, "<key>UserName</key><string>_crsp_agent</string>") {
+	if body := mac.Steps[1].Files[0].Body; !strings.Contains(body, "<key>UserName</key><string>root</string>") || strings.Contains(body, "_crsp_agent") {
 		t.Fatalf("plist:\n%s", body)
+	}
+	// No account is made, no group joined, nobody to run the join as.
+	for _, goos := range []string{"linux", "darwin", "windows"} {
+		p, _ := agent.BuildInstallPlan(goos, opts)
+		for _, s := range p.Steps {
+			for _, c := range s.Commands {
+				all := strings.Join(c, " ")
+				for _, bad := range []string{"useradd", "usermod", "dscl", "runuser", "sudo", "crsp-agent\\", "NT SERVICE"} {
+					if strings.Contains(all, bad) {
+						t.Errorf("%s: %q in %v", goos, bad, c)
+					}
+				}
+			}
+		}
+	}
+	win, _ := agent.BuildInstallPlan("windows", opts)
+	if !strings.Contains(win.Describe(), "running as LocalSystem") {
+		t.Fatalf("the plan does not say the service runs as LocalSystem:\n%s", win.Describe())
 	}
 	if _, err := agent.BuildInstallPlan("plan9", opts); err == nil {
 		t.Fatal("a plan for an unknown OS")
@@ -83,13 +102,13 @@ func TestInstallPlanListsEachAdminActionAndNeedsAYes(t *testing.T) {
 	if err := lin.Run(context.Background(), func(string) bool { return true }, ex); err != nil {
 		t.Fatal(err)
 	}
-	if len(ex.files) != 1 || ex.files[0].Path != "/etc/systemd/system/crsp-agent.service" || len(ex.cmds) < 5 {
+	if len(ex.files) != 1 || ex.files[0].Path != "/etc/systemd/system/crsp-agent.service" || len(ex.cmds) < 4 {
 		t.Fatalf("files=%v cmds=%v", ex.files, ex.cmds)
 	}
 	// A failing step stops the plan and names itself.
 	ex = &recExec{failN: 2}
 	err := lin.Run(context.Background(), func(string) bool { return true }, ex)
-	if err == nil || !strings.Contains(err.Error(), "step 2") || len(ex.cmds) != 2 {
+	if err == nil || !strings.Contains(err.Error(), "step 3") || len(ex.cmds) != 2 {
 		t.Fatalf("err=%v cmds=%d", err, len(ex.cmds))
 	}
 }
@@ -97,7 +116,7 @@ func TestInstallPlanListsEachAdminActionAndNeedsAYes(t *testing.T) {
 // R5.46: a service that starts at boot and restarts after a crash.
 func TestServiceStartsAtBootAndRestartsAfterACrash(t *testing.T) {
 	lin, _ := agent.BuildInstallPlan("linux", opts)
-	unit := lin.Steps[len(lin.Steps)-3].Files[0].Body
+	unit := lin.Steps[1].Files[0].Body
 	for _, want := range []string{"Restart=always", "WantedBy=multi-user.target"} {
 		if !strings.Contains(unit, want) {
 			t.Errorf("unit lacks %s", want)
@@ -163,22 +182,14 @@ func TestWindowsServiceIsRegisteredWithCmdlets(t *testing.T) {
 	if !strings.Contains(all, `C:\Program Files\crsp\crsp.exe agent run`) {
 		t.Fatalf("binary path with a space is not kept whole:\n%s", all)
 	}
-	// The symlink right is only in the plan when the owner chose it.
+	// The service is a LocalSystem one (no credential given), and its folder is
+	// closed to everyone but SYSTEM and Administrators.
+	if strings.Contains(all, "-Credential") || !strings.Contains(all, "icacls.exe") || !strings.Contains(all, "S-1-5-18") {
+		t.Fatalf("service account or folder rights:\n%s", all)
+	}
+	// The symlink right belongs to the runner accounts (runners R5.14), not to the agent.
 	if strings.Contains(all, "SeCreateSymbolicLinkPrivilege") {
-		t.Fatal("symlink right granted without being chosen")
-	}
-	with, _ := agent.BuildInstallPlan("windows", agent.InstallOptions{Binary: "c.exe", Controller: "x:1", Fingerprint: "f", WindowsSymlinkRight: true})
-	if !strings.Contains(with.Describe(), "create symbolic links") {
-		t.Fatal("the chosen symlink right is not listed before the yes")
-	}
-	var symScript string
-	for _, s := range with.Steps {
-		if strings.Contains(s.What, "symbolic links") {
-			symScript = decodePS(t, s.Commands[0])
-		}
-	}
-	if !strings.Contains(symScript, "SeCreateSymbolicLinkPrivilege") || !strings.Contains(symScript, "secedit.exe /configure") {
-		t.Fatalf("the symlink step does not grant the right:\n%s", symScript)
+		t.Fatal("the agent plan grants the symlink right")
 	}
 }
 
