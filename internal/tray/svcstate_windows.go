@@ -18,12 +18,12 @@ func ServiceState(_ context.Context) (Status, bool) {
 		return Status{}, false
 	}
 	m := &mgr.Mgr{Handle: h}
-	defer m.Disconnect()
+	defer func() { _ = m.Disconnect() }()
 	s, err := m.OpenService(ServiceName)
 	if err != nil {
 		return Status{}, false
 	}
-	defer s.Close()
+	defer func() { _ = s.Close() }()
 	q, err := s.Query()
 	if err != nil || q.State == svc.Running {
 		return Status{}, false
