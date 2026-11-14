@@ -125,7 +125,10 @@ type Options struct {
 	Extract   func(archive, dst string) error
 	SelfCheck func(ctx context.Context, bin, version string) error
 	Spawn     func(ctx context.Context, exe string, p Plan, planPath string) (int, error)
-	Pid       func() int
+	// StartMSI starts msiexec detached (Windows update); MSILog is its log path (default %ProgramData%\crsp\logs).
+	StartMSI func(ctx context.Context, msi, log string) (int, error)
+	MSILog   string
+	Pid      func() int
 }
 
 // Manager runs checks, updates and restarts. It is safe for concurrent use.
@@ -186,6 +189,9 @@ func New(o Options) *Manager {
 	if o.Spawn == nil {
 		o.Spawn = Spawn
 	}
+	if o.StartMSI == nil {
+		o.StartMSI = StartMSIDetached
+	}
 	if o.Pid == nil {
 		o.Pid = os.Getpid
 	}
@@ -193,6 +199,7 @@ func New(o Options) *Manager {
 		o.AutoUpdate = func(context.Context) bool { return true }
 	}
 	m := &Manager{o: o, state: StateIdle}
+	RecoverMSI(o.Dir, o.Current, o.Now())
 	if r, ok := ReadResult(o.Dir); ok && !r.OK && r.To != o.Current {
 		m.state, m.errText = StateFailed, "The last update to "+r.To+" failed: "+r.Error
 	}
@@ -476,6 +483,9 @@ func (m *Manager) OnIdle(ctx context.Context, kind Kind) error {
 	if m.o.GOOS == "windows" {
 		plan.HealthTimeout = 3 * time.Minute
 	}
+	if m.o.GOOS == "windows" && kind == KindUpdate {
+		return m.onIdleMSI(ctx, p)
+	}
 	planPath := filepath.Join(m.o.Dir, PlanFile)
 	if err := writeJSON(planPath, plan); err != nil {
 		m.fail(err, p.version)
@@ -488,6 +498,27 @@ func (m *Manager) OnIdle(ctx context.Context, kind Kind) error {
 	pid, err := m.o.Spawn(ctx, m.o.Exe, plan, planPath)
 	if err != nil {
 		m.fail(fmt.Errorf("could not start the install helper: %w", err), p.version)
+		return err
+	}
+	if pid > 0 && lock != nil {
+		_ = lock.HandOver(pid, m.o.Now())
+	}
+	m.mu.Lock()
+	m.state, m.pending = StateRestarting, nil
+	m.mu.Unlock()
+	return nil
+}
+
+// onIdleMSI starts the MSI from the controller itself and ends this path: the
+// upgrade stops this process, and the next start reads the log (msi.go).
+func (m *Manager) onIdleMSI(ctx context.Context, p *pending) error {
+	m.mu.Lock()
+	m.state = StateInstalling
+	lock := m.lock
+	m.mu.Unlock()
+	pid, err := m.startMSI(ctx, p)
+	if err != nil {
+		m.fail(err, p.version)
 		return err
 	}
 	if pid > 0 && lock != nil {

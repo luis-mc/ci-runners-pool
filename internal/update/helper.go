@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -105,14 +106,9 @@ func runPlan(ctx context.Context, p Plan, env *Env) error {
 	switch p.GOOS {
 	case "windows":
 		if p.Kind == "update" {
-			code, err := env.Exec(ctx, "msiexec", "/i", p.File, "/qn", "/norestart", "/l*v", filepath.Join(p.Dir, "msi.log"))
-			if err != nil {
-				return fmt.Errorf("could not start the installer: %w", err)
-			}
-			if !msiOK(code) {
-				return fmt.Errorf("the installer failed with exit code %d; the old version stays (Windows Installer rolled back). The log is %s", code, filepath.Join(p.Dir, "msi.log"))
-			}
-		} else if err := restartService(ctx, p, env); err != nil {
+			return errors.New("a Windows update is started by the controller itself, not by the helper")
+		}
+		if err := restartService(ctx, p, env); err != nil {
 			return err
 		}
 		return waitHealthy(ctx, p, env, want)
@@ -278,7 +274,7 @@ func installPackage(ctx context.Context, p Plan, env *Env) error {
 	case KindPKG:
 		tries = [][]string{{"installer", "-pkg", p.File, "-target", "/"}}
 	case KindDEB:
-		tries = [][]string{{"apt-get", "install", "-y", p.File}, {"dpkg", "-i", p.File}}
+		tries = [][]string{{"apt-get", "install", "-y", aptPath(p.File)}, {"dpkg", "-i", p.File}}
 	case KindRPM:
 		tries = [][]string{{"rpm", "-U", p.File}}
 	}
@@ -295,4 +291,12 @@ func installPackage(ctx context.Context, p Plan, env *Env) error {
 		}
 	}
 	return fmt.Errorf("the package install failed, the old version stays: %w", last)
+}
+
+// aptPath makes apt read the argument as a file, not a package name.
+func aptPath(f string) string {
+	if filepath.IsAbs(f) || strings.HasPrefix(f, "./") {
+		return f
+	}
+	return "./" + f
 }

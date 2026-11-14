@@ -349,9 +349,12 @@ func TestBadChecksumOrProvenanceStopsBeforeDrain(t *testing.T) {
 	}
 }
 
-func TestManualYesDrainsAndWindowsGetsTheMSI(t *testing.T) {
+func TestManualYesDrainsAndWindowsStartsTheMSIItself(t *testing.T) {
 	h := newHarness(t, "windows", false, true)
 	ctx := context.Background()
+	var msi, log string
+	h.m.o.StartMSI = func(_ context.Context, f, l string) (int, error) { msi, log = f, l; return 77, nil }
+	h.m.o.MSILog = filepath.Join(h.dir, "logs", "msi-update.log")
 	if _, err := h.m.Apply(ctx, KindUpdate, true, "octo"); err != nil {
 		t.Fatal(err)
 	}
@@ -364,8 +367,17 @@ func TestManualYesDrainsAndWindowsGetsTheMSI(t *testing.T) {
 	if err := h.m.OnIdle(ctx, KindUpdate); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasSuffix(h.spawns[0].File, "crsp-windows-amd64.msi") || h.spawns[0].GOOS != "windows" {
-		t.Fatalf("%+v", h.spawns[0])
+	if len(h.spawns) != 0 {
+		t.Fatal("windows needs no helper: the controller starts msiexec itself")
+	}
+	if !strings.HasSuffix(msi, "crsp-windows-amd64.msi") || log != h.m.o.MSILog {
+		t.Fatalf("%s %s", msi, log)
+	}
+	if got := strings.Join(MSIArgs(msi, log), "|"); !strings.HasPrefix(got, "/i|") || !strings.HasSuffix(got, "|/qn|/norestart|/l*v|"+log) {
+		t.Fatalf("%s", got)
+	}
+	if _, err := os.Stat(filepath.Join(h.dir, "updates", PendingMSIFile)); err != nil {
+		t.Fatal("the pending record must wait for the next start")
 	}
 }
 
@@ -414,40 +426,91 @@ func helperEnv(e *execLog, health func(string) (string, error)) Env {
 	}
 }
 
-func TestHelperWindowsRunsSilentMajorUpgrade(t *testing.T) {
-	dir := t.TempDir()
-	e := &execLog{}
-	p := Plan{Kind: "update", GOOS: "windows", From: "1.4.0", To: "1.5.0", File: `C:\u\crsp-windows-amd64.msi`, Service: "crsp", HealthURL: "x", Dir: dir}
-	if err := RunPlan(context.Background(), p, helperEnv(e, func(string) (string, error) { return "1.5.0", nil })); err != nil {
-		t.Fatal(err)
-	}
-	want := []string{"msiexec", "/i", p.File, "/qn", "/norestart", "/l*v", filepath.Join(dir, "msi.log")}
-	if strings.Join(e.calls[0], "|") != strings.Join(want, "|") {
-		t.Fatalf("%v", e.calls[0])
-	}
-	r, ok := ReadResult(dir)
-	if !ok || !r.OK || r.To != "1.5.0" {
-		t.Fatalf("%+v", r)
+func TestHelperRefusesWindowsUpdate(t *testing.T) {
+	p := Plan{Kind: "update", GOOS: "windows", From: "1.4.0", To: "1.5.0", File: "x.msi", Dir: t.TempDir()}
+	if err := RunPlan(context.Background(), p, helperEnv(&execLog{}, nil)); err == nil {
+		t.Fatal("the MSI update is the controller's, not the helper's")
 	}
 }
 
-func TestHelperWindowsReportsMSIFailureAndBacksOff(t *testing.T) {
-	dir := t.TempDir()
-	e := &execLog{codes: map[string]int{"msiexec": 1603}}
-	p := Plan{Kind: "update", GOOS: "windows", From: "1.4.0", To: "1.5.0", File: "x.msi", Dir: dir}
-	if err := RunPlan(context.Background(), p, helperEnv(e, nil)); err == nil || !strings.Contains(err.Error(), "1603") {
-		t.Fatalf("%v", err)
+func TestParseMSILog(t *testing.T) {
+	if c, ok := ParseMSILog([]byte("x\nMainEngineThread is returning 1603\nMainEngineThread is returning 0\n")); !ok || c != 0 {
+		t.Fatalf("the last line wins: %d %v", c, ok)
 	}
-	if r, _ := ReadResult(dir); r.OK || !strings.Contains(r.Error, "1603") {
+	if _, ok := ParseMSILog([]byte("still running")); ok {
+		t.Fatal("no end line yet")
+	}
+	// UTF-16 LE with a BOM, as msiexec may write it.
+	u := []byte{0xFF, 0xFE}
+	for _, r := range "MainEngineThread is returning 3010" {
+		u = append(u, byte(r), 0)
+	}
+	if c, ok := ParseMSILog(u); !ok || c != 3010 {
+		t.Fatalf("%d %v", c, ok)
+	}
+}
+
+func pendingFor(t *testing.T, dir, log string, started time.Time) {
+	t.Helper()
+	if err := writeJSON(filepath.Join(dir, PendingMSIFile), PendingMSI{From: "1.4.0", To: "1.5.0", File: "x.msi", Log: log, StartedAt: started}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRecoverMSIReportsAndBacksOff(t *testing.T) {
+	now := time.Now()
+	dir := t.TempDir()
+	log := filepath.Join(dir, "msi-update.log")
+
+	// Success: the new version runs after the restart.
+	pendingFor(t, dir, log, now)
+	if !RecoverMSI(dir, "1.5.0", now) {
+		t.Fatal("must settle")
+	}
+	if r, ok := ReadResult(dir); !ok || !r.OK || r.To != "1.5.0" {
+		t.Fatalf("%+v", r)
+	}
+	if _, err := os.Stat(filepath.Join(dir, PendingMSIFile)); err == nil {
+		t.Fatal("the pending record must go")
+	}
+
+	// Failure: exit code 1603, old version still runs; counted for the retry rule.
+	_ = os.WriteFile(log, []byte("MainEngineThread is returning 1603\n"), 0o600)
+	pendingFor(t, dir, log, now)
+	if !RecoverMSI(dir, "1.4.0", now) {
+		t.Fatal("must settle")
+	}
+	if r, _ := ReadResult(dir); r.OK || !strings.Contains(r.Error, "1603") || !strings.Contains(r.Error, log) {
 		t.Fatalf("%+v", r)
 	}
 	if f, _ := ReadFailures(dir); f.Count != 1 || f.Version != "1.5.0" {
 		t.Fatalf("%+v", f)
 	}
-	// 3010 (restart pending) counts as installed.
-	e = &execLog{codes: map[string]int{"msiexec": 3010}}
-	if err := RunPlan(context.Background(), p, helperEnv(e, func(string) (string, error) { return "1.5.0", nil })); err != nil {
-		t.Fatal(err)
+	for i := 0; i < 2; i++ {
+		pendingFor(t, dir, log, now)
+		RecoverMSI(dir, "1.4.0", now)
+	}
+	if ok, _ := AutoAllowed(readFailures(dir), "1.5.0", now.Add(100*time.Hour)); ok {
+		t.Fatal("after three tries the automatic path gives up on the version")
+	}
+
+	// Still running: leave it for the next start.
+	_ = os.WriteFile(log, []byte("busy"), 0o600)
+	pendingFor(t, dir, log, now)
+	if RecoverMSI(dir, "1.4.0", now.Add(time.Minute)) {
+		t.Fatal("a running install is not settled")
+	}
+	// Dead chain: no end line for longer than the lock age.
+	if !RecoverMSI(dir, "1.4.0", now.Add(LockMaxAge+time.Minute)) {
+		t.Fatal("a dead install must be settled")
+	}
+
+	// A new Manager shows the failure.
+	pendingFor(t, dir, log, now)
+	_ = os.WriteFile(log, []byte("MainEngineThread is returning 1618\n"), 0o600)
+	m := New(Options{Current: "1.4.0", Dir: dir, GOOS: "windows", Exe: filepath.Join(dir, "crsp.exe")})
+	if st := m.Status(context.Background()); st.State != StateFailed || !strings.Contains(st.Error, "1618") {
+		t.Fatalf("%+v", st)
 	}
 }
 
@@ -570,7 +633,7 @@ func TestInstallKindPicksTheAsset(t *testing.T) {
 
 func TestHelperNativePackages(t *testing.T) {
 	for kind, want := range map[string]string{
-		KindPKG: "installer|-pkg|f|-target|/", KindDEB: "apt-get|install|-y|f", KindRPM: "rpm|-U|f",
+		KindPKG: "installer|-pkg|f|-target|/", KindDEB: "apt-get|install|-y|./f", KindRPM: "rpm|-U|f",
 	} {
 		dir := t.TempDir()
 		e := &execLog{}
