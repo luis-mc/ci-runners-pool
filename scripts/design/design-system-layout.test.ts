@@ -1,11 +1,27 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DESIGN_SYSTEM, DRAFT, NUMBERED, VERSION_NAME, enforcedVersion, isArchived, repoRoot } from './design-system.ts';
+import {
+  DESIGN_SYSTEM,
+  DRAFT,
+  NUMBERED,
+  VERSION_NAME,
+  enforcedVersion,
+  isArchived,
+  repoRoot,
+} from './design-system.ts';
 
 // Layout guard (R15.1, R15.2): only version folders, README.md and approvals.json sit in docs/design-system/;
 // versions are numbered without a gap; every version holds its files.
-const FILES = ['README.md', 'CHANGES.md', 'ux-rules.md', 'components.md', 'tokens.md', 'content.md', 'review-visuals/index.html'];
+const FILES = [
+  'README.md',
+  'CHANGES.md',
+  'ux-rules.md',
+  'components.md',
+  'tokens.md',
+  'content.md',
+  'review-visuals/index.html',
+];
 const BESIDE = ['README.md', 'approvals.json'];
 
 export const layoutProblems = (
@@ -25,7 +41,8 @@ export const layoutProblems = (
     .sort((a, b) => a - b);
   for (let k = 1; k <= (numbers[numbers.length - 1] ?? 0); k++) {
     // a missing number is no gap when its folder sits in docs/archive/ (R2.7)
-    if (!numbers.includes(k) && !archived(k)) problems.push(`v${k}/: versions are numbered v1, v2 ... without a gap`);
+    if (!numbers.includes(k) && !archived(k))
+      problems.push(`v${k}/: versions are numbered v1, v2 ... without a gap`);
   }
   return problems;
 };
@@ -34,7 +51,13 @@ const dir = join(repoRoot, DESIGN_SYSTEM);
 
 describe('the design system folder', () => {
   it('tells a good layout from a bad one', () => {
-    expect(layoutProblems([['README.md', false], [DRAFT, true], ['v1', true]])).toEqual([]);
+    expect(
+      layoutProblems([
+        ['README.md', false],
+        [DRAFT, true],
+        ['v1', true],
+      ]),
+    ).toEqual([]);
     expect(layoutProblems([['tokens.md', false]])).toHaveLength(1);
     expect(layoutProblems([['v2', true]])).toHaveLength(1);
     expect(layoutProblems([['v2', true]], (n) => n === 1)).toEqual([]); // v1 is in docs/archive/
@@ -42,14 +65,19 @@ describe('the design system folder', () => {
   });
 
   it('holds only version folders, README.md and approvals.json', () => {
-    const entries = readdirSync(dir, { withFileTypes: true }).map((e): [string, boolean] => [e.name, e.isDirectory()]);
+    const entries = readdirSync(dir, { withFileTypes: true }).map(
+      (e): [string, boolean] => [e.name, e.isDirectory()],
+    );
     expect(layoutProblems(entries, isArchived)).toEqual([]);
   });
 
   it('gives every version folder its files', () => {
-    const versions = readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory() && VERSION_NAME.test(e.name));
+    const versions = readdirSync(dir, { withFileTypes: true }).filter(
+      (e) => e.isDirectory() && VERSION_NAME.test(e.name),
+    );
     for (const v of versions)
-      for (const f of FILES) expect(existsSync(join(dir, v.name, f)), `${v.name}/${f}`).toBe(true);
+      for (const f of FILES)
+        expect(existsSync(join(dir, v.name, f)), `${v.name}/${f}`).toBe(true);
   });
 
   it('has a version to enforce', () => {

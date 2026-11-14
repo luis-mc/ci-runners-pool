@@ -4,9 +4,15 @@
   block-size: var(--ds-icon-size);
   flex: none;
 }
-.ds-picker-icon[data-dir='left'] { transform: rotate(180deg); }
-.ds-picker-icon[data-dir='up'] { transform: rotate(270deg); }
-.ds-picker-icon[data-dir='down'] { transform: rotate(90deg); }
+.ds-picker-icon[data-dir='left'] {
+  transform: rotate(180deg);
+}
+.ds-picker-icon[data-dir='up'] {
+  transform: rotate(270deg);
+}
+.ds-picker-icon[data-dir='down'] {
+  transform: rotate(90deg);
+}
 
 /* Every pressable part of a picker: at least the touch target (UX-16), a visible focus ring (UX-17). */
 .ds-datepicker button,
@@ -51,5 +57,9 @@
   color: var(--ds-color-text);
 }
 @media (prefers-reduced-motion: reduce) {
-  .ds-datepicker *, .ds-timepicker *, .ds-keypad * { transition: none; }
+  .ds-datepicker *,
+  .ds-timepicker *,
+  .ds-keypad * {
+    transition: none;
+  }
 }

@@ -22,17 +22,29 @@ export interface Breach {
   readonly tag: Tag;
 }
 
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.turbo', 'coverage', '__tests__', 'tests']);
+const SKIP_DIRS = new Set([
+  'node_modules',
+  'dist',
+  '.turbo',
+  'coverage',
+  '__tests__',
+  'tests',
+]);
 const TEST_FILE = /\.(test|spec)\./;
 
 function globToRegExp(glob: string): RegExp {
-  return new RegExp('^' + glob.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$');
+  return new RegExp(
+    '^' + glob.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$',
+  );
 }
 
 /** True when a repo-relative path is a test file or sits in a test folder. */
 export function isTestPath(file: string): boolean {
   const parts = file.split('/');
-  return TEST_FILE.test(parts[parts.length - 1] as string) || parts.slice(0, -1).some((p) => p === '__tests__' || p === 'tests');
+  return (
+    TEST_FILE.test(parts[parts.length - 1] as string) ||
+    parts.slice(0, -1).some((p) => p === '__tests__' || p === 'tests')
+  );
 }
 
 /** True when a repo-relative path is inside one of the folders. */
@@ -43,9 +55,13 @@ export function isUnder(file: string, folders: readonly string[]): boolean {
 /** The raw controls in one source file. Lower-case tags only: `<Button>` is a component. */
 export function scanText(file: string, text: string, config = CONFIG): Breach[] {
   if (isTestPath(file) || isUnder(file, config.sharedPaths)) return [];
-  if (!config.fileGlobs.some((g) => globToRegExp(g).test(file.split('/').pop() as string))) return [];
+  if (
+    !config.fileGlobs.some((g) => globToRegExp(g).test(file.split('/').pop() as string))
+  )
+    return [];
   const found: Breach[] = [];
-  for (const m of text.matchAll(/<(button|input|select|textarea)(?=[\s/>])/g)) found.push({ file, tag: m[1] as Tag });
+  for (const m of text.matchAll(/<(button|input|select|textarea)(?=[\s/>])/g))
+    found.push({ file, tag: m[1] as Tag });
   return found;
 }
 
@@ -78,7 +94,8 @@ export function scanApps(root: string, config = CONFIG): Breach[] {
 /** Breaches grouped to "file|tag" -> count. */
 export function countBreaches(found: readonly Breach[]): Map<string, number> {
   const counts = new Map<string, number>();
-  for (const b of found) counts.set(`${b.file}|${b.tag}`, (counts.get(`${b.file}|${b.tag}`) ?? 0) + 1);
+  for (const b of found)
+    counts.set(`${b.file}|${b.tag}`, (counts.get(`${b.file}|${b.tag}`) ?? 0) + 1);
   return counts;
 }
 
@@ -99,12 +116,16 @@ export function judgeBreaches(
   for (const [key, n] of actual) {
     const [file, tag] = key.split('|');
     const was = listed.get(key) ?? 0;
-    if (n > was) added.push(`${file}: ${n - was} new raw <${tag}>${was ? ` (${was} known)` : ''}`);
+    if (n > was)
+      added.push(`${file}: ${n - was} new raw <${tag}>${was ? ` (${was} known)` : ''}`);
   }
   for (const [key, was] of listed) {
     const n = actual.get(key) ?? 0;
     const [file, tag] = key.split('|');
-    if (n < was) stale.push(`${file}: <${tag}> known ${was}, now ${n}: lower or remove the entry in raw-controls.known.json`);
+    if (n < was)
+      stale.push(
+        `${file}: <${tag}> known ${was}, now ${n}: lower or remove the entry in raw-controls.known.json`,
+      );
   }
   return { added, stale };
 }

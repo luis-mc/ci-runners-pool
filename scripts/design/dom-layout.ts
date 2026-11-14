@@ -25,7 +25,8 @@ export const LAYOUT_WIDTHS = [
   { width: 1300, height: 900 },
 ] as const;
 
-export type LayoutRule = 'overflow' | 'gap' | 'left-edge' | 'button-width' | 'primary-in-view';
+export type LayoutRule =
+  'overflow' | 'gap' | 'left-edge' | 'button-width' | 'primary-in-view';
 
 /** One known breach: the screen, the width it happens at ('*' for every width), the rule and the task that removes it. */
 export interface KnownLayoutBreach {
@@ -37,7 +38,9 @@ export interface KnownLayoutBreach {
 
 /** The known list, read from `layout.known.json` (ratchet: remove an entry when its breach is fixed; never add one to pass). */
 export const KNOWN_LAYOUT_BREACHES: readonly KnownLayoutBreach[] = (
-  JSON.parse(readFileSync(join(import.meta.dirname, 'layout.known.json'), 'utf8')) as { entries: KnownLayoutBreach[] }
+  JSON.parse(readFileSync(join(import.meta.dirname, 'layout.known.json'), 'utf8')) as {
+    entries: KnownLayoutBreach[];
+  }
 ).entries;
 
 export interface DomLayoutOptions {
@@ -183,7 +186,8 @@ export async function measureDomLayout(
   for (const size of LAYOUT_WIDTHS) {
     await page.setViewportSize(size);
     await options.ready?.();
-    for (const p of await page.evaluate<LayoutProblem[]>(domLayoutSource(options))) found.push({ width: size.width, ...p });
+    for (const p of await page.evaluate<LayoutProblem[]>(domLayoutSource(options)))
+      found.push({ width: size.width, ...p });
   }
   return found;
 }
@@ -195,21 +199,35 @@ export function judgeLayout(
   known: readonly KnownLayoutBreach[] = KNOWN_LAYOUT_BREACHES,
 ): { unknown: string[]; stale: string[] } {
   const mine = known.filter((k) => k.screen === screen);
-  const matches = (k: KnownLayoutBreach, p: { width: number; rule: LayoutRule }): boolean =>
-    k.rule === p.rule && (k.width === '*' || k.width === p.width);
+  const matches = (
+    k: KnownLayoutBreach,
+    p: { width: number; rule: LayoutRule },
+  ): boolean => k.rule === p.rule && (k.width === '*' || k.width === p.width);
   const unknown = found
     .filter((p) => !mine.some((k) => matches(k, p)))
     .map((p) => `${screen} at ${p.width} px [${p.rule}]: ${p.text}`);
   const stale = mine
     .filter((k) => !found.some((p) => matches(k, p)))
-    .map((k) => `${screen}: known ${k.rule} breach at ${k.width} px (${k.task}) no longer happens: remove it from layout.known.json`);
+    .map(
+      (k) =>
+        `${screen}: known ${k.rule} breach at ${k.width} px (${k.task}) no longer happens: remove it from layout.known.json`,
+    );
   return { unknown, stale };
 }
 
 /** The one call a spec makes: measure at the three widths and fail on an unknown breach or a stale entry. */
-export async function expectDomLayout(page: PageLike, screen: string, options: DomLayoutOptions = {}): Promise<void> {
+export async function expectDomLayout(
+  page: PageLike,
+  screen: string,
+  options: DomLayoutOptions = {},
+): Promise<void> {
   const found = await measureDomLayout(page, options);
-  const { unknown, stale } = judgeLayout(screen, found, options.known ?? KNOWN_LAYOUT_BREACHES);
+  const { unknown, stale } = judgeLayout(
+    screen,
+    found,
+    options.known ?? KNOWN_LAYOUT_BREACHES,
+  );
   const problems = [...unknown, ...stale];
-  if (problems.length > 0) throw new Error(`DOM layout (design system, Enforcement):\n${problems.join('\n')}`);
+  if (problems.length > 0)
+    throw new Error(`DOM layout (design system, Enforcement):\n${problems.join('\n')}`);
 }

@@ -14,12 +14,26 @@ export interface KeypadOptions {
   maxLength?: number | undefined;
 }
 
-export type KeypadKey = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '.' | 'Backspace' | 'Clear';
+export type KeypadKey =
+  '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '.' | 'Backspace' | 'Clear';
 
 /** The keys in grid order, 3 across and 4 down. The "." cell is empty when there are no decimals. */
 export function keyLayout(opts: KeypadOptions): (KeypadKey | null)[] {
   const dot = (opts.kind ?? 'number') === 'number' && (opts.decimals ?? 0) > 0;
-  return ['1', '2', '3', '4', '5', '6', '7', '8', '9', dot ? '.' : null, '0', 'Backspace'];
+  return [
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    dot ? '.' : null,
+    '0',
+    'Backspace',
+  ];
 }
 
 /**
@@ -34,7 +48,11 @@ export function pressKey(buffer: string, key: string, opts: KeypadOptions = {}):
   if (key === 'Clear' || key === 'Delete') return '';
   if (key === '.' || key === ',') {
     if (decimals === 0 || buffer.includes('.')) return buffer;
-    return within(buffer === '' ? '0.' : buffer + '.', opts) ? (buffer === '' ? '0.' : buffer + '.') : buffer;
+    return within(buffer === '' ? '0.' : buffer + '.', opts)
+      ? buffer === ''
+        ? '0.'
+        : buffer + '.'
+      : buffer;
   }
   if (!/^[0-9]$/.test(key)) return buffer;
   const dot = buffer.indexOf('.');
@@ -46,7 +64,11 @@ export function pressKey(buffer: string, key: string, opts: KeypadOptions = {}):
 
 function within(next: string, opts: KeypadOptions): boolean {
   if (opts.maxLength !== undefined && next.length > opts.maxLength) return false;
-  if ((opts.kind ?? 'number') === 'number' && opts.max !== undefined && (opts.min ?? 0) >= 0) {
+  if (
+    (opts.kind ?? 'number') === 'number' &&
+    opts.max !== undefined &&
+    (opts.min ?? 0) >= 0
+  ) {
     const n = Number(next);
     if (Number.isFinite(n) && n > opts.max) return false;
   }
@@ -62,7 +84,8 @@ export function commitValue(buffer: string, opts: KeypadOptions = {}): CommitRes
   const kind = opts.kind ?? 'number';
   if (buffer === '' || buffer === '.') return { ok: false, reason: 'empty' };
   if (kind === 'code') {
-    if (opts.maxLength !== undefined && buffer.length < opts.maxLength) return { ok: false, reason: 'short' };
+    if (opts.maxLength !== undefined && buffer.length < opts.maxLength)
+      return { ok: false, reason: 'short' };
     return { ok: true, value: buffer };
   }
   const value = buffer.endsWith('.') ? buffer.slice(0, -1) : buffer;
@@ -73,14 +96,19 @@ export function commitValue(buffer: string, opts: KeypadOptions = {}): CommitRes
 }
 
 /** The key index an arrow moves to in the 3 x 4 grid, skipping empty cells; null for another key. */
-export function moveInGrid(index: number, key: string, layout: (KeypadKey | null)[]): number | null {
+export function moveInGrid(
+  index: number,
+  key: string,
+  layout: (KeypadKey | null)[],
+): number | null {
   const delta = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 }[key];
   if (key === 'Home') return layout.findIndex(Boolean);
   if (key === 'End') return layout.length - 1 - [...layout].reverse().findIndex(Boolean);
   if (delta === undefined) return null;
   let i = index + delta;
   while (i >= 0 && i < layout.length) {
-    const sameRow = Math.abs(delta) === 1 ? Math.floor(i / 3) === Math.floor(index / 3) : true;
+    const sameRow =
+      Math.abs(delta) === 1 ? Math.floor(i / 3) === Math.floor(index / 3) : true;
     if (!sameRow) return index;
     if (layout[i]) return i;
     i += delta;

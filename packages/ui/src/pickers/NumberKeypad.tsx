@@ -6,7 +6,13 @@
 // Keyboard: digits, "." and Backspace type from anywhere inside it; arrows move between keys (one tab stop);
 // Enter on a key presses it, Enter elsewhere is Done; Escape cancels.
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
-import { commitValue, keyLayout, moveInGrid, pressKey, type KeypadKind } from './number-keypad-logic';
+import {
+  commitValue,
+  keyLayout,
+  moveInGrid,
+  pressKey,
+  type KeypadKind,
+} from './number-keypad-logic';
 
 export interface NumberKeypadLabels {
   backspace: string;
@@ -51,7 +57,18 @@ export interface NumberKeypadProps {
 }
 
 export function NumberKeypad({
-  label, value = '', onDone, onCancel, onChange, kind = 'number', decimals = 0, min, max, maxLength, unit, labels,
+  label,
+  value = '',
+  onDone,
+  onCancel,
+  onChange,
+  kind = 'number',
+  decimals = 0,
+  min,
+  max,
+  maxLength,
+  unit,
+  labels,
 }: NumberKeypadProps) {
   const words = { ...DEFAULT_NUMBER_KEYPAD_LABELS, ...labels };
   const opts = { kind, decimals, min, max, maxLength };
@@ -86,7 +103,13 @@ export function NumberKeypad({
       if (onKey) return; // the focused key's own click presses it
       e.preventDefault();
       done();
-    } else if (/^[0-9]$/.test(e.key) || e.key === '.' || e.key === ',' || e.key === 'Backspace' || e.key === 'Delete') {
+    } else if (
+      /^[0-9]$/.test(e.key) ||
+      e.key === '.' ||
+      e.key === ',' ||
+      e.key === 'Backspace' ||
+      e.key === 'Delete'
+    ) {
       e.preventDefault();
       press(e.key);
     } else if (onKey) {
@@ -100,16 +123,33 @@ export function NumberKeypad({
 
   const reason = result.ok ? '' : reasonText(result.reason);
   function reasonText(r: 'empty' | 'below' | 'above' | 'short') {
-    return words[r].replace('{min}', String(min ?? '')).replace('{max}', String(max ?? '')).replace('{n}', String(maxLength ?? ''));
+    return words[r]
+      .replace('{min}', String(min ?? ''))
+      .replace('{max}', String(max ?? ''))
+      .replace('{n}', String(maxLength ?? ''));
   }
   const labelId = `${id}-label`;
   const reasonId = `${id}-reason`;
 
   return (
-    <div className="ds-keypad" role="group" aria-labelledby={labelId} onKeyDown={onRootKey}>
-      <span id={labelId} className="ds-keypad__label">{label}</span>
-      <output className="ds-keypad__display" aria-live="polite" aria-labelledby={labelId} data-kind={kind}>
-        <span className="ds-keypad__digits">{buffer === '' ? (kind === 'code' ? '' : '0') : buffer}</span>
+    <div
+      className="ds-keypad"
+      role="group"
+      aria-labelledby={labelId}
+      onKeyDown={onRootKey}
+    >
+      <span id={labelId} className="ds-keypad__label">
+        {label}
+      </span>
+      <output
+        className="ds-keypad__display"
+        aria-live="polite"
+        aria-labelledby={labelId}
+        data-kind={kind}
+      >
+        <span className="ds-keypad__digits">
+          {buffer === '' ? (kind === 'code' ? '' : '0') : buffer}
+        </span>
         {unit && <span className="ds-keypad__unit">{unit}</span>}
       </output>
 
@@ -120,10 +160,16 @@ export function NumberKeypad({
           ) : (
             <button
               key={key}
-              ref={(el) => { keyRefs.current[i] = el; }}
+              ref={(el) => {
+                keyRefs.current[i] = el;
+              }}
               type="button"
               data-keypad-key={key}
-              className={key === 'Backspace' ? 'ds-keypad__key ds-keypad__key--action' : 'ds-keypad__key'}
+              className={
+                key === 'Backspace'
+                  ? 'ds-keypad__key ds-keypad__key--action'
+                  : 'ds-keypad__key'
+              }
               tabIndex={i === focusIndex ? 0 : -1}
               aria-label={key === 'Backspace' ? words.backspace : undefined}
               onFocus={() => setFocusIndex(i)}
@@ -135,19 +181,34 @@ export function NumberKeypad({
         )}
       </div>
 
-      <p id={reasonId} className="ds-keypad__reason" aria-live="polite">{reason}</p>
+      <p id={reasonId} className="ds-keypad__reason" aria-live="polite">
+        {reason}
+      </p>
 
       <div className="ds-keypad__actions">
-        <button type="button" className="ds-keypad__action ds-keypad__action--quiet" onClick={() => press('Clear')}>
+        <button
+          type="button"
+          className="ds-keypad__action ds-keypad__action--quiet"
+          onClick={() => press('Clear')}
+        >
           {words.clear}
         </button>
         {onCancel && (
-          <button type="button" className="ds-keypad__action ds-keypad__action--secondary" onClick={onCancel}>
+          <button
+            type="button"
+            className="ds-keypad__action ds-keypad__action--secondary"
+            onClick={onCancel}
+          >
             {words.cancel}
           </button>
         )}
-        <button type="button" className="ds-keypad__action ds-keypad__action--primary"
-          disabled={!result.ok} aria-describedby={reason ? reasonId : undefined} onClick={done}>
+        <button
+          type="button"
+          className="ds-keypad__action ds-keypad__action--primary"
+          disabled={!result.ok}
+          aria-describedby={reason ? reasonId : undefined}
+          onClick={done}
+        >
           {words.done}
         </button>
       </div>

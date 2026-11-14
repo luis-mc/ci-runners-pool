@@ -21,8 +21,15 @@ export function unitsOf(units: TimeUnits): Unit[] {
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-export function parseTime(text: string | null | undefined, units: TimeUnits): TimeParts | null {
-  const re = { h: /^(\d{2})$/, hm: /^(\d{2}):(\d{2})$/, hms: /^(\d{2}):(\d{2}):(\d{2})$/ }[units];
+export function parseTime(
+  text: string | null | undefined,
+  units: TimeUnits,
+): TimeParts | null {
+  const re = {
+    h: /^(\d{2})$/,
+    hm: /^(\d{2}):(\d{2})$/,
+    hms: /^(\d{2}):(\d{2}):(\d{2})$/,
+  }[units];
   const m = re.exec(text ?? '');
   if (!m) return null;
   const parts = { h: Number(m[1]), m: Number(m[2] ?? 0), s: Number(m[3] ?? 0) };
@@ -31,7 +38,9 @@ export function parseTime(text: string | null | undefined, units: TimeUnits): Ti
 }
 
 export function formatTime(parts: TimeParts, units: TimeUnits): string {
-  return unitsOf(units).map((u) => pad(parts[u])).join(':');
+  return unitsOf(units)
+    .map((u) => pad(parts[u]))
+    .join(':');
 }
 
 /**
@@ -39,7 +48,11 @@ export function formatTime(parts: TimeParts, units: TimeUnits): string {
  * Up/Down step by `step` and wrap (23 -> 00); a value off the step grid snaps to the next step.
  * Page Up/Down step by `big` and wrap. Home/End go to 0 and the last value on the step grid.
  */
-export function spinKey(value: number, key: string, opts: { max: number; step?: number; big?: number }): number | null {
+export function spinKey(
+  value: number,
+  key: string,
+  opts: { max: number; step?: number; big?: number },
+): number | null {
   const step = Math.max(1, opts.step ?? 1);
   const size = opts.max + 1;
   const top = opts.max - (opts.max % step);
@@ -54,11 +67,16 @@ export function spinKey(value: number, key: string, opts: { max: number; step?: 
       const next = Math.ceil(value / step) * step - step;
       return next < 0 ? top : next;
     }
-    case 'PageUp': return snap(wrap(value + big), step, top);
-    case 'PageDown': return snap(wrap(value - big), step, top);
-    case 'Home': return 0;
-    case 'End': return top;
-    default: return null;
+    case 'PageUp':
+      return snap(wrap(value + big), step, top);
+    case 'PageDown':
+      return snap(wrap(value - big), step, top);
+    case 'Home':
+      return 0;
+    case 'End':
+      return top;
+    default:
+      return null;
   }
 }
 
@@ -78,7 +96,8 @@ export function from12(h12: number, pm: boolean): number {
 /** 24-hour by default; 12-hour when the locale's clock is 12-hour. */
 export function hourCycleFor(locale?: string): HourCycle {
   try {
-    const cycle = new Intl.DateTimeFormat(locale, { hour: 'numeric' }).resolvedOptions().hourCycle;
+    const cycle = new Intl.DateTimeFormat(locale, { hour: 'numeric' }).resolvedOptions()
+      .hourCycle;
     return cycle === 'h11' || cycle === 'h12' ? 'h12' : 'h23';
   } catch {
     return 'h23';
@@ -87,7 +106,14 @@ export function hourCycleFor(locale?: string): HourCycle {
 
 /** Day period words of the locale, such as ["AM", "PM"]. */
 export function dayPeriods(locale?: string): [string, string] {
-  const f = new Intl.DateTimeFormat(locale, { hour: 'numeric', hourCycle: 'h12', timeZone: 'UTC' });
-  const word = (h: number) => f.formatToParts(new Date(Date.UTC(2009, 2, 14, h))).find((p) => p.type === 'dayPeriod')?.value;
+  const f = new Intl.DateTimeFormat(locale, {
+    hour: 'numeric',
+    hourCycle: 'h12',
+    timeZone: 'UTC',
+  });
+  const word = (h: number) =>
+    f
+      .formatToParts(new Date(Date.UTC(2009, 2, 14, h)))
+      .find((p) => p.type === 'dayPeriod')?.value;
   return [word(9) ?? 'AM', word(21) ?? 'PM'];
 }
