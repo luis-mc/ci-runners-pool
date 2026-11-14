@@ -26,16 +26,10 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/cli"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
-	"github.com/luis-mc/ci-runners-shared-pool/internal/configexport"
-	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor/wire"
-	"github.com/luis-mc/ci-runners-shared-pool/internal/events"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/hooks"
-	"github.com/luis-mc/ci-runners-shared-pool/internal/notify"
-	"github.com/luis-mc/ci-runners-shared-pool/internal/overview"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
-	"github.com/luis-mc/ci-runners-shared-pool/internal/tlsca"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tray"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
@@ -156,42 +150,32 @@ func runController() error {
 	// duration, from job history (machines R5.55, R5.56).
 	mr.Service.SetTypical(usualDuration(db))
 
-	// Live view over an empty source until the store adapter is wired (CRSP23).
-	hub, live := wire.NewLive(overview.EmptySource{}, events.Options{})
-	defer hub.Stop()
-
 	um := startUpdates(ctx, cfg, logger, mr, ops.Settings, idle)
+	queue := scheduler.NewEngine(db, scheduler.WithLogger(logger))
+	go scheduler.RunSweeper(ctx, queue, logger, 30*time.Second)
 
-	// Notification channels: their secrets live only in the OS secret store (notifications R6.2).
-	secretStore, err := secrets.Open(ctx, cfg.DataDir)
+	sec, err := secrets.Open(ctx, cfg.DataDir)
 	if err != nil {
 		return fmt.Errorf("open the secret store: %w", err)
 	}
+	ctl, err := buildController(ctx, controllerDeps{
+		Cfg: cfg, Logger: logger, DB: db, Secrets: sec, Ops: ops,
+		Machines: mr.Service, CA: mr.CA, Updates: um, Queue: queue, Caches: mr.Caches, MachineSecrets: mr.Secrets,
+	})
+	if err != nil {
+		return err
+	}
+	defer ctl.Close()
 
-	// Sign-in, and the one-time link the tray's Open asks for over the local
-	// channel (tray R5.6 to R5.9, R6.1).
+	// The one-time link the tray's Open asks for over the local channel (tray R5.6 to R5.9, R6.1).
 	console := consoleURL(cfg.ListenAddr)
-	area, links := newAuthArea(db, secretStore, console, logger)
-	startTrayChannel(ctx, logger, trayBackend{Updates: um, Drain: machineDrainer{svc: mr.Service}, Console: console, Links: links})
-	notifier := notify.New(notify.Config{DB: db, Secrets: secretStore, Logger: logger})
+	startTrayChannel(ctx, logger, trayBackend{
+		Updates: um, Drain: machineDrainer{svc: mr.Service}, Console: console,
+		Links: setupOrConsole{auth: ctl.Auth, console: console, next: authLinks{svc: ctl.Auth, console: console}},
+	})
 
 	mux := http.NewServeMux()
-	queue := scheduler.NewEngine(db, scheduler.WithLogger(logger))
-	go scheduler.RunSweeper(ctx, queue, logger, 30*time.Second)
-	api.Register(mux, api.Options{
-		Version: version, DB: db, Logger: logger, GitHub: area,
-		Settings: ops.Settings, Audit: ops.Audit, Backup: ops.Backup,
-		Machines: mr.Service, CA: mr.CA, Update: um,
-		Jobs: db, Slots: queue,
-		Live: live, Caches: mr.Caches, Events: hub, Notify: notifier,
-		Config: configexport.Source{
-			Version: version, Config: cfg, Settings: ops.Settings, Secrets: mr.Secrets,
-			Named: []configexport.NamedSecret{
-				{Name: "Controller certificate authority key", Key: tlsca.CAKeySecret},
-				{Name: "Controller server key", Key: tlsca.ServerKeySecret},
-			},
-		},
-	})
+	api.Register(mux, ctl.Options)
 	mux.Handle("/", webui.Handler())
 
 	// The console and its API are plain HTTP on 127.0.0.1 and ::1 only, and
