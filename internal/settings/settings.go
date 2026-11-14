@@ -30,6 +30,9 @@ type Settings struct {
 	BackupTimeLocal            string // HH:MM, 24-hour local time
 	BackupKeepDays             int
 	MaxEventStreams            int
+	// AutoUpdate is operations R5.15: on by default; a newer stable release
+	// installs by itself after a drain.
+	AutoUpdate bool
 }
 
 // Patch is a partial change. A nil field is left alone.
@@ -42,6 +45,7 @@ type Patch struct {
 	BackupTimeLocal            *string
 	BackupKeepDays             *int
 	MaxEventStreams            *int
+	AutoUpdate                 *bool
 }
 
 // Defaults are the owner's defaults (observability R6.8, operations R5.21).
@@ -54,6 +58,7 @@ var Defaults = Settings{
 	BackupTimeLocal:            "03:00",
 	BackupKeepDays:             14,
 	MaxEventStreams:            50,
+	AutoUpdate:                 true,
 }
 
 // Range is the floor and ceiling of a numeric setting.
@@ -98,6 +103,11 @@ func (s *Service) Get(ctx context.Context) (Settings, error) {
 	out := Defaults
 	for _, r := range rows {
 		switch r.Key {
+		case "auto_update":
+			var v bool
+			if json.Unmarshal([]byte(r.Value), &v) == nil {
+				out.AutoUpdate = v
+			}
 		case "backup_time_local":
 			var v string
 			if json.Unmarshal([]byte(r.Value), &v) == nil && hhmm.MatchString(v) {
@@ -190,6 +200,11 @@ func (s *Service) Update(ctx context.Context, actor audit.Actor, p Patch) (Setti
 			b, _ := json.Marshal(v)
 			writes["backup_time_local"] = string(b)
 		}
+	}
+	if p.AutoUpdate != nil && *p.AutoUpdate != before.AutoUpdate {
+		after.AutoUpdate = *p.AutoUpdate
+		changes["auto_update"] = strconv.FormatBool(before.AutoUpdate) + " -> " + strconv.FormatBool(*p.AutoUpdate)
+		writes["auto_update"] = strconv.FormatBool(*p.AutoUpdate)
 	}
 	target := audit.Target{Type: "settings", ID: "controller"}
 	if len(problems) > 0 {

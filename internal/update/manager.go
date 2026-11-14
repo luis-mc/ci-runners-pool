@@ -1,0 +1,517 @@
+// Package update is the self-update and the service restart of the controller
+// (operations R5.11 to R5.18, tray R5.15 to R5.18).
+//
+// The flow: look at GitHub Releases for a newer stable release; download the
+// asset for this OS and architecture (the MSI on Windows, crsp-<os>-<arch>.tar.gz
+// elsewhere) and SHA256SUMS; verify the SHA-256 and the build provenance
+// attestation; then drain (no new jobs, wait for running jobs up to the drain
+// timeout) and only then hand the install to a helper process that survives the
+// service stopping. A running job is never cut: the install runs when the
+// machine is idle, and an idle check runs again right before it.
+package update
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+	"os"
+	"path/filepath"
+	"runtime"
+	"sync"
+	"time"
+)
+
+// Kind is what a drain is for.
+type Kind string
+
+// Kinds.
+const (
+	KindUpdate  Kind = "update"
+	KindRestart Kind = "restart"
+)
+
+// State is where an update or restart stands.
+type State string
+
+// States, as the API shows them.
+const (
+	StateIdle           State = "idle"
+	StateChecking       State = "checking"
+	StateWaitingForJobs State = "waiting_for_jobs"
+	StateDownloading    State = "downloading"
+	StateInstalling     State = "installing"
+	StateRestarting     State = "restarting"
+	StateFailed         State = "failed"
+)
+
+// Job is a running job the drain waits for (named on the Review step).
+type Job struct {
+	Repository string
+	Workflow   string
+	RunID      int64
+	Job        string
+}
+
+// Status is a snapshot for the API, the console and the tray.
+type Status struct {
+	Current             string
+	Latest              string
+	Available           bool
+	State               State
+	AutoUpdate          bool
+	CheckedAt           time.Time
+	Error               string
+	RunningJobs         []Job
+	DrainTimeoutMinutes int
+	ReleaseURL          string
+}
+
+// Drainer is the machines side: it names the jobs on this machine and drains it.
+// BeginDrain starts a drain; when the machine is idle the machines service
+// calls Manager.OnIdle. The drain never stops a running job.
+type Drainer interface {
+	RunningJobs(ctx context.Context) ([]Job, error)
+	BeginDrain(ctx context.Context, kind Kind, actor string) error
+	DrainTimeoutMinutes(ctx context.Context) int
+}
+
+// NeedsConfirmation is returned for a request without confirmed=true (R5.16).
+type NeedsConfirmation struct {
+	Kind Kind
+	Jobs []Job
+}
+
+func (e *NeedsConfirmation) Error() string {
+	return fmt.Sprintf("a %s waits for %d running job(s) and needs a yes", e.Kind, len(e.Jobs))
+}
+
+// Errors the API maps.
+var (
+	ErrNoUpdate = errors.New("this is already the newest stable release")
+	ErrBusy     = errors.New("an update or restart is already running")
+	ErrNotIdle  = errors.New("a job started before the install; the drain goes on waiting")
+)
+
+// Options configure a Manager.
+type Options struct {
+	Current  string
+	Source   Source
+	Attester Attester
+	Drainer  Drainer
+	// AutoUpdate reads the setting (default on).
+	AutoUpdate func(ctx context.Context) bool
+	// Dir is the work folder (the data folder's updates/).
+	Dir       string
+	HealthURL string
+	Service   string
+	GOOS      string
+	GOARCH    string
+	Exe       string
+	Logger    *slog.Logger
+	Now       func() time.Time
+
+	// Seams for tests.
+	AllowURL  func(string) bool
+	Fetch     func(ctx context.Context, url, dst string) error
+	Extract   func(archive, dst string) error
+	SelfCheck func(ctx context.Context, bin, version string) error
+	Spawn     func(ctx context.Context, exe string, p Plan, planPath string) (int, error)
+	Pid       func() int
+}
+
+// Manager runs checks, updates and restarts. It is safe for concurrent use.
+type Manager struct {
+	o Options
+
+	mu      sync.Mutex
+	state   State
+	latest  Release
+	checked time.Time
+	errText string
+	pending *pending
+	lock    *Lock
+}
+
+type pending struct {
+	kind    Kind
+	version string
+	file    string
+}
+
+// New returns a Manager. A missing option takes the OS default.
+func New(o Options) *Manager {
+	if o.Now == nil {
+		o.Now = time.Now
+	}
+	if o.GOOS == "" {
+		o.GOOS = runtime.GOOS
+	}
+	if o.GOARCH == "" {
+		o.GOARCH = runtime.GOARCH
+	}
+	if o.Logger == nil {
+		o.Logger = slog.Default()
+	}
+	if o.Service == "" {
+		o.Service = "crsp"
+	}
+	if o.AllowURL == nil {
+		o.AllowURL = allowedHost
+	}
+	if o.Fetch == nil {
+		o.Fetch = func(ctx context.Context, url, dst string) error { return httpFetch(ctx, url, dst) }
+	}
+	if o.Extract == nil {
+		o.Extract = ExtractBinary
+	}
+	if o.SelfCheck == nil {
+		o.SelfCheck = selfCheck
+	}
+	if o.Spawn == nil {
+		o.Spawn = Spawn
+	}
+	if o.Pid == nil {
+		o.Pid = os.Getpid
+	}
+	if o.AutoUpdate == nil {
+		o.AutoUpdate = func(context.Context) bool { return true }
+	}
+	m := &Manager{o: o, state: StateIdle}
+	if r, ok := ReadResult(o.Dir); ok && !r.OK && r.To != o.Current {
+		m.state, m.errText = StateFailed, "The last update to "+r.To+" failed: "+r.Error
+	}
+	return m
+}
+
+// Status returns the current snapshot.
+func (m *Manager) Status(ctx context.Context) Status {
+	m.mu.Lock()
+	st := Status{
+		Current: m.o.Current, Latest: m.latest.Version, State: m.state, CheckedAt: m.checked,
+		Error: m.errText, ReleaseURL: m.latest.URL,
+	}
+	m.mu.Unlock()
+	st.Available = Newer(st.Current, st.Latest)
+	st.AutoUpdate = m.o.AutoUpdate(ctx)
+	if m.o.Drainer != nil {
+		if jobs, err := m.o.Drainer.RunningJobs(ctx); err == nil {
+			st.RunningJobs = jobs
+		}
+		st.DrainTimeoutMinutes = m.o.Drainer.DrainTimeoutMinutes(ctx)
+	}
+	return st
+}
+
+func (m *Manager) busy() bool {
+	switch m.state {
+	case StateChecking, StateWaitingForJobs, StateDownloading, StateInstalling, StateRestarting:
+		return true
+	}
+	return false
+}
+
+// Check looks for a newer stable release. It downloads nothing. With
+// auto-update on and a newer release, the update then starts by itself (and
+// drains first); a refused or failed automatic try is shown in Status.Error.
+func (m *Manager) Check(ctx context.Context) (Status, error) {
+	m.mu.Lock()
+	if m.busy() {
+		m.mu.Unlock()
+		return m.Status(ctx), nil
+	}
+	prev := m.state
+	m.state = StateChecking
+	m.mu.Unlock()
+
+	rel, err := m.o.Source.Latest(ctx)
+
+	m.mu.Lock()
+	m.checked = m.o.Now()
+	switch {
+	case err != nil && !errors.Is(err, ErrNoRelease):
+		m.state, m.errText = StateFailed, "Could not look for updates: "+err.Error()
+	case err == nil:
+		m.latest = rel
+		m.state = prev
+		if prev == StateFailed || m.errText != "" {
+			m.state, m.errText = StateIdle, ""
+		}
+	default:
+		m.state = StateIdle
+	}
+	m.mu.Unlock()
+	if err != nil && !errors.Is(err, ErrNoRelease) {
+		return m.Status(ctx), err
+	}
+
+	if st := m.Status(ctx); st.Available && st.AutoUpdate {
+		if ok, why := AutoAllowed(readFailures(m.o.Dir), st.Latest, m.o.Now()); !ok {
+			m.setError(why)
+			return m.Status(ctx), nil
+		}
+		if _, err := m.begin(ctx, KindUpdate, "auto-update"); err != nil && !errors.Is(err, ErrBusy) {
+			m.o.Logger.Warn("automatic update did not start", "err", err)
+		}
+	}
+	return m.Status(ctx), nil
+}
+
+func readFailures(dir string) Failures { f, _ := ReadFailures(dir); return f }
+
+func (m *Manager) setError(text string) {
+	m.mu.Lock()
+	m.errText = text
+	m.mu.Unlock()
+}
+
+// Apply updates or restarts after a yes. Without confirmed it changes nothing
+// and returns *NeedsConfirmation with the running jobs (R5.16). With it, the
+// machine drains first (R5.17); a running job is never cut.
+func (m *Manager) Apply(ctx context.Context, kind Kind, confirmed bool, actor string) (Status, error) {
+	if m.o.Drainer == nil {
+		return Status{}, errors.New("this machine has no drain service")
+	}
+	jobs, err := m.o.Drainer.RunningJobs(ctx)
+	if err != nil {
+		return Status{}, err
+	}
+	if !confirmed {
+		return Status{}, &NeedsConfirmation{Kind: kind, Jobs: jobs}
+	}
+	if kind == KindUpdate {
+		// Make sure the release is known; a manual yes may come before the first look.
+		if m.Status(ctx).Latest == "" {
+			if _, err := m.checkOnly(ctx); err != nil {
+				return Status{}, err
+			}
+		}
+	}
+	return m.begin(ctx, kind, actor)
+}
+
+// checkOnly refreshes the known release without starting an automatic update.
+func (m *Manager) checkOnly(ctx context.Context) (Release, error) {
+	rel, err := m.o.Source.Latest(ctx)
+	if err != nil {
+		return Release{}, err
+	}
+	m.mu.Lock()
+	m.latest, m.checked = rel, m.o.Now()
+	m.mu.Unlock()
+	return rel, nil
+}
+
+// begin takes the lock, prepares (update: download and verify), and starts the drain.
+func (m *Manager) begin(ctx context.Context, kind Kind, actor string) (Status, error) {
+	m.mu.Lock()
+	if m.busy() {
+		m.mu.Unlock()
+		return Status{}, ErrBusy
+	}
+	rel := m.latest
+	if kind == KindUpdate && !Newer(m.o.Current, rel.Version) {
+		m.mu.Unlock()
+		return Status{}, ErrNoUpdate
+	}
+	lock, err := TakeLock(m.o.Dir, m.o.Now(), m.o.Pid(), nil)
+	if err != nil {
+		m.mu.Unlock()
+		return Status{}, err
+	}
+	m.lock = lock
+	m.errText = ""
+	if kind == KindUpdate {
+		m.state = StateDownloading
+	} else {
+		m.state = StateWaitingForJobs
+	}
+	m.mu.Unlock()
+
+	p := &pending{kind: kind, version: m.o.Current}
+	if kind == KindUpdate {
+		file, err := m.prepare(ctx, rel)
+		if err != nil {
+			m.fail(err, rel.Version)
+			return m.Status(ctx), err
+		}
+		p.version, p.file = rel.Version, file
+	}
+	m.mu.Lock()
+	m.pending = p
+	m.state = StateWaitingForJobs
+	m.mu.Unlock()
+	if err := m.o.Drainer.BeginDrain(ctx, kind, actor); err != nil {
+		m.fail(err, p.version)
+		return m.Status(ctx), err
+	}
+	return m.Status(ctx), nil
+}
+
+func (m *Manager) fail(err error, version string) {
+	m.mu.Lock()
+	m.state, m.errText, m.pending = StateFailed, err.Error(), nil
+	lock := m.lock
+	m.lock = nil
+	m.mu.Unlock()
+	lock.Release()
+	if version != "" {
+		_ = RecordFailure(m.o.Dir, version, m.o.Now(), false)
+	}
+	m.o.Logger.Warn("update refused or failed", "err", err)
+}
+
+// prepare downloads the asset and SHA256SUMS, verifies both checks, and (on
+// unix) extracts the binary and runs the self-check. It returns the file to install.
+func (m *Manager) prepare(ctx context.Context, rel Release) (string, error) {
+	asset := AssetName(m.o.GOOS, m.o.GOARCH)
+	assetURL, ok := rel.Assets[asset]
+	if !ok {
+		return "", fmt.Errorf("release %s has no %s for this machine", rel.Version, asset)
+	}
+	sumsURL, ok := rel.Assets["SHA256SUMS"]
+	if !ok {
+		return "", &Failure{Check: "checksum", Reason: "release " + rel.Version + " has no SHA256SUMS"}
+	}
+	for _, u := range []string{assetURL, sumsURL} {
+		if !m.o.AllowURL(u) {
+			return "", fmt.Errorf("refusing to download from %s: not a GitHub release address", u)
+		}
+	}
+	dir := filepath.Join(m.o.Dir, rel.Version)
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return "", err
+	}
+	file, sumsFile := filepath.Join(dir, asset), filepath.Join(dir, "SHA256SUMS")
+	if err := m.o.Fetch(ctx, assetURL, file); err != nil {
+		return "", fmt.Errorf("download %s: %w", asset, err)
+	}
+	if err := m.o.Fetch(ctx, sumsURL, sumsFile); err != nil {
+		return "", fmt.Errorf("download SHA256SUMS: %w", err)
+	}
+	sums, err := os.ReadFile(sumsFile) //nolint:gosec // work folder
+	if err != nil {
+		return "", err
+	}
+	if err := Verify(ctx, file, asset, sums, m.o.Attester); err != nil {
+		return "", err
+	}
+	if m.o.GOOS == "windows" {
+		return file, nil
+	}
+	bin := filepath.Join(filepath.Dir(m.o.Exe), filepath.Base(m.o.Exe)+".new")
+	if err := m.o.Extract(file, bin); err != nil {
+		return "", fmt.Errorf("unpack %s: %w", asset, err)
+	}
+	if err := m.o.SelfCheck(ctx, bin, rel.Version); err != nil {
+		_ = os.Remove(bin)
+		return "", fmt.Errorf("the new build failed its self-check: %w", err)
+	}
+	return bin, nil
+}
+
+// OnIdle is called by the machines service when the drain is complete. It
+// checks once more that no job runs (R5.14), then hands the install to the
+// helper process. After it returns nil the service is about to stop.
+func (m *Manager) OnIdle(ctx context.Context, kind Kind) error {
+	m.mu.Lock()
+	p := m.pending
+	m.mu.Unlock()
+	if p == nil || p.kind != kind {
+		return nil // not our change
+	}
+	jobs, err := m.o.Drainer.RunningJobs(ctx)
+	if err != nil {
+		return err
+	}
+	if len(jobs) > 0 {
+		return ErrNotIdle
+	}
+	plan := Plan{
+		Kind: string(kind), GOOS: m.o.GOOS, From: m.o.Current, To: p.version, File: p.file, Exe: m.o.Exe,
+		Service: m.o.Service, HealthURL: m.o.HealthURL, Dir: m.o.Dir,
+		HealthTimeout: 60 * time.Second,
+	}
+	if m.o.GOOS == "windows" {
+		plan.HealthTimeout = 3 * time.Minute
+	}
+	planPath := filepath.Join(m.o.Dir, PlanFile)
+	if err := writeJSON(planPath, plan); err != nil {
+		m.fail(err, p.version)
+		return err
+	}
+	m.mu.Lock()
+	m.state = StateInstalling
+	lock := m.lock
+	m.mu.Unlock()
+	pid, err := m.o.Spawn(ctx, m.o.Exe, plan, planPath)
+	if err != nil {
+		m.fail(fmt.Errorf("could not start the install helper: %w", err), p.version)
+		return err
+	}
+	if pid > 0 && lock != nil {
+		_ = lock.HandOver(pid, m.o.Now())
+	}
+	m.mu.Lock()
+	m.state, m.pending = StateRestarting, nil
+	m.mu.Unlock()
+	return nil
+}
+
+// Run checks at start (after a minute) and then every interval, until ctx ends.
+// Turning auto-update off keeps the checks (the console still shows the newer
+// version) but starts no install.
+func (m *Manager) Run(ctx context.Context, first, every time.Duration) {
+	t := time.NewTimer(first)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			if _, err := m.Check(ctx); err != nil {
+				m.o.Logger.Warn("update check failed", "err", err)
+			}
+			t.Reset(every)
+		}
+	}
+}
+
+// httpFetch downloads url to dst (temporary name, then rename), capped at 300 MiB.
+func httpFetch(ctx context.Context, url, dst string) error {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Minute)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", "crsp-updater")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("GitHub answered %d", resp.StatusCode)
+	}
+	tmp := dst + ".part"
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) //nolint:gosec // work folder
+	if err != nil {
+		return err
+	}
+	const max = 300 << 20
+	n, err := io.Copy(f, io.LimitReader(resp.Body, max+1))
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil && n > max {
+		err = errors.New("the download is larger than 300 MiB")
+	}
+	if err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	return os.Rename(tmp, dst)
+}
