@@ -21,6 +21,23 @@ func TestSessionNeverExpiresByTime(t *testing.T) { // R5.13 (owner decision for 
 	}
 }
 
+// D39: no idle expiry either: a session nobody used for years, and one that a
+// restarted controller (a new Service on the same store) reads back, still works.
+func TestSessionHasNoIdleExpiryAndSurvivesARestart(t *testing.T) { // R5.13, D39
+	e := newEnv(t)
+	ctx := context.Background()
+	si := e.ownerSignIn(1, "alice")
+	e.advance(3 * 365 * 24 * time.Hour) // no request in between
+	restarted := New(e.store, Config{GitHub: e.gh, Secrets: e.secrets, WebBase: e.fake.URL, Now: e.clock,
+		ConsoleURLs: func() []string { return e.consoles }})
+	for _, svc := range []*Service{e.svc, restarted} {
+		p, err := svc.Authenticate(ctx, si.Cookie)
+		if err != nil || p.UserID != 1 {
+			t.Fatalf("a session ends at sign-out, removal or a role change only: %+v %v", p, err)
+		}
+	}
+}
+
 func TestSessionEndsAtSignOut(t *testing.T) { // R5.13
 	e := newEnv(t)
 	ctx := context.Background()
