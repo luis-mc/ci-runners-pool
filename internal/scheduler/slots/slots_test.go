@@ -225,7 +225,9 @@ func TestFirstInLineSkipsPassedTickets(t *testing.T) {
 func TestHeavyMatch(t *testing.T) {
 	s := slots.Defaults()
 	s.HeavyJobs = []string{"e2e", "integ-*", "o/special:slow", "other/x:*"}
-	j := func(repo, job, shard string) slots.JobNames { return slots.JobNames{Repository: repo, Job: job, Shard: shard} }
+	j := func(repo, job, shard string) slots.JobNames {
+		return slots.JobNames{Repository: repo, Job: job, Shard: shard}
+	}
 	yes := []slots.JobNames{j("o/r", "e2e", ""), j("o/r", "integ-db", ""), j("o/r", "build", "e2e"), j("o/special", "slow", "")}
 	no := []slots.JobNames{j("o/r", "slow", ""), j("o/r", "build", ""), j("o/r", "", "")}
 	for _, x := range yes {
