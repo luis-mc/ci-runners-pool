@@ -25,7 +25,7 @@ func NeedsRelaunch(own, service string) bool {
 // returns at once. The new tray waits up to 20 s for this one to release the
 // single-instance lock (--wait).
 func Relaunch(exe string) error {
-	cmd := exec.Command(exe, "tray", "--wait", "20s") //nolint:gosec // our own binary
+	cmd := exec.Command(exe, "tray", "--wait", "20s", "--updated") //nolint:gosec // our own binary
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -47,6 +47,7 @@ func Run(args []string, o Options) int {
 	fs.SetOutput(o.Stderr)
 	smoke := fs.Bool("smoke", false, "start the tray loop, exit 0 once the icon is ready (CI)")
 	hold := fs.Duration("smoke-hold", 0, "with --smoke: keep running this long after the icon is ready")
+	updated := fs.Bool("updated", false, "this tray was started by the old tray after an update: say so in one notice")
 	wait := fs.Duration("wait", 0, "wait up to this long for the tray of the old version to quit (used after an update)")
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -80,6 +81,9 @@ func Run(args []string, o Options) int {
 		return ExitNoTrayHost
 	}
 
+	if *updated && o.Version != "" {
+		DesktopNotice("Updated to "+o.Version, ProductName+" now runs version "+o.Version+".")
+	}
 	return loop(o, *smoke, *hold)
 }
 

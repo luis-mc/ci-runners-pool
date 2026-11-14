@@ -76,6 +76,8 @@ type Drainer interface {
 	RunningJobs(ctx context.Context) ([]Job, error)
 	BeginDrain(ctx context.Context, kind Kind, actor string) error
 	DrainTimeoutMinutes(ctx context.Context) int
+	// CancelDrain ends a drain and lets the machine take jobs again.
+	CancelDrain(ctx context.Context, actor string) error
 }
 
 // NeedsConfirmation is returned for a request without confirmed=true (R5.16).
@@ -108,10 +110,14 @@ type Options struct {
 	HealthURL string
 	Service   string
 	GOOS      string
-	GOARCH    string
-	Exe       string
-	Logger    *slog.Logger
-	Now       func() time.Time
+	// InstallKind is msi, pkg, deb, rpm or tarball; empty reads the install-kind marker next to Exe.
+	InstallKind string
+	// AutoDrainLimit is how long an automatic update waits for running jobs (default 60 min).
+	AutoDrainLimit time.Duration
+	GOARCH         string
+	Exe            string
+	Logger         *slog.Logger
+	Now            func() time.Time
 
 	// Seams for tests.
 	AllowURL  func(string) bool
@@ -133,6 +139,7 @@ type Manager struct {
 	errText string
 	pending *pending
 	lock    *Lock
+	timer   *time.Timer
 }
 
 type pending struct {
@@ -154,6 +161,12 @@ func New(o Options) *Manager {
 	}
 	if o.Logger == nil {
 		o.Logger = slog.Default()
+	}
+	if o.InstallKind == "" {
+		o.InstallKind = InstallKindFor(o.Exe, o.GOOS)
+	}
+	if o.AutoDrainLimit <= 0 {
+		o.AutoDrainLimit = 60 * time.Minute
 	}
 	if o.Service == "" {
 		o.Service = "crsp"
@@ -347,7 +360,30 @@ func (m *Manager) begin(ctx context.Context, kind Kind, actor string) (Status, e
 		m.fail(err, p.version)
 		return m.Status(ctx), err
 	}
+	if actor == "auto-update" {
+		// An automatic update waits at most AutoDrainLimit; then it lets go and retries at the next check.
+		m.mu.Lock()
+		m.timer = time.AfterFunc(m.o.AutoDrainLimit, func() { m.giveUpDrain(actor) })
+		m.mu.Unlock()
+	}
 	return m.Status(ctx), nil
+}
+
+func (m *Manager) giveUpDrain(actor string) {
+	m.mu.Lock()
+	if m.pending == nil || m.state != StateWaitingForJobs {
+		m.mu.Unlock()
+		return
+	}
+	m.pending, m.state = nil, StateIdle
+	m.errText = "Running jobs did not end within " + m.o.AutoDrainLimit.String() + ". The drain was cancelled and the machine takes jobs again. The update tries again at the next check."
+	lock := m.lock
+	m.lock = nil
+	m.mu.Unlock()
+	if err := m.o.Drainer.CancelDrain(context.Background(), actor); err != nil {
+		m.o.Logger.Warn("could not cancel the drain", "err", err)
+	}
+	lock.Release()
 }
 
 func (m *Manager) fail(err error, version string) {
@@ -366,7 +402,7 @@ func (m *Manager) fail(err error, version string) {
 // prepare downloads the asset and SHA256SUMS, verifies both checks, and (on
 // unix) extracts the binary and runs the self-check. It returns the file to install.
 func (m *Manager) prepare(ctx context.Context, rel Release) (string, error) {
-	asset := AssetName(m.o.GOOS, m.o.GOARCH)
+	asset := AssetFor(m.o.InstallKind, m.o.GOOS, m.o.GOARCH)
 	assetURL, ok := rel.Assets[asset]
 	if !ok {
 		return "", fmt.Errorf("release %s has no %s for this machine", rel.Version, asset)
@@ -398,7 +434,7 @@ func (m *Manager) prepare(ctx context.Context, rel Release) (string, error) {
 	if err := Verify(ctx, file, asset, sums, m.o.Attester); err != nil {
 		return "", err
 	}
-	if m.o.GOOS == "windows" {
+	if m.o.InstallKind != KindTarball {
 		return file, nil
 	}
 	bin := filepath.Join(filepath.Dir(m.o.Exe), filepath.Base(m.o.Exe)+".new")
@@ -418,6 +454,9 @@ func (m *Manager) prepare(ctx context.Context, rel Release) (string, error) {
 func (m *Manager) OnIdle(ctx context.Context, kind Kind) error {
 	m.mu.Lock()
 	p := m.pending
+	if m.timer != nil {
+		m.timer.Stop()
+	}
 	m.mu.Unlock()
 	if p == nil || p.kind != kind {
 		return nil // not our change
@@ -430,7 +469,7 @@ func (m *Manager) OnIdle(ctx context.Context, kind Kind) error {
 		return ErrNotIdle
 	}
 	plan := Plan{
-		Kind: string(kind), GOOS: m.o.GOOS, From: m.o.Current, To: p.version, File: p.file, Exe: m.o.Exe,
+		Kind: string(kind), GOOS: m.o.GOOS, InstallKind: m.o.InstallKind, From: m.o.Current, To: p.version, File: p.file, Exe: m.o.Exe,
 		Service: m.o.Service, HealthURL: m.o.HealthURL, Dir: m.o.Dir,
 		HealthTimeout: 60 * time.Second,
 	}

@@ -60,6 +60,7 @@ func TestHeaderPerUpdateState(t *testing.T) {
 		{"installing", ok(UpdateInfo{Latest: "1.5.0", Available: true, State: "installing"}), "CI Runners Shared Pool 1.4.0 - updating…"},
 		{"auto off, up to date", ok(UpdateInfo{State: "idle", AutoOff: true}), "CI Runners Shared Pool 1.4.0 - up to date · auto-update off"},
 		{"auto off, available", ok(UpdateInfo{Latest: "1.5.0", Available: true, AutoOff: true}), "CI Runners Shared Pool 1.4.0 - update 1.5.0 available · auto-update off"},
+		{"failed", ok(UpdateInfo{State: "failed"}), "CI Runners Shared Pool 1.4.0 - update failed"},
 		{"service stopped: no claim", Status{State: StateStopped}, "CI Runners Shared Pool 1.4.0"},
 		{"service starting: no claim", Status{State: StateStarting}, "CI Runners Shared Pool 1.4.0"},
 	}

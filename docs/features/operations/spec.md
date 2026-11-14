@@ -174,6 +174,28 @@ The data folder holds the database, `backups/`, `logs/` and `updates/`. It is re
 
 **R5.18** (M3) — The controller updates first. Agents then update one machine at a time to the controller's version. The tray updates with the binary on its machine. A controller accepts agents of its own version and of the previous release.
 
+#### Self-update as built in CRSP19 (owner decisions of 2026-11-14)
+
+These rules narrow R5.11 to R5.18 for the controller's machine, on Windows, macOS and Linux. Code: `internal/update`; API `GET /api/v1/update`, `POST /api/v1/update/check`, `POST /api/v1/update/apply`, `POST /api/v1/service/restart`; setting `auto_update`; CLI `crsp update status|check|apply|auto`, `crsp restart`.
+
+**R5.31** (M1) — Automatic updates is the controller setting `auto_update`, ON by default. With it on, a newer stable release installs with no question after the drain. With it off, `update/apply` needs `confirmed=true` from the console Review step. The pre-release `edge` is never offered, and a development or edge build is never replaced.
+
+**R5.32** (M1) — The controller checks every 6 hours (first check one minute after start) and installs any time the drain allows. Agent-only machines do not check GitHub; they follow the controller's version (M3, not built yet).
+
+**R5.33** (M1) — An automatic update drains this machine (no new jobs) and waits up to 60 minutes for running jobs. If a job still runs then, the drain is cancelled, the machine takes jobs again, and the next check retries. Right before the install the manager checks again that no job runs. A running job is never cut.
+
+**R5.34** (M1) — Each download is verified before the drain: its SHA-256 against `SHA256SUMS`, and its build provenance attestation (`gh attestation verify`, signer workflow `.github/workflows/release.yml` of this repository). Without `gh` on the machine the check fails closed and nothing installs. The unpacked binary also runs `version` as a self-check.
+
+**R5.35** (M1) — The release asset follows the install kind, read from the marker file `install-kind` next to the installed binary (then the share folders of the native installers; no file means `tarball`, and `msi` on Windows): `msi` runs `msiexec /i <file> /qn /norestart /l*v <log>`; `pkg` runs `installer -pkg <file> -target /`; `deb` runs `apt-get install -y <file>` (fallback `dpkg -i`); `rpm` runs `rpm -U <file>`; `tarball` swaps the binary atomically and keeps the old one as `<binary>.previous`. Assets: `crsp-windows-<arch>.msi`, `crsp-darwin-<arch>.pkg`, `crsp-linux-<arch>.deb`, `crsp-linux-<arch>.rpm`, `crsp-<os>-<arch>.tar.gz`.
+
+**R5.36** (M1) — The install runs in a helper process (`crsp update-helper`, a copy of the binary in the update folder) that outlives the service: a transient systemd unit on Linux, its own session on macOS, a detached process on Windows. It holds a machine-wide install lock (stale after 45 minutes or when its process is gone), writes a log, and reports `result.json`. After the install it waits up to 60 s (3 minutes on Windows) for `/healthz` to report the new version; a tarball install that is not healthy puts the previous binary back and restarts.
+
+**R5.37** (M1) — A failed install keeps the old version (Windows Installer rolls back; the tarball swap is undone), the console and the tray header show `update failed` with the log path, and the automatic path retries at the next check, at most 3 times per version, waiting 1 h, then 4 h. A build that did not become healthy is never tried again on its own.
+
+**R5.38** (M1) — After an automatic update the tray shows one notice `Updated to <version>` and its header shows the version.
+
+Tests: `internal/update/update_test.go` (decisions, verify, lock, backoff, helper per OS and package kind, drain limit), `internal/api/handlers_update_test.go`, `internal/settings/settings_test.go`, `internal/cli/cmd_update_test.go`, `apps/web/src/screens/settings/Updates.test.tsx`. Not yet run: a real install on each OS in CI, which needs the installer assets of CRSP18 and OPS1.
+
 ### GitHub runner version
 
 **R5.19** (M1) — The GitHub runner version is pinned: one version and one SHA-256 per OS and architecture, in a manifest the controller keeps. A runner download that does not match is refused. Runners are registered with `--disableupdate`, so they never update in the middle of a job.

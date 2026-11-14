@@ -216,9 +216,10 @@ func TestExtractBinaryOnlyTheBinary(t *testing.T) {
 // ---------------------------------------------------------------- manager
 
 type fakeDrainer struct {
-	jobs    []Job
-	begun   []Kind
-	timeout int
+	jobs      []Job
+	begun     []Kind
+	cancelled int
+	timeout   int
 }
 
 func (d *fakeDrainer) RunningJobs(context.Context) ([]Job, error) { return d.jobs, nil }
@@ -227,6 +228,10 @@ func (d *fakeDrainer) BeginDrain(_ context.Context, k Kind, _ string) error {
 	return nil
 }
 func (d *fakeDrainer) DrainTimeoutMinutes(context.Context) int { return 60 }
+func (d *fakeDrainer) CancelDrain(context.Context, string) error {
+	d.cancelled++
+	return nil
+}
 
 type fakeSource struct{ rel Release }
 
@@ -536,5 +541,78 @@ func TestPlanJSONRoundTrip(t *testing.T) {
 	var p Plan
 	if err := json.Unmarshal(b, &p); err != nil || p.HealthTimeout != time.Minute {
 		t.Fatalf("%+v %v", p, err)
+	}
+}
+
+// Owner decision: an automatic update waits at most the limit; then it cancels the drain and retries at the next check.
+func TestAutoUpdateCancelsDrainAfterTheLimit(t *testing.T) {
+	h := newHarness(t, "linux", true, true)
+	h.m.o.AutoDrainLimit = 20 * time.Millisecond
+	h.d.jobs = []Job{{Repository: "a/b", RunID: 1, Job: "x"}}
+	if _, err := h.m.Check(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(200 * time.Millisecond)
+	st := h.m.Status(context.Background())
+	if h.d.cancelled != 1 || st.State != StateIdle || !strings.Contains(st.Error, "tries again at the next check") {
+		t.Fatalf("cancelled=%d %+v", h.d.cancelled, st)
+	}
+	if len(h.spawns) != 0 {
+		t.Fatal("a job was running; nothing may install")
+	}
+	// The lock is free again, so the next check can start over.
+	if _, err := h.m.Check(context.Background()); err != nil || len(h.d.begun) != 2 {
+		t.Fatalf("%v begun=%v", err, h.d.begun)
+	}
+}
+
+func TestInstallKindPicksTheAsset(t *testing.T) {
+	for kind, want := range map[string]string{
+		KindMSI: "crsp-windows-amd64.msi", KindPKG: "crsp-darwin-amd64.pkg", KindDEB: "crsp-linux-amd64.deb",
+		KindRPM: "crsp-linux-amd64.rpm",
+	} {
+		goos := map[string]string{KindMSI: "windows", KindPKG: "darwin"}[kind]
+		if got := AssetFor(kind, goos, "amd64"); got != want {
+			t.Errorf("%s: %s", kind, got)
+		}
+	}
+	if AssetFor(KindTarball, "darwin", "arm64") != "crsp-darwin-arm64.tar.gz" {
+		t.Error("tarball")
+	}
+	dir := t.TempDir()
+	exe := filepath.Join(dir, "crsp")
+	if InstallKindFor(exe, "linux") != KindTarball || InstallKindFor(exe, "windows") != KindMSI {
+		t.Error("no marker: tarball, MSI on Windows")
+	}
+	_ = os.WriteFile(filepath.Join(dir, "install-kind"), []byte("deb"), 0o600)
+	if InstallKindFor(exe, "linux") != KindDEB {
+		t.Error("marker")
+	}
+}
+
+func TestHelperNativePackages(t *testing.T) {
+	for kind, want := range map[string]string{
+		KindPKG: "installer|-pkg|f|-target|/", KindDEB: "apt-get|install|-y|f", KindRPM: "rpm|-U|f",
+	} {
+		dir := t.TempDir()
+		e := &execLog{}
+		goos := "linux"
+		if kind == KindPKG {
+			goos = "darwin"
+		}
+		p := Plan{Kind: "update", GOOS: goos, InstallKind: kind, From: "1.4.0", To: "1.5.0", File: "f", Service: "crsp", Dir: dir}
+		if err := RunPlan(context.Background(), p, helperEnv(e, func(string) (string, error) { return "1.5.0", nil })); err != nil {
+			t.Fatal(err)
+		}
+		if strings.Join(e.calls[0], "|") != want {
+			t.Errorf("%s: %v", kind, e.calls[0])
+		}
+	}
+	// apt-get fails: dpkg -i is tried.
+	e := &execLog{codes: map[string]int{"apt-get": 100}}
+	p := Plan{Kind: "update", GOOS: "linux", InstallKind: KindDEB, From: "1.4.0", To: "1.5.0", File: "f", Service: "crsp", Dir: t.TempDir()}
+	_ = RunPlan(context.Background(), p, helperEnv(e, func(string) (string, error) { return "1.5.0", nil }))
+	if len(e.calls) < 2 || e.calls[1][0] != "dpkg" {
+		t.Errorf("%v", e.calls)
 	}
 }

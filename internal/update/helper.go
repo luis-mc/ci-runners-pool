@@ -18,6 +18,7 @@ import (
 type Plan struct {
 	Kind          string        `json:"kind"` // "update" or "restart"
 	GOOS          string        `json:"goos"`
+	InstallKind   string        `json:"install_kind"`
 	From          string        `json:"from"`
 	To            string        `json:"to"`
 	File          string        `json:"file"`    // update: the MSI (windows) or the verified new binary (unix)
@@ -92,6 +93,15 @@ func runPlan(ctx context.Context, p Plan, env *Env) error {
 	if p.Kind == "restart" {
 		want = p.From
 	}
+	if p.Kind == "update" && (p.InstallKind == KindPKG || p.InstallKind == KindDEB || p.InstallKind == KindRPM) {
+		if err := installPackage(ctx, p, env); err != nil {
+			return err
+		}
+		if err := restartService(ctx, p, env); err != nil {
+			return err
+		}
+		return waitHealthy(ctx, p, env, want)
+	}
 	switch p.GOOS {
 	case "windows":
 		if p.Kind == "update" {
@@ -100,7 +110,7 @@ func runPlan(ctx context.Context, p Plan, env *Env) error {
 				return fmt.Errorf("could not start the installer: %w", err)
 			}
 			if !msiOK(code) {
-				return fmt.Errorf("the installer failed with exit code %d; the log is msi.log in the update folder", code)
+				return fmt.Errorf("the installer failed with exit code %d; the old version stays (Windows Installer rolled back). The log is %s", code, filepath.Join(p.Dir, "msi.log"))
 			}
 		} else if err := restartService(ctx, p, env); err != nil {
 			return err
@@ -258,4 +268,31 @@ func RunHelper(ctx context.Context, args []string, logw io.Writer) int {
 		return 1
 	}
 	return 0
+}
+
+// installPackage installs a native package over the old one: pkg with
+// installer, deb with apt-get (dpkg -i when apt-get cannot), rpm with rpm -U.
+func installPackage(ctx context.Context, p Plan, env *Env) error {
+	var tries [][]string
+	switch p.InstallKind {
+	case KindPKG:
+		tries = [][]string{{"installer", "-pkg", p.File, "-target", "/"}}
+	case KindDEB:
+		tries = [][]string{{"apt-get", "install", "-y", p.File}, {"dpkg", "-i", p.File}}
+	case KindRPM:
+		tries = [][]string{{"rpm", "-U", p.File}}
+	}
+	var last error
+	for _, c := range tries {
+		code, err := env.Exec(ctx, c[0], c[1:]...)
+		if err == nil && code == 0 {
+			return nil
+		}
+		if err != nil {
+			last = fmt.Errorf("%s: %w", c[0], err)
+		} else {
+			last = fmt.Errorf("%s failed with exit code %d", c[0], code)
+		}
+	}
+	return fmt.Errorf("the package install failed, the old version stays: %w", last)
 }

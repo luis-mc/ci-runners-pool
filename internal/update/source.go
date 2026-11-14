@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -164,4 +166,54 @@ func allowedHost(raw string) bool {
 		return true
 	}
 	return false
+}
+
+// Install kinds: the marker file `install-kind` next to the installed binary
+// says how this machine was installed (written by each installer). No file
+// means a tarball install, except on Windows, where the MSI is the only one.
+const (
+	KindMSI     = "msi"
+	KindPKG     = "pkg"
+	KindDEB     = "deb"
+	KindRPM     = "rpm"
+	KindTarball = "tarball"
+)
+
+// InstallKindFor reads the marker next to exe; goos picks the default.
+func InstallKindFor(exe, goos string) string {
+	def := KindTarball
+	if goos == "windows" {
+		def = KindMSI
+	}
+	// Next to the running binary first, then the share folders the native installers may use (OPS1 documents the exact one).
+	var b []byte
+	var err error
+	for _, dir := range []string{filepath.Dir(exe), "/usr/share/crsp", "/usr/local/share/crsp"} {
+		if b, err = os.ReadFile(filepath.Join(dir, "install-kind")); err == nil { //nolint:gosec // fixed names
+			break
+		}
+	}
+	if err != nil {
+		return def
+	}
+	switch k := strings.TrimSpace(string(b)); k {
+	case KindMSI, KindPKG, KindDEB, KindRPM, KindTarball:
+		return k
+	}
+	return def
+}
+
+// AssetFor is the release asset that matches the install kind.
+func AssetFor(kind, goos, goarch string) string {
+	switch kind {
+	case KindMSI:
+		return "crsp-windows-" + goarch + ".msi"
+	case KindPKG:
+		return "crsp-darwin-" + goarch + ".pkg"
+	case KindDEB:
+		return "crsp-linux-" + goarch + ".deb"
+	case KindRPM:
+		return "crsp-linux-" + goarch + ".rpm"
+	}
+	return AssetName(goos, goarch)
 }

@@ -72,6 +72,15 @@ func (d machineDrainer) BeginDrain(ctx context.Context, kind update.Kind, actor 
 	return err
 }
 
+func (d machineDrainer) CancelDrain(ctx context.Context, actor string) error {
+	v, err := d.local(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = d.svc.Resume(ctx, actor, v.Machine.ID, true)
+	return err
+}
+
 func (d machineDrainer) DrainTimeoutMinutes(ctx context.Context) int {
 	if v, err := d.local(ctx); err == nil {
 		return v.Settings.DrainTimeoutMinutes

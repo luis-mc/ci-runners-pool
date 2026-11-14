@@ -75,6 +75,8 @@ func Header(version string, st Status) string {
 		return base
 	}
 	switch {
+	case st.Update.State == "failed":
+		base += " - update failed"
 	case st.Update.Updating():
 		base += " - updating…"
 	case st.Update.Available && st.Update.Latest != "":
