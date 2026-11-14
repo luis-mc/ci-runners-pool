@@ -12,7 +12,7 @@ export interface ConsoleRoute {
   signedOut: boolean;
 }
 
-const SAMPLE: Record<string, string> = { owner: 'octo', name: 'app', id: 'm1' };
+const SAMPLE: Record<string, string> = { owner: 'octo', name: 'app', id: '1' };
 export const NOT_FOUND_URL = '/no/such/page';
 
 /** Scans `<Route ...>` tags; the attribute text may hold `>` inside braces, so braces are counted. */

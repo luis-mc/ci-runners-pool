@@ -4,6 +4,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { failure, signedIn } from './fixtures';
+import { jobsAndDoctor } from './jobs-doctor-fixtures';
 import { consoleRoutes, NOT_FOUND_URL } from './routes';
 
 const screens = [
@@ -18,7 +19,7 @@ const screens = [
 for (const theme of ['dark', 'light'] as const) {
   for (const screen of screens) {
     test(`a11y ${theme}: ${screen.name}`, async ({ page }) => {
-      const mock = signedIn();
+      const mock = jobsAndDoctor(signedIn());
       mock.on('GET', '/api/v1/me/preferences', { theme });
       if (screen.signedOut)
         mock.on('GET', '/api/v1/me', failure(401, 'unauthenticated', 'Sign in.'));

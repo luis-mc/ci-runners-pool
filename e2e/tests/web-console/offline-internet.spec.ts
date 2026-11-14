@@ -2,6 +2,7 @@
 // is blocked; every screen still renders and nothing external was requested (also R6.3).
 import { expect, test } from '@playwright/test';
 import { failure, signedIn } from './fixtures';
+import { jobsAndDoctor } from './jobs-doctor-fixtures';
 import { consoleRoutes, NOT_FOUND_URL } from './routes';
 
 const screens = [
@@ -31,7 +32,7 @@ for (const screen of screens) {
       if (u.origin !== origin && u.protocol !== 'data:' && u.protocol !== 'blob:')
         external.push(req.url());
     });
-    const mock = signedIn();
+    const mock = jobsAndDoctor(signedIn());
     if (screen.signedOut)
       mock.on('GET', '/api/v1/me', failure(401, 'unauthenticated', 'Sign in.'));
     await mock.install(page);
