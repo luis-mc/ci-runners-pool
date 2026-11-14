@@ -4,6 +4,26 @@
 // 	protoc        (unknown)
 // source: agent/v1/agent.proto
 
+// Agent link, milestone 1 (decision 0004; machines R5.1 to R5.39, R6.1, R6.2;
+// scheduling R5.12 to R5.36; runners R5.3 to R5.12; observability R5.20 to
+// R5.23; doctor 7.1).
+//
+// Versioning: the package is agent.v1. Fields are only added within v1; a
+// field or message is never renumbered or reused (`reserved` instead). A change
+// that breaks an old agent goes to agent.v2, and the controller serves both
+// while agents update. Each side also sends PROTOCOL_VERSION in Hello and
+// HelloAck, so a newer minor version can tell what the other side knows.
+//
+// Transport: connect-go over TLS 1.3 only, port 8461 by default. The agent
+// dials out; the controller never connects in (R5.9). After Join, every call
+// carries the machine key as `authorization: Bearer <machine key>` and the
+// machine id as `crsp-machine-id`; the agent checks the pinned certificate on
+// every connection (R5.8, R6.1). A revoked or unknown key gets
+// CODE_UNAUTHENTICATED and the agent stops retrying (R5.39).
+//
+// Secrets: join codes, machine keys, registration and remove tokens never go
+// to a log or the database in clear (R6.2). A token travels once, for one step.
+
 package agentv1
 
 import (
@@ -21,87 +41,368 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type RegisterRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AgentName     string                 `protobuf:"bytes,1,opt,name=agent_name,json=agentName,proto3" json:"agent_name,omitempty"`
-	Os            string                 `protobuf:"bytes,2,opt,name=os,proto3" json:"os,omitempty"`
-	Arch          string                 `protobuf:"bytes,3,opt,name=arch,proto3" json:"arch,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
+// PROTOCOL_VERSION is the minor version of agent.v1 this file describes.
+// Version 1 is milestone 1.
+type ProtocolVersion int32
 
-func (x *RegisterRequest) Reset() {
-	*x = RegisterRequest{}
-	mi := &file_agent_v1_agent_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
+const (
+	ProtocolVersion_PROTOCOL_VERSION_UNSPECIFIED ProtocolVersion = 0
+	ProtocolVersion_PROTOCOL_VERSION_1           ProtocolVersion = 1
+)
 
-func (x *RegisterRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RegisterRequest) ProtoMessage() {}
-
-func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+// Enum value maps for ProtocolVersion.
+var (
+	ProtocolVersion_name = map[int32]string{
+		0: "PROTOCOL_VERSION_UNSPECIFIED",
+		1: "PROTOCOL_VERSION_1",
 	}
-	return mi.MessageOf(x)
+	ProtocolVersion_value = map[string]int32{
+		"PROTOCOL_VERSION_UNSPECIFIED": 0,
+		"PROTOCOL_VERSION_1":           1,
+	}
+)
+
+func (x ProtocolVersion) Enum() *ProtocolVersion {
+	p := new(ProtocolVersion)
+	*p = x
+	return p
 }
 
-// Deprecated: Use RegisterRequest.ProtoReflect.Descriptor instead.
-func (*RegisterRequest) Descriptor() ([]byte, []int) {
+func (x ProtocolVersion) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ProtocolVersion) Descriptor() protoreflect.EnumDescriptor {
+	return file_agent_v1_agent_proto_enumTypes[0].Descriptor()
+}
+
+func (ProtocolVersion) Type() protoreflect.EnumType {
+	return &file_agent_v1_agent_proto_enumTypes[0]
+}
+
+func (x ProtocolVersion) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ProtocolVersion.Descriptor instead.
+func (ProtocolVersion) EnumDescriptor() ([]byte, []int) {
 	return file_agent_v1_agent_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *RegisterRequest) GetAgentName() string {
+type RunnerState int32
+
+const (
+	RunnerState_RUNNER_STATE_UNSPECIFIED RunnerState = 0
+	RunnerState_RUNNER_STATE_CREATING    RunnerState = 1
+	RunnerState_RUNNER_STATE_IDLE        RunnerState = 2
+	RunnerState_RUNNER_STATE_BUSY        RunnerState = 3
+	RunnerState_RUNNER_STATE_DRAINING    RunnerState = 4
+	RunnerState_RUNNER_STATE_UPDATING    RunnerState = 5
+	RunnerState_RUNNER_STATE_OFFLINE     RunnerState = 6
+	RunnerState_RUNNER_STATE_FAILED      RunnerState = 7
+	RunnerState_RUNNER_STATE_REMOVING    RunnerState = 8
+)
+
+// Enum value maps for RunnerState.
+var (
+	RunnerState_name = map[int32]string{
+		0: "RUNNER_STATE_UNSPECIFIED",
+		1: "RUNNER_STATE_CREATING",
+		2: "RUNNER_STATE_IDLE",
+		3: "RUNNER_STATE_BUSY",
+		4: "RUNNER_STATE_DRAINING",
+		5: "RUNNER_STATE_UPDATING",
+		6: "RUNNER_STATE_OFFLINE",
+		7: "RUNNER_STATE_FAILED",
+		8: "RUNNER_STATE_REMOVING",
+	}
+	RunnerState_value = map[string]int32{
+		"RUNNER_STATE_UNSPECIFIED": 0,
+		"RUNNER_STATE_CREATING":    1,
+		"RUNNER_STATE_IDLE":        2,
+		"RUNNER_STATE_BUSY":        3,
+		"RUNNER_STATE_DRAINING":    4,
+		"RUNNER_STATE_UPDATING":    5,
+		"RUNNER_STATE_OFFLINE":     6,
+		"RUNNER_STATE_FAILED":      7,
+		"RUNNER_STATE_REMOVING":    8,
+	}
+)
+
+func (x RunnerState) Enum() *RunnerState {
+	p := new(RunnerState)
+	*p = x
+	return p
+}
+
+func (x RunnerState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RunnerState) Descriptor() protoreflect.EnumDescriptor {
+	return file_agent_v1_agent_proto_enumTypes[1].Descriptor()
+}
+
+func (RunnerState) Type() protoreflect.EnumType {
+	return &file_agent_v1_agent_proto_enumTypes[1]
+}
+
+func (x RunnerState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RunnerState.Descriptor instead.
+func (RunnerState) EnumDescriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{1}
+}
+
+type SlotKind int32
+
+const (
+	SlotKind_SLOT_KIND_UNSPECIFIED SlotKind = 0
+	SlotKind_SLOT_KIND_CI          SlotKind = 1
+	SlotKind_SLOT_KIND_LIGHT       SlotKind = 2
+	SlotKind_SLOT_KIND_HEAVY       SlotKind = 3
+)
+
+// Enum value maps for SlotKind.
+var (
+	SlotKind_name = map[int32]string{
+		0: "SLOT_KIND_UNSPECIFIED",
+		1: "SLOT_KIND_CI",
+		2: "SLOT_KIND_LIGHT",
+		3: "SLOT_KIND_HEAVY",
+	}
+	SlotKind_value = map[string]int32{
+		"SLOT_KIND_UNSPECIFIED": 0,
+		"SLOT_KIND_CI":          1,
+		"SLOT_KIND_LIGHT":       2,
+		"SLOT_KIND_HEAVY":       3,
+	}
+)
+
+func (x SlotKind) Enum() *SlotKind {
+	p := new(SlotKind)
+	*p = x
+	return p
+}
+
+func (x SlotKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SlotKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_agent_v1_agent_proto_enumTypes[2].Descriptor()
+}
+
+func (SlotKind) Type() protoreflect.EnumType {
+	return &file_agent_v1_agent_proto_enumTypes[2]
+}
+
+func (x SlotKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SlotKind.Descriptor instead.
+func (SlotKind) EnumDescriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{2}
+}
+
+type LogLevel int32
+
+const (
+	LogLevel_LOG_LEVEL_UNSPECIFIED LogLevel = 0
+	LogLevel_LOG_LEVEL_DEBUG       LogLevel = 1
+	LogLevel_LOG_LEVEL_INFO        LogLevel = 2
+	LogLevel_LOG_LEVEL_WARN        LogLevel = 3
+	LogLevel_LOG_LEVEL_ERROR       LogLevel = 4
+)
+
+// Enum value maps for LogLevel.
+var (
+	LogLevel_name = map[int32]string{
+		0: "LOG_LEVEL_UNSPECIFIED",
+		1: "LOG_LEVEL_DEBUG",
+		2: "LOG_LEVEL_INFO",
+		3: "LOG_LEVEL_WARN",
+		4: "LOG_LEVEL_ERROR",
+	}
+	LogLevel_value = map[string]int32{
+		"LOG_LEVEL_UNSPECIFIED": 0,
+		"LOG_LEVEL_DEBUG":       1,
+		"LOG_LEVEL_INFO":        2,
+		"LOG_LEVEL_WARN":        3,
+		"LOG_LEVEL_ERROR":       4,
+	}
+)
+
+func (x LogLevel) Enum() *LogLevel {
+	p := new(LogLevel)
+	*p = x
+	return p
+}
+
+func (x LogLevel) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LogLevel) Descriptor() protoreflect.EnumDescriptor {
+	return file_agent_v1_agent_proto_enumTypes[3].Descriptor()
+}
+
+func (LogLevel) Type() protoreflect.EnumType {
+	return &file_agent_v1_agent_proto_enumTypes[3]
+}
+
+func (x LogLevel) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LogLevel.Descriptor instead.
+func (LogLevel) EnumDescriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{3}
+}
+
+type JoinRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Credential:
+	//
+	//	*JoinRequest_JoinCode
+	//	*JoinRequest_LocalCredential
+	Credential isJoinRequest_Credential `protobuf_oneof:"credential"`
+	// What the machine is, so it shows at once in the Add machine wizard.
+	Facts *Facts `protobuf:"bytes,3,opt,name=facts,proto3" json:"facts,omitempty"`
+	// The agent's binary version.
+	AgentVersion    string          `protobuf:"bytes,4,opt,name=agent_version,json=agentVersion,proto3" json:"agent_version,omitempty"`
+	ProtocolVersion ProtocolVersion `protobuf:"varint,5,opt,name=protocol_version,json=protocolVersion,proto3,enum=agent.v1.ProtocolVersion" json:"protocol_version,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *JoinRequest) Reset() {
+	*x = JoinRequest{}
+	mi := &file_agent_v1_agent_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinRequest) ProtoMessage() {}
+
+func (x *JoinRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[0]
 	if x != nil {
-		return x.AgentName
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinRequest.ProtoReflect.Descriptor instead.
+func (*JoinRequest) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *JoinRequest) GetCredential() isJoinRequest_Credential {
+	if x != nil {
+		return x.Credential
+	}
+	return nil
+}
+
+func (x *JoinRequest) GetJoinCode() string {
+	if x != nil {
+		if x, ok := x.Credential.(*JoinRequest_JoinCode); ok {
+			return x.JoinCode
+		}
 	}
 	return ""
 }
 
-func (x *RegisterRequest) GetOs() string {
+func (x *JoinRequest) GetLocalCredential() string {
 	if x != nil {
-		return x.Os
+		if x, ok := x.Credential.(*JoinRequest_LocalCredential); ok {
+			return x.LocalCredential
+		}
 	}
 	return ""
 }
 
-func (x *RegisterRequest) GetArch() string {
+func (x *JoinRequest) GetFacts() *Facts {
 	if x != nil {
-		return x.Arch
+		return x.Facts
+	}
+	return nil
+}
+
+func (x *JoinRequest) GetAgentVersion() string {
+	if x != nil {
+		return x.AgentVersion
 	}
 	return ""
 }
 
-type RegisterResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AgentId       string                 `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+func (x *JoinRequest) GetProtocolVersion() ProtocolVersion {
+	if x != nil {
+		return x.ProtocolVersion
+	}
+	return ProtocolVersion_PROTOCOL_VERSION_UNSPECIFIED
+}
+
+type isJoinRequest_Credential interface {
+	isJoinRequest_Credential()
+}
+
+type JoinRequest_JoinCode struct {
+	// The one-time code from the install command. Hashed on the controller.
+	JoinCode string `protobuf:"bytes,1,opt,name=join_code,json=joinCode,proto3,oneof"`
+}
+
+type JoinRequest_LocalCredential struct {
+	// A one-time credential the controller writes for its own machine's agent,
+	// readable only by the agent account (machines R5.1: same path, no code).
+	LocalCredential string `protobuf:"bytes,2,opt,name=local_credential,json=localCredential,proto3,oneof"`
+}
+
+func (*JoinRequest_JoinCode) isJoinRequest_Credential() {}
+
+func (*JoinRequest_LocalCredential) isJoinRequest_Credential() {}
+
+type JoinResponse struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	MachineId string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
+	// The machine key. Shown to the agent once; the agent stores it in the OS
+	// secret store and the controller keeps only its hash (machines R5.7, R6.2).
+	MachineCredential string `protobuf:"bytes,2,opt,name=machine_credential,json=machineCredential,proto3" json:"machine_credential,omitempty"`
+	// SHA-256 of the controller certificate, hex. The agent pins it and refuses
+	// any other (machines R5.5, R5.8).
+	CertSha256 string `protobuf:"bytes,3,opt,name=cert_sha256,json=certSha256,proto3" json:"cert_sha256,omitempty"`
+	// The settings for this machine, so the gate works before the first session.
+	Settings      *MachineSettings `protobuf:"bytes,4,opt,name=settings,proto3" json:"settings,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RegisterResponse) Reset() {
-	*x = RegisterResponse{}
+func (x *JoinResponse) Reset() {
+	*x = JoinResponse{}
 	mi := &file_agent_v1_agent_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RegisterResponse) String() string {
+func (x *JoinResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RegisterResponse) ProtoMessage() {}
+func (*JoinResponse) ProtoMessage() {}
 
-func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
+func (x *JoinResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_agent_v1_agent_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -113,24 +414,59 @@ func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RegisterResponse.ProtoReflect.Descriptor instead.
-func (*RegisterResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use JoinResponse.ProtoReflect.Descriptor instead.
+func (*JoinResponse) Descriptor() ([]byte, []int) {
 	return file_agent_v1_agent_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *RegisterResponse) GetAgentId() string {
+func (x *JoinResponse) GetMachineId() string {
 	if x != nil {
-		return x.AgentId
+		return x.MachineId
 	}
 	return ""
 }
 
+func (x *JoinResponse) GetMachineCredential() string {
+	if x != nil {
+		return x.MachineCredential
+	}
+	return ""
+}
+
+func (x *JoinResponse) GetCertSha256() string {
+	if x != nil {
+		return x.CertSha256
+	}
+	return ""
+}
+
+func (x *JoinResponse) GetSettings() *MachineSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+// SessionRequest is one message from the agent.
 type SessionRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Message:
 	//
+	//	*SessionRequest_Hello
 	//	*SessionRequest_Heartbeat
 	//	*SessionRequest_LoadReport
+	//	*SessionRequest_Facts
+	//	*SessionRequest_RunnerStates
+	//	*SessionRequest_HolderReport
+	//	*SessionRequest_GateRequest
+	//	*SessionRequest_GateBeat
+	//	*SessionRequest_GateCancel
+	//	*SessionRequest_JobCompleted
+	//	*SessionRequest_LogBatch
+	//	*SessionRequest_CommandResult
+	//	*SessionRequest_DrainStatus
+	//	*SessionRequest_CheckResults
+	//	*SessionRequest_UsageReport
 	Message       isSessionRequest_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -173,6 +509,15 @@ func (x *SessionRequest) GetMessage() isSessionRequest_Message {
 	return nil
 }
 
+func (x *SessionRequest) GetHello() *Hello {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_Hello); ok {
+			return x.Hello
+		}
+	}
+	return nil
+}
+
 func (x *SessionRequest) GetHeartbeat() *Heartbeat {
 	if x != nil {
 		if x, ok := x.Message.(*SessionRequest_Heartbeat); ok {
@@ -191,27 +536,226 @@ func (x *SessionRequest) GetLoadReport() *LoadReport {
 	return nil
 }
 
+func (x *SessionRequest) GetFacts() *Facts {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_Facts); ok {
+			return x.Facts
+		}
+	}
+	return nil
+}
+
+func (x *SessionRequest) GetRunnerStates() *RunnerStates {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_RunnerStates); ok {
+			return x.RunnerStates
+		}
+	}
+	return nil
+}
+
+func (x *SessionRequest) GetHolderReport() *HolderReport {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_HolderReport); ok {
+			return x.HolderReport
+		}
+	}
+	return nil
+}
+
+func (x *SessionRequest) GetGateRequest() *GateRequest {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_GateRequest); ok {
+			return x.GateRequest
+		}
+	}
+	return nil
+}
+
+func (x *SessionRequest) GetGateBeat() *GateBeat {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_GateBeat); ok {
+			return x.GateBeat
+		}
+	}
+	return nil
+}
+
+func (x *SessionRequest) GetGateCancel() *GateCancel {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_GateCancel); ok {
+			return x.GateCancel
+		}
+	}
+	return nil
+}
+
+func (x *SessionRequest) GetJobCompleted() *JobCompleted {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_JobCompleted); ok {
+			return x.JobCompleted
+		}
+	}
+	return nil
+}
+
+func (x *SessionRequest) GetLogBatch() *LogBatch {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_LogBatch); ok {
+			return x.LogBatch
+		}
+	}
+	return nil
+}
+
+func (x *SessionRequest) GetCommandResult() *CommandResult {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_CommandResult); ok {
+			return x.CommandResult
+		}
+	}
+	return nil
+}
+
+func (x *SessionRequest) GetDrainStatus() *DrainStatus {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_DrainStatus); ok {
+			return x.DrainStatus
+		}
+	}
+	return nil
+}
+
+func (x *SessionRequest) GetCheckResults() *CheckResults {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_CheckResults); ok {
+			return x.CheckResults
+		}
+	}
+	return nil
+}
+
+func (x *SessionRequest) GetUsageReport() *UsageReport {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_UsageReport); ok {
+			return x.UsageReport
+		}
+	}
+	return nil
+}
+
 type isSessionRequest_Message interface {
 	isSessionRequest_Message()
 }
 
+type SessionRequest_Hello struct {
+	Hello *Hello `protobuf:"bytes,1,opt,name=hello,proto3,oneof"`
+}
+
 type SessionRequest_Heartbeat struct {
-	Heartbeat *Heartbeat `protobuf:"bytes,1,opt,name=heartbeat,proto3,oneof"`
+	Heartbeat *Heartbeat `protobuf:"bytes,2,opt,name=heartbeat,proto3,oneof"`
 }
 
 type SessionRequest_LoadReport struct {
-	LoadReport *LoadReport `protobuf:"bytes,2,opt,name=load_report,json=loadReport,proto3,oneof"`
+	LoadReport *LoadReport `protobuf:"bytes,3,opt,name=load_report,json=loadReport,proto3,oneof"`
 }
+
+type SessionRequest_Facts struct {
+	Facts *Facts `protobuf:"bytes,4,opt,name=facts,proto3,oneof"`
+}
+
+type SessionRequest_RunnerStates struct {
+	RunnerStates *RunnerStates `protobuf:"bytes,5,opt,name=runner_states,json=runnerStates,proto3,oneof"`
+}
+
+type SessionRequest_HolderReport struct {
+	HolderReport *HolderReport `protobuf:"bytes,6,opt,name=holder_report,json=holderReport,proto3,oneof"`
+}
+
+type SessionRequest_GateRequest struct {
+	GateRequest *GateRequest `protobuf:"bytes,7,opt,name=gate_request,json=gateRequest,proto3,oneof"`
+}
+
+type SessionRequest_GateBeat struct {
+	GateBeat *GateBeat `protobuf:"bytes,8,opt,name=gate_beat,json=gateBeat,proto3,oneof"`
+}
+
+type SessionRequest_GateCancel struct {
+	GateCancel *GateCancel `protobuf:"bytes,9,opt,name=gate_cancel,json=gateCancel,proto3,oneof"`
+}
+
+type SessionRequest_JobCompleted struct {
+	JobCompleted *JobCompleted `protobuf:"bytes,10,opt,name=job_completed,json=jobCompleted,proto3,oneof"`
+}
+
+type SessionRequest_LogBatch struct {
+	LogBatch *LogBatch `protobuf:"bytes,11,opt,name=log_batch,json=logBatch,proto3,oneof"`
+}
+
+type SessionRequest_CommandResult struct {
+	CommandResult *CommandResult `protobuf:"bytes,12,opt,name=command_result,json=commandResult,proto3,oneof"`
+}
+
+type SessionRequest_DrainStatus struct {
+	DrainStatus *DrainStatus `protobuf:"bytes,13,opt,name=drain_status,json=drainStatus,proto3,oneof"`
+}
+
+type SessionRequest_CheckResults struct {
+	CheckResults *CheckResults `protobuf:"bytes,14,opt,name=check_results,json=checkResults,proto3,oneof"`
+}
+
+type SessionRequest_UsageReport struct {
+	UsageReport *UsageReport `protobuf:"bytes,15,opt,name=usage_report,json=usageReport,proto3,oneof"`
+}
+
+func (*SessionRequest_Hello) isSessionRequest_Message() {}
 
 func (*SessionRequest_Heartbeat) isSessionRequest_Message() {}
 
 func (*SessionRequest_LoadReport) isSessionRequest_Message() {}
 
+func (*SessionRequest_Facts) isSessionRequest_Message() {}
+
+func (*SessionRequest_RunnerStates) isSessionRequest_Message() {}
+
+func (*SessionRequest_HolderReport) isSessionRequest_Message() {}
+
+func (*SessionRequest_GateRequest) isSessionRequest_Message() {}
+
+func (*SessionRequest_GateBeat) isSessionRequest_Message() {}
+
+func (*SessionRequest_GateCancel) isSessionRequest_Message() {}
+
+func (*SessionRequest_JobCompleted) isSessionRequest_Message() {}
+
+func (*SessionRequest_LogBatch) isSessionRequest_Message() {}
+
+func (*SessionRequest_CommandResult) isSessionRequest_Message() {}
+
+func (*SessionRequest_DrainStatus) isSessionRequest_Message() {}
+
+func (*SessionRequest_CheckResults) isSessionRequest_Message() {}
+
+func (*SessionRequest_UsageReport) isSessionRequest_Message() {}
+
+// SessionResponse is one message from the controller.
 type SessionResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Message:
 	//
+	//	*SessionResponse_HelloAck
 	//	*SessionResponse_Heartbeat
+	//	*SessionResponse_Settings
+	//	*SessionResponse_GateDecision
+	//	*SessionResponse_ReleaseAck
+	//	*SessionResponse_AddRunner
+	//	*SessionResponse_RemoveRunner
+	//	*SessionResponse_DrainRunner
+	//	*SessionResponse_Drain
+	//	*SessionResponse_Resume
+	//	*SessionResponse_Redetect
+	//	*SessionResponse_RunChecks
+	//	*SessionResponse_MachineRemoved
 	Message       isSessionResponse_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -254,6 +798,15 @@ func (x *SessionResponse) GetMessage() isSessionResponse_Message {
 	return nil
 }
 
+func (x *SessionResponse) GetHelloAck() *HelloAck {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_HelloAck); ok {
+			return x.HelloAck
+		}
+	}
+	return nil
+}
+
 func (x *SessionResponse) GetHeartbeat() *Heartbeat {
 	if x != nil {
 		if x, ok := x.Message.(*SessionResponse_Heartbeat); ok {
@@ -263,16 +816,363 @@ func (x *SessionResponse) GetHeartbeat() *Heartbeat {
 	return nil
 }
 
+func (x *SessionResponse) GetSettings() *MachineSettings {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_Settings); ok {
+			return x.Settings
+		}
+	}
+	return nil
+}
+
+func (x *SessionResponse) GetGateDecision() *GateDecision {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_GateDecision); ok {
+			return x.GateDecision
+		}
+	}
+	return nil
+}
+
+func (x *SessionResponse) GetReleaseAck() *ReleaseAck {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_ReleaseAck); ok {
+			return x.ReleaseAck
+		}
+	}
+	return nil
+}
+
+func (x *SessionResponse) GetAddRunner() *AddRunner {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_AddRunner); ok {
+			return x.AddRunner
+		}
+	}
+	return nil
+}
+
+func (x *SessionResponse) GetRemoveRunner() *RemoveRunner {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_RemoveRunner); ok {
+			return x.RemoveRunner
+		}
+	}
+	return nil
+}
+
+func (x *SessionResponse) GetDrainRunner() *DrainRunner {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_DrainRunner); ok {
+			return x.DrainRunner
+		}
+	}
+	return nil
+}
+
+func (x *SessionResponse) GetDrain() *Drain {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_Drain); ok {
+			return x.Drain
+		}
+	}
+	return nil
+}
+
+func (x *SessionResponse) GetResume() *Resume {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_Resume); ok {
+			return x.Resume
+		}
+	}
+	return nil
+}
+
+func (x *SessionResponse) GetRedetect() *Redetect {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_Redetect); ok {
+			return x.Redetect
+		}
+	}
+	return nil
+}
+
+func (x *SessionResponse) GetRunChecks() *RunChecks {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_RunChecks); ok {
+			return x.RunChecks
+		}
+	}
+	return nil
+}
+
+func (x *SessionResponse) GetMachineRemoved() *MachineRemoved {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_MachineRemoved); ok {
+			return x.MachineRemoved
+		}
+	}
+	return nil
+}
+
 type isSessionResponse_Message interface {
 	isSessionResponse_Message()
 }
 
-type SessionResponse_Heartbeat struct {
-	Heartbeat *Heartbeat `protobuf:"bytes,1,opt,name=heartbeat,proto3,oneof"`
+type SessionResponse_HelloAck struct {
+	HelloAck *HelloAck `protobuf:"bytes,1,opt,name=hello_ack,json=helloAck,proto3,oneof"`
 }
+
+type SessionResponse_Heartbeat struct {
+	Heartbeat *Heartbeat `protobuf:"bytes,2,opt,name=heartbeat,proto3,oneof"`
+}
+
+type SessionResponse_Settings struct {
+	Settings *MachineSettings `protobuf:"bytes,3,opt,name=settings,proto3,oneof"`
+}
+
+type SessionResponse_GateDecision struct {
+	GateDecision *GateDecision `protobuf:"bytes,4,opt,name=gate_decision,json=gateDecision,proto3,oneof"`
+}
+
+type SessionResponse_ReleaseAck struct {
+	ReleaseAck *ReleaseAck `protobuf:"bytes,5,opt,name=release_ack,json=releaseAck,proto3,oneof"`
+}
+
+type SessionResponse_AddRunner struct {
+	AddRunner *AddRunner `protobuf:"bytes,6,opt,name=add_runner,json=addRunner,proto3,oneof"`
+}
+
+type SessionResponse_RemoveRunner struct {
+	RemoveRunner *RemoveRunner `protobuf:"bytes,7,opt,name=remove_runner,json=removeRunner,proto3,oneof"`
+}
+
+type SessionResponse_DrainRunner struct {
+	DrainRunner *DrainRunner `protobuf:"bytes,8,opt,name=drain_runner,json=drainRunner,proto3,oneof"`
+}
+
+type SessionResponse_Drain struct {
+	Drain *Drain `protobuf:"bytes,9,opt,name=drain,proto3,oneof"`
+}
+
+type SessionResponse_Resume struct {
+	Resume *Resume `protobuf:"bytes,10,opt,name=resume,proto3,oneof"`
+}
+
+type SessionResponse_Redetect struct {
+	Redetect *Redetect `protobuf:"bytes,11,opt,name=redetect,proto3,oneof"`
+}
+
+type SessionResponse_RunChecks struct {
+	RunChecks *RunChecks `protobuf:"bytes,12,opt,name=run_checks,json=runChecks,proto3,oneof"`
+}
+
+type SessionResponse_MachineRemoved struct {
+	MachineRemoved *MachineRemoved `protobuf:"bytes,13,opt,name=machine_removed,json=machineRemoved,proto3,oneof"`
+}
+
+func (*SessionResponse_HelloAck) isSessionResponse_Message() {}
 
 func (*SessionResponse_Heartbeat) isSessionResponse_Message() {}
 
+func (*SessionResponse_Settings) isSessionResponse_Message() {}
+
+func (*SessionResponse_GateDecision) isSessionResponse_Message() {}
+
+func (*SessionResponse_ReleaseAck) isSessionResponse_Message() {}
+
+func (*SessionResponse_AddRunner) isSessionResponse_Message() {}
+
+func (*SessionResponse_RemoveRunner) isSessionResponse_Message() {}
+
+func (*SessionResponse_DrainRunner) isSessionResponse_Message() {}
+
+func (*SessionResponse_Drain) isSessionResponse_Message() {}
+
+func (*SessionResponse_Resume) isSessionResponse_Message() {}
+
+func (*SessionResponse_Redetect) isSessionResponse_Message() {}
+
+func (*SessionResponse_RunChecks) isSessionResponse_Message() {}
+
+func (*SessionResponse_MachineRemoved) isSessionResponse_Message() {}
+
+// Hello opens a session. On reconnect it carries what the agent runs now, so
+// the controller can reconcile (machines R5.38, scheduling R5.35).
+type Hello struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	MachineId       string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
+	AgentVersion    string                 `protobuf:"bytes,2,opt,name=agent_version,json=agentVersion,proto3" json:"agent_version,omitempty"`
+	ProtocolVersion ProtocolVersion        `protobuf:"varint,3,opt,name=protocol_version,json=protocolVersion,proto3,enum=agent.v1.ProtocolVersion" json:"protocol_version,omitempty"`
+	// The version of the last settings the agent got, so the controller sends
+	// newer ones only.
+	SettingsVersion int64         `protobuf:"varint,4,opt,name=settings_version,json=settingsVersion,proto3" json:"settings_version,omitempty"`
+	Facts           *Facts        `protobuf:"bytes,5,opt,name=facts,proto3" json:"facts,omitempty"`
+	Load            *LoadReport   `protobuf:"bytes,6,opt,name=load,proto3" json:"load,omitempty"`
+	Runners         *RunnerStates `protobuf:"bytes,7,opt,name=runners,proto3" json:"runners,omitempty"`
+	Holders         *HolderReport `protobuf:"bytes,8,opt,name=holders,proto3" json:"holders,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *Hello) Reset() {
+	*x = Hello{}
+	mi := &file_agent_v1_agent_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Hello) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Hello) ProtoMessage() {}
+
+func (x *Hello) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Hello.ProtoReflect.Descriptor instead.
+func (*Hello) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Hello) GetMachineId() string {
+	if x != nil {
+		return x.MachineId
+	}
+	return ""
+}
+
+func (x *Hello) GetAgentVersion() string {
+	if x != nil {
+		return x.AgentVersion
+	}
+	return ""
+}
+
+func (x *Hello) GetProtocolVersion() ProtocolVersion {
+	if x != nil {
+		return x.ProtocolVersion
+	}
+	return ProtocolVersion_PROTOCOL_VERSION_UNSPECIFIED
+}
+
+func (x *Hello) GetSettingsVersion() int64 {
+	if x != nil {
+		return x.SettingsVersion
+	}
+	return 0
+}
+
+func (x *Hello) GetFacts() *Facts {
+	if x != nil {
+		return x.Facts
+	}
+	return nil
+}
+
+func (x *Hello) GetLoad() *LoadReport {
+	if x != nil {
+		return x.Load
+	}
+	return nil
+}
+
+func (x *Hello) GetRunners() *RunnerStates {
+	if x != nil {
+		return x.Runners
+	}
+	return nil
+}
+
+func (x *Hello) GetHolders() *HolderReport {
+	if x != nil {
+		return x.Holders
+	}
+	return nil
+}
+
+type HelloAck struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ProtocolVersion   ProtocolVersion        `protobuf:"varint,1,opt,name=protocol_version,json=protocolVersion,proto3,enum=agent.v1.ProtocolVersion" json:"protocol_version,omitempty"`
+	ControllerVersion string                 `protobuf:"bytes,2,opt,name=controller_version,json=controllerVersion,proto3" json:"controller_version,omitempty"`
+	// The settings in force; absent when the agent's are current.
+	Settings *MachineSettings `protobuf:"bytes,3,opt,name=settings,proto3" json:"settings,omitempty"`
+	// Heartbeat interval the controller expects (default 10 s, R5.35).
+	HeartbeatSeconds int32 `protobuf:"varint,4,opt,name=heartbeat_seconds,json=heartbeatSeconds,proto3" json:"heartbeat_seconds,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *HelloAck) Reset() {
+	*x = HelloAck{}
+	mi := &file_agent_v1_agent_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HelloAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HelloAck) ProtoMessage() {}
+
+func (x *HelloAck) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HelloAck.ProtoReflect.Descriptor instead.
+func (*HelloAck) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *HelloAck) GetProtocolVersion() ProtocolVersion {
+	if x != nil {
+		return x.ProtocolVersion
+	}
+	return ProtocolVersion_PROTOCOL_VERSION_UNSPECIFIED
+}
+
+func (x *HelloAck) GetControllerVersion() string {
+	if x != nil {
+		return x.ControllerVersion
+	}
+	return ""
+}
+
+func (x *HelloAck) GetSettings() *MachineSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+func (x *HelloAck) GetHeartbeatSeconds() int32 {
+	if x != nil {
+		return x.HeartbeatSeconds
+	}
+	return 0
+}
+
+// Heartbeat goes both ways every 10 seconds. The controller marks a machine
+// offline after 30 seconds without one (machines R5.35).
 type Heartbeat struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SentAtUnixMs  int64                  `protobuf:"varint,1,opt,name=sent_at_unix_ms,json=sentAtUnixMs,proto3" json:"sent_at_unix_ms,omitempty"`
@@ -282,7 +1182,7 @@ type Heartbeat struct {
 
 func (x *Heartbeat) Reset() {
 	*x = Heartbeat{}
-	mi := &file_agent_v1_agent_proto_msgTypes[4]
+	mi := &file_agent_v1_agent_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -294,7 +1194,7 @@ func (x *Heartbeat) String() string {
 func (*Heartbeat) ProtoMessage() {}
 
 func (x *Heartbeat) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[4]
+	mi := &file_agent_v1_agent_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -307,7 +1207,7 @@ func (x *Heartbeat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Heartbeat.ProtoReflect.Descriptor instead.
 func (*Heartbeat) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{4}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Heartbeat) GetSentAtUnixMs() int64 {
@@ -317,17 +1217,341 @@ func (x *Heartbeat) GetSentAtUnixMs() int64 {
 	return 0
 }
 
-// LoadReport is a placeholder; the measured fields are decided with the scheduler.
+// Facts are what the agent detects at start, every 10 minutes, and on
+// Redetect (machines R5.10, R5.11, R5.13).
+type Facts struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	HostName         string                 `protobuf:"bytes,1,opt,name=host_name,json=hostName,proto3" json:"host_name,omitempty"`
+	Os               string                 `protobuf:"bytes,2,opt,name=os,proto3" json:"os,omitempty"` // linux, windows or macos
+	OsName           string                 `protobuf:"bytes,3,opt,name=os_name,json=osName,proto3" json:"os_name,omitempty"`
+	OsVersion        string                 `protobuf:"bytes,4,opt,name=os_version,json=osVersion,proto3" json:"os_version,omitempty"`
+	KernelVersion    string                 `protobuf:"bytes,5,opt,name=kernel_version,json=kernelVersion,proto3" json:"kernel_version,omitempty"`
+	Arch             string                 `protobuf:"bytes,6,opt,name=arch,proto3" json:"arch,omitempty"` // x64 or arm64
+	CpuModel         string                 `protobuf:"bytes,7,opt,name=cpu_model,json=cpuModel,proto3" json:"cpu_model,omitempty"`
+	Cores            int32                  `protobuf:"varint,8,opt,name=cores,proto3" json:"cores,omitempty"`
+	Threads          int32                  `protobuf:"varint,9,opt,name=threads,proto3" json:"threads,omitempty"`
+	MemoryBytes      int64                  `protobuf:"varint,10,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memory_bytes,omitempty"`
+	DiskTotalBytes   int64                  `protobuf:"varint,11,opt,name=disk_total_bytes,json=diskTotalBytes,proto3" json:"disk_total_bytes,omitempty"`
+	DiskFreeBytes    int64                  `protobuf:"varint,12,opt,name=disk_free_bytes,json=diskFreeBytes,proto3" json:"disk_free_bytes,omitempty"`
+	Gpus             []*Gpu                 `protobuf:"bytes,13,rep,name=gpus,proto3" json:"gpus,omitempty"`
+	Backends         []*BackendSupport      `protobuf:"bytes,14,rep,name=backends,proto3" json:"backends,omitempty"`
+	DetectedAtUnixMs int64                  `protobuf:"varint,15,opt,name=detected_at_unix_ms,json=detectedAtUnixMs,proto3" json:"detected_at_unix_ms,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *Facts) Reset() {
+	*x = Facts{}
+	mi := &file_agent_v1_agent_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Facts) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Facts) ProtoMessage() {}
+
+func (x *Facts) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Facts.ProtoReflect.Descriptor instead.
+func (*Facts) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *Facts) GetHostName() string {
+	if x != nil {
+		return x.HostName
+	}
+	return ""
+}
+
+func (x *Facts) GetOs() string {
+	if x != nil {
+		return x.Os
+	}
+	return ""
+}
+
+func (x *Facts) GetOsName() string {
+	if x != nil {
+		return x.OsName
+	}
+	return ""
+}
+
+func (x *Facts) GetOsVersion() string {
+	if x != nil {
+		return x.OsVersion
+	}
+	return ""
+}
+
+func (x *Facts) GetKernelVersion() string {
+	if x != nil {
+		return x.KernelVersion
+	}
+	return ""
+}
+
+func (x *Facts) GetArch() string {
+	if x != nil {
+		return x.Arch
+	}
+	return ""
+}
+
+func (x *Facts) GetCpuModel() string {
+	if x != nil {
+		return x.CpuModel
+	}
+	return ""
+}
+
+func (x *Facts) GetCores() int32 {
+	if x != nil {
+		return x.Cores
+	}
+	return 0
+}
+
+func (x *Facts) GetThreads() int32 {
+	if x != nil {
+		return x.Threads
+	}
+	return 0
+}
+
+func (x *Facts) GetMemoryBytes() int64 {
+	if x != nil {
+		return x.MemoryBytes
+	}
+	return 0
+}
+
+func (x *Facts) GetDiskTotalBytes() int64 {
+	if x != nil {
+		return x.DiskTotalBytes
+	}
+	return 0
+}
+
+func (x *Facts) GetDiskFreeBytes() int64 {
+	if x != nil {
+		return x.DiskFreeBytes
+	}
+	return 0
+}
+
+func (x *Facts) GetGpus() []*Gpu {
+	if x != nil {
+		return x.Gpus
+	}
+	return nil
+}
+
+func (x *Facts) GetBackends() []*BackendSupport {
+	if x != nil {
+		return x.Backends
+	}
+	return nil
+}
+
+func (x *Facts) GetDetectedAtUnixMs() int64 {
+	if x != nil {
+		return x.DetectedAtUnixMs
+	}
+	return 0
+}
+
+type Gpu struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Vendor        string                 `protobuf:"bytes,1,opt,name=vendor,proto3" json:"vendor,omitempty"`
+	Model         string                 `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
+	MemoryBytes   int64                  `protobuf:"varint,3,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memory_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Gpu) Reset() {
+	*x = Gpu{}
+	mi := &file_agent_v1_agent_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Gpu) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Gpu) ProtoMessage() {}
+
+func (x *Gpu) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Gpu.ProtoReflect.Descriptor instead.
+func (*Gpu) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *Gpu) GetVendor() string {
+	if x != nil {
+		return x.Vendor
+	}
+	return ""
+}
+
+func (x *Gpu) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *Gpu) GetMemoryBytes() int64 {
+	if x != nil {
+		return x.MemoryBytes
+	}
+	return 0
+}
+
+// BackendSupport says whether one isolation backend works here (R5.11).
+// Detected is not allowed: the user allows backends per machine (R5.12).
+type BackendSupport struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// persistent, docker, podman, nerdctl, wsl2, hyperv, kvm, tart or firecracker.
+	Name    string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Present bool   `protobuf:"varint,2,opt,name=present,proto3" json:"present,omitempty"`
+	Usable  bool   `protobuf:"varint,3,opt,name=usable,proto3" json:"usable,omitempty"`
+	Version string `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
+	// Why it is not usable, such as "no /dev/kvm".
+	Reason        string `protobuf:"bytes,5,opt,name=reason,proto3" json:"reason,omitempty"`
+	Rootless      bool   `protobuf:"varint,6,opt,name=rootless,proto3" json:"rootless,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BackendSupport) Reset() {
+	*x = BackendSupport{}
+	mi := &file_agent_v1_agent_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BackendSupport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BackendSupport) ProtoMessage() {}
+
+func (x *BackendSupport) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BackendSupport.ProtoReflect.Descriptor instead.
+func (*BackendSupport) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *BackendSupport) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *BackendSupport) GetPresent() bool {
+	if x != nil {
+		return x.Present
+	}
+	return false
+}
+
+func (x *BackendSupport) GetUsable() bool {
+	if x != nil {
+		return x.Usable
+	}
+	return false
+}
+
+func (x *BackendSupport) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *BackendSupport) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *BackendSupport) GetRootless() bool {
+	if x != nil {
+		return x.Rootless
+	}
+	return false
+}
+
+// LoadReport is the measured load (machines R5.15 to R5.20, scheduling R5.40
+// to R5.45). The agent sends it every 15 seconds and with Hello.
 type LoadReport struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	SampledAtUnixMs int64                  `protobuf:"varint,1,opt,name=sampled_at_unix_ms,json=sampledAtUnixMs,proto3" json:"sampled_at_unix_ms,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	MemoryPct       float64                `protobuf:"fixed64,2,opt,name=memory_pct,json=memoryPct,proto3" json:"memory_pct,omitempty"`
+	MemoryKnown     bool                   `protobuf:"varint,3,opt,name=memory_known,json=memoryKnown,proto3" json:"memory_known,omitempty"`
+	CpuPct          float64                `protobuf:"fixed64,4,opt,name=cpu_pct,json=cpuPct,proto3" json:"cpu_pct,omitempty"`
+	CpuKnown        bool                   `protobuf:"varint,5,opt,name=cpu_known,json=cpuKnown,proto3" json:"cpu_known,omitempty"`
+	// Why a figure is unknown; shown in the console (R5.20).
+	UnknownReason string `protobuf:"bytes,6,opt,name=unknown_reason,json=unknownReason,proto3" json:"unknown_reason,omitempty"`
+	// Windows with WSL2: the WSL VM's memory (R5.17).
+	WslVmBytes int64 `protobuf:"varint,7,opt,name=wsl_vm_bytes,json=wslVmBytes,proto3" json:"wsl_vm_bytes,omitempty"`
+	// Memory used by containers, when read.
+	ContainersBytes int64 `protobuf:"varint,8,opt,name=containers_bytes,json=containersBytes,proto3" json:"containers_bytes,omitempty"`
+	// Slots this machine's gates hold, by kind.
+	SlotsUsed      int32 `protobuf:"varint,9,opt,name=slots_used,json=slotsUsed,proto3" json:"slots_used,omitempty"`
+	LightSlotsUsed int32 `protobuf:"varint,10,opt,name=light_slots_used,json=lightSlotsUsed,proto3" json:"light_slots_used,omitempty"`
+	HeavySlotsUsed int32 `protobuf:"varint,11,opt,name=heavy_slots_used,json=heavySlotsUsed,proto3" json:"heavy_slots_used,omitempty"`
+	// True when an agent in a container decided on the worse of host and
+	// container (R5.19).
+	CgroupLimited bool `protobuf:"varint,12,opt,name=cgroup_limited,json=cgroupLimited,proto3" json:"cgroup_limited,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LoadReport) Reset() {
 	*x = LoadReport{}
-	mi := &file_agent_v1_agent_proto_msgTypes[5]
+	mi := &file_agent_v1_agent_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -339,7 +1563,7 @@ func (x *LoadReport) String() string {
 func (*LoadReport) ProtoMessage() {}
 
 func (x *LoadReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[5]
+	mi := &file_agent_v1_agent_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -352,7 +1576,7 @@ func (x *LoadReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadReport.ProtoReflect.Descriptor instead.
 func (*LoadReport) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{5}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *LoadReport) GetSampledAtUnixMs() int64 {
@@ -362,33 +1586,2869 @@ func (x *LoadReport) GetSampledAtUnixMs() int64 {
 	return 0
 }
 
+func (x *LoadReport) GetMemoryPct() float64 {
+	if x != nil {
+		return x.MemoryPct
+	}
+	return 0
+}
+
+func (x *LoadReport) GetMemoryKnown() bool {
+	if x != nil {
+		return x.MemoryKnown
+	}
+	return false
+}
+
+func (x *LoadReport) GetCpuPct() float64 {
+	if x != nil {
+		return x.CpuPct
+	}
+	return 0
+}
+
+func (x *LoadReport) GetCpuKnown() bool {
+	if x != nil {
+		return x.CpuKnown
+	}
+	return false
+}
+
+func (x *LoadReport) GetUnknownReason() string {
+	if x != nil {
+		return x.UnknownReason
+	}
+	return ""
+}
+
+func (x *LoadReport) GetWslVmBytes() int64 {
+	if x != nil {
+		return x.WslVmBytes
+	}
+	return 0
+}
+
+func (x *LoadReport) GetContainersBytes() int64 {
+	if x != nil {
+		return x.ContainersBytes
+	}
+	return 0
+}
+
+func (x *LoadReport) GetSlotsUsed() int32 {
+	if x != nil {
+		return x.SlotsUsed
+	}
+	return 0
+}
+
+func (x *LoadReport) GetLightSlotsUsed() int32 {
+	if x != nil {
+		return x.LightSlotsUsed
+	}
+	return 0
+}
+
+func (x *LoadReport) GetHeavySlotsUsed() int32 {
+	if x != nil {
+		return x.HeavySlotsUsed
+	}
+	return 0
+}
+
+func (x *LoadReport) GetCgroupLimited() bool {
+	if x != nil {
+		return x.CgroupLimited
+	}
+	return false
+}
+
+// RunnerStates is the full list of runners the agent sees, sent on change and
+// with Hello. It includes runners CRSP did not make, found from the OS service
+// list (runners R5.3, R5.5).
+type RunnerStates struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Runners       []*RunnerStatus        `protobuf:"bytes,1,rep,name=runners,proto3" json:"runners,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunnerStates) Reset() {
+	*x = RunnerStates{}
+	mi := &file_agent_v1_agent_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunnerStates) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunnerStates) ProtoMessage() {}
+
+func (x *RunnerStates) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunnerStates.ProtoReflect.Descriptor instead.
+func (*RunnerStates) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *RunnerStates) GetRunners() []*RunnerStatus {
+	if x != nil {
+		return x.Runners
+	}
+	return nil
+}
+
+type RunnerStatus struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The controller's runner id; empty for a runner CRSP did not make.
+	RunnerId string      `protobuf:"bytes,1,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
+	Name     string      `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	State    RunnerState `protobuf:"varint,3,opt,name=state,proto3,enum=agent.v1.RunnerState" json:"state,omitempty"`
+	Managed  bool        `protobuf:"varint,4,opt,name=managed,proto3" json:"managed,omitempty"`
+	Backend  string      `protobuf:"bytes,5,opt,name=backend,proto3" json:"backend,omitempty"`
+	// The service entry (Windows service, systemd unit, launchd job).
+	ServiceName string `protobuf:"bytes,6,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// The runner folder; reported even when the agent cannot read it.
+	Folder string `protobuf:"bytes,7,opt,name=folder,proto3" json:"folder,omitempty"`
+	// The account the service runs as.
+	Account       string   `protobuf:"bytes,8,opt,name=account,proto3" json:"account,omitempty"`
+	RunnerVersion string   `protobuf:"bytes,9,opt,name=runner_version,json=runnerVersion,proto3" json:"runner_version,omitempty"`
+	Labels        []string `protobuf:"bytes,10,rep,name=labels,proto3" json:"labels,omitempty"`
+	// The job the runner runs now.
+	CurrentJob *JobRef `protobuf:"bytes,11,opt,name=current_job,json=currentJob,proto3" json:"current_job,omitempty"`
+	// True when the agent could not read the folder (needs admin; learning 6).
+	FolderUnreadable bool `protobuf:"varint,12,opt,name=folder_unreadable,json=folderUnreadable,proto3" json:"folder_unreadable,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *RunnerStatus) Reset() {
+	*x = RunnerStatus{}
+	mi := &file_agent_v1_agent_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunnerStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunnerStatus) ProtoMessage() {}
+
+func (x *RunnerStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunnerStatus.ProtoReflect.Descriptor instead.
+func (*RunnerStatus) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *RunnerStatus) GetRunnerId() string {
+	if x != nil {
+		return x.RunnerId
+	}
+	return ""
+}
+
+func (x *RunnerStatus) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RunnerStatus) GetState() RunnerState {
+	if x != nil {
+		return x.State
+	}
+	return RunnerState_RUNNER_STATE_UNSPECIFIED
+}
+
+func (x *RunnerStatus) GetManaged() bool {
+	if x != nil {
+		return x.Managed
+	}
+	return false
+}
+
+func (x *RunnerStatus) GetBackend() string {
+	if x != nil {
+		return x.Backend
+	}
+	return ""
+}
+
+func (x *RunnerStatus) GetServiceName() string {
+	if x != nil {
+		return x.ServiceName
+	}
+	return ""
+}
+
+func (x *RunnerStatus) GetFolder() string {
+	if x != nil {
+		return x.Folder
+	}
+	return ""
+}
+
+func (x *RunnerStatus) GetAccount() string {
+	if x != nil {
+		return x.Account
+	}
+	return ""
+}
+
+func (x *RunnerStatus) GetRunnerVersion() string {
+	if x != nil {
+		return x.RunnerVersion
+	}
+	return ""
+}
+
+func (x *RunnerStatus) GetLabels() []string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+func (x *RunnerStatus) GetCurrentJob() *JobRef {
+	if x != nil {
+		return x.CurrentJob
+	}
+	return nil
+}
+
+func (x *RunnerStatus) GetFolderUnreadable() bool {
+	if x != nil {
+		return x.FolderUnreadable
+	}
+	return false
+}
+
+// AddRunner asks the agent to register and start a persistent runner (M1) or
+// an ephemeral one (M2). runners R5.1, R5.8, R5.13 to R5.24.
+type AddRunner struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	CommandId string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	Runner    *RunnerSpec            `protobuf:"bytes,2,opt,name=runner,proto3" json:"runner,omitempty"`
+	// Types that are valid to be assigned to Start:
+	//
+	//	*AddRunner_Registration
+	//	*AddRunner_JitConfig
+	Start         isAddRunner_Start `protobuf_oneof:"start"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddRunner) Reset() {
+	*x = AddRunner{}
+	mi := &file_agent_v1_agent_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddRunner) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddRunner) ProtoMessage() {}
+
+func (x *AddRunner) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddRunner.ProtoReflect.Descriptor instead.
+func (*AddRunner) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *AddRunner) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *AddRunner) GetRunner() *RunnerSpec {
+	if x != nil {
+		return x.Runner
+	}
+	return nil
+}
+
+func (x *AddRunner) GetStart() isAddRunner_Start {
+	if x != nil {
+		return x.Start
+	}
+	return nil
+}
+
+func (x *AddRunner) GetRegistration() string {
+	if x != nil {
+		if x, ok := x.Start.(*AddRunner_Registration); ok {
+			return x.Registration
+		}
+	}
+	return ""
+}
+
+func (x *AddRunner) GetJitConfig() string {
+	if x != nil {
+		if x, ok := x.Start.(*AddRunner_JitConfig); ok {
+			return x.JitConfig
+		}
+	}
+	return ""
+}
+
+type isAddRunner_Start interface {
+	isAddRunner_Start()
+}
+
+type AddRunner_Registration struct {
+	// A registration token for a persistent runner; used once, then dropped.
+	Registration string `protobuf:"bytes,3,opt,name=registration,proto3,oneof"`
+}
+
+type AddRunner_JitConfig struct {
+	// An encoded JIT config for an ephemeral runner (M2); used once.
+	JitConfig string `protobuf:"bytes,4,opt,name=jit_config,json=jitConfig,proto3,oneof"`
+}
+
+func (*AddRunner_Registration) isAddRunner_Start() {}
+
+func (*AddRunner_JitConfig) isAddRunner_Start() {}
+
+type RunnerSpec struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	RunnerId string                 `protobuf:"bytes,1,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
+	Name     string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Os       string                 `protobuf:"bytes,3,opt,name=os,proto3" json:"os,omitempty"`
+	Arch     string                 `protobuf:"bytes,4,opt,name=arch,proto3" json:"arch,omitempty"`
+	Kind     string                 `protobuf:"bytes,5,opt,name=kind,proto3" json:"kind,omitempty"` // persistent or ephemeral
+	Backend  string                 `protobuf:"bytes,6,opt,name=backend,proto3" json:"backend,omitempty"`
+	Labels   []string               `protobuf:"bytes,7,rep,name=labels,proto3" json:"labels,omitempty"`
+	// https://github.com/<owner>[/<repo>]
+	GithubUrl   string `protobuf:"bytes,8,opt,name=github_url,json=githubUrl,proto3" json:"github_url,omitempty"`
+	RunnerGroup string `protobuf:"bytes,9,opt,name=runner_group,json=runnerGroup,proto3" json:"runner_group,omitempty"`
+	// Pinned runner version and SHA-256 per OS and arch (runners R5.37).
+	RunnerVersion string `protobuf:"bytes,10,opt,name=runner_version,json=runnerVersion,proto3" json:"runner_version,omitempty"`
+	RunnerSha256  string `protobuf:"bytes,11,opt,name=runner_sha256,json=runnerSha256,proto3" json:"runner_sha256,omitempty"`
+	// Windows: grant "create symbolic links" to the runner account (owner
+	// decision for M1, runners R5.14).
+	WindowsSymlinkRight bool `protobuf:"varint,12,opt,name=windows_symlink_right,json=windowsSymlinkRight,proto3" json:"windows_symlink_right,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *RunnerSpec) Reset() {
+	*x = RunnerSpec{}
+	mi := &file_agent_v1_agent_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunnerSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunnerSpec) ProtoMessage() {}
+
+func (x *RunnerSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunnerSpec.ProtoReflect.Descriptor instead.
+func (*RunnerSpec) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *RunnerSpec) GetRunnerId() string {
+	if x != nil {
+		return x.RunnerId
+	}
+	return ""
+}
+
+func (x *RunnerSpec) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RunnerSpec) GetOs() string {
+	if x != nil {
+		return x.Os
+	}
+	return ""
+}
+
+func (x *RunnerSpec) GetArch() string {
+	if x != nil {
+		return x.Arch
+	}
+	return ""
+}
+
+func (x *RunnerSpec) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *RunnerSpec) GetBackend() string {
+	if x != nil {
+		return x.Backend
+	}
+	return ""
+}
+
+func (x *RunnerSpec) GetLabels() []string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+func (x *RunnerSpec) GetGithubUrl() string {
+	if x != nil {
+		return x.GithubUrl
+	}
+	return ""
+}
+
+func (x *RunnerSpec) GetRunnerGroup() string {
+	if x != nil {
+		return x.RunnerGroup
+	}
+	return ""
+}
+
+func (x *RunnerSpec) GetRunnerVersion() string {
+	if x != nil {
+		return x.RunnerVersion
+	}
+	return ""
+}
+
+func (x *RunnerSpec) GetRunnerSha256() string {
+	if x != nil {
+		return x.RunnerSha256
+	}
+	return ""
+}
+
+func (x *RunnerSpec) GetWindowsSymlinkRight() bool {
+	if x != nil {
+		return x.WindowsSymlinkRight
+	}
+	return false
+}
+
+// RemoveRunner removes a runner after a drain. The idle check runs right
+// before the removal (runners R5.4, R5.19, R6.4).
+type RemoveRunner struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	CommandId string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	RunnerId  string                 `protobuf:"bytes,2,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
+	// For a runner CRSP did not make, its service name instead of an id.
+	ServiceName string `protobuf:"bytes,3,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// A remove token; GitHub refuses a registration token here. Used once.
+	Removal string `protobuf:"bytes,4,opt,name=removal,proto3" json:"removal,omitempty"`
+	// How long to wait for a running job before asking the user.
+	DrainTimeoutSeconds int32 `protobuf:"varint,5,opt,name=drain_timeout_seconds,json=drainTimeoutSeconds,proto3" json:"drain_timeout_seconds,omitempty"`
+	// Also delete the runner folder (a replace step with its own yes).
+	DeleteFolder  bool `protobuf:"varint,6,opt,name=delete_folder,json=deleteFolder,proto3" json:"delete_folder,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveRunner) Reset() {
+	*x = RemoveRunner{}
+	mi := &file_agent_v1_agent_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveRunner) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveRunner) ProtoMessage() {}
+
+func (x *RemoveRunner) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveRunner.ProtoReflect.Descriptor instead.
+func (*RemoveRunner) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *RemoveRunner) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *RemoveRunner) GetRunnerId() string {
+	if x != nil {
+		return x.RunnerId
+	}
+	return ""
+}
+
+func (x *RemoveRunner) GetServiceName() string {
+	if x != nil {
+		return x.ServiceName
+	}
+	return ""
+}
+
+func (x *RemoveRunner) GetRemoval() string {
+	if x != nil {
+		return x.Removal
+	}
+	return ""
+}
+
+func (x *RemoveRunner) GetDrainTimeoutSeconds() int32 {
+	if x != nil {
+		return x.DrainTimeoutSeconds
+	}
+	return 0
+}
+
+func (x *RemoveRunner) GetDeleteFolder() bool {
+	if x != nil {
+		return x.DeleteFolder
+	}
+	return false
+}
+
+// DrainRunner stops a runner taking new jobs; running jobs finish.
+type DrainRunner struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CommandId     string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	RunnerId      string                 `protobuf:"bytes,2,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DrainRunner) Reset() {
+	*x = DrainRunner{}
+	mi := &file_agent_v1_agent_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DrainRunner) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DrainRunner) ProtoMessage() {}
+
+func (x *DrainRunner) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DrainRunner.ProtoReflect.Descriptor instead.
+func (*DrainRunner) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *DrainRunner) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *DrainRunner) GetRunnerId() string {
+	if x != nil {
+		return x.RunnerId
+	}
+	return ""
+}
+
+// UsageReport is per runner and job, at least every 15 seconds while a job
+// runs and once at the end (runners R5.12).
+type UsageReport struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	RunnerId          string                 `protobuf:"bytes,1,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
+	Job               *JobRef                `protobuf:"bytes,2,opt,name=job,proto3" json:"job,omitempty"`
+	CpuMs             int64                  `protobuf:"varint,3,opt,name=cpu_ms,json=cpuMs,proto3" json:"cpu_ms,omitempty"`
+	MemoryPeakBytes   int64                  `protobuf:"varint,4,opt,name=memory_peak_bytes,json=memoryPeakBytes,proto3" json:"memory_peak_bytes,omitempty"`
+	MemoryMedianBytes int64                  `protobuf:"varint,5,opt,name=memory_median_bytes,json=memoryMedianBytes,proto3" json:"memory_median_bytes,omitempty"`
+	DiskUsedBytes     int64                  `protobuf:"varint,6,opt,name=disk_used_bytes,json=diskUsedBytes,proto3" json:"disk_used_bytes,omitempty"`
+	WallMs            int64                  `protobuf:"varint,7,opt,name=wall_ms,json=wallMs,proto3" json:"wall_ms,omitempty"`
+	Final             bool                   `protobuf:"varint,8,opt,name=final,proto3" json:"final,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *UsageReport) Reset() {
+	*x = UsageReport{}
+	mi := &file_agent_v1_agent_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UsageReport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UsageReport) ProtoMessage() {}
+
+func (x *UsageReport) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UsageReport.ProtoReflect.Descriptor instead.
+func (*UsageReport) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *UsageReport) GetRunnerId() string {
+	if x != nil {
+		return x.RunnerId
+	}
+	return ""
+}
+
+func (x *UsageReport) GetJob() *JobRef {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
+func (x *UsageReport) GetCpuMs() int64 {
+	if x != nil {
+		return x.CpuMs
+	}
+	return 0
+}
+
+func (x *UsageReport) GetMemoryPeakBytes() int64 {
+	if x != nil {
+		return x.MemoryPeakBytes
+	}
+	return 0
+}
+
+func (x *UsageReport) GetMemoryMedianBytes() int64 {
+	if x != nil {
+		return x.MemoryMedianBytes
+	}
+	return 0
+}
+
+func (x *UsageReport) GetDiskUsedBytes() int64 {
+	if x != nil {
+		return x.DiskUsedBytes
+	}
+	return 0
+}
+
+func (x *UsageReport) GetWallMs() int64 {
+	if x != nil {
+		return x.WallMs
+	}
+	return 0
+}
+
+func (x *UsageReport) GetFinal() bool {
+	if x != nil {
+		return x.Final
+	}
+	return false
+}
+
+// JobRef identifies one job attempt, as the runner's environment gives it.
+type JobRef struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Repository string                 `protobuf:"bytes,1,opt,name=repository,proto3" json:"repository,omitempty"` // owner/name
+	RunId      int64                  `protobuf:"varint,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	RunAttempt int32                  `protobuf:"varint,3,opt,name=run_attempt,json=runAttempt,proto3" json:"run_attempt,omitempty"`
+	// The job key (GITHUB_JOB) and, when GitHub gives it, the numeric job id.
+	Job           string `protobuf:"bytes,4,opt,name=job,proto3" json:"job,omitempty"`
+	GithubJobId   int64  `protobuf:"varint,5,opt,name=github_job_id,json=githubJobId,proto3" json:"github_job_id,omitempty"`
+	Shard         string `protobuf:"bytes,6,opt,name=shard,proto3" json:"shard,omitempty"`
+	RunnerName    string `protobuf:"bytes,7,opt,name=runner_name,json=runnerName,proto3" json:"runner_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JobRef) Reset() {
+	*x = JobRef{}
+	mi := &file_agent_v1_agent_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JobRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JobRef) ProtoMessage() {}
+
+func (x *JobRef) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JobRef.ProtoReflect.Descriptor instead.
+func (*JobRef) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *JobRef) GetRepository() string {
+	if x != nil {
+		return x.Repository
+	}
+	return ""
+}
+
+func (x *JobRef) GetRunId() int64 {
+	if x != nil {
+		return x.RunId
+	}
+	return 0
+}
+
+func (x *JobRef) GetRunAttempt() int32 {
+	if x != nil {
+		return x.RunAttempt
+	}
+	return 0
+}
+
+func (x *JobRef) GetJob() string {
+	if x != nil {
+		return x.Job
+	}
+	return ""
+}
+
+func (x *JobRef) GetGithubJobId() int64 {
+	if x != nil {
+		return x.GithubJobId
+	}
+	return 0
+}
+
+func (x *JobRef) GetShard() string {
+	if x != nil {
+		return x.Shard
+	}
+	return ""
+}
+
+func (x *JobRef) GetRunnerName() string {
+	if x != nil {
+		return x.RunnerName
+	}
+	return ""
+}
+
+// Holder names the processes that hold a slot or ticket (scheduling R5.31).
+type Holder struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The runner worker (the hook's parent, skipping a shell).
+	HolderPid int64 `protobuf:"varint,1,opt,name=holder_pid,json=holderPid,proto3" json:"holder_pid,omitempty"`
+	// The gate process that waits.
+	GatePid int64 `protobuf:"varint,2,opt,name=gate_pid,json=gatePid,proto3" json:"gate_pid,omitempty"`
+	// Process start time, so a reused pid is not taken as alive.
+	HolderStartedUnixMs int64 `protobuf:"varint,3,opt,name=holder_started_unix_ms,json=holderStartedUnixMs,proto3" json:"holder_started_unix_ms,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *Holder) Reset() {
+	*x = Holder{}
+	mi := &file_agent_v1_agent_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Holder) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Holder) ProtoMessage() {}
+
+func (x *Holder) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Holder.ProtoReflect.Descriptor instead.
+func (*Holder) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *Holder) GetHolderPid() int64 {
+	if x != nil {
+		return x.HolderPid
+	}
+	return 0
+}
+
+func (x *Holder) GetGatePid() int64 {
+	if x != nil {
+		return x.GatePid
+	}
+	return 0
+}
+
+func (x *Holder) GetHolderStartedUnixMs() int64 {
+	if x != nil {
+		return x.HolderStartedUnixMs
+	}
+	return 0
+}
+
+// GateRequest is a job-started hook asking for a slot (scheduling R5.12 to
+// R5.26). gate_id is chosen by the agent and names this wait until it ends.
+type GateRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	GateId string                 `protobuf:"bytes,1,opt,name=gate_id,json=gateId,proto3" json:"gate_id,omitempty"`
+	Job    *JobRef                `protobuf:"bytes,2,opt,name=job,proto3" json:"job,omitempty"`
+	// 0 for a ready pull request or the default branch, 1 otherwise (R5.7).
+	EventClass int32   `protobuf:"varint,3,opt,name=event_class,json=eventClass,proto3" json:"event_class,omitempty"`
+	Holder     *Holder `protobuf:"bytes,4,opt,name=holder,proto3" json:"holder,omitempty"`
+	// The queued time to keep when the ticket was lost (R5.19); 0 when new.
+	FirstQueuedUnixNs int64 `protobuf:"varint,5,opt,name=first_queued_unix_ns,json=firstQueuedUnixNs,proto3" json:"first_queued_unix_ns,omitempty"`
+	// Repository-lowered budget from the runner environment, if any (R5.4).
+	BudgetMemoryPct int32 `protobuf:"varint,6,opt,name=budget_memory_pct,json=budgetMemoryPct,proto3" json:"budget_memory_pct,omitempty"`
+	BudgetCpuPct    int32 `protobuf:"varint,7,opt,name=budget_cpu_pct,json=budgetCpuPct,proto3" json:"budget_cpu_pct,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GateRequest) Reset() {
+	*x = GateRequest{}
+	mi := &file_agent_v1_agent_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GateRequest) ProtoMessage() {}
+
+func (x *GateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GateRequest.ProtoReflect.Descriptor instead.
+func (*GateRequest) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *GateRequest) GetGateId() string {
+	if x != nil {
+		return x.GateId
+	}
+	return ""
+}
+
+func (x *GateRequest) GetJob() *JobRef {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
+func (x *GateRequest) GetEventClass() int32 {
+	if x != nil {
+		return x.EventClass
+	}
+	return 0
+}
+
+func (x *GateRequest) GetHolder() *Holder {
+	if x != nil {
+		return x.Holder
+	}
+	return nil
+}
+
+func (x *GateRequest) GetFirstQueuedUnixNs() int64 {
+	if x != nil {
+		return x.FirstQueuedUnixNs
+	}
+	return 0
+}
+
+func (x *GateRequest) GetBudgetMemoryPct() int32 {
+	if x != nil {
+		return x.BudgetMemoryPct
+	}
+	return 0
+}
+
+func (x *GateRequest) GetBudgetCpuPct() int32 {
+	if x != nil {
+		return x.BudgetCpuPct
+	}
+	return 0
+}
+
+// GateBeat keeps a waiting ticket alive; it never changes its place (R5.18).
+type GateBeat struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GateId        string                 `protobuf:"bytes,1,opt,name=gate_id,json=gateId,proto3" json:"gate_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GateBeat) Reset() {
+	*x = GateBeat{}
+	mi := &file_agent_v1_agent_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GateBeat) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GateBeat) ProtoMessage() {}
+
+func (x *GateBeat) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GateBeat.ProtoReflect.Descriptor instead.
+func (*GateBeat) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *GateBeat) GetGateId() string {
+	if x != nil {
+		return x.GateId
+	}
+	return ""
+}
+
+// GateCancel drops a ticket at once, for a hook that went away.
+type GateCancel struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GateId        string                 `protobuf:"bytes,1,opt,name=gate_id,json=gateId,proto3" json:"gate_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GateCancel) Reset() {
+	*x = GateCancel{}
+	mi := &file_agent_v1_agent_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GateCancel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GateCancel) ProtoMessage() {}
+
+func (x *GateCancel) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GateCancel.ProtoReflect.Descriptor instead.
+func (*GateCancel) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *GateCancel) GetGateId() string {
+	if x != nil {
+		return x.GateId
+	}
+	return ""
+}
+
+// SlotGrant is a slot taken for a job. The claim (a random token) frees it (R5.15).
+type SlotGrant struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Kind          SlotKind               `protobuf:"varint,1,opt,name=kind,proto3,enum=agent.v1.SlotKind" json:"kind,omitempty"`
+	Number        int32                  `protobuf:"varint,2,opt,name=number,proto3" json:"number,omitempty"`
+	Claim         string                 `protobuf:"bytes,3,opt,name=claim,proto3" json:"claim,omitempty"`
+	TakenAtUnixMs int64                  `protobuf:"varint,4,opt,name=taken_at_unix_ms,json=takenAtUnixMs,proto3" json:"taken_at_unix_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SlotGrant) Reset() {
+	*x = SlotGrant{}
+	mi := &file_agent_v1_agent_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SlotGrant) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SlotGrant) ProtoMessage() {}
+
+func (x *SlotGrant) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SlotGrant.ProtoReflect.Descriptor instead.
+func (*SlotGrant) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *SlotGrant) GetKind() SlotKind {
+	if x != nil {
+		return x.Kind
+	}
+	return SlotKind_SLOT_KIND_UNSPECIFIED
+}
+
+func (x *SlotGrant) GetNumber() int32 {
+	if x != nil {
+		return x.Number
+	}
+	return 0
+}
+
+func (x *SlotGrant) GetClaim() string {
+	if x != nil {
+		return x.Claim
+	}
+	return ""
+}
+
+func (x *SlotGrant) GetTakenAtUnixMs() int64 {
+	if x != nil {
+		return x.TakenAtUnixMs
+	}
+	return 0
+}
+
+// GateDecision answers a GateRequest or a GateBeat.
+type GateDecision struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	GateId string                 `protobuf:"bytes,1,opt,name=gate_id,json=gateId,proto3" json:"gate_id,omitempty"`
+	// Types that are valid to be assigned to Decision:
+	//
+	//	*GateDecision_Go_
+	//	*GateDecision_Wait_
+	//	*GateDecision_Timeout_
+	Decision      isGateDecision_Decision `protobuf_oneof:"decision"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GateDecision) Reset() {
+	*x = GateDecision{}
+	mi := &file_agent_v1_agent_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GateDecision) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GateDecision) ProtoMessage() {}
+
+func (x *GateDecision) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GateDecision.ProtoReflect.Descriptor instead.
+func (*GateDecision) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *GateDecision) GetGateId() string {
+	if x != nil {
+		return x.GateId
+	}
+	return ""
+}
+
+func (x *GateDecision) GetDecision() isGateDecision_Decision {
+	if x != nil {
+		return x.Decision
+	}
+	return nil
+}
+
+func (x *GateDecision) GetGo() *GateDecision_Go {
+	if x != nil {
+		if x, ok := x.Decision.(*GateDecision_Go_); ok {
+			return x.Go
+		}
+	}
+	return nil
+}
+
+func (x *GateDecision) GetWait() *GateDecision_Wait {
+	if x != nil {
+		if x, ok := x.Decision.(*GateDecision_Wait_); ok {
+			return x.Wait
+		}
+	}
+	return nil
+}
+
+func (x *GateDecision) GetTimeout() *GateDecision_Timeout {
+	if x != nil {
+		if x, ok := x.Decision.(*GateDecision_Timeout_); ok {
+			return x.Timeout
+		}
+	}
+	return nil
+}
+
+type isGateDecision_Decision interface {
+	isGateDecision_Decision()
+}
+
+type GateDecision_Go_ struct {
+	Go *GateDecision_Go `protobuf:"bytes,2,opt,name=go,proto3,oneof"`
+}
+
+type GateDecision_Wait_ struct {
+	Wait *GateDecision_Wait `protobuf:"bytes,3,opt,name=wait,proto3,oneof"`
+}
+
+type GateDecision_Timeout_ struct {
+	Timeout *GateDecision_Timeout `protobuf:"bytes,4,opt,name=timeout,proto3,oneof"`
+}
+
+func (*GateDecision_Go_) isGateDecision_Decision() {}
+
+func (*GateDecision_Wait_) isGateDecision_Decision() {}
+
+func (*GateDecision_Timeout_) isGateDecision_Decision() {}
+
+// JobCompleted is the job-completed hook. The controller frees every slot and
+// ticket of the job (scheduling R5.28).
+type JobCompleted struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Job               *JobRef                `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	Claims            []string               `protobuf:"bytes,2,rep,name=claims,proto3" json:"claims,omitempty"`
+	CompletedAtUnixMs int64                  `protobuf:"varint,3,opt,name=completed_at_unix_ms,json=completedAtUnixMs,proto3" json:"completed_at_unix_ms,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *JobCompleted) Reset() {
+	*x = JobCompleted{}
+	mi := &file_agent_v1_agent_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JobCompleted) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JobCompleted) ProtoMessage() {}
+
+func (x *JobCompleted) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JobCompleted.ProtoReflect.Descriptor instead.
+func (*JobCompleted) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *JobCompleted) GetJob() *JobRef {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
+func (x *JobCompleted) GetClaims() []string {
+	if x != nil {
+		return x.Claims
+	}
+	return nil
+}
+
+func (x *JobCompleted) GetCompletedAtUnixMs() int64 {
+	if x != nil {
+		return x.CompletedAtUnixMs
+	}
+	return 0
+}
+
+type ReleaseAck struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Job           *JobRef                `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	SlotsFreed    int32                  `protobuf:"varint,2,opt,name=slots_freed,json=slotsFreed,proto3" json:"slots_freed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReleaseAck) Reset() {
+	*x = ReleaseAck{}
+	mi := &file_agent_v1_agent_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReleaseAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReleaseAck) ProtoMessage() {}
+
+func (x *ReleaseAck) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReleaseAck.ProtoReflect.Descriptor instead.
+func (*ReleaseAck) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ReleaseAck) GetJob() *JobRef {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
+func (x *ReleaseAck) GetSlotsFreed() int32 {
+	if x != nil {
+		return x.SlotsFreed
+	}
+	return 0
+}
+
+// HolderReport lists the holder processes still alive on this machine. The
+// controller frees every slot and ticket of the machine whose holder is not
+// listed (scheduling R5.32, R5.35).
+type HolderReport struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Alive         []*Holder              `protobuf:"bytes,1,rep,name=alive,proto3" json:"alive,omitempty"`
+	Running       []*JobRef              `protobuf:"bytes,2,rep,name=running,proto3" json:"running,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HolderReport) Reset() {
+	*x = HolderReport{}
+	mi := &file_agent_v1_agent_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HolderReport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HolderReport) ProtoMessage() {}
+
+func (x *HolderReport) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HolderReport.ProtoReflect.Descriptor instead.
+func (*HolderReport) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *HolderReport) GetAlive() []*Holder {
+	if x != nil {
+		return x.Alive
+	}
+	return nil
+}
+
+func (x *HolderReport) GetRunning() []*JobRef {
+	if x != nil {
+		return x.Running
+	}
+	return nil
+}
+
+// MachineSettings reach the agent within 5 seconds of a save; the agent keeps
+// the last ones and applies them while the link is down (machines R5.22,
+// R5.24, scheduling R5.1).
+type MachineSettings struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Version             int64                  `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	State               string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"` // active, draining or drained
+	BudgetMemoryPct     int32                  `protobuf:"varint,3,opt,name=budget_memory_pct,json=budgetMemoryPct,proto3" json:"budget_memory_pct,omitempty"`
+	BudgetCpuPct        int32                  `protobuf:"varint,4,opt,name=budget_cpu_pct,json=budgetCpuPct,proto3" json:"budget_cpu_pct,omitempty"`
+	JobSlots            int32                  `protobuf:"varint,5,opt,name=job_slots,json=jobSlots,proto3" json:"job_slots,omitempty"`
+	LightSlots          int32                  `protobuf:"varint,6,opt,name=light_slots,json=lightSlots,proto3" json:"light_slots,omitempty"`
+	HeavySlots          int32                  `protobuf:"varint,7,opt,name=heavy_slots,json=heavySlots,proto3" json:"heavy_slots,omitempty"`
+	LightJobs           []string               `protobuf:"bytes,8,rep,name=light_jobs,json=lightJobs,proto3" json:"light_jobs,omitempty"`
+	HeavyJobs           []string               `protobuf:"bytes,9,rep,name=heavy_jobs,json=heavyJobs,proto3" json:"heavy_jobs,omitempty"`
+	SlotMaxAgeMinutes   int32                  `protobuf:"varint,10,opt,name=slot_max_age_minutes,json=slotMaxAgeMinutes,proto3" json:"slot_max_age_minutes,omitempty"`
+	GatePollSeconds     int32                  `protobuf:"varint,11,opt,name=gate_poll_seconds,json=gatePollSeconds,proto3" json:"gate_poll_seconds,omitempty"`
+	GateMaxWaitMinutes  int32                  `protobuf:"varint,12,opt,name=gate_max_wait_minutes,json=gateMaxWaitMinutes,proto3" json:"gate_max_wait_minutes,omitempty"`
+	GateOnTimeout       string                 `protobuf:"bytes,13,opt,name=gate_on_timeout,json=gateOnTimeout,proto3" json:"gate_on_timeout,omitempty"` // fail or run
+	AllowedBackends     []string               `protobuf:"bytes,14,rep,name=allowed_backends,json=allowedBackends,proto3" json:"allowed_backends,omitempty"`
+	CacheCapBytes       int64                  `protobuf:"varint,15,opt,name=cache_cap_bytes,json=cacheCapBytes,proto3" json:"cache_cap_bytes,omitempty"`
+	DrainTimeoutMinutes int32                  `protobuf:"varint,16,opt,name=drain_timeout_minutes,json=drainTimeoutMinutes,proto3" json:"drain_timeout_minutes,omitempty"`
+	WindowsSymlinkRight bool                   `protobuf:"varint,17,opt,name=windows_symlink_right,json=windowsSymlinkRight,proto3" json:"windows_symlink_right,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *MachineSettings) Reset() {
+	*x = MachineSettings{}
+	mi := &file_agent_v1_agent_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MachineSettings) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MachineSettings) ProtoMessage() {}
+
+func (x *MachineSettings) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MachineSettings.ProtoReflect.Descriptor instead.
+func (*MachineSettings) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *MachineSettings) GetVersion() int64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *MachineSettings) GetBudgetMemoryPct() int32 {
+	if x != nil {
+		return x.BudgetMemoryPct
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetBudgetCpuPct() int32 {
+	if x != nil {
+		return x.BudgetCpuPct
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetJobSlots() int32 {
+	if x != nil {
+		return x.JobSlots
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetLightSlots() int32 {
+	if x != nil {
+		return x.LightSlots
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetHeavySlots() int32 {
+	if x != nil {
+		return x.HeavySlots
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetLightJobs() []string {
+	if x != nil {
+		return x.LightJobs
+	}
+	return nil
+}
+
+func (x *MachineSettings) GetHeavyJobs() []string {
+	if x != nil {
+		return x.HeavyJobs
+	}
+	return nil
+}
+
+func (x *MachineSettings) GetSlotMaxAgeMinutes() int32 {
+	if x != nil {
+		return x.SlotMaxAgeMinutes
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetGatePollSeconds() int32 {
+	if x != nil {
+		return x.GatePollSeconds
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetGateMaxWaitMinutes() int32 {
+	if x != nil {
+		return x.GateMaxWaitMinutes
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetGateOnTimeout() string {
+	if x != nil {
+		return x.GateOnTimeout
+	}
+	return ""
+}
+
+func (x *MachineSettings) GetAllowedBackends() []string {
+	if x != nil {
+		return x.AllowedBackends
+	}
+	return nil
+}
+
+func (x *MachineSettings) GetCacheCapBytes() int64 {
+	if x != nil {
+		return x.CacheCapBytes
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetDrainTimeoutMinutes() int32 {
+	if x != nil {
+		return x.DrainTimeoutMinutes
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetWindowsSymlinkRight() bool {
+	if x != nil {
+		return x.WindowsSymlinkRight
+	}
+	return false
+}
+
+// Drain stops new jobs on the machine for a change that restarts runners or
+// the agent (machines R5.30 to R5.33). The idle check runs right before the
+// change, in the step that keeps new jobs out.
+type Drain struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	CommandId string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	// drain, settings, remove, agent_update, runner_update or service_restart.
+	ChangeKind     string `protobuf:"bytes,2,opt,name=change_kind,json=changeKind,proto3" json:"change_kind,omitempty"`
+	TimeoutSeconds int32  `protobuf:"varint,3,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *Drain) Reset() {
+	*x = Drain{}
+	mi := &file_agent_v1_agent_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Drain) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Drain) ProtoMessage() {}
+
+func (x *Drain) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Drain.ProtoReflect.Descriptor instead.
+func (*Drain) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *Drain) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *Drain) GetChangeKind() string {
+	if x != nil {
+		return x.ChangeKind
+	}
+	return ""
+}
+
+func (x *Drain) GetTimeoutSeconds() int32 {
+	if x != nil {
+		return x.TimeoutSeconds
+	}
+	return 0
+}
+
+// Resume returns a drained machine to active (R5.34).
+type Resume struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CommandId     string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Resume) Reset() {
+	*x = Resume{}
+	mi := &file_agent_v1_agent_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Resume) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Resume) ProtoMessage() {}
+
+func (x *Resume) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Resume.ProtoReflect.Descriptor instead.
+func (*Resume) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *Resume) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+// DrainStatus names what a drain waits for (R5.30).
+type DrainStatus struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CommandId     string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	Idle          bool                   `protobuf:"varint,2,opt,name=idle,proto3" json:"idle,omitempty"`
+	WaitingFor    []*JobRef              `protobuf:"bytes,3,rep,name=waiting_for,json=waitingFor,proto3" json:"waiting_for,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DrainStatus) Reset() {
+	*x = DrainStatus{}
+	mi := &file_agent_v1_agent_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DrainStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DrainStatus) ProtoMessage() {}
+
+func (x *DrainStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DrainStatus.ProtoReflect.Descriptor instead.
+func (*DrainStatus) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *DrainStatus) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *DrainStatus) GetIdle() bool {
+	if x != nil {
+		return x.Idle
+	}
+	return false
+}
+
+func (x *DrainStatus) GetWaitingFor() []*JobRef {
+	if x != nil {
+		return x.WaitingFor
+	}
+	return nil
+}
+
+// Redetect asks for Facts now (Check again, R5.13).
+type Redetect struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CommandId     string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Redetect) Reset() {
+	*x = Redetect{}
+	mi := &file_agent_v1_agent_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Redetect) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Redetect) ProtoMessage() {}
+
+func (x *Redetect) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Redetect.ProtoReflect.Descriptor instead.
+func (*Redetect) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *Redetect) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+// MachineRemoved tells the agent its key was revoked; it stops retrying and
+// waits for a new join (R5.39).
+type MachineRemoved struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Reason        string                 `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MachineRemoved) Reset() {
+	*x = MachineRemoved{}
+	mi := &file_agent_v1_agent_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MachineRemoved) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MachineRemoved) ProtoMessage() {}
+
+func (x *MachineRemoved) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MachineRemoved.ProtoReflect.Descriptor instead.
+func (*MachineRemoved) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *MachineRemoved) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// CommandResult answers every command that carries a command_id.
+type CommandResult struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	CommandId string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	Ok        bool                   `protobuf:"varint,2,opt,name=ok,proto3" json:"ok,omitempty"`
+	// A redacted error, safe to show.
+	Error string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	// already, done, waiting or failed (runners R5.20 reruns).
+	Outcome       string `protobuf:"bytes,4,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CommandResult) Reset() {
+	*x = CommandResult{}
+	mi := &file_agent_v1_agent_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CommandResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommandResult) ProtoMessage() {}
+
+func (x *CommandResult) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommandResult.ProtoReflect.Descriptor instead.
+func (*CommandResult) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *CommandResult) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *CommandResult) GetOk() bool {
+	if x != nil {
+		return x.Ok
+	}
+	return false
+}
+
+func (x *CommandResult) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *CommandResult) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+// LogBatch carries runner setup and agent log lines, already redacted, in
+// order. After an outage the buffered lines come first (observability R5.20,
+// R5.23; runners R5.11).
+type LogBatch struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Lines []*LogLine             `protobuf:"bytes,1,rep,name=lines,proto3" json:"lines,omitempty"`
+	// Lines dropped because the disk buffer was full.
+	Dropped       int64 `protobuf:"varint,2,opt,name=dropped,proto3" json:"dropped,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogBatch) Reset() {
+	*x = LogBatch{}
+	mi := &file_agent_v1_agent_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogBatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogBatch) ProtoMessage() {}
+
+func (x *LogBatch) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogBatch.ProtoReflect.Descriptor instead.
+func (*LogBatch) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *LogBatch) GetLines() []*LogLine {
+	if x != nil {
+		return x.Lines
+	}
+	return nil
+}
+
+func (x *LogBatch) GetDropped() int64 {
+	if x != nil {
+		return x.Dropped
+	}
+	return 0
+}
+
+type LogLine struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	AtUnixMs  int64                  `protobuf:"varint,1,opt,name=at_unix_ms,json=atUnixMs,proto3" json:"at_unix_ms,omitempty"`
+	Level     LogLevel               `protobuf:"varint,2,opt,name=level,proto3,enum=agent.v1.LogLevel" json:"level,omitempty"`
+	Component string                 `protobuf:"bytes,3,opt,name=component,proto3" json:"component,omitempty"`
+	Message   string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	RunnerId  string                 `protobuf:"bytes,5,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
+	Job       *JobRef                `protobuf:"bytes,6,opt,name=job,proto3" json:"job,omitempty"`
+	// Extra slog attributes as JSON.
+	AttrsJson     string `protobuf:"bytes,7,opt,name=attrs_json,json=attrsJson,proto3" json:"attrs_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogLine) Reset() {
+	*x = LogLine{}
+	mi := &file_agent_v1_agent_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogLine) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogLine) ProtoMessage() {}
+
+func (x *LogLine) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogLine.ProtoReflect.Descriptor instead.
+func (*LogLine) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *LogLine) GetAtUnixMs() int64 {
+	if x != nil {
+		return x.AtUnixMs
+	}
+	return 0
+}
+
+func (x *LogLine) GetLevel() LogLevel {
+	if x != nil {
+		return x.Level
+	}
+	return LogLevel_LOG_LEVEL_UNSPECIFIED
+}
+
+func (x *LogLine) GetComponent() string {
+	if x != nil {
+		return x.Component
+	}
+	return ""
+}
+
+func (x *LogLine) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *LogLine) GetRunnerId() string {
+	if x != nil {
+		return x.RunnerId
+	}
+	return ""
+}
+
+func (x *LogLine) GetJob() *JobRef {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
+func (x *LogLine) GetAttrsJson() string {
+	if x != nil {
+		return x.AttrsJson
+	}
+	return ""
+}
+
+// RunChecks asks the agent for its machine, backend and runner checks
+// (doctor 7.1, core M1 checks).
+type RunChecks struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CommandId     string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	Checks        []string               `protobuf:"bytes,2,rep,name=checks,proto3" json:"checks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunChecks) Reset() {
+	*x = RunChecks{}
+	mi := &file_agent_v1_agent_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunChecks) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunChecks) ProtoMessage() {}
+
+func (x *RunChecks) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunChecks.ProtoReflect.Descriptor instead.
+func (*RunChecks) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *RunChecks) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *RunChecks) GetChecks() []string {
+	if x != nil {
+		return x.Checks
+	}
+	return nil
+}
+
+type CheckResults struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CommandId     string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	Results       []*CheckResult         `protobuf:"bytes,2,rep,name=results,proto3" json:"results,omitempty"`
+	Done          bool                   `protobuf:"varint,3,opt,name=done,proto3" json:"done,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckResults) Reset() {
+	*x = CheckResults{}
+	mi := &file_agent_v1_agent_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckResults) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckResults) ProtoMessage() {}
+
+func (x *CheckResults) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckResults.ProtoReflect.Descriptor instead.
+func (*CheckResults) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *CheckResults) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *CheckResults) GetResults() []*CheckResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *CheckResults) GetDone() bool {
+	if x != nil {
+		return x.Done
+	}
+	return false
+}
+
+type CheckResult struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Check           string                 `protobuf:"bytes,1,opt,name=check,proto3" json:"check,omitempty"`
+	SubjectKind     string                 `protobuf:"bytes,2,opt,name=subject_kind,json=subjectKind,proto3" json:"subject_kind,omitempty"`
+	SubjectId       string                 `protobuf:"bytes,3,opt,name=subject_id,json=subjectId,proto3" json:"subject_id,omitempty"`
+	SubjectName     string                 `protobuf:"bytes,4,opt,name=subject_name,json=subjectName,proto3" json:"subject_name,omitempty"`
+	Severity        string                 `protobuf:"bytes,5,opt,name=severity,proto3" json:"severity,omitempty"` // ok, info, skip, warn or fail
+	Title           string                 `protobuf:"bytes,6,opt,name=title,proto3" json:"title,omitempty"`
+	Detail          string                 `protobuf:"bytes,7,opt,name=detail,proto3" json:"detail,omitempty"`
+	FixText         string                 `protobuf:"bytes,8,opt,name=fix_text,json=fixText,proto3" json:"fix_text,omitempty"`
+	FixCommand      string                 `protobuf:"bytes,9,opt,name=fix_command,json=fixCommand,proto3" json:"fix_command,omitempty"`
+	NeedsAdmin      bool                   `protobuf:"varint,10,opt,name=needs_admin,json=needsAdmin,proto3" json:"needs_admin,omitempty"`
+	CheckedAtUnixMs int64                  `protobuf:"varint,11,opt,name=checked_at_unix_ms,json=checkedAtUnixMs,proto3" json:"checked_at_unix_ms,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *CheckResult) Reset() {
+	*x = CheckResult{}
+	mi := &file_agent_v1_agent_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckResult) ProtoMessage() {}
+
+func (x *CheckResult) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckResult.ProtoReflect.Descriptor instead.
+func (*CheckResult) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *CheckResult) GetCheck() string {
+	if x != nil {
+		return x.Check
+	}
+	return ""
+}
+
+func (x *CheckResult) GetSubjectKind() string {
+	if x != nil {
+		return x.SubjectKind
+	}
+	return ""
+}
+
+func (x *CheckResult) GetSubjectId() string {
+	if x != nil {
+		return x.SubjectId
+	}
+	return ""
+}
+
+func (x *CheckResult) GetSubjectName() string {
+	if x != nil {
+		return x.SubjectName
+	}
+	return ""
+}
+
+func (x *CheckResult) GetSeverity() string {
+	if x != nil {
+		return x.Severity
+	}
+	return ""
+}
+
+func (x *CheckResult) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *CheckResult) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *CheckResult) GetFixText() string {
+	if x != nil {
+		return x.FixText
+	}
+	return ""
+}
+
+func (x *CheckResult) GetFixCommand() string {
+	if x != nil {
+		return x.FixCommand
+	}
+	return ""
+}
+
+func (x *CheckResult) GetNeedsAdmin() bool {
+	if x != nil {
+		return x.NeedsAdmin
+	}
+	return false
+}
+
+func (x *CheckResult) GetCheckedAtUnixMs() int64 {
+	if x != nil {
+		return x.CheckedAtUnixMs
+	}
+	return 0
+}
+
+type GateDecision_Go struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Slots []*SlotGrant           `protobuf:"bytes,1,rep,name=slots,proto3" json:"slots,omitempty"`
+	// Milliseconds spent waiting for the slot (observability R5.8).
+	SlotWaitMs    int64 `protobuf:"varint,2,opt,name=slot_wait_ms,json=slotWaitMs,proto3" json:"slot_wait_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GateDecision_Go) Reset() {
+	*x = GateDecision_Go{}
+	mi := &file_agent_v1_agent_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GateDecision_Go) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GateDecision_Go) ProtoMessage() {}
+
+func (x *GateDecision_Go) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GateDecision_Go.ProtoReflect.Descriptor instead.
+func (*GateDecision_Go) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{24, 0}
+}
+
+func (x *GateDecision_Go) GetSlots() []*SlotGrant {
+	if x != nil {
+		return x.Slots
+	}
+	return nil
+}
+
+func (x *GateDecision_Go) GetSlotWaitMs() int64 {
+	if x != nil {
+		return x.SlotWaitMs
+	}
+	return 0
+}
+
+type GateDecision_Wait struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// free_slot, load_over_budget, repository_parallel_limit, machine_drained,
+	// quiet_hours, lost_race or unknown (observability R5.5).
+	Reasons []string `protobuf:"bytes,1,rep,name=reasons,proto3" json:"reasons,omitempty"`
+	// The reasons in words, with their figures.
+	Text          string `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	Place         int32  `protobuf:"varint,3,opt,name=place,proto3" json:"place,omitempty"`
+	PollSeconds   int32  `protobuf:"varint,4,opt,name=poll_seconds,json=pollSeconds,proto3" json:"poll_seconds,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GateDecision_Wait) Reset() {
+	*x = GateDecision_Wait{}
+	mi := &file_agent_v1_agent_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GateDecision_Wait) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GateDecision_Wait) ProtoMessage() {}
+
+func (x *GateDecision_Wait) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GateDecision_Wait.ProtoReflect.Descriptor instead.
+func (*GateDecision_Wait) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{24, 1}
+}
+
+func (x *GateDecision_Wait) GetReasons() []string {
+	if x != nil {
+		return x.Reasons
+	}
+	return nil
+}
+
+func (x *GateDecision_Wait) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *GateDecision_Wait) GetPlace() int32 {
+	if x != nil {
+		return x.Place
+	}
+	return 0
+}
+
+func (x *GateDecision_Wait) GetPollSeconds() int32 {
+	if x != nil {
+		return x.PollSeconds
+	}
+	return 0
+}
+
+type GateDecision_Timeout struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// fail exits 1; run lets the job go (scheduling R5.20).
+	OnTimeout     string `protobuf:"bytes,1,opt,name=on_timeout,json=onTimeout,proto3" json:"on_timeout,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GateDecision_Timeout) Reset() {
+	*x = GateDecision_Timeout{}
+	mi := &file_agent_v1_agent_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GateDecision_Timeout) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GateDecision_Timeout) ProtoMessage() {}
+
+func (x *GateDecision_Timeout) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GateDecision_Timeout.ProtoReflect.Descriptor instead.
+func (*GateDecision_Timeout) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{24, 2}
+}
+
+func (x *GateDecision_Timeout) GetOnTimeout() string {
+	if x != nil {
+		return x.OnTimeout
+	}
+	return ""
+}
+
 var File_agent_v1_agent_proto protoreflect.FileDescriptor
 
 const file_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
-	"\x14agent/v1/agent.proto\x12\bagent.v1\"T\n" +
-	"\x0fRegisterRequest\x12\x1d\n" +
+	"\x14agent/v1/agent.proto\x12\bagent.v1\"\xf9\x01\n" +
+	"\vJoinRequest\x12\x1d\n" +
+	"\tjoin_code\x18\x01 \x01(\tH\x00R\bjoinCode\x12+\n" +
+	"\x10local_credential\x18\x02 \x01(\tH\x00R\x0flocalCredential\x12%\n" +
+	"\x05facts\x18\x03 \x01(\v2\x0f.agent.v1.FactsR\x05facts\x12#\n" +
+	"\ragent_version\x18\x04 \x01(\tR\fagentVersion\x12D\n" +
+	"\x10protocol_version\x18\x05 \x01(\x0e2\x19.agent.v1.ProtocolVersionR\x0fprotocolVersionB\f\n" +
 	"\n" +
-	"agent_name\x18\x01 \x01(\tR\tagentName\x12\x0e\n" +
-	"\x02os\x18\x02 \x01(\tR\x02os\x12\x12\n" +
-	"\x04arch\x18\x03 \x01(\tR\x04arch\"-\n" +
-	"\x10RegisterResponse\x12\x19\n" +
-	"\bagent_id\x18\x01 \x01(\tR\aagentId\"\x89\x01\n" +
-	"\x0eSessionRequest\x123\n" +
-	"\theartbeat\x18\x01 \x01(\v2\x13.agent.v1.HeartbeatH\x00R\theartbeat\x127\n" +
-	"\vload_report\x18\x02 \x01(\v2\x14.agent.v1.LoadReportH\x00R\n" +
-	"loadReportB\t\n" +
-	"\amessage\"Q\n" +
-	"\x0fSessionResponse\x123\n" +
-	"\theartbeat\x18\x01 \x01(\v2\x13.agent.v1.HeartbeatH\x00R\theartbeatB\t\n" +
-	"\amessage\"2\n" +
+	"credential\"\xb4\x01\n" +
+	"\fJoinResponse\x12\x1d\n" +
+	"\n" +
+	"machine_id\x18\x01 \x01(\tR\tmachineId\x12-\n" +
+	"\x12machine_credential\x18\x02 \x01(\tR\x11machineCredential\x12\x1f\n" +
+	"\vcert_sha256\x18\x03 \x01(\tR\n" +
+	"certSha256\x125\n" +
+	"\bsettings\x18\x04 \x01(\v2\x19.agent.v1.MachineSettingsR\bsettings\"\xec\x06\n" +
+	"\x0eSessionRequest\x12'\n" +
+	"\x05hello\x18\x01 \x01(\v2\x0f.agent.v1.HelloH\x00R\x05hello\x123\n" +
+	"\theartbeat\x18\x02 \x01(\v2\x13.agent.v1.HeartbeatH\x00R\theartbeat\x127\n" +
+	"\vload_report\x18\x03 \x01(\v2\x14.agent.v1.LoadReportH\x00R\n" +
+	"loadReport\x12'\n" +
+	"\x05facts\x18\x04 \x01(\v2\x0f.agent.v1.FactsH\x00R\x05facts\x12=\n" +
+	"\rrunner_states\x18\x05 \x01(\v2\x16.agent.v1.RunnerStatesH\x00R\frunnerStates\x12=\n" +
+	"\rholder_report\x18\x06 \x01(\v2\x16.agent.v1.HolderReportH\x00R\fholderReport\x12:\n" +
+	"\fgate_request\x18\a \x01(\v2\x15.agent.v1.GateRequestH\x00R\vgateRequest\x121\n" +
+	"\tgate_beat\x18\b \x01(\v2\x12.agent.v1.GateBeatH\x00R\bgateBeat\x127\n" +
+	"\vgate_cancel\x18\t \x01(\v2\x14.agent.v1.GateCancelH\x00R\n" +
+	"gateCancel\x12=\n" +
+	"\rjob_completed\x18\n" +
+	" \x01(\v2\x16.agent.v1.JobCompletedH\x00R\fjobCompleted\x121\n" +
+	"\tlog_batch\x18\v \x01(\v2\x12.agent.v1.LogBatchH\x00R\blogBatch\x12@\n" +
+	"\x0ecommand_result\x18\f \x01(\v2\x17.agent.v1.CommandResultH\x00R\rcommandResult\x12:\n" +
+	"\fdrain_status\x18\r \x01(\v2\x15.agent.v1.DrainStatusH\x00R\vdrainStatus\x12=\n" +
+	"\rcheck_results\x18\x0e \x01(\v2\x16.agent.v1.CheckResultsH\x00R\fcheckResults\x12:\n" +
+	"\fusage_report\x18\x0f \x01(\v2\x15.agent.v1.UsageReportH\x00R\vusageReportB\t\n" +
+	"\amessage\"\xe8\x05\n" +
+	"\x0fSessionResponse\x121\n" +
+	"\thello_ack\x18\x01 \x01(\v2\x12.agent.v1.HelloAckH\x00R\bhelloAck\x123\n" +
+	"\theartbeat\x18\x02 \x01(\v2\x13.agent.v1.HeartbeatH\x00R\theartbeat\x127\n" +
+	"\bsettings\x18\x03 \x01(\v2\x19.agent.v1.MachineSettingsH\x00R\bsettings\x12=\n" +
+	"\rgate_decision\x18\x04 \x01(\v2\x16.agent.v1.GateDecisionH\x00R\fgateDecision\x127\n" +
+	"\vrelease_ack\x18\x05 \x01(\v2\x14.agent.v1.ReleaseAckH\x00R\n" +
+	"releaseAck\x124\n" +
+	"\n" +
+	"add_runner\x18\x06 \x01(\v2\x13.agent.v1.AddRunnerH\x00R\taddRunner\x12=\n" +
+	"\rremove_runner\x18\a \x01(\v2\x16.agent.v1.RemoveRunnerH\x00R\fremoveRunner\x12:\n" +
+	"\fdrain_runner\x18\b \x01(\v2\x15.agent.v1.DrainRunnerH\x00R\vdrainRunner\x12'\n" +
+	"\x05drain\x18\t \x01(\v2\x0f.agent.v1.DrainH\x00R\x05drain\x12*\n" +
+	"\x06resume\x18\n" +
+	" \x01(\v2\x10.agent.v1.ResumeH\x00R\x06resume\x120\n" +
+	"\bredetect\x18\v \x01(\v2\x12.agent.v1.RedetectH\x00R\bredetect\x124\n" +
+	"\n" +
+	"run_checks\x18\f \x01(\v2\x13.agent.v1.RunChecksH\x00R\trunChecks\x12C\n" +
+	"\x0fmachine_removed\x18\r \x01(\v2\x18.agent.v1.MachineRemovedH\x00R\x0emachineRemovedB\t\n" +
+	"\amessage\"\xf1\x02\n" +
+	"\x05Hello\x12\x1d\n" +
+	"\n" +
+	"machine_id\x18\x01 \x01(\tR\tmachineId\x12#\n" +
+	"\ragent_version\x18\x02 \x01(\tR\fagentVersion\x12D\n" +
+	"\x10protocol_version\x18\x03 \x01(\x0e2\x19.agent.v1.ProtocolVersionR\x0fprotocolVersion\x12)\n" +
+	"\x10settings_version\x18\x04 \x01(\x03R\x0fsettingsVersion\x12%\n" +
+	"\x05facts\x18\x05 \x01(\v2\x0f.agent.v1.FactsR\x05facts\x12(\n" +
+	"\x04load\x18\x06 \x01(\v2\x14.agent.v1.LoadReportR\x04load\x120\n" +
+	"\arunners\x18\a \x01(\v2\x16.agent.v1.RunnerStatesR\arunners\x120\n" +
+	"\aholders\x18\b \x01(\v2\x16.agent.v1.HolderReportR\aholders\"\xe3\x01\n" +
+	"\bHelloAck\x12D\n" +
+	"\x10protocol_version\x18\x01 \x01(\x0e2\x19.agent.v1.ProtocolVersionR\x0fprotocolVersion\x12-\n" +
+	"\x12controller_version\x18\x02 \x01(\tR\x11controllerVersion\x125\n" +
+	"\bsettings\x18\x03 \x01(\v2\x19.agent.v1.MachineSettingsR\bsettings\x12+\n" +
+	"\x11heartbeat_seconds\x18\x04 \x01(\x05R\x10heartbeatSeconds\"2\n" +
 	"\tHeartbeat\x12%\n" +
-	"\x0fsent_at_unix_ms\x18\x01 \x01(\x03R\fsentAtUnixMs\"9\n" +
+	"\x0fsent_at_unix_ms\x18\x01 \x01(\x03R\fsentAtUnixMs\"\xf1\x03\n" +
+	"\x05Facts\x12\x1b\n" +
+	"\thost_name\x18\x01 \x01(\tR\bhostName\x12\x0e\n" +
+	"\x02os\x18\x02 \x01(\tR\x02os\x12\x17\n" +
+	"\aos_name\x18\x03 \x01(\tR\x06osName\x12\x1d\n" +
+	"\n" +
+	"os_version\x18\x04 \x01(\tR\tosVersion\x12%\n" +
+	"\x0ekernel_version\x18\x05 \x01(\tR\rkernelVersion\x12\x12\n" +
+	"\x04arch\x18\x06 \x01(\tR\x04arch\x12\x1b\n" +
+	"\tcpu_model\x18\a \x01(\tR\bcpuModel\x12\x14\n" +
+	"\x05cores\x18\b \x01(\x05R\x05cores\x12\x18\n" +
+	"\athreads\x18\t \x01(\x05R\athreads\x12!\n" +
+	"\fmemory_bytes\x18\n" +
+	" \x01(\x03R\vmemoryBytes\x12(\n" +
+	"\x10disk_total_bytes\x18\v \x01(\x03R\x0ediskTotalBytes\x12&\n" +
+	"\x0fdisk_free_bytes\x18\f \x01(\x03R\rdiskFreeBytes\x12!\n" +
+	"\x04gpus\x18\r \x03(\v2\r.agent.v1.GpuR\x04gpus\x124\n" +
+	"\bbackends\x18\x0e \x03(\v2\x18.agent.v1.BackendSupportR\bbackends\x12-\n" +
+	"\x13detected_at_unix_ms\x18\x0f \x01(\x03R\x10detectedAtUnixMs\"V\n" +
+	"\x03Gpu\x12\x16\n" +
+	"\x06vendor\x18\x01 \x01(\tR\x06vendor\x12\x14\n" +
+	"\x05model\x18\x02 \x01(\tR\x05model\x12!\n" +
+	"\fmemory_bytes\x18\x03 \x01(\x03R\vmemoryBytes\"\xa4\x01\n" +
+	"\x0eBackendSupport\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\apresent\x18\x02 \x01(\bR\apresent\x12\x16\n" +
+	"\x06usable\x18\x03 \x01(\bR\x06usable\x12\x18\n" +
+	"\aversion\x18\x04 \x01(\tR\aversion\x12\x16\n" +
+	"\x06reason\x18\x05 \x01(\tR\x06reason\x12\x1a\n" +
+	"\brootless\x18\x06 \x01(\bR\brootless\"\xbf\x03\n" +
 	"\n" +
 	"LoadReport\x12+\n" +
-	"\x12sampled_at_unix_ms\x18\x01 \x01(\x03R\x0fsampledAtUnixMs2\x95\x01\n" +
-	"\fAgentService\x12A\n" +
-	"\bRegister\x12\x19.agent.v1.RegisterRequest\x1a\x1a.agent.v1.RegisterResponse\x12B\n" +
+	"\x12sampled_at_unix_ms\x18\x01 \x01(\x03R\x0fsampledAtUnixMs\x12\x1d\n" +
+	"\n" +
+	"memory_pct\x18\x02 \x01(\x01R\tmemoryPct\x12!\n" +
+	"\fmemory_known\x18\x03 \x01(\bR\vmemoryKnown\x12\x17\n" +
+	"\acpu_pct\x18\x04 \x01(\x01R\x06cpuPct\x12\x1b\n" +
+	"\tcpu_known\x18\x05 \x01(\bR\bcpuKnown\x12%\n" +
+	"\x0eunknown_reason\x18\x06 \x01(\tR\runknownReason\x12 \n" +
+	"\fwsl_vm_bytes\x18\a \x01(\x03R\n" +
+	"wslVmBytes\x12)\n" +
+	"\x10containers_bytes\x18\b \x01(\x03R\x0fcontainersBytes\x12\x1d\n" +
+	"\n" +
+	"slots_used\x18\t \x01(\x05R\tslotsUsed\x12(\n" +
+	"\x10light_slots_used\x18\n" +
+	" \x01(\x05R\x0elightSlotsUsed\x12(\n" +
+	"\x10heavy_slots_used\x18\v \x01(\x05R\x0eheavySlotsUsed\x12%\n" +
+	"\x0ecgroup_limited\x18\f \x01(\bR\rcgroupLimited\"@\n" +
+	"\fRunnerStates\x120\n" +
+	"\arunners\x18\x01 \x03(\v2\x16.agent.v1.RunnerStatusR\arunners\"\x94\x03\n" +
+	"\fRunnerStatus\x12\x1b\n" +
+	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
+	"\x05state\x18\x03 \x01(\x0e2\x15.agent.v1.RunnerStateR\x05state\x12\x18\n" +
+	"\amanaged\x18\x04 \x01(\bR\amanaged\x12\x18\n" +
+	"\abackend\x18\x05 \x01(\tR\abackend\x12!\n" +
+	"\fservice_name\x18\x06 \x01(\tR\vserviceName\x12\x16\n" +
+	"\x06folder\x18\a \x01(\tR\x06folder\x12\x18\n" +
+	"\aaccount\x18\b \x01(\tR\aaccount\x12%\n" +
+	"\x0erunner_version\x18\t \x01(\tR\rrunnerVersion\x12\x16\n" +
+	"\x06labels\x18\n" +
+	" \x03(\tR\x06labels\x121\n" +
+	"\vcurrent_job\x18\v \x01(\v2\x10.agent.v1.JobRefR\n" +
+	"currentJob\x12+\n" +
+	"\x11folder_unreadable\x18\f \x01(\bR\x10folderUnreadable\"\xa8\x01\n" +
+	"\tAddRunner\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12,\n" +
+	"\x06runner\x18\x02 \x01(\v2\x14.agent.v1.RunnerSpecR\x06runner\x12$\n" +
+	"\fregistration\x18\x03 \x01(\tH\x00R\fregistration\x12\x1f\n" +
+	"\n" +
+	"jit_config\x18\x04 \x01(\tH\x00R\tjitConfigB\a\n" +
+	"\x05start\"\xe9\x02\n" +
+	"\n" +
+	"RunnerSpec\x12\x1b\n" +
+	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x0e\n" +
+	"\x02os\x18\x03 \x01(\tR\x02os\x12\x12\n" +
+	"\x04arch\x18\x04 \x01(\tR\x04arch\x12\x12\n" +
+	"\x04kind\x18\x05 \x01(\tR\x04kind\x12\x18\n" +
+	"\abackend\x18\x06 \x01(\tR\abackend\x12\x16\n" +
+	"\x06labels\x18\a \x03(\tR\x06labels\x12\x1d\n" +
+	"\n" +
+	"github_url\x18\b \x01(\tR\tgithubUrl\x12!\n" +
+	"\frunner_group\x18\t \x01(\tR\vrunnerGroup\x12%\n" +
+	"\x0erunner_version\x18\n" +
+	" \x01(\tR\rrunnerVersion\x12#\n" +
+	"\rrunner_sha256\x18\v \x01(\tR\frunnerSha256\x122\n" +
+	"\x15windows_symlink_right\x18\f \x01(\bR\x13windowsSymlinkRight\"\xe0\x01\n" +
+	"\fRemoveRunner\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x1b\n" +
+	"\trunner_id\x18\x02 \x01(\tR\brunnerId\x12!\n" +
+	"\fservice_name\x18\x03 \x01(\tR\vserviceName\x12\x18\n" +
+	"\aremoval\x18\x04 \x01(\tR\aremoval\x122\n" +
+	"\x15drain_timeout_seconds\x18\x05 \x01(\x05R\x13drainTimeoutSeconds\x12#\n" +
+	"\rdelete_folder\x18\x06 \x01(\bR\fdeleteFolder\"I\n" +
+	"\vDrainRunner\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x1b\n" +
+	"\trunner_id\x18\x02 \x01(\tR\brunnerId\"\x98\x02\n" +
+	"\vUsageReport\x12\x1b\n" +
+	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12\"\n" +
+	"\x03job\x18\x02 \x01(\v2\x10.agent.v1.JobRefR\x03job\x12\x15\n" +
+	"\x06cpu_ms\x18\x03 \x01(\x03R\x05cpuMs\x12*\n" +
+	"\x11memory_peak_bytes\x18\x04 \x01(\x03R\x0fmemoryPeakBytes\x12.\n" +
+	"\x13memory_median_bytes\x18\x05 \x01(\x03R\x11memoryMedianBytes\x12&\n" +
+	"\x0fdisk_used_bytes\x18\x06 \x01(\x03R\rdiskUsedBytes\x12\x17\n" +
+	"\awall_ms\x18\a \x01(\x03R\x06wallMs\x12\x14\n" +
+	"\x05final\x18\b \x01(\bR\x05final\"\xcd\x01\n" +
+	"\x06JobRef\x12\x1e\n" +
+	"\n" +
+	"repository\x18\x01 \x01(\tR\n" +
+	"repository\x12\x15\n" +
+	"\x06run_id\x18\x02 \x01(\x03R\x05runId\x12\x1f\n" +
+	"\vrun_attempt\x18\x03 \x01(\x05R\n" +
+	"runAttempt\x12\x10\n" +
+	"\x03job\x18\x04 \x01(\tR\x03job\x12\"\n" +
+	"\rgithub_job_id\x18\x05 \x01(\x03R\vgithubJobId\x12\x14\n" +
+	"\x05shard\x18\x06 \x01(\tR\x05shard\x12\x1f\n" +
+	"\vrunner_name\x18\a \x01(\tR\n" +
+	"runnerName\"w\n" +
+	"\x06Holder\x12\x1d\n" +
+	"\n" +
+	"holder_pid\x18\x01 \x01(\x03R\tholderPid\x12\x19\n" +
+	"\bgate_pid\x18\x02 \x01(\x03R\agatePid\x123\n" +
+	"\x16holder_started_unix_ms\x18\x03 \x01(\x03R\x13holderStartedUnixMs\"\x98\x02\n" +
+	"\vGateRequest\x12\x17\n" +
+	"\agate_id\x18\x01 \x01(\tR\x06gateId\x12\"\n" +
+	"\x03job\x18\x02 \x01(\v2\x10.agent.v1.JobRefR\x03job\x12\x1f\n" +
+	"\vevent_class\x18\x03 \x01(\x05R\n" +
+	"eventClass\x12(\n" +
+	"\x06holder\x18\x04 \x01(\v2\x10.agent.v1.HolderR\x06holder\x12/\n" +
+	"\x14first_queued_unix_ns\x18\x05 \x01(\x03R\x11firstQueuedUnixNs\x12*\n" +
+	"\x11budget_memory_pct\x18\x06 \x01(\x05R\x0fbudgetMemoryPct\x12$\n" +
+	"\x0ebudget_cpu_pct\x18\a \x01(\x05R\fbudgetCpuPct\"#\n" +
+	"\bGateBeat\x12\x17\n" +
+	"\agate_id\x18\x01 \x01(\tR\x06gateId\"%\n" +
+	"\n" +
+	"GateCancel\x12\x17\n" +
+	"\agate_id\x18\x01 \x01(\tR\x06gateId\"\x8a\x01\n" +
+	"\tSlotGrant\x12&\n" +
+	"\x04kind\x18\x01 \x01(\x0e2\x12.agent.v1.SlotKindR\x04kind\x12\x16\n" +
+	"\x06number\x18\x02 \x01(\x05R\x06number\x12\x14\n" +
+	"\x05claim\x18\x03 \x01(\tR\x05claim\x12'\n" +
+	"\x10taken_at_unix_ms\x18\x04 \x01(\x03R\rtakenAtUnixMs\"\xbb\x03\n" +
+	"\fGateDecision\x12\x17\n" +
+	"\agate_id\x18\x01 \x01(\tR\x06gateId\x12+\n" +
+	"\x02go\x18\x02 \x01(\v2\x19.agent.v1.GateDecision.GoH\x00R\x02go\x121\n" +
+	"\x04wait\x18\x03 \x01(\v2\x1b.agent.v1.GateDecision.WaitH\x00R\x04wait\x12:\n" +
+	"\atimeout\x18\x04 \x01(\v2\x1e.agent.v1.GateDecision.TimeoutH\x00R\atimeout\x1aQ\n" +
+	"\x02Go\x12)\n" +
+	"\x05slots\x18\x01 \x03(\v2\x13.agent.v1.SlotGrantR\x05slots\x12 \n" +
+	"\fslot_wait_ms\x18\x02 \x01(\x03R\n" +
+	"slotWaitMs\x1am\n" +
+	"\x04Wait\x12\x18\n" +
+	"\areasons\x18\x01 \x03(\tR\areasons\x12\x12\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\x12\x14\n" +
+	"\x05place\x18\x03 \x01(\x05R\x05place\x12!\n" +
+	"\fpoll_seconds\x18\x04 \x01(\x05R\vpollSeconds\x1a(\n" +
+	"\aTimeout\x12\x1d\n" +
+	"\n" +
+	"on_timeout\x18\x01 \x01(\tR\tonTimeoutB\n" +
+	"\n" +
+	"\bdecision\"{\n" +
+	"\fJobCompleted\x12\"\n" +
+	"\x03job\x18\x01 \x01(\v2\x10.agent.v1.JobRefR\x03job\x12\x16\n" +
+	"\x06claims\x18\x02 \x03(\tR\x06claims\x12/\n" +
+	"\x14completed_at_unix_ms\x18\x03 \x01(\x03R\x11completedAtUnixMs\"Q\n" +
+	"\n" +
+	"ReleaseAck\x12\"\n" +
+	"\x03job\x18\x01 \x01(\v2\x10.agent.v1.JobRefR\x03job\x12\x1f\n" +
+	"\vslots_freed\x18\x02 \x01(\x05R\n" +
+	"slotsFreed\"b\n" +
+	"\fHolderReport\x12&\n" +
+	"\x05alive\x18\x01 \x03(\v2\x10.agent.v1.HolderR\x05alive\x12*\n" +
+	"\arunning\x18\x02 \x03(\v2\x10.agent.v1.JobRefR\arunning\"\xa3\x05\n" +
+	"\x0fMachineSettings\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\x03R\aversion\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\x12*\n" +
+	"\x11budget_memory_pct\x18\x03 \x01(\x05R\x0fbudgetMemoryPct\x12$\n" +
+	"\x0ebudget_cpu_pct\x18\x04 \x01(\x05R\fbudgetCpuPct\x12\x1b\n" +
+	"\tjob_slots\x18\x05 \x01(\x05R\bjobSlots\x12\x1f\n" +
+	"\vlight_slots\x18\x06 \x01(\x05R\n" +
+	"lightSlots\x12\x1f\n" +
+	"\vheavy_slots\x18\a \x01(\x05R\n" +
+	"heavySlots\x12\x1d\n" +
+	"\n" +
+	"light_jobs\x18\b \x03(\tR\tlightJobs\x12\x1d\n" +
+	"\n" +
+	"heavy_jobs\x18\t \x03(\tR\theavyJobs\x12/\n" +
+	"\x14slot_max_age_minutes\x18\n" +
+	" \x01(\x05R\x11slotMaxAgeMinutes\x12*\n" +
+	"\x11gate_poll_seconds\x18\v \x01(\x05R\x0fgatePollSeconds\x121\n" +
+	"\x15gate_max_wait_minutes\x18\f \x01(\x05R\x12gateMaxWaitMinutes\x12&\n" +
+	"\x0fgate_on_timeout\x18\r \x01(\tR\rgateOnTimeout\x12)\n" +
+	"\x10allowed_backends\x18\x0e \x03(\tR\x0fallowedBackends\x12&\n" +
+	"\x0fcache_cap_bytes\x18\x0f \x01(\x03R\rcacheCapBytes\x122\n" +
+	"\x15drain_timeout_minutes\x18\x10 \x01(\x05R\x13drainTimeoutMinutes\x122\n" +
+	"\x15windows_symlink_right\x18\x11 \x01(\bR\x13windowsSymlinkRight\"p\n" +
+	"\x05Drain\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x1f\n" +
+	"\vchange_kind\x18\x02 \x01(\tR\n" +
+	"changeKind\x12'\n" +
+	"\x0ftimeout_seconds\x18\x03 \x01(\x05R\x0etimeoutSeconds\"'\n" +
+	"\x06Resume\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\"s\n" +
+	"\vDrainStatus\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x12\n" +
+	"\x04idle\x18\x02 \x01(\bR\x04idle\x121\n" +
+	"\vwaiting_for\x18\x03 \x03(\v2\x10.agent.v1.JobRefR\n" +
+	"waitingFor\")\n" +
+	"\bRedetect\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\"(\n" +
+	"\x0eMachineRemoved\x12\x16\n" +
+	"\x06reason\x18\x01 \x01(\tR\x06reason\"n\n" +
+	"\rCommandResult\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x0e\n" +
+	"\x02ok\x18\x02 \x01(\bR\x02ok\x12\x14\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\x12\x18\n" +
+	"\aoutcome\x18\x04 \x01(\tR\aoutcome\"M\n" +
+	"\bLogBatch\x12'\n" +
+	"\x05lines\x18\x01 \x03(\v2\x11.agent.v1.LogLineR\x05lines\x12\x18\n" +
+	"\adropped\x18\x02 \x01(\x03R\adropped\"\xe9\x01\n" +
+	"\aLogLine\x12\x1c\n" +
+	"\n" +
+	"at_unix_ms\x18\x01 \x01(\x03R\batUnixMs\x12(\n" +
+	"\x05level\x18\x02 \x01(\x0e2\x12.agent.v1.LogLevelR\x05level\x12\x1c\n" +
+	"\tcomponent\x18\x03 \x01(\tR\tcomponent\x12\x18\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage\x12\x1b\n" +
+	"\trunner_id\x18\x05 \x01(\tR\brunnerId\x12\"\n" +
+	"\x03job\x18\x06 \x01(\v2\x10.agent.v1.JobRefR\x03job\x12\x1d\n" +
+	"\n" +
+	"attrs_json\x18\a \x01(\tR\tattrsJson\"B\n" +
+	"\tRunChecks\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x16\n" +
+	"\x06checks\x18\x02 \x03(\tR\x06checks\"r\n" +
+	"\fCheckResults\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12/\n" +
+	"\aresults\x18\x02 \x03(\v2\x15.agent.v1.CheckResultR\aresults\x12\x12\n" +
+	"\x04done\x18\x03 \x01(\bR\x04done\"\xdc\x02\n" +
+	"\vCheckResult\x12\x14\n" +
+	"\x05check\x18\x01 \x01(\tR\x05check\x12!\n" +
+	"\fsubject_kind\x18\x02 \x01(\tR\vsubjectKind\x12\x1d\n" +
+	"\n" +
+	"subject_id\x18\x03 \x01(\tR\tsubjectId\x12!\n" +
+	"\fsubject_name\x18\x04 \x01(\tR\vsubjectName\x12\x1a\n" +
+	"\bseverity\x18\x05 \x01(\tR\bseverity\x12\x14\n" +
+	"\x05title\x18\x06 \x01(\tR\x05title\x12\x16\n" +
+	"\x06detail\x18\a \x01(\tR\x06detail\x12\x19\n" +
+	"\bfix_text\x18\b \x01(\tR\afixText\x12\x1f\n" +
+	"\vfix_command\x18\t \x01(\tR\n" +
+	"fixCommand\x12\x1f\n" +
+	"\vneeds_admin\x18\n" +
+	" \x01(\bR\n" +
+	"needsAdmin\x12+\n" +
+	"\x12checked_at_unix_ms\x18\v \x01(\x03R\x0fcheckedAtUnixMs*K\n" +
+	"\x0fProtocolVersion\x12 \n" +
+	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12PROTOCOL_VERSION_1\x10\x01*\xf8\x01\n" +
+	"\vRunnerState\x12\x1c\n" +
+	"\x18RUNNER_STATE_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15RUNNER_STATE_CREATING\x10\x01\x12\x15\n" +
+	"\x11RUNNER_STATE_IDLE\x10\x02\x12\x15\n" +
+	"\x11RUNNER_STATE_BUSY\x10\x03\x12\x19\n" +
+	"\x15RUNNER_STATE_DRAINING\x10\x04\x12\x19\n" +
+	"\x15RUNNER_STATE_UPDATING\x10\x05\x12\x18\n" +
+	"\x14RUNNER_STATE_OFFLINE\x10\x06\x12\x17\n" +
+	"\x13RUNNER_STATE_FAILED\x10\a\x12\x19\n" +
+	"\x15RUNNER_STATE_REMOVING\x10\b*a\n" +
+	"\bSlotKind\x12\x19\n" +
+	"\x15SLOT_KIND_UNSPECIFIED\x10\x00\x12\x10\n" +
+	"\fSLOT_KIND_CI\x10\x01\x12\x13\n" +
+	"\x0fSLOT_KIND_LIGHT\x10\x02\x12\x13\n" +
+	"\x0fSLOT_KIND_HEAVY\x10\x03*w\n" +
+	"\bLogLevel\x12\x19\n" +
+	"\x15LOG_LEVEL_UNSPECIFIED\x10\x00\x12\x13\n" +
+	"\x0fLOG_LEVEL_DEBUG\x10\x01\x12\x12\n" +
+	"\x0eLOG_LEVEL_INFO\x10\x02\x12\x12\n" +
+	"\x0eLOG_LEVEL_WARN\x10\x03\x12\x13\n" +
+	"\x0fLOG_LEVEL_ERROR\x10\x042\x89\x01\n" +
+	"\fAgentService\x125\n" +
+	"\x04Join\x12\x15.agent.v1.JoinRequest\x1a\x16.agent.v1.JoinResponse\x12B\n" +
 	"\aSession\x12\x18.agent.v1.SessionRequest\x1a\x19.agent.v1.SessionResponse(\x010\x01BIZGgithub.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1;agentv1b\x06proto3"
 
 var (
@@ -403,28 +4463,128 @@ func file_agent_v1_agent_proto_rawDescGZIP() []byte {
 	return file_agent_v1_agent_proto_rawDescData
 }
 
-var file_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
 var file_agent_v1_agent_proto_goTypes = []any{
-	(*RegisterRequest)(nil),  // 0: agent.v1.RegisterRequest
-	(*RegisterResponse)(nil), // 1: agent.v1.RegisterResponse
-	(*SessionRequest)(nil),   // 2: agent.v1.SessionRequest
-	(*SessionResponse)(nil),  // 3: agent.v1.SessionResponse
-	(*Heartbeat)(nil),        // 4: agent.v1.Heartbeat
-	(*LoadReport)(nil),       // 5: agent.v1.LoadReport
+	(ProtocolVersion)(0),         // 0: agent.v1.ProtocolVersion
+	(RunnerState)(0),             // 1: agent.v1.RunnerState
+	(SlotKind)(0),                // 2: agent.v1.SlotKind
+	(LogLevel)(0),                // 3: agent.v1.LogLevel
+	(*JoinRequest)(nil),          // 4: agent.v1.JoinRequest
+	(*JoinResponse)(nil),         // 5: agent.v1.JoinResponse
+	(*SessionRequest)(nil),       // 6: agent.v1.SessionRequest
+	(*SessionResponse)(nil),      // 7: agent.v1.SessionResponse
+	(*Hello)(nil),                // 8: agent.v1.Hello
+	(*HelloAck)(nil),             // 9: agent.v1.HelloAck
+	(*Heartbeat)(nil),            // 10: agent.v1.Heartbeat
+	(*Facts)(nil),                // 11: agent.v1.Facts
+	(*Gpu)(nil),                  // 12: agent.v1.Gpu
+	(*BackendSupport)(nil),       // 13: agent.v1.BackendSupport
+	(*LoadReport)(nil),           // 14: agent.v1.LoadReport
+	(*RunnerStates)(nil),         // 15: agent.v1.RunnerStates
+	(*RunnerStatus)(nil),         // 16: agent.v1.RunnerStatus
+	(*AddRunner)(nil),            // 17: agent.v1.AddRunner
+	(*RunnerSpec)(nil),           // 18: agent.v1.RunnerSpec
+	(*RemoveRunner)(nil),         // 19: agent.v1.RemoveRunner
+	(*DrainRunner)(nil),          // 20: agent.v1.DrainRunner
+	(*UsageReport)(nil),          // 21: agent.v1.UsageReport
+	(*JobRef)(nil),               // 22: agent.v1.JobRef
+	(*Holder)(nil),               // 23: agent.v1.Holder
+	(*GateRequest)(nil),          // 24: agent.v1.GateRequest
+	(*GateBeat)(nil),             // 25: agent.v1.GateBeat
+	(*GateCancel)(nil),           // 26: agent.v1.GateCancel
+	(*SlotGrant)(nil),            // 27: agent.v1.SlotGrant
+	(*GateDecision)(nil),         // 28: agent.v1.GateDecision
+	(*JobCompleted)(nil),         // 29: agent.v1.JobCompleted
+	(*ReleaseAck)(nil),           // 30: agent.v1.ReleaseAck
+	(*HolderReport)(nil),         // 31: agent.v1.HolderReport
+	(*MachineSettings)(nil),      // 32: agent.v1.MachineSettings
+	(*Drain)(nil),                // 33: agent.v1.Drain
+	(*Resume)(nil),               // 34: agent.v1.Resume
+	(*DrainStatus)(nil),          // 35: agent.v1.DrainStatus
+	(*Redetect)(nil),             // 36: agent.v1.Redetect
+	(*MachineRemoved)(nil),       // 37: agent.v1.MachineRemoved
+	(*CommandResult)(nil),        // 38: agent.v1.CommandResult
+	(*LogBatch)(nil),             // 39: agent.v1.LogBatch
+	(*LogLine)(nil),              // 40: agent.v1.LogLine
+	(*RunChecks)(nil),            // 41: agent.v1.RunChecks
+	(*CheckResults)(nil),         // 42: agent.v1.CheckResults
+	(*CheckResult)(nil),          // 43: agent.v1.CheckResult
+	(*GateDecision_Go)(nil),      // 44: agent.v1.GateDecision.Go
+	(*GateDecision_Wait)(nil),    // 45: agent.v1.GateDecision.Wait
+	(*GateDecision_Timeout)(nil), // 46: agent.v1.GateDecision.Timeout
 }
 var file_agent_v1_agent_proto_depIdxs = []int32{
-	4, // 0: agent.v1.SessionRequest.heartbeat:type_name -> agent.v1.Heartbeat
-	5, // 1: agent.v1.SessionRequest.load_report:type_name -> agent.v1.LoadReport
-	4, // 2: agent.v1.SessionResponse.heartbeat:type_name -> agent.v1.Heartbeat
-	0, // 3: agent.v1.AgentService.Register:input_type -> agent.v1.RegisterRequest
-	2, // 4: agent.v1.AgentService.Session:input_type -> agent.v1.SessionRequest
-	1, // 5: agent.v1.AgentService.Register:output_type -> agent.v1.RegisterResponse
-	3, // 6: agent.v1.AgentService.Session:output_type -> agent.v1.SessionResponse
-	5, // [5:7] is the sub-list for method output_type
-	3, // [3:5] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	11, // 0: agent.v1.JoinRequest.facts:type_name -> agent.v1.Facts
+	0,  // 1: agent.v1.JoinRequest.protocol_version:type_name -> agent.v1.ProtocolVersion
+	32, // 2: agent.v1.JoinResponse.settings:type_name -> agent.v1.MachineSettings
+	8,  // 3: agent.v1.SessionRequest.hello:type_name -> agent.v1.Hello
+	10, // 4: agent.v1.SessionRequest.heartbeat:type_name -> agent.v1.Heartbeat
+	14, // 5: agent.v1.SessionRequest.load_report:type_name -> agent.v1.LoadReport
+	11, // 6: agent.v1.SessionRequest.facts:type_name -> agent.v1.Facts
+	15, // 7: agent.v1.SessionRequest.runner_states:type_name -> agent.v1.RunnerStates
+	31, // 8: agent.v1.SessionRequest.holder_report:type_name -> agent.v1.HolderReport
+	24, // 9: agent.v1.SessionRequest.gate_request:type_name -> agent.v1.GateRequest
+	25, // 10: agent.v1.SessionRequest.gate_beat:type_name -> agent.v1.GateBeat
+	26, // 11: agent.v1.SessionRequest.gate_cancel:type_name -> agent.v1.GateCancel
+	29, // 12: agent.v1.SessionRequest.job_completed:type_name -> agent.v1.JobCompleted
+	39, // 13: agent.v1.SessionRequest.log_batch:type_name -> agent.v1.LogBatch
+	38, // 14: agent.v1.SessionRequest.command_result:type_name -> agent.v1.CommandResult
+	35, // 15: agent.v1.SessionRequest.drain_status:type_name -> agent.v1.DrainStatus
+	42, // 16: agent.v1.SessionRequest.check_results:type_name -> agent.v1.CheckResults
+	21, // 17: agent.v1.SessionRequest.usage_report:type_name -> agent.v1.UsageReport
+	9,  // 18: agent.v1.SessionResponse.hello_ack:type_name -> agent.v1.HelloAck
+	10, // 19: agent.v1.SessionResponse.heartbeat:type_name -> agent.v1.Heartbeat
+	32, // 20: agent.v1.SessionResponse.settings:type_name -> agent.v1.MachineSettings
+	28, // 21: agent.v1.SessionResponse.gate_decision:type_name -> agent.v1.GateDecision
+	30, // 22: agent.v1.SessionResponse.release_ack:type_name -> agent.v1.ReleaseAck
+	17, // 23: agent.v1.SessionResponse.add_runner:type_name -> agent.v1.AddRunner
+	19, // 24: agent.v1.SessionResponse.remove_runner:type_name -> agent.v1.RemoveRunner
+	20, // 25: agent.v1.SessionResponse.drain_runner:type_name -> agent.v1.DrainRunner
+	33, // 26: agent.v1.SessionResponse.drain:type_name -> agent.v1.Drain
+	34, // 27: agent.v1.SessionResponse.resume:type_name -> agent.v1.Resume
+	36, // 28: agent.v1.SessionResponse.redetect:type_name -> agent.v1.Redetect
+	41, // 29: agent.v1.SessionResponse.run_checks:type_name -> agent.v1.RunChecks
+	37, // 30: agent.v1.SessionResponse.machine_removed:type_name -> agent.v1.MachineRemoved
+	0,  // 31: agent.v1.Hello.protocol_version:type_name -> agent.v1.ProtocolVersion
+	11, // 32: agent.v1.Hello.facts:type_name -> agent.v1.Facts
+	14, // 33: agent.v1.Hello.load:type_name -> agent.v1.LoadReport
+	15, // 34: agent.v1.Hello.runners:type_name -> agent.v1.RunnerStates
+	31, // 35: agent.v1.Hello.holders:type_name -> agent.v1.HolderReport
+	0,  // 36: agent.v1.HelloAck.protocol_version:type_name -> agent.v1.ProtocolVersion
+	32, // 37: agent.v1.HelloAck.settings:type_name -> agent.v1.MachineSettings
+	12, // 38: agent.v1.Facts.gpus:type_name -> agent.v1.Gpu
+	13, // 39: agent.v1.Facts.backends:type_name -> agent.v1.BackendSupport
+	16, // 40: agent.v1.RunnerStates.runners:type_name -> agent.v1.RunnerStatus
+	1,  // 41: agent.v1.RunnerStatus.state:type_name -> agent.v1.RunnerState
+	22, // 42: agent.v1.RunnerStatus.current_job:type_name -> agent.v1.JobRef
+	18, // 43: agent.v1.AddRunner.runner:type_name -> agent.v1.RunnerSpec
+	22, // 44: agent.v1.UsageReport.job:type_name -> agent.v1.JobRef
+	22, // 45: agent.v1.GateRequest.job:type_name -> agent.v1.JobRef
+	23, // 46: agent.v1.GateRequest.holder:type_name -> agent.v1.Holder
+	2,  // 47: agent.v1.SlotGrant.kind:type_name -> agent.v1.SlotKind
+	44, // 48: agent.v1.GateDecision.go:type_name -> agent.v1.GateDecision.Go
+	45, // 49: agent.v1.GateDecision.wait:type_name -> agent.v1.GateDecision.Wait
+	46, // 50: agent.v1.GateDecision.timeout:type_name -> agent.v1.GateDecision.Timeout
+	22, // 51: agent.v1.JobCompleted.job:type_name -> agent.v1.JobRef
+	22, // 52: agent.v1.ReleaseAck.job:type_name -> agent.v1.JobRef
+	23, // 53: agent.v1.HolderReport.alive:type_name -> agent.v1.Holder
+	22, // 54: agent.v1.HolderReport.running:type_name -> agent.v1.JobRef
+	22, // 55: agent.v1.DrainStatus.waiting_for:type_name -> agent.v1.JobRef
+	40, // 56: agent.v1.LogBatch.lines:type_name -> agent.v1.LogLine
+	3,  // 57: agent.v1.LogLine.level:type_name -> agent.v1.LogLevel
+	22, // 58: agent.v1.LogLine.job:type_name -> agent.v1.JobRef
+	43, // 59: agent.v1.CheckResults.results:type_name -> agent.v1.CheckResult
+	27, // 60: agent.v1.GateDecision.Go.slots:type_name -> agent.v1.SlotGrant
+	4,  // 61: agent.v1.AgentService.Join:input_type -> agent.v1.JoinRequest
+	6,  // 62: agent.v1.AgentService.Session:input_type -> agent.v1.SessionRequest
+	5,  // 63: agent.v1.AgentService.Join:output_type -> agent.v1.JoinResponse
+	7,  // 64: agent.v1.AgentService.Session:output_type -> agent.v1.SessionResponse
+	63, // [63:65] is the sub-list for method output_type
+	61, // [61:63] is the sub-list for method input_type
+	61, // [61:61] is the sub-list for extension type_name
+	61, // [61:61] is the sub-list for extension extendee
+	0,  // [0:61] is the sub-list for field type_name
 }
 
 func init() { file_agent_v1_agent_proto_init() }
@@ -432,25 +4592,64 @@ func file_agent_v1_agent_proto_init() {
 	if File_agent_v1_agent_proto != nil {
 		return
 	}
+	file_agent_v1_agent_proto_msgTypes[0].OneofWrappers = []any{
+		(*JoinRequest_JoinCode)(nil),
+		(*JoinRequest_LocalCredential)(nil),
+	}
 	file_agent_v1_agent_proto_msgTypes[2].OneofWrappers = []any{
+		(*SessionRequest_Hello)(nil),
 		(*SessionRequest_Heartbeat)(nil),
 		(*SessionRequest_LoadReport)(nil),
+		(*SessionRequest_Facts)(nil),
+		(*SessionRequest_RunnerStates)(nil),
+		(*SessionRequest_HolderReport)(nil),
+		(*SessionRequest_GateRequest)(nil),
+		(*SessionRequest_GateBeat)(nil),
+		(*SessionRequest_GateCancel)(nil),
+		(*SessionRequest_JobCompleted)(nil),
+		(*SessionRequest_LogBatch)(nil),
+		(*SessionRequest_CommandResult)(nil),
+		(*SessionRequest_DrainStatus)(nil),
+		(*SessionRequest_CheckResults)(nil),
+		(*SessionRequest_UsageReport)(nil),
 	}
 	file_agent_v1_agent_proto_msgTypes[3].OneofWrappers = []any{
+		(*SessionResponse_HelloAck)(nil),
 		(*SessionResponse_Heartbeat)(nil),
+		(*SessionResponse_Settings)(nil),
+		(*SessionResponse_GateDecision)(nil),
+		(*SessionResponse_ReleaseAck)(nil),
+		(*SessionResponse_AddRunner)(nil),
+		(*SessionResponse_RemoveRunner)(nil),
+		(*SessionResponse_DrainRunner)(nil),
+		(*SessionResponse_Drain)(nil),
+		(*SessionResponse_Resume)(nil),
+		(*SessionResponse_Redetect)(nil),
+		(*SessionResponse_RunChecks)(nil),
+		(*SessionResponse_MachineRemoved)(nil),
+	}
+	file_agent_v1_agent_proto_msgTypes[13].OneofWrappers = []any{
+		(*AddRunner_Registration)(nil),
+		(*AddRunner_JitConfig)(nil),
+	}
+	file_agent_v1_agent_proto_msgTypes[24].OneofWrappers = []any{
+		(*GateDecision_Go_)(nil),
+		(*GateDecision_Wait_)(nil),
+		(*GateDecision_Timeout_)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_v1_agent_proto_rawDesc), len(file_agent_v1_agent_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   6,
+			NumEnums:      4,
+			NumMessages:   43,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_agent_v1_agent_proto_goTypes,
 		DependencyIndexes: file_agent_v1_agent_proto_depIdxs,
+		EnumInfos:         file_agent_v1_agent_proto_enumTypes,
 		MessageInfos:      file_agent_v1_agent_proto_msgTypes,
 	}.Build()
 	File_agent_v1_agent_proto = out.File

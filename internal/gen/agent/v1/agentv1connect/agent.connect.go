@@ -2,6 +2,25 @@
 //
 // Source: agent/v1/agent.proto
 
+// Agent link, milestone 1 (decision 0004; machines R5.1 to R5.39, R6.1, R6.2;
+// scheduling R5.12 to R5.36; runners R5.3 to R5.12; observability R5.20 to
+// R5.23; doctor 7.1).
+//
+// Versioning: the package is agent.v1. Fields are only added within v1; a
+// field or message is never renumbered or reused (`reserved` instead). A change
+// that breaks an old agent goes to agent.v2, and the controller serves both
+// while agents update. Each side also sends PROTOCOL_VERSION in Hello and
+// HelloAck, so a newer minor version can tell what the other side knows.
+//
+// Transport: connect-go over TLS 1.3 only, port 8461 by default. The agent
+// dials out; the controller never connects in (R5.9). After Join, every call
+// carries the machine key as `authorization: Bearer <machine key>` and the
+// machine id as `crsp-machine-id`; the agent checks the pinned certificate on
+// every connection (R5.8, R6.1). A revoked or unknown key gets
+// CODE_UNAUTHENTICATED and the agent stops retrying (R5.39).
+//
+// Secrets: join codes, machine keys, registration and remove tokens never go
+// to a log or the database in clear (R6.2). A token travels once, for one step.
 package agentv1connect
 
 import (
@@ -33,18 +52,21 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// AgentServiceRegisterProcedure is the fully-qualified name of the AgentService's Register RPC.
-	AgentServiceRegisterProcedure = "/agent.v1.AgentService/Register"
+	// AgentServiceJoinProcedure is the fully-qualified name of the AgentService's Join RPC.
+	AgentServiceJoinProcedure = "/agent.v1.AgentService/Join"
 	// AgentServiceSessionProcedure is the fully-qualified name of the AgentService's Session RPC.
 	AgentServiceSessionProcedure = "/agent.v1.AgentService/Session"
 )
 
 // AgentServiceClient is a client for the agent.v1.AgentService service.
 type AgentServiceClient interface {
-	// Register enrols an agent. Placeholder shape: the real fields land with the
-	// enrolment design in milestone 1.
-	Register(context.Context, *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error)
-	// Session is the long-lived bidirectional stream between agent and controller.
+	// Join trades a one-time join code (or, for the controller's own agent, a
+	// local join credential) for a machine key, and gives the agent the
+	// certificate fingerprint to pin. machines R5.1, R5.3 to R5.7.
+	Join(context.Context, *connect.Request[v1.JoinRequest]) (*connect.Response[v1.JoinResponse], error)
+	// Session is the one long-lived bidirectional stream between agent and
+	// controller. The agent sends Hello first; the controller answers HelloAck
+	// with the settings in force. machines R5.24, R5.35 to R5.38.
 	Session(context.Context) *connect.BidiStreamForClient[v1.SessionRequest, v1.SessionResponse]
 }
 
@@ -59,10 +81,10 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 	baseURL = strings.TrimRight(baseURL, "/")
 	agentServiceMethods := v1.File_agent_v1_agent_proto.Services().ByName("AgentService").Methods()
 	return &agentServiceClient{
-		register: connect.NewClient[v1.RegisterRequest, v1.RegisterResponse](
+		join: connect.NewClient[v1.JoinRequest, v1.JoinResponse](
 			httpClient,
-			baseURL+AgentServiceRegisterProcedure,
-			connect.WithSchema(agentServiceMethods.ByName("Register")),
+			baseURL+AgentServiceJoinProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("Join")),
 			connect.WithClientOptions(opts...),
 		),
 		session: connect.NewClient[v1.SessionRequest, v1.SessionResponse](
@@ -76,13 +98,13 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 
 // agentServiceClient implements AgentServiceClient.
 type agentServiceClient struct {
-	register *connect.Client[v1.RegisterRequest, v1.RegisterResponse]
-	session  *connect.Client[v1.SessionRequest, v1.SessionResponse]
+	join    *connect.Client[v1.JoinRequest, v1.JoinResponse]
+	session *connect.Client[v1.SessionRequest, v1.SessionResponse]
 }
 
-// Register calls agent.v1.AgentService.Register.
-func (c *agentServiceClient) Register(ctx context.Context, req *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error) {
-	return c.register.CallUnary(ctx, req)
+// Join calls agent.v1.AgentService.Join.
+func (c *agentServiceClient) Join(ctx context.Context, req *connect.Request[v1.JoinRequest]) (*connect.Response[v1.JoinResponse], error) {
+	return c.join.CallUnary(ctx, req)
 }
 
 // Session calls agent.v1.AgentService.Session.
@@ -92,10 +114,13 @@ func (c *agentServiceClient) Session(ctx context.Context) *connect.BidiStreamFor
 
 // AgentServiceHandler is an implementation of the agent.v1.AgentService service.
 type AgentServiceHandler interface {
-	// Register enrols an agent. Placeholder shape: the real fields land with the
-	// enrolment design in milestone 1.
-	Register(context.Context, *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error)
-	// Session is the long-lived bidirectional stream between agent and controller.
+	// Join trades a one-time join code (or, for the controller's own agent, a
+	// local join credential) for a machine key, and gives the agent the
+	// certificate fingerprint to pin. machines R5.1, R5.3 to R5.7.
+	Join(context.Context, *connect.Request[v1.JoinRequest]) (*connect.Response[v1.JoinResponse], error)
+	// Session is the one long-lived bidirectional stream between agent and
+	// controller. The agent sends Hello first; the controller answers HelloAck
+	// with the settings in force. machines R5.24, R5.35 to R5.38.
 	Session(context.Context, *connect.BidiStream[v1.SessionRequest, v1.SessionResponse]) error
 }
 
@@ -106,10 +131,10 @@ type AgentServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	agentServiceMethods := v1.File_agent_v1_agent_proto.Services().ByName("AgentService").Methods()
-	agentServiceRegisterHandler := connect.NewUnaryHandler(
-		AgentServiceRegisterProcedure,
-		svc.Register,
-		connect.WithSchema(agentServiceMethods.ByName("Register")),
+	agentServiceJoinHandler := connect.NewUnaryHandler(
+		AgentServiceJoinProcedure,
+		svc.Join,
+		connect.WithSchema(agentServiceMethods.ByName("Join")),
 		connect.WithHandlerOptions(opts...),
 	)
 	agentServiceSessionHandler := connect.NewBidiStreamHandler(
@@ -120,8 +145,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 	)
 	return "/agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case AgentServiceRegisterProcedure:
-			agentServiceRegisterHandler.ServeHTTP(w, r)
+		case AgentServiceJoinProcedure:
+			agentServiceJoinHandler.ServeHTTP(w, r)
 		case AgentServiceSessionProcedure:
 			agentServiceSessionHandler.ServeHTTP(w, r)
 		default:
@@ -133,8 +158,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 // UnimplementedAgentServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAgentServiceHandler struct{}
 
-func (UnimplementedAgentServiceHandler) Register(context.Context, *connect.Request[v1.RegisterRequest]) (*connect.Response[v1.RegisterResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.v1.AgentService.Register is not implemented"))
+func (UnimplementedAgentServiceHandler) Join(context.Context, *connect.Request[v1.JoinRequest]) (*connect.Response[v1.JoinResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.v1.AgentService.Join is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) Session(context.Context, *connect.BidiStream[v1.SessionRequest, v1.SessionResponse]) error {

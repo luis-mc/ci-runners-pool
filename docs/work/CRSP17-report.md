@@ -9,7 +9,7 @@ Status: in progress 2026-11-14. Specs read. Writing openapi.yaml.
 ## Steps
 - [x] Read specs and existing contracts
 - [x] openapi.yaml (72 operations; 501 stubs in internal/api/stubs.go)
-- [ ] agent.proto
+- [x] agent.proto (Join + Session; buf lint STANDARD clean)
 - [ ] migrations + sqlc queries
 - [ ] Go interfaces
 - [ ] codegen + 501 handlers
