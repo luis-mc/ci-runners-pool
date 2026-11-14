@@ -21,6 +21,8 @@ export interface ButtonProps {
   part?: 'stop' | 'back' | 'pause' | 'other' | undefined;
   /** The reason is the one line that says what the page waits for (UX-38). */
   reasonIsWait?: boolean | undefined;
+  /** The id of a line on the page that says what the button waits for (a busy button points at it). */
+  describedBy?: string | undefined;
 }
 
 export function Button({
@@ -35,6 +37,7 @@ export function Button({
   title,
   part,
   reasonIsWait = false,
+  describedBy,
 }: ButtonProps) {
   const reasonId = useId();
   const locked = disabled || busy;
@@ -49,7 +52,7 @@ export function Button({
         data-busy={busy || undefined}
         disabled={locked}
         aria-busy={busy || undefined}
-        aria-describedby={showReason ? reasonId : undefined}
+        aria-describedby={showReason ? reasonId : describedBy}
         title={title}
         data-part={part}
         onClick={onPress}

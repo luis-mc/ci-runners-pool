@@ -39,7 +39,7 @@ export function AddMachineWizard({ onDone }: Props) {
   const client = useClient();
   const now = useNow();
   const [params, setParams] = useSearchParams();
-  const storedJoin = params.get('join');
+  const storedJoin = useRef(params.get('join')).current;
 
   const [phase, setPhase] = useState<WizardPhase>('loading');
   const [step, setStep] = useState(0);

@@ -1,7 +1,7 @@
 // Component 4: the shared wizard (UX-5, UX-30, UX-54). Current step, locks, Stop, busy and Done live HERE.
 // A page passes data only: the phase it reads from the server, the steps, the primary and the step content.
 // The ten phases are the ten states of the wizard harness (scripts/design/wizard-behaviour.ts).
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Button } from './Button';
 import { Progress } from './Progress';
 
@@ -37,7 +37,8 @@ export interface WizardProps {
   /** What the loading step is reading ("Reading the controller"). Said once (UX-38). */
   reading?: string | undefined;
   /** The work step's live line: the item in hand, n of N, the time left (UX-29). */
-  progress?: { text: string; value?: number | undefined; max?: number | undefined } | undefined;
+  progress?:
+    { text: string; value?: number | undefined; max?: number | undefined } | undefined;
   canStop?: boolean | undefined;
   /** Stop was pressed and the work has not ended yet. */
   stopping?: boolean | undefined;
@@ -62,6 +63,7 @@ export interface WizardProps {
 const END: readonly WizardPhase[] = ['done', 'done-after-reload', 'stopped', 'failed'];
 
 export function Wizard(p: WizardProps) {
+  const runId = useId();
   const last = p.steps.length - 1;
   const locked = p.phase === 'running' || p.phase === 'loading';
   const atEnd = END.includes(p.phase);
@@ -77,7 +79,13 @@ export function Wizard(p: WizardProps) {
     );
   } else if (p.phase === 'running') {
     primary = (
-      <Button kind="primary" busy busyLabel={p.primary.busyLabel ?? 'Working'} disabled>
+      <Button
+        kind="primary"
+        busy
+        busyLabel={p.primary.busyLabel ?? 'Working'}
+        disabled
+        describedBy={`${runId}-line`}
+      >
         {p.primary.label}
       </Button>
     );
@@ -147,15 +155,15 @@ export function Wizard(p: WizardProps) {
       <div className="ds-wizard__body" data-layout-group>
         {p.stateNote ? <p className="ds-text">{p.stateNote}</p> : null}
         {p.phase === 'loading' ? <Progress label={p.reading ?? 'Reading'} /> : null}
-        {p.phase === 'running' && p.progress ? (
+        {p.phase === 'running' ? (
           <div className="ds-stack" data-gap="tight" data-layout-group>
-            <p className="ds-text" role="status">
-              {p.progress.text}
+            <p className="ds-text" role="status" id={`${runId}-line`}>
+              {p.progress?.text ?? p.primary.busyLabel ?? 'Working'}
             </p>
             <Progress
-              label={p.progress.text}
-              value={p.progress.value}
-              max={p.progress.max}
+              label={p.progress?.text ?? p.primary.busyLabel ?? 'Working'}
+              value={p.progress?.value}
+              max={p.progress?.max}
             />
           </div>
         ) : null}

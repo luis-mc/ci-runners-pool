@@ -13,7 +13,8 @@ export interface MockCall {
   body: unknown;
 }
 
-type Reply = unknown | ((call: MockCall, params: Record<string, string>) => unknown);
+type ReplyFn = (call: MockCall, params: Record<string, string>) => unknown;
+type Reply = ReplyFn | Record<string, unknown> | Response | undefined;
 interface Route {
   method: string;
   parts: string[];
@@ -57,10 +58,7 @@ export class MockApi {
         return p === parts[i];
       });
       if (!ok) continue;
-      const out =
-        typeof r.reply === 'function'
-          ? (r.reply as (c: MockCall, p: Record<string, string>) => unknown)(call, params)
-          : r.reply;
+      const out = typeof r.reply === 'function' ? r.reply(call, params) : r.reply;
       if (out instanceof Response) return out;
       if (out === undefined) return new Response(null, { status: 204 });
       return Response.json(out);

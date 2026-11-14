@@ -5,7 +5,13 @@ import { owner, renderApp, signedIn, viewer } from '../../testing/mock';
 
 afterEach(cleanup);
 
-const alice = { id: 3, login: 'alice', role: 'admin' as const, added_by: 'octo', added_at: '2026-11-03T09:00:00Z' };
+const alice = {
+  id: 3,
+  login: 'alice',
+  role: 'admin' as const,
+  added_by: 'octo',
+  added_at: '2026-11-03T09:00:00Z',
+};
 
 describe('Users and roles (R5.28)', () => {
   const api = () => signedIn().on('GET', '/api/v1/users', { items: [owner, alice] });
@@ -20,13 +26,23 @@ describe('Users and roles (R5.28)', () => {
   });
 
   it('adds a GitHub login with a role', async () => {
-    const a = api().on('POST', '/api/v1/users', { id: 4, login: 'bob', role: 'viewer', added_at: 'x' });
+    const a = api().on('POST', '/api/v1/users', {
+      id: 4,
+      login: 'bob',
+      role: 'viewer',
+      added_at: 'x',
+    });
     renderApp(a, '/settings/users');
     await screen.findByRole('table', { name: 'Users' });
-    fireEvent.change(screen.getByRole('textbox', { name: 'GitHub login' }), { target: { value: 'bob' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'GitHub login' }), {
+      target: { value: 'bob' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     await waitFor(() => expect(a.count('POST', '/api/v1/users')).toBe(1));
-    expect(a.calls.find((c) => c.method === 'POST')?.body).toEqual({ login: 'bob', role: 'viewer' });
+    expect(a.calls.find((c) => c.method === 'POST')?.body).toEqual({
+      login: 'bob',
+      role: 'viewer',
+    });
   });
 
   it('shows the mistake when no login is written', async () => {
@@ -62,7 +78,9 @@ describe('Users and roles (R5.28)', () => {
 
   it('tells a non-owner that only the owner can change users', async () => {
     renderApp(signedIn(viewer), '/settings/users');
-    expect(await screen.findByText(/Only the owner can see and change users/)).toBeTruthy();
+    expect(
+      await screen.findByText(/Only the owner can see and change users/),
+    ).toBeTruthy();
   });
 });
 
@@ -74,7 +92,9 @@ describe('Appearance (UX-60)', () => {
     fireEvent.click(light);
     await waitFor(() => expect(a.count('PUT', '/api/v1/me/preferences')).toBe(1));
     expect(a.calls.find((c) => c.method === 'PUT')?.body).toEqual({ theme: 'light' });
-    await waitFor(() => expect(document.documentElement.getAttribute('data-theme')).toBe('light'));
+    await waitFor(() =>
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light'),
+    );
   });
 });
 
@@ -87,15 +107,36 @@ describe('Retention and backups', () => {
     await screen.findByRole('heading', { name: 'Retention' });
     fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
     await waitFor(() => expect(a.count('PATCH', '/api/v1/settings')).toBe(1));
-    expect((a.calls.find((c) => c.method === 'PATCH')?.body as { retention_job_history_days: number }).retention_job_history_days).toBe(90);
+    expect(
+      (
+        a.calls.find((c) => c.method === 'PATCH')?.body as {
+          retention_job_history_days: number;
+        }
+      ).retention_job_history_days,
+    ).toBe(90);
     expect(await screen.findByText('Retention saved.')).toBeTruthy();
   });
 
   it('lists backups and makes one on demand', async () => {
     const a = signedIn()
       .on('GET', '/api/v1/settings', {})
-      .on('GET', '/api/v1/backups', { items: [{ id: 'b1', file: 'crsp-2026-11-14.db', created_at: '2026-11-14T03:00:00Z', size_bytes: 4200000, state: 'good' }] })
-      .on('POST', '/api/v1/backups', { id: 'b2', file: 'x', created_at: 'x', state: 'writing' });
+      .on('GET', '/api/v1/backups', {
+        items: [
+          {
+            id: 'b1',
+            file: 'crsp-2026-11-14.db',
+            created_at: '2026-11-14T03:00:00Z',
+            size_bytes: 4200000,
+            state: 'good',
+          },
+        ],
+      })
+      .on('POST', '/api/v1/backups', {
+        id: 'b2',
+        file: 'x',
+        created_at: 'x',
+        state: 'writing',
+      });
     renderApp(a, '/settings/backups');
     const table = await screen.findByRole('table', { name: 'Backups' });
     expect(within(table).getByText('4.2 MB')).toBeTruthy();
@@ -105,8 +146,12 @@ describe('Retention and backups', () => {
   });
 
   it('says what to do when there is no backup', async () => {
-    const a = signedIn().on('GET', '/api/v1/settings', {}).on('GET', '/api/v1/backups', { items: [] });
+    const a = signedIn()
+      .on('GET', '/api/v1/settings', {})
+      .on('GET', '/api/v1/backups', { items: [] });
     renderApp(a, '/settings/backups');
-    expect(await screen.findByText('No backups yet. Back up now to make the first one.')).toBeTruthy();
+    expect(
+      await screen.findByText('No backups yet. Back up now to make the first one.'),
+    ).toBeTruthy();
   });
 });

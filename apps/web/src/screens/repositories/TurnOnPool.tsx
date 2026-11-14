@@ -41,7 +41,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
   const client = useClient();
   const [params, setParams] = useSearchParams();
   const live = useLiveState();
-  const storedPlan = params.get('plan');
+  const storedPlan = useRef(params.get('plan')).current;
   const preselected = params.getAll('repo').map(Number);
 
   const [phase, setPhase] = useState<WizardPhase>('loading');

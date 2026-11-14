@@ -15,7 +15,7 @@ import {
   Wizard,
   type WizardPhase,
 } from '@crsp/ui';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { TIMING } from '../../timing';
 import { unwrap, useClient, type Schemas } from '../../api/api';
@@ -34,7 +34,7 @@ export function AddRunnersWizard() {
   const client = useClient();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const storedPlan = params.get('plan');
+  const storedPlan = useRef(params.get('plan')).current;
 
   const [phase, setPhase] = useState<WizardPhase>('loading');
   const [step, setStep] = useState(1);

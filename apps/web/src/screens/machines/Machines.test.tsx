@@ -5,11 +5,27 @@ import { apiError, machine, renderApp, signedIn, viewer } from '../../testing/mo
 
 afterEach(cleanup);
 
-const running = [{ id: 9, repository: 'octo/app', run_id: 1, run_attempt: 1, github_job_id: 1, job_name: 'e2e', labels: [], state: 'running' as const }];
+const running = [
+  {
+    id: 9,
+    repository: 'octo/app',
+    run_id: 1,
+    run_attempt: 1,
+    github_job_id: 1,
+    job_name: 'e2e',
+    labels: [],
+    state: 'running' as const,
+  },
+];
 
 describe('Machines list', () => {
   it('lists machines with state word, backends, load and slots', async () => {
-    const api = signedIn().on('GET', '/api/v1/machines', { items: [machine(), machine({ id: 'm2', name: 'win-1', os: 'windows', online: false })] });
+    const api = signedIn().on('GET', '/api/v1/machines', {
+      items: [
+        machine(),
+        machine({ id: 'm2', name: 'win-1', os: 'windows', online: false }),
+      ],
+    });
     renderApp(api, '/machines');
     const table = await screen.findByRole('table', { name: 'Machines' });
     expect(within(table).getByText('online')).toBeTruthy();
@@ -20,33 +36,55 @@ describe('Machines list', () => {
   });
 
   it('searches and filters, and says how many are hidden', async () => {
-    const api = signedIn().on('GET', '/api/v1/machines', { items: [machine(), machine({ id: 'm2', name: 'win-1', state: 'drained' })] });
+    const api = signedIn().on('GET', '/api/v1/machines', {
+      items: [machine(), machine({ id: 'm2', name: 'win-1', state: 'drained' })],
+    });
     renderApp(api, '/machines');
     await screen.findByRole('table', { name: 'Machines' });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Search machines' }), { target: { value: 'win' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search machines' }), {
+      target: { value: 'win' },
+    });
     expect(screen.queryByRole('link', { name: 'build-1' })).toBeNull();
     expect(screen.getByRole('link', { name: 'win-1' })).toBeTruthy();
-    fireEvent.change(screen.getByRole('textbox', { name: 'Search machines' }), { target: { value: 'zzz' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search machines' }), {
+      target: { value: 'zzz' },
+    });
     expect(screen.getByText(/2 machines are hidden/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
-    expect((screen.getByRole('textbox', { name: 'Search machines' }) as HTMLInputElement).value).toBe('');
+    expect(
+      screen.getByRole<HTMLInputElement>('textbox', { name: 'Search machines' }).value,
+    ).toBe('');
   });
 
   it('says what to do when there is none, and offers Add a machine to an admin', async () => {
     renderApp(signedIn().on('GET', '/api/v1/machines', { items: [] }), '/machines');
-    expect(await screen.findByText('No machines yet. Add a machine to start.')).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: 'Add a machine' }).length).toBeGreaterThan(0);
+    expect(
+      await screen.findByText('No machines yet. Add a machine to start.'),
+    ).toBeTruthy();
+    expect(
+      screen.getAllByRole('button', { name: 'Add a machine' }).length,
+    ).toBeGreaterThan(0);
   });
 
   it('shows Add a machine disabled with its reason to a viewer (UX-38)', async () => {
-    renderApp(signedIn(viewer).on('GET', '/api/v1/machines', { items: [machine()] }), '/machines');
-    const button = (await screen.findByRole('button', { name: 'Add a machine' })) as HTMLButtonElement;
+    renderApp(
+      signedIn(viewer).on('GET', '/api/v1/machines', { items: [machine()] }),
+      '/machines',
+    );
+    const button = await screen.findByRole<HTMLButtonElement>('button', {
+      name: 'Add a machine',
+    });
     expect(button.disabled).toBe(true);
     expect(screen.getByText('Only an admin can do this.')).toBeTruthy();
   });
 
   it('says could not load, why and what next', async () => {
-    renderApp(signedIn().on('GET', '/api/v1/machines', () => apiError(503, 'unavailable', 'The database is busy.')), '/machines');
+    renderApp(
+      signedIn().on('GET', '/api/v1/machines', () =>
+        apiError(503, 'unavailable', 'The database is busy.'),
+      ),
+      '/machines',
+    );
     expect(await screen.findByText(/Could not load machines\./)).toBeTruthy();
     expect(screen.getByText(/The database is busy\. Try again\./)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
@@ -59,14 +97,23 @@ describe('Machine detail', () => {
 
   it('shows facts, backends and the budget', async () => {
     renderApp(base(), '/machines/m1');
-    expect(await screen.findByRole('heading', { level: 1, name: 'build-1' })).toBeTruthy();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'build-1' }),
+    ).toBeTruthy();
     expect(screen.getByRole('checkbox', { name: /docker/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Memory budget/ }).textContent).toContain('80%');
+    expect(screen.getByRole('button', { name: /Memory budget/ }).textContent).toContain(
+      '80%',
+    );
   });
 
   it('asks before a drain, names the running jobs, and drains on yes (UX-62)', async () => {
     const api = base().on('POST', '/api/v1/machines/:id/drain', {
-      id: 'c1', machine_id: 'm1', kind: 'drain', state: 'waiting', started_at: 'x', waiting_for: [],
+      id: 'c1',
+      machine_id: 'm1',
+      kind: 'drain',
+      state: 'waiting',
+      started_at: 'x',
+      waiting_for: [],
     });
     renderApp(api, '/machines/m1');
     fireEvent.click(await screen.findByRole('button', { name: 'Drain' }));
@@ -89,7 +136,14 @@ describe('Machine detail', () => {
 
   it('removes a machine only after the question names it, its runners and its jobs', async () => {
     const api = base()
-      .on('DELETE', '/api/v1/machines/:id', { id: 'c2', machine_id: 'm1', kind: 'remove', state: 'waiting', started_at: 'x', waiting_for: [] })
+      .on('DELETE', '/api/v1/machines/:id', {
+        id: 'c2',
+        machine_id: 'm1',
+        kind: 'remove',
+        state: 'waiting',
+        started_at: 'x',
+        waiting_for: [],
+      })
       .on('GET', '/api/v1/machines', { items: [] });
     renderApp(api, '/machines/m1');
     fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
@@ -98,7 +152,9 @@ describe('Machine detail', () => {
     expect(within(dialog).getByText('Its runners')).toBeTruthy();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(api.count('DELETE', '/api/v1/machines/m1')).toBe(1));
-    expect(api.calls.find((c) => c.method === 'DELETE')?.query.get('confirm')).toBe('true');
+    expect(api.calls.find((c) => c.method === 'DELETE')?.query.get('confirm')).toBe(
+      'true',
+    );
   });
 
   it('shows Resume for a drained machine and resumes without a question', async () => {
@@ -113,10 +169,12 @@ describe('Machine detail', () => {
 
   it('saves the budget, and asks first when runners restart', async () => {
     let first = true;
-    const api = base().on('PATCH', '/api/v1/machines/:id', (call) => {
+    const api = base().on('PATCH', '/api/v1/machines/:id', () => {
       if (first) {
         first = false;
-        return apiError(409, 'needs_confirmation', 'Runners restart.', [{ kind: 'job', id: '9', text: 'octo/app e2e' }]);
+        return apiError(409, 'needs_confirmation', 'Runners restart.', [
+          { kind: 'job', id: '9', text: 'octo/app e2e' },
+        ]);
       }
       return machine();
     });
@@ -127,15 +185,25 @@ describe('Machine detail', () => {
     expect(within(dialog).getByText('octo/app e2e')).toBeTruthy();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(api.count('PATCH', '/api/v1/machines/m1')).toBe(2));
-    const last = api.calls.filter((c) => c.method === 'PATCH').pop()?.body as { confirm?: boolean; budget_memory_pct: number };
+    const last = api.calls.filter((c) => c.method === 'PATCH').pop()?.body as {
+      confirm?: boolean;
+      budget_memory_pct: number;
+    };
     expect(last.confirm).toBe(true);
     expect(last.budget_memory_pct).toBe(80);
   });
 
   it('shows the viewer the form with Save disabled and why', async () => {
-    renderApp(signedIn(viewer).on('GET', '/api/v1/machines/:id', machine()), '/machines/m1');
+    renderApp(
+      signedIn(viewer).on('GET', '/api/v1/machines/:id', machine()),
+      '/machines/m1',
+    );
     await screen.findByRole('heading', { name: 'build-1' });
-    expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: 'Drain' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Save' }).disabled).toBe(
+      true,
+    );
+    expect(
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Drain' }).disabled,
+    ).toBe(true);
   });
 });

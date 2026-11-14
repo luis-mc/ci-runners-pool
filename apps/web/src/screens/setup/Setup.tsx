@@ -40,7 +40,7 @@ export function ConnectGithubWizard({
   state,
   onDone,
 }: {
-  state: SetupState;
+  state?: SetupState | undefined;
   onDone: () => void;
 }) {
   const client = useClient();
