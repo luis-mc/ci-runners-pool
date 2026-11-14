@@ -1,4 +1,14 @@
 {
   "schema": 1,
-  "map": {}
+  "map": {
+    "internal/agent/**": [
+      "docs/features/machines/spec.md"
+    ],
+    "internal/load/**": [
+      "docs/features/machines/spec.md"
+    ],
+    "internal/machines/**": [
+      "docs/features/machines/spec.md"
+    ]
+  }
 }
