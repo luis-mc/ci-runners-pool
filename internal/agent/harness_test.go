@@ -24,6 +24,32 @@ type ctl struct {
 	Addr string
 	Now  *fakeClock
 	srv  *http.Server
+	mu   sync.Mutex
+}
+
+// Stop closes the link (the controller goes away); Start serves it again on the
+// same address.
+func (c *ctl) Stop() { c.mu.Lock(); _ = c.srv.Close(); c.mu.Unlock() }
+
+func (c *ctl) Start(t *testing.T) {
+	t.Helper()
+	var ln net.Listener
+	var err error
+	for i := 0; i < 50; i++ {
+		if ln, err = net.Listen("tcp", c.Addr); err == nil {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := machines.NewLinkServer(c.Addr, c.CA, c.Svc)
+	c.mu.Lock()
+	c.srv = srv
+	c.mu.Unlock()
+	go func() { _ = srv.Serve(tls.NewListener(ln, c.CA.ServerTLS())) }()
+	t.Cleanup(func() { _ = srv.Close() })
 }
 
 type fakeClock struct {

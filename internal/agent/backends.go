@@ -39,7 +39,8 @@ func detectDocker(sys Sys) *agentv1.BackendSupport {
 		return b
 	}
 	b.Usable, b.Version = true, trim(res.Out)
-	if r, ok := load.DockerRun(sys, "info", "--format", "{{.Rootless}}"); ok && r.Code == 0 {
+	// Rootless is only read where docker runs natively; never through wsl.
+	if r, ok := sys.Run([]string{"docker", "info", "--format", "{{.Rootless}}"}); ok && r.Code == 0 {
 		b.Rootless = strings.Contains(strings.ToLower(trim(r.Out)), "true")
 	}
 	return b

@@ -55,6 +55,9 @@ func (c Config) sys() Sys {
 	return OSSys{}
 }
 
+// DataDirCache is the settings cache of this config.
+func (c Config) DataDirCache() SettingsCache { return c.cache() }
+
 func (c Config) cache() SettingsCache { return SettingsCache{Path: c.DataDir + "/settings.json"} }
 
 func (c *Config) defaults() {
