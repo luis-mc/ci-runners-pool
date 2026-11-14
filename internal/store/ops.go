@@ -433,3 +433,13 @@ func (s *Store) Checkpoint(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE)")
 	return err
 }
+
+// DeleteMachineLoadBefore deletes raw load samples older than cutoff.
+func (s *Store) DeleteMachineLoadBefore(ctx context.Context, cutoff time.Time) error {
+	ctx, cancel := withDeadline(ctx)
+	defer cancel()
+	if err := s.q.DeleteMachineLoadBefore(ctx, cutoff.UTC().Format(TimeFormat)); err != nil {
+		return fmt.Errorf("delete machine load: %w", err)
+	}
+	return nil
+}

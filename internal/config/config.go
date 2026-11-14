@@ -270,3 +270,13 @@ func validateAddr(addr string) error {
 	}
 	return nil
 }
+
+// SecretKeys returns the keys of a TOML document that look like secrets. A
+// document that does not parse returns nil; the config check reports that.
+func SecretKeys(data []byte) []string {
+	var raw map[string]any
+	if err := toml.Unmarshal(data, &raw); err != nil {
+		return nil
+	}
+	return secretKeys(raw, "")
+}
