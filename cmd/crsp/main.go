@@ -189,9 +189,9 @@ func runController() error {
 	})
 	mux.Handle("/", webui.Handler())
 
-	// The console and its API are HTTPS only (web-console R5.1), with the
+	// The console and its API are plain HTTP on 127.0.0.1 and ::1 only, and
+	// HTTPS only on every other address (web-console R5.1), with the
 	// certificate of the controller's own CA, the same one the agent link uses.
-	// There is no plain-HTTP listener.
 	srv := webui.NewServer(cfg.ListenAddr, mr.CA.ServerTLS(), api.Recover(logger, mux))
 	ln, err := webui.Listen(ctx, cfg.ListenAddr)
 	if err != nil {
@@ -200,7 +200,7 @@ func runController() error {
 
 	errc := make(chan error, 1)
 	go func() {
-		logger.Info("controller listening", "addr", cfg.ListenAddr, "version", version, "tls", true)
+		logger.Info("controller listening", "addr", cfg.ListenAddr, "version", version, "tls", !webui.IsLoopback(cfg.ListenAddr))
 		errc <- webui.Serve(srv, ln)
 	}()
 

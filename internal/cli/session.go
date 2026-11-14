@@ -106,10 +106,13 @@ func (c *call) open() (*session, error) {
 
 func (c *call) newSession(ctx contexts.Context, tok storedToken) (*session, error) {
 	u, err := url.Parse(ctx.URL)
-	if err != nil || u.Scheme != "https" || u.Host == "" {
-		return nil, fail(ExitUsage, "The controller address %q must start with https://.", ctx.URL)
+	if err != nil || !controllerSchemeOK(u) {
+		return nil, fail(ExitUsage, "The controller address %q must start with https:// (http:// only for 127.0.0.1 or [::1]).", ctx.URL)
 	}
-	tr := newPinnedTransport(ctx.Fingerprint)
+	var tr http.RoundTripper = newPinnedTransport(ctx.Fingerprint)
+	if u.Scheme == "http" {
+		tr = &http.Transport{Proxy: nil}
+	}
 	base := strings.TrimRight(ctx.URL, "/")
 	edit := func(_ context.Context, req *http.Request) error {
 		if tok.Token != "" {

@@ -20,9 +20,26 @@ type running struct {
 	pool *x509.CertPool
 }
 
-// serveWithCA starts the console as the controller does: the certificate of
-// the controller's own CA, TLS only.
+// serveWithCA starts the console as the controller does on a non-loopback
+// address (the listener reports 10.0.0.5:8460): the certificate of the
+// controller's own CA, TLS only.
 func serveWithCA(t *testing.T) running {
+	t.Helper()
+	return serveOn(t, "10.0.0.5:8460")
+}
+
+// addrListener reports another address than the one it listens on, so a test
+// can serve as if the console were on a non-loopback address.
+type addrListener struct {
+	net.Listener
+	addr net.Addr
+}
+
+func (l addrListener) Addr() net.Addr { return l.addr }
+
+// serveOn serves as the controller does. fakeAddr "" is the real loopback
+// address; any other value makes the server treat the listener as bound there.
+func serveOn(t *testing.T, fakeAddr string) running {
 	t.Helper()
 	ca, err := tlsca.LoadOrCreate(context.Background(), tlsca.Options{Dir: t.TempDir(), Secrets: secretstest.New()})
 	if err != nil {
@@ -32,10 +49,18 @@ func serveWithCA(t *testing.T) running {
 	if err != nil {
 		t.Fatal(err)
 	}
+	real := ln.Addr().String()
+	if fakeAddr != "" {
+		ta, err := net.ResolveTCPAddr("tcp", fakeAddr)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ln = addrListener{Listener: ln, addr: ta}
+	}
 	mux := http.NewServeMux()
 	mux.Handle("/", Handler())
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = io.WriteString(w, "ok") })
-	srv := NewServer(ln.Addr().String(), ca.ServerTLS(), mux)
+	srv := NewServer(real, ca.ServerTLS(), mux)
 	done := make(chan error, 1)
 	go func() { done <- Serve(srv, ln) }()
 	t.Cleanup(func() {
@@ -48,7 +73,7 @@ func serveWithCA(t *testing.T) running {
 	if !pool.AppendCertsFromPEM(ca.CAPEM()) {
 		t.Fatal("CA PEM")
 	}
-	return running{addr: ln.Addr().String(), pool: pool}
+	return running{addr: real, pool: pool}
 }
 
 // fetchURL makes one GET; the caller closes the body when the error is nil.
@@ -128,17 +153,72 @@ func TestNoPlainHTTPConsole(t *testing.T) {
 	}
 }
 
-// R5.1: the server refuses to start without a certificate rather than fall
-// back to plain HTTP.
-func TestServeNeedsACertificate(t *testing.T) {
-	ln, err := Listen(context.Background(), "127.0.0.1:0")
+// R5.1: on a non-loopback address the server refuses to start without a
+// certificate rather than fall back to plain HTTP.
+func TestServeNeedsACertificateOffLoopback(t *testing.T) {
+	real, err := Listen(context.Background(), "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = ln.Close() }()
+	defer func() { _ = real.Close() }()
+	ta, _ := net.ResolveTCPAddr("tcp", "10.0.0.5:8460")
+	ln := addrListener{Listener: real, addr: ta}
 	for _, cfg := range []*tls.Config{nil, {MinVersion: tls.VersionTLS13}} {
-		if err := Serve(NewServer(ln.Addr().String(), cfg, http.NotFoundHandler()), ln); err == nil {
+		if err := Serve(NewServer(real.Addr().String(), cfg, http.NotFoundHandler()), ln); err == nil {
 			t.Fatalf("config %+v: Serve must refuse to serve without a certificate", cfg)
+		}
+	}
+}
+
+// R5.1: a loopback listener (127.0.0.1, ::1) serves plain HTTP, with the R6.3
+// headers, and a TLS client gets no console from it.
+func TestLoopbackServesPlainHTTP(t *testing.T) {
+	r := serveOn(t, "")
+	resp, err := fetchURL(&http.Client{Timeout: 5 * time.Second}, "http://"+r.addr+"/healthz")
+	if err != nil {
+		t.Fatalf("plain HTTP on loopback: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 || string(body) != "ok" || resp.TLS != nil {
+		t.Fatalf("%d %q tls=%v", resp.StatusCode, body, resp.TLS)
+	}
+	for name, want := range SecurityHeaders {
+		if got := resp.Header.Get(name); got != want {
+			t.Errorf("%s = %q, want %q", name, got, want)
+		}
+	}
+}
+
+// R5.1: a non-loopback address serves TLS only: a plain request is never
+// answered with the console (see TestNoPlainHTTPConsole), a TLS one is.
+func TestNonLoopbackServesTLSOnly(t *testing.T) {
+	r := serveOn(t, "192.168.1.20:8460")
+	if resp, err := fetchURL(&http.Client{Timeout: 3 * time.Second}, "http://"+r.addr+"/healthz"); err == nil {
+		body, _ := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if resp.StatusCode == 200 || string(body) == "ok" {
+			t.Fatalf("plain HTTP was served on a non-loopback address: %d %q", resp.StatusCode, body)
+		}
+	}
+	resp, err := fetchURL(client(r.pool, tls.VersionTLS13, tls.VersionTLS13), "https://"+r.addr+"/healthz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != 200 || resp.TLS == nil {
+		t.Fatalf("%d tls=%v", resp.StatusCode, resp.TLS)
+	}
+}
+
+func TestIsLoopback(t *testing.T) { // R5.1: only 127.0.0.1 and ::1 are loopback
+	for addr, want := range map[string]bool{
+		"127.0.0.1:8460": true, "[::1]:8460": true, "127.0.0.1": true, "::1": true,
+		"0.0.0.0:8460": false, "[::]:8460": false, ":8460": false, "localhost:8460": false,
+		"192.168.1.20:8460": false, "example.com:443": false, "": false,
+	} {
+		if got := IsLoopback(addr); got != want {
+			t.Errorf("IsLoopback(%q) = %v, want %v", addr, got, want)
 		}
 	}
 }
