@@ -86,10 +86,6 @@ func mapMachinesError(log func(string, ...any), err error) (int, gen.ErrorEnvelo
 
 func (s *server) machinesOff() bool { return s.opts.Machines == nil }
 
-func (s *server) mErr(err error) (int, gen.ErrorEnvelope) {
-	return mapMachinesError(func(m string, a ...any) { s.opts.Logger.Error(m, a...) }, err)
-}
-
 func unavailable[T ~struct {
 	Body       gen.ErrorEnvelope
 	StatusCode int

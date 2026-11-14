@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
@@ -60,7 +61,10 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	if err != nil {
 		return nil, err
 	}
-	port, _ := net.LookupPort("tcp", portStr)
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		return nil, err
+	}
 
 	// The SQLite adapter of machines.Repository belongs to internal/store; until it
 	// lands the repository is in memory, so machines and keys last until restart.
@@ -69,7 +73,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	})
 	svc.SetHooks(machines.Hooks{ControllerVersion: version})
 
-	ln, err := net.Listen("tcp", addr)
+	ln, err := (&net.ListenConfig{}).Listen(ctx, "tcp", addr)
 	if err != nil {
 		return nil, err
 	}

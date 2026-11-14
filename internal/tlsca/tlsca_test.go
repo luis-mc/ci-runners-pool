@@ -35,7 +35,7 @@ func TestTLS13OnlyAndPinnedClientConnects(t *testing.T) {
 	defer srv.Close()
 
 	c := &http.Client{Transport: &http.Transport{ForceAttemptHTTP2: true, TLSClientConfig: tlsca.ClientTLS(a.Fingerprint())}}
-	resp, err := c.Get(srv.URL)
+	resp, err := get(c, srv.URL)
 	if err != nil {
 		t.Fatalf("pinned client: %v", err)
 	}
@@ -47,7 +47,7 @@ func TestTLS13OnlyAndPinnedClientConnects(t *testing.T) {
 	cfg := tlsca.ClientTLS(a.Fingerprint())
 	cfg.MinVersion, cfg.MaxVersion = tls.VersionTLS12, tls.VersionTLS12
 	old := &http.Client{Transport: &http.Transport{ForceAttemptHTTP2: true, TLSClientConfig: cfg}}
-	if r, err := old.Get(srv.URL); err == nil {
+	if r, err := get(old, srv.URL); err == nil {
 		_ = r.Body.Close()
 		t.Fatal("a TLS 1.2 client was accepted")
 	}
@@ -62,7 +62,7 @@ func TestWrongPinRefused(t *testing.T) {
 	srv.StartTLS()
 	defer srv.Close()
 	c := &http.Client{Transport: &http.Transport{ForceAttemptHTTP2: true, TLSClientConfig: tlsca.ClientTLS(other.Fingerprint())}}
-	if r, err := c.Get(srv.URL); err == nil {
+	if r, err := get(c, srv.URL); err == nil {
 		_ = r.Body.Close()
 		t.Fatal("connected with the wrong pin")
 	}
@@ -133,4 +133,12 @@ func TestCAKeyMissingIsAnError(t *testing.T) {
 	if _, err := tlsca.LoadOrCreate(context.Background(), tlsca.Options{Dir: t.TempDir(), Secrets: down}); !errors.Is(err, secrets.ErrUnavailable) {
 		t.Fatalf("err = %v", err)
 	}
+}
+
+func get(c *http.Client, url string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Do(req)
 }

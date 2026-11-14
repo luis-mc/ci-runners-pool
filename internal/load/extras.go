@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-const gib = 1 << 30
-
 // Refresh reads the slow figures into the cache the samples use: the WSL VM
 // (Windows), container memory through Docker (Windows: the docker CLI first,
 // then WSL; Linux and macOS never call wsl, R5.18) and macOS CPU through top.

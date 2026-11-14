@@ -82,6 +82,13 @@ func TestLinkLossKeepsJobsAndGateThenReconnects(t *testing.T) {
 		v, err := c.Svc.Get(context.Background(), id)
 		return err == nil && v.Machine.Online && len(v.RunningJobs) == 1 && v.RunningJobs[0].RunID == 9
 	})
+	// The agent resets its backoff after the hello answer; the first heartbeat
+	// after that proves the reset ran, so wait for a newer LastSeen.
+	c.Now.Add(time.Minute)
+	waitFor(t, "a heartbeat in the new session", func() bool {
+		v, err := c.Svc.Get(context.Background(), id)
+		return err == nil && v.Machine.LastSeen.After(c.Now.Now().Add(-time.Second))
+	})
 	// A successful session reset the backoff: the next loss starts at 1 s again.
 	n := sl.count()
 	c.Stop()

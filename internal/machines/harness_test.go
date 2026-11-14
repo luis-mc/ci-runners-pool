@@ -64,7 +64,7 @@ func newEnv(t *testing.T, mod ...func(*machines.Options)) *env {
 		m(&o)
 	}
 	svc := machines.New(o)
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}

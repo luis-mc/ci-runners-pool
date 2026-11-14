@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
@@ -130,9 +131,16 @@ func TestBackendChangeDrainsFirstThenApplies(t *testing.T) {
 // R5.31: agent updates, image rebuilds and service restarts drain first and call
 // OnIdle only once the machine reports idle.
 func TestOtherRestartsDrainFirst(t *testing.T) {
+	var mu sync.Mutex
 	var got []machines.Change
+	seen := func() []machines.Change { mu.Lock(); defer mu.Unlock(); return append([]machines.Change(nil), got...) }
 	e := newEnv(t, func(o *machines.Options) {
-		o.OnIdle = func(_ context.Context, c machines.Change) error { got = append(got, c); return nil }
+		o.OnIdle = func(_ context.Context, c machines.Change) error {
+			mu.Lock()
+			defer mu.Unlock()
+			got = append(got, c)
+			return nil
+		}
 	})
 	r, _ := e.joined("box-1")
 	fa, err := e.session(r.GetMachineId(), r.GetMachineCredential(), nil)
@@ -143,14 +151,14 @@ func TestOtherRestartsDrainFirst(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 0 {
+	if len(seen()) != 0 {
 		t.Fatal("OnIdle ran before the drain finished")
 	}
 	fa.Next(isDrain)
 	fa.Send(drainStatus(ch.ID, true))
-	waitFor(t, "on idle", func() bool { return len(got) == 1 })
-	if got[0].Kind != machines.KindAgentUpdate {
-		t.Fatalf("got %v", got[0].Kind)
+	waitFor(t, "on idle", func() bool { return len(seen()) == 1 })
+	if k := seen()[0].Kind; k != machines.KindAgentUpdate {
+		t.Fatalf("got %v", k)
 	}
 	if _, err := e.Svc.StartChange(context.Background(), "system", r.GetMachineId(), "bogus", ""); !errors.Is(err, machines.ErrInvalid) {
 		t.Fatalf("bogus kind: %v", err)

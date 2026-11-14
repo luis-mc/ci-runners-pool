@@ -59,17 +59,6 @@ func (s *Sessions) send(machineID string, msg *agentv1.SessionResponse) error {
 	}
 }
 
-// kick closes the machine's stream (key revoked, R5.41).
-func (s *Sessions) kick(machineID string) {
-	s.mu.Lock()
-	ss := s.m[machineID]
-	delete(s.m, machineID)
-	s.mu.Unlock()
-	if ss != nil {
-		ss.cancel()
-	}
-}
-
 // Connected reports whether the machine has an open stream.
 func (s *Sessions) Connected(machineID string) bool {
 	s.mu.Lock()

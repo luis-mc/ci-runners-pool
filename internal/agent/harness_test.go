@@ -36,7 +36,7 @@ func (c *ctl) Start(t *testing.T) {
 	var ln net.Listener
 	var err error
 	for i := 0; i < 50; i++ {
-		if ln, err = net.Listen("tcp", c.Addr); err == nil {
+		if ln, err = (&net.ListenConfig{}).Listen(t.Context(), "tcp", c.Addr); err == nil {
 			break
 		}
 		time.Sleep(20 * time.Millisecond)
@@ -74,7 +74,7 @@ func startController(t *testing.T) *ctl {
 	clk := &fakeClock{t: time.Now()}
 	repo.Now = clk.Now
 	svc := machines.New(machines.Options{Repo: repo, Now: clk.Now, ControllerAddress: "127.0.0.1", Fingerprint: ca.Fingerprint()})
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}

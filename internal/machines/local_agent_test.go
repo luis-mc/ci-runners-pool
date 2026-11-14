@@ -108,7 +108,5 @@ func TestControllerMachineFollowsEveryRule(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitFor(t, "drained", func() bool { c, _ := e.Svc.GetChange(ctx, id, ch.ID); return c.State == machines.ChangeDone })
-	if gate.State() != machines.StateDrained {
-		t.Fatalf("gate = %s", gate.State())
-	}
+	waitFor(t, "gate follows the drained state", func() bool { return gate.State() == machines.StateDrained })
 }
