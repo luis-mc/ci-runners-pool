@@ -169,6 +169,14 @@ States:
 
 **R5.29** — The hook run check (`runner.hookrun`) runs each persistent runner's real `job-started` hook script as the runner's service account with `CRSP_HOOK_PROBE=1`, so it takes no slot and starts no job, and reads its exit code and output. A hook is fine when it exits 0 and prints `crsp hook ok`. It is `fail` when the script cannot start, exits non-zero, prints a `::warning` annotation (crsp missing or broken, scheduling R5.61), or does not reach crsp. Hooks depend on nothing but the shell the runner already uses. An agent that did not run the hook gives `skip`. Problems the hooks wrote to `crsp-hook-problem.txt` show in `runner.hooks` (R5.14). Built (CRSP22): the check; the agent running the hook as the account is NOT YET IMPLEMENTED.
 
+**R5.30** (M2, v0.3.0, NOT YET IMPLEMENTED) — **Container checks.** For a machine that allows the container backend: the engine answers (Windows `docker` CLI first, then `wsl docker`); the image of each pool matches its declared layers and pinned versions (`image.current`, port of `pool.<name>.files-current`); each tool of each layer in the image is found (port of `pool.<name>.layer-*`, runners R5.49); the tool cache folder is writable; and the pool settings and the runner records agree. A tool that the probe ran and did not find is `fail`. A probe that could not run (engine errors, a timeout) is `warn` with "cannot probe", never `fail`. A warning also shows when the engine cannot be read at all.
+
+**R5.31** (M2, v0.6.0, NOT YET IMPLEMENTED) — **KVM checks.** For a pool with KVM on: `kvm.host` (the device check; `fail` only when KVM is on and the host has none), `kvm.container` (`/dev/kvm` usable inside a container), `kvm.label` (the `kvm` label matches reality; the fix names the label call), and on Windows `kvm.wslconfig` (`nestedVirtualization=true` under `[wsl2]`; the fix prints the line to add and says `wsl --shutdown` is needed). Port of `pool.<name>.kvm-*` (machines R5.53).
+
+**R5.32** (M1, v0.2.0, extended in each parity release, NOT YET IMPLEMENTED) — **Capability coverage per repository.** For each pool repository the doctor reads the workflow files (as R5.18 does) and lists, for each job, the capabilities it needs and whether this pool offers each. A job needs a capability when its text shows it: a self-hosted `runs-on`; `playwright`; `cargo xwin` or `XWIN_`; `wine`, `msitools`, `dotnet` packaging steps (`DELIVERY_SHARD: msi`); `rpmbuild`, `checkmodule`, `createrepo`; `vm_check` or `crsp vm`; `pool-db-env`, `crsp db-env` or a `DATABASE_URL`; `windows` labels. The result is one row per repository and OS: `covered`, or `missing: <capability>` with the release of the [parity plan](../../architecture/parity-plan.md) that adds it. A job that the doctor cannot classify is `info` ("not checked"), never `ok`. This list tells the owner which repository can move (the move order of the plan) and is read by the parity test.
+
+**R5.33** (M2, v0.3.0, NOT YET IMPLEMENTED) — **Cache checks.** `cache.cap` warns when a runner's or lane's cache is over its quota (caches R5.36). `cache.disk` warns when free disk on a cache drive is under 10% (the same limit as the disk guard, caches R5.38, which already fails `machine.guard.disk` at the limit). The doctor deletes nothing (R5.7).
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -430,6 +438,10 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.27 | internal/doctor/diff_test.go TestBriefNotificationCases (planned) |
 | R5.28 | internal/doctor/registry_test.go TestMilestoneGating and TestEveryCheckHasATest (planned) |
 | R5.29 | internal/doctor/checks/checks_test.go TestRunnerHookRun; internal/hooks/visibility_test.go TestProbeAnswersWithoutTheGate |
+| R5.30 | planned: internal/doctor/checks/container_test.go TestToolProbeFailVsCannotProbe, TestImageCurrent (v0.3.0; port of test_dl149_pool_layers.py, test_doctor.py) |
+| R5.31 | planned: internal/doctor/checks/kvm_test.go TestKvmHostFailOnlyWhenOn, TestWslconfigNested (v0.6.0; port of test_dl343_kvm_autoload.py) |
+| R5.32 | planned: internal/doctor/checks/coverage_test.go TestCapabilitiesFromWorkflowText, TestUnknownJobIsInfo (v0.2.0) |
+| R5.33 | planned: internal/doctor/checks/cache_test.go TestCacheOverQuotaWarns, TestDiskUnderTenPercentWarns (v0.3.0; port of test_dl342_cache_cap.py) |
 | R6.1 | internal/doctor/engine_test.go TestSlowCheckIsSkipNotOk (the timeout); benchmark planned |
 | R6.2 | internal/doctor/checks/checks_test.go TestCallCountBudget |
 | R6.3 | internal/doctor/engine_test.go TestSecretsAreRedactedInFindings |
