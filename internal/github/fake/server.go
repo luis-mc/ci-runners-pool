@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -265,8 +266,21 @@ func (s *Server) SetWorkflow(fullName, path, content string) {
 func (s *Server) Variable(fullName, name string) (string, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	v, ok := s.Variables[fullName][name]
+	v, ok := s.Variables[fullName][strings.ToUpper(name)]
 	return v, ok
+}
+
+// VariableNames lists the variable names of a repository, sorted, as GitHub
+// holds them (upper case).
+func (s *Server) VariableNames(fullName string) []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]string, 0, len(s.Variables[fullName]))
+	for n := range s.Variables[fullName] {
+		out = append(out, n)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // SetVariable changes a variable "outside the product" (drift tests).
@@ -276,7 +290,7 @@ func (s *Server) SetVariable(fullName, name, value string) {
 	if s.Variables[fullName] == nil {
 		s.Variables[fullName] = map[string]string{}
 	}
-	s.Variables[fullName][name] = value
+	s.Variables[fullName][strings.ToUpper(name)] = value
 }
 
 // AddRunner registers a runner in a scope ("owner/repo" or an organization).

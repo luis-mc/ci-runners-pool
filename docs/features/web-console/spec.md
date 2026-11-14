@@ -156,7 +156,7 @@ The states named for every list follow the design system: loading (component 16,
 
 - **Purpose:** choose which repositories use the pool, and with which limits.
 - **Data:** `listInstallations`, `listRepositories`, `getRepository`, `updateRepositoryPolicy`, `planRepositoryChanges`, `applyRepositoryChanges`, `getAppInstallUrl`.
-- **List:** a table (component 15) of name, owner, pool on or off, labels, maximum parallel jobs, priority, and repository variable status (`CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`, `CRSP_RUNS_ON_MACOS`) as a status word (UX-58). Search and filters (components 11, 21, UX-31): on or off, owner, variable status. Long lists page (component 10, UX-11).
+- **List:** a table (component 15) of name, owner, pool on or off, labels, maximum parallel jobs, priority, and repository variable status (`RUNS_ON_LINUX`, `RUNS_ON_WINDOWS`, `RUNS_ON_MACOS`) as a status word (UX-58). Search and filters (components 11, 21, UX-31): on or off, owner, variable status. Long lists page (component 10, UX-11).
 - **Detail:** the policy form (component 14): on or off, runner groups and labels, maximum parallel jobs, priority, jobs from public forks. A form ends with Cancel and Save (UX-24). Turning fork jobs on shows a Needs-you message with the risk, and asks first (UX-9).
 - **Actions and confirmations:**
   - turn the pool on for chosen repositories: the "Turn on the pool" wizard, the same as in first run (component 4, UX-30); the selection bar names the count (component 20, UX-7);
@@ -538,7 +538,7 @@ For the product:
 - **Q13.** Milestone 3 in the brief lists join codes, but milestone 1 needs a first machine. Is the join code in milestone 1?
 - **Q14.** Confirm the budgets of R6.12, or give others.
 - **Q15.** The console is HTTPS on the local network with a certificate the controller makes. Browsers warn on it. Accept the warning, offer a local CA to install, or let the user bring a certificate? (`operations`)
-- **Q16.** Decision 0002 names the variables `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`; the brief names `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`, `CRSP_RUNS_ON_MACOS`. This spec uses the brief's names. Confirm, and update decision 0002?
+- **Q16.** Answered (D300): the variables are `RUNS_ON_LINUX`, `RUNS_ON_WINDOWS`, `RUNS_ON_MACOS`. Decision 0002 still shows an older example name.
 - **Q17.** The GitHub App's callback URL is the controller address used at first run. When users open the console by another host name or IP, sign-in fails. Redirect every other host name to the first one?
 
 ## 11. Not built yet

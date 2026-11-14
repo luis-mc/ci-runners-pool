@@ -297,6 +297,9 @@ func (s *Service) runStep(ctx context.Context, p auth.Principal, r Repository, s
 			return err
 		}
 		s.cfg.Audit.Audit(ctx, p, "pool.on", "repository", r.FullName, "")
+		if err := s.migrateLegacy(ctx, p, r); err != nil { // CRSP25: old CRSP_RUNS_ON_* names
+			return err
+		}
 	case ActPoolOff:
 		if err := s.cfg.Store.SetRepositoryPool(ctx, r.ID, false, p.Login, s.cfg.Now()); err != nil {
 			return err

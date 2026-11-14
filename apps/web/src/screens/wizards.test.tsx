@@ -197,7 +197,7 @@ const plan = (state: string, steps: object[] = []) => ({
         {
           id: 's2',
           action: 'write_variable',
-          text: 'Write CRSP_RUNS_ON_LINUX',
+          text: 'Write RUNS_ON_LINUX',
           needs_yes: false,
           state: state === 'done' ? 'done' : 'planned',
         },

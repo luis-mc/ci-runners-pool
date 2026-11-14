@@ -11,7 +11,7 @@ import (
 // poolLabelSets is the label sets the pool's runners can carry, one per served
 // OS (R5.30).
 func (s *Service) poolLabelSets(ctx context.Context) ([][]string, error) {
-	capy, err := s.cfg.Capacity.OSLabels(ctx)
+	capy, err := s.osCapacity(ctx)
 	if err != nil {
 		return nil, err
 	}

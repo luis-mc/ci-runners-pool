@@ -1549,7 +1549,7 @@ export interface components {
          *       "user_is_github_admin": true,
          *       "variables": [
          *         {
-         *           "name": "CRSP_RUNS_ON_LINUX",
+         *           "name": "RUNS_ON_LINUX",
          *           "status": "ok",
          *           "value": "[\"self-hosted\",\"linux\",\"x64\"]"
          *         }
@@ -1586,7 +1586,7 @@ export interface components {
         };
         RepositoryVariable: {
             /** @enum {string} */
-            name: "CRSP_RUNS_ON_LINUX" | "CRSP_RUNS_ON_WINDOWS" | "CRSP_RUNS_ON_MACOS";
+            name: "RUNS_ON_LINUX" | "RUNS_ON_WINDOWS" | "RUNS_ON_MACOS";
             status: components["schemas"]["VariableStatus"];
             /** @description The JSON list of labels as written. */
             value?: string;
@@ -2270,7 +2270,7 @@ export interface components {
          *       "title": "No online runner carries [self-hosted, linux, arm64]",
          *       "detail": ".github/workflows/ci.yml:12 needs [self-hosted, linux, arm64]",
          *       "fix": {
-         *         "text": "Add a runner with these labels, or use fromJSON(vars.CRSP_RUNS_ON_LINUX).",
+         *         "text": "Add a runner with these labels, or use fromJSON(vars.RUNS_ON_LINUX).",
          *         "link": "/runners"
          *       },
          *       "needs_admin": false,
