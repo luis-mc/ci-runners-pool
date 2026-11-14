@@ -29,7 +29,7 @@ All five are one Go binary, `crsp` (decision 0001).
 - The product manages self-hosted runners only. It does not manage GitHub-hosted runners.
 - The web console is reachable on the local network over TLS. Every user signs in with GitHub. The tray's one-time link also works on the controller's machine.
 - Users: the first person to sign in becomes the owner. The owner allows other GitHub users as admin or viewer. Turning the pool on for a repository also needs admin rights on that repository in GitHub.
-- Ports: 8460 for the console and API (HTTPS), 8461 for the agent link (gRPC over TLS). Both can be changed in config.
+- Ports: 8460 for the console and API (plain HTTP on 127.0.0.1 and ::1, HTTPS on every other address), 8461 for the agent link (gRPC over TLS). Both can be changed in config.
 - Repository variables the product writes: `RUNS_ON_LINUX`, `RUNS_ON_WINDOWS`, `RUNS_ON_MACOS` (JSON lists of lowercase labels, such as `["self-hosted","linux","x64"]`). A variable exists only while the repository has a crsp runner for that OS and the pool is on for it; unset means GitHub-hosted. Workflows say `runs-on: ${{ fromJSON(vars.RUNS_ON_LINUX) }}`.
 - Milestone 1 builds persistent runners for Windows, Linux and macOS together.
 - Task IDs and branches: `CRSP<n>-<slug>`. CRP1 to CRP14 keep their labels.
