@@ -3083,8 +3083,40 @@ components:
           format: date-time
         waiting_for:
           type: array
+          description: Only the jobs on the runners the change touches (machines R5.57).
           items:
             $ref: '#/components/schemas/Job'
+        runner_names:
+          type: array
+          description: The runners the change touches. Empty means every runner of the machine (machines R5.57).
+          items:
+            type: string
+        holder:
+          $ref: '#/components/schemas/DrainHolder'
+        choices:
+          type: array
+          description: >-
+            The named choices the user has now. Offered when the drain is past its
+            timeout or its holder is far past its usual duration. There is never a
+            choice that stops a job (machines R5.33, R5.56).
+          items:
+            type: string
+            enum: [wait_longer, cancel]
+    DrainHolder:
+      type: object
+      description: The job that holds a drain longest, and how long it has run (machines R5.55).
+      required: [job, running_seconds, over_usual]
+      properties:
+        job:
+          $ref: '#/components/schemas/Job'
+        running_seconds:
+          type: integer
+        usual_seconds:
+          type: integer
+          description: The usual duration of this job from job history. Absent when there is no history.
+        over_usual:
+          type: boolean
+          description: True when the job runs far past its usual duration (twice as long or more).
     MachineChangeDecision:
       type: object
       required: [decision]

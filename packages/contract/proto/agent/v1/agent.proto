@@ -330,6 +330,9 @@ message JobRef {
   int64 github_job_id = 5;
   string shard = 6;
   string runner_name = 7;
+  // When the job took its slot on the machine, in Unix milliseconds. Zero when
+  // not known. A drain names the job that holds it and for how long (machines R5.55).
+  int64 started_unix_ms = 8;
 }
 
 // Holder names the processes that hold a slot or ticket (scheduling R5.31).
@@ -467,6 +470,11 @@ message Drain {
   // drain, settings, remove, agent_update, runner_update or service_restart.
   string change_kind = 2;
   int32 timeout_seconds = 3;
+  // runner_names are the runners the change touches (machines R5.57). Empty
+  // means every runner of the machine. A scoped drain keeps new jobs out of
+  // these runners only and waits only for jobs that run on them; a busy runner
+  // outside the set never holds it.
+  repeated string runner_names = 4;
 }
 
 // Resume returns a drained machine to active (R5.34).

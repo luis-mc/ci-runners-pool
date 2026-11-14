@@ -396,6 +396,24 @@ func (e JoinCodeState) Valid() bool {
 	}
 }
 
+// Defines values for MachineChangeChoices.
+const (
+	MachineChangeChoicesCancel     MachineChangeChoices = "cancel"
+	MachineChangeChoicesWaitLonger MachineChangeChoices = "wait_longer"
+)
+
+// Valid indicates whether the value is a known member of the MachineChangeChoices enum.
+func (e MachineChangeChoices) Valid() bool {
+	switch e {
+	case MachineChangeChoicesCancel:
+		return true
+	case MachineChangeChoicesWaitLonger:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MachineChangeKind.
 const (
 	MachineChangeKindAgentUpdate    MachineChangeKind = "agent_update"
@@ -455,19 +473,19 @@ func (e MachineChangeState) Valid() bool {
 
 // Defines values for MachineChangeDecisionDecision.
 const (
-	Cancel     MachineChangeDecisionDecision = "cancel"
-	StopJobs   MachineChangeDecisionDecision = "stop_jobs"
-	WaitLonger MachineChangeDecisionDecision = "wait_longer"
+	MachineChangeDecisionDecisionCancel     MachineChangeDecisionDecision = "cancel"
+	MachineChangeDecisionDecisionStopJobs   MachineChangeDecisionDecision = "stop_jobs"
+	MachineChangeDecisionDecisionWaitLonger MachineChangeDecisionDecision = "wait_longer"
 )
 
 // Valid indicates whether the value is a known member of the MachineChangeDecisionDecision enum.
 func (e MachineChangeDecisionDecision) Valid() bool {
 	switch e {
-	case Cancel:
+	case MachineChangeDecisionDecisionCancel:
 		return true
-	case StopJobs:
+	case MachineChangeDecisionDecisionStopJobs:
 		return true
-	case WaitLonger:
+	case MachineChangeDecisionDecisionWaitLonger:
 		return true
 	default:
 		return false
@@ -1349,6 +1367,19 @@ type DoctorScope struct {
 	Repositories *[]int64  `json:"repositories,omitempty"`
 }
 
+// DrainHolder The job that holds a drain longest, and how long it has run (machines R5.55).
+type DrainHolder struct {
+	// Job One job attempt (observability R5.7, R5.8).
+	Job Job `json:"job"`
+
+	// OverUsual True when the job runs far past its usual duration (twice as long or more).
+	OverUsual      bool `json:"over_usual"`
+	RunningSeconds int  `json:"running_seconds"`
+
+	// UsualSeconds The usual duration of this job from job history. Absent when there is no history.
+	UsualSeconds *int `json:"usual_seconds,omitempty"`
+}
+
 // DrainRequest defines model for DrainRequest.
 type DrainRequest struct {
 	Reason *string `json:"reason,omitempty"`
@@ -1598,14 +1629,27 @@ type Machine struct {
 
 // MachineChange A change that waits for a drain (machines R5.30 to R5.33).
 type MachineChange struct {
-	DeadlineAt *time.Time         `json:"deadline_at,omitempty"`
-	Id         string             `json:"id"`
-	Kind       MachineChangeKind  `json:"kind"`
-	MachineId  string             `json:"machine_id"`
-	StartedAt  time.Time          `json:"started_at"`
-	State      MachineChangeState `json:"state"`
-	WaitingFor []Job              `json:"waiting_for"`
+	// Choices The named choices the user has now. Offered when the drain is past its timeout or its holder is far past its usual duration. There is never a choice that stops a job (machines R5.33, R5.56).
+	Choices    *[]MachineChangeChoices `json:"choices,omitempty"`
+	DeadlineAt *time.Time              `json:"deadline_at,omitempty"`
+
+	// Holder The job that holds a drain longest, and how long it has run (machines R5.55).
+	Holder    *DrainHolder      `json:"holder,omitempty"`
+	Id        string            `json:"id"`
+	Kind      MachineChangeKind `json:"kind"`
+	MachineId string            `json:"machine_id"`
+
+	// RunnerNames The runners the change touches. Empty means every runner of the machine (machines R5.57).
+	RunnerNames *[]string          `json:"runner_names,omitempty"`
+	StartedAt   time.Time          `json:"started_at"`
+	State       MachineChangeState `json:"state"`
+
+	// WaitingFor Only the jobs on the runners the change touches (machines R5.57).
+	WaitingFor []Job `json:"waiting_for"`
 }
+
+// MachineChangeChoices defines model for MachineChange.Choices.
+type MachineChangeChoices string
 
 // MachineChangeKind defines model for MachineChange.Kind.
 type MachineChangeKind string
