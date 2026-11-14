@@ -83,6 +83,9 @@ func versionString() string {
 	return "crsp " + v
 }
 
+// runController runs the controller until a signal or a staged restore ends it.
+// After a restore it returns an error, so the exit code is non-zero and the
+// service manager starts the controller again.
 func runController() error {
 	cfg, err := config.Load(os.Getenv)
 	if err != nil {
