@@ -439,6 +439,30 @@ The body scrolls when the content is taller than the space. The overlay never gr
 
 "Delete last digit", "Clear", "Cancel", "Done", "Type a number.", "The lowest is {min}.", "The highest is {max}.", "Type all {n} digits." `design_system.py components` adds each word that is not there yet to the Component words table of content.md. A project changes them there and passes them through the `labels` prop.
 
+## 38. Command palette and shortcut list
+
+- **Used for:** the keyboard-first entry of UX-57. `Ctrl+K` (`Cmd+K` on macOS) opens a search over the areas, the items found by name and the commands the user's role allows. Arrow keys move, `Enter` goes, `Escape` closes. `?` opens the list of every shortcut. Both sit in the one overlay of component 9 and use the search bar of component 21. A command opens the one place where it lives (UX-52).
+- **Looks:** a dialog with a search bar over a list of results. A result names the thing and says its kind in a quiet word (area, machine, command). The chosen result has a weight and a tint, never colour alone. The shortcut list is a facts list of key and action.
+- **Source:** `packages/ui/src/components/Shell.tsx` (`ResultList`, `ShortcutTable`), `apps/web/src/shell/Shell.tsx`
+- **Rules:** UX-17, UX-43, UX-44, UX-46, UX-47, UX-57.
+- **Guard:** none yet.
+
+## 39. Copyable command block
+
+- **Used for:** a command the user copies and runs elsewhere, such as the install command of a machine. The Copy button copies the text and says "Copied". It changes nothing else.
+- **Looks:** a monospace block that wraps long lines, with the Copy button under it.
+- **Source:** `packages/ui/src/components/Controls.tsx` (`CodeBlock`)
+- **Rules:** UX-1, UX-17, UX-27.
+- **Guard:** none yet.
+
+## 40. Level meter
+
+- **Used for:** a level against a limit that is not a wait: memory, CPU and slots against a machine's budget (UX-41). The value is also said in words, so the bar never stands alone (UX-17).
+- **Looks:** a name, a thin bar filled to the level, and the value in words ("40% of 80%"). Over the limit the fill changes tone and the words say so.
+- **Source:** `packages/ui/src/components/Progress.tsx` (`LevelBar`)
+- **Rules:** UX-17, UX-41, UX-58.
+- **Guard:** none yet.
+
 ## How to add a component
 
 - Give it the next number.

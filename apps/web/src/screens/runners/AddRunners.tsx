@@ -2,6 +2,7 @@
 // Done. Only machines whose system matches the chosen one can be picked; the others are greyed with the reason
 // (UX-38). The stored plan id is in the address (?plan=).
 import {
+  BulletList,
   Breadcrumbs,
   ChoiceField,
   Facts,
@@ -276,11 +277,7 @@ export function AddRunnersWizard() {
           {machines.find((m) => m.id === machineId)?.name ?? 'the machine'}. These steps
           run:
         </Text>
-        <ul className="ds-list">
-          {(plan?.steps ?? []).map((s) => (
-            <li key={s.id}>{s.text}</li>
-          ))}
-        </ul>
+        <BulletList items={(plan?.steps ?? []).map((s) => s.text)} />
       </Stack>
     );
   } else if (step === 3) {

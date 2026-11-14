@@ -119,3 +119,20 @@ export function Page({
     </div>
   );
 }
+
+/** A plain list of short lines. */
+export function BulletList({
+  items,
+  label,
+}: {
+  items: readonly string[];
+  label?: string;
+}) {
+  return (
+    <ul className="ds-list" aria-label={label}>
+      {items.map((i) => (
+        <li key={i}>{i}</li>
+      ))}
+    </ul>
+  );
+}

@@ -11,6 +11,7 @@ import {
   SearchBar,
   ShortcutTable,
   Status,
+  Text,
   TextLink,
   TopMenu,
   UserMenu,
@@ -21,7 +22,7 @@ import {
 } from '@crsp/ui';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { unwrap, useClient } from '../api/api';
+import { unwrap, useClient, type Schemas } from '../api/api';
 import { signInUrl, useSession } from '../auth/session';
 import { useLiveState } from '../live/LiveProvider';
 import { SHORTCUTS, handleKey, isMac } from './shortcuts';
@@ -193,7 +194,7 @@ function Palette({ onClose }: { onClose: () => void }) {
           label="Search areas, items and commands"
         />
         {shown.length === 0 ? (
-          <p className="ds-text">Nothing matches. Clear the search to see every area.</p>
+          <Text>Nothing matches. Clear the search to see every area.</Text>
         ) : (
           <ResultList label="Results" items={shown} active={active} onPick={go} />
         )}
@@ -210,6 +211,17 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const [palette, setPalette] = useState(false);
   const [help, setHelp] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [setup, setSetup] = useState<Schemas['SetupState'] | undefined>(undefined);
+  const client = useClient();
+  useEffect(() => {
+    let on = true;
+    unwrap(client.GET('/api/v1/setup'))
+      .then((s) => on && setSetup(s))
+      .catch(() => undefined);
+    return () => {
+      on = false;
+    };
+  }, [client]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -248,6 +260,16 @@ export function AppShell({ children }: { children?: ReactNode }) {
     .filter((j): j is ActivityJob => j !== undefined);
 
   const banners: ReactNode[] = [];
+  if (setup && Object.values(setup.steps).some((v) => v === 'todo'))
+    banners.push(
+      <Message
+        key="first-run"
+        tone="needs-you"
+        action={<TextLink to="/setup">Open the setup page</TextLink>}
+      >
+        First run is not finished.
+      </Message>,
+    );
   if (live.status === 'paused')
     banners.push(
       <Message key="live" tone="note">

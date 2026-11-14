@@ -2,6 +2,7 @@
 // Review, Turning on, Done. The plan is shown at Review, applied, and Done shows what was really done. The
 // stored plan id is in the address (?plan=), so Done after a reload reads the outcome from the server.
 import {
+  BulletList,
   Breadcrumbs,
   Cluster,
   Button,
@@ -247,14 +248,11 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
           {chosen.length} {chosen.length === 1 ? 'repository' : 'repositories'} will use
           the pool. These steps run:
         </Text>
-        <ul className="ds-list">
-          {(plan?.steps ?? []).map((s) => (
-            <li key={s.id}>
-              {s.text}
-              {s.needs_yes ? ' (needs your yes)' : ''}
-            </li>
-          ))}
-        </ul>
+        <BulletList
+          items={(plan?.steps ?? []).map(
+            (s) => `${s.text}${s.needs_yes ? ' (needs your yes)' : ''}`,
+          )}
+        />
       </Stack>
     );
   } else if (step === 3) {
