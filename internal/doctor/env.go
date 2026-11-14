@@ -109,6 +109,8 @@ type Machine struct {
 	// Admin is true when the doctor on this machine runs with administrator
 	// rights, for checks that need them (R5.13). Reported by the agent.
 	Admin bool
+	// LightSlots is the machine's light slot setting (scheduling R5.1).
+	LightSlots int
 }
 
 // Load is the newest load sample.
@@ -191,6 +193,9 @@ type Repository struct {
 	// Expected holds the value the product would write for each variable,
 	// keyed by variable name, for OSes the policy enables. A JSON list.
 	Expected map[string]string
+	// LightRunner is true when the repository's policy keeps a light runner
+	// for it (scheduling R5.65).
+	LightRunner bool
 }
 
 // InScopeMachine is a helper for checks.

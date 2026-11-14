@@ -358,6 +358,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
   const [max, setMax] = useState(p.max_parallel_jobs);
   const [priority, setPriority] = useState(p.priority);
   const [forks, setForks] = useState(p.allow_fork_pull_requests);
+  const [light, setLight] = useState(p.light_runner);
   const [errors, setErrors] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
 
@@ -373,8 +374,9 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
       max_parallel_jobs: max,
       priority,
       allow_fork_pull_requests: forks,
+      light_runner: light,
     }),
-    [labels, groups, max, priority, forks],
+    [labels, groups, max, priority, forks, light],
   );
 
   const forkQ = useQuestion(
@@ -519,6 +521,16 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
               checked={forks}
               onChange={setForks}
             />
+            <CheckRow
+              label="Keep a light runner for short jobs"
+              checked={light}
+              onChange={setLight}
+            />
+            <Message tone="note">
+              A light runner is kept free for jobs that last seconds, so they do not wait
+              behind a long build. A workflow uses it with runs-on:{' '}
+              {'${{ vars.RUNS_ON_LIGHT }}'}.
+            </Message>
             {forks ? (
               <Message tone="needs-you">
                 Jobs from public forks run code you did not write. Save asks once more

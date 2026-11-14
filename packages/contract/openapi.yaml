@@ -2984,13 +2984,14 @@ components:
           allow_fork_pull_requests: false
           labels: [self-hosted, linux, x64]
           runner_groups: []
+          light_runner: true
     RepositoryVariable:
       type: object
       required: [name, status]
       properties:
         name:
           type: string
-          enum: [RUNS_ON_LINUX, RUNS_ON_WINDOWS, RUNS_ON_MACOS]
+          enum: [RUNS_ON_LINUX, RUNS_ON_WINDOWS, RUNS_ON_MACOS, RUNS_ON_LIGHT]
         status:
           $ref: '#/components/schemas/VariableStatus'
         value:
@@ -3002,7 +3003,14 @@ components:
     RepositoryPolicy:
       type: object
       required:
-        [priority, max_parallel_jobs, allow_fork_pull_requests, labels, runner_groups]
+        [
+          priority,
+          max_parallel_jobs,
+          allow_fork_pull_requests,
+          labels,
+          runner_groups,
+          light_runner,
+        ]
       properties:
         priority:
           type: integer
@@ -3024,6 +3032,9 @@ components:
           type: array
           items:
             type: string
+        light_runner:
+          type: boolean
+          description: Keep one light runner per OS for this repository and write RUNS_ON_LIGHT, so jobs that last seconds do not queue behind a long build (scheduling R5.65). On by default.
         budget_memory_pct:
           type: integer
           description: May lower the machine budget for this repository's jobs, never raise it (scheduling R5.4).
@@ -3051,6 +3062,9 @@ components:
           maximum: 256
         allow_fork_pull_requests:
           type: boolean
+        light_runner:
+          type: boolean
+          description: Turn the light runner on or off (scheduling R5.65).
         confirm_fork_risk:
           type: boolean
           description: Needed to turn fork jobs on (github-integration R5.26).

@@ -299,6 +299,7 @@ Repositories and workflows:
 |---|---|---|---|---|---|
 | `repo.vars` | `RUNS_ON_<OS>` unset where used (fail), not a JSON list (fail), different from the product's value (warn) | fail, warn | Set it from the Repositories screen; the `gh variable set` command | no | 1 |
 | `repo.vars.runner` | A `RUNS_ON_<OS>` whose labels no online runner carries | fail | Add or start a runner with those labels | no | 1 |
+| `repo.light` | A pool repository with the light runner on has no online light runner for an OS it serves; says why (no machine with a light slot, the runner is offline, or it is not placed yet) | warn | Set light slots above 0 on a machine of that OS, or turn the light runner off (scheduling R5.65, runners R5.57) | no | 1 |
 | `repo.forks` | A public repository lets fork pull requests reach the pool | warn | Turn fork jobs off unless meant | no | 2 |
 | `workflow.labels` | A self-hosted `runs-on` label set no online runner carries, with file and line | fail | Add a runner with the labels, or change the workflow to `fromJSON(vars.RUNS_ON_<OS>)` | no | 1 |
 | `workflow.generic` | A self-hosted job with literal labels | warn | Use `${{ fromJSON(vars.RUNS_ON_<OS>) }}` | no | 1 |

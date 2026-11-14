@@ -48,7 +48,12 @@ type Service struct {
 	// the plan ends or is stopped (the plan.progress event).
 	OnProgress func(Plan)
 
-	mu sync.Mutex // one plan apply at a time
+	// Light places the light runners of a repository (scheduling R5.65). Nil
+	// turns light runners off.
+	Light LightPlacer
+
+	mu      sync.Mutex // one plan apply at a time
+	lightMu sync.Mutex // one light-runner change at a time
 
 	stopMu  sync.Mutex
 	stops   map[string]bool // plan id -> a stop was asked while it applies
