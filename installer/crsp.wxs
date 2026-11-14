@@ -61,7 +61,7 @@
     <ComponentGroup Id="Program" Directory="INSTALLFOLDER">
       <!-- crsp.exe, the service, its restart policy, the PATH entry and the firewall rule -->
       <Component Id="CrspProgram">
-        <File Id="CrspExe" Source="$(var.CrspExe)" KeyPath="yes" />
+        <File Id="CrspExe" Name="crsp.exe" Source="$(var.CrspExe)" KeyPath="yes" />
 
         <ServiceInstall Id="CrspService"
                         Name="crsp"

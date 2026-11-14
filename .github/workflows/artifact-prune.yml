@@ -11,7 +11,7 @@ name: Artifact prune
 # runs, so it cannot be dynamic.
 on:
   workflow_run:
-    workflows: ['CI', 'Release']
+    workflows: ['CI', 'Release', 'Installer']
     types: [completed]
   schedule:
     - cron: '23 3 * * *'

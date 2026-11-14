@@ -1,5 +1,5 @@
 <#
-  Builds crsp-windows-<arch>.msi (operations R5.7) with WiX v5.
+  Builds crsp-windows-<amd64|arm64>.msi (operations R5.7) with WiX v5.
 
     pwsh installer/build.ps1 -Arch x64 -Exe out/crsp.exe -Version 0.1.0 -Out installer/out
 
@@ -52,7 +52,9 @@ $lic = ($lic -replace "`r?`n", "\par`n")
 $rtf = Join-Path $work 'license.rtf'
 Set-Content -Path $rtf -Encoding ASCII -Value ("{\rtf1\ansi\deff0{\fonttbl{\f0 Segoe UI;}}\f0\fs20 " + $lic + "}")
 
-$msi = Join-Path $Out "crsp-windows-$Arch.msi"
+# The file name uses the Go architecture name, like the release zips: crsp-windows-amd64.msi.
+$goarch = if ($Arch -eq 'x64') { 'amd64' } else { 'arm64' }
+$msi = Join-Path $Out "crsp-windows-$goarch.msi"
 Push-Location $here
 try {
   dotnet tool restore | Out-Host
