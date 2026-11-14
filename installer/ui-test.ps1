@@ -44,7 +44,7 @@ function Run-Pass([bool]$tick, [string]$name) {
   Start-Process msiexec.exe -ArgumentList '/i', "`"$Msi`"", '/qn', '/norestart' -Wait
   Set-Content (Join-Path $dataDir 'keep-me.txt') 'data' -Encoding ASCII
   $log = Join-Path $LogDir "$name.log"
-  $p = Start-Process msiexec.exe -ArgumentList '/x', "`"$Msi`"", '/norestart', '/l*v', "`"$log`"" -PassThru
+  $p = Start-Process msiexec.exe -ArgumentList '/x', "`"$Msi`"", '/norestart', '/l*vx!', "`"$log`"" -PassThru
   $w = Find-Window
   if (-not $w) {
     # Not drivable (no desktop?): give the run time, then end it; the log still proves the dialog action.
@@ -52,8 +52,11 @@ function Run-Pass([bool]$tick, [string]$name) {
     Start-Sleep 3
     $txt = if (Test-Path $log) { Get-Content $log -Raw } else { '' }
     Write-Host '--- UI lines of the msiexec /x log'
-    if (Test-Path $log) { Select-String -Path $log -Pattern 'RemoveDataDlg|Dialog|UILevel|Doing action: (ExecuteAction|CostFinalize|ProgressDlg)|Action start .*(ExecuteAction|CostFinalize|WelcomeEulaDlg|ProgressDlg|MaintenanceWelcome)|REMOVE|Installed =' | Select-Object -First 60 | ForEach-Object { Write-Host "  UILOG $($_.Line.Trim())" } }
+    if (Test-Path $log) { Select-String -Path $log -Pattern 'RemoveDataDlg|Dialog|UILevel|Doing action: (ExecuteAction|CostFinalize|ProgressDlg)|Action start .*(ExecuteAction|CostFinalize|WelcomeEulaDlg|ProgressDlg|MaintenanceWelcome)|REMOVE|Installed =' | Select-Object -Last 60 | ForEach-Object { Write-Host "  UILOG $($_.Line.Trim())" } }
     $rt = [System.Windows.Automation.AutomationElement]::RootElement
+    Write-Host '--- msiexec processes'
+    Get-Process msiexec -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  PROC msiexec pid $($_.Id) session $($_.SessionId) title '$($_.MainWindowTitle)' handle $($_.MainWindowHandle)" }
+    Write-Host ('--- log exists: ' + (Test-Path $log) + ' size ' + $(if (Test-Path $log) { (Get-Item $log).Length } else { 0 }))
     Write-Host '--- top-level windows'
     foreach ($e in $rt.FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)) { Write-Host "  WIN '$($e.Current.Name)' pid $($e.Current.ProcessId)" }
     Check 'log: the RemoveDataDlg action ran (required)' ($txt -match 'Action start [^\r\n]*RemoveDataDlg')
