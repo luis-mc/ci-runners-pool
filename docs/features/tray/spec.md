@@ -16,7 +16,7 @@ generator: luismc-docs 2.6.1
 ---
 # Tray
 
-PARTLY BUILT (CRSP26, CRSP19). The tray side of M1 is built: menu, status, Open, stopped state, log folder, autostart, single instance, Linux tray-host probe, `crsp tray --smoke`, CI smoke. CRSP19 added the full menu (version header, Look for updates, Restart the service, Open on GitHub, Quit tray), the update item, and self-update on all OSes with drain (Restart and Update moved from M3 into this milestone). NOT YET IMPLEMENTED: the service side of the local channel (R5.8, R6.8, and the `check` call and the update fields of `status` and `link` target that CRSP19 added to the protocol), the one-time link endpoint and bindings (R5.7, R5.9, R6.1), the installer rule (R5.22), the idle-resource check (R6.4) and the content-words guard (R6.7). Everything marked (M8) is planned.
+PARTLY BUILT (CRSP26, CRSP19). The tray side of M1 is built: menu, status, Open, stopped state, log folder, autostart, single instance, Linux tray-host probe, `crsp tray --smoke`, CI smoke. CRSP19 added the full menu (version header, Look for updates, Restart the service, Open on GitHub, Quit tray), the update item, and self-update on all OSes with drain (Restart and Update moved from M3 into this milestone). The service side of the local channel is built (CRSP19: `internal/trayserver`; R5.8, R6.8, `status` with the update fields, `check`, `link` with a target). NOT YET IMPLEMENTED: the one-time link endpoint wiring and bindings in the controller process (R5.7, R5.9, R6.1: the auth service exists but the controller does not construct it yet), the installer rule (R5.22), the idle-resource check (R6.4) and the content-words guard (R6.7). Everything marked (M8) is planned.
 
 ## 1. In one paragraph
 
@@ -273,7 +273,7 @@ Rows marked built have tests that exist and run in CI. Rows marked planned are n
 | R5.5 | built: internal/tray/tray_test.go, TestQuitLeavesServiceRunning (the client has no stop call) |
 | R5.6 | built: internal/tray/tray_test.go, TestOpenAsksLinkAndLaunchesBrowser, TestClientStatusAndLink (fake channel and browser) |
 | R5.7 | planned: internal/api/link_test.go, TestLinkSignsInOnceAndStripsCode, TestLinkExpiredShowsSignIn |
-| R5.8 | planned: internal/tray/channel_windows_test.go and internal/tray/channel_unix_test.go, TestChannelRejectsRemoteAndReadsPeerUser |
+| R5.8 | built: internal/trayserver/server_unix_test.go, TestChannelReadsPeerUserFromTheOS (Linux; the caller's uid comes from SO_PEERCRED, a spoofed field in the request is ignored), TestChannelClosedWhenCallerUnknownAndBadCalls; Windows (client process SID, PIPE_REJECT_REMOTE_CLIENTS) and macOS (LOCAL_PEERCRED) built, compiled in CI only |
 | R5.9 | planned: internal/api/binding_test.go, TestUnboundUserGetsSignInThenBinding, TestOwnerRemovesBinding |
 | R5.10 | built (client side): internal/tray/tray_test.go, TestOpenCommandPrintsLink; the service side of the `link` call is not built |
 | R5.11 | planned: internal/agent/link_test.go, TestAgentAsksControllerForLink |
@@ -303,7 +303,7 @@ Rows marked built have tests that exist and run in CI. Rows marked planned are n
 | R6.5 | built: internal/tray/tray_test.go, TestTooltipCutAt127 |
 | R6.6 | built: internal/tray/tray_test.go, TestSlowServiceTimesOutIn3s |
 | R6.7 | planned: guards/content-words test over internal/tray strings |
-| R6.8 | planned: internal/tray/channel_unix_test.go, TestSocketMode0660; internal/tray/channel_windows_test.go, TestPipeRejectsRemote |
+| R6.8 | built (Unix): internal/trayserver/server_unix_test.go, TestSocketMode0660; the Windows pipe refuses remote clients with PIPE_REJECT_REMOTE_CLIENTS and is open to local signed-in users only (SDDL), not run in CI yet |
 
 ## 10. Decisions
 
@@ -319,11 +319,11 @@ Rows marked built have tests that exist and run in CI. Rows marked planned are n
 
 ## 11. Not built yet
 
-Built in CRSP26: the tray process and everything it runs in the user's session. Not built: the service side of the local channel, the link endpoint and the bindings (another task owns them), so `crsp tray` and `crsp open` need a service that answers `status` and `link` as JSON lines on the channel (`internal/tray/channel.go` defines the lines).
+Built in CRSP26: the tray process and everything it runs in the user's session. Built in CRSP19: the service side of the local channel (`internal/trayserver`, wired in `cmd/crsp/tray_wiring.go`): `status` (with version, auto_update, latest, update state, running jobs of the controller's machine), `check`, and `link`. The socket is `/run/crsp/tray.sock` or `/var/run/crsp/tray.sock` (mode 0660, group `crsp` when it exists; `CRSP_TRAY_SOCKET` overrides), the pipe is `\\.\pipe\crsp-tray`. Not built: the one-time link endpoint and the bindings. The controller does not construct the auth service yet, so `link` answers the plain console address on the target path (it signs nobody in, and a target that is not a path on this console is dropped); once the auth service is wired, `trayBackend.Links` makes real one-time links for the bound OS user, and an unbound user gets the bind sign-in (R5.9). `status` fills `State` with `ok` and does not yet count waiting jobs or runners.
 
 Seams that will change:
 
-- M3 adds the agent-only path (R5.11). Restart and Update (R5.15 to R5.18) are built in CRSP19 for the controller's machine; an agent-only machine updates to the controller's version in M3. The service side of the new channel fields and the `check` call is built with the rest of the channel.
+- M3 adds the agent-only path (R5.11). Restart and Update (R5.15 to R5.18) are built in CRSP19 for the controller's machine; an agent-only machine updates to the controller's version over the agent link (operations R5.39 to R5.41, CRSP19).
 - The Windows install of an update needs the MSI assets of CRSP18 (`crsp-windows-<arch>.msi`, in SHA256SUMS and attested). The MSI must also bring the tray back after an upgrade; until it does, the tray relaunches itself only when it survives the install.
 - M8 adds notices (R5.19, R5.20); the channel gains `notices`.
 
@@ -343,6 +343,8 @@ Source: internal/tray/poller.go
 Source: internal/tray/channel.go
 Source: internal/tray/channel_unix.go
 Source: internal/tray/channel_windows.go
+Source: internal/trayserver/server.go
+Source: cmd/crsp/tray_wiring.go
 Source: internal/tray/open.go
 Source: internal/tray/open_cmd.go
 Source: internal/tray/menu.go
