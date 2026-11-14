@@ -1,0 +1,162 @@
+{
+  "spec": "ARTIFACTSPEC 1.0.0",
+  "updated": "2026-11-14T08:25+00:00",
+  "tasks": [
+    {
+      "id": "CRSP1",
+      "owner": "project",
+      "app": "crsp",
+      "status": "To do",
+      "item": "First release v0.1.0 (milestone 1)",
+      "detail": "Tag v0.1.0 once milestone 1 is checked on a real machine; release.yml builds 6 targets.",
+      "expected": "14 Nov; after owner review",
+      "changed": "2026-11-14T03:17+00:00",
+      "release": 1
+    },
+    {
+      "id": "CRSP2",
+      "owner": "project",
+      "app": "crsp",
+      "status": "Needs you",
+      "item": "Review milestone 1 on a real machine",
+      "detail": "Owner tries first-run wizard, add machine, add runner; then tag v0.1.0.",
+      "expected": "14 Nov ~10:00",
+      "changed": "2026-11-14T03:17+00:00",
+      "expected_basis": "owner awake 09:00; about 1 h to try"
+    },
+    {
+      "id": "CRSP3",
+      "owner": "project",
+      "app": "crsp",
+      "status": "Live",
+      "item": "Feature specs and M1 contracts (branches CRSP16, CRSP17)",
+      "detail": "12 feature specs, OpenAPI, agent proto, migrations, interfaces; PRs #4, #5.",
+      "expected": "14 Nov ~01:35",
+      "changed": "2026-11-14T03:17+00:00",
+      "no_release": "specs and contracts, merged to main"
+    },
+    {
+      "id": "CRSP4",
+      "owner": "project",
+      "app": "crsp",
+      "status": "Built",
+      "item": "Store, config, settings, audit, backup (branch CRSP18)",
+      "detail": "TOML config, data dir, audit log, daily backup + drill, retention. In join PR #15.",
+      "expected": "14 Nov ~03:16",
+      "changed": "2026-11-14T03:17+00:00",
+      "rides": "CRSP1"
+    },
+    {
+      "id": "CRSP5",
+      "owner": "project",
+      "app": "crsp",
+      "status": "Built",
+      "item": "GitHub App, sign-in, users, repositories (branch CRSP19)",
+      "detail": "Manifest flow, OAuth/device sign-in, roles, pool on/off, CRSP_RUNS_ON_* variables, fake GitHub API. In #15.",
+      "expected": "14 Nov ~03:16",
+      "changed": "2026-11-14T03:17+00:00",
+      "rides": "CRSP1"
+    },
+    {
+      "id": "CRSP6",
+      "owner": "project",
+      "app": "crsp",
+      "status": "Built",
+      "item": "Agent link, machines, join, own CA, load (branch CRSP20)",
+      "detail": "gRPC link, join codes, TLS CA, machine facts, load gate port, drain. In #15.",
+      "expected": "14 Nov ~03:16",
+      "changed": "2026-11-14T03:17+00:00",
+      "rides": "CRSP1"
+    },
+    {
+      "id": "CRSP7",
+      "owner": "project",
+      "app": "crsp",
+      "status": "Built",
+      "item": "Scheduler: slot queue, load gate, job hooks (branch CRSP21)",
+      "detail": "Machine-wide slots, fair-share queue, job-started/completed hooks. In #15.",
+      "expected": "14 Nov ~03:16",
+      "changed": "2026-11-14T03:17+00:00",
+      "rides": "CRSP1"
+    },
+    {
+      "id": "CRSP8",
+      "owner": "project",
+      "app": "crsp",
+      "status": "Built",
+      "item": "Persistent runners on Windows, Linux, macOS (branch CRSP22)",
+      "detail": "Service accounts, hooks, remove-token deregister, replace unmanaged. PR #11.",
+      "expected": "14 Nov ~02:33",
+      "changed": "2026-11-14T03:17+00:00",
+      "rides": "CRSP1"
+    },
+    {
+      "id": "CRSP9",
+      "owner": "project",
+      "app": "crsp",
+      "status": "Built",
+      "item": "Doctor, live events, overview (branch CRSP23)",
+      "detail": "SSE events, overview, doctor core checks, crsp doctor exit codes. In #15.",
+      "expected": "14 Nov ~03:16",
+      "changed": "2026-11-14T03:18+00:00",
+      "rides": "CRSP1"
+    },
+    {
+      "id": "CRSP10",
+      "owner": "project",
+      "app": "crsp",
+      "status": "Built",
+      "item": "Web console M1 screens (branch CRSP24)",
+      "detail": "Shell, sign-in + first-run wizard, overview, repos, machines, runners, settings. PR #14.",
+      "expected": "14 Nov ~02:33",
+      "changed": "2026-11-14T03:18+00:00",
+      "rides": "CRSP1"
+    },
+    {
+      "id": "CRSP11",
+      "owner": "project",
+      "app": "crsp",
+      "status": "Built",
+      "item": "CLI (branch CRSP25)",
+      "detail": "login, open, repo/machine/runner/job/doctor/backup commands, --json. In #15.",
+      "expected": "14 Nov ~03:16",
+      "changed": "2026-11-14T03:18+00:00",
+      "rides": "CRSP1"
+    },
+    {
+      "id": "CRSP12",
+      "owner": "project",
+      "app": "crsp",
+      "status": "Built",
+      "item": "Tray (branch CRSP26)",
+      "detail": "Windows/macOS/Linux tray, Open link, status, autostart, CI smoke. PR #6.",
+      "expected": "14 Nov ~02:33",
+      "changed": "2026-11-14T03:18+00:00",
+      "rides": "CRSP1"
+    },
+    {
+      "id": "CRSP13",
+      "owner": "project",
+      "app": "crsp",
+      "status": "Built",
+      "item": "Join of six M1 branches (branch CRSP27)",
+      "detail": "Cloud join of #7-#10 #12 #13, gitleaks fixture fix, race fix; PR #15 merged 03:16.",
+      "expected": "14 Nov ~03:16",
+      "changed": "2026-11-14T03:18+00:00",
+      "rides": "CRSP1"
+    },
+    {
+      "id": "CRSP14",
+      "owner": "project",
+      "app": "",
+      "status": "Running",
+      "item": "Commit the Full Progress record to main",
+      "detail": "docs/project/ and .gitignore lines via PR, merged on green",
+      "expected": "14 Nov ~09:00",
+      "changed": "2026-11-14T08:25+00:00",
+      "expected_basis": "PR CI ~25 min",
+      "no_release": "record only, ships nothing",
+      "started": "2026-11-14T08:25+00:00"
+    }
+  ]
+}

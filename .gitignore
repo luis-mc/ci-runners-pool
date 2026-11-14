@@ -16,3 +16,8 @@ playwright-report/
 .vitest/
 .claude/artifacts-stop-state.json
 .vitest/
+.claude/artifacts-queue.json
+.claude/artifacts-publish/
+.claude/artifacts-local.json
+.claude/artifacts-record.lock
+.claude/worktrees/
