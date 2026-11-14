@@ -254,11 +254,11 @@ func TestSetupAndSignInFlow(t *testing.T) { // R5.1 to R5.3, R5.8, R5.10
 	if csrf == "" || c[auth.SessionCookieName] == "" {
 		t.Fatal("signed in")
 	}
-	res, b = h.do("GET", "/api/v1/me", nil, c, nil)
+	_, b = h.do("GET", "/api/v1/me", nil, c, nil)
 	if !strings.Contains(string(b), `"role":"owner"`) || !strings.Contains(string(b), `"login":"alice"`) {
 		t.Fatalf("%s", b)
 	}
-	res, b = h.do("GET", "/api/v1/setup", nil, c, nil)
+	_, b = h.do("GET", "/api/v1/setup", nil, c, nil)
 	if !strings.Contains(string(b), `"has_app":true`) || !strings.Contains(string(b), `"has_owner":true`) || !strings.Contains(string(b), `"connect_github":"done"`) {
 		t.Fatalf("%s", b)
 	}
@@ -573,10 +573,10 @@ func TestNoAdminRightIsRefusedWithReason(t *testing.T) { // R5.19
 	h.fake.AddInstall(10, "alice", "User", 1)
 	h.fake.AddRepo(100, 10, "alice", "theirs", true) // alice is no admin here
 	_, _ = h.do("GET", "/api/v1/github/repositories", nil, owner, nil)
-	res, b := h.do("POST", "/api/v1/repository-plans", map[string]any{"changes": []map[string]any{{"repository_id": 100, "pool": "on"}}}, owner, map[string]string{"X-CSRF-Token": csrf})
+	_, b := h.do("POST", "/api/v1/repository-plans", map[string]any{"changes": []map[string]any{{"repository_id": 100, "pool": "on"}}}, owner, map[string]string{"X-CSRF-Token": csrf})
 	var plan struct{ ID string }
 	_ = json.Unmarshal(b, &plan)
-	res, b = h.do("POST", "/api/v1/repository-plans/"+plan.ID+"/apply", map[string]any{"approved_steps": []string{}}, owner, map[string]string{"X-CSRF-Token": csrf})
+	res, b := h.do("POST", "/api/v1/repository-plans/"+plan.ID+"/apply", map[string]any{"approved_steps": []string{}}, owner, map[string]string{"X-CSRF-Token": csrf})
 	if res.StatusCode != 403 || !strings.Contains(string(b), "alice/theirs") {
 		t.Fatalf("%d %s", res.StatusCode, b)
 	}
@@ -597,7 +597,7 @@ func TestGitHubDownGivesStaleListAndFailClosed(t *testing.T) { // section 8
 	}
 	// A change fails closed with a clear code.
 	h.fake.FailMatching("/repos/alice/app", 503, 10)
-	res, b = h.do("POST", "/api/v1/repository-plans", map[string]any{"changes": []map[string]any{{"repository_id": 100, "pool": "on"}}}, owner, map[string]string{"X-CSRF-Token": csrf})
+	_, b = h.do("POST", "/api/v1/repository-plans", map[string]any{"changes": []map[string]any{{"repository_id": 100, "pool": "on"}}}, owner, map[string]string{"X-CSRF-Token": csrf})
 	var plan struct{ ID string }
 	_ = json.Unmarshal(b, &plan)
 	res, b = h.do("POST", "/api/v1/repository-plans/"+plan.ID+"/apply", map[string]any{"approved_steps": []string{}}, owner, map[string]string{"X-CSRF-Token": csrf})
