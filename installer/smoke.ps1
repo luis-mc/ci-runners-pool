@@ -125,6 +125,10 @@ if ($FailingMsi) {
   Check 'old version still installed after rollback' (@(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -eq 'crsp' -and $_.SystemComponent -ne 1 -and $_.DisplayVersion -eq $installedVersion }).Count -eq 1) "wanted $installedVersion"
   Check 'service running again after rollback' (WaitRunning) ("state " + (SvcState))
   Check 'firewall rule and PATH intact after rollback' ($null -ne (Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue) -and [bool]([Environment]::GetEnvironmentVariable('Path','Machine') -split ';' | Where-Object { $_.TrimEnd('\') -ieq $progDir }))
+  # What the log says about the rollback, so a failure can be read in the CI output.
+  Select-String -Path (Join-Path $LogDir 'failed-upgrade.log') -Pattern 'Action start|Action ended|Rollback|return value 3|Error|error \d+|Removing|RemoveExistingProducts|Product:' |
+    Where-Object { $_.Line -match 'RemoveExistingProducts|FailNow|Rollback|StartServicesRollback|InstallFiles|StartServices|return value 3|Error |Product:|InstallFinalize|InstallInitialize' } |
+    Select-Object -First 80 | ForEach-Object { Write-Host "  LOG $($_.Line.Trim())" }
   Check 'msiexec log shows the rollback' ((Get-Content (Join-Path $LogDir 'failed-upgrade.log') -Raw) -match 'Rollback')
 }
 
