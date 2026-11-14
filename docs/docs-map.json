@@ -22,6 +22,9 @@
     "internal/agent/**": [
       "docs/features/machines/spec.md"
     ],
+    "internal/api/handlers_jobs.go": [
+      "docs/features/scheduling/spec.md"
+    ],
     "internal/audit/**": [
       "docs/features/observability/spec.md"
     ],
@@ -58,6 +61,9 @@
     "internal/history/**": [
       "docs/features/observability/spec.md"
     ],
+    "internal/hooks/**": [
+      "docs/features/scheduling/spec.md"
+    ],
     "internal/install/**": [
       "docs/features/operations/spec.md"
     ],
@@ -91,7 +97,7 @@
     "internal/secrets/**": [
       "docs/features/github-integration/spec.md"
     ],
-    "internal/slots/**": [
+    "internal/store/schedstore.go": [
       "docs/features/scheduling/spec.md"
     ],
     "internal/tools/**": [
