@@ -97,6 +97,10 @@
     "internal/repos/**": [
       "docs/features/github-integration/spec.md"
     ],
+    "internal/runnercache/**": [
+      "docs/features/caches/spec.md",
+      "docs/features/runners/spec.md"
+    ],
     "internal/runners/**": [
       "docs/features/runners/spec.md"
     ],
@@ -117,6 +121,9 @@
     ],
     "internal/update/**": [
       "docs/features/operations/spec.md"
+    ],
+    "internal/vmcheck/**": [
+      "docs/features/caches/spec.md"
     ],
     "packages/ui/src/**": [
       "docs/features/web-console/spec.md"

@@ -224,6 +224,7 @@ func TestPs1HooksCallAllUsersBinary(t *testing.T) {
 		`ACTIONS_RUNNER_HOOK_JOB_STARTED=` + folder + `\hooks\job-started.ps1`,
 		`ACTIONS_RUNNER_HOOK_JOB_COMPLETED=` + folder + `\hooks\job-completed.ps1`,
 		"PSExecutionPolicyPreference=RemoteSigned",
+		`CI_TOOLS_DIR=` + folder + `\cache\tools`,
 	} {
 		if !strings.Contains(env, want) {
 			t.Errorf(".env lacks %q:\n%s", want, env)

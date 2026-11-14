@@ -75,6 +75,22 @@ log_level = "warn"
 	}
 }
 
+func TestCacheQuotaKeys(t *testing.T) {
+	cfg, err := LoadFor("linux", env(nil), files(nil))
+	if err != nil || cfg.Cache.ToolGiB != 20 || cfg.Cache.RustGiB != 40 || cfg.Cache.MinFreePct != 10 {
+		t.Fatalf("defaults: %+v %v", cfg.Cache, err)
+	}
+	read := files(map[string]string{"/etc/crsp/config.toml": "cache_tool_gib = 8\ncache_rust_gib = 100\ncache_min_free_pct = 15\n"})
+	cfg, err = LoadFor("linux", env(nil), read)
+	if err != nil || cfg.Cache.ToolGiB != 8 || cfg.Cache.RustGiB != 100 || cfg.Cache.MinFreePct != 15 {
+		t.Fatalf("file: %+v %v", cfg.Cache, err)
+	}
+	bad := files(map[string]string{"/etc/crsp/config.toml": "cache_min_free_pct = 90\n"})
+	if _, err = LoadFor("linux", env(nil), bad); err == nil || !strings.Contains(err.Error(), "min_free_pct") {
+		t.Fatalf("bad threshold accepted: %v", err)
+	}
+}
+
 func TestExplicitConfigFileMustExist(t *testing.T) {
 	_, err := LoadFor("linux", env(map[string]string{EnvConfigFile: "/nope/config.toml"}), files(nil))
 	if err == nil || !strings.Contains(err.Error(), "/nope/config.toml") {

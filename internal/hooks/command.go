@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/load"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
@@ -45,6 +46,8 @@ type Env struct {
 	Sleep   func(ctx context.Context, d time.Duration)
 	Now     func() time.Time
 	Measure func() load.Reading
+	// Disk overrides the disk read of the disk guard (tests).
+	Disk func() (runnercache.Disk, error)
 }
 
 // Run is `crsp hook <job-started|job-completed> [flags]`. It returns the exit
@@ -139,6 +142,7 @@ func runStarted(ctx context.Context, args []string, e Env) int {
 		Holder:     scheduler.Holder{HolderPID: HolderPID(e.Getenv), GatePID: int64(os.Getpid())},
 		GateID:     "gate-" + hex.EncodeToString(gateID[:]),
 		Measure:    e.Measure,
+		Disk:       e.Disk,
 		Log:        log,
 		Top:        load.TopProcessText,
 		Now:        e.Now,
@@ -146,6 +150,10 @@ func runStarted(ctx context.Context, args []string, e Env) int {
 	}
 	cfg.BudgetMemoryPct, _ = strconv.Atoi(strings.TrimSpace(e.Getenv("CRSP_BUDGET_MEMORY_PCT")))
 	cfg.BudgetCPUPct, _ = strconv.Atoi(strings.TrimSpace(e.Getenv("CRSP_BUDGET_CPU_PCT")))
+	if cfg.Disk == nil {
+		cfg.Disk = osDisk(e.Getenv)
+	}
+	cfg.MinFreePct, _ = strconv.Atoi(strings.TrimSpace(e.Getenv("CRSP_DISK_MIN_FREE_PCT")))
 	if cfg.Measure == nil {
 		s := &load.Sampler{Probe: load.NewProbe(), CachePath: load.DefaultCachePath()}
 		cfg.Measure = s.Sample
@@ -170,6 +178,25 @@ func runCompleted(ctx context.Context, args []string, e Env) int {
 	}
 	return RunJobDone(ctx, DoneConfig{
 		Client: e.client(), Job: jobFromEnv(e.Getenv), Workspace: e.Getenv("GITHUB_WORKSPACE"), KeepWork: *keep,
-		Log: e.logger(*logPath),
+		Log: e.logger(*logPath), Caches: runnercache.CapsFromEnv(e.Getenv),
 	})
+}
+
+// osDisk reads the volume of the runner's tool cache, else of the job's
+// workspace, else of the current folder: the first that exists.
+func osDisk(getenv func(string) string) func() (runnercache.Disk, error) {
+	return func() (runnercache.Disk, error) {
+		var last error
+		for _, p := range []string{getenv(runnercache.EnvToolsDir), getenv("GITHUB_WORKSPACE"), "."} {
+			if p == "" {
+				continue
+			}
+			d, err := runnercache.OSDisk(p)
+			if err == nil {
+				return d, nil
+			}
+			last = err
+		}
+		return runnercache.Disk{}, last
+	}
 }

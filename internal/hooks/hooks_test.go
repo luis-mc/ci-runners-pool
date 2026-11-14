@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/hooks"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/load"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
@@ -420,5 +421,101 @@ func TestQuietGateUnderTwoSeconds(t *testing.T) {
 	}
 	if d := time.Since(start); d > 2*time.Second {
 		t.Fatalf("took %v", d)
+	}
+}
+
+// Caches R5.38: under 10% free the job waits (it is not failed), the alert line is written, and the
+// job goes on when space returns.
+func TestDiskGuardHoldsAndResumes(t *testing.T) {
+	w := newWorld(t)
+	a := agent{w.eng, slots.Defaults()}
+	cfg := w.cfg(a, slots.GateSettings{MaxWaitMin: 5, PollSec: 15, OnTimeout: "fail"}, quiet, "g1", 1)
+	free := []float64{4, 6, 11, 13}
+	reads := 0
+	cfg.Disk = func() (runnercache.Disk, error) {
+		f := free[min(reads, len(free)-1)]
+		reads++
+		return runnercache.Disk{Total: 1000, Free: int64(f * 10)}, nil
+	}
+	if code := hooks.RunGate(context.Background(), cfg); code != 0 {
+		t.Fatalf("exit %d\n%s", code, w.text())
+	}
+	if reads != 4 {
+		t.Fatalf("disk read %d times, want 4 (11%% is inside the resume margin)", reads)
+	}
+	if !strings.Contains(w.text(), "disk guard: holding the job: disk 4.0% free < 10%") ||
+		!strings.Contains(w.text(), "disk guard: 13.0% free, the job goes on") {
+		t.Fatalf("log:\n%s", w.text())
+	}
+	st, _ := w.eng.Status(context.Background(), machine)
+	if len(st.Slots) != 1 {
+		t.Fatalf("the job did not take its slot after the hold: %+v", st)
+	}
+}
+
+func TestDiskGuardTimeoutFailsWithoutSlotEvenOnTimeoutRun(t *testing.T) {
+	w := newWorld(t)
+	a := agent{w.eng, slots.Defaults()}
+	cfg := w.cfg(a, slots.GateSettings{MaxWaitMin: 1, PollSec: 15, OnTimeout: "run"}, quiet, "g1", 1)
+	cfg.Disk = func() (runnercache.Disk, error) { return runnercache.Disk{Total: 1000, Free: 20}, nil }
+	if code := hooks.RunGate(context.Background(), cfg); code != hooks.ExitTimeout {
+		t.Fatalf("exit %d\n%s", code, w.text())
+	}
+	st, _ := w.eng.Status(context.Background(), machine)
+	if len(st.Slots) != 0 || len(st.Tickets) != 0 {
+		t.Fatalf("a held job took a slot or ticket: %+v", st)
+	}
+}
+
+func TestDiskGuardFailsOpenOnReadError(t *testing.T) {
+	w := newWorld(t)
+	a := agent{w.eng, slots.Defaults()}
+	cfg := w.cfg(a, gate, quiet, "g1", 1)
+	cfg.Disk = func() (runnercache.Disk, error) { return runnercache.Disk{}, os.ErrPermission }
+	if code := hooks.RunGate(context.Background(), cfg); code != 0 || !strings.Contains(w.text(), "cannot read the disk") {
+		t.Fatalf("exit %d\n%s", code, w.text())
+	}
+}
+
+// Caches R5.37: the job-completed hook evicts the oldest entries over the quota, and never fails.
+func TestJobDoneEvictsOldestOverQuota(t *testing.T) {
+	dir := t.TempDir()
+	mk := func(name string, size int, age time.Duration) {
+		d := filepath.Join(dir, name)
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		f := filepath.Join(d, "blob")
+		if err := os.WriteFile(f, make([]byte, size), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		ts := time.Now().Add(-age)
+		_ = os.Chtimes(f, ts, ts)
+		_ = os.Chtimes(d, ts, ts)
+	}
+	mk("old", 600, 3*time.Hour)
+	mk("new", 600, time.Minute)
+	var lines []string
+	code := hooks.RunJobDone(context.Background(), hooks.DoneConfig{
+		Log:    func(l string) { lines = append(lines, l) },
+		Caches: []runnercache.Cap{{Name: "tool cache", Dir: dir, Bytes: 700}},
+	})
+	if code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "old")); !os.IsNotExist(err) {
+		t.Fatal("old entry kept")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "new")); err != nil {
+		t.Fatal("new entry removed")
+	}
+	if !strings.Contains(strings.Join(lines, "\n"), "tool cache over its quota: removed 1 entries") {
+		t.Fatalf("log: %v", lines)
+	}
+	// a cache folder that cannot be read never fails the hook
+	code = hooks.RunJobDone(context.Background(), hooks.DoneConfig{Log: func(string) {},
+		Caches: []runnercache.Cap{{Name: "tool cache", Dir: filepath.Join(dir, "new", "blob"), Bytes: 1}}})
+	if code != 0 {
+		t.Fatalf("exit %d", code)
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
 // Service plans, applies and removes runners on the controller side.
@@ -26,6 +27,9 @@ type Service struct {
 	Audit    Auditor
 	// PoolName is the one pool label a runner may carry.
 	PoolName string
+	// CacheQuota is the declared cache sizing every new runner gets (runners
+	// R5.39); a zero value takes the defaults.
+	CacheQuota runnercache.Quota
 	// Drain settings; the idle check and clock are replaceable for tests.
 	Poll, WarnAfter, DrainTimeout time.Duration
 	Sleep                         func(ctx context.Context, d time.Duration) error
@@ -465,7 +469,7 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 		return fail(fmt.Errorf("registration token: %w", err))
 	}
 	spec := backend.RunnerSpec{ID: id, Name: a.Name, OS: a.OS, Arch: a.Arch, Labels: a.Labels, GitHubURL: t.URL, Group: t.Group,
-		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, WindowsSymlinkRight: a.OS == "windows" && a.Symlink}
+		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, WindowsSymlinkRight: a.OS == "windows" && a.Symlink, CacheQuota: s.CacheQuota}
 	h, err := s.Agent.AddRunner(ctx, a.MachineID, spec, backend.StartConfig{Registration: token})
 	if err != nil {
 		return fail(err)
