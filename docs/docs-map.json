@@ -1,11 +1,17 @@
 {
   "schema": 1,
   "map": {
-    "internal/mail/**": [
-      "docs/features/notifications/spec.md"
+    "internal/backup/**": [
+      "docs/features/operations/spec.md"
     ],
-    "internal/notify/**": [
-      "docs/features/notifications/spec.md"
+    "internal/configio/**": [
+      "docs/features/operations/spec.md"
+    ],
+    "internal/install/**": [
+      "docs/features/operations/spec.md"
+    ],
+    "internal/update/**": [
+      "docs/features/operations/spec.md"
     ]
   }
 }

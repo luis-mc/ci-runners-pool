@@ -6,31 +6,33 @@
 
 ### agent
 
-No feature lists this app yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
 
 ### cli
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
 
 ### controller
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
 
 ### tray
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
 
 ### web-console
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
 
 ## By topic
 
@@ -44,7 +46,9 @@ No feature lists this topic yet.
 
 ### install
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
 
 ### isolation
 
@@ -56,19 +60,19 @@ No feature lists this topic yet.
 
 ### observability
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ### operations
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
 
 ### runners
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
 
 ### scheduling
 
@@ -78,13 +82,11 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
 
 ### ui
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ## By status
 
@@ -92,8 +94,8 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | proposed | 0.1.0 | 2026-11-14 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | proposed | 0.1.0 | 2026-11-14 |
 
 ## Gaps
 
-- app agent: no feature spec lists it
+None.
