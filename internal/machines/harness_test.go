@@ -188,7 +188,14 @@ func (f *fakeAgent) Close() { f.cancel() }
 
 func waitFor(t *testing.T, what string, cond func() bool) {
 	t.Helper()
-	deadline := time.Now().Add(5 * time.Second)
+	waitUntil(t, 5*time.Second, what, cond)
+}
+
+// waitUntil is waitFor with its own limit, for work that touches the real
+// machine (detection runs docker, lspci and the like) and is slow when cold.
+func waitUntil(t *testing.T, limit time.Duration, what string, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(limit)
 	for time.Now().Before(deadline) {
 		if cond() {
 			return

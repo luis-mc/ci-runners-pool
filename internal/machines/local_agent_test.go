@@ -44,7 +44,7 @@ func startLocalAgent(t *testing.T, e *env) (*agent.Gate, string) {
 	go func() { _ = agent.Run(runCtx, cfg); close(done) }()
 	t.Cleanup(func() { cancel(); <-done })
 	var id string
-	waitFor(t, "the controller's own machine", func() bool {
+	waitUntil(t, 60*time.Second, "the controller's own machine", func() bool {
 		vs, _ := e.Svc.List(ctx)
 		if len(vs) == 1 && vs[0].Machine.Online && vs[0].Load != nil {
 			id = vs[0].Machine.ID
