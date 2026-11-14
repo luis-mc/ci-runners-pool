@@ -1,0 +1,331 @@
+---
+id: cli
+title: Command line (CLI)
+apps: [cli, controller, agent, tray]
+topics: [operations, security, github, machines, runners, install]
+status: proposed
+version: 0.1.0
+owner: owner
+type: reference
+code: [cmd/ci-runners-pool/**, internal/cli/**]
+design_system: [content action-vocabulary, content message-wording, content dates-times-numbers]
+last_verified: 2026-11-14
+artifact:
+generator: luismc-docs 2.6.1
+---
+# Command line (CLI)
+
+The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
+
+Today the binary has three commands: `controller`, `agent` (it says it is not built yet) and `version`. Everything else in this spec is NOT YET IMPLEMENTED.
+
+## 1. In one paragraph
+
+`ci-runners-pool` is one program. It runs the controller, the agent and the tray. It is also the command line for people. The command line can do everything the web console can do: sign in, turn the pool on for a repository, add machines, add runners, watch jobs, run the doctor, and export or import the configuration. It suits headless machines and scripts. It talks to the controller through the same API contract as the web console. It prints plain tables for people and JSON for scripts.
+
+## 2. Why
+
+**Problem.** Many pool machines have no screen. Admins also want to script setup and checks. The web console alone cannot serve them.
+
+**Users.**
+
+- The owner and admins, at a terminal on any machine on the local network.
+- Scripts and CI jobs that read state or apply a configuration file.
+- Viewers, who can list and watch but not change anything.
+
+**Goals.**
+
+- The same powers as the web console, through the same API. No hidden paths.
+- Safe by default: a command that removes or stops something names what goes and asks first.
+- Easy to script: JSON output, stable exit codes, no questions when `--yes` is given.
+- Works with several controllers (for example home and office).
+- Never prints a secret.
+
+**Non-goals.**
+
+- It does not talk to GitHub directly. The controller does that.
+- It does not manage GitHub-hosted runners.
+- It does not repeat behaviour that other feature specs own. It calls it. See the table in section 7.
+
+## 3. How it works
+
+```mermaid
+flowchart LR
+  user[Person or script] --> cmd[ci-runners-pool command]
+  cmd --> ctx[Pick context: flag, env, current]
+  ctx --> sec[Read token from OS secret store]
+  sec --> client[Generated API client]
+  client -->|HTTPS, pinned certificate| ctrl[Controller API]
+  ctrl --> out{--json?}
+  out -->|no| table[Table and short messages]
+  out -->|yes| json[JSON on stdout]
+```
+
+1. The user runs a command, for example `ci-runners-pool machine list`.
+2. The CLI picks the controller: the `--context` flag, then the `CRP_CONTEXT` variable, then the current context in the CLI config file.
+3. It reads that context's token from the OS secret store. With no token, it says to run `ci-runners-pool login`.
+4. It calls the controller through the client generated from `packages/contract/openapi.yaml`. It checks the controller's certificate against the fingerprint it pinned at login.
+5. It prints the result: a table for people, or JSON with `--json`.
+6. It exits with a code from the table in R5.12.
+
+Sign-in uses GitHub's device flow (decision 0002):
+
+```mermaid
+sequenceDiagram
+  participant C as CLI
+  participant K as Controller
+  participant G as GitHub
+  C->>K: start device sign-in
+  K->>G: request device code (App client ID)
+  K-->>C: user code and github.com/login/device
+  Note over C: Prints the code and the link
+  C->>K: poll until done
+  K->>G: exchange device code
+  K-->>C: controller token for this user
+  Note over C: Saves token in OS secret store
+```
+
+The GitHub user token stays on the controller. The CLI only holds a controller token.
+
+## 4. Screens and states
+
+The CLI has no screens. Its words follow the design system's content rules: one word per action, message tones, dates and numbers (`docs/design-system/v1/content.md`). The tray has its own spec, `tray`.
+
+States a person sees:
+
+- **Empty:** "No machines yet. Run `ci-runners-pool machine add` to add one."
+- **Waiting:** "Waiting for 2 jobs to end on build-01 (about 4 min left)."
+- **Needs you:** "This removes runner linux-03 and stops 1 running job. Type yes to go on:"
+- **Problem:** "Could not reach the controller at https://pool.lan:8460. The connection timed out. Make sure the address is right, then try again."
+- **Done:** "Runner linux-03 removed."
+
+## 5. Functional requirements
+
+Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`).
+
+### Command tree
+
+| Command | What it does | Milestone | Owner spec of the behaviour |
+|---|---|---|---|
+| `controller` | Run the controller (built today) | built | `web-console`, `github-integration` |
+| `agent` | Run the agent; `agent join` uses a join command | M1 (join: M3) | `machines` |
+| `tray` | Run the tray in the user's session | M8 | `tray` |
+| `version` | Print the version (built today) | built | this spec |
+| `login` | Sign in with the device flow | M1 | `github-integration` |
+| `logout` | Forget this context's token | M1 | this spec |
+| `open` | Print, and on a desktop open, a one-time console link | M1 | `web-console` |
+| `context list\|use\|remove` | Choose between controllers | M1 | this spec |
+| `repo list\|enable\|disable\|policy` | Repositories and their pool policy | M1 | `github-integration`, `scheduling` |
+| `machine list` | List machines with load and slots | M1 | `machines` |
+| `machine add` | Print a join command with a one-time code | M3 | `machines` |
+| `machine drain\|remove` | Drain or remove a machine | M3 | `machines` |
+| `runner list\|create\|remove` | Runners on machines | M1 | `runners` |
+| `job list\|watch` | Queue and history; live view | M1 | `scheduling` |
+| `doctor` | Run every check and print fixes | M2 | `doctor` |
+| `config export\|import --dry-run\|apply` | Configuration as a file | M8 | `config-as-code` |
+| `backup\|restore` | Back up and restore the controller | M8 | `backup` |
+| `update` | Update this machine's binary, with drain | M3 | `updates` |
+| `completion bash\|zsh\|fish\|powershell` | Print a shell completion script | M1 | this spec |
+
+**R5.1** — The binary MUST provide every command in the table above, each with `--help`. A command whose milestone is not reached yet MUST say it is not built yet, in `--help` and when run, and exit non-zero without changing anything.
+
+**R5.2** — Every CLI call to the controller MUST go through the Go client generated from `packages/contract/openapi.yaml`, the same contract the web console's client is generated from. The CLI MUST NOT call controller paths by hand.
+
+**R5.3** — Every operation in the contract that a signed-in person can call MUST be reachable from a CLI command. An operation the CLI leaves out MUST carry `x-cli: none` with a reason. A test fails when a new operation has neither.
+
+### Sign-in and contexts
+
+**R5.4** — `login [URL]` MUST sign in with GitHub's device flow through the controller. It prints the user code and the link `https://github.com/login/device`, waits, and then saves a controller token for that user in the OS secret store (Windows Credential Manager, macOS Keychain, Linux Secret Service, or a file with mode 0600 where no Secret Service exists).
+
+**R5.5** — At first login to a controller, `login` MUST show the controller certificate's SHA-256 fingerprint and ask for a yes (or take `--fingerprint`). It pins that fingerprint in the context. A later certificate with another fingerprint MUST be refused.
+
+**R5.6** — `login` MUST add or update a context (name, controller URL, pinned fingerprint) in the CLI config file and make it current. `context list` shows the contexts and marks the current one. `context use NAME` changes it. `context remove NAME` deletes the context and its token, after a yes.
+
+**R5.7** — The context MUST be picked in this order: `--context NAME`, then `CRP_CONTEXT`, then the current context in the file. `--controller URL` MUST work only for a URL that some context already pins.
+
+**R5.8** — `logout` MUST delete this context's token from the secret store and ask the controller to revoke it. It MUST delete the local token even when the controller cannot be reached, and say so.
+
+**R5.9** — `open` MUST ask the controller for a one-time console link, print it, and open it in the default browser when a desktop session exists. `--print` only prints. The link MUST work once and expire after 60 seconds.
+
+### Output and exit codes
+
+**R5.10** — By default, list commands MUST print an aligned table to stdout with a header row. Messages, progress and questions MUST go to stderr. Dates, times and numbers MUST follow the content rules (for example `2026-11-02 14:30`, `12 345`, `45%`).
+
+**R5.11** — With `--json`, a command MUST print one JSON document to stdout that matches the contract's response schema. `job watch --json` MUST print one JSON event per line. On failure, `--json` MUST print the contract's `ErrorEnvelope` to stderr.
+
+**R5.12** — Commands MUST exit with these codes:
+
+| Code | Meaning |
+|---|---|
+| 0 | Done |
+| 1 | The operation failed (the controller said no, or it failed while running) |
+| 2 | Usage error: unknown command or flag, or a bad value |
+| 3 | Not signed in, token expired, or not allowed (role too low) |
+| 4 | Not found: no such repository, machine, runner or job |
+| 5 | Not confirmed: no yes was given; nothing changed |
+| 6 | The controller could not be reached, or its certificate did not match |
+| 7 | Conflict: the state changed since it was read; nothing changed |
+| 8 | `doctor` found a problem, or `config import --dry-run` found changes |
+
+**R5.13** — Colour MUST be off when stdout is not a terminal, when `NO_COLOR` is set, or with `--no-color`. No meaning MUST rest on colour alone.
+
+### Changes that remove or stop
+
+**R5.14** — A command that removes, disables, restores, applies or restarts (`repo disable`, `machine drain`, `machine remove`, `runner remove`, `context remove`, `config apply`, `restore`, `update`) MUST first print what goes: each item by name, and the running jobs it would wait for or stop. It then MUST ask "Type yes to go on:" when stdin is a terminal.
+
+**R5.15** — With `--yes`, the command MUST skip the question but still print the list. Without `--yes` and without a terminal, it MUST change nothing and exit 5.
+
+**R5.16** — `machine drain`, `machine remove`, `runner remove` and `update` MUST NOT cut a running job. They wait until the jobs end, or until `--drain-timeout` (default from the machine's drain timeout) passes. They show what they wait for. When the timeout passes, they stop the named jobs only if `--stop-jobs` was given; otherwise they exit 1 and change nothing more.
+
+### Resource commands
+
+**R5.17** — `repo list` MUST list the repositories the user can administer, with pool on or off, labels, parallel limit, priority and repository variable status. `repo enable OWNER/NAME` and `repo disable OWNER/NAME` turn the pool on or off. `repo policy OWNER/NAME` shows the policy; with flags (`--labels`, `--max-parallel`, `--priority`, `--allow-fork-prs`) it changes it. `--allow-fork-prs` MUST print the fork warning and need a yes.
+
+**R5.18** — `machine list` MUST show each machine with state (active, drained, offline), OS, backends, slots used and free, memory and CPU load. `machine add [--name NAME] [--expires 15m]` MUST print one join command with a one-time join code, and how long it is valid.
+
+**R5.19** — `runner list` MUST show each runner with machine, OS, backend, labels, persistent or ephemeral, current job and age. `runner create --machine M --os OS [--backend B] [--persistent] [--count N]` MUST refuse a machine that does not support that OS or backend, and say which machines do.
+
+**R5.20** — `job list` MUST show the queue and history, with filters `--repo`, `--machine`, `--result`, `--since`. `job watch` MUST stream live events (queued, started, ended) until stopped with Ctrl+C, and reconnect after a dropped stream.
+
+**R5.21** — `doctor` MUST print every finding with its fix. `--machine M` narrows it to one machine.
+
+**R5.22** — `config export [--out FILE]` MUST write the configuration file. `config import FILE --dry-run` MUST print the plan (each change: add, edit, remove) and change nothing; "Nothing has changed yet." ends the plan. `config import FILE` without `--dry-run` MUST exit 2 and point to `config apply`. `config apply FILE` MUST print the same plan, ask for a yes (R5.14), and apply it.
+
+**R5.23** — `backup --out FILE` MUST download a backup of the controller's configuration. `restore FILE` MUST show what it replaces, need a yes, and be allowed for the owner only.
+
+**R5.24** — `update` MUST find the newest release, verify its SHA-256 checksum and signature, name the jobs on this machine it would wait for, drain, replace the binary, and restart the local services. `update --dry-run` only reports the newest version and the jobs it would wait for. It changes nothing.
+
+**R5.25** — `completion SHELL` MUST print a completion script for bash, zsh, fish or PowerShell. Completion MUST suggest commands and flags without a network call, and names (repositories, machines, runners) from the controller when it answers within 1 second.
+
+**R5.26** — `version` MUST print `ci-runners-pool <version> (<Go version>)` and exit 0. `version --json` MUST print `{"version": ..., "go": ...}`. (Built today, without `--json`.)
+
+**R5.27** — A command run with no subcommand, or `help`, MUST print usage. Usage to stdout exits 0 when asked for; usage after an error goes to stderr and exits 2. (Built today.)
+
+## 6. Non-functional requirements
+
+**R6.1** — The CLI MUST NOT print, log or write to its config file any secret: controller tokens, GitHub tokens, the App private key, the webhook secret, registration or remove tokens. The one-time join code (`machine add`) and the one-time console link (`open`) are the only short-lived codes it prints, and only on those commands.
+
+**R6.2** — The CLI config file MUST hold only context names, URLs, fingerprints and the current context. Tokens MUST live only in the OS secret store. The fallback file MUST have mode 0600 and the CLI MUST refuse to use it when its mode is wider.
+
+**R6.3** — The CLI MUST talk to the controller only over HTTPS with the pinned certificate. It MUST NOT offer a flag that turns certificate checks off.
+
+**R6.4** — `version`, `help` and `completion` MUST finish in under 100 ms and make no network call.
+
+**R6.5** — A list command MUST finish in under 1 second for 1 000 items when the controller is on the local network. Every call MUST have a timeout (default 30 seconds, `--timeout` to change it).
+
+**R6.6** — The role check MUST happen on the controller. A viewer's change command MUST fail with exit 3 and a plain message naming the role it needs.
+
+**R6.7** — Human output MUST fit 80 columns for the default columns of every list command; longer cells are cut with an ellipsis. `--json` output is never cut.
+
+**R6.8** — The `--json` output of a command MUST stay stable within a major version of the contract. A field may be added; a field is never renamed or removed without a new major version.
+
+## 7. Design
+
+```mermaid
+flowchart TB
+  main[cmd/ci-runners-pool/main.go] --> modes[controller / agent / tray]
+  main --> cli[internal/cli: command tree, flags, prompts, exit codes]
+  cli --> out[internal/cli/output: table and JSON]
+  cli --> ctx[internal/cli/contexts: config file]
+  cli --> sec[OS secret store wrapper]
+  cli --> gen[generated Go client from openapi.yaml]
+  gen --> api[Controller API]
+```
+
+- **Entry.** `main.go` keeps the mode dispatch (`controller`, `agent`, `tray`). All other commands go to `internal/cli`.
+- **Client.** `packages/contract/oapi-codegen.yaml` gains a client target. The web console's TypeScript client and the Go client come from the same file. That makes R5.3 a test, not a promise.
+- **Contract operations the CLI needs.** Each is added to the contract by its owner spec: device sign-in start and poll, token revoke (`github-integration`); one-time console link (`web-console`); repositories and policy (`github-integration`, `scheduling`); machines and join codes (`machines`); runners (`runners`); jobs and the live event stream (`scheduling`); doctor (`doctor`); config export, plan and apply (`config-as-code`); backup and restore (`backup`); releases (`updates`).
+- **Config file.** `<user config dir>/ci-runners-pool/cli.toml`. Keys: `current`, and per context `url` and `fingerprint`.
+- **Secret store key.** `ci-runners-pool/cli/<context>`.
+- **Prompts.** One helper prints the list of what goes, then asks, then maps the answer to go on or exit 5. Every destructive command uses it.
+- **Errors.** One function maps HTTP status and transport errors to the exit codes in R5.12. 401 and 403 map to 3, 404 to 4, 409 to 7.
+
+## 8. Failure modes
+
+| Dependency | Fails | Why |
+|---|---|---|
+| Controller unreachable | Closed: exit 6, nothing changed | A change must never be half-done without the user knowing. |
+| Certificate fingerprint differs | Closed: exit 6 | It may be another machine posing as the controller. |
+| OS secret store unavailable | Closed: `login` fails and says why | A token in plain text would leak. |
+| Live event stream drops (`job watch`) | Open: reconnect with backoff, print "Reconnecting" | Watching is read-only. |
+| Completion lookup slow or failing | Open: no name suggestions | Completion must never block the shell. |
+| Update checksum or signature wrong | Closed: nothing replaced, exit 1 | A bad binary would run on every machine. |
+| Controller logout fails | Open locally: the token is deleted here anyway | The user asked to forget it. |
+
+## 9. How it is proven
+
+Tests are planned unless marked built. Planned paths are written in plain text until the files exist.
+
+| Requirement | Test |
+|---|---|
+| R5.1 | planned: internal/cli/tree_test.go TestEveryCommandHasHelp, TestUnbuiltCommandExits2 |
+| R5.2 | planned: internal/cli/client_test.go TestNoHandWrittenControllerCalls |
+| R5.3 | planned: internal/cli/parity_test.go TestEveryOperationHasCommand |
+| R5.4 | planned: internal/cli/login_test.go TestDeviceFlowSavesToken |
+| R5.5 | planned: internal/cli/login_test.go TestFingerprintPinnedAndMismatchRefused |
+| R5.6 | planned: internal/cli/contexts/contexts_test.go TestAddUseRemove |
+| R5.7 | planned: internal/cli/contexts/contexts_test.go TestPickOrder |
+| R5.8 | planned: internal/cli/login_test.go TestLogoutOffline |
+| R5.9 | planned: internal/cli/open_test.go TestOneTimeLinkPrinted |
+| R5.10 | planned: internal/cli/output/table_test.go TestTableAndFormats |
+| R5.11 | planned: internal/cli/output/json_test.go TestJSONMatchesSchema, TestWatchNDJSON |
+| R5.12 | planned: internal/cli/exitcode_test.go TestStatusToExitCode |
+| R5.13 | planned: internal/cli/output/table_test.go TestNoColor |
+| R5.14 | planned: internal/cli/confirm_test.go TestDestructiveListsWhatGoes |
+| R5.15 | planned: internal/cli/confirm_test.go TestYesFlagAndNoTerminal |
+| R5.16 | planned: internal/cli/drain_test.go TestWaitsForJobsAndTimeout |
+| R5.17 | planned: internal/cli/repo_test.go TestRepoCommands, TestForkWarning |
+| R5.18 | planned: internal/cli/machine_test.go TestMachineListAndAdd |
+| R5.19 | planned: internal/cli/runner_test.go TestRunnerCreateRefusesUnsupported |
+| R5.20 | planned: internal/cli/job_test.go TestJobListFilters, TestWatchReconnects |
+| R5.21 | planned: internal/cli/doctor_test.go TestFindingsAndExitCode |
+| R5.22 | planned: internal/cli/config_test.go TestDryRunChangesNothing, TestApplyNeedsYes |
+| R5.23 | planned: internal/cli/backup_test.go TestBackupRestoreOwnerOnly |
+| R5.24 | planned: internal/cli/update_test.go TestChecksumAndDrain |
+| R5.25 | planned: internal/cli/completion_test.go TestScriptsAndOfflineCompletion |
+| R5.26 | built: `cmd/ci-runners-pool/main_test.go` TestRunVersion; planned: --json case |
+| R5.27 | built: `cmd/ci-runners-pool/main_test.go` TestRunUsageErrors |
+| R6.1 | planned: internal/cli/secrets_test.go TestNoSecretInOutputOrConfig (runs every command with a canary token) |
+| R6.2 | planned: internal/cli/contexts/contexts_test.go TestNoTokenInFile, TestFallbackFileMode |
+| R6.3 | planned: internal/cli/client_test.go TestNoInsecureFlag |
+| R6.4 | planned: internal/cli/bench_test.go BenchmarkOfflineCommands |
+| R6.5 | planned: internal/cli/bench_test.go BenchmarkList1000, TestCallTimeout |
+| R6.6 | planned: internal/cli/role_test.go TestViewerChangeExits3 |
+| R6.7 | planned: internal/cli/output/table_test.go TestFits80Columns |
+| R6.8 | planned: internal/cli/output/json_test.go TestJSONGolden |
+
+## 10. Decisions
+
+| ID | Question | Chosen | Date |
+|---|---|---|---|
+| D1 | How does the CLI sign in? | GitHub device flow through the controller; the CLI keeps only a controller token (decision 0002). | 2026-11-13 |
+| D2 | How does the CLI reach the API? | The Go client generated from the same OpenAPI contract as the web console (decision 0001). | 2026-11-13 |
+| D3 | How does a headless machine open the console? | `ci-runners-pool open` prints a one-time link (decision 0005). | 2026-11-13 |
+
+Open questions for the owner (not decided):
+
+1. `runner create`: the content rules say "Add", never "Create". Rename to `runner add`?
+2. Which milestone ships the `tray` mode? This spec says M8; the brief does not say.
+3. `config import` without `--dry-run`: refuse and point to `config apply` (this spec), or apply after a yes?
+4. Does `backup` include secrets (App private key, webhook secret), encrypted with a passphrase, or leave them out?
+5. Should scripts be able to pass a token in an environment variable (for example `CRP_TOKEN`), or only through `login`?
+6. Command library: the standard `flag` package or `spf13/cobra` (built-in completion)?
+7. Commands for the remaining console screens (users, notifications, budgets, images and caches, audit log): add them here, or in their own specs? R5.3 requires them in the end.
+8. Feature folder names of other specs are assumed (`runners`, `web-console`, `tray`, `doctor`, `config-as-code`, `backup`, `updates`). Confirm them.
+
+## 11. Not built yet
+
+Everything except `controller`, `version`, `help` and the `agent` placeholder is NOT YET IMPLEMENTED.
+
+- The seam: `run()` in `cmd/ci-runners-pool/main.go` sends any command other than the modes to `internal/cli`.
+- `packages/contract/oapi-codegen.yaml` has no client target yet. The contract has only `getHealth`.
+- `version --json` is not built.
+
+## 12. Code map
+
+Source: cmd/ci-runners-pool/main.go
+Source: cmd/ci-runners-pool/main_test.go
+Source: packages/contract/openapi.yaml
+Source: packages/contract/oapi-codegen.yaml
+
+Planned: internal/cli/ (command tree, output, prompts, exit codes), internal/cli/contexts/ (config file).

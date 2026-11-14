@@ -1,4 +1,11 @@
 {
   "schema": 1,
-  "map": {}
+  "map": {
+    "cmd/ci-runners-pool/**": [
+      "docs/features/cli/spec.md"
+    ],
+    "internal/cli/**": [
+      "docs/features/cli/spec.md"
+    ]
+  }
 }
