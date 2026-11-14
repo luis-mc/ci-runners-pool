@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { TIMING } from '../../timing';
 import { ApiError, errorText, unwrap, useClient, type Schemas } from '../../api/api';
+import { useMounted } from '../../api/mounted';
 import {
   allRepositories,
   needsYes,
@@ -152,6 +153,7 @@ export function AddRunnersWizard() {
     }
   };
 
+  const { mounted, sleep } = useMounted();
   const apply = async () => {
     if (!plan) return;
     setStep(3);
@@ -168,12 +170,17 @@ export function AddRunnersWizard() {
       setParams(next, { replace: true });
       setPlan(p);
       while (p.state === 'applying' || p.state === 'planned') {
-        await new Promise((r) => setTimeout(r, TIMING.planPollMs));
+        if (!(await sleep(TIMING.planPollMs))) {
+          return;
+        }
         p = await unwrap(
           client.GET('/api/v1/runner-plans/{planId}', {
             params: { path: { planId: p.id } },
           }),
         );
+        if (!mounted.current) {
+          return;
+        }
         setPlan(p);
       }
       settle(p, false);

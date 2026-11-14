@@ -11,7 +11,7 @@ import { AppShell } from './shell/Shell';
 import { FaultBoundary } from './screens/common';
 import { DoctorScreen } from './screens/doctor/Doctor';
 import { JobDetail, JobsList } from './screens/jobs/Jobs';
-import { Later, NotFound } from './screens/Later';
+import { NotFound } from './screens/Later';
 import { ImagesAndCaches } from './screens/images/ImagesAndCaches';
 import { MachineDetail, MachinesList } from './screens/machines/Machines';
 import { AddMachinePage } from './screens/machines/AddMachine';

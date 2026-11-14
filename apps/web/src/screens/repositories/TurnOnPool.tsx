@@ -21,6 +21,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { TIMING } from '../../timing';
 import { ApiError, errorText, unwrap, useClient } from '../../api/api';
+import { useMounted } from '../../api/mounted';
 import { useLiveState } from '../../live/LiveProvider';
 import {
   allRepositories,
@@ -130,6 +131,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
     }
   };
 
+  const { mounted, sleep } = useMounted();
   const apply = async () => {
     if (!plan) return;
     setStep(3);
@@ -148,12 +150,19 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
       setParams(next, { replace: true });
       setPlan(p);
       while (p.state === 'applying' || p.state === 'planned') {
-        await new Promise((r) => setTimeout(r, TIMING.planPollMs));
+        if (!(await sleep(TIMING.planPollMs))) {
+          running.current = false;
+          return;
+        }
         p = await unwrap(
           client.GET('/api/v1/repository-plans/{planId}', {
             params: { path: { planId: p.id } },
           }),
         );
+        if (!mounted.current) {
+          running.current = false;
+          return;
+        }
         setPlan(p);
       }
       running.current = false;
