@@ -112,7 +112,7 @@ func TestArchiveHasDbConfigManifestNoSecret(t *testing.T) {
 
 	// A config that holds a secret stays out of the archive, and so does the value.
 	secret := "SUPER-SECRET-VALUE-123"
-	if err := os.WriteFile(e.cfg, []byte("webhook_secret = \""+secret+"\"\n"), 0o600); err != nil {
+	if err := os.WriteFile(e.cfg, []byte("webhooksecret = \""+secret+"\"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	e.now = e.now.Add(time.Hour)

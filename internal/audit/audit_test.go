@@ -67,7 +67,7 @@ func TestRedactsSecretsAndLongValues(t *testing.T) {
 	ctx := context.Background()
 	l := New(open(t))
 	err := l.Record(ctx, System, "secret.rotate", Target{Type: "secret"}, map[string]any{
-		"private_key": "-----BEGIN-----", "nested": map[string]any{"webhook_secret": "hunter2"}, "note": strings.Repeat("a", 900),
+		"privatekey": "-----BEGIN-----", "nested": map[string]any{"webhooksecret": "hunter2"}, "note": strings.Repeat("a", 900),
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -100,8 +100,8 @@ func TestRefusesUnknownKeysWrongTypesAndSecrets(t *testing.T) {
 		"unknown key":  {`bogus = 1`, `unknown key "bogus"`},
 		"wrong type":   {`listen_addr = 5`, "ListenAddr"},
 		"not toml":     {`listen_addr = `, "line"},
-		"secret key":   {`private_key = "-----BEGIN KEY-----"`, `key "private_key" holds a secret`},
-		"nested token": {"[github]\nwebhook_secret = \"s3cr3t-value\"", `key "github.webhook_secret" holds a secret`},
+		"secret key":   {`privatekey = "-----BEGIN KEY-----"`, `key "privatekey" holds a secret`},
+		"nested token": {"[github]\nwebhooksecret = \"s3cr3t-value\"", `key "github.webhooksecret" holds a secret`},
 	}
 	for name, c := range cases {
 		_, err := LoadFor("linux", env(nil), files(map[string]string{"/etc/crsp/config.toml": c.file}))
