@@ -57,7 +57,7 @@ func (s *memSecrets) Backend() string { return "memory" }
 type fixture struct {
 	t        *testing.T
 	srv      *httptest.Server
-	mux      *http.ServeMux
+	routes   map[string]http.HandlerFunc
 	mu       sync.Mutex
 	calls    []string
 	dir      string
@@ -72,14 +72,21 @@ type fixture struct {
 
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
-	f := &fixture{t: t, mux: http.NewServeMux(), dir: t.TempDir(), secrets: &memSecrets{}, now: time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC)}
+	f := &fixture{t: t, routes: map[string]http.HandlerFunc{}, dir: t.TempDir(), secrets: &memSecrets{}, now: time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC)}
 	f.ctx, f.cancel = context.WithCancel(context.Background())
 	t.Cleanup(f.cancel)
 	f.srv = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.mu.Lock()
 		f.calls = append(f.calls, r.Method+" "+r.URL.RequestURI())
 		f.mu.Unlock()
-		f.mux.ServeHTTP(w, r)
+		f.mu.Lock()
+		h := f.routes[r.Method+" "+r.URL.Path]
+		f.mu.Unlock()
+		if h == nil {
+			writeJSON(w, 404, apiErr("not_found", "no such route in the fake controller"))
+			return
+		}
+		h(w, r)
 	}))
 	t.Cleanup(f.srv.Close)
 	cf := &contexts.File{Contexts: map[string]contexts.Context{}}
@@ -98,7 +105,11 @@ func (f *fixture) fingerprint() string {
 }
 
 // handle registers a handler for "METHOD /path".
-func (f *fixture) handle(pattern string, h http.HandlerFunc) { f.mux.HandleFunc(pattern, h) }
+func (f *fixture) handle(pattern string, h http.HandlerFunc) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.routes[pattern] = h
+}
 
 // reply registers a fixed JSON answer.
 func (f *fixture) reply(pattern string, status int, body any) {
