@@ -454,7 +454,7 @@ The seams that change as it is built:
 - Open questions for the owner (until answered, the choices in section 10 stand):
   1. The brief lists the doctor under milestone 2 but says every milestone ends with the doctor covering its parts. Start it in milestone 1 (D6)?
   2. Answered in CRSP23: only `fail` exits 1; `warn` exits 0 (see R5.22).
-  3. Decision 0002 is updated to the `RUNS_ON_*` names (D4, D300).
+  3. Decision 0002 still shows `CRSP_RUNS_ON_LINUX` as an example; the product writes `RUNS_ON_*` (D4, D300).
   4. UX-58 has no glyph for a warning. Add one in the next design-system version (for example `! warn` in Needs you amber)?
   5. Schedule defaults: full run every 30 minutes and quick run every 60 s (R5.25). Right?
   6. May viewers start a run, or only read findings (R6.4)?

@@ -402,7 +402,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 
 | ID | Question | Chosen | Date |
 |---|---|---|---|
-| GI-1 | Variable names | `RUNS_ON_LINUX`, `RUNS_ON_WINDOWS`, `RUNS_ON_MACOS` (product brief, 2026-11-14). Replaces the older `CRSP_RUNS_ON_*` names (D300, CRSP25); the controller deletes those on upgrade (R5.28). | 2026-11-14 |
+| GI-1 | Variable names | `RUNS_ON_LINUX`, `RUNS_ON_WINDOWS`, `RUNS_ON_MACOS` (product brief, 2026-11-14). Replaces the older `CRSP_RUNS_ON_*` names (D300, CRSP25); the controller deletes those on upgrade (R5.28). Decision 0002 still shows the old name as an example. | 2026-11-14 |
 | GI-2 | How the first owner is protected on a network | A one-time setup code from the terminal or tray gates the wizard and the owner claim (R5.1, R5.10). | 2026-11-14 |
 | GI-3 | How the CLI authenticates to the controller | Device flow to GitHub, then a controller CLI token; the GitHub token is dropped (R5.14). | 2026-11-14 |
 | GI-4 | How fork pull requests are kept off | Fork approval setting plus a job-started hook guard (R5.26). | 2026-11-14 |
