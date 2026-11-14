@@ -1,0 +1,399 @@
+package machines
+
+import (
+	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base32"
+	"encoding/base64"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"net"
+	"strings"
+	"sync"
+	"time"
+)
+
+// Timings of the spec.
+const (
+	// OfflineAfter: no heartbeat for this long marks a machine offline (R5.35).
+	OfflineAfter = 30 * time.Second
+	// HeartbeatEvery is what the controller expects of agents (R5.35).
+	HeartbeatEvery = 10 * time.Second
+	// StaleAfter: a load older than this is marked stale (R6.7).
+	StaleAfter = 20 * time.Second
+	// LoadStep: load history is kept at this step (R6.8).
+	LoadStep = 15 * time.Second
+	// LoadRetention: older load is dropped (R6.8).
+	LoadRetention = 24 * time.Hour
+
+	// DefaultCodeTTL and MaxCodeTTL are the join code lifetime (R5.4).
+	DefaultCodeTTL = 15 * time.Minute
+	MaxCodeTTL     = 24 * time.Hour
+
+	// joinFailLimit failed joins from one address inside joinFailWindow refuse
+	// that address for joinBlockFor (R6.3).
+	joinFailLimit  = 10
+	joinFailWindow = time.Minute
+	joinBlockFor   = 5 * time.Minute
+)
+
+// Notifier is told after a change committed, so live views update (R5.50).
+type Notifier interface {
+	MachineChanged(machineID string)
+	LoadChanged(machineID string)
+}
+
+// JobStopper stops the named running jobs after the user said yes (R5.33). It
+// belongs to the runners feature; without one, "stop those jobs now" says so.
+type JobStopper interface {
+	StopJobs(ctx context.Context, machineID string, jobs []JobRef) error
+}
+
+// Options configure a Service.
+type Options struct {
+	Repo Repository
+	Now  func() time.Time
+	// Controller address and the certificate pin go into the install commands.
+	ControllerAddress string
+	AgentPort         int
+	Fingerprint       string
+	Notify            Notifier
+	Stopper           JobStopper
+	// OnIdle runs a change of another feature (agent update, runner image
+	// rebuild, service restart) once the machine is idle; it runs in the step
+	// that keeps new jobs out (R5.32). Nil means nothing else to do.
+	OnIdle func(ctx context.Context, c Change) error
+}
+
+// Service is the controller side of machines.
+type Service struct {
+	o        Options
+	sessions *Sessions
+	hooks    Hooks
+
+	mu       sync.Mutex
+	loads    map[string]Load
+	lastKept map[string]time.Time
+	running  map[string][]JobRef
+	runners  map[string][]string
+	fails    map[string][]time.Time
+	blocked  map[string]time.Time
+}
+
+// New returns a Service.
+func New(o Options) *Service {
+	if o.Now == nil {
+		o.Now = time.Now
+	}
+	if o.AgentPort == 0 {
+		o.AgentPort = 8461
+	}
+	return &Service{
+		o: o, sessions: newSessions(),
+		loads: map[string]Load{}, lastKept: map[string]time.Time{}, running: map[string][]JobRef{},
+		runners: map[string][]string{}, fails: map[string][]time.Time{}, blocked: map[string]time.Time{},
+	}
+}
+
+func (s *Service) now() time.Time { return s.o.Now().UTC() }
+
+// ---------------------------------------------------------------- secrets
+
+func randomToken(prefix string, nbytes int) string {
+	b := make([]byte, nbytes)
+	if _, err := rand.Read(b); err != nil {
+		panic(err) // no system randomness: nothing safe can continue
+	}
+	return prefix + base64.RawURLEncoding.EncodeToString(b)
+}
+
+// hashSecret is the stored form of a join code or machine key (R6.2). Both
+// carry at least 160 bits of randomness, so a plain SHA-256 is enough.
+func hashSecret(v string) string {
+	sum := sha256.Sum256([]byte(v))
+	return hex.EncodeToString(sum[:])
+}
+
+func newID(prefix string) string {
+	b := make([]byte, 10)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	return prefix + strings.ToLower(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(b))
+}
+
+// ---------------------------------------------------------------- join codes
+
+// CreatedCode is a new join code. Code is shown once and never stored.
+type CreatedCode struct {
+	Code     string
+	JoinCode JoinCode
+}
+
+// CreateJoinCode makes a one-time code that lives ttl (default 15 minutes,
+// ceiling 24 hours) and makes every older unused code invalid (R5.4). The code
+// has 160 bits of entropy (R6.3).
+func (s *Service) CreateJoinCode(ctx context.Context, actor string, ttl time.Duration) (CreatedCode, error) {
+	if ttl == 0 {
+		ttl = DefaultCodeTTL
+	}
+	if ttl < 0 || ttl > MaxCodeTTL {
+		return CreatedCode{}, fmt.Errorf("%w: a join code lives at most 24 hours", ErrInvalid)
+	}
+	now := s.now()
+	if err := s.o.Repo.RevokeOpenJoinCodes(ctx, now); err != nil {
+		return CreatedCode{}, err
+	}
+	code := randomToken("", 20)
+	jc := JoinCode{ID: newID("jc_"), Hash: hashSecret(code), Kind: CodeKindCode, CreatedBy: actor, CreatedAt: now, ExpiresAt: now.Add(ttl)}
+	if err := s.o.Repo.InsertJoinCode(ctx, jc); err != nil {
+		return CreatedCode{}, err
+	}
+	_ = s.o.Repo.Audit(ctx, actor, "join_code.create", jc.ID, "expires "+jc.ExpiresAt.Format(time.RFC3339))
+	return CreatedCode{Code: code, JoinCode: jc}, nil
+}
+
+// GetJoinCode returns a code's record (never its value).
+func (s *Service) GetJoinCode(ctx context.Context, id string) (JoinCode, CodeState, error) {
+	c, err := s.o.Repo.GetJoinCode(ctx, id)
+	if err != nil {
+		return JoinCode{}, "", err
+	}
+	return c, c.State(s.now()), nil
+}
+
+// RevokeJoinCode withdraws an unused code.
+func (s *Service) RevokeJoinCode(ctx context.Context, actor, id string) error {
+	ok, err := s.o.Repo.RevokeJoinCode(ctx, id, s.now())
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("%w: the code is used, withdrawn or unknown", ErrNotFound)
+	}
+	_ = s.o.Repo.Audit(ctx, actor, "join_code.revoke", id, "")
+	return nil
+}
+
+// LocalCredential makes the one-time credential the controller writes for its
+// own machine's agent (R5.1): same Join call, no code typed. It lives ten
+// minutes and does not revoke other codes.
+func (s *Service) LocalCredential(ctx context.Context) (string, error) {
+	now := s.now()
+	cred := randomToken("", 20)
+	jc := JoinCode{ID: newID("jc_"), Hash: hashSecret(cred), Kind: CodeKindLocal, CreatedBy: "controller", CreatedAt: now, ExpiresAt: now.Add(10 * time.Minute)}
+	if err := s.o.Repo.InsertJoinCode(ctx, jc); err != nil {
+		return "", err
+	}
+	return cred, nil
+}
+
+// InstallCommand is one install command for one OS (R5.3).
+type InstallCommand struct {
+	OS      string
+	Command string
+}
+
+// InstallCommands builds the command per OS. It carries the controller
+// address, the agent port, the certificate fingerprint and, when given, the
+// join code (R5.3). With no code the placeholder says where to put it.
+func (s *Service) InstallCommands(code string) []InstallCommand {
+	addr := fmt.Sprintf("%s:%d", s.o.ControllerAddress, s.o.AgentPort)
+	if code == "" {
+		code = "<join code>"
+	}
+	args := fmt.Sprintf("agent install --controller %s --fingerprint %s --join-code %s", addr, s.o.Fingerprint, code)
+	return []InstallCommand{
+		{OS: "windows", Command: "crsp.exe " + args},
+		{OS: "linux", Command: "sudo crsp " + args},
+		{OS: "macos", Command: "sudo crsp " + args},
+	}
+}
+
+// ControllerInfo is what an install command carries.
+func (s *Service) ControllerInfo() (address string, port int, fingerprint string) {
+	return s.o.ControllerAddress, s.o.AgentPort, s.o.Fingerprint
+}
+
+// ---------------------------------------------------------------- join
+
+// JoinInput is a join request.
+type JoinInput struct {
+	Code         string
+	Local        bool // the code is the local credential (R5.1)
+	Facts        Facts
+	AgentVersion string
+	// RemoteAddr is the caller's address, for the failed-attempt limit (R6.3).
+	RemoteAddr string
+}
+
+// JoinResult is what the agent gets once (R5.6, R5.7).
+type JoinResult struct {
+	MachineID string
+	// Key is the machine key, shown here only; the controller keeps its hash.
+	Key         string
+	Fingerprint string
+	Settings    Settings
+	Machine     Machine
+}
+
+func hostOf(addr string) string {
+	if h, _, err := net.SplitHostPort(addr); err == nil {
+		return h
+	}
+	return addr
+}
+
+func (s *Service) joinBlocked(addr string, now time.Time) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return now.Before(s.blocked[addr])
+}
+
+func (s *Service) joinFailed(addr string, now time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	kept := s.fails[addr][:0]
+	for _, t := range s.fails[addr] {
+		if now.Sub(t) < joinFailWindow {
+			kept = append(kept, t)
+		}
+	}
+	kept = append(kept, now)
+	s.fails[addr] = kept
+	if len(kept) >= joinFailLimit {
+		s.blocked[addr] = now.Add(joinBlockFor)
+		s.fails[addr] = nil
+	}
+}
+
+// Join checks the code, uses it up and issues a key for this machine only
+// (R5.6). A used, expired or unknown code is refused with the reason. After 10
+// failed attempts from one address in a minute, that address is refused for 5
+// minutes (R6.3). A removed machine joins again only with a new code and gets
+// a new key (R5.43).
+func (s *Service) Join(ctx context.Context, in JoinInput) (JoinResult, error) {
+	now := s.now()
+	addr := hostOf(in.RemoteAddr)
+	if s.joinBlocked(addr, now) {
+		return JoinResult{}, &JoinError{Reason: "too many failed attempts from this address; try again in 5 minutes"}
+	}
+	fail := func(reason string) (JoinResult, error) {
+		s.joinFailed(addr, now)
+		return JoinResult{}, &JoinError{Reason: reason}
+	}
+	if strings.TrimSpace(in.Code) == "" {
+		return fail("a join code is required")
+	}
+	hash := hashSecret(strings.TrimSpace(in.Code))
+	jc, err := s.o.Repo.FindJoinCodeByHash(ctx, hash)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return fail("this code is not known")
+		}
+		return JoinResult{}, err
+	}
+	wantKind := CodeKindCode
+	if in.Local {
+		wantKind = CodeKindLocal
+	}
+	if jc.Kind != wantKind {
+		return fail("this code is not known")
+	}
+	switch jc.State(now) {
+	case CodeJoined:
+		return fail("this code was already used")
+	case CodeRevoked:
+		return fail("this code was withdrawn")
+	case CodeExpired:
+		return fail("this code expired at " + jc.ExpiresAt.Local().Format("15:04"))
+	}
+
+	f := in.Facts
+	if f.OS == "" || f.Arch == "" {
+		return JoinResult{}, fmt.Errorf("%w: the agent sent no OS or architecture", ErrInvalid)
+	}
+	id := newID("m_")
+	used, err := s.o.Repo.UseJoinCode(ctx, hash, id, now)
+	if err != nil {
+		return JoinResult{}, err
+	}
+	if !used {
+		return fail("this code was already used")
+	}
+	key := randomToken("crsp_mk_", 32)
+	m := Machine{
+		ID: id, OS: f.OS, Arch: f.Arch, Facts: f, State: StateActive, IsController: in.Local,
+		AgentVersion: in.AgentVersion, JoinedAt: now,
+	}
+	set := DefaultSettings()
+	set.JobSlots = defaultSlots(f)
+	base := strings.TrimSpace(f.HostName)
+	if base == "" {
+		base = f.OS + "-machine"
+	}
+	for n := 1; ; n++ {
+		m.Name = base
+		if n > 1 {
+			m.Name = fmt.Sprintf("%s-%d", base, n)
+		}
+		if err = s.o.Repo.InsertMachine(ctx, m, set, hashSecret(key)); !errors.Is(err, ErrConflict) {
+			break
+		}
+		if n > 50 {
+			return JoinResult{}, fmt.Errorf("%w: no free machine name", ErrConflict)
+		}
+	}
+	if err != nil {
+		return JoinResult{}, err
+	}
+	_ = s.o.Repo.Audit(ctx, "agent", "machine.join", m.ID, "name "+m.Name)
+	s.notifyMachine(m.ID)
+	return JoinResult{MachineID: id, Key: key, Fingerprint: s.o.Fingerprint, Settings: set, Machine: m}, nil
+}
+
+// defaultSlots sizes slots from the budget like dev-standards (DL79, DL176)
+// when the facts say how big the machine is; the default 2 otherwise.
+func defaultSlots(f Facts) int {
+	if f.Threads <= 0 || f.MemoryBytes <= 0 {
+		return DefaultSettings().JobSlots
+	}
+	d := DefaultSettings()
+	cpus := f.Threads * d.BudgetCPUPct / 100
+	byMem := int(float64(f.MemoryBytes) / (1 << 30) * float64(d.BudgetMemoryPct) / 100 / 1.5)
+	n := cpus
+	if byMem < n {
+		n = byMem
+	}
+	if n < 1 {
+		n = 1
+	}
+	if n > 64 {
+		n = 64
+	}
+	return n
+}
+
+// Authenticate checks a machine key (and, when given, the machine id the call
+// names). It refuses an unknown or revoked key (R5.8).
+func (s *Service) Authenticate(ctx context.Context, key, machineID string) (Machine, error) {
+	if key == "" {
+		return Machine{}, ErrUnauthenticated
+	}
+	m, err := s.o.Repo.MachineByKey(ctx, hashSecret(key))
+	if err != nil {
+		return Machine{}, err
+	}
+	if machineID != "" && machineID != m.ID {
+		return Machine{}, ErrUnauthenticated
+	}
+	return m, nil
+}
+
+func (s *Service) notifyMachine(id string) {
+	if s.o.Notify != nil {
+		s.o.Notify.MachineChanged(id)
+	}
+}
