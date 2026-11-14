@@ -293,7 +293,12 @@ func TestHookOverTheAgentSocket(t *testing.T) {
 	}
 	done := make(chan error, 1)
 	go func() { done <- hooks.Serve(ln, agent{w.eng, slots.Defaults()}) }()
-	t.Cleanup(func() { _ = ln.Close(); <-done })
+	t.Cleanup(func() {
+		_ = ln.Close()
+		if err := <-done; err != nil {
+			t.Error(err)
+		}
+	})
 
 	env := map[string]string{
 		hooks.SocketEnv: sock, "GITHUB_REPOSITORY": "o/r", "GITHUB_RUN_ID": "77", "GITHUB_JOB": "build",
