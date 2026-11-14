@@ -8,7 +8,7 @@
 |---|---|
 | UpgradeCode | `C1D62442-6DB4-4FF0-9F28-A1CE3121B332` |
 | Product name | `crsp` |
-| Service | `crsp` (`crsp.exe controller`, account `NT SERVICE\crsp`) |
+| Service | `crsp` (`crsp.exe controller`, account LocalSystem) |
 | Install folder | `%ProgramFiles%\crsp` |
 | Data folder | `%ProgramData%\crsp` (kept by upgrade and by a silent uninstall) |
 | Firewall rule | `crsp console and agent link (private networks)`, inbound TCP 8460 and 8461, Private profile only |

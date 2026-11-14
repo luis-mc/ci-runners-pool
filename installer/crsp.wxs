@@ -5,19 +5,17 @@
 
     ProductVersion  a.b.c.d for the MSI (build.ps1 maps the release version)
     CrspExe         the crsp.exe to install
-    ServiceSid      the SID of NT SERVICE\crsp (build.ps1 computes it)
     LicenseRtf      the licence text shown by the install dialog
 
   What is installed where:
     %ProgramFiles%\crsp    crsp.exe; replaced by every upgrade
     %ProgramData%\crsp     the data folder (R5.10): config.toml, the database,
-                           backups, logs, the CA. Administrators, SYSTEM and the
-                           service account only. Kept by every upgrade and by a
+                           backups, logs, the CA. Administrators and SYSTEM only. Kept by every upgrade and by a
                            silent uninstall; removed at uninstall only when the
                            user ticks the box (REMOVEDATA=1).
 
-  The service is `crsp.exe controller` under the virtual account NT SERVICE\crsp
-  (R5.4), named "crsp" like internal/tray.ServiceName.
+  The service is `crsp.exe controller` as LocalSystem (R5.4: it manages the
+  runner services and accounts and runs the MSI upgrade for auto-update), named "crsp" like internal/tray.ServiceName.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
@@ -70,7 +68,6 @@
                         Type="ownProcess"
                         Start="auto"
                         ErrorControl="normal"
-                        Account="NT SERVICE\crsp"
                         Arguments="controller"
                         Vital="yes">
           <ServiceConfig DelayedAutoStart="yes" FailureActionsWhen="failedToStopOrReturnedError" OnInstall="yes" OnReinstall="yes" />
@@ -150,14 +147,13 @@
       %ProgramData%\crsp, made by the MSI with its ACL as SDDL (Windows
       Installer 5 PermissionEx): owned by Administrators, protected from the
       inherited rights that let every user create files, full control for
-      Administrators, SYSTEM and the service's account (by SID: the ACL is set
-      before the service, and its account name, exists). The key path is a value
+      Administrators and SYSTEM (the service runs as LocalSystem). The key path is a value
       under HKLM, which every account can read.
     -->
     <ComponentGroup Id="DataFolder" Directory="DATAFOLDER">
       <Component Id="DataFolderComponent">
         <CreateFolder>
-          <PermissionEx Sddl="O:BAD:PAI(A;OICI;FA;;;BA)(A;OICI;FA;;;SY)(A;OICI;FA;;;$(var.ServiceSid))" />
+          <PermissionEx Sddl="O:BAD:PAI(A;OICI;FA;;;BA)(A;OICI;FA;;;SY)" />
         </CreateFolder>
         <RegistryValue Root="HKLM" Key="Software\crsp\Installed" Name="DataFolder" Type="string" Value="[DATAFOLDER]" KeyPath="yes" />
       </Component>

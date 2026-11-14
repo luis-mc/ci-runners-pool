@@ -64,7 +64,7 @@ Check 'service crsp registered' ($null -ne $svc)
 if ($svc) {
   Check 'service is automatic' ($svc.StartMode -eq 'Auto') $svc.StartMode
   Check 'service runs crsp.exe controller' ($svc.PathName -match 'crsp\.exe"? controller$') $svc.PathName
-  Check 'service account is NT SERVICE\crsp' ($svc.StartName -eq 'NT SERVICE\crsp') $svc.StartName
+  Check 'service account is LocalSystem' ($svc.StartName -eq 'LocalSystem') $svc.StartName
 }
 $qf = (sc.exe qfailure crsp) -join ' '
 Check 'service restarts after a crash' ($qf -match 'RESTART') $qf
@@ -85,7 +85,7 @@ Check 'install-kind marker says msi' ((Get-Content (Join-Path $progDir 'install-
 Check 'data folder exists' (Test-Path $dataDir)
 $acl = (Get-Acl $dataDir).Access | ForEach-Object { "$($_.IdentityReference)" }
 Check 'data folder ACL has no Users group' (-not ($acl -match 'BUILTIN\\Users')) ($acl -join '; ')
-Check 'data folder ACL names the service account' ([bool]($acl -match 'NT SERVICE\\crsp')) ($acl -join '; ')
+Check 'data folder ACL is Administrators and SYSTEM only' (@($acl | Where-Object { $_ -notmatch 'BUILTIN\\Administrators|NT AUTHORITY\\SYSTEM' }).Count -eq 0) ($acl -join '; ')
 $listen = $null
 for ($i = 0; $i -lt 15 -and -not $listen; $i++) { $listen = Get-NetTCPConnection -LocalPort 8460 -State Listen -ErrorAction SilentlyContinue; if (-not $listen) { Start-Sleep 1 } }
 Check 'controller listens on 8460' ($null -ne $listen)

@@ -35,12 +35,6 @@ if (-not $ProductVersion) {
 }
 if ($ProductVersion -notmatch '^\d{1,5}\.\d{1,5}\.\d{1,5}(\.\d{1,5})?$') { throw "Bad ProductVersion '$ProductVersion'." }
 
-# SID of the virtual account NT SERVICE\crsp: S-1-5-80 and the five 32-bit words of
-# the SHA-1 of the upper-case service name in UTF-16LE.
-$sha = [System.Security.Cryptography.SHA1]::Create()
-$hash = $sha.ComputeHash([System.Text.Encoding]::Unicode.GetBytes('CRSP'))
-$serviceSid = 'S-1-5-80-' + ((0..4 | ForEach-Object { [BitConverter]::ToUInt32($hash, 4 * $_) }) -join '-')
-
 $Exe = (Resolve-Path $Exe).Path
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
 $Out = (Resolve-Path $Out).Path
@@ -67,10 +61,10 @@ try {
   dotnet wix build crsp.wxs -arch $Arch `
     -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext -ext WixToolset.Firewall.wixext `
     -d "ProductVersion=$ProductVersion" -d "CrspExe=$Exe" `
-    -d "ServiceSid=$serviceSid" -d "LicenseRtf=$rtf" `
+    -d "LicenseRtf=$rtf" `
     @(if ($FailAfterInstall) { '-d'; 'FailAfterInstall=1' }) `
     -o $msi | Out-Host
   if ($LASTEXITCODE -ne 0) { throw 'wix build failed' }
 } finally { Pop-Location }
 Remove-Item -Recurse -Force $work
-Write-Host "Built $msi (ProductVersion $ProductVersion, service SID $serviceSid)"
+Write-Host "Built $msi (ProductVersion $ProductVersion)"
