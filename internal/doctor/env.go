@@ -141,6 +141,21 @@ type Runner struct {
 	// HookProblems lists problems with the job hooks found by the agent: a
 	// missing hook, a .cmd hook, one in a user profile (R5.14). Empty is fine.
 	HookProblems []string
+	// HookProbe is what the agent saw when it ran the runner's job-started hook
+	// as the service account in probe mode; nil when it did not run it (R5.29).
+	HookProbe *HookProbe
+}
+
+// HookProbe is the result of one run of a runner's real job-started hook script
+// as the runner's service account, with CRSP_HOOK_PROBE=1, so the probe takes
+// no slot and starts no job (R5.29).
+type HookProbe struct {
+	// Err is set when the script could not be started at all (no PowerShell,
+	// no /bin/sh, a script the account may not read or run).
+	Err      string
+	ExitCode int
+	// Output is what the script printed, secrets removed by the redactor.
+	Output string
 }
 
 // OSService is one runner service from the OS service list (R5.11).
