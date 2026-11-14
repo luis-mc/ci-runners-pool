@@ -54,6 +54,8 @@ type Options struct {
 	Live LiveService
 	// Doctor serves the doctor routes (handlers_doctor.go). Nil answers 501.
 	Doctor DoctorService
+	// Notify serves the notification channel routes (handlers_notify.go). Nil answers 501.
+	Notify NotifyService
 }
 
 type server struct {

@@ -54,6 +54,9 @@ var githubAreaAuth = map[string]string{
 	"planRepositoryChanges": authAdmin, "getRepositoryPlan": authUser, "applyRepositoryChanges": authAdmin,
 	"getRepository": authUser, "updateRepositoryPolicy": authAdmin, "getRepositoryRunsOn": authUser,
 	"receiveGithubWebhook": authPublic,
+	// CRSP37 notification channels: any signed-in user; a webhook needs an admin (checked in the service).
+	"listNotificationChannels": authUser, "createNotificationChannel": authUser, "updateNotificationChannel": authUser,
+	"deleteNotificationChannel": authUser, "testNotificationChannel": authUser,
 }
 
 // operationIDs maps the generated handler names to openapi operation ids.

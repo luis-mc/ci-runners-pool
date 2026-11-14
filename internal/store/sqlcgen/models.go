@@ -269,6 +269,29 @@ type ManagedVariable struct {
 	CheckedAt    sql.NullString
 }
 
+type NotificationChannel struct {
+	ID              string
+	Kind            string
+	Name            string
+	Scope           string
+	OwnerLogin      string
+	Enabled         int64
+	Events          string
+	MinSeverity     string
+	Address         string
+	Url             string
+	HasSigning      int64
+	SmtpHost        string
+	SmtpPort        int64
+	SmtpUsername    string
+	SmtpFrom        string
+	SmtpHasPassword int64
+	LastTestAt      sql.NullString
+	LastTestOk      sql.NullInt64
+	CreatedAt       string
+	UpdatedAt       string
+}
+
 type Plan struct {
 	ID        string
 	Area      string
