@@ -316,6 +316,26 @@ paths:
           description: The session ended; the cookie is cleared.
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/auth/console-links:
+    post:
+      operationId: createConsoleLink
+      tags: [auth]
+      summary: Make a one-time link that signs the caller in to the web console
+      description: >-
+        cli R5.9 (added by CRSP25). The link carries a code of 128 random bits,
+        valid 60 seconds, usable once, redeemed by redeemTrayLink. The caller
+        must be signed in; the link gives the same user and role.
+      x-auth: user
+      x-rate-limit: 20/minute/user
+      responses:
+        '201':
+          description: The link. Shown once.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsoleLink'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/me:
     get:
       operationId: getSession
@@ -2072,6 +2092,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CliToken'
+    ConsoleLink:
+      type: object
+      required: [url, expires_at]
+      properties:
+        url:
+          type: string
+          description: The one-time console link. Shown once.
+        expires_at:
+          type: string
+          format: date-time
     Session:
       type: object
       required: [user, csrf]

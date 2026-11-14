@@ -371,3 +371,8 @@ func (s *server) UpdateSettings(_ context.Context, _ gen.UpdateSettingsRequestOb
 func (s *server) UpdateUserRole(_ context.Context, _ gen.UpdateUserRoleRequestObject) (gen.UpdateUserRoleResponseObject, error) {
 	return gen.UpdateUserRoledefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
+
+// CreateConsoleLink is not built yet.
+func (s *server) CreateConsoleLink(_ context.Context, _ gen.CreateConsoleLinkRequestObject) (gen.CreateConsoleLinkResponseObject, error) {
+	return gen.CreateConsoleLinkdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
+}
