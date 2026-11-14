@@ -5,6 +5,7 @@ name: Release
 # tag v*        -> a stable release with the same assets (production).
 #
 # Assets: crsp-<os>-<arch>.tar.gz (linux, darwin) or .zip (windows),
+# crsp-darwin-<arch>.pkg, crsp-linux-<arch>.deb and crsp-linux-<arch>.rpm (OPS1),
 # SHA256SUMS, and a build provenance attestation for each.
 # Authenticode signing and Apple notarization come later (milestone 8).
 on:
@@ -50,9 +51,51 @@ jobs:
       version: ${{ needs.version.outputs.value }}
       artifact-prefix: release-
 
+  # OPS1: native installers. Own job so it stays apart from other installer jobs.
+  installers-unix:
+    name: installers ${{ matrix.os }}-${{ matrix.arch }}
+    needs: [version, build]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: linux, arch: amd64, runner: ubuntu-latest }
+          - { os: linux, arch: arm64, runner: ubuntu-latest }
+          - { os: darwin, arch: amd64, runner: macos-latest }
+          - { os: darwin, arch: arm64, runner: macos-latest }
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0   # version.sh reads the latest stable tag
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-${{ matrix.os }}-${{ matrix.arch }}
+          path: bin
+      - name: Build the packages
+        env:
+          VERSION: ${{ needs.version.outputs.value }}
+          OS: ${{ matrix.os }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          chmod +x bin/crsp
+          if [ "$OS" = linux ]; then
+            bash installer/linux/build.sh "$ARCH" bin/crsp "$VERSION" "$GITHUB_RUN_NUMBER" pkgs
+          else
+            bash installer/macos/build.sh "$ARCH" bin/crsp "$VERSION" "$GITHUB_RUN_NUMBER" pkgs
+          fi
+          ls -l pkgs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pkg-${{ matrix.os }}-${{ matrix.arch }}
+          path: pkgs
+          if-no-files-found: error
+
   publish:
     name: publish
-    needs: build
+    needs: [build, installers-unix]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -87,6 +130,21 @@ jobs:
           done
           count=$(find dist -type f | wc -l)
           [ "$count" -eq 6 ] || { echo "::error::expected 6 archives, found $count"; exit 1; }
+          (cd dist && sha256sum crsp-* > SHA256SUMS)
+          cat dist/SHA256SUMS
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: pkg-*
+          path: pkgs
+
+      # OPS1: add the .pkg, .deb and .rpm to dist and checksum them with the archives.
+      - name: Add native installers
+        run: |
+          set -euo pipefail
+          cp pkgs/*/crsp-* dist/
+          count=$(find dist -type f \( -name '*.pkg' -o -name '*.deb' -o -name '*.rpm' \) | wc -l)
+          [ "$count" -eq 6 ] || { echo "::error::expected 6 native installers, found $count"; exit 1; }
           (cd dist && sha256sum crsp-* > SHA256SUMS)
           cat dist/SHA256SUMS
 
