@@ -1,0 +1,20 @@
+{
+  "id": 1234567,
+  "slug": "crsp-dev-fake",
+  "node_id": "A_kwHOFAKE",
+  "client_id": "Iv23liFAKECLIENTID00",
+  "client_secret": "FAKE-CLIENT-SECRET-NOT-REAL",
+  "webhook_secret": "FAKE-WEBHOOK-SECRET-NOT-REAL",
+  "pem": "FAKE-PEM-PLACEHOLDER",
+  "html_url": "https://github.com/apps/crsp-dev-fake",
+  "owner": {"login": "octo-owner", "id": 4242, "type": "User"},
+  "permissions": {
+    "administration": "write",
+    "actions": "read",
+    "actions_variables": "write",
+    "contents": "read",
+    "metadata": "read",
+    "organization_self_hosted_runners": "write"
+  },
+  "events": ["workflow_job"]
+}

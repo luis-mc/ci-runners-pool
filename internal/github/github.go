@@ -36,6 +36,9 @@ var (
 // RateLimitError carries when a limit resets.
 type RateLimitError struct {
 	ResetAt time.Time
+	// Secondary is set for GitHub's secondary (abuse) limit, which a short
+	// wait can clear; a primary limit waits for ResetAt.
+	Secondary bool
 }
 
 func (e *RateLimitError) Error() string {

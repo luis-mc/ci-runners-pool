@@ -1,0 +1,464 @@
+package fake
+
+import (
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"path"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+)
+
+// route runs with s.mu held.
+func (s *Server) route(w http.ResponseWriter, r *http.Request) {
+	p := r.URL.Path
+	switch {
+	case r.Method == "POST" && strings.HasPrefix(p, "/app-manifests/") && strings.HasSuffix(p, "/conversions"):
+		s.convert(w, strings.TrimSuffix(strings.TrimPrefix(p, "/app-manifests/"), "/conversions"))
+	case r.Method == "POST" && p == "/login/oauth/access_token":
+		s.oauthToken(w, r)
+	case r.Method == "GET" && p == "/app":
+		if !s.checkJWT(bearer(r)) {
+			unauthorized(w)
+			return
+		}
+		app := fixtureMap("app_conversion")
+		delete(app, "client_secret")
+		delete(app, "webhook_secret")
+		delete(app, "pem")
+		writeJSON(w, 200, app)
+	case r.Method == "GET" && strings.HasPrefix(p, "/users/"):
+		if !s.checkJWT(bearer(r)) {
+			unauthorized(w)
+			return
+		}
+		login := strings.TrimPrefix(p, "/users/")
+		for _, u := range s.Users {
+			if strings.EqualFold(u.Login, login) {
+				writeJSON(w, 200, map[string]any{"id": u.ID, "login": u.Login})
+				return
+			}
+		}
+		notFound(w)
+	case r.Method == "GET" && p == "/user":
+		u, ok := s.userFor(r)
+		if !ok {
+			unauthorized(w)
+			return
+		}
+		writeJSON(w, 200, map[string]any{"id": u.ID, "login": u.Login})
+	case r.Method == "GET" && p == "/user/installations":
+		s.userInstallations(w, r)
+	case r.Method == "GET" && strings.HasPrefix(p, "/user/installations/") && strings.HasSuffix(p, "/repositories"):
+		s.userRepositories(w, r)
+	case strings.HasPrefix(p, "/app/installations/"):
+		s.appInstallations(w, r)
+	case strings.HasPrefix(p, "/repos/"):
+		s.repoRoutes(w, r)
+	case strings.HasPrefix(p, "/orgs/"):
+		s.orgRoutes(w, r)
+	default:
+		notFound(w)
+	}
+}
+
+func (s *Server) convert(w http.ResponseWriter, code string) {
+	if !s.ManifestCodes[code] {
+		notFound(w)
+		return
+	}
+	delete(s.ManifestCodes, code) // single use
+	m := fixtureMap("app_conversion")
+	m["id"] = s.AppID
+	m["pem"] = s.PEM
+	m["client_secret"] = s.ClientSecret
+	writeJSON(w, 201, m)
+}
+
+func (s *Server) oauthToken(w http.ResponseWriter, r *http.Request) {
+	var in map[string]string
+	_ = json.NewDecoder(r.Body).Decode(&in)
+	uid, ok := s.OAuthCodes[in["code"]]
+	if !ok || in["client_secret"] != s.ClientSecret {
+		writeJSON(w, 200, map[string]string{"error": "bad_verification_code"})
+		return
+	}
+	// PKCE: S256(verifier) must equal the challenge bound to the code.
+	sum := sha256.Sum256([]byte(in["code_verifier"]))
+	if base64.RawURLEncoding.EncodeToString(sum[:]) != s.OAuthVerifiers[in["code"]] {
+		writeJSON(w, 200, map[string]string{"error": "bad_verification_code"})
+		return
+	}
+	delete(s.OAuthCodes, in["code"])
+	tok := "ghu_" + "FAKE" + strconv.FormatInt(uid, 10) + strings.Repeat("y", 20)
+	s.UserTokens[tok] = uid
+	writeJSON(w, 200, map[string]any{"access_token": tok, "expires_in": 28800, "token_type": "bearer"})
+}
+
+func (s *Server) installJSON(in *Install) map[string]any {
+	m := map[string]any{"id": in.ID, "repository_selection": in.Selection, "permissions": in.Perms,
+		"account": map[string]any{"login": in.Account, "type": in.Type}, "suspended_at": nil}
+	if in.Suspended {
+		m["suspended_at"] = "2026-11-01T00:00:00Z"
+	}
+	return m
+}
+
+func (s *Server) userInstallations(w http.ResponseWriter, r *http.Request) {
+	u, ok := s.userFor(r)
+	if !ok {
+		unauthorized(w)
+		return
+	}
+	var ids []int64
+	for id, in := range s.Installs {
+		if in.Users[u.ID] {
+			ids = append(ids, id)
+		}
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	from, to, link := page(r, len(ids))
+	items := []map[string]any{}
+	for _, id := range ids[from:to] {
+		items = append(items, s.installJSON(s.Installs[id]))
+	}
+	if link != "" {
+		w.Header().Set("Link", link)
+	}
+	writeJSON(w, 200, map[string]any{"total_count": len(ids), "installations": items})
+}
+
+func (s *Server) repoJSON(rp *Repo, adminFor int64) map[string]any {
+	vis := "public"
+	if rp.Private {
+		vis = "private"
+	}
+	return map[string]any{"id": rp.ID, "name": rp.Name, "full_name": rp.FullName(), "private": rp.Private,
+		"visibility": vis, "default_branch": rp.DefaultBranch, "archived": rp.Archived,
+		"owner":       map[string]any{"login": rp.Owner},
+		"permissions": map[string]any{"admin": rp.Admins[adminFor], "push": true, "pull": true}}
+}
+
+func (s *Server) userRepositories(w http.ResponseWriter, r *http.Request) {
+	u, ok := s.userFor(r)
+	if !ok {
+		unauthorized(w)
+		return
+	}
+	idStr := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/user/installations/"), "/repositories")
+	id, _ := strconv.ParseInt(idStr, 10, 64)
+	in := s.Installs[id]
+	if in == nil || !in.Users[u.ID] {
+		notFound(w)
+		return
+	}
+	var repos []*Repo
+	for _, rp := range s.Repos {
+		if rp.Installation == id {
+			repos = append(repos, rp)
+		}
+	}
+	sort.Slice(repos, func(i, j int) bool { return repos[i].ID < repos[j].ID })
+	from, to, link := page(r, len(repos))
+	items := []map[string]any{}
+	for _, rp := range repos[from:to] {
+		items = append(items, s.repoJSON(rp, u.ID))
+	}
+	if link != "" {
+		w.Header().Set("Link", link)
+	}
+	writeJSON(w, 200, map[string]any{"total_count": len(repos), "repositories": items})
+}
+
+func (s *Server) appInstallations(w http.ResponseWriter, r *http.Request) {
+	rest := strings.TrimPrefix(r.URL.Path, "/app/installations/")
+	if !s.checkJWT(bearer(r)) {
+		unauthorized(w)
+		return
+	}
+	if idStr, ok := strings.CutSuffix(rest, "/access_tokens"); ok && r.Method == "POST" {
+		id, _ := strconv.ParseInt(idStr, 10, 64)
+		if s.Installs[id] == nil {
+			notFound(w)
+			return
+		}
+		s.nextID++
+		tok := "ghs_" + "FAKE" + strconv.FormatInt(s.nextID, 10) + strings.Repeat("z", 20)
+		s.instTokens[tok] = id
+		writeJSON(w, 201, map[string]any{"token": tok, "expires_at": s.Now().Add(time.Hour).UTC().Format(time.RFC3339)})
+		return
+	}
+	id, _ := strconv.ParseInt(rest, 10, 64)
+	in := s.Installs[id]
+	if in == nil {
+		notFound(w)
+		return
+	}
+	writeJSON(w, 200, s.installJSON(in))
+}
+
+// authInstall checks the installation token covers the repository.
+func (s *Server) authInstall(w http.ResponseWriter, r *http.Request, rp *Repo) bool {
+	id, ok := s.installFor(r)
+	if !ok {
+		// A user token may read a repository it can see (admin check).
+		if u, uok := s.userFor(r); uok && rp != nil && r.Method == "GET" && r.URL.Path == "/repos/"+rp.Owner+"/"+rp.Name {
+			_ = u
+			return true
+		}
+		unauthorized(w)
+		return false
+	}
+	if rp != nil && rp.Installation != id {
+		notFound(w)
+		return false
+	}
+	return true
+}
+
+func (s *Server) repoRoutes(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/repos/"), "/")
+	if len(parts) < 2 {
+		notFound(w)
+		return
+	}
+	rp := s.repoByName(parts[0], parts[1])
+	if rp == nil {
+		notFound(w)
+		return
+	}
+	if !s.authInstall(w, r, rp) {
+		return
+	}
+	rest := strings.Join(parts[2:], "/")
+	full := rp.FullName()
+	switch {
+	case rest == "" && r.Method == "GET":
+		uid := int64(0)
+		if u, ok := s.userFor(r); ok {
+			uid = u.ID
+		}
+		writeJSON(w, 200, s.repoJSON(rp, uid))
+	case strings.HasPrefix(rest, "actions/runners"):
+		s.runnerRoutes(w, r, full, strings.TrimPrefix(rest, "actions/runners"))
+	case rest == "actions/variables" || strings.HasPrefix(rest, "actions/variables/"):
+		s.variableRoutes(w, r, full, strings.TrimPrefix(strings.TrimPrefix(rest, "actions/variables"), "/"))
+	case strings.HasPrefix(rest, "contents/"):
+		s.contents(w, r, full, strings.TrimPrefix(rest, "contents/"))
+	case rest == "actions/runs" && r.Method == "GET":
+		s.runs(w, r, full)
+	case strings.HasPrefix(rest, "actions/runs/") && strings.HasSuffix(rest, "/jobs"):
+		s.runJobs(w, r, full, rest)
+	case strings.HasPrefix(rest, "actions/jobs/"):
+		id, _ := strconv.ParseInt(strings.TrimPrefix(rest, "actions/jobs/"), 10, 64)
+		for _, j := range s.Jobs {
+			if j.ID == id && j.Repo == full {
+				writeJSON(w, 200, jobJSON(j))
+				return
+			}
+		}
+		notFound(w)
+	default:
+		notFound(w)
+	}
+}
+
+func (s *Server) orgRoutes(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/orgs/"), "/")
+	if _, ok := s.installFor(r); !ok {
+		unauthorized(w)
+		return
+	}
+	rest := strings.Join(parts[1:], "/")
+	if strings.HasPrefix(rest, "actions/runners") {
+		s.runnerRoutes(w, r, parts[0], strings.TrimPrefix(rest, "actions/runners"))
+		return
+	}
+	notFound(w)
+}
+
+func (s *Server) runnerRoutes(w http.ResponseWriter, r *http.Request, scope, rest string) {
+	rest = strings.TrimPrefix(rest, "/")
+	switch {
+	case rest == "registration-token" && r.Method == "POST":
+		s.nextID++
+		tok := fmt.Sprintf("FAKEREG%dTOKEN", s.nextID)
+		s.regToks[tok] = true
+		writeJSON(w, 201, map[string]any{"token": tok, "expires_at": s.Now().Add(time.Hour).UTC().Format(time.RFC3339)})
+	case rest == "remove-token" && r.Method == "POST":
+		s.nextID++
+		tok := fmt.Sprintf("FAKEREM%dTOKEN", s.nextID)
+		s.removeToks[tok] = true
+		writeJSON(w, 201, map[string]any{"token": tok, "expires_at": s.Now().Add(time.Hour).UTC().Format(time.RFC3339)})
+	case rest == "" && r.Method == "GET":
+		items := []map[string]any{}
+		for _, rn := range s.Runners[scope] {
+			labels := []map[string]any{}
+			for _, l := range rn.Labels {
+				labels = append(labels, map[string]any{"name": l})
+			}
+			items = append(items, map[string]any{"id": rn.ID, "name": rn.Name, "os": rn.OS, "status": rn.Status, "busy": rn.Busy, "labels": labels})
+		}
+		writeJSON(w, 200, map[string]any{"total_count": len(items), "runners": items})
+	case r.Method == "DELETE":
+		id, _ := strconv.ParseInt(rest, 10, 64)
+		list := s.Runners[scope]
+		for i, rn := range list {
+			if rn.ID == id {
+				if rn.Busy {
+					writeJSON(w, 422, map[string]string{"message": "Runner is busy"})
+					return
+				}
+				s.Runners[scope] = append(list[:i:i], list[i+1:]...)
+				w.WriteHeader(204)
+				return
+			}
+		}
+		notFound(w)
+	default:
+		notFound(w)
+	}
+}
+
+func (s *Server) variableRoutes(w http.ResponseWriter, r *http.Request, full, name string) {
+	vars := s.Variables[full]
+	switch {
+	case name == "" && r.Method == "GET":
+		names := make([]string, 0, len(vars))
+		for n := range vars {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		items := []map[string]string{}
+		for _, n := range names {
+			items = append(items, map[string]string{"name": n, "value": vars[n]})
+		}
+		writeJSON(w, 200, map[string]any{"total_count": len(items), "variables": items})
+	case name == "" && r.Method == "POST":
+		var in map[string]string
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		if _, exists := vars[in["name"]]; exists {
+			writeJSON(w, 409, map[string]string{"message": "Already exists"})
+			return
+		}
+		if s.Variables[full] == nil {
+			s.Variables[full] = map[string]string{}
+		}
+		s.Variables[full][in["name"]] = in["value"]
+		w.WriteHeader(201)
+	case r.Method == "PATCH":
+		if _, exists := vars[name]; !exists {
+			notFound(w)
+			return
+		}
+		var in map[string]string
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		vars[name] = in["value"]
+		w.WriteHeader(204)
+	case r.Method == "DELETE":
+		if _, exists := vars[name]; !exists {
+			notFound(w)
+			return
+		}
+		delete(vars, name)
+		w.WriteHeader(204)
+	default:
+		notFound(w)
+	}
+}
+
+func (s *Server) contents(w http.ResponseWriter, r *http.Request, full, p string) {
+	files := s.WorkflowFiles[full]
+	if p == ".github/workflows" {
+		if len(files) == 0 {
+			notFound(w)
+			return
+		}
+		names := make([]string, 0, len(files))
+		for n := range files {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		items := []map[string]any{}
+		for _, n := range names {
+			items = append(items, map[string]any{"name": path.Base(n), "path": n, "type": "file"})
+		}
+		writeJSON(w, 200, items)
+		return
+	}
+	content, ok := files[p]
+	if !ok {
+		notFound(w)
+		return
+	}
+	sum := sha256.Sum256([]byte(content))
+	etag := `"` + hex.EncodeToString(sum[:8]) + `"`
+	w.Header().Set("ETag", etag)
+	if r.Header.Get("If-None-Match") == etag {
+		w.WriteHeader(304)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"path": p, "type": "file", "encoding": "base64",
+		"content": base64.StdEncoding.EncodeToString([]byte(content))})
+}
+
+func jobJSON(j *Job) map[string]any {
+	return map[string]any{"id": j.ID, "run_id": j.RunID, "run_attempt": 1, "name": j.Name, "workflow_name": "ci",
+		"head_sha": "0123456789abcdef0123456789abcdef01234567", "head_branch": "main", "status": j.Status,
+		"conclusion": nil, "runner_name": j.RunnerName, "labels": j.Labels,
+		"html_url":   fmt.Sprintf("https://github.com/%s/actions/runs/%d/job/%d", j.Repo, j.RunID, j.ID),
+		"created_at": "2026-11-14T10:00:00Z", "started_at": nil, "completed_at": nil}
+}
+
+func (s *Server) runs(w http.ResponseWriter, r *http.Request, full string) {
+	status := r.URL.Query().Get("status")
+	seen := map[int64]bool{}
+	items := []map[string]any{}
+	for _, j := range s.Jobs {
+		if j.Repo != full || j.Status != status || seen[j.RunID] {
+			continue
+		}
+		seen[j.RunID] = true
+		head := j.HeadRepo
+		if head == "" {
+			head = full
+		}
+		ev := j.Event
+		if ev == "" {
+			ev = "push"
+		}
+		items = append(items, map[string]any{"id": j.RunID, "event": ev, "status": status, "head_repository": map[string]any{"full_name": head}})
+	}
+	writeJSON(w, 200, map[string]any{"total_count": len(items), "workflow_runs": items})
+}
+
+func (s *Server) runJobs(w http.ResponseWriter, _ *http.Request, full, rest string) {
+	id, _ := strconv.ParseInt(strings.Split(strings.TrimPrefix(rest, "actions/runs/"), "/")[0], 10, 64)
+	items := []map[string]any{}
+	for _, j := range s.Jobs {
+		if j.Repo == full && j.RunID == id {
+			items = append(items, jobJSON(j))
+		}
+	}
+	writeJSON(w, 200, map[string]any{"total_count": len(items), "jobs": items})
+}
+
+// HasRegistrationToken and HasRemoveToken tell whether a token was issued and
+// not yet used by RunnerConfig-style calls (tests of the one-use rule).
+func (s *Server) HasRemoveToken(tok string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.removeToks[tok]
+}
+
+// HasRegistrationToken tells whether a registration token was issued.
+func (s *Server) HasRegistrationToken(tok string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.regToks[tok]
+}
