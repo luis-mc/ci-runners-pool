@@ -169,6 +169,9 @@ States:
 
 **R5.29** — The hook run check (`runner.hookrun`) runs each persistent runner's real `job-started` hook script as the runner's service account with `CRSP_HOOK_PROBE=1`, so it takes no slot and starts no job, and reads its exit code and output. A hook is fine when it exits 0 and prints `crsp hook ok`. It is `fail` when the script cannot start, exits non-zero, prints a `::warning` annotation (crsp missing or broken, scheduling R5.61), or does not reach crsp. Hooks depend on nothing but the shell the runner already uses. An agent that did not run the hook gives `skip`. Problems the hooks wrote to `crsp-hook-problem.txt` show in `runner.hooks` (R5.14). Built (CRSP22): the check; the agent running the hook as the account is NOT YET IMPLEMENTED.
 
+**R5.30** — The listener check (`runner.listener`) reads, for each persistent runner, the processes of `Runner.Listener` that run from its folder and the state of its service (runners R5.46). It is `ok` with exactly one listener under a running service, or none with a stopped service. It is `fail` with more than one listener (GitHub keeps one session and refuses the others), or with a listener while the service is stopped (the next start would be a second listener). It is `warn` when the service runs with no listener (the runner takes no job). An agent that did not look gives `skip`. The hook run check (R5.29) also warns when the hook reaches crsp but does not print `crsp hook non-interactive`, which means it did not turn prompts off (scheduling R5.62). Built (CRSP38): the checks; the agent filling `ListenerPIDs`, `ListenerKnown` and `ServiceRunning` is NOT YET IMPLEMENTED, as for R5.14.
+
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -267,6 +270,7 @@ Runners:
 | `runner.service` | Service missing, stopped, or not set to start with the machine | fail | Start the service; set it to automatic | no | 1 |
 | `runner.version` | A newer runner release exists (warn); GitHub no longer accepts this version (fail) | warn, fail | Update the runner (drains first) | no | 1 |
 | `runner.hooks` | A job hook missing, ending in `.cmd`, pointing into a user profile, or blocked by the execution policy | fail | Set the hooks again from the Runners screen | yes | 1 |
+| `runner.listener` | A runner with more than one `Runner.Listener`, a listener beside a stopped service (warn: a service with no listener) | fail, warn | Stop and start the runner from the Runners screen when it is idle; crsp waits for the listener itself to end | no | 1 |
 | `runner.hookrun` | The real job-started hook, run as the service account in probe mode, cannot start, exits non-zero, prints a crsp warning, or does not reach crsp | fail | Install crsp for all users again; set the hooks again | no | 1 |
 | `runner.machine` | The runner reads another machine config or hook folder than the pool | warn | Set the hooks again | yes | 1 |
 | `runner.env` | Runner env lacks the tool cache settings | warn | Set the runner env again | yes | 2 |
@@ -430,6 +434,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.27 | internal/doctor/diff_test.go TestBriefNotificationCases (planned) |
 | R5.28 | internal/doctor/registry_test.go TestMilestoneGating and TestEveryCheckHasATest (planned) |
 | R5.29 | internal/doctor/checks/checks_test.go TestRunnerHookRun; internal/hooks/visibility_test.go TestProbeAnswersWithoutTheGate |
+| R5.30 | internal/doctor/checks/checks_test.go TestRunnerListener, TestRunnerHookRun | new |
 | R6.1 | internal/doctor/engine_test.go TestSlowCheckIsSkipNotOk (the timeout); benchmark planned |
 | R6.2 | internal/doctor/checks/checks_test.go TestCallCountBudget |
 | R6.3 | internal/doctor/engine_test.go TestSecretsAreRedactedInFindings |
