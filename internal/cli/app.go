@@ -311,6 +311,9 @@ func writeUsage(w io.Writer, cmd *command, path []string) {
 	_, _ = fmt.Fprintln(w, "Commands:")
 	subs := append([]*command(nil), cmd.subs...)
 	for _, s := range subs {
+		if strings.HasPrefix(s.name, "__") {
+			continue
+		}
 		note := ""
 		if s.milestone != "" {
 			note = " (not built yet: " + s.milestone + ")"

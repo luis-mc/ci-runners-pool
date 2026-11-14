@@ -46,6 +46,8 @@ paths:
   /healthz:
     get:
       operationId: getHealth
+      x-cli: none
+      x-cli-reason: 'A probe for load balancers and the tray, not an action of a person.'
       tags: [health]
       summary: Liveness and database check
       x-auth: public
@@ -68,6 +70,8 @@ paths:
   /api/v1/setup:
     get:
       operationId: getSetupState
+      x-cli: none
+      x-cli-reason: 'Browser or GitHub entry point; the CLI signs in with the device flow instead.'
       tags: [setup]
       summary: First-run state; what the setup page shows
       description: github-integration R5.1, web-console R5.14 and R5.15.
@@ -85,6 +89,8 @@ paths:
   /api/v1/setup/redeem:
     post:
       operationId: redeemSetupLink
+      x-cli: none
+      x-cli-reason: 'Browser or GitHub entry point; the CLI signs in with the device flow instead.'
       tags: [setup]
       summary: Trade a one-time setup code for a setup cookie
       description: >-
@@ -114,6 +120,8 @@ paths:
   /api/v1/setup/github-app:
     post:
       operationId: startAppManifest
+      x-cli: none
+      x-cli-reason: 'Browser or GitHub entry point; the CLI signs in with the device flow instead.'
       tags: [setup]
       summary: Start GitHub's App manifest flow
       description: >-
@@ -139,6 +147,8 @@ paths:
   /auth/github/app-created:
     get:
       operationId: completeAppManifest
+      x-cli: none
+      x-cli-reason: 'Browser or GitHub entry point; the CLI signs in with the device flow instead.'
       tags: [setup]
       summary: GitHub's redirect after the App is created
       description: >-
@@ -160,6 +170,8 @@ paths:
   /auth/github/login:
     get:
       operationId: startSignIn
+      x-cli: none
+      x-cli-reason: 'Browser or GitHub entry point; the CLI signs in with the device flow instead.'
       tags: [auth]
       summary: Start web sign-in with the App's user OAuth flow
       description: >-
@@ -190,6 +202,8 @@ paths:
   /auth/github/callback:
     get:
       operationId: completeSignIn
+      x-cli: none
+      x-cli-reason: 'Browser or GitHub entry point; the CLI signs in with the device flow instead.'
       tags: [auth]
       summary: GitHub OAuth callback; makes the session
       description: >-
@@ -209,6 +223,8 @@ paths:
   /auth/link:
     get:
       operationId: redeemTrayLink
+      x-cli: none
+      x-cli-reason: 'Browser or GitHub entry point; the CLI signs in with the device flow instead.'
       tags: [auth]
       summary: Sign in from a one-time tray link
       description: >-
@@ -274,6 +290,8 @@ paths:
   /api/v1/auth/cli/tokens:
     get:
       operationId: listCliTokens
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [auth]
       summary: List CLI tokens (own; every user's for the owner)
       description: github-integration R5.15.
@@ -306,6 +324,8 @@ paths:
   /api/v1/auth/logout:
     post:
       operationId: signOut
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [auth]
       summary: End this session
       description: web-console R5.12. Sessions end only at sign-out (owner decision for M1).
@@ -339,6 +359,8 @@ paths:
   /api/v1/me:
     get:
       operationId: getSession
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [auth]
       summary: The signed-in user, role and CSRF token
       description: web-console 4.1, github-integration R5.9 and R5.12.
@@ -358,6 +380,8 @@ paths:
   /api/v1/me/preferences:
     get:
       operationId: getPreferences
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [users]
       summary: The user's own view preferences
       description: web-console 4.9 Appearance (UX-60).
@@ -374,6 +398,8 @@ paths:
           $ref: '#/components/responses/Error'
     put:
       operationId: updatePreferences
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [users]
       summary: Save the user's own view preferences
       x-auth: user
@@ -396,6 +422,8 @@ paths:
   /api/v1/users:
     get:
       operationId: listUsers
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [users]
       summary: Users allowed to sign in, with their roles
       description: github-integration R5.11, web-console R5.28.
@@ -412,6 +440,8 @@ paths:
           $ref: '#/components/responses/Error'
     post:
       operationId: addUser
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [users]
       summary: Allow a GitHub login as admin or viewer
       description: github-integration R5.11. The login is resolved to a user id when added.
@@ -435,6 +465,8 @@ paths:
   /api/v1/users/{userId}:
     patch:
       operationId: updateUserRole
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [users]
       summary: Change a user's role
       description: >-
@@ -461,6 +493,8 @@ paths:
           $ref: '#/components/responses/Error'
     delete:
       operationId: removeUser
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [users]
       summary: Remove a user; ends their sessions and CLI tokens
       description: web-console R5.28. The owner cannot remove themselves.
@@ -478,6 +512,8 @@ paths:
   /api/v1/github/installations:
     get:
       operationId: listInstallations
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [repositories]
       summary: The App's installations the user can see
       description: github-integration R5.17.
@@ -495,6 +531,8 @@ paths:
   /api/v1/github/install-url:
     get:
       operationId: getAppInstallUrl
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [repositories]
       summary: GitHub's page to install the App on more repositories
       description: web-console 4.3.
@@ -624,6 +662,8 @@ paths:
   /api/v1/repositories/{repositoryId}:
     get:
       operationId: getRepository
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [repositories]
       summary: One repository with its policy and variable status
       description: github-integration R5.18, R5.25 and R5.28.
@@ -670,6 +710,8 @@ paths:
   /api/v1/repositories/{repositoryId}/runs-on:
     get:
       operationId: getRepositoryRunsOn
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [repositories]
       summary: Workflow `runs-on` findings for a repository
       description: github-integration R5.30.
@@ -689,6 +731,8 @@ paths:
   /api/v1/settings/queue:
     get:
       operationId: getQueueSettings
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [repositories]
       summary: The order of service of the slot queue
       description: scheduling R5.8 to R5.10; owner decision for M1 (queue order is configurable).
@@ -705,6 +749,8 @@ paths:
           $ref: '#/components/responses/Error'
     put:
       operationId: updateQueueSettings
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [repositories]
       summary: Change the order of service
       x-auth: admin
@@ -746,6 +792,8 @@ paths:
   /api/v1/machines/{machineId}:
     get:
       operationId: getMachine
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [machines]
       summary: One machine with facts, backends, settings and running jobs
       description: machines R5.10 to R5.13, R5.22, R5.30.
@@ -764,6 +812,8 @@ paths:
           $ref: '#/components/responses/Error'
     patch:
       operationId: updateMachine
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [machines]
       summary: Change a machine's settings
       description: >-
@@ -864,6 +914,8 @@ paths:
   /api/v1/machines/{machineId}/redetect:
     post:
       operationId: redetectMachine
+      x-cli: none
+      x-cli-reason: 'Later: machine detail commands (cli open question 7).'
       tags: [machines]
       summary: Check again; the agent detects facts and backends now
       description: machines R5.13.
@@ -879,6 +931,8 @@ paths:
   /api/v1/machines/{machineId}/load:
     get:
       operationId: getMachineLoad
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [machines]
       summary: Load history at 15-second steps, up to 24 hours
       description: machines R6.8.
@@ -900,6 +954,8 @@ paths:
   /api/v1/machines/{machineId}/slots:
     get:
       operationId: listSlots
+      x-cli: none
+      x-cli-reason: 'Later: machine detail commands (cli open question 7).'
       tags: [jobs]
       summary: Slot holders and the waiting queue of a machine
       description: scheduling R5.58 (status).
@@ -919,6 +975,8 @@ paths:
   /api/v1/machines/{machineId}/slots/free-stale:
     post:
       operationId: freeStaleSlots
+      x-cli: none
+      x-cli-reason: 'Later: machine detail commands (cli open question 7).'
       tags: [jobs]
       summary: Free stale slots now
       description: scheduling R5.37. Freeing a live slot names the job and needs `confirm`.
@@ -1016,6 +1074,8 @@ paths:
   /api/v1/join-codes/{joinCodeId}:
     get:
       operationId: getJoinCode
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [machines]
       summary: A join code's state (never its value)
       description: web-console R5.17. The wizard polls until joined, expired or withdrawn.
@@ -1034,6 +1094,8 @@ paths:
           $ref: '#/components/responses/Error'
     delete:
       operationId: revokeJoinCode
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [machines]
       summary: Withdraw an unused join code
       x-auth: admin
@@ -1048,6 +1110,8 @@ paths:
   /api/v1/install-command:
     get:
       operationId: getInstallCommand
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [machines]
       summary: The install command per OS, without a join code
       description: >-
@@ -1068,6 +1132,8 @@ paths:
   /api/v1/ca.pem:
     get:
       operationId: getCaCertificate
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [machines]
       summary: Download the controller's CA certificate
       description: Owner decision for M1 (console TLS, one-click CA download). Public data.
@@ -1085,6 +1151,8 @@ paths:
   /api/v1/settings/pool:
     get:
       operationId: getPoolSettings
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [machines]
       summary: Defaults for new machines
       description: machines R5.22; owner decision for M1 (slots sized from cores and memory).
@@ -1101,6 +1169,8 @@ paths:
           $ref: '#/components/responses/Error'
     put:
       operationId: updatePoolSettings
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [machines]
       summary: Change the defaults for new machines
       x-auth: admin
@@ -1272,6 +1342,8 @@ paths:
   /api/v1/runners/{runnerId}/replace:
     post:
       operationId: planRunnerReplacement
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [runners]
       summary: Plan replacing a runner not made by CRSP with a managed one
       description: >-
@@ -1347,6 +1419,8 @@ paths:
   /api/v1/jobs/{jobId}:
     get:
       operationId: getJob
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [jobs]
       summary: One job attempt with its timing
       x-auth: user
@@ -1365,6 +1439,8 @@ paths:
   /api/v1/overview:
     get:
       operationId: getOverview
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [live]
       summary: The overview snapshot
       description: web-console 4.2, observability R5.1 and R5.15.
@@ -1452,6 +1528,8 @@ paths:
   /api/v1/doctor/findings:
     get:
       operationId: listDoctorFindings
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [doctor]
       summary: The latest finding per check and subject
       x-auth: user
@@ -1481,6 +1559,8 @@ paths:
   /api/v1/settings:
     get:
       operationId: getSettings
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [settings]
       summary: Controller settings (retention, backup time, stream limits)
       description: observability R5.32 and R6.8, operations R5.21.
@@ -1497,6 +1577,8 @@ paths:
           $ref: '#/components/responses/Error'
     patch:
       operationId: updateSettings
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [settings]
       summary: Change controller settings
       description: observability R5.32. A value outside its floor and ceiling is refused with the range.
@@ -1520,6 +1602,8 @@ paths:
   /api/v1/audit:
     get:
       operationId: listAuditEvents
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [settings]
       summary: The audit log, newest first
       description: >-
@@ -1599,6 +1683,8 @@ paths:
   /api/v1/backups/drills:
     post:
       operationId: runBackupDrill
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
       tags: [backups]
       summary: Restore the newest backup into a temporary folder and check it
       description: operations R5.27.
@@ -1641,6 +1727,8 @@ paths:
   /webhooks/github:
     post:
       operationId: receiveGithubWebhook
+      x-cli: none
+      x-cli-reason: 'Browser or GitHub entry point; the CLI signs in with the device flow instead.'
       tags: [webhooks]
       summary: GitHub webhook deliveries
       description: >-
