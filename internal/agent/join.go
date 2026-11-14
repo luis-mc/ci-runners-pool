@@ -65,6 +65,10 @@ func Join(ctx context.Context, cfg Config, code string, local bool) error {
 		if isPinError(err) {
 			return ErrPinMismatch
 		}
+		// Stopped while dialling: say so, not "the controller refused".
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
 		var ce *connect.Error
 		if errors.As(err, &ce) {
 			return fmt.Errorf("the controller refused the join: %s", ce.Message())
