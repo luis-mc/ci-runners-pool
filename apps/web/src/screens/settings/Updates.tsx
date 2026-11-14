@@ -158,6 +158,13 @@ export function UpdateWizard() {
   const [problem, setProblem] = useState<string | undefined>(undefined);
   const [lostService, setLostService] = useState(false);
   const polling = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const working = kind === 'update' ? 'Updating' : 'Restarting';
   const STEPS = ['Reading the service', 'Review', working, 'Done'] as const;
@@ -199,8 +206,9 @@ export function UpdateWizard() {
     polling.current = true;
     setPhase('running');
     let lost = false;
-    for (;;) {
+    while (mounted.current) {
       await new Promise((r) => setTimeout(r, TIMING.planPollMs));
+      if (!mounted.current) break;
       try {
         const u = await unwrap(client.GET('/api/v1/update'));
         setStatus(u);
