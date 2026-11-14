@@ -1,11 +1,11 @@
 {
   "schema": 1,
   "map": {
-    "apps/web/src/**": [
-      "docs/features/web-console/spec.md"
+    "cmd/ci-runners-pool/**": [
+      "docs/features/cli/spec.md"
     ],
-    "packages/ui/src/**": [
-      "docs/features/web-console/spec.md"
+    "internal/cli/**": [
+      "docs/features/cli/spec.md"
     ]
   }
 }

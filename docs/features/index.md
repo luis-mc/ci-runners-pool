@@ -6,27 +6,31 @@
 
 ### agent
 
-No feature lists this app yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
 
 ### cli
 
-No feature lists this app yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
 
 ### controller
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | proposed | 0.1.0 | 2026-11-14 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
 
 ### tray
 
-No feature lists this app yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
 
 ### web-console
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this app yet.
 
 ## By topic
 
@@ -38,11 +42,13 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | proposed | 0.1.0 | 2026-11-14 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
 
 ### install
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
 
 ### isolation
 
@@ -50,7 +56,9 @@ No feature lists this topic yet.
 
 ### machines
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
 
 ### observability
 
@@ -58,11 +66,15 @@ No feature lists this topic yet.
 
 ### operations
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
 
 ### runners
 
-No feature lists this topic yet.
+| Feature | Apps | Topics | Status | Version | Last verified |
+|---|---|---|---|---|---|
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
 
 ### scheduling
 
@@ -72,13 +84,11 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | proposed | 0.1.0 | 2026-11-14 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
 
 ### ui
 
-| Feature | Apps | Topics | Status | Version | Last verified |
-|---|---|---|---|---|---|
-| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | proposed | 0.1.0 | 2026-11-14 |
+No feature lists this topic yet.
 
 ## By status
 
@@ -86,10 +96,8 @@ No feature lists this topic yet.
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | proposed | 0.1.0 | 2026-11-14 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | proposed | 0.1.0 | 2026-11-14 |
 
 ## Gaps
 
-- app agent: no feature spec lists it
-- app cli: no feature spec lists it
-- app tray: no feature spec lists it
+- app web-console: no feature spec lists it

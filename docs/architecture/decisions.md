@@ -11,9 +11,6 @@ Feature decisions come from each feature's `decisions.json` (and the Decisions t
 | cross-cutting | 0003-isolation-backends | [Isolation backends as plugins behind one interface, chosen per machine and label](decisions/0003-isolation-backends.md) |  | accepted | 2026-11-13 |
 | cross-cutting | 0004-agent-link | [Agents connect outbound to the controller over gRPC with a per-machine key](decisions/0004-agent-link.md) |  | accepted | 2026-11-13 |
 | cross-cutting | 0005-product-boundary | [Self-hosted machines first, a tray per OS, no dependency on the delivery plugin](decisions/0005-product-boundary.md) |  | accepted | 2026-11-13 |
-| observability | D1 | [SSE or WebSocket for the live view?](../features/observability/spec.md) | SSE: one-way flow, plain `net/http`, built-in reconnect and replay, no extra library (section 7) | decided | 2026-11-14 |
-| observability | D2 | [Where do runner and agent logs live?](../features/observability/spec.md) | A separate SQLite file `logs.db` with FTS5, so log volume never blocks the scheduler | decided | 2026-11-14 |
-| observability | D3 | [How is an audit row kept with its change?](../features/observability/spec.md) | Same transaction; no audit row, no change | decided | 2026-11-14 |
-| observability | D4 | [Where does the per-minute rate come from?](../features/observability/spec.md) | A table copied from GitHub's Actions runner pricing, with source URL and date, which the owner can change | decided | 2026-11-14 |
-| observability | D5 | [How are minutes counted?](../features/observability/spec.md) | Each job's run time rounded up to the whole minute, as GitHub bills | decided | 2026-11-14 |
-| observability | D6 | [Error tracking?](../features/observability/spec.md) | Local only: structured logs, crash files, doctor (stack profile, section 14) | decided | 2026-11-13 |
+| cli | D1 | [How does the CLI sign in?](../features/cli/spec.md) | GitHub device flow through the controller; the CLI keeps only a controller token (decision 0002). | decided | 2026-11-13 |
+| cli | D2 | [How does the CLI reach the API?](../features/cli/spec.md) | The Go client generated from the same OpenAPI contract as the web console (decision 0001). | decided | 2026-11-13 |
+| cli | D3 | [How does a headless machine open the console?](../features/cli/spec.md) | `ci-runners-pool open` prints a one-time link (decision 0005). | decided | 2026-11-13 |
