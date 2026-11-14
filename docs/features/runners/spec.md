@@ -3,7 +3,7 @@ id: runners
 title: Runners and isolation backends
 apps: [controller, agent, web-console, cli]
 topics: [runners, isolation, security, machines, ui]
-status: proposed
+status: active
 version: 0.1.0
 owner: owner
 type: reference
@@ -354,7 +354,7 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 Open questions for the owner (proposed answers are in the requirements until decided):
 
 1. R5.14: the symlink right only when asked (brief), while dev-standards gives it to every account (DL319). Confirm "only when asked".
-2. R5.13, R5.21, R5.23: account prefix `crp-` and group `crsp-runners`. Confirm names.
+2. R5.13, R5.21, R5.23: account prefix `crsp-` and group `crsp-runners` are built (`internal/runners/account.go`). Confirm names.
 3. R5.33: keep the newest 3 images per OS. Confirm the default.
 4. R6.4: drain timeout default 60 minutes. Confirm.
 5. R6.7: log retention 14 days or 200 MB per machine; usage 90 days. Confirm.

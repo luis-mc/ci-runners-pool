@@ -3,7 +3,7 @@ id: web-console
 title: Web console
 apps: [web-console, controller]
 topics: [ui, security, github]
-status: proposed
+status: active
 version: 0.1.0
 owner: owner
 type: reference
@@ -343,7 +343,7 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 Requirements marked (built, CRSP24) are built. The others are **NOT YET IMPLEMENTED**.
 
-**R6.1** — The session lives in a cookie that is `HttpOnly`, `Secure`, `SameSite=Lax` and host-only. Its value is a random 256-bit id. The controller stores only its hash. Idle and total lifetimes are set in config (owner question Q12).
+**R6.1** — The session lives in a cookie that is `HttpOnly`, `Secure`, `SameSite=Lax` and host-only. Its value is a random 256-bit id. The controller stores only its hash. The session never expires by time; it ends at sign-out, when the user is removed, or when their role changes (github-integration R5.13).
 
 **R6.2** — Every request that changes something carries a per-session CSRF token, and the controller refuses a request whose `Origin` is not the console's own.
 

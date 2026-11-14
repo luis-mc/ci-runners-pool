@@ -3,7 +3,7 @@ id: github-integration
 title: GitHub integration
 apps: [controller, web-console, cli]
 topics: [github, security, runners, install]
-status: proposed
+status: active
 version: 0.1.0
 owner: owner
 type: reference
@@ -26,7 +26,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-No code exists yet. Every requirement is NOT YET IMPLEMENTED. Each one names the milestone that builds it (M1 to M8, from the product brief).
+The M1 sign-in, session, repository and policy requirements marked built have tests in section 9. A requirement not marked built is NOT YET IMPLEMENTED. Each one names the milestone that builds it (M1 to M8, from the product brief).
 
 ## 1. In one paragraph
 
@@ -158,7 +158,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 **R5.12** (M1, built) — **Roles.** A viewer can read every screen and change nothing. An admin can change pool, policy, machines and runners, but not users. The owner can do everything. Every API operation declares its role in `x-auth`, and the route-coverage test checks it.
 
-**R5.13** (M1, built) — **Sessions.** A web session is a random id in a cookie (`HttpOnly`, `SameSite=Lax`, and `Secure` on every non-loopback address). The database keeps only a hash of the id. A session ends after 12 hours idle or 7 days, at sign-out, and when the user is removed or their role changes.
+**R5.13** (M1, built) — **Sessions.** A web session is a random id in a cookie (`HttpOnly`, `SameSite=Lax`, and `Secure` on every non-loopback address). The database keeps only a hash of the id. A session never expires by time (owner decision for M1). It ends at sign-out, when the user is removed, and when their role changes.
 
 **R5.14** (M1, built) — **CLI device flow.** `crsp login` runs GitHub's device flow with the App's client id. It shows the code and the URL, and waits at the interval GitHub gives. It sends the GitHub user token once to the controller, which checks it with `POST /applications/{client_id}/token` and that the user is allowed. The controller returns its own CLI token. The CLI keeps that token in the OS secret store and drops the GitHub token.
 
@@ -204,7 +204,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 - Priority. Default normal. Enforced by the scheduling spec (M3).
 - Fork pull requests. Default off (R5.26).
 
-**R5.26** (M1, built) — **Fork pull requests off by default.** For a public repository, jobs from pull requests whose head repository is a fork never run on the pool unless the policy allows it. Two guards apply. The controller sets the repository's fork-approval setting to require approval for all outside contributors. The runner's job-started hook reads the event payload and fails a forked pull request job at once, before any step runs, with a message that names the policy. Turning it on asks first with a warning that fork code runs on the user's machines.
+**R5.26** (M1, built in part: the fork-approval setting is built; the job-started hook guard is NOT YET IMPLEMENTED and untested, so fork protection is not built until its hook test passes) — **Fork pull requests off by default.** For a public repository, jobs from pull requests whose head repository is a fork never run on the pool unless the policy allows it. Two guards apply. The controller sets the repository's fork-approval setting to require approval for all outside contributors. The runner's job-started hook reads the event payload and fails a forked pull request job at once, before any step runs, with a message that names the policy. Turning it on asks first with a warning that fork code runs on the user's machines.
 
 **R5.27** (M1, built) — **Labels stay generic.** A label that is not generic is refused in a policy. A runner that carries a leftover non-generic label loses it only after a yes that names the label, and only when no workflow names it. When a workflow still names it, the console lists the files that must switch to the variable. (Source: runner-pool R5.37, DL316.)
 
@@ -262,7 +262,7 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R6.9** (M1, built) — **Tests use a fake GitHub.** No test calls github.com. Tests run against a fake GitHub API server in `internal/github/githubfake` that serves recorded real responses as fixtures. Fixtures are recorded from the dev App with a recorder that scrubs every token, key and secret before writing. A guard test fails when a fixture holds a token pattern or a PEM block.
 
-**R6.10** (M1, NOT YET IMPLEMENTED) — **Data kept.** The database keeps per user: GitHub id, login, role, who added them, and dates. Sessions keep a hashed id and expire as R5.13 says. The data inventory (stack profile section 7) lists these fields before the first release.
+**R6.10** (M1, NOT YET IMPLEMENTED) — **Data kept.** The database keeps per user: GitHub id, login, role, who added them, and dates. Sessions keep a hashed id and end as R5.13 says. The data inventory (stack profile section 7) lists these fields before the first release.
 
 **R6.11** (M1, NOT YET IMPLEMENTED) — **Limits.** The repository list handles at least 1,000 repositories per installation, 100 per page from GitHub and the console's pager on screen. The first page shows within 3 seconds on a normal home connection.
 
@@ -294,7 +294,7 @@ flowchart LR
 
 **Packages.**
 
-- `internal/secrets`: one interface (`Get`, `Put`, `Delete` by key) with one implementation per OS store and the 0600 file fallback. Keys look like `crp/github-app/<app-id>/private-key`.
+- `internal/secrets`: one interface (`Get`, `Put`, `Delete` by key) with one implementation per OS store and the 0600 file fallback. Keys look like `crsp/github-app/<app-id>/private-key`.
 - `internal/github`: the App client (JWT signing, installation token cache), a typed REST client over `go-github`, the scale-set adapter over `github.com/actions/scaleset`, the webhook handler, and the poller. One `Demand` interface hides the three demand sources.
 - `internal/github/githubfake`: the fake GitHub server and the fixture recorder for tests.
 - `internal/auth`: the manifest flow handlers, web OAuth with state and PKCE, the device-flow exchange, sessions, CLI tokens and role checks.
@@ -372,7 +372,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.23 | internal/auth/manifest_test.go |
 | R5.24 | internal/github/client_test.go |
 | R5.25 | internal/repos/policy_test.go |
-| R5.26 | internal/repos/policy_test.go |
+| R5.26 | internal/repos/policy_test.go (approval setting); planned: internal/hooks/forkpr_test.go TestForkPullRequestFailsAtJobStart (hook guard) |
 | R5.27 | internal/repos/labels_test.go |
 | R5.28 | internal/repos/variables_test.go |
 | R5.29 | internal/repos/variables_test.go |

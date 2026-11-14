@@ -3,7 +3,7 @@ id: tray
 title: Tray
 apps: [tray, cli]
 topics: [ui, install, operations, security]
-status: proposed
+status: active
 version: 0.1.0
 owner: owner
 type: reference
