@@ -381,3 +381,161 @@ func (s *Store) SlotLogForTests(ctx context.Context, machineID string) (int, []s
 	}
 	return len(ev), ev, rows.Err()
 }
+
+// ---------------------------------------------------------------- jobs for the API
+
+var _ slots.Jobs = (*Store)(nil)
+
+const jobCols = `j.id, COALESCE(r.full_name, ''), j.repository_id, j.run_id, j.run_attempt, j.workflow, j.job_name, j.head_sha,
+	j.event, j.labels, j.status, COALESCE(j.conclusion, ''),
+	COALESCE((SELECT t.wait_reason FROM slot_tickets t WHERE t.repository = r.full_name AND t.run_id = j.run_id
+		AND t.run_attempt = j.run_attempt AND t.job = j.job_name LIMIT 1), j.wait_reason, ''),
+	COALESCE(j.wait_text, ''), COALESCE(j.placed_machine_id, ''), COALESCE(j.runner_name, ''),
+	COALESCE(j.created_at_github, ''), COALESCE(j.started_at_github, ''), COALESCE(j.completed_at_github, ''),
+	COALESCE((SELECT l.queued_at FROM slot_log l WHERE l.event = 'taken' AND l.repository = r.full_name AND l.run_id = j.run_id
+		AND l.run_attempt = j.run_attempt AND l.job = j.job_name ORDER BY l.id DESC LIMIT 1), ''),
+	COALESCE((SELECT l.slot_at FROM slot_log l WHERE l.event = 'taken' AND l.repository = r.full_name AND l.run_id = j.run_id
+		AND l.run_attempt = j.run_attempt AND l.job = j.job_name ORDER BY l.id DESC LIMIT 1), '')`
+
+const jobFrom = ` FROM gh_jobs j LEFT JOIN repositories r ON r.id = j.repository_id `
+
+func scanJob(sc interface{ Scan(...any) error }) (slots.JobRecord, error) {
+	var j slots.JobRecord
+	var labels, status, created, started, completed, queued, slot string
+	if err := sc.Scan(&j.ID, &j.Repository, &j.RepositoryID, &j.RunID, &j.RunAttempt, &j.Workflow, &j.JobName, &j.HeadSHA,
+		&j.Trigger, &labels, &status, &j.Conclusion, &j.WaitReason, &j.WaitText, &j.MachineID, &j.RunnerName,
+		&created, &started, &completed, &queued, &slot); err != nil {
+		return j, err
+	}
+	_ = json.Unmarshal([]byte(labels), &j.Labels)
+	if j.Labels == nil {
+		j.Labels = []string{}
+	}
+	switch status {
+	case "completed":
+		j.State = slots.JobDone
+	case "in_progress":
+		j.State = slots.JobRunning
+	default:
+		j.State = slots.JobQueued
+	}
+	opt := func(s string) time.Time {
+		if s == "" {
+			return time.Time{}
+		}
+		return parseTime(s)
+	}
+	j.CreatedAt, j.StartedAt, j.CompletedAt, j.QueuedAt, j.SlotAt = opt(created), opt(started), opt(completed), opt(queued), opt(slot)
+	return j, nil
+}
+
+// ListJobs returns up to Limit+1 jobs, newest first (by GitHub job id, which grows with time).
+func (s *Store) ListJobs(ctx context.Context, f slots.JobFilter) ([]slots.JobRecord, error) {
+	ctx, cancel := withDeadline(ctx)
+	defer cancel()
+	var where []string
+	var args []any
+	switch f.State {
+	case slots.JobQueued:
+		where = append(where, `j.status = 'queued'`)
+	case slots.JobRunning:
+		where = append(where, `j.status = 'in_progress'`)
+	case slots.JobDone:
+		where = append(where, `j.status = 'completed'`)
+	}
+	if f.RepositoryID != 0 {
+		where, args = append(where, `j.repository_id = ?`), append(args, f.RepositoryID)
+	}
+	if f.MachineID != "" {
+		where, args = append(where, `j.placed_machine_id = ?`), append(args, f.MachineID)
+	}
+	if f.Result != "" {
+		where, args = append(where, `j.conclusion = ?`), append(args, f.Result)
+	}
+	if !f.From.IsZero() {
+		where, args = append(where, `j.created_at_github >= ?`), append(args, fmtTime(f.From))
+	}
+	if !f.To.IsZero() {
+		where, args = append(where, `j.created_at_github <= ?`), append(args, fmtTime(f.To))
+	}
+	if f.After != 0 {
+		where, args = append(where, `j.id < ?`), append(args, f.After)
+	}
+	q := `SELECT ` + jobCols + jobFrom
+	if len(where) > 0 {
+		q += ` WHERE ` + strings.Join(where, ` AND `)
+	}
+	limit := f.Limit
+	if limit < 1 {
+		limit = 50
+	}
+	q += ` ORDER BY j.id DESC LIMIT ?`
+	args = append(args, limit+1)
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list jobs: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var out []slots.JobRecord
+	for rows.Next() {
+		j, err := scanJob(rows)
+		if err != nil {
+			return nil, fmt.Errorf("list jobs: %w", err)
+		}
+		out = append(out, j)
+	}
+	return out, rows.Err()
+}
+
+// GetJob returns one job attempt.
+func (s *Store) GetJob(ctx context.Context, id int64) (slots.JobRecord, bool, error) {
+	ctx, cancel := withDeadline(ctx)
+	defer cancel()
+	j, err := scanJob(s.db.QueryRowContext(ctx, `SELECT `+jobCols+jobFrom+` WHERE j.id = ?`, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return slots.JobRecord{}, false, nil
+	}
+	if err != nil {
+		return slots.JobRecord{}, false, fmt.Errorf("get job: %w", err)
+	}
+	return j, true, nil
+}
+
+// MachineExists says whether the machine id is known and not removed.
+func (s *Store) MachineExists(ctx context.Context, id string) (bool, error) {
+	ctx, cancel := withDeadline(ctx)
+	defer cancel()
+	var n int
+	if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM machines WHERE id = ? AND removed_at IS NULL`, id).Scan(&n); err != nil {
+		return false, fmt.Errorf("machine exists: %w", err)
+	}
+	return n > 0, nil
+}
+
+// UpsertJobForTests writes a GitHub job row for tests of packages that may not use database/sql.
+func (s *Store) UpsertJobForTests(ctx context.Context, j slots.JobRecord, status string) error {
+	ctx, cancel := withDeadline(ctx)
+	defer cancel()
+	labels, _ := json.Marshal(j.Labels)
+	ts := func(t time.Time) any {
+		if t.IsZero() {
+			return nil
+		}
+		return fmtTime(t)
+	}
+	_, err := s.db.ExecContext(ctx, `INSERT INTO gh_jobs (id, repository_id, run_id, run_attempt, workflow, job_name, head_sha, event, labels,
+		status, conclusion, runner_name, placed_machine_id, wait_reason, wait_text, created_at_github, started_at_github, completed_at_github)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT (id) DO UPDATE SET status = excluded.status, conclusion = excluded.conclusion`,
+		j.ID, j.RepositoryID, j.RunID, j.RunAttempt, j.Workflow, j.JobName, j.HeadSHA, j.Trigger, string(labels), status,
+		nullStr(j.Conclusion), nullStr(j.RunnerName), nullStr(j.MachineID), nullStr(j.WaitReason), nullStr(j.WaitText),
+		ts(j.CreatedAt), ts(j.StartedAt), ts(j.CompletedAt))
+	return err
+}
+
+func nullStr(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
+}

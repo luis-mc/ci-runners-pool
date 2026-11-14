@@ -67,11 +67,6 @@ func (s *server) ExchangeCliToken(_ context.Context, _ gen.ExchangeCliTokenReque
 	return gen.ExchangeCliTokendefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// FreeStaleSlots is not built yet.
-func (s *server) FreeStaleSlots(_ context.Context, _ gen.FreeStaleSlotsRequestObject) (gen.FreeStaleSlotsResponseObject, error) {
-	return gen.FreeStaleSlotsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // GetAppInstallUrl is not built yet.
 func (s *server) GetAppInstallUrl(_ context.Context, _ gen.GetAppInstallUrlRequestObject) (gen.GetAppInstallUrlResponseObject, error) {
 	return gen.GetAppInstallUrldefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
@@ -95,11 +90,6 @@ func (s *server) GetDoctorRun(_ context.Context, _ gen.GetDoctorRunRequestObject
 // GetInstallCommand is not built yet.
 func (s *server) GetInstallCommand(_ context.Context, _ gen.GetInstallCommandRequestObject) (gen.GetInstallCommandResponseObject, error) {
 	return gen.GetInstallCommanddefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// GetJob is not built yet.
-func (s *server) GetJob(_ context.Context, _ gen.GetJobRequestObject) (gen.GetJobResponseObject, error) {
-	return gen.GetJobdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // GetJoinCode is not built yet.
@@ -207,11 +197,6 @@ func (s *server) ListInstallations(_ context.Context, _ gen.ListInstallationsReq
 	return gen.ListInstallationsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
-// ListJobs is not built yet.
-func (s *server) ListJobs(_ context.Context, _ gen.ListJobsRequestObject) (gen.ListJobsResponseObject, error) {
-	return gen.ListJobsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
 // ListMachines is not built yet.
 func (s *server) ListMachines(_ context.Context, _ gen.ListMachinesRequestObject) (gen.ListMachinesResponseObject, error) {
 	return gen.ListMachinesdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
@@ -225,11 +210,6 @@ func (s *server) ListRepositories(_ context.Context, _ gen.ListRepositoriesReque
 // ListRunners is not built yet.
 func (s *server) ListRunners(_ context.Context, _ gen.ListRunnersRequestObject) (gen.ListRunnersResponseObject, error) {
 	return gen.ListRunnersdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
-}
-
-// ListSlots is not built yet.
-func (s *server) ListSlots(_ context.Context, _ gen.ListSlotsRequestObject) (gen.ListSlotsResponseObject, error) {
-	return gen.ListSlotsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 }
 
 // ListUsers is not built yet.

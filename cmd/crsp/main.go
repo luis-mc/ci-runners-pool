@@ -20,6 +20,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/hooks"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
 )
@@ -104,7 +105,9 @@ func runController() error {
 	defer func() { _ = db.Close() }()
 
 	mux := http.NewServeMux()
-	api.Register(mux, api.Options{Version: version, DB: db, Logger: logger})
+	queue := scheduler.NewEngine(db, scheduler.WithLogger(logger))
+	go scheduler.RunSweeper(ctx, queue, logger, 30*time.Second)
+	api.Register(mux, api.Options{Version: version, DB: db, Logger: logger, Jobs: db, Slots: queue})
 	mux.Handle("/", webui.Handler())
 
 	srv := &http.Server{

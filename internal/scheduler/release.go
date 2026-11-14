@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
@@ -191,4 +192,28 @@ func (e *Engine) FreeStale(ctx context.Context, machineID string, live []Grant) 
 	})
 	e.notifyFreed(freed)
 	return freed, err
+}
+
+// RunSweeper runs Sweep every interval until ctx ends, so slots past the slot
+// maximum age and tickets past their beat limit are freed even when no gate
+// polls (R5.33, R5.34). A failed sweep is logged and tried again.
+func RunSweeper(ctx context.Context, q SlotQueue, log *slog.Logger, every time.Duration) {
+	t := time.NewTicker(every)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case now := <-t.C:
+			freed, err := q.Sweep(ctx, now.UTC())
+			if err != nil {
+				log.Warn("slot sweep failed", "err", err)
+				continue
+			}
+			for _, f := range freed {
+				log.Info("slot sweep freed", "machine", f.MachineID, "kind", f.Kind, "slot", f.Number,
+					"repository", f.Job.Repository, "run", f.Job.RunID, "job", f.Job.Job, "reason", f.Reason)
+			}
+		}
+	}
 }

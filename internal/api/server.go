@@ -12,6 +12,8 @@ import (
 	"net/http"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
 )
 
 // Pinger is what the health route needs from the database.
@@ -24,6 +26,9 @@ type Options struct {
 	Version string
 	DB      Pinger
 	Logger  *slog.Logger
+	// Jobs and Slots serve the jobs and slot routes (handlers_jobs.go).
+	Jobs  slots.Jobs
+	Slots scheduler.SlotQueue
 }
 
 type server struct {

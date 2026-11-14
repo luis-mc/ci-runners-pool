@@ -123,7 +123,7 @@ func (e *Engine) logRow(tx slots.Tx, r slots.LogRow) {
 func (e *Engine) freedRow(tx slots.Tx, s slots.Slot, event, reason string, now time.Time) Freed {
 	e.logRow(tx, slots.LogRow{MachineID: s.MachineID, Event: event, Kind: s.Kind, Number: s.Number, Job: s.Job,
 		QueuedAt: s.QueuedAt, SlotAt: s.TakenAt, ReleasedAt: now, Reason: reason, At: now})
-	return Freed{MachineID: s.MachineID, Kind: SlotKind(s.Kind), Number: s.Number, Job: fromJob(s.Job), Reason: reason}
+	return Freed{MachineID: s.MachineID, Kind: SlotKind(s.Kind), Number: s.Number, Job: fromJob(s.Job), Reason: reason, TakenAt: s.TakenAt}
 }
 
 func (e *Engine) droppedRow(tx slots.Tx, t slots.Ticket, reason string, now time.Time) Freed {
