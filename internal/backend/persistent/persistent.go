@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"path"
+	"io/fs"
 	"sort"
 	"strings"
 
@@ -74,11 +74,16 @@ func Decide(have *Meta, haveEnv string, want Meta, wantEnv string) Action {
 	return Already
 }
 
-// ReadMeta reads the meta file of a folder; nil when there is none.
-func ReadMeta(fsys sys.FS, folder string) (*Meta, error) {
-	b, err := fsys.ReadFile(path.Join(folder, MetaFile))
+// ReadMeta reads the meta file at file. It returns nil with no error when the
+// file does not exist (a runner CRSP did not make) and an error when the file
+// cannot be read, such as for lack of rights (runners R5.5).
+func ReadMeta(fsys sys.FS, file string) (*Meta, error) {
+	b, err := fsys.ReadFile(file)
 	if err != nil {
-		return nil, nil //nolint:nilerr // no meta file means a runner CRSP did not make.
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
 	}
 	var m Meta
 	if err := json.Unmarshal(b, &m); err != nil {
@@ -87,13 +92,13 @@ func ReadMeta(fsys sys.FS, folder string) (*Meta, error) {
 	return &m, nil
 }
 
-// WriteMeta writes the meta file.
-func WriteMeta(fsys sys.FS, folder string, m Meta) error {
+// WriteMeta writes the meta file at file.
+func WriteMeta(fsys sys.FS, file string, m Meta) error {
 	b, err := json.MarshalIndent(m.Normalize(), "", "  ")
 	if err != nil {
 		return err
 	}
-	return fsys.WriteFile(path.Join(folder, MetaFile), b, 0o600)
+	return fsys.WriteFile(file, b, 0o600)
 }
 
 // Env renders a runner .env: sorted KEY=value lines.

@@ -92,13 +92,16 @@ type RunnerSpec struct {
 	WindowsSymlinkRight bool
 }
 
-// StartConfig carries the one-time credential to start a runner. Exactly one
-// field is set. It is used once and dropped; it is never logged (R6.2).
+// StartConfig carries the one-time credential to start a runner. Registration
+// or JITConfig is set. It is used once and dropped; it is never logged (R6.2).
 type StartConfig struct {
 	// Registration is a registration token for a persistent runner.
 	Registration string
 	// JITConfig is an encoded just-in-time config for an ephemeral runner (M2).
 	JITConfig string
+	// Removal is a remove token. It is set only to register a runner again in
+	// place: the old registration is removed with it first (runners R5.19).
+	Removal string
 }
 
 // Handle names a started runner for later calls.
