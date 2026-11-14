@@ -10,6 +10,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tray"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/trayserver"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
 )
 
 // LinkIssuer makes a one-time sign-in link for an OS user of this machine
@@ -75,7 +76,16 @@ func consoleURL(listen string) string {
 	if port == "" {
 		port = "8460"
 	}
-	return "http://" + net.JoinHostPort(host, port)
+	return consoleScheme(host) + "://" + net.JoinHostPort(host, port)
+}
+
+// consoleScheme is http on 127.0.0.1 and ::1 and https on every other address
+// (web-console R5.1).
+func consoleScheme(host string) string {
+	if webui.IsLoopback(host) {
+		return "http"
+	}
+	return "https"
 }
 
 // startTrayChannel serves the local channel until ctx ends. A failure to open

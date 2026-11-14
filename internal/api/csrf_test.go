@@ -165,3 +165,29 @@ func TestOriginAllowed(t *testing.T) {
 	}
 	_ = auth.RoleOwner
 }
+
+// D38: on loopback the console is plain HTTP; the Origin check still holds
+// there (scheme, host and port), so a foreign page cannot post to it.
+func TestOriginAllowedOnLoopbackHTTP(t *testing.T) {
+	mk := func(origin string) *http.Request {
+		r := httptest.NewRequestWithContext(context.Background(), "POST", "/x", nil)
+		r.Host = "127.0.0.1:8460"
+		if origin != "" {
+			r.Header.Set("Origin", origin)
+		}
+		return r
+	}
+	for origin, want := range map[string]bool{
+		"http://127.0.0.1:8460":  true,
+		"http://127.0.0.1:8461":  false,
+		"https://127.0.0.1:8460": false,
+		"http://localhost:8460":  false,
+		"https://evil.example":   false,
+		"null":                   false,
+		"":                       false,
+	} {
+		if got := originAllowed(mk(origin), true); got != want {
+			t.Errorf("origin %q: got %v want %v", origin, got, want)
+		}
+	}
+}

@@ -2,6 +2,7 @@ package update
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -198,7 +199,14 @@ func httpHealth(ctx context.Context, url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	client := http.DefaultClient
+	if req.URL.Scheme == "https" {
+		// The console off loopback is TLS with the controller's own CA. This is
+		// a health read of this machine's own port, with no data sent and none
+		// trusted beyond the version string.
+		client = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS13, InsecureSkipVerify: true}}} //nolint:gosec // local health read
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}

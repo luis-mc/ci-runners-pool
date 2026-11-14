@@ -220,7 +220,7 @@ With `--json`, a refusal prints the contract's `ErrorEnvelope` to stderr and use
 
 **R6.2** — The CLI config file MUST hold only context names, URLs, fingerprints and the current context. Tokens MUST live only in the OS secret store. The fallback file MUST have mode 0600 and the CLI MUST refuse to use it when its mode is wider.
 
-**R6.3** — The CLI MUST talk to the controller only over HTTPS with the pinned certificate. It MUST NOT offer a flag that turns certificate checks off.
+**R6.3** — The CLI MUST talk to the controller over HTTPS with the pinned certificate, except for a controller at `http://127.0.0.1:<port>` or `http://[::1]:<port>`, which serves plain HTTP (web-console R5.1, D38) and has no certificate to pin. Any other `http` address is refused. It MUST NOT offer a flag that turns certificate checks off.
 
 **R6.4** — `version`, `help` and `completion` MUST finish in under 100 ms and make no network call.
 

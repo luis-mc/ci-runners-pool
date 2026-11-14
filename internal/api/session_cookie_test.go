@@ -27,28 +27,54 @@ func signInCookie(t *testing.T, h *harness) *http.Cookie {
 	return nil
 }
 
-// R6.1: HttpOnly, Secure, SameSite=Lax and host-only, on every address.
-func TestSessionCookieIsHttpOnlySecureLaxHostOnly(t *testing.T) {
+// R6.1, D38: HttpOnly, SameSite=Lax and host-only; Secure on every address
+// except loopback. The harness listens on 127.0.0.1 over plain HTTP, so the
+// cookie is not Secure there.
+func TestSessionCookieIsHttpOnlyLaxHostOnlyAndNotSecureOnLoopback(t *testing.T) {
 	h := newHarness(t)
 	h.setup(1, "alice")
-	ck := signInCookie(t, h)
-	if !ck.HttpOnly || !ck.Secure || ck.SameSite != http.SameSiteLaxMode || ck.Domain != "" || ck.Path != "/" {
-		t.Fatalf("session cookie: %+v", ck)
-	}
-	// The test server is on loopback; Secure must not depend on the address.
 	if !strings.HasPrefix(h.srv.URL, "http://127.0.0.1") {
-		t.Skipf("harness is not on loopback: %s", h.srv.URL)
+		t.Fatalf("harness is not on loopback: %s", h.srv.URL)
+	}
+	ck := signInCookie(t, h)
+	if !ck.HttpOnly || ck.Secure || ck.SameSite != http.SameSiteLaxMode || ck.Domain != "" || ck.Path != "/" {
+		t.Fatalf("session cookie on loopback: %+v", ck)
+	}
+	if ck.MaxAge <= 0 {
+		t.Fatalf("the cookie must survive a browser restart: %+v", ck)
 	}
 }
 
-// R6.1: the setup cookie follows the same rules.
-func TestSetupCookieIsSecureToo(t *testing.T) {
+// D38: a request that arrives over TLS, or for a non-loopback host, gets a
+// Secure session cookie and a Secure setup cookie.
+func TestCookiesAreSecureOffLoopback(t *testing.T) {
+	for _, host := range []string{"192.168.1.20:8460", "ci.example.com"} {
+		h := newHarness(t)
+		code, _ := h.auth.NewSetupCode(t.Context())
+		res, _ := h.doHost("POST", "/api/v1/setup/redeem", host, map[string]string{"code": code})
+		found := false
+		for _, c := range res.Cookies() {
+			if c.Name == auth.SetupCookieName {
+				found = true
+				if !c.HttpOnly || !c.Secure || c.SameSite != http.SameSiteLaxMode || c.Domain != "" {
+					t.Errorf("%s: setup cookie: %+v", host, c)
+				}
+			}
+		}
+		if !found {
+			t.Errorf("%s: no setup cookie", host)
+		}
+	}
+}
+
+// R6.1: the setup cookie follows the same rules (not Secure on loopback).
+func TestSetupCookieOnLoopbackIsNotSecure(t *testing.T) {
 	h := newHarness(t)
 	code, _ := h.auth.NewSetupCode(t.Context())
 	res, _ := h.do("POST", "/api/v1/setup/redeem", map[string]string{"code": code}, nil, nil)
 	for _, c := range res.Cookies() {
 		if c.Name == auth.SetupCookieName {
-			if !c.HttpOnly || !c.Secure || c.SameSite != http.SameSiteLaxMode || c.Domain != "" {
+			if !c.HttpOnly || c.Secure || c.SameSite != http.SameSiteLaxMode || c.Domain != "" {
 				t.Fatalf("setup cookie: %+v", c)
 			}
 			return

@@ -115,7 +115,7 @@ func startUpdates(ctx context.Context, cfg config.Config, logger *slog.Logger, m
 			return err != nil || s.AutoUpdate
 		},
 		Dir:       filepath.Join(cfg.DataDir, "updates"),
-		HealthURL: fmt.Sprintf("http://%s/healthz", net.JoinHostPort(host, port)),
+		HealthURL: fmt.Sprintf("%s://%s/healthz", consoleScheme(host), net.JoinHostPort(host, port)),
 		Exe:       exe,
 		Logger:    logger.With("component", "update"),
 	})

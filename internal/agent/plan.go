@@ -10,11 +10,14 @@ import (
 	"unicode/utf16"
 )
 
-// Account names (machines R5.44): the agent never runs as an administrator.
+// Account names (machines R5.44, D41): the agent runs as LocalSystem on
+// Windows and as root on Linux and macOS, like the controller, so it can install
+// its own update after the drain (operations R5.41). Runner jobs do not: each
+// runs under its own non-admin per-runner account (runners R5.14).
 const (
-	WindowsAccount = `NT SERVICE\crsp-agent`
-	LinuxAccount   = "crsp-agent"
-	MacAccount     = "_crsp_agent"
+	WindowsAccount = "LocalSystem"
+	LinuxAccount   = "root"
+	MacAccount     = "root"
 	// ServiceName is the service, unit or launchd label.
 	ServiceName = "crsp-agent"
 	// LaunchdLabel is the macOS LaunchDaemon label.
@@ -33,13 +36,7 @@ type InstallOptions struct {
 	// Fingerprint and JoinCode come from the install command (R5.3).
 	Fingerprint string
 	JoinCode    string
-	// BackendGroups are groups the agent account joins so a detected backend works
-	// (docker, kvm); only groups that exist are added.
-	BackendGroups []string
-	DataDir       string
-	// WindowsSymlinkRight asks the plan to grant "create symbolic links" to the
-	// service account (owner decision for M1, runners R5.14).
-	WindowsSymlinkRight bool
+	DataDir     string
 }
 
 // File is a file the plan writes.
@@ -124,12 +121,8 @@ func joinArgs(o InstallOptions) []string {
 
 func linuxPlan(o InstallOptions) Plan {
 	p := Plan{OS: "linux", Account: LinuxAccount}
-	p.Steps = append(p.Steps, Step{Admin: true, What: "create the system user " + LinuxAccount + " (no login, no admin rights)",
-		Commands: [][]string{{"useradd", "--system", "--home-dir", o.DataDir, "--create-home", "--shell", "/usr/sbin/nologin", LinuxAccount}}})
-	for _, g := range o.BackendGroups {
-		p.Steps = append(p.Steps, Step{Admin: true, What: "add " + LinuxAccount + " to the group " + g + " (a backend needs it)",
-			Commands: [][]string{{"usermod", "-aG", g, LinuxAccount}}})
-	}
+	// No NoNewPrivileges: the agent switches to each runner's own account and
+	// installs its own update, and both need a setuid helper.
 	unit := fmt.Sprintf(`[Unit]
 Description=CRSP agent
 After=network-online.target
@@ -140,16 +133,17 @@ User=%s
 ExecStart=%s agent run --controller %s --data-dir %s
 Restart=always
 RestartSec=5
-NoNewPrivileges=true
 
 [Install]
 WantedBy=multi-user.target
 `, LinuxAccount, o.Binary, o.Controller, o.DataDir)
 	p.Steps = append(p.Steps,
-		Step{Admin: true, What: "write the systemd unit /etc/systemd/system/crsp-agent.service (starts at boot, restarts after a crash)",
+		Step{Admin: true, What: "create the data folder " + o.DataDir + " (readable by root only)",
+			Commands: [][]string{{"install", "-d", "-m", "0700", "-o", "root", "-g", "root", o.DataDir}}},
+		Step{Admin: true, What: "write the systemd unit /etc/systemd/system/crsp-agent.service (runs as " + LinuxAccount + ", starts at boot, restarts after a crash)",
 			Files: []File{{Path: "/etc/systemd/system/crsp-agent.service", Body: unit, Mode: 0o644}}},
-		Step{Admin: true, What: "join the controller as " + LinuxAccount + " with the one-time code",
-			Commands: [][]string{append([]string{"runuser", "-u", LinuxAccount, "--", o.Binary}, joinArgs(o)...)}},
+		Step{Admin: true, What: "join the controller with the one-time code",
+			Commands: [][]string{append([]string{o.Binary}, joinArgs(o)...)}},
 		Step{Admin: true, What: "start the service now and at every boot",
 			Commands: [][]string{{"systemctl", "daemon-reload"}, {"systemctl", "enable", "--now", ServiceName}}},
 	)
@@ -170,16 +164,12 @@ func macPlan(o InstallOptions) Plan {
 `, LaunchdLabel, MacAccount, o.Binary, o.Controller, o.DataDir)
 	plistPath := "/Library/LaunchDaemons/" + LaunchdLabel + ".plist"
 	p.Steps = append(p.Steps,
-		Step{Admin: true, What: "create the hidden daemon user " + MacAccount + " (no login, no admin rights)", Commands: [][]string{
-			{"dscl", ".", "-create", "/Users/" + MacAccount},
-			{"dscl", ".", "-create", "/Users/" + MacAccount, "UserShell", "/usr/bin/false"},
-			{"dscl", ".", "-create", "/Users/" + MacAccount, "NFSHomeDirectory", o.DataDir},
-			{"dscl", ".", "-create", "/Users/" + MacAccount, "IsHidden", "1"},
-		}},
-		Step{Admin: true, What: "write the LaunchDaemon " + plistPath + " (starts at boot, restarts after a crash)",
+		Step{Admin: true, What: "create the data folder " + o.DataDir + " (readable by root only)",
+			Commands: [][]string{{"install", "-d", "-m", "0700", "-o", "root", "-g", "wheel", o.DataDir}}},
+		Step{Admin: true, What: "write the LaunchDaemon " + plistPath + " (runs as " + MacAccount + ", starts at boot, restarts after a crash)",
 			Files: []File{{Path: plistPath, Body: plist, Mode: 0o644}}},
-		Step{Admin: true, What: "join the controller as " + MacAccount + " with the one-time code",
-			Commands: [][]string{append([]string{"sudo", "-u", MacAccount, o.Binary}, joinArgs(o)...)}},
+		Step{Admin: true, What: "join the controller with the one-time code",
+			Commands: [][]string{append([]string{o.Binary}, joinArgs(o)...)}},
 		Step{Admin: true, What: "load the LaunchDaemon now and at every boot",
 			Commands: [][]string{{"launchctl", "bootstrap", "system", plistPath}}},
 	)
@@ -191,32 +181,27 @@ func windowsPlan(o InstallOptions) Plan {
 	bin := fmt.Sprintf("%s agent run --controller %s --data-dir %s", o.Binary, o.Controller, o.DataDir)
 	// The service and its restart policy are registered with PowerShell cmdlets,
 	// the script travels encoded, never as a cmd-quoted command line (R5.47).
+	// New-Service without a credential makes a LocalSystem service.
 	create := fmt.Sprintf("$ErrorActionPreference='Stop'\nNew-Service -Name '%s' -DisplayName 'CRSP agent' -BinaryPathName '%s' -StartupType Automatic | Out-Null\n",
 		ServiceName, strings.ReplaceAll(bin, "'", "''"))
-	steps := []Step{
-		{Admin: true, What: "create the data folder " + o.DataDir + " and give it to " + WindowsAccount + " only (the virtual service account is made with the service)",
-			Commands: [][]string{psEncoded(fmt.Sprintf("$ErrorActionPreference='Stop'\nNew-Item -ItemType Directory -Force -Path '%s' | Out-Null\n", o.DataDir))}},
+	folder := fmt.Sprintf("$ErrorActionPreference='Stop'\nNew-Item -ItemType Directory -Force -Path '%[1]s' | Out-Null\n& icacls.exe '%[1]s' /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null\nif ($LASTEXITCODE -ne 0) { throw 'icacls failed' }\n", o.DataDir)
+	p.Steps = []Step{
+		{Admin: true, What: "create the data folder " + o.DataDir + " and give it to SYSTEM and Administrators only",
+			Commands: [][]string{psEncoded(folder)}},
 		{Admin: true, What: "register the Windows service " + ServiceName + " that starts at boot, running as " + WindowsAccount, Commands: [][]string{psEncoded(create)}},
 		{Admin: true, What: "make the service restart after a crash",
 			Commands: [][]string{{"sc.exe", "failure", ServiceName, "reset=", "86400", "actions=", "restart/5000/restart/5000/restart/30000"}}},
-	}
-	if o.WindowsSymlinkRight {
-		steps = append(steps, Step{Admin: true, What: "grant \"create symbolic links\" to " + WindowsAccount + " (you chose this; some build tools need it)",
-			Commands: [][]string{psEncoded(symlinkScript)}})
-	}
-	steps = append(steps,
-		Step{Admin: true, What: "join the controller with the one-time code",
+		{Admin: true, What: "join the controller with the one-time code",
 			Commands: [][]string{append([]string{o.Binary}, joinArgs(o)...)}},
-		Step{Admin: true, What: "start the service", Commands: [][]string{psEncoded("$ErrorActionPreference='Stop'\nStart-Service -Name '" + ServiceName + "'\n")}},
-	)
-	p.Steps = steps
+		{Admin: true, What: "start the service", Commands: [][]string{psEncoded("$ErrorActionPreference='Stop'\nStart-Service -Name '" + ServiceName + "'\n")}},
+	}
 	return p
 }
 
 // Describe is the text shown before the yes: each admin action, one per line.
 func (p Plan) Describe() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "The install step needs administrator rights for %d actions. The agent itself then runs as %s, never as an administrator:\n", p.adminCount(), p.Account)
+	fmt.Fprintf(&b, "The install step needs administrator rights for %d actions. The agent then runs as %s, like the controller, so it can install its own update. Runner jobs run under their own accounts without admin rights:\n", p.adminCount(), p.Account)
 	for i, s := range p.Steps {
 		if s.Admin {
 			fmt.Fprintf(&b, "  %d. %s\n", i+1, s.What)
@@ -256,21 +241,3 @@ func (p Plan) Run(ctx context.Context, confirm func(description string) bool, ex
 	}
 	return nil
 }
-
-// symlinkScript adds SeCreateSymbolicLinkPrivilege for the service account to the
-// local security policy: export, edit the one line, import (user rights only).
-const symlinkScript = `$ErrorActionPreference='Stop'
-$sid = (New-Object System.Security.Principal.NTAccount('NT SERVICE\crsp-agent')).Translate([System.Security.Principal.SecurityIdentifier]).Value
-$cfg = Join-Path $env:TEMP 'crsp-secpol.inf'
-$db = Join-Path $env:TEMP 'crsp-secpol.sdb'
-secedit.exe /export /cfg $cfg /areas USER_RIGHTS | Out-Null
-$lines = Get-Content -Path $cfg
-$found = $false
-$out = foreach ($l in $lines) {
-  if ($l -match '^SeCreateSymbolicLinkPrivilege\s*=') { $found = $true; if ($l -notmatch [regex]::Escape($sid)) { $l + ',*' + $sid } else { $l } } else { $l }
-}
-if (-not $found) { $out = $out + ('SeCreateSymbolicLinkPrivilege = *' + $sid) }
-Set-Content -Path $cfg -Value $out
-secedit.exe /configure /db $db /cfg $cfg /areas USER_RIGHTS | Out-Null
-Remove-Item -Path $cfg,$db -Force -ErrorAction SilentlyContinue
-`

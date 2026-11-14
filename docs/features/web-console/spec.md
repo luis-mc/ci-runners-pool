@@ -23,11 +23,11 @@ generator: luismc-docs 2.6.0
 
 The top half (sections 1 to 4) is for every reader: product, design, UX. The bottom half (5 to 12) is for engineers.
 
-The M1 console is built (CRSP24): the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups. Requirements marked (built, CRSP24) are built. The serving side is built (CRSP33): HTTPS, the headers, the session cookie, the CSRF and Origin checks and the role check on every operation (R5.1, R6.1 to R6.5). The axe, performance and offline checks are built (CRSP34: R6.6, R6.12, R6.13). The jobs, doctor, images and caches screens and the later settings sub-pages are built (CRSP35 to CRSP37). Everything else in this spec is **NOT YET IMPLEMENTED**, as listed in the last section.
+The M1 console is built (CRSP24): the shell, the auth states, first run, the overview, repositories, machines, runners and the settings sub-pages Users and roles, Appearance, Retention and Backups. Requirements marked (built, CRSP24) are built. The serving side is built (CRSP33, changed by CRSP42): plain HTTP on 127.0.0.1 and ::1, HTTPS on every other address, the headers, the session cookie, the CSRF and Origin checks and the role check on every operation (R5.1, R6.1 to R6.5). The axe, performance and offline checks are built (CRSP34: R6.6, R6.12, R6.13). The jobs, doctor, images and caches screens and the later settings sub-pages are built (CRSP35 to CRSP37). Everything else in this spec is **NOT YET IMPLEMENTED**, as listed in the last section.
 
 ## 1. In one paragraph
 
-The web console is the browser app of CI Runners Shared Pool. The controller serves it on the local network over HTTPS, on port 8460. Every user signs in with GitHub. The console has a header, a top menu, a command palette and keyboard shortcuts. It has nine screens: sign-in and first-run, overview, repositories, machines, runners, jobs, images and caches, doctor, and settings. The owner uses it to set the pool up and to change it. Admins change it too. Viewers watch it.
+The web console is the browser app of CI Runners Shared Pool. The controller serves it on port 8460: plain HTTP on 127.0.0.1 and ::1, HTTPS on every other address. Every user signs in with GitHub. The console has a header, a top menu, a command palette and keyboard shortcuts. It has nine screens: sign-in and first-run, overview, repositories, machines, runners, jobs, images and caches, doctor, and settings. The owner uses it to set the pool up and to change it. Admins change it too. Viewers watch it.
 
 ## 2. Why
 
@@ -77,7 +77,7 @@ flowchart TD
 
 The steps in words:
 
-1. The user opens `https://<controller>:8460`. The controller serves the console and its API from one binary (decision 0001).
+1. The user opens `http://127.0.0.1:8460` on the controller machine or `https://<controller>:8460` from another one. The controller serves the console and its API from one binary (decision 0001).
 2. A fresh controller has no GitHub App yet, so nobody can sign in with GitHub. The setup page opens only through a one-time setup link. The tray's Open, `crsp open` and the controller's first start each give one.
 3. The first wizard creates the controller's own GitHub App with GitHub's manifest flow (decision 0002).
 4. The user signs in with GitHub through the App's user OAuth flow. The first person to sign in becomes the owner. Later users get in only when the owner has added their GitHub login.
@@ -262,7 +262,7 @@ Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are
 
 ### Serving and the shell
 
-**R5.1** (built, CRSP33) — The controller serves the console and its API on one HTTPS port, 8460 by default, set in config. It serves no plain-HTTP console. The certificate is the one the controller's own CA made (`internal/tlsca`, the one the agent link uses), TLS 1.3 only.
+**R5.1** (built, CRSP33, changed by CRSP42, D38) — The controller serves the console and its API on one port, 8460 by default, set in config. On `127.0.0.1` and `::1` (and only there) the port speaks plain HTTP, so the default address works without a certificate warning. On every other address, a name, a LAN address or a wildcard, it speaks HTTPS only, with the certificate the controller's own CA made (`internal/tlsca`, the one the agent link uses), TLS 1.3 only, and a plain-HTTP request gets TLS's refusal, never a page. The R6.3 headers, the CSRF and Origin checks and the role check hold on both. An OAuth callback over HTTP on a non-loopback host is refused (github-integration R5.4, R6.4).
 
 **R5.2** — Any path that is not under `/api/` returns the console, so a deep link opens its screen after sign-in. An unknown console path shows the not-found state with a link to the overview.
 
@@ -344,7 +344,7 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are **NOT YET IMPLEMENTED**.
 
-**R6.1** (built, CRSP33) — The session lives in a cookie that is `HttpOnly`, `Secure`, `SameSite=Lax` and host-only. Its value is a random 256-bit id. The controller stores only its hash. The session never expires by time; it ends at sign-out, when the user is removed, or when their role changes (github-integration R5.13).
+**R6.1** (built, CRSP33, changed by CRSP42, D38, D39) — The session lives in a cookie that is `HttpOnly`, `SameSite=Lax` and host-only, and `Secure` on every address except `127.0.0.1` and `::1` (on loopback the console is plain HTTP, where a `Secure` cookie would never come back). Its value is a random 256-bit id. The controller stores only its hash. The session never expires by time, idle or absolute (D39, 14 Nov); it ends at sign-out, when the user is removed, or when their role changes (github-integration R5.13). The cookie carries a long `Max-Age`, so a browser restart does not sign anyone out.
 
 **R6.2** (built, CRSP33) — Every request that changes something carries a per-session CSRF token, and the controller refuses a request whose `Origin` is not the console's own. Section 7 says how.
 
@@ -366,7 +366,7 @@ Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are
 
 **R6.11** (built, CRSP24) — Under `prefers-reduced-motion` nothing in the console moves (UX-36, UX-59).
 
-**R6.12** (built, CRSP34) — Proposed budgets (owner question Q14): the first screen is usable within 2 s on the local network; the console's first JavaScript is at most 300 KB gzipped; a live event shows on screen within 2 s of the controller sending it. The numbers live in one file, `apps/web/perf-budgets.json`; the checks read it, so the owner changes a budget there. Measured at CRSP34 (Linux CI-like run): first screen usable in about 0.25 s, first JavaScript about 113 KB gzipped, live event on screen in about 20 ms.
+**R6.12** (built, CRSP34, decided D40, 14 Nov) — Budgets, confirmed by the owner (D40): the first screen is usable within 2 s on the local network; the console's first JavaScript is at most 300 KB gzipped; a live event shows on screen within 2 s of the controller sending it. The numbers live in one file, `apps/web/perf-budgets.json`; the checks read it, so the owner changes a budget there. Measured at CRSP34 (Linux CI-like run): first screen usable in about 0.25 s, first JavaScript about 113 KB gzipped, live event on screen in about 20 ms.
 
 **R6.13** (built, CRSP34) — The console keeps working when the internet is down: local screens load, and screens that need GitHub say so (UX-28).
 
@@ -388,7 +388,7 @@ flowchart LR
     api[internal/api: /api/v1, sessions, roles]
     events[Event stream]
   end
-  client -- HTTPS 8460 --> api
+  client -- "HTTPS 8460 (HTTP on loopback)" --> api
   client -- SSE --> events
   Browser -- GET / --> webui
   api --> gh[GitHub App]
@@ -402,7 +402,7 @@ flowchart LR
 - `apps/web/src/screens/<area>/`: one folder per screen.
 - `packages/ui/src/`: the shared components of design system v1. A screen extends a component there and never copies it (UX-2).
 - `packages/contract/`: the OpenAPI contract and the generated client (decision 0001).
-- `internal/webui/`: serves the built console with `go:embed`, with the SPA fallback of R5.2 (`webui.go`), the headers of R6.3 (`security.go`) and the TLS server of R5.1 (`serve.go`).
+- `internal/webui/`: serves the built console with `go:embed`, with the SPA fallback of R5.2 (`webui.go`), the headers of R6.3 (`security.go`) and the listener of R5.1 (`serve.go`: plain HTTP on a loopback listener, TLS on any other).
 - `internal/api/authz.go`: the one gate in front of every operation: who is signed in, the role of its `x-auth`, the Origin and the CSRF token (R6.2, R6.5).
 
 **Routes.**
@@ -443,9 +443,9 @@ flowchart LR
 
 **Serving and request checks (CRSP33).**
 
-- **HTTPS (R5.1).** `webui.NewServer` serves the console and the API on `listen_addr` with `tlsca.Authority.ServerTLS()`: TLS 1.3 only, the certificate of the controller's own CA, which also covers `localhost`, `127.0.0.1` and `::1`. A client that speaks plain HTTP to the port gets TLS's refusal, never a page. The only plain-HTTP listeners left are not the console: the backup restore drill's throwaway listener on a loopback port (`internal/backup`) and the tests' `httptest` servers.
+- **Transport (R5.1, D38).** `webui.Serve` looks at the address the listener is bound to (`webui.IsLoopback`: exactly `127.0.0.1` or `::1`). A loopback listener serves plain HTTP. Any other listener (a name, a LAN address, `0.0.0.0`, `::`) serves with `tlsca.Authority.ServerTLS()`: TLS 1.3 only, the certificate of the controller's own CA, and refuses to start without a certificate. A client that speaks plain HTTP to such a port gets TLS's refusal, never a page. The tray's console address and the update health probe use `http` on loopback and `https` elsewhere. The only plain-HTTP listeners left are not the console: the backup restore drill's throwaway listener on a loopback port (`internal/backup`) and the tests' `httptest` servers.
 - **Headers (R6.3).** `webui.Secure` wraps the whole mux, so the console, the API and every error carry: `Content-Security-Policy` (`default-src 'self'`, `script-src 'self'`, `style-src 'self'`, `img-src 'self' data:`, `connect-src 'self'`, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`), `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy: same-origin`, and a `Permissions-Policy` that turns the camera, microphone, location and payment off. There is no `form-action`: the App manifest form posts to GitHub.
-- **Session cookie (R6.1).** `crsp_session`: `HttpOnly`, `Secure` (on every address, loopback too), `SameSite=Lax`, `Path=/`, no `Domain`. The value is 32 random bytes, URL-safe; the database holds its SHA-256. The setup cookie has the same flags.
+- **Session cookie (R6.1).** `crsp_session`: `HttpOnly`, `Secure` unless the request came to `127.0.0.1` or `::1` (`auth.CookieSecure`: TLS, or a host that is not loopback), `SameSite=Lax`, `Path=/`, no `Domain`, `Max-Age` 400 days. The value is 32 random bytes, URL-safe; the database holds its SHA-256. The setup cookie has the same flags. There is no idle or absolute expiry in the code (D39); `last_seen_at` is informational.
 - **CSRF token (R6.2).** The token of a session is `hex(HMAC-SHA256(key = session id, "crsp-csrf"))`. The controller keeps no copy: it computes the token from the cookie it receives. `getSession` (`GET /api/v1/me`) returns it as `csrf`; the console holds it in memory only (`apps/web/src/api/api.tsx`) and sends it in `X-CSRF-Token` on every request that is not GET or HEAD. A page on another site cannot read it, and another session's token fails. A CLI bearer token is not a browser session: it has no cookie to ride on, so it needs neither the token nor an Origin.
 - **Origin (R6.2).** On a change made with a session, the `Origin` header must be there and equal the address the browser used (scheme, host and port). A change on a public operation (the setup form) is refused when it has an `Origin` that is not the console's own; a client with no `Origin` (curl, the CLI) is not a browser and passes. Reads are not checked.
 - **Roles (R6.5).** `x-auth` of the contract is copied into two Go tables (`githubAreaAuth` in `handlers_auth.go`, `otherAreaAuth` in `authz.go`). `TestEveryOperationHasItsRole` fails when an operation has no entry or a different one, so the first work on a new operation is its row in a table. The gate runs before any handler: not signed in is 401; a role below `x-auth` is 403; an operation with no entry is 403. A role below the need gets 403 even where the area behind the operation is not built, so a refused request learns nothing about it.
@@ -474,7 +474,7 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 
 | Requirement | Kind | Test |
 |---|---|---|
-| R5.1 | Go test | `internal/webui/serve_tls_test.go` (TLS 1.3 with the CA's certificate, an untrusting client and TLS 1.2 refused, no plain-HTTP console, no serving without a certificate) |
+| R5.1 | Go test | `internal/webui/serve_tls_test.go` (a loopback listener serves plain HTTP with the R6.3 headers; a non-loopback one serves TLS 1.3 with the CA's certificate only, refuses an untrusting client, TLS 1.2 and plain HTTP, and does not start without a certificate; `IsLoopback`), `internal/cli/login_test.go` (login over http on loopback only) |
 | R5.2 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/webui/webui_test.go` (SPA fallback), `e2e/tests/web-console/deep-link.spec.ts` |
 | R5.3 | Vitest | `apps/web/src/shell/Shell.test.tsx` |
 | R5.4 | Vitest, Playwright e2e | `apps/web/src/shell/Shell.test.tsx`, `e2e/tests/web-console/keyboard.spec.ts` |
@@ -506,7 +506,7 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.30 | Vitest, Playwright e2e | the question-card tests in each screen test file, `e2e/tests/web-console/flows.spec.ts`, `apps/web/src/screens/settings/Notifications.test.tsx`, `e2e/tests/web-console/notifications.spec.ts` (delete a channel) |
 | R5.31 | Vitest | the loading, empty and could-not-load tests in each screen test file, `apps/web/src/screens/settings/Notifications.test.tsx` |
 | R5.32 | Vitest | `packages/ui/src/components/format.test.ts`, `apps/web/src/screens/settings/Notifications.test.tsx` (last test time) |
-| R6.1 | Go test | `internal/api/session_cookie_test.go` (flags, 256-bit value, only the hash stored), `internal/auth/session_test.go` (cookie attributes).|
+| R6.1 | Go test | `internal/api/session_cookie_test.go` (flags: not Secure on loopback, Secure off loopback; 256-bit value, only the hash stored), `internal/auth/session_test.go` (cookie attributes, `CookieSecure` by address, no time expiry, no idle expiry, survives a restart). |
 | R6.2 | Go test, Vitest | `internal/api/csrf_test.go` (every changing operation of the contract: no token, wrong token, no, foreign or null Origin, per-session token), `apps/web/src/api/csrf.test.tsx` and `apps/web/src/shell/Shell.test.tsx` (the console sends it) |
 | R6.3 | Go test, Playwright e2e | `internal/webui/headers_test.go`; NOT YET IMPLEMENTED: `e2e/tests/web-console/no-external-requests.spec.ts` |
 | R6.4 | Go test, Playwright e2e | `internal/api/no_secrets_test.go` (the contract's response schemas, and the answers of a signed-in console against the stored secrets); NOT YET IMPLEMENTED: `e2e/tests/web-console/no-secrets.spec.ts` |
@@ -547,10 +547,10 @@ For the product:
 
 - **Q10.** Confirm WC-D2: first run as three wizards in a checklist.
 - **Q11.** Confirm WC-D1: a one-time setup link guards first run, so nobody else on the network can claim the owner role.
-- **Q12.** Session idle lifetime and total lifetime: which values?
+- **Q12.** Answered (D39, 14 Nov): there is no idle or total lifetime. A session never expires by time; it ends at sign-out, when the user is removed, or when their role changes (R6.1).
 - **Q13.** Milestone 3 in the brief lists join codes, but milestone 1 needs a first machine. Is the join code in milestone 1?
-- **Q14.** Confirm the budgets of R6.12, or give others.
-- **Q15.** The console is HTTPS on the local network with a certificate the controller makes. Browsers warn on it. Accept the warning, offer a local CA to install, or let the user bring a certificate? (`operations`)
+- **Q14.** Answered (D40, 14 Nov): the budgets of R6.12 are confirmed: 2 s to the first usable screen, 300 KB of first JavaScript gzipped, 2 s for a live event.
+- **Q15.** The console is HTTPS on every address except loopback (D38), with a certificate the controller makes. Browsers warn on it. Accept the warning, offer a local CA to install, or let the user bring a certificate? (`operations`)
 - **Q16.** Answered (D300): the variables are `RUNS_ON_LINUX`, `RUNS_ON_WINDOWS`, `RUNS_ON_MACOS`. Decision 0002 still shows an older example name.
 - **Q17.** The GitHub App's callback URL is the controller address used at first run. When users open the console by another host name or IP, sign-in fails. Redirect every other host name to the first one?
 
@@ -560,7 +560,7 @@ Built by CRSP35: the jobs screen (queue with wait reasons, history on a time axi
 
 Built by CRSP37: the Budgets and Notifications sub-pages (channels, add and edit, Send test, delete with a question card), the Audit log and Config export sub-pages (with the Export button, component 29), and Stop on a repository or runner plan: the Turn on the pool and Add runners wizards offer Stop while Turning on and Registering (the shared wizard part owns the button), the step that runs finishes, no later step starts, the plan ends `stopped`, and Done says what was done and what is left (UX-30); Stop never cuts a running job.
 
-Built by CRSP33: the serving side (R5.1, R6.1 to R6.5): HTTPS with the CA's certificate, the R6.3 headers, the Secure session cookie, the CSRF token and Origin checks, and the role check of every operation.
+Built by CRSP33 (transport and cookie changed by CRSP42, D38): the serving side (R5.1, R6.1 to R6.5): HTTPS with the CA's certificate off loopback and plain HTTP on it, the R6.3 headers, the session cookie (Secure off loopback), the CSRF token and Origin checks, and the role check of every operation.
 
 Built by CRSP34: the axe check in both themes (R6.6), the performance budgets (R6.12) and the offline check (R6.13). The check found two headings on the five settings pages that are not built yet; they now show their title as a section.
 

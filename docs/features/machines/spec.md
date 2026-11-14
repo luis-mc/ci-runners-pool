@@ -117,7 +117,7 @@ The overview shows machines and load and only links here (UX-52). Busy buttons f
 
 **R5.6** (M1) — At join the controller checks the code, marks it used, and issues a key for this machine only. A used, expired or unknown code is refused with the reason ("this code was already used", "this code expired at 14:05").
 
-**R5.7** (M1) — The agent keeps its key and the pinned certificate in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service or a file with mode 0600 owned by the agent account.
+**R5.7** (M1) — The agent keeps its key and the pinned certificate in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service or a file with mode 0600 owned by the account the agent runs as (root on Linux and macOS).
 
 **R5.8** (M1) — Every connection after join proves the machine's key over TLS and checks the pinned certificate. The controller refuses an unknown or revoked key.
 
@@ -127,7 +127,7 @@ The overview shows machines and load and only links here (UX-52). Busy buttons f
 
 **R5.10** (M1) — The agent reports: host name, OS name and version, kernel version, CPU model, core and thread count, architecture, total memory, total and free disk on the agent's data volume, and each GPU (vendor, model, memory).
 
-**R5.11** (M1) — The agent detects each backend and reports, for each: present or not, usable or not, its version, and the reason when it is not usable. Backends: Docker, Podman (rootless or not), containerd with nerdctl, WSL2, Hyper-V, KVM (`/dev/kvm` readable by the agent account), Tart (Apple Virtualization) and Firecracker. A persistent runner is always listed as usable.
+**R5.11** (M1) — The agent detects each backend and reports, for each: present or not, usable or not, its version, and the reason when it is not usable. Backends: Docker, Podman (rootless or not), containerd with nerdctl, WSL2, Hyper-V, KVM (`/dev/kvm` readable by the agent, which runs as root), Tart (Apple Virtualization) and Firecracker. A persistent runner is always listed as usable.
 
 **R5.12** (M1) — Detected does not mean allowed. A backend runs jobs only when the user allows it on that machine (R5.22).
 
@@ -223,9 +223,9 @@ Ported from runner-pool R5.10 (no rebuild under a running job) and learning 1 of
 
 ### 5.9 Least privilege and the service
 
-**R5.44** (M1) — The agent runs as its own non-admin account: a virtual service account on Windows (`NT SERVICE\crsp-agent`), a system user `crsp-agent` on Linux, a hidden daemon user `_crsp_agent` on macOS.
+**R5.44** (M1, changed by CRSP42, D41) — The agent runs as LocalSystem on Windows and as root on Linux and macOS, like the controller (owner decision, 14 Nov). It needs the right to install its own update after the drain (operations R5.39 to R5.41), which a non-admin account cannot do. There is no `crsp-agent` or `_crsp_agent` account. Runner jobs do not run as the agent: each runner runs under its own non-admin per-runner account (runners R5.14, RN-4), which the agent makes. An agent installed before D41 under a non-admin account says `unsupported` to an update ask (operations R5.41) until the install command is run again.
 
-**R5.45** (M1) — Admin rights are needed in one install step only. Before it runs, it lists each admin action (create the account, install the service, grant each right, add the account to the groups a backend needs) and asks for a yes. It never runs without that yes.
+**R5.45** (M1) — Admin rights are needed in one install step only. Before it runs, it lists each admin action (create the data folder, install the service that runs as LocalSystem or root, join the controller, start the service) and asks for a yes. It never runs without that yes.
 
 **R5.46** (M1) — The agent is installed as a service that starts at boot and restarts after a crash: a Windows service, a systemd unit, a launchd LaunchDaemon (decision 0005).
 
@@ -389,7 +389,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.41 | internal/machines/remove_test.go | planned |
 | R5.42 | internal/machines/remove_offline_test.go | planned |
 | R5.43 | internal/machines/join_test.go | planned |
-| R5.44 | internal/agent/service_account_test.go | planned |
+| R5.44 | internal/agent/plan_test.go TestServiceAccounts (built, CRSP42) |
 | R5.45 | internal/agent/install_plan_test.go | planned |
 | R5.46 | internal/agent/service_install_test.go | planned; plus a CI start of the built agent per OS |
 | R5.47 | internal/agent/service_windows_test.go | planned |

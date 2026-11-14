@@ -255,7 +255,7 @@ func (s *server) RedeemSetupLink(ctx context.Context, req gen.RedeemSetupLinkReq
 		return gen.RedeemSetupLinkdefaultJSONResponse{StatusCode: code, Body: body}, nil
 	}
 	c := &http.Cookie{Name: auth.SetupCookieName, Value: cookie, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode,
-		Secure: true, MaxAge: int(auth.SetupCookieTTL / time.Second)}
+		Secure: auth.CookieSecure(r), MaxAge: int(auth.SetupCookieTTL / time.Second)}
 	st, _ := a.Auth.State(ctx)
 	state := a.setupState(ctx, r, st)
 	state.SetupLinkRedeemed = true
@@ -338,7 +338,7 @@ func (s *server) CompleteSignIn(ctx context.Context, req gen.CompleteSignInReque
 		_, code, _ := errorFor(err)
 		return a.redirectWithError("/sign-in", code, nil), nil
 	}
-	c := auth.SessionCookie(si.Cookie).String()
+	c := auth.SessionCookie(si.Cookie, auth.CookieSecure(r)).String()
 	return gen.RedirectResponse{Headers: gen.RedirectResponseHeaders{Location: si.ReturnTo, SetCookie: &c}}, nil
 }
 
@@ -351,7 +351,7 @@ func (s *server) RedeemTrayLink(ctx context.Context, req gen.RedeemTrayLinkReque
 		_, code, _ := errorFor(err)
 		return a.redirectWithError("/sign-in", code, nil), nil
 	}
-	c := auth.SessionCookie(si.Cookie).String()
+	c := auth.SessionCookie(si.Cookie, auth.CookieSecure(r)).String()
 	return gen.RedirectResponse{Headers: gen.RedirectResponseHeaders{Location: si.ReturnTo, SetCookie: &c}}, nil
 }
 

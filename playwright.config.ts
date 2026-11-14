@@ -59,11 +59,10 @@ export default defineConfig({
   // Retries stay 0 for the gating specs; do not raise this to make CI pass.
   retries: 0,
   forbidOnly: !!process.env.CI,
-  use: { baseURL: `https://127.0.0.1:${port}`, ignoreHTTPSErrors: true },
+  use: { baseURL: `http://127.0.0.1:${port}` },
   webServer: {
     command: `${binary} controller`,
-    url: `https://127.0.0.1:${port}/healthz`,
-    ignoreHTTPSErrors: true,
+    url: `http://127.0.0.1:${port}/healthz`,
     reuseExistingServer: false,
     timeout: 30_000,
     env: {

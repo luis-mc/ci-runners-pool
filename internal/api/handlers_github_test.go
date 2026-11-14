@@ -154,6 +154,24 @@ func (h *harness) do(method, path string, body any, c cookies, headers map[strin
 	return h.doRaw(method, path, body, c, headers, origin)
 }
 
+// doHost is a POST of body whose Host header is host, as if the console were
+// reached at that address; the Origin matches it.
+func (h *harness) doHost(method, path, host string, body any) (*reply, []byte) {
+	h.t.Helper()
+	b, _ := json.Marshal(body)
+	req, _ := http.NewRequestWithContext(context.Background(), method, h.srv.URL+path, bytes.NewReader(b))
+	req.Host = host
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Origin", "http://"+host)
+	res, err := h.client.Do(req)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	defer func() { _ = res.Body.Close() }()
+	out, _ := io.ReadAll(res.Body)
+	return &reply{StatusCode: res.StatusCode, Header: res.Header, cookies: res.Cookies()}, out
+}
+
 // doRaw is do with an explicit Origin header; "" sends none.
 func (h *harness) doRaw(method, path string, body any, c cookies, headers map[string]string, origin string) (*reply, []byte) {
 	h.t.Helper()
@@ -311,7 +329,7 @@ func TestSetupCookieAttributes(t *testing.T) {
 	}
 }
 
-func TestSessionCookieFlags(t *testing.T) { // R5.13
+func TestSessionCookieFlags(t *testing.T) { // R5.13: loopback, so not Secure
 	h := newHarness(t)
 	c, _ := h.setup(1, "alice")
 	_ = c
@@ -326,7 +344,7 @@ func TestSessionCookieFlags(t *testing.T) { // R5.13
 			ck = x
 		}
 	}
-	if ck == nil || !ck.HttpOnly || ck.SameSite != http.SameSiteLaxMode || !ck.Secure || ck.MaxAge <= 0 {
+	if ck == nil || !ck.HttpOnly || ck.SameSite != http.SameSiteLaxMode || ck.Secure || ck.MaxAge <= 0 {
 		t.Fatalf("session cookie: %+v", ck)
 	}
 }

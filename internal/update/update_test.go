@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -787,5 +788,23 @@ func TestHelperWithoutHealthURLWaitsForTheServiceToBeActive(t *testing.T) {
 	}
 	if b, _ := os.ReadFile(exe); string(b) != "OLD" {
 		t.Fatalf("rolled back: %q", b)
+	}
+}
+
+// D38: the health read works on plain HTTP (loopback) and on the console's TLS
+// (every other address), whatever certificate the controller's CA made.
+func TestHTTPHealthReadsPlainAndTLS(t *testing.T) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, `{"status":"ok","version":"1.2.3"}`)
+	})
+	plain := httptest.NewServer(h)
+	defer plain.Close()
+	secure := httptest.NewTLSServer(h)
+	defer secure.Close()
+	for _, u := range []string{plain.URL, secure.URL} {
+		v, err := httpHealth(context.Background(), u+"/healthz")
+		if err != nil || v != "1.2.3" {
+			t.Errorf("%s: %q %v", u, v, err)
+		}
 	}
 }

@@ -2,8 +2,10 @@ package auth
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -16,6 +18,23 @@ func TestSessionNeverExpiresByTime(t *testing.T) { // R5.13 (owner decision for 
 	p, err := e.svc.Authenticate(ctx, si.Cookie)
 	if err != nil || p.UserID != 1 || p.Role != RoleOwner {
 		t.Fatalf("a session ends at sign-out, not by time: %+v %v", p, err)
+	}
+}
+
+// D39: no idle expiry either: a session nobody used for years, and one that a
+// restarted controller (a new Service on the same store) reads back, still works.
+func TestSessionHasNoIdleExpiryAndSurvivesARestart(t *testing.T) { // R5.13, D39
+	e := newEnv(t)
+	ctx := context.Background()
+	si := e.ownerSignIn(1, "alice")
+	e.advance(3 * 365 * 24 * time.Hour) // no request in between
+	restarted := New(e.store, Config{GitHub: e.gh, Secrets: e.secrets, WebBase: e.fake.URL, Now: e.clock,
+		ConsoleURLs: func() []string { return e.consoles }})
+	for _, svc := range []*Service{e.svc, restarted} {
+		p, err := svc.Authenticate(ctx, si.Cookie)
+		if err != nil || p.UserID != 1 {
+			t.Fatalf("a session ends at sign-out, removal or a role change only: %+v %v", p, err)
+		}
 	}
 }
 
@@ -60,16 +79,48 @@ func TestUnknownAndEmptyCookie(t *testing.T) {
 	}
 }
 
-func TestSessionCookieAttributes(t *testing.T) { // web-console R6.1
-	c := SessionCookie("v")
+func TestSessionCookieAttributes(t *testing.T) { // web-console R6.1, D38
+	c := SessionCookie("v", true)
 	if !c.HttpOnly || !c.Secure || c.SameSite != http.SameSiteLaxMode || c.Path != "/" || c.Domain != "" {
 		t.Fatalf("session cookie must be HttpOnly, Secure, Lax and host-only: %+v", c)
 	}
 	if c.MaxAge <= 0 {
 		t.Fatal("a browser restart must not sign anyone out")
 	}
-	if cl := ClearCookie("x"); cl.MaxAge >= 0 || !cl.Secure || !cl.HttpOnly {
+	if lc := SessionCookie("v", false); lc.Secure || !lc.HttpOnly || lc.SameSite != http.SameSiteLaxMode || lc.Domain != "" {
+		t.Fatalf("loopback cookie: %+v", lc)
+	}
+	if cl := ClearCookie("x", true); cl.MaxAge >= 0 || !cl.Secure || !cl.HttpOnly {
 		t.Fatalf("clear: %+v", cl)
+	}
+}
+
+// D38: Secure on every address except 127.0.0.1 and ::1, whatever the scheme.
+func TestCookieSecureByAddress(t *testing.T) {
+	mk := func(host string, tlsOn bool) *http.Request {
+		r := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
+		r.Host = host
+		if tlsOn {
+			r.TLS = &tls.ConnectionState{}
+		}
+		return r
+	}
+	for _, c := range []struct {
+		host string
+		tls  bool
+		want bool
+	}{
+		{"127.0.0.1:8460", false, false}, {"[::1]:8460", false, false},
+		{"127.0.0.1:8460", true, true},
+		{"192.168.1.20:8460", true, true}, {"192.168.1.20:8460", false, true},
+		{"ci.example.com", true, true}, {"localhost:8460", false, true}, {"0.0.0.0:8460", false, true},
+	} {
+		if got := CookieSecure(mk(c.host, c.tls)); got != c.want {
+			t.Errorf("%s tls=%v: Secure = %v, want %v", c.host, c.tls, got, c.want)
+		}
+	}
+	if !CookieSecure(nil) {
+		t.Error("no request: Secure")
 	}
 }
 
