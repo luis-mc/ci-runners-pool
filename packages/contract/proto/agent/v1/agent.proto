@@ -93,6 +93,9 @@ message SessionRequest {
     CheckResults check_results = 14;
     UsageReport usage_report = 15;
     UpdateReport update_report = 16;
+    // Field numbers 20 and up belong to the images and caches screen (CRSP36).
+    CacheReport cache_report = 20;
+    CacheWipeStatus cache_wipe_status = 21;
   }
 }
 
@@ -113,6 +116,8 @@ message SessionResponse {
     RunChecks run_checks = 12;
     MachineRemoved machine_removed = 13;
     UpdateAgent update_agent = 14;
+    MeasureCaches measure_caches = 20;
+    WipeCache wipe_cache = 21;
   }
 }
 
@@ -589,4 +594,63 @@ message UpdateReport {
   string error = 4;
   // The jobs a waiting drain still waits for.
   repeated JobRef waiting_for = 5;
+}
+
+// ---------------------------------------------------------------- caches
+
+// MeasureCaches asks the agent to measure the cache folders of every runner it
+// sees now. The agent also reports on its own with Hello and every 5 minutes
+// (caches R5.36, R5.39).
+message MeasureCaches {
+  string command_id = 1;
+}
+
+// CacheReport is what the agent measured: one CacheStatus per cache folder of
+// each runner. It replaces the machine's earlier report. The agent measures and
+// reports; the controller lists (web-console R5.25).
+message CacheReport {
+  // The MeasureCaches this answers; empty for a report the agent sent itself.
+  string command_id = 1;
+  int64 measured_at_unix_ms = 2;
+  repeated CacheStatus caches = 3;
+}
+
+message CacheStatus {
+  // The runner whose folder this is; its name is what the agent knows.
+  string runner_name = 1;
+  string service_name = 2;
+  // tool_cache or rust_cache (caches R5.36).
+  string kind = 3;
+  int64 size_bytes = 4;
+  // The declared quota, from the runner's own environment; 0 when none is set.
+  int64 cap_bytes = 5;
+  // Top-level entries (a tool version, a build profile folder).
+  int32 entry_count = 6;
+}
+
+// WipeCache empties one cache folder after the runner it belongs to is idle.
+// The agent names the folder itself from its own runner list; the controller
+// never sends a path. The runner takes no new job while the wipe waits, and the
+// idle check runs right before the delete (caches R5.32, runners R6.4).
+message WipeCache {
+  string command_id = 1;
+  string runner_name = 2;
+  // tool_cache or rust_cache.
+  string kind = 3;
+  // How long to wait for a running job before warning; it keeps waiting.
+  int32 drain_timeout_seconds = 4;
+}
+
+// CacheWipeStatus says where a wipe stands. waiting repeats until the runner is
+// idle; the last report is done or failed.
+message CacheWipeStatus {
+  string command_id = 1;
+  // waiting, wiping, done or failed.
+  string state = 2;
+  // The jobs a waiting wipe waits for.
+  repeated JobRef waiting_for = 3;
+  // Bytes removed; set when done.
+  int64 freed_bytes = 4;
+  // A redacted text safe to show; set when failed.
+  string error = 5;
 }

@@ -54,6 +54,8 @@ type Options struct {
 	Live LiveService
 	// Doctor serves the doctor routes (handlers_doctor.go). Nil answers 501.
 	Doctor DoctorService
+	// Caches serves the caches routes (handlers_caches.go). Nil answers 501.
+	Caches CachesService
 }
 
 type server struct {

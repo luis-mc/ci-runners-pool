@@ -46,6 +46,9 @@
     "internal/cache/**": [
       "docs/features/caches/spec.md"
     ],
+    "internal/caches/**": [
+      "docs/features/caches/spec.md"
+    ],
     "internal/cli/**": [
       "docs/features/cli/spec.md"
     ],

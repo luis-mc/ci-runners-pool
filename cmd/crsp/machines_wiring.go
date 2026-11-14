@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/caches"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tlsca"
@@ -28,6 +30,7 @@ const (
 // machinesRuntime is the machines area of a running controller.
 type machinesRuntime struct {
 	Service *machines.Service
+	Caches  *caches.Service
 	CA      *tlsca.Authority
 	stop    func()
 }
@@ -38,7 +41,7 @@ func (m *machinesRuntime) Close() { m.stop() }
 // startMachines makes the controller's CA, serves the agent link (TLS 1.3, port
 // 8461), and starts the controller's own agent, which joins without a code over
 // loopback like any other agent (machines R5.1, R5.2, decision 0004).
-func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, idle *idleHook) (*machinesRuntime, error) {
+func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, idle *idleHook, rec audit.Recorder) (*machinesRuntime, error) {
 	secretsDir := filepath.Join(cfg.DataDir, "secrets", "controller")
 	store, err := agent.NewFileStore(secretsDir)
 	if err != nil {
@@ -72,7 +75,8 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 		Repo: machines.NewMemRepo(), ControllerAddress: public, AgentPort: port, Fingerprint: ca.Fingerprint(),
 		OnIdle: idle.call,
 	})
-	svc.SetHooks(machines.Hooks{ControllerVersion: version})
+	cs := caches.New(caches.Options{Machines: svc, Audit: rec})
+	svc.SetHooks(machines.Hooks{ControllerVersion: version, OnHello: cs.OnHello, OnMessage: cs.OnMessage})
 
 	ln, err := (&net.ListenConfig{}).Listen(ctx, "tcp", addr)
 	if err != nil {
@@ -118,13 +122,13 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 		defer close(done)
 		acfg := agent.Config{
 			Controller: loop, Pin: ca.Fingerprint(), LocalCredentialFile: credFile, Secrets: agentStore, DataDir: agentDir,
-			Version: version, Logger: logger.With("component", "local-agent"),
+			Version: version, Logger: logger.With("component", "local-agent"), Caches: agentCacheSource(),
 		}
 		if err := agent.Run(runCtx, acfg); err != nil {
 			logger.Error("the controller's own agent stopped", "err", err)
 		}
 	}()
-	return &machinesRuntime{Service: svc, CA: ca, stop: func() {
+	return &machinesRuntime{Service: svc, Caches: cs, CA: ca, stop: func() {
 		cancel()
 		_ = link.Close()
 		<-done

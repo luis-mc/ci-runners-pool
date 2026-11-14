@@ -18,6 +18,8 @@ const SCREENS: { name: string; path: string; ready: string }[] = [
   { name: 'job detail', path: '/jobs/2', ready: 'test-2' },
   { name: 'doctor', path: '/doctor', ready: 'Doctor' },
   { name: 'add runners', path: '/runners/add', ready: 'Add runners' },
+  { name: 'images', path: '/images', ready: 'Images and caches' },
+  { name: 'caches', path: '/images?tab=caches', ready: 'Images and caches' },
   { name: 'settings users', path: '/settings/users', ready: 'Settings' },
   { name: 'settings appearance', path: '/settings/appearance', ready: 'Settings' },
   { name: 'settings retention', path: '/settings/retention', ready: 'Settings' },

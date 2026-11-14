@@ -26,7 +26,9 @@ type Gate struct {
 	running  map[string]machines.JobRef
 	// scope holds the runners a scoped drain keeps new jobs out of (R5.57); nil
 	// means no scoped drain.
-	scope   map[string]bool
+	scope map[string]bool
+	// held names the runners that take no new job while a cache wipe waits.
+	held    map[string]bool
 	sampler *load.Sampler
 }
 
@@ -76,6 +78,9 @@ func (g *Gate) Start(key string, job machines.JobRef, backend string) Decision {
 	}
 	if g.scope[strings.ToLower(job.RunnerName)] {
 		why = append(why, "runner_draining")
+	}
+	if job.RunnerName != "" && g.held[job.RunnerName] {
+		why = append(why, "cache_wipe")
 	}
 	if len(g.running) >= g.settings.JobSlots {
 		why = append(why, "free_slot")
@@ -186,5 +191,30 @@ func (g *Gate) State() string {
 func (g *Gate) MarkDrained() {
 	g.mu.Lock()
 	g.state = machines.StateDrained
+	g.mu.Unlock()
+}
+
+// HoldRunner keeps new jobs of one runner out and, in the same step, reports
+// whether that runner is idle and which jobs it still waits for (caches R5.32).
+// Call it again until idle is true; each call is a fresh check.
+func (g *Gate) HoldRunner(name string) (idle bool, waitingFor []machines.JobRef) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.held == nil {
+		g.held = map[string]bool{}
+	}
+	g.held[name] = true
+	for _, j := range g.running {
+		if j.RunnerName == name {
+			waitingFor = append(waitingFor, j)
+		}
+	}
+	return len(waitingFor) == 0, waitingFor
+}
+
+// ReleaseRunner lets the runner take jobs again.
+func (g *Gate) ReleaseRunner(name string) {
+	g.mu.Lock()
+	delete(g.held, name)
 	g.mu.Unlock()
 }

@@ -48,6 +48,8 @@ Each action has one word. The Never use column lists words that must not stand i
 | Widen the range | Show a longer time range when the range shown has nothing. | Expand, Zoom |
 | Zoom in, Zoom out | Show a shorter or a longer time range on a time axis. | Narrow, Expand |
 | Show earlier | Load the rows before the last one on a time axis. It is also loaded by itself as the end nears the screen. | Load more, More |
+| Wipe | Empty one cache of everything it holds, after the running jobs that use it end. The cache stays. | Clear, Purge, Empty, Flush |
+| Rebuild | Build an image again after the running jobs end. The old image serves until the new one is ready. | Recreate, Refresh, Reinstall |
 
 Add a row for each action the project needs. A new action gets a word that is not used above.
 
@@ -135,6 +137,25 @@ A message is one or two short sentences in plain words. It names the thing, neve
 | Time left | Short words, never seconds. | about 2 min left |
 | Sentence | Minutes only, and the time zone is never named. | Published 2026-11-02 14:30. |
 | Duration | Short words, seconds kept, never negative. | 45 s, 4 min 12 s, 1 h 5 min |
+
+## Images and caches words
+
+The words of the images and caches screen (web-console 4.7).
+
+| Where | Word |
+|---|---|
+| Tabs | Images, Caches |
+| Cache kinds | Tool cache, Rust build cache, Actions cache, Git mirror, Registry mirror |
+| Empty images | No images yet. Images are built when a runner first needs one. |
+| Empty caches | No caches yet. Caches show here when a runner has been added. |
+| Question title | Wipe {cache}? Rebuild the image of {machine}, {OS}? |
+| Wiping | Wiping {cache}, waiting for {jobs} |
+| Last wiped, none | never |
+| No cap | {size}, no cap |
+| Over the cap | {size} of {cap} ({percent}), over the cap |
+| Wipe failed | Could not wipe {cache}. {why} |
+| Rebuild failed | Could not rebuild. {why} The old image keeps serving. |
+| Layers differ | The saved layers differ from the built image. Rebuild to use them. |
 
 ## Labels
 
