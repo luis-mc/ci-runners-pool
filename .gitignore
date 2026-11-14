@@ -24,3 +24,7 @@ playwright-report/
 installer/.wix/
 installer/out/
 *.wixpdb
+# luismc-delivery: compiled Python (do not edit this block)
+__pycache__/
+*.pyc
+# luismc-delivery: end of compiled Python
