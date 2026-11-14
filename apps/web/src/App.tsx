@@ -25,6 +25,7 @@ import {
   ThemeApplier,
   UsersSettings,
 } from './screens/settings/Settings';
+import { BudgetsSettings } from './screens/settings/Budgets';
 import { UpdateReviewPage, UpdatesSettings } from './screens/settings/Updates';
 import { SetupPage } from './screens/setup/Setup';
 
@@ -141,16 +142,7 @@ export function App({
                 <Route path="appearance" element={<AppearanceSettings />} />
                 <Route path="retention" element={<RetentionSettings />} />
                 <Route path="backups" element={<BackupsSettings />} />
-                <Route
-                  path="budgets"
-                  element={
-                    <Later
-                      title="Budgets"
-                      what="The pool budgets"
-                      milestone="a later milestone"
-                    />
-                  }
-                />
+                <Route path="budgets" element={<BudgetsSettings />} />
                 <Route
                   path="notifications"
                   element={

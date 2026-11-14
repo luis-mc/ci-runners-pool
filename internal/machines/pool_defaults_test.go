@@ -36,7 +36,9 @@ func TestJoinSizesSlotsFromMachineWithinPoolBudget(t *testing.T) {
 
 func TestJoinFallsBackWhenPoolDefaultsFail(t *testing.T) {
 	e := newEnv(t, func(o *machines.Options) {
-		o.PoolDefaults = func(context.Context) (machines.PoolDefaults, error) { return machines.PoolDefaults{}, errors.New("db down") }
+		o.PoolDefaults = func(context.Context) (machines.PoolDefaults, error) {
+			return machines.PoolDefaults{}, errors.New("db down")
+		}
 	})
 	r, _ := e.joined("box-1")
 	if r.GetSettings().GetBudgetMemoryPct() != 85 || r.GetSettings().GetDrainTimeoutMinutes() != 60 {
