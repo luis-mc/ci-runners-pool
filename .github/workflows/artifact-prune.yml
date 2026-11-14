@@ -3,7 +3,7 @@ name: Artifact prune
 # STACKSPEC 13.1 "Build artifacts": keep only the newest artifact of each name.
 # Artifacts are billed for storage, so older ones are deleted after every run of
 # a workflow that uploads one, and a daily sweep deletes any the per-run pruning
-# missed. Artifact names are stable per kind (ci-runners-pool-linux-amd64, never
+# missed. Artifact names are stable per kind (crsp-linux-amd64, never
 # one with a version or run number), or the grouping would not work.
 #
 # `workflows:` must list the `name:` of every workflow of this repository that

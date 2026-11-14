@@ -1,6 +1,6 @@
 // Package config holds the one validated configuration schema (STACKSPEC 15).
 //
-// Every setting is an environment variable named CRP_*. A value that looks like
+// Every setting is an environment variable named CRSP_*. A value that looks like
 // a placeholder is refused, so a copied .env.example never boots.
 //
 // Secrets are not configuration: the GitHub App private key and the webhook
@@ -21,9 +21,9 @@ import (
 
 // Environment variable names.
 const (
-	EnvDataDir    = "CRP_DATA_DIR"
-	EnvListenAddr = "CRP_LISTEN_ADDR"
-	EnvLogLevel   = "CRP_LOG_LEVEL"
+	EnvDataDir    = "CRSP_DATA_DIR"
+	EnvListenAddr = "CRSP_LISTEN_ADDR"
+	EnvLogLevel   = "CRSP_LOG_LEVEL"
 )
 
 // Config is the validated configuration of a running process.
@@ -62,7 +62,7 @@ func Load(getenv func(string) string) (Config, error) {
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: not set and no user config dir: %w", EnvDataDir, err))
 		} else {
-			cfg.DataDir = filepath.Join(dir, "ci-runners-pool")
+			cfg.DataDir = filepath.Join(dir, "crsp")
 		}
 	} else if !filepath.IsAbs(cfg.DataDir) {
 		errs = append(errs, fmt.Errorf("%s: %q must be an absolute path", EnvDataDir, cfg.DataDir))

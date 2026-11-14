@@ -21,7 +21,7 @@ Parts:
 4. **CLI** with the same powers as the web console (scriptable, for headless machines).
 5. **Tray** on desktop machines: opens the console, restarts, updates (decision 0005).
 
-All five are one Go binary, `ci-runners-pool` (decision 0001).
+All five are one Go binary, `crsp` (decision 0001).
 
 ## Owner decisions (2026-11-13 and 2026-11-14)
 
@@ -30,9 +30,9 @@ All five are one Go binary, `ci-runners-pool` (decision 0001).
 - The web console is reachable on the local network over TLS. Every user signs in with GitHub. The tray's one-time link also works on the controller's machine.
 - Users: the first person to sign in becomes the owner. The owner allows other GitHub users as admin or viewer. Turning the pool on for a repository also needs admin rights on that repository in GitHub.
 - Ports: 8460 for the console and API (HTTPS), 8461 for the agent link (gRPC over TLS). Both can be changed in config.
-- Repository variables the product writes: `CRP_RUNS_ON_LINUX`, `CRP_RUNS_ON_WINDOWS`, `CRP_RUNS_ON_MACOS` (JSON lists of labels). Workflows say `runs-on: ${{ fromJSON(vars.CRP_RUNS_ON_LINUX) }}`.
+- Repository variables the product writes: `CRSP_RUNS_ON_LINUX`, `CRSP_RUNS_ON_WINDOWS`, `CRSP_RUNS_ON_MACOS` (JSON lists of labels). Workflows say `runs-on: ${{ fromJSON(vars.CRSP_RUNS_ON_LINUX) }}`.
 - Milestone 1 builds persistent runners for Windows, Linux and macOS together.
-- Task IDs and branches: `CRP<n>-<slug>`.
+- Task IDs and branches: `CRSP<n>-<slug>`.
 
 ## Accounts and GitHub
 

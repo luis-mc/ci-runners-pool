@@ -1,8 +1,8 @@
-# CI Runners Pool
+# CI Runners Shared Pool
 
-CI Runners Pool manages shared self-hosted GitHub Actions runners on your own machines.
+CI Runners Shared Pool manages shared self-hosted GitHub Actions runners on your own machines.
 It runs on Windows, Linux and macOS.
-One binary, `ci-runners-pool`, has several modes.
+One binary, `crsp`, has several modes.
 The `controller` mode holds the configuration, talks to GitHub, schedules work, and serves the web console and the API.
 The `agent` mode runs on every machine and connects out to the controller.
 A `tray` mode is planned.
@@ -21,11 +21,11 @@ The Go tools (go-task, oapi-codegen, sqlc, buf) are pinned in `go.mod` and run t
 
 ```sh
 pnpm install            # web dependencies, and git hooks via core.hooksPath
-go tool task build      # web console, embedded, then bin/ci-runners-pool
+go tool task build      # web console, embedded, then bin/crsp
 go tool task test       # Go tests and web tests
 go tool task lint       # gofmt, go vet, golangci-lint, ESLint, Prettier, tsc
 go tool task codegen    # regenerate API, query, protocol and TypeScript code
-pnpm e2e                # Playwright smoke test against bin/ci-runners-pool
+pnpm e2e                # Playwright smoke test against bin/crsp
 ```
 
 `pnpm build`, `pnpm test`, `pnpm lint` and `pnpm codegen` call the same tasks.
@@ -33,10 +33,10 @@ pnpm e2e                # Playwright smoke test against bin/ci-runners-pool
 Run the controller:
 
 ```sh
-CRP_DATA_DIR=/path/to/data bin/ci-runners-pool controller
+CRSP_DATA_DIR=/path/to/data bin/crsp controller
 ```
 
-Settings are `CRP_*` environment variables; see `.env.example`.
+Settings are `CRSP_*` environment variables; see `.env.example`.
 
 ## Contributing
 

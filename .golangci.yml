@@ -42,7 +42,7 @@ linters:
         api-no-store:
           files: ['**/internal/api/**']
           deny:
-            - pkg: 'github.com/luis-mc/ci-runners-pool/internal/store'
+            - pkg: 'github.com/luis-mc/ci-runners-shared-pool/internal/store'
               desc: 'internal/api must depend on an interface, not on internal/store (3.2)'
 
         # 3.3: one adapter module per external service SDK. Add an entry when an

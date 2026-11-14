@@ -1,4 +1,4 @@
-import { createApiClient, type ApiClient } from '@crp/contract';
+import { createApiClient, type ApiClient } from '@crsp/contract';
 import { useEffect, useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
 
@@ -27,7 +27,7 @@ function Home({ client }: { client: ApiClient }) {
 
   return (
     <main>
-      <h1>CI Runners Pool</h1>
+      <h1>CI Runners Shared Pool</h1>
       <p data-testid="health">
         {health.state === 'loading' && 'Checking the controller...'}
         {health.state === 'ok' && `Controller is ok (version ${health.version}).`}

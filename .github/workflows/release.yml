@@ -4,7 +4,7 @@ name: Release
 #                  The owner installs edge on their own pool first (staging).
 # tag v*        -> a stable release with the same assets (production).
 #
-# Assets: ci-runners-pool-<os>-<arch>.tar.gz (linux, darwin) or .zip (windows),
+# Assets: crsp-<os>-<arch>.tar.gz (linux, darwin) or .zip (windows),
 # SHA256SUMS, and a build provenance attestation for each.
 # Authenticode signing and Apple notarization come later (milestone 8).
 on:
@@ -75,24 +75,24 @@ jobs:
           mkdir -p dist
           for dir in binaries/release-*; do
             target="${dir#binaries/release-}"          # e.g. linux-amd64
-            stage="stage/ci-runners-pool-${target}"
+            stage="stage/crsp-${target}"
             rm -rf stage && mkdir -p "$stage"
-            cp "$dir"/ci-runners-pool* "$stage/"
+            cp "$dir"/crsp* "$stage/"
             cp LICENSE README.md "$stage/"
-            chmod +x "$stage"/ci-runners-pool* || true
+            chmod +x "$stage"/crsp* || true
             case "$target" in
-              windows-*) (cd stage && zip -qr "../dist/ci-runners-pool-${target}.zip" "ci-runners-pool-${target}") ;;
-              *)         tar -C stage -czf "dist/ci-runners-pool-${target}.tar.gz" "ci-runners-pool-${target}" ;;
+              windows-*) (cd stage && zip -qr "../dist/crsp-${target}.zip" "crsp-${target}") ;;
+              *)         tar -C stage -czf "dist/crsp-${target}.tar.gz" "crsp-${target}" ;;
             esac
           done
           count=$(find dist -type f | wc -l)
           [ "$count" -eq 6 ] || { echo "::error::expected 6 archives, found $count"; exit 1; }
-          (cd dist && sha256sum ci-runners-pool-* > SHA256SUMS)
+          (cd dist && sha256sum crsp-* > SHA256SUMS)
           cat dist/SHA256SUMS
 
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
-          subject-path: dist/ci-runners-pool-*
+          subject-path: dist/crsp-*
 
       - name: Publish edge pre-release (main)
         if: ${{ github.ref_type == 'branch' }}

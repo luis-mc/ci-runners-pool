@@ -1,4 +1,4 @@
-# Stack Profile — `ci-runners-pool`
+# Stack Profile — CI Runners Shared Pool (`crsp`)
 
 **Status:** Binding for this product
 **Conforms to:** `STACKSPEC 8.1.0`, `AUTHSPEC none`
@@ -8,7 +8,7 @@ This is the declared stack document for this product. It is authoritative for th
 
 The specs themselves are not vendored here. They are maintained in the `luismc-project-setup` plugin. This profile records only what is specific to this product, plus the spec versions it conforms to. Everything not recorded below is governed by the spec at the version named above.
 
-`ci-runners-pool` manages shared self-hosted GitHub Actions runners on the owner's own machines (Windows, Linux, macOS). One Go binary has the modes `controller`, `agent`, `tray` (planned) and CLI subcommands. The web console is a React single-page app built to static files and embedded in the binary.
+CI Runners Shared Pool (CRSP) manages shared self-hosted GitHub Actions runners on the owner's own machines (Windows, Linux, macOS). One Go binary has the modes `controller`, `agent`, `tray` (planned) and CLI subcommands. The web console is a React single-page app built to static files and embedded in the binary.
 
 > A placeholder in angle brackets is a conformance failure. None remain: the owner decisions were recorded on 2026-11-13.
 
@@ -107,7 +107,7 @@ Mobile ships: no. The rules apply either way (`STACKSPEC 0.3`).
 
 | Tier | URLs | Datastore | Secrets scope |
 |---|---|---|---|
-| preview/dev | `http://127.0.0.1:8080` locally; per-OS CI artifacts for a pull request | SQLite file in `CRP_DATA_DIR` | OS secret store of the developer's machine |
+| preview/dev | `http://127.0.0.1:8080` locally; per-OS CI artifacts for a pull request | SQLite file in `CRSP_DATA_DIR` | OS secret store of the developer's machine |
 | staging | The `edge` pre-release, installed on the owner's own pool first | SQLite file on the owner's controller | OS secret store of that machine |
 | production | The stable release (`v*` tag), installed by users on their own machines | SQLite file on each user's controller | OS secret store of each user's machine |
 
@@ -117,7 +117,7 @@ Statuses only. Never record a credential value here.
 
 | Service | Dev | Staging | Production | Stored in | Owner |
 |---|---|---|---|---|---|
-| Database (embedded SQLite) | have | have | have | Local file in `CRP_DATA_DIR` | Each controller's operator |
+| Database (embedded SQLite) | have | have | have | Local file in `CRSP_DATA_DIR` | Each controller's operator |
 | GitHub App | deferred | deferred | deferred | OS secret store (private key, webhook secret) | Each controller's operator |
 | Code signing (Authenticode, Apple notarization) | deferred | deferred | deferred | not applicable yet | Luis Carvalho |
 | Cache | not used | not used | not used | | |
@@ -194,7 +194,7 @@ CI runs `govulncheck` and `pnpm audit --prod` on every pull request, and gitleak
 
 | Spec tier | This product |
 |---|---|
-| Per-PR preview | Per-OS CI artifacts (`ci-runners-pool-<os>-<arch>`) |
+| Per-PR preview | Per-OS CI artifacts (`crsp-<os>-<arch>`) |
 | Staging | The `edge` pre-release, published on every merge to `main` and installed on the owner's pool first |
 | Production | The stable release created by a `v*` tag |
 
