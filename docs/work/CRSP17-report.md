@@ -12,6 +12,7 @@ Status: in progress 2026-11-14. Specs read. Writing openapi.yaml.
 - [x] agent.proto (Join + Session; buf lint STANDARD clean)
 - [x] migrations 00002-00008 + sqlc queries (every query prepared against real SQLite in a test)
 - [x] Go interfaces: internal/github, secrets, backend, scheduler, events
-- [ ] codegen + 501 handlers
+- [x] codegen + 501 handlers
+- [x] change notes for 8 feature specs (docs_fold.py note; notes go to docs/features/<f>/changes/, where the tool puts them)
 - [ ] checks
 - [ ] PR
