@@ -58,6 +58,9 @@ type DoneConfig struct {
 	Workspace string
 	KeepWork  bool
 	Log       func(string)
+	// Report and Healthy are as in GateConfig (R5.43). Both may be nil.
+	Report  func(string)
+	Healthy func()
 }
 
 // RunJobDone frees every slot of every kind the job holds with the outcome ran
@@ -78,6 +81,9 @@ func RunJobDone(ctx context.Context, cfg DoneConfig) (code int) {
 	}()
 	if cfg.Client == nil {
 		log("agent not reachable: slots are freed later by the stale rules")
+		if cfg.Report != nil {
+			cfg.Report(unreachableText("job-completed", ErrUnreachable))
+		}
 	} else {
 		machine := cfg.MachineID
 		if machine == "" {
@@ -89,9 +95,18 @@ func RunJobDone(ctx context.Context, cfg DoneConfig) (code int) {
 		switch {
 		case err != nil:
 			log("skipped (%v): slots are freed later by the stale rules", err)
+			if cfg.Report != nil {
+				cfg.Report(unreachableText("job-completed", err))
+			}
 		case len(freed) == 0:
+			if cfg.Healthy != nil {
+				cfg.Healthy()
+			}
 			log("this job held no slot")
 		default:
+			if cfg.Healthy != nil {
+				cfg.Healthy()
+			}
 			for _, f := range freed {
 				if f.Number > 0 {
 					log("freed slot %s of %s run %d job %s", slots.SlotLabel(slots.Kind(f.Kind), f.Number), cfg.Job.Repository, cfg.Job.RunID, cfg.Job.Job)

@@ -57,6 +57,10 @@ func Run(ctx context.Context, args []string, e Env) int {
 		_, _ = fmt.Fprintln(e.Stderr, "usage: crsp hook job-started|job-completed [flags]")
 		return 2
 	}
+	if e.Getenv(ProbeEnv) == "1" && (args[0] == "job-started" || args[0] == "job-completed") {
+		_, _ = fmt.Fprintln(e.Stdout, ProbeOK)
+		return 0
+	}
 	switch args[0] {
 	case "job-started":
 		return runStarted(ctx, args[1:], e)
@@ -156,6 +160,7 @@ func runStarted(ctx context.Context, args []string, e Env) int {
 			cfg.Gate = slots.ResolveGate(*maxWait, *poll, *onTimeout, e.Getenv, h.Settings)
 		}
 	}
+	cfg.Report, cfg.Healthy = e.reporter("job-started")
 	return RunGate(ctx, cfg)
 }
 
@@ -168,8 +173,9 @@ func runCompleted(ctx context.Context, args []string, e Env) int {
 		// Even a bad flag never fails a finished job (R5.30).
 		_, _ = fmt.Fprintln(e.Stderr, "job-completed:", err)
 	}
+	report, healthy := e.reporter("job-completed")
 	return RunJobDone(ctx, DoneConfig{
 		Client: e.client(), Job: jobFromEnv(e.Getenv), Workspace: e.Getenv("GITHUB_WORKSPACE"), KeepWork: *keep,
-		Log: e.logger(*logPath),
+		Log: e.logger(*logPath), Report: report, Healthy: healthy,
 	})
 }
