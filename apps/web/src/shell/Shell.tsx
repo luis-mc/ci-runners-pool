@@ -20,7 +20,7 @@ import {
   type ActivityJob,
   type NavItem,
 } from '@crsp/ui';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { unwrap, useClient, type Schemas } from '../api/api';
 import { signInUrl, useSession } from '../auth/session';
@@ -223,7 +223,9 @@ export function AppShell({ children }: { children?: ReactNode }) {
     };
   }, [client]);
 
-  useEffect(() => {
+  // Layout effect: the listener is on before the first paint, so a key pressed
+  // the moment the page shows is never lost to a deferred passive effect.
+  useLayoutEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       handleKey(e, {
         openPalette: () => setPalette(true),
