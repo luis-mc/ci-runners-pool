@@ -20,6 +20,7 @@ type Engine struct {
 	now   func() time.Time
 	log   *slog.Logger
 	wake  *waker
+	alert func(Alert)
 }
 
 // Option configures an Engine.
@@ -31,6 +32,11 @@ func WithClock(now func() time.Time) Option { return func(e *Engine) { e.now = n
 // WithLogger sets the logger. Logs never hold secrets (R6.5): only job
 // identity, slot numbers and load figures are logged.
 func WithLogger(l *slog.Logger) Option { return func(e *Engine) { e.log = l } }
+
+// WithAlerts sets where the engine reports a job that ended without a slot
+// (R5.43). The callback must not block; the console and the notifications read
+// the alert from there.
+func WithAlerts(f func(Alert)) Option { return func(e *Engine) { e.alert = f } }
 
 // NewEngine returns the slot queue over a store.
 func NewEngine(store slots.Store, opts ...Option) *Engine {

@@ -119,6 +119,22 @@ type Freed struct {
 	TakenAt   time.Time // when the freed slot was taken; zero for a ticket
 }
 
+// AlertKind names a condition the scheduler reports to the owner.
+type AlertKind string
+
+// AlertJobStartedMissing: a job-completed hook arrived for a job that held no
+// slot or ticket on the machine (R5.43).
+const AlertJobStartedMissing AlertKind = "hook.job_started_missing"
+
+// Alert is one condition the owner should see. Message holds no secret.
+type Alert struct {
+	Kind      AlertKind
+	MachineID string
+	Job       JobRef
+	At        time.Time
+	Message   string
+}
+
 // Status is the queue of one machine (R5.58).
 type Status struct {
 	MachineID string
