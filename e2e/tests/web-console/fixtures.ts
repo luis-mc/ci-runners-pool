@@ -70,6 +70,20 @@ export const machine = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+/** A machine whose agent needs recovery (operations R5.44, web-console R5.33). */
+export const needingRecovery = (over: Record<string, unknown> = {}) =>
+  machine({
+    recovery: {
+      state: 'needs_recovery',
+      reason: 'old_protocol',
+      has: '0.1.0',
+      needs: '0.3.0',
+      since: '2026-11-14T08:00:00Z',
+      armed: false,
+    },
+    ...over,
+  });
+
 export const repository = (over: Record<string, unknown> = {}) => ({
   id: 7,
   full_name: 'octo/app',
@@ -179,7 +193,7 @@ export class Mock {
         return p === parts[i];
       });
       if (!ok) continue;
-      const out = h.fn(call, params);
+      const out = await h.fn(call, params);
       if (out === undefined) return route.fulfill({ status: 204 });
       if (out && typeof out === 'object' && 'status' in out && 'error' in out)
         return route.fulfill({

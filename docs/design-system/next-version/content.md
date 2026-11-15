@@ -420,3 +420,18 @@ The words of the Add a machine wizard (machines R5.3a, R5.4a), the runner states
 | Polling notice | GitHub deliveries to this repository failed {n} times in a row, so crsp now polls GitHub for its jobs. Jobs still run, but they start a little later. |
 | Polling button | Switch back to webhooks (busy word: Switching) |
 | Polling failure | Could not switch back. {reason} |
+
+## Agent recovery words
+
+The words of the Recovery section and the State word of a machine whose agent needs recovery (operations R5.44, web-console R5.33).
+
+| Word | Where and meaning |
+|---|---|
+| needs recovery | State word in the State column and in the facts of a machine whose agent needs recovery. |
+| Recovery | The section title on the machine page. |
+| The agent on this machine is too old to work with the controller. | Problem message when the reason is an old protocol. |
+| The agent on this machine was asked to update an hour ago and did not. | Problem message when the agent is stuck on an old version. |
+| Agent has, Agent needs, Since | The facts: the version the agent runs, the version the controller runs, and since when (a past time, Dates, times and numbers). |
+| Recover | The one action. Admin only (busy word: Recovering). Locked after it worked. |
+| Recovery is ready. The agent gets the update on its next call. | Done message after the call, and for a machine that is already armed. |
+| Could not start recovery. {why} | Problem message when the call is refused or fails. |
