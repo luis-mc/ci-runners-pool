@@ -848,6 +848,9 @@ func TestAppCreatedFailureLinksHalfMadeApp(t *testing.T) { // R5.3
 		t.Fatalf("redeem: %d %s", res.StatusCode, b)
 	}
 	res, b := h.do("POST", "/api/v1/setup/github-app", map[string]any{"account_type": "user", "app_name": "crsp-test", "console_urls": []string{h.srv.URL}}, c, nil)
+	if res.StatusCode != 200 {
+		t.Fatalf("start: %d %s", res.StatusCode, b)
+	}
 	var form struct{ State string }
 	_ = json.Unmarshal(b, &form)
 	h.fake.IssueManifestCode("mc")
