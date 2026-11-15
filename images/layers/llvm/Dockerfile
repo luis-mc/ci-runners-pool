@@ -30,6 +30,10 @@ RUN set -eu; \
       ln -sf "/opt/llvm/bin/${t}" "/usr/local/bin/${t}"; \
     done
 
+# The LLVM 18 binaries link libtinfo.so.5; Ubuntu 24.04 ships libtinfo.so.6.
+RUN ln -s "$(ldconfig -p | awk '/libtinfo\.so\.6 .*x86-64/ {print $NF; exit}')" /usr/lib/x86_64-linux-gnu/libtinfo.so.5 \
+ && ldconfig
+
 # Self-check: clang-cl --version and the linkers (runners R5.43).
 RUN clang-cl --version && lld-link --version && llvm-lib --help >/dev/null
 
