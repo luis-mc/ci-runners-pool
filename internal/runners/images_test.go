@@ -15,7 +15,7 @@ func readDockerfile(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return string(b)
+	return strings.ReplaceAll(string(b), "\r\n", "\n")
 }
 
 // TestBaseImageToolListAndSelfCheck keeps the Dockerfile to runners R5.49: a
@@ -40,7 +40,7 @@ func TestBaseImageToolListAndSelfCheck(t *testing.T) {
 	if got := strings.Count(d, "sha256sum -c -"); got < 3 {
 		t.Errorf("%d hash checks, want one per download (3)", got)
 	}
-	if strings.Contains(d, "| sh") || strings.Contains(d, "| bash") {
+	if regexp.MustCompile(`\|\s*(sh|bash)\b`).MatchString(d) {
 		t.Error("a download is piped to a shell")
 	}
 	// Node first on PATH, corepack enable once at build time as root, before USER.
