@@ -50,8 +50,8 @@ Status words: **Built** (code and tests exist), **Specified** (a requirement exi
 | 6 | Load limits 85% memory and 60% CPU, measured; WSL VM; Docker CLI first; cgroup | `load.py`, `host-load.json` | all | Built in the agent; the WSL VM read in the gate is Specified | machines R5.15 to R5.21; scheduling R5.40 to R5.46; scheduling R5.47 (M2) |
 | 7 | Gate never blocks on a failure; a hook that cannot reach it is shown | fail open, DL351 | all | Built | scheduling R5.22, R5.23, R5.61; runners R5.40; doctor R5.29 |
 | 8 | Disk guard | none until 14 Nov (320 GB cache) | J2, J8 | Built (CRSP21) | caches R5.38 |
-| 9 | CPU count for jobs (`CI_MAX_PARALLEL`, cpuset) | `pool_supervisor.py` | J1 to J7 | Specified | machines R5.54; runners R5.53 (added) |
-| 10 | Pool size set by the owner, checked against the budget, no accidental shrink | `pool-plan --pool-gib`, `--shrink` | all | Missing, added | machines R5.58 |
+| 9 | CPU count for jobs (`CI_MAX_PARALLEL`, cpuset) | `pool_supervisor.py` | J1 to J7 | Built in part (CRSP50): `CI_MAX_PARALLEL`; the cpuset waits for the container backend | machines R5.54; runners R5.53 (added) |
+| 10 | Pool size set by the owner, checked against the budget, no accidental shrink | `pool-plan --pool-gib`, `--shrink` | all | Built in part (CRSP50): check, API, shrink confirm; the console form is open | machines R5.58 |
 | 11 | Windows runner as a service with its own account, rights, symlink right, PowerShell hooks, execution policy, remove token, rerun, replace the old one | `win-*` steps | J12 | Built (CRSP22) | runners R5.5, R5.6, R5.13 to R5.20, R5.40 |
 | 12 | `RUSTUP_HOME` and `CARGO_HOME` per Windows runner | runner `.env` | J2, J12 | Missing, added | runners R5.56 |
 | 13 | Linux job runners in a pool container, one per repository, non-root, no Docker socket, one cap | `pool_supervisor.py`, Docker | J1 to J11 | Specified | runners R5.27, R5.25, R5.26, R5.31; github R5.34 |
@@ -83,7 +83,7 @@ Status words: **Built** (code and tests exist), **Specified** (a requirement exi
 | 39 | `vm_check.py` and `vm-images.json` | `scripts/delivery` | J11 | Data and checks Built (CRSP26); the boot Missing, added | caches R5.40; caches R5.46, R5.47; runners R5.55 |
 | 40 | Pinned downloads and unpack (`ci_tool.py`, `tools.json`) | delivery scripts | J1 to J4 | Not taken: they stay in delivery (D308) | caches R5.44 |
 | 41 | KVM on WSL2: load the module, check `nestedVirtualization` | `kvm-autoload` (DL343) | J11 | Specified; doctor checks Missing, added | machines R5.53; doctor R5.32 |
-| 42 | WSL memory and CPU sizing from `.wslconfig` | `pool-plan` | all | Specified | machines R5.54 |
+| 42 | WSL memory and CPU sizing from `.wslconfig` | `pool-plan` | all | Built in part (CRSP50): `.wslconfig` read into facts | machines R5.54 |
 | 43 | `runs-on` and variable checks, hook checks | doctor | all | Built | doctor R5.14, R5.17 to R5.19, R5.29 |
 | 44 | Cache over quota, low cache disk | `cache-cap`, `cache-disk` | J2 | Missing, added | doctor R5.34 |
 | 45 | Which jobs of a repository the pool can run | none | all | Missing, added | doctor R5.33 |
