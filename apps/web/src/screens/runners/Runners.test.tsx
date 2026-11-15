@@ -10,7 +10,7 @@ import {
   signedIn,
   viewer,
 } from '../../testing/mock';
-import { isolationText } from './Runners';
+import { currentJobText, isolationText, runnerStatus, stateCounts } from './Runners';
 
 afterEach(cleanup);
 
@@ -57,7 +57,7 @@ describe('Runners list', () => {
     const table = await screen.findByRole('table', { name: 'Runners' });
     expect(within(table).getByText('persistent, state kept between jobs')).toBeTruthy();
     expect(within(table).getByText('container')).toBeTruthy();
-    expect(within(table).getByText('running')).toBeTruthy();
+    expect(within(table).getByText('busy')).toBeTruthy();
     expect(within(table).getByText('octo/app e2e')).toBeTruthy();
     expect(within(table).getByText('idle')).toBeTruthy();
   });
@@ -189,5 +189,49 @@ describe('Add runners', () => {
     const win = await screen.findByRole('radio', { name: /win-1/ });
     expect((win as HTMLInputElement).disabled).toBe(true);
     expect(screen.getByText('This machine runs windows, not linux.')).toBeTruthy();
+  });
+});
+
+describe('Idle and busy at a glance (RES7)', () => {
+  const now = Date.parse('2026-11-15T12:10:00Z');
+
+  it('names the state as idle or busy', () => {
+    expect(runnerStatus(runner({ state: 'idle' }))).toEqual({ kind: 'ok', word: 'idle' });
+    expect(runnerStatus(runner({ state: 'busy' }))).toEqual({
+      kind: 'running',
+      word: 'busy',
+    });
+  });
+
+  it('gives the running job with its repository and elapsed time', () => {
+    const r = runner({
+      state: 'busy',
+      current_job: { ...job, started_at: '2026-11-15T12:05:48Z' },
+    });
+    expect(currentJobText(r, now)).toBe('octo/app e2e, running 4 min 12 s');
+    expect(currentJobText(runner({ state: 'idle' }), now)).toBe('none');
+    expect(currentJobText(runner({ state: 'busy', current_job: job }), now)).toBe(
+      'octo/app e2e',
+    );
+  });
+
+  it('counts idle, busy and the rest', () => {
+    const items = [
+      runner({ state: 'idle' }),
+      runner({ id: 'r2', state: 'busy' }),
+      runner({ id: 'r3', state: 'busy' }),
+      runner({ id: 'r4', state: 'offline' }),
+    ];
+    expect(stateCounts(items)).toEqual({ idle: 1, busy: 2, other: 1 });
+  });
+
+  it('shows the counts above the table', async () => {
+    const api = signedIn().on('GET', '/api/v1/runners', {
+      items: [runner({ state: 'busy', current_job: job }), runner({ id: 'r2' })],
+    });
+    renderApp(api, '/runners');
+    await screen.findByRole('table', { name: 'Runners' });
+    expect(screen.getByText('Idle')).toBeTruthy();
+    expect(screen.getByText('Busy')).toBeTruthy();
   });
 });
