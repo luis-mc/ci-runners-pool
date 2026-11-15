@@ -41,8 +41,75 @@ type Layer struct {
 }
 
 // KnownLayers are the layers this release can build.
-var KnownLayers = []Layer{
+// The browsers layer comes first; the layers of Layers() follow (CRSP60).
+var KnownLayers = append([]Layer{
 	{Name: LayerBrowsers, Dockerfile: "images/layers/browsers/Dockerfile", Version: PlaywrightPin},
+}, Layers()...)
+
+// LayerExtraPackages is the last layer of an image: the pool's extra
+// distribution packages (runners R5.51). It is not chosen by name; it is added
+// when the pool's list is not empty.
+const LayerExtraPackages = "extra-packages"
+
+// ExtraPackagesDockerfile is the file of the extra packages layer.
+const ExtraPackagesDockerfile = "images/layers/extra-packages/Dockerfile"
+
+// BuildStep is one docker build of an image: layers in order, the extra
+// packages layer last. Each step is built on the image of the step before.
+type BuildStep struct {
+	Layer      string
+	Dockerfile string
+	Args       []string
+}
+
+// ImagePlan is what one pool's image is built from.
+type ImagePlan struct {
+	// Key names the image; a change of base, layers or extra packages changes
+	// it, so the new image builds aside (R5.33, R5.51).
+	Key   string
+	Steps []BuildStep
+}
+
+// PlanImage plans a pool's image: the selected layers in stable order, then
+// the extra packages as the last layer when the list has names. baseImage is
+// the first step's base; later steps use "{prev}" for the image of the step
+// before, which the builder fills in. The extra package names are checked
+// again here, so a list that skipped ParseExtraPackages cannot reach apt.
+func PlanImage(baseImage, baseDigest string, p PoolLayers, extras []string) (ImagePlan, error) {
+	sel, err := SelectLayers(p)
+	if err != nil {
+		return ImagePlan{}, err
+	}
+	var plan ImagePlan
+	var names []string
+	for i, s := range sel {
+		base := baseImage
+		if i > 0 {
+			base = "{prev}"
+		}
+		plan.Steps = append(plan.Steps, BuildStep{Layer: s.Name, Dockerfile: s.Dockerfile, Args: s.BuildArgs(base)})
+		names = append(names, s.Name)
+	}
+	var clean []string
+	for i, n := range extras {
+		if !packageName.MatchString(n) {
+			return ImagePlan{}, &PackageError{Line: i + 1, Name: n}
+		}
+		clean = append(clean, n)
+	}
+	sort.Strings(clean)
+	if len(clean) > 0 {
+		base := baseImage
+		if len(plan.Steps) > 0 {
+			base = "{prev}"
+		}
+		plan.Steps = append(plan.Steps, BuildStep{
+			Layer: LayerExtraPackages, Dockerfile: ExtraPackagesDockerfile,
+			Args: []string{"--build-arg", "BASE_IMAGE=" + base, "--build-arg", "EXTRA_PACKAGES=" + strings.Join(clean, " ")},
+		})
+	}
+	plan.Key = LayerSetKey(baseDigest, names, clean)
+	return plan, nil
 }
 
 // PoolLayers is what a pool asks for: layer names it turned on, and the
@@ -180,10 +247,10 @@ func Layers() []Layer {
 		},
 		{
 			Name: "linux-packaging", Release: "v0.5.0",
-			Packages: []string{"dpkg-dev", "rpm", "make", "checkpolicy", "selinux-policy-dev", "policycoreutils",
+			Packages: []string{"dpkg-dev", "fakeroot", "rpm", "make", "checkpolicy", "selinux-policy-dev", "policycoreutils",
 				"gnupg", "shellcheck", "systemd", "createrepo-c"},
 			Optional:   []string{"policycoreutils-python-utils"},
-			SelfCheck:  []string{"dpkg-deb --version", "rpmbuild --version", "make --version", "checkmodule -V", "gpg --version", "shellcheck --version", "createrepo_c --version"},
+			SelfCheck:  []string{"dpkg-deb --version", "dpkg-buildpackage --version", "fakeroot --version", "rpmbuild --version", "make --version", "checkmodule -V", "gpg --version", "shellcheck --version", "createrepo_c --version"},
 			Dockerfile: "images/layers/linux-packaging/Dockerfile",
 		},
 		{

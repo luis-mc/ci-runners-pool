@@ -350,3 +350,15 @@ func (b *Backend) busy(ctx context.Context, pool string) (bool, error) {
 	}
 	return true, fmt.Errorf("cannot read the jobs of %s: exit %s", pool, strconv.Itoa(res.ExitCode))
 }
+
+// DefaultConfig is the production layout of the Linux container backend: the
+// base image comes from the installed `images/linux-base` folder, built on the
+// machine on first use (runners R5.33). Limits stay at zero until the pool
+// size of the machine sets them.
+func DefaultConfig() Config {
+	return Config{
+		Dockerfile:   "/usr/share/crsp/images/linux-base/Dockerfile",
+		BuildContext: "/usr/share/crsp/images/linux-base",
+		BaseName:     "linux-base",
+	}
+}

@@ -6,7 +6,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
 )
 
-// RegisterKVM adds the four KVM checks (doctor R5.32). They are not part of
+// RegisterKVM adds the five KVM checks (doctor R5.32). They are not part of
 // Register: no agent reports KVM state yet, so the live doctor does not run
 // them; the controller registers them when the agent's KVM report is wired.
 func RegisterKVM(reg *doctor.Registry) {
@@ -15,6 +15,7 @@ func RegisterKVM(reg *doctor.Registry) {
 		doctor.NewCheck("kvm.container", doctor.GroupBackend, M2, false, kvmContainer),
 		doctor.NewCheck("kvm.label", doctor.GroupBackend, M2, false, kvmLabel),
 		doctor.NewCheck("kvm.wslconfig", doctor.GroupBackend, M2, false, kvmWslconfig),
+		doctor.NewCheck("kvm.module", doctor.GroupBackend, M2, false, kvmModule),
 	} {
 		reg.Register(c)
 	}
@@ -131,6 +132,38 @@ func kvmWslconfig(ctx context.Context, env doctor.Env) []doctor.Finding {
 			f.Severity, f.Title = doctor.Fail, "Nested virtualization is off in .wslconfig on "+s.Machine.Name
 			f.Detail = "WSL2 cannot offer /dev/kvm without it. crsp never edits this file without a yes."
 			f.Fix = doctor.Fix{Text: "Add these lines to %UserProfile%\\.wslconfig, then run `wsl --shutdown` (this stops every WSL distro):\n[wsl2]\nnestedVirtualization=true", Command: "wsl --shutdown"}
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// kvmModule: on Windows, kvm_intel or kvm_amd is loaded in the WSL VM (machines
+// R5.53). After `wsl --shutdown` or a reboot /dev/kvm is gone until it is loaded
+// again. The doctor reads this and says how to fix it; it never loads the module.
+func kvmModule(ctx context.Context, env doctor.Env) []doctor.Finding {
+	sts, out := kvmStates(ctx, env, "kvm.module")
+	for _, s := range sts {
+		if s.Machine.OS != "windows" {
+			continue
+		}
+		f := doctor.Finding{Check: "kvm.module", Subject: machineSubject(s.Machine), Milestone: M2}
+		switch {
+		case !s.ModuleKnown:
+			f.Severity, f.Title = doctor.Skip, "The WSL VM of "+s.Machine.Name+" was not asked about the kvm module"
+			f.Detail = "The agent could not run wsl.exe."
+			f.Fix = doctor.Fix{Text: "Nothing to do now. Run the doctor again."}
+		case s.ModuleLoaded:
+			f.Severity, f.Title = doctor.OK, "The kvm module is loaded in the WSL VM on "+s.Machine.Name
+		case s.NestedKnown && !s.Nested:
+			f.Severity, f.Title = doctor.Info, "The kvm module is not loaded in the WSL VM on "+s.Machine.Name
+			f.Detail = "It cannot load while nested virtualization is off in .wslconfig; see kvm.wslconfig."
+			f.Fix = doctor.Fix{Text: "Turn on nestedVirtualization first (kvm.wslconfig)."}
+		default:
+			f.Severity, f.Title = doctor.Fail, "The kvm module is not loaded in the WSL VM on "+s.Machine.Name
+			f.Detail = "kvm_intel or kvm_amd is gone after every `wsl --shutdown` or reboot, and /dev/kvm with it. The pool's kvm loader service loads it at each start."
+			f.Fix = doctor.Fix{Text: "Start the pool with the KVM compose file, which holds the loader service. To load it by hand once: `wsl -u root modprobe kvm_intel` (kvm_amd on an AMD CPU). crsp changes nothing by itself.", Command: "docker compose -f compose.yaml -f compose.kvm.yaml up -d"}
+			f.NeedsAdmin = true
 		}
 		out = append(out, f)
 	}

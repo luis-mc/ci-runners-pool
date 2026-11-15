@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/vmcheck"
 )
 
 // EnvFileVar names the pool's db.env file. The agent sets it in the job's
@@ -18,6 +20,8 @@ type Env struct {
 	Getenv func(string) string
 	Stdout io.Writer
 	Stderr io.Writer
+	// VMDeps replaces the real network, KVM and process calls of `crsp vm` (tests).
+	VMDeps *vmcheck.Deps
 }
 
 // secretKeys are the db.env keys whose values are masked in the job log.

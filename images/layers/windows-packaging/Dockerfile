@@ -7,6 +7,12 @@
 ARG BASE_IMAGE=crsp-linux-base:ci
 FROM ${BASE_IMAGE}
 
+# Versions are pinned by line (open question 32 of the runners spec): the
+# distribution archive is signed and apt checks its SHA-256 index, and the
+# self-check below fails the build when a line moves.
+ARG DOTNET_SDK_LINE=8.0
+ARG WINE_LINE=9.0
+
 USER root
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
@@ -20,6 +26,8 @@ RUN test -z "${TMPDIR:-}"
 
 # Self-check: every tool runs, or the build fails (runners R5.50).
 RUN dotnet --version && wine --version && xvfb-run --help >/dev/null \
- && command -v xauth >/dev/null && command -v msiinfo >/dev/null
+ && command -v xauth >/dev/null && command -v msiinfo >/dev/null \
+ && dotnet --version | grep -q "^${DOTNET_SDK_LINE}\." \
+ && wine --version | grep -q "^wine-${WINE_LINE}"
 
 USER runner

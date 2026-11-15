@@ -72,7 +72,14 @@ func (m *memStore) SetRunnerService(_ context.Context, id, svc, acct string) err
 	m.runners[id] = r
 	return nil
 }
-func (m *memStore) SetRunnerRegistration(context.Context, string, int64, string) error { return nil }
+func (m *memStore) SetRunnerRegistration(_ context.Context, id string, _ int64, v string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	r := m.runners[id]
+	r.RunnerVersion = v
+	m.runners[id] = r
+	return nil
+}
 func (m *memStore) DeleteRunner(_ context.Context, id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

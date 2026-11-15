@@ -48,6 +48,13 @@ type Service struct {
 	// the plan ends or is stopped (the plan.progress event).
 	OnProgress func(Plan)
 
+	// Updater replaces the runner files of a persistent runner (runners
+	// R5.38). Nil means the machine's agent cannot update yet.
+	Updater RunnerUpdater
+	// AutoUpdate reads the owner setting for automatic updates (operations
+	// R5.15); nil means on.
+	AutoUpdate func(ctx context.Context) bool
+
 	// Light places the light runners of a repository (scheduling R5.65). Nil
 	// turns light runners off.
 	Light LightPlacer
@@ -157,20 +164,35 @@ func (s *Service) PlanAdd(ctx context.Context, req AddRequest, actor string) (Pl
 	for i, a := range specs {
 		p.Steps = append(p.Steps, Step{
 			ID: fmt.Sprintf("s%d", i+1), Action: ActAddRunner, Target: a.Name, State: "planned",
-			Text: fmt.Sprintf("Add %s runner %s on machine %s (%s, keeps state between jobs, own account %s)",
-				a.Kind, a.Name, m.Name, OSName(a.OS), AccountName(a.Name, nil)),
+			Text: addText(a, m.Name),
 		})
 	}
 	return p, s.Store.SavePlan(ctx, p)
 }
 
+func addText(a AddSpec, machine string) string {
+	if a.Kind == "ephemeral" {
+		return fmt.Sprintf("Add ephemeral runner %s on machine %s (%s, in a container, takes one job and is removed)", a.Name, machine, OSName(a.OS))
+	}
+	return fmt.Sprintf("Add %s runner %s on machine %s (%s, keeps state between jobs, own account %s)",
+		a.Kind, a.Name, machine, OSName(a.OS), AccountName(a.Name, nil))
+}
+
 func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]AddSpec, error) {
-	if req.Kind != "persistent" {
+	if req.Kind != "persistent" && req.Kind != "ephemeral" {
 		return nil, refuse("machine %s: %s runners are not built yet", m.Name, req.Kind)
 	}
 	be, err := chooseBackend(m, req.OS, req.Kind)
 	if err != nil {
+		if req.Kind == "ephemeral" {
+			// Ephemeral runners run in containers and only on a machine whose
+			// allow list names the container backend (runners R5.27).
+			return nil, refuse("%v; ephemeral runners need the container backend allowed on the machine (it is off by default)", err)
+		}
 		return nil, err
+	}
+	if req.Kind == "ephemeral" && req.OS != "linux" {
+		return nil, refuse("machine %s: ephemeral runners run Linux containers only, not %s", m.Name, OSName(req.OS))
 	}
 	verified := map[string]bool{}
 	for _, v := range be.Verified {
@@ -470,6 +492,11 @@ func (s *Service) runStep(ctx context.Context, p Plan, st Step, actor string) er
 // addRunner registers and starts one persistent runner. The registration token
 // is fetched now, used once and dropped (runners R6.2).
 func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error {
+	if a.Kind == "ephemeral" {
+		_, err := s.StartJobRunner(ctx, JobRunner{Name: a.Name, MachineID: a.MachineID, Arch: a.Arch,
+			Backend: a.Backend, Labels: a.Labels, Scope: a.Scope}, actor)
+		return err
+	}
 	pin, err := PinFor(a.OS, a.Arch)
 	if err != nil {
 		return err
@@ -574,7 +601,22 @@ func (s *Service) BeginRemove(ctx context.Context, id string, confirm bool, acto
 }
 
 func (s *Service) finishRemove(ctx context.Context, r Record, prev State, actor string) error {
-	d := Drain{Poll: s.Poll, WarnAfter: s.WarnAfter, Timeout: s.DrainTimeout, Sleep: s.Sleep, Now: s.Now,
+	d := s.drainFor(r)
+	err := d.Act(ctx, func(ctx context.Context) error {
+		_ = s.Store.SetRunnerState(ctx, r.ID, Removing, "idle; removing")
+		return s.removeRegistration(ctx, r, actor, "runner.remove", false)
+	})
+	if err != nil {
+		// The runner still works: put it back. A timeout asks the user; it never
+		// stops the job.
+		_ = s.Store.SetRunnerState(ctx, r.ID, restoreState(prev), err.Error())
+	}
+	return err
+}
+
+// drainFor builds the drain of one runner from the service settings.
+func (s *Service) drainFor(r Record) Drain {
+	return Drain{Poll: s.Poll, WarnAfter: s.WarnAfter, Timeout: s.DrainTimeout, Sleep: s.Sleep, Now: s.Now,
 		OnWarn: func(job string) {
 			if s.OnDrainWarn != nil {
 				s.OnDrainWarn(r.ID, job)
@@ -587,16 +629,6 @@ func (s *Service) finishRemove(ctx context.Context, r Record, prev State, actor 
 		},
 		Idle: func(ctx context.Context) (bool, string, error) { return s.idle(ctx, r) },
 	}
-	err := d.Act(ctx, func(ctx context.Context) error {
-		_ = s.Store.SetRunnerState(ctx, r.ID, Removing, "idle; removing")
-		return s.removeRegistration(ctx, r, actor, "runner.remove", false)
-	})
-	if err != nil {
-		// The runner still works: put it back. A timeout asks the user; it never
-		// stops the job.
-		_ = s.Store.SetRunnerState(ctx, r.ID, restoreState(prev), err.Error())
-	}
-	return err
 }
 
 func restoreState(prev State) State {

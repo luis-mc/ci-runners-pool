@@ -49,7 +49,7 @@ func find(t *testing.T, fs []doctor.Finding, name string) doctor.Finding {
 func TestRegisterKVMIsSeparate(t *testing.T) {
 	reg := doctor.NewRegistry()
 	RegisterKVM(reg)
-	if len(reg.All()) != 4 {
+	if len(reg.All()) != 5 {
 		t.Errorf("checks %v", reg.SortedIDs())
 	}
 }
@@ -132,5 +132,34 @@ func TestWslconfigNested(t *testing.T) {
 		if !strings.Contains(find(t, fs, "off").Fix.Text, want) {
 			t.Errorf("fix lacks %q", want)
 		}
+	}
+}
+
+// TestKvmModuleLoadedInTheWSLVM: machines R5.53, parity row 41. The doctor says
+// how to fix it and never loads the module.
+func TestKvmModuleLoadedInTheWSLVM(t *testing.T) {
+	fs := kvmRun(t, kvmFake{states: []doctor.KVMState{
+		{Machine: named(win(), "loaded"), ModuleKnown: true, ModuleLoaded: true, NestedKnown: true, Nested: true},
+		{Machine: named(win(), "gone"), ModuleKnown: true, NestedKnown: true, Nested: true},
+		{Machine: named(win(), "gone-unset"), ModuleKnown: true},
+		{Machine: named(win(), "nested-off"), ModuleKnown: true, NestedKnown: true, Nested: false},
+		{Machine: named(win(), "unread"), ModuleKnown: false},
+		{Machine: named(linux(), "linux"), ModuleKnown: true},
+	}}, "kvm.module")
+	if len(fs) != 5 {
+		t.Fatalf("Linux machine must not be checked: %d findings", len(fs))
+	}
+	want := map[string]doctor.Severity{"loaded": doctor.OK, "gone": doctor.Fail, "gone-unset": doctor.Fail, "nested-off": doctor.Info, "unread": doctor.Skip}
+	for name, sev := range want {
+		if got := find(t, fs, name).Severity; got != sev {
+			t.Errorf("%s: %v, want %v", name, got, sev)
+		}
+	}
+	g := find(t, fs, "gone")
+	if !strings.Contains(g.Fix.Text, "modprobe kvm_intel") || !strings.Contains(g.Fix.Text, "kvm_amd") || !strings.Contains(g.Fix.Command, "compose.kvm.yaml") || !g.NeedsAdmin {
+		t.Errorf("fix: %+v", g)
+	}
+	if !strings.Contains(find(t, fs, "nested-off").Fix.Text, "kvm.wslconfig") {
+		t.Errorf("nested off must point to kvm.wslconfig: %+v", find(t, fs, "nested-off"))
 	}
 }

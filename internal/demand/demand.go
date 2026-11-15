@@ -1,0 +1,352 @@
+// Package demand starts one ephemeral container runner for each queued job
+// (github-integration R5.37, runners R5.25 to R5.27, R5.31). It reads job
+// changes from a github.Demand source (the REST poller), matches the runs-on
+// labels of a queued job to a machine whose allow list names the container
+// backend, and asks that machine's agent to start one JIT runner. It keeps to
+// the slot budget of the machine (scheduling R5.1) and never starts a second
+// runner for the same job. It is the fallback source: a scale set or a
+// webhook feeds the same loop later.
+package demand
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
+)
+
+// RunnerPrefix starts the name of every runner the loop makes. The rest is the
+// job id, so a runner is easy to tie to the job it was made for.
+const RunnerPrefix = "crsp-job-"
+
+// Actor is the name the loop writes in the audit trail.
+const Actor = "demand"
+
+// Repo is what the loop needs to know about a repository with the pool on.
+type Repo struct {
+	Scope     runners.Scope
+	AllowFork bool
+}
+
+// Host is a machine that may start container runners: online, active, Linux,
+// with the container backend present, usable and in the machine's allow list.
+// Slots is the machine's job slot budget (CRSP50): at most that many ephemeral
+// runners exist on it at once.
+type Host struct {
+	MachineID string
+	Arch      string // x64 or arm64
+	Slots     int
+}
+
+// Env is the controller's view the loop reads.
+type Env interface {
+	// Repo returns the repository named owner/name when its pool is on.
+	Repo(ctx context.Context, fullName string) (Repo, bool, error)
+	// Hosts lists the machines that may start container runners now.
+	Hosts(ctx context.Context) ([]Host, error)
+}
+
+// Runners is the part of the runners service the loop uses.
+type Runners interface {
+	StartJobRunner(ctx context.Context, j runners.JobRunner, actor string) (runners.Record, error)
+	FinishJobRunner(ctx context.Context, runnerID, actor string) error
+	EphemeralOnMachine(ctx context.Context, machineID string) (int, error)
+}
+
+// Loop is the demand loop.
+type Loop struct {
+	Env      Env
+	Runners  Runners
+	PoolName string
+	Logger   *slog.Logger
+	// Every is how often waiting jobs are tried again (default 5 s). Now is a
+	// seam for tests.
+	Every time.Duration
+	Now   func() time.Time
+
+	mu      sync.Mutex
+	seen    map[int64]github.Job // open jobs by id
+	pending map[int64]*waiting
+	started map[int64]startedRunner // job id -> runner made for it
+}
+
+type waiting struct {
+	fails   int
+	nextTry time.Time
+	why     string
+}
+
+type startedRunner struct {
+	id, name string
+}
+
+// maxFails is how many failed starts a job gets before the loop leaves it.
+const maxFails = 5
+
+func (l *Loop) init() {
+	if l.seen == nil {
+		l.seen = map[int64]github.Job{}
+		l.pending = map[int64]*waiting{}
+		l.started = map[int64]startedRunner{}
+	}
+	if l.Every <= 0 {
+		l.Every = 5 * time.Second
+	}
+	if l.Now == nil {
+		l.Now = time.Now
+	}
+	if l.Logger == nil {
+		l.Logger = slog.Default()
+	}
+}
+
+// Run reads jobs until the channel closes or ctx ends. Each change updates the
+// loop's view; every change and every tick then starts runners for the jobs
+// that wait.
+func (l *Loop) Run(ctx context.Context, jobs <-chan github.Job) {
+	l.mu.Lock()
+	l.init()
+	every := l.Every
+	l.mu.Unlock()
+	t := time.NewTicker(every)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case j, ok := <-jobs:
+			if !ok {
+				return
+			}
+			l.Observe(ctx, j)
+			l.Dispatch(ctx)
+		case <-t.C:
+			l.Dispatch(ctx)
+		}
+	}
+}
+
+// Observe records one job change. A queued job waits for a runner; a job that
+// started or ended stops waiting; the runner made for an ended job is cleaned
+// up.
+func (l *Loop) Observe(ctx context.Context, j github.Job) {
+	l.mu.Lock()
+	l.init()
+	switch j.Status {
+	case "queued":
+		l.seen[j.ID] = j
+		if _, done := l.started[j.ID]; !done && l.pending[j.ID] == nil {
+			l.pending[j.ID] = &waiting{}
+		}
+	case "in_progress":
+		l.seen[j.ID] = j
+		delete(l.pending, j.ID)
+	default: // completed
+		delete(l.seen, j.ID)
+		delete(l.pending, j.ID)
+	}
+	var finish []startedRunner
+	if j.Status == "completed" && strings.HasPrefix(j.RunnerName, RunnerPrefix) {
+		// The runner of this job is spent. A runner takes whichever queued
+		// job it gets, so a job it was made for may still be queued: it waits
+		// again.
+		for id, st := range l.started {
+			if st.name != j.RunnerName {
+				continue
+			}
+			finish = append(finish, st)
+			delete(l.started, id)
+			if q, ok := l.seen[id]; ok && q.Status == "queued" {
+				l.pending[id] = &waiting{}
+			}
+		}
+	}
+	if j.Status == "completed" {
+		delete(l.started, j.ID)
+	}
+	l.mu.Unlock()
+	for _, st := range finish {
+		if st.id == "" {
+			continue
+		}
+		if err := l.Runners.FinishJobRunner(ctx, st.id, Actor); err != nil {
+			l.Logger.Warn("clean up the runner of a finished job", "runner", st.name, "err", err)
+		}
+	}
+}
+
+// Waiting is the number of queued jobs the loop has not started a runner for.
+func (l *Loop) Waiting() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return len(l.pending)
+}
+
+// Dispatch starts a runner for each waiting job that a machine can take now.
+// Older jobs go first. A job no machine can take stays waiting without noise.
+func (l *Loop) Dispatch(ctx context.Context) {
+	l.mu.Lock()
+	l.init()
+	ids := make([]int64, 0, len(l.pending))
+	for id := range l.pending {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(a, b int) bool {
+		ja, jb := l.seen[ids[a]], l.seen[ids[b]]
+		if !ja.CreatedAt.Equal(jb.CreatedAt) {
+			return ja.CreatedAt.Before(jb.CreatedAt)
+		}
+		return ids[a] < ids[b]
+	})
+	l.mu.Unlock()
+	if len(ids) == 0 {
+		return
+	}
+	hosts, err := l.Env.Hosts(ctx)
+	if err != nil {
+		l.Logger.Warn("list machines for queued jobs", "err", err)
+		return
+	}
+	if len(hosts) == 0 {
+		return
+	}
+	used := map[string]int{}
+	for _, h := range hosts {
+		n, err := l.Runners.EphemeralOnMachine(ctx, h.MachineID)
+		if err != nil {
+			l.Logger.Warn("count ephemeral runners", "machine", h.MachineID, "err", err)
+			return
+		}
+		used[h.MachineID] = n
+	}
+	for _, id := range ids {
+		if ctx.Err() != nil {
+			return
+		}
+		l.mu.Lock()
+		j, w := l.seen[id], l.pending[id]
+		hold := w == nil || l.Now().Before(w.nextTry)
+		l.mu.Unlock()
+		if hold {
+			continue
+		}
+		l.try(ctx, j, w, hosts, used)
+	}
+}
+
+func (l *Loop) try(ctx context.Context, j github.Job, w *waiting, hosts []Host, used map[string]int) {
+	repo, on, err := l.Env.Repo(ctx, j.Repository)
+	if err != nil {
+		l.Logger.Warn("read repository", "repository", j.Repository, "err", err)
+		return
+	}
+	if !on {
+		return
+	}
+	if j.FromFork && !repo.AllowFork {
+		l.note(j, w, "a fork pull request; the policy does not allow it")
+		return
+	}
+	var labelWhy string
+	for _, h := range hosts {
+		labels, why := Match(j.Labels, h.Arch, l.PoolName)
+		if why != "" {
+			labelWhy = why
+			continue
+		}
+		if h.Slots < 1 || used[h.MachineID] >= h.Slots {
+			l.note(j, w, "every slot of the machine is in use")
+			continue
+		}
+		name := fmt.Sprintf("%s%d", RunnerPrefix, j.ID)
+		rec, err := l.Runners.StartJobRunner(ctx, runners.JobRunner{Name: name, MachineID: h.MachineID, Arch: h.Arch,
+			Backend: "docker", Labels: labels, Scope: repo.Scope}, Actor)
+		if err != nil {
+			l.fail(j, w, err)
+			return
+		}
+		used[h.MachineID]++
+		l.mu.Lock()
+		delete(l.pending, j.ID)
+		l.started[j.ID] = startedRunner{id: rec.ID, name: name}
+		l.mu.Unlock()
+		l.Logger.Info("runner started for a queued job", "job", j.ID, "repository", j.Repository, "machine", h.MachineID, "runner", name)
+		return
+	}
+	if labelWhy != "" {
+		l.note(j, w, labelWhy)
+	}
+}
+
+// note keeps the reason a job waits and logs it once.
+func (l *Loop) note(j github.Job, w *waiting, why string) {
+	l.mu.Lock()
+	changed := w.why != why
+	w.why = why
+	l.mu.Unlock()
+	if changed {
+		l.Logger.Info("queued job waits", "job", j.ID, "repository", j.Repository, "why", why)
+	}
+}
+
+// fail backs off a job whose runner did not start, and leaves it after
+// maxFails tries. The error text comes from the agent and holds no secret.
+func (l *Loop) fail(j github.Job, w *waiting, err error) {
+	l.mu.Lock()
+	w.fails++
+	gone := w.fails >= maxFails
+	w.nextTry = l.Now().Add(time.Duration(1<<min(w.fails, 6)) * 5 * time.Second)
+	if gone {
+		delete(l.pending, j.ID)
+	}
+	l.mu.Unlock()
+	l.Logger.Warn("start a runner for a queued job", "job", j.ID, "repository", j.Repository, "try", w.fails, "gave_up", gone, "err", err)
+}
+
+// Match checks the runs-on labels of a job against what a container runner on
+// a machine of the given architecture can carry. It returns the runner labels,
+// or the reason the job does not match. The runner carries the job's labels
+// and its architecture; every label must be generic and one a container can
+// honour: self-hosted and linux are required, kvm and gpu are not offered.
+func Match(jobLabels []string, arch, pool string) ([]string, string) {
+	have := map[string]bool{}
+	for _, raw := range jobLabels {
+		l := strings.ToLower(strings.TrimSpace(raw))
+		if l != "" {
+			have[l] = true
+		}
+	}
+	if !have["self-hosted"] || !have["linux"] {
+		return nil, "the job does not ask for a self-hosted Linux runner"
+	}
+	other := "arm64"
+	if arch == "arm64" {
+		other = "x64"
+	}
+	if have[other] {
+		return nil, "the job asks for " + other + " and the machine is " + arch
+	}
+	set := map[string]bool{arch: true}
+	for l := range have {
+		switch {
+		case l == "self-hosted", l == "linux", l == "x64", l == "arm64", l == "docker":
+			set[l] = true
+		case pool != "" && l == strings.ToLower(pool):
+			set[pool] = true
+		default:
+			return nil, "label " + l + " is not offered by a container runner"
+		}
+	}
+	out := make([]string, 0, len(set))
+	for l := range set {
+		out = append(out, l)
+	}
+	sort.Strings(out)
+	return out, ""
+}

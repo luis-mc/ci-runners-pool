@@ -80,7 +80,7 @@ func TestCreateOnlyOnSupportingMachine(t *testing.T) {
 	if _, err := r.svc.PlanAdd(ctx, AddRequest{OS: "linux", Kind: "persistent", MachineID: "m1", Count: 1, Scope: scope}, "u"); err == nil {
 		t.Error("an unusable backend must not be used")
 	}
-	// Ephemeral is not built in M1.
+	// Ephemeral needs the container backend in the allow list (R5.27); a machine with persistent only refuses it.
 	r = newRig(machine("linux", "x64", true))
 	if _, err := r.svc.PlanAdd(ctx, AddRequest{OS: "linux", Kind: "ephemeral", MachineID: "m1", Count: 1, Scope: scope}, "u"); err == nil {
 		t.Error("ephemeral")

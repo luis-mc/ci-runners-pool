@@ -54,25 +54,25 @@ Status words: **Built** (code and tests exist), **Specified** (a requirement exi
 | 10 | Pool size set by the owner, checked against the budget, no accidental shrink | `pool-plan --pool-gib`, `--shrink` | all | Built in part (CRSP50): check, API, shrink confirm; the console form is open | machines R5.58 |
 | 11 | Windows runner as a service with its own account, rights, symlink right, PowerShell hooks, execution policy, remove token, rerun, replace the old one | `win-*` steps | J12 | Built (CRSP22) | runners R5.5, R5.6, R5.13 to R5.20, R5.40 |
 | 12 | `RUSTUP_HOME` and `CARGO_HOME` per Windows runner | runner `.env` | J2, J12 | Missing, added | runners R5.56 |
-| 13 | Linux job runners in a pool container, one per repository, non-root, no Docker socket, one cap | `pool_supervisor.py`, Docker | J1 to J11 | Specified | runners R5.27, R5.25, R5.26, R5.31; github R5.34 |
-| 14 | The container engine on this PC: Docker in WSL2 through the Windows CLI | Docker Desktop | J1 to J11 | Missing, added | runners R5.47 |
+| 13 | Linux job runners in a pool container, one per repository, non-root, no Docker socket, one cap | `pool_supervisor.py`, Docker | J1 to J11 | Built in part (CRSP52 backend, CRSP58 wiring: a queued job starts one ephemeral runner on a machine that allows the container backend; the pool lifecycle, image install and remote machines are not built) | runners R5.27, R5.25, R5.26, R5.31; github R5.34, R5.37 |
+| 14 | The container engine on this PC: Docker in WSL2 through the Windows CLI | Docker Desktop | J1 to J11 | Built in part (CRSP61: the agent names the engine, the doctor check `machine.engine`; the agent link does not carry the report yet) | runners R5.47; doctor R5.36 |
 | 15 | `crsp` binary inside the job for `crsp vm`, `crsp db-env` | scripts in the image | J6, J11 | Missing, added | runners R5.48 |
-| 16 | Routing: variables with the runner labels | `CI_RUNS_ON`, `CI_RUNS_ON_WINDOWS`, label `repo-<route>` | all | Built as `RUNS_ON_*`; the old names are Missing, added for the move | github R5.27 to R5.30; github R5.39 |
+| 16 | Routing: variables with the runner labels | `CI_RUNS_ON`, `CI_RUNS_ON_WINDOWS`, label `repo-<route>` | all | Built as `RUNS_ON_*`; the old names are Missing, added for the move. CRSP58: a queued job whose `runs-on` labels (`self-hosted`, `linux`, architecture, `docker`, pool name) a container runner honours is matched to a machine and gets a runner | github R5.27 to R5.30, R5.37; github R5.39 |
 | 17 | One registry of all runners, status, doctor compares with GitHub | `agents.json`, `pool_status.py` | all | Built | runners R5.2, R5.5; doctor R5.11, R5.12 |
 | 18 | Runner version pinned with SHA-256 | `RUNNER_SHA256` | all | Built | runners R5.37 |
-| 19 | Runner auto-update with drain | `pool-refresh` | all | Specified | runners R5.38 |
+| 19 | Runner auto-update with drain | `pool-refresh` | all | Built in part (CRSP59): controller drain, update, truthful result, setting; the agent file swap is open | runners R5.38 |
 | 20 | Never cut a running job: drain, check right before the swap | drain handshake | all | Built for runners; Specified for image swap | runners R6.4; machines R5.30 to R5.33; runners R5.35 |
 | 21 | Base image like a hosted runner: git, curl, jq, zip, build-essential, libatomic, psql client, `gh`, python3 | Dockerfile | J1 to J11 | Missing, added | runners R5.49 |
 | 22 | Node LTS with corepack, `pnpm` shim | Dockerfile (DL215, DL220, DL223) | J1, J7 | Missing, added | runners R5.49 |
 | 23 | LLVM, `clang-cl`, `lld-link`, `llvm-lib` | Dockerfile base | J8 | Specified | runners R5.43 |
 | 24 | Playwright browsers and system libraries | `POOL_BROWSERS` | J7 | Specified | runners R5.44; caches R5.41 |
-| 25 | `windows-packaging` layer: dotnet 8, wine, xvfb, xauth, msitools | `POOL_LAYERS` | J9 | Wine Specified; the rest Missing, added | runners R5.42, R5.50 |
+| 25 | `windows-packaging` layer: dotnet 8, wine, xvfb, xauth, msitools | `POOL_LAYERS` | J9 | Built (pinned by line; exact pins open, runners open question 32) | runners R5.42, R5.50 |
 | 26 | Wine prefix per agent, made once, `TMPDIR` unset, `POOL_WINE_PREFIX` | supervisor | J9 | Specified; kept prefix and old name Missing, added | runners R5.42, R5.52 |
-| 27 | `linux-packaging` layer | `POOL_LAYERS` | J10 | Missing, added | runners R5.50 |
+| 27 | `linux-packaging` layer | `POOL_LAYERS` | J10 | Built (no AppImage tool, runners open question 33) | runners R5.50 |
 | 28 | `kvm` layer, the device, the group, the `kvm` label | `POOL_KVM`, `compose.kvm.yaml` | J11 | Device and label Specified; layer Missing, added | runners R5.41, R5.50 |
-| 29 | Extra distribution packages per pool | `.delivery/pool.apt` | any | Missing, added | runners R5.51 |
+| 29 | Extra distribution packages per pool | `.delivery/pool.apt` | any | Built as the last layer and in the image key; the pool setting that stores the list is not built | runners R5.51 |
 | 30 | Image layers merged across repositories, `--drop-layer`, Playwright never lowered | `pool-refresh` | n/a | Not needed: a crsp pool is per repository and an image is keyed by its layers | runners R5.33 |
-| 31 | Build aside, drain, swap, truthful result, wrong runner hash fixed | `pool-refresh` | all | Specified | runners R5.33, R5.35, R5.37 |
+| 31 | Build aside, drain, swap, truthful result, wrong runner hash fixed | `pool-refresh` | all | Built (CRSP52 build aside, drain, swap; CRSP59 one re-download on a wrong hash) | runners R5.33, R5.35, R5.37 |
 | 32 | Agent user id clashes | `pool_supervisor.py` (DL284) | all | Not needed: the job user is fixed in the image | runners R5.49 |
 | 33 | Image checks in the doctor: tools found, image current, tool cache writable | `pool.<name>.*` | all | Built (CRSP53), not yet wired to an agent | doctor R5.31 |
 | 34 | Postgres 16 per pool, a login and a database per agent, random password | `pool_agents.py` | J6, J7 | Specified in short | runners R5.45 |
@@ -80,9 +80,9 @@ Status words: **Built** (code and tests exist), **Specified** (a requirement exi
 | 36 | Per-runner tool cache and Rust cache with quotas and eviction | `/ci-tools`, `cache-sweep` | J1, J2, J8 | Built for persistent runners (CRSP21, CRSP26); pool-wide budget and size alert Built (CRSP48); container form Built (CRSP53), not yet started by the agent | caches R5.36 to R5.39; caches R5.48, R5.49; caches R5.43 |
 | 37 | Shared-cache mode for a folder many users write | `ci_tool.py` (DL194) | J2 | Built for the cache part (CRSP53); scope set by D308 | caches R5.18 to R5.20; caches R5.44 |
 | 38 | Rust cache cap: key in use kept, newest other key, `incremental/` first | `rust_ci.py` (DL342) | J2, J8 | Built (CRSP48), with a cap per cache key | caches R5.37; caches R5.45 |
-| 39 | `vm_check.py` and `vm-images.json` | `scripts/delivery` | J11 | Data and checks Built (CRSP26); the boot Missing, added | caches R5.40; caches R5.46, R5.47; runners R5.55 |
+| 39 | `vm_check.py` and `vm-images.json` | `scripts/delivery` | J11 | Data and checks Built (CRSP26); `crsp vm boot` Built (CRSP61: sha-checked download, QEMU+KVM, serial readiness line); `prepare`, `run` over ssh, `selinux`, `prune`, snapshots Missing, added | caches R5.40; caches R5.46, R5.47; runners R5.55 |
 | 40 | Pinned downloads and unpack (`ci_tool.py`, `tools.json`) | delivery scripts | J1 to J4 | Not taken: they stay in delivery (D308) | caches R5.44 |
-| 41 | KVM on WSL2: load the module, check `nestedVirtualization` | `kvm-autoload` (DL343) | J11 | Specified; doctor checks Missing, added | machines R5.53; doctor R5.32 |
+| 41 | KVM on WSL2: load the module, check `nestedVirtualization` | `kvm-autoload` (DL343) | J11 | Specified; doctor checks `kvm.wslconfig` and `kvm.module` Built (CRSP61, not yet fed by the agent link) | machines R5.53; doctor R5.32 |
 | 42 | WSL memory and CPU sizing from `.wslconfig` | `pool-plan` | all | Built in part (CRSP50): `.wslconfig` read into facts | machines R5.54 |
 | 43 | `runs-on` and variable checks, hook checks | doctor | all | Built | doctor R5.14, R5.17 to R5.19, R5.29 |
 | 44 | Cache over quota, low cache disk | `cache-cap`, `cache-disk` | J2 | Built (CRSP48) | doctor R5.34 |

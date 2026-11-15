@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"path"
 	"strings"
@@ -245,6 +246,75 @@ type apiRun struct {
 	} `json:"head_repository"`
 }
 
+// cachedRuns is the last answer of one runs list with its ETag (R5.37).
+type cachedRuns struct {
+	etag string
+	runs []apiRun
+}
+
+// listRuns lists the workflow runs of one status. It sends If-None-Match with
+// the ETag of the last answer, and a 304 reuses that answer; GitHub does not
+// count a 304 against the rate limit. Only a list that fits one page is
+// cached: a later page could change without the first page changing.
+func (c *REST) listRuns(ctx context.Context, r req) ([]apiRun, error) {
+	r.method = "GET"
+	q := url.Values{}
+	for k, v := range r.query {
+		q[k] = v
+	}
+	q.Set("per_page", "100")
+	r.query = q
+	key := fmt.Sprintf("%d %s?%s", r.installation, r.path, q.Encode())
+	c.mu.Lock()
+	prev, hadPrev := c.runCache[key]
+	c.mu.Unlock()
+	if hadPrev {
+		r.etag = prev.etag
+	}
+	var raw json.RawMessage
+	resp, err := c.do(ctx, r, &raw)
+	if err != nil {
+		return nil, err
+	}
+	if resp.status == http.StatusNotModified && hadPrev {
+		return prev.runs, nil
+	}
+	var page struct {
+		Runs []apiRun `json:"workflow_runs"`
+	}
+	if err := json.Unmarshal(raw, &page); err != nil {
+		return nil, fmt.Errorf("github: unreadable answer: %w", err)
+	}
+	runs := page.Runs
+	if resp.next != "" {
+		more := req{method: "GET", path: resp.next, abs: true, bearer: r.bearer, installation: r.installation}
+		err := c.getAll(ctx, more, func(raw json.RawMessage) error {
+			var p struct {
+				Runs []apiRun `json:"workflow_runs"`
+			}
+			if err := json.Unmarshal(raw, &p); err != nil {
+				return err
+			}
+			runs = append(runs, p.Runs...)
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	c.mu.Lock()
+	if resp.next == "" && resp.etag != "" {
+		if c.runCache == nil {
+			c.runCache = map[string]cachedRuns{}
+		}
+		c.runCache[key] = cachedRuns{etag: resp.etag, runs: runs}
+	} else {
+		delete(c.runCache, key)
+	}
+	c.mu.Unlock()
+	return runs, nil
+}
+
 // ListOpenJobs implements InstallationClient (R5.37, R5.38): the jobs of
 // queued and in-progress runs.
 func (c *REST) ListOpenJobs(ctx context.Context, id int64, owner, repo string) ([]Job, error) {
@@ -257,17 +327,7 @@ func (c *REST) ListOpenJobs(ctx context.Context, id int64, owner, repo string) (
 		if err != nil {
 			return nil, err
 		}
-		var runs []apiRun
-		err = c.getAll(ctx, r, func(raw json.RawMessage) error {
-			var page struct {
-				Runs []apiRun `json:"workflow_runs"`
-			}
-			if err := json.Unmarshal(raw, &page); err != nil {
-				return err
-			}
-			runs = append(runs, page.Runs...)
-			return nil
-		})
+		runs, err := c.listRuns(ctx, r)
 		if err != nil {
 			return nil, err
 		}
