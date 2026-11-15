@@ -13,6 +13,7 @@ code:
   - internal/history/**
   - internal/audit/**
   - internal/logs/**
+  - internal/compare/**
 design_system: [UX-6, UX-17, UX-18, UX-19, UX-28, UX-29, UX-31, UX-33, UX-34, UX-39, UX-41, UX-52, UX-53, UX-58]
 last_verified: 2026-11-14
 artifact:
@@ -201,6 +202,8 @@ Milestone numbers are those of the product brief.
 
 **R5.33** (M3, NOT YET IMPLEMENTED, CRSP92) — **Speed comparison.** The owner picks one workflow of one repository. crsp runs it on the pool and on GitHub-hosted runners, once each on the same commit, and shows the two times next to each other with the minutes saved (R5.15) and the machine it ran on. The comparison is started by hand, asks first because it uses hosted minutes, runs at most once at a time, and never runs without the owner starting it. The result is kept with the date and the commit, and the console shows a number only when both runs succeeded.
 
+**R5.34** (M3, CRSP92) — **Speed comparison from history.** `crsp compare <owner/repo> [--days N]` and the read-only route `GET /api/v1/compare?repository=owner/repo&days=N` read the finished workflow-run jobs of one repository from GitHub (the window is 14 days when absent, at most 90) and match jobs by name across the two runner kinds: a job whose runner labels hold `self-hosted` ran on crsp, any other ran on a GitHub-hosted runner. Queue wait is started minus created, run time is completed minus started; only successful and failed jobs with real timestamps count. For each job name seen on both kinds the answer holds the median and the 95th percentile of queue wait and run time per kind, the minutes saved (for every crsp run, the hosted median of queue plus run minus the crsp median, so a slower pool shows a negative number) and the hosted cost avoided (each crsp run rounded up to whole minutes, times the per-minute price). The price table is one file, `internal/compare/prices.json`, keyed by `runs-on` label with a default. A public repository is excluded, with the reason, because hosted minutes there are free (R5.18). It reads only and starts no job. An optional workflow template for a fair A/B run is in `docs/guides/speed-comparison-workflow.md`; the by-hand run of R5.33 stays separate.
+
 ## 6. Non-functional requirements
 
 **R6.1** — (M1) A change on a machine or in the queue reaches an open console within 2 seconds at the 95th percentile on a local network.
@@ -337,6 +340,7 @@ Rows that name a file without "planned" are built (CRSP18, CRSP23). Planned rows
 | R5.31 | planned: internal/logs/crash_test.go TestUnreportedCrashShownOnce |
 | R5.32 | internal/settings/retention_test.go TestHourlyJobDeletesPastLimit, TestRetentionUsesSettings; internal/settings/settings_test.go TestOutOfRangeRefusedWithRange, TestEveryRangeMatchesFloorAndCeiling |
 | R5.33 | planned: internal/bench/compare_test.go TestRunsBothOnTheSameCommit, TestNothingShownWhenARunFails, TestNeverStartsByItself (CRSP92) |
+| R5.34 | internal/compare/compare_test.go TestMatchingByNameAcrossKinds, TestMedianAndP95, TestRowStatsAndMinutesSaved, TestCostMath, TestPublicRepositoryExcluded, TestAPISourceEndToEnd; internal/api/handlers_compare_test.go TestSpeedComparisonJSON, TestSpeedComparisonIsReadOnly; internal/cli/resources_test.go TestCompareTableAndJSON |
 | R6.1 | planned: internal/events/latency_test.go TestP95UnderTwoSeconds |
 | R6.2 | internal/events/hub_test.go TestLoadThrottlePerMachine (the median of three is the machines feature) |
 | R6.3 | internal/events/hub_test.go TestSSEFormatAndServe (heartbeat), TestSlowSubscriberIsClosedAndNeverBlocksPublisher, TestStreamCap; internal/api/handlers_live_test.go TestStreamEventsTooManyStreams |

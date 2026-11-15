@@ -138,6 +138,11 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	}
 	c.Options.GitHub = &api.GitHubArea{Auth: asvc, Repos: rsvc, Webhook: hook, Logger: logger}
 	c.Auth, c.Repos = asvc, rsvc
+	if cmp, err := newCompareService(gh, repoStore); err == nil {
+		c.Options.Compare = cmp
+	} else {
+		logger.Warn("speed comparison is off", "err", err)
+	}
 
 	// RUNS_ON variables: put back to the policy every 10 minutes, and once now.
 	loopCtx, stopLoop := context.WithCancel(ctx)
