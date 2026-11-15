@@ -49,6 +49,21 @@ func toPolicy(p repos.Policy) gen.RepositoryPolicy {
 		v := true
 		out.LegacyVars = &v
 	}
+	if p.HostedFallback {
+		v := true
+		out.HostedFallback = &v
+	}
+	if p.FallbackCapMinutes > 0 {
+		v := p.FallbackCapMinutes
+		out.FallbackCapMinutes = &v
+	}
+	if len(p.HostedLabels) > 0 {
+		v := map[string]string{}
+		for k, l := range p.HostedLabels {
+			v[k] = l
+		}
+		out.HostedLabels = &v
+	}
 	if len(p.ExtraPackages) > 0 {
 		v := append([]string(nil), p.ExtraPackages...)
 		out.ExtraPackages = &v
@@ -83,6 +98,17 @@ func toRepository(v repos.RepositoryView) gen.Repository {
 	out := gen.Repository{Id: v.ID, InstallationId: v.InstallationID, FullName: v.FullName, Name: v.Name, Owner: v.Owner,
 		Visibility: gen.RepositoryVisibility(v.Visibility), PoolOn: v.PoolOn, UserIsGithubAdmin: v.UserIsAdmin,
 		Policy: toPolicy(v.Policy), Variables: []gen.RepositoryVariable{}}
+	if v.Routing.Where != "" {
+		rt := gen.RepositoryRouting{Where: gen.RepositoryRoutingWhere(v.Routing.Where), Why: gen.RepositoryRoutingWhy(v.Routing.Why), UsedMinutes: v.Routing.UsedMinutes}
+		if len(v.Routing.OSes) > 0 {
+			oses := make([]gen.RepositoryRoutingOses, 0, len(v.Routing.OSes))
+			for _, o := range v.Routing.OSes {
+				oses = append(oses, gen.RepositoryRoutingOses(o))
+			}
+			rt.Oses = &oses
+		}
+		out.Routing = &rt
+	}
 	if v.DefaultBranch != "" {
 		b := v.DefaultBranch
 		out.DefaultBranch = &b
@@ -278,8 +304,10 @@ func (s *server) UpdateRepositoryPolicy(ctx context.Context, req gen.UpdateRepos
 	}
 	b := req.Body
 	u := repos.PolicyUpdate{Priority: b.Priority, MaxParallelJobs: b.MaxParallelJobs, AllowForkPRs: b.AllowForkPullRequests,
-		Labels: b.Labels, RunnerGroups: b.RunnerGroups, BudgetMemoryPct: b.BudgetMemoryPct, BudgetCPUPct: b.BudgetCpuPct, LightRunner: b.LightRunner, LegacyVars: b.LegacyVars}
+		Labels: b.Labels, RunnerGroups: b.RunnerGroups, BudgetMemoryPct: b.BudgetMemoryPct, BudgetCPUPct: b.BudgetCpuPct, LightRunner: b.LightRunner, LegacyVars: b.LegacyVars,
+		HostedFallback: b.HostedFallback, FallbackCapMinutes: b.FallbackCapMinutes, HostedLabels: b.HostedLabels}
 	u.ConfirmForkRisk = b.ConfirmForkRisk != nil && *b.ConfirmForkRisk
+	u.ConfirmFallbackCost = b.ConfirmFallbackCost != nil && *b.ConfirmFallbackCost
 	pol, err := s.ghArea().Repos.UpdatePolicy(ctx, s.principal(ctx), req.RepositoryId, u)
 	if err != nil {
 		return fail(err)

@@ -456,3 +456,14 @@ func (s *Service) RoutingOf(ctx context.Context, id int64) (Routing, error) {
 	}
 	return s.routing(ctx, r, pol)
 }
+
+// DesiredNow is the variables the controller keeps for a repository right
+// now, with the hosted label for an OS on fallback (R5.67). The doctor reads
+// it so that a repository on fallback is not reported as drifted.
+func (s *Service) DesiredNow(ctx context.Context, r Repository) (map[string]string, error) {
+	pol, err := s.policyOrDefault(ctx, r.ID)
+	if err != nil {
+		return nil, err
+	}
+	return s.desiredFor(ctx, r, pol)
+}

@@ -116,7 +116,8 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		gh.UseApp(st.App.ID, st.App.ClientID)
 	}
 	rsvc := repos.New(repos.Config{Store: repoStore, GitHub: gh, Tokens: asvc, Audit: asvc,
-		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Now: d.Now})
+		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Up: machineUp{svc: d.Machines},
+		FallbackGrace: fallbackGrace(d), Now: d.Now})
 	hook := &github.WebhookHandler{
 		Verifier: func() (github.WebhookVerifier, error) {
 			app := gh.AppID()
@@ -248,16 +249,48 @@ func runsOnLoop(ctx context.Context, logger *slog.Logger, gh *github.REST, rsvc 
 			logger.Warn("restore RUNS_ON variables", "err", err)
 		}
 	}
+	// The hosted fallback looks at the machines every half minute; it writes
+	// only for a repository that opted in (github-integration R5.67).
+	fallback := func() {
+		if gh.AppID() == 0 {
+			return
+		}
+		if err := rsvc.EvaluateFallback(ctx); err != nil && ctx.Err() == nil {
+			logger.Warn("hosted fallback", "err", err)
+		}
+	}
 	tick()
 	t := time.NewTicker(runsOnRestoreEvery)
+	f := time.NewTicker(fallbackEvery)
 	defer t.Stop()
+	defer f.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-t.C:
 			tick()
+		case <-f.C:
+			fallback()
 		}
+	}
+}
+
+// fallbackEvery is how often the controller looks at the machines for the
+// hosted fallback.
+const fallbackEvery = 30 * time.Second
+
+// fallbackGrace reads the grace time of the hosted fallback from the settings.
+func fallbackGrace(d controllerDeps) func() time.Duration {
+	return func() time.Duration {
+		if d.Ops == nil || d.Ops.Settings == nil {
+			return 0
+		}
+		st, err := d.Ops.Settings.Get(context.Background())
+		if err != nil {
+			return 0
+		}
+		return time.Duration(st.FallbackGraceMinutes) * time.Minute
 	}
 }
 

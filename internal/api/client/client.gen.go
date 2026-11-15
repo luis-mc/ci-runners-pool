@@ -717,19 +717,19 @@ func (e NotificationSeverity) Valid() bool {
 
 // Defines values for OS.
 const (
-	Linux   OS = "linux"
-	Macos   OS = "macos"
-	Windows OS = "windows"
+	OSLinux   OS = "linux"
+	OSMacos   OS = "macos"
+	OSWindows OS = "windows"
 )
 
 // Valid indicates whether the value is a known member of the OS enum.
 func (e OS) Valid() bool {
 	switch e {
-	case Linux:
+	case OSLinux:
 		return true
-	case Macos:
+	case OSMacos:
 		return true
-	case Windows:
+	case OSWindows:
 		return true
 	default:
 		return false
@@ -934,6 +934,78 @@ func (e RepositoryVisibility) Valid() bool {
 	case Private:
 		return true
 	case Public:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RepositoryRoutingOses.
+const (
+	RepositoryRoutingOsesLinux   RepositoryRoutingOses = "linux"
+	RepositoryRoutingOsesMacos   RepositoryRoutingOses = "macos"
+	RepositoryRoutingOsesWindows RepositoryRoutingOses = "windows"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryRoutingOses enum.
+func (e RepositoryRoutingOses) Valid() bool {
+	switch e {
+	case RepositoryRoutingOsesLinux:
+		return true
+	case RepositoryRoutingOsesMacos:
+		return true
+	case RepositoryRoutingOsesWindows:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RepositoryRoutingWhere.
+const (
+	RepositoryRoutingWhereCrsp    RepositoryRoutingWhere = "crsp"
+	RepositoryRoutingWhereHosted  RepositoryRoutingWhere = "hosted"
+	RepositoryRoutingWhereWaiting RepositoryRoutingWhere = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryRoutingWhere enum.
+func (e RepositoryRoutingWhere) Valid() bool {
+	switch e {
+	case RepositoryRoutingWhereCrsp:
+		return true
+	case RepositoryRoutingWhereHosted:
+		return true
+	case RepositoryRoutingWhereWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RepositoryRoutingWhy.
+const (
+	CapReached       RepositoryRoutingWhy = "cap_reached"
+	FallbackOff      RepositoryRoutingWhy = "fallback_off"
+	FallbackOn       RepositoryRoutingWhy = "fallback_on"
+	Grace            RepositoryRoutingWhy = "grace"
+	MachineUp        RepositoryRoutingWhy = "machine_up"
+	PublicRepository RepositoryRoutingWhy = "public_repository"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryRoutingWhy enum.
+func (e RepositoryRoutingWhy) Valid() bool {
+	switch e {
+	case CapReached:
+		return true
+	case FallbackOff:
+		return true
+	case FallbackOn:
+		return true
+	case Grace:
+		return true
+	case MachineUp:
+		return true
+	case PublicRepository:
 		return true
 	default:
 		return false
@@ -2365,6 +2437,9 @@ type Repository struct {
 	Policy         RepositoryPolicy `json:"policy"`
 	PoolOn         bool             `json:"pool_on"`
 
+	// Routing Where the jobs of a repository go now and why (github-integration R5.68). Absent while the pool is off for the repository.
+	Routing *RepositoryRouting `json:"routing,omitempty"`
+
 	// UserIsGithubAdmin github-integration R5.19; without it the switch is disabled with this reason.
 	UserIsGithubAdmin bool                 `json:"user_is_github_admin"`
 	Variables         []RepositoryVariable `json:"variables"`
@@ -2394,6 +2469,15 @@ type RepositoryPolicy struct {
 	// ExtraPackages Extra distribution packages of the pool image (runners R5.51).
 	ExtraPackages *[]string `json:"extra_packages,omitempty"`
 
+	// FallbackCapMinutes Monthly cap of fallback minutes; absent means no cap.
+	FallbackCapMinutes *int `json:"fallback_cap_minutes,omitempty"`
+
+	// HostedFallback Run on GitHub-hosted runners while no crsp machine can take the jobs (github-integration R5.66). Off by default; GitHub may bill those minutes for a private repository.
+	HostedFallback *bool `json:"hosted_fallback,omitempty"`
+
+	// HostedLabels The hosted label per operating system; a missing one is the default (ubuntu-latest, windows-latest, macos-latest).
+	HostedLabels *map[string]string `json:"hosted_labels,omitempty"`
+
 	// Labels Generic labels only (github-integration R5.27).
 	Labels []string `json:"labels"`
 
@@ -2417,9 +2501,21 @@ type RepositoryPolicyUpdate struct {
 	BudgetCpuPct          *int  `json:"budget_cpu_pct,omitempty"`
 	BudgetMemoryPct       *int  `json:"budget_memory_pct,omitempty"`
 
+	// ConfirmFallbackCost The yes to the question that says GitHub may bill the fallback minutes. Needed to turn the fallback on.
+	ConfirmFallbackCost *bool `json:"confirm_fallback_cost,omitempty"`
+
 	// ConfirmForkRisk Needed to turn fork jobs on (github-integration R5.26).
-	ConfirmForkRisk *bool     `json:"confirm_fork_risk,omitempty"`
-	Labels          *[]string `json:"labels,omitempty"`
+	ConfirmForkRisk *bool `json:"confirm_fork_risk,omitempty"`
+
+	// FallbackCapMinutes Monthly cap of fallback minutes; 0 clears it.
+	FallbackCapMinutes *int `json:"fallback_cap_minutes,omitempty"`
+
+	// HostedFallback Turn the hosted fallback on or off (github-integration R5.66). A public repository is refused.
+	HostedFallback *bool `json:"hosted_fallback,omitempty"`
+
+	// HostedLabels Hosted label per operating system (linux, windows, macos); an empty value puts the default back.
+	HostedLabels *map[string]string `json:"hosted_labels,omitempty"`
+	Labels       *[]string          `json:"labels,omitempty"`
 
 	// LegacyVars Turn the old variable names CI_RUNS_ON and CI_RUNS_ON_WINDOWS on or off (github-integration R5.39).
 	LegacyVars *bool `json:"legacy_vars,omitempty"`
@@ -2430,6 +2526,28 @@ type RepositoryPolicyUpdate struct {
 	Priority        *int      `json:"priority,omitempty"`
 	RunnerGroups    *[]string `json:"runner_groups,omitempty"`
 }
+
+// RepositoryRouting Where the jobs of a repository go now and why (github-integration R5.68). Absent while the pool is off for the repository.
+type RepositoryRouting struct {
+	// Oses The operating systems the reason is about.
+	Oses *[]RepositoryRoutingOses `json:"oses,omitempty"`
+
+	// UsedMinutes Fallback minutes counted this month (UTC), best effort.
+	UsedMinutes int                    `json:"used_minutes"`
+	Where       RepositoryRoutingWhere `json:"where"`
+
+	// Why A code the console turns into words. machine_up, fallback_on, fallback_off, grace, cap_reached or public_repository.
+	Why RepositoryRoutingWhy `json:"why"`
+}
+
+// RepositoryRoutingOses defines model for RepositoryRouting.Oses.
+type RepositoryRoutingOses string
+
+// RepositoryRoutingWhere defines model for RepositoryRouting.Where.
+type RepositoryRoutingWhere string
+
+// RepositoryRoutingWhy A code the console turns into words. machine_up, fallback_on, fallback_off, grace, cap_reached or public_repository.
+type RepositoryRoutingWhy string
 
 // RepositoryVariable defines model for RepositoryVariable.
 type RepositoryVariable struct {
@@ -2528,13 +2646,16 @@ type Settings struct {
 	BackupKeepDays *int  `json:"backup_keep_days,omitempty"`
 
 	// BackupTimeLocal HH:MM, 24-hour local time.
-	BackupTimeLocal            *string `json:"backup_time_local,omitempty"`
-	MaxEventStreams            *int    `json:"max_event_streams,omitempty"`
-	RetentionAuditDays         *int    `json:"retention_audit_days,omitempty"`
-	RetentionJobHistoryDays    *int    `json:"retention_job_history_days,omitempty"`
-	RetentionLoadRawHours      *int    `json:"retention_load_raw_hours,omitempty"`
-	RetentionLogsDays          *int    `json:"retention_logs_days,omitempty"`
-	RetentionLogsMibPerMachine *int    `json:"retention_logs_mib_per_machine,omitempty"`
+	BackupTimeLocal *string `json:"backup_time_local,omitempty"`
+
+	// FallbackGraceMinutes github-integration R5.67. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3.
+	FallbackGraceMinutes       *int `json:"fallback_grace_minutes,omitempty"`
+	MaxEventStreams            *int `json:"max_event_streams,omitempty"`
+	RetentionAuditDays         *int `json:"retention_audit_days,omitempty"`
+	RetentionJobHistoryDays    *int `json:"retention_job_history_days,omitempty"`
+	RetentionLoadRawHours      *int `json:"retention_load_raw_hours,omitempty"`
+	RetentionLogsDays          *int `json:"retention_logs_days,omitempty"`
+	RetentionLogsMibPerMachine *int `json:"retention_logs_mib_per_machine,omitempty"`
 }
 
 // SetupState defines model for SetupState.

@@ -152,7 +152,7 @@ func errorFor(err error) (int, string, string) {
 		return http.StatusForbidden, CodeForbidden, "your role does not allow this"
 	case errors.Is(err, auth.ErrNotFound):
 		return http.StatusNotFound, CodeNotFound, "not found"
-	case errors.Is(err, auth.ErrNeedsConfirm), errors.Is(err, repos.ErrForkNeedsConfirm):
+	case errors.Is(err, auth.ErrNeedsConfirm), errors.Is(err, repos.ErrForkNeedsConfirm), errors.Is(err, repos.ErrFallbackNeedsConfirm):
 		return http.StatusConflict, CodeNeedsConfirmation, err.Error()
 	case errors.Is(err, auth.ErrConflict), errors.Is(err, repos.ErrPlanStale), errors.Is(err, repos.ErrPlanNotPlanned), errors.Is(err, repos.ErrPlanNotApplying),
 		errors.Is(err, repos.ErrNothingToChange), errors.Is(err, auth.ErrSetupDone):

@@ -30,6 +30,10 @@ type Settings struct {
 	BackupTimeLocal            string // HH:MM, 24-hour local time
 	BackupKeepDays             int
 	MaxEventStreams            int
+	// FallbackGraceMinutes is how long no crsp machine of an OS must have been
+	// up before a repository that opted in falls back to GitHub-hosted runners
+	// (github-integration R5.67).
+	FallbackGraceMinutes int
 	// AutoUpdate is operations R5.15: on by default; a newer stable release
 	// installs by itself after a drain.
 	AutoUpdate bool
@@ -45,6 +49,7 @@ type Patch struct {
 	BackupTimeLocal            *string
 	BackupKeepDays             *int
 	MaxEventStreams            *int
+	FallbackGraceMinutes       *int
 	AutoUpdate                 *bool
 }
 
@@ -58,6 +63,7 @@ var Defaults = Settings{
 	BackupTimeLocal:            "03:00",
 	BackupKeepDays:             14,
 	MaxEventStreams:            50,
+	FallbackGraceMinutes:       3,
 	AutoUpdate:                 true,
 }
 
@@ -73,6 +79,7 @@ var Ranges = map[string]Range{
 	"retention_load_raw_hours":       {1, 168},
 	"backup_keep_days":               {1, 365},
 	"max_event_streams":              {1, 200},
+	"fallback_grace_minutes":         {1, 60},
 }
 
 // RangeError lists every refused value with its allowed range.
@@ -147,6 +154,8 @@ func intField(s *Settings, key string) *int {
 		return &s.BackupKeepDays
 	case "max_event_streams":
 		return &s.MaxEventStreams
+	case "fallback_grace_minutes":
+		return &s.FallbackGraceMinutes
 	}
 	return nil
 }
@@ -168,6 +177,7 @@ func (s *Service) Update(ctx context.Context, actor audit.Actor, p Patch) (Setti
 		"retention_load_raw_hours":       p.RetentionLoadRawHours,
 		"backup_keep_days":               p.BackupKeepDays,
 		"max_event_streams":              p.MaxEventStreams,
+		"fallback_grace_minutes":         p.FallbackGraceMinutes,
 	}
 	var problems []string
 	changes := map[string]any{}

@@ -54,6 +54,37 @@ func (c machineCapacity) OSLabels(ctx context.Context) (map[string][]string, err
 	return out, nil
 }
 
+// machineUp says, per OS, whether some machine can take jobs now: online on
+// the agent link and accepting jobs, so a paused machine or one on battery
+// counts as down (github-integration R5.67). An OS with machines but none up
+// is false; an OS with no machine is absent.
+type machineUp struct{ svc *machines.Service }
+
+func (u machineUp) UpOS(ctx context.Context) (map[string]bool, error) {
+	views, err := u.svc.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return upByOS(views), nil
+}
+
+func upByOS(views []machines.View) map[string]bool {
+	out := map[string]bool{}
+	for _, v := range views {
+		m := v.Machine
+		if !m.RemovedAt.IsZero() || m.State == "removed" {
+			continue
+		}
+		os := runners.OSName(m.OS)
+		if os == "" {
+			continue
+		}
+		up := m.Online && m.Accepting && m.State == machines.StateActive
+		out[os] = out[os] || up
+	}
+	return out
+}
+
 func archLabel(arch string) string {
 	switch arch {
 	case "x64":
@@ -274,12 +305,14 @@ func (f doctorFleet) Repositories(ctx context.Context) ([]doctor.Repository, err
 	out := make([]doctor.Repository, 0, len(rs))
 	for _, r := range rs {
 		pol, _ := f.repos.GetPolicy(ctx, r.ID)
-		want, err := f.rsvc.Desired(ctx, pol)
+		want, err := f.rsvc.DesiredNow(ctx, r)
 		if err != nil {
 			want = nil
 		}
+		rt, _ := f.rsvc.RoutingOf(ctx, r.ID)
 		out = append(out, doctor.Repository{ID: r.ID, FullName: r.FullName, Owner: r.Owner, Name: r.Name,
-			InstallationID: r.InstallationID, DefaultBranch: r.DefaultBranch, Expected: want, LightRunner: pol.LightRunner})
+			InstallationID: r.InstallationID, DefaultBranch: r.DefaultBranch, Expected: want, LightRunner: pol.LightRunner,
+			Where: rt.Where, FallbackOn: pol.HostedFallback, HostedOSes: hostedOSes(rt), WaitingOSes: waitingOSes(rt)})
 	}
 	return out, nil
 }
@@ -331,4 +364,18 @@ func (k lightKeeper) EnsureLight(ctx context.Context, r repos.Repository, oses [
 func (k lightKeeper) RemoveLight(ctx context.Context, r repos.Repository, actor string) error {
 	_, err := k.svc.RemoveLight(ctx, r.ID, actor)
 	return err
+}
+
+func hostedOSes(rt repos.Routing) []string {
+	if rt.Where == repos.WhereHosted {
+		return rt.OSes
+	}
+	return nil
+}
+
+func waitingOSes(rt repos.Routing) []string {
+	if rt.Where == repos.WhereWaits {
+		return rt.OSes
+	}
+	return nil
 }

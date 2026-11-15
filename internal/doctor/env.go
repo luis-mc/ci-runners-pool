@@ -235,6 +235,14 @@ type Repository struct {
 	// LightRunner is true when the repository's policy keeps a light runner
 	// for it (scheduling R5.65).
 	LightRunner bool
+	// Where is where the repository's jobs go now: "crsp", "hosted" or
+	// "waiting"; HostedOSes are the OSes on GitHub-hosted runners, WaitingOSes
+	// the ones whose jobs wait for a machine. FallbackOn is the setting
+	// (github-integration R5.66 to R5.70).
+	Where       string
+	HostedOSes  []string
+	WaitingOSes []string
+	FallbackOn  bool
 }
 
 // InScopeMachine is a helper for checks.
