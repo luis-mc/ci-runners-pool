@@ -614,3 +614,33 @@ func TestCollaboratorPermissionAndForkApproval(t *testing.T) { // R5.19, R5.26
 		t.Fatal("fork approval policy not set")
 	}
 }
+
+// R5.37: the runs list is sent with If-None-Match, a 304 reuses the last
+// answer, and a change in the runs is seen at once.
+func TestOpenJobsUsesETag(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	e.fake.AddInstall(10, "alice", "User")
+	e.fake.AddRepo(100, 10, "alice", "demo", false)
+	e.fake.AddJob(fake.Job{ID: 1, RunID: 11, Repo: "alice/demo", Name: "build", Status: "queued", Labels: []string{"self-hosted", "linux"}})
+	for i := 0; i < 2; i++ {
+		jobs, err := e.client.ListOpenJobs(ctx, 10, "alice", "demo")
+		if err != nil || len(jobs) != 1 || jobs[0].ID != 1 {
+			t.Fatalf("round %d: %+v %v", i, jobs, err)
+		}
+	}
+	conditional := 0
+	for _, r := range e.fake.Requests() {
+		if strings.HasSuffix(r.Path, "/actions/runs") && r.Header.Get("If-None-Match") != "" {
+			conditional++
+		}
+	}
+	if conditional != 2 { // the second call, one per status (queued, in_progress)
+		t.Fatalf("conditional runs requests: %d, want 2", conditional)
+	}
+	e.fake.AddJob(fake.Job{ID: 2, RunID: 12, Repo: "alice/demo", Name: "test", Status: "queued", Labels: []string{"self-hosted", "linux"}})
+	jobs, err := e.client.ListOpenJobs(ctx, 10, "alice", "demo")
+	if err != nil || len(jobs) != 2 {
+		t.Fatalf("a new run must be seen: %+v %v", jobs, err)
+	}
+}

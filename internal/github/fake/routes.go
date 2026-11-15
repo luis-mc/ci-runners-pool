@@ -521,7 +521,17 @@ func (s *Server) runs(w http.ResponseWriter, r *http.Request, full string) {
 		}
 		items = append(items, map[string]any{"id": j.RunID, "event": ev, "status": status, "head_repository": map[string]any{"full_name": head}})
 	}
-	writeJSON(w, 200, map[string]any{"total_count": len(items), "workflow_runs": items})
+	body := map[string]any{"total_count": len(items), "workflow_runs": items}
+	// An ETag over the body, and 304 for a repeat, like GitHub (R5.37).
+	raw, _ := json.Marshal(body)
+	sum := sha256.Sum256(raw)
+	etag := `"` + hex.EncodeToString(sum[:8]) + `"`
+	w.Header().Set("ETag", etag)
+	if r.Header.Get("If-None-Match") == etag {
+		w.WriteHeader(304)
+		return
+	}
+	writeJSON(w, 200, body)
 }
 
 func (s *Server) runJobs(w http.ResponseWriter, _ *http.Request, full, rest string) {
