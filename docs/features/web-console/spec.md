@@ -104,7 +104,7 @@ The states named for every list follow the design system: loading (component 16,
 - **Command palette:** opens with `Ctrl+K` or `Cmd+K` (UX-57). It lists the areas, the detail pages found by name (a machine, a repository, a runner), and the commands the user's role allows. A command opens the one place where it lives (UX-52). It uses the overlay of component 9 and the search bar of component 21. It is not a component of v1 yet (owner question Q1).
 - **Shortcut list:** `?` opens the list of every shortcut (UX-57), in the overlay of component 9.
 - **Shortcuts:** `/` moves to the page's search bar (UX-31). `j` and `k` move down and up a list. `Enter` opens the row. None fires while typing in a field (UX-57).
-- **Theme:** dark by default; system, dark or light is set in Settings, Appearance (UX-60, UX-55).
+- **Theme:** the look is TUI panes. Six colour themes (Phosphor, Tokyo Night, Catppuccin, Gruvbox, Solarized, Nord), Tokyo Night by default, and a mode (system, dark or light, dark by default) are set in Settings, Appearance (UX-60, UX-55). The theme is kept in the browser and applied before the first paint; the mode is saved by the server.
 - **States:** loading the session (an unknown-total bar, component 16); live; live updates paused (a Note message in the banner slot, UX-26, while the last data stays on screen with its age, UX-53); not found (component 19, with a link to the overview); page fault ("This page hit a fault.", UX-28).
 - **Milestone:** M1.
 
@@ -245,7 +245,7 @@ Settings hold configuration only (UX-52). Sub-pages sit under one Settings area,
 | Sub-page | Purpose | Data | Actions and confirmations | Milestone |
 |---|---|---|---|---|
 | Users and roles | Who may sign in, as owner, admin or viewer | `listUsers`, `addUser`, `updateUserRole`, `removeUser` | Add a GitHub login with a role; change a role; remove a user (question card naming the login, UX-62) | M1 |
-| Appearance | The user's theme: system, dark or light (UX-60) | `getPreferences`, `updatePreferences` | A one-choice list saved at once (component 13) | M1 |
+| Appearance | The user's theme (six named themes, kept in this browser) and mode (system, dark or light, saved by the server) (UX-60) | `getPreferences`, `updatePreferences` (the mode) | Two one-choice lists saved at once (component 13); the theme list shows a swatch row per theme | M1 |
 | Budgets | The pool's default load budget, slots and drain timeout for new machines, and the order of the queue | `getPoolSettings`, `updatePoolSettings`, `getQueueSettings`, `updateQueueSettings` | Save (admin); a change that restarts runners names the jobs it waits for (UX-62). A pool default only reaches machines that join later, so the page says no runner restarts and no job is waited for | M1 (built, CRSP37) |
 | Notifications | Channels (email, webhook, desktop) and the events each one gets | `listNotificationChannels`, `createNotificationChannel`, `updateNotificationChannel`, `deleteNotificationChannel`, `testNotificationChannel` | Add, edit, delete (question card), Send test | M1 for channels and Send test (built, CRSP37); event delivery later (milestone 8) |
 | Updates | The runner version and the agent version, and when they update | `getUpdateStatus`, `checkForUpdate`, `applyUpdate`, `updateSettings` (auto_update) | Update now: a question card that names the machines and the jobs the drain waits for (UX-62) | later (milestone 3) |

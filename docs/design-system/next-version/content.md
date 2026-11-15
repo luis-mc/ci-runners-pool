@@ -282,3 +282,19 @@ The words of the extra packages form on a repository's page (runners R5.51).
 | Buttons | Save packages (busy word: Saving), Cancel (puts the saved list back) |
 | Done | Extra packages saved. |
 | Failed | Could not save the packages. {why} |
+
+## Theme words
+
+The words of Settings, Appearance (UX-60).
+
+| Place | Word |
+|---|---|
+| Choice label | Theme |
+| Choice help | The colours of the console. The choice is saved at once. |
+| Theme names | Phosphor, Tokyo Night, Catppuccin, Gruvbox, Solarized, Nord |
+| Mode label | Mode |
+| Mode help | System follows your device. The choice is saved at once. |
+| Mode choices | System, Dark, Light |
+| Passing message | Saving the mode. |
+| Failure | Could not save the mode. |
+| Key-hint bar | `/` search, `j k` move, `Enter` open, `?` keys |

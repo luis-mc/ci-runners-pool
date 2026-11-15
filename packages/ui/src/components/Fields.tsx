@@ -125,8 +125,21 @@ export function TextAreaField(
 export interface Choice {
   value: string;
   label: string;
+  /** A theme id: the row shows a small row of that theme's colours, drawn from its tokens (UX-60). */
+  swatch?: string | undefined;
   /** Why the choice cannot be taken (UX-38). */
   disabledReason?: string | undefined;
+}
+
+/** A row of a theme's colours. The theme id scopes the tokens, so the colours are the theme's own. */
+function Swatches({ theme }: { theme: string }) {
+  return (
+    <span className="ds-swatches" data-theme-name={theme} aria-hidden="true">
+      {['surface', 'primary', 'done', 'note', 'needs-you', 'problem'].map((t) => (
+        <span className="ds-swatch" data-swatch={t} key={t} />
+      ))}
+    </span>
+  );
 }
 
 /** A one-choice list (component 13): rows for up to 6 answers, a drop-down for 7 or more (UX-22). */
@@ -192,6 +205,7 @@ export function ChoiceField(
             />
             <span className="ds-choice__text">
               {c.label}
+              {c.swatch ? <Swatches theme={c.swatch} /> : null}
               {c.disabledReason ? (
                 <span className="ds-choice__reason"> {c.disabledReason}</span>
               ) : null}

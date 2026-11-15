@@ -20,3 +20,4 @@ This draft is a full, project-neutral starter design system. It holds UX rules, 
 ## What the apps do not follow yet
 
 The changes of this version that the apps still have to build. One line per change, `- C<n>: what the apps must do`. Empty for a new version.
+- C16: build the pane frame, reverse-video selection, key-hint bar and the six themes with their Settings choice (LOOK2).

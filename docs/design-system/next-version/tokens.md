@@ -8,7 +8,7 @@ Use tokens and nothing else: no raw colour, size or font in a screen. The values
 
 ## How themes work
 
-- The dark values are the default. The console looks like a terminal.
+- The dark values are the default. The console looks like a terminal. Six named colour themes change the colour values (see Colour themes).
 - The light values apply under `@media (prefers-color-scheme: light)` and under `[data-theme=light]`. The attribute wins over the system setting.
 - The tables list the light value first and the dark value second.
 - A token has the same name in every theme. Only its value changes.
@@ -43,6 +43,7 @@ Use tokens and nothing else: no raw colour, size or font in a screen. The values
 | `--ds-color-problem` | `#b3261e` | `#ff7a7a` | the Problem tone |
 | `--ds-color-problem-bg` | `#fde8e6` | `#351416` | background of Problem |
 | `--ds-color-focus` | `#006a77` | `#5ee6f0` | the focus ring |
+| `--ds-color-selection` | see Colour themes | see Colour themes | the row under the cursor (a selected row is reverse video: primary fill, on-primary text) |
 
 A tone is never shown by colour alone (UX-26). It always has a word and a glyph too (UX-58).
 
@@ -70,6 +71,136 @@ Text on a fill comes in pairs. Every fill role has its own `on-` text token. A f
 | `--ds-color-on-problem` | `#ffffff` | `#06110c` | text on a solid Problem fill |
 | `--ds-color-problem-tint` | `#fde8e6` | `#351416` | a quiet Problem fill |
 | `--ds-color-on-problem-tint` | `#b3261e` | `#ff7a7a` | text on the Problem tint |
+
+## Colour themes
+
+Owner decisions LOOK D1 and D2 (2026-11-15): the console looks like TUI panes, and all six palettes are themes the user picks in Settings (UX-60). A theme is a set of token values and nothing else (UX-55).
+
+- **Six themes:** `phosphor`, `tokyo-night`, `catppuccin`, `gruvbox`, `solarized`, `nord`. Each has a dark and a light value set.
+- **Default for a new install:** `tokyo-night` (open decision, safe default). A page with no theme set is Tokyo Night; the tables of the first colour section above describe the starter values and are replaced by the Tokyo Night values below.
+- **How a theme is applied:** the attribute `data-theme-name=<id>` on the page root picks the theme. The mode stays as written under "How themes work": `[data-theme=light|dark]` or the system setting. The two attributes are independent. The attribute may also sit on one element (the swatch row in Settings); the tokens then apply to that element and what is inside it.
+- **New token:** `--ds-color-selection`, the fill of the row under the cursor. A selected row is drawn in reverse video: `--ds-color-primary` fill with `--ds-color-on-primary` text.
+- **Radius:** `--ds-radius-1`, `--ds-radius-2` and `--ds-radius-3` come from the theme: `0` for Phosphor, Tokyo Night, Gruvbox and Solarized, `8px` for Catppuccin, `6px` for Nord. `--ds-radius-round` does not change.
+- **Focus effects:** `--ds-glow-focus` and `--ds-scanline-focus` follow each theme's primary colour (dark: ring plus glow, scanline at 6%; light: ring only, no scanline).
+- **Derived values** (the same rule for every theme, so nothing is hand-picked): `--ds-color-divider` is the border mixed 30% into the surface. Each tone's tint (`--ds-color-X-tint`, and `-bg` with the same value) is the tone mixed 14% (dark) or 12% (light) into the surface, thinner when the tone would not read 4.5:1 on it. `--ds-color-on-X` (text on a solid tone) is on-primary, else white, else black, the first that reads 4.5:1. `--ds-color-on-X-tint` is the tone itself. `--ds-color-focus` is the primary.
+- **Contrast:** in every theme and mode, text pairs are at least 4.5:1 (text, muted text and every tone on the page, the surface and the selection fill; on-primary on primary; every `on-` pair) and borders at least 3:1 on the page and the surface (UX-17). `scripts/design/themes.test.ts` proves it, and proves that every theme defines every token. The values live in `scripts/design/themes.data.ts`; `scripts/design/gen-themes.ts` writes `packages/ui/src/tokens.css` from them.
+
+The tables list the values the CSS holds. The keys are the tokens without the prefix `--ds-color-`.
+
+### Phosphor (`phosphor`)
+
+Radius: `--ds-radius-1` 0, `--ds-radius-2` 0, `--ds-radius-3` 0.
+
+| Token | Dark | Light |
+|---|---|---|
+| `--ds-color-page` | `#040a05` | `#eef5ea` |
+| `--ds-color-surface` | `#08130a` | `#f9fcf7` |
+| `--ds-color-text` | `#b9f7b4` | `#0e2a12` |
+| `--ds-color-text-muted` | `#78b874` | `#3f5e41` |
+| `--ds-color-border` | `#4a8a47` | `#5f7d61` |
+| `--ds-color-primary` | `#4dff88` | `#0f6b2c` |
+| `--ds-color-on-primary` | `#021207` | `#ffffff` |
+| `--ds-color-done` | `#6dff8f` | `#0f6b2c` |
+| `--ds-color-note` | `#7fe7ff` | `#005f73` |
+| `--ds-color-needs-you` | `#ffc94d` | `#8a5200` |
+| `--ds-color-problem` | `#ff7466` | `#b3261e` |
+| `--ds-color-selection` | `#123d1a` | `#d4ead2` |
+
+### Tokyo Night (`tokyo-night`)
+
+Radius: `--ds-radius-1` 0, `--ds-radius-2` 0, `--ds-radius-3` 0.
+
+| Token | Dark | Light |
+|---|---|---|
+| `--ds-color-page` | `#16161e` | `#e1e2e7` |
+| `--ds-color-surface` | `#1a1b26` | `#f4f5f8` |
+| `--ds-color-text` | `#c0caf5` | `#343b58` |
+| `--ds-color-text-muted` | `#9aa5ce` | `#4f5574` |
+| `--ds-color-border` | `#6b74a3` | `#6b7194` |
+| `--ds-color-primary` | `#7aa2f7` | `#2350b5` |
+| `--ds-color-on-primary` | `#11121a` | `#ffffff` |
+| `--ds-color-done` | `#9ece6a` | `#3a6a17` |
+| `--ds-color-note` | `#7dcfff` | `#0f6587` |
+| `--ds-color-needs-you` | `#e0af68` | `#865500` |
+| `--ds-color-problem` | `#ff8aa0` | `#b4214a` |
+| `--ds-color-selection` | `#292e48` | `#d5d9ea` |
+
+### Catppuccin (`catppuccin`)
+
+Radius: `--ds-radius-1` 8px, `--ds-radius-2` 8px, `--ds-radius-3` 8px.
+
+| Token | Dark | Light |
+|---|---|---|
+| `--ds-color-page` | `#181825` | `#e6e9ef` |
+| `--ds-color-surface` | `#1e1e2e` | `#eff1f5` |
+| `--ds-color-text` | `#cdd6f4` | `#4c4f69` |
+| `--ds-color-text-muted` | `#a6adc8` | `#5c5f77` |
+| `--ds-color-border` | `#7f849c` | `#7c7f93` |
+| `--ds-color-primary` | `#cba6f7` | `#7a2ee0` |
+| `--ds-color-on-primary` | `#1e1e2e` | `#ffffff` |
+| `--ds-color-done` | `#a6e3a1` | `#2f6d1a` |
+| `--ds-color-note` | `#89dceb` | `#0b6680` |
+| `--ds-color-needs-you` | `#f9e2af` | `#835300` |
+| `--ds-color-problem` | `#f38ba8` | `#b5163a` |
+| `--ds-color-selection` | `#313244` | `#dce0e8` |
+
+### Gruvbox (`gruvbox`)
+
+Radius: `--ds-radius-1` 0, `--ds-radius-2` 0, `--ds-radius-3` 0.
+
+| Token | Dark | Light |
+|---|---|---|
+| `--ds-color-page` | `#1d2021` | `#f2e5bc` |
+| `--ds-color-surface` | `#282828` | `#fbf1c7` |
+| `--ds-color-text` | `#ebdbb2` | `#3c3836` |
+| `--ds-color-text-muted` | `#bdae93` | `#5a514a` |
+| `--ds-color-border` | `#7c6f64` | `#7c6f64` |
+| `--ds-color-primary` | `#fabd2f` | `#076678` |
+| `--ds-color-on-primary` | `#1d2021` | `#ffffff` |
+| `--ds-color-done` | `#b8bb26` | `#5d5a0a` |
+| `--ds-color-note` | `#8ec0a8` | `#076678` |
+| `--ds-color-needs-you` | `#fe8019` | `#8f3e02` |
+| `--ds-color-problem` | `#ff6b5a` | `#9d0006` |
+| `--ds-color-selection` | `#32302f` | `#ebdbb2` |
+
+### Solarized (`solarized`)
+
+Radius: `--ds-radius-1` 0, `--ds-radius-2` 0, `--ds-radius-3` 0.
+
+| Token | Dark | Light |
+|---|---|---|
+| `--ds-color-page` | `#002b36` | `#fdf6e3` |
+| `--ds-color-surface` | `#073642` | `#fffbf0` |
+| `--ds-color-text` | `#d2dbd9` | `#073642` |
+| `--ds-color-text-muted` | `#a5b4b5` | `#4c6168` |
+| `--ds-color-border` | `#7a9497` | `#6d7f83` |
+| `--ds-color-primary` | `#6cbcf5` | `#1a5f96` |
+| `--ds-color-on-primary` | `#002b36` | `#ffffff` |
+| `--ds-color-done` | `#a5c23a` | `#4f6000` |
+| `--ds-color-note` | `#4fcfc4` | `#1d6e68` |
+| `--ds-color-needs-you` | `#e0b13a` | `#7d5300` |
+| `--ds-color-problem` | `#ff9a95` | `#b0201d` |
+| `--ds-color-selection` | `#0a3f4c` | `#eee8d5` |
+
+### Nord (`nord`)
+
+Radius: `--ds-radius-1` 6px, `--ds-radius-2` 6px, `--ds-radius-3` 6px.
+
+| Token | Dark | Light |
+|---|---|---|
+| `--ds-color-page` | `#20242c` | `#e5e9f0` |
+| `--ds-color-surface` | `#2e3440` | `#f6f8fb` |
+| `--ds-color-text` | `#eceff4` | `#2e3440` |
+| `--ds-color-text-muted` | `#b4bccb` | `#4c566a` |
+| `--ds-color-border` | `#76829b` | `#6b768c` |
+| `--ds-color-primary` | `#88c0d0` | `#2f6585` |
+| `--ds-color-on-primary` | `#1b2029` | `#ffffff` |
+| `--ds-color-done` | `#a3be8c` | `#466a2c` |
+| `--ds-color-note` | `#93b4d6` | `#3a5d88` |
+| `--ds-color-needs-you` | `#ebcb8b` | `#805600` |
+| `--ds-color-problem` | `#ef9aa1` | `#a3343f` |
+| `--ds-color-selection` | `#363c4a` | `#dde3ec` |
+
 
 ## Type families
 

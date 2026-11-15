@@ -62,9 +62,9 @@ One numbered section per shared component. A part that nearly fits is extended w
 
 ## 8. Card, card grid and facts list
 
-- **Used for:** a boxed section; the grid that lays cards out; and a short list of name and value pairs inside a card.
-- **Looks:** a boxed section with rounded corners and a soft edge. Cards sit in an even grid. The facts list has the name above its value.
-- **Source:** `src/ui/card`
+- **Used for:** a pane: a boxed section; the grid that lays panes out; and a short list of name and value pairs inside a pane. A pane may carry a count after its title.
+- **Looks:** a box border (`--ds-color-border`, corners from `--ds-radius-2`) with the title cut into the top border: `┤ Machines 3 ├`. The title and count are drawn in `--ds-color-primary` over `--ds-color-page`; the `┤ ├` marks are the border colour. Panes sit in an even grid. The facts list has the name above its value.
+- **Source:** `packages/ui/src/components/Card.tsx`
 - **Rules:** UX-10, UX-1, UX-15, UX-37.
 - **Guard:** none yet.
 
@@ -462,6 +462,22 @@ The body scrolls when the content is taller than the space. The overlay never gr
 - **Source:** `packages/ui/src/components/Progress.tsx` (`LevelBar`)
 - **Rules:** UX-17, UX-41, UX-58.
 - **Guard:** none yet.
+
+## 41. Selected row and key-hint bar
+
+- **Used for:** showing which list row is selected, and which keys work (UX-57).
+- **Looks:** a selected row of a table or a result list is in reverse video: `--ds-color-primary` fill with `--ds-color-on-primary` text. The row under the cursor (`j` and `k`) takes the `--ds-color-selection` fill and keeps its text colour. The key-hint bar is a footer at the end of the page with a thin top border, listing `/ search`, `j k move`, `Enter open`, `? keys`, each key in the key style of component 38. The hints are text, never buttons (UX-8). The bar is drawn at every width and wraps on a small screen (UX-50).
+- **Source:** `packages/ui/src/components/Table.tsx`, `packages/ui/src/components/Shell.tsx` (`KeyHints`, the `hints` slot of `Frame`), `packages/ui/src/components.css`
+- **Rules:** UX-8, UX-50, UX-57, UX-60.
+- **Guard:** none yet.
+
+## 42. Theme choice
+
+- **Used for:** the Theme choice in Settings, Appearance (UX-60): a one-choice list (component 13) of the six themes.
+- **Looks:** each row shows the theme name and, under it, a small row of that theme's colours (surface, primary, Done, Note, Needs you, Problem) in a box in the theme's page colour. The swatches are drawn from the theme's own tokens; the row is decoration and the name carries the meaning. The mode (system, dark, light) is a second one-choice list beside it.
+- **Source:** `packages/ui/src/components/Fields.tsx` (`Choice.swatch`), `packages/ui/src/themes.ts`
+- **Rules:** UX-22, UX-55, UX-60.
+- **Guard:** `scripts/design/themes.test.ts` (tokens and contrast); `apps/web/src/screens/settings/Settings.test.tsx` (picking and keeping a theme).
 
 ## How to add a component
 
