@@ -57,7 +57,7 @@ type Config struct {
 	// Redactor learns every token and JIT config the controller sends, so no
 	// log line or answer shows one (runners R5.11); nil makes a private one.
 	Redactor *redact.Redactor
-	// CPUCap sets the CPU cap on the runner processes (machines R5.62); nil uses
+	// CPUCap sets the CPU cap on the runner processes (machines R5.63); nil uses
 	// the OS applier.
 	CPUCap cpucap.Applier
 
@@ -69,7 +69,7 @@ type Config struct {
 	DrainPollEvery time.Duration // 2 s
 	CacheEvery     time.Duration // 5 min
 	// PolicyEvery is how often the agent checks the power source and the pause
-	// timer; 0 takes 5 s (machines R5.60).
+	// timer; 0 takes 5 s (machines R5.61).
 	PolicyEvery time.Duration
 	// BudgetEvery is how often the pool-wide cache budget is checked; 0 takes 10 min (caches R5.48).
 	BudgetEvery time.Duration

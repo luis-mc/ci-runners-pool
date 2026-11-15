@@ -14,7 +14,7 @@ import (
 func str(s string) *string { return &s }
 func num(n int) *int       { return &n }
 
-// R5.59: the defaults are Automatic, the battery pause on, and no CPU cap.
+// R5.60: the defaults are Automatic, the battery pause on, and no CPU cap.
 func TestPolicyDefaults(t *testing.T) {
 	e, id, _ := setup(t)
 	v, _ := e.Svc.Get(context.Background(), id)
@@ -28,7 +28,7 @@ func TestPolicyDefaults(t *testing.T) {
 	}
 }
 
-// R5.59: mode transitions. Every mode is accepted, a bad word is refused, and each change is audited and pushed.
+// R5.60: mode transitions. Every mode is accepted, a bad word is refused, and each change is audited and pushed.
 func TestModeTransitions(t *testing.T) {
 	e, id, _ := setup(t)
 	ctx := context.Background()
@@ -61,7 +61,7 @@ func TestModeTransitions(t *testing.T) {
 	}
 }
 
-// R5.62: the CPU cap is 25, 50, 75 or 100.
+// R5.63: the CPU cap is 25, 50, 75 or 100.
 func TestCPUCapValues(t *testing.T) {
 	e, id, _ := setup(t)
 	ctx := context.Background()
@@ -77,7 +77,7 @@ func TestCPUCapValues(t *testing.T) {
 	}
 }
 
-// R5.59: the pause from the tray is one hour from the controller clock, until Resume, or none.
+// R5.60: the pause from the tray is one hour from the controller clock, until Resume, or none.
 func TestPauseFromTheTray(t *testing.T) {
 	e, id, _ := setup(t)
 	ctx := context.Background()
@@ -130,7 +130,7 @@ func TestPolicyReachesTheAgent(t *testing.T) {
 
 func boolp(b bool) *bool { return &b }
 
-// R5.60: the agent's report sets Accepting and PauseReason on the machine; offline machines keep the last report and CRSP74 reads online && Accepting.
+// R5.61: the agent's report sets Accepting and PauseReason on the machine; offline machines keep the last report and CRSP74 reads online && Accepting.
 func TestAcceptingReportSetsMachineStatus(t *testing.T) {
 	e, id, key := setup(t)
 	a, err := e.session(id, key, &agentv1.Hello{MachineId: id, AgentVersion: "test"})

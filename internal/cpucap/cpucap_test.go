@@ -43,7 +43,7 @@ func fakeCgroupRoot(t *testing.T, services ...string) string {
 	return root
 }
 
-// R5.62: Linux sets cpu.max in the cgroup of each runner service, and only there.
+// R5.63: Linux sets cpu.max in the cgroup of each runner service, and only there.
 func TestApplyCgroupsWritesCPUMaxOfEachRunnerService(t *testing.T) {
 	root := fakeCgroupRoot(t, "actions.runner.acme.one.service", "actions.runner.acme.two.service", "ssh.service")
 	res := cpucap.ApplyCgroups(root, 8, 50)

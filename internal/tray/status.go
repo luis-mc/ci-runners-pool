@@ -49,7 +49,7 @@ type Status struct {
 	Policy    MachinePolicy
 }
 
-// Modes of a machine (machines R5.59) and the two pauses of the tray.
+// Modes of a machine (machines R5.60) and the two pauses of the tray.
 const (
 	ModeAutomatic = "automatic"
 	ModeAlways    = "always"

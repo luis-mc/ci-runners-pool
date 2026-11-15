@@ -119,7 +119,7 @@ type Machine struct {
 	IsController bool
 	AgentVersion string
 	Online       bool
-	// Accepting and PauseReason are what the agent last reported (R5.60). They
+	// Accepting and PauseReason are what the agent last reported (R5.61). They
 	// are filled when a machine is read; another feature reads `Online &&
 	// Accepting` to decide on hosted fallback. A machine that reported nothing
 	// accepts.
@@ -153,7 +153,7 @@ type Settings struct {
 	// load budget (R5.58). 0 means not set.
 	PoolMemoryGiB float64
 	PoolCPUs      int
-	// The machine policy (CRSP75, R5.59 to R5.62). An empty Mode is automatic and
+	// The machine policy (CRSP75, R5.60 to R5.63). An empty Mode is automatic and
 	// a zero CPUCapPct is 100.
 	Mode           string
 	PauseOnBattery bool
@@ -164,14 +164,14 @@ type Settings struct {
 	CPUCapPct          int
 }
 
-// Machine modes (R5.59).
+// Machine modes (R5.60).
 const (
 	ModeAutomatic = "automatic"
 	ModeAlways    = "always"
 	ModePaused    = "paused"
 )
 
-// Pause reasons a machine reports when it does not accept new jobs (R5.60).
+// Pause reasons a machine reports when it does not accept new jobs (R5.61).
 // The names are read by other features: do not rename them.
 const (
 	PauseReasonPaused      = "paused"
@@ -183,7 +183,7 @@ const (
 	PauseNone              = "none"
 )
 
-// CPUCaps are the CPU cap values in percent (R5.62).
+// CPUCaps are the CPU cap values in percent (R5.63).
 var CPUCaps = []int{25, 50, 75, 100}
 
 // EffectiveMode is the mode with the default filled in.
@@ -203,7 +203,7 @@ func (s Settings) EffectiveCPUCap() int {
 }
 
 // UserPaused says whether the user holds the machine paused at now: the mode is
-// paused, or a pause from the tray is running (R5.59).
+// paused, or a pause from the tray is running (R5.60).
 func (s Settings) UserPaused(now time.Time) bool {
 	if s.EffectiveMode() == ModePaused || s.PausedUntilResumed {
 		return true
@@ -241,12 +241,12 @@ type SettingsUpdate struct {
 	WindowsSymlinkRight *bool
 	PoolMemoryGiB       *float64
 	PoolCPUs            *int
-	// Mode is automatic, always or paused (R5.59).
+	// Mode is automatic, always or paused (R5.60).
 	Mode           *string
 	PauseOnBattery *bool
-	// CPUCapPct is 25, 50, 75 or 100 (R5.62).
+	// CPUCapPct is 25, 50, 75 or 100 (R5.63).
 	CPUCapPct *int
-	// Pause is one_hour, until_resumed or none: a pause from the tray (R5.59).
+	// Pause is one_hour, until_resumed or none: a pause from the tray (R5.60).
 	Pause *string
 	// ConfirmShrink is the explicit yes to a pool size below the current one
 	// (R5.58). It is never implied by Confirm.

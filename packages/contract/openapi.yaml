@@ -3407,7 +3407,7 @@ components:
           type: boolean
         accepting:
           type: boolean
-          description: Whether the machine takes new jobs (machines R5.60). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts.
+          description: Whether the machine takes new jobs (machines R5.61). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts.
         pause_reason:
           $ref: '#/components/schemas/PauseReason'
         policy:
@@ -3624,35 +3624,35 @@ components:
           $ref: '#/components/schemas/MachineMode'
         pause_on_battery:
           type: boolean
-          description: Automatic pauses while the machine runs on battery. On by default; Always ignores it (machines R5.59, R5.61).
+          description: Automatic pauses while the machine runs on battery. On by default; Always ignores it (machines R5.60, R5.62).
         cpu_cap_pct:
           $ref: '#/components/schemas/CpuCapPct'
         pause_until:
           type: string
           format: date-time
-          description: A pause from the tray with a timer ends at this time. Absent when none runs (machines R5.59).
+          description: A pause from the tray with a timer ends at this time. Absent when none runs (machines R5.60).
         pause_until_resumed:
           type: boolean
           description: A pause from the tray holds until Resume.
     MachineMode:
       type: string
-      description: Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.59).
+      description: Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.60).
       enum: [automatic, always, paused]
     CpuCapPct:
       type: integer
-      description: The share of the whole machine's CPU the runner processes may use, in percent (machines R5.62). Separate from the load budget. 100 is no cap.
+      description: The share of the whole machine's CPU the runner processes may use, in percent (machines R5.63). Separate from the load budget. 100 is no cap.
       enum: [25, 50, 75, 100]
     PauseReason:
       type: string
-      description: Why a machine takes no new job (machines R5.60). Other features read these exact names.
+      description: Why a machine takes no new job (machines R5.61). Other features read these exact names.
       enum: [paused, on_battery, quiet_hours, budget]
     CpuCapState:
       type: string
-      description: What the agent did with the CPU cap. not_supported is macOS (machines R5.62).
+      description: What the agent did with the CPU cap. not_supported is macOS (machines R5.63).
       enum: [applied, not_supported, failed]
     MachinePolicy:
       type: object
-      description: What the agent last reported about the power source and the CPU cap (machines R5.60 to R5.62).
+      description: What the agent last reported about the power source and the CPU cap (machines R5.61 to R5.63).
       required: [battery_known, on_battery]
       properties:
         on_battery:
@@ -3810,7 +3810,7 @@ components:
           $ref: '#/components/schemas/CpuCapPct'
         pause:
           type: string
-          description: A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.59).
+          description: A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.60).
           enum: [one_hour, until_resumed, none]
         confirm_shrink:
           type: boolean

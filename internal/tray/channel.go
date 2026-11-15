@@ -20,7 +20,7 @@ type Request struct {
 }
 
 // PolicyInfo is what the service says about this machine's mode and whether it
-// takes new jobs (tray R5.31, machines R5.59 to R5.61). An older service leaves
+// takes new jobs (tray R5.42, machines R5.60 to R5.62). An older service leaves
 // it out; the tray then shows no mode and offers none.
 type PolicyInfo struct {
 	// Mode is automatic, always or paused.
@@ -155,7 +155,7 @@ func statusFrom(r Response) Status {
 }
 
 // SetMode asks the service to set this machine's mode: automatic, always or
-// paused. The console shows the change at once (tray R5.31).
+// paused. The console shows the change at once (tray R5.42).
 func (c *Client) SetMode(ctx context.Context, mode string) (Status, error) {
 	r, err := c.call(ctx, Request{Call: "mode", Mode: mode})
 	if err != nil {

@@ -59,7 +59,7 @@ func (b trayBackend) policy(ctx context.Context) *tray.PolicyInfo {
 
 func trayActor(c trayserver.Caller) string { return "tray:" + c.OSUser }
 
-// SetMode sets this machine's mode (tray R5.31).
+// SetMode sets this machine's mode (tray R5.42).
 func (b trayBackend) SetMode(ctx context.Context, c trayserver.Caller, mode string) (tray.Response, error) {
 	if err := b.Drain.setPolicy(ctx, trayActor(c), machines.SettingsUpdate{Mode: &mode}); err != nil {
 		return tray.Response{}, err
@@ -67,7 +67,7 @@ func (b trayBackend) SetMode(ctx context.Context, c trayserver.Caller, mode stri
 	return b.Status(ctx)
 }
 
-// Pause pauses new jobs for one hour or until Resume (tray R5.31).
+// Pause pauses new jobs for one hour or until Resume (tray R5.42).
 func (b trayBackend) Pause(ctx context.Context, c trayserver.Caller, kind string) (tray.Response, error) {
 	if kind != machines.PauseOneHour && kind != machines.PauseUntilResumedValue {
 		return tray.Response{}, errors.New("a pause is one_hour or until_resumed")
@@ -79,7 +79,7 @@ func (b trayBackend) Pause(ctx context.Context, c trayserver.Caller, kind string
 }
 
 // Resume ends a pause from the tray and, when the mode is Paused, returns it to
-// Automatic (tray R5.31).
+// Automatic (tray R5.42).
 func (b trayBackend) Resume(ctx context.Context, c trayserver.Caller) (tray.Response, error) {
 	none := machines.PauseNone
 	u := machines.SettingsUpdate{Pause: &none}

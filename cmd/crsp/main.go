@@ -157,7 +157,7 @@ func runController() error {
 
 	um := startUpdates(ctx, cfg, logger, mr, ops.Settings, idle)
 	// A machine that is paused, on battery or in quiet hours holds new jobs with
-	// that reason (scheduling R5.67, machines R5.60).
+	// that reason (scheduling R5.66, machines R5.61).
 	queue := scheduler.NewEngine(db, scheduler.WithLogger(logger), scheduler.WithAccepting(func(id string) (bool, string) {
 		p := mr.Service.Policy(id)
 		return p.Accepting, p.PauseReason

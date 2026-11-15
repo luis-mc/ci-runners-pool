@@ -281,7 +281,7 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 }
 
 // notAccepting reports the hold of a machine that is paused, on battery or in
-// quiet hours (machines R5.60).
+// quiet hours (machines R5.61).
 func (e *Engine) notAccepting(machineID string) (WaitReason, string, bool) {
 	if e.accepting == nil {
 		return "", "", false

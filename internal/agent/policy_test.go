@@ -25,7 +25,7 @@ func policyGate(t *testing.T, pw power.State, mutate func(*machines.Settings)) (
 
 func accept(g *agent.Gate) (bool, string) { a := g.Acceptance(); return a.Accepting, a.Reason }
 
-// R5.59: Automatic is the default and accepts on mains.
+// R5.60: Automatic is the default and accepts on mains.
 func TestAutomaticAcceptsOnMains(t *testing.T) {
 	g, _ := policyGate(t, power.Mains, nil)
 	if ok, why := accept(g); !ok || why != "" {
@@ -36,7 +36,7 @@ func TestAutomaticAcceptsOnMains(t *testing.T) {
 	}
 }
 
-// R5.59, R5.61: Automatic pauses on battery when the battery pause is on, and holds new jobs with that reason; a job that runs keeps going.
+// R5.60, R5.62: Automatic pauses on battery when the battery pause is on, and holds new jobs with that reason; a job that runs keeps going.
 func TestAutomaticPausesOnBatteryAndNeverCutsARunningJob(t *testing.T) {
 	g, _ := policyGate(t, power.Mains, nil)
 	if d := g.Start("running", job, "persistent"); !d.Go {
@@ -55,7 +55,7 @@ func TestAutomaticPausesOnBatteryAndNeverCutsARunningJob(t *testing.T) {
 	}
 }
 
-// R5.59: with the battery pause off, Automatic keeps accepting on battery.
+// R5.60: with the battery pause off, Automatic keeps accepting on battery.
 func TestBatteryPauseSwitchOff(t *testing.T) {
 	g, _ := policyGate(t, battery, func(s *machines.Settings) { s.PauseOnBattery = false })
 	if ok, why := accept(g); !ok {
@@ -63,7 +63,7 @@ func TestBatteryPauseSwitchOff(t *testing.T) {
 	}
 }
 
-// R5.59: Always ignores the battery.
+// R5.60: Always ignores the battery.
 func TestAlwaysIgnoresBattery(t *testing.T) {
 	g, _ := policyGate(t, battery, func(s *machines.Settings) { s.Mode = machines.ModeAlways })
 	if ok, why := accept(g); !ok {
@@ -74,7 +74,7 @@ func TestAlwaysIgnoresBattery(t *testing.T) {
 	}
 }
 
-// R5.59: Paused takes no new job and finishes the running ones.
+// R5.60: Paused takes no new job and finishes the running ones.
 func TestPausedTakesNoNewJobAndFinishesRunning(t *testing.T) {
 	g, _ := policyGate(t, power.Mains, nil)
 	if d := g.Start("running", job, "persistent"); !d.Go {
@@ -101,7 +101,7 @@ func TestPausedTakesNoNewJobAndFinishesRunning(t *testing.T) {
 	}
 }
 
-// R5.59: a pause from the tray with a timer ends by itself; one until Resume does not.
+// R5.60: a pause from the tray with a timer ends by itself; one until Resume does not.
 func TestTimedPauseEndsAndUntilResumedDoesNot(t *testing.T) {
 	g, now := policyGate(t, power.Mains, func(s *machines.Settings) { s.PauseUntil = time.Date(2026, 11, 15, 13, 0, 0, 0, time.UTC) })
 	a := g.Acceptance()
@@ -121,7 +121,7 @@ func TestTimedPauseEndsAndUntilResumedDoesNot(t *testing.T) {
 	}
 }
 
-// R5.59 (decision CRSP75-1): a pause from the tray holds in Always too.
+// R5.60 (decision CRSP75-1): a pause from the tray holds in Always too.
 func TestTrayPauseHoldsInAlways(t *testing.T) {
 	g, _ := policyGate(t, power.Mains, func(s *machines.Settings) {
 		s.Mode, s.PausedUntilResumed = machines.ModeAlways, true
@@ -131,7 +131,7 @@ func TestTrayPauseHoldsInAlways(t *testing.T) {
 	}
 }
 
-// R5.60: a machine over its budget reports the budget reason, which is not a pause.
+// R5.61: a machine over its budget reports the budget reason, which is not a pause.
 func TestOverBudgetReportsBudget(t *testing.T) {
 	g, _, _ := gateWith(t, "100000", nil) // 90% memory used
 	g.SetPower(power.Static{})
@@ -140,7 +140,7 @@ func TestOverBudgetReportsBudget(t *testing.T) {
 	}
 }
 
-// R5.60: a drained machine takes no new job; it says paused (the reuse of the drain rules).
+// R5.61: a drained machine takes no new job; it says paused (the reuse of the drain rules).
 func TestDrainedMachineReportsPaused(t *testing.T) {
 	g, _ := policyGate(t, power.Mains, nil)
 	g.Hold()
@@ -170,7 +170,7 @@ func (r *recordedCap) last() int {
 	return r.seen[len(r.seen)-1]
 }
 
-// R5.60, R5.62 end to end over the real link: the agent reports accepting, the
+// R5.61, R5.63 end to end over the real link: the agent reports accepting, the
 // controller gate follows a console change to Paused, the battery turns the
 // machine off and back on, and the CPU cap reaches the applier.
 func TestAcceptingReportAndCPUCapOverTheLink(t *testing.T) {

@@ -36,7 +36,7 @@ type Notifier func(title, body string)
 type Launcher func(target string) error
 
 // PolicySetter changes this machine's mode and pause through the service
-// (tray R5.31). Each call answers with the status after the change.
+// (tray R5.42). Each call answers with the status after the change.
 type PolicySetter interface {
 	SetMode(ctx context.Context, mode string) (Status, error)
 	Pause(ctx context.Context, kind string) (Status, error)

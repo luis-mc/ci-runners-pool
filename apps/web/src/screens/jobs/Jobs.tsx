@@ -56,6 +56,8 @@ const REASON_WORDS: Record<Schemas['WaitReason'], string> = {
   repository_parallel_limit: "waits for the repository's parallel limit",
   machine_drained: 'waits because its machine is drained',
   quiet_hours: 'waits for quiet hours to end',
+  paused: 'waits because its machine is paused',
+  on_battery: 'waits because its machine runs on battery',
   unknown: 'waits, the reason is not known yet',
 };
 

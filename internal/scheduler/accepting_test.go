@@ -37,7 +37,7 @@ func envWithAcceptance(t *testing.T) (*env, *acceptance) {
 	return e, acc
 }
 
-// Scheduling R5.67, machines R5.60: a machine that does not accept holds every
+// Scheduling R5.67, machines R5.61: a machine that does not accept holds every
 // new job with the reason the agent reported, even when a slot is free.
 func TestGateHoldsNewJobsWithTheReasonWhileNotAccepting(t *testing.T) {
 	for _, c := range []struct {

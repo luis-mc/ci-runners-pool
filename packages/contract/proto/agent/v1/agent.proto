@@ -100,7 +100,7 @@ message SessionRequest {
     CacheWipeStatus cache_wipe_status = 21;
     // What the machine can do: KVM, container engine and images (CRSP63).
     MachineReport machine_report = 22;
-    // Whether the machine takes new jobs, and why not (CRSP75, machines R5.60).
+    // Whether the machine takes new jobs, and why not (CRSP75, machines R5.61).
     AcceptingReport accepting_report = 23;
   }
 }
@@ -512,7 +512,7 @@ message MachineSettings {
   // not set: the pool then follows the budget alone.
   double pool_memory_gib = 18;
   int32 pool_cpus = 19;
-  // The machine policy (CRSP75, machines R5.59 to R5.62).
+  // The machine policy (CRSP75, machines R5.60 to R5.63).
   // mode is automatic, always or paused; "" means automatic.
   string mode = 20;
   // Automatic pauses while the machine runs on battery.
@@ -778,15 +778,15 @@ message ImageReport {
 
 // AcceptingReport says whether the machine takes new jobs and why not. The
 // agent sends it with Hello and each time the answer changes, and with every
-// LoadReport while the answer is not "accepting" (CRSP75, machines R5.60).
+// LoadReport while the answer is not "accepting" (CRSP75, machines R5.61).
 message AcceptingReport {
   bool accepting = 1;
   // paused, on_battery, quiet_hours or budget; empty while accepting.
   string pause_reason = 2;
-  // Battery state the agent read; unknown counts as on mains (R5.61).
+  // Battery state the agent read; unknown counts as on mains (R5.62).
   bool on_battery = 3;
   bool battery_known = 4;
-  // The CPU cap the agent applied to the runner processes (R5.62).
+  // The CPU cap the agent applied to the runner processes (R5.63).
   int32 cpu_cap_pct = 5;
   // applied, not_supported or failed. not_supported is macOS.
   string cpu_cap_state = 6;

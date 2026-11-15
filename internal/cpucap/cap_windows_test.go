@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// R5.62: the Job Object carries a hard CPU rate cap that reads back as set.
+// R5.63: the Job Object carries a hard CPU rate cap that reads back as set.
 func TestJobObjectCapReadsBack(t *testing.T) {
 	for _, pct := range []int{25, 50, 75} {
 		j, err := NewJob(pct)
@@ -30,7 +30,7 @@ func TestJobObjectCapReadsBack(t *testing.T) {
 	}
 }
 
-// R5.62: a process tree is assigned to the job, and a second assign of the same
+// R5.63: a process tree is assigned to the job, and a second assign of the same
 // tree is not an error.
 func TestJobObjectAssignsAProcessTree(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

@@ -1,4 +1,4 @@
-// Package power says whether the machine runs on battery (machines R5.61).
+// Package power says whether the machine runs on battery (machines R5.62).
 //
 // Windows reads GetSystemPowerStatus, Linux reads /sys/class/power_supply and
 // macOS reads the output of `pmset -g batt`. Every parser takes its input as a

@@ -8,14 +8,14 @@ import (
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 )
 
-// Cap states the agent reports for the CPU cap (R5.62).
+// Cap states the agent reports for the CPU cap (R5.63).
 const (
 	CapApplied      = "applied"
 	CapNotSupported = "not_supported"
 	CapFailed       = "failed"
 )
 
-// Policy is what a machine last reported about taking new jobs (R5.60) and
+// Policy is what a machine last reported about taking new jobs (R5.61) and
 // the battery and CPU cap facts the console shows next to it.
 type Policy struct {
 	Accepting    bool
@@ -69,7 +69,7 @@ func (s *Service) Policy(machineID string) Policy {
 }
 
 // Accepting is the status other features read: online and accepting new jobs,
-// and the reason when it does not (R5.60).
+// and the reason when it does not (R5.61).
 func (s *Service) Accepting(ctx context.Context, machineID string) (online, accepting bool, reason string, err error) {
 	m, err := s.o.Repo.GetMachine(ctx, machineID)
 	if err != nil {
@@ -79,7 +79,7 @@ func (s *Service) Accepting(ctx context.Context, machineID string) (online, acce
 	return m.Online, p.Accepting, p.PauseReason, nil
 }
 
-// validatePolicy checks the ranges of R5.59 and R5.62.
+// validatePolicy checks the ranges of R5.60 and R5.63.
 func validatePolicy(set Settings) error {
 	bad := func(format string, a ...any) error {
 		return fmt.Errorf("%w: %s", ErrInvalid, fmt.Sprintf(format, a...))

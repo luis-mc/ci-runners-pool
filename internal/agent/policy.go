@@ -66,7 +66,7 @@ func (g *Gate) clockUnlocked() time.Time {
 }
 
 // Acceptance is whether the machine takes new jobs now and, when it does not,
-// why (R5.60). Reason is one of machines.PauseReason*; it is empty while
+// why (R5.61). Reason is one of machines.PauseReason*; it is empty while
 // accepting.
 type Acceptance struct {
 	Accepting bool
@@ -181,7 +181,7 @@ func (l *link) kickPolicy() {
 
 // policyLoop reports the acceptance when the session opens, each time it
 // changes, and every LoadEvery otherwise, so the controller always holds a
-// report newer than the link's silence limit (R5.60).
+// report newer than the link's silence limit (R5.61).
 func (l *link) policyLoop(ctx context.Context) {
 	t := time.NewTicker(l.cfg.PolicyEvery)
 	defer t.Stop()

@@ -792,7 +792,7 @@ type SessionRequest_MachineReport struct {
 }
 
 type SessionRequest_AcceptingReport struct {
-	// Whether the machine takes new jobs, and why not (CRSP75, machines R5.60).
+	// Whether the machine takes new jobs, and why not (CRSP75, machines R5.61).
 	AcceptingReport *AcceptingReport `protobuf:"bytes,23,opt,name=accepting_report,json=acceptingReport,proto3,oneof"`
 }
 
@@ -3443,7 +3443,7 @@ type MachineSettings struct {
 	// not set: the pool then follows the budget alone.
 	PoolMemoryGib float64 `protobuf:"fixed64,18,opt,name=pool_memory_gib,json=poolMemoryGib,proto3" json:"pool_memory_gib,omitempty"`
 	PoolCpus      int32   `protobuf:"varint,19,opt,name=pool_cpus,json=poolCpus,proto3" json:"pool_cpus,omitempty"`
-	// The machine policy (CRSP75, machines R5.59 to R5.62).
+	// The machine policy (CRSP75, machines R5.60 to R5.63).
 	// mode is automatic, always or paused; "" means automatic.
 	Mode string `protobuf:"bytes,20,opt,name=mode,proto3" json:"mode,omitempty"`
 	// Automatic pauses while the machine runs on battery.
@@ -5273,16 +5273,16 @@ func (x *ImageReport) GetCreatedUnixMs() int64 {
 
 // AcceptingReport says whether the machine takes new jobs and why not. The
 // agent sends it with Hello and each time the answer changes, and with every
-// LoadReport while the answer is not "accepting" (CRSP75, machines R5.60).
+// LoadReport while the answer is not "accepting" (CRSP75, machines R5.61).
 type AcceptingReport struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Accepting bool                   `protobuf:"varint,1,opt,name=accepting,proto3" json:"accepting,omitempty"`
 	// paused, on_battery, quiet_hours or budget; empty while accepting.
 	PauseReason string `protobuf:"bytes,2,opt,name=pause_reason,json=pauseReason,proto3" json:"pause_reason,omitempty"`
-	// Battery state the agent read; unknown counts as on mains (R5.61).
+	// Battery state the agent read; unknown counts as on mains (R5.62).
 	OnBattery    bool `protobuf:"varint,3,opt,name=on_battery,json=onBattery,proto3" json:"on_battery,omitempty"`
 	BatteryKnown bool `protobuf:"varint,4,opt,name=battery_known,json=batteryKnown,proto3" json:"battery_known,omitempty"`
-	// The CPU cap the agent applied to the runner processes (R5.62).
+	// The CPU cap the agent applied to the runner processes (R5.63).
 	CpuCapPct int32 `protobuf:"varint,5,opt,name=cpu_cap_pct,json=cpuCapPct,proto3" json:"cpu_cap_pct,omitempty"`
 	// applied, not_supported or failed. not_supported is macOS.
 	CpuCapState string `protobuf:"bytes,6,opt,name=cpu_cap_state,json=cpuCapState,proto3" json:"cpu_cap_state,omitempty"`

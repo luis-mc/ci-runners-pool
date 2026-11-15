@@ -8,7 +8,7 @@ type osApplier struct{}
 
 func newOS() Applier { return osApplier{} }
 
-// Apply implements Applier: macOS has no CPU cap yet (R5.62). At 100 there is
+// Apply implements Applier: macOS has no CPU cap yet (R5.63). At 100 there is
 // nothing to cap, and it says so.
 func (osApplier) Apply(_ context.Context, pct int) Result {
 	if pct >= 100 {

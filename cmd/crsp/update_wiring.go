@@ -48,7 +48,7 @@ func (d machineDrainer) local(ctx context.Context) (machines.View, error) {
 }
 
 // policy reads this machine's mode and whether it takes new jobs, for the tray
-// (tray R5.31). ok is false when the machine has not joined yet.
+// (tray R5.42). ok is false when the machine has not joined yet.
 func (d machineDrainer) policy(ctx context.Context) (machines.View, bool) {
 	if d.svc == nil {
 		return machines.View{}, false

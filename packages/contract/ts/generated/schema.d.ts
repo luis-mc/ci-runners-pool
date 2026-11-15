@@ -2229,7 +2229,7 @@ export interface components {
             arch: components["schemas"]["Arch"];
             state: components["schemas"]["MachineState"];
             online: boolean;
-            /** @description Whether the machine takes new jobs (machines R5.60). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts. */
+            /** @description Whether the machine takes new jobs (machines R5.61). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts. */
             accepting?: boolean;
             pause_reason?: components["schemas"]["PauseReason"];
             policy?: components["schemas"]["MachinePolicy"];
@@ -2314,38 +2314,38 @@ export interface components {
             /** @description The CPUs the pool may use on this machine (machines R5.58). 0 means not set. Split over the job slots it gives CI_MAX_PARALLEL (runners R5.53). */
             pool_cpus?: number;
             mode?: components["schemas"]["MachineMode"];
-            /** @description Automatic pauses while the machine runs on battery. On by default; Always ignores it (machines R5.59, R5.61). */
+            /** @description Automatic pauses while the machine runs on battery. On by default; Always ignores it (machines R5.60, R5.62). */
             pause_on_battery?: boolean;
             cpu_cap_pct?: components["schemas"]["CpuCapPct"];
             /**
              * Format: date-time
-             * @description A pause from the tray with a timer ends at this time. Absent when none runs (machines R5.59).
+             * @description A pause from the tray with a timer ends at this time. Absent when none runs (machines R5.60).
              */
             pause_until?: string;
             /** @description A pause from the tray holds until Resume. */
             pause_until_resumed?: boolean;
         };
         /**
-         * @description Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.59).
+         * @description Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.60).
          * @enum {string}
          */
         MachineMode: "automatic" | "always" | "paused";
         /**
-         * @description The share of the whole machine's CPU the runner processes may use, in percent (machines R5.62). Separate from the load budget. 100 is no cap.
+         * @description The share of the whole machine's CPU the runner processes may use, in percent (machines R5.63). Separate from the load budget. 100 is no cap.
          * @enum {integer}
          */
         CpuCapPct: 25 | 50 | 75 | 100;
         /**
-         * @description Why a machine takes no new job (machines R5.60). Other features read these exact names.
+         * @description Why a machine takes no new job (machines R5.61). Other features read these exact names.
          * @enum {string}
          */
         PauseReason: "paused" | "on_battery" | "quiet_hours" | "budget";
         /**
-         * @description What the agent did with the CPU cap. not_supported is macOS (machines R5.62).
+         * @description What the agent did with the CPU cap. not_supported is macOS (machines R5.63).
          * @enum {string}
          */
         CpuCapState: "applied" | "not_supported" | "failed";
-        /** @description What the agent last reported about the power source and the CPU cap (machines R5.60 to R5.62). */
+        /** @description What the agent last reported about the power source and the CPU cap (machines R5.61 to R5.63). */
         MachinePolicy: {
             on_battery: boolean;
             /** @description False when no battery reading was possible; the machine then counts as on mains. */
@@ -2445,7 +2445,7 @@ export interface components {
             pause_on_battery?: boolean;
             cpu_cap_pct?: components["schemas"]["CpuCapPct"];
             /**
-             * @description A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.59).
+             * @description A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.60).
              * @enum {string}
              */
             pause?: "one_hour" | "until_resumed" | "none";

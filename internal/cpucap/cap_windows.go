@@ -150,7 +150,7 @@ type osApplier struct {
 func newOS() Applier { return &osApplier{} }
 
 // Apply implements Applier: it finds the process of every runner service, puts
-// its tree in one Job Object and sets the CPU rate on it (R5.62).
+// its tree in one Job Object and sets the CPU rate on it (R5.63).
 func (a *osApplier) Apply(_ context.Context, pct int) Result {
 	a.mu.Lock()
 	defer a.mu.Unlock()

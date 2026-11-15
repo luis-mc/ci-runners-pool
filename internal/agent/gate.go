@@ -32,7 +32,7 @@ type Gate struct {
 	held    map[string]bool
 	sampler *load.Sampler
 
-	// The machine policy (CRSP75, R5.59 to R5.61): the power source and the clock.
+	// The machine policy (CRSP75, R5.60 to R5.62): the power source and the clock.
 	power power.Reader
 	now   func() time.Time
 	pwMu  sync.Mutex

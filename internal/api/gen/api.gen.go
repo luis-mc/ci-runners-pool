@@ -1712,10 +1712,10 @@ type ConsoleLink struct {
 	Url string `json:"url"`
 }
 
-// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.62). Separate from the load budget. 100 is no cap.
+// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.63). Separate from the load budget. 100 is no cap.
 type CpuCapPct int
 
-// CpuCapState What the agent did with the CPU cap. not_supported is macOS (machines R5.62).
+// CpuCapState What the agent did with the CPU cap. not_supported is macOS (machines R5.63).
 type CpuCapState string
 
 // CreateJoinCodeRequest defines model for CreateJoinCodeRequest.
@@ -2062,7 +2062,7 @@ type LoadHistory struct {
 
 // Machine defines model for Machine.
 type Machine struct {
-	// Accepting Whether the machine takes new jobs (machines R5.60). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts.
+	// Accepting Whether the machine takes new jobs (machines R5.61). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts.
 	Accepting *bool            `json:"accepting,omitempty"`
 	Arch      Arch             `json:"arch"`
 	Backends  []BackendSupport `json:"backends"`
@@ -2080,13 +2080,13 @@ type Machine struct {
 	Online       bool       `json:"online"`
 	Os           OS         `json:"os"`
 
-	// PauseReason Why a machine takes no new job (machines R5.60). Other features read these exact names.
+	// PauseReason Why a machine takes no new job (machines R5.61). Other features read these exact names.
 	PauseReason *PauseReason `json:"pause_reason,omitempty"`
 
 	// PendingChange A change that waits for a drain (machines R5.30 to R5.33).
 	PendingChange *MachineChange `json:"pending_change,omitempty"`
 
-	// Policy What the agent last reported about the power source and the CPU cap (machines R5.60 to R5.62).
+	// Policy What the agent last reported about the power source and the CPU cap (machines R5.61 to R5.63).
 	Policy      *MachinePolicy `json:"policy,omitempty"`
 	RunningJobs *[]Job         `json:"running_jobs,omitempty"`
 
@@ -2164,10 +2164,10 @@ type MachineList struct {
 	Items []Machine `json:"items"`
 }
 
-// MachineMode Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.59).
+// MachineMode Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.60).
 type MachineMode string
 
-// MachinePolicy What the agent last reported about the power source and the CPU cap (machines R5.60 to R5.62).
+// MachinePolicy What the agent last reported about the power source and the CPU cap (machines R5.61 to R5.63).
 type MachinePolicy struct {
 	// BatteryKnown False when no battery reading was possible; the machine then counts as on mains.
 	BatteryKnown bool `json:"battery_known"`
@@ -2175,7 +2175,7 @@ type MachinePolicy struct {
 	// CpuCapDetail Why the cap is not applied, in words fit to show.
 	CpuCapDetail *string `json:"cpu_cap_detail,omitempty"`
 
-	// CpuCapState What the agent did with the CPU cap. not_supported is macOS (machines R5.62).
+	// CpuCapState What the agent did with the CPU cap. not_supported is macOS (machines R5.63).
 	CpuCapState *CpuCapState `json:"cpu_cap_state,omitempty"`
 	OnBattery   bool         `json:"on_battery"`
 }
@@ -2187,7 +2187,7 @@ type MachineSettings struct {
 	BudgetMemoryPct int           `json:"budget_memory_pct"`
 	CacheCapBytes   *int64        `json:"cache_cap_bytes,omitempty"`
 
-	// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.62). Separate from the load budget. 100 is no cap.
+	// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.63). Separate from the load budget. 100 is no cap.
 	CpuCapPct           *CpuCapPct                    `json:"cpu_cap_pct,omitempty"`
 	DrainTimeoutMinutes int                           `json:"drain_timeout_minutes"`
 	GateMaxWaitMinutes  *int                          `json:"gate_max_wait_minutes,omitempty"`
@@ -2199,13 +2199,13 @@ type MachineSettings struct {
 	LightJobs           *[]string                     `json:"light_jobs,omitempty"`
 	LightSlots          int                           `json:"light_slots"`
 
-	// Mode Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.59).
+	// Mode Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.60).
 	Mode *MachineMode `json:"mode,omitempty"`
 
-	// PauseOnBattery Automatic pauses while the machine runs on battery. On by default; Always ignores it (machines R5.59, R5.61).
+	// PauseOnBattery Automatic pauses while the machine runs on battery. On by default; Always ignores it (machines R5.60, R5.62).
 	PauseOnBattery *bool `json:"pause_on_battery,omitempty"`
 
-	// PauseUntil A pause from the tray with a timer ends at this time. Absent when none runs (machines R5.59).
+	// PauseUntil A pause from the tray with a timer ends at this time. Absent when none runs (machines R5.60).
 	PauseUntil *time.Time `json:"pause_until,omitempty"`
 
 	// PauseUntilResumed A pause from the tray holds until Resume.
@@ -2238,7 +2238,7 @@ type MachineSettingsUpdate struct {
 	// ConfirmShrink The explicit yes to a pool size below the current one. confirm does not stand for it (machines R5.58).
 	ConfirmShrink *bool `json:"confirm_shrink,omitempty"`
 
-	// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.62). Separate from the load budget. 100 is no cap.
+	// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.63). Separate from the load budget. 100 is no cap.
 	CpuCapPct           *CpuCapPct                          `json:"cpu_cap_pct,omitempty"`
 	DrainTimeoutMinutes *int                                `json:"drain_timeout_minutes,omitempty"`
 	GateOnTimeout       *MachineSettingsUpdateGateOnTimeout `json:"gate_on_timeout,omitempty"`
@@ -2248,11 +2248,11 @@ type MachineSettingsUpdate struct {
 	LightJobs           *[]string                           `json:"light_jobs,omitempty"`
 	LightSlots          *int                                `json:"light_slots,omitempty"`
 
-	// Mode Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.59).
+	// Mode Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.60).
 	Mode *MachineMode `json:"mode,omitempty"`
 	Name *string      `json:"name,omitempty"`
 
-	// Pause A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.59).
+	// Pause A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.60).
 	Pause          *MachineSettingsUpdatePause `json:"pause,omitempty"`
 	PauseOnBattery *bool                       `json:"pause_on_battery,omitempty"`
 
@@ -2267,7 +2267,7 @@ type MachineSettingsUpdate struct {
 // MachineSettingsUpdateGateOnTimeout defines model for MachineSettingsUpdate.GateOnTimeout.
 type MachineSettingsUpdateGateOnTimeout string
 
-// MachineSettingsUpdatePause A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.59).
+// MachineSettingsUpdatePause A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.60).
 type MachineSettingsUpdatePause string
 
 // MachineState active and drained are set by the user; draining while a drain waits.
@@ -2394,7 +2394,7 @@ type Overview struct {
 	Running     []Job  `json:"running"`
 }
 
-// PauseReason Why a machine takes no new job (machines R5.60). Other features read these exact names.
+// PauseReason Why a machine takes no new job (machines R5.61). Other features read these exact names.
 type PauseReason string
 
 // Plan A planned change. Nothing changes until it is applied. Each step names what it does; steps that delete need their own yes (UX-62).

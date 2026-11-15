@@ -18,7 +18,7 @@ type View struct {
 	SlotsUsed     int
 	RunningJobs   []JobRef
 	PendingChange *Change
-	// Policy is what the agent last reported about taking new jobs (R5.60).
+	// Policy is what the agent last reported about taking new jobs (R5.61).
 	Policy Policy
 }
 

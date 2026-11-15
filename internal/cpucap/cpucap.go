@@ -1,5 +1,5 @@
 // Package cpucap limits the CPU the runner processes of this machine may use
-// (machines R5.62). The cap is a share of the whole machine: 50 means half of
+// (machines R5.63). The cap is a share of the whole machine: 50 means half of
 // all cores. It is separate from the load budget of the admission gate.
 //
 // Windows puts the runner service process tree in a Job Object with CPU rate

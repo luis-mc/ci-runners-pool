@@ -18,7 +18,7 @@ func tree(entries map[string]map[string]string) fstest.MapFS {
 	return m
 }
 
-// R5.61: Linux reads /sys/class/power_supply; no battery and unreadable count as mains.
+// R5.62: Linux reads /sys/class/power_supply; no battery and unreadable count as mains.
 func TestLinuxSupplies(t *testing.T) {
 	cases := []struct {
 		name string
@@ -53,7 +53,7 @@ func TestLinuxSupplies(t *testing.T) {
 	}
 }
 
-// R5.61: macOS reads `pmset -g batt`.
+// R5.62: macOS reads `pmset -g batt`.
 func TestPmset(t *testing.T) {
 	cases := []struct {
 		name, out string
@@ -74,7 +74,7 @@ func TestPmset(t *testing.T) {
 	}
 }
 
-// R5.61: Windows reads GetSystemPowerStatus.
+// R5.62: Windows reads GetSystemPowerStatus.
 func TestSystemPowerStatus(t *testing.T) {
 	cases := []struct {
 		name        string
