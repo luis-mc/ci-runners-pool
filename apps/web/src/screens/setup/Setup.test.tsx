@@ -149,7 +149,7 @@ const serverCodes = [
   ...readFileSync(errorsGo ?? 'internal/api/errors.go', 'utf8').matchAll(
     /^\s*Code\w+\s*=\s*"([a-z_]+)"/gm,
   ),
-].map((m) => m[1]);
+].flatMap((m) => (m[1] ? [m[1]] : []));
 
 describe('Setup errors (UX-6)', () => {
   it('reads the server error codes', () => {
