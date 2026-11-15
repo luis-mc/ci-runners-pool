@@ -152,41 +152,22 @@ func TestOnePoolContainerPerRepository(t *testing.T) {
 	}
 }
 
-// R5.25: the config reaches the runner through a file only the job user can
-// read; it is in no argument, no log and no error, and it is deleted at start.
-func TestJitConfigOnlyInAFileAndDeletedAtStart(t *testing.T) {
+// R5.25, R5.40: the config reaches the runner on standard input; see
+// jitstdin_test.go for the stdin-only checks.
+func TestJitConfigRedactedAndNotInLogs(t *testing.T) {
 	r := newRig(t)
 	h := r.start("job-1", "demo", r.image())
-	if strings.Contains(r.f.text(), jitSecret) {
-		t.Fatalf("the JIT config is in an argument:\n%s", r.f.text())
-	}
 	for _, l := range r.logs {
 		if strings.Contains(l, jitSecret) {
 			t.Fatalf("the JIT config is in a log line: %s", l)
 		}
 	}
-	n := 0
-	for _, in := range r.f.stdins {
-		if in == jitSecret {
-			n++
-		}
-	}
-	if n != 1 {
-		t.Fatalf("the config goes in once, by stdin: %d", n)
-	}
 	c := r.pool("demo")
-	if _, there := c.files[jitFile("job-1")]; there {
-		t.Fatal("the config file must be gone once the runner started")
-	}
 	if len(c.started) != 1 {
 		t.Fatalf("one runner started: %v", c.started)
 	}
 	if !strings.Contains(strings.Join(r.learn, ","), jitSecret) {
 		t.Fatal("the redactor must learn the config before it is used")
-	}
-	// The write is a file made with umask 077 on the tmpfs that only the job user can read.
-	if !strings.Contains(r.f.text(), "umask 077") || !strings.Contains(strings.Join(c.args, " "), JITDir+":rw,noexec,nosuid,nodev,mode=0700,uid=1001") {
-		t.Fatalf("the config file is not private:\n%s", strings.Join(c.args, " "))
 	}
 	_ = h
 
@@ -252,9 +233,6 @@ func TestNothingCarriesOver(t *testing.T) {
 	fc := f.pool("demo")
 	if _, ok := fc.files[jobDir("bad-1")]; ok {
 		t.Fatal("a failed start left its folder")
-	}
-	if _, ok := fc.files[jitFile("bad-1")]; ok {
-		t.Fatal("a failed start left its config file")
 	}
 	if _, ok := fc.files[jobDir("ok-1")]; !ok {
 		t.Fatal("a failed start removed another runner's folder")

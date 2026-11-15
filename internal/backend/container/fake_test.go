@@ -40,7 +40,7 @@ type fakeC struct {
 	key     string
 	image   string
 	files   map[string]string // path -> content ("" for a dir)
-	started []string          // jobs
+	started []string          // JIT configs the start script read from stdin
 }
 
 type fakeImg struct {
@@ -192,13 +192,11 @@ func (f *fakeDocker) run(a []string) sys.Result {
 func (f *fakeDocker) exec(a []string, stdin string) sys.Result {
 	// docker exec [-i] [-d] [-u U] [-w W] pool cmd...
 	i := 1
-	detached := false
 	for i < len(a) {
 		switch a[i] {
 		case "-i":
 			i++
 		case "-d":
-			detached = true
 			i++
 		case "-u", "-w", "-e":
 			i += 2
@@ -271,17 +269,15 @@ found:
 					}
 				}
 			}
-		case detached && strings.HasPrefix(script, "f="):
-			// The start script reads the config file and deletes it.
+		case strings.HasPrefix(script, "IFS= read -r c"):
+			// The start script reads the config from stdin only.
 			if f.failStart != "" {
 				return fail1(f.failStart)
 			}
-			p := rest[4]
-			if _, there := c.files[p]; !there {
-				return fail1("no config file")
+			if strings.TrimSpace(stdin) == "" {
+				return fail1("no config on stdin")
 			}
-			delete(c.files, p)
-			c.started = append(c.started, p)
+			c.started = append(c.started, strings.TrimSpace(stdin))
 		}
 	}
 	return ok0()

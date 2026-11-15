@@ -123,17 +123,19 @@ func ownerRepo(url string) (owner, repo string, err error) {
 	return parts[1], parts[2], nil
 }
 
-func jobDir(name string) string  { return JobsDir + "/" + name }
-func jitFile(name string) string { return JITDir + "/" + name + ".jit" }
+func jobDir(name string) string { return JobsDir + "/" + name }
 
-// runnerScript reads the JIT config from its file, deletes the file, then
-// starts the runner with the config in its environment only. The config is
-// never in an argument, so `ps` and the engine's inspect do not show it.
-const runnerScript = `f="$1"; c=$(cat "$f") || exit 1; rm -f "$f"; ACTIONS_RUNNER_INPUT_JITCONFIG="$c"; export ACTIONS_RUNNER_INPUT_JITCONFIG; unset c; exec ./run.sh >runner.log 2>&1`
+// runnerScript reads the JIT config from its one line of standard input, then
+// starts the runner in the background with the config in the environment of
+// that one process only. The config is in no file, no argument and no
+// container setting, so `ps`, `docker inspect` and the disk never show it. The
+// runner binary takes the config as `--jitconfig` or in its own environment;
+// the second is the one that stays out of a process list.
+const runnerScript = `IFS= read -r c || exit 1; test -n "$c" || exit 1; ACTIONS_RUNNER_INPUT_JITCONFIG="$c" nohup ./run.sh >runner.log 2>&1 </dev/null & exit 0`
 
 // Start implements backend.Backend: it makes sure the pool container of the
 // repository runs, gives the runner its own folder, hands the JIT config over
-// through a file only the job user can read, and starts the runner. The runner
+// on standard input only (github-integration R5.40), and starts the runner. The runner
 // takes one job and exits (runners R5.25).
 func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.StartConfig) (backend.Handle, error) {
 	b.learn(cfg.JITConfig, cfg.Registration, cfg.Removal)
@@ -186,9 +188,9 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	if plan.WinePrefix != "" {
 		b.ensureWine(ctx, pool, plan)
 	}
-	startArgs := []string{"exec", "-d", "-u", JobUser, "-w", jobDir(r.Name)}
+	startArgs := []string{"exec", "-i", "-u", JobUser, "-w", jobDir(r.Name)}
 	startArgs = append(startArgs, envArgs(plan.RunnerEnv)...)
-	startArgs = append(startArgs, pool, "sh", "-c", runnerScript, "sh", jitFile(r.Name))
+	startArgs = append(startArgs, pool, "sh", "-c", runnerScript)
 	steps := []struct {
 		step string
 		args []string
@@ -216,18 +218,9 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 			return h, err
 		}
 	}
-	for _, s := range []struct {
-		step string
-		args []string
-		in   string
-	}{
-		{"register", []string{"exec", "-i", "-u", JobUser, pool, "sh", "-c", `umask 077 && cat > "$1"`, "sh", jitFile(r.Name)}, cfg.JITConfig},
-		{"start", startArgs, ""},
-	} {
-		if err := b.step(ctx, s.step, s.args, s.in); err != nil {
-			rollback()
-			return h, err
-		}
+	if err := b.step(ctx, "start", startArgs, cfg.JITConfig+"\n"); err != nil {
+		rollback()
+		return h, err
 	}
 	b.log("start", "runner "+r.Name+" started in "+pool)
 	return h, nil
@@ -376,7 +369,7 @@ func (b *Backend) removeDB(ctx context.Context, pool string, h backend.Handle) e
 }
 
 func (b *Backend) cleanUp(ctx context.Context, pool, name string) error {
-	res, err := b.run(ctx, "exec", pool, "sh", "-c", `rm -rf -- "$1" "$2"`, "sh", jobDir(name), jitFile(name))
+	res, err := b.run(ctx, "exec", pool, "sh", "-c", `rm -rf -- "$1"`, "sh", jobDir(name))
 	if err != nil {
 		return err
 	}

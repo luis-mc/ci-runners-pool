@@ -10,7 +10,7 @@ Status: started 2026-11-15. Updated after each step.
 5. Specs, change notes, docs check.
 
 ## Done
-(nothing yet)
+- Step 1 done: container backend takes the JIT config on stdin (internal/backend/container, jitstdin_test.go). The tmpfs /run/crsp and the config file are gone.
 
 ## Notes
 - The runner binary accepts the JIT config only as `--jitconfig` or as the env of its own process. crsp uses the second, set inside the one process by the start script after reading stdin. It is never a container env, a file, or an argument.

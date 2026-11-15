@@ -23,9 +23,6 @@ const (
 	JobsDir    = RunnerHome + "/jobs"
 	// RunnerDir is the Actions runner in the image; each job gets its own copy.
 	RunnerDir = "/opt/actions-runner"
-	// JITDir is a tmpfs only the job user can read. The JIT config is written
-	// here for a moment and deleted by the runner's start script (runners R5.25).
-	JITDir = "/run/crsp"
 	// KVMDevice is the only device a pool container may use, allowed by KVMCgroupRule (runners R5.27).
 	KVMDevice = "/dev/kvm"
 )
@@ -99,7 +96,6 @@ func RunArgs(p PoolSpec) ([]string, error) {
 		"--cap-drop", CapDrop,
 		"--security-opt", "no-new-privileges",
 		"--pids-limit", "8192",
-		"--tmpfs", fmt.Sprintf("%s:rw,noexec,nosuid,nodev,mode=0700,uid=%d,gid=%d,size=1m", JITDir, JobUID, JobUID),
 		"--label", LabelPool + "=" + strings.ToLower(p.Owner+"/"+p.Repo),
 		"--label", LabelImage + "=" + p.ImageKey,
 	}
