@@ -29,6 +29,9 @@ var (
 	ErrRateLimited = errors.New("github rate limited")
 	// ErrNotFound: the App, installation, repository or runner is gone.
 	ErrNotFound = errors.New("github: not found")
+	// ErrRunnerBusy: GitHub answered 422 to the delete of a runner, which means
+	// the runner has a job. Callers leave the runner running (R5.33, R5.62).
+	ErrRunnerBusy = errors.New("github: the runner has a job")
 	// ErrForbidden: a permission is missing (R5.24).
 	ErrForbidden = errors.New("github: forbidden")
 )
@@ -140,16 +143,20 @@ type WorkflowFile struct {
 
 // Job is a workflow job as GitHub reports it (R5.36 to R5.38).
 type Job struct {
-	ID          int64
-	RunID       int64
-	RunAttempt  int
-	Repository  string
-	Workflow    string
-	Name        string
-	HeadSHA     string
-	HeadBranch  string
-	Event       string
-	FromFork    bool
+	ID         int64
+	RunID      int64
+	RunAttempt int
+	Repository string
+	Workflow   string
+	Name       string
+	HeadSHA    string
+	HeadBranch string
+	Event      string
+	FromFork   bool
+	// Partial is true for a job read from a webhook: the event that started its
+	// run and whether it came from a fork are not known yet (CRSP82). A partial
+	// job never gets a runner until the poller reads the run.
+	Partial     bool
 	Labels      []string
 	Status      string // queued, in_progress or completed
 	Conclusion  string
@@ -158,6 +165,9 @@ type Job struct {
 	StartedAt   time.Time
 	CompletedAt time.Time
 	HTMLURL     string
+	// ScaleSetID is set on a job that came from a scale-set session (R5.40).
+	// The runner for such a job takes its JIT config from that scale set.
+	ScaleSetID int64
 }
 
 // OAuth is the web and device sign-in flows (R5.8, R5.14).

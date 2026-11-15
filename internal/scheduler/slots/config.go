@@ -28,6 +28,9 @@ type Settings struct {
 	OnTimeout       string
 	LightJobs       []string
 	HeavyJobs       []string
+	// Classes is the table of job classes and their weights (R5.69). It is
+	// not a stored setting: every machine starts from DefaultClasses.
+	Classes []JobClass
 }
 
 // Defaults returns the dev-standards defaults (R5.1; machine_slots.py DEFAULT_CONFIG).
@@ -44,6 +47,7 @@ func Defaults() Settings {
 		OnTimeout:       OnTimeoutFail,
 		LightJobs:       []string{"smoke", "prune", "prune-*", "cleanup", "remove-train", "decide", "delete-*", "runners"},
 		HeavyJobs:       []string{},
+		Classes:         DefaultClasses(),
 	}
 }
 

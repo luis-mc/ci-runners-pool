@@ -45,11 +45,14 @@ func (e demandEnv) Repo(ctx context.Context, fullName string) (demand.Repo, bool
 		if !strings.EqualFold(r.FullName, fullName) {
 			continue
 		}
+		if r.Visibility == "public" {
+			return demand.Repo{}, false, nil // crsp never serves a public repository (CRSP82)
+		}
 		pol, err := e.repos.GetPolicy(ctx, r.ID)
 		if err != nil {
 			return demand.Repo{}, false, err
 		}
-		return demand.Repo{Scope: runners.Scope{Kind: "repository", RepositoryID: r.ID}, AllowFork: pol.AllowForkPRs, ExtraPackages: pol.ExtraPackages}, true, nil
+		return demand.Repo{InstallationID: r.InstallationID, Scope: runners.Scope{Kind: "repository", RepositoryID: r.ID}, AllowFork: pol.AllowForkPRs, ExtraPackages: pol.ExtraPackages}, true, nil
 	}
 	return demand.Repo{}, false, nil
 }
@@ -98,9 +101,14 @@ type demandRunner struct {
 	env    demandEnv
 	loop   *demand.Loop
 
+	// scaleSet turns on the scale-set source with polling as the fallback
+	// (github-integration R5.40).
+	scaleSet bool
+
 	mu     sync.Mutex
 	ctx    context.Context
 	poller *github.Poller
+	scale  *github.ScaleSetDemand
 	cancel context.CancelFunc
 	done   chan struct{}
 }
@@ -141,9 +149,29 @@ func (d *demandRunner) start() {
 			}
 		},
 	}
-	jobs, err := poller.Jobs(ctx)
+	var src github.Demand = poller
+	d.scale = nil
+	if d.scaleSet {
+		scale := &github.ScaleSetDemand{Tokens: d.gh, Name: d.loop.PoolName, APIBase: d.gh.APIBase(), WebBase: d.gh.WebBase(),
+			Targets: func(ctx context.Context) ([]github.ScaleSetTarget, error) {
+				ts, err := d.targets(ctx)
+				out := make([]github.ScaleSetTarget, 0, len(ts))
+				for _, t := range ts {
+					out = append(out, github.ScaleSetTarget(t))
+				}
+				return out, err
+			}}
+		d.scale = scale
+		d.loop.ScaleJIT = func(j github.Job, name string) func(context.Context) (github.JITConfig, error) {
+			return func(ctx context.Context) (github.JITConfig, error) { return scale.JIT(ctx, j, name) }
+		}
+		src = &demand.Failover{Primary: scale, Fallback: poller, Logger: d.logger, Why: scale.Err,
+			OnState: func(source, why string) { d.logger.Info("demand source", "source", source, "why", why) }}
+		d.logger.Info("scale-set demand is on; polling is the fallback", "scale_set", d.loop.PoolName)
+	}
+	jobs, err := src.Jobs(ctx)
 	if err != nil {
-		d.logger.Error("start the demand poller", "err", err)
+		d.logger.Error("start the demand source", "err", err)
 		cancel()
 		return
 	}
@@ -177,12 +205,18 @@ func (d *demandRunner) Restart() {
 // LastDemand implements demand.DemandSeen over the current poller.
 func (d *demandRunner) LastDemand(fullName string) time.Time {
 	d.mu.Lock()
-	p := d.poller
+	p, sc := d.poller, d.scale
 	d.mu.Unlock()
-	if p == nil {
-		return time.Time{}
+	var t time.Time
+	if p != nil {
+		t = p.LastDemand(fullName)
 	}
-	return p.LastDemand(fullName)
+	if sc != nil {
+		if s := sc.LastDemand(fullName); s.After(t) {
+			t = s
+		}
+	}
+	return t
 }
 
 // Stop ends the poller and the loop.
@@ -195,10 +229,10 @@ func (d *demandRunner) Stop() {
 // startDemand runs the poller, the demand loop and the quiet-demand watchdog
 // until the returned stop is called. The watchdog's state is what the doctor
 // check `demand.quiet` reads.
-func startDemand(ctx context.Context, logger *slog.Logger, gh *github.REST, env demandEnv, svc *runners.Service, pool string, quiet time.Duration) (stop func(), wd *demand.Watchdog) {
+func startDemand(ctx context.Context, logger *slog.Logger, gh *github.REST, env demandEnv, svc *runners.Service, pool string, quiet time.Duration, scaleSet bool) (stop func(), wd *demand.Watchdog) {
 	ctx, cancel := context.WithCancel(ctx)
-	dr := &demandRunner{logger: logger, gh: gh, env: env, ctx: ctx,
-		loop: &demand.Loop{Env: env, Runners: svc, PoolName: pool, Logger: logger}}
+	dr := &demandRunner{logger: logger, gh: gh, env: env, ctx: ctx, scaleSet: scaleSet,
+		loop: &demand.Loop{Env: env, Runners: svc, PoolName: pool, Logger: logger, ReadJob: gh.GetJob}}
 	dr.mu.Lock()
 	dr.start()
 	dr.mu.Unlock()

@@ -60,7 +60,7 @@ Status words: **Built** (code and tests exist), **Built in part** (what is built
 | 16 | Routing: variables with the runner labels | `CI_RUNS_ON`, `CI_RUNS_ON_WINDOWS`, label `repo-<route>` | all | Built as `RUNS_ON_*` (CRSP22 and earlier); the old names `CI_RUNS_ON` and `CI_RUNS_ON_WINDOWS` Built (CRSP47, setting `legacy_vars`). CRSP58: a queued job whose `runs-on` labels (`self-hosted`, `linux`, architecture, `docker`, pool name) a container runner honours is matched to a machine and gets a runner | github R5.27 to R5.30, R5.37; github R5.39 |
 | 17 | One registry of all runners, status, doctor compares with GitHub | `agents.json`, `pool_status.py` | all | Built | runners R5.2, R5.5; doctor R5.11, R5.12 |
 | 18 | Runner version pinned with SHA-256 | `RUNNER_SHA256` | all | Built | runners R5.37 |
-| 19 | Runner auto-update with drain | `pool-refresh` | all | Built in part (CRSP59): controller drain, update, truthful result, setting. Not yet: the agent message that swaps the runner files | runners R5.38 |
+| 19 | Runner auto-update with drain | `pool-refresh` | all | Built (CRSP59, HND15): controller drain, update, truthful result, setting, and the agent message that swaps the runner files (runners R5.69). Not yet: the schedule that calls the update | runners R5.38 |
 | 20 | Never cut a running job: drain, check right before the swap | drain handshake | all | Built (runners: drain and idle check right before the swap, CRSP22 and CRSP59; image swap: CRSP52, `TestRefreshNeverCutsARunningJob`) | runners R6.4; machines R5.30 to R5.33; runners R5.35 |
 | 21 | Base image like a hosted runner: git, curl, jq, zip, build-essential, libatomic, psql client, `gh`, python3 | Dockerfile | J1 to J11 | Built in part (CRSP49: `images/linux-base/Dockerfile` with git, curl, jq, zip, unzip, build-essential, libatomic, psql client, `gh`, python3, built in CI with a tool self-check). Built by CRSP69: the Actions runner in `/opt/actions-runner`, pinned and hash checked for amd64 and arm64, updates off, self-checked in CI (runners open question 10) | runners R5.49 |
 | 22 | Node LTS with corepack, `pnpm` shim | Dockerfile (DL215, DL220, DL223) | J1, J7 | Built (CRSP49): Node LTS first on `PATH`, corepack from a pinned hash-checked tarball, `corepack enable` at build, the `pnpm` and `yarn` shims; checked in the image self-check | runners R5.49 |
@@ -80,7 +80,7 @@ Status words: **Built** (code and tests exist), **Built in part** (what is built
 | 36 | Per-runner tool cache and Rust cache with quotas and eviction | `/ci-tools`, `cache-sweep` | J1, J2, J8 | Built for persistent runners (CRSP21, CRSP26); pool-wide budget and size alert Built (CRSP48); container form Built (CRSP53: lanes, mounts, quotas). CRSP68: the pool start takes the lane when it makes the pool container | caches R5.36 to R5.39; caches R5.48, R5.49; caches R5.43 |
 | 37 | Shared-cache mode for a folder many users write | `ci_tool.py` (DL194) | J2 | Built for the cache part (CRSP53); scope set by D308 | caches R5.18 to R5.20; caches R5.44 |
 | 38 | Rust cache cap: key in use kept, newest other key, `incremental/` first | `rust_ci.py` (DL342) | J2, J8 | Built (CRSP48), with a cap per cache key | caches R5.37; caches R5.45 |
-| 39 | `vm_check.py` and `vm-images.json` | `scripts/delivery` | J11 | Data and checks Built (CRSP26); `crsp vm list` and `crsp vm boot` Built (CRSP61: sha-checked download, QEMU+KVM, serial readiness line); `prepare` (image), `run` over ssh with a per-run key and cloud-init seed, `selinux` Built (CRSP65). `prune`, the prepared base disk with a run overlay on it, the shared VM cache (lock, size cap, leases) and the memory warning Built (CRSP71). Not yet: `doctor`, packages in the base disk, snapshots and `--resume`, the root owner and `kvm` group of the folder (caches open questions 19, 20) | caches R5.40; caches R5.46, R5.47; runners R5.55 |
+| 39 | `vm_check.py` and `vm-images.json` | `scripts/delivery` | J11 | Data and checks Built (CRSP26); `crsp vm list` and `crsp vm boot` Built (CRSP61: sha-checked download, QEMU+KVM, serial readiness line); `prepare` (image), `run` over ssh with a per-run key and cloud-init seed, `selinux` Built (CRSP65). `prune`, the prepared base disk with a run overlay on it, the shared VM cache (lock, size cap, leases) and the memory warning Built (CRSP71). `crsp vm doctor` and the package manifest of a base disk with the drift check Built (HND18). Not yet: the install of packages into a base disk, snapshots and `--resume`, the root owner and `kvm` group of the folder (caches open questions 19, 20) | caches R5.40; caches R5.46, R5.47; runners R5.55 |
 | 40 | Pinned downloads and unpack (`ci_tool.py`, `tools.json`) | delivery scripts | J1 to J4 | Not taken: they stay in delivery (D308) | caches R5.44 |
 | 41 | KVM on WSL2: load the module, check `nestedVirtualization` | `kvm-autoload` (DL343) | J11 | Built in part (CRSP56: `.wslconfig` parse, load plan, loader module by CPU, loader service in compose; CRSP61: `agent.ReadWSLKVM`, doctor checks `kvm.wslconfig` and `kvm.module`; CRSP63: fed by the agent's machine report over the link and registered in the live doctor). Not yet: checked on a real machine | machines R5.53; doctor R5.32 |
 | 42 | WSL memory and CPU sizing from `.wslconfig` | `pool-plan` | all | Built in part (CRSP50): `.wslconfig` read into facts | machines R5.54 |
@@ -88,7 +88,7 @@ Status words: **Built** (code and tests exist), **Built in part** (what is built
 | 44 | Cache over quota, low cache disk | `cache-cap`, `cache-disk` | J2 | Built (CRSP48) | doctor R5.34 |
 | 45 | Which jobs of a repository the pool can run | none | all | Built in part (CRSP47: `repo.coverage`, a static capability table per release, `covered`, `missing: <capability>` or `not checked`). Not yet: it does not look at the runners that are online (doctor open question 0); the table is not extended for each release | doctor R5.33 |
 | 46 | Local heavy-work guard, cloud CI session limit, `ci-wait` marker and fallback | delivery | n/a | Not taken (D301) | handover |
-| 47 | Verify workflow `pool-check.yml` | a manual run | n/a | `pool-check.yml` replaced by `crsp doctor` (Built CRSP23, without `--local`). The parity workflow `parity.yml` is not built (v0.7.0) | doctor R5.21 |
+| 47 | Verify workflow `pool-check.yml` | a manual run | n/a | `pool-check.yml` replaced by `crsp doctor` (Built CRSP23, without `--local`). The parity workflow `parity.yml` is built (HND21: `crsp parity check` against the pool, nightly and on demand, artifact `parity-report`); the fixture jobs of J1 to J13 in it are not built (v0.7.0) | doctor R5.21 |
 | 48 | Actions cache server, git mirror, registry mirror | not in the old pool | n/a | Not needed for parity; jobs use GitHub's cache | caches R5.1 to R5.13 (M7) |
 
 ### What is left
@@ -98,11 +98,11 @@ Checked on 15 Nov 2026 (CRSP71). Only real gaps are listed; each names the rows.
 1. **The pool start has no stored pool settings (rows 13, 34, 35).** Built by CRSP68: `container.Backend.Start` mounts the cache lane, sets the job environment, calls `EnsureWinePrefix`, sets the `crsp` mount and `KVM`, starts Postgres and writes `db.env`, and sets `PLAYWRIGHT_BROWSERS_PATH`, each by its condition. Not yet: no store holds a repository's layers, database flag, `db_createdb` and roles (`Service.PoolSettings` is nil), the lane folders are not made writable for the job user, and nothing reads the logins back after an agent restart (runners open questions 48 to 53).
 2. **The agent link (rows 13, 14, 33, 41).** Built by CRSP63: runner commands and the machine report (engine, KVM, images) go over the link and feed the doctor. Not yet: draining one runner alone (runners open question 41) and a check on a real remote machine.
 3. **Extra packages on a remote machine (row 29).** The pool setting, API, CLI and console field are built (CRSP70); the list does not yet go over the agent link to a remote machine.
-4. **Runner update (row 19).** The agent message that swaps the runner files is not built.
+4. **Runner update (row 19).** The agent message that swaps the runner files is built (HND15, runners R5.69). Not yet: the schedule that calls `UpdateAll` when a release pins a newer version, and a check on a real remote machine.
 5. **Machine sizing (row 9).** The cpuset waits for the container backend. The pool size form is built (CRSP70).
-6. **`crsp vm` (row 39).** `prepare`, `run` over ssh and `selinux` are built (CRSP65). `prune`, the base disk, the shared VM cache and the memory warning are built (CRSP71). Not yet: `doctor`, packages in the base disk, snapshots and `--resume` (caches R5.46, open question 19), and the owner and group of a machine-wide cache folder (open question 20).
-7. **Pins and tools (rows 23, 25, 27).** LLVM is amd64 only, Wine and dotnet are pinned by line and not by version (runners open questions 28, 31, 38), there is no AppImage tool (open question 39), and the Windows symlink right is not built.
-8. **Coverage and the parity gate (rows 45, 47).** The coverage table does not look at online runners and is not extended each release; `parity.yml`, the soak and the move runbook (v0.7.0) do not exist.
+6. **`crsp vm` (row 39).** `prepare`, `run` over ssh and `selinux` are built (CRSP65). `prune`, the base disk, the shared VM cache and the memory warning are built (CRSP71). `crsp vm doctor` and the package manifest of a base disk with the drift check Built (HND18). Not yet: the install of packages into a base disk, snapshots and `--resume` (caches R5.46, open question 19), and the owner and group of a machine-wide cache folder (open question 20).
+7. **Pins and tools (rows 23, 25, 27).** Wine and dotnet are pinned by line and not by version (runners open questions 31, 38) and there is no AppImage tool (open question 39). LLVM has an arm64 pin and the Windows symlink right is built (HND19, HND20; open question 28 closed).
+8. **Coverage and the parity gate (rows 45, 47).** The coverage table does not look at online runners and is not extended each release; `parity.yml` (pool checks, report, artifact), the soak definition with its judge and the move runbook exist (HND21, cli R5.28; [runbook](../guides/runbooks/move-to-crsp.md)). Not yet: the 13 fixture jobs in `parity.yml`, the live collection of a soak from the controller (`crsp parity soak` reads an observation file today), and the first real soak.
 
 ## 4. Releases on this PC
 
@@ -149,7 +149,7 @@ A repository moves one operating system at a time, because it has one variable p
 
 The owner fills the repository names by running the coverage check on the PC. Inside a wave, move the repository with the fewest jobs first, and one repository at a time: wait for one full CI run of a pull request and one run on the default branch before the next.
 
-The steps for one repository and one OS:
+The steps for one repository and one OS are in the [move runbook](../guides/runbooks/move-to-crsp.md); in short:
 
 1. `crsp doctor` shows `covered`.
 2. Turn the pool on for the repository in the console. crsp installs its runners and writes `RUNS_ON_<OS>`. With `legacy_vars` on it also writes `CI_RUNS_ON` or `CI_RUNS_ON_WINDOWS` (github R5.39), so the old templates follow.
@@ -159,6 +159,8 @@ The steps for one repository and one OS:
 6. After 7 green days the repository is done. The old runner is removed with the old pool, by the owner.
 
 ## 6. The parity test
+
+**This gate is the precondition of the dev-standards go messages HND13 and HND14.** Neither message is sent, and nothing in dev-standards is told that crsp covers every private-repo job, until P1 to P10 hold and the report of `parity.yml` has passed with a live soak (`counts_for_gate` true; a dry run never counts).
 
 crsp tells dev-standards "crsp covers every private-repo job" only when all of these hold on the same crsp release **V** on the owner's PC. V is v0.7.0 or later.
 
@@ -193,11 +195,28 @@ What each kind needs as proof. A kind is proven only with both columns.
 | J12 | On the Windows runner: a Rust test, a symlink creation, an MSI build, the packaged smoke. | The Windows job of a repository. |
 | J13 | 4 light and 3 heavy jobs started together: heavy jobs run one at a time, light jobs never wait behind them, and the gate holds a job when the load is over budget. | The slot log of a busy day (`crsp slots`). |
 
-When P1 to P10 hold, the orchestrator sends this message to the dev-standards session, once, and records it in the change note of the release:
+When P1 to P10 hold, and so does the precondition above, the orchestrator sends this message to the dev-standards session, once, and records it in the change note of the release:
 
 > crsp covers every private-repo job. Version V, commit SHA, date. Kinds J1 to J13 are proven (fixture run URLs and one real run URL per repository and kind). The old pool has had no job for 7 days. Deleting it is your owner's decision (D299). Rollback per repository is one variable.
 
 If a kind is added later (a repository gets a new job type), the coverage list shows `missing` and the message is withdrawn until P3 and P4 hold again.
+
+### The soak
+
+The soak is the test behind P1, P3, P5 and P6, defined in `internal/parity` and judged by `crsp parity soak` (cli R5.28). It is not run by the workflow; the owner starts it on the PC once the fixtures exist.
+
+| Part | Value |
+|---|---|
+| Classes | linux container (J1 to J10, J13), windows (J12), vm (J11) |
+| Jobs | N of each class; default N is 200 |
+| Duration | the window the N jobs are spread over; default 7 days (open question 3) |
+| No lost job | every submitted job finishes with a result; a job that never finished, or that the controller marks `lost`, fails the class |
+| No duplicate listener | no runner name answered by two listeners, and no job taken by two runners |
+| Queue wait | the p95 (nearest rank) of the queue wait is at most the bound; default 5 minutes |
+| Not enough jobs | fewer than N submitted jobs in a class fails the class |
+| Record | the parity report (`parity-report.json`): the plan, one row per class with submitted, finished, lost, duplicate, p95 wait and the reasons it failed |
+
+The report passes only when every check and every class passes. A dry run with fakes (`crsp parity soak --dry-run`) proves the logic and never counts for the gate.
 
 ## 7. Transition rules while both pools run
 

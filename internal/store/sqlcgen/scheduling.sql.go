@@ -421,7 +421,7 @@ func (q *Queries) InsertTicket(ctx context.Context, arg InsertTicketParams) erro
 }
 
 const listExpiredSlots = `-- name: ListExpiredSlots :many
-SELECT machine_id, kind, number, claim, repository, repository_id, run_id, run_attempt, job, github_job_id, shard, runner_name, holder_machine, holder_pid, gate_pid, queued_at, taken_at, expires_at FROM slots WHERE expires_at <= ?
+SELECT machine_id, kind, number, claim, repository, repository_id, run_id, run_attempt, job, github_job_id, shard, runner_name, holder_machine, holder_pid, gate_pid, queued_at, taken_at, expires_at, holder_id, lease_expires_at FROM slots WHERE expires_at <= ?
 `
 
 func (q *Queries) ListExpiredSlots(ctx context.Context, expiresAt string) ([]Slot, error) {
@@ -452,6 +452,8 @@ func (q *Queries) ListExpiredSlots(ctx context.Context, expiresAt string) ([]Slo
 			&i.QueuedAt,
 			&i.TakenAt,
 			&i.ExpiresAt,
+			&i.HolderID,
+			&i.LeaseExpiresAt,
 		); err != nil {
 			return nil, err
 		}
@@ -516,7 +518,7 @@ func (q *Queries) ListExpiredTickets(ctx context.Context, expiresAt string) ([]S
 }
 
 const listMachineSlots = `-- name: ListMachineSlots :many
-SELECT machine_id, kind, number, claim, repository, repository_id, run_id, run_attempt, job, github_job_id, shard, runner_name, holder_machine, holder_pid, gate_pid, queued_at, taken_at, expires_at FROM slots WHERE machine_id = ? ORDER BY kind, number
+SELECT machine_id, kind, number, claim, repository, repository_id, run_id, run_attempt, job, github_job_id, shard, runner_name, holder_machine, holder_pid, gate_pid, queued_at, taken_at, expires_at, holder_id, lease_expires_at FROM slots WHERE machine_id = ? ORDER BY kind, number
 `
 
 func (q *Queries) ListMachineSlots(ctx context.Context, machineID string) ([]Slot, error) {
@@ -547,6 +549,8 @@ func (q *Queries) ListMachineSlots(ctx context.Context, machineID string) ([]Slo
 			&i.QueuedAt,
 			&i.TakenAt,
 			&i.ExpiresAt,
+			&i.HolderID,
+			&i.LeaseExpiresAt,
 		); err != nil {
 			return nil, err
 		}

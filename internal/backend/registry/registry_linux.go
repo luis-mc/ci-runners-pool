@@ -13,10 +13,20 @@ import (
 // 0003, runners R5.31). The container backend is built in but a machine uses
 // it only when its allow list names it; the allow list is off by default
 // (machines R5.9).
-func platform(d sys.Deps) []backend.Backend {
+func platform(d sys.Deps, ids backend.IDSource) []backend.Backend {
 	eng := &container.Docker{Cmd: d.Cmd, GOOS: "linux"}
 	return []backend.Backend{
-		container.New(d, eng, container.DefaultConfig()),
-		linux.New(d, linux.DefaultConfig()),
+		container.New(d, eng, withIDs(container.DefaultConfig(), ids)),
+		linux.New(d, withLinuxIDs(linux.DefaultConfig(), ids)),
 	}
+}
+
+func withIDs(c container.Config, ids backend.IDSource) container.Config {
+	c.IDs = ids
+	return c
+}
+
+func withLinuxIDs(c linux.Config, ids backend.IDSource) linux.Config {
+	c.IDs = ids
+	return c
 }

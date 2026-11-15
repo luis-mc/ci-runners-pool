@@ -60,3 +60,21 @@ func BeatLimit(s Settings) time.Duration {
 func SlotExpiry(takenAt time.Time, s Settings) time.Time {
 	return takenAt.Add(time.Duration(s.SlotMaxAgeMin) * time.Minute)
 }
+
+// LeaseLimit is how long a slot lease lasts without a renewal: the same limit
+// as a ticket's beat (R5.34, R5.70).
+func LeaseLimit(s Settings) time.Duration { return BeatLimit(s) }
+
+// LeaseExpiry is when a lease renewed at renewedAt ends (R5.70).
+func LeaseExpiry(renewedAt time.Time, s Settings) time.Time {
+	return renewedAt.Add(LeaseLimit(s))
+}
+
+// LeaseEnd is the end of a slot's lease. A slot with no lease end (a row from
+// before leases) is judged by its age limit only, so nothing is freed on a guess.
+func LeaseEnd(s Slot) time.Time {
+	if s.LeaseExpiresAt.IsZero() {
+		return s.ExpiresAt
+	}
+	return s.LeaseExpiresAt
+}

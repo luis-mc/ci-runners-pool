@@ -21,15 +21,19 @@ type Scope struct {
 
 // Record is the runner record (runners R5.2). It has no token or password.
 type Record struct {
-	ID             string
-	Name           string
-	MachineID      string
-	OS             string
-	Arch           string
-	Kind           string // persistent or ephemeral
-	Backend        string
-	Isolation      string
-	Labels         []string
+	ID        string
+	Name      string
+	MachineID string
+	OS        string
+	Arch      string
+	Kind      string // persistent or ephemeral
+	Backend   string
+	Isolation string
+	Labels    []string
+	// Route and SizeClass are what routing and scheduling read. The name is
+	// for people only (runners R5.70, R5.71).
+	Route          Route
+	SizeClass      SizeClass
 	Scope          Scope
 	RunnerVersion  string
 	State          State
@@ -132,6 +136,8 @@ type AddSpec struct {
 	Labels    []string
 	Scope     Scope
 	Symlink   bool
+	// SizeClass is the declared size; empty means the default class.
+	SizeClass SizeClass
 	// MaxParallel is CI_MAX_PARALLEL for the runner's jobs; 0 sets none.
 	MaxParallel int
 }

@@ -9,6 +9,7 @@ func TestReconcileInstallationsTurnsOffLeavers(t *testing.T) { // R5.22
 	e := newEnv(t)
 	e.world()
 	e.turnOn(100, 101)
+	e.fake.Lock(func() { e.fake.Repos[100].Private = true }) // a public repository is stopped (CRSP82)
 	ctx := context.Background()
 	if err := e.svc.ReconcileInstallations(ctx); err != nil {
 		t.Fatal(err)

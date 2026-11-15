@@ -17,6 +17,7 @@ import (
 	"syscall"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
 // runAgentCmd is `crsp agent <run|join|install>` (machines R5.3, R5.9, R5.44 to R5.48).
@@ -37,6 +38,7 @@ func runAgentCmd(args []string, stdout, stderr io.Writer) error {
 
 type agentFlags struct {
 	controller, fingerprint, joinCode, dataDir string
+	diskFloorGiB                               int
 }
 
 func parseAgentFlags(name string, args []string) (*flag.FlagSet, *agentFlags, error) {
@@ -47,6 +49,7 @@ func parseAgentFlags(name string, args []string) (*flag.FlagSet, *agentFlags, er
 	fs.StringVar(&f.fingerprint, "fingerprint", os.Getenv("CRSP_FINGERPRINT"), "SHA-256 fingerprint of the controller certificate")
 	fs.StringVar(&f.joinCode, "join-code", "", "the one-time join code")
 	fs.StringVar(&f.dataDir, "data-dir", "", "the agent's data folder")
+	fs.IntVar(&f.diskFloorGiB, "disk-floor-gib", 0, "free GiB needed before a job or VM starts; 0 takes 10, a negative value turns the floor off")
 	if err := fs.Parse(args); err != nil {
 		return nil, nil, err
 	}
@@ -65,8 +68,8 @@ func agentConfig(f *agentFlags, logger *slog.Logger) (agent.Config, error) {
 	if err != nil {
 		return agent.Config{}, err
 	}
-	return agent.Config{Controller: f.controller, Pin: f.fingerprint, JoinCode: f.joinCode, Secrets: store, DataDir: f.dataDir, Version: version, Logger: logger, Caches: agentCacheSource(),
-		Runners: agentRunners(), Images: agentImageSource(), Redactor: secretRedactor}, nil
+	return agent.Config{Controller: f.controller, Pin: f.fingerprint, JoinCode: f.joinCode, Secrets: store, DataDir: f.dataDir, Version: version, Logger: logger, Caches: agentCacheSource(), DiskFloorGiB: runnercache.FloorSetting(f.diskFloorGiB),
+		Runners: agentRunners(), RunnerFiles: agentRunnerFiles(), Images: agentImageSource(), Redactor: secretRedactor}, nil
 }
 
 func agentRun(args []string, stderr io.Writer) error {

@@ -3,6 +3,8 @@ package container
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -10,6 +12,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/redact"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
@@ -74,7 +77,7 @@ func TestNoPrivilegedNoSocketKvmDevice(t *testing.T) {
 			t.Errorf("run args hold %q: %s", bad, args)
 		}
 	}
-	for _, want := range []string{"--user 1001:1001", "--cap-drop ALL", "--security-opt no-new-privileges", "--memory 8192m", "--cpus 4", "sleep infinity"} {
+	for _, want := range []string{"--user 1001:1001", "--cap-drop ALL", "--security-opt no-new-privileges", "--read-only", "--tmpfs /home/runner:", "--tmpfs /tmp:", "--memory 8192m", "--cpus 4", "sleep infinity"} {
 		if !strings.Contains(args, want) {
 			t.Errorf("run args miss %q: %s", want, args)
 		}
@@ -89,7 +92,7 @@ func TestNoPrivilegedNoSocketKvmDevice(t *testing.T) {
 	}
 
 	// The guard refuses each way to break the rules.
-	base := []string{"run", "-d", "--user", "1001:1001", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "img"}
+	base := []string{"run", "-d", "--read-only", "--user", "1001:1001", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "img"}
 	if err := CheckRunArgs(base); err != nil {
 		t.Fatalf("a good call is refused: %v", err)
 	}
@@ -103,6 +106,8 @@ func TestNoPrivilegedNoSocketKvmDevice(t *testing.T) {
 		"socket":      {"-v", "/var/run/docker.sock:/var/run/docker.sock"},
 		"mount":       {"--mount", "type=bind,source=/run/podman/podman.sock,target=/x"},
 		"unconfined":  {"--security-opt", "seccomp=unconfined"},
+		"own seccomp": {"--security-opt", "seccomp=/tmp/p.json"},
+		"rw root":     {"--read-only=false"},
 		"userns host": {"--userns=host"},
 	} {
 		if err := CheckRunArgs(append(append([]string{}, base[:len(base)-1]...), append(extra, "img")...)); !errors.Is(err, ErrUnsafeRun) {
@@ -110,11 +115,12 @@ func TestNoPrivilegedNoSocketKvmDevice(t *testing.T) {
 		}
 	}
 	for name, a := range map[string][]string{
-		"root":       {"run", "--user", "0", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "img"},
-		"no user":    {"run", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "img"},
-		"no drop":    {"run", "--user", "1001", "--security-opt", "no-new-privileges", "img"},
-		"new privs":  {"run", "--user", "1001", "--cap-drop", "ALL", "img"},
-		"root:group": {"run", "--user", "root:root", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "img"},
+		"root":         {"run", "--read-only", "--user", "0", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "img"},
+		"no user":      {"run", "--read-only", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "img"},
+		"no drop":      {"run", "--read-only", "--user", "1001", "--security-opt", "no-new-privileges", "img"},
+		"new privs":    {"run", "--read-only", "--user", "1001", "--cap-drop", "ALL", "img"},
+		"root:group":   {"run", "--read-only", "--user", "root:root", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "img"},
+		"no read-only": {"run", "--user", "1001", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "img"},
 	} {
 		if err := CheckRunArgs(a); !errors.Is(err, ErrUnsafeRun) {
 			t.Errorf("%s: not refused (%v)", name, err)
@@ -152,41 +158,22 @@ func TestOnePoolContainerPerRepository(t *testing.T) {
 	}
 }
 
-// R5.25: the config reaches the runner through a file only the job user can
-// read; it is in no argument, no log and no error, and it is deleted at start.
-func TestJitConfigOnlyInAFileAndDeletedAtStart(t *testing.T) {
+// R5.25, R5.40: the config reaches the runner on standard input; see
+// jitstdin_test.go for the stdin-only checks.
+func TestJitConfigRedactedAndNotInLogs(t *testing.T) {
 	r := newRig(t)
 	h := r.start("job-1", "demo", r.image())
-	if strings.Contains(r.f.text(), jitSecret) {
-		t.Fatalf("the JIT config is in an argument:\n%s", r.f.text())
-	}
 	for _, l := range r.logs {
 		if strings.Contains(l, jitSecret) {
 			t.Fatalf("the JIT config is in a log line: %s", l)
 		}
 	}
-	n := 0
-	for _, in := range r.f.stdins {
-		if in == jitSecret {
-			n++
-		}
-	}
-	if n != 1 {
-		t.Fatalf("the config goes in once, by stdin: %d", n)
-	}
 	c := r.pool("demo")
-	if _, there := c.files[jitFile("job-1")]; there {
-		t.Fatal("the config file must be gone once the runner started")
-	}
 	if len(c.started) != 1 {
 		t.Fatalf("one runner started: %v", c.started)
 	}
 	if !strings.Contains(strings.Join(r.learn, ","), jitSecret) {
 		t.Fatal("the redactor must learn the config before it is used")
-	}
-	// The write is a file made with umask 077 on the tmpfs that only the job user can read.
-	if !strings.Contains(r.f.text(), "umask 077") || !strings.Contains(strings.Join(c.args, " "), JITDir+":rw,noexec,nosuid,nodev,mode=0700,uid=1001") {
-		t.Fatalf("the config file is not private:\n%s", strings.Join(c.args, " "))
 	}
 	_ = h
 
@@ -252,9 +239,6 @@ func TestNothingCarriesOver(t *testing.T) {
 	fc := f.pool("demo")
 	if _, ok := fc.files[jobDir("bad-1")]; ok {
 		t.Fatal("a failed start left its folder")
-	}
-	if _, ok := fc.files[jitFile("bad-1")]; ok {
-		t.Fatal("a failed start left its config file")
 	}
 	if _, ok := fc.files[jobDir("ok-1")]; !ok {
 		t.Fatal("a failed start removed another runner's folder")
@@ -526,4 +510,65 @@ func TestRefreshOfAStoppedPoolDoesNotWait(t *testing.T) {
 	}
 	// Draining flag is not left behind.
 	r.start("job-2", "demo", r.image("node", "stopped"))
+}
+
+// R5.63: the root is read-only, the work dirs are tmpfs, and the tool cache is a
+// tmpfs only when no cache lane mounts it.
+func TestReadOnlyRootWorkTmpfs(t *testing.T) {
+	spec := PoolSpec{Owner: "o", Repo: "r", ImageTag: "img", ImageKey: "k"}
+	a, err := RunArgs(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := strings.Join(a, " ")
+	for _, want := range []string{"--read-only", "--tmpfs /home/runner:", "--tmpfs /tmp:", "--tmpfs /var/tmp:", "--tmpfs /opt/hostedtoolcache:"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("args miss %q: %s", want, joined)
+		}
+	}
+	for _, bad := range []string{"seccomp", "--network", "--cap-add", "--privileged"} {
+		if strings.Contains(joined, bad) {
+			t.Errorf("args hold %q: %s", bad, joined)
+		}
+	}
+	lane := runnercache.LaneDirs{Tools: "/h/t", Rust: "/h/r", ToolCache: "/h/tc", Wine: "/h/w", Browsers: "/h/b"}
+	spec.Lane = &lane
+	a, err = RunArgs(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if j := strings.Join(a, " "); strings.Contains(j, "--tmpfs /opt/hostedtoolcache") {
+		t.Errorf("tool cache is a lane mount and a tmpfs: %s", j)
+	}
+}
+
+// R5.82: the runners spec names every security option RunArgs sets, so a new
+// option without a line in "what a job can reach" fails here.
+func TestJobReachListMatchesFlags(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "docs", "features", "runners", "spec.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec := string(raw)
+	i := strings.Index(spec, "**R5.81**")
+	if i < 0 {
+		t.Fatal("the spec has no R5.81")
+	}
+	section := spec[i:]
+	a, err := RunArgs(PoolSpec{Owner: "o", Repo: "r", ImageTag: "img", ImageKey: "k"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range a {
+		if strings.HasPrefix(f, "--") && (strings.Contains(f, "cap") || strings.Contains(f, "security") || f == "--read-only" || f == "--privileged" || f == "--network") {
+			if !strings.Contains(section, f) {
+				t.Errorf("the spec section does not name %s", f)
+			}
+		}
+	}
+	for _, d := range []string{WorkTmpfsHome, WorkTmpfsTmp, WorkTmpfsVarTmp, WorkTmpfsToolCache, "no-new-privileges", "seccomp"} {
+		if !strings.Contains(section, d) {
+			t.Errorf("the spec section does not name %s", d)
+		}
+	}
 }

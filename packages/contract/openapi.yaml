@@ -1428,6 +1428,201 @@ paths:
                 $ref: '#/components/schemas/Runner'
         default:
           $ref: '#/components/responses/Error'
+  # ------------------------------------------- env sets and registry (RES4, RES5)
+  /api/v1/runners/{runnerId}/env:
+    get:
+      operationId: getRunnerEnv
+      tags: [runners]
+      summary: The merged environment of a runner, sensitive values masked
+      description: >-
+        runners R5.75, R5.76. Order: machine, then each applied set in the
+        order the runner lists them, then the runner's own values; a later
+        layer wins. Each value names its source.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RunnerId'
+      responses:
+        '200':
+          description: The merged environment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunnerEnv'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/env-sets:
+    get:
+      operationId: listEnvSets
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Every named environment set
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The sets. A sensitive variable has no value.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvSetList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/env-sets/{setName}:
+    put:
+      operationId: putEnvSet
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Create or replace an environment set
+      description: >-
+        runners R5.75. A sensitive variable sent without a value keeps its
+        stored value.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/SetName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnvSetInput'
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvSet'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteEnvSet
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Delete an environment set and its stored sensitive values
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/SetName'
+      responses:
+        '204':
+          description: Deleted.
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry:
+    get:
+      operationId: getRegistrySettings
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Registry logins per backend and whether a private CA bundle is set
+      description: runners R5.77, R5.78. No password is ever returned.
+      x-auth: admin
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrySettings'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/logins:
+    put:
+      operationId: putRegistryLogin
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Store a registry login for one backend kind
+      description: >-
+        runners R5.77. The password goes to the secret store. An empty
+        password keeps the stored one.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistryLoginInput'
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryLogin'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/logins/{kind}/{host}:
+    delete:
+      operationId: deleteRegistryLogin
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Remove a registry login and its stored password
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - name: kind
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [container, vm, persistent]
+        - name: host
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Removed.
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/ca-bundle:
+    put:
+      operationId: putRegistryCaBundle
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Set the private CA bundle that runners trust
+      description: runners R5.78. PEM certificates only; a private key is refused.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaBundleInput'
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrySettings'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteRegistryCaBundle
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Remove the private CA bundle
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      responses:
+        '204':
+          description: Removed.
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/runners/{runnerId}/replace:
     post:
       operationId: planRunnerReplacement
@@ -1503,6 +1698,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JobPage'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/compare:
+    get:
+      operationId: getSpeedComparison
+      tags: [jobs]
+      summary: The same job on crsp and on GitHub-hosted runners
+      description: >-
+        observability R5.34. Reads finished workflow-run job timings of one
+        repository from GitHub, matches jobs by name across the two runner
+        kinds and returns median and p95 queue wait and run time, minutes
+        saved and the hosted cost avoided. A public repository is excluded
+        (hosted minutes there are free). Read only; it starts nothing.
+      x-auth: user
+      x-rate-limit: 10/minute/user
+      parameters:
+        - name: repository
+          in: query
+          required: false
+          description: >-
+            The repository as owner/repo. The handler answers 400 when it is
+            missing or not in that form.
+          schema:
+            type: string
+        - name: days
+          in: query
+          required: false
+          description: How many days back; 14 when absent, at most 90.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 90
+      responses:
+        '200':
+          description: The comparison.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeedComparison'
         default:
           $ref: '#/components/responses/Error'
   /api/v1/jobs/{jobId}:
@@ -2503,6 +2737,12 @@ components:
       required: true
       schema:
         type: string
+    SetName:
+      name: setName
+      in: path
+      required: true
+      schema:
+        type: string
     RunnerId:
       name: runnerId
       in: path
@@ -2586,6 +2826,53 @@ components:
             type: string
 
   schemas:
+    SpeedStat:
+      type: object
+      required: [count, median_seconds, p95_seconds]
+      properties:
+        count: { type: integer }
+        median_seconds: { type: number }
+        p95_seconds: { type: number }
+    SpeedSide:
+      type: object
+      required: [queue, run]
+      properties:
+        queue: { $ref: '#/components/schemas/SpeedStat' }
+        run: { $ref: '#/components/schemas/SpeedStat' }
+    SpeedRow:
+      type: object
+      required: [job, crsp, hosted, minutes_saved, cost_avoided_usd]
+      properties:
+        job: { type: string }
+        crsp: { $ref: '#/components/schemas/SpeedSide' }
+        hosted: { $ref: '#/components/schemas/SpeedSide' }
+        minutes_saved: { type: number }
+        cost_avoided_usd: { type: number }
+    SpeedComparison:
+      type: object
+      required:
+        [
+          repository,
+          days,
+          since,
+          excluded,
+          rows,
+          unmatched_jobs,
+          total_minutes_saved,
+          total_cost_avoided_usd,
+        ]
+      properties:
+        repository: { type: string }
+        days: { type: integer }
+        since: { type: string, format: date-time }
+        excluded: { type: boolean }
+        reason: { type: string }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/SpeedRow' }
+        unmatched_jobs: { type: integer }
+        total_minutes_saved: { type: number }
+        total_cost_avoided_usd: { type: number }
     Health:
       type: object
       required: [status, version]
@@ -2598,6 +2885,98 @@ components:
       example:
         status: ok
         version: v0.1.0
+    EnvVar:
+      type: object
+      required: [name, sensitive]
+      properties:
+        name: { type: string }
+        value:
+          type: string
+          description: Absent for a sensitive variable.
+        sensitive: { type: boolean }
+    EnvSet:
+      type: object
+      required: [name, vars]
+      properties:
+        name: { type: string }
+        vars:
+          type: array
+          items: { $ref: '#/components/schemas/EnvVar' }
+    EnvSetList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/EnvSet' }
+    EnvVarInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        value: { type: string }
+        sensitive: { type: boolean }
+    EnvSetInput:
+      type: object
+      required: [vars]
+      properties:
+        vars:
+          type: array
+          items: { $ref: '#/components/schemas/EnvVarInput' }
+    ResolvedEnvVar:
+      type: object
+      required: [name, value, sensitive, source]
+      properties:
+        name: { type: string }
+        value:
+          type: string
+          description: '"***" for a sensitive variable.'
+        sensitive: { type: boolean }
+        source:
+          type: string
+          description: '"machine", "set:<name>" or "runner".'
+    RunnerEnv:
+      type: object
+      required: [runner_id, vars]
+      properties:
+        runner_id: { type: string }
+        vars:
+          type: array
+          items: { $ref: '#/components/schemas/ResolvedEnvVar' }
+    RegistryLogin:
+      type: object
+      required: [kind, host, username]
+      properties:
+        kind:
+          type: string
+          enum: [container, vm, persistent]
+        host: { type: string }
+        username: { type: string }
+    RegistryLoginInput:
+      type: object
+      required: [kind, host, username]
+      properties:
+        kind:
+          type: string
+          enum: [container, vm, persistent]
+        host: { type: string }
+        username: { type: string }
+        password:
+          type: string
+          description: Write only. Empty keeps the stored one.
+    CaBundleInput:
+      type: object
+      required: [pem]
+      properties:
+        pem: { type: string }
+    RegistrySettings:
+      type: object
+      required: [logins, ca_bundle_set]
+      properties:
+        logins:
+          type: array
+          items: { $ref: '#/components/schemas/RegistryLogin' }
+        ca_bundle_set: { type: boolean }
     ErrorEnvelope:
       type: object
       required: [error]
@@ -3702,7 +4081,7 @@ components:
     PauseReason:
       type: string
       description: Why a machine takes no new job (machines R5.62). Other features read these exact names.
-      enum: [paused, on_battery, quiet_hours, budget]
+      enum: [paused, on_battery, quiet_hours, budget, base_image_missing]
     CpuCapState:
       type: string
       description: What the agent did with the CPU cap. not_supported is macOS (machines R5.64).

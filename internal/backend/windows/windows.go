@@ -42,6 +42,9 @@ type Config struct {
 	CrspBinary string
 	// NewPassword makes a random password. Replaceable for tests.
 	NewPassword func() string
+	// Rights sets and reads the user rights of the runner account. Nil means
+	// the PowerShell implementation; tests pass a fake (runners R5.14).
+	Rights RightsGranter
 }
 
 // DefaultConfig is the production layout.
@@ -55,8 +58,9 @@ func DefaultConfig() Config {
 
 // Backend is the Windows persistent backend.
 type Backend struct {
-	d   sys.Deps
-	cfg Config
+	d      sys.Deps
+	cfg    Config
+	rights RightsGranter
 }
 
 var (
@@ -73,7 +77,11 @@ func New(d sys.Deps, cfg Config) *Backend {
 	if cfg.Root == "" {
 		cfg.Root = DefaultConfig().Root
 	}
-	return &Backend{d: d, cfg: cfg}
+	b := &Backend{d: d, cfg: cfg, rights: cfg.Rights}
+	if b.rights == nil {
+		b.rights = psRights{b: b}
+	}
+	return b
 }
 
 // RandomPassword makes a 32-character random password. It is made inside the
@@ -250,8 +258,7 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 		}
 		return h, b.psOK(ctx, "start", scriptStartService, env, nil)
 	case persistent.UpdateRights:
-		env["CRSP_SYMLINK"] = flag(r.WindowsSymlinkRight)
-		if err := b.psOK(ctx, "rights", scriptRights, env, nil); err != nil {
+		if err := b.rights.Grant(ctx, account, r.WindowsSymlinkRight); err != nil {
 			return h, err
 		}
 		return h, persistent.WriteMeta(b.d.FS, Join(folder, persistent.MetaFile), wantMeta)
@@ -301,8 +308,10 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	password := b.cfg.NewPassword()
 	secret := map[string]string{"CRSP_PASSWORD": password}
 	env["CRSP_GROUP"] = runners.RunnersGroup
-	env["CRSP_SYMLINK"] = flag(r.WindowsSymlinkRight)
 	if err := b.psOK(ctx, "account", scriptAccount, env, secret); err != nil {
+		return h, err
+	}
+	if err := b.rights.Grant(ctx, account, r.WindowsSymlinkRight); err != nil {
 		return h, err
 	}
 	if err := b.writeHooksAndEnv(folder, wantEnv); err != nil {

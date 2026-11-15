@@ -49,5 +49,6 @@ func (l *link) reportMachine(ctx context.Context, commandID string) {
 	l.factMu.Unlock()
 	rep := BuildMachineReport(ctx, l.cfg.sys(), f, l.cfg.Images, time.Now())
 	rep.CommandId = commandID
+	rep.RunnerSwap = l.cfg.RunnerFiles != nil
 	_ = l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_MachineReport{MachineReport: rep}})
 }

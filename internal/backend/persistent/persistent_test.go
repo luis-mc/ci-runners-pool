@@ -2,6 +2,8 @@ package persistent
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"strings"
 	"testing"
@@ -121,5 +123,32 @@ func TestDownloadFixesAWrongHashByRedownload(t *testing.T) {
 	d.Verify = func(string, string) error { calls++; return runners.ErrBadHash }
 	if err := Download(context.Background(), d, "u", "/c", "h"); err == nil || calls != 1 {
 		t.Fatalf("err=%v calls=%d", err, calls)
+	}
+}
+
+// R5.37, R5.79: a body whose real SHA-256 differs from the pin is refused and
+// deleted after one more try; a body that matches the pin is kept.
+func TestDownloadChecksTheRealHashAgainstThePin(t *testing.T) {
+	f := sysfake.NewFS()
+	fe := &sysfake.Fetcher{FS: f, Body: []byte("runner bytes")}
+	verify := func(path, want string) error {
+		b, err := f.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		sum := sha256.Sum256(b)
+		if hex.EncodeToString(sum[:]) != want {
+			return runners.ErrHashMismatch
+		}
+		return nil
+	}
+	d := sys.Deps{FS: f, Fetch: fe, Verify: verify}
+	good := sha256.Sum256([]byte("runner bytes"))
+	if err := Download(context.Background(), d, "u", "/ok", hex.EncodeToString(good[:])); err != nil || !f.Exists("/ok") {
+		t.Fatalf("matching pin: %v", err)
+	}
+	err := Download(context.Background(), d, "u", "/bad", strings.Repeat("ab", 32))
+	if !errors.Is(err, runners.ErrHashMismatch) || f.Exists("/bad") {
+		t.Fatalf("mismatch must be refused and deleted: %v", err)
 	}
 }

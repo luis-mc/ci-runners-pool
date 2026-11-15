@@ -94,7 +94,7 @@ func TestAccountRights(t *testing.T) {
 		t.Fatal("no account step")
 	}
 	s := r.cmd.Calls[i].Stdin
-	for _, want := range []string{"New-LocalGroup", "Add-LocalGroupMember", "SeServiceLogonRight", "SeDenyInteractiveLogonRight", "SeDenyRemoteInteractiveLogonRight"} {
+	for _, want := range []string{"New-LocalGroup", "Add-LocalGroupMember"} {
 		if !strings.Contains(s, want) {
 			t.Errorf("account script lacks %s", want)
 		}
@@ -108,6 +108,19 @@ func TestAccountRights(t *testing.T) {
 	if got := r.cmd.Calls[i].Env["CRSP_GROUP"]; got != "crsp-runners" {
 		t.Errorf("group = %q", got)
 	}
+	j := idx(r, "SeServiceLogonRight")
+	if j < i {
+		t.Fatal("the rights step must follow the account step")
+	}
+	rs := r.cmd.Calls[j].Stdin
+	for _, want := range []string{"SeServiceLogonRight", "SeDenyInteractiveLogonRight", "SeDenyRemoteInteractiveLogonRight"} {
+		if !strings.Contains(rs, want) {
+			t.Errorf("rights script lacks %s", want)
+		}
+	}
+	if strings.Contains(rs, "Administrators") {
+		t.Error("rights script must never touch the Administrators group")
+	}
 }
 
 // R5.14, owner decision: the symlink right only when the settings ask.
@@ -119,13 +132,13 @@ func TestSymlinkRightOnlyWhenAsked(t *testing.T) {
 		if err := start(t, r, spec, backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
 			t.Fatal(err)
 		}
-		c := r.cmd.Calls[idx(r, "New-LocalUser")]
+		c := r.cmd.Calls[idx(r, "SeServiceLogonRight")]
 		want := "0"
 		if ask {
 			want = "1"
 		}
-		if c.Env["CRSP_SYMLINK"] != want {
-			t.Errorf("ask=%v: CRSP_SYMLINK=%q", ask, c.Env["CRSP_SYMLINK"])
+		if c.Env["CRSP_SYMLINK"] != want || c.Env["CRSP_ACCOUNT"] != "crsp-box-1" {
+			t.Errorf("ask=%v: CRSP_SYMLINK=%q account=%q", ask, c.Env["CRSP_SYMLINK"], c.Env["CRSP_ACCOUNT"])
 		}
 		if !strings.Contains(c.Stdin, "($env:CRSP_SYMLINK -eq '1')") {
 			t.Error("the right must follow the setting, so a rerun can remove it")

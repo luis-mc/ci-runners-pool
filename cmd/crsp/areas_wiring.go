@@ -138,6 +138,11 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	}
 	c.Options.GitHub = &api.GitHubArea{Auth: asvc, Repos: rsvc, Webhook: hook, Logger: logger}
 	c.Auth, c.Repos = asvc, rsvc
+	if cmp, err := newCompareService(gh, repoStore); err == nil {
+		c.Options.Compare = cmp
+	} else {
+		logger.Warn("speed comparison is off", "err", err)
+	}
 
 	// RUNS_ON variables: put back to the policy every 10 minutes, and once now.
 	loopCtx, stopLoop := context.WithCancel(ctx)
@@ -157,7 +162,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// machines wait for the runner messages on the agent link.
 	reg := d.Backends
 	if reg == nil {
-		reg = registry.Platform(registry.RealDeps(nil, secretRedactor.Redact, secretRedactor.Add))
+		reg = registry.Platform(registry.RealDeps(nil, secretRedactor.Redact, secretRedactor.Add), runnerIDSource(logger, d.DB))
 	}
 	rstore := runners.NewMemStore()
 	runnerSvc := &runners.Service{
@@ -167,9 +172,12 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	}
 
 	// Automatic runner updates follow the product's automatic-update setting
-	// (runners R5.38, operations R5.15). The agent link has no update message
-	// yet, so Updater stays nil and an update answers with that reason. No
-	// command or flag reads this setting.
+	// (runners R5.38, operations R5.15). The Updater sends the bundle over the
+	// agent link; an agent that does not report `runner_swap` answers with a
+	// reason and is sent nothing. No command or flag reads this setting.
+	if d.Link != nil {
+		runnerSvc.Updater = &agentlink.Updater{L: d.Link, Bundles: pinBundles{svc: d.Machines}}
+	}
 	if d.Ops != nil && d.Ops.Settings != nil {
 		set := d.Ops.Settings
 		runnerSvc.AutoUpdate = func(ctx context.Context) bool {
@@ -181,12 +189,20 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// Light runners: one per repository and OS, on a machine with a light slot
 	// (scheduling R5.65).
 	runnerSvc.Light = lightPlacer{svc: d.Machines}
+	// The job gate reads a runner's stored route, never its name (runners R5.70).
+	if q, ok := d.Queue.(interface {
+		SetLightLookup(func(machineID, runnerName string) bool)
+	}); ok {
+		q.SetLightLookup(func(machineID, name string) bool { return runnerSvc.RunsLight(ctx, machineID, name) })
+	}
 	rsvc.SetLight(lightKeeper{svc: runnerSvc})
+	rsvc.SetFleet(runnerSvc)
 
 	// Demand: poll queued jobs of the repositories with the pool on and start one
 	// ephemeral container runner per job on a machine whose allow list names
 	// the container backend (github-integration R5.37, runners R5.27, R5.31).
-	stopDemand, quietDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines}, runnerSvc, pool, d.Cfg.DemandQuiet)
+	stopDemand, quietDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines}, runnerSvc, pool, d.Cfg.DemandQuiet, d.Cfg.ScaleSetDemand)
+	startSweep(ctx, logger, runnerSvc, d.Cfg.RunnerSweepDays)
 	c.closers = append(c.closers, stopDemand)
 
 	// Doctor: the M1 check registry over the controller's own data.
@@ -392,6 +408,20 @@ type webhookEvents struct {
 
 func (w webhookEvents) Job(j github.Job) {
 	w.logger.Debug("workflow_job event", "repository", j.Repository, "job", j.ID, "status", j.Status)
+}
+
+// Repository stops serving a repository that turned public (CRSP82). The
+// stop runs in its own goroutine so GitHub gets its answer at once.
+func (w webhookEvents) Repository(action, fullName string) {
+	if action != "publicized" {
+		return
+	}
+	w.logger.Info("repository turned public", "repository", fullName)
+	go func() {
+		if err := w.repos.Publicized(github.Background(w.ctx), fullName); err != nil && w.ctx.Err() == nil {
+			w.logger.Warn("stop serving a public repository", "repository", fullName, "err", err)
+		}
+	}()
 }
 
 func (w webhookEvents) Installation(event string, _ []byte) {

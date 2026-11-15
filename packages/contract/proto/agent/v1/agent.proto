@@ -28,6 +28,9 @@ option go_package = "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agen
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
   PROTOCOL_VERSION_1 = 1;
+  // Version 2 adds UpdateRunnerFiles (HND15). An agent that sends version 1 or
+  // no `runner_swap` in its MachineReport never gets that message.
+  PROTOCOL_VERSION_2 = 2;
 }
 
 // AgentService is the link from an agent to its controller.
@@ -126,6 +129,8 @@ message SessionResponse {
     MeasureCaches measure_caches = 20;
     WipeCache wipe_cache = 21;
     ReportMachine report_machine = 22;
+    // Protocol version 2: replace the runner files of one runner (runners R5.38).
+    UpdateRunnerFiles update_runner_files = 23;
   }
 }
 
@@ -351,6 +356,33 @@ message RunnerResult {
   string service_ref = 6;
   // The state the agent saw right after the step.
   RunnerState state = 7;
+  // UpdateRunnerFiles: the runner version now in the folder.
+  string version = 8;
+  // UpdateRunnerFiles: the swap failed and the previous files were put back.
+  bool rolled_back = 9;
+}
+
+// UpdateRunnerFiles replaces the runner files of one persistent runner (runners
+// R5.38, protocol version 2). The agent checks the SHA-256 of the bundle, holds
+// the runner so it takes no new job, checks that it is idle in the same step,
+// stops its service, swaps the files (stage folder, then renames; the previous
+// files are kept for rollback), starts the service and answers with one
+// RunnerResult (outcome updated, current, waiting or failed). A running job is
+// never cut: when the runner is not idle within drain_timeout_seconds the
+// answer is outcome waiting and nothing was touched. On any failure after the
+// service stopped the agent puts the previous files back and starts it again.
+message UpdateRunnerFiles {
+  string command_id = 1;
+  string runner_id = 2;
+  string runner_name = 3;
+  string service_name = 4;
+  // The runner version of the bundle, such as 2.330.0.
+  string version = 5;
+  // Lower case hex SHA-256 of bundle.
+  string sha256 = 6;
+  // The runner archive of the official release (tar.gz or zip), as sent.
+  bytes bundle = 7;
+  int32 drain_timeout_seconds = 8;
 }
 
 // UsageReport is per runner and job, at least every 15 seconds while a job
@@ -736,6 +768,9 @@ message MachineReport {
   // False when the agent has no container backend, so images is not known
   // rather than empty.
   bool images_known = 6;
+  // True when this agent understands UpdateRunnerFiles (protocol version 2).
+  // The controller sends that message only when this is true.
+  bool runner_swap = 7;
 }
 
 // KvmReport is the KVM state the agent read. It reads only; it never loads a

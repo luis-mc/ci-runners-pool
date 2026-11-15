@@ -97,11 +97,13 @@ type Service struct {
 	policies map[string]Policy
 	lastKept map[string]time.Time
 	running  map[string][]JobRef
-	runners  map[string][]string
-	fails    map[string][]time.Time
-	blocked  map[string]time.Time
-	updates  map[string]AgentUpdate
-	typical  TypicalFunc
+	// onRunning sees each running-jobs report (SetRunningObserver).
+	onRunning func(machineID string, jobs []JobRef)
+	runners   map[string][]string
+	fails     map[string][]time.Time
+	blocked   map[string]time.Time
+	updates   map[string]AgentUpdate
+	typical   TypicalFunc
 }
 
 // New returns a Service.

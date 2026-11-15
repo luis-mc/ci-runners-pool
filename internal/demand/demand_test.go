@@ -347,3 +347,100 @@ func TestIdleRunnerSlotIsFreed(t *testing.T) {
 		t.Fatal("not removed")
 	}
 }
+
+// R5.73: a job that finished or was cancelled after its last event is never
+// given a runner; one API read settles a stale event.
+func TestFinishedOrCancelledJobStartsNoRunner(t *testing.T) {
+	for _, status := range []string{"completed", "in_progress"} {
+		l, fr, now := newLoop(2)
+		reads := 0
+		l.ReadJob = func(_ context.Context, inst int64, owner, repo string, id int64) (github.Job, error) {
+			reads++
+			if owner != "alice" || repo != "demo" || id != 1 {
+				t.Errorf("read %s/%s %d", owner, repo, id)
+			}
+			return github.Job{ID: 1, Status: status, Conclusion: "cancelled"}, nil
+		}
+		ctx := context.Background()
+		l.Observe(ctx, queued(1, linuxLabels...))
+		*now = now.Add(time.Minute) // the queued event is old; the webhook for the end never came
+		l.Dispatch(ctx)
+		l.Dispatch(ctx)
+		if len(fr.started) != 0 {
+			t.Fatalf("%s: started %+v", status, fr.started)
+		}
+		if reads != 1 || l.Waiting() != 0 {
+			t.Fatalf("%s: reads %d waiting %d, want 1 and 0", status, reads, l.Waiting())
+		}
+	}
+}
+
+// R5.73: a fresh event is trusted without an API read; a stale one that the
+// read confirms as queued starts one runner; a read that fails starts none.
+func TestRecheckOnlyForOldEventsAndFailsClosed(t *testing.T) {
+	l, fr, now := newLoop(2)
+	reads := 0
+	var readErr error
+	l.ReadJob = func(context.Context, int64, string, string, int64) (github.Job, error) {
+		reads++
+		if readErr != nil {
+			return github.Job{}, readErr
+		}
+		return github.Job{ID: 1, Status: "queued"}, nil
+	}
+	ctx := context.Background()
+	l.Observe(ctx, queued(1, linuxLabels...))
+	*now = now.Add(time.Minute)
+	readErr = errors.New("boom")
+	l.Dispatch(ctx)
+	if len(fr.started) != 0 || reads != 1 || l.Waiting() != 1 {
+		t.Fatalf("failed read: started %d reads %d waiting %d", len(fr.started), reads, l.Waiting())
+	}
+	readErr = nil
+	l.Dispatch(ctx)
+	if len(fr.started) != 1 || reads != 2 {
+		t.Fatalf("confirmed read: started %d reads %d", len(fr.started), reads)
+	}
+	// A fresh event starts without a read.
+	l2, fr2, _ := newLoop(2)
+	n := 0
+	l2.ReadJob = func(context.Context, int64, string, string, int64) (github.Job, error) {
+		n++
+		return github.Job{Status: "completed"}, nil
+	}
+	l2.Observe(ctx, queued(2, linuxLabels...))
+	l2.Dispatch(ctx)
+	if len(fr2.started) != 1 || n != 0 {
+		t.Fatalf("fresh event: started %d reads %d", len(fr2.started), n)
+	}
+}
+
+// CRSP82: a job from a webhook does not say whether it comes from a fork, so
+// it gets no runner until the poller read its run; the webhook never wipes
+// what the poller read.
+func TestWebhookJobWaitsForForkFlag(t *testing.T) {
+	ctx := context.Background()
+	l, fr, _ := newLoop(2)
+	hook := queued(1, linuxLabels...)
+	hook.Partial = true
+	l.Observe(ctx, hook)
+	l.Dispatch(ctx)
+	if len(fr.started) != 0 {
+		t.Fatal("a job of unknown origin got a runner")
+	}
+	full := queued(1, linuxLabels...)
+	full.Event, full.FromFork = "pull_request", true
+	l.Observe(ctx, full)
+	l.Observe(ctx, hook) // a later webhook for the same job
+	l.Dispatch(ctx)
+	if len(fr.started) != 0 {
+		t.Fatal("the webhook wiped the fork flag: a fork pull request got a runner")
+	}
+	ok := queued(2, linuxLabels...)
+	ok.Event = "push"
+	l.Observe(ctx, ok)
+	l.Dispatch(ctx)
+	if len(fr.started) != 1 {
+		t.Fatalf("a push job of a known origin got %d runners", len(fr.started))
+	}
+}

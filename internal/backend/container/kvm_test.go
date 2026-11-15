@@ -22,7 +22,7 @@ func TestKVMDeviceOnlyAndLabelNeedsUsable(t *testing.T) {
 		t.Errorf("no gid: %v", got)
 	}
 	// The guard of pool.go wants the whole call: the job user and no capability.
-	safe := []string{"run", "-d", "--user", "1001:1001", "--cap-drop", "ALL", "--security-opt", "no-new-privileges"}
+	safe := []string{"run", "-d", "--read-only", "--user", "1001:1001", "--cap-drop", "ALL", "--security-opt", "no-new-privileges"}
 	if err := CheckRunArgs(append(append([]string{}, safe...), append(args, "img")...)); err != nil {
 		t.Errorf("kvm device refused: %v", err)
 	}

@@ -16,7 +16,7 @@ import (
 var Permissions = github.RequiredPermissions
 
 // Events the App subscribes to.
-var Events = []string{"workflow_job"}
+var Events = []string{"workflow_job", "repository"}
 
 var appNameRE = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9 _-]{0,33}$`)
 

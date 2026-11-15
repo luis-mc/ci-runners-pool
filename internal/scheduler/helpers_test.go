@@ -117,3 +117,20 @@ func (e *env) fill(n int) []scheduler.Grant {
 	}
 	return gs
 }
+
+// advanceRenewing moves the clock by d in steps of 60 s, renewing the lease of
+// the jobs each step, as the agent's holder report does (R5.70).
+func (e *env) advanceRenewing(d time.Duration, jobs ...scheduler.JobRef) {
+	e.t.Helper()
+	for d > 0 {
+		step := 60 * time.Second
+		if d < step {
+			step = d
+		}
+		e.advance(step)
+		d -= step
+		if err := e.eng.RenewJobs(context.Background(), m1, jobs); err != nil {
+			e.t.Fatal(err)
+		}
+	}
+}

@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"maps"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,6 +32,9 @@ type Config struct {
 	Root string
 	// UnitDir is the systemd system unit directory.
 	UnitDir string
+	// IDs gives each runner account its persistent uid from the reserved
+	// range (runners R5.72). Nil lets useradd pick one.
+	IDs backend.IDSource
 }
 
 // DefaultConfig is the production layout.
@@ -304,10 +308,18 @@ func (b *Backend) ensureUser(ctx context.Context, user, folder string) error {
 	if b.probe(ctx, sys.Command{Name: "getent", Args: []string{"passwd", user}}) {
 		return nil
 	}
-	_, err := b.run(ctx, "user", sys.Command{Name: "useradd", Args: []string{
-		"--system", "--gid", runners.RunnersGroup, "--no-create-home", "--home-dir", folder,
-		"--shell", "/usr/sbin/nologin", user,
-	}})
+	args := []string{"--system", "--gid", runners.RunnersGroup, "--no-create-home", "--home-dir", folder,
+		"--shell", "/usr/sbin/nologin"}
+	// A runner keeps one uid for life, from the reserved range, so a user made
+	// again owns its old folder and caches (runners R5.72).
+	if b.cfg.IDs != nil {
+		id, err := b.cfg.IDs.ID(ctx, user)
+		if err != nil {
+			return fmt.Errorf("user id: %w", err)
+		}
+		args = append(args, "--uid", strconv.Itoa(id))
+	}
+	_, err := b.run(ctx, "user", sys.Command{Name: "useradd", Args: append(args, user)})
 	return err
 }
 

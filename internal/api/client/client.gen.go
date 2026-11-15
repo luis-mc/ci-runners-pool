@@ -825,15 +825,18 @@ func (e OS) Valid() bool {
 
 // Defines values for PauseReason.
 const (
-	PauseReasonBudget     PauseReason = "budget"
-	PauseReasonOnBattery  PauseReason = "on_battery"
-	PauseReasonPaused     PauseReason = "paused"
-	PauseReasonQuietHours PauseReason = "quiet_hours"
+	PauseReasonBaseImageMissing PauseReason = "base_image_missing"
+	PauseReasonBudget           PauseReason = "budget"
+	PauseReasonOnBattery        PauseReason = "on_battery"
+	PauseReasonPaused           PauseReason = "paused"
+	PauseReasonQuietHours       PauseReason = "quiet_hours"
 )
 
 // Valid indicates whether the value is a known member of the PauseReason enum.
 func (e PauseReason) Valid() bool {
 	switch e {
+	case PauseReasonBaseImageMissing:
+		return true
 	case PauseReasonBudget:
 		return true
 	case PauseReasonOnBattery:
@@ -1024,6 +1027,48 @@ func (e QueueSettingsOrder) Valid() bool {
 	case Priority:
 		return true
 	case QueuedAt:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryLoginKind.
+const (
+	RegistryLoginKindContainer  RegistryLoginKind = "container"
+	RegistryLoginKindPersistent RegistryLoginKind = "persistent"
+	RegistryLoginKindVm         RegistryLoginKind = "vm"
+)
+
+// Valid indicates whether the value is a known member of the RegistryLoginKind enum.
+func (e RegistryLoginKind) Valid() bool {
+	switch e {
+	case RegistryLoginKindContainer:
+		return true
+	case RegistryLoginKindPersistent:
+		return true
+	case RegistryLoginKindVm:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryLoginInputKind.
+const (
+	RegistryLoginInputKindContainer  RegistryLoginInputKind = "container"
+	RegistryLoginInputKindPersistent RegistryLoginInputKind = "persistent"
+	RegistryLoginInputKindVm         RegistryLoginInputKind = "vm"
+)
+
+// Valid indicates whether the value is a known member of the RegistryLoginInputKind enum.
+func (e RegistryLoginInputKind) Valid() bool {
+	switch e {
+	case RegistryLoginInputKindContainer:
+		return true
+	case RegistryLoginInputKindPersistent:
+		return true
+	case RegistryLoginInputKindVm:
 		return true
 	default:
 		return false
@@ -1600,6 +1645,27 @@ func (e ListJobsParamsState) Valid() bool {
 	}
 }
 
+// Defines values for DeleteRegistryLoginParamsKind.
+const (
+	DeleteRegistryLoginParamsKindContainer  DeleteRegistryLoginParamsKind = "container"
+	DeleteRegistryLoginParamsKindPersistent DeleteRegistryLoginParamsKind = "persistent"
+	DeleteRegistryLoginParamsKindVm         DeleteRegistryLoginParamsKind = "vm"
+)
+
+// Valid indicates whether the value is a known member of the DeleteRegistryLoginParamsKind enum.
+func (e DeleteRegistryLoginParamsKind) Valid() bool {
+	switch e {
+	case DeleteRegistryLoginParamsKindContainer:
+		return true
+	case DeleteRegistryLoginParamsKindPersistent:
+		return true
+	case DeleteRegistryLoginParamsKindVm:
+		return true
+	default:
+		return false
+	}
+}
+
 // AddUserRequest defines model for AddUserRequest.
 type AddUserRequest struct {
 	Login string             `json:"login"`
@@ -1708,6 +1774,11 @@ type BackupDrillState string
 type BackupList struct {
 	Items     []Backup     `json:"items"`
 	LastDrill *BackupDrill `json:"last_drill,omitempty"`
+}
+
+// CaBundleInput defines model for CaBundleInput.
+type CaBundleInput struct {
+	Pem string `json:"pem"`
 }
 
 // Cache One cache on one machine (caches R5.8 to R5.14).
@@ -1869,6 +1940,38 @@ type DrainHolder struct {
 // DrainRequest defines model for DrainRequest.
 type DrainRequest struct {
 	Reason *string `json:"reason,omitempty"`
+}
+
+// EnvSet defines model for EnvSet.
+type EnvSet struct {
+	Name string   `json:"name"`
+	Vars []EnvVar `json:"vars"`
+}
+
+// EnvSetInput defines model for EnvSetInput.
+type EnvSetInput struct {
+	Vars []EnvVarInput `json:"vars"`
+}
+
+// EnvSetList defines model for EnvSetList.
+type EnvSetList struct {
+	Items []EnvSet `json:"items"`
+}
+
+// EnvVar defines model for EnvVar.
+type EnvVar struct {
+	Name      string `json:"name"`
+	Sensitive bool   `json:"sensitive"`
+
+	// Value Absent for a sensitive variable.
+	Value *string `json:"value,omitempty"`
+}
+
+// EnvVarInput defines model for EnvVarInput.
+type EnvVarInput struct {
+	Name      string  `json:"name"`
+	Sensitive *bool   `json:"sensitive,omitempty"`
+	Value     *string `json:"value,omitempty"`
 }
 
 // ErrorBody defines model for ErrorBody.
@@ -2610,6 +2713,35 @@ type RedeemSetupLinkRequest struct {
 	Code string `json:"code"`
 }
 
+// RegistryLogin defines model for RegistryLogin.
+type RegistryLogin struct {
+	Host     string            `json:"host"`
+	Kind     RegistryLoginKind `json:"kind"`
+	Username string            `json:"username"`
+}
+
+// RegistryLoginKind defines model for RegistryLogin.Kind.
+type RegistryLoginKind string
+
+// RegistryLoginInput defines model for RegistryLoginInput.
+type RegistryLoginInput struct {
+	Host string                 `json:"host"`
+	Kind RegistryLoginInputKind `json:"kind"`
+
+	// Password Write only. Empty keeps the stored one.
+	Password *string `json:"password,omitempty"`
+	Username string  `json:"username"`
+}
+
+// RegistryLoginInputKind defines model for RegistryLoginInput.Kind.
+type RegistryLoginInputKind string
+
+// RegistrySettings defines model for RegistrySettings.
+type RegistrySettings struct {
+	CaBundleSet bool            `json:"ca_bundle_set"`
+	Logins      []RegistryLogin `json:"logins"`
+}
+
 // Repository defines model for Repository.
 type Repository struct {
 	DefaultBranch  *string          `json:"default_branch,omitempty"`
@@ -2746,6 +2878,18 @@ type RepositoryVariable struct {
 // RepositoryVariableName defines model for RepositoryVariable.Name.
 type RepositoryVariableName string
 
+// ResolvedEnvVar defines model for ResolvedEnvVar.
+type ResolvedEnvVar struct {
+	Name      string `json:"name"`
+	Sensitive bool   `json:"sensitive"`
+
+	// Source "machine", "set:<name>" or "runner".
+	Source string `json:"source"`
+
+	// Value "***" for a sensitive variable.
+	Value string `json:"value"`
+}
+
 // Role defines model for Role.
 type Role string
 
@@ -2774,6 +2918,12 @@ type Runner struct {
 	RunnerVersion *string     `json:"runner_version,omitempty"`
 	Scope         RunnerScope `json:"scope"`
 	State         RunnerState `json:"state"`
+}
+
+// RunnerEnv defines model for RunnerEnv.
+type RunnerEnv struct {
+	RunnerId string           `json:"runner_id"`
+	Vars     []ResolvedEnvVar `json:"vars"`
 }
 
 // RunnerKind defines model for RunnerKind.
@@ -2899,6 +3049,41 @@ type SmtpSettings struct {
 	Host        string  `json:"host"`
 	Port        int     `json:"port"`
 	Username    *string `json:"username,omitempty"`
+}
+
+// SpeedComparison defines model for SpeedComparison.
+type SpeedComparison struct {
+	Days                int        `json:"days"`
+	Excluded            bool       `json:"excluded"`
+	Reason              *string    `json:"reason,omitempty"`
+	Repository          string     `json:"repository"`
+	Rows                []SpeedRow `json:"rows"`
+	Since               time.Time  `json:"since"`
+	TotalCostAvoidedUsd float32    `json:"total_cost_avoided_usd"`
+	TotalMinutesSaved   float32    `json:"total_minutes_saved"`
+	UnmatchedJobs       int        `json:"unmatched_jobs"`
+}
+
+// SpeedRow defines model for SpeedRow.
+type SpeedRow struct {
+	CostAvoidedUsd float32   `json:"cost_avoided_usd"`
+	Crsp           SpeedSide `json:"crsp"`
+	Hosted         SpeedSide `json:"hosted"`
+	Job            string    `json:"job"`
+	MinutesSaved   float32   `json:"minutes_saved"`
+}
+
+// SpeedSide defines model for SpeedSide.
+type SpeedSide struct {
+	Queue SpeedStat `json:"queue"`
+	Run   SpeedStat `json:"run"`
+}
+
+// SpeedStat defines model for SpeedStat.
+type SpeedStat struct {
+	Count         int     `json:"count"`
+	MedianSeconds float32 `json:"median_seconds"`
+	P95Seconds    float32 `json:"p95_seconds"`
 }
 
 // Staleness Set when GitHub did not answer and the last copy is shown (UX-53).
@@ -3085,6 +3270,9 @@ type RunId = string
 // RunnerId defines model for RunnerId.
 type RunnerId = string
 
+// SetName defines model for SetName.
+type SetName = string
+
 // To defines model for To.
 type To = time.Time
 
@@ -3130,6 +3318,15 @@ type ListCachesParams struct {
 type WipeCacheParams struct {
 	// Confirm The yes to a question card that named what goes (UX-62).
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
+// GetSpeedComparisonParams defines parameters for GetSpeedComparison.
+type GetSpeedComparisonParams struct {
+	// Repository The repository as owner/repo. The handler answers 400 when it is missing or not in that form.
+	Repository *string `form:"repository,omitempty" json:"repository,omitempty"`
+
+	// Days How many days back; 14 when absent, at most 90.
+	Days *int `form:"days,omitempty" json:"days,omitempty"`
 }
 
 // ListDoctorFindingsParams defines parameters for ListDoctorFindings.
@@ -3245,6 +3442,9 @@ type DeleteNotificationChannelParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// DeleteRegistryLoginParamsKind defines parameters for DeleteRegistryLogin.
+type DeleteRegistryLoginParamsKind string
+
 // ListRunnersParams defines parameters for ListRunners.
 type ListRunnersParams struct {
 	MachineId *string      `form:"machine_id,omitempty" json:"machine_id,omitempty"`
@@ -3312,6 +3512,9 @@ type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
 // RunDoctorJSONRequestBody defines body for RunDoctor for application/json ContentType.
 type RunDoctorJSONRequestBody = DoctorScope
 
+// PutEnvSetJSONRequestBody defines body for PutEnvSet for application/json ContentType.
+type PutEnvSetJSONRequestBody = EnvSetInput
+
 // UpdateImageLayersJSONRequestBody defines body for UpdateImageLayers for application/json ContentType.
 type UpdateImageLayersJSONRequestBody = UpdateImageLayersRequest
 
@@ -3341,6 +3544,12 @@ type CreateNotificationChannelJSONRequestBody = NotificationChannelInput
 
 // UpdateNotificationChannelJSONRequestBody defines body for UpdateNotificationChannel for application/json ContentType.
 type UpdateNotificationChannelJSONRequestBody = NotificationChannelUpdate
+
+// PutRegistryCaBundleJSONRequestBody defines body for PutRegistryCaBundle for application/json ContentType.
+type PutRegistryCaBundleJSONRequestBody = CaBundleInput
+
+// PutRegistryLoginJSONRequestBody defines body for PutRegistryLogin for application/json ContentType.
+type PutRegistryLoginJSONRequestBody = RegistryLoginInput
 
 // SetRepositoryExtraPackagesJSONRequestBody defines body for SetRepositoryExtraPackages for application/json ContentType.
 type SetRepositoryExtraPackagesJSONRequestBody = ExtraPackagesUpdate
@@ -3567,6 +3776,13 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/caches/{cacheId}/wipe (the `WipeCache` operationId).
 	WipeCache(ctx context.Context, cacheId CacheId, params *WipeCacheParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetSpeedComparison The same job on crsp and on GitHub-hosted runners
+	//
+	// observability R5.34. Reads finished workflow-run job timings of one repository from GitHub, matches jobs by name across the two runner kinds and returns median and p95 queue wait and run time, minutes saved and the hosted cost avoided. A public repository is excluded (hosted minutes there are free). Read only; it starts nothing.
+	//
+	// Corresponds with GET /api/v1/compare (the `GetSpeedComparison` operationId).
+	GetSpeedComparison(ctx context.Context, params *GetSpeedComparisonParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListDoctorFindings The latest finding per check and subject
 	//
 	// Corresponds with GET /api/v1/doctor/findings (the `ListDoctorFindings` operationId).
@@ -3594,6 +3810,34 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/doctor/runs/{runId} (the `GetDoctorRun` operationId).
 	GetDoctorRun(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListEnvSets Every named environment set
+	//
+	// Corresponds with GET /api/v1/env-sets (the `ListEnvSets` operationId).
+	ListEnvSets(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteEnvSet Delete an environment set and its stored sensitive values
+	//
+	// Corresponds with DELETE /api/v1/env-sets/{setName} (the `DeleteEnvSet` operationId).
+	DeleteEnvSet(ctx context.Context, setName SetName, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutEnvSetWithBody Create or replace an environment set
+	//
+	// runners R5.75. A sensitive variable sent without a value keeps its stored value.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/env-sets/{setName} (the `PutEnvSet` operationId).
+	PutEnvSetWithBody(ctx context.Context, setName SetName, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutEnvSet Create or replace an environment set
+	//
+	// runners R5.75. A sensitive variable sent without a value keeps its stored value.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/env-sets/{setName} (the `PutEnvSet` operationId).
+	PutEnvSet(ctx context.Context, setName SetName, body PutEnvSetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// StreamEvents The live view as server-sent events
 	//
@@ -3968,6 +4212,59 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/overview (the `GetOverview` operationId).
 	GetOverview(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
+	//
+	// runners R5.77, R5.78. No password is ever returned.
+	//
+	// Corresponds with GET /api/v1/registry (the `GetRegistrySettings` operationId).
+	GetRegistrySettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteRegistryCaBundle Remove the private CA bundle
+	//
+	// Corresponds with DELETE /api/v1/registry/ca-bundle (the `DeleteRegistryCaBundle` operationId).
+	DeleteRegistryCaBundle(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutRegistryCaBundleWithBody Set the private CA bundle that runners trust
+	//
+	// runners R5.78. PEM certificates only; a private key is refused.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/registry/ca-bundle (the `PutRegistryCaBundle` operationId).
+	PutRegistryCaBundleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutRegistryCaBundle Set the private CA bundle that runners trust
+	//
+	// runners R5.78. PEM certificates only; a private key is refused.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/registry/ca-bundle (the `PutRegistryCaBundle` operationId).
+	PutRegistryCaBundle(ctx context.Context, body PutRegistryCaBundleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutRegistryLoginWithBody Store a registry login for one backend kind
+	//
+	// runners R5.77. The password goes to the secret store. An empty password keeps the stored one.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/registry/logins (the `PutRegistryLogin` operationId).
+	PutRegistryLoginWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutRegistryLogin Store a registry login for one backend kind
+	//
+	// runners R5.77. The password goes to the secret store. An empty password keeps the stored one.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/registry/logins (the `PutRegistryLogin` operationId).
+	PutRegistryLogin(ctx context.Context, body PutRegistryLoginJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteRegistryLogin Remove a registry login and its stored password
+	//
+	// Corresponds with DELETE /api/v1/registry/logins/{kind}/{host} (the `DeleteRegistryLogin` operationId).
+	DeleteRegistryLogin(ctx context.Context, kind DeleteRegistryLoginParamsKind, host string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetRepository One repository with its policy and variable status
 	//
 	// github-integration R5.18, R5.25 and R5.28.
@@ -4141,6 +4438,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/runners/{runnerId} (the `GetRunner` operationId).
 	GetRunner(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRunnerEnv The merged environment of a runner, sensitive values masked
+	//
+	// runners R5.75, R5.76. Order: machine, then each applied set in the order the runner lists them, then the runner's own values; a later layer wins. Each value names its source.
+	//
+	// Corresponds with GET /api/v1/runners/{runnerId}/env (the `GetRunnerEnv` operationId).
+	GetRunnerEnv(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	//
@@ -4648,6 +4952,23 @@ func (c *Client) WipeCache(ctx context.Context, cacheId CacheId, params *WipeCac
 	return c.Client.Do(req)
 }
 
+// GetSpeedComparison The same job on crsp and on GitHub-hosted runners
+//
+// observability R5.34. Reads finished workflow-run job timings of one repository from GitHub, matches jobs by name across the two runner kinds and returns median and p95 queue wait and run time, minutes saved and the hosted cost avoided. A public repository is excluded (hosted minutes there are free). Read only; it starts nothing.
+//
+// Corresponds with GET /api/v1/compare (the `GetSpeedComparison` operationId).
+func (c *Client) GetSpeedComparison(ctx context.Context, params *GetSpeedComparisonParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSpeedComparisonRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // ListDoctorFindings The latest finding per check and subject
 //
 // Corresponds with GET /api/v1/doctor/findings (the `ListDoctorFindings` operationId).
@@ -4706,6 +5027,74 @@ func (c *Client) RunDoctor(ctx context.Context, body RunDoctorJSONRequestBody, r
 // Corresponds with GET /api/v1/doctor/runs/{runId} (the `GetDoctorRun` operationId).
 func (c *Client) GetDoctorRun(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetDoctorRunRequest(c.Server, runId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListEnvSets Every named environment set
+//
+// Corresponds with GET /api/v1/env-sets (the `ListEnvSets` operationId).
+func (c *Client) ListEnvSets(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListEnvSetsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteEnvSet Delete an environment set and its stored sensitive values
+//
+// Corresponds with DELETE /api/v1/env-sets/{setName} (the `DeleteEnvSet` operationId).
+func (c *Client) DeleteEnvSet(ctx context.Context, setName SetName, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteEnvSetRequest(c.Server, setName)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutEnvSetWithBody Create or replace an environment set
+//
+// runners R5.75. A sensitive variable sent without a value keeps its stored value.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/env-sets/{setName} (the `PutEnvSet` operationId).
+func (c *Client) PutEnvSetWithBody(ctx context.Context, setName SetName, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutEnvSetRequestWithBody(c.Server, setName, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutEnvSet Create or replace an environment set
+//
+// runners R5.75. A sensitive variable sent without a value keeps its stored value.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/env-sets/{setName} (the `PutEnvSet` operationId).
+func (c *Client) PutEnvSet(ctx context.Context, setName SetName, body PutEnvSetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutEnvSetRequest(c.Server, setName, body)
 	if err != nil {
 		return nil, err
 	}
@@ -5579,6 +5968,129 @@ func (c *Client) GetOverview(ctx context.Context, reqEditors ...RequestEditorFn)
 	return c.Client.Do(req)
 }
 
+// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
+//
+// runners R5.77, R5.78. No password is ever returned.
+//
+// Corresponds with GET /api/v1/registry (the `GetRegistrySettings` operationId).
+func (c *Client) GetRegistrySettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRegistrySettingsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteRegistryCaBundle Remove the private CA bundle
+//
+// Corresponds with DELETE /api/v1/registry/ca-bundle (the `DeleteRegistryCaBundle` operationId).
+func (c *Client) DeleteRegistryCaBundle(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteRegistryCaBundleRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutRegistryCaBundleWithBody Set the private CA bundle that runners trust
+//
+// runners R5.78. PEM certificates only; a private key is refused.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/registry/ca-bundle (the `PutRegistryCaBundle` operationId).
+func (c *Client) PutRegistryCaBundleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutRegistryCaBundleRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutRegistryCaBundle Set the private CA bundle that runners trust
+//
+// runners R5.78. PEM certificates only; a private key is refused.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/registry/ca-bundle (the `PutRegistryCaBundle` operationId).
+func (c *Client) PutRegistryCaBundle(ctx context.Context, body PutRegistryCaBundleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutRegistryCaBundleRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutRegistryLoginWithBody Store a registry login for one backend kind
+//
+// runners R5.77. The password goes to the secret store. An empty password keeps the stored one.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/registry/logins (the `PutRegistryLogin` operationId).
+func (c *Client) PutRegistryLoginWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutRegistryLoginRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutRegistryLogin Store a registry login for one backend kind
+//
+// runners R5.77. The password goes to the secret store. An empty password keeps the stored one.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/registry/logins (the `PutRegistryLogin` operationId).
+func (c *Client) PutRegistryLogin(ctx context.Context, body PutRegistryLoginJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutRegistryLoginRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteRegistryLogin Remove a registry login and its stored password
+//
+// Corresponds with DELETE /api/v1/registry/logins/{kind}/{host} (the `DeleteRegistryLogin` operationId).
+func (c *Client) DeleteRegistryLogin(ctx context.Context, kind DeleteRegistryLoginParamsKind, host string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteRegistryLoginRequest(c.Server, kind, host)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetRepository One repository with its policy and variable status
 //
 // github-integration R5.18, R5.25 and R5.28.
@@ -5963,6 +6475,23 @@ func (c *Client) DeleteRunner(ctx context.Context, runnerId RunnerId, params *De
 // Corresponds with GET /api/v1/runners/{runnerId} (the `GetRunner` operationId).
 func (c *Client) GetRunner(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetRunnerRequest(c.Server, runnerId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRunnerEnv The merged environment of a runner, sensitive values masked
+//
+// runners R5.75, R5.76. Order: machine, then each applied set in the order the runner lists them, then the runner's own values; a later layer wins. Each value names its source.
+//
+// Corresponds with GET /api/v1/runners/{runnerId}/env (the `GetRunnerEnv` operationId).
+func (c *Client) GetRunnerEnv(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRunnerEnvRequest(c.Server, runnerId)
 	if err != nil {
 		return nil, err
 	}
@@ -7155,6 +7684,72 @@ func NewWipeCacheRequest(server string, cacheId CacheId, params *WipeCacheParams
 	return req, nil
 }
 
+// NewGetSpeedComparisonRequest constructs an http.Request for the GetSpeedComparison method
+func NewGetSpeedComparisonRequest(server string, params *GetSpeedComparisonParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/compare")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Repository != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repository", *params.Repository, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Days != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "days", *params.Days, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListDoctorFindingsRequest constructs an http.Request for the ListDoctorFindings method
 func NewListDoctorFindingsRequest(server string, params *ListDoctorFindingsParams) (*http.Request, error) {
 	var err error
@@ -7291,6 +7886,114 @@ func NewGetDoctorRunRequest(server string, runId RunId) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewListEnvSetsRequest constructs an http.Request for the ListEnvSets method
+func NewListEnvSetsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/env-sets")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteEnvSetRequest constructs an http.Request for the DeleteEnvSet method
+func NewDeleteEnvSetRequest(server string, setName SetName) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "setName", setName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/env-sets/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutEnvSetRequest calls the generic PutEnvSet builder with application/json body
+func NewPutEnvSetRequest(server string, setName SetName, body PutEnvSetJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutEnvSetRequestWithBody(server, setName, "application/json", bodyReader)
+}
+
+// NewPutEnvSetRequestWithBody constructs an http.Request for the PutEnvSet method, with any body, and a specified content type
+func NewPutEnvSetRequestWithBody(server string, setName SetName, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "setName", setName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/env-sets/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -9248,6 +9951,181 @@ func NewGetOverviewRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewGetRegistrySettingsRequest constructs an http.Request for the GetRegistrySettings method
+func NewGetRegistrySettingsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteRegistryCaBundleRequest constructs an http.Request for the DeleteRegistryCaBundle method
+func NewDeleteRegistryCaBundleRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/ca-bundle")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutRegistryCaBundleRequest calls the generic PutRegistryCaBundle builder with application/json body
+func NewPutRegistryCaBundleRequest(server string, body PutRegistryCaBundleJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutRegistryCaBundleRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPutRegistryCaBundleRequestWithBody constructs an http.Request for the PutRegistryCaBundle method, with any body, and a specified content type
+func NewPutRegistryCaBundleRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/ca-bundle")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPutRegistryLoginRequest calls the generic PutRegistryLogin builder with application/json body
+func NewPutRegistryLoginRequest(server string, body PutRegistryLoginJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutRegistryLoginRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPutRegistryLoginRequestWithBody constructs an http.Request for the PutRegistryLogin method, with any body, and a specified content type
+func NewPutRegistryLoginRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/logins")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteRegistryLoginRequest constructs an http.Request for the DeleteRegistryLogin method
+func NewDeleteRegistryLoginRequest(server string, kind DeleteRegistryLoginParamsKind, host string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "kind", kind, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "host", host, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/logins/%s/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetRepositoryRequest constructs an http.Request for the GetRepository method
 func NewGetRepositoryRequest(server string, repositoryId RepositoryId) (*http.Request, error) {
 	var err error
@@ -9922,6 +10800,40 @@ func NewGetRunnerRequest(server string, runnerId RunnerId) (*http.Request, error
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/runners/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetRunnerEnvRequest constructs an http.Request for the GetRunnerEnv method
+func NewGetRunnerEnvRequest(server string, runnerId RunnerId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "runnerId", runnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/runners/%s/env", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -11100,6 +12012,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/caches/{cacheId}/wipe (the `WipeCache` operationId).
 	WipeCacheWithResponse(ctx context.Context, cacheId CacheId, params *WipeCacheParams, reqEditors ...RequestEditorFn) (*WipeCacheResponse, error)
 
+	// GetSpeedComparisonWithResponse The same job on crsp and on GitHub-hosted runners
+	//
+	// observability R5.34. Reads finished workflow-run job timings of one repository from GitHub, matches jobs by name across the two runner kinds and returns median and p95 queue wait and run time, minutes saved and the hosted cost avoided. A public repository is excluded (hosted minutes there are free). Read only; it starts nothing.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/compare (the `GetSpeedComparison` operationId).
+	GetSpeedComparisonWithResponse(ctx context.Context, params *GetSpeedComparisonParams, reqEditors ...RequestEditorFn) (*GetSpeedComparisonResponse, error)
+
 	// ListDoctorFindingsWithResponse The latest finding per check and subject
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -11131,6 +12052,38 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/doctor/runs/{runId} (the `GetDoctorRun` operationId).
 	GetDoctorRunWithResponse(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*GetDoctorRunResponse, error)
+
+	// ListEnvSetsWithResponse Every named environment set
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/env-sets (the `ListEnvSets` operationId).
+	ListEnvSetsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListEnvSetsResponse, error)
+
+	// DeleteEnvSetWithResponse Delete an environment set and its stored sensitive values
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /api/v1/env-sets/{setName} (the `DeleteEnvSet` operationId).
+	DeleteEnvSetWithResponse(ctx context.Context, setName SetName, reqEditors ...RequestEditorFn) (*DeleteEnvSetResponse, error)
+
+	// PutEnvSetWithBodyWithResponse Create or replace an environment set
+	//
+	// runners R5.75. A sensitive variable sent without a value keeps its stored value.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/env-sets/{setName} (the `PutEnvSet` operationId).
+	PutEnvSetWithBodyWithResponse(ctx context.Context, setName SetName, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutEnvSetResponse, error)
+
+	// PutEnvSetWithResponse Create or replace an environment set
+	//
+	// runners R5.75. A sensitive variable sent without a value keeps its stored value.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/env-sets/{setName} (the `PutEnvSet` operationId).
+	PutEnvSetWithResponse(ctx context.Context, setName SetName, body PutEnvSetJSONRequestBody, reqEditors ...RequestEditorFn) (*PutEnvSetResponse, error)
 
 	// StreamEventsWithResponse The live view as server-sent events
 	//
@@ -11563,6 +12516,65 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/overview (the `GetOverview` operationId).
 	GetOverviewWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetOverviewResponse, error)
 
+	// GetRegistrySettingsWithResponse Registry logins per backend and whether a private CA bundle is set
+	//
+	// runners R5.77, R5.78. No password is ever returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/registry (the `GetRegistrySettings` operationId).
+	GetRegistrySettingsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRegistrySettingsResponse, error)
+
+	// DeleteRegistryCaBundleWithResponse Remove the private CA bundle
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /api/v1/registry/ca-bundle (the `DeleteRegistryCaBundle` operationId).
+	DeleteRegistryCaBundleWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteRegistryCaBundleResponse, error)
+
+	// PutRegistryCaBundleWithBodyWithResponse Set the private CA bundle that runners trust
+	//
+	// runners R5.78. PEM certificates only; a private key is refused.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/registry/ca-bundle (the `PutRegistryCaBundle` operationId).
+	PutRegistryCaBundleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRegistryCaBundleResponse, error)
+
+	// PutRegistryCaBundleWithResponse Set the private CA bundle that runners trust
+	//
+	// runners R5.78. PEM certificates only; a private key is refused.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/registry/ca-bundle (the `PutRegistryCaBundle` operationId).
+	PutRegistryCaBundleWithResponse(ctx context.Context, body PutRegistryCaBundleJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRegistryCaBundleResponse, error)
+
+	// PutRegistryLoginWithBodyWithResponse Store a registry login for one backend kind
+	//
+	// runners R5.77. The password goes to the secret store. An empty password keeps the stored one.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/registry/logins (the `PutRegistryLogin` operationId).
+	PutRegistryLoginWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRegistryLoginResponse, error)
+
+	// PutRegistryLoginWithResponse Store a registry login for one backend kind
+	//
+	// runners R5.77. The password goes to the secret store. An empty password keeps the stored one.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/registry/logins (the `PutRegistryLogin` operationId).
+	PutRegistryLoginWithResponse(ctx context.Context, body PutRegistryLoginJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRegistryLoginResponse, error)
+
+	// DeleteRegistryLoginWithResponse Remove a registry login and its stored password
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /api/v1/registry/logins/{kind}/{host} (the `DeleteRegistryLogin` operationId).
+	DeleteRegistryLoginWithResponse(ctx context.Context, kind DeleteRegistryLoginParamsKind, host string, reqEditors ...RequestEditorFn) (*DeleteRegistryLoginResponse, error)
+
 	// GetRepositoryWithResponse One repository with its policy and variable status
 	//
 	// github-integration R5.18, R5.25 and R5.28.
@@ -11756,6 +12768,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/runners/{runnerId} (the `GetRunner` operationId).
 	GetRunnerWithResponse(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*GetRunnerResponse, error)
+
+	// GetRunnerEnvWithResponse The merged environment of a runner, sensitive values masked
+	//
+	// runners R5.75, R5.76. Order: machine, then each applied set in the order the runner lists them, then the runner's own values; a later layer wins. Each value names its source.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/runners/{runnerId}/env (the `GetRunnerEnv` operationId).
+	GetRunnerEnvWithResponse(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*GetRunnerEnvResponse, error)
 
 	// PlanRunnerReplacementWithResponse Plan replacing a runner not made by CRSP with a managed one
 	//
@@ -12687,6 +13708,54 @@ func (r WipeCacheResponse) ContentType() string {
 	return ""
 }
 
+type GetSpeedComparisonResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SpeedComparison
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetSpeedComparisonResponse) GetJSON200() *SpeedComparison {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetSpeedComparisonResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetSpeedComparisonResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetSpeedComparisonResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetSpeedComparisonResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetSpeedComparisonResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ListDoctorFindingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -12825,6 +13894,143 @@ func (r GetDoctorRunResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetDoctorRunResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListEnvSetsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *EnvSetList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListEnvSetsResponse) GetJSON200() *EnvSetList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListEnvSetsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListEnvSetsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListEnvSetsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListEnvSetsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListEnvSetsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteEnvSetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r DeleteEnvSetResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteEnvSetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteEnvSetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteEnvSetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteEnvSetResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PutEnvSetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *EnvSet
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PutEnvSetResponse) GetJSON200() *EnvSet {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r PutEnvSetResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r PutEnvSetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PutEnvSetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutEnvSetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutEnvSetResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -14724,6 +15930,232 @@ func (r GetOverviewResponse) ContentType() string {
 	return ""
 }
 
+type GetRegistrySettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistrySettings
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRegistrySettingsResponse) GetJSON200() *RegistrySettings {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetRegistrySettingsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRegistrySettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRegistrySettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRegistrySettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRegistrySettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteRegistryCaBundleResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r DeleteRegistryCaBundleResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteRegistryCaBundleResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteRegistryCaBundleResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteRegistryCaBundleResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteRegistryCaBundleResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PutRegistryCaBundleResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistrySettings
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PutRegistryCaBundleResponse) GetJSON200() *RegistrySettings {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r PutRegistryCaBundleResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r PutRegistryCaBundleResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PutRegistryCaBundleResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutRegistryCaBundleResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutRegistryCaBundleResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PutRegistryLoginResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistryLogin
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PutRegistryLoginResponse) GetJSON200() *RegistryLogin {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r PutRegistryLoginResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r PutRegistryLoginResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PutRegistryLoginResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutRegistryLoginResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutRegistryLoginResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteRegistryLoginResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r DeleteRegistryLoginResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteRegistryLoginResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteRegistryLoginResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteRegistryLoginResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteRegistryLoginResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetRepositoryResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -15486,6 +16918,54 @@ func (r GetRunnerResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetRunnerResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetRunnerEnvResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RunnerEnv
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRunnerEnvResponse) GetJSON200() *RunnerEnv {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetRunnerEnvResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRunnerEnvResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRunnerEnvResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRunnerEnvResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRunnerEnvResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -16866,6 +18346,21 @@ func (c *ClientWithResponses) WipeCacheWithResponse(ctx context.Context, cacheId
 	return ParseWipeCacheResponse(rsp)
 }
 
+// GetSpeedComparisonWithResponse The same job on crsp and on GitHub-hosted runners
+//
+// observability R5.34. Reads finished workflow-run job timings of one repository from GitHub, matches jobs by name across the two runner kinds and returns median and p95 queue wait and run time, minutes saved and the hosted cost avoided. A public repository is excluded (hosted minutes there are free). Read only; it starts nothing.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/compare (the `GetSpeedComparison` operationId).
+func (c *ClientWithResponses) GetSpeedComparisonWithResponse(ctx context.Context, params *GetSpeedComparisonParams, reqEditors ...RequestEditorFn) (*GetSpeedComparisonResponse, error) {
+	rsp, err := c.GetSpeedComparison(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetSpeedComparisonResponse(rsp)
+}
+
 // ListDoctorFindingsWithResponse The latest finding per check and subject
 //
 // Returns a wrapper object for the known response body format(s).
@@ -16920,6 +18415,62 @@ func (c *ClientWithResponses) GetDoctorRunWithResponse(ctx context.Context, runI
 		return nil, err
 	}
 	return ParseGetDoctorRunResponse(rsp)
+}
+
+// ListEnvSetsWithResponse Every named environment set
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/env-sets (the `ListEnvSets` operationId).
+func (c *ClientWithResponses) ListEnvSetsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListEnvSetsResponse, error) {
+	rsp, err := c.ListEnvSets(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListEnvSetsResponse(rsp)
+}
+
+// DeleteEnvSetWithResponse Delete an environment set and its stored sensitive values
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /api/v1/env-sets/{setName} (the `DeleteEnvSet` operationId).
+func (c *ClientWithResponses) DeleteEnvSetWithResponse(ctx context.Context, setName SetName, reqEditors ...RequestEditorFn) (*DeleteEnvSetResponse, error) {
+	rsp, err := c.DeleteEnvSet(ctx, setName, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteEnvSetResponse(rsp)
+}
+
+// PutEnvSetWithBodyWithResponse Create or replace an environment set
+//
+// runners R5.75. A sensitive variable sent without a value keeps its stored value.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/env-sets/{setName} (the `PutEnvSet` operationId).
+func (c *ClientWithResponses) PutEnvSetWithBodyWithResponse(ctx context.Context, setName SetName, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutEnvSetResponse, error) {
+	rsp, err := c.PutEnvSetWithBody(ctx, setName, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutEnvSetResponse(rsp)
+}
+
+// PutEnvSetWithResponse Create or replace an environment set
+//
+// runners R5.75. A sensitive variable sent without a value keeps its stored value.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/env-sets/{setName} (the `PutEnvSet` operationId).
+func (c *ClientWithResponses) PutEnvSetWithResponse(ctx context.Context, setName SetName, body PutEnvSetJSONRequestBody, reqEditors ...RequestEditorFn) (*PutEnvSetResponse, error) {
+	rsp, err := c.PutEnvSet(ctx, setName, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutEnvSetResponse(rsp)
 }
 
 // StreamEventsWithResponse The live view as server-sent events
@@ -17647,6 +19198,107 @@ func (c *ClientWithResponses) GetOverviewWithResponse(ctx context.Context, reqEd
 	return ParseGetOverviewResponse(rsp)
 }
 
+// GetRegistrySettingsWithResponse Registry logins per backend and whether a private CA bundle is set
+//
+// runners R5.77, R5.78. No password is ever returned.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/registry (the `GetRegistrySettings` operationId).
+func (c *ClientWithResponses) GetRegistrySettingsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRegistrySettingsResponse, error) {
+	rsp, err := c.GetRegistrySettings(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRegistrySettingsResponse(rsp)
+}
+
+// DeleteRegistryCaBundleWithResponse Remove the private CA bundle
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /api/v1/registry/ca-bundle (the `DeleteRegistryCaBundle` operationId).
+func (c *ClientWithResponses) DeleteRegistryCaBundleWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*DeleteRegistryCaBundleResponse, error) {
+	rsp, err := c.DeleteRegistryCaBundle(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteRegistryCaBundleResponse(rsp)
+}
+
+// PutRegistryCaBundleWithBodyWithResponse Set the private CA bundle that runners trust
+//
+// runners R5.78. PEM certificates only; a private key is refused.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/registry/ca-bundle (the `PutRegistryCaBundle` operationId).
+func (c *ClientWithResponses) PutRegistryCaBundleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRegistryCaBundleResponse, error) {
+	rsp, err := c.PutRegistryCaBundleWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutRegistryCaBundleResponse(rsp)
+}
+
+// PutRegistryCaBundleWithResponse Set the private CA bundle that runners trust
+//
+// runners R5.78. PEM certificates only; a private key is refused.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/registry/ca-bundle (the `PutRegistryCaBundle` operationId).
+func (c *ClientWithResponses) PutRegistryCaBundleWithResponse(ctx context.Context, body PutRegistryCaBundleJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRegistryCaBundleResponse, error) {
+	rsp, err := c.PutRegistryCaBundle(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutRegistryCaBundleResponse(rsp)
+}
+
+// PutRegistryLoginWithBodyWithResponse Store a registry login for one backend kind
+//
+// runners R5.77. The password goes to the secret store. An empty password keeps the stored one.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/registry/logins (the `PutRegistryLogin` operationId).
+func (c *ClientWithResponses) PutRegistryLoginWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRegistryLoginResponse, error) {
+	rsp, err := c.PutRegistryLoginWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutRegistryLoginResponse(rsp)
+}
+
+// PutRegistryLoginWithResponse Store a registry login for one backend kind
+//
+// runners R5.77. The password goes to the secret store. An empty password keeps the stored one.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/registry/logins (the `PutRegistryLogin` operationId).
+func (c *ClientWithResponses) PutRegistryLoginWithResponse(ctx context.Context, body PutRegistryLoginJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRegistryLoginResponse, error) {
+	rsp, err := c.PutRegistryLogin(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutRegistryLoginResponse(rsp)
+}
+
+// DeleteRegistryLoginWithResponse Remove a registry login and its stored password
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /api/v1/registry/logins/{kind}/{host} (the `DeleteRegistryLogin` operationId).
+func (c *ClientWithResponses) DeleteRegistryLoginWithResponse(ctx context.Context, kind DeleteRegistryLoginParamsKind, host string, reqEditors ...RequestEditorFn) (*DeleteRegistryLoginResponse, error) {
+	rsp, err := c.DeleteRegistryLogin(ctx, kind, host, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteRegistryLoginResponse(rsp)
+}
+
 // GetRepositoryWithResponse One repository with its policy and variable status
 //
 // github-integration R5.18, R5.25 and R5.28.
@@ -17971,6 +19623,21 @@ func (c *ClientWithResponses) GetRunnerWithResponse(ctx context.Context, runnerI
 		return nil, err
 	}
 	return ParseGetRunnerResponse(rsp)
+}
+
+// GetRunnerEnvWithResponse The merged environment of a runner, sensitive values masked
+//
+// runners R5.75, R5.76. Order: machine, then each applied set in the order the runner lists them, then the runner's own values; a later layer wins. Each value names its source.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/runners/{runnerId}/env (the `GetRunnerEnv` operationId).
+func (c *ClientWithResponses) GetRunnerEnvWithResponse(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*GetRunnerEnvResponse, error) {
+	rsp, err := c.GetRunnerEnv(ctx, runnerId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRunnerEnvResponse(rsp)
 }
 
 // PlanRunnerReplacementWithResponse Plan replacing a runner not made by CRSP with a managed one
@@ -18890,6 +20557,39 @@ func ParseWipeCacheResponse(rsp *http.Response) (*WipeCacheResponse, error) {
 	return response, nil
 }
 
+// ParseGetSpeedComparisonResponse parses an HTTP response from a GetSpeedComparisonWithResponse call
+func ParseGetSpeedComparisonResponse(rsp *http.Response) (*GetSpeedComparisonResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetSpeedComparisonResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SpeedComparison
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListDoctorFindingsResponse parses an HTTP response from a ListDoctorFindingsWithResponse call
 func ParseListDoctorFindingsResponse(rsp *http.Response) (*ListDoctorFindingsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -18972,6 +20672,101 @@ func ParseGetDoctorRunResponse(rsp *http.Response) (*GetDoctorRunResponse, error
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest DoctorRun
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListEnvSetsResponse parses an HTTP response from a ListEnvSetsWithResponse call
+func ParseListEnvSetsResponse(rsp *http.Response) (*ListEnvSetsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListEnvSetsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest EnvSetList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteEnvSetResponse parses an HTTP response from a DeleteEnvSetWithResponse call
+func ParseDeleteEnvSetResponse(rsp *http.Response) (*DeleteEnvSetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteEnvSetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutEnvSetResponse parses an HTTP response from a PutEnvSetWithResponse call
+func ParsePutEnvSetResponse(rsp *http.Response) (*PutEnvSetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutEnvSetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest EnvSet
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -20333,6 +22128,163 @@ func ParseGetOverviewResponse(rsp *http.Response) (*GetOverviewResponse, error) 
 	return response, nil
 }
 
+// ParseGetRegistrySettingsResponse parses an HTTP response from a GetRegistrySettingsWithResponse call
+func ParseGetRegistrySettingsResponse(rsp *http.Response) (*GetRegistrySettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRegistrySettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistrySettings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteRegistryCaBundleResponse parses an HTTP response from a DeleteRegistryCaBundleWithResponse call
+func ParseDeleteRegistryCaBundleResponse(rsp *http.Response) (*DeleteRegistryCaBundleResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteRegistryCaBundleResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutRegistryCaBundleResponse parses an HTTP response from a PutRegistryCaBundleWithResponse call
+func ParsePutRegistryCaBundleResponse(rsp *http.Response) (*PutRegistryCaBundleResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutRegistryCaBundleResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistrySettings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutRegistryLoginResponse parses an HTTP response from a PutRegistryLoginWithResponse call
+func ParsePutRegistryLoginResponse(rsp *http.Response) (*PutRegistryLoginResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutRegistryLoginResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistryLogin
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteRegistryLoginResponse parses an HTTP response from a DeleteRegistryLoginWithResponse call
+func ParseDeleteRegistryLoginResponse(rsp *http.Response) (*DeleteRegistryLoginResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteRegistryLoginResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetRepositoryResponse parses an HTTP response from a GetRepositoryWithResponse call
 func ParseGetRepositoryResponse(rsp *http.Response) (*GetRepositoryResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -20844,6 +22796,39 @@ func ParseGetRunnerResponse(rsp *http.Response) (*GetRunnerResponse, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Runner
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRunnerEnvResponse parses an HTTP response from a GetRunnerEnvWithResponse call
+func ParseGetRunnerEnvResponse(rsp *http.Response) (*GetRunnerEnvResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRunnerEnvResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RunnerEnv
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

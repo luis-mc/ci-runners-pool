@@ -88,6 +88,14 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 		return Decision{}, err
 	}
 	held := jobSlots(all, job)
+	// A request or beat from the holder of a slot renews its lease (R5.70).
+	for _, h := range held {
+		if h.HolderID == req.GateID && slots.LeaseEnd(h).After(now) {
+			if _, err := tx.RenewSlot(h.MachineID, h.Kind, h.Number, h.HolderID, h.Claim, slots.LeaseExpiry(now, set)); err != nil {
+				return Decision{}, err
+			}
+		}
+	}
 	var grants []Grant
 	var heavyHeld, ciHeld *slots.Slot
 	for i := range held {
@@ -121,7 +129,7 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 	measured := req.Load.MemoryKnown || req.Load.CPUKnown
 
 	// Light job: a free light slot at once, no ticket, when under budget (R5.24).
-	lightRunner := slots.IsLightRunner(job.RunnerName)
+	lightRunner := job.RunnerName != "" && e.light != nil && e.light(req.MachineID, job.RunnerName)
 	if lightRunner || slots.IsLight(names, set) {
 		if _, tk, err := tx.Ticket(req.GateID); err != nil {
 			return Decision{}, err
@@ -263,6 +271,12 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 	if free == 0 {
 		return wait(WaitFreeSlot, fmt.Sprintf("no free slot (all %d busy)", set.JobSlots))
 	}
+	// R5.69: the job's weight must fit what the held ci jobs leave of the budget.
+	need, class := set.WeightOf(names)
+	capacity, used := set.Capacity(), set.HeldWeight(all)
+	if used.CPU+need.CPU > capacity.CPU || used.Memory+need.Memory > capacity.Memory {
+		return wait(WaitFreeSlot, WeightWaitText(class, need, used, capacity))
+	}
 	// R5.22: a load that cannot be measured never counts as under budget.
 	if !measured {
 		return wait(WaitLoadNotMeasured, LoadNotMeasuredText)
@@ -327,7 +341,8 @@ func (e *Engine) takeSlot(tx slots.Tx, req GateRequest, kind slots.Kind, number 
 		h.Machine = req.MachineID
 	}
 	s := slots.Slot{MachineID: req.MachineID, Kind: kind, Number: number, Claim: newClaim(), Job: toJob(req.Job),
-		Holder: h, QueuedAt: queuedAt, TakenAt: now, ExpiresAt: slots.SlotExpiry(now, set)}
+		Holder: h, QueuedAt: queuedAt, TakenAt: now, ExpiresAt: slots.SlotExpiry(now, set),
+		HolderID: req.GateID, LeaseExpiresAt: slots.LeaseExpiry(now, set)}
 	if err := tx.InsertSlot(s); err != nil {
 		if errors.Is(err, slots.ErrSlotTaken) {
 			return slots.Slot{}, false, nil
@@ -352,6 +367,13 @@ func overBudget(l Load, b slots.Budget) (bool, string) {
 		parts = append(parts, fmt.Sprintf("CPU %.0f%% > %d%%", l.CPUPct, b.CPUPct))
 	}
 	return len(parts) > 0, strings.Join(parts, ", ")
+}
+
+// WeightWaitText names the weight that holds a job: its class and weight, and
+// what is free of the machine's budget (R5.69, R5.48).
+func WeightWaitText(class string, need, used, capacity slots.Weight) string {
+	return fmt.Sprintf("job class %s weighs %d CPU and %d memory units; %d of %d CPU and %d of %d memory units free",
+		class, need.CPU, need.Memory, capacity.CPU-used.CPU, capacity.CPU, capacity.Memory-used.Memory, capacity.Memory)
 }
 
 // LoadNotMeasuredText is the wait text while the machine's load is unknown.

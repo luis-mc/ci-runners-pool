@@ -115,7 +115,7 @@ func TestBaseDiskIsMadeOnceThinOnTheImage(t *testing.T) {
 	if _, err := vmcheck.EnsureBase(context.Background(), bad, dir, "t-1", img, strings.Repeat("b", 64)); err == nil {
 		t.Fatal("no error")
 	}
-	if got, _ := filepath.Glob(filepath.Join(dir, "bases", "*")); len(got) != 1 {
+	if got, _ := filepath.Glob(filepath.Join(dir, "bases", "*")); len(got) != 2 { // the one base and its manifest
 		t.Fatalf("bases %v", got)
 	}
 }

@@ -27,31 +27,9 @@ func cmdDoctor() *command {
 				}
 				scope.Machines = &[]string{m.Id}
 			}
-			r, err := s.client.RunDoctorWithResponse(c.env.Context, scope)
+			run, err := c.doctorRun(s, scope)
 			if err != nil {
-				return s.transport(err)
-			}
-			if err := apiError(r.StatusCode(), r.Body); err != nil {
 				return err
-			}
-			run := r.JSON202
-			if run == nil {
-				return fail(ExitFailed, "The controller sent no doctor run.")
-			}
-			for i := 0; run.State == client.DoctorRunStateRunning && i < 600; i++ {
-				if err := c.sleep(time.Second); err != nil {
-					return err
-				}
-				g, err := s.client.GetDoctorRunWithResponse(c.env.Context, run.Id)
-				if err != nil {
-					return s.transport(err)
-				}
-				if err := apiError(g.StatusCode(), g.Body); err != nil {
-					return err
-				}
-				if g.JSON200 != nil {
-					run = g.JSON200
-				}
 			}
 			problem := false
 			for _, f := range run.Findings {
@@ -90,6 +68,37 @@ func cmdDoctor() *command {
 			return nil
 		},
 	}
+}
+
+// doctorRun starts a doctor run and waits for it to leave the running state.
+func (c *call) doctorRun(s *session, scope client.DoctorScope) (*client.DoctorRun, error) {
+	r, err := s.client.RunDoctorWithResponse(c.env.Context, scope)
+	if err != nil {
+		return nil, s.transport(err)
+	}
+	if err := apiError(r.StatusCode(), r.Body); err != nil {
+		return nil, err
+	}
+	run := r.JSON202
+	if run == nil {
+		return nil, fail(ExitFailed, "The controller sent no doctor run.")
+	}
+	for i := 0; run.State == client.DoctorRunStateRunning && i < 600; i++ {
+		if err := c.sleep(time.Second); err != nil {
+			return nil, err
+		}
+		g, err := s.client.GetDoctorRunWithResponse(c.env.Context, run.Id)
+		if err != nil {
+			return nil, s.transport(err)
+		}
+		if err := apiError(g.StatusCode(), g.Body); err != nil {
+			return nil, err
+		}
+		if g.JSON200 != nil {
+			run = g.JSON200
+		}
+	}
+	return run, nil
 }
 
 func cmdBackup() *command {

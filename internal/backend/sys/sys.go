@@ -16,7 +16,7 @@ import (
 // Command is one program call. Args are passed one by one, never joined into a
 // shell line (runners R5.18). Env carries values the program reads; SecretEnv
 // carries values that must never appear in a plan, log or output (runners
-// R5.15, R6.2). Stdin is a script text for PowerShell, never a secret.
+// R5.15, R6.2). Stdin is a script text for PowerShell, or the JIT config of a container runner (it never goes in Args or Env).
 type Command struct {
 	Name      string
 	Args      []string

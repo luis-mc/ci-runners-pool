@@ -180,12 +180,15 @@ type SlotQueue interface {
 	// Release frees every slot and ticket the job holds, of every kind (R5.28).
 	// It never fails the job: the caller logs an error and exits 0 (R5.30).
 	Release(ctx context.Context, machineID string, job JobRef, claims []string) ([]Freed, error)
-	// Reconcile frees every slot and ticket of the machine whose holder is not
-	// in alive (agent reconnect, R5.35).
-	Reconcile(ctx context.Context, machineID string, alive []Holder) ([]Freed, error)
+	// Renew extends the lease of the slots a holder holds, by holder id and claims
+	// (R5.70); ErrLeaseLost when none is left.
+	Renew(ctx context.Context, machineID, holderID string, claims []string) error
+	// RenewJobs extends the lease of the slots of the jobs the agent says run on
+	// the machine (R5.35, R5.70).
+	RenewJobs(ctx context.Context, machineID string, running []JobRef) error
 	// CompletedOnGitHub frees leftovers of a job GitHub reports completed (R5.36).
 	CompletedOnGitHub(ctx context.Context, job JobRef) ([]Freed, error)
-	// Sweep frees slots past the slot maximum age and drops expired tickets
+	// Sweep frees slots past the slot maximum age or lease end and drops expired tickets
 	// (R5.33, R5.34).
 	Sweep(ctx context.Context, now time.Time) ([]Freed, error)
 	// FreeStale frees stale slots of a machine on demand; live slots named in

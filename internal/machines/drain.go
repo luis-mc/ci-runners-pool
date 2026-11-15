@@ -33,6 +33,19 @@ func (s *Service) SetRunning(machineID string, jobs []JobRef, runners []string) 
 	if runners != nil {
 		s.runners[machineID] = runners
 	}
+	obs := s.onRunning
+	s.mu.Unlock()
+	if obs != nil {
+		obs(machineID, jobs)
+	}
+}
+
+// SetRunningObserver sets a function that sees every running-jobs report of a
+// machine. Scheduling renews the slot leases of those jobs there (scheduling
+// R5.70). Call it before the link serves.
+func (s *Service) SetRunningObserver(f func(machineID string, jobs []JobRef)) {
+	s.mu.Lock()
+	s.onRunning = f
 	s.mu.Unlock()
 }
 

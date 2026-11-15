@@ -19,6 +19,10 @@ type JobRunner struct {
 	Scope     Scope
 	// ExtraPackages are the extra packages of the repository's pool (R5.51).
 	ExtraPackages []string
+	// JIT, when set, makes the JIT config of this runner instead of the
+	// repository-level call. A job that came from a scale set needs a runner
+	// of that scale set (github-integration R5.40).
+	JIT func(ctx context.Context) (github.JITConfig, error)
 }
 
 // StartJobRunner makes one ephemeral runner for one job (runners R5.25,
@@ -44,7 +48,8 @@ func (s *Service) StartJobRunner(ctx context.Context, j JobRunner, actor string)
 	}
 	id := s.newID("r_")
 	rec := Record{ID: id, Name: j.Name, MachineID: j.MachineID, OS: "linux", Arch: j.Arch, Kind: "ephemeral",
-		Backend: j.Backend, Isolation: string(backend.IsolationContainer), Labels: j.Labels, Scope: j.Scope,
+		Backend: j.Backend, Isolation: string(backend.IsolationContainer), Labels: j.Labels,
+		Route: RouteForLabels(s.PoolName, j.Labels), SizeClass: DefaultSize, Scope: j.Scope,
 		RunnerVersion: pin.Version, State: Creating, Managed: true, CreatedAt: s.now()}
 	if err := s.Store.InsertRunner(ctx, rec); err != nil {
 		return Record{}, err
@@ -54,7 +59,12 @@ func (s *Service) StartJobRunner(ctx context.Context, j JobRunner, actor string)
 		s.audit(ctx, actor, "runner.add_failed", j.MachineID, id, err.Error())
 		return Record{}, err
 	}
-	jit, err := s.GitHub.GenerateJITConfig(ctx, t.InstallationID, t.Scope, github.JITRequest{Name: j.Name, GroupID: t.Scope.GroupID, Labels: j.Labels})
+	var jit github.JITConfig
+	if j.JIT != nil {
+		jit, err = j.JIT(ctx)
+	} else {
+		jit, err = s.GitHub.GenerateJITConfig(ctx, t.InstallationID, t.Scope, github.JITRequest{Name: j.Name, GroupID: t.Scope.GroupID, Labels: j.Labels})
+	}
 	if err != nil {
 		return fail(fmt.Errorf("JIT config: %w", err))
 	}

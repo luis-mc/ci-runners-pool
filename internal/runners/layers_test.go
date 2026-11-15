@@ -1,6 +1,7 @@
 package runners
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"regexp"
@@ -166,10 +167,19 @@ func TestLayerSelfChecks(t *testing.T) {
 	}
 	llvm, _ := LayerByName("llvm")
 	d := layerFile(t, llvm)
-	m := regexp.MustCompile(`(?m)^ARG LLVM_SHA256_AMD64=([0-9a-f]+)$`).FindStringSubmatch(d)
-	if m == nil || !ValidSHA256(m[1]) {
-		t.Error("the LLVM download has no valid pinned SHA-256")
+	pins := map[string]string{}
+	for arg, key := range map[string]string{"LLVM_SHA256_AMD64": "linux_x64", "LLVM_SHA256_ARM64": "linux_arm64"} {
+		m := regexp.MustCompile(`(?m)^ARG ` + arg + `=([0-9a-f]+)$`).FindStringSubmatch(d)
+		if m == nil || !ValidSHA256(m[1]) {
+			t.Errorf("the LLVM download for %s has no valid pinned SHA-256", key)
+			continue
+		}
+		pins[key] = m[1]
 	}
+	if !strings.Contains(d, "arm64)") || !strings.Contains(d, "Linux-${llvm_arch}") {
+		t.Error("the llvm layer must build for arm64 (R5.43)")
+	}
+	checkLLVMPinsMatchToolsJSON(t, d, pins)
 	if !strings.Contains(d, "sha256sum -c -") {
 		t.Error("the LLVM download is not hash checked")
 	}
@@ -313,5 +323,63 @@ func TestExtraPackagesDockerfile(t *testing.T) {
 		if !strings.Contains(d, want) {
 			t.Errorf("extra-packages Dockerfile lacks %q", want)
 		}
+	}
+}
+
+// checkLLVMPinsMatchToolsJSON: the layer and scripts/delivery/tools.json (the
+// pins ci_tool.py downloads from) name one LLVM version and one hash per
+// architecture, so a bump in one place cannot leave the other behind.
+func checkLLVMPinsMatchToolsJSON(t *testing.T, dockerfile string, pins map[string]string) {
+	t.Helper()
+	raw, err := os.ReadFile("../../scripts/delivery/tools.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tools map[string]struct {
+		Version   string `json:"version"`
+		Platforms map[string]struct {
+			SHA256 string `json:"sha256"`
+		} `json:"platforms"`
+	}
+	if err := json.Unmarshal(raw, &tools); err != nil {
+		t.Fatal(err)
+	}
+	llvm, ok := tools["llvm"]
+	if !ok {
+		t.Fatal("tools.json has no llvm entry")
+	}
+	if !strings.Contains(dockerfile, "ARG LLVM_VERSION="+llvm.Version+"\n") {
+		t.Errorf("layer LLVM version differs from tools.json (%s)", llvm.Version)
+	}
+	for key, want := range pins {
+		if got := llvm.Platforms[key].SHA256; got != want {
+			t.Errorf("%s: layer hash %s, tools.json %s", key, want, got)
+		}
+	}
+}
+
+// TestImageBuildMatrixListsArm64: the CI image job builds the llvm layer for
+// amd64 and arm64 (R5.43), the arm64 entry on an arm64 runner.
+func TestImageBuildMatrixListsArm64(t *testing.T) {
+	raw, err := os.ReadFile("../../.github/workflows/ci.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := strings.ReplaceAll(string(raw), "\r\n", "\n") // a Windows checkout has CRLF
+	i := strings.Index(w, "\n  image:\n")
+	if i < 0 {
+		t.Fatal("no image job in ci.yml")
+	}
+	job := w[i+1:]
+	if j := strings.Index(job[1:], "\n  e2e:"); j >= 0 {
+		job = job[:j+1]
+	}
+	for _, want := range []string{"arch: amd64", "arch: arm64", "ubuntu-24.04-arm", "layers: 'llvm'", "crsp-linux-${{ matrix.arch }}"} {
+		if !strings.Contains(job, want) {
+			t.Errorf("image job lacks %q", want)
+		}
+	}
+	if !regexp.MustCompile(`(?s)arch: amd64.*layers: '[^']*\bllvm\b`).MatchString(job) {
+		t.Error("the amd64 entry must build the llvm layer")
 	}
 }

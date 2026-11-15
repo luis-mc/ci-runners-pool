@@ -21,6 +21,8 @@ type Config struct {
 	Capacity Capacity
 	// Light keeps the light runners; nil means none are kept.
 	Light LightRunners
+	// Fleet removes job runners of a repository that stops being served (CRSP82); nil means none.
+	Fleet Fleet
 	// Up says which OSes have a machine that is online and accepting jobs; nil
 	// turns the hosted fallback off for the whole controller (R5.43).
 	Up UpSource

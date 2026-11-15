@@ -52,14 +52,25 @@ type Config struct {
 	// Runners carries out the runner commands of the controller (runners R5.1);
 	// nil answers each with a failure that says the agent has no backend.
 	Runners runners.Agent
+	// RunnerFiles replaces runner files on UpdateRunnerFiles (runners R5.38);
+	// nil means this agent cannot, and its machine report says so.
+	RunnerFiles *RunnerFiles
 	// Images lists the job images for the machine report; nil reports none.
 	Images ImageSource
+	// BaseImages checks that the runner base image of each backend exists on
+	// this machine before jobs are admitted (runners R5.53); nil checks none.
+	BaseImages BaseImageSource
 	// Redactor learns every token and JIT config the controller sends, so no
 	// log line or answer shows one (runners R5.11); nil makes a private one.
 	Redactor *redact.Redactor
 	// CPUCap sets the CPU cap on the runner processes (machines R5.64); nil uses
 	// the OS applier.
 	CPUCap cpucap.Applier
+
+	// DiskFloorGiB is the free space the DataDir volume needs before a job or VM
+	// starts, in GiB (runners R5.83). 0 sets no floor here; the commands resolve
+	// the setting with runnercache.FloorSetting (default 10).
+	DiskFloorGiB int
 
 	// Intervals; the defaults are the spec's (R5.35, R5.13, R5.16).
 	HeartbeatEvery time.Duration // 10 s
@@ -99,6 +110,9 @@ func (c *Config) defaults() {
 	}
 	if c.Gate == nil {
 		c.Gate = NewGate(c.Sampler)
+	}
+	if c.DiskFloorGiB > 0 {
+		c.Gate.SetDiskFloor(&runnercache.Floor{Bytes: runnercache.FloorBytes(c.DiskFloorGiB), Path: c.DataDir})
 	}
 	for _, d := range []struct {
 		p *time.Duration
@@ -254,6 +268,15 @@ func jobToProto(j machines.JobRef) *agentv1.JobRef {
 	return out
 }
 
+// runningReport lists the jobs that run on this machine.
+func runningReport(jobs []machines.JobRef) *agentv1.HolderReport {
+	var running []*agentv1.JobRef
+	for _, j := range jobs {
+		running = append(running, jobToProto(j))
+	}
+	return &agentv1.HolderReport{Running: running}
+}
+
 func loadToProto(r load.Report, slots int) *agentv1.LoadReport {
 	return &agentv1.LoadReport{
 		SampledAtUnixMs: r.SampledAt.UnixMilli(), MemoryPct: r.MemoryPct, MemoryKnown: r.MemoryKnown, CpuPct: r.CPUPct, CpuKnown: r.CPUKnown,
@@ -324,7 +347,7 @@ func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 		running = append(running, jobToProto(j))
 	}
 	hello := &agentv1.Hello{
-		MachineId: id, AgentVersion: cfg.Version, ProtocolVersion: agentv1.ProtocolVersion_PROTOCOL_VERSION_1,
+		MachineId: id, AgentVersion: cfg.Version, ProtocolVersion: agentv1.ProtocolVersion_PROTOCOL_VERSION_2,
 		SettingsVersion: set.Version, Facts: facts, Load: loadToProto(rep, cfg.Gate.SlotsUsed()),
 		Holders: &agentv1.HolderReport{Running: running},
 	}
@@ -437,6 +460,10 @@ func (l *link) sendLoop(ctx context.Context, cancel context.CancelFunc, lastRecv
 			if fail(l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_LoadReport{LoadReport: loadToProto(rep, cfg.Gate.SlotsUsed())}})) {
 				return
 			}
+			// The holder report is the lease heartbeat of the jobs that run here (scheduling R5.70).
+			if fail(l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_HolderReport{HolderReport: runningReport(cfg.Gate.Running())}})) {
+				return
+			}
 		case <-rd.C:
 			if fail(l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_Facts{Facts: l.redetect(ctx)}})) {
 				return
@@ -497,6 +524,8 @@ func (l *link) handle(ctx context.Context, msg *agentv1.SessionResponse) error {
 	case *agentv1.SessionResponse_AddRunner, *agentv1.SessionResponse_StopRunner,
 		*agentv1.SessionResponse_RemoveRunner, *agentv1.SessionResponse_DrainRunner:
 		l.runnerCmd(ctx, msg)
+	case *agentv1.SessionResponse_UpdateRunnerFiles:
+		go l.updateFiles(ctx, m.UpdateRunnerFiles)
 	case *agentv1.SessionResponse_MeasureCaches:
 		go l.reportCaches(ctx, m.MeasureCaches.GetCommandId())
 	case *agentv1.SessionResponse_WipeCache:
