@@ -1,0 +1,47 @@
+package container
+
+import "sort"
+
+// ImageKeyLabel is the image label that holds the key of the layers and pinned
+// versions the image was built from (runners R5.33, doctor R5.31).
+const ImageKeyLabel = "org.crsp.image-key"
+
+// Layer is one image layer and the tools the doctor looks for in the running
+// image (runners R5.50). A Tools entry is a command name; an entry that starts
+// with "$" names an environment variable that must hold an existing folder.
+type Layer struct {
+	Name  string
+	Tools []string
+}
+
+// Layers are the fixed tool lists. The names are the dev-standards names, so a
+// project setting maps one to one (runners R5.50). "base" is always present
+// (runners R5.49).
+var Layers = []Layer{
+	{Name: "base", Tools: []string{"git", "curl", "python3", "jq", "zip", "unzip", "xz", "make", "gcc", "pkg-config", "psql", "gh", "node", "corepack", "pnpm"}},
+	{Name: "windows-packaging", Tools: []string{"dotnet", "wine", "wine64", "Xvfb", "xauth", "msiextract"}},
+	{Name: "linux-packaging", Tools: []string{"dpkg-deb", "rpmbuild", "make", "checkmodule", "gpg", "shellcheck", "systemctl", "createrepo_c"}},
+	{Name: "llvm", Tools: []string{"clang-cl", "lld-link", "llvm-lib"}},
+	{Name: "playwright", Tools: []string{"$PLAYWRIGHT_BROWSERS_PATH"}},
+	{Name: "kvm", Tools: []string{"qemu-system-x86_64", "qemu-img", "cloud-localds", "ssh"}},
+}
+
+// LayerTools returns the tools of a layer and whether the layer is known.
+func LayerTools(name string) ([]string, bool) {
+	for _, l := range Layers {
+		if l.Name == name {
+			return l.Tools, true
+		}
+	}
+	return nil, false
+}
+
+// LayerNames lists the known layers, sorted.
+func LayerNames() []string {
+	n := make([]string, 0, len(Layers))
+	for _, l := range Layers {
+		n = append(n, l.Name)
+	}
+	sort.Strings(n)
+	return n
+}
