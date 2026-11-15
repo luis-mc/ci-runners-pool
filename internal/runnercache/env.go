@@ -12,6 +12,14 @@ const (
 	EnvToolQuota = "CI_TOOLS_QUOTA_GIB"
 	EnvRustCap   = "CRSP_RUST_CACHE_CAP_GIB"
 	EnvRustDir   = "CARGO_TARGET_DIR"
+	// EnvRustKeyCap is the cap of one Rust cache key, in GiB.
+	EnvRustKeyCap = "CRSP_RUST_CACHE_KEY_CAP_GIB"
+	// EnvRustKey names the top-level folder of the Rust cache the running job
+	// uses; eviction keeps that entry (caches R5.45).
+	EnvRustKey = "CRSP_RUST_CACHE_KEY"
+	// EnvBudget and EnvAlert are the pool-wide budget and the size alert, in GiB.
+	EnvBudget = "CRSP_CACHE_BUDGET_GIB"
+	EnvAlert  = "CRSP_CACHE_ALERT_GIB"
 )
 
 // Dirs are the cache folders of one runner, all under its own folder, so one
@@ -40,10 +48,13 @@ func EnvJoin(runnerFolder string, q Quota, join func(...string) string) map[stri
 	q = q.WithDefaults()
 	d := DirsJoin(runnerFolder, join)
 	return map[string]string{
-		EnvToolsDir:  d.Tools,
-		EnvRustDir:   d.Rust,
-		EnvToolQuota: itoa(q.ToolGiB),
-		EnvRustCap:   itoa(q.RustGiB),
+		EnvToolsDir:   d.Tools,
+		EnvRustDir:    d.Rust,
+		EnvToolQuota:  itoa(q.ToolGiB),
+		EnvRustCap:    itoa(q.RustGiB),
+		EnvRustKeyCap: itoa(q.RustKeyGiB),
+		EnvBudget:     itoa(q.BudgetGiB),
+		EnvAlert:      itoa(q.AlertGiB),
 	}
 }
 
@@ -54,6 +65,11 @@ type Cap struct {
 	Name  string
 	Dir   string
 	Bytes int64
+	// Rust marks the Rust build cache, which has the extra rules of caches
+	// R5.45: KeyBytes caps one key and Keep names the key the job uses.
+	Rust     bool
+	KeyBytes int64
+	Keep     string
 }
 
 // CapsFromEnv reads the caches a job sees in its environment: the tool cache
@@ -72,7 +88,16 @@ func CapsFromEnv(getenv func(string) string) []Cap {
 		if dir == "" || err != nil || gib <= 0 {
 			continue
 		}
-		out = append(out, Cap{Name: c.name, Dir: dir, Bytes: int64(gib) * GiB})
+		cp := Cap{Name: c.name, Dir: dir, Bytes: int64(gib) * GiB}
+		if c.dir == EnvRustDir {
+			cp.Rust = true
+			cp.Keep = strings.TrimSpace(getenv(EnvRustKey))
+			cp.KeyBytes = Quota{RustGiB: gib}.WithDefaults().RustKeyBytes()
+			if k, err := strconv.Atoi(strings.TrimSpace(getenv(EnvRustKeyCap))); err == nil && k > 0 {
+				cp.KeyBytes = Quota{RustGiB: gib, RustKeyGiB: k}.RustKeyBytes()
+			}
+		}
+		out = append(out, cp)
 	}
 	return out
 }

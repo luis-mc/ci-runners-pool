@@ -42,7 +42,11 @@ type Entry struct {
 }
 
 // Scan sizes every top-level entry of dir. A missing dir is an empty cache.
-func Scan(fsys FS, dir string) ([]Entry, error) {
+func Scan(fsys FS, dir string) ([]Entry, error) { return scanWith(fsys, dir, nil) }
+
+// scanWith is Scan that also calls onFile for every file it sees, so one walk
+// serves both the sizes and the size alert (caches R5.48).
+func scanWith(fsys FS, dir string, onFile func(path string, size int64)) ([]Entry, error) {
 	des, err := fsys.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -54,7 +58,7 @@ func Scan(fsys FS, dir string) ([]Entry, error) {
 	for _, de := range des {
 		p := filepath.Join(dir, de.Name())
 		e := Entry{Path: p}
-		if err := walk(fsys, p, &e); err != nil {
+		if err := walk(fsys, p, &e, onFile); err != nil {
 			return nil, err
 		}
 		out = append(out, e)
@@ -62,7 +66,7 @@ func Scan(fsys FS, dir string) ([]Entry, error) {
 	return out, nil
 }
 
-func walk(fsys FS, p string, e *Entry) error {
+func walk(fsys FS, p string, e *Entry, onFile func(string, int64)) error {
 	fi, err := fsys.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -75,6 +79,9 @@ func walk(fsys FS, p string, e *Entry) error {
 	}
 	if !fi.IsDir() {
 		e.Size += fi.Size()
+		if onFile != nil {
+			onFile(p, fi.Size())
+		}
 		return nil
 	}
 	des, err := fsys.ReadDir(p)
@@ -82,7 +89,7 @@ func walk(fsys FS, p string, e *Entry) error {
 		return err
 	}
 	for _, de := range des {
-		if err := walk(fsys, filepath.Join(p, de.Name()), e); err != nil {
+		if err := walk(fsys, filepath.Join(p, de.Name()), e, onFile); err != nil {
 			return err
 		}
 	}
