@@ -18,18 +18,20 @@ func TestKVMDeviceOnlyAndLabelNeedsUsable(t *testing.T) {
 	if got := KVMArgs(0); strings.Join(got, " ") != "--device /dev/kvm" {
 		t.Errorf("no gid: %v", got)
 	}
-	if err := CheckRunArgs(args); err != nil {
+	// The guard of pool.go wants the whole call: the job user and no capability.
+	safe := []string{"run", "-d", "--user", "1001:1001", "--cap-drop", "ALL", "--security-opt", "no-new-privileges"}
+	if err := CheckRunArgs(append(append([]string{}, safe...), append(args, "img")...)); err != nil {
 		t.Errorf("kvm device refused: %v", err)
 	}
 	for _, bad := range [][]string{
 		{"--privileged"}, {"--privileged=true"}, {"--pid=host"}, {"--net=host"}, {"--network", "host"},
 		{"--ipc", "host"}, {"--device", "/dev/sda"},
 	} {
-		if err := CheckRunArgs(bad); err == nil {
+		if err := CheckRunArgs(append(append([]string{}, safe...), append(bad, "img")...)); err == nil {
 			t.Errorf("%v accepted", bad)
 		}
 	}
-	if !errors.Is(CheckRunArgs([]string{"--privileged"}), ErrPrivileged) {
+	if !errors.Is(CheckRunArgs(append(append([]string{}, safe...), "--privileged", "img")), ErrPrivileged) {
 		t.Error("privileged error not ErrPrivileged")
 	}
 	cases := []struct {
