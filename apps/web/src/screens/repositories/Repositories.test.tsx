@@ -206,7 +206,7 @@ describe('Repository detail', () => {
     ).toBe(true);
   });
 
-  it('shows where the jobs go now and why (github-integration R5.68)', async () => {
+  it('shows where the jobs go now and why (github-integration R5.42)', async () => {
     const hosted = repository({
       id: 9,
       full_name: 'octo/live',
@@ -254,7 +254,7 @@ describe('Repository detail', () => {
     expect((wait1 as HTMLInputElement).checked).toBe(true);
   });
 
-  it('asks first before the hosted fallback is turned on (UX-9, R5.66)', async () => {
+  it('asks first before the hosted fallback is turned on (UX-9, R5.40)', async () => {
     const a = api().on('PATCH', '/api/v1/repositories/:id/policy', on.policy);
     renderApp(a, '/repositories/octo/app');
     await screen.findByRole('heading', { name: 'octo/app' });

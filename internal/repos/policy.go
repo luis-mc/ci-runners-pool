@@ -28,7 +28,7 @@ type PolicyUpdate struct {
 	// R5.51). A bad name refuses the update with its line number.
 	ExtraPackages *string
 	// HostedFallback turns the hosted fallback on or off (github-integration
-	// R5.66). Turning it on needs ConfirmFallbackCost.
+	// R5.40). Turning it on needs ConfirmFallbackCost.
 	HostedFallback *bool
 	// ConfirmFallbackCost is the yes to the question that says GitHub may bill
 	// the fallback minutes of a private repository.

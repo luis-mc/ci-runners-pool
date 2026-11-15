@@ -342,6 +342,10 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.32** (built, CRSP24) — Every date, time, number, size and percent on screen comes from the one formatter (component 28).
 
+**R5.33** (built, CRSP74) — The Repositories screen says where each repository's jobs go now (*crsp machines*, *GitHub-hosted runners* or *waiting for a machine*) in a column and, with the reason in words, on the repository page, which also has the *Hosted fallback* section: the choice *When no crsp machine can take these jobs*, the monthly cap and the hosted labels. Turning the fallback on asks first in the question card (UX-9) and says GitHub may bill the minutes; a public repository cannot take it. Rules: UX-9, UX-22, UX-38. Words: content.md, *Hosted fallback words*. Contract: github-integration R5.40, R5.42.
+
+**R5.34** (built, CRSP74) — While any repository runs on GitHub-hosted runners the Overview shows one line in the banner slot, with a link to Repositories (UX-14: it never pushes the machines and jobs down).
+
 ## 6. Non-functional requirements
 
 Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are **NOT YET IMPLEMENTED**.
@@ -507,6 +511,8 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.29 | Vitest, Go test, Playwright e2e | `apps/web/src/screens/settings/ConfigExport.test.tsx`, `internal/configexport/configexport_test.go`, `internal/api/handlers_ops_test.go` (TestExportConfig), `e2e/tests/web-console/exports-stop.spec.ts` |
 | R5.30 | Vitest, Playwright e2e | the question-card tests in each screen test file, `e2e/tests/web-console/flows.spec.ts`, `apps/web/src/screens/settings/Notifications.test.tsx`, `e2e/tests/web-console/notifications.spec.ts` (delete a channel) |
 | R5.31 | Vitest | the loading, empty and could-not-load tests in each screen test file, `apps/web/src/screens/settings/Notifications.test.tsx` |
+| R5.33 | Vitest | `apps/web/src/screens/repositories/Repositories.test.tsx` (where the jobs go, the question card, a public repository) |
+| R5.34 | Vitest | `apps/web/src/shell/Shell.test.tsx` (the Overview line) |
 | R5.32 | Vitest | `packages/ui/src/components/format.test.ts`, `apps/web/src/screens/settings/Notifications.test.tsx` (last test time) |
 | R6.1 | Go test | `internal/api/session_cookie_test.go` (flags: not Secure on loopback, Secure off loopback; 256-bit value, only the hash stored), `internal/auth/session_test.go` (cookie attributes, `CookieSecure` by address, no time expiry, no idle expiry, survives a restart). |
 | R6.2 | Go test, Vitest | `internal/api/csrf_test.go` (every changing operation of the contract: no token, wrong token, no, foreign or null Origin, per-session token), `apps/web/src/api/csrf.test.tsx` and `apps/web/src/shell/Shell.test.tsx` (the console sends it) |

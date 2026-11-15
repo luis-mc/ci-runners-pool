@@ -238,7 +238,7 @@ type Repository struct {
 	// Where is where the repository's jobs go now: "crsp", "hosted" or
 	// "waiting"; HostedOSes are the OSes on GitHub-hosted runners, WaitingOSes
 	// the ones whose jobs wait for a machine. FallbackOn is the setting
-	// (github-integration R5.66 to R5.70).
+	// (github-integration R5.40 to R5.44).
 	Where       string
 	HostedOSes  []string
 	WaitingOSes []string

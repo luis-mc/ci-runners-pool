@@ -12,7 +12,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 )
 
-// Hosted fallback (github-integration R5.66 to R5.70). It is off by default: a
+// Hosted fallback (github-integration R5.40 to R5.44). It is off by default: a
 // job waits for a crsp machine, which costs nothing. A repository that opted
 // in runs on GitHub-hosted runners while no crsp machine can take its jobs,
 // knowing GitHub may bill those minutes for a private repository.
@@ -41,7 +41,7 @@ const (
 	WhyPublic      = "public_repository" // no machine up; a public repository never falls back
 )
 
-// Routing is where a repository's jobs go now, and why (R5.68).
+// Routing is where a repository's jobs go now, and why (R5.42).
 type Routing struct {
 	Where string
 	Why   string
@@ -179,8 +179,8 @@ func (s *Service) osDown(os string, now time.Time) (down bool, for_ time.Duratio
 // EvaluateFallback is the controller's fallback pass. It reads which OSes have
 // a machine up, and for each repository that opted in it rewrites RUNS_ON_<OS>
 // to the hosted label once no machine of the OS has been up for the grace
-// time, and back as soon as one is up (R5.67). It counts the fallback minutes
-// and stops falling back at the cap (R5.69). A repository that did not opt in
+// time, and back as soon as one is up (R5.41). It counts the fallback minutes
+// and stops falling back at the cap (R5.43). A repository that did not opt in
 // is never read or written here. Every switch goes to the audit log with its
 // reason.
 func (s *Service) EvaluateFallback(ctx context.Context) error {
@@ -313,7 +313,7 @@ func (s *Service) evaluateRepo(ctx context.Context, r Repository, pol Policy) er
 }
 
 // countMinutes adds the time hosted jobs ran since the last pass to the month's
-// count, best effort from the open jobs the poller reads (R5.69): a job in
+// count, best effort from the open jobs the poller reads (R5.43): a job in
 // progress whose labels carry a hosted label counts from when it started, or
 // from when it was first seen. It reads jobs only while the repository is on
 // fallback or still has a hosted job it counts.
@@ -374,7 +374,7 @@ func hasHostedLabel(labels []string, hosted map[string]bool) bool {
 	return false
 }
 
-// routing says where the jobs of a repository go now and why (R5.68). The pool
+// routing says where the jobs of a repository go now and why (R5.42). The pool
 // must be on; a repository with the pool off has no routing.
 func (s *Service) routing(ctx context.Context, r Repository, pol Policy) (Routing, error) {
 	if !r.PoolOn {
@@ -444,7 +444,7 @@ func inList(s []string, v string) bool {
 	return false
 }
 
-// RoutingOf is the routing of one repository (R5.68).
+// RoutingOf is the routing of one repository (R5.42).
 func (s *Service) RoutingOf(ctx context.Context, id int64) (Routing, error) {
 	r, err := s.cfg.Store.GetRepository(ctx, id)
 	if err != nil {
@@ -458,7 +458,7 @@ func (s *Service) RoutingOf(ctx context.Context, id int64) (Routing, error) {
 }
 
 // DesiredNow is the variables the controller keeps for a repository right
-// now, with the hosted label for an OS on fallback (R5.67). The doctor reads
+// now, with the hosted label for an OS on fallback (R5.41). The doctor reads
 // it so that a repository on fallback is not reported as drifted.
 func (s *Service) DesiredNow(ctx context.Context, r Repository) (map[string]string, error) {
 	pol, err := s.policyOrDefault(ctx, r.ID)

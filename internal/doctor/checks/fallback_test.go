@@ -18,7 +18,7 @@ func fbRepo(where string, fallbackOn bool) doctor.Repository {
 	return r
 }
 
-func TestRepoWaitingIsInfoOnlyWithFallbackOff(t *testing.T) { // doctor R5.52
+func TestRepoWaitingIsInfoOnlyWithFallbackOff(t *testing.T) { // doctor R5.37
 	g := newGH()
 	fs := run(t, doctor.Env{GitHub: g, Fleet: &fleet{repos: []doctor.Repository{fbRepo("waiting", false)}}}, "repo.waiting")
 	if len(fs) != 1 || fs[0].Severity != doctor.Info {
@@ -31,7 +31,7 @@ func TestRepoWaitingIsInfoOnlyWithFallbackOff(t *testing.T) { // doctor R5.52
 	}
 }
 
-func TestRepoFallbackWarnsWhileOn(t *testing.T) { // doctor R5.53
+func TestRepoFallbackWarnsWhileOn(t *testing.T) { // doctor R5.38
 	g := newGH()
 	fs := run(t, doctor.Env{GitHub: g, Fleet: &fleet{repos: []doctor.Repository{fbRepo("hosted", true)}}}, "repo.fallback")
 	if len(fs) != 1 || fs[0].Severity != doctor.Warn {

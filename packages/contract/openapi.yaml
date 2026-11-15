@@ -3070,7 +3070,7 @@ components:
           light_runner: true
     RepositoryRouting:
       type: object
-      description: Where the jobs of a repository go now and why (github-integration R5.68). Absent while the pool is off for the repository.
+      description: Where the jobs of a repository go now and why (github-integration R5.42). Absent while the pool is off for the repository.
       required: [where, why, used_minutes]
       properties:
         where:
@@ -3079,7 +3079,8 @@ components:
         why:
           type: string
           description: A code the console turns into words. machine_up, fallback_on, fallback_off, grace, cap_reached or public_repository.
-          enum: [machine_up, fallback_on, fallback_off, grace, cap_reached, public_repository]
+          enum:
+            [machine_up, fallback_on, fallback_off, grace, cap_reached, public_repository]
         oses:
           type: array
           description: The operating systems the reason is about.
@@ -3163,7 +3164,7 @@ components:
             type: string
         hosted_fallback:
           type: boolean
-          description: Run on GitHub-hosted runners while no crsp machine can take the jobs (github-integration R5.66). Off by default; GitHub may bill those minutes for a private repository.
+          description: Run on GitHub-hosted runners while no crsp machine can take the jobs (github-integration R5.40). Off by default; GitHub may bill those minutes for a private repository.
         fallback_cap_minutes:
           type: integer
           description: Monthly cap of fallback minutes; absent means no cap.
@@ -3202,7 +3203,7 @@ components:
           description: Needed to turn fork jobs on (github-integration R5.26).
         hosted_fallback:
           type: boolean
-          description: Turn the hosted fallback on or off (github-integration R5.66). A public repository is refused.
+          description: Turn the hosted fallback on or off (github-integration R5.40). A public repository is refused.
         confirm_fallback_cost:
           type: boolean
           description: The yes to the question that says GitHub may bill the fallback minutes. Needed to turn the fallback on.
@@ -4634,7 +4635,7 @@ components:
           type: integer
           minimum: 1
           maximum: 60
-          description: github-integration R5.67. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3.
+          description: github-integration R5.41. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3.
         auto_update:
           type: boolean
           description: operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first.

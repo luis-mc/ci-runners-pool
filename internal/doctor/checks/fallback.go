@@ -8,7 +8,7 @@ import (
 )
 
 // hosted says whether the repository's jobs for an OS run on GitHub-hosted
-// runners now (github-integration R5.67).
+// runners now (github-integration R5.41).
 func hosted(r doctor.Repository, os string) bool {
 	for _, h := range r.HostedOSes {
 		if strings.EqualFold(h, os) {
@@ -28,7 +28,7 @@ func osList(oses []string) string {
 
 // repoWaiting names each pool repository whose jobs wait because no crsp
 // machine is up for an OS it uses and that has the hosted fallback off. It is
-// info, never fail: waiting costs nothing (R5.70). New check.
+// info, never fail: waiting costs nothing (R5.44). New check.
 func repoWaiting(ctx context.Context, env doctor.Env) []doctor.Finding {
 	repos, out := poolRepos(ctx, env, "repo.waiting")
 	for _, r := range repos {
@@ -44,7 +44,7 @@ func repoWaiting(ctx context.Context, env doctor.Env) []doctor.Finding {
 }
 
 // repoFallback warns while a repository's jobs run on GitHub-hosted runners
-// because of the fallback, since GitHub may bill those minutes (R5.70). A
+// because of the fallback, since GitHub may bill those minutes (R5.44). A
 // repository that opted in and runs on crsp machines is ok. New check.
 func repoFallback(ctx context.Context, env doctor.Env) []doctor.Finding {
 	repos, out := poolRepos(ctx, env, "repo.fallback")

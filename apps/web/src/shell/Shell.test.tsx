@@ -93,7 +93,7 @@ describe('the shell (R5.3)', () => {
     expect(screen.getByText('build-1')).toBeTruthy();
   });
 
-  it('says in one line on the Overview while a repository runs on hosted runners (R5.68)', async () => {
+  it('says in one line on the Overview while a repository runs on hosted runners (R5.42)', async () => {
     const live = repository({
       pool_on: true,
       routing: { where: 'hosted', why: 'fallback_on', oses: ['linux'], used_minutes: 3 },

@@ -1,4 +1,4 @@
-// The hosted fallback of a repository (github-integration R5.66 to R5.68): where its jobs go now and why, and the
+// The hosted fallback of a repository (github-integration R5.40 to R5.42): where its jobs go now and why, and the
 // setting "When no crsp machine can take these jobs". Turning it on asks first in the page (UX-9).
 import {
   Button,

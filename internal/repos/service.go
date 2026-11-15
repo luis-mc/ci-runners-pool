@@ -22,7 +22,7 @@ type Config struct {
 	// Light keeps the light runners; nil means none are kept.
 	Light LightRunners
 	// Up says which OSes have a machine that is online and accepting jobs; nil
-	// turns the hosted fallback off for the whole controller (R5.67).
+	// turns the hosted fallback off for the whole controller (R5.41).
 	Up UpSource
 	// FallbackGrace is how long no machine of an OS must have been up before an
 	// opted-in repository falls back; 0 means DefaultFallbackGrace.
@@ -161,7 +161,7 @@ type RepositoryView struct {
 	FindingsFail   int
 	FindingsWarn   int
 	VariablesDrift bool
-	// Routing is where the repository's jobs go now and why (R5.68).
+	// Routing is where the repository's jobs go now and why (R5.42).
 	Routing Routing
 }
 

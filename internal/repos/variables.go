@@ -135,7 +135,7 @@ func (s *Service) Desired(ctx context.Context, pol Policy) (map[string]string, e
 
 // desiredFor is Desired for one repository: an OS the repository is on
 // hosted fallback for gets the hosted label instead of the crsp labels
-// (R5.67). Only a repository that opted in is ever changed.
+// (R5.41). Only a repository that opted in is ever changed.
 func (s *Service) desiredFor(ctx context.Context, r Repository, pol Policy) (map[string]string, error) {
 	return s.desired(ctx, pol, s.hostedNow(r, pol))
 }

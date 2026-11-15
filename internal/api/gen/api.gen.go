@@ -2436,7 +2436,7 @@ type Repository struct {
 	Policy         RepositoryPolicy `json:"policy"`
 	PoolOn         bool             `json:"pool_on"`
 
-	// Routing Where the jobs of a repository go now and why (github-integration R5.68). Absent while the pool is off for the repository.
+	// Routing Where the jobs of a repository go now and why (github-integration R5.42). Absent while the pool is off for the repository.
 	Routing *RepositoryRouting `json:"routing,omitempty"`
 
 	// UserIsGithubAdmin github-integration R5.19; without it the switch is disabled with this reason.
@@ -2471,7 +2471,7 @@ type RepositoryPolicy struct {
 	// FallbackCapMinutes Monthly cap of fallback minutes; absent means no cap.
 	FallbackCapMinutes *int `json:"fallback_cap_minutes,omitempty"`
 
-	// HostedFallback Run on GitHub-hosted runners while no crsp machine can take the jobs (github-integration R5.66). Off by default; GitHub may bill those minutes for a private repository.
+	// HostedFallback Run on GitHub-hosted runners while no crsp machine can take the jobs (github-integration R5.40). Off by default; GitHub may bill those minutes for a private repository.
 	HostedFallback *bool `json:"hosted_fallback,omitempty"`
 
 	// HostedLabels The hosted label per operating system; a missing one is the default (ubuntu-latest, windows-latest, macos-latest).
@@ -2509,7 +2509,7 @@ type RepositoryPolicyUpdate struct {
 	// FallbackCapMinutes Monthly cap of fallback minutes; 0 clears it.
 	FallbackCapMinutes *int `json:"fallback_cap_minutes,omitempty"`
 
-	// HostedFallback Turn the hosted fallback on or off (github-integration R5.66). A public repository is refused.
+	// HostedFallback Turn the hosted fallback on or off (github-integration R5.40). A public repository is refused.
 	HostedFallback *bool `json:"hosted_fallback,omitempty"`
 
 	// HostedLabels Hosted label per operating system (linux, windows, macos); an empty value puts the default back.
@@ -2526,7 +2526,7 @@ type RepositoryPolicyUpdate struct {
 	RunnerGroups    *[]string `json:"runner_groups,omitempty"`
 }
 
-// RepositoryRouting Where the jobs of a repository go now and why (github-integration R5.68). Absent while the pool is off for the repository.
+// RepositoryRouting Where the jobs of a repository go now and why (github-integration R5.42). Absent while the pool is off for the repository.
 type RepositoryRouting struct {
 	// Oses The operating systems the reason is about.
 	Oses *[]RepositoryRoutingOses `json:"oses,omitempty"`
@@ -2647,7 +2647,7 @@ type Settings struct {
 	// BackupTimeLocal HH:MM, 24-hour local time.
 	BackupTimeLocal *string `json:"backup_time_local,omitempty"`
 
-	// FallbackGraceMinutes github-integration R5.67. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3.
+	// FallbackGraceMinutes github-integration R5.41. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3.
 	FallbackGraceMinutes       *int `json:"fallback_grace_minutes,omitempty"`
 	MaxEventStreams            *int `json:"max_event_streams,omitempty"`
 	RetentionAuditDays         *int `json:"retention_audit_days,omitempty"`

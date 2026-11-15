@@ -32,7 +32,7 @@ type Settings struct {
 	MaxEventStreams            int
 	// FallbackGraceMinutes is how long no crsp machine of an OS must have been
 	// up before a repository that opted in falls back to GitHub-hosted runners
-	// (github-integration R5.67).
+	// (github-integration R5.41).
 	FallbackGraceMinutes int
 	// AutoUpdate is operations R5.15: on by default; a newer stable release
 	// installs by itself after a drain.

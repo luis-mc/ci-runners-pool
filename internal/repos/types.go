@@ -49,7 +49,7 @@ type Policy struct {
 	ExtraPackages []string
 	// HostedFallback runs the repository's jobs on GitHub-hosted runners while
 	// no crsp machine can take them. Off by default: jobs wait for a crsp
-	// machine, which costs nothing (github-integration R5.66).
+	// machine, which costs nothing (github-integration R5.40).
 	HostedFallback bool
 	// FallbackCapMinutes caps the fallback minutes of a calendar month (UTC).
 	// 0 means no cap.
@@ -221,7 +221,7 @@ type Store interface {
 	ListFindings(ctx context.Context, repoID int64) ([]Finding, time.Time, error)
 
 	// FallbackSeconds is the seconds a repository's jobs ran on the hosted
-	// label in a month ("2026-11"); AddFallbackSeconds adds to it (R5.67).
+	// label in a month ("2026-11"); AddFallbackSeconds adds to it (R5.41).
 	FallbackSeconds(ctx context.Context, repoID int64, month string) (int64, error)
 	AddFallbackSeconds(ctx context.Context, repoID int64, month string, seconds int64) error
 
@@ -277,7 +277,7 @@ type Capacity interface {
 // UpSource says, per OS, whether some crsp machine can take jobs now: online
 // on the agent link and accepting jobs (not paused, not on battery). The key
 // is "Linux", "Windows" or "macOS"; an OS that has no machine is absent
-// (github-integration R5.67).
+// (github-integration R5.41).
 type UpSource interface {
 	UpOS(ctx context.Context) (map[string]bool, error)
 }

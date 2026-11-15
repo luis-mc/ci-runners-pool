@@ -250,7 +250,7 @@ func runsOnLoop(ctx context.Context, logger *slog.Logger, gh *github.REST, rsvc 
 		}
 	}
 	// The hosted fallback looks at the machines every half minute; it writes
-	// only for a repository that opted in (github-integration R5.67).
+	// only for a repository that opted in (github-integration R5.41).
 	fallback := func() {
 		if gh.AppID() == 0 {
 			return

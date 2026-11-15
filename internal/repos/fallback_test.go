@@ -42,7 +42,7 @@ func linuxVar(e *env) string {
 
 const crspLinux = `["self-hosted","linux","x64","docker","crsp-home"]`
 
-func TestFallbackDefaultOffNeverRewritten(t *testing.T) { // R5.66
+func TestFallbackDefaultOffNeverRewritten(t *testing.T) { // R5.40
 	e, up := fallbackEnv(t)
 	ctx := context.Background()
 	if pol, _ := e.svc.policyOrDefault(ctx, 101); pol.HostedFallback {
@@ -65,7 +65,7 @@ func TestFallbackDefaultOffNeverRewritten(t *testing.T) { // R5.66
 	}
 }
 
-func TestFallbackNeedsConfirmAndRefusesPublic(t *testing.T) { // R5.66
+func TestFallbackNeedsConfirmAndRefusesPublic(t *testing.T) { // R5.40
 	e, _ := fallbackEnv(t)
 	on := true
 	if _, err := e.svc.UpdatePolicy(context.Background(), adminP, 101, PolicyUpdate{HostedFallback: &on}); !errors.Is(err, ErrFallbackNeedsConfirm) {
@@ -76,7 +76,7 @@ func TestFallbackNeedsConfirmAndRefusesPublic(t *testing.T) { // R5.66
 	}
 }
 
-func TestFallbackFlipsAfterGraceAndBack(t *testing.T) { // R5.67
+func TestFallbackFlipsAfterGraceAndBack(t *testing.T) { // R5.41
 	e, up := fallbackEnv(t)
 	ctx := context.Background()
 	optIn(t, e, 101, 0)
@@ -122,7 +122,7 @@ func TestFallbackFlipsAfterGraceAndBack(t *testing.T) { // R5.67
 	}
 }
 
-func TestFallbackOtherRepositoriesUntouched(t *testing.T) { // R5.66
+func TestFallbackOtherRepositoriesUntouched(t *testing.T) { // R5.40
 	e, up := fallbackEnv(t)
 	ctx := context.Background()
 	e.turnOn(100)
@@ -137,7 +137,7 @@ func TestFallbackOtherRepositoriesUntouched(t *testing.T) { // R5.66
 	}
 }
 
-func TestFallbackOptOutWhileOnRestores(t *testing.T) { // R5.66
+func TestFallbackOptOutWhileOnRestores(t *testing.T) { // R5.40
 	e, up := fallbackEnv(t)
 	ctx := context.Background()
 	optIn(t, e, 101, 0)
@@ -154,7 +154,7 @@ func TestFallbackOptOutWhileOnRestores(t *testing.T) { // R5.66
 	}
 }
 
-func TestFallbackCapStopsFallingBack(t *testing.T) { // R5.69
+func TestFallbackCapStopsFallingBack(t *testing.T) { // R5.43
 	e, up := fallbackEnv(t)
 	ctx := context.Background()
 	optIn(t, e, 101, 5)

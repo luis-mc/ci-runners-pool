@@ -215,7 +215,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const [signingOut, setSigningOut] = useState(false);
   const [setup, setSetup] = useState<Schemas['SetupState'] | undefined>(undefined);
   const client = useClient();
-  // The Overview says in one line while a repository runs on GitHub-hosted runners (github-integration R5.68).
+  // The Overview says in one line while a repository runs on GitHub-hosted runners (github-integration R5.42).
   const [hosted, setHosted] = useState(0);
   const onOverview = location.pathname === '/';
   useEffect(() => {

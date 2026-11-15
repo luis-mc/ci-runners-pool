@@ -282,3 +282,26 @@ The words of the extra packages form on a repository's page (runners R5.51).
 | Buttons | Save packages (busy word: Saving), Cancel (puts the saved list back) |
 | Done | Extra packages saved. |
 | Failed | Could not save the packages. {why} |
+
+## Hosted fallback words
+
+The words of the hosted fallback on a repository's page, the list and the Overview (github-integration R5.40 to R5.44).
+
+| Where | Word |
+|---|---|
+| Section | Hosted fallback |
+| Choice | When no crsp machine can take these jobs |
+| Choices | Wait for a crsp machine, Run on GitHub-hosted runners |
+| Help | Waiting costs nothing. Jobs stay queued on GitHub for up to 24 hours. |
+| Reason, public | A public repository never runs on GitHub-hosted runners. |
+| Fields | Monthly cap of hosted minutes (help: 0 means no cap. Once the cap is reached this month, jobs wait again.), Hosted label for {os} (optional; help: Blank uses {default}.) |
+| Note | GitHub may bill these minutes for a private repository. crsp switches back as soon as a machine is up. |
+| Button | Save fallback (busy word: Saving) |
+| Question card | Title: Run on GitHub-hosted runners? Lines: GitHub may bill the minutes that run on GitHub-hosted runners for a private repository. / Jobs of {repository} run there only while no crsp machine can take them. crsp switches back as soon as a machine is up. Action: Turn on (busy word: Saving) |
+| Done | Saved. |
+| Column and fact | Jobs go to: crsp machines, GitHub-hosted runners, waiting for a machine, pool off |
+| Why | A crsp machine is up. / No crsp machine for {os} is up, so jobs run on GitHub-hosted runners. / No crsp machine for {os} is up. Jobs wait for one. / No crsp machine for {os} is up. Jobs move to GitHub-hosted runners if none comes back soon. / The monthly cap of hosted minutes is reached. Jobs wait for a crsp machine. / A public repository never runs on GitHub-hosted runners. Jobs wait for a crsp machine. |
+| Fact | Hosted minutes this month |
+| Overview line | {n} repository runs on GitHub-hosted runners because no crsp machine is up. / {n} repositories run on GitHub-hosted runners because no crsp machine is up. |
+| Doctor, waiting | Jobs of {repository} wait: no crsp machine is up for {os} |
+| Doctor, on hosted | Jobs of {repository} run on GitHub-hosted runners ({os}) |

@@ -11,7 +11,7 @@ func view(os string, online, accepting bool, state string) machines.View {
 }
 
 // A machine counts as up only when it is online and accepting jobs, so a
-// paused machine (or one on battery) counts as down (github-integration R5.67).
+// paused machine (or one on battery) counts as down (github-integration R5.41).
 func TestUpByOS(t *testing.T) {
 	act := machines.StateActive
 	got := upByOS([]machines.View{

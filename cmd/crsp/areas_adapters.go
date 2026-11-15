@@ -56,7 +56,7 @@ func (c machineCapacity) OSLabels(ctx context.Context) (map[string][]string, err
 
 // machineUp says, per OS, whether some machine can take jobs now: online on
 // the agent link and accepting jobs, so a paused machine or one on battery
-// counts as down (github-integration R5.67). An OS with machines but none up
+// counts as down (github-integration R5.41). An OS with machines but none up
 // is false; an OS with no machine is absent.
 type machineUp struct{ svc *machines.Service }
 

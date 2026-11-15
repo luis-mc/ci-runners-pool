@@ -185,6 +185,10 @@ States:
 
 **R5.36** (M1, v0.6.0, Built CRSP61: `machine.engine` in `internal/doctor/checks/engine.go`, fed by `doctor.EngineSource`; CRSP63: the live doctor reads the engine each online agent reports in its `MachineReport`, and skips it for a machine that has not reported) — **Container engine check.** `machine.engine` says, for each machine, which container engine it uses and whether it answers: Docker in WSL2 through the Windows `docker` command, Docker in WSL2 through `wsl docker`, Docker Desktop, or Docker on Linux. `ok` names the engine and its version. When the engine does not answer or is not there the finding is `warn` (the machine only cannot run container runners; `container.engine` fails for a machine that has a container pool) with the reason from the agent and a fix for that OS (Windows: start Docker Desktop, or `sudo service docker start` in a WSL2 distro, or install Docker in WSL2 first). The check reads and never starts an engine or changes a Docker Desktop setting (runners R5.47). Port of the machine facts of `delivery_doctor.py`; parity plan row 14.
 
+**R5.37** (M1, v0.3.0, Built CRSP74) — **Jobs that wait for a machine.** The check `repo.waiting` names each pool repository whose jobs wait because no crsp machine is up for an OS it uses and whose hosted fallback is off (github-integration R5.40). It is `info`, never `fail`: waiting costs nothing, and the finding says GitHub keeps the jobs queued up to 24 hours. The fix is to start or resume a machine, or to turn the fallback on for the repository. A repository with the fallback on is not listed.
+
+**R5.38** (M1, v0.3.0, Built CRSP74) — **The hosted fallback warns while it runs.** The check `repo.fallback` covers each pool repository that turned the fallback on. It is `warn` while the repository's jobs run on GitHub-hosted runners, because GitHub may bill those minutes for a private repository; it is `ok` while the repository runs on crsp machines. `repo.vars` and `repo.vars.runner` treat the hosted label as correct while the fallback holds (github-integration R5.41).
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -307,6 +311,8 @@ Repositories and workflows:
 | `repo.vars` | `RUNS_ON_<OS>` unset where used (fail), not a JSON list (fail), different from the product's value (warn) | fail, warn | Set it from the Repositories screen; the `gh variable set` command | no | 1 |
 | `repo.vars.runner` | A `RUNS_ON_<OS>` whose labels no online runner carries | fail | Add or start a runner with those labels | no | 1 |
 | `repo.light` | A pool repository with the light runner on has no online light runner for an OS it serves; says why (no machine with a light slot, the runner is offline, or it is not placed yet) | warn | Set light slots above 0 on a machine of that OS, or turn the light runner off (scheduling R5.65, runners R5.58) | no | 1 |
+| `repo.waiting` | A pool repository's jobs wait because no crsp machine is up and its hosted fallback is off | info | Start or resume a machine, or turn the fallback on | no | 1 |
+| `repo.fallback` | A repository with the hosted fallback on runs on GitHub-hosted runners now (GitHub may bill the minutes) | warn (ok while on crsp machines) | Start or resume a machine | no | 1 |
 | `repo.forks` | A public repository lets fork pull requests reach the pool | warn | Turn fork jobs off unless meant | no | 2 |
 | `workflow.labels` | A self-hosted `runs-on` label set no online runner carries, with file and line | fail | Add a runner with the labels, or change the workflow to `fromJSON(vars.RUNS_ON_<OS>)` | no | 1 |
 | `workflow.generic` | A self-hosted job with literal labels | warn | Use `${{ fromJSON(vars.RUNS_ON_<OS>) }}` | no | 1 |
@@ -455,7 +461,9 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.33 | internal/doctor/checks/coverage_test.go TestCapabilitiesFromWorkflowText, TestUnknownJobIsInfo (CRSP47) |
 | R5.34 | internal/doctor/checks/cache_test.go TestCacheOverQuotaWarns, TestDiskUnderTenPercentWarns, TestCacheChecksSkipWithoutCacheData |
 | R5.35 | internal/doctor/checks/checks_test.go TestRunnerToolCache | new |
-| R5.36 | internal/doctor/checks/engine_test.go TestMachineEngineSaysWhichEngineAndWhetherItAnswers, TestMachineEngineSkipsWithoutAReport; internal/doctor/checks/checks_test.go TestEveryRegisteredCheckIsM1AndHasAnID and internal/doctor/wire/wire_test.go TestNewDoctorRegistersCoreChecksAndRuns (26 checks) ; cmd/crsp/remote_wiring_test.go TestReportSourcesReadTheAgentReport | new |
+| R5.36 | internal/doctor/checks/engine_test.go TestMachineEngineSaysWhichEngineAndWhetherItAnswers, TestMachineEngineSkipsWithoutAReport; internal/doctor/checks/checks_test.go TestEveryRegisteredCheckIsM1AndHasAnID and internal/doctor/wire/wire_test.go TestNewDoctorRegistersCoreChecksAndRuns (28 checks since CRSP74) ; cmd/crsp/remote_wiring_test.go TestReportSourcesReadTheAgentReport | new |
+| R5.37 | internal/doctor/checks/fallback_test.go TestRepoWaitingIsInfoOnlyWithFallbackOff (CRSP74) |
+| R5.38 | internal/doctor/checks/fallback_test.go TestRepoFallbackWarnsWhileOn (CRSP74) |
 | R6.1 | internal/doctor/engine_test.go TestSlowCheckIsSkipNotOk (the timeout); benchmark planned |
 | R6.2 | internal/doctor/checks/checks_test.go TestCallCountBudget |
 | R6.3 | internal/doctor/engine_test.go TestSecretsAreRedactedInFindings |

@@ -19,3 +19,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C14: pool size words added: the Pool size wizard, its steps, fields and messages (content.md; machines R5.58, CRSP70)
 - C15: extra packages words added: the field, its help, its messages and the line-numbered mistake (content.md; runners R5.51, CRSP70)
 - C16: Connect GitHub error words and the App name help added (content.md; github-integration R5.3, OPS10)
+- C17: hosted fallback words added: the section, choices, question card, list column, reasons and the Overview line (content.md; github-integration R5.40 to R5.44, CRSP74)

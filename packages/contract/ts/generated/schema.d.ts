@@ -1996,7 +1996,7 @@ export interface components {
             routing?: components["schemas"]["RepositoryRouting"];
         };
         /**
-         * @description Where the jobs of a repository go now and why (github-integration R5.68). Absent while the pool is off for the repository.
+         * @description Where the jobs of a repository go now and why (github-integration R5.42). Absent while the pool is off for the repository.
          * @example {
          *       "where": "hosted",
          *       "why": "fallback_on",
@@ -2045,7 +2045,7 @@ export interface components {
             budget_cpu_pct?: number;
             /** @description Extra distribution packages of the pool image (runners R5.51). */
             extra_packages?: string[];
-            /** @description Run on GitHub-hosted runners while no crsp machine can take the jobs (github-integration R5.66). Off by default; GitHub may bill those minutes for a private repository. */
+            /** @description Run on GitHub-hosted runners while no crsp machine can take the jobs (github-integration R5.40). Off by default; GitHub may bill those minutes for a private repository. */
             hosted_fallback?: boolean;
             /** @description Monthly cap of fallback minutes; absent means no cap. */
             fallback_cap_minutes?: number;
@@ -2073,7 +2073,7 @@ export interface components {
             legacy_vars?: boolean;
             /** @description Needed to turn fork jobs on (github-integration R5.26). */
             confirm_fork_risk?: boolean;
-            /** @description Turn the hosted fallback on or off (github-integration R5.66). A public repository is refused. */
+            /** @description Turn the hosted fallback on or off (github-integration R5.40). A public repository is refused. */
             hosted_fallback?: boolean;
             /** @description The yes to the question that says GitHub may bill the fallback minutes. Needed to turn the fallback on. */
             confirm_fallback_cost?: boolean;
@@ -2911,7 +2911,7 @@ export interface components {
             backup_time_local?: string;
             backup_keep_days?: number;
             max_event_streams?: number;
-            /** @description github-integration R5.67. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3. */
+            /** @description github-integration R5.41. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3. */
             fallback_grace_minutes?: number;
             /** @description operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first. */
             auto_update?: boolean;
