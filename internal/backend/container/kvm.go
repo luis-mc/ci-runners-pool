@@ -8,10 +8,6 @@ import (
 	"time"
 )
 
-// KVMDevice is the only way KVM reaches a job container (runners R5.41,
-// R6.1): a device, never --privileged.
-const KVMDevice = "/dev/kvm"
-
 // ErrPrivileged is returned for run arguments that make a container privileged
 // or give it the host's namespaces (runners R6.1).
 var ErrPrivileged = errors.New("a job container is never privileged and never shares a host namespace")
@@ -24,26 +20,6 @@ func KVMArgs(gid int) []string {
 		args = append(args, "--group-add", fmt.Sprint(gid))
 	}
 	return args
-}
-
-// CheckRunArgs refuses an argument list that is privileged, shares a host
-// PID, network or IPC namespace, or passes a device other than the allowed
-// ones (runners R6.1, R5.41).
-func CheckRunArgs(args []string) error {
-	for i, a := range args {
-		low := strings.ToLower(a)
-		switch {
-		case low == "--privileged", strings.HasPrefix(low, "--privileged="):
-			return ErrPrivileged
-		case low == "--pid=host", low == "--net=host", low == "--network=host", low == "--ipc=host", low == "--userns=host":
-			return ErrPrivileged
-		case (low == "--pid" || low == "--net" || low == "--network" || low == "--ipc") && i+1 < len(args) && strings.EqualFold(args[i+1], "host"):
-			return ErrPrivileged
-		case low == "--device" && i+1 < len(args) && !strings.HasPrefix(args[i+1], KVMDevice):
-			return fmt.Errorf("device %q is not allowed: only %s is passed", args[i+1], KVMDevice)
-		}
-	}
-	return nil
 }
 
 // KVM states of a pool (machines R5.53, doctor R5.32).

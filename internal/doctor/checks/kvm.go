@@ -6,9 +6,6 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
 )
 
-// M2 is the milestone of the KVM checks.
-const M2 = 2
-
 // RegisterKVM adds the four KVM checks (doctor R5.32). They are not part of
 // Register: no agent reports KVM state yet, so the live doctor does not run
 // them; the controller registers them when the agent's KVM report is wired.

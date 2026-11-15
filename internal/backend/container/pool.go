@@ -141,7 +141,7 @@ func CheckRunArgs(args []string) error {
 		}
 		switch flag {
 		case "--privileged":
-			return refuse("--privileged is never used")
+			return fmt.Errorf("%w: %w: --privileged is never used", ErrUnsafeRun, ErrPrivileged)
 		case "--pid", "--ipc", "--uts", "--userns", "--cgroupns":
 			if v := next(); v == "host" || strings.HasPrefix(v, "container:") {
 				return refuse(flag + " " + v + " shares the host")
