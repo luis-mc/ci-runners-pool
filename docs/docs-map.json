@@ -64,6 +64,9 @@
     "internal/doctor/**": [
       "docs/features/doctor/spec.md"
     ],
+    "internal/envsets/**": [
+      "docs/features/runners/spec.md"
+    ],
     "internal/events/**": [
       "docs/features/observability/spec.md"
     ],
@@ -102,6 +105,9 @@
     ],
     "internal/power/**": [
       "docs/features/machines/spec.md"
+    ],
+    "internal/regcreds/**": [
+      "docs/features/runners/spec.md"
     ],
     "internal/repos/**": [
       "docs/features/github-integration/spec.md"
