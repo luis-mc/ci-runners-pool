@@ -122,6 +122,7 @@ func SettingsFromProto(p *agentv1.MachineSettings) machines.Settings {
 		GateMaxWaitMinutes: int(p.GetGateMaxWaitMinutes()), GateOnTimeout: p.GetGateOnTimeout(),
 		AllowedBackends: p.GetAllowedBackends(), CacheCapBytes: p.GetCacheCapBytes(),
 		DrainTimeoutMinutes: int(p.GetDrainTimeoutMinutes()), WindowsSymlinkRight: p.GetWindowsSymlinkRight(),
+		PoolMemoryGiB: p.GetPoolMemoryGib(), PoolCPUs: int(p.GetPoolCpus()),
 	}
 }
 

@@ -510,3 +510,19 @@ func TestDrainLogsItsDecisionsBeforeTheSlowSteps(t *testing.T) {
 		t.Fatalf("drain log:\n%s", all)
 	}
 }
+
+// runners R5.53: a runner's CPU count is the pool CPUs split over the job slots.
+func TestAddedRunnerGetsItsCPUCount(t *testing.T) {
+	m := machine("linux", "x64", true)
+	m.PoolCPUs, m.JobSlots = 8, 2
+	r := newRig(m)
+	r.add(t)
+	if got := r.ag.added[0].MaxParallel; got != 4 {
+		t.Fatalf("MaxParallel = %d, want 4", got)
+	}
+	r = newRig(machine("linux", "x64", true))
+	r.add(t)
+	if got := r.ag.added[0].MaxParallel; got != 0 {
+		t.Fatalf("no pool size must export no CPU count, got %d", got)
+	}
+}

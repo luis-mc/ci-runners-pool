@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"path"
 	"strconv"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/poolsize"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"github.com/luis-mc/ci-runners-shared-pool/packaging/hooks"
@@ -174,6 +176,9 @@ func Plist(label, user, folder string) string {
 func (b *Backend) want(r backend.RunnerSpec, user string) (persistent.Meta, string) {
 	folder := b.Folder(r.Name)
 	kv := runnercache.EnvJoin(folder, r.CacheQuota, path.Join)
+	if r.MaxParallel > 0 {
+		maps.Copy(kv, poolsize.Env(r.MaxParallel))
+	}
 	kv["ACTIONS_RUNNER_HOOK_JOB_STARTED"] = folder + "/hooks/job-started.sh"
 	kv["ACTIONS_RUNNER_HOOK_JOB_COMPLETED"] = folder + "/hooks/job-completed.sh"
 	env := persistent.Env(kv)

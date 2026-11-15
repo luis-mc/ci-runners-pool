@@ -322,3 +322,23 @@ func TestStopWaitsForTheListenerNotTheUnit(t *testing.T) {
 		t.Errorf("Stop must look for the listener after the unit stops: %v", r.cmd.Texts())
 	}
 }
+
+// runners R5.53 / machines R5.54: the runner's CPU count reaches its jobs.
+func TestEnvCarriesCIMaxParallel(t *testing.T) {
+	r := newRig()
+	spec := r.spec()
+	spec.MaxParallel = 4
+	if _, err := r.b.Start(context.Background(), spec, backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
+		t.Fatal(err)
+	}
+	if env := string(r.fs.Files["/var/lib/crsp/runners/box-1/.env"]); !strings.Contains(env, "CI_MAX_PARALLEL=4\n") {
+		t.Errorf(".env:\n%s", env)
+	}
+}
+
+func TestEnvHasNoCIMaxParallelWithoutAPoolSize(t *testing.T) {
+	r := started(t)
+	if env := string(r.fs.Files["/var/lib/crsp/runners/box-1/.env"]); strings.Contains(env, "CI_MAX_PARALLEL") {
+		t.Errorf("no pool size, no CPU count:\n%s", env)
+	}
+}

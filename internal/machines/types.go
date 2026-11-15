@@ -85,6 +85,16 @@ type Facts struct {
 	GPUs           []Gpu     `json:"gpus"`
 	AgentVersion   string    `json:"agent_version"`
 	DetectedAt     time.Time `json:"detected_at"`
+	// WSL is what `.wslconfig` declares, on Windows with WSL2 (R5.54).
+	WSL WSLFacts `json:"wsl"`
+}
+
+// WSLFacts are the declared WSL2 limits. A value the file does not set is 0.
+type WSLFacts struct {
+	ConfigPresent        bool  `json:"config_present"`
+	MemoryBytes          int64 `json:"memory_bytes"`
+	Processors           int   `json:"processors"`
+	NestedVirtualization bool  `json:"nested_virtualization"`
 }
 
 // Backend is one detected isolation backend (R5.11).
@@ -133,6 +143,10 @@ type Settings struct {
 	CacheCapBytes       int64
 	DrainTimeoutMinutes int
 	WindowsSymlinkRight bool
+	// PoolMemoryGiB and PoolCPUs are the owner's pool size, checked against the
+	// load budget (R5.58). 0 means not set.
+	PoolMemoryGiB float64
+	PoolCPUs      int
 }
 
 // DefaultSettings are the defaults of R5.22: budget 85% memory and 60% CPU,
@@ -162,6 +176,11 @@ type SettingsUpdate struct {
 	CacheCapBytes       *int64
 	DrainTimeoutMinutes *int
 	WindowsSymlinkRight *bool
+	PoolMemoryGiB       *float64
+	PoolCPUs            *int
+	// ConfirmShrink is the explicit yes to a pool size below the current one
+	// (R5.58). It is never implied by Confirm.
+	ConfirmShrink bool
 	// Confirm is the yes once the jobs a restart waits for are named.
 	Confirm bool
 }
@@ -185,6 +204,10 @@ type Load struct {
 	CPUKnown      bool
 	UnknownReason string
 	SlotsUsed     int
+	// WSLVMBytes and ContainersBytes are what the agent reports for the WSL VM
+	// and the containers (R5.17); they feed the pool-size check.
+	WSLVMBytes      int64
+	ContainersBytes int64
 	SampledAt     time.Time
 	// ReceivedAt is controller time, used for the stale mark (R6.7).
 	ReceivedAt time.Time

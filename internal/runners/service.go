@@ -189,7 +189,7 @@ func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]Ad
 			return nil, err
 		}
 		out = append(out, AddSpec{Name: name, MachineID: m.ID, OS: req.OS, Arch: m.Arch, Kind: req.Kind,
-			Backend: string(be.Name), Labels: labels, Scope: req.Scope, Symlink: m.Symlink})
+			Backend: string(be.Name), Labels: labels, Scope: req.Scope, Symlink: m.Symlink, MaxParallel: m.MaxParallel()})
 	}
 	return out, nil
 }
@@ -495,7 +495,7 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 		return fail(fmt.Errorf("registration token: %w", err))
 	}
 	spec := backend.RunnerSpec{ID: id, Name: a.Name, OS: a.OS, Arch: a.Arch, Labels: a.Labels, GitHubURL: t.URL, Group: t.Group,
-		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, WindowsSymlinkRight: a.OS == "windows" && a.Symlink, CacheQuota: s.CacheQuota}
+		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, WindowsSymlinkRight: a.OS == "windows" && a.Symlink, CacheQuota: s.CacheQuota, MaxParallel: a.MaxParallel}
 	h, err := s.Agent.AddRunner(ctx, a.MachineID, spec, backend.StartConfig{Registration: token})
 	if err != nil {
 		return fail(err)

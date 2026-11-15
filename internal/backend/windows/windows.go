@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math/big"
 	"strings"
 	"time"
@@ -26,6 +27,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/poolsize"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"github.com/luis-mc/ci-runners-shared-pool/packaging/hooks"
@@ -173,6 +175,9 @@ func (b *Backend) want(r backend.RunnerSpec, account string) (persistent.Meta, s
 	folder := b.Folder(r.Name)
 	hookDir := Join(folder, "hooks")
 	kv := runnercache.EnvJoin(folder, r.CacheQuota, Join)
+	if r.MaxParallel > 0 {
+		maps.Copy(kv, poolsize.Env(r.MaxParallel))
+	}
 	kv["ACTIONS_RUNNER_HOOK_JOB_STARTED"] = Join(hookDir, "job-started.ps1")
 	kv["ACTIONS_RUNNER_HOOK_JOB_COMPLETED"] = Join(hookDir, "job-completed.ps1")
 	kv["PSExecutionPolicyPreference"] = "RemoteSigned"

@@ -164,7 +164,7 @@ func (s *Service) addLight(ctx context.Context, repoID int64, repoName, os, acto
 		}
 		spec := AddSpec{Name: lightName(all, h.MachineID, repoName, os, repoID), MachineID: m.ID, OS: os, Arch: m.Arch,
 			Kind: "persistent", Backend: string(be.Name), Labels: labels,
-			Scope: Scope{Kind: "repository", RepositoryID: repoID}, Symlink: m.Symlink}
+			Scope: Scope{Kind: "repository", RepositoryID: repoID}, Symlink: m.Symlink, MaxParallel: m.MaxParallel()}
 		if err := s.addRunner(ctx, spec, actor); err != nil {
 			return "", "", err
 		}

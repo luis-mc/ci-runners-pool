@@ -176,6 +176,12 @@ func apply(set Settings, u SettingsUpdate) Settings {
 	if u.WindowsSymlinkRight != nil {
 		set.WindowsSymlinkRight = *u.WindowsSymlinkRight
 	}
+	if u.PoolMemoryGiB != nil {
+		set.PoolMemoryGiB = *u.PoolMemoryGiB
+	}
+	if u.PoolCPUs != nil {
+		set.PoolCPUs = *u.PoolCPUs
+	}
 	return set
 }
 
@@ -202,6 +208,11 @@ func (s *Service) UpdateSettings(ctx context.Context, actor, id string, u Settin
 	next := apply(cur, u)
 	if err := validate(next, m.Facts, m.Backends); err != nil {
 		return View{}, nil, err
+	}
+	if u.PoolMemoryGiB != nil || u.PoolCPUs != nil || u.BudgetMemoryPct != nil || u.BudgetCPUPct != nil {
+		if err := s.checkPoolSize(id, m, cur, next, u.ConfirmShrink); err != nil {
+			return View{}, nil, err
+		}
 	}
 	if u.Name != nil {
 		if *u.Name == "" || len(*u.Name) > 64 {
@@ -262,6 +273,8 @@ func settingsDiff(a, b Settings) string {
 	add("drain timeout", a.DrainTimeoutMinutes, b.DrainTimeoutMinutes)
 	add("backends", a.AllowedBackends, b.AllowedBackends)
 	add("symlink right", a.WindowsSymlinkRight, b.WindowsSymlinkRight)
+	add("pool memory GiB", a.PoolMemoryGiB, b.PoolMemoryGiB)
+	add("pool CPUs", a.PoolCPUs, b.PoolCPUs)
 	return out
 }
 
@@ -276,6 +289,7 @@ func ProtoSettings(st Settings, state string) *agentv1.MachineSettings {
 		GateMaxWaitMinutes: int32(st.GateMaxWaitMinutes), GateOnTimeout: st.GateOnTimeout, //nolint:gosec // validated
 		AllowedBackends: st.AllowedBackends, CacheCapBytes: st.CacheCapBytes,
 		DrainTimeoutMinutes: int32(st.DrainTimeoutMinutes), WindowsSymlinkRight: st.WindowsSymlinkRight, //nolint:gosec // validated
+		PoolMemoryGib: st.PoolMemoryGiB, PoolCpus: int32(st.PoolCPUs),                                  //nolint:gosec // validated
 	}
 }
 
