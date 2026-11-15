@@ -48,6 +48,13 @@ type Service struct {
 	// the plan ends or is stopped (the plan.progress event).
 	OnProgress func(Plan)
 
+	// Updater replaces the runner files of a persistent runner (runners
+	// R5.38). Nil means the machine's agent cannot update yet.
+	Updater RunnerUpdater
+	// AutoUpdate reads the owner setting for automatic updates (operations
+	// R5.15); nil means on.
+	AutoUpdate func(ctx context.Context) bool
+
 	// Light places the light runners of a repository (scheduling R5.65). Nil
 	// turns light runners off.
 	Light LightPlacer
@@ -594,7 +601,22 @@ func (s *Service) BeginRemove(ctx context.Context, id string, confirm bool, acto
 }
 
 func (s *Service) finishRemove(ctx context.Context, r Record, prev State, actor string) error {
-	d := Drain{Poll: s.Poll, WarnAfter: s.WarnAfter, Timeout: s.DrainTimeout, Sleep: s.Sleep, Now: s.Now,
+	d := s.drainFor(r)
+	err := d.Act(ctx, func(ctx context.Context) error {
+		_ = s.Store.SetRunnerState(ctx, r.ID, Removing, "idle; removing")
+		return s.removeRegistration(ctx, r, actor, "runner.remove", false)
+	})
+	if err != nil {
+		// The runner still works: put it back. A timeout asks the user; it never
+		// stops the job.
+		_ = s.Store.SetRunnerState(ctx, r.ID, restoreState(prev), err.Error())
+	}
+	return err
+}
+
+// drainFor builds the drain of one runner from the service settings.
+func (s *Service) drainFor(r Record) Drain {
+	return Drain{Poll: s.Poll, WarnAfter: s.WarnAfter, Timeout: s.DrainTimeout, Sleep: s.Sleep, Now: s.Now,
 		OnWarn: func(job string) {
 			if s.OnDrainWarn != nil {
 				s.OnDrainWarn(r.ID, job)
@@ -607,16 +629,6 @@ func (s *Service) finishRemove(ctx context.Context, r Record, prev State, actor 
 		},
 		Idle: func(ctx context.Context) (bool, string, error) { return s.idle(ctx, r) },
 	}
-	err := d.Act(ctx, func(ctx context.Context) error {
-		_ = s.Store.SetRunnerState(ctx, r.ID, Removing, "idle; removing")
-		return s.removeRegistration(ctx, r, actor, "runner.remove", false)
-	})
-	if err != nil {
-		// The runner still works: put it back. A timeout asks the user; it never
-		// stops the job.
-		_ = s.Store.SetRunnerState(ctx, r.ID, restoreState(prev), err.Error())
-	}
-	return err
 }
 
 func restoreState(prev State) State {

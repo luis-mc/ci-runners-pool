@@ -8,6 +8,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys/sysfake"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
 func meta() Meta {
@@ -91,5 +92,34 @@ func TestDownloadDeletesOnMismatch(t *testing.T) {
 	}
 	if f.Exists("/a") {
 		t.Error("file kept")
+	}
+}
+
+// R5.37, parity row 31: a wrong hash is deleted and fetched once more; the
+// second download that matches is kept.
+func TestDownloadFixesAWrongHashByRedownload(t *testing.T) {
+	f := sysfake.NewFS()
+	fe := &sysfake.Fetcher{FS: f, Body: []byte("x")}
+	calls := 0
+	d := sys.Deps{FS: f, Fetch: fe, Verify: func(string, string) error {
+		calls++
+		if calls == 1 {
+			return runners.ErrHashMismatch
+		}
+		return nil
+	}}
+	if err := Download(context.Background(), d, "u", "/a", "h"); err != nil || calls != 2 || !f.Exists("/a") {
+		t.Fatalf("err=%v calls=%d", err, calls)
+	}
+	// Wrong twice: refused and deleted. A bad pin is never retried.
+	calls = 0
+	d.Verify = func(string, string) error { calls++; return runners.ErrHashMismatch }
+	if err := Download(context.Background(), d, "u", "/b", "h"); err == nil || calls != 2 || f.Exists("/b") {
+		t.Fatalf("err=%v calls=%d", err, calls)
+	}
+	calls = 0
+	d.Verify = func(string, string) error { calls++; return runners.ErrBadHash }
+	if err := Download(context.Background(), d, "u", "/c", "h"); err == nil || calls != 1 {
+		t.Fatalf("err=%v calls=%d", err, calls)
 	}
 }
