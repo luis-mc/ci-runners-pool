@@ -124,6 +124,9 @@ func (s *Server) convert(w http.ResponseWriter, code string) {
 	m["id"] = s.AppID
 	m["pem"] = s.PEM
 	m["client_secret"] = s.ClientSecret
+	if s.NoWebhookSecret {
+		m["webhook_secret"] = ""
+	}
 	writeJSON(w, 201, m)
 }
 

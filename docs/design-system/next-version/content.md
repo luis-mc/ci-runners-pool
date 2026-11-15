@@ -179,6 +179,21 @@ The words of the repository policy form for the light runner (scheduling R5.65).
 | A light runner is kept free for jobs that last seconds, so they do not wait behind a long build. A workflow uses it with runs-on: ${{ vars.RUNS_ON_LIGHT }}. | The note under the switch. |
 | No light runner is online for {os} on {repository} | The doctor finding when the runner is missing. |
 
+## Connect GitHub words
+
+The words the Connect GitHub step shows when GitHub sends the person back with an error (github-integration R5.3, web-console setup screens). The page picks the message by the error code in the address and then clears the code from the address.
+
+| Word | Where |
+|---|---|
+| GitHub made the App, but crsp could not save it. Open the App on GitHub and delete it (App settings, Advanced, Delete GitHub App). Then start again. | Problem message when the App exists at GitHub and nothing was kept. |
+| Open the App on GitHub | The button that opens the half-made App in a new tab. |
+| GitHub App names are unique across GitHub. If GitHub says the name is taken, delete the old App or choose another name. | Help under the App name field. |
+| crsp could not save the App because the OS secret store is not available. See the doctor. Then start again. | Problem message, code unavailable. |
+| GitHub could not be reached. Nothing was changed. Try again. | Problem message, code github_unavailable. |
+| The link back from GitHub did not work. It ran out or was used already. Start again. | Problem message, code bad_request. |
+| An App is already set up. | Problem message, code conflict. |
+| The App was not created. Start again. | Problem message, any other code. |
+
 ## Notification words
 
 The events, severities and channel kinds of the notifications feature, as people read them (notifications R5.1, R5.4). The stable type names stay in the API and in webhook bodies; the screen shows these words.

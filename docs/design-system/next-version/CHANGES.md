@@ -18,3 +18,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C13: text area field added to the form field family; the number field takes a number of decimals (components.md 14, 37; runners R5.51 and machines R5.58, CRSP70)
 - C14: pool size words added: the Pool size wizard, its steps, fields and messages (content.md; machines R5.58, CRSP70)
 - C15: extra packages words added: the field, its help, its messages and the line-numbered mistake (content.md; runners R5.51, CRSP70)
+- C16: Connect GitHub error words and the App name help added (content.md; github-integration R5.3, OPS10)
