@@ -343,7 +343,7 @@ func (s *Service) Join(ctx context.Context, in JoinInput) (JoinResult, error) {
 	key := randomToken("crsp_mk_", 32)
 	m := Machine{
 		ID: id, OS: f.OS, Arch: f.Arch, Facts: f, State: StateActive, IsController: in.Local,
-		AgentVersion: in.AgentVersion, JoinedAt: now,
+		AgentVersion: in.AgentVersion, JoinedAt: now, Accepting: true,
 	}
 	set := DefaultSettings()
 	set.JobSlots = defaultSlots(f)

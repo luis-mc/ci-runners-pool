@@ -21,7 +21,13 @@ type Config struct {
 	Capacity Capacity
 	// Light keeps the light runners; nil means none are kept.
 	Light LightRunners
-	Now   func() time.Time
+	// Up says which OSes have a machine that is online and accepting jobs; nil
+	// turns the hosted fallback off for the whole controller (R5.67).
+	Up UpSource
+	// FallbackGrace is how long no machine of an OS must have been up before an
+	// opted-in repository falls back; 0 means DefaultFallbackGrace.
+	FallbackGrace func() time.Duration
+	Now           func() time.Time
 	// OnProgress, when set, is called with the plan after each step and when
 	// the plan ends or is stopped (the plan.progress event).
 	OnProgress func(Plan)
@@ -37,6 +43,8 @@ type Service struct {
 	etags  map[int64]map[string]string // repository id -> workflow path -> etag
 	cache  map[int64]map[string][]byte // repository id -> workflow path -> content
 
+	fb fallbackState
+
 	stopMu  sync.Mutex
 	stops   map[string]bool // plan id -> a stop was asked while it applies
 	running map[string]bool // plan id -> ApplyPlan is running it in this process
@@ -48,7 +56,7 @@ func New(cfg Config) *Service {
 		cfg.Now = time.Now
 	}
 	return &Service{cfg: cfg, admin: map[int64]map[int64]bool{}, synced: map[int64]time.Time{},
-		etags: map[int64]map[string]string{}, cache: map[int64]map[string][]byte{}, stops: map[string]bool{}, running: map[string]bool{}}
+		etags: map[int64]map[string]string{}, cache: map[int64]map[string][]byte{}, stops: map[string]bool{}, running: map[string]bool{}, fb: newFallbackState()}
 }
 
 // SetLight sets who keeps the light runners. The wiring calls it once the
@@ -153,6 +161,8 @@ type RepositoryView struct {
 	FindingsFail   int
 	FindingsWarn   int
 	VariablesDrift bool
+	// Routing is where the repository's jobs go now and why (R5.68).
+	Routing Routing
 }
 
 func (s *Service) view(ctx context.Context, p auth.Principal, r Repository) (RepositoryView, error) {
@@ -182,6 +192,9 @@ func (s *Service) view(ctx context.Context, p auth.Principal, r Repository) (Rep
 		} else {
 			v.FindingsWarn++
 		}
+	}
+	if rt, err := s.routing(ctx, r, v.Policy); err == nil {
+		v.Routing = rt
 	}
 	s.mu.Lock()
 	v.UserIsAdmin = s.admin[p.UserID][r.ID]
@@ -284,6 +297,9 @@ func (s *Service) UpdatePolicy(ctx context.Context, p auth.Principal, id int64, 
 	if err != nil {
 		return Policy{}, err
 	}
+	if np.HostedFallback && r.Visibility == "public" {
+		return Policy{}, auth.Invalid("%s is a public repository; crsp serves private repositories only, so it never runs on GitHub-hosted runners", r.FullName)
+	}
 	np.UpdatedAt, np.UpdatedBy = s.cfg.Now(), p.Login
 	if r.PoolOn && !np.AllowForkPRs {
 		if err := s.guardForks(ctx, r); err != nil {
@@ -294,6 +310,9 @@ func (s *Service) UpdatePolicy(ctx context.Context, p auth.Principal, id int64, 
 		return Policy{}, err
 	}
 	s.cfg.Audit.Audit(ctx, p, "policy.changed", "repository", r.FullName, describePolicy(old, np))
+	if !np.HostedFallback {
+		s.dropFallback(id)
+	}
 	if r.PoolOn {
 		if err := s.syncVariables(ctx, p, r, np); err != nil {
 			return np, err
@@ -349,6 +368,15 @@ func describePolicy(a, b Policy) string {
 	}
 	if a.LegacyVars != b.LegacyVars {
 		d = append(d, fmt.Sprintf("old variable names %t to %t", a.LegacyVars, b.LegacyVars))
+	}
+	if a.HostedFallback != b.HostedFallback {
+		d = append(d, fmt.Sprintf("hosted fallback %t to %t", a.HostedFallback, b.HostedFallback))
+	}
+	if a.FallbackCapMinutes != b.FallbackCapMinutes {
+		d = append(d, fmt.Sprintf("fallback cap %d to %d minutes", a.FallbackCapMinutes, b.FallbackCapMinutes))
+	}
+	if fmt.Sprint(a.HostedLabels) != fmt.Sprint(b.HostedLabels) {
+		d = append(d, fmt.Sprintf("hosted labels %v", b.HostedLabels))
 	}
 	if a.BudgetMemoryPct != b.BudgetMemoryPct || a.BudgetCPUPct != b.BudgetCPUPct {
 		d = append(d, "budget")

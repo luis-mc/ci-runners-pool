@@ -119,9 +119,13 @@ type Machine struct {
 	IsController bool
 	AgentVersion string
 	Online       bool
-	LastSeen     time.Time
-	JoinedAt     time.Time
-	RemovedAt    time.Time
+	// Accepting is false while the machine takes no new jobs (paused, on
+	// battery). PauseReason says why. A new machine accepts jobs.
+	Accepting   bool
+	PauseReason string
+	LastSeen    time.Time
+	JoinedAt    time.Time
+	RemovedAt   time.Time
 }
 
 // Settings are the per-machine settings (R5.22, scheduling R5.1).

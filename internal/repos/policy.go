@@ -27,10 +27,25 @@ type PolicyUpdate struct {
 	// ExtraPackages is the whole list as text, one name per line (runners
 	// R5.51). A bad name refuses the update with its line number.
 	ExtraPackages *string
+	// HostedFallback turns the hosted fallback on or off (github-integration
+	// R5.66). Turning it on needs ConfirmFallbackCost.
+	HostedFallback *bool
+	// ConfirmFallbackCost is the yes to the question that says GitHub may bill
+	// the fallback minutes of a private repository.
+	ConfirmFallbackCost bool
+	// FallbackCapMinutes is the monthly cap; 0 clears it.
+	FallbackCapMinutes *int
+	// HostedLabels sets the hosted label of the OSes named; an empty label puts
+	// the default back.
+	HostedLabels *map[string]string
 }
 
 // ErrForkNeedsConfirm: turning fork pull requests on asks first.
 var ErrForkNeedsConfirm = errors.New("fork pull request code would run on your machines; confirm to turn it on")
+
+// ErrFallbackNeedsConfirm: turning the hosted fallback on asks first, because
+// GitHub may bill the minutes.
+var ErrFallbackNeedsConfirm = errors.New("GitHub may bill the minutes that run on GitHub-hosted runners for a private repository; confirm to turn the fallback on")
 
 // Apply returns p changed by u, validated (R5.25 to R5.27).
 func (u PolicyUpdate) Apply(p Policy) (Policy, error) {
@@ -78,6 +93,43 @@ func (u PolicyUpdate) Apply(p Policy) (Policy, error) {
 	}
 	if u.LegacyVars != nil {
 		p.LegacyVars = *u.LegacyVars
+	}
+	if u.HostedFallback != nil {
+		if *u.HostedFallback && !p.HostedFallback && !u.ConfirmFallbackCost {
+			return p, ErrFallbackNeedsConfirm
+		}
+		p.HostedFallback = *u.HostedFallback
+	}
+	if u.FallbackCapMinutes != nil {
+		if *u.FallbackCapMinutes < 0 || *u.FallbackCapMinutes > 10_000_000 {
+			return p, auth.Invalid("the monthly cap must be 0 (no cap) or a number of minutes")
+		}
+		p.FallbackCapMinutes = *u.FallbackCapMinutes
+	}
+	if u.HostedLabels != nil {
+		labels := map[string]string{}
+		for k, v := range p.HostedLabels {
+			labels[k] = v
+		}
+		for k, v := range *u.HostedLabels {
+			k = strings.ToLower(k)
+			if osName(k) == "" {
+				return p, auth.Invalid("hosted label: %q is not linux, windows or macos", k)
+			}
+			v = strings.TrimSpace(v)
+			if v == "" {
+				delete(labels, k)
+				continue
+			}
+			if strings.ContainsAny(v, " \t,\"'") || strings.EqualFold(v, "self-hosted") {
+				return p, auth.Invalid("hosted label for %s must be one GitHub-hosted label such as ubuntu-latest", k)
+			}
+			labels[k] = v
+		}
+		if len(labels) == 0 {
+			labels = nil
+		}
+		p.HostedLabels = labels
 	}
 	for _, b := range []struct {
 		name string

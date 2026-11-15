@@ -130,6 +130,19 @@ func sameLabels(a, b string) bool {
 // enables every OS that a runner serves. An OS not in the result has no
 // variable. Each value is a JSON list such as ["self-hosted","linux","crsp-home"].
 func (s *Service) Desired(ctx context.Context, pol Policy) (map[string]string, error) {
+	return s.desired(ctx, pol, nil)
+}
+
+// desiredFor is Desired for one repository: an OS the repository is on
+// hosted fallback for gets the hosted label instead of the crsp labels
+// (R5.67). Only a repository that opted in is ever changed.
+func (s *Service) desiredFor(ctx context.Context, r Repository, pol Policy) (map[string]string, error) {
+	return s.desired(ctx, pol, s.hostedNow(r, pol))
+}
+
+// desired builds the variables; hosted maps an OS to the hosted label that
+// replaces its crsp labels.
+func (s *Service) desired(ctx context.Context, pol Policy, hosted map[string]string) (map[string]string, error) {
 	capy, err := s.osCapacity(ctx)
 	if err != nil {
 		return nil, err
@@ -146,7 +159,11 @@ func (s *Service) Desired(ctx context.Context, pol Policy) (map[string]string, e
 		if !served || (len(enabled) > 0 && !enabled[v.OS]) {
 			continue
 		}
-		b, _ := json.Marshal(labelList(v.OS, labels, pol.Labels))
+		list := labelList(v.OS, labels, pol.Labels)
+		if h := hosted[v.OS]; h != "" {
+			list = []string{h}
+		}
+		b, _ := json.Marshal(list)
 		out[v.Var] = string(b)
 	}
 	if pol.LegacyVars {
@@ -178,7 +195,7 @@ func (s *Service) osCapacity(ctx context.Context) (map[string][]string, error) {
 // ones for an OS the repository has no runner for or the policy turns off.
 // Old CRSP_RUNS_ON_* variables are deleted first.
 func (s *Service) syncVariables(ctx context.Context, actor auth.Principal, r Repository, pol Policy) error {
-	want, err := s.Desired(ctx, pol)
+	want, err := s.desiredFor(ctx, r, pol)
 	if err != nil {
 		return err
 	}
@@ -303,7 +320,7 @@ func (s *Service) ReconcileVariables(ctx context.Context, repoID int64) error {
 	if err != nil {
 		return err
 	}
-	want, err := s.Desired(ctx, pol)
+	want, err := s.desiredFor(ctx, r, pol)
 	if err != nil {
 		return err
 	}

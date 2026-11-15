@@ -47,8 +47,18 @@ type Policy struct {
 	// ExtraPackages are the extra distribution packages of the pool image,
 	// sorted, without repeats (runners R5.51). Empty adds no layer.
 	ExtraPackages []string
-	UpdatedAt     time.Time
-	UpdatedBy     string
+	// HostedFallback runs the repository's jobs on GitHub-hosted runners while
+	// no crsp machine can take them. Off by default: jobs wait for a crsp
+	// machine, which costs nothing (github-integration R5.66).
+	HostedFallback bool
+	// FallbackCapMinutes caps the fallback minutes of a calendar month (UTC).
+	// 0 means no cap.
+	FallbackCapMinutes int
+	// HostedLabels is the hosted label per OS ("linux", "windows", "macos");
+	// a missing OS uses DefaultHostedLabels.
+	HostedLabels map[string]string
+	UpdatedAt    time.Time
+	UpdatedBy    string
 }
 
 // DefaultPolicy is what a repository gets when the pool is first turned on:
@@ -210,6 +220,11 @@ type Store interface {
 	ReplaceFindings(ctx context.Context, repoID int64, fs []Finding, at time.Time) error
 	ListFindings(ctx context.Context, repoID int64) ([]Finding, time.Time, error)
 
+	// FallbackSeconds is the seconds a repository's jobs ran on the hosted
+	// label in a month ("2026-11"); AddFallbackSeconds adds to it (R5.67).
+	FallbackSeconds(ctx context.Context, repoID int64, month string) (int64, error)
+	AddFallbackSeconds(ctx context.Context, repoID int64, month string, seconds int64) error
+
 	InsertPlan(ctx context.Context, p Plan) error
 	GetPlan(ctx context.Context, id string) (Plan, error)
 	UpdatePlan(ctx context.Context, p Plan) error
@@ -228,6 +243,7 @@ type GitHub interface {
 	DeleteVariable(ctx context.Context, installationID int64, owner, repo, name string) error
 	ListWorkflowFiles(ctx context.Context, installationID int64, owner, repo string, etags map[string]string) ([]github.WorkflowFile, error)
 	SetForkApproval(ctx context.Context, installationID int64, owner, repo, policy string) error
+	ListOpenJobs(ctx context.Context, installationID int64, owner, repo string) ([]github.Job, error)
 }
 
 // LightRunners keeps the light runners of a repository (scheduling R5.65).
@@ -256,6 +272,14 @@ type Auditor interface {
 // or "macOS"; a missing key means no machine serves that OS.
 type Capacity interface {
 	OSLabels(ctx context.Context) (map[string][]string, error)
+}
+
+// UpSource says, per OS, whether some crsp machine can take jobs now: online
+// on the agent link and accepting jobs (not paused, not on battery). The key
+// is "Linux", "Windows" or "macOS"; an OS that has no machine is absent
+// (github-integration R5.67).
+type UpSource interface {
+	UpOS(ctx context.Context) (map[string]bool, error)
 }
 
 // System is the principal for background work.

@@ -3,6 +3,7 @@ package repos
 import (
 	"context"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,12 +21,13 @@ type MemStore struct {
 	findings map[int64][]Finding
 	checked  map[int64]time.Time
 	plans    map[string]Plan
+	fallback map[string]int64
 }
 
 // NewMemStore returns an empty store.
 func NewMemStore() *MemStore {
 	return &MemStore{installs: map[int64]Installation{}, repos: map[int64]Repository{}, policies: map[int64]Policy{},
-		vars: map[[2]any]ManagedVariable{}, findings: map[int64][]Finding{}, checked: map[int64]time.Time{}, plans: map[string]Plan{}}
+		vars: map[[2]any]ManagedVariable{}, findings: map[int64][]Finding{}, checked: map[int64]time.Time{}, plans: map[string]Plan{}, fallback: map[string]int64{}}
 }
 
 var _ Store = (*MemStore)(nil)
@@ -209,5 +211,20 @@ func (m *MemStore) UpdatePlan(_ context.Context, p Plan) error {
 		return auth.ErrNotFound
 	}
 	m.plans[p.ID] = p
+	return nil
+}
+
+func fallbackKey(id int64, month string) string { return strconv.FormatInt(id, 10) + "|" + month }
+
+func (m *MemStore) FallbackSeconds(_ context.Context, id int64, month string) (int64, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.fallback[fallbackKey(id, month)], nil
+}
+
+func (m *MemStore) AddFallbackSeconds(_ context.Context, id int64, month string, seconds int64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.fallback[fallbackKey(id, month)] += seconds
 	return nil
 }
