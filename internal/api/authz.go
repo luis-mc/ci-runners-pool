@@ -26,7 +26,7 @@ type Authenticator interface {
 var otherAreaAuth = map[string]string{
 	"getCaCertificate": authPublic, "getHealth": authPublic,
 
-	"createConsoleLink": authUser, "exportAuditEvents": authUser, "exportJobs": authUser, "getImage": authUser,
+	"createConsoleLink": authUser, "exportAuditEvents": authUser, "exportJobs": authUser, "getImage": authUser, "getSpeedComparison": authUser,
 	"getUpdateStatus": authUser, "listCaches": authUser, "listImages": authUser, "getDoctorRun": authUser, "getJob": authUser, "getMachine": authUser,
 	"getMachineChange": authUser, "getMachineLoad": authUser, "getOverview": authUser, "getPoolSettings": authUser,
 	"getQueueSettings": authUser, "getRunner": authUser, "getRunnerPlan": authUser, "getSettings": authUser,

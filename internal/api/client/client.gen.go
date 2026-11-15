@@ -2901,6 +2901,41 @@ type SmtpSettings struct {
 	Username    *string `json:"username,omitempty"`
 }
 
+// SpeedComparison defines model for SpeedComparison.
+type SpeedComparison struct {
+	Days                int        `json:"days"`
+	Excluded            bool       `json:"excluded"`
+	Reason              *string    `json:"reason,omitempty"`
+	Repository          string     `json:"repository"`
+	Rows                []SpeedRow `json:"rows"`
+	Since               time.Time  `json:"since"`
+	TotalCostAvoidedUsd float32    `json:"total_cost_avoided_usd"`
+	TotalMinutesSaved   float32    `json:"total_minutes_saved"`
+	UnmatchedJobs       int        `json:"unmatched_jobs"`
+}
+
+// SpeedRow defines model for SpeedRow.
+type SpeedRow struct {
+	CostAvoidedUsd float32   `json:"cost_avoided_usd"`
+	Crsp           SpeedSide `json:"crsp"`
+	Hosted         SpeedSide `json:"hosted"`
+	Job            string    `json:"job"`
+	MinutesSaved   float32   `json:"minutes_saved"`
+}
+
+// SpeedSide defines model for SpeedSide.
+type SpeedSide struct {
+	Queue SpeedStat `json:"queue"`
+	Run   SpeedStat `json:"run"`
+}
+
+// SpeedStat defines model for SpeedStat.
+type SpeedStat struct {
+	Count         int     `json:"count"`
+	MedianSeconds float32 `json:"median_seconds"`
+	P95Seconds    float32 `json:"p95_seconds"`
+}
+
 // Staleness Set when GitHub did not answer and the last copy is shown (UX-53).
 type Staleness struct {
 	AsOf  *time.Time `json:"as_of,omitempty"`
@@ -3130,6 +3165,15 @@ type ListCachesParams struct {
 type WipeCacheParams struct {
 	// Confirm The yes to a question card that named what goes (UX-62).
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
+// GetSpeedComparisonParams defines parameters for GetSpeedComparison.
+type GetSpeedComparisonParams struct {
+	// Repository The repository as owner/repo. The handler answers 400 when it is missing or not in that form.
+	Repository *string `form:"repository,omitempty" json:"repository,omitempty"`
+
+	// Days How many days back; 14 when absent, at most 90.
+	Days *int `form:"days,omitempty" json:"days,omitempty"`
 }
 
 // ListDoctorFindingsParams defines parameters for ListDoctorFindings.
@@ -3566,6 +3610,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /api/v1/caches/{cacheId}/wipe (the `WipeCache` operationId).
 	WipeCache(ctx context.Context, cacheId CacheId, params *WipeCacheParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetSpeedComparison The same job on crsp and on GitHub-hosted runners
+	//
+	// observability R5.34. Reads finished workflow-run job timings of one repository from GitHub, matches jobs by name across the two runner kinds and returns median and p95 queue wait and run time, minutes saved and the hosted cost avoided. A public repository is excluded (hosted minutes there are free). Read only; it starts nothing.
+	//
+	// Corresponds with GET /api/v1/compare (the `GetSpeedComparison` operationId).
+	GetSpeedComparison(ctx context.Context, params *GetSpeedComparisonParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListDoctorFindings The latest finding per check and subject
 	//
@@ -4638,6 +4689,23 @@ func (c *Client) ListCaches(ctx context.Context, params *ListCachesParams, reqEd
 // Corresponds with POST /api/v1/caches/{cacheId}/wipe (the `WipeCache` operationId).
 func (c *Client) WipeCache(ctx context.Context, cacheId CacheId, params *WipeCacheParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewWipeCacheRequest(c.Server, cacheId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetSpeedComparison The same job on crsp and on GitHub-hosted runners
+//
+// observability R5.34. Reads finished workflow-run job timings of one repository from GitHub, matches jobs by name across the two runner kinds and returns median and p95 queue wait and run time, minutes saved and the hosted cost avoided. A public repository is excluded (hosted minutes there are free). Read only; it starts nothing.
+//
+// Corresponds with GET /api/v1/compare (the `GetSpeedComparison` operationId).
+func (c *Client) GetSpeedComparison(ctx context.Context, params *GetSpeedComparisonParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSpeedComparisonRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -7148,6 +7216,72 @@ func NewWipeCacheRequest(server string, cacheId CacheId, params *WipeCacheParams
 	}
 
 	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetSpeedComparisonRequest constructs an http.Request for the GetSpeedComparison method
+func NewGetSpeedComparisonRequest(server string, params *GetSpeedComparisonParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/compare")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Repository != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repository", *params.Repository, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Days != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "days", *params.Days, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11100,6 +11234,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/caches/{cacheId}/wipe (the `WipeCache` operationId).
 	WipeCacheWithResponse(ctx context.Context, cacheId CacheId, params *WipeCacheParams, reqEditors ...RequestEditorFn) (*WipeCacheResponse, error)
 
+	// GetSpeedComparisonWithResponse The same job on crsp and on GitHub-hosted runners
+	//
+	// observability R5.34. Reads finished workflow-run job timings of one repository from GitHub, matches jobs by name across the two runner kinds and returns median and p95 queue wait and run time, minutes saved and the hosted cost avoided. A public repository is excluded (hosted minutes there are free). Read only; it starts nothing.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/compare (the `GetSpeedComparison` operationId).
+	GetSpeedComparisonWithResponse(ctx context.Context, params *GetSpeedComparisonParams, reqEditors ...RequestEditorFn) (*GetSpeedComparisonResponse, error)
+
 	// ListDoctorFindingsWithResponse The latest finding per check and subject
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -12681,6 +12824,54 @@ func (r WipeCacheResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r WipeCacheResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetSpeedComparisonResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SpeedComparison
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetSpeedComparisonResponse) GetJSON200() *SpeedComparison {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetSpeedComparisonResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetSpeedComparisonResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetSpeedComparisonResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetSpeedComparisonResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetSpeedComparisonResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -16866,6 +17057,21 @@ func (c *ClientWithResponses) WipeCacheWithResponse(ctx context.Context, cacheId
 	return ParseWipeCacheResponse(rsp)
 }
 
+// GetSpeedComparisonWithResponse The same job on crsp and on GitHub-hosted runners
+//
+// observability R5.34. Reads finished workflow-run job timings of one repository from GitHub, matches jobs by name across the two runner kinds and returns median and p95 queue wait and run time, minutes saved and the hosted cost avoided. A public repository is excluded (hosted minutes there are free). Read only; it starts nothing.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/compare (the `GetSpeedComparison` operationId).
+func (c *ClientWithResponses) GetSpeedComparisonWithResponse(ctx context.Context, params *GetSpeedComparisonParams, reqEditors ...RequestEditorFn) (*GetSpeedComparisonResponse, error) {
+	rsp, err := c.GetSpeedComparison(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetSpeedComparisonResponse(rsp)
+}
+
 // ListDoctorFindingsWithResponse The latest finding per check and subject
 //
 // Returns a wrapper object for the known response body format(s).
@@ -18877,6 +19083,39 @@ func ParseWipeCacheResponse(rsp *http.Response) (*WipeCacheResponse, error) {
 			return nil, err
 		}
 		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetSpeedComparisonResponse parses an HTTP response from a GetSpeedComparisonWithResponse call
+func ParseGetSpeedComparisonResponse(rsp *http.Response) (*GetSpeedComparisonResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetSpeedComparisonResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SpeedComparison
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error

@@ -66,6 +66,8 @@ type Options struct {
 	Caches CachesService
 	// Notify serves the notification channel routes (handlers_notify.go). Nil answers 501.
 	Notify NotifyService
+	// Compare serves the speed comparison route (handlers_compare.go). Nil answers 501.
+	Compare CompareService
 	// Authn says who a request acts as. Nil uses the GitHub area's sessions and
 	// CLI tokens; with neither, every operation that needs a role answers 401.
 	// A test passes a fixed principal.

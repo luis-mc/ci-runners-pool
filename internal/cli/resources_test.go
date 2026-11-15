@@ -497,3 +497,30 @@ func TestBackupRestoreOwnerOnly(t *testing.T) {
 		t.Fatal("unknown backup")
 	}
 }
+
+func TestCompareTableAndJSON(t *testing.T) {
+	f := newFixture(t)
+	side := func(q, r float64) map[string]any {
+		st := func(v float64) map[string]any {
+			return map[string]any{"count": 3, "median_seconds": v, "p95_seconds": v + 10}
+		}
+		return map[string]any{"queue": st(q), "run": st(r)}
+	}
+	f.reply("GET /api/v1/compare", 200, map[string]any{
+		"repository": "o/r", "days": 7, "since": "2026-11-08T00:00:00Z", "excluded": false, "unmatched_jobs": 0,
+		"rows":                []any{map[string]any{"job": "build", "crsp": side(5, 100), "hosted": side(20, 200), "minutes_saved": 4.5, "cost_avoided_usd": 0.12}},
+		"total_minutes_saved": 4.5, "total_cost_avoided_usd": 0.12,
+	})
+	code, out, _ := f.run("compare", "o/r", "--days", "7")
+	if code != 0 || !strings.Contains(out, "build") || !strings.Contains(out, "1m40s") || !strings.Contains(out, "$0.12") {
+		t.Fatalf("%d %q", code, out)
+	}
+	if code, out, _ := f.run("compare", "o/r", "--days", "7", "--json"); code != 0 || !strings.Contains(out, `"cost_avoided_usd"`) {
+		t.Fatalf("json %d %q", code, out)
+	}
+	for _, args := range [][]string{{"compare"}, {"compare", "nope"}, {"compare", "o/r", "--days", "0"}, {"compare", "o/r", "--days", "91"}} {
+		if code, _, _ := f.run(args...); code != ExitUsage {
+			t.Errorf("%v: exit %d", args, code)
+		}
+	}
+}

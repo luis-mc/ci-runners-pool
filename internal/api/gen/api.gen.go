@@ -2900,6 +2900,41 @@ type SmtpSettings struct {
 	Username    *string `json:"username,omitempty"`
 }
 
+// SpeedComparison defines model for SpeedComparison.
+type SpeedComparison struct {
+	Days                int        `json:"days"`
+	Excluded            bool       `json:"excluded"`
+	Reason              *string    `json:"reason,omitempty"`
+	Repository          string     `json:"repository"`
+	Rows                []SpeedRow `json:"rows"`
+	Since               time.Time  `json:"since"`
+	TotalCostAvoidedUsd float32    `json:"total_cost_avoided_usd"`
+	TotalMinutesSaved   float32    `json:"total_minutes_saved"`
+	UnmatchedJobs       int        `json:"unmatched_jobs"`
+}
+
+// SpeedRow defines model for SpeedRow.
+type SpeedRow struct {
+	CostAvoidedUsd float32   `json:"cost_avoided_usd"`
+	Crsp           SpeedSide `json:"crsp"`
+	Hosted         SpeedSide `json:"hosted"`
+	Job            string    `json:"job"`
+	MinutesSaved   float32   `json:"minutes_saved"`
+}
+
+// SpeedSide defines model for SpeedSide.
+type SpeedSide struct {
+	Queue SpeedStat `json:"queue"`
+	Run   SpeedStat `json:"run"`
+}
+
+// SpeedStat defines model for SpeedStat.
+type SpeedStat struct {
+	Count         int     `json:"count"`
+	MedianSeconds float32 `json:"median_seconds"`
+	P95Seconds    float32 `json:"p95_seconds"`
+}
+
 // Staleness Set when GitHub did not answer and the last copy is shown (UX-53).
 type Staleness struct {
 	AsOf  *time.Time `json:"as_of,omitempty"`
@@ -3129,6 +3164,15 @@ type ListCachesParams struct {
 type WipeCacheParams struct {
 	// Confirm The yes to a question card that named what goes (UX-62).
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
+// GetSpeedComparisonParams defines parameters for GetSpeedComparison.
+type GetSpeedComparisonParams struct {
+	// Repository The repository as owner/repo. The handler answers 400 when it is missing or not in that form.
+	Repository *string `form:"repository,omitempty" json:"repository,omitempty"`
+
+	// Days How many days back; 14 when absent, at most 90.
+	Days *int `form:"days,omitempty" json:"days,omitempty"`
 }
 
 // ListDoctorFindingsParams defines parameters for ListDoctorFindings.
@@ -3427,6 +3471,9 @@ type ServerInterface interface {
 	// WipeCache Empty one cache
 	// (POST /api/v1/caches/{cacheId}/wipe)
 	WipeCache(w http.ResponseWriter, r *http.Request, cacheId CacheId, params WipeCacheParams)
+	// GetSpeedComparison The same job on crsp and on GitHub-hosted runners
+	// (GET /api/v1/compare)
+	GetSpeedComparison(w http.ResponseWriter, r *http.Request, params GetSpeedComparisonParams)
 	// ListDoctorFindings The latest finding per check and subject
 	// (GET /api/v1/doctor/findings)
 	ListDoctorFindings(w http.ResponseWriter, r *http.Request, params ListDoctorFindingsParams)
@@ -4081,6 +4128,52 @@ func (siw *ServerInterfaceWrapper) WipeCache(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.WipeCache(w, r, cacheId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSpeedComparison operation middleware
+func (siw *ServerInterfaceWrapper) GetSpeedComparison(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetSpeedComparisonParams
+
+	// ------------- Optional query parameter "repository" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "repository", r.URL.Query(), &params.Repository, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "repository"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repository", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "days" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "days", r.URL.Query(), &params.Days, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "days"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "days", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSpeedComparison(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6783,6 +6876,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners/{runnerId}", wrapper.GetRunner)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/runners/{runnerId}/replace", wrapper.PlanRunnerReplacement)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/jobs", wrapper.ListJobs)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/compare", wrapper.GetSpeedComparison)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/jobs/{jobId}", wrapper.GetJob)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/overview", wrapper.GetOverview)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/events", wrapper.StreamEvents)
@@ -7375,6 +7469,45 @@ type WipeCachedefaultJSONResponse struct {
 }
 
 func (response WipeCachedefaultJSONResponse) VisitWipeCacheResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSpeedComparisonRequestObject struct {
+	Params GetSpeedComparisonParams
+}
+
+type GetSpeedComparisonResponseObject interface {
+	VisitGetSpeedComparisonResponse(w http.ResponseWriter) error
+}
+
+type GetSpeedComparison200JSONResponse SpeedComparison
+
+func (response GetSpeedComparison200JSONResponse) VisitGetSpeedComparisonResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSpeedComparisondefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetSpeedComparisondefaultJSONResponse) VisitGetSpeedComparisonResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -10757,6 +10890,9 @@ type StrictServerInterface interface {
 	// WipeCache Empty one cache
 	// (POST /api/v1/caches/{cacheId}/wipe)
 	WipeCache(ctx context.Context, request WipeCacheRequestObject) (WipeCacheResponseObject, error)
+	// GetSpeedComparison The same job on crsp and on GitHub-hosted runners
+	// (GET /api/v1/compare)
+	GetSpeedComparison(ctx context.Context, request GetSpeedComparisonRequestObject) (GetSpeedComparisonResponseObject, error)
 	// ListDoctorFindings The latest finding per check and subject
 	// (GET /api/v1/doctor/findings)
 	ListDoctorFindings(ctx context.Context, request ListDoctorFindingsRequestObject) (ListDoctorFindingsResponseObject, error)
@@ -11392,6 +11528,32 @@ func (sh *strictHandler) WipeCache(w http.ResponseWriter, r *http.Request, cache
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(WipeCacheResponseObject); ok {
 		if err := validResponse.VisitWipeCacheResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetSpeedComparison operation middleware
+func (sh *strictHandler) GetSpeedComparison(w http.ResponseWriter, r *http.Request, params GetSpeedComparisonParams) {
+	var request GetSpeedComparisonRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSpeedComparison(ctx, request.(GetSpeedComparisonRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSpeedComparison")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSpeedComparisonResponseObject); ok {
+		if err := validResponse.VisitGetSpeedComparisonResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

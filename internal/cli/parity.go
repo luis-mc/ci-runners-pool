@@ -31,6 +31,7 @@ var operationCommands = map[string]string{
 	"getRunner":                  "runner remove",
 	"listJobs":                   "job list",
 	"streamEvents":               "job watch",
+	"getSpeedComparison":         "compare",
 	"runDoctor":                  "doctor",
 	"getDoctorRun":               "doctor",
 	"runBackup":                  "backup",
