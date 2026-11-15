@@ -2,6 +2,7 @@ package runnercache_test
 
 import (
 	"io/fs"
+	"path/filepath"
 	"strings"
 	"testing/fstest"
 	"time"
@@ -18,9 +19,10 @@ func (f *memFS) add(path string, size int, age time.Duration) {
 	f.m[path] = &fstest.MapFile{Data: make([]byte, size), ModTime: base.Add(-age)}
 }
 
-func (f *memFS) ReadDir(d string) ([]fs.DirEntry, error) { return fs.ReadDir(f.m, d) }
-func (f *memFS) Stat(p string) (fs.FileInfo, error)      { return fs.Stat(f.m, p) }
+func (f *memFS) ReadDir(d string) ([]fs.DirEntry, error) { return fs.ReadDir(f.m, filepath.ToSlash(d)) }
+func (f *memFS) Stat(p string) (fs.FileInfo, error)      { return fs.Stat(f.m, filepath.ToSlash(p)) }
 func (f *memFS) RemoveAll(p string) error {
+	p = filepath.ToSlash(p)
 	for k := range f.m {
 		if k == p || strings.HasPrefix(k, p+"/") {
 			delete(f.m, k)
