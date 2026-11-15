@@ -198,6 +198,10 @@ type InstallationClient interface {
 	CreateRegistrationToken(ctx context.Context, installationID int64, scope RunnerScope) (string, error)
 	// CreateRemoveToken fetches a remove token to deregister a runner (R5.32).
 	CreateRemoveToken(ctx context.Context, installationID int64, scope RunnerScope) (string, error)
+	// GenerateJITConfig asks for the JIT config of one ephemeral runner (R5.34).
+	// The caller hands it to the agent and drops it; it is never stored or
+	// logged.
+	GenerateJITConfig(ctx context.Context, installationID int64, scope RunnerScope, in JITRequest) (JITConfig, error)
 	// ListRunners lists self-hosted runners of a scope.
 	ListRunners(ctx context.Context, installationID int64, scope RunnerScope) ([]Runner, error)
 	// DeleteRunner removes an offline runner whose agent cannot (R5.33).
