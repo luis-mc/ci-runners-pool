@@ -496,6 +496,7 @@ func DefaultConfig() Config {
 		Assets:    images.FS,
 		BuildRoot: filepath.Join(root, "crsp", "image-build"),
 		BaseName:  "linux-base",
+		Pins:      defaultPins(),
 		Limits:    Limits{},
 		CacheRoot: filepath.Join(root, "crsp", "cache"),
 		KVMProbe:  ProbeKVM,
@@ -512,4 +513,19 @@ func DefaultConfig() Config {
 		}
 	}
 	return cfg
+}
+
+// defaultPins puts the pinned Actions runner version of this machine's
+// architecture in the image key, so a new pin builds the image aside
+// (runners R5.33, R5.37, R5.49).
+func defaultPins() map[string]string {
+	arch := "x64"
+	if runtime.GOARCH == "arm64" {
+		arch = "arm64"
+	}
+	p, err := runners.PinFor("linux", arch)
+	if err != nil {
+		return nil
+	}
+	return map[string]string{"actions-runner": p.Version + ":" + p.SHA256}
 }
