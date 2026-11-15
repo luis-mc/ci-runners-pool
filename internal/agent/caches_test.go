@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -112,10 +113,21 @@ func TestGateHoldRunnerKeepsOnlyThatRunnersJobsOut(t *testing.T) {
 	}
 }
 
-type recAudit struct{ entries []string }
+type recAudit struct {
+	mu      sync.Mutex
+	entries []string
+}
+
+func (r *recAudit) got() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.entries...)
+}
 
 func (r *recAudit) Record(_ context.Context, a audit.Actor, action string, _ audit.Target, d map[string]any) error {
+	r.mu.Lock()
 	r.entries = append(r.entries, a.Login+" "+action)
+	r.mu.Unlock()
 	_ = d
 	return nil
 }
@@ -204,9 +216,9 @@ func TestWipeWaitsForTheRunningJobThenEmptiesTheFolder(t *testing.T) {
 	if es, _ := runnercache.Scan(runnercache.OSFS{}, runnercache.DirsFor(folder).Rust); len(es) != 1 {
 		t.Fatal("the Rust cache must stay")
 	}
-	waitFor(t, "audit", func() bool { return len(rec.entries) == 2 })
-	if rec.entries[0] != "luis cache.wipe.start" || rec.entries[1] != "luis cache.wipe.done" {
-		t.Fatalf("audit: %v", rec.entries)
+	waitFor(t, "audit", func() bool { return len(rec.got()) == 2 })
+	if e := rec.got(); e[0] != "luis cache.wipe.start" || e[1] != "luis cache.wipe.done" {
+		t.Fatalf("audit: %v", e)
 	}
 	if d := cfg.Gate.Start("j3", jr, "persistent"); !d.Go {
 		t.Fatalf("after the wipe the runner takes jobs again: %v", d.Reasons)

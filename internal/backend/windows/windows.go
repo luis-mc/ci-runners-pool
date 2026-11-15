@@ -199,7 +199,8 @@ var ErrRemovalFailed = errors.New("removing the old runner registration failed; 
 //  4. register the runner with GitHub, its self-update off;
 //  5. make the account (random password, never kept) and its rights;
 //  6. write the .ps1 hooks and the .env;
-//  7. lock the folder to the account, Administrators and SYSTEM;
+//  7. take ownership of the folder for the account, reset every file to
+//     inherited access, then lock the folder to the account, Administrators and SYSTEM;
 //  8. register the service as the account and start it.
 func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.StartConfig) (backend.Handle, error) {
 	if cfg.Registration == "" {
@@ -301,6 +302,11 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 		return h, err
 	}
 	if err := persistent.WriteMeta(b.d.FS, Join(folder, persistent.MetaFile), wantMeta); err != nil {
+		return h, err
+	}
+	// An account switch leaves old owners and explicit entries on the files
+	// (R5.50): hand the folder to the account and reset it before the lock.
+	if err := ResetFolderACL(ctx, b.d, folder, account); err != nil {
 		return h, err
 	}
 	if err := b.psOK(ctx, "lock folder", scriptLock, env, nil); err != nil {

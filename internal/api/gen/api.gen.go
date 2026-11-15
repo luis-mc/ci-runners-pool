@@ -914,6 +914,7 @@ func (e RepositoryVisibility) Valid() bool {
 
 // Defines values for RepositoryVariableName.
 const (
+	RUNSONLIGHT   RepositoryVariableName = "RUNS_ON_LIGHT"
 	RUNSONLINUX   RepositoryVariableName = "RUNS_ON_LINUX"
 	RUNSONMACOS   RepositoryVariableName = "RUNS_ON_MACOS"
 	RUNSONWINDOWS RepositoryVariableName = "RUNS_ON_WINDOWS"
@@ -922,6 +923,8 @@ const (
 // Valid indicates whether the value is a known member of the RepositoryVariableName enum.
 func (e RepositoryVariableName) Valid() bool {
 	switch e {
+	case RUNSONLIGHT:
+		return true
 	case RUNSONLINUX:
 		return true
 	case RUNSONMACOS:
@@ -2290,8 +2293,11 @@ type RepositoryPolicy struct {
 	BudgetMemoryPct *int `json:"budget_memory_pct,omitempty"`
 
 	// Labels Generic labels only (github-integration R5.27).
-	Labels          []string `json:"labels"`
-	MaxParallelJobs int      `json:"max_parallel_jobs"`
+	Labels []string `json:"labels"`
+
+	// LightRunner Keep one light runner per OS for this repository and write RUNS_ON_LIGHT, so jobs that last seconds do not queue behind a long build (scheduling R5.65). On by default.
+	LightRunner     bool `json:"light_runner"`
+	MaxParallelJobs int  `json:"max_parallel_jobs"`
 
 	// Priority Higher goes first (scheduling R5.8).
 	Priority     int        `json:"priority"`
@@ -2309,6 +2315,9 @@ type RepositoryPolicyUpdate struct {
 	// ConfirmForkRisk Needed to turn fork jobs on (github-integration R5.26).
 	ConfirmForkRisk *bool     `json:"confirm_fork_risk,omitempty"`
 	Labels          *[]string `json:"labels,omitempty"`
+
+	// LightRunner Turn the light runner on or off (scheduling R5.65).
+	LightRunner     *bool     `json:"light_runner,omitempty"`
 	MaxParallelJobs *int      `json:"max_parallel_jobs,omitempty"`
 	Priority        *int      `json:"priority,omitempty"`
 	RunnerGroups    *[]string `json:"runner_groups,omitempty"`

@@ -266,6 +266,9 @@ func TestNoCmdQuotedCommandLine(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, c := range r.cmd.Calls {
+		if c.Name == "takeown" || c.Name == "icacls" {
+			continue // the fixed ACL reset, tested in TestAccountSwitchResetsFolderACL
+		}
 		if c.Name != "powershell.exe" {
 			t.Errorf("unexpected program %s", c.Name)
 		}
@@ -582,5 +585,44 @@ func TestRestartNeverStartsASecondListener(t *testing.T) {
 	}
 	if idx(r, "Start-Service") >= 0 {
 		t.Error("Start-Service ran beside a live listener")
+	}
+}
+
+// R5.50: after the account exists and before the lock, the folder goes to the
+// account and every file is reset to inherited access.
+func TestAccountSwitchResetsFolderACL(t *testing.T) {
+	r := newRig(t)
+	if err := start(t, r, r.spec(), backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for i, c := range r.cmd.Calls {
+		if c.Name == "takeown" || c.Name == "icacls" {
+			got = append(got, c.String())
+			if i < idx(r, "New-LocalUser") || i > idx(r, "SetAccessRuleProtection") {
+				t.Errorf("%s runs outside account..lock", c.Name)
+			}
+		}
+	}
+	folder := r.b.Folder("box-1")
+	want := []string{
+		"takeown /F " + folder + " /R /D Y",
+		"icacls " + folder + " /setowner crsp-box-1 /T /C",
+		"icacls " + folder + " /reset /T /C",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("calls = %q, want %q", got, want)
+	}
+}
+
+func TestACLResetFailureStopsBeforeLock(t *testing.T) {
+	r := newRig(t)
+	r.cmd.Rules = append(r.cmd.Rules, sysfake.Rule{Match: "icacls", Result: sys.Result{ExitCode: 5, Stderr: "Access is denied."}})
+	err := start(t, r, r.spec(), backend.StartConfig{Registration: "REGTOKEN"})
+	if err == nil || !strings.Contains(err.Error(), "Access is denied") || !strings.Contains(err.Error(), "reset folder owner") {
+		t.Fatalf("err = %v", err)
+	}
+	if idx(r, "SetAccessRuleProtection") >= 0 || idx(r, "New-Service") >= 0 {
+		t.Error("the folder was locked or the service made after a failed reset")
 	}
 }

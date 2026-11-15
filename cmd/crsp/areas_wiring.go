@@ -158,6 +158,11 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		PoolName: pool, CacheQuota: d.Cfg.Cache, Now: d.Now,
 	}
 
+	// Light runners: one per repository and OS, on a machine with a light slot
+	// (scheduling R5.65).
+	runnerSvc.Light = lightPlacer{svc: d.Machines}
+	rsvc.SetLight(lightKeeper{svc: runnerSvc})
+
 	// Doctor: the M1 check registry over the controller's own data.
 	_, docSvc := wire.NewDoctor(wire.DoctorDeps{
 		Fleet: doctorFleet{machines: d.Machines, runners: rstore, repos: repoStore, rsvc: rsvc},

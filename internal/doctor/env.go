@@ -109,6 +109,8 @@ type Machine struct {
 	// Admin is true when the doctor on this machine runs with administrator
 	// rights, for checks that need them (R5.13). Reported by the agent.
 	Admin bool
+	// LightSlots is the machine's light slot setting (scheduling R5.1).
+	LightSlots int
 }
 
 // Load is the newest load sample.
@@ -150,6 +152,26 @@ type Runner struct {
 	ListenerKnown  bool
 	ListenerPIDs   []int
 	ServiceRunning bool
+	// ToolCache is what the agent saw in the runner's tool cache; nil when it
+	// did not look (R5.35).
+	ToolCache *ToolCacheProbe
+}
+
+// ToolCacheProbe is what the agent found in a runner's tool cache (_work/_tool
+// or the configured tool cache folder), seen as the runner's account.
+type ToolCacheProbe struct {
+	// Dir is the folder that was looked at.
+	Dir string
+	// Err is set when the account could not read a file there (for example
+	// "Access is denied"). File is the file that failed.
+	Err  string
+	File string
+	// OwnerKnown is true when the agent read the owner and inheritance of the
+	// files instead of opening one. WrongOwner lists files whose owner is not
+	// the runner account; NotInherited lists files with inheritance off.
+	OwnerKnown   bool
+	WrongOwner   []string
+	NotInherited []string
 }
 
 // HookProbe is the result of one run of a runner's real job-started hook script
@@ -191,6 +213,9 @@ type Repository struct {
 	// Expected holds the value the product would write for each variable,
 	// keyed by variable name, for OSes the policy enables. A JSON list.
 	Expected map[string]string
+	// LightRunner is true when the repository's policy keeps a light runner
+	// for it (scheduling R5.65).
+	LightRunner bool
 }
 
 // InScopeMachine is a helper for checks.

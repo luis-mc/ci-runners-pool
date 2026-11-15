@@ -140,7 +140,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 **R5.4** (M1, built) — **Callback URLs.** The App's callback URLs are the console addresses chosen in the wizard, each ending in `/auth/github/callback`. A loopback address uses `http://127.0.0.1:<port>`. Any other address uses `https`. The controller never registers `https://localhost` (GitHub rejects it) and never registers `http` for a non-loopback host. The dev App uses `http://127.0.0.1:8460/auth/github/callback`.
 
-**R5.5** (M1, built) — **Webhooks off for a local-only controller.** When every console address is loopback, the manifest sets the webhook inactive. Demand then comes from the scale-set API or polling (R5.29 to R5.31). The owner can turn webhooks on later by giving a public HTTPS URL.
+**R5.5** (M1, built) — **Webhooks off for a local-only controller.** When no public HTTPS webhook URL is given (always the case when every console address is loopback), the manifest carries no `hook_attributes` and no `default_events`: GitHub refuses a manifest whose hook URL it cannot reach, even an inactive one (found in the v0.1.0 owner test, OPS7). Demand then comes from the scale-set API or polling (R5.29 to R5.31). The owner can turn webhooks on later by giving a public HTTPS URL.
 
 **R5.6** (M1, NOT YET IMPLEMENTED) — **App health.** The controller reads `GET /app` with an App JWT at start and every hour. When GitHub says the App or its key is gone, GitHub work stops, the console says so, and it offers to run the wizard again. Running jobs are not touched.
 
@@ -203,6 +203,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 - Maximum parallel jobs. Default 2. Enforced by the scheduling spec (M1).
 - Priority. Default normal. Enforced by the scheduling spec (M3).
 - Fork pull requests. Default off (R5.26).
+- Light runner. Default on. Keeps one light runner per OS for the repository and writes `RUNS_ON_LIGHT` (scheduling R5.65, runners R5.57).
 
 **R5.26** (M1, built in part: the fork-approval setting is built; the job-started hook guard is NOT YET IMPLEMENTED and untested, so fork protection is not built until its hook test passes) — **Fork pull requests off by default.** For a public repository, jobs from pull requests whose head repository is a fork never run on the pool unless the policy allows it. Two guards apply. The controller sets the repository's fork-approval setting to require approval for all outside contributors. The runner's job-started hook reads the event payload and fails a forked pull request job at once, before any step runs, with a message that names the policy. Turning it on asks first with a warning that fork code runs on the user's machines.
 

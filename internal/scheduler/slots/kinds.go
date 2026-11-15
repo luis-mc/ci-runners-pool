@@ -75,3 +75,13 @@ func SlotLabel(k Kind, n int) string {
 	}
 	return string(k) + "-" + itoa(n)
 }
+
+// LightRunnerPrefix starts the name of every light runner (R5.65; runners
+// LightNamePrefix has the same value).
+const LightRunnerPrefix = "crsp-light-"
+
+// IsLightRunner is true for a job that runs on a light runner. Such a job
+// takes a light slot only, whatever its job key is (R5.65).
+func IsLightRunner(runnerName string) bool {
+	return len(runnerName) >= len(LightRunnerPrefix) && strings.EqualFold(runnerName[:len(LightRunnerPrefix)], LightRunnerPrefix)
+}

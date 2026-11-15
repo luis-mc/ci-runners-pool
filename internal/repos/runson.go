@@ -244,7 +244,7 @@ func VariablesRead(files map[string][]byte) map[string][]string {
 	return out
 }
 
-var pools = map[string]bool{"RUNS_ON_LINUX": true, "RUNS_ON_WINDOWS": true, "RUNS_ON_MACOS": true}
+var pools = map[string]bool{"RUNS_ON_LINUX": true, "RUNS_ON_WINDOWS": true, "RUNS_ON_MACOS": true, VarLight: true}
 
 func appendUnique(s []string, v string) []string {
 	for _, x := range s {

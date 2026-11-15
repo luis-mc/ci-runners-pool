@@ -19,6 +19,8 @@ type PolicyUpdate struct {
 	RunnerGroups    *[]string
 	BudgetMemoryPct *int
 	BudgetCPUPct    *int
+	// LightRunner turns the repository's light runner on or off (R5.65).
+	LightRunner *bool
 }
 
 // ErrForkNeedsConfirm: turning fork pull requests on asks first.
@@ -57,6 +59,9 @@ func (u PolicyUpdate) Apply(p Policy) (Policy, error) {
 			}
 		}
 		p.RunnerGroups = normalizeList(*u.RunnerGroups)
+	}
+	if u.LightRunner != nil {
+		p.LightRunner = *u.LightRunner
 	}
 	for _, b := range []struct {
 		name string
