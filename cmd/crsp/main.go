@@ -59,7 +59,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	if len(args) > 0 && jobcmd.Handles(args[0]) {
 		// `crsp vm` and `crsp db-env` inside a container job (runners R5.48).
-		return jobcmd.Run(args[0], args[1:], stderr)
+		return jobcmd.Run(args[0], args[1:], stdout, stderr)
 	}
 	if len(args) > 0 && args[0] == "update-helper" {
 		// The detached install helper (internal/update); it outlives the service it restarts.
