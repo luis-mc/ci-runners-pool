@@ -78,6 +78,9 @@ type Machine struct {
 	// PoolCPUs 0 means no pool size is set and no CPU count is exported.
 	PoolCPUs int
 	JobSlots int
+	// PoolMemoryGiB is the owner's pool memory. With PoolCPUs it becomes the
+	// limits of the pool container of each repository (runners R5.27).
+	PoolMemoryGiB float64
 }
 
 // MaxParallel is the CPU count a runner on this machine gives its jobs, or 0
@@ -189,6 +192,9 @@ type GitHub interface {
 	// GenerateJITConfig gives the config of one ephemeral runner (runners
 	// R5.25, github-integration R5.34). The caller passes it on and drops it.
 	GenerateJITConfig(ctx context.Context, installationID int64, scope github.RunnerScope, in github.JITRequest) (github.JITConfig, error)
+	// DeleteRunner removes a runner from GitHub. GitHub refuses a runner that
+	// has a job, so a job that starts at that moment is not cut.
+	DeleteRunner(ctx context.Context, installationID int64, scope github.RunnerScope, runnerID int64) error
 }
 
 // RemoveRequest asks an agent to take a runner away.

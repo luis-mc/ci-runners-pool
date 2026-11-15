@@ -128,6 +128,8 @@ type fakeGitHub struct {
 	jitCalls []github.JITRequest
 	jitErr   error
 	tokens   []string
+	deleted  []int64
+	delErr   error
 }
 
 func (g *fakeGitHub) CreateRegistrationToken(context.Context, int64, github.RunnerScope) (string, error) {
@@ -149,6 +151,14 @@ func (g *fakeGitHub) GenerateJITConfig(_ context.Context, _ int64, _ github.Runn
 }
 func (g *fakeGitHub) ListRunners(context.Context, int64, github.RunnerScope) ([]github.Runner, error) {
 	return g.runners, g.listErr
+}
+
+func (g *fakeGitHub) DeleteRunner(_ context.Context, _ int64, _ github.RunnerScope, id int64) error {
+	if g.delErr != nil {
+		return g.delErr
+	}
+	g.deleted = append(g.deleted, id)
+	return nil
 }
 
 type fakeAgent struct {
