@@ -209,6 +209,18 @@ jobs:
       - name: Browsers sit at the fixed path
         run: |
           docker run --rm crsp-linux-browsers:ci bash -ec 'test "$PLAYWRIGHT_BROWSERS_PATH" = /opt/crsp/browsers; test -n "$(ls /opt/crsp/browsers)"; test "$(id -u)" != 0'
+      # runners R5.50: each layer builds on the base image. Build only, no push.
+      # The build runs the layer's self-check, so a missing tool fails here.
+      - name: docker build layers (no push)
+        run: |
+          set -eu
+          for layer in windows-packaging linux-packaging llvm kvm; do
+            docker build --build-arg BASE_IMAGE=crsp-linux-base:ci --tag "crsp-layer-${layer}:ci" "images/layers/${layer}"
+          done
+      - name: Layer tools run as the job user
+        run: |
+          docker run --rm crsp-layer-llvm:ci bash -ec 'test "$(id -u)" != 0; clang-cl --version | head -1; lld-link --version | head -1; command -v llvm-lib'
+          docker run --rm crsp-layer-kvm:ci bash -ec 'test "$(id -u)" != 0; qemu-system-x86_64 --version | head -1; kvm-wait.sh true'
 
   e2e:
     name: e2e (Playwright)
