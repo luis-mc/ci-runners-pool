@@ -95,3 +95,29 @@ func (s *Service) RemoveIdleRunner(ctx context.Context, runnerID, actor string) 
 	s.audit(ctx, actor, "runner.idle_removed", r.MachineID, r.ID, detail)
 	return nil
 }
+
+// RemoveRepositoryRunners removes every ephemeral runner of a repository that
+// has no job, so a repository crsp stops serving keeps none (CRSP82). A busy
+// runner is left to finish its one job. It returns the names it removed and
+// the joined errors of the others.
+func (s *Service) RemoveRepositoryRunners(ctx context.Context, repoID int64, actor string) ([]string, error) {
+	rs, err := s.Store.ListRunners(ctx, Filter{})
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	var errs []error
+	for _, r := range rs {
+		if r.Kind != "ephemeral" || r.Scope.RepositoryID != repoID {
+			continue
+		}
+		switch err := s.RemoveIdleRunner(ctx, r.ID, actor); {
+		case err == nil:
+			names = append(names, r.Name)
+		case errors.Is(err, ErrRunnerBusy):
+		default:
+			errs = append(errs, fmt.Errorf("%s: %w", r.Name, err))
+		}
+	}
+	return names, errors.Join(errs...)
+}

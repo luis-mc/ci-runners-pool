@@ -182,6 +182,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// (scheduling R5.65).
 	runnerSvc.Light = lightPlacer{svc: d.Machines}
 	rsvc.SetLight(lightKeeper{svc: runnerSvc})
+	rsvc.SetFleet(runnerSvc)
 
 	// Demand: poll queued jobs of the repositories with the pool on and start one
 	// ephemeral container runner per job on a machine whose allow list names
@@ -392,6 +393,20 @@ type webhookEvents struct {
 
 func (w webhookEvents) Job(j github.Job) {
 	w.logger.Debug("workflow_job event", "repository", j.Repository, "job", j.ID, "status", j.Status)
+}
+
+// Repository stops serving a repository that turned public (CRSP82). The
+// stop runs in its own goroutine so GitHub gets its answer at once.
+func (w webhookEvents) Repository(action, fullName string) {
+	if action != "publicized" {
+		return
+	}
+	w.logger.Info("repository turned public", "repository", fullName)
+	go func() {
+		if err := w.repos.Publicized(github.Background(w.ctx), fullName); err != nil && w.ctx.Err() == nil {
+			w.logger.Warn("stop serving a public repository", "repository", fullName, "err", err)
+		}
+	}()
 }
 
 func (w webhookEvents) Installation(event string, _ []byte) {

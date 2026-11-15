@@ -57,6 +57,13 @@ type WebhookEvents interface {
 	Installation(event string, body []byte)
 }
 
+// RepositoryEvents is implemented by an events receiver that wants the
+// `repository` webhook (CRSP82): action is `publicized`, `privatized`,
+// `renamed` and so on.
+type RepositoryEvents interface {
+	Repository(action, fullName string)
+}
+
 // WebhookHandler serves POST /webhooks/github (R5.36, R6.5).
 type WebhookHandler struct {
 	// Verifier is loaded per request so a rotated secret takes effect.
@@ -107,6 +114,20 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.Events.Job(job)
 	case "installation", "installation_repositories":
 		h.Events.Installation(event, body)
+	case "repository":
+		var ev struct {
+			Action     string `json:"action"`
+			Repository struct {
+				FullName string `json:"full_name"`
+			} `json:"repository"`
+		}
+		if err := json.Unmarshal(body, &ev); err != nil || ev.Repository.FullName == "" {
+			http.Error(w, "unreadable repository event", http.StatusBadRequest)
+			return
+		}
+		if re, ok := h.Events.(RepositoryEvents); ok {
+			re.Repository(ev.Action, ev.Repository.FullName)
+		}
 	}
 	w.WriteHeader(http.StatusOK)
 }
