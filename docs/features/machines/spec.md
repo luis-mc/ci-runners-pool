@@ -362,10 +362,10 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.13 | internal/agent/backends_test.go | planned |
 | R5.14 | internal/agent/tart_limit_test.go | planned (M5) |
 | R5.15 | internal/load/sample_test.go | planned; ports `test_load.py` |
-| R5.16 | internal/load/median_test.go | planned; ports DL176 cases |
+| R5.16 | internal/load/median_test.go | Built: `internal/load/median_test.go` TestMedianIgnoresASpike, TestSamplerDecidesOnMedianOfLastFive |
 | R5.17 | internal/load/wslvm_test.go | planned; ports `test_dl177_pool_measure.py` VmReadTests |
 | R5.18 | internal/load/docker_test.go | planned; ports `test_dl177_pool_measure.py` DockerReadTests |
-| R5.19 | internal/load/cgroup_test.go | planned |
+| R5.19 | internal/load/cgroup_test.go | Built: `internal/load/cgroup_test.go` TestCgroupWorseOfHostAndContainer |
 | R5.20 | internal/load/unknown_test.go | planned |
 | R5.21 | internal/load/measure_only_test.go | planned |
 | R5.22 | internal/machines/settings_test.go | planned |

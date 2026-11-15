@@ -3,7 +3,7 @@ id: caches
 title: Caches
 apps: [controller, agent, web-console, cli]
 topics: [caching, scheduling, security, operations, ui]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference
