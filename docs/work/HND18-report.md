@@ -12,8 +12,8 @@ Branch `HND18-vm-doctor` from origin/main (40f779d). Parity item: caches R5.46 `
 ## Status
 - [x] 1 env types
 - [x] 2 checks (tests with fakes in vm_test.go)
-- [ ] 3 manifest
-- [ ] 4 probe and command
+- [x] 3 manifest (manifest.go, EnsureBasePackages, prune keeps manifest with base)
+- [x] 4 probe and command (internal/jobcmd/vmdoctor.go, VMHost fakes)
 - [ ] 5 docs and PR
 
 ## Decisions

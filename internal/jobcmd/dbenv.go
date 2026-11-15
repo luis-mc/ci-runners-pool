@@ -24,6 +24,8 @@ type Env struct {
 	VMDeps *vmcheck.Deps
 	// VMGuestDeps replaces ssh, scp and the free port of `crsp vm run` and `selinux` (tests).
 	VMGuestDeps *vmcheck.GuestDeps
+	// VMHost replaces what `crsp vm doctor` reads of the machine (tests).
+	VMHost *VMHost
 }
 
 // secretKeys are the db.env keys whose values are masked in the job log.
