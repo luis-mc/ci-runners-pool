@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
@@ -162,7 +163,7 @@ func cleanRel(name string) (string, error) {
 	return c, nil
 }
 
-func join(root, rel string) string { return path.Join(root, rel) }
+func join(root, rel string) string { return filepath.Join(root, filepath.FromSlash(rel)) }
 
 // clearDir implements an opaque whiteout: the lower layers' content of the
 // folder goes, the folder stays.

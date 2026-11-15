@@ -190,7 +190,7 @@ func TestPullRefusesWrongDigests(t *testing.T) {
 	reg, ref := newReg(t, good)
 	ref.Digest = dig([]byte("other"))
 	f := memTree{sysfake.NewFS()}
-	if err := Unpack(ctx, reg, f, ref, "/t/x"); !errors.Is(err, ErrDigestMismatch) {
+	if err := Unpack(ctx, reg, f, ref, fp("/t", "x")); !errors.Is(err, ErrDigestMismatch) {
 		t.Errorf("manifest: %v", err)
 	}
 
@@ -200,11 +200,11 @@ func TestPullRefusesWrongDigests(t *testing.T) {
 		reg.blobs[k] = layer(t, false, ent{name: "evil", body: "e", mode: 0o755})
 	}
 	f = memTree{sysfake.NewFS()}
-	err := Unpack(ctx, reg, f, ref, "/t/x")
+	err := Unpack(ctx, reg, f, ref, fp("/t", "x"))
 	if !errors.Is(err, ErrDigestMismatch) {
 		t.Fatalf("layer: %v", err)
 	}
-	if len(f.Files) != 0 || f.Exists("/t/x") {
+	if len(f.Files) != 0 || f.Exists(fp("/t", "x")) {
 		t.Errorf("a refused image left files: %v", f.Names())
 	}
 }
@@ -221,7 +221,7 @@ func TestUnpackRefusesUnsafeEntries(t *testing.T) {
 	} {
 		reg, ref := newReg(t, layer(t, false, e))
 		f := memTree{sysfake.NewFS()}
-		err := Unpack(context.Background(), reg, f, ref, "/t/x")
+		err := Unpack(context.Background(), reg, f, ref, fp("/t", "x"))
 		if !errors.Is(err, ErrUnsafeEntry) {
 			t.Errorf("%s: %v", name, err)
 		}
