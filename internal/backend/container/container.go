@@ -402,12 +402,21 @@ func (b *Backend) StreamLogs(ctx context.Context, h backend.Handle, out chan<- b
 	if err != nil {
 		return err
 	}
-	for _, l := range strings.Split(strings.TrimRight(res.Stdout, "\n"), "\n") {
+	lines := strings.Split(strings.TrimRight(res.Stdout, "\n"), "\n")
+	level := "info"
+	if oom := b.reportOOM(ctx, pool); oom != "" {
+		lines, level = append(lines, oom), "error"
+	}
+	for i, l := range lines {
 		if l == "" {
 			continue
 		}
+		lv := "info"
+		if level == "error" && i == len(lines)-1 {
+			lv = "error"
+		}
 		select {
-		case out <- backend.LogLine{At: time.Now().UTC(), Level: "info", Message: b.redact(l), Step: "start"}:
+		case out <- backend.LogLine{At: time.Now().UTC(), Level: lv, Message: b.redact(l), Step: "start"}:
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -416,9 +425,10 @@ func (b *Backend) StreamLogs(ctx context.Context, h backend.Handle, out chan<- b
 }
 
 // ReportUsage implements backend.Backend. Usage per job is runners R5.12,
-// which is not built; it returns an empty usage.
-func (b *Backend) ReportUsage(context.Context, backend.Handle) (backend.Usage, error) {
-	return backend.Usage{}, nil
+// which is not built; it gives only why the runner stopped when the memory cap
+// killed it (R5.69).
+func (b *Backend) ReportUsage(ctx context.Context, h backend.Handle) (backend.Usage, error) {
+	return backend.Usage{StoppedBy: b.stoppedBy(ctx, h)}, nil
 }
 
 func (b *Backend) learn(values ...string) {
