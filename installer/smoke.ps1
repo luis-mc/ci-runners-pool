@@ -114,7 +114,7 @@ if ($DowngradeMsi) {
   Write-Host "== downgrade is refused $DowngradeMsi"
   $rc = Msiexec @('/i', "`"$DowngradeMsi`"") (Join-Path $LogDir 'downgrade.log')
   $dlog = Get-Content (Join-Path $LogDir 'downgrade.log') -Raw
-  Check 'downgrade refused (exit 1603, "newer version" message)' ($rc -eq 1603 -and $dlog -match 'A newer version of crsp is already installed') "exit $rc"
+  Check 'downgrade refused (exit 1603, "newer version" message)' ($rc -eq 1603 -and $dlog -match 'A newer version of CI Runners Shared Pool is already installed') "exit $rc"
   Check 'service still running after refused downgrade' ((SvcState) -eq 'Running')
 }
 
