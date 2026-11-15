@@ -263,6 +263,12 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 	if free == 0 {
 		return wait(WaitFreeSlot, fmt.Sprintf("no free slot (all %d busy)", set.JobSlots))
 	}
+	// R5.69: the job's weight must fit what the held ci jobs leave of the budget.
+	need, class := set.WeightOf(names)
+	capacity, used := set.Capacity(), set.HeldWeight(all)
+	if used.CPU+need.CPU > capacity.CPU || used.Memory+need.Memory > capacity.Memory {
+		return wait(WaitFreeSlot, WeightWaitText(class, need, used, capacity))
+	}
 	// R5.22: a load that cannot be measured never counts as under budget.
 	if !measured {
 		return wait(WaitLoadNotMeasured, LoadNotMeasuredText)
@@ -352,6 +358,13 @@ func overBudget(l Load, b slots.Budget) (bool, string) {
 		parts = append(parts, fmt.Sprintf("CPU %.0f%% > %d%%", l.CPUPct, b.CPUPct))
 	}
 	return len(parts) > 0, strings.Join(parts, ", ")
+}
+
+// WeightWaitText names the weight that holds a job: its class and weight, and
+// what is free of the machine's budget (R5.69, R5.48).
+func WeightWaitText(class string, need, used, capacity slots.Weight) string {
+	return fmt.Sprintf("job class %s weighs %d CPU and %d memory units; %d of %d CPU and %d of %d memory units free",
+		class, need.CPU, need.Memory, capacity.CPU-used.CPU, capacity.CPU, capacity.Memory-used.Memory, capacity.Memory)
 }
 
 // LoadNotMeasuredText is the wait text while the machine's load is unknown.

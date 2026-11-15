@@ -13,7 +13,7 @@ Source: `docs/architecture/dev-standards-handover.md` lesson 5, rule D4. Branch 
 - [x] Report
 - [ ] Code
 - [ ] Tests
-- [ ] Spec R5.69 and change note
+- [x] Spec R5.69 and change note (written by hand: docs_fold.py is not in this sandbox, so docs_check was not run)
 - [ ] Draft PR
 
 ## Notes
