@@ -1,12 +1,16 @@
 package runners
 
 import (
+	"bytes"
 	"crypto/sha256"
+	_ "embed" // the pins file
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -36,23 +40,94 @@ func ValidSHA256(h string) bool {
 	return strings.Count(h, string(h[0])) != len(h)
 }
 
-// pins is the version table carried in the binary. Each hash is the SHA-256 of
-// the official actions/runner v2.330.0 release asset, computed by CRSP22 from
-// the download; the owner compares them with the release notes at review.
+// pinsJSON is the one pins file (runners R5.37, R5.68): the runner version and
+// SHA-256 per OS and architecture, and the container images by digest. An
+// update of a pin is a reviewed change of this file and nothing else.
 //
-// The value of a hash is checked by ValidSHA256 before every use; an entry that
-// fails is refused, so an unfilled pin never downloads anything.
-var pins = []Pin{
-	{OS: "linux", Arch: "x64", Version: "2.330.0", SHA256: "af5c33fa94f3cc33b8e97937939136a6b04197e6dadfcfb3b6e33ae1bf41e79a"},
-	{OS: "linux", Arch: "arm64", Version: "2.330.0", SHA256: "9cb43527912086c7c8fb4119cb06409fcbcbd6f93a2d8507f30b07c495620f5c"},
-	{OS: "windows", Arch: "x64", Version: "2.330.0", SHA256: "a7469e7f2949657327fdd75688fd8858e1352202847d024d68b93de033990779"},
-	{OS: "windows", Arch: "arm64", Version: "2.330.0", SHA256: "d6b713c83263e2498931488079a3a20770d4a205a47fac51da86026e45754596"},
-	{OS: "macos", Arch: "x64", Version: "2.330.0", SHA256: "40a32b7b87e25b76b595e201e0af376fcb1c3b7838fe21452909756090473ea9"},
-	{OS: "macos", Arch: "arm64", Version: "2.330.0", SHA256: "e7515e45f6de15e37e6f1667bb2f962fb535a86689af1f9b219860300d06de1b"},
+//go:embed pins.json
+var pinsJSON []byte
+
+type pinsFile struct {
+	Runner []struct {
+		OS      string `json:"os"`
+		Arch    string `json:"arch"`
+		Version string `json:"version"`
+		SHA256  string `json:"sha256"`
+	} `json:"runner"`
+	Images map[string]string `json:"images"`
+}
+
+// loadPins reads and checks a pins file. A runner hash that is not a real
+// SHA-256, a repeated OS/arch pair, or an image that is not a digest
+// reference refuses the whole file, so a half-filled pin never downloads.
+func loadPins(data []byte) ([]Pin, map[string]string, error) {
+	var f pinsFile
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&f); err != nil {
+		return nil, nil, fmt.Errorf("pins file: %w", err)
+	}
+	seen := map[string]bool{}
+	var out []Pin
+	for _, r := range f.Runner {
+		key := r.OS + "/" + r.Arch
+		if seen[key] {
+			return nil, nil, fmt.Errorf("pins file: %s is pinned twice", key)
+		}
+		seen[key] = true
+		if r.Version == "" {
+			return nil, nil, fmt.Errorf("pins file: %s has no version", key)
+		}
+		if !ValidSHA256(r.SHA256) {
+			return nil, nil, fmt.Errorf("pins file: %s: %w", key, ErrBadHash)
+		}
+		out = append(out, Pin{OS: r.OS, Arch: r.Arch, Version: r.Version, SHA256: strings.ToLower(r.SHA256)})
+	}
+	for name, ref := range f.Images {
+		if !ValidDigestRef(ref) {
+			return nil, nil, fmt.Errorf("pins file: image %s: %w", name, ErrNotDigestRef)
+		}
+	}
+	return out, f.Images, nil
+}
+
+var (
+	pins       []Pin
+	imagePins  map[string]string
+	pinsLoadEr error
+)
+
+func init() { pins, imagePins, pinsLoadEr = loadPins(pinsJSON) }
+
+// ErrNotDigestRef is returned for an image reference without a sha256 digest.
+var ErrNotDigestRef = errors.New("image reference is not pinned by digest (name@sha256:<64 hex>)")
+
+var digestRef = regexp.MustCompile(`^[a-z0-9][a-zA-Z0-9._/:-]*@sha256:([0-9a-f]{64})$`)
+
+// ValidDigestRef is true for name[:tag]@sha256:<64 lower-case hex>. A bare tag
+// is never valid: a tag can move, a digest cannot (runners R5.68).
+func ValidDigestRef(ref string) bool {
+	m := digestRef.FindStringSubmatch(ref)
+	return m != nil && ValidSHA256(m[1])
+}
+
+// ImagePin returns the pinned digest reference of a named image.
+func ImagePin(name string) (string, error) {
+	if pinsLoadEr != nil {
+		return "", pinsLoadEr
+	}
+	ref, ok := imagePins[name]
+	if !ok {
+		return "", fmt.Errorf("no pinned image %q", name)
+	}
+	return ref, nil
 }
 
 // PinFor returns the pin for an OS and architecture.
 func PinFor(os, arch string) (Pin, error) {
+	if pinsLoadEr != nil {
+		return Pin{}, pinsLoadEr
+	}
 	for _, p := range pins {
 		if p.OS == os && p.Arch == arch {
 			if !ValidSHA256(p.SHA256) {

@@ -1,0 +1,13 @@
+{
+  "runner": [
+    {"os": "linux", "arch": "x64", "version": "2.330.0", "sha256": "af5c33fa94f3cc33b8e97937939136a6b04197e6dadfcfb3b6e33ae1bf41e79a"},
+    {"os": "linux", "arch": "arm64", "version": "2.330.0", "sha256": "9cb43527912086c7c8fb4119cb06409fcbcbd6f93a2d8507f30b07c495620f5c"},
+    {"os": "windows", "arch": "x64", "version": "2.330.0", "sha256": "a7469e7f2949657327fdd75688fd8858e1352202847d024d68b93de033990779"},
+    {"os": "windows", "arch": "arm64", "version": "2.330.0", "sha256": "d6b713c83263e2498931488079a3a20770d4a205a47fac51da86026e45754596"},
+    {"os": "macos", "arch": "x64", "version": "2.330.0", "sha256": "40a32b7b87e25b76b595e201e0af376fcb1c3b7838fe21452909756090473ea9"},
+    {"os": "macos", "arch": "arm64", "version": "2.330.0", "sha256": "e7515e45f6de15e37e6f1667bb2f962fb535a86689af1f9b219860300d06de1b"}
+  ],
+  "images": {
+    "linux-base-from": "ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5"
+  }
+}
