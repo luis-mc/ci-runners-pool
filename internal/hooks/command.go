@@ -167,6 +167,7 @@ func runStarted(ctx context.Context, args []string, e Env) int {
 		EventClass: slots.EventClass(e.Getenv),
 		Holder:     scheduler.Holder{HolderPID: HolderPID(e.Getenv), GatePID: int64(os.Getpid())},
 		GateID:     "gate-" + hex.EncodeToString(gateID[:]),
+		Caches:     runnercache.CapsFromEnv(e.Getenv),
 		Measure:    e.Measure,
 		Disk:       e.Disk,
 		Log:        log,

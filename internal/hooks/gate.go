@@ -41,6 +41,10 @@ type GateConfig struct {
 	// Disk reads the free space of the runner's volume for the disk guard
 	// (caches R5.38). Nil turns the guard off. A read error never holds a job.
 	Disk func() (runnercache.Disk, error)
+	// Caches are the cache folders to bring under their caps before the job
+	// starts (caches R5.45); CacheFS is the file access, nil the real one.
+	Caches  []runnercache.Cap
+	CacheFS runnercache.FS
 	// MinFreePct is the guard threshold; 0 takes the default (10%).
 	MinFreePct int
 	// Log writes one line; it goes to the job's Set up job step and the agent log (R5.21).
@@ -114,6 +118,11 @@ func RunGate(ctx context.Context, cfg GateConfig) int {
 	// Decide in the log before the first step that can be slow: a hang after
 	// this line is never silence (scheduling R5.63).
 	cfg.logf("job-started: checking disk space, then asking the agent (limit %.0f s per call); if it does not answer the job goes on with a warning", CallTimeout.Seconds())
+	// The Rust cap runs first: a full cache folder is what the disk guard would
+	// otherwise hold the job for (caches R5.45).
+	if len(cfg.Caches) > 0 {
+		SweepCaches(cfg.CacheFS, cfg.Caches, func(f string, a ...any) { cfg.logf(f, a...) })
+	}
 	if code, held := diskHold(ctx, &cfg, start, poll, maxWait); held {
 		return code
 	}

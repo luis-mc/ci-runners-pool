@@ -72,10 +72,14 @@ type fileSchema struct {
 	CacheToolGiB    int `toml:"cache_tool_gib"`
 	CacheRustGiB    int `toml:"cache_rust_gib"`
 	CacheMinFreePct int `toml:"cache_min_free_pct"`
+	// Cap of one Rust cache key, the pool-wide cache budget and the size alert, in GiB.
+	CacheRustKeyGiB int `toml:"cache_rust_key_gib"`
+	CacheBudgetGiB  int `toml:"cache_budget_gib"`
+	CacheAlertGiB   int `toml:"cache_alert_gib"`
 }
 
 // Keys are the keys config.toml accepts, for docs and the generated reference.
-var Keys = []string{"data_dir", "listen_addr", "agent_addr", "log_level", "cache_tool_gib", "cache_rust_gib", "cache_min_free_pct"}
+var Keys = []string{"data_dir", "listen_addr", "agent_addr", "log_level", "cache_tool_gib", "cache_rust_gib", "cache_min_free_pct", "cache_rust_key_gib", "cache_budget_gib", "cache_alert_gib"}
 
 var (
 	placeholder = regexp.MustCompile(`(?i)^\s*(<[^>]*>|\$\{[^}]*\}|change[-_ ]?me|replace[-_ ]?me|todo|tbd|xxx+|your[-_ ].*|example)\s*$`)
@@ -178,7 +182,8 @@ func LoadFor(goos string, getenv func(string) string, readFile func(string) ([]b
 		}
 	}
 
-	cfg.Cache = runnercache.Quota{ToolGiB: fs.CacheToolGiB, RustGiB: fs.CacheRustGiB, MinFreePct: fs.CacheMinFreePct}.WithDefaults()
+	cfg.Cache = runnercache.Quota{ToolGiB: fs.CacheToolGiB, RustGiB: fs.CacheRustGiB, MinFreePct: fs.CacheMinFreePct,
+		RustKeyGiB: fs.CacheRustKeyGiB, BudgetGiB: fs.CacheBudgetGiB, AlertGiB: fs.CacheAlertGiB}.WithDefaults()
 	if err := cfg.Cache.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("cache: %w", err))
 	}
