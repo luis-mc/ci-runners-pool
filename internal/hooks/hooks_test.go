@@ -519,3 +519,69 @@ func TestJobDoneEvictsOldestOverQuota(t *testing.T) {
 		t.Fatalf("exit %d", code)
 	}
 }
+
+// rustCache makes a Rust cache folder with two keys of 600 bytes: "old" and the
+// key in use "cur", whose bulk is an incremental folder.
+func rustCache(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	mk := func(rel string, size int, age time.Duration) {
+		p := filepath.Join(dir, rel)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, make([]byte, size), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		ts := time.Now().Add(-age)
+		_ = os.Chtimes(p, ts, ts)
+	}
+	mk("old/debug/deps/a", 600, 3*time.Hour)
+	mk("cur/debug/incremental/i", 500, time.Minute)
+	mk("cur/debug/deps/d", 100, time.Minute)
+	return dir
+}
+
+// Caches R5.45: the Rust cap runs before the job (in the job-started hook), keeps the key in use
+// and writes one line per removal into the job log.
+func TestGateBringsRustCacheUnderItsCapBeforeTheJob(t *testing.T) {
+	w := newWorld(t)
+	a := agent{w.eng, slots.Defaults()}
+	cfg := w.cfg(a, slots.GateSettings{MaxWaitMin: 5, PollSec: 15, OnTimeout: "fail"}, quiet, "g1", 1)
+	dir := rustCache(t)
+	cfg.Caches = []runnercache.Cap{{Name: "Rust build cache", Dir: dir, Bytes: 700, KeyBytes: 700, Rust: true, Keep: "cur"}}
+	if code := hooks.RunGate(context.Background(), cfg); code != 0 {
+		t.Fatalf("exit %d\n%s", code, w.text())
+	}
+	if _, err := os.Stat(filepath.Join(dir, "old")); !os.IsNotExist(err) {
+		t.Fatal("the other key was not removed")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "cur", "debug", "incremental", "i")); err != nil {
+		t.Fatal("the key in use was removed although the other key made it fit")
+	}
+	if !strings.Contains(w.text(), "Rust build cache: removed old") {
+		t.Fatalf("log:\n%s", w.text())
+	}
+}
+
+// Caches R5.45: after the job, a key in use that is alone over the cap loses its incremental folders first.
+func TestJobDoneTrimsKeyInUseIncrementalFirst(t *testing.T) {
+	dir := rustCache(t)
+	var lines []string
+	code := hooks.RunJobDone(context.Background(), hooks.DoneConfig{
+		Log:    func(l string) { lines = append(lines, l) },
+		Caches: []runnercache.Cap{{Name: "Rust build cache", Dir: dir, Bytes: 300, KeyBytes: 300, Rust: true, Keep: "cur"}},
+	})
+	if code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "cur", "debug", "incremental")); !os.IsNotExist(err) {
+		t.Fatal("incremental folder kept")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "cur", "debug", "deps", "d")); err != nil {
+		t.Fatal("deps removed before it had to be")
+	}
+	if !strings.Contains(strings.Join(lines, "\n"), "incremental") {
+		t.Fatalf("log: %v", lines)
+	}
+}

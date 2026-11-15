@@ -77,15 +77,15 @@ Status words: **Built** (code and tests exist), **Specified** (a requirement exi
 | 33 | Image checks in the doctor: tools found, image current, tool cache writable | `pool.<name>.*` | all | Built (CRSP53), not yet wired to an agent | doctor R5.31 |
 | 34 | Postgres 16 per pool, a login and a database per agent, random password | `pool_agents.py` | J6, J7 | Specified in short | runners R5.45 |
 | 35 | `db.env` and the `pool-db-env` step, `CREATEDB` opt-in, declared `NOLOGIN` roles | `pool-add-agent --db-role` | J6, J7 | Missing, added | runners R5.54 |
-| 36 | Per-runner tool cache and Rust cache with quotas and eviction | `/ci-tools`, `cache-sweep` | J1, J2, J8 | Built for persistent runners (CRSP21, CRSP26); container form Built (CRSP53), not yet started by the agent | caches R5.36 to R5.39; caches R5.43 |
+| 36 | Per-runner tool cache and Rust cache with quotas and eviction | `/ci-tools`, `cache-sweep` | J1, J2, J8 | Built for persistent runners (CRSP21, CRSP26); pool-wide budget and size alert Built (CRSP48); container form Built (CRSP53), not yet started by the agent | caches R5.36 to R5.39; caches R5.48, R5.49; caches R5.43 |
 | 37 | Shared-cache mode for a folder many users write | `ci_tool.py` (DL194) | J2 | Built for the cache part (CRSP53); scope set by D308 | caches R5.18 to R5.20; caches R5.44 |
-| 38 | Rust cache cap: key in use kept, newest other key, `incremental/` first | `rust_ci.py` (DL342) | J2, J8 | Partly built; details Missing, added | caches R5.37; caches R5.45 |
+| 38 | Rust cache cap: key in use kept, newest other key, `incremental/` first | `rust_ci.py` (DL342) | J2, J8 | Built (CRSP48), with a cap per cache key | caches R5.37; caches R5.45 |
 | 39 | `vm_check.py` and `vm-images.json` | `scripts/delivery` | J11 | Data and checks Built (CRSP26); the boot Missing, added | caches R5.40; caches R5.46, R5.47; runners R5.55 |
 | 40 | Pinned downloads and unpack (`ci_tool.py`, `tools.json`) | delivery scripts | J1 to J4 | Not taken: they stay in delivery (D308) | caches R5.44 |
 | 41 | KVM on WSL2: load the module, check `nestedVirtualization` | `kvm-autoload` (DL343) | J11 | Specified; doctor checks Missing, added | machines R5.53; doctor R5.32 |
 | 42 | WSL memory and CPU sizing from `.wslconfig` | `pool-plan` | all | Specified | machines R5.54 |
 | 43 | `runs-on` and variable checks, hook checks | doctor | all | Built | doctor R5.14, R5.17 to R5.19, R5.29 |
-| 44 | Cache over quota, low cache disk | `cache-cap`, `cache-disk` | J2 | Missing, added | doctor R5.34 |
+| 44 | Cache over quota, low cache disk | `cache-cap`, `cache-disk` | J2 | Built (CRSP48) | doctor R5.34 |
 | 45 | Which jobs of a repository the pool can run | none | all | Missing, added | doctor R5.33 |
 | 46 | Local heavy-work guard, cloud CI session limit, `ci-wait` marker and fallback | delivery | n/a | Not taken (D301) | handover |
 | 47 | Verify workflow `pool-check.yml` | a manual run | n/a | Replaced by `crsp doctor` and the parity workflow (section 6) | doctor R5.21 |

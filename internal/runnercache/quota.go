@@ -23,7 +23,7 @@ const (
 	// one machine (caches R5.48).
 	DefaultBudgetGiB = 150
 	// DefaultAlertGiB is the size past which one cache file or folder raises
-	// an alert (caches R5.48).
+	// an alert (caches R5.49).
 	DefaultAlertGiB = 20
 	// ResumeMarginPct is added to the minimum before held jobs go again, so
 	// the guard does not flap around the limit.

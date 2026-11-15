@@ -9,7 +9,7 @@ type Oversize struct {
 }
 
 // FindOversize lists the top-level entries of dir and the single files in it
-// that are past threshold bytes, in one walk (caches R5.48). A threshold of 0
+// that are past threshold bytes, in one walk (caches R5.49). A threshold of 0
 // or less finds nothing. A file inside a flagged folder is listed too, because
 // the file is often the one to look at.
 func FindOversize(fsys FS, dir string, threshold int64) ([]Oversize, error) {
