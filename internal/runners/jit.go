@@ -19,6 +19,10 @@ type JobRunner struct {
 	Scope     Scope
 	// ExtraPackages are the extra packages of the repository's pool (R5.51).
 	ExtraPackages []string
+	// JIT, when set, makes the JIT config of this runner instead of the
+	// repository-level call. A job that came from a scale set needs a runner
+	// of that scale set (github-integration R5.40).
+	JIT func(ctx context.Context) (github.JITConfig, error)
 }
 
 // StartJobRunner makes one ephemeral runner for one job (runners R5.25,
@@ -54,7 +58,12 @@ func (s *Service) StartJobRunner(ctx context.Context, j JobRunner, actor string)
 		s.audit(ctx, actor, "runner.add_failed", j.MachineID, id, err.Error())
 		return Record{}, err
 	}
-	jit, err := s.GitHub.GenerateJITConfig(ctx, t.InstallationID, t.Scope, github.JITRequest{Name: j.Name, GroupID: t.Scope.GroupID, Labels: j.Labels})
+	var jit github.JITConfig
+	if j.JIT != nil {
+		jit, err = j.JIT(ctx)
+	} else {
+		jit, err = s.GitHub.GenerateJITConfig(ctx, t.InstallationID, t.Scope, github.JITRequest{Name: j.Name, GroupID: t.Scope.GroupID, Labels: j.Labels})
+	}
 	if err != nil {
 		return fail(fmt.Errorf("JIT config: %w", err))
 	}

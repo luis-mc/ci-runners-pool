@@ -85,6 +85,10 @@ type Loop struct {
 	Now   func() time.Time
 	// IdleAfter is the time a runner may have no job (default 15 minutes).
 	IdleAfter time.Duration
+	// ScaleJIT, when set, gives the JIT source of a job that came from a scale
+	// set (github.Job.ScaleSetID is not zero). Without it such a job gets the
+	// repository-level config like any other.
+	ScaleJIT func(j github.Job, runnerName string) func(ctx context.Context) (github.JITConfig, error)
 
 	mu      sync.Mutex
 	seen    map[int64]github.Job // open jobs by id
@@ -355,8 +359,12 @@ func (l *Loop) try(ctx context.Context, j github.Job, w *waiting, hosts []Host, 
 			continue
 		}
 		name := fmt.Sprintf("%s%d", RunnerPrefix, j.ID)
-		rec, err := l.Runners.StartJobRunner(ctx, runners.JobRunner{Name: name, MachineID: h.MachineID, Arch: h.Arch,
-			Backend: "docker", Labels: labels, Scope: repo.Scope, ExtraPackages: repo.ExtraPackages}, Actor)
+		jr := runners.JobRunner{Name: name, MachineID: h.MachineID, Arch: h.Arch,
+			Backend: "docker", Labels: labels, Scope: repo.Scope, ExtraPackages: repo.ExtraPackages}
+		if j.ScaleSetID != 0 && l.ScaleJIT != nil {
+			jr.JIT = l.ScaleJIT(j, name)
+		}
+		rec, err := l.Runners.StartJobRunner(ctx, jr, Actor)
 		if err != nil {
 			l.fail(j, w, err)
 			return
