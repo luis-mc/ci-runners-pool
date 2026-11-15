@@ -7,4 +7,4 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
 )
 
-func platform(sys.Deps) []backend.Backend { return nil }
+func platform(sys.Deps, backend.IDSource) []backend.Backend { return nil }

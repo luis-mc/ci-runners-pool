@@ -13,7 +13,10 @@ import (
 type recEvents struct {
 	jobs  []Job
 	insts []string
+	repos []string
 }
+
+func (r *recEvents) Repository(action, name string) { r.repos = append(r.repos, action+" "+name) }
 
 func (r *recEvents) Job(j Job)                       { r.jobs = append(r.jobs, j) }
 func (r *recEvents) Installation(e string, _ []byte) { r.insts = append(r.insts, e) }
@@ -132,5 +135,31 @@ func TestWebhookMissingHeaders(t *testing.T) {
 func TestVerifierEmptySecretRefuses(t *testing.T) {
 	if NewWebhookVerifier(nil).Verify([]byte("x"), Sign(nil, []byte("x"))) {
 		t.Fatal("an empty secret must verify nothing")
+	}
+}
+
+// CRSP82: the repository event reaches the receiver with its action.
+func TestWebhookRepositoryEvent(t *testing.T) {
+	h, ev, secret := newHook(t)
+	body := []byte(`{"action":"publicized","repository":{"full_name":"alice/secret"}}`)
+	if c := deliver(h, secret, body, "", "r1", "repository"); c != 200 {
+		t.Fatalf("status %d", c)
+	}
+	if len(ev.repos) != 1 || ev.repos[0] != "publicized alice/secret" {
+		t.Fatalf("got %v", ev.repos)
+	}
+	if c := deliver(h, secret, []byte(`{"action":"publicized"}`), "", "r2", "repository"); c != 400 {
+		t.Fatalf("an event with no repository: %d", c)
+	}
+}
+
+// CRSP82: a job from a webhook is partial: its fork flag is not known.
+func TestWebhookJobIsPartial(t *testing.T) {
+	j, err := ParseWorkflowJobEvent(fake.WorkflowJobQueuedEvent())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !j.Partial || j.FromFork {
+		t.Fatalf("partial %v fork %v", j.Partial, j.FromFork)
 	}
 }

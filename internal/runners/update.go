@@ -19,6 +19,7 @@ const (
 // keeps the registration and the folder's state, and starts the service.
 type UpdateRequest struct {
 	RunnerID    string
+	Name        string
 	ServiceName string
 	Version     string
 	SHA256      string
@@ -88,7 +89,7 @@ func (s *Service) UpdateRunner(ctx context.Context, id, actor string) (UpdateRes
 	err = d.Act(ctx, func(ctx context.Context) error {
 		_ = s.Store.SetRunnerState(ctx, id, Updating, "idle; updating to "+pin.Version)
 		return s.Updater.UpdateRunner(ctx, r.MachineID, UpdateRequest{
-			RunnerID: id, ServiceName: r.ServiceName, Version: pin.Version, SHA256: pin.SHA256})
+			RunnerID: id, Name: r.Name, ServiceName: r.ServiceName, Version: pin.Version, SHA256: pin.SHA256})
 	})
 	switch {
 	case err == nil:

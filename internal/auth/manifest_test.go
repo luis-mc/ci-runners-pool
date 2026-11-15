@@ -67,7 +67,7 @@ func TestManifestWebhookOnlyWithPublicURL(t *testing.T) { // R5.5
 	if err != nil || m.HookAttributes == nil || !m.HookAttributes.Active || m.HookAttributes.URL != opts.WebhookURL {
 		t.Fatalf("%+v %v", m.HookAttributes, err)
 	}
-	if !reflect.DeepEqual(m.DefaultEvents, []string{"workflow_job"}) {
+	if !reflect.DeepEqual(m.DefaultEvents, []string{"workflow_job", "repository"}) {
 		t.Fatalf("events with a public webhook %v", m.DefaultEvents)
 	}
 	opts.WebhookURL = "http://hooks.example.org/crsp"

@@ -174,10 +174,14 @@ const (
 // Pause reasons a machine reports when it does not accept new jobs (R5.62).
 // The names are read by other features: do not rename them.
 const (
-	PauseReasonPaused      = "paused"
-	PauseReasonOnBattery   = "on_battery"
-	PauseReasonQuietHours  = "quiet_hours"
-	PauseReasonBudget      = "budget"
+	PauseReasonPaused     = "paused"
+	PauseReasonOnBattery  = "on_battery"
+	PauseReasonQuietHours = "quiet_hours"
+	PauseReasonBudget     = "budget"
+	// PauseReasonBaseImage: a backend the machine may use has no runner base
+	// image (container image or VM base disk) on the machine (runners R5.74).
+	PauseReasonBaseImage   = "base_image_missing"
+	PauseReasonDiskLow     = "disk_low"
 	PauseOneHour           = "one_hour"
 	PauseUntilResumedValue = "until_resumed"
 	PauseNone              = "none"

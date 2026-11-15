@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 )
 
 // EphemeralOnMachine counts the ephemeral runners of a machine that still
@@ -48,10 +50,7 @@ func (s *Service) FinishJobRunner(ctx context.Context, runnerID, actor string) e
 var ErrRunnerBusy = errors.New("the runner has a job")
 
 // RemoveIdleRunner removes an ephemeral runner that never got a job and frees
-// its slot (runners R5.26). It asks GitHub first (the busy check): a busy
-// runner is left alone and ErrRunnerBusy is returned. Then it deletes the
-// runner at GitHub (GitHub refuses a runner that took a job in the meantime),
-// stops the listener, cleans up the job folder and drops the record.
+// its slot (runners R5.26). It is the safe removal of R5.62: see removeSafely.
 func (s *Service) RemoveIdleRunner(ctx context.Context, runnerID, actor string) error {
 	r, err := s.Store.GetRunner(ctx, runnerID)
 	if err != nil {
@@ -60,6 +59,22 @@ func (s *Service) RemoveIdleRunner(ctx context.Context, runnerID, actor string) 
 	if r.Kind != "ephemeral" {
 		return refuse("runner %s is not ephemeral", r.Name)
 	}
+	return s.removeSafely(ctx, r, actor, "runner.idle_removed")
+}
+
+// removeSafely is the one order every removal of a runner follows (runners
+// R5.62): ask GitHub whether the runner is idle, deregister it at GitHub, and
+// only then stop the listener and clean up. GitHub therefore never lists a
+// runner with nothing behind it, and a busy runner is never touched.
+//
+//   - A busy runner, or a delete GitHub refuses with 422 because a job came
+//     in between, returns ErrRunnerBusy and changes nothing.
+//   - A runner GitHub does not know (not listed, or a 404 on delete) counts
+//     as already deregistered, and the local clean-up goes on.
+//   - An unreadable runner list changes nothing (fail closed).
+//
+// Each outcome is logged to the audit trail with the runner name.
+func (s *Service) removeSafely(ctx context.Context, r Record, actor, action string) error {
 	t, err := s.Resolver.Resolve(ctx, r.Scope)
 	if err != nil {
 		return err
@@ -68,15 +83,25 @@ func (s *Service) RemoveIdleRunner(ctx context.Context, runnerID, actor string) 
 	if err != nil {
 		return err // fail closed: an unreadable list removes nothing
 	}
+	known := false
 	for _, g := range list {
 		if g.Name != r.Name {
 			continue
 		}
 		if g.Busy {
+			s.audit(ctx, actor, "runner.remove_left_busy", r.MachineID, r.ID, r.Name)
 			return ErrRunnerBusy
 		}
-		if err := s.GitHub.DeleteRunner(ctx, t.InstallationID, t.Scope, g.ID); err != nil {
-			return fmt.Errorf("remove the idle runner at GitHub: %w", err)
+		known = true
+		err := s.GitHub.DeleteRunner(ctx, t.InstallationID, t.Scope, g.ID)
+		switch {
+		case errors.Is(err, github.ErrRunnerBusy):
+			s.audit(ctx, actor, "runner.remove_left_busy", r.MachineID, r.ID, r.Name+" (GitHub answered 422)")
+			return ErrRunnerBusy
+		case errors.Is(err, github.ErrNotFound):
+			known = false // gone between the list and the delete
+		case err != nil:
+			return fmt.Errorf("remove the runner at GitHub: %w", err)
 		}
 		break
 	}
@@ -89,9 +114,38 @@ func (s *Service) RemoveIdleRunner(ctx context.Context, runnerID, actor string) 
 		return err
 	}
 	detail := r.Name
+	if !known {
+		detail += " (GitHub no longer knew it)"
+	}
 	if stopErr != nil {
 		detail += " (stop: " + stopErr.Error() + ")"
 	}
-	s.audit(ctx, actor, "runner.idle_removed", r.MachineID, r.ID, detail)
+	s.audit(ctx, actor, action, r.MachineID, r.ID, detail)
 	return nil
+}
+
+// RemoveRepositoryRunners removes every ephemeral runner of a repository that
+// has no job, so a repository crsp stops serving keeps none (CRSP82). A busy
+// runner is left to finish its one job. It returns the names it removed and
+// the joined errors of the others.
+func (s *Service) RemoveRepositoryRunners(ctx context.Context, repoID int64, actor string) ([]string, error) {
+	rs, err := s.Store.ListRunners(ctx, Filter{})
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	var errs []error
+	for _, r := range rs {
+		if r.Kind != "ephemeral" || r.Scope.RepositoryID != repoID {
+			continue
+		}
+		switch err := s.RemoveIdleRunner(ctx, r.ID, actor); {
+		case err == nil:
+			names = append(names, r.Name)
+		case errors.Is(err, ErrRunnerBusy):
+		default:
+			errs = append(errs, fmt.Errorf("%s: %w", r.Name, err))
+		}
+	}
+	return names, errors.Join(errs...)
 }

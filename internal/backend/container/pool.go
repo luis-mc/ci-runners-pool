@@ -23,9 +23,6 @@ const (
 	JobsDir    = RunnerHome + "/jobs"
 	// RunnerDir is the Actions runner in the image; each job gets its own copy.
 	RunnerDir = "/opt/actions-runner"
-	// JITDir is a tmpfs only the job user can read. The JIT config is written
-	// here for a moment and deleted by the runner's start script (runners R5.25).
-	JITDir = "/run/crsp"
 	// KVMDevice is the only device a pool container may use, allowed by KVMCgroupRule (runners R5.27).
 	KVMDevice = "/dev/kvm"
 )
@@ -41,6 +38,15 @@ const (
 // is built, so no flag adds one.
 const CapDrop = "ALL"
 
+// Work dirs of a pool container. The root file system is read-only (runners
+// R5.63); these are the only places the job user can write, all tmpfs.
+const (
+	WorkTmpfsHome      = RunnerHome
+	WorkTmpfsTmp       = "/tmp"
+	WorkTmpfsVarTmp    = "/var/tmp"
+	WorkTmpfsToolCache = "/opt/hostedtoolcache"
+)
+
 // Limits are the caps from the machine's load budget (runners R5.27).
 type Limits struct {
 	MemoryMB int
@@ -53,12 +59,17 @@ type PoolSpec struct {
 	ImageTag    string
 	ImageKey    string
 	Limits      Limits
+	// CPUSet pins the container to these CPUs (`--cpuset-cpus`), taken from the
+	// machine's CPU budget by the backend (machines R5.54). Empty: not pinned.
+	CPUSet string
 	// KVM allows /dev/kvm with --device-cgroup-rule when the machine allows it for this
 	// runner and the agent checked it (runners R5.27, R5.41).
 	KVM bool
 	// CrspHostPath, when set, is the agent's own linux binary, mounted
 	// read-only (runners R5.48).
 	CrspHostPath string
+	// UID is the persistent uid/gid of this pool (runners R5.72); 0 means JobUID.
+	UID int
 	// KVMGroup is the group that owns /dev/kvm on the host; with KVM it is
 	// added with --group-add so the job user can open the device.
 	KVMGroup int
@@ -94,18 +105,21 @@ func RunArgs(p PoolSpec) ([]string, error) {
 		return nil, errors.New("no image to run")
 	}
 	name := PoolName(p.Owner, p.Repo)
+	uid := p.UID
+	if uid == 0 {
+		uid = JobUID
+	}
 	a := []string{"run", "-d", "--name", name, "--hostname", name,
-		"--user", strconv.Itoa(JobUID) + ":" + strconv.Itoa(JobUID),
+		"--user", strconv.Itoa(uid) + ":" + strconv.Itoa(uid),
 		"--cap-drop", CapDrop,
 		"--security-opt", "no-new-privileges",
 		"--pids-limit", "8192",
-		"--tmpfs", fmt.Sprintf("%s:rw,noexec,nosuid,nodev,mode=0700,uid=%d,gid=%d,size=1m", JITDir, JobUID, JobUID),
+		"--read-only",
 		"--label", LabelPool + "=" + strings.ToLower(p.Owner+"/"+p.Repo),
 		"--label", LabelImage + "=" + p.ImageKey,
 	}
-	if p.Limits.MemoryMB > 0 {
-		a = append(a, "--memory", strconv.Itoa(p.Limits.MemoryMB)+"m")
-	}
+	a = append(a, workTmpfsArgs(p.Lane != nil, uid)...)
+	a = append(a, ResourceArgs(p.Limits.MemoryMB, p.CPUSet)...)
 	if p.Limits.CPUs > 0 {
 		a = append(a, "--cpus", strconv.FormatFloat(p.Limits.CPUs, 'f', -1, 64))
 	}
@@ -134,6 +148,25 @@ func RunArgs(p PoolSpec) ([]string, error) {
 	return a, nil
 }
 
+// workTmpfsArgs makes the writable work dirs of a read-only root: the runner
+// home (jobs and the job's own files), /tmp and /var/tmp. The tool cache is a
+// tmpfs only when no cache lane mounts it. Sizes are caps, not reservations; the
+// container's memory limit still bounds them. A build output is run from
+// home, so exec stays on; setuid files and device nodes never work (nosuid,
+// nodev).
+func workTmpfsArgs(laneMountsToolCache bool, uid int) []string {
+	own := fmt.Sprintf("uid=%d,gid=%d,mode=0755", uid, uid)
+	a := []string{
+		"--tmpfs", WorkTmpfsHome + ":rw,nosuid,nodev,size=8g," + own,
+		"--tmpfs", WorkTmpfsTmp + ":rw,nosuid,nodev,size=2g,mode=1777",
+		"--tmpfs", WorkTmpfsVarTmp + ":rw,nosuid,nodev,size=1g,mode=1777",
+	}
+	if !laneMountsToolCache {
+		a = append(a, "--tmpfs", WorkTmpfsToolCache+":rw,nosuid,nodev,size=4g,"+own)
+	}
+	return a
+}
+
 // ErrUnsafeRun is returned for a `docker run` that would break a rule of
 // runners R5.27 or R6.1.
 var ErrUnsafeRun = errors.New("container run refused")
@@ -145,7 +178,7 @@ var ErrUnsafeRun = errors.New("container run refused")
 func CheckRunArgs(args []string) error {
 	refuse := func(why string) error { return fmt.Errorf("%w: %s", ErrUnsafeRun, why) }
 	var user string
-	dropped, noNewPrivs := false, false
+	dropped, noNewPrivs, readOnly := false, false, false
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		flag, val, hasVal := strings.Cut(a, "=")
@@ -182,7 +215,11 @@ func CheckRunArgs(args []string) error {
 				noNewPrivs = true
 			} else if strings.Contains(v, "unconfined") {
 				return refuse("a security profile is never turned off")
+			} else if strings.HasPrefix(v, "seccomp=") || strings.HasPrefix(v, "seccomp:") {
+				return refuse("the default seccomp profile is never replaced")
 			}
+		case "--read-only":
+			readOnly = !hasVal || val == "true"
 		case "--device":
 			return refuse("no device is mapped, not even " + KVMDevice + ": " + next() + " (use the cgroup rule " + KVMCgroupRule + ")")
 		case "--device-cgroup-rule":
@@ -202,6 +239,9 @@ func CheckRunArgs(args []string) error {
 	}
 	if user == "" || user == "0" || strings.HasPrefix(user, "0:") || user == "root" || strings.HasPrefix(user, "root:") {
 		return refuse("the job user is never root")
+	}
+	if !readOnly {
+		return refuse("the root file system is read-only; work dirs are tmpfs")
 	}
 	if !dropped || !noNewPrivs {
 		return refuse("the one capability set is --cap-drop ALL with no-new-privileges")

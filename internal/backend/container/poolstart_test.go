@@ -73,7 +73,7 @@ func runCall(f *fakeDocker) string {
 
 func startCall(f *fakeDocker) string {
 	for _, c := range f.calls {
-		if strings.HasPrefix(c, "docker exec -d ") {
+		if strings.HasPrefix(c, "docker exec -i ") && strings.Contains(c, "IFS= read -r c") {
 			return c
 		}
 	}
@@ -390,7 +390,7 @@ func TestPoolStartFailuresLeaveNoRunner(t *testing.T) {
 			}
 			if got := r.pool("app"); got != nil {
 				for p := range got.files {
-					if strings.HasPrefix(p, "/home/runner/jobs/j1") || strings.HasPrefix(p, JITDir) {
+					if strings.HasPrefix(p, "/home/runner/jobs/j1") {
 						t.Errorf("left behind: %s", p)
 					}
 				}

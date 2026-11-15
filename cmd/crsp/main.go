@@ -28,6 +28,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/hooks"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/jobcmd"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
@@ -163,6 +164,17 @@ func runController() error {
 		return p.Accepting, p.PauseReason
 	}))
 	go scheduler.RunSweeper(ctx, queue, logger, 30*time.Second)
+	// The agent's holder report is the heartbeat of the slot leases of its running jobs (scheduling R5.70).
+	mr.Service.SetRunningObserver(func(id string, jobs []machines.JobRef) {
+		refs := make([]scheduler.JobRef, 0, len(jobs))
+		for _, j := range jobs {
+			refs = append(refs, scheduler.JobRef{Repository: j.Repository, RunID: j.RunID, RunAttempt: j.RunAttempt,
+				Job: j.Job, GitHubJobID: j.GitHubJobID, RunnerName: j.RunnerName})
+		}
+		if err := queue.RenewJobs(ctx, id, refs); err != nil && ctx.Err() == nil {
+			logger.Warn("slot lease renewal failed", "machine", id, "err", err)
+		}
+	})
 
 	sec, err := secrets.Open(ctx, cfg.DataDir)
 	if err != nil {

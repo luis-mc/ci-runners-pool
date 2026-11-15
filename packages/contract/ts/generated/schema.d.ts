@@ -1007,6 +1007,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runners/{runnerId}/env": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The merged environment of a runner, sensitive values masked
+         * @description runners R5.75, R5.76. Order: machine, then each applied set in the order the runner lists them, then the runner's own values; a later layer wins. Each value names its source.
+         */
+        get: operations["getRunnerEnv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/env-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every named environment set */
+        get: operations["listEnvSets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/env-sets/{setName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Create or replace an environment set
+         * @description runners R5.75. A sensitive variable sent without a value keeps its stored value.
+         */
+        put: operations["putEnvSet"];
+        post?: never;
+        /** Delete an environment set and its stored sensitive values */
+        delete: operations["deleteEnvSet"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Registry logins per backend and whether a private CA bundle is set
+         * @description runners R5.77, R5.78. No password is ever returned.
+         */
+        get: operations["getRegistrySettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/logins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Store a registry login for one backend kind
+         * @description runners R5.77. The password goes to the secret store. An empty password keeps the stored one.
+         */
+        put: operations["putRegistryLogin"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/logins/{kind}/{host}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a registry login and its stored password */
+        delete: operations["deleteRegistryLogin"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/ca-bundle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the private CA bundle that runners trust
+         * @description runners R5.78. PEM certificates only; a private key is refused.
+         */
+        put: operations["putRegistryCaBundle"];
+        post?: never;
+        /** Remove the private CA bundle */
+        delete: operations["deleteRegistryCaBundle"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runners/{runnerId}/replace": {
         parameters: {
             query?: never;
@@ -1039,6 +1175,26 @@ export interface paths {
          * @description observability R5.1, R5.5, R5.7 to R5.11; scheduling R5.6. Queued jobs carry their wait reason.
          */
         get: operations["listJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The same job on crsp and on GitHub-hosted runners
+         * @description observability R5.34. Reads finished workflow-run job timings of one repository from GitHub, matches jobs by name across the two runner kinds and returns median and p95 queue wait and run time, minutes saved and the hosted cost avoided. A public repository is excluded (hosted minutes there are free). Read only; it starts nothing.
+         */
+        get: operations["getSpeedComparison"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1655,6 +1811,34 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SpeedStat: {
+            count: number;
+            median_seconds: number;
+            p95_seconds: number;
+        };
+        SpeedSide: {
+            queue: components["schemas"]["SpeedStat"];
+            run: components["schemas"]["SpeedStat"];
+        };
+        SpeedRow: {
+            job: string;
+            crsp: components["schemas"]["SpeedSide"];
+            hosted: components["schemas"]["SpeedSide"];
+            minutes_saved: number;
+            cost_avoided_usd: number;
+        };
+        SpeedComparison: {
+            repository: string;
+            days: number;
+            /** Format: date-time */
+            since: string;
+            excluded: boolean;
+            reason?: string;
+            rows: components["schemas"]["SpeedRow"][];
+            unmatched_jobs: number;
+            total_minutes_saved: number;
+            total_cost_avoided_usd: number;
+        };
         /**
          * @example {
          *       "status": "ok",
@@ -1665,6 +1849,60 @@ export interface components {
             /** @enum {string} */
             status: "ok";
             version: string;
+        };
+        EnvVar: {
+            name: string;
+            /** @description Absent for a sensitive variable. */
+            value?: string;
+            sensitive: boolean;
+        };
+        EnvSet: {
+            name: string;
+            vars: components["schemas"]["EnvVar"][];
+        };
+        EnvSetList: {
+            items: components["schemas"]["EnvSet"][];
+        };
+        EnvVarInput: {
+            name: string;
+            value?: string;
+            sensitive?: boolean;
+        };
+        EnvSetInput: {
+            vars: components["schemas"]["EnvVarInput"][];
+        };
+        ResolvedEnvVar: {
+            name: string;
+            /** @description "***" for a sensitive variable. */
+            value: string;
+            sensitive: boolean;
+            /** @description "machine", "set:<name>" or "runner". */
+            source: string;
+        };
+        RunnerEnv: {
+            runner_id: string;
+            vars: components["schemas"]["ResolvedEnvVar"][];
+        };
+        RegistryLogin: {
+            /** @enum {string} */
+            kind: "container" | "vm" | "persistent";
+            host: string;
+            username: string;
+        };
+        RegistryLoginInput: {
+            /** @enum {string} */
+            kind: "container" | "vm" | "persistent";
+            host: string;
+            username: string;
+            /** @description Write only. Empty keeps the stored one. */
+            password?: string;
+        };
+        CaBundleInput: {
+            pem: string;
+        };
+        RegistrySettings: {
+            logins: components["schemas"]["RegistryLogin"][];
+            ca_bundle_set: boolean;
         };
         /**
          * @example {
@@ -2382,7 +2620,7 @@ export interface components {
          * @description Why a machine takes no new job (machines R5.62). Other features read these exact names.
          * @enum {string}
          */
-        PauseReason: "paused" | "on_battery" | "quiet_hours" | "budget";
+        PauseReason: "paused" | "on_battery" | "quiet_hours" | "budget" | "base_image_missing";
         /**
          * @description What the agent did with the CPU cap. not_supported is macOS (machines R5.64).
          * @enum {string}
@@ -3379,6 +3617,7 @@ export interface components {
         MachineId: string;
         ChangeId: string;
         JoinCodeId: string;
+        SetName: string;
         RunnerId: string;
         JobId: number;
         RunId: string;
@@ -4811,6 +5050,210 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    getRunnerEnv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runnerId: components["parameters"]["RunnerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The merged environment. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunnerEnv"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listEnvSets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sets. A sensitive variable has no value. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvSetList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    putEnvSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                setName: components["parameters"]["SetName"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvSetInput"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvSet"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteEnvSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                setName: components["parameters"]["SetName"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRegistrySettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrySettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    putRegistryLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegistryLoginInput"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryLogin"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteRegistryLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "container" | "vm" | "persistent";
+                host: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    putRegistryCaBundle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaBundleInput"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrySettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteRegistryCaBundle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     planRunnerReplacement: {
         parameters: {
             query?: never;
@@ -4861,6 +5304,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getSpeedComparison: {
+        parameters: {
+            query?: {
+                /** @description The repository as owner/repo. The handler answers 400 when it is missing or not in that form. */
+                repository?: string;
+                /** @description How many days back; 14 when absent, at most 90. */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The comparison. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpeedComparison"];
                 };
             };
             default: components["responses"]["Error"];

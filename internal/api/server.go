@@ -15,7 +15,9 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/envsets"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/events"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/regcreds"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/settings"
@@ -66,6 +68,13 @@ type Options struct {
 	Caches CachesService
 	// Notify serves the notification channel routes (handlers_notify.go). Nil answers 501.
 	Notify NotifyService
+	// EnvSets serves the environment set routes and the merged runner
+	// environment (handlers_envsets.go). Nil answers 501.
+	EnvSets *envsets.Service
+	// Registry serves the registry login and CA bundle routes. Nil answers 501.
+	Registry *regcreds.Store
+	// Compare serves the speed comparison route (handlers_compare.go). Nil answers 501.
+	Compare CompareService
 	// Authn says who a request acts as. Nil uses the GitHub area's sessions and
 	// CLI tokens; with neither, every operation that needs a role answers 401.
 	// A test passes a fixed principal.

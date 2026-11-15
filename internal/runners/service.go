@@ -509,9 +509,14 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 	if err != nil {
 		return fmt.Errorf("resolve scope: %w", err)
 	}
+	size, err := ParseSize(string(a.SizeClass))
+	if err != nil {
+		return refuse("%v", err)
+	}
 	id := s.newID("r_")
 	rec := Record{ID: id, Name: a.Name, MachineID: a.MachineID, OS: a.OS, Arch: a.Arch, Kind: a.Kind,
-		Backend: a.Backend, Isolation: string(backend.IsolationPersistent), Labels: a.Labels, Scope: a.Scope,
+		Backend: a.Backend, Isolation: string(backend.IsolationPersistent), Labels: a.Labels,
+		Route: RouteForLabels(s.PoolName, a.Labels), SizeClass: size, Scope: a.Scope,
 		RunnerVersion: pin.Version, State: Creating, Managed: true, CreatedAt: s.now()}
 	if err := s.Store.InsertRunner(ctx, rec); err != nil {
 		return err
@@ -708,7 +713,7 @@ func (s *Service) ReportFound(ctx context.Context, machineID string, found []bac
 		}
 		rec := Record{ID: s.newID("r_"), Name: f.Name, MachineID: machineID, OS: m.OS, Arch: m.Arch, Kind: "persistent",
 			Backend: string(backend.Persistent), Isolation: string(backend.IsolationPersistent), Labels: f.Labels,
-			Scope: Scope{Kind: "repository"}, RunnerVersion: f.RunnerVersion, State: state, Managed: f.Managed,
+			Route: RouteForLabels(s.PoolName, f.Labels), SizeClass: DefaultSize, Scope: Scope{Kind: "repository"}, RunnerVersion: f.RunnerVersion, State: state, Managed: f.Managed,
 			ServiceName: f.ServiceName, Account: f.Account, Folder: f.Folder, CreatedAt: s.now()}
 		if err := s.Store.InsertRunner(ctx, rec); err != nil {
 			return err

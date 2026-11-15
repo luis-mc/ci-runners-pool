@@ -12,24 +12,13 @@ import (
 // asks for it runs on a light runner, which holds a light slot only.
 const LightLabel = "crsp-light"
 
-// LightNamePrefix starts the name of every light runner, so the job gate can
-// tell one from the runner name alone.
+// LightNamePrefix starts the name of every new light runner, so a person can
+// tell one in a list. Nothing reads it back: routing uses the record's Route
+// (runners R5.70).
 const LightNamePrefix = "crsp-light-"
 
-// IsLightName reports whether a runner name is a light runner's.
-func IsLightName(name string) bool {
-	return strings.HasPrefix(strings.ToLower(name), LightNamePrefix)
-}
-
-// IsLightRecord reports whether a record is a light runner.
-func IsLightRecord(r Record) bool {
-	for _, l := range r.Labels {
-		if strings.EqualFold(l, LightLabel) {
-			return true
-		}
-	}
-	return false
-}
+// IsLightRecord reports whether a record is a light runner, by its route.
+func IsLightRecord(r Record) bool { return RouteOf(r).Light() }
 
 // LightHost is a machine that may host a light runner: it is online, serves
 // the OS and has light slots above 0.

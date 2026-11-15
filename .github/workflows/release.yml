@@ -7,8 +7,15 @@ name: Release
 # Assets: crsp-<os>-<arch>.tar.gz (linux, darwin) or .zip (windows),
 # crsp-windows-<arch>.msi (the Windows installer, WiX v5, built on windows-latest),
 # crsp-darwin-<arch>.pkg, crsp-linux-<arch>.deb and crsp-linux-<arch>.rpm (OPS1),
-# SHA256SUMS, and a build provenance attestation for each.
-# Authenticode signing and Apple notarization come later (milestone 8).
+# crsp-sbom-go.spdx.json and crsp-sbom-web.spdx.json (SPDX SBOMs, CRSP90),
+# SHA256SUMS (covers every other asset), and a build provenance attestation for
+# each asset and for SHA256SUMS itself.
+#
+# Owner decision D58: no signing certificate yet, so installers ship unsigned.
+# The signing steps below are present but run only when the repository variable
+# SIGNING_ENABLED is `true` (default: unset, off). The certificates are read from
+# repository secrets only; no secret value is in this file. How a user checks
+# a download: docs/guides/install.md and operations R5.43, R5.45.
 on:
   push:
     branches: [main]
@@ -85,6 +92,30 @@ jobs:
           if ($last -match '^v(\d+)\.(\d+)\.(\d+)$') { $edgeBase = "$($Matches[1]).$($Matches[2]).$([int]$Matches[3] + 1)" }
           ./installer/build.ps1 -Arch ${{ matrix.arch }} -Exe binaries/crsp.exe -Version $env:VERSION `
             -EdgeBase $edgeBase -Build ([int]$env:RUN_NUMBER % 65535) -Out installer/out
+      # CRSP90: Authenticode signing, OFF until the owner has a certificate
+      # (repository variable SIGNING_ENABLED=true). On: a missing certificate fails the job.
+      - name: Sign the MSI (Authenticode)
+        if: ${{ vars.SIGNING_ENABLED == 'true' }}
+        shell: pwsh
+        env:
+          CERT_PFX_B64: ${{ secrets.SIGNING_WINDOWS_CERT_PFX_B64 }}
+          CERT_PASSWORD: ${{ secrets.SIGNING_WINDOWS_CERT_PASSWORD }}
+          MSI: installer/out/crsp-windows-${{ matrix.goarch }}.msi
+        run: |
+          if (-not $env:CERT_PFX_B64) { throw 'SIGNING_ENABLED is true but the secret SIGNING_WINDOWS_CERT_PFX_B64 is empty' }
+          $pfx = Join-Path $env:RUNNER_TEMP 'sign.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:CERT_PFX_B64))
+          try {
+            $signtool = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin' -Recurse -Filter signtool.exe |
+              Where-Object { $_.FullName -match '\\x64\\' } | Sort-Object FullName -Descending | Select-Object -First 1
+            if (-not $signtool) { throw 'signtool.exe not found on the runner' }
+            & $signtool.FullName sign /fd SHA256 /f $pfx /p $env:CERT_PASSWORD /tr http://timestamp.digicert.com /td SHA256 $env:MSI
+            if ($LASTEXITCODE -ne 0) { throw "signtool sign exit $LASTEXITCODE" }
+            & $signtool.FullName verify /pa $env:MSI
+            if ($LASTEXITCODE -ne 0) { throw "signtool verify exit $LASTEXITCODE" }
+          } finally {
+            Remove-Item $pfx -Force -ErrorAction SilentlyContinue
+          }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           # Stable name, no version or run number, so artifact-prune.yml keeps the newest.
@@ -128,6 +159,33 @@ jobs:
             bash installer/macos/build.sh "$ARCH" bin/crsp "$VERSION" "$GITHUB_RUN_NUMBER" pkgs
           fi
           ls -l pkgs
+      # CRSP90: Developer ID signing of the .pkg, OFF until the owner has a certificate
+      # (repository variable SIGNING_ENABLED=true). On: a missing certificate fails the job.
+      # Notarization (needs Apple account credentials) is not done here yet.
+      - name: Sign the pkg (Developer ID Installer)
+        if: ${{ vars.SIGNING_ENABLED == 'true' && matrix.os == 'darwin' }}
+        env:
+          CERT_P12_B64: ${{ secrets.SIGNING_MACOS_CERT_P12_B64 }}
+          CERT_PASSWORD: ${{ secrets.SIGNING_MACOS_CERT_PASSWORD }}
+          IDENTITY: ${{ vars.SIGNING_MACOS_IDENTITY }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          [ -n "$CERT_P12_B64" ] || { echo "::error::SIGNING_ENABLED is true but the secret SIGNING_MACOS_CERT_P12_B64 is empty"; exit 1; }
+          [ -n "$IDENTITY" ] || { echo "::error::SIGNING_ENABLED is true but the variable SIGNING_MACOS_IDENTITY is empty"; exit 1; }
+          kc="$RUNNER_TEMP/sign.keychain-db"
+          kcpass="$(uuidgen)"
+          trap 'security delete-keychain "$kc" >/dev/null 2>&1 || true; rm -f "$RUNNER_TEMP/sign.p12"' EXIT
+          printf '%s' "$CERT_P12_B64" | base64 --decode > "$RUNNER_TEMP/sign.p12"
+          security create-keychain -p "$kcpass" "$kc"
+          security set-keychain-settings -lut 900 "$kc"
+          security unlock-keychain -p "$kcpass" "$kc"
+          security import "$RUNNER_TEMP/sign.p12" -k "$kc" -P "$CERT_PASSWORD" -T /usr/bin/productsign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$kcpass" "$kc" >/dev/null
+          security list-keychains -d user -s "$kc" login.keychain
+          productsign --sign "$IDENTITY" "pkgs/crsp-darwin-${ARCH}.pkg" "pkgs/signed.pkg"
+          mv pkgs/signed.pkg "pkgs/crsp-darwin-${ARCH}.pkg"
+          pkgutil --check-signature "pkgs/crsp-darwin-${ARCH}.pkg"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: pkg-${{ matrix.os }}-${{ matrix.arch }}
@@ -195,12 +253,35 @@ jobs:
           # 6 archives + 2 MSIs + 6 native installers
           count=$(find dist -type f | wc -l)
           [ "$count" -eq 14 ] || { echo "::error::expected 14 assets, found $count"; exit 1; }
+
+      # CRSP90: the SBOMs (SPDX JSON), made before SHA256SUMS so the checksums cover them.
+      # syft is pinned and sha256-checked in scripts/delivery/tools.json.
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.13'
+      - name: SBOM (Go binary and web console)
+        run: |
+          set -euo pipefail
+          syft="$(python3 scripts/delivery/ci_tool.py tool syft)"
+          bash scripts/ci/release-sbom.sh "$syft" binaries/release-linux-amd64/crsp dist
+
+      - name: Checksum every asset
+        run: |
+          set -euo pipefail
+          # 14 installers and archives + 2 SBOMs
+          count=$(find dist -type f | wc -l)
+          [ "$count" -eq 16 ] || { echo "::error::expected 16 assets, found $count"; exit 1; }
           (cd dist && sha256sum crsp-* > SHA256SUMS)
+          lines=$(wc -l < dist/SHA256SUMS)
+          [ "$lines" -eq 16 ] || { echo "::error::SHA256SUMS has $lines lines, expected 16"; exit 1; }
           cat dist/SHA256SUMS
 
+      # One attestation for every asset and for SHA256SUMS itself.
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
-          subject-path: dist/crsp-*
+          subject-path: |
+            dist/crsp-*
+            dist/SHA256SUMS
 
       - name: Publish edge pre-release (main)
         if: ${{ github.ref_type == 'branch' }}

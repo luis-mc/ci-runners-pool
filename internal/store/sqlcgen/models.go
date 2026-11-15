@@ -366,6 +366,9 @@ type Runner struct {
 	CurrentJobID   sql.NullInt64
 	CreatedAt      string
 	UpdatedAt      string
+	RoutePool      string
+	RouteQueue     string
+	SizeClass      string
 }
 
 type RunnerEvent struct {

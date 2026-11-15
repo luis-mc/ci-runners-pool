@@ -470,3 +470,21 @@ func TestEnvHasNoCIMaxParallelWithoutAPoolSize(t *testing.T) {
 		t.Errorf("no pool size, no CPU count:\n%s", env)
 	}
 }
+
+type fixedIDs map[string]int
+
+func (f fixedIDs) ID(_ context.Context, n string) (int, error) { return f[n], nil }
+
+// R5.72: the account is made with its persistent uid from the reserved range.
+func TestUserGetsPersistentUID(t *testing.T) {
+	r := newRig()
+	user := runners.AccountName("box-1", nil)
+	r.b.cfg.IDs = fixedIDs{user: 64003}
+	if _, err := r.b.Start(context.Background(), r.spec(), backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
+		t.Fatal(err)
+	}
+	i := r.index("useradd")
+	if i < 0 || !strings.Contains(r.cmd.Texts()[i], "--uid 64003") {
+		t.Fatalf("useradd lacks the uid: %v", r.cmd.Texts())
+	}
+}

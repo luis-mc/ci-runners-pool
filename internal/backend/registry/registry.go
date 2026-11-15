@@ -49,4 +49,12 @@ func RealDeps(logLine func(step, msg string), redact func(string) string, secret
 }
 
 // Platform is the registry for this OS with the production layout.
-func Platform(d sys.Deps) *Registry { return &Registry{list: platform(d)} }
+// ids, when given, is the source of the persistent runner uid/gid (runners
+// R5.72); the Linux backends use it.
+func Platform(d sys.Deps, ids ...backend.IDSource) *Registry {
+	var src backend.IDSource
+	if len(ids) > 0 {
+		src = ids[0]
+	}
+	return &Registry{list: platform(d, src)}
+}

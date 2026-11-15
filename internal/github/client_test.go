@@ -266,8 +266,11 @@ func TestDeleteRunner(t *testing.T) { // R5.33
 	if err := e.client.DeleteRunner(context.Background(), 10, scope, 7); err != nil {
 		t.Fatal(err)
 	}
-	if err := e.client.DeleteRunner(context.Background(), 10, scope, 8); err == nil {
-		t.Fatal("a busy runner is refused by GitHub and the error reaches the caller")
+	if err := e.client.DeleteRunner(context.Background(), 10, scope, 8); !errors.Is(err, ErrRunnerBusy) {
+		t.Fatalf("a busy runner is refused with 422 and that reads as ErrRunnerBusy: %v", err)
+	}
+	if err := e.client.DeleteRunner(context.Background(), 10, scope, 99); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("an unknown runner reads as ErrNotFound: %v", err)
 	}
 	if names := e.fake.RunnerNames("alice/demo"); len(names) != 1 || names[0] != "busy" {
 		t.Fatalf("runners left: %v", names)

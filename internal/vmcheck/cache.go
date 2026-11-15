@@ -73,17 +73,36 @@ func BaseArgs(image, base string) []string {
 	return OverlayArgs(image, base)
 }
 
-// EnsureBase returns the prepared base disk of an image, making it when it is
-// not in the cache. The key is BaseKey of the image digest and the package
-// list (no package is installed into a base yet, so the list is empty).
+// EnsureBase returns the prepared base disk of an image with no package, making
+// it when it is not in the cache.
 func EnsureBase(ctx context.Context, deps Deps, cacheDir, distro, image, digest string) (string, error) {
-	base := BaseFile(cacheDir, distro, BaseKey(digest, nil))
+	return EnsureBasePackages(ctx, deps, cacheDir, distro, image, digest, nil, nil)
+}
+
+// EnsureBasePackages returns the prepared base disk of an image and a package
+// list, making it when it is not in the cache. The key is BaseKey of the image
+// digest and the list. The disk has a manifest of its packages next to it
+// (ManifestFile); the doctor reads it. Packages need an installer, which runs on
+// the new disk before it is renamed into place; without one a non-empty list is
+// refused (ErrNoInstaller).
+func EnsureBasePackages(ctx context.Context, deps Deps, cacheDir, distro, image, digest string, pkgs []string, install Installer) (string, error) {
+	pkgs = CleanPackages(pkgs)
+	if len(pkgs) > 0 && install == nil {
+		return "", ErrNoInstaller
+	}
+	base := BaseFile(cacheDir, distro, BaseKey(digest, pkgs))
 	unlock, err := Lock(ctx, cacheDir, "base-"+distro)
 	if err != nil {
 		return "", err
 	}
 	defer unlock()
 	if st, err := os.Stat(base); err == nil && st.Mode().IsRegular() {
+		if _, merr := os.Stat(ManifestFile(base)); errors.Is(merr, os.ErrNotExist) {
+			// Made before manifests: the key says what it holds.
+			if err := WriteManifest(base, pkgs); err != nil {
+				return "", err
+			}
+		}
 		return base, nil
 	}
 	if err := EnsureCacheDir(cacheDir); err != nil {
@@ -98,7 +117,18 @@ func EnsureBase(ctx context.Context, deps Deps, cacheDir, distro, image, digest 
 	if err := deps.Run(ctx, "qemu-img", BaseArgs(image, tmp.Name())...); err != nil {
 		return "", fmt.Errorf("qemu-img could not make the base disk: %w", err)
 	}
+	if len(pkgs) > 0 {
+		if err := install(ctx, tmp.Name(), pkgs); err != nil {
+			return "", fmt.Errorf("packages could not be put into the base disk: %w", err)
+		}
+	}
+	// The manifest first: a base without one reads as empty, so a crash between
+	// the two writes must leave the manifest, never the disk alone.
+	if err := WriteManifest(base, pkgs); err != nil {
+		return "", err
+	}
 	if err := os.Rename(tmp.Name(), base); err != nil {
+		_ = os.Remove(ManifestFile(base))
 		return "", err
 	}
 	return base, nil
@@ -192,6 +222,9 @@ func Scan(cacheDir string) (map[string][]CacheFile, error) {
 			info, err := e.Info()
 			if err != nil || !info.Mode().IsRegular() {
 				continue
+			}
+			if strings.HasSuffix(e.Name(), ManifestSuffix) {
+				continue // follows its base disk, see Prune
 			}
 			cf := CacheFile{File{Path: filepath.Join(cacheDir, kind, e.Name()), ModUnix: info.ModTime().Unix()}, info.Size()}
 			k := kind
@@ -359,6 +392,11 @@ func Prune(ctx context.Context, cacheDir string, cat Catalogue, spec PruneSpec, 
 		if !spec.DryRun {
 			if err := os.Remove(p); err != nil && !errors.Is(err, os.ErrNotExist) {
 				return res, fmt.Errorf("remove %s: %w", p, err)
+			}
+		}
+		if !spec.DryRun && strings.HasSuffix(p, ".qcow2") && filepath.Base(filepath.Dir(p)) == "bases" {
+			if err := os.Remove(ManifestFile(p)); err != nil && !errors.Is(err, os.ErrNotExist) {
+				return res, fmt.Errorf("remove %s: %w", ManifestFile(p), err)
 			}
 		}
 		res.Removed = append(res.Removed, p)

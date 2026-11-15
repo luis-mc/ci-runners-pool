@@ -2,8 +2,9 @@
 
 -- name: InsertRunner :exec
 INSERT INTO runners (id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind,
-    repository_id, organization, runner_group, runner_version, state, managed, service_name, account, folder)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    repository_id, organization, runner_group, runner_version, state, managed, service_name, account, folder,
+    route_pool, route_queue, size_class)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetRunner :one
 SELECT * FROM runners WHERE id = ?;

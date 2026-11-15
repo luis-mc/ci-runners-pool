@@ -4,8 +4,6 @@ import (
 	"context"
 	"strings"
 	"testing"
-
-	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
 )
 
 type fakeLightPlacer map[string][]LightHost
@@ -14,12 +12,18 @@ func (f fakeLightPlacer) LightHosts(_ context.Context, os string) ([]LightHost, 
 	return f[os], nil
 }
 
-func TestLightNamePrefixMatchesGate(t *testing.T) { // scheduling R5.65
-	if LightNamePrefix != slots.LightRunnerPrefix {
-		t.Fatalf("%q != %q", LightNamePrefix, slots.LightRunnerPrefix)
+func TestLightRouteComesFromLabelsNotName(t *testing.T) { // runners R5.70
+	if !RouteForLabels("", []string{"self-hosted", LightLabel}).Light() {
+		t.Fatal("light label gives the light queue")
 	}
-	if !IsLightName("crsp-light-demo-linux") || IsLightName("box-1") {
-		t.Fatal("IsLightName")
+	if RouteForLabels("", []string{"self-hosted"}).Light() {
+		t.Fatal("no label, no light queue")
+	}
+	if IsLightRecord(Record{Name: "crsp-light-demo-linux"}) {
+		t.Fatal("a light looking name alone is not a light runner")
+	}
+	if !IsLightRecord(Record{Name: "box-1", Route: Route{Queue: QueueLight}}) {
+		t.Fatal("route says light")
 	}
 }
 
@@ -33,6 +37,10 @@ func TestEnsureLightPlacesOneRunnerPerOS(t *testing.T) { // scheduling R5.65
 	}
 	if len(r.ag.added) != 1 {
 		t.Fatalf("added %d", len(r.ag.added))
+	}
+	// The stored route says light and the size class is set (runners R5.70, R5.71).
+	if recs, err := r.store.ListRunners(ctx, Filter{}); err != nil || len(recs) != 1 || !RouteOf(recs[0]).Light() || recs[0].SizeClass != DefaultSize {
+		t.Fatalf("record %+v %v", recs, err)
 	}
 	labels := strings.Join(r.ag.added[0].Labels, ",")
 	if !strings.Contains(labels, LightLabel) || !strings.Contains(labels, "self-hosted") {

@@ -190,7 +190,7 @@ func (t *schedTx) DeleteTicket(id string) (bool, error) {
 }
 
 const slotCols = `machine_id, kind, number, claim, repository, COALESCE(repository_id, 0), run_id, run_attempt, job,
-	COALESCE(github_job_id, 0), shard, runner_name, holder_machine, holder_pid, gate_pid, queued_at, taken_at, expires_at`
+	COALESCE(github_job_id, 0), shard, runner_name, holder_machine, holder_pid, gate_pid, queued_at, taken_at, expires_at, holder_id, lease_expires_at`
 
 func (t *schedTx) listSlots(where string, args ...any) ([]slots.Slot, error) {
 	rows, err := t.tx.QueryContext(t.ctx, `SELECT `+slotCols+` FROM slots `+where, args...)
@@ -201,14 +201,15 @@ func (t *schedTx) listSlots(where string, args ...any) ([]slots.Slot, error) {
 	var out []slots.Slot
 	for rows.Next() {
 		var s slots.Slot
-		var kind, queued, taken, exp string
+		var kind, queued, taken, exp, lease string
 		if err := rows.Scan(&s.MachineID, &kind, &s.Number, &s.Claim, &s.Job.Repository, &s.RepositoryID, &s.Job.RunID,
 			&s.Job.RunAttempt, &s.Job.Job, &s.Job.GitHubJobID, &s.Job.Shard, &s.Job.RunnerName, &s.Holder.Machine,
-			&s.Holder.PID, &s.Holder.GatePID, &queued, &taken, &exp); err != nil {
+			&s.Holder.PID, &s.Holder.GatePID, &queued, &taken, &exp, &s.HolderID, &lease); err != nil {
 			return nil, fmt.Errorf("slots: %w", err)
 		}
 		s.Kind = slots.Kind(kind)
 		s.QueuedAt, s.TakenAt, s.ExpiresAt = parseTime(queued), parseTime(taken), parseTime(exp)
+		s.LeaseExpiresAt = parseTime(lease)
 		out = append(out, s)
 	}
 	return out, rows.Err()
@@ -225,11 +226,12 @@ func (t *schedTx) AllSlots() ([]slots.Slot, error) {
 // InsertSlot refuses a second take of the same slot key with slots.ErrSlotTaken.
 func (t *schedTx) InsertSlot(s slots.Slot) error {
 	_, err := t.tx.ExecContext(t.ctx, `INSERT INTO slots (machine_id, kind, number, claim, repository, repository_id, run_id,
-		run_attempt, job, github_job_id, shard, runner_name, holder_machine, holder_pid, gate_pid, queued_at, taken_at, expires_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		run_attempt, job, github_job_id, shard, runner_name, holder_machine, holder_pid, gate_pid, queued_at, taken_at, expires_at, holder_id, lease_expires_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		s.MachineID, string(s.Kind), s.Number, s.Claim, s.Job.Repository, nullInt(s.RepositoryID), s.Job.RunID,
 		s.Job.RunAttempt, s.Job.Job, nullInt(s.Job.GitHubJobID), s.Job.Shard, s.Job.RunnerName, s.Holder.Machine,
-		s.Holder.PID, s.Holder.GatePID, fmtTime(s.QueuedAt), fmtTime(s.TakenAt), fmtTime(s.ExpiresAt))
+		s.Holder.PID, s.Holder.GatePID, fmtTime(s.QueuedAt), fmtTime(s.TakenAt), fmtTime(s.ExpiresAt),
+		s.HolderID, fmtTime(s.LeaseExpiresAt))
 	var se *sqlite.Error
 	if errors.As(err, &se) && (se.Code() == 1555 || se.Code() == 2067) { // PRIMARY KEY, UNIQUE
 		return slots.ErrSlotTaken
@@ -250,6 +252,18 @@ func (t *schedTx) FreeSlot(machineID string, kind slots.Kind, number int, claim 
 	r, err := t.tx.ExecContext(t.ctx, q, args...)
 	if err != nil {
 		return false, fmt.Errorf("free slot: %w", err)
+	}
+	n, _ := r.RowsAffected()
+	return n > 0, nil
+}
+
+// RenewSlot moves the lease end of the slot only while it still holds the
+// holder id and claim, so a slot taken again by another job is never extended.
+func (t *schedTx) RenewSlot(machineID string, kind slots.Kind, number int, holderID, claim string, leaseExpiresAt time.Time) (bool, error) {
+	r, err := t.tx.ExecContext(t.ctx, `UPDATE slots SET lease_expires_at = ? WHERE machine_id = ? AND kind = ? AND number = ?
+		AND holder_id = ? AND claim = ?`, fmtTime(leaseExpiresAt), machineID, string(kind), number, holderID, claim)
+	if err != nil {
+		return false, fmt.Errorf("renew slot: %w", err)
 	}
 	n, _ := r.RowsAffected()
 	return n > 0, nil

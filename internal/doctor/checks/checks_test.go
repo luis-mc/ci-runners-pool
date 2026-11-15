@@ -129,7 +129,7 @@ func only(t *testing.T, fs []doctor.Finding, check string) doctor.Finding {
 func TestEveryRegisteredCheckIsM1AndHasAnID(t *testing.T) {
 	reg := doctor.NewRegistry()
 	Register(reg)
-	if len(reg.All()) != 31 {
+	if len(reg.All()) != 33 {
 		t.Fatalf("checks: %v", reg.SortedIDs())
 	}
 	for _, c := range reg.All() {
@@ -765,5 +765,78 @@ func TestRunnerToolCache(t *testing.T) {
 	}
 	if !strings.Contains(got["crsp-bad"].Detail, "Access is denied") || !strings.Contains(got["crsp-owner"].Detail, "another owner") {
 		t.Errorf("detail: %q / %q", got["crsp-bad"].Detail, got["crsp-owner"].Detail)
+	}
+}
+
+// R5.42: a Windows runner whose setting asks for the symbolic link right holds
+// it, or Developer Mode is on; the check only reads.
+func TestRunnerSymlink(t *testing.T) {
+	win := func(id, name string, wanted bool, p *doctor.SymlinkProbe) doctor.Runner {
+		r := persistent(id, name)
+		r.OS, r.SymlinkWanted, r.Symlink = "windows", wanted, p
+		return r
+	}
+	lin := persistent("r0", "crsp-linux")
+	lin.SymlinkWanted = true
+	rs := []doctor.Runner{
+		lin,
+		win("r1", "crsp-held", true, &doctor.SymlinkProbe{Held: true}),
+		win("r2", "crsp-dev", true, &doctor.SymlinkProbe{DeveloperMode: true}),
+		win("r3", "crsp-missing", true, &doctor.SymlinkProbe{}),
+		win("r4", "crsp-extra", false, &doctor.SymlinkProbe{Held: true}),
+		win("r5", "crsp-none", false, &doctor.SymlinkProbe{}),
+		win("r6", "crsp-unread", true, nil),
+		win("r7", "crsp-quiet", false, nil),
+		win("r8", "crsp-err", true, &doctor.SymlinkProbe{Err: "access denied"}),
+	}
+	fl := &fleet{machines: []doctor.Machine{healthyMachine()}, runners: rs}
+	got := map[string]doctor.Finding{}
+	for _, f := range run(t, doctor.Env{Fleet: fl}, "runner.symlink") {
+		got[f.Subject.Name] = f
+	}
+	want := map[string]doctor.Severity{
+		"crsp-held": doctor.OK, "crsp-dev": doctor.OK, "crsp-missing": doctor.Fail, "crsp-extra": doctor.Warn,
+		"crsp-none": doctor.OK, "crsp-unread": doctor.Skip, "crsp-err": doctor.Skip,
+	}
+	for n, sev := range want {
+		if got[n].Severity != sev {
+			t.Errorf("%s = %+v, want %v", n, got[n], sev)
+		}
+	}
+	if _, ok := got["crsp-linux"]; ok {
+		t.Error("a Linux runner has no symbolic link finding")
+	}
+	if _, ok := got["crsp-quiet"]; ok {
+		t.Error("a runner that asks for nothing and was not read has no finding")
+	}
+	if !strings.Contains(got["crsp-dev"].Title, "Developer Mode") || !strings.Contains(got["crsp-missing"].Detail, "Developer Mode is off") {
+		t.Errorf("dev=%q missing=%q", got["crsp-dev"].Title, got["crsp-missing"].Detail)
+	}
+}
+
+// CRSP83 (runners R5.83): a machine paused for disk space names what to clean.
+func TestDiskFloorNamesWhatToClean(t *testing.T) {
+	held := healthyMachine()
+	held.ID, held.Name, held.PauseReason, held.DiskFreeBytes = "h", "held", "disk_low", i64(4*gib)
+	other := healthyMachine()
+	other.ID, other.Name, other.PauseReason = "o", "other", "on_battery"
+	off := healthyMachine()
+	off.ID, off.Name, off.Online, off.PauseReason = "x", "off", false, "disk_low"
+	fs := run(t, doctor.Env{Fleet: &fleet{machines: []doctor.Machine{held, other, off, healthyMachine()}}}, "machine.floor.disk")
+	want := map[string]doctor.Severity{"held": doctor.Fail, "other": doctor.OK, "off": doctor.Skip, "alpha": doctor.OK}
+	for _, f := range fs {
+		if want[f.Subject.Name] != f.Severity {
+			t.Errorf("%s: %v", f.Subject.Name, f.Severity)
+		}
+		if f.Subject.Name == "held" {
+			for _, w := range []string{"docker image prune", "clean-work", "4.0 GiB", "disk_floor_gib"} {
+				if !strings.Contains(f.Fix.Text+f.Detail, w) {
+					t.Errorf("the finding does not name %q: %+v", w, f)
+				}
+			}
+		}
+	}
+	if len(fs) != 4 {
+		t.Errorf("%d findings", len(fs))
 	}
 }

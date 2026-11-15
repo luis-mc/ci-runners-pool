@@ -197,21 +197,30 @@ jobs:
       version: ${{ github.sha }}
 
   # runners R5.49: the Linux base job image builds. Build only, no push.
+  # runners R5.43: the matrix lists amd64 and arm64. Every layer builds on
+  # amd64; arm64 builds the base image and the llvm layer, the only layer with
+  # an arm64 pin (the others carry amd64-only tools).
   image:
-    name: base image (build only)
+    name: base image ${{ matrix.arch }} (build only)
     needs: [decide, build]
     if: ${{ always() && needs.decide.outputs.skip != 'true' && needs.build.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: amd64, runner: ubuntu-latest, all: true, layers: 'windows-packaging linux-packaging llvm kvm' }
+          - { arch: arm64, runner: ubuntu-24.04-arm, all: false, layers: 'llvm' }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: crsp-linux-amd64
+          name: crsp-linux-${{ matrix.arch }}
           path: images/linux-base
       - run: chmod +x images/linux-base/crsp
       - name: docker build (no push)
-        run: docker build --build-arg TARGETARCH=amd64 --tag crsp-linux-base:ci images/linux-base
+        run: docker build --build-arg TARGETARCH=${{ matrix.arch }} --tag crsp-linux-base:ci images/linux-base
       - name: Job user is not root and tools run
         run: |
           docker run --rm crsp-linux-base:ci bash -ec 'test "$(id -u)" != 0; node --version; corepack --version; command -v pnpm; gh --version | head -1; crsp version'
@@ -225,30 +234,39 @@ jobs:
       # runners R5.44: the browsers layer builds on the base image (its build
       # launches each browser headless as the self-check). Build only, no push.
       - name: docker build browsers layer (no push)
+        if: ${{ matrix.all }}
         run: docker build --build-arg BASE_IMAGE=crsp-linux-base:ci --tag crsp-linux-browsers:ci images/layers/browsers
       - name: Browsers sit at the fixed path
+        if: ${{ matrix.all }}
         run: |
           docker run --rm crsp-linux-browsers:ci bash -ec 'test "$PLAYWRIGHT_BROWSERS_PATH" = /opt/crsp/browsers; test -n "$(ls /opt/crsp/browsers)"; test "$(id -u)" != 0'
       # runners R5.50: each layer builds on the base image. Build only, no push.
       # The build runs the layer's self-check, so a missing tool fails here.
       - name: docker build layers (no push)
+        env:
+          LAYERS: ${{ matrix.layers }}
+          ARCH: ${{ matrix.arch }}
         run: |
           set -eu
-          for layer in windows-packaging linux-packaging llvm kvm; do
-            docker build --build-arg BASE_IMAGE=crsp-linux-base:ci --tag "crsp-layer-${layer}:ci" "images/layers/${layer}"
+          for layer in $LAYERS; do
+            docker build --build-arg BASE_IMAGE=crsp-linux-base:ci --build-arg "TARGETARCH=${ARCH}" --tag "crsp-layer-${layer}:ci" "images/layers/${layer}"
           done
       # runners R5.51: the extra packages layer is last, on top of a packaging
       # layer, with a list of names (CRSP60). Build only, no push.
       - name: docker build extra packages layer (no push)
+        if: ${{ matrix.all }}
         run: |
           docker build --build-arg BASE_IMAGE=crsp-layer-linux-packaging:ci --build-arg "EXTRA_PACKAGES=zlib1g-dev libc++-dev" --tag crsp-layer-extra-packages:ci images/layers/extra-packages
           if docker build --build-arg BASE_IMAGE=crsp-linux-base:ci --build-arg "EXTRA_PACKAGES=ok;rm" images/layers/extra-packages; then echo "a bad name was accepted"; exit 1; fi
+      - name: llvm layer tools run as the job user
+        run: |
+          docker run --rm crsp-layer-llvm:ci bash -ec 'test "$(id -u)" != 0; clang-cl --version | head -1; lld-link --version | head -1; command -v llvm-lib'
       - name: Layer tools run as the job user
+        if: ${{ matrix.all }}
         run: |
           docker run --rm crsp-layer-linux-packaging:ci bash -ec 'test "$(id -u)" != 0; dpkg-buildpackage --version | head -1; fakeroot --version | head -1; rpmbuild --version'
           docker run --rm crsp-layer-windows-packaging:ci bash -ec 'test "$(id -u)" != 0; dotnet --version; wine --version; command -v xvfb-run xauth msiinfo'
           docker run --rm crsp-layer-extra-packages:ci bash -ec 'test "$(id -u)" != 0; dpkg -s zlib1g-dev libc++-dev >/dev/null; command -v dpkg-deb'
-          docker run --rm crsp-layer-llvm:ci bash -ec 'test "$(id -u)" != 0; clang-cl --version | head -1; lld-link --version | head -1; command -v llvm-lib'
           docker run --rm crsp-layer-kvm:ci bash -ec 'test "$(id -u)" != 0; qemu-system-x86_64 --version | head -1; kvm-wait.sh true'
 
   e2e:

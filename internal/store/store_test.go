@@ -100,3 +100,32 @@ func TestWithDeadline(t *testing.T) {
 		t.Fatal("an existing deadline must be kept")
 	}
 }
+
+// A runner's id is recorded in the store and survives a reopen (runners R5.72).
+func TestIntegrationRunnerIDsSurviveReopen(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	s, err := Open(ctx, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t0 := RunnerIDs{S: s}
+	if err := t0.Put(ctx, "pool-a", 64007); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	s2, err := Open(ctx, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = s2.Close() }()
+	id, ok, err := RunnerIDs{S: s2}.Get(ctx, "pool-a")
+	if err != nil || !ok || id != 64007 {
+		t.Fatalf("Get = %d, %v, %v", id, ok, err)
+	}
+	if _, ok, _ := (RunnerIDs{S: s2}).Get(ctx, "other"); ok {
+		t.Fatal("unknown runner has an id")
+	}
+}

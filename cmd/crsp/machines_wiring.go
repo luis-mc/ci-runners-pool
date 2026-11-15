@@ -135,7 +135,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 		defer close(done)
 		acfg := agent.Config{
 			Controller: loop, Pin: ca.Fingerprint(), LocalCredentialFile: credFile, Secrets: agentStore, DataDir: agentDir,
-			Version: version, Logger: logger.With("component", "local-agent"), Caches: agentCacheSource(),
+			Version: version, Logger: logger.With("component", "local-agent"), Caches: agentCacheSource(), DiskFloorGiB: diskFloorFor(cfg),
 			Images: agentImageSource(), Redactor: secretRedactor,
 		}
 		if err := agent.Run(runCtx, acfg); err != nil {
@@ -162,4 +162,13 @@ func poolDefaults(set *settings.Service) func(context.Context) (machines.PoolDef
 			DrainTimeoutMinutes: p.DrainTimeoutMinutes,
 		}, nil
 	}
+}
+
+// diskFloorFor turns the controller's setting into the agent's: the config
+// holds 0 for "no floor", the agent takes a negative value for that.
+func diskFloorFor(cfg config.Config) int {
+	if cfg.DiskFloorGiB <= 0 {
+		return -1
+	}
+	return cfg.DiskFloorGiB
 }

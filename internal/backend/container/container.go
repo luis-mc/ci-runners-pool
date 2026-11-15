@@ -70,6 +70,14 @@ type Config struct {
 	// database cannot start (ErrNoDatabase).
 	OpenSecrets func(ctx context.Context) (secrets.Store, error)
 	Database    func(ctx context.Context, pool string) (Database, error)
+	// CPUBudget is how many logical CPUs the pool may pin to containers
+	// (machines R5.54, R5.58). With it a pool container with a CPU limit gets
+	// a cpuset of its own, never shared with another pool container. 0: no
+	// pinning, as before.
+	CPUBudget int
+	// IDs gives the pool container its persistent uid/gid (runners R5.72). Nil
+	// keeps the fixed JobUID.
+	IDs backend.IDSource
 	// StopGrace is the time `docker stop` gives the idle container.
 	StopGrace time.Duration
 }
@@ -85,6 +93,7 @@ type Backend struct {
 	draining  map[string]bool   // pool name -> a swap waits for idle
 	dbRunners map[string]string // runner ref -> runner id, for runners that got a database
 	owners    runners.MemoryRoleOwners
+	cpus      *CPUAllocator // nil when the config has no CPU budget
 }
 
 var _ backend.Backend = (*Backend)(nil)
@@ -94,7 +103,11 @@ func New(d sys.Deps, eng Engine, cfg Config) *Backend {
 	if cfg.StopGrace <= 0 {
 		cfg.StopGrace = 30 * time.Second
 	}
-	return &Backend{d: d, eng: eng, cfg: cfg, draining: map[string]bool{}, dbRunners: map[string]string{}}
+	b := &Backend{d: d, eng: eng, cfg: cfg, draining: map[string]bool{}, dbRunners: map[string]string{}}
+	if cfg.CPUBudget > 0 {
+		b.cpus = NewCPUAllocator(cfg.CPUBudget)
+	}
+	return b
 }
 
 // Name implements backend.Backend.
@@ -123,17 +136,19 @@ func ownerRepo(url string) (owner, repo string, err error) {
 	return parts[1], parts[2], nil
 }
 
-func jobDir(name string) string  { return JobsDir + "/" + name }
-func jitFile(name string) string { return JITDir + "/" + name + ".jit" }
+func jobDir(name string) string { return JobsDir + "/" + name }
 
-// runnerScript reads the JIT config from its file, deletes the file, then
-// starts the runner with the config in its environment only. The config is
-// never in an argument, so `ps` and the engine's inspect do not show it.
-const runnerScript = `f="$1"; c=$(cat "$f") || exit 1; rm -f "$f"; ACTIONS_RUNNER_INPUT_JITCONFIG="$c"; export ACTIONS_RUNNER_INPUT_JITCONFIG; unset c; exec ./run.sh >runner.log 2>&1`
+// runnerScript reads the JIT config from its one line of standard input, then
+// starts the runner in the background with the config in the environment of
+// that one process only. The config is in no file, no argument and no
+// container setting, so `ps`, `docker inspect` and the disk never show it. The
+// runner binary takes the config as `--jitconfig` or in its own environment;
+// the second is the one that stays out of a process list.
+const runnerScript = `IFS= read -r c || exit 1; test -n "$c" || exit 1; ACTIONS_RUNNER_INPUT_JITCONFIG="$c" nohup ./run.sh >runner.log 2>&1 </dev/null & exit 0`
 
 // Start implements backend.Backend: it makes sure the pool container of the
 // repository runs, gives the runner its own folder, hands the JIT config over
-// through a file only the job user can read, and starts the runner. The runner
+// on standard input only (github-integration R5.40), and starts the runner. The runner
 // takes one job and exits (runners R5.25).
 func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.StartConfig) (backend.Handle, error) {
 	b.learn(cfg.JITConfig, cfg.Registration, cfg.Removal)
@@ -186,9 +201,9 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	if plan.WinePrefix != "" {
 		b.ensureWine(ctx, pool, plan)
 	}
-	startArgs := []string{"exec", "-d", "-u", JobUser, "-w", jobDir(r.Name)}
+	startArgs := []string{"exec", "-i", "-u", JobUser, "-w", jobDir(r.Name)}
 	startArgs = append(startArgs, envArgs(plan.RunnerEnv)...)
-	startArgs = append(startArgs, pool, "sh", "-c", runnerScript, "sh", jitFile(r.Name))
+	startArgs = append(startArgs, pool, "sh", "-c", runnerScript)
 	steps := []struct {
 		step string
 		args []string
@@ -216,18 +231,9 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 			return h, err
 		}
 	}
-	for _, s := range []struct {
-		step string
-		args []string
-		in   string
-	}{
-		{"register", []string{"exec", "-i", "-u", JobUser, pool, "sh", "-c", `umask 077 && cat > "$1"`, "sh", jitFile(r.Name)}, cfg.JITConfig},
-		{"start", startArgs, ""},
-	} {
-		if err := b.step(ctx, s.step, s.args, s.in); err != nil {
-			rollback()
-			return h, err
-		}
+	if err := b.step(ctx, "start", startArgs, cfg.JITConfig+"\n"); err != nil {
+		rollback()
+		return h, err
 	}
 	b.log("start", "runner "+r.Name+" started in "+pool)
 	return h, nil
@@ -302,18 +308,34 @@ func (b *Backend) ensurePool(ctx context.Context, p PoolSpec) error {
 	if exists { // stopped: start it again, same image
 		return b.step(ctx, "pool start", []string{"start", name}, "")
 	}
+	uid, err := b.identity(ctx, name)
+	if err != nil {
+		return err
+	}
+	p.UID = uid
 	if p.LaneRepoID != "" {
 		lane, err := b.takeLane(name, p.LaneRepoID)
 		if err != nil {
 			return err
 		}
 		p.Lane = &lane
+		if err := b.ownLane(ctx, uid, lane); err != nil {
+			return err
+		}
+	}
+	if err := b.pin(&p); err != nil {
+		return err
 	}
 	args, err := RunArgs(p)
 	if err != nil {
+		b.unpin(name)
 		return err
 	}
-	return b.step(ctx, "pool create", args, "")
+	if err := b.step(ctx, "pool create", args, ""); err != nil {
+		b.unpin(name)
+		return err
+	}
+	return nil
 }
 
 // Stop implements backend.Backend. Callers drain first and check for an idle
@@ -348,6 +370,7 @@ func (b *Backend) CleanUp(ctx context.Context, h backend.Handle) error {
 	if err := b.cleanUp(ctx, pool, name); err != nil {
 		return err
 	}
+	b.releaseIfGone(ctx, pool)
 	return b.removeDB(ctx, pool, h)
 }
 
@@ -376,7 +399,7 @@ func (b *Backend) removeDB(ctx context.Context, pool string, h backend.Handle) e
 }
 
 func (b *Backend) cleanUp(ctx context.Context, pool, name string) error {
-	res, err := b.run(ctx, "exec", pool, "sh", "-c", `rm -rf -- "$1" "$2"`, "sh", jobDir(name), jitFile(name))
+	res, err := b.run(ctx, "exec", pool, "sh", "-c", `rm -rf -- "$1"`, "sh", jobDir(name))
 	if err != nil {
 		return err
 	}
@@ -500,6 +523,9 @@ func DefaultConfig() Config {
 		Limits:    Limits{},
 		CacheRoot: filepath.Join(root, "crsp", "cache"),
 		KVMProbe:  ProbeKVM,
+		// The default CPU budget of a machine is 60% of its CPUs (machines
+		// R5.22a), at least 1.
+		CPUBudget: max(1, runtime.NumCPU()*60/100),
 		OpenSecrets: func(ctx context.Context) (secrets.Store, error) {
 			return secrets.Open(ctx, filepath.Join(root, "crsp"))
 		},
