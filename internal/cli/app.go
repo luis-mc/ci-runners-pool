@@ -136,6 +136,8 @@ type call struct {
 	fs     *flag.FlagSet
 	cmd    *command
 	cached *session
+	// after holds the arguments after a bare `--`, for a command with dashdash.
+	after []string
 }
 
 // command is a node of the command tree.
@@ -150,6 +152,9 @@ type command struct {
 	args      string // usage text for positionals
 	// raw passes every argument to run without flag parsing (long-running modes).
 	raw bool
+	// dashdash makes a bare `--` end the flags and the positionals: what follows
+	// goes to call.after unparsed (a command to run, never read as flags).
+	dashdash bool
 }
 
 func (c *command) find(name string) *command {
@@ -228,6 +233,14 @@ func execute(env *Env, root, cmd *command, path, rest []string) int {
 	c.g.bind(fs)
 	if cmd.flags != nil {
 		cmd.flags(c, fs)
+	}
+	if cmd.dashdash {
+		for i, a := range rest {
+			if a == "--" {
+				rest, c.after = rest[:i], append([]string(nil), rest[i+1:]...)
+				break
+			}
+		}
 	}
 	pos, err := parseInterleaved(fs, rest)
 	if errors.Is(err, flag.ErrHelp) || (len(pos) > 0 && (pos[0] == "help") && len(cmd.subs) > 0) {

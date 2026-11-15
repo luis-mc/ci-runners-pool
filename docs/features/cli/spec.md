@@ -119,6 +119,7 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 | `machine list` | List machines with load and slots | M1 | `machines` |
 | `machine add` | Print a join command with a one-time code | M1 | `machines` |
 | `machine drain\|remove` | Drain or remove a machine | M3 | `machines` |
+| `machine maintain NAME -- COMMAND...` | Hold new jobs, wait until idle, run one command on the machine, lift the hold | built | this spec (R5.29), `machines` |
 | `runner list\|create\|remove` | Runners on machines | M1 | `runners` |
 | `job list\|watch` | Queue and history; live view | M1 | `scheduling` |
 | `doctor` | Run every check and print fixes | M2 | `doctor` |
@@ -185,11 +186,11 @@ With `--json`, a refusal prints the contract's `ErrorEnvelope` to stderr and use
 
 ### Changes that remove or stop
 
-**R5.14** — A command that removes, disables, restores, applies or restarts (`repo disable`, `machine drain`, `machine remove`, `runner remove`, `context remove`, `config apply`, `restore`, `update`) MUST first print what goes: each item by name, and the running jobs it would wait for or stop. It then MUST ask "Type yes to go on:" when stdin is a terminal.
+**R5.14** — A command that removes, disables, restores, applies or restarts (`repo disable`, `machine drain`, `machine maintain`, `machine remove`, `runner remove`, `context remove`, `config apply`, `restore`, `update`) MUST first print what goes: each item by name, and the running jobs it would wait for or stop. It then MUST ask "Type yes to go on:" when stdin is a terminal.
 
 **R5.15** — With `--yes`, the command MUST skip the question but still print the list. Without `--yes` and without a terminal, it MUST change nothing and exit 5.
 
-**R5.16** — `machine drain`, `machine remove` and `runner remove` MUST NOT cut a running job. They wait until the jobs end. The drain timeout is one per machine (its setting, default 60 minutes); the commands have no `--drain-timeout` and no `--stop-jobs`. They show what they wait for. When the machine's drain timeout passes they keep waiting, print `Still draining <machine>: N jobs running, waited X. Nothing is stopped.` on stderr at most every 5 minutes, and exit 0 only when the change is done. Ctrl-C stops the waiting, not the drain on the controller. A change that is cancelled or needs the user exits 1 and says that no job was stopped. `update` follows the update spec (an automatic update postpones).
+**R5.16** — `machine drain`, `machine maintain`, `machine remove` and `runner remove` MUST NOT cut a running job. They wait until the jobs end. The drain timeout is one per machine (its setting, default 60 minutes); the commands have no `--drain-timeout` and no `--stop-jobs`. They show what they wait for. When the machine's drain timeout passes they keep waiting, print `Still draining <machine>: N jobs running, waited X. Nothing is stopped.` on stderr at most every 5 minutes, and exit 0 only when the change is done. Ctrl-C stops the waiting, not the drain on the controller. A change that is cancelled or needs the user exits 1 and says that no job was stopped. `update` follows the update spec (an automatic update postpones).
 
 ### Resource commands
 
@@ -216,6 +217,17 @@ With `--json`, a refusal prints the contract's `ErrorEnvelope` to stderr and use
 **R5.27** — A command run with no subcommand, or `help`, MUST print usage. Usage to stdout exits 0 when asked for; usage after an error goes to stderr and exits 2. (Built today.)
 
 **R5.28** — `parity check` MUST read the runners and a doctor run from the controller and write the parity report: one check per class (linux-container, windows, vm) that a runner of the class is online, one that no runner name is listed twice, and one that the doctor has no `warn` and no `fail`. `parity soak` MUST judge a soak either from an observation file (`--observations`) or as a dry run with fakes (`--dry-run`), and MUST refuse both or neither. A class passes the soak only when at least N jobs of it were submitted, no job is lost, no listener is duplicate and the p95 queue wait is at most the bound; the report passes only when every check and every class passes, and an empty report never passes. A dry run and a check-only run MUST never set `counts_for_gate`. `parity report FILE` MUST judge the file again from its parts, so an edited verdict cannot pass. A report that did not pass exits 8. The report is the JSON file `parity-report.json`, uploaded by `.github/workflows/parity.yml` as the artifact `parity-report`. Source: `internal/cli/cmd_parity.go`, `internal/parity/`; plan: parity plan sections 6 and 8.
+
+**R5.29** — `machine maintain NAME [--yes] [--command-timeout 30m] -- COMMAND [ARG...]` MUST do host maintenance without cancelling a job (handover lesson 30, HND24), in this order:
+
+1. It MUST refuse, with exit 4 for an unknown machine and exit 7 for a machine that is offline, already drained or draining (that hold is someone else's, so crsp does not lift it). Nothing changes. It MUST exit 2 without `--` and a command, and exit 5 without `--yes` and without a terminal.
+2. It MUST print what it does (R5.14): the machine, the command, the drain timeout of the machine, each running job it waits for, and that queued jobs stay queued.
+3. It MUST hold new jobs by draining the machine and wait as R5.16 says: running jobs finish, queued jobs stay queued, nothing is cancelled, and the wait has no end of its own.
+4. Only when the machine is drained, it MUST send the command to the machine's agent through the controller (`POST /api/v1/machines/{id}/command`, owner role). The agent runs the arguments as given with `exec.CommandContext`, without a shell and without interpolation, and stops the command at `--command-timeout`. The controller and the agent each refuse the command when the machine takes jobs or a job runs.
+5. It MUST always lift the hold (the same as `machine resume`, with the yes for a drain that still waits), on a context that Ctrl-C does not cancel. This holds when the drain wait is stopped, when the command fails, times out or is cut by Ctrl-C, and when the controller refuses the command. If the hold cannot be lifted, it MUST say so and print `crsp machine resume NAME`.
+6. It MUST print the command's output to stdout and the messages to stderr, and exit 0 only when the command exited with code 0 and the hold is lifted; otherwise exit 1 and say that no job was stopped. With `--json` it MUST print `{machine, ok, exit_code, output, message, released}`.
+
+A command that Ctrl-C cut off may still run on the machine until its own timeout; the message says so.
 
 ## 6. Non-functional requirements
 
@@ -302,6 +314,7 @@ Tests are planned unless marked built. Planned paths are written in plain text u
 | R5.26 | built: cmd/crsp/main_test.go TestRunVersion, TestRunVersionJSON; internal/cli/core_test.go TestVersionJSON |
 | R5.27 | built: cmd/crsp/main_test.go TestRunUsageErrors; internal/cli/core_test.go TestUsageErrors |
 | R5.28 | built: internal/parity/parity_test.go TestEachCriterionFailsItsClass, TestReportEvaluate, TestPercentile95; internal/cli/cmd_parity_test.go TestParityCheckPassesAndWritesReport, TestParitySoakDryRun, TestParityReportIsRejudged |
+| R5.29 | built: internal/cli/cmd_maintain_test.go TestMaintainDrainsRunsAndReleases, TestMaintainJSON, TestMaintainReleasesWhenTheCommandFails, TestMaintainReleasesWhenTheControllerRefusesTheCommand, TestMaintainReleasesWhenCancelledWhileDraining, TestMaintainReleasesWhenCancelledWhileRunning, TestMaintainRefusals; internal/agent/host_command_test.go TestHostCommandRunsOnADrainedMachine, TestHostCommandFailureKeepsExitCodeAndOutput, TestHostCommandTimeoutStopsTheCommand, TestHostCommandNeverMeetsAJob, TestHostCommandRefusesEmptyAndUnknown; internal/api/machines_command_test.go TestRunMachineCommandRefusals, TestRunMachineCommandNeedsADrainedMachine; internal/agentlink/agentlink_test.go TestHostCommandOnlyToAnAgentThatCan |
 | R6.1 | built: internal/cli/login_test.go TestNoSecretInOutputOrConfig (runs commands with a canary token) |
 | R6.2 | built: internal/cli/contexts/contexts_test.go TestNoTokenInFile; internal/cli/core_test.go TestFallbackFileMode |
 | R6.3 | built: internal/cli/core_test.go TestNoInsecureFlag; internal/cli/login_test.go TestLoginErrors |
