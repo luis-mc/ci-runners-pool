@@ -92,6 +92,55 @@ describe('Overview (R5.20)', () => {
     ).toBe('60% of 80%');
   });
 
+  it('lists each waiting job with the first reason in words (scheduling R5.48)', async () => {
+    const base = {
+      repository: 'octo/app',
+      run_id: 1,
+      run_attempt: 1,
+      github_job_id: 1,
+      labels: [],
+      state: 'queued' as const,
+    };
+    const api = signedIn().on(
+      'GET',
+      '/api/v1/overview',
+      overview({
+        queued_count: 3,
+        queued: [
+          { ...base, id: 1, job_name: 'unit', wait_reason: 'load_not_measured' },
+          { ...base, id: 2, job_name: 'lint', wait_reason: 'free_slot' },
+          { ...base, id: 3, job_name: 'e2e', wait_reason: 'load_over_budget' },
+        ],
+        waiting: [
+          {
+            job_id: 1,
+            repository: 'octo/app',
+            job_name: 'unit',
+            reason: 'load_not_measured',
+            words:
+              'Load not measured yet. The machine cannot read its load, so the job waits.',
+          },
+          {
+            job_id: 3,
+            repository: 'octo/app',
+            job_name: 'e2e',
+            reason: 'load_over_budget',
+            words: 'Over the load budget: memory 91% > 85%.',
+          },
+        ],
+      }),
+    );
+    renderApp(api, '/', { stream: false });
+    const table = await screen.findByRole('table', { name: 'Waiting jobs' });
+    expect(within(table).getByText(/^Load not measured yet\./)).toBeTruthy();
+    expect(
+      within(table).getByText('Over the load budget: memory 91% > 85%.'),
+    ).toBeTruthy();
+    // no server words for this job: its own reason, in words
+    expect(within(table).getByText('Waits for a free slot.')).toBeTruthy();
+    expect(within(table).getAllByRole('row')).toHaveLength(4);
+  });
+
   it('says what to do when there is no machine yet', async () => {
     const api = signedIn().on('GET', '/api/v1/overview', overview({ machines: [] }));
     renderApp(api, '/');

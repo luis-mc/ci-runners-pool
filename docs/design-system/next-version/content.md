@@ -210,6 +210,24 @@ The events, severities and channel kinds of the notifications feature, as people
 | Email, Webhook, Desktop | The kinds of channel. |
 | Channel | One way of being told: an email address, a webhook or a desktop notice. |
 
+## Why a job waits
+
+The words of the list "Why jobs wait" (scheduling R5.48). The gate's own line with its numbers goes after the colon; the reason alone gives the plain sentence.
+
+| Reason | Words |
+|---|---|
+| Section title | Why jobs wait |
+| Table caption | Waiting jobs |
+| Column | Why it waits |
+| Empty | No jobs are waiting. |
+| No machine for the OS or labels | No machine has this OS and these labels. |
+| Over the budget | Over the load budget: {numbers}. (Over the memory or CPU budget.) |
+| No free slot | No free slot: {n} ahead in the queue. |
+| Parallel limit | The repository is at its parallel limit. |
+| Machine drained | The machine is drained. |
+| Load not measured | Load not measured yet. The machine cannot read its load, so the job waits. Run the doctor to see why. |
+| Reason not known | Waiting. The reason is not known yet. |
+
 ## Component words
 
 The words of the shared components (`design_system.py components`). A project changes a word here and passes it to the component through its `labels` prop. `{min}`, `{max}`, `{n}`, `{unit}` and `{pattern}` are filled in by the component.

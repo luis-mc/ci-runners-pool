@@ -25,7 +25,8 @@ func (ovSrc) Machines(context.Context) ([]gen.Machine, error) {
 	return []gen.Machine{{Id: "m1", Name: "alpha", Online: true}}, nil
 }
 func (ovSrc) QueuedJobs(context.Context) ([]gen.Job, error) {
-	return []gen.Job{{Id: 1, JobName: "build"}}, nil
+	r, text := gen.WaitReasonLoadNotMeasured, "load not measured yet"
+	return []gen.Job{{Id: 1, JobName: "build", Repository: "o/r", WaitReason: &r, WaitText: &text}}, nil
 }
 func (ovSrc) RunningJobs(context.Context) ([]gen.Job, error) { return nil, nil }
 func (ovSrc) MinutesSavedSince(context.Context, time.Time) ([]overview.OSMinutes, error) {
@@ -56,6 +57,17 @@ func TestGetOverview(t *testing.T) {
 	}
 	if len(o.Machines) != 1 || o.QueuedCount != 1 || o.LastEventId != "1" || (*o.MinutesSavedToday)[0].Minutes != 7 {
 		t.Fatalf("overview = %+v", o)
+	}
+	// R5.48 contract: the waiting list carries the reason and its words.
+	if o.Waiting == nil || len(*o.Waiting) != 1 {
+		t.Fatalf("waiting = %+v", o.Waiting)
+	}
+	w := (*o.Waiting)[0]
+	if w.JobId != 1 || w.Reason != gen.WaitReasonLoadNotMeasured || !strings.HasPrefix(w.Words, "Load not measured yet.") {
+		t.Fatalf("waiting job = %+v", w)
+	}
+	if !strings.Contains(rec.Body.String(), `"reason":"load_not_measured"`) {
+		t.Fatalf("body: %s", rec.Body)
 	}
 }
 

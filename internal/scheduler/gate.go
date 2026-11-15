@@ -115,6 +115,9 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 			return Decision{}, err
 		} else if !tk {
 			if n, free := freeNumber(all, slots.KindLight, set.LightSlots); free > 0 {
+				if !measured {
+					return Decision{Wait: []WaitReason{WaitLoadNotMeasured}, WaitText: LoadNotMeasuredText}, nil
+				}
 				if over {
 					return Decision{Wait: []WaitReason{WaitLoadOverBudget}, WaitText: overText}, nil
 				}
@@ -248,7 +251,11 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 	if free == 0 {
 		return wait(WaitFreeSlot, fmt.Sprintf("no free slot (all %d busy)", set.JobSlots))
 	}
-	if over && measured {
+	// R5.22: a load that cannot be measured never counts as under budget.
+	if !measured {
+		return wait(WaitLoadNotMeasured, LoadNotMeasuredText)
+	}
+	if over {
 		return wait(WaitLoadOverBudget, overText)
 	}
 	s, taken, err := e.takeSlot(tx, req, slots.KindCI, n, t.QueuedAt(), now)
@@ -301,7 +308,8 @@ func (e *Engine) takeSlot(tx slots.Tx, req GateRequest, kind slots.Kind, number 
 
 // overBudget reports whether the load is over budget: memory strictly above
 // the memory budget or CPU strictly above the CPU budget, naming each figure
-// (R5.45). A figure that is not known never counts (R5.22).
+// (R5.45). A figure that is not known never counts as over; when neither is
+// known the caller holds the job (R5.22).
 func overBudget(l Load, b slots.Budget) (bool, string) {
 	var parts []string
 	if l.MemoryKnown && l.MemoryPct > float64(b.MemoryPct) {
@@ -312,6 +320,9 @@ func overBudget(l Load, b slots.Budget) (bool, string) {
 	}
 	return len(parts) > 0, strings.Join(parts, ", ")
 }
+
+// LoadNotMeasuredText is the wait text while the machine's load is unknown.
+const LoadNotMeasuredText = "load not measured yet"
 
 // Cancel drops a ticket at once (the hook went away). A heavy slot the job
 // holds without a job slot is freed too, with the outcome no-ci-slot (R5.26).

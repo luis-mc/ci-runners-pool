@@ -109,3 +109,27 @@ func TestSourceErrorIsReturned(t *testing.T) {
 		t.Fatal("want error")
 	}
 }
+
+// R5.48: each queued job gets its first reason in words, from the gate's own text.
+func TestWaitingListHasWords(t *testing.T) {
+	over, slot, none := gen.WaitReasonLoadOverBudget, gen.WaitReasonFreeSlot, "memory 91% > 85%"
+	ahead := "2 ahead in the queue"
+	svc := &Service{Source: &src{queued: []gen.Job{
+		{Id: 1, JobName: "a", WaitReason: &over, WaitText: &none},
+		{Id: 2, JobName: "b", WaitReason: &slot, WaitText: &ahead},
+		{Id: 3, JobName: "c"},
+	}}}
+	o, err := svc.Get(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"Over the load budget: memory 91% > 85%.", "No free slot: 2 ahead in the queue.", "Waiting. The reason is not known yet."}
+	if o.Waiting == nil || len(*o.Waiting) != 3 {
+		t.Fatalf("waiting = %+v", o.Waiting)
+	}
+	for i, w := range *o.Waiting {
+		if w.Words != want[i] {
+			t.Errorf("%d: %q want %q", i, w.Words, want[i])
+		}
+	}
+}

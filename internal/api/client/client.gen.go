@@ -1282,6 +1282,7 @@ func (e VariableStatus) Valid() bool {
 // Defines values for WaitReason.
 const (
 	WaitReasonFreeSlot                WaitReason = "free_slot"
+	WaitReasonLoadNotMeasured         WaitReason = "load_not_measured"
 	WaitReasonLoadOverBudget          WaitReason = "load_over_budget"
 	WaitReasonMachineDrained          WaitReason = "machine_drained"
 	WaitReasonNoRunnerWithLabels      WaitReason = "no_runner_with_labels"
@@ -1294,6 +1295,8 @@ const (
 func (e WaitReason) Valid() bool {
 	switch e {
 	case WaitReasonFreeSlot:
+		return true
+	case WaitReasonLoadNotMeasured:
 		return true
 	case WaitReasonLoadOverBudget:
 		return true
@@ -2218,6 +2221,9 @@ type Overview struct {
 	Queued      *[]Job `json:"queued,omitempty"`
 	QueuedCount int    `json:"queued_count"`
 	Running     []Job  `json:"running"`
+
+	// Waiting Why each queued or held job waits, in words, first blocking reason only, in the order of the queue (scheduling R5.48, web-console R5.20).
+	Waiting *[]WaitingJob `json:"waiting,omitempty"`
 }
 
 // Plan A planned change. Nothing changes until it is applied. Each step names what it does; steps that delete need their own yes (UX-62).
@@ -2708,6 +2714,20 @@ type VariableStatus string
 
 // WaitReason observability R5.5.
 type WaitReason string
+
+// WaitingJob One queued or held job with the first reason it waits (scheduling R5.48).
+type WaitingJob struct {
+	JobId     int64   `json:"job_id"`
+	JobName   string  `json:"job_name"`
+	MachineId *string `json:"machine_id,omitempty"`
+
+	// Reason observability R5.5.
+	Reason     WaitReason `json:"reason"`
+	Repository string     `json:"repository"`
+
+	// Words The reason in words, with its numbers (memory 91% > 85%, 2 ahead in the queue).
+	Words string `json:"words"`
+}
 
 // BackupId defines model for BackupId.
 type BackupId = string

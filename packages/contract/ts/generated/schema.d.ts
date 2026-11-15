@@ -1725,7 +1725,7 @@ export interface components {
          * @description observability R5.5.
          * @enum {string}
          */
-        WaitReason: "free_slot" | "load_over_budget" | "no_runner_with_labels" | "repository_parallel_limit" | "machine_drained" | "quiet_hours" | "unknown";
+        WaitReason: "free_slot" | "load_over_budget" | "no_runner_with_labels" | "repository_parallel_limit" | "machine_drained" | "quiet_hours" | "load_not_measured" | "unknown";
         /** @enum {string} */
         Severity: "ok" | "info" | "skip" | "warn" | "fail";
         /** @enum {string} */
@@ -2714,10 +2714,23 @@ export interface components {
                 reason: string;
             }[];
         };
+        /** @description One queued or held job with the first reason it waits (scheduling R5.48). */
+        WaitingJob: {
+            /** Format: int64 */
+            job_id: number;
+            repository: string;
+            job_name: string;
+            machine_id?: string;
+            reason: components["schemas"]["WaitReason"];
+            /** @description The reason in words, with its numbers (memory 91% > 85%, 2 ahead in the queue). */
+            words: string;
+        };
         Overview: {
             machines: components["schemas"]["Machine"][];
             queued_count: number;
             queued?: components["schemas"]["Job"][];
+            /** @description Why each queued or held job waits, in words, first blocking reason only, in the order of the queue (scheduling R5.48, web-console R5.20). */
+            waiting?: components["schemas"]["WaitingJob"][];
             running: components["schemas"]["Job"][];
             /** @description Per OS (observability R5.15). */
             minutes_saved_today?: {

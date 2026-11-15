@@ -147,7 +147,7 @@ The states named for every list follow the design system: loading (component 16,
 
 - **Purpose:** see the pool at a glance and jump to what needs you.
 - **Data:** `getOverview`, then `streamEvents`.
-- **Shows:** a card per machine (component 8, UX-10) with its state word (UX-58) and three level bars for memory, CPU and slots against its budget (UX-41, owner question Q4); the queue count; the running jobs (component 15); today's minutes saved as a lettered figure (component 31). Each item links to its screen.
+- **Shows:** a card per machine (component 8, UX-10) with its state word (UX-58) and three level bars for memory, CPU and slots against its budget (UX-41, owner question Q4); the queue count; the running jobs (component 15); the section "Why jobs wait" (component 15): every queued or held job with the first reason it waits, in words, from `waiting` of `getOverview` (scheduling R5.48, UX-34, UX-19); today's minutes saved as a lettered figure (component 31). Each item links to its screen.
 - **Actions:** none. The overview only shows and links (UX-52).
 - **States:** loading; empty (no machine yet: "No machines yet. Add a machine to start." links to Machines, content.md); could not load; live; live updates paused.
 - **Components:** 1, 8, 15, 17, 19, 27, 31.
@@ -316,7 +316,7 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 ### Screens
 
-**R5.20** (built, CRSP24) — The overview shows the machines with their load bars, the queue count, the running jobs and today's minutes saved, all live. It has no command; each item links to its screen.
+**R5.20** (built, CRSP24; why jobs wait, CRSP76) — The overview shows the machines with their load bars, the queue count, the running jobs and today's minutes saved, all live. It has no command; each item links to its screen. The section "Why jobs wait" lists every queued or held job with its first blocking reason in words (scheduling R5.48): no machine for the OS or labels, over the memory or CPU budget with the numbers, no free slot with how many are ahead, load not measured yet. It reads `waiting` of the overview, one source for the console and the gate; when a live event changes a job, the row falls back to the job's own wait reason until the next snapshot.
 
 **R5.21** (built, CRSP24, extra packages CRSP70) — The repositories screen lists the repositories from GitHub with pool state, labels, limits and variable status. It turns the pool on and off, and edits a repository's policy. A repository's page has a form of its own for the extra packages of its pool image (runners R5.51): a text area, one name per line, saved with Save packages through `setRepositoryExtraPackages`; a bad name shows its line number above the box and in the list at the top before anything is sent. A repository where the user lacks GitHub admin rights shows the turn-on action disabled with that reason.
 
@@ -495,7 +495,7 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.17 | Vitest, Playwright e2e | `apps/web/src/screens/wizards.test.tsx`, `e2e/tests/web-console/flows.spec.ts` |
 | R5.18 | Vitest, Playwright e2e | `apps/web/src/screens/wizards.test.tsx`, `e2e/tests/web-console/flows.spec.ts` |
 | R5.19 | design kit guard | `scripts/design/wizard-behaviour.ts` driven by `apps/web/src/screens/wizards.test.tsx`, one driver per wizard; Stop on an applying plan: the `Stop on a repository plan` and `Stop on a runner plan` tests in the same file, `e2e/tests/web-console/exports-stop.spec.ts` |
-| R5.20 | Vitest | `apps/web/src/screens/overview/Overview.test.tsx` |
+| R5.20 | Vitest, Go test | `apps/web/src/screens/overview/Overview.test.tsx` (the waiting list in words); `internal/api/handlers_live_test.go` TestGetOverview (contract: `waiting`); `internal/overview/overview_test.go` TestWaitingListHasWords |
 | R5.21 | Vitest | `apps/web/src/screens/repositories/Repositories.test.tsx` (extra packages: save, refuse with the line, controller refusal) |
 | R5.22 | Vitest | `apps/web/src/screens/machines/Machines.test.tsx` (pool size: review and save, over the budget, lower size needs its yes, changed meanwhile, viewer), `apps/web/src/screens/wizards.test.tsx` (pool-size, the ten states) |
 | R5.23 | Vitest | `apps/web/src/screens/runners/Runners.test.tsx` |

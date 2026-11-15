@@ -115,7 +115,7 @@ States:
 
 ### 5.2 Machines and backends
 
-**R5.9** — Machine checks: agent online, load figures fresh, load within budget, disk space, clock, slot queue health, and the machine config readable by runner accounts. See the catalogue (7.2). Built (CRSP23): `machine.online`, `machine.load.fresh`, `machine.load.budget`, `machine.disk`; built (CRSP21): `machine.guard.disk`. NOT YET IMPLEMENTED: clock, slot queue health, machine config (milestones 1 and 3).
+**R5.9** — Machine checks: agent online, load figures fresh, load within budget, disk space, clock, slot queue health, and the machine config readable by runner accounts. See the catalogue (7.2). Built (CRSP23): `machine.online`, `machine.load.fresh`, `machine.load.budget`, `machine.disk`; built (CRSP76): `machine.load.measured` (a machine that cannot measure its load is a `fail`, because the gate holds its jobs, scheduling R5.22); built (CRSP21): `machine.guard.disk`. NOT YET IMPLEMENTED: clock, slot queue health, machine config (milestones 1 and 3).
 
 **R5.10** — Backend checks, for each backend a machine allows: it is still detected and works, and it keeps the isolation rules of decision 0003 (no Docker socket in jobs, no privileged container, KVM as a device, caps set and applied, image layers present, macOS VM limit). See 7.2. NOT YET IMPLEMENTED (milestones 2, 4, 5, 6).
 
@@ -245,6 +245,7 @@ Machines:
 |---|---|---|---|---|---|
 | `machine.online` | The agent's last message is older than the offline timeout (default 90 s) | fail | Start the agent service on that machine; the command per OS | no | 1 |
 | `machine.load.fresh` | The load figures are older than 60 s | fail | Restart the agent; it measures every 15 s | no | 1 |
+| `machine.load.measured` | Neither memory nor CPU can be read on an online machine, so the gate holds every job there with "load not measured" (scheduling R5.22, decision D53) | fail | Restart the agent and check it may read memory and CPU figures; jobs go on as soon as one is read | no | 1 |
 | `machine.load.budget` | Memory or CPU median over the budget for more than 10 minutes | warn | Lower slots or raise the budget on the Machines screen | no | 1 |
 | `machine.disk` | Free space on the work volume under 15% or 10 GB (warn), under 5% or 2 GB (fail); total size of runner work folders | warn, fail | Clean the work folders of idle runners: `crsp runners clean-work --machine NAME` | no | 1 |
 | `machine.guard.disk` | Free space on the runner volume under 10%, where the job-started gate holds new jobs (they wait, they are not failed) until 12% is free | fail | Free space on the volume, or lower the cache quotas: `crsp runners clean-work --machine NAME` | no | 1 |
@@ -329,6 +330,7 @@ Each port brings its tests (decision 0005). Source paths are in dev-standards; `
 | Check | Ported from | Source tests | Planned Go test |
 |---|---|---|---|
 | `machine.load.fresh` | DS `machine_items` (`machine.hostload`) | `test_machine.py` HostLoad, DoctorMachine | `internal/doctor/checks/machine/load_test.go` TestLoadFresh |
+| `machine.load.measured` | new (scheduling R5.22, decision D53) | none | `internal/doctor/checks/checks_test.go` TestLoadMeasured |
 | `machine.guard.disk` | new (caches R5.38) | none | `internal/doctor/checks/checks_test.go` TestDiskGuard |
 | `machine.disk` | DS `machine_items` (`machine.disk`), `clean_work` | `test_machine.py` `test_disk_warning_and_clean_work` | `internal/doctor/checks/machine/disk_test.go` TestDisk |
 | `machine.config` | DS `machine_items` (`machine.config`) | `test_machine.py` `test_option_1_without_machine_json_fails` | `internal/doctor/checks/machine/config_test.go` TestConfigReadable |
@@ -451,11 +453,11 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.29 | internal/doctor/checks/checks_test.go TestRunnerHookRun; internal/hooks/visibility_test.go TestProbeAnswersWithoutTheGate |
 | R5.30 | internal/doctor/checks/checks_test.go TestRunnerListener, TestRunnerHookRun | new |
 | R5.31 | Built (CRSP53): internal/doctor/checks/container_test.go TestEngineCheck, TestImageCurrent, TestToolProbeFailVsCannotProbe, TestLayerScriptQuotesAndChecksFolders, TestToolCacheWritable, TestRecordsAgree, TestContainerChecksRespectMachineScope (fake engine; port of test_dl149_pool_layers.py, test_doctor.py) |
-| R5.32 | internal/doctor/checks/kvm_test.go TestKvmHostFailOnlyWhenOn, TestKvmContainerAndLabel, TestWslconfigNested, TestKvmModuleLoadedInTheWSLVM, TestRegisterKVMIsSeparate (port of test_dl343_kvm_autoload.py); cmd/crsp/remote_wiring_test.go TestReportSourcesReadTheAgentReport, TestKVMReportedChecksRunOnTheReport; internal/doctor/wire/wire_test.go TestNewDoctorWithReportedKVMChecksRegistersTwentyEight |
+| R5.32 | internal/doctor/checks/kvm_test.go TestKvmHostFailOnlyWhenOn, TestKvmContainerAndLabel, TestWslconfigNested, TestKvmModuleLoadedInTheWSLVM, TestRegisterKVMIsSeparate (port of test_dl343_kvm_autoload.py); cmd/crsp/remote_wiring_test.go TestReportSourcesReadTheAgentReport, TestKVMReportedChecksRunOnTheReport; internal/doctor/wire/wire_test.go TestNewDoctorWithReportedKVMChecksRegistersTwentyNine |
 | R5.33 | internal/doctor/checks/coverage_test.go TestCapabilitiesFromWorkflowText, TestUnknownJobIsInfo (CRSP47) |
 | R5.34 | internal/doctor/checks/cache_test.go TestCacheOverQuotaWarns, TestDiskUnderTenPercentWarns, TestCacheChecksSkipWithoutCacheData |
 | R5.35 | internal/doctor/checks/checks_test.go TestRunnerToolCache | new |
-| R5.36 | internal/doctor/checks/engine_test.go TestMachineEngineSaysWhichEngineAndWhetherItAnswers, TestMachineEngineSkipsWithoutAReport; internal/doctor/checks/checks_test.go TestEveryRegisteredCheckIsM1AndHasAnID and internal/doctor/wire/wire_test.go TestNewDoctorRegistersCoreChecksAndRuns (26 checks) ; cmd/crsp/remote_wiring_test.go TestReportSourcesReadTheAgentReport | new |
+| R5.36 | internal/doctor/checks/engine_test.go TestMachineEngineSaysWhichEngineAndWhetherItAnswers, TestMachineEngineSkipsWithoutAReport; internal/doctor/checks/checks_test.go TestEveryRegisteredCheckIsM1AndHasAnID and internal/doctor/wire/wire_test.go TestNewDoctorRegistersCoreChecksAndRuns (27 checks) ; cmd/crsp/remote_wiring_test.go TestReportSourcesReadTheAgentReport | new |
 | R6.1 | internal/doctor/engine_test.go TestSlowCheckIsSkipNotOk (the timeout); benchmark planned |
 | R6.2 | internal/doctor/checks/checks_test.go TestCallCountBudget |
 | R6.3 | internal/doctor/engine_test.go TestSecretsAreRedactedInFindings |

@@ -19,3 +19,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C14: pool size words added: the Pool size wizard, its steps, fields and messages (content.md; machines R5.58, CRSP70)
 - C15: extra packages words added: the field, its help, its messages and the line-numbered mistake (content.md; runners R5.51, CRSP70)
 - C16: Connect GitHub error words and the App name help added (content.md; github-integration R5.3, OPS10)
+- C17: "Why a job waits" words added: section, caption, column, empty and one sentence per wait reason (content.md; scheduling R5.48 and R5.22, CRSP76)
