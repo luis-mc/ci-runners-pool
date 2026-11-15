@@ -32,13 +32,18 @@ func With(b ...backend.Backend) *Registry { return &Registry{list: b} }
 
 // RealDeps wires the real command runner, file system and downloader. The log
 // function receives setup log lines; redact removes known secrets first.
-func RealDeps(logLine func(step, msg string), redact func(string) string) sys.Deps {
+func RealDeps(logLine func(step, msg string), redact func(string) string, secret ...func(string)) sys.Deps {
+	var learn func(string)
+	if len(secret) > 0 {
+		learn = secret[0]
+	}
 	return sys.Deps{
 		Cmd:     sys.ExecCommands{},
 		FS:      sys.OSFS{},
 		Fetch:   sys.HTTPFetcher{},
 		Verify:  runners.VerifyFile,
 		Redact:  redact,
+		Secret:  learn,
 		LogLine: logLine,
 	}
 }

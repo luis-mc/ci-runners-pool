@@ -133,7 +133,9 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 
 **R5.10** (M1) — **Clean up always.** After `Stop`, the agent calls `CleanUp`, also after an error or a timeout. `CleanUp` is safe to call twice. An ephemeral runner leaves no container, VM, overlay disk, network or temp folder behind. A persistent runner's `CleanUp` (on removal) removes the service, the account and the folder.
 
-**R5.11** (M1) — **Logs.** `StreamLogs` sends the setup log and the runner's own log lines to the controller as they come. Known secrets (tokens, passwords, JIT configs) are replaced by `***` before they leave the agent.
+**R5.11** (M1, redactor and private log Built CRSP47; wiring of `StreamLogs` to the controller stays with the agent link) — **Logs.** `StreamLogs` sends the setup log and the runner's own log lines to the controller as they come. Known secrets (tokens, passwords, JIT configs) are replaced by `***` before they leave the agent.
+
+*Built by CRSP47* (`internal/redact`): one redactor holds every one-time value a backend is given (registration, remove and JIT tokens, with their base64 forms) and also matches the shapes `ghp_`, `github_pat_`, private keys, JWTs, `Authorization:` and `Cookie:` lines, `--token` flags and `ACTIONS_RUNNER_INPUT_*` values. The three persistent backends teach it each value in `Start` before any log line is written, and the controller passes it to every backend (`sys.Deps.Redact`, `sys.Deps.Secret`). A *private log* (`redact.PrivateLog`) is the runner's setup log file: written after redaction, mode `0600` in a `0700` folder, so only the account that owns the runner folder reads it.
 
 **R5.12** (M1) — **Usage.** `ReportUsage` gives, per runner and per job: CPU time, peak and median memory, disk used, and wall time. The agent sends it at least every 15 seconds while a job runs, and once at the end.
 
@@ -248,7 +250,7 @@ Each layer has a self-check that runs its main tools. The doctor probes the same
 
 **R5.55** (M2, v0.6.0, NOT YET IMPLEMENTED) — **A VM counts against the runner's memory.** A job that boots a guest VM (caches R5.46) uses memory of the runner's cap. `crsp vm` prints a warning when the cap has less than the guest memory plus 1 GiB free, and the machine load budget (scheduling R5.40) already counts the guest because it is a process on the machine. A runner with the `kvm` label is sized for its guests (machines R5.54).
 
-**R5.56** (M1, v0.2.0, NOT YET IMPLEMENTED) — **A tool home per persistent runner.** The `.env` of each persistent runner sets `RUSTUP_HOME` and `CARGO_HOME` to folders under its own runner folder (`<runner folder>/cache/tools/rustup` and `.../cargo`), so two runner accounts never share a toolchain and a toolchain follows the runner when it is removed. They count in the tool cache quota (caches R5.36). On Windows the account needs no other setting for them. Port of DS R5.31 (`.env`).
+**R5.56** (M1, v0.2.0, Built CRSP47) — **A tool home per persistent runner.** The `.env` of each persistent runner sets `RUSTUP_HOME` and `CARGO_HOME` to folders under its own runner folder (`<runner folder>/cache/tools/rustup` and `.../cargo`), so two runner accounts never share a toolchain and a toolchain follows the runner when it is removed. They count in the tool cache quota (caches R5.36). On Windows the account needs no other setting for them. Port of DS R5.31 (`.env`).
 
 **R5.57** (M1) — **A light runner per repository and OS.** (Lesson 22 of the old pool; scheduling R5.65.) For each repository with the pool on and the policy setting `light_runner` on, crsp keeps one persistent runner for each OS the repository serves, in the repository's own scope. Its name is `crsp-light-<repository>-<os>` (the job gate reads the prefix `crsp-light-` to give its jobs a light slot only), and it carries the generic labels `self-hosted`, the OS, the architecture and the extra generic label `crsp-light`. It is placed on an online, active machine of that OS with light slots above 0 that has an allowed backend; of several, the one with the fewest light runners for its light slots. Only the controller's own machine can host one until the runner messages of the agent link are built. When no machine fits, no runner is made, the reason is audited and the doctor shows it (`repo.light`); the next reconcile tries again. The runner is added with the same registration, token and account rules as any runner (R5.1, R6.2). Removing it (setting off, pool off) is an ordinary removal: it waits for the runner's own job, then deregisters it with a remove token (R5.4). Built (CRSP44).
 **R5.58** (M1, Built OPS3) — **An account switch resets the runner folder.** When the service account of a Windows runner changes (for example from NETWORK SERVICE to its own account), the files in its `_work` tool cache keep the old owner and explicit entries, and every job that runs a tool from it fails with "Access is denied" (handover lesson 23). After the account exists and before the folder is locked (R5.16), the backend runs `takeown /F <folder> /R /D Y`, `icacls <folder> /setowner <account> /T /C` and `icacls <folder> /reset /T /C`, as fixed programs through the command runner, with the call's context. Each exit code is checked and each step is logged; a step that fails stops the change with the step and the reason, and the folder is not locked and the service is not registered. Linux already gives the folder to the account with `chown -R` before registration (R5.21); macOS needs no step. The doctor reports the same fault (doctor R5.35). Built (OPS3).
@@ -356,7 +358,7 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.8 | internal/backend/registry/registry_test.go TestEveryBackendImplementsInterface |
 | R5.9 | planned: internal/backend/detect_test.go TestDetectReportsReasons; TestNotAllowedNeverUsed |
 | R5.10 | internal/backend/windows/windows_test.go TestCleanUpTwice; internal/backend/linux/linux_test.go TestCleanUpTwice; internal/backend/macos/macos_test.go TestCleanUpTwice; internal/runners/localagent_test.go TestLocalAgentRemoveOrder |
-| R5.11 | planned: internal/backend/logs_test.go TestSecretsRedacted |
+| R5.11 | internal/redact/redact_test.go TestSecretsRedacted, TestPrivateLogOwnerOnlyAndRedacted; internal/backend/linux/linux_test.go TestSecretsRedacted (CRSP47) |
 | R5.12 | planned: internal/backend/usage_test.go TestUsageInterval |
 | R5.13 | internal/runners/runners_test.go TestAccountName (port of the slug tests of test_dl310_windows_runner.py) |
 | R5.14 | internal/backend/windows/windows_test.go TestAccountRights, TestSymlinkRightOnlyWhenAsked, TestSymlinkChangeUpdatesRightOnly |
@@ -401,7 +403,7 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.53 | planned: internal/backend/container/env_test.go TestJobEnvironmentContract (v0.3.0) |
 | R5.54 | planned: internal/runners/postgres_test.go TestCreatedbOptInAndDeclaredRoles, TestRerunKeepsPassword, TestDbEnvMasksSecrets (v0.4.0; port of the roles part of test_runner_pool.py) |
 | R5.55 | planned: internal/vmcheck/memory_test.go TestWarnsWhenCapIsShort (v0.6.0) |
-| R5.56 | planned: internal/backend/windows/windows_test.go and internal/backend/linux/linux_test.go TestToolHomesPerRunner (v0.2.0) |
+| R5.56 | internal/backend/windows/windows_test.go TestToolHomesPerRunner; internal/backend/linux/linux_test.go TestToolHomesPerRunner (CRSP47) |
 | R5.57 | `internal/runners/light_test.go` TestLightNamePrefixMatchesGate, TestEnsureLightPlacesOneRunnerPerOS, TestEnsureLightSaysWhyNot, TestRemoveLightDrainsEachRunner |
 | R5.58 | internal/backend/windows/windows_test.go TestAccountSwitchResetsFolderACL, TestACLResetFailureStopsBeforeLock |
 | R6.1 | no backend in M1 starts a container; nothing to test until M2 |
@@ -428,6 +430,9 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 
 Open questions for the owner (proposed answers are in the requirements until decided):
 
+0. R5.11 (CRSP47): the spec does not define "private logs" beyond redaction. The conservative reading is built: setup logs are owner-only files (`0600`), redacted first. Alternatives: (a) also keep logs in memory only and send them to the controller, never to disk; (b) let the console show a runner's log to admins only, even after redaction (observability R6.4 already limits logs to admins). Which one?
+0b. R5.11: the mask is `***` here and `[redacted:<kind>]` in observability R6.5. `***` is built, as this spec says. Confirm one form for both.
+0c. R5.56 (CRSP47): the tool homes are set for every persistent runner (Windows, Linux, macOS), not Windows only, because the spec says "each persistent runner". They sit inside `cache/tools`, so the tool cache quota counts them. Alternative: a separate folder with its own quota.
 1. R5.14: the symlink right only when asked (brief), while dev-standards gives it to every account (DL319). Confirm "only when asked".
 2. R5.13, R5.21, R5.23: account prefix `crsp-` and group `crsp-runners` are built (`internal/runners/account.go`). Confirm names.
 3. R5.33: keep the newest 3 images per OS. Confirm the default.

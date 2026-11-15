@@ -60,11 +60,13 @@ type Fetcher interface {
 
 // Deps is what every persistent backend is built with.
 type Deps struct {
-	Cmd     Commands
-	FS      FS
-	Fetch   Fetcher
-	Verify  func(path, sha256 string) error
-	Redact  func(string) string
+	Cmd    Commands
+	FS     FS
+	Fetch  Fetcher
+	Verify func(path, sha256 string) error
+	Redact func(string) string
+	// Secret teaches Redact a one-time value (token, JIT config) before it is used (runners R5.11).
+	Secret  func(string)
 	LogLine func(step, msg string)
 	// Sleep replaces the real wait while a listener ends (tests); nil is real.
 	Sleep func(ctx context.Context, d time.Duration)
