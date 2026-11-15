@@ -437,24 +437,26 @@ type SetupCode struct {
 }
 
 type Slot struct {
-	MachineID     string
-	Kind          string
-	Number        int64
-	Claim         string
-	Repository    string
-	RepositoryID  sql.NullInt64
-	RunID         int64
-	RunAttempt    int64
-	Job           string
-	GithubJobID   sql.NullInt64
-	Shard         string
-	RunnerName    string
-	HolderMachine string
-	HolderPid     int64
-	GatePid       int64
-	QueuedAt      string
-	TakenAt       string
-	ExpiresAt     string
+	MachineID      string
+	Kind           string
+	Number         int64
+	Claim          string
+	Repository     string
+	RepositoryID   sql.NullInt64
+	RunID          int64
+	RunAttempt     int64
+	Job            string
+	GithubJobID    sql.NullInt64
+	Shard          string
+	RunnerName     string
+	HolderMachine  string
+	HolderPid      int64
+	GatePid        int64
+	QueuedAt       string
+	TakenAt        string
+	ExpiresAt      string
+	HolderID       string
+	LeaseExpiresAt string
 }
 
 type SlotLog struct {
