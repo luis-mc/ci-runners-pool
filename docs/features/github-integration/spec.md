@@ -12,6 +12,7 @@ code:
   - internal/auth/**
   - internal/secrets/**
   - internal/repos/**
+  - internal/trial/**
   - internal/cli/auth/**
   - apps/web/src/features/setup/**
   - apps/web/src/features/auth/**
@@ -261,6 +262,8 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R5.46** (M1, v0.3.0, Built CRSP74) — **The doctor and the Overview say it.** The doctor names the repositories whose jobs wait because no machine is up and whose fallback is off (info, never fail: waiting costs nothing), and warns while a repository runs on hosted runners (doctor R5.39, R5.40). `repo.vars` and `repo.vars.runner` accept the hosted label while the fallback holds. The Overview shows one line while any repository is on fallback (web-console R5.35).
 
+**R5.47** (M1, Built CRSP88) — **Trial modes before a repository is switched.** The owner can run a private repository in a trial mode, one per repository, stored in the settings table: `observe` (crsp only records which jobs it would take and how long they wait; no variable or workflow is touched), `shadow` (a copy of the selected jobs runs on crsp through a `workflow_dispatch` of the shadow workflow, default `crsp-shadow.yml`; the result is recorded; the real job stays on hosted), `canary` (a percentage of the jobs, or named jobs, read the crsp labels from one `RUNS_ON_CANARY_<JOB>` variable each; the other jobs stay hosted) and `off`. The canary choice depends on the job name only, so it is the same on every run and a job chosen at 10% stays chosen at 50%. The variables are written and deleted only through the owner code in `internal/repos` (audit row, store record), never the controller's own `RUNS_ON_<OS>` ones. On entering a canary the RUNS_ON family variables are saved; `off` puts back exactly those. Public repositories are refused for every mode but `off`. A report per repository compares hosted and crsp runs, results, waits and run times per job. `crsp trial OWNER/NAME [observe|shadow|canary|off]` sets and shows it; `GET /api/v1/repositories/{id}/trial` is the read-only report and `PUT` of the same path sets the mode (the CLI needs it). The hook `trial.Manager.OnJob` takes a finished job; it is not yet called from the webhook (RES14 owns that code). The hosted fallback (R5.42 to R5.46) and the public-repository stop (R5.41) are unchanged.
+
 ## 6. Non-functional requirements
 
 **R6.1** (M1, NOT YET IMPLEMENTED) — **Secrets only in the OS secret store.** The App private key, client secret, webhook secret, CLI tokens and any GitHub user refresh token live only in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service, or a file with mode 0600 when no service exists. They never go to the database, config files, environment files, logs, crash files, API responses or the audit log.
@@ -412,6 +415,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.44 | internal/repos/fallback_test.go (the routing checks in the tests above); apps/web/src/screens/repositories/Repositories.test.tsx "shows where the jobs go now and why" (CRSP74) |
 | R5.45 | internal/repos/fallback_test.go TestFallbackCapStopsFallingBack (CRSP74); internal/repos/fallback_edges_test.go TestFallbackEdges (cap reached mid-month, month rollover) (RES13) |
 | R5.46 | internal/doctor/checks/fallback_test.go; apps/web/src/shell/Shell.test.tsx "says in one line on the Overview" (CRSP74) |
+| R5.47 | internal/trial/trial_test.go (each mode, canary stable per job name, public refused); internal/repos/trialvars_test.go TestTrialCanaryThroughOwnerCode (off restores the exact variables); internal/api/handlers_trial_test.go; internal/cli/cmd_trial_test.go (CRSP88) |
 | R6.1 | planned: internal/secrets/store_test.go; internal/store/no_secrets_test.go (schema has no secret column) |
 | R6.2 | internal/github/client_test.go |
 | R6.3 | planned: internal/logging/redact_test.go |
