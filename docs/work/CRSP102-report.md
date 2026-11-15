@@ -11,7 +11,8 @@ Branch: CRSP102-recovery-screen (from main 83317c3).
 
 ## Status
 - [x] branch, matching golangci-lint 2.15.0 (go1.27.4) on PATH, hooks chmod (unstaged)
-- [ ] code
-- [ ] tests
-- [ ] docs
+- [x] code: Recovery.tsx, State word in machineStatus, section on machine detail
+- [x] tests: Recovery.test.tsx (7); mock and e2e Mock await a handler reply; flows 'Agent recovery', design-layout and a11y (both themes, list and detail) pass with a temp config on /opt/pw-browsers/chromium (deleted); scripts/design 103 pass
+- [x] checks: prettier, eslint (web, root), web and root typecheck green; web vitest 248 pass, 2 fail on main (AuditLog, ConfigExport export tests in jsdom), left as told
+- [x] docs: R5.33 built, operations R5.44 note, content.md words, CHANGES C23, change notes. docs_check.py and docs_fold.py are not in this sandbox: notes written by hand in the existing format
 - [ ] PR

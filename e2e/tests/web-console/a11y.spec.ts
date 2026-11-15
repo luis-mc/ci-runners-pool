@@ -3,7 +3,7 @@
 // without editing this file. No known-issues list: a violation is fixed.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { failure, signedIn } from './fixtures';
+import { failure, needingRecovery, signedIn } from './fixtures';
 import { jobsAndDoctor } from './jobs-doctor-fixtures';
 import { consoleRoutes, NOT_FOUND_URL } from './routes';
 
@@ -12,8 +12,22 @@ const screens = [
     name: r.pattern,
     url: r.url,
     signedOut: r.signedOut,
+    recovery: false,
   })),
-  { name: 'not found', url: NOT_FOUND_URL, signedOut: false },
+  { name: 'not found', url: NOT_FOUND_URL, signedOut: false, recovery: false },
+  // The state of an agent that needs recovery (web-console R5.33): the page and the list.
+  {
+    name: 'machine detail needing recovery',
+    url: '/machines/m1',
+    signedOut: false,
+    recovery: true,
+  },
+  {
+    name: 'machines needing recovery',
+    url: '/machines',
+    signedOut: false,
+    recovery: true,
+  },
 ];
 
 for (const theme of ['dark', 'light'] as const) {
@@ -21,6 +35,10 @@ for (const theme of ['dark', 'light'] as const) {
     test(`a11y ${theme}: ${screen.name}`, async ({ page }) => {
       const mock = jobsAndDoctor(signedIn());
       mock.on('GET', '/api/v1/me/preferences', { theme });
+      if (screen.recovery)
+        mock
+          .on('GET', '/api/v1/machines/:id', needingRecovery())
+          .on('GET', '/api/v1/machines', { items: [needingRecovery()] });
       if (screen.signedOut)
         mock.on('GET', '/api/v1/me', failure(401, 'unauthenticated', 'Sign in.'));
       await mock.install(page);

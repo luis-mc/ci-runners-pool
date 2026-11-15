@@ -30,6 +30,8 @@ export function machineStatus(m: Machine): {
   kind: 'ok' | 'waiting' | 'failed' | 'off';
   word: string;
 } {
+  if (m.recovery?.state === 'needs_recovery')
+    return { kind: 'failed', word: 'needs recovery' };
   if (!m.online) return { kind: 'failed', word: 'offline' };
   if (m.state === 'draining') return { kind: 'waiting', word: 'draining' };
   if (m.state === 'drained') return { kind: 'off', word: 'drained' };

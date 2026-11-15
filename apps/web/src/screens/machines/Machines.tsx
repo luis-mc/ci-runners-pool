@@ -36,6 +36,7 @@ import { Ask, Load } from '../common';
 import { machineStatus } from '../overview/Overview';
 import { MachinePolicySection, PolicyStatus } from './MachinePolicy';
 import { PoolSizeWizard } from './PoolSize';
+import { RecoverySection } from './Recovery';
 
 type Machine = Schemas['Machine'];
 
@@ -370,6 +371,7 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
           ))}
         </Stack>
       </Section>
+      <RecoverySection m={m} onChanged={onChanged} />
       <MachinePolicySection m={m} onChanged={onChanged} />
       <Section title="Budget and slots">
         <form
