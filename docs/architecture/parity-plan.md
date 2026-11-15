@@ -101,7 +101,7 @@ Checked on 15 Nov 2026 (CRSP71). Only real gaps are listed; each names the rows.
 4. **Runner update (row 19).** The agent message that swaps the runner files is not built.
 5. **Machine sizing (row 9).** The cpuset waits for the container backend. The pool size form is built (CRSP70).
 6. **`crsp vm` (row 39).** `prepare`, `run` over ssh and `selinux` are built (CRSP65). `prune`, the base disk, the shared VM cache and the memory warning are built (CRSP71). Not yet: `doctor`, packages in the base disk, snapshots and `--resume` (caches R5.46, open question 19), and the owner and group of a machine-wide cache folder (open question 20).
-7. **Pins and tools (rows 23, 25, 27).** LLVM is amd64 only, Wine and dotnet are pinned by line and not by version (runners open questions 28, 31, 38), there is no AppImage tool (open question 39), and the Windows symlink right is not built.
+7. **Pins and tools (rows 23, 25, 27).** Wine and dotnet are pinned by line and not by version (runners open questions 31, 38) and there is no AppImage tool (open question 39). LLVM has an arm64 pin and the Windows symlink right is built (HND19, HND20; open question 28 closed).
 8. **Coverage and the parity gate (rows 45, 47).** The coverage table does not look at online runners and is not extended each release; `parity.yml`, the soak and the move runbook (v0.7.0) do not exist.
 
 ## 4. Releases on this PC

@@ -195,6 +195,8 @@ States:
 
 **R5.41** (M1, Built HND23) — **A refused session right after a restart is not a finding.** (Runners R5.67, handover lesson 29.) The listener check (`runner.listener`, R5.30) reads two more facts of a runner: `SessionRefused` (the listener's output says a session for the runner already exists) and `RestartedAt` (when its pool, VM or service started). Inside the wait window after `RestartedAt` (`SessionWait`, the pool setting `session_wait_minutes`, default 3 minutes) a refused session is `ok`, with the title "waits for GitHub to drop the old session" and the end time in the detail; the console shows no problem. Past the window it is `warn`, with a fix: look for a second listener or another machine with the same runner name, else remove the runner in GitHub and add it again. More than one listener stays `fail` inside the window too.
 
+**R5.42** (M1, Built HND20 in part: the check and the `SymlinkProbe` data; the agent filling `Symlink` and `SymlinkWanted` is NOT YET IMPLEMENTED, as for R5.14 and R5.35; source: runners R5.14, R5.68) — **Symbolic link right.** The check `runner.symlink` looks at each persistent Windows runner. When the machine or label setting asks for the right, it is `ok` when the runner's account holds `SeCreateSymbolicLinkPrivilege`, or when Developer Mode is on (the finding says which), and `fail` when neither is true: jobs that make symbolic links fail with "A required privilege is not held by the client", and the fix is to add the runner again from the Runners screen, which gives the right to that account only. When the setting does not ask but the account holds the right, it is `warn` (a rerun takes it away). An agent that did not look gives `skip`, as does a read that failed. The check reads and never grants a right or turns Developer Mode on. Linux and macOS runners have no finding.
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -296,6 +298,7 @@ Runners:
 | `runner.hooks` | A job hook missing, ending in `.cmd`, pointing into a user profile, or blocked by the execution policy | fail | Set the hooks again from the Runners screen | yes | 1 |
 | `runner.listener` | A runner with more than one `Runner.Listener`, a listener beside a stopped service (warn: a service with no listener) | fail, warn | Stop and start the runner from the Runners screen when it is idle; crsp waits for the listener itself to end | no | 1 |
 | `runner.toolcache` | The runner account cannot read a file in its tool cache, or the file has another owner or does not inherit access | fail | Run `takeown /F <folder> /R /D Y` and `icacls <folder> /reset /T /C` from an administrator shell | no | 1 |
+| `runner.symlink` | A Windows runner whose setting asks for the symbolic link right can link neither with the right nor through Developer Mode (warn: it holds the right without being asked) | fail, warn | Add the runner again from the Runners screen (it gives the right to that account only) | no | 1 |
 | `runner.hookrun` | The real job-started hook, run as the service account in probe mode, cannot start, exits non-zero, prints a crsp warning, or does not reach crsp | fail | Install crsp for all users again; set the hooks again | no | 1 |
 | `runner.machine` | The runner reads another machine config or hook folder than the pool | warn | Set the hooks again | yes | 1 |
 | `runner.env` | Runner env lacks the tool cache settings | warn | Set the runner env again | yes | 2 |
@@ -476,6 +479,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.39 | internal/doctor/checks/fallback_test.go TestRepoWaitingIsInfoOnlyWithFallbackOff (CRSP74) |
 | R5.40 | internal/doctor/checks/fallback_test.go TestRepoFallbackWarnsWhileOn (CRSP74) |
 | R5.41 | internal/doctor/checks/checks_test.go TestRunnerListenerStaleSession |
+| R5.42 | internal/doctor/checks/checks_test.go TestRunnerSymlink |
 | R6.1 | internal/doctor/engine_test.go TestSlowCheckIsSkipNotOk (the timeout); benchmark planned |
 | R6.2 | internal/doctor/checks/checks_test.go TestCallCountBudget |
 | R6.3 | internal/doctor/engine_test.go TestSecretsAreRedactedInFindings |
