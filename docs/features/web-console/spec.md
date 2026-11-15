@@ -128,6 +128,7 @@ The states named for every list follow the design system: loading (component 16,
 - **Purpose:** take a fresh controller to a working pool.
 - **Without a setup link:** a page that says how to get one: the tray's Open, or `crsp open` on the controller's machine. No other action.
 - **With a setup link:** the first-run checklist. It shows three wizards in order. A later one is greyed until the one before it is done (UX-5). Each is a wizard (component 4) whose behaviour comes from the shared wizard (UX-54). Each ends with Review, then its work, then Done (UX-30). The step and state words are those of content.md.
+- **Back from GitHub with an error:** the Connect GitHub wizard reads `?error=` and `?app_url=` once, shows the message for the code (content.md, Connect GitHub words) as its failed state, and clears both from the address. For an App GitHub made but crsp could not save, the message says so, an external button opens the App on GitHub (only an https://github.com address), and the person deletes it there (App settings, Advanced, Delete GitHub App) and starts again. The App name field says that GitHub App names are unique across GitHub.
 
 | Wizard | Steps | Work step | Done shows |
 |---|---|---|---|

@@ -3,11 +3,14 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 )
 
 func TestManifestPermissionsExact(t *testing.T) { // R5.23
@@ -199,5 +202,80 @@ func TestSecretStoreDownStopsSetup(t *testing.T) { // section 8, R6.1
 	}
 	if _, err := e.store.GetApp(ctx); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("no App record may exist without its secrets: %v", err)
+	}
+}
+
+// refuseEmpty is a secret store that refuses an empty value the way the file
+// store does on Windows, where DPAPI will not protect nothing.
+type refuseEmpty struct{ *secrets.Memory }
+
+func (r refuseEmpty) Put(ctx context.Context, k secrets.Key, v []byte) error {
+	if len(v) == 0 {
+		return fmt.Errorf("%w: empty secret", secrets.ErrUnavailable)
+	}
+	return r.Memory.Put(ctx, k, v)
+}
+
+func TestAppWithoutHookCompletes(t *testing.T) { // R5.3, R5.5
+	e := newEnv(t)
+	ctx := context.Background()
+	mem := secrets.NewMemory()
+	e.svc.cfg.Secrets = refuseEmpty{mem}
+	e.fake.NoWebhookSecret = true
+	e.fake.IssueManifestCode("nohook")
+	form, _ := e.svc.StartManifest(ctx, ManifestOptions{AppName: "crsp", ConsoleURLs: []string{devConsole}})
+	rec, err := e.svc.CompleteManifest(ctx, "nohook", form.State)
+	if err != nil {
+		t.Fatalf("an App with no hook must complete: %v", err)
+	}
+	for _, name := range []string{"private-key", "client-secret"} {
+		if v, err := mem.Get(ctx, secretKey(rec.ID, name)); err != nil || len(v) == 0 {
+			t.Fatalf("%s must be kept: %v", name, err)
+		}
+	}
+	if _, err := mem.Get(ctx, secretKey(rec.ID, "webhook-secret")); !errors.Is(err, secrets.ErrNotFound) {
+		t.Fatalf("no empty webhook secret is stored: %v", err)
+	}
+}
+
+type failPut struct{ *secrets.Memory }
+
+func (failPut) Put(context.Context, secrets.Key, []byte) error { return secrets.ErrUnavailable }
+
+func TestFailureAfterConversionKeepsAppURL(t *testing.T) { // R5.3
+	e := newEnv(t)
+	ctx := context.Background()
+	e.svc.cfg.Secrets = failPut{secrets.NewMemory()}
+	e.fake.IssueManifestCode("half")
+	form, _ := e.svc.StartManifest(ctx, ManifestOptions{AppName: "crsp", ConsoleURLs: []string{devConsole}})
+	_, err := e.svc.CompleteManifest(ctx, "half", form.State)
+	var made *AppCreatedError
+	if !errors.As(err, &made) || !errors.Is(err, secrets.ErrUnavailable) {
+		t.Fatalf("want AppCreatedError wrapping the store error: %v", err)
+	}
+	if made.AppURL != "https://github.com/apps/crsp-dev-fake" {
+		t.Fatalf("app url: %q", made.AppURL)
+	}
+	if !hasAudit(e.store, "setup.app_incomplete") {
+		t.Fatal("a half-made App is audited")
+	}
+	if _, err := e.store.GetApp(ctx); err == nil {
+		t.Fatal("nothing is kept")
+	}
+}
+
+func TestSafeAppURL(t *testing.T) {
+	for in, want := range map[string]string{
+		"https://github.com/apps/x":     "https://github.com/apps/x",
+		"http://github.com/apps/x":      "",
+		"https://evil.example/apps/x":   "",
+		"https://github.com.evil.io/a":  "",
+		"https://u:p@github.com/apps/x": "",
+		"javascript:alert(1)":           "",
+		"":                              "",
+	} {
+		if got := SafeAppURL(in); got != want {
+			t.Errorf("%q: %q", in, got)
+		}
 	}
 }
