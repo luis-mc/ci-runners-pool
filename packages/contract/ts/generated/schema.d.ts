@@ -707,6 +707,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/machines/{machineId}/command": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run one command on a drained machine (host maintenance)
+         * @description cli R5.29 (HND24). The machine must be drained and idle; the command is run directly by the agent, never through a shell, and no job is touched. A command that ran and failed answers 200 with `ok` false.
+         */
+        post: operations["runMachineCommand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/machines/{machineId}/resume": {
         parameters: {
             query?: never;
@@ -2926,6 +2946,20 @@ export interface components {
         DrainRequest: {
             reason?: string;
         };
+        HostCommandRequest: {
+            /** @description The program and its arguments; run without a shell. */
+            command: string[];
+            /** @description How long the command may run. Default 1800. */
+            timeout_seconds?: number;
+        };
+        HostCommandResult: {
+            ok: boolean;
+            /** @description -1 when the command did not start or was stopped. */
+            exit_code: number;
+            /** @description The last 64 KiB of the combined output, redacted. */
+            output: string;
+            message?: string;
+        };
         /** @description A change that waits for a drain (machines R5.30 to R5.33). */
         MachineChange: {
             id: string;
@@ -4802,6 +4836,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MachineChange"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    runMachineCommand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HostCommandRequest"];
+            };
+        };
+        responses: {
+            /** @description The command ran; `ok` says whether it exited with code 0. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostCommandResult"];
                 };
             };
             default: components["responses"]["Error"];

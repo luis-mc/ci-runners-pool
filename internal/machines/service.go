@@ -94,6 +94,7 @@ type Service struct {
 	sessions        *Sessions
 	hooks           Hooks
 	recoveryHandler http.Handler
+	host            HostRunner
 
 	// rec serialises the read-modify-write of a machine record, so a report of the
 	// agent (heartbeat, facts) never writes back a stale copy over a change of

@@ -22,6 +22,7 @@ type MachinesService interface {
 	Resume(ctx context.Context, actor, id string, confirm bool) (machines.View, error)
 	Remove(ctx context.Context, actor, id string, confirm bool) (machines.Change, error)
 	Redetect(ctx context.Context, actor, id string) error
+	RunHostCommand(ctx context.Context, actor, id string, argv []string, timeout time.Duration) (machines.HostOutcome, error)
 	ArmRecovery(ctx context.Context, actor, id string) error
 	LoadHistory(ctx context.Context, id string, from, to time.Time) ([]machines.LoadPoint, error)
 	GetChange(ctx context.Context, machineID, id string) (machines.Change, error)
@@ -402,6 +403,29 @@ func (s *server) DrainMachine(ctx context.Context, r gen.DrainMachineRequestObje
 		return fail[gen.DrainMachinedefaultJSONResponse](s, err), nil
 	}
 	return gen.DrainMachine202JSONResponse(changeToAPI(ch)), nil
+}
+
+// RunMachineCommand implements POST /api/v1/machines/{machineId}/command (cli R5.29).
+func (s *server) RunMachineCommand(ctx context.Context, r gen.RunMachineCommandRequestObject) (gen.RunMachineCommandResponseObject, error) {
+	if s.machinesOff() {
+		return machinesUnavailable[gen.RunMachineCommanddefaultJSONResponse](), nil
+	}
+	if r.Body == nil {
+		return fail[gen.RunMachineCommanddefaultJSONResponse](s, machines.ErrInvalid), nil
+	}
+	var timeout time.Duration
+	if r.Body.TimeoutSeconds != nil {
+		timeout = time.Duration(*r.Body.TimeoutSeconds) * time.Second
+	}
+	out, err := s.opts.Machines.RunHostCommand(ctx, s.actor(ctx), r.MachineId, r.Body.Command, timeout)
+	if err != nil {
+		return fail[gen.RunMachineCommanddefaultJSONResponse](s, err), nil
+	}
+	res := gen.HostCommandResult{Ok: out.OK, ExitCode: out.ExitCode, Output: out.Output}
+	if out.Message != "" {
+		res.Message = &out.Message
+	}
+	return gen.RunMachineCommand200JSONResponse(res), nil
 }
 
 // ResumeMachine implements POST /api/v1/machines/{machineId}/resume.

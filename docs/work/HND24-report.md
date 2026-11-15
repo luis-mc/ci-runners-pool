@@ -11,10 +11,10 @@ Branch: HND24-maintenance-command (from origin/main 83317c3). Source: handover l
 6. Spec R5.29 + change note HND24; tests.
 
 ## Status
-- [ ] proto + codegen
-- [ ] agent
-- [ ] agent link
-- [ ] API
+- [x] proto + codegen
+- [x] agent (code; tests pending)
+- [x] agent link (code; tests pending)
+- [x] API (code; tests pending)
 - [ ] CLI
 - [ ] docs
 - [ ] checks, draft PR
