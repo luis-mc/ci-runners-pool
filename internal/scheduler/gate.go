@@ -121,7 +121,7 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 	measured := req.Load.MemoryKnown || req.Load.CPUKnown
 
 	// Light job: a free light slot at once, no ticket, when under budget (R5.24).
-	lightRunner := slots.IsLightRunner(job.RunnerName)
+	lightRunner := job.RunnerName != "" && e.light != nil && e.light(req.MachineID, job.RunnerName)
 	if lightRunner || slots.IsLight(names, set) {
 		if _, tk, err := tx.Ticket(req.GateID); err != nil {
 			return Decision{}, err

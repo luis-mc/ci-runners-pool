@@ -44,7 +44,8 @@ func (s *Service) StartJobRunner(ctx context.Context, j JobRunner, actor string)
 	}
 	id := s.newID("r_")
 	rec := Record{ID: id, Name: j.Name, MachineID: j.MachineID, OS: "linux", Arch: j.Arch, Kind: "ephemeral",
-		Backend: j.Backend, Isolation: string(backend.IsolationContainer), Labels: j.Labels, Scope: j.Scope,
+		Backend: j.Backend, Isolation: string(backend.IsolationContainer), Labels: j.Labels,
+		Route: RouteForLabels(s.PoolName, j.Labels), SizeClass: DefaultSize, Scope: j.Scope,
 		RunnerVersion: pin.Version, State: Creating, Managed: true, CreatedAt: s.now()}
 	if err := s.Store.InsertRunner(ctx, rec); err != nil {
 		return Record{}, err

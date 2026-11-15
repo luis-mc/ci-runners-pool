@@ -181,6 +181,12 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// Light runners: one per repository and OS, on a machine with a light slot
 	// (scheduling R5.65).
 	runnerSvc.Light = lightPlacer{svc: d.Machines}
+	// The job gate reads a runner's stored route, never its name (runners R5.68).
+	if q, ok := d.Queue.(interface {
+		SetLightLookup(func(machineID, runnerName string) bool)
+	}); ok {
+		q.SetLightLookup(func(machineID, name string) bool { return runnerSvc.RunsLight(ctx, machineID, name) })
+	}
 	rsvc.SetLight(lightKeeper{svc: runnerSvc})
 
 	// Demand: poll queued jobs of the repositories with the pool on and start one

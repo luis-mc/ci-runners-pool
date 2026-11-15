@@ -23,6 +23,9 @@ type Engine struct {
 	alert func(Alert)
 	// accepting says whether a machine takes new jobs and why not (machines R5.62).
 	accepting func(machineID string) (ok bool, reason string)
+	// light says whether a runner is on the light queue, read from its stored
+	// route and never from its name (runners R5.68). Nil means no runner is.
+	light func(machineID, runnerName string) bool
 }
 
 // Option configures an Engine.
@@ -48,6 +51,11 @@ func WithAlerts(f func(Alert)) Option { return func(e *Engine) { e.alert = f } }
 func WithAccepting(f func(machineID string) (ok bool, reason string)) Option {
 	return func(e *Engine) { e.accepting = f }
 }
+
+// SetLightLookup sets where the gate reads the route of a runner: true when the
+// runner serves the light queue. The runner registry answers it; the engine
+// never parses a runner name (runners R5.68). Set it before jobs arrive.
+func (e *Engine) SetLightLookup(f func(machineID, runnerName string) bool) { e.light = f }
 
 // NewEngine returns the slot queue over a store.
 func NewEngine(store slots.Store, opts ...Option) *Engine {

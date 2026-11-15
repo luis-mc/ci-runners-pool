@@ -29,7 +29,7 @@ func (q *Queries) DeleteRunnerUsageBefore(ctx context.Context, reportedAt string
 }
 
 const getRunner = `-- name: GetRunner :one
-SELECT id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind, repository_id, organization, runner_group, github_runner_id, runner_version, state, managed, service_name, account, folder, current_job_id, created_at, updated_at FROM runners WHERE id = ?
+SELECT id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind, repository_id, organization, runner_group, github_runner_id, runner_version, state, managed, service_name, account, folder, current_job_id, created_at, updated_at, route_pool, route_queue, size_class FROM runners WHERE id = ?
 `
 
 func (q *Queries) GetRunner(ctx context.Context, id string) (Runner, error) {
@@ -59,12 +59,15 @@ func (q *Queries) GetRunner(ctx context.Context, id string) (Runner, error) {
 		&i.CurrentJobID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.RoutePool,
+		&i.RouteQueue,
+		&i.SizeClass,
 	)
 	return i, err
 }
 
 const getRunnerByService = `-- name: GetRunnerByService :one
-SELECT id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind, repository_id, organization, runner_group, github_runner_id, runner_version, state, managed, service_name, account, folder, current_job_id, created_at, updated_at FROM runners WHERE machine_id = ? AND service_name = ?
+SELECT id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind, repository_id, organization, runner_group, github_runner_id, runner_version, state, managed, service_name, account, folder, current_job_id, created_at, updated_at, route_pool, route_queue, size_class FROM runners WHERE machine_id = ? AND service_name = ?
 `
 
 type GetRunnerByServiceParams struct {
@@ -99,6 +102,9 @@ func (q *Queries) GetRunnerByService(ctx context.Context, arg GetRunnerByService
 		&i.CurrentJobID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.RoutePool,
+		&i.RouteQueue,
+		&i.SizeClass,
 	)
 	return i, err
 }
@@ -106,8 +112,9 @@ func (q *Queries) GetRunnerByService(ctx context.Context, arg GetRunnerByService
 const insertRunner = `-- name: InsertRunner :exec
 
 INSERT INTO runners (id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind,
-    repository_id, organization, runner_group, runner_version, state, managed, service_name, account, folder)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    repository_id, organization, runner_group, runner_version, state, managed, service_name, account, folder,
+    route_pool, route_queue, size_class)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertRunnerParams struct {
@@ -130,6 +137,9 @@ type InsertRunnerParams struct {
 	ServiceName   string
 	Account       string
 	Folder        string
+	RoutePool     string
+	RouteQueue    string
+	SizeClass     string
 }
 
 // Runners, their state changes and usage (runners R5.2 to R5.6, R5.12).
@@ -154,6 +164,9 @@ func (q *Queries) InsertRunner(ctx context.Context, arg InsertRunnerParams) erro
 		arg.ServiceName,
 		arg.Account,
 		arg.Folder,
+		arg.RoutePool,
+		arg.RouteQueue,
+		arg.SizeClass,
 	)
 	return err
 }
@@ -180,7 +193,7 @@ func (q *Queries) InsertRunnerEvent(ctx context.Context, arg InsertRunnerEventPa
 }
 
 const listRunners = `-- name: ListRunners :many
-SELECT id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind, repository_id, organization, runner_group, github_runner_id, runner_version, state, managed, service_name, account, folder, current_job_id, created_at, updated_at FROM runners
+SELECT id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind, repository_id, organization, runner_group, github_runner_id, runner_version, state, managed, service_name, account, folder, current_job_id, created_at, updated_at, route_pool, route_queue, size_class FROM runners
 WHERE (?1 IS NULL OR machine_id = ?1)
   AND (?2 IS NULL OR os = ?2)
   AND (?3 IS NULL OR state = ?3)
@@ -233,6 +246,9 @@ func (q *Queries) ListRunners(ctx context.Context, arg ListRunnersParams) ([]Run
 			&i.CurrentJobID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.RoutePool,
+			&i.RouteQueue,
+			&i.SizeClass,
 		); err != nil {
 			return nil, err
 		}
