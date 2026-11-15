@@ -114,7 +114,11 @@ func (b *Backend) Refresh(ctx context.Context, owner, repo string, spec backend.
 }
 
 func (b *Backend) swap(ctx context.Context, owner, repo, pool, oldKey, newTag string, res *RefreshResult) error {
-	base := PoolSpec{Owner: owner, Repo: repo, Limits: b.cfg.Limits, KVM: b.cfg.KVM, CrspHostPath: b.cfg.CrspHostPath}
+	uid, err := b.identity(ctx, pool)
+	if err != nil {
+		return err
+	}
+	base := PoolSpec{Owner: owner, Repo: repo, Limits: b.cfg.Limits, KVM: b.cfg.KVM, CrspHostPath: b.cfg.CrspHostPath, UID: uid}
 	grace := fmt.Sprintf("%d", int(b.cfg.StopGrace.Seconds()))
 	if err := b.step(ctx, "pool stop", []string{"stop", "-t", grace, pool}, ""); err != nil {
 		return err

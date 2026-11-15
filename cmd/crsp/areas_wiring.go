@@ -157,7 +157,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// machines wait for the runner messages on the agent link.
 	reg := d.Backends
 	if reg == nil {
-		reg = registry.Platform(registry.RealDeps(nil, secretRedactor.Redact, secretRedactor.Add))
+		reg = registry.Platform(registry.RealDeps(nil, secretRedactor.Redact, secretRedactor.Add), runnerIDSource(logger, d.DB))
 	}
 	rstore := runners.NewMemStore()
 	runnerSvc := &runners.Service{

@@ -70,6 +70,9 @@ type Config struct {
 	// database cannot start (ErrNoDatabase).
 	OpenSecrets func(ctx context.Context) (secrets.Store, error)
 	Database    func(ctx context.Context, pool string) (Database, error)
+	// IDs gives the pool container its persistent uid/gid (runners R5.68). Nil
+	// keeps the fixed JobUID.
+	IDs backend.IDSource
 	// StopGrace is the time `docker stop` gives the idle container.
 	StopGrace time.Duration
 }
@@ -302,12 +305,20 @@ func (b *Backend) ensurePool(ctx context.Context, p PoolSpec) error {
 	if exists { // stopped: start it again, same image
 		return b.step(ctx, "pool start", []string{"start", name}, "")
 	}
+	uid, err := b.identity(ctx, name)
+	if err != nil {
+		return err
+	}
+	p.UID = uid
 	if p.LaneRepoID != "" {
 		lane, err := b.takeLane(name, p.LaneRepoID)
 		if err != nil {
 			return err
 		}
 		p.Lane = &lane
+		if err := b.ownLane(ctx, uid, lane); err != nil {
+			return err
+		}
 	}
 	args, err := RunArgs(p)
 	if err != nil {

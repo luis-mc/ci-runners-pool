@@ -79,6 +79,12 @@ type ImageRef struct {
 	SizeMB int64
 }
 
+// IDSource gives a runner its persistent uid/gid from the reserved range
+// (runners R5.68). *runnerid.Allocator is the real one.
+type IDSource interface {
+	ID(ctx context.Context, name string) (int, error)
+}
+
 // RunnerSpec is the runner to start (runners R5.2, R5.13 to R5.23, R5.36).
 type RunnerSpec struct {
 	ID        string

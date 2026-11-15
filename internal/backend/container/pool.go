@@ -59,6 +59,8 @@ type PoolSpec struct {
 	// CrspHostPath, when set, is the agent's own linux binary, mounted
 	// read-only (runners R5.48).
 	CrspHostPath string
+	// UID is the persistent uid/gid of this pool (runners R5.68); 0 means JobUID.
+	UID int
 	// KVMGroup is the group that owns /dev/kvm on the host; with KVM it is
 	// added with --group-add so the job user can open the device.
 	KVMGroup int
@@ -94,12 +96,16 @@ func RunArgs(p PoolSpec) ([]string, error) {
 		return nil, errors.New("no image to run")
 	}
 	name := PoolName(p.Owner, p.Repo)
+	uid := p.UID
+	if uid == 0 {
+		uid = JobUID
+	}
 	a := []string{"run", "-d", "--name", name, "--hostname", name,
-		"--user", strconv.Itoa(JobUID) + ":" + strconv.Itoa(JobUID),
+		"--user", strconv.Itoa(uid) + ":" + strconv.Itoa(uid),
 		"--cap-drop", CapDrop,
 		"--security-opt", "no-new-privileges",
 		"--pids-limit", "8192",
-		"--tmpfs", fmt.Sprintf("%s:rw,noexec,nosuid,nodev,mode=0700,uid=%d,gid=%d,size=1m", JITDir, JobUID, JobUID),
+		"--tmpfs", fmt.Sprintf("%s:rw,noexec,nosuid,nodev,mode=0700,uid=%d,gid=%d,size=1m", JITDir, uid, uid),
 		"--label", LabelPool + "=" + strings.ToLower(p.Owner+"/"+p.Repo),
 		"--label", LabelImage + "=" + p.ImageKey,
 	}
