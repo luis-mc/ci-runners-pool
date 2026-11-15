@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -319,6 +320,10 @@ func TestStopWaitsForTheListenerNotTheUnit(t *testing.T) {
 	if err := r.b.Stop(context.Background(), backend.Handle{Ref: svc}); err != nil {
 		t.Fatal(err)
 	}
+	r.cmd.Calls = nil
+	if err := r.b.Stop(context.Background(), backend.Handle{Ref: svc}); err != nil {
+		t.Fatal(err)
+	}
 	if r.index("pgrep") < 0 || r.index("pgrep") < r.index("systemctl stop") {
 		t.Errorf("Stop must look for the listener after the unit stops: %v", r.cmd.Texts())
 	}
@@ -350,4 +355,98 @@ func TestSecretsRedacted(t *testing.T) {
 	if strings.Join(learned, ",") != "REGTOKEN,RMTOKEN" {
 		t.Errorf("learned %v", learned)
 	}
+}
+
+// R5.59: a listener that outlives the stop gets terminate, then kill, on its
+// process group; nothing real is signalled, the fake process table answers.
+func TestStopEndsASurvivingListenerGroup(t *testing.T) {
+	r := started(t)
+	r.b.d.Sleep = func(context.Context, time.Duration) {}
+	svc := persistent.ServiceName(r.spec().GitHubURL, r.spec().Name)
+	table := &procTable{pids: []int{4242}, termSurvives: true}
+	r.b.d.Cmd = table
+	if err := r.b.stopUnit(context.Background(), svc+".service", "/var/lib/crsp/runners/box-1"); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(table.signals, ";"); got != "TERM 4242;TERM -4242;KILL 4242;KILL -4242" {
+		t.Errorf("signals = %q", got)
+	}
+	if len(table.pids) != 0 {
+		t.Errorf("listener left: %v", table.pids)
+	}
+}
+
+func TestStopSkipsKillWhenTerminateWorks(t *testing.T) {
+	r := started(t)
+	r.b.d.Sleep = func(context.Context, time.Duration) {}
+	table := &procTable{pids: []int{4242}}
+	r.b.d.Cmd = table
+	if err := r.b.stopUnit(context.Background(), "x.service", "/var/lib/crsp/runners/box-1"); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(table.signals, ";"); got != "TERM 4242;TERM -4242" {
+		t.Errorf("signals = %q", got)
+	}
+}
+
+func TestStopReportsAListenerThatWillNotDie(t *testing.T) {
+	r := started(t)
+	r.b.d.Sleep = func(context.Context, time.Duration) {}
+	table := &procTable{pids: []int{4242}, immortal: true}
+	r.b.d.Cmd = table
+	err := r.b.stopUnit(context.Background(), "x.service", "/var/lib/crsp/runners/box-1")
+	if !errors.Is(err, persistent.ErrListenerAlive) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+// R5.59: the first start never runs beside a listener of the same folder.
+func TestFreshStartRefusedWhileAListenerRuns(t *testing.T) {
+	r := newRig()
+	r.cmd.Rules = []sysfake.Rule{{Match: "pgrep", Result: sys.Result{Stdout: "777\n"}}}
+	_, err := r.b.Start(context.Background(), r.spec(), backend.StartConfig{Registration: "REGTOKEN"})
+	if !errors.Is(err, persistent.ErrListenerAlive) {
+		t.Fatalf("err = %v", err)
+	}
+	if r.index("systemctl enable") >= 0 {
+		t.Errorf("service started beside a listener: %v", r.cmd.Texts())
+	}
+}
+
+func TestUnitKillsTheGroupOnStop(t *testing.T) {
+	if !strings.Contains(Unit("n", "u", "/f"), "KillMode=mixed") {
+		t.Error("the unit must end the listener with its service")
+	}
+}
+
+// procTable is a fake process table: pgrep lists pids, ps gives pgid = pid,
+// kill removes them. Nothing real is signalled.
+type procTable struct {
+	pids         []int
+	termSurvives bool
+	immortal     bool
+	signals      []string
+}
+
+func (p *procTable) Run(_ context.Context, c sys.Command) (sys.Result, error) {
+	switch c.Name {
+	case "pgrep":
+		if len(p.pids) == 0 {
+			return sys.Result{ExitCode: 1}, nil
+		}
+		var b strings.Builder
+		for _, n := range p.pids {
+			fmt.Fprintf(&b, "%d\n", n)
+		}
+		return sys.Result{Stdout: b.String()}, nil
+	case "ps":
+		return sys.Result{Stdout: c.Args[len(c.Args)-1] + "\n"}, nil
+	case "kill":
+		sig, target := c.Args[1], c.Args[3]
+		p.signals = append(p.signals, sig+" "+target)
+		if !p.immortal && (sig == "KILL" || !p.termSurvives) {
+			p.pids = nil
+		}
+	}
+	return sys.Result{}, nil
 }

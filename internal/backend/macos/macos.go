@@ -273,6 +273,9 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	if _, err := b.run(ctx, "plist owner", sys.Command{Name: "chown", Args: []string{"root:wheel", b.plistPath(label)}}); err != nil {
 		return h, err
 	}
+	if err := b.guardStart(ctx, folder); err != nil {
+		return h, err
+	}
 	if _, err := b.run(ctx, "bootstrap", sys.Command{Name: "launchctl", Args: []string{"bootstrap", "system", b.plistPath(label)}}); err != nil {
 		return h, err
 	}
@@ -299,9 +302,20 @@ func (b *Backend) stopDaemon(ctx context.Context, label, folder string) error {
 	if folder == "" {
 		return nil
 	}
-	return persistent.WaitNoListener(ctx, func(ctx context.Context) ([]int, error) {
+	return persistent.EndListeners(ctx, persistent.Ender{
+		List:   func(ctx context.Context) ([]int, error) { return persistent.UnixListeners(ctx, b.d.Cmd, folder) },
+		Signal: persistent.UnixSignal(b.d.Cmd),
+		Sleep:  b.d.Sleep,
+		Log:    func(m string) { b.log("stop", m) },
+	})
+}
+
+// guardStart refuses to start the daemon while a listener of the runner folder
+// runs (R5.59).
+func (b *Backend) guardStart(ctx context.Context, folder string) error {
+	return persistent.CheckNoListener(ctx, func(ctx context.Context) ([]int, error) {
 		return persistent.UnixListeners(ctx, b.d.Cmd, folder)
-	}, 0, 0, b.d.Sleep)
+	})
 }
 
 // bootout unloads the daemon; a daemon that is not loaded is fine.
