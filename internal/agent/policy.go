@@ -99,6 +99,8 @@ func (g *Gate) acceptanceLocked(ps power.State, now time.Time) Acceptance {
 		a.Reason = machines.PauseReasonPaused
 	case g.settings.EffectiveMode() == machines.ModeAutomatic && g.settings.PauseOnBattery && ps.OnBattery:
 		a.Reason = machines.PauseReasonOnBattery
+	case g.floor != nil && g.diskLowLocked():
+		a.Reason = machines.PauseReasonDiskLow
 	default:
 		rep, ok := g.sampler.Latest()
 		if good, _ := load.Decide(rep, ok, g.settings.BudgetMemoryPct, g.settings.BudgetCPUPct); !good {
@@ -108,6 +110,12 @@ func (g *Gate) acceptanceLocked(ps power.State, now time.Time) Acceptance {
 		}
 	}
 	return a
+}
+
+// diskLowLocked reads the disk floor; the caller holds g.mu.
+func (g *Gate) diskLowLocked() bool {
+	held, _ := g.floor.Check()
+	return held
 }
 
 // capState is what the agent last did about the CPU cap.

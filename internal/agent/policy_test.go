@@ -10,6 +10,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/cpucap"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/power"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
 var battery = power.State{OnBattery: true, Known: true}
@@ -247,4 +248,39 @@ func TestAcceptingReportAndCPUCapOverTheLink(t *testing.T) {
 		p := c.Svc.Policy(id)
 		return rc.last() == 50 && p.CPUCapPct == 50 && p.CPUCapState == cpucap.Applied
 	})
+}
+
+// CRSP83 (runners R5.70): under the free-disk floor the machine pauses with
+// the reason disk_low and starts no job; a running job keeps going; it
+// resumes 1 GiB above the floor.
+func TestDiskFloorPausesNewJobs(t *testing.T) {
+	g, _ := policyGate(t, power.Mains, nil)
+	const gb = int64(1) << 30
+	free := 50 * gb
+	g.SetDiskFloor(&runnercache.Floor{Bytes: 10 * gb, Path: "x", Read: func(string) (runnercache.Disk, error) {
+		return runnercache.Disk{Free: free, Total: 500 * gb}, nil
+	}})
+	if d := g.Start("running", job, "persistent"); !d.Go {
+		t.Fatalf("held with room: %v", d.Reasons)
+	}
+	free = 4 * gb
+	if ok, why := accept(g); ok || why != machines.PauseReasonDiskLow {
+		t.Fatalf("under the floor: accepting %v reason %q", ok, why)
+	}
+	d := g.Start("new", job, "persistent")
+	if d.Go || d.Reasons[0] != "disk_low" {
+		t.Fatalf("a job started under the floor: %+v", d)
+	}
+	if g.SlotsUsed() != 1 {
+		t.Fatalf("the running job was touched: %d", g.SlotsUsed())
+	}
+	free = 12 * gb
+	if ok, _ := accept(g); !ok {
+		t.Fatal("did not resume with 12 GiB free")
+	}
+	g.SetDiskFloor(nil)
+	free = 1
+	if ok, _ := accept(g); !ok {
+		t.Fatal("a removed floor still holds")
+	}
 }

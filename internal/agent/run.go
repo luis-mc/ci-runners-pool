@@ -61,6 +61,11 @@ type Config struct {
 	// the OS applier.
 	CPUCap cpucap.Applier
 
+	// DiskFloorGiB is the free space the DataDir volume needs before a job or VM
+	// starts, in GiB (runners R5.70). 0 sets no floor here; the commands resolve
+	// the setting with runnercache.FloorSetting (default 10).
+	DiskFloorGiB int
+
 	// Intervals; the defaults are the spec's (R5.35, R5.13, R5.16).
 	HeartbeatEvery time.Duration // 10 s
 	LoadEvery      time.Duration // 15 s
@@ -99,6 +104,9 @@ func (c *Config) defaults() {
 	}
 	if c.Gate == nil {
 		c.Gate = NewGate(c.Sampler)
+	}
+	if c.DiskFloorGiB > 0 {
+		c.Gate.SetDiskFloor(&runnercache.Floor{Bytes: runnercache.FloorBytes(c.DiskFloorGiB), Path: c.DataDir})
 	}
 	for _, d := range []struct {
 		p *time.Duration

@@ -178,6 +178,7 @@ const (
 	PauseReasonOnBattery   = "on_battery"
 	PauseReasonQuietHours  = "quiet_hours"
 	PauseReasonBudget      = "budget"
+	PauseReasonDiskLow     = "disk_low"
 	PauseOneHour           = "one_hour"
 	PauseUntilResumedValue = "until_resumed"
 	PauseNone              = "none"

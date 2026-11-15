@@ -259,6 +259,7 @@ Machines:
 | `machine.load.budget` | Memory or CPU median over the budget for more than 10 minutes | warn | Lower slots or raise the budget on the Machines screen | no | 1 |
 | `machine.disk` | Free space on the work volume under 15% or 10 GB (warn), under 5% or 2 GB (fail); total size of runner work folders | warn, fail | Clean the work folders of idle runners: `crsp runners clean-work --machine NAME` | no | 1 |
 | `machine.guard.disk` | Free space on the runner volume under 10%, where the job-started gate holds new jobs (they wait, they are not failed) until 12% is free | fail | Free space on the volume, or lower the cache quotas: `crsp runners clean-work --machine NAME` | no | 1 |
+| `machine.floor.disk` | The machine is paused with the reason `disk_low`: free disk under the floor (default 10 GiB, `disk_floor_gib`), so no job and no VM starts until the floor plus 1 GiB is free. The fix names what to clean: container images and build cache, runner caches, left-over job folders, VM disks and checkpoints | fail | `crsp runners clean-work --machine NAME`, `docker system df`, `docker image prune -a` | no | 1 |
 | `machine.clock` | Clock differs from the controller or from GitHub's `Date` header by over 30 s (warn) or 120 s (fail) | warn, fail | Turn on time sync (NTP) on that machine | no | 1 |
 | `machine.config` | The machine config the hooks read is missing or not readable by runner accounts | fail | Grant read rights; the command per OS | no | 1 |
 | `machine.slots` | A slot held by a dead holder or past `slot_stale_min`; a queue ticket older than that | fail | `crsp slots free-stale --machine NAME` (the next job gate also frees them) | no | 1 |
@@ -345,6 +346,7 @@ Each port brings its tests (decision 0005). Source paths are in dev-standards; `
 | `machine.load.fresh` | DS `machine_items` (`machine.hostload`) | `test_machine.py` HostLoad, DoctorMachine | `internal/doctor/checks/machine/load_test.go` TestLoadFresh |
 | `machine.load.measured` | new (scheduling R5.22, decision D53) | none | `internal/doctor/checks/checks_test.go` TestLoadMeasured |
 | `machine.guard.disk` | new (caches R5.38) | none | `internal/doctor/checks/checks_test.go` TestDiskGuard |
+| `machine.floor.disk` | new (runners R5.70, CRSP83) | none | `internal/doctor/checks/checks_test.go` TestDiskFloorNamesWhatToClean |
 | `machine.disk` | DS `machine_items` (`machine.disk`), `clean_work` | `test_machine.py` `test_disk_warning_and_clean_work` | `internal/doctor/checks/machine/disk_test.go` TestDisk |
 | `machine.config` | DS `machine_items` (`machine.config`) | `test_machine.py` `test_option_1_without_machine_json_fails` | `internal/doctor/checks/machine/config_test.go` TestConfigReadable |
 | `machine.slots` | DS `machine_items` (`machine.slots`) | `test_machine.py` `test_healthy_layer_and_stale_slot_and_old_files` | `internal/doctor/checks/machine/slots_test.go` TestStaleSlotsAndTickets |

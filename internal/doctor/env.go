@@ -130,6 +130,9 @@ type Machine struct {
 	OverBudgetSince time.Time
 	// DiskFreeBytes and DiskTotalBytes describe the work volume; nil when unknown.
 	DiskFreeBytes, DiskTotalBytes *int64
+	// PauseReason is why the machine takes no new jobs ("disk_low", "paused",
+	// "on_battery", ...); empty while it accepts.
+	PauseReason string
 	// Admin is true when the doctor on this machine runs with administrator
 	// rights, for checks that need them (R5.13). Reported by the agent.
 	Admin bool

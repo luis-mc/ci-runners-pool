@@ -129,7 +129,7 @@ func only(t *testing.T, fs []doctor.Finding, check string) doctor.Finding {
 func TestEveryRegisteredCheckIsM1AndHasAnID(t *testing.T) {
 	reg := doctor.NewRegistry()
 	Register(reg)
-	if len(reg.All()) != 31 {
+	if len(reg.All()) != 32 {
 		t.Fatalf("checks: %v", reg.SortedIDs())
 	}
 	for _, c := range reg.All() {
@@ -765,5 +765,32 @@ func TestRunnerToolCache(t *testing.T) {
 	}
 	if !strings.Contains(got["crsp-bad"].Detail, "Access is denied") || !strings.Contains(got["crsp-owner"].Detail, "another owner") {
 		t.Errorf("detail: %q / %q", got["crsp-bad"].Detail, got["crsp-owner"].Detail)
+	}
+}
+
+// CRSP83 (runners R5.70): a machine paused for disk space names what to clean.
+func TestDiskFloorNamesWhatToClean(t *testing.T) {
+	held := healthyMachine()
+	held.ID, held.Name, held.PauseReason, held.DiskFreeBytes = "h", "held", "disk_low", i64(4*gib)
+	other := healthyMachine()
+	other.ID, other.Name, other.PauseReason = "o", "other", "on_battery"
+	off := healthyMachine()
+	off.ID, off.Name, off.Online, off.PauseReason = "x", "off", false, "disk_low"
+	fs := run(t, doctor.Env{Fleet: &fleet{machines: []doctor.Machine{held, other, off, healthyMachine()}}}, "machine.floor.disk")
+	want := map[string]doctor.Severity{"held": doctor.Fail, "other": doctor.OK, "off": doctor.Skip, "alpha": doctor.OK}
+	for _, f := range fs {
+		if want[f.Subject.Name] != f.Severity {
+			t.Errorf("%s: %v", f.Subject.Name, f.Severity)
+		}
+		if f.Subject.Name == "held" {
+			for _, w := range []string{"docker image prune", "clean-work", "4.0 GiB", "disk_floor_gib"} {
+				if !strings.Contains(f.Fix.Text+f.Detail, w) {
+					t.Errorf("the finding does not name %q: %+v", w, f)
+				}
+			}
+		}
+	}
+	if len(fs) != 4 {
+		t.Errorf("%d findings", len(fs))
 	}
 }

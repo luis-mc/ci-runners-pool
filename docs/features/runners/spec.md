@@ -293,6 +293,10 @@ Each layer has a self-check that runs its main tools. The doctor probes the same
 
 What to do about the open items: a service on the host's loopback address that must stay private needs a firewall rule on the machine; a repository whose jobs must not share a container with other jobs of it needs a pool size of one; anyone with write access to a repository can edit its workflow or its `RUNS_ON_*` variables and so choose which pool runs their code, which is the same trust boundary as the workflow files (github-integration R5.28).
 
+### 5.14 Disk floor (CRSP83)
+
+**R5.70** (M2, Built CRSP83; source `docs/architecture/landscape-2026-11.md` G13) — **A free-disk floor before a job or VM starts.** The agent reads the free space of the volume that holds its data folder. Under the floor (default **10 GiB**) the machine pauses: it reports `accepting: false` with the reason `disk_low` (machines R5.62), the gate refuses every new job and VM start on every backend with that reason, and a job that already runs keeps going. It resumes when free space is at least the floor plus 1 GiB, so it does not flap at the limit. The setting is `disk_floor_gib` in `config.toml` for the controller's own machine and `--disk-floor-gib` on `crsp agent run` for any other machine; absent or 0 takes 10, a negative value turns the floor off. The floor is in bytes and sits beside the percentage guard of caches R5.38; either one holds. The doctor check `machine.floor.disk` fails for a machine paused with `disk_low` and names what to clean (doctor R5.9). Not built: the floor in the console's machine settings and the API.
+
 ## 6. Non-functional requirements
 
 All **NOT YET IMPLEMENTED**.
@@ -446,6 +450,7 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.62 | planned: internal/runners/remove_test.go TestIdleCheckThenDeregisterThenStop, TestBusy422LeavesTheRunner, TestUnknownRunnerCountsAsGone (CRSP80) |
 | R5.63 | planned: internal/backend/container/limits_test.go TestMemoryCPUAndPidsLimitsAlwaysSet, TestNoHostFolderMounts; internal/backend/container/network_test.go TestOneJobNetworkNoContainerToContainerTraffic, TestCheckRunArgsRefusesOtherNetworks (CRSP81) |
 | R5.68 | `internal/backend/container/container_test.go` TestReadOnlyRootWorkTmpfs, TestNoPrivilegedNoSocketKvmDevice (CRSP81) |
+| R5.70 | `internal/runnercache/floor_test.go` TestFloorHoldsAndResumesWithMargin, TestFloorOffAndUnreadable; `internal/agent/policy_test.go` TestDiskFloorPausesNewJobs; `internal/config/config_test.go` TestDiskFloorGiB; `internal/doctor/checks/checks_test.go` TestDiskFloorNamesWhatToClean (CRSP83) |
 | R5.69 | `internal/backend/container/container_test.go` TestJobReachListMatchesFlags (CRSP81) |
 | R5.64 | planned: docs/guides/security-what-a-job-can-reach_test.go TestSecurityPageListsResidualRisks, TestPageNamesEveryLimit (CRSP81) |
 | R5.65 | planned: internal/backend/windows/hypervcontainer_test.go TestOptionOffByDefault, TestRefusesWhenHostOrImageDoNotMatch, TestFallsBackWithAReason (CRSP85) |

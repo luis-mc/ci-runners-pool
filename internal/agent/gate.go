@@ -8,6 +8,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/load"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/power"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
 // Gate is the machine's own job-started gate (machines R5.23, runner-pool
@@ -31,6 +32,8 @@ type Gate struct {
 	// held names the runners that take no new job while a cache wipe waits.
 	held    map[string]bool
 	sampler *load.Sampler
+	// floor is the free-disk floor before a job or VM starts (runners R5.70); nil means none.
+	floor *runnercache.Floor
 
 	// The machine policy (CRSP75, R5.61 to R5.64): the power source and the clock.
 	power power.Reader
@@ -44,6 +47,13 @@ type Gate struct {
 // every job: an agent that knows no settings must not start work.
 func NewGate(s *load.Sampler) *Gate {
 	return &Gate{state: machines.StateActive, running: map[string]machines.JobRef{}, sampler: s}
+}
+
+// SetDiskFloor sets the free-disk floor (runners R5.70). nil removes it.
+func (g *Gate) SetDiskFloor(f *runnercache.Floor) {
+	g.mu.Lock()
+	g.floor = f
+	g.mu.Unlock()
 }
 
 // SetSettings applies settings (R5.24, R5.25): running jobs keep going even

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
@@ -217,6 +218,40 @@ func machineDiskGuard(ctx context.Context, env doctor.Env) []doctor.Finding {
 		} else {
 			f.Severity, f.Title = doctor.OK, "New jobs on "+m.Name+" are not held for disk space"
 			f.Detail = fmt.Sprintf("%.1f%% free.", d.FreePct())
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// machineDiskFloor: a machine paused because its free disk is under the floor
+// (runners R5.70). It names what to clean, in the order that usually frees the
+// most. The doctor deletes nothing (R5.7).
+func machineDiskFloor(ctx context.Context, env doctor.Env) []doctor.Finding {
+	ms, out := scopedMachines(ctx, env, "machine.floor.disk")
+	for _, m := range ms {
+		s := machineSubject(m)
+		if !isOnline(env, m) {
+			out = append(out, offlineSkip("machine.floor.disk", m))
+			continue
+		}
+		f := doctor.Finding{Check: "machine.floor.disk", Subject: s}
+		if m.PauseReason != machines.PauseReasonDiskLow {
+			f.Severity, f.Title = doctor.OK, m.Name+" is not paused for disk space"
+			out = append(out, f)
+			continue
+		}
+		f.Severity, f.Title = doctor.Fail, "Jobs and VMs on "+m.Name+" are paused: free disk is under the floor"
+		f.Detail = "The machine starts no job and no VM until it has the floor plus 1 GiB free (default floor 10 GiB, `disk_floor_gib`)."
+		if m.DiskFreeBytes != nil {
+			f.Detail = fmt.Sprintf("%.1f GiB free. %s", float64(*m.DiskFreeBytes)/float64(gib), f.Detail)
+		}
+		f.Fix = doctor.Fix{
+			Text: "Free space on " + m.Name + ", biggest first: container images and build cache (`docker system df`, then `docker image prune -a` and `docker builder prune`); " +
+				"runner caches (`crsp runners clean-work --machine " + m.Name + "`); job folders left by failed runs; VM disks and checkpoints of finished jobs (Hyper-V differencing disks, macOS clones). " +
+				"Or lower the floor with `disk_floor_gib` in config.toml, or `--disk-floor-gib` on the agent.",
+			Command: "crsp runners clean-work --machine " + m.Name,
+			Link:    machineLink(m),
 		}
 		out = append(out, f)
 	}

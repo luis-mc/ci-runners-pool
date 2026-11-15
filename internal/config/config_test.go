@@ -205,3 +205,20 @@ func TestDemandQuietMinutes(t *testing.T) { // github-integration R5.37
 		t.Fatalf("out of range accepted: %v", err)
 	}
 }
+
+func TestDiskFloorGiB(t *testing.T) { // runners R5.70
+	for body, want := range map[string]int{"": 10, "disk_floor_gib = 25\n": 25, "disk_floor_gib = 0\n": 0, "disk_floor_gib = -3\n": 0} {
+		files := files(nil)
+		if body != "" {
+			files = filesOf(body)
+		}
+		cfg, err := LoadFor("linux", env(nil), files)
+		if err != nil || cfg.DiskFloorGiB != want {
+			t.Errorf("%q: %d %v, want %d", body, cfg.DiskFloorGiB, err, want)
+		}
+	}
+}
+
+func filesOf(body string) func(string) ([]byte, error) {
+	return files(map[string]string{"/etc/crsp/config.toml": body})
+}

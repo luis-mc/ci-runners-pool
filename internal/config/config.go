@@ -65,6 +65,9 @@ type Config struct {
 	// repository that has queued jobs for the pool before the watchdog restarts
 	// it and the doctor warns (github-integration R5.37, doctor `demand.quiet`).
 	DemandQuiet time.Duration
+	// DiskFloorGiB is the free disk a machine needs before it starts a job or
+	// a VM, in GiB; 0 turns the floor off (runners R5.70). Default 10.
+	DiskFloorGiB int
 }
 
 // DefaultDemandQuietMinutes is the default of `demand_quiet_minutes`.
@@ -86,10 +89,12 @@ type fileSchema struct {
 	CacheAlertGiB   int `toml:"cache_alert_gib"`
 	// Minutes of quiet demand before the watchdog acts; 0 or absent takes 10.
 	DemandQuietMinutes int `toml:"demand_quiet_minutes"`
+	// Free GiB a machine needs before a job or VM starts; absent takes 10, 0 or less turns it off.
+	DiskFloorGiB *int `toml:"disk_floor_gib"`
 }
 
 // Keys are the keys config.toml accepts, for docs and the generated reference.
-var Keys = []string{"data_dir", "listen_addr", "agent_addr", "log_level", "cache_tool_gib", "cache_rust_gib", "cache_min_free_pct", "cache_rust_key_gib", "cache_budget_gib", "cache_alert_gib", "demand_quiet_minutes"}
+var Keys = []string{"data_dir", "listen_addr", "agent_addr", "log_level", "cache_tool_gib", "cache_rust_gib", "cache_min_free_pct", "cache_rust_key_gib", "cache_budget_gib", "cache_alert_gib", "demand_quiet_minutes", "disk_floor_gib"}
 
 var (
 	placeholder = regexp.MustCompile(`(?i)^\s*(<[^>]*>|\$\{[^}]*\}|change[-_ ]?me|replace[-_ ]?me|todo|tbd|xxx+|your[-_ ].*|example)\s*$`)
@@ -205,6 +210,11 @@ func LoadFor(goos string, getenv func(string) string, readFile func(string) ([]b
 		errs = append(errs, fmt.Errorf("demand_quiet_minutes: %d must be from 1 to 1440", q))
 	default:
 		cfg.DemandQuiet = time.Duration(q) * time.Minute
+	}
+
+	cfg.DiskFloorGiB = runnercache.DefaultDiskFloorGiB
+	if fs.DiskFloorGiB != nil {
+		cfg.DiskFloorGiB = max(*fs.DiskFloorGiB, 0)
 	}
 
 	if err := errors.Join(errs...); err != nil {

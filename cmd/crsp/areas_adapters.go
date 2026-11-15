@@ -242,7 +242,7 @@ func (f doctorFleet) Machines(ctx context.Context) ([]doctor.Machine, error) {
 			ID: v.Machine.ID, Name: v.Machine.Name, OS: v.Machine.OS, Online: v.Machine.Online,
 			LastSeen: v.Machine.LastSeen, State: v.Settings.State,
 			BudgetMemoryPct: v.Settings.BudgetMemoryPct, BudgetCPUPct: v.Settings.BudgetCPUPct,
-			LightSlots: v.Settings.LightSlots,
+			LightSlots: v.Settings.LightSlots, PauseReason: v.Machine.PauseReason,
 		}
 		if m.State == "" {
 			m.State = v.Machine.State
