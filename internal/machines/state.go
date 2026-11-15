@@ -27,7 +27,8 @@ func (s *Service) MarkSeen(ctx context.Context, machineID string) error {
 }
 
 // Tick does the periodic work: it marks a machine that sent nothing for 30
-// seconds offline (R5.35), warns once when a drain passed its timeout, keeps
+// seconds, or whose last heartbeat is dated more than 30 seconds ahead of the
+// controller clock, offline (R5.35), warns once when a drain passed its timeout, keeps
 // it waiting and stops nothing (R5.33), and drops load older than 24 hours
 // (R6.8). The controller calls it every few seconds.
 func (s *Service) Tick(ctx context.Context) error {
@@ -37,8 +38,17 @@ func (s *Service) Tick(ctx context.Context) error {
 		return err
 	}
 	for _, m := range ms {
-		if m.Online && now.Sub(m.LastSeen) > OfflineAfter {
+		// A heartbeat dated more than the skew in the future (a clock that
+		// stepped back, a restored record) is not fresh either: it would keep
+		// the machine online until the clock caught up. It is logged once, as
+		// the machine goes offline.
+		skewed := m.Online && m.LastSeen.Sub(now) > OfflineAfter
+		if m.Online && (skewed || now.Sub(m.LastSeen) > OfflineAfter) {
 			m.Online = false
+			if skewed {
+				_ = s.o.Repo.Audit(ctx, "system", "machine.heartbeat.skew", m.ID,
+					fmt.Sprintf("last heartbeat dated %s ahead of the controller clock; counted as not fresh", m.LastSeen.Sub(now).Round(time.Second)))
+			}
 			if err := s.o.Repo.UpdateMachine(ctx, m); err != nil {
 				return err
 			}
