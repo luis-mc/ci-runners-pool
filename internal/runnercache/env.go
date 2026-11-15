@@ -18,13 +18,15 @@ const (
 	// uses; eviction keeps that entry (caches R5.45).
 	EnvRustKey = "CRSP_RUST_CACHE_KEY"
 	// EnvBudget and EnvAlert are the pool-wide budget and the size alert, in GiB.
-	EnvBudget = "CRSP_CACHE_BUDGET_GIB"
-	EnvAlert  = "CRSP_CACHE_ALERT_GIB"
+	EnvBudget    = "CRSP_CACHE_BUDGET_GIB"
+	EnvAlert     = "CRSP_CACHE_ALERT_GIB"
+	EnvRustupDir = "RUSTUP_HOME"
+	EnvCargoDir  = "CARGO_HOME"
 )
 
 // Dirs are the cache folders of one runner, all under its own folder, so one
 // runner never fills another's quota.
-type Dirs struct{ Tools, Rust string }
+type Dirs struct{ Tools, Rust, Rustup, Cargo string }
 
 // DirsFor gives the cache folders of the runner whose folder is runnerFolder.
 func DirsFor(runnerFolder string) Dirs { return DirsJoin(runnerFolder, filepath.Join) }
@@ -33,7 +35,10 @@ func DirsFor(runnerFolder string) Dirs { return DirsJoin(runnerFolder, filepath.
 // runner folder planned on another OS.
 func DirsJoin(runnerFolder string, join func(...string) string) Dirs {
 	c := join(runnerFolder, "cache")
-	return Dirs{Tools: join(c, "tools"), Rust: join(c, "rust-target")}
+	t := join(c, "tools")
+	// Tool homes live inside the tool cache folder, so they count in its quota
+	// (runners R5.56, caches R5.36).
+	return Dirs{Tools: t, Rust: join(c, "rust-target"), Rustup: join(t, "rustup"), Cargo: join(t, "cargo")}
 }
 
 // Env is what a persistent runner's .env gets for its caches: CI_TOOLS_DIR (the
@@ -50,6 +55,8 @@ func EnvJoin(runnerFolder string, q Quota, join func(...string) string) map[stri
 	return map[string]string{
 		EnvToolsDir:   d.Tools,
 		EnvRustDir:    d.Rust,
+		EnvRustupDir:  d.Rustup,
+		EnvCargoDir:   d.Cargo,
 		EnvToolQuota:  itoa(q.ToolGiB),
 		EnvRustCap:    itoa(q.RustGiB),
 		EnvRustKeyCap: itoa(q.RustKeyGiB),

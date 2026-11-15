@@ -301,3 +301,68 @@ func TestLabelsCompareCaseInsensitively(t *testing.T) { // R5.28
 		t.Fatalf("%v", got)
 	}
 }
+
+// R5.39: legacy_vars writes the old names with the same labels, removes them
+// with the setting, and never touches a CI_RUNS_ON the controller did not write.
+func TestLegacyNamesWrittenAndRemovedWithSetting(t *testing.T) {
+	e := newEnv(t)
+	e.world()
+	e.cap.m = map[string][]string{"Linux": {"X64"}, "Windows": {"X64"}}
+	ctx := context.Background()
+	e.turnOn(101)
+	if got := varNames(e, "alice/secret"); got != "RUNS_ON_LINUX,RUNS_ON_WINDOWS" {
+		t.Fatalf("off by default: %s", got)
+	}
+	// NIGHTLY_RUNS_ON is the owner's: never touched.
+	e.fake.SetVariable("alice/secret", "NIGHTLY_RUNS_ON", `["mine"]`)
+
+	on := true
+	if _, err := e.svc.UpdatePolicy(ctx, adminP, 101, PolicyUpdate{LegacyVars: &on}); err != nil {
+		t.Fatal(err)
+	}
+	if got := varNames(e, "alice/secret"); got != "CI_RUNS_ON,CI_RUNS_ON_WINDOWS,NIGHTLY_RUNS_ON,RUNS_ON_LINUX,RUNS_ON_WINDOWS" {
+		t.Fatalf("on: %s", got)
+	}
+	lin, _ := e.fake.Variable("alice/secret", "RUNS_ON_LINUX")
+	old, _ := e.fake.Variable("alice/secret", "CI_RUNS_ON")
+	win, _ := e.fake.Variable("alice/secret", "RUNS_ON_WINDOWS")
+	oldWin, _ := e.fake.Variable("alice/secret", "CI_RUNS_ON_WINDOWS")
+	if lin != old || win != oldWin || lin == "" {
+		t.Fatalf("same labels: %q %q %q %q", lin, old, win, oldWin)
+	}
+
+	// Drift in an old name is put back.
+	e.fake.SetVariable("alice/secret", "CI_RUNS_ON", `["x"]`)
+	if err := e.svc.ReconcileVariables(ctx, 101); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := e.fake.Variable("alice/secret", "CI_RUNS_ON"); got != lin {
+		t.Fatalf("restored: %q", got)
+	}
+
+	// The OS loses its policy: its old name goes with it (same rules as R5.28).
+	if _, err := e.svc.UpdatePolicy(ctx, adminP, 101, PolicyUpdate{Labels: sp("windows")}); err != nil {
+		t.Fatal(err)
+	}
+	if got := varNames(e, "alice/secret"); got != "CI_RUNS_ON_WINDOWS,NIGHTLY_RUNS_ON,RUNS_ON_WINDOWS" {
+		t.Fatalf("linux gone: %s", got)
+	}
+
+	// Setting off: the old names go, the new ones stay.
+	off := false
+	if _, err := e.svc.UpdatePolicy(ctx, adminP, 101, PolicyUpdate{Labels: sp(), LegacyVars: &off}); err != nil {
+		t.Fatal(err)
+	}
+	if got := varNames(e, "alice/secret"); got != "NIGHTLY_RUNS_ON,RUNS_ON_LINUX,RUNS_ON_WINDOWS" {
+		t.Fatalf("off: %s", got)
+	}
+
+	// An old name the old pool wrote (not in the store) is left alone.
+	e.fake.SetVariable("alice/secret", "CI_RUNS_ON", `["old-pool"]`)
+	if err := e.svc.ReconcileVariables(ctx, 101); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := e.fake.Variable("alice/secret", "CI_RUNS_ON"); got != `["old-pool"]` {
+		t.Fatalf("not ours: %q", got)
+	}
+}

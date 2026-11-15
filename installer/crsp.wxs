@@ -5,6 +5,7 @@
 
     ProductVersion  a.b.c.d for the MSI (build.ps1 maps the release version)
     CrspExe         the crsp.exe to install
+    CrspIcon        the app icon (cmd/crsp/winres/crsp.ico): Apps list, Start Menu, installer
     LicenseRtf      the licence text shown by the install dialog
 
   What is installed where:
@@ -21,7 +22,7 @@
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
      xmlns:fw="http://wixtoolset.org/schemas/v4/wxs/firewall">
-  <Package Name="crsp"
+  <Package Name="CI Runners Shared Pool"
            Manufacturer="Luis Carvalho"
            Version="$(var.ProductVersion)"
            UpgradeCode="C1D62442-6DB4-4FF0-9F28-A1CE3121B332"
@@ -45,6 +46,10 @@
     <!-- Restart Manager is off: the service and the tray are stopped by this package itself, so no run needs a reboot. -->
     <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- The round CRSP disc (decision tray D8): the icon of the Apps list entry. -->
+    <Icon Id="CrspIcon.ico" SourceFile="$(var.CrspIcon)" />
+    <Property Id="ARPPRODUCTICON" Value="CrspIcon.ico" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="crsp" />
@@ -105,7 +110,8 @@
       <Component Id="StartMenuShortcut">
         <Shortcut Id="CrspShortcut"
                   Directory="ProgramMenuFolder"
-                  Name="crsp"
+                  Name="CI Runners Shared Pool"
+                  Icon="CrspIcon.ico"
                   Description="CI Runners Shared Pool tray"
                   Target="[#CrspExe]"
                   Arguments="tray"
@@ -248,7 +254,29 @@
     <CustomAction Id="FailNow" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="check" />
     <?endif?>
 
+    <!--
+      Starts the tray for the person who installed, at the end of a successful
+      install or upgrade (OPS6); until now it came back only at the next sign-in.
+      The old tray was ended by EndProgramProcesses earlier in the same run, so
+      this one is the only tray. Not elevated: the installer's own process may
+      hold an administrator token, so the Start Menu shortcut is opened through
+      explorer.exe, which starts it in the signed-in user's own (not elevated)
+      session. The shortcut runs "crsp.exe tray". Runs after InstallFinalize, so
+      after a rollback it never runs. Not on uninstall or repair (Installed),
+      and not when the run is SYSTEM's (the auto-update from the service),
+      which has no user session to show a tray in.
+    -->
+    <SetProperty Id="LaunchTrayExe" Value="[WindowsFolder]explorer.exe" After="CostFinalize" Sequence="both" />
+    <CustomAction Id="LaunchTray"
+                  Property="LaunchTrayExe"
+                  ExeCommand="&quot;[ProgramMenuFolder]CI Runners Shared Pool.lnk&quot;"
+                  Execute="immediate"
+                  Impersonate="yes"
+                  Return="asyncNoWait" />
+
     <InstallExecuteSequence>
+      <Custom Action="LaunchTray" After="InstallFinalize"
+              Condition="NOT Installed AND NOT REMOVE AND NOT (LogonUser~=&quot;SYSTEM&quot;)" />
       <Custom Action="StartServicesRollback" Before="StopServiceEarly" />
       <?ifdef FailAfterInstall?>
       <Custom Action="FailNow" After="StartServices2" Condition="NOT REMOVE~=&quot;ALL&quot;" />

@@ -47,7 +47,7 @@ msiexec /i crsp-windows-<amd64|arm64>.msi /qn /norestart /l*v <log>
 
 This is both the first install and the upgrade. On an upgrade it stops the `crsp` service and the tray, replaces the files, and starts the service again. Data is kept. The self-updater (CRSP19) runs exactly this command; its log path is its choice (suggested: `%ProgramData%\crsp\logs\msi-update.log`).
 
-Exit codes: `0` done; `1603` refused (a newer version is installed, the log has `A newer version of crsp is already installed.`) or failed; `3010` never (no run needs a reboot).
+Exit codes: `0` done; `1603` refused (a newer version is installed, the log has `A newer version of CI Runners Shared Pool is already installed.`) or failed; `3010` never (no run needs a reboot).
 
 ```text
 msiexec /x crsp-windows-<amd64|arm64>.msi /qn /norestart /l*v <log>                 keeps the data folder

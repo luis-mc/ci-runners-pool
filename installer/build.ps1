@@ -62,6 +62,7 @@ try {
     -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext -ext WixToolset.Firewall.wixext `
     -d "ProductVersion=$ProductVersion" -d "CrspExe=$Exe" `
     -d "LicenseRtf=$rtf" `
+    -d "CrspIcon=$(Join-Path $repo 'cmd/crsp/winres/crsp.ico')" `
     @(if ($FailAfterInstall) { '-d'; 'FailAfterInstall=1' }) `
     -o $msi | Out-Host
   if ($LASTEXITCODE -ne 0) { throw 'wix build failed' }

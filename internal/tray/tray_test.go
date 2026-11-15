@@ -3,7 +3,9 @@ package tray
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"errors"
+	"image/color"
 	"net"
 	"os"
 	"path/filepath"
@@ -40,25 +42,64 @@ func TestTooltipCutAt127(t *testing.T) {
 	}
 }
 
-func TestIconPerStateDiffersByGlyph(t *testing.T) {
+func TestIconIsAlwaysTheDiscDifferingOnlyInColour(t *testing.T) {
 	states := []State{StateHealthy, StateWaiting, StateFailed, StateStopped, StateStarting}
-	seen := map[string]State{}
+	seen := map[color.NRGBA]State{}
 	for _, s := range states {
-		k := string(IconPNG(s))
-		if o, dup := seen[k]; dup {
-			t.Errorf("%s and %s share an icon", s, o)
+		c := DiscColour(s)
+		if o, dup := seen[c]; dup {
+			t.Errorf("%s and %s share a colour", s, o)
 		}
-		seen[k] = s
-		if !bytes.HasPrefix(IconICO(s), []byte{0, 0, 1, 0, 1, 0}) {
+		seen[c] = s
+		if c != DiscColour(s) || !bytes.HasPrefix(IconICO(s), []byte{0, 0, 1, 0, 3, 0}) {
 			t.Errorf("%s: bad ICO header", s)
 		}
 	}
-	g := map[string]bool{}
-	for _, s := range states {
-		g[Glyph(s)] = true
+	if DiscColour(StateHealthy) != (color.NRGBA{R: 0x1a, G: 0x7f, B: 0x37, A: 0xff}) {
+		t.Error("healthy disc is not green 1a7f37")
 	}
-	if len(g) != 4 { // failed and stopped share ✕ (spec section 4)
-		t.Errorf("glyphs %v", g)
+	// Same shape and letters in every state: the alpha channel and the letter (white) pixels match.
+	ref := DrawIcon(32, DiscColour(StateHealthy))
+	for _, s := range states {
+		img := DrawIcon(32, DiscColour(s))
+		for y := 0; y < 32; y++ {
+			for x := 0; x < 32; x++ {
+				a, b := ref.NRGBAAt(x, y), img.NRGBAAt(x, y)
+				if a.A != b.A {
+					t.Fatalf("%s: shape differs at %d,%d", s, x, y)
+				}
+			}
+		}
+	}
+	// Letters are drawn: white pixels inside the disc at every tray size.
+	for _, n := range IconSizes {
+		img := DrawIcon(n, DiscColour(StateHealthy))
+		white := 0
+		for y := 0; y < n; y++ {
+			for x := 0; x < n; x++ {
+				if c := img.NRGBAAt(x, y); c.A == 255 && c.R > 200 && c.G > 200 && c.B > 200 {
+					white++
+				}
+			}
+		}
+		if white < n*n/40 {
+			t.Errorf("size %d: only %d letter pixels", n, white)
+		}
+	}
+}
+
+// The committed .ico under cmd/crsp must be what AppICO draws; `go generate ./cmd/crsp` rewrites it.
+func TestCommittedAppIconMatches(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join("..", "..", "cmd", "crsp", "winres", "crsp.ico"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(b, AppICO()) {
+		t.Fatal("cmd/crsp/winres/crsp.ico is stale: run go generate ./cmd/crsp")
+	}
+	n := int(binary.LittleEndian.Uint16(b[4:6]))
+	if n != 7 {
+		t.Fatalf("want 7 sizes, got %d", n)
 	}
 }
 

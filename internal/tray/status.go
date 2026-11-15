@@ -9,7 +9,7 @@ import (
 // State is what the tray shows about the local service.
 type State string
 
-// States, spec section 4. The glyph differs per state by shape (R5.4).
+// States, spec section 4. The icon is the same disc with CRSP in it; the disc colour and the words name the state (R5.4, decision tray D8).
 const (
 	StateStarting State = "starting"
 	StateHealthy  State = "ok"
