@@ -1,0 +1,68 @@
+package runners
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+	"testing"
+)
+
+func jobRunner() JobRunner {
+	return JobRunner{Name: "crsp-job-1", MachineID: "m1", Arch: "x64", Backend: "docker",
+		Labels: []string{"self-hosted", "linux", "x64"}, Scope: Scope{Kind: "repository", RepositoryID: 1}}
+}
+
+// R5.25: one runner per job; the JIT config goes to the agent once and is kept
+// nowhere else.
+func TestJitConfigNotStored(t *testing.T) {
+	r := newRig(machine("linux", "x64", true))
+	rec, err := r.svc.StartJobRunner(context.Background(), jobRunner(), "luis-mc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const secret = "JIT-CONFIG-SECRET-1"
+	if len(r.ag.cfgs) != 1 || r.ag.cfgs[0].JITConfig != secret || r.ag.cfgs[0].Registration != "" {
+		t.Fatalf("the agent must get the JIT config and no registration token: %+v", r.ag.cfgs)
+	}
+	if len(r.gh.jitCalls) != 1 || r.gh.regCalls != 0 {
+		t.Fatalf("one JIT call, no registration token: %d %d", len(r.gh.jitCalls), r.gh.regCalls)
+	}
+	if rec.Kind != "ephemeral" || rec.Isolation != "container" || rec.GitHubRunnerID != 4242 {
+		t.Fatalf("record %+v", rec)
+	}
+	// Nothing the controller keeps or shows holds the config.
+	stored, _ := r.store.ListRunners(context.Background(), Filter{})
+	dump := fmt.Sprintf("%+v %+v %v %v %+v", stored, rec, r.store.events, r.au.entries, r.ag.added)
+	if strings.Contains(dump, secret) {
+		t.Fatalf("the JIT config reached the store, an event, the audit or the spec: %s", dump)
+	}
+}
+
+func TestJitFailureIsNamedAndLeavesNoSecret(t *testing.T) {
+	r := newRig(machine("linux", "x64", true))
+	r.gh.jitErr = errors.New("github: 403")
+	_, err := r.svc.StartJobRunner(context.Background(), jobRunner(), "luis-mc")
+	if err == nil || !strings.Contains(err.Error(), "JIT config") {
+		t.Fatalf("err = %v", err)
+	}
+	if len(r.ag.added) != 0 {
+		t.Fatal("the agent must not start a runner with no config")
+	}
+	stored, _ := r.store.ListRunners(context.Background(), Filter{})
+	if len(stored) != 1 || stored[0].State != Failed {
+		t.Fatalf("the failed record must say Failed: %+v", stored)
+	}
+}
+
+func TestJitRunnerRefusesProjectLabels(t *testing.T) {
+	r := newRig(machine("linux", "x64", true))
+	j := jobRunner()
+	j.Labels = []string{"self-hosted", "my-project"}
+	if _, err := r.svc.StartJobRunner(context.Background(), j, "u"); err == nil {
+		t.Fatal("a project label must be refused")
+	}
+	if len(r.gh.jitCalls) != 0 {
+		t.Fatal("no JIT call for a refused request")
+	}
+}

@@ -258,6 +258,8 @@ type MachineSetting struct {
 	WindowsSymlinkRight int64
 	UpdatedAt           string
 	UpdatedBy           string
+	PoolMemoryGib       float64
+	PoolCpus            int64
 }
 
 type ManagedVariable struct {

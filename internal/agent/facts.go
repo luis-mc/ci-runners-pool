@@ -52,6 +52,7 @@ func DetectFacts(_ context.Context, sys Sys, dataDir string, now time.Time) *age
 			"Get-CimInstance Win32_VideoController|ForEach-Object{$_.AdapterCompatibility+'|'+$_.Name+'|'+$_.AdapterRAM}"}); ok && r.Code == 0 {
 			f.Gpus = ParseWindowsGPUs(r.Out)
 		}
+		applyWSLConfig(f, sys)
 	case "darwin":
 		f.Os = "macos"
 		if r, ok := sys.Run([]string{"sw_vers", "-productName"}); ok && r.Code == 0 {

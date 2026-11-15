@@ -171,6 +171,12 @@ message Facts {
   repeated Gpu gpus = 13;
   repeated BackendSupport backends = 14;
   int64 detected_at_unix_ms = 15;
+  // Windows with WSL2: what `.wslconfig` declares (machines R5.54). A value
+  // the file does not set is 0; wsl_config_present says whether a file was read.
+  bool wsl_config_present = 16;
+  int64 wsl_memory_bytes = 17;
+  int32 wsl_processors = 18;
+  bool wsl_nested_virtualization = 19;
 }
 
 message Gpu {
@@ -465,6 +471,10 @@ message MachineSettings {
   int64 cache_cap_bytes = 15;
   int32 drain_timeout_minutes = 16;
   bool windows_symlink_right = 17;
+  // The owner's pool size, checked against the budget (machines R5.58). 0 means
+  // not set: the pool then follows the budget alone.
+  double pool_memory_gib = 18;
+  int32 pool_cpus = 19;
 }
 
 // Drain stops new jobs on the machine for a change that restarts runners or

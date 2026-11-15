@@ -142,12 +142,34 @@ func RunJobDone(ctx context.Context, cfg DoneConfig) (code int) {
 // that ran here is done and the runner takes no other job before this hook
 // ends, so no job reads the folder now (caches R5.37).
 func sweepCaches(cfg *DoneConfig, log func(string, ...any)) {
-	fsys := cfg.CacheFS
+	SweepCaches(cfg.CacheFS, cfg.Caches, log)
+}
+
+// SweepCaches brings each cache under its quota. The Rust build cache has the
+// extra rules of caches R5.45: the cap of one key, the key in use kept, the
+// incremental folders first. The job-started hook calls it before the job and
+// the job-completed hook after it; both run while no job reads the folder.
+// An eviction that fails is logged and never fails the hook.
+func SweepCaches(fsys runnercache.FS, caches []runnercache.Cap, log func(string, ...any)) {
 	if fsys == nil {
 		fsys = runnercache.OSFS{}
 	}
-	for _, c := range cfg.Caches {
+	for _, c := range caches {
 		log("%s %s: checking the quota", c.Name, c.Dir)
+		if c.Rust {
+			res, err := runnercache.EnforceRust(fsys, c.Dir, runnercache.RustLimits{Total: c.Bytes, Key: c.KeyBytes}, c.Keep, false)
+			for _, ln := range res.Lines() {
+				log("%s", ln)
+			}
+			switch {
+			case err != nil:
+				log("%s %s: eviction stopped (%v)", c.Name, c.Dir, err)
+			case len(res.Actions) > 0:
+				log("%s over its cap: %d MiB to %d MiB (cap %d MiB, one key %d MiB)",
+					c.Name, res.Before>>20, res.After>>20, c.Bytes>>20, c.KeyBytes>>20)
+			}
+			continue
+		}
 		res, err := runnercache.Enforce(fsys, c.Dir, c.Bytes, false)
 		switch {
 		case err != nil:

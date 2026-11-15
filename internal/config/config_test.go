@@ -85,6 +85,14 @@ func TestCacheQuotaKeys(t *testing.T) {
 	if err != nil || cfg.Cache.ToolGiB != 8 || cfg.Cache.RustGiB != 100 || cfg.Cache.MinFreePct != 15 {
 		t.Fatalf("file: %+v %v", cfg.Cache, err)
 	}
+	if cfg.Cache.RustKeyGiB != 25 || cfg.Cache.BudgetGiB != 150 || cfg.Cache.AlertGiB != 20 {
+		t.Fatalf("new defaults: %+v", cfg.Cache)
+	}
+	more := files(map[string]string{"/etc/crsp/config.toml": "cache_rust_key_gib = 9\ncache_budget_gib = 80\ncache_alert_gib = 5\n"})
+	cfg, err = LoadFor("linux", env(nil), more)
+	if err != nil || cfg.Cache.RustKeyGiB != 9 || cfg.Cache.BudgetGiB != 80 || cfg.Cache.AlertGiB != 5 {
+		t.Fatalf("key, budget, alert: %+v %v", cfg.Cache, err)
+	}
 	bad := files(map[string]string{"/etc/crsp/config.toml": "cache_min_free_pct = 90\n"})
 	if _, err = LoadFor("linux", env(nil), bad); err == nil || !strings.Contains(err.Error(), "min_free_pct") {
 		t.Fatalf("bad threshold accepted: %v", err)

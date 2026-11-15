@@ -47,3 +47,46 @@ func TestWaitNoListenerDoesNotGuess(t *testing.T) {
 		t.Fatal("an unreadable process list must stop the start")
 	}
 }
+
+// runners R5.59: terminate, then kill, then confirm; never a real process.
+func TestEndListenersEscalatesTermThenKill(t *testing.T) {
+	alive := []int{5}
+	var sent []bool
+	e := Ender{
+		List: func(context.Context) ([]int, error) { return alive, nil },
+		Signal: func(_ context.Context, _ []int, force bool) error {
+			sent = append(sent, force)
+			if force {
+				alive = nil
+			}
+			return nil
+		},
+		Sleep: func(context.Context, time.Duration) {},
+	}
+	if err := EndListeners(t.Context(), e); err != nil {
+		t.Fatal(err)
+	}
+	if len(sent) != 2 || sent[0] || !sent[1] {
+		t.Fatalf("signals = %v", sent)
+	}
+}
+
+func TestEndListenersReportsALeftoverListener(t *testing.T) {
+	e := Ender{
+		List:   func(context.Context) ([]int, error) { return []int{5}, nil },
+		Signal: func(context.Context, []int, bool) error { return nil },
+		Sleep:  func(context.Context, time.Duration) {},
+	}
+	if err := EndListeners(t.Context(), e); !errors.Is(err, ErrListenerAlive) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestCheckNoListener(t *testing.T) {
+	if err := CheckNoListener(t.Context(), func(context.Context) ([]int, error) { return []int{9}, nil }); !errors.Is(err, ErrListenerAlive) {
+		t.Fatalf("err = %v", err)
+	}
+	if err := CheckNoListener(t.Context(), func(context.Context) ([]int, error) { return nil, nil }); err != nil {
+		t.Fatal(err)
+	}
+}

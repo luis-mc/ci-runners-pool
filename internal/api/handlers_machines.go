@@ -166,6 +166,7 @@ func settingsToAPI(st machines.Settings) gen.MachineSettings {
 		GateMaxWaitMinutes: machinesPtr(st.GateMaxWaitMinutes), GatePollSeconds: machinesPtr(st.GatePollSeconds),
 		HeavySlots: st.HeavySlots, JobSlots: st.JobSlots, LightSlots: st.LightSlots,
 		SlotMaxAgeMinutes: machinesPtr(st.SlotMaxAgeMinutes), WindowsSymlinkRight: st.WindowsSymlinkRight,
+		PoolMemoryGib: machinesPtr(st.PoolMemoryGiB), PoolCpus: machinesPtr(st.PoolCPUs),
 		HeavyJobs: machinesPtr(append([]string{}, st.HeavyJobs...)), LightJobs: machinesPtr(append([]string{}, st.LightJobs...)),
 	}
 	if st.GateOnTimeout != "" {
@@ -311,7 +312,8 @@ func (s *server) UpdateMachine(ctx context.Context, r gen.UpdateMachineRequestOb
 		Name: b.Name, BudgetMemoryPct: b.BudgetMemoryPct, BudgetCPUPct: b.BudgetCpuPct, JobSlots: b.JobSlots,
 		LightSlots: b.LightSlots, HeavySlots: b.HeavySlots, LightJobs: b.LightJobs, HeavyJobs: b.HeavyJobs,
 		CacheCapBytes: b.CacheCapBytes, DrainTimeoutMinutes: b.DrainTimeoutMinutes, WindowsSymlinkRight: b.WindowsSymlinkRight,
-		Confirm: b.Confirm != nil && *b.Confirm,
+		PoolMemoryGiB: b.PoolMemoryGib, PoolCPUs: b.PoolCpus,
+		Confirm: b.Confirm != nil && *b.Confirm, ConfirmShrink: b.ConfirmShrink != nil && *b.ConfirmShrink,
 	}
 	if b.GateOnTimeout != nil {
 		u.GateOnTimeout = machinesPtr(string(*b.GateOnTimeout))

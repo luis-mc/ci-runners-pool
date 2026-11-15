@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"path"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/poolsize"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"github.com/luis-mc/ci-runners-shared-pool/packaging/hooks"
@@ -141,7 +143,7 @@ func Unit(name, user, folder string) string {
 		"Group=" + runners.RunnersGroup,
 		"WorkingDirectory=" + folder,
 		"ExecStart=" + folder + "/bin/runsvc.sh",
-		"KillMode=process",
+		"KillMode=mixed",
 		"KillSignal=SIGTERM",
 		"TimeoutStopSec=5min",
 		"Restart=on-failure",
@@ -160,6 +162,9 @@ func Unit(name, user, folder string) string {
 func (b *Backend) want(r backend.RunnerSpec, user string) (persistent.Meta, string) {
 	folder := b.Folder(r.Name)
 	kv := runnercache.EnvJoin(folder, r.CacheQuota, path.Join)
+	if r.MaxParallel > 0 {
+		maps.Copy(kv, poolsize.Env(r.MaxParallel))
+	}
 	kv["ACTIONS_RUNNER_HOOK_JOB_STARTED"] = folder + "/hooks/job-started.sh"
 	kv["ACTIONS_RUNNER_HOOK_JOB_COMPLETED"] = folder + "/hooks/job-completed.sh"
 	env := persistent.Env(kv)
@@ -259,6 +264,9 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 		return h, err
 	}
 	if err := b.d.FS.WriteFile(b.unitPath(wantMeta.Service), []byte(Unit(r.Name, user, folder)), 0o644); err != nil {
+		return h, err
+	}
+	if err := b.guardStart(ctx, folder); err != nil {
 		return h, err
 	}
 	for _, c := range [][]string{{"daemon-reload"}, {"enable", "--now", unit}} {
@@ -371,9 +379,20 @@ func (b *Backend) noListener(ctx context.Context, folder string) error {
 	if folder == "" {
 		return nil
 	}
-	return persistent.WaitNoListener(ctx, func(ctx context.Context) ([]int, error) {
+	return persistent.EndListeners(ctx, persistent.Ender{
+		List:   func(ctx context.Context) ([]int, error) { return persistent.UnixListeners(ctx, b.d.Cmd, folder) },
+		Signal: persistent.UnixSignal(b.d.Cmd),
+		Sleep:  b.d.Sleep,
+		Log:    func(m string) { b.log("stop", m) },
+	})
+}
+
+// guardStart refuses to start the service while a listener of the runner
+// folder runs (R5.59).
+func (b *Backend) guardStart(ctx context.Context, folder string) error {
+	return persistent.CheckNoListener(ctx, func(ctx context.Context) ([]int, error) {
 		return persistent.UnixListeners(ctx, b.d.Cmd, folder)
-	}, 0, 0, b.d.Sleep)
+	})
 }
 
 // Deregister removes the runner from GitHub with a remove token and checks the

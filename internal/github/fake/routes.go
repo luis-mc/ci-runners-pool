@@ -364,6 +364,22 @@ func (s *Server) runnerRoutes(w http.ResponseWriter, r *http.Request, scope, res
 		tok := fmt.Sprintf("FAKEREM%dTOKEN", s.nextID)
 		s.removeToks[tok] = true
 		writeJSON(w, 201, map[string]any{"token": tok, "expires_at": s.Now().Add(time.Hour).UTC().Format(time.RFC3339)})
+	case rest == "generate-jitconfig" && r.Method == "POST":
+		var in struct {
+			Name    string   `json:"name"`
+			Group   int64    `json:"runner_group_id"`
+			Labels  []string `json:"labels"`
+			WorkDir string   `json:"work_folder"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil || in.Name == "" || in.Group == 0 {
+			writeJSON(w, 422, map[string]any{"message": "Validation Failed"})
+			return
+		}
+		s.nextID++
+		cfg := fmt.Sprintf("FAKEJIT%dCONFIG", s.nextID)
+		s.jitCfgs[cfg] = in.Name
+		s.jitReqs = append(s.jitReqs, JITRequest{Scope: scope, Name: in.Name, Group: in.Group, Labels: in.Labels})
+		writeJSON(w, 201, map[string]any{"runner": map[string]any{"id": 9000 + s.nextID, "name": in.Name}, "encoded_jit_config": cfg})
 	case rest == "" && r.Method == "GET":
 		items := []map[string]any{}
 		for _, rn := range s.Runners[scope] {
@@ -592,4 +608,19 @@ func (s *Server) checkToken(w http.ResponseWriter, r *http.Request) {
 	}
 	u := s.Users[uid]
 	writeJSON(w, 200, map[string]any{"user": map[string]any{"id": u.ID, "login": u.Login}})
+}
+
+// HasJITConfig tells whether a JIT config was issued.
+func (s *Server) HasJITConfig(cfg string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, ok := s.jitCfgs[cfg]
+	return ok
+}
+
+// JITRequests returns the generate-jitconfig calls seen so far.
+func (s *Server) JITRequests() []JITRequest {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]JITRequest(nil), s.jitReqs...)
 }

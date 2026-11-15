@@ -19,13 +19,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/poolsize"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"github.com/luis-mc/ci-runners-shared-pool/packaging/hooks"
@@ -173,6 +176,9 @@ func (b *Backend) want(r backend.RunnerSpec, account string) (persistent.Meta, s
 	folder := b.Folder(r.Name)
 	hookDir := Join(folder, "hooks")
 	kv := runnercache.EnvJoin(folder, r.CacheQuota, Join)
+	if r.MaxParallel > 0 {
+		maps.Copy(kv, poolsize.Env(r.MaxParallel))
+	}
 	kv["ACTIONS_RUNNER_HOOK_JOB_STARTED"] = Join(hookDir, "job-started.ps1")
 	kv["ACTIONS_RUNNER_HOOK_JOB_COMPLETED"] = Join(hookDir, "job-completed.ps1")
 	kv["PSExecutionPolicyPreference"] = "RemoteSigned"
@@ -313,6 +319,9 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	if err := b.psOK(ctx, "lock folder", scriptLock, env, nil); err != nil {
 		return h, err
 	}
+	if err := b.guardStart(ctx, folder); err != nil {
+		return h, err
+	}
 	if err := b.psOK(ctx, "register service", scriptRegisterService, env, secret); err != nil {
 		return h, err
 	}
@@ -388,7 +397,7 @@ func (b *Backend) stopService(ctx context.Context, env map[string]string, folder
 	if folder == "" {
 		return nil
 	}
-	return persistent.WaitNoListener(ctx, func(ctx context.Context) ([]int, error) {
+	list := func(ctx context.Context) ([]int, error) {
 		res, err := b.ps(ctx, scriptListeners, map[string]string{"CRSP_FOLDER": folder}, nil)
 		if err != nil {
 			return nil, fmt.Errorf("list listeners: %w", err)
@@ -397,7 +406,35 @@ func (b *Backend) stopService(ctx context.Context, env map[string]string, folder
 			return nil, fmt.Errorf("list listeners: powershell exited %d", res.ExitCode)
 		}
 		return persistent.ParsePIDs(res.Stdout), nil
-	}, 0, 0, b.d.Sleep)
+	}
+	return persistent.EndListeners(ctx, persistent.Ender{
+		List: list,
+		// taskkill /T ends the listener and every child with it.
+		Signal: func(ctx context.Context, pids []int, force bool) error {
+			ids := make([]string, len(pids))
+			for i, p := range pids {
+				ids[i] = strconv.Itoa(p)
+			}
+			return b.psOK(ctx, "end listener", scriptEndListeners, map[string]string{"CRSP_PIDS": strings.Join(ids, ",")}, nil)
+		},
+		Sleep: b.d.Sleep,
+		Log:   func(m string) { b.log("stop", m) },
+	})
+}
+
+// guardStart refuses to start the service while a listener of the runner
+// folder runs (R5.59).
+func (b *Backend) guardStart(ctx context.Context, folder string) error {
+	return persistent.CheckNoListener(ctx, func(ctx context.Context) ([]int, error) {
+		res, err := b.ps(ctx, scriptListeners, map[string]string{"CRSP_FOLDER": folder}, nil)
+		if err != nil {
+			return nil, fmt.Errorf("list listeners: %w", err)
+		}
+		if res.ExitCode != 0 {
+			return nil, fmt.Errorf("list listeners: powershell exited %d", res.ExitCode)
+		}
+		return persistent.ParsePIDs(res.Stdout), nil
+	})
 }
 
 // Deregister removes the runner from GitHub with a remove token and checks the

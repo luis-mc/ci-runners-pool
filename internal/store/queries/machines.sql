@@ -72,7 +72,7 @@ UPDATE machine_settings SET
     version = version + 1,
     budget_memory_pct = ?, budget_cpu_pct = ?, job_slots = ?, light_slots = ?, heavy_slots = ?,
     light_jobs = ?, heavy_jobs = ?, gate_on_timeout = ?, allowed_backends = ?, cache_cap_bytes = ?,
-    drain_timeout_minutes = ?, windows_symlink_right = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), updated_by = ?
+    drain_timeout_minutes = ?, windows_symlink_right = ?, pool_memory_gib = ?, pool_cpus = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), updated_by = ?
 WHERE machine_id = ?;
 
 -- name: InsertMachineLoad :exec

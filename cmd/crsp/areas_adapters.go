@@ -75,7 +75,8 @@ func (l machineLookup) GetMachine(ctx context.Context, id string) (runners.Machi
 		}
 		return runners.Machine{}, err
 	}
-	m := runners.Machine{ID: v.Machine.ID, Name: v.Machine.Name, OS: v.Machine.OS, Arch: v.Machine.Arch}
+	m := runners.Machine{ID: v.Machine.ID, Name: v.Machine.Name, OS: v.Machine.OS, Arch: v.Machine.Arch,
+		PoolCPUs: v.Settings.PoolCPUs, JobSlots: v.Settings.JobSlots}
 	for _, b := range v.Backends {
 		kinds := []string{"ephemeral"}
 		if b.Name == string(backend.Persistent) {

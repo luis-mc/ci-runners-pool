@@ -222,7 +222,7 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 
 **R5.46** — Hold and timeout lines name the top 5 processes by CPU and by memory, names only. A failure to list processes never fails anything. M1. Built. Source: `load.py` `top_processes`, `parse_ps`, `parse_powershell_csv`; `load_guard.py` `running_heavy_text`.
 
-**R5.47** — On Windows with WSL2, the memory held by the WSL VM is the larger of its working set and its private bytes, and never less than what its containers use. Docker is read through the Windows `docker` CLI first, then `wsl docker`. Memory used for sizing is the median of 5 samples taken 1 s apart; a fresh published load figure wins when it is larger. This read is shared with the machines spec. M2. NOT YET IMPLEMENTED. Source: `delivery_runner_pool.py` `wsl_vm_parts`, `wsl_vm_gib`, `docker_run`, `container_gib`, `detect_host`, `median`.
+**R5.47** — On Windows with WSL2, the memory held by the WSL VM is the larger of its working set and its private bytes, and never less than what its containers use. Docker is read through the Windows `docker` CLI first, then `wsl docker`. Memory used for sizing is the median of 5 samples taken 1 s apart; a fresh published load figure wins when it is larger. This read is shared with the machines spec. M2. Built (CRSP50): the VM and Docker read live in `internal/load` (machines R5.17, R5.18: `WSLVMParts`, `WSLVM`, `DockerRun`, `ContainerUse`), and `load.SizingRead` takes the median of 5 samples 1 s apart, takes the VM out of the host figure, and lets a published figure no older than 60 s win when it is larger. The scheduler gate keeps its own reader (R5.42). Source: `delivery_runner_pool.py` `wsl_vm_parts`, `wsl_vm_gib`, `docker_run`, `container_gib`, `detect_host`, `median`.
 
 ### 5.8 Placement across machines
 
@@ -230,7 +230,7 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 
 **R5.49** — Among fitting machines, the controller picks the one with the most free job slots; on a tie, the one with the most room under its budget (the smaller of memory room and CPU room); on a tie, the one that ran a job of this repository most recently (warm caches). M3. NOT YET IMPLEMENTED. Source: none (new; product brief, scheduling).
 
-**R5.50** — For an ephemeral runner, the controller takes the slot on the chosen machine when it places the job, in the same transaction that records the placement and enqueues the start-runner work for that machine's agent. The slot is freed when GitHub reports the job completed or the runner is gone. M2 (one machine), M3 (many). NOT YET IMPLEMENTED. Source: none (new; decision 0002).
+**R5.50** — For an ephemeral runner, the controller takes the slot on the chosen machine when it places the job, in the same transaction that records the placement and enqueues the start-runner work for that machine's agent. The slot is freed when GitHub reports the job completed or the runner is gone. M2 (one machine), M3 (many). Built for one machine (CRSP50): `Engine.Place` takes a ci slot, writes its slot-log row and the `start_runner` row of `job_queue` in one transaction (no free slot: nothing is recorded; the same job twice is one placement), and a slot is freed by `CompletedOnGitHub` or `RunnerGone` (a `wake_gates` row in the same transaction). NOT YET IMPLEMENTED: the caller that picks the machine (R5.48, R5.49, M3) and the agent handling the `start_runner` work. Source: none (new; decision 0002).
 
 ### 5.9 Demand and the job queue table
 
@@ -366,7 +366,7 @@ A take is one transaction: check the ticket is first, count free slots, insert t
 
 ## 9. How it is proven
 
-A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTED (M2 and M3 requirements, R5.47, R5.48 to R5.53, R5.55 to R5.57, R6.7). "Ported from" names the dev-standards test under `claude/plugins/delivery/tests/`.
+A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTED (M2 and M3 requirements, R5.48, R5.49, R5.51 to R5.53, R5.55 to R5.57, R6.7). "Ported from" names the dev-standards test under `claude/plugins/delivery/tests/`.
 
 | Requirement | Test | Ported from |
 |---|---|---|
@@ -417,10 +417,10 @@ A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTE
 | R5.44 | `internal/load/cgroup_test.go` | `test_machine.py` HostLoad `test_container_figures_from_cgroup_v2`, `test_the_worse_of_host_and_container_decides` |
 | R5.45 | `internal/scheduler/load/load_test.go` TestOverNamesTheNumbers; `internal/scheduler/gate_test.go` TestOverNamesTheNumbers | `test_load.py` Limits `test_over_names_the_numbers` |
 | R5.46 | `internal/scheduler/load/load_test.go` TestTopProcesses | `test_load.py` Parsers `test_process_names` |
-| R5.47 | planned: internal/scheduler/load/wsl_test.go TestWSLVMAndDockerRead | `test_dl177_pool_measure.py` VmReadTests (4), DockerReadTests (5), HostTests (6); `test_dl176_pool_resize.py` MedianTests `test_a_spike_does_not_cut_the_cap`, `test_sampling_sleeps_between_reads_through_the_probe`, `test_even_count_uses_the_middle_pair`, `test_three_resize_plans_with_different_spikes_agree` |
+| R5.47 | `internal/load/wslvm_test.go` (the VM read), `internal/load/docker_test.go` (Docker CLI first, then WSL), `internal/load/sizing_test.go` TestSizingReadIsMedianOfFiveSamplesOneSecondApart, TestFreshPublishedFigureWinsWhenLarger | `test_dl177_pool_measure.py` VmReadTests (4), DockerReadTests (5), HostTests (6); `test_dl176_pool_resize.py` MedianTests `test_a_spike_does_not_cut_the_cap`, `test_sampling_sleeps_between_reads_through_the_probe`, `test_even_count_uses_the_middle_pair`, `test_three_resize_plans_with_different_spikes_agree` |
 | R5.48 | planned: internal/scheduler/placement_test.go TestFittingMachines | new |
 | R5.49 | planned: internal/scheduler/placement_test.go TestRankCapacityThenRoomThenWarmth | new |
-| R5.50 | planned: internal/scheduler/placement_test.go TestPlacementTakesSlotInOneTransaction | new |
+| R5.50 | `internal/scheduler/placement_test.go` TestPlacementTakesSlotInOneTransaction, TestPlacementWithNoFreeSlotRecordsNothing, TestPlacingTheSameJobTwiceIsOnePlacement, TestPlacedSlotFreedWhenGitHubReportsCompleted, TestPlacedSlotFreedWhenTheRunnerIsGone | new |
 | R5.51 | planned: internal/scheduler/demand_test.go TestScaleSetDemand | new |
 | R5.52 | planned: internal/scheduler/demand_test.go TestWebhookThenPollFallback | new |
 | R5.53 | planned: internal/scheduler/demand_test.go TestSameJobTwiceIsOneRecord | new |
@@ -476,7 +476,7 @@ These dev-standards tests touch the same modules but are not ported here, or go 
 
 Built in CRSP21 (M1): the slot queue, the gate, the job hooks, the dead-holder and age rules, the slot log, the load probe and the status and free-stale handlers. Still open:
 
-- M2: the WSL VM load read (R5.47); the cgroup v2 read (R5.44) is M1 in the agent's sampler, the scale-set demand signal (R5.51), ephemeral-runner slots (R5.50 for one machine).
+- M2: the scale-set demand signal (R5.51). Built in CRSP50: the sizing read (R5.47) and the slot for an ephemeral runner on one machine (R5.50); the cgroup v2 read (R5.44) is M1 in the agent's sampler.
 - M3: placement across machines (R5.48, R5.49), the liveness judge for holders on other machines (R5.32), maintenance windows and quiet hours (R5.55 to R5.57).
 - The webhook and poll intake of GitHub jobs (R5.52, R5.53) and the other `job_queue` follow-ups (R5.54) belong to github-integration and the agent link.
 - The agent side of the hook socket (`hooks.Serve` is the protocol; the agent wires it to its controller stream), the `crsp slots` commands and the console views belong to the agent, CLI and web-console features.
@@ -487,11 +487,12 @@ Open owner questions:
 
 1. Order of service: should repository priority come before the event class (ready pull request or default branch first), as D3 proposes, or after it? Built as D3 proposes.
 2. Placement: should cache warmth only break ties (R5.49), or win when free capacity differs by less than one slot?
-3. Quiet hours: is the model "fewer slots and a lower budget by day" (R5.56) right, and is the machine's own time zone the one to use?
+3. R5.50 (CRSP50): an ephemeral runner's slot is a `ci` job slot, so it counts against the same limit as a gate. Built so. Alternative: a separate ephemeral slot kind.
+4. Quiet hours: is the model "fewer slots and a lower budget by day" (R5.56) right, and is the machine's own time zone the one to use?
 
 ## 12. Code map
 
-Source: `internal/scheduler/slots/config.go`, `internal/scheduler/slots/order.go`, `internal/scheduler/slots/kinds.go`, `internal/scheduler/slots/holder.go`, `internal/scheduler/slots/event.go`, `internal/scheduler/slots/types.go`, `internal/scheduler/slots/jobs.go`, `internal/scheduler/engine.go`, `internal/scheduler/gate.go`, `internal/scheduler/release.go`, `internal/scheduler/status.go`, `internal/scheduler/load/parse.go`, `internal/scheduler/load/sample.go`, `internal/scheduler/load/top.go`, `internal/hooks/client.go`, `internal/hooks/gate.go`, `internal/hooks/jobdone.go`, `internal/hooks/command.go`, `internal/hooks/wrappers.go`, `internal/store/schedstore.go`, `internal/api/handlers_jobs.go`
+Source: `internal/scheduler/slots/config.go`, `internal/scheduler/slots/order.go`, `internal/scheduler/slots/kinds.go`, `internal/scheduler/slots/holder.go`, `internal/scheduler/slots/event.go`, `internal/scheduler/slots/types.go`, `internal/scheduler/slots/jobs.go`, `internal/scheduler/engine.go`, `internal/scheduler/gate.go`, `internal/scheduler/release.go`, `internal/scheduler/status.go`, `internal/scheduler/placement.go`, `internal/load/sizing.go`, `internal/scheduler/load/parse.go`, `internal/scheduler/load/sample.go`, `internal/scheduler/load/top.go`, `internal/hooks/client.go`, `internal/hooks/gate.go`, `internal/hooks/jobdone.go`, `internal/hooks/command.go`, `internal/hooks/wrappers.go`, `internal/store/schedstore.go`, `internal/api/handlers_jobs.go`
 
 - `internal/scheduler/slots`: settings, order of service, light and heavy match, holder rule, event class, row types and the `Store` seam.
 - `internal/scheduler`: the engine: gate, beat, cancel, release, reconcile, sweep, free stale, status, and the sweeper loop.
@@ -500,4 +501,4 @@ Source: `internal/scheduler/slots/config.go`, `internal/scheduler/slots/order.go
 - `internal/store/schedstore.go`: the SQLite side of `Store`, and the jobs reads.
 - `internal/api/handlers_jobs.go`: listJobs, getJob, listSlots, freeStaleSlots.
 
-Planned, not built: `internal/scheduler/placement.go`, `demand.go`, `windows.go` (M2 and M3); `internal/scheduler/load/wsl_windows.go` (M2). The tables are those of `internal/store/migrations/00006_scheduling.sql`.
+Planned, not built: `demand.go`, `windows.go` (M2 and M3); placement across machines (R5.48, R5.49). Built in CRSP50: `placement.go` (one machine). The tables are those of `internal/store/migrations/00006_scheduling.sql`.

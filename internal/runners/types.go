@@ -8,6 +8,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/poolsize"
 )
 
 // Scope is where a runner registers (runners R5.2).
@@ -72,6 +73,20 @@ type Machine struct {
 	Arch     string
 	Backends []BackendOption
 	Symlink  bool // a machine or label setting asks for the symlink right (R5.14)
+	// PoolCPUs and JobSlots are the owner's pool size and the runners that run
+	// at once; a runner's CPU count is their split (machines R5.54, R5.58).
+	// PoolCPUs 0 means no pool size is set and no CPU count is exported.
+	PoolCPUs int
+	JobSlots int
+}
+
+// MaxParallel is the CPU count a runner on this machine gives its jobs, or 0
+// when the owner has set no pool size (runners R5.53).
+func (m Machine) MaxParallel() int {
+	if m.PoolCPUs <= 0 {
+		return 0
+	}
+	return poolsize.PerRunner(m.PoolCPUs, m.JobSlots)
 }
 
 // PlanState and step states mirror the API enums.
@@ -114,6 +129,8 @@ type AddSpec struct {
 	Labels    []string
 	Scope     Scope
 	Symlink   bool
+	// MaxParallel is CI_MAX_PARALLEL for the runner's jobs; 0 sets none.
+	MaxParallel int
 }
 
 // Plan is a planned change. Nothing changes until it is applied.
@@ -169,6 +186,9 @@ type GitHub interface {
 	CreateRegistrationToken(ctx context.Context, installationID int64, scope github.RunnerScope) (string, error)
 	CreateRemoveToken(ctx context.Context, installationID int64, scope github.RunnerScope) (string, error)
 	ListRunners(ctx context.Context, installationID int64, scope github.RunnerScope) ([]github.Runner, error)
+	// GenerateJITConfig gives the config of one ephemeral runner (runners
+	// R5.25, github-integration R5.34). The caller passes it on and drops it.
+	GenerateJITConfig(ctx context.Context, installationID int64, scope github.RunnerScope, in github.JITRequest) (github.JITConfig, error)
 }
 
 // RemoveRequest asks an agent to take a runner away.

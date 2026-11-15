@@ -54,6 +54,8 @@ type Config struct {
 	SampleEvery    time.Duration // 5 s
 	DrainPollEvery time.Duration // 2 s
 	CacheEvery     time.Duration // 5 min
+	// BudgetEvery is how often the pool-wide cache budget is checked; 0 takes 10 min (caches R5.48).
+	BudgetEvery time.Duration
 	// Backoff is the reconnect delay; Sleep waits for it (tests replace both).
 	Backoff *Backoff
 	Sleep   func(ctx context.Context, d time.Duration) error
@@ -122,6 +124,7 @@ func SettingsFromProto(p *agentv1.MachineSettings) machines.Settings {
 		GateMaxWaitMinutes: int(p.GetGateMaxWaitMinutes()), GateOnTimeout: p.GetGateOnTimeout(),
 		AllowedBackends: p.GetAllowedBackends(), CacheCapBytes: p.GetCacheCapBytes(),
 		DrainTimeoutMinutes: int(p.GetDrainTimeoutMinutes()), WindowsSymlinkRight: p.GetWindowsSymlinkRight(),
+		PoolMemoryGiB: p.GetPoolMemoryGib(), PoolCPUs: int(p.GetPoolCpus()),
 	}
 }
 
@@ -248,7 +251,8 @@ type link struct {
 	followMu  sync.Mutex
 	following bool
 
-	wipes *wiper
+	wipes  *wiper
+	budget *Budgeter
 }
 
 func (l *link) send(m *agentv1.SessionRequest) error {
@@ -269,6 +273,7 @@ func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	l := &link{cfg: cfg}
+	l.budget = NewBudgeter(cfg)
 	l.wipes = &wiper{cfg: cfg, send: l.send, fsys: cfg.cacheFS(), poll: cfg.DrainPollEvery}
 	l.stream = newClient(pin, cfg.Controller).Session(ctx)
 	l.stream.RequestHeader().Set("Authorization", "Bearer "+key)
@@ -315,6 +320,7 @@ func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 	lastRecv := newStamp()
 	go l.sendLoop(ctx, cancel, lastRecv)
 	go l.cacheLoop(ctx)
+	go l.budgetLoop(ctx)
 
 	for {
 		msg, err := l.stream.Receive()

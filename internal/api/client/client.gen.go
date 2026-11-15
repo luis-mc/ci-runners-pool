@@ -2007,7 +2007,13 @@ type MachineSettings struct {
 	JobSlots            int                           `json:"job_slots"`
 	LightJobs           *[]string                     `json:"light_jobs,omitempty"`
 	LightSlots          int                           `json:"light_slots"`
-	SlotMaxAgeMinutes   *int                          `json:"slot_max_age_minutes,omitempty"`
+
+	// PoolCpus The CPUs the pool may use on this machine (machines R5.58). 0 means not set. Split over the job slots it gives CI_MAX_PARALLEL (runners R5.53).
+	PoolCpus *int `json:"pool_cpus,omitempty"`
+
+	// PoolMemoryGib The memory in GiB the pool may use on this machine, set by the owner and checked against the load budget (machines R5.58). 0 means not set.
+	PoolMemoryGib     *float64 `json:"pool_memory_gib,omitempty"`
+	SlotMaxAgeMinutes *int     `json:"slot_max_age_minutes,omitempty"`
 
 	// WindowsSymlinkRight Owner decision for M1; grant "create symbolic links" to Windows runner accounts.
 	WindowsSymlinkRight bool `json:"windows_symlink_right"`
@@ -2024,7 +2030,10 @@ type MachineSettingsUpdate struct {
 	CacheCapBytes   *int64         `json:"cache_cap_bytes,omitempty"`
 
 	// Confirm The yes once the jobs a restart waits for are named.
-	Confirm             *bool                               `json:"confirm,omitempty"`
+	Confirm *bool `json:"confirm,omitempty"`
+
+	// ConfirmShrink The explicit yes to a pool size below the current one. confirm does not stand for it (machines R5.58).
+	ConfirmShrink       *bool                               `json:"confirm_shrink,omitempty"`
 	DrainTimeoutMinutes *int                                `json:"drain_timeout_minutes,omitempty"`
 	GateOnTimeout       *MachineSettingsUpdateGateOnTimeout `json:"gate_on_timeout,omitempty"`
 	HeavyJobs           *[]string                           `json:"heavy_jobs,omitempty"`
@@ -2033,7 +2042,13 @@ type MachineSettingsUpdate struct {
 	LightJobs           *[]string                           `json:"light_jobs,omitempty"`
 	LightSlots          *int                                `json:"light_slots,omitempty"`
 	Name                *string                             `json:"name,omitempty"`
-	WindowsSymlinkRight *bool                               `json:"windows_symlink_right,omitempty"`
+
+	// PoolCpus The pool CPUs. Send it with pool_memory_gib.
+	PoolCpus *int `json:"pool_cpus,omitempty"`
+
+	// PoolMemoryGib The pool memory in GiB. Send it with pool_cpus. A size over the budget is refused with the budget that is short and the nearest sizes that fit (machines R5.58).
+	PoolMemoryGib       *float64 `json:"pool_memory_gib,omitempty"`
+	WindowsSymlinkRight *bool    `json:"windows_symlink_right,omitempty"`
 }
 
 // MachineSettingsUpdateGateOnTimeout defines model for MachineSettingsUpdate.GateOnTimeout.

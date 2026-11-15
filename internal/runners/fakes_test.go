@@ -118,6 +118,8 @@ type fakeGitHub struct {
 	listErr  error
 	regCalls int
 	rmCalls  int
+	jitCalls []github.JITRequest
+	jitErr   error
 	tokens   []string
 }
 
@@ -130,6 +132,13 @@ func (g *fakeGitHub) CreateRemoveToken(context.Context, int64, github.RunnerScop
 	g.rmCalls++
 	g.tokens = append(g.tokens, "REMOVE-TOKEN-1")
 	return "REMOVE-TOKEN-1", nil
+}
+func (g *fakeGitHub) GenerateJITConfig(_ context.Context, _ int64, _ github.RunnerScope, in github.JITRequest) (github.JITConfig, error) {
+	g.jitCalls = append(g.jitCalls, in)
+	if g.jitErr != nil {
+		return github.JITConfig{}, g.jitErr
+	}
+	return github.NewJITConfig(4242, "JIT-CONFIG-SECRET-1"), nil
 }
 func (g *fakeGitHub) ListRunners(context.Context, int64, github.RunnerScope) ([]github.Runner, error) {
 	return g.runners, g.listErr

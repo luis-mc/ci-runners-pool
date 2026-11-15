@@ -1,0 +1,36 @@
+# KVM for the pool (runners R5.41, machines R5.53, handover lesson 25).
+# Use it on top of the pool's compose file:
+#   docker compose -f compose.yaml -f images/layers/compose.kvm.yaml up -d
+#
+# After `wsl --shutdown`, a reboot or a Docker restart, Docker's VM has no
+# kvm_intel or kvm_amd module. The loader below loads it at every Docker start,
+# so the pool needs no Windows scheduled task. Only the loader is privileged
+# and it exits at once; the pool is never privileged and gets /dev/kvm only
+# as a device. The pool waits a bounded time for /dev/kvm (kvm-wait.sh), then
+# starts without KVM and without the kvm label; the doctor says why (kvm.host).
+services:
+  kvm-loader:
+    image: ${CRSP_KVM_LOADER_IMAGE:-alpine:3.20}
+    privileged: true
+    restart: unless-stopped
+    network_mode: none
+    volumes:
+      - /lib/modules:/lib/modules:ro
+    command:
+      - sh
+      - -c
+      - |
+        if [ ! -e /dev/kvm ]; then
+          if grep -q GenuineIntel /proc/cpuinfo; then m=kvm_intel; else m=kvm_amd; fi
+          modprobe "$$m" || echo "kvm-loader: modprobe $$m failed"
+        fi
+        # Stay up so restart: unless-stopped runs the loader again at every Docker start.
+        exec sleep infinity
+  pool:
+    devices:
+      - /dev/kvm:/dev/kvm
+    group_add:
+      - '${CRSP_KVM_GID:-993}'
+    entrypoint: ['/usr/local/bin/kvm-wait.sh']
+    depends_on:
+      - kvm-loader

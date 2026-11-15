@@ -96,3 +96,103 @@ func WaitNoListener(ctx context.Context, list func(context.Context) ([]int, erro
 		waited += poll
 	}
 }
+
+// CheckNoListener is the start guard (runners R5.59): it looks once and returns
+// ErrListenerAlive with the process ids when a listener of the runner folder
+// runs, so the caller reports it instead of starting a duplicate. A list that
+// cannot be read is an error too.
+func CheckNoListener(ctx context.Context, list func(context.Context) ([]int, error)) error {
+	pids, err := list(ctx)
+	if err != nil {
+		return err
+	}
+	if len(pids) > 0 {
+		return fmt.Errorf("%w (process %v); no second listener is started", ErrListenerAlive, pids)
+	}
+	return nil
+}
+
+// Ender ends the listeners of one runner after its service stopped (R5.59).
+type Ender struct {
+	// List returns the process ids of the runner's listeners (by runner folder).
+	List func(context.Context) ([]int, error)
+	// Signal asks the listeners and their process groups to end (force false:
+	// terminate) or kills them (force true).
+	Signal func(ctx context.Context, pids []int, force bool) error
+	// Wait is how long the listener may take to end by itself; Grace is the
+	// time given after the terminate and after the kill. Zero means the
+	// defaults. Sleep may be nil.
+	Wait, Grace, Poll time.Duration
+	Sleep             func(context.Context, time.Duration)
+	// Log receives one line per escalation; may be nil.
+	Log func(string)
+}
+
+// EndListeners waits for the listeners to end, then escalates: terminate the
+// process groups, wait a bounded grace, kill them, wait again. It returns nil
+// only when no listener of the runner is left; otherwise ErrListenerAlive.
+func EndListeners(ctx context.Context, e Ender) error {
+	say := func(s string) {
+		if e.Log != nil {
+			e.Log(s)
+		}
+	}
+	err := WaitNoListener(ctx, e.List, e.Wait, e.Poll, e.Sleep)
+	for _, force := range []bool{false, true} {
+		if err == nil || !errors.Is(err, ErrListenerAlive) || ctx.Err() != nil {
+			return err
+		}
+		pids, lerr := e.List(ctx)
+		if lerr != nil {
+			return lerr
+		}
+		if len(pids) == 0 {
+			return nil
+		}
+		verb := "terminating"
+		if force {
+			verb = "killing"
+		}
+		say(fmt.Sprintf("listener %v outlived its service; %s its process group", pids, verb))
+		if e.Signal != nil {
+			if serr := e.Signal(ctx, pids, force); serr != nil {
+				say("signal failed: " + serr.Error())
+			}
+		}
+		g := e.Grace
+		if g <= 0 {
+			g = ListenerGrace
+		}
+		err = WaitNoListener(ctx, e.List, g, e.Poll, e.Sleep)
+	}
+	return err
+}
+
+// ListenerGrace is the default grace after a terminate and after a kill.
+const ListenerGrace = 10 * time.Second
+
+// UnixSignal returns a Signal func for Linux and macOS: it signals each
+// listener and, when ps knows it, the listener's whole process group.
+func UnixSignal(cmd sys.Commands) func(context.Context, []int, bool) error {
+	return func(ctx context.Context, pids []int, force bool) error {
+		sig := "TERM"
+		if force {
+			sig = "KILL"
+		}
+		var first error
+		for _, pid := range pids {
+			targets := []string{strconv.Itoa(pid)}
+			if res, err := cmd.Run(ctx, sys.Command{Name: "ps", Args: []string{"-o", "pgid=", "-p", strconv.Itoa(pid)}}); err == nil && res.ExitCode == 0 {
+				if g := ParsePIDs(res.Stdout); len(g) == 1 && g[0] > 1 {
+					targets = append(targets, "-"+strconv.Itoa(g[0]))
+				}
+			}
+			for _, t := range targets {
+				if _, err := cmd.Run(ctx, sys.Command{Name: "kill", Args: []string{"-s", sig, "--", t}}); err != nil && first == nil {
+					first = err
+				}
+			}
+		}
+		return first
+	}
+}
