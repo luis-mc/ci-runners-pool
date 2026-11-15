@@ -68,6 +68,9 @@ type ImageSpec struct {
 	OS     string
 	Arch   string
 	Layers []string
+	// Extras are the extra distribution packages of the pool (runners R5.51);
+	// they are part of the image key.
+	Extras []string
 }
 
 // ImageRef is a prepared image on this machine.
@@ -104,6 +107,31 @@ type RunnerSpec struct {
 	// container (runners R5.27). 0 means none is set.
 	PoolMemoryMB int
 	PoolCPUs     float64
+	// ExtraPackages are the extra distribution packages of the repository's
+	// pool (runners R5.51); the image is built with them.
+	ExtraPackages []string
+	// Pool is what the repository's pool settings ask for (runners R5.50,
+	// R5.54). The zero value asks for the base image only.
+	Pool PoolSetup
+}
+
+// PoolSetup is the part of a repository's pool settings the container backend
+// turns into the pool start: the image layers, the lane of its caches and the
+// database it declares.
+type PoolSetup struct {
+	// Layers are the image layers the pool has turned on (runners R5.50).
+	Layers []string
+	// RepoID names the cache lane of the repository (caches R5.43). Empty
+	// means the pool takes no lane.
+	RepoID string
+	// Database is set when the repository declares a database (runners R5.54).
+	Database *PoolDatabase
+}
+
+// PoolDatabase is what a repository declares for its Postgres login.
+type PoolDatabase struct {
+	CreateDB bool     // repository setting db_createdb
+	Roles    []string // declared NOLOGIN roles
 }
 
 // StartConfig carries the one-time credential to start a runner. Registration

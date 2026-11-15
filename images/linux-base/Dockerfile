@@ -18,6 +18,12 @@ ARG COREPACK_SHA256=9128cfe26aee0c99f4fc68c15c6b8b12309a68be0de2c012cdfea2a463cb
 ARG GH_VERSION=2.83.0
 ARG GH_SHA256_AMD64=a5cf6cdb40fc67751adf561126b3314044779cea81ba4f254fbe8e9a69f1676f
 ARG GH_SHA256_ARM64=12311e320d4cfdb54d7fa2d58cd1e3a2ccb4c12e1c3abb32b0a2e48bd0f991bf
+# The Actions runner: the same version and hashes as `pins` in
+# internal/runners/version.go (a test keeps them equal), so the agent's update
+# check and the image key read the same pin (runners R5.37, R5.49).
+ARG RUNNER_VERSION=2.330.0
+ARG RUNNER_SHA256_AMD64=af5c33fa94f3cc33b8e97937939136a6b04197e6dadfcfb3b6e33ae1bf41e79a
+ARG RUNNER_SHA256_ARM64=9cb43527912086c7c8fb4119cb06409fcbcbd6f93a2d8507f30b07c495620f5c
 ARG JOB_UID=1001
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -76,14 +82,38 @@ RUN groupadd --gid "${JOB_UID}" runner \
  && useradd --uid "${JOB_UID}" --gid runner --create-home --shell /bin/bash runner \
  && ! command -v sudo
 
+# The Actions runner in /opt/actions-runner, owned by the job user so a job can
+# copy it (runners R5.25, R5.49). Its own updates are off: the agent updates
+# images (R5.38). A JIT config registers it at run time; nothing is registered here.
+RUN set -eu; \
+    case "${TARGETARCH}" in \
+      amd64) runner_arch=x64;   runner_sha="${RUNNER_SHA256_AMD64}" ;; \
+      arm64) runner_arch=arm64; runner_sha="${RUNNER_SHA256_ARM64}" ;; \
+      *) echo "unsupported TARGETARCH ${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    f="actions-runner-linux-${runner_arch}-${RUNNER_VERSION}.tar.gz"; \
+    curl -fsSL -o "/tmp/${f}" "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/${f}"; \
+    echo "${runner_sha}  /tmp/${f}" | sha256sum -c -; \
+    mkdir -p /opt/actions-runner; \
+    tar -xzf "/tmp/${f}" -C /opt/actions-runner --no-same-owner; \
+    rm -f "/tmp/${f}"; \
+    apt-get update; \
+    /opt/actions-runner/bin/installdependencies.sh; \
+    rm -rf /var/lib/apt/lists/*; \
+    printf 'DISABLE_RUNNER_UPDATE=1\n' > /opt/actions-runner/.env; \
+    chown -R "${JOB_UID}:${JOB_UID}" /opt/actions-runner
+
 # Self-check: every tool runs, or the build fails (runners R5.49).
 RUN git --version && curl --version >/dev/null && jq --version && zip -v >/dev/null \
  && unzip -v >/dev/null && python3 --version && gcc --version >/dev/null && make --version >/dev/null \
  && pkg-config --version && psql --version \
  && node --version && corepack --version && gh --version \
  && test -x "$(command -v pnpm)" && test -x "$(command -v yarn)" \
- && ldconfig -p | grep -q libatomic \
+ && ldconfig -p | grep libatomic >/dev/null \
  && crsp version >/dev/null
 
 USER runner
+# The runner starts as the job user and prints the pinned version.
+RUN /opt/actions-runner/run.sh --version | grep -x "${RUNNER_VERSION}" >/dev/null \
+ && test -f /opt/actions-runner/.env
 WORKDIR /home/runner

@@ -155,7 +155,7 @@ The states named for every list follow the design system: loading (component 16,
 ### 4.3 Repositories
 
 - **Purpose:** choose which repositories use the pool, and with which limits.
-- **Data:** `listInstallations`, `listRepositories`, `getRepository`, `updateRepositoryPolicy`, `planRepositoryChanges`, `applyRepositoryChanges`, `getAppInstallUrl`.
+- **Data:** `listInstallations`, `listRepositories`, `getRepository`, `updateRepositoryPolicy`, `getRepositoryExtraPackages`, `setRepositoryExtraPackages`, `planRepositoryChanges`, `applyRepositoryChanges`, `getAppInstallUrl`.
 - **List:** a table (component 15) of name, owner, pool on or off, labels, maximum parallel jobs, priority, and repository variable status (`RUNS_ON_LINUX`, `RUNS_ON_WINDOWS`, `RUNS_ON_MACOS`) as a status word (UX-58). Search and filters (components 11, 21, UX-31): on or off, owner, variable status. Long lists page (component 10, UX-11).
 - **Detail:** the policy form (component 14): on or off, runner groups and labels, maximum parallel jobs, priority, jobs from public forks, and the switch "Keep a light runner for short jobs" (scheduling R5.64). A form ends with Cancel and Save (UX-24). Turning fork jobs on shows a Needs-you message with the risk, and asks first (UX-9).
 - **Actions and confirmations:**
@@ -172,9 +172,10 @@ The states named for every list follow the design system: loading (component 16,
 ### 4.4 Machines
 
 - **Purpose:** add machines and set what each one gives the pool.
-- **Data:** `listMachines`, `getMachine`, `updateMachine`, `drainMachine`, `resumeMachine`, `removeMachine`, `createJoinCode`, `getJoinCode`, `revokeJoinCode`, `getInstallCommand`.
+- **Data:** `listMachines`, `getMachine`, `updateMachine`, `checkMachinePoolSize`, `drainMachine`, `resumeMachine`, `removeMachine`, `createJoinCode`, `getJoinCode`, `revokeJoinCode`, `getInstallCommand`.
 - **List:** a card per machine (component 8) or a table (component 15): name, OS, CPU and architecture, state (online, offline, drained, draining; UX-58), backends, load bars, slots used of total, last seen (UX-53).
 - **Detail:** the facts list (component 8); backends found and allowed (component 22); the load budget (memory and CPU percent, with the number keypad, component 37, UX-56); job slots; cache size cap; maintenance windows (time picker, component 36); the drain timeout; the agent's log (component 26).
+- **Pool size:** the "Pool size" wizard (component 4; UX-5, UX-30, UX-54) shows the size now and the room, takes the memory (number keypad with one decimal) and the CPUs, and Reviews: the check, the sizing figures, the nearest sizes (UX-6) and, for a lower size, a tick "Yes, lower the pool size" (UX-62). Its words are in the design system content (pool size words).
 - **Add a machine:** the page's one primary opens the "Add a machine" wizard, the same as in first run. The install command sits in a monospace block with a Copy button (owner question Q2). The join code shows once, with its time left (UX-29).
 - **Actions and confirmations:**
   - drain: a question card that names the running jobs it waits for (UX-62); the drain then shows in the activity strip (component 27);
@@ -316,9 +317,9 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.20** (built, CRSP24) — The overview shows the machines with their load bars, the queue count, the running jobs and today's minutes saved, all live. It has no command; each item links to its screen.
 
-**R5.21** (built, CRSP24) — The repositories screen lists the repositories from GitHub with pool state, labels, limits and variable status. It turns the pool on and off, and edits a repository's policy. A repository where the user lacks GitHub admin rights shows the turn-on action disabled with that reason.
+**R5.21** (built, CRSP24, extra packages CRSP70) — The repositories screen lists the repositories from GitHub with pool state, labels, limits and variable status. It turns the pool on and off, and edits a repository's policy. A repository's page has a form of its own for the extra packages of its pool image (runners R5.51): a text area, one name per line, saved with Save packages through `setRepositoryExtraPackages`; a bad name shows its line number above the box and in the list at the top before anything is sent. A repository where the user lacks GitHub admin rights shows the turn-on action disabled with that reason.
 
-**R5.22** (built, CRSP24) — The machines screen lists the machines with state, backends, load and slots. It adds a machine, edits the budget, slots and allowed backends, drains, resumes and removes.
+**R5.22** (built, CRSP24, pool size CRSP70) — The machines screen lists the machines with state, backends, load and slots. It adds a machine, edits the budget, slots and allowed backends, drains, resumes and removes. A machine's page has the "Pool size" wizard (machines R5.58): Size, Review, Saving, Done. It shows the current size and the room, a Review step with the budget check, the figures behind it and the nearest sizes that fit, an explicit tick for a lower size, and Done with what was saved.
 
 **R5.23** (built, CRSP24) — The runners screen lists runners live with their isolation word, labels, state, job and age. It adds runners only on machines whose backends support the chosen OS, and deletes runners.
 
@@ -494,8 +495,8 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.18 | Vitest, Playwright e2e | `apps/web/src/screens/wizards.test.tsx`, `e2e/tests/web-console/flows.spec.ts` |
 | R5.19 | design kit guard | `scripts/design/wizard-behaviour.ts` driven by `apps/web/src/screens/wizards.test.tsx`, one driver per wizard; Stop on an applying plan: the `Stop on a repository plan` and `Stop on a runner plan` tests in the same file, `e2e/tests/web-console/exports-stop.spec.ts` |
 | R5.20 | Vitest | `apps/web/src/screens/overview/Overview.test.tsx` |
-| R5.21 | Vitest | `apps/web/src/screens/repositories/Repositories.test.tsx` |
-| R5.22 | Vitest | `apps/web/src/screens/machines/Machines.test.tsx` |
+| R5.21 | Vitest | `apps/web/src/screens/repositories/Repositories.test.tsx` (extra packages: save, refuse with the line, controller refusal) |
+| R5.22 | Vitest | `apps/web/src/screens/machines/Machines.test.tsx` (pool size: review and save, over the budget, lower size needs its yes, changed meanwhile, viewer), `apps/web/src/screens/wizards.test.tsx` (pool-size, the ten states) |
 | R5.23 | Vitest | `apps/web/src/screens/runners/Runners.test.tsx` |
 | R5.24 | Vitest, Go test, Playwright e2e | `apps/web/src/screens/jobs/Jobs.test.tsx`, `internal/api/handlers_jobs_export_test.go` (Export holds every row, newest first), `internal/store/jobs_backend_test.go`, `e2e/tests/web-console/jobs-doctor.spec.ts` |
 | R5.25 | Vitest, Playwright e2e, Go test | `apps/web/src/screens/images/ImagesAndCaches.test.tsx`, `e2e/tests/web-console/flows.spec.ts`, `e2e/tests/design-layout.spec.ts`, `internal/api/handlers_caches_test.go` (the images side stays empty until milestone 2) |

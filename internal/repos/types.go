@@ -44,8 +44,11 @@ type Policy struct {
 	// dev-standards names, while a repository moves off the old pool (R5.39).
 	// Off by default.
 	LegacyVars bool
-	UpdatedAt  time.Time
-	UpdatedBy  string
+	// ExtraPackages are the extra distribution packages of the pool image,
+	// sorted, without repeats (runners R5.51). Empty adds no layer.
+	ExtraPackages []string
+	UpdatedAt     time.Time
+	UpdatedBy     string
 }
 
 // DefaultPolicy is what a repository gets when the pool is first turned on:

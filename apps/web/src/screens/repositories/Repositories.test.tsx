@@ -235,6 +235,69 @@ describe('Repository detail', () => {
     expect(await screen.findByText('Add at least one label.')).toBeTruthy();
   });
 
+  it('shows the extra packages and saves the list through its own endpoint (runners R5.51)', async () => {
+    const a = api()
+      .on(
+        'GET',
+        '/api/v1/repositories/:id',
+        repository({
+          policy: {
+            ...repository().policy,
+            extra_packages: ['libc++-dev', 'zlib1g-dev'],
+          },
+        }),
+      )
+      .on('PUT', '/api/v1/repositories/:id/extra-packages', {
+        packages: ['zlib1g-dev'],
+        text: 'zlib1g-dev',
+      });
+    renderApp(a, '/repositories/octo/app');
+    await screen.findByRole('heading', { name: 'octo/app' });
+    const box = screen.getByRole<HTMLTextAreaElement>('textbox', {
+      name: /Extra packages/,
+    });
+    expect(box.value).toBe('libc++-dev\nzlib1g-dev');
+    fireEvent.change(box, { target: { value: 'zlib1g-dev' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save packages' }));
+    expect(await screen.findByText('Extra packages saved.')).toBeTruthy();
+    expect((a.calls.find((c) => c.method === 'PUT')?.body as { text: string }).text).toBe(
+      'zlib1g-dev',
+    );
+    expect(a.count('PATCH', '/api/v1/repositories/7/policy')).toBe(0);
+  });
+
+  it('refuses a bad package name with its line before anything is sent (runners R5.51, UX-21)', async () => {
+    const a = api().on('PUT', '/api/v1/repositories/:id/extra-packages', {
+      packages: [],
+      text: '',
+    });
+    renderApp(a, '/repositories/octo/app');
+    await screen.findByRole('heading', { name: 'octo/app' });
+    fireEvent.change(screen.getByRole('textbox', { name: /Extra packages/ }), {
+      target: { value: 'zlib1g-dev\n# a note\n-evil' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save packages' }));
+    expect(
+      (await screen.findAllByText(/Line 3: -evil is not a package name/)).length,
+    ).toBe(2);
+    expect(a.count('PUT', '/api/v1/repositories/7/extra-packages')).toBe(0);
+  });
+
+  it('shows the controller refusal when it says no (runners R5.51)', async () => {
+    const a = api().on(
+      'PUT',
+      '/api/v1/repositories/:id/extra-packages',
+      apiError(400, 'invalid', 'line 1: "a b" is not a package name'),
+    );
+    renderApp(a, '/repositories/octo/app');
+    await screen.findByRole('heading', { name: 'octo/app' });
+    fireEvent.change(screen.getByRole('textbox', { name: /Extra packages/ }), {
+      target: { value: 'ok-name' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save packages' }));
+    expect(await screen.findByText(/line 1: "a b" is not a package name/)).toBeTruthy();
+  });
+
   it('shows Turn on the pool disabled with the reason when the user lacks GitHub admin rights', async () => {
     const a = withRepos(signedIn()).on(
       'GET',

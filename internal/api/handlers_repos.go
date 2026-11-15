@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
@@ -47,6 +48,10 @@ func toPolicy(p repos.Policy) gen.RepositoryPolicy {
 	if p.LegacyVars {
 		v := true
 		out.LegacyVars = &v
+	}
+	if len(p.ExtraPackages) > 0 {
+		v := append([]string(nil), p.ExtraPackages...)
+		out.ExtraPackages = &v
 	}
 	if p.BudgetCPUPct > 0 {
 		v := p.BudgetCPUPct
@@ -280,6 +285,40 @@ func (s *server) UpdateRepositoryPolicy(ctx context.Context, req gen.UpdateRepos
 		return fail(err)
 	}
 	return gen.UpdateRepositoryPolicy200JSONResponse(toPolicy(pol)), nil
+}
+
+func toExtraPackages(names []string) gen.ExtraPackages {
+	return gen.ExtraPackages{Packages: nonNil(names), Text: strings.Join(names, "\n")}
+}
+
+// GetRepositoryExtraPackages implements GET /api/v1/repositories/{repositoryId}/extra-packages
+// (runners R5.51).
+func (s *server) GetRepositoryExtraPackages(ctx context.Context, req gen.GetRepositoryExtraPackagesRequestObject) (gen.GetRepositoryExtraPackagesResponseObject, error) {
+	v, err := s.ghArea().Repos.Get(ctx, s.principal(ctx), req.RepositoryId)
+	if err != nil {
+		code, body := failure(err)
+		return gen.GetRepositoryExtraPackagesdefaultJSONResponse{StatusCode: code, Body: body}, nil
+	}
+	return gen.GetRepositoryExtraPackages200JSONResponse(toExtraPackages(v.Policy.ExtraPackages)), nil
+}
+
+// SetRepositoryExtraPackages implements PUT /api/v1/repositories/{repositoryId}/extra-packages
+// (runners R5.51). The list is checked with runners.ParseExtraPackages; a bad
+// name answers 422 with its line number and changes nothing.
+func (s *server) SetRepositoryExtraPackages(ctx context.Context, req gen.SetRepositoryExtraPackagesRequestObject) (gen.SetRepositoryExtraPackagesResponseObject, error) {
+	fail := func(err error) (gen.SetRepositoryExtraPackagesResponseObject, error) {
+		code, body := failure(err)
+		return gen.SetRepositoryExtraPackagesdefaultJSONResponse{StatusCode: code, Body: body}, nil
+	}
+	if req.Body == nil {
+		return fail(auth.Invalid("the request is empty"))
+	}
+	text := req.Body.Text
+	pol, err := s.ghArea().Repos.UpdatePolicy(ctx, s.principal(ctx), req.RepositoryId, repos.PolicyUpdate{ExtraPackages: &text})
+	if err != nil {
+		return fail(err)
+	}
+	return gen.SetRepositoryExtraPackages200JSONResponse(toExtraPackages(pol.ExtraPackages)), nil
 }
 
 // GetRepositoryRunsOn implements GET /api/v1/repositories/{repositoryId}/runs-on (R5.30).

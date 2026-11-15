@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 )
 
 func jobRunner() JobRunner {
@@ -88,5 +90,39 @@ func TestJitRunnerWithNoPoolSizeSetsNoLimit(t *testing.T) {
 	}
 	if got := r.ag.added[0]; got.PoolCPUs != 0 || got.PoolMemoryMB != 0 {
 		t.Fatalf("a limit was set: %+v", got)
+	}
+}
+
+// CRSP68: the pool settings, the repository id (the lane) and the CPU count
+// of the machine reach the agent in the runner spec.
+func TestJitRunnerCarriesPoolSetupAndCPUCount(t *testing.T) {
+	m := machine("linux", "x64", true)
+	m.PoolCPUs, m.JobSlots = 8, 2
+	r := newRig(m)
+	r.svc.PoolSettings = func(_ context.Context, sc Scope) (backend.PoolSetup, error) {
+		if sc.RepositoryID != 1 {
+			t.Errorf("settings asked for %+v", sc)
+		}
+		return backend.PoolSetup{Layers: []string{"browsers"}, Database: &backend.PoolDatabase{CreateDB: true}}, nil
+	}
+	if _, err := r.svc.StartJobRunner(context.Background(), jobRunner(), "luis-mc"); err != nil {
+		t.Fatal(err)
+	}
+	got := r.ag.added[0]
+	if got.MaxParallel != 4 || got.Pool.RepoID != "1" || len(got.Pool.Layers) != 1 || got.Pool.Database == nil || !got.Pool.Database.CreateDB {
+		t.Fatalf("spec = %+v", got)
+	}
+}
+
+func TestJitRunnerPoolSettingsFailureStartsNothing(t *testing.T) {
+	r := newRig(machine("linux", "x64", true))
+	r.svc.PoolSettings = func(context.Context, Scope) (backend.PoolSetup, error) {
+		return backend.PoolSetup{}, errors.New("store down")
+	}
+	if _, err := r.svc.StartJobRunner(context.Background(), jobRunner(), "luis-mc"); err == nil || !strings.Contains(err.Error(), "pool settings") {
+		t.Fatalf("err = %v", err)
+	}
+	if len(r.ag.added) != 0 {
+		t.Fatal("a runner started with unknown pool settings")
 	}
 }

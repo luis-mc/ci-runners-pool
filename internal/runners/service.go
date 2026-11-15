@@ -30,6 +30,10 @@ type Service struct {
 	// CacheQuota is the declared cache sizing every new runner gets (runners
 	// R5.39); a zero value takes the defaults.
 	CacheQuota runnercache.Quota
+	// PoolSettings reads what a repository's pool asks for: the image layers
+	// and the database it declares (runners R5.50, R5.54). Nil means the base
+	// image and no database.
+	PoolSettings func(ctx context.Context, scope Scope) (backend.PoolSetup, error)
 	// Drain settings; the idle check and clock are replaceable for tests.
 	Poll, WarnAfter, DrainTimeout time.Duration
 	Sleep                         func(ctx context.Context, d time.Duration) error

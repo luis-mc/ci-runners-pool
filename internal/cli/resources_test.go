@@ -247,6 +247,26 @@ func TestForkWarning(t *testing.T) {
 	}
 }
 
+func TestRepoPackages(t *testing.T) { // runners R5.51
+	f := newFixture(t)
+	f.repos(repoJSON(10, "luis-mc/app", true))
+	var put map[string]any
+	f.handle("GET /api/v1/repositories/10/extra-packages", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, 200, map[string]any{"packages": []string{"zlib1g-dev"}, "text": "zlib1g-dev"})
+	})
+	f.handle("PUT /api/v1/repositories/10/extra-packages", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&put)
+		writeJSON(w, 200, map[string]any{"packages": []string{"libc++-dev", "zlib1g-dev"}, "text": "libc++-dev\nzlib1g-dev"})
+	})
+	if code, out, _ := f.run("repo", "packages", "luis-mc/app"); code != 0 || !strings.Contains(out, "zlib1g-dev") || f.called("PUT") {
+		t.Fatalf("show: %d %q", code, out)
+	}
+	code, out, errOut := f.run("repo", "packages", "luis-mc/app", "--set", "zlib1g-dev, libc++-dev")
+	if code != 0 || put["text"] != "zlib1g-dev\nlibc++-dev" || !strings.Contains(out, "libc++-dev, zlib1g-dev") || !strings.Contains(errOut, "saved") {
+		t.Fatalf("set: %d %v %q %q", code, put, out, errOut)
+	}
+}
+
 func runnerJSON(name, machine string, job map[string]any) map[string]any {
 	r := map[string]any{"id": "r_" + name, "name": name, "machine_id": machine, "os": "linux", "arch": "x64", "kind": "ephemeral", "backend": "docker", "isolation": "container", "labels": []string{"self-hosted"},
 		"scope": map[string]any{"kind": "repository", "repository_id": 10}, "state": "idle", "managed": true, "keeps_state": false, "created_at": "2026-11-14T08:00:00Z"}

@@ -239,7 +239,7 @@ test('The repository policy asks first before public forks are allowed', async (
   await mock.install(page);
   await page.goto('/repositories/octo/app');
   await page.getByRole('checkbox', { name: 'Run jobs from public forks' }).check();
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Allow jobs from public forks?' });
   await expect(dialog).toBeVisible();
   expect(mock.count('PATCH', '/api/v1/repositories/7/policy')).toBe(0);
@@ -345,7 +345,7 @@ test('The admin saves the Budgets with Save and the page says no job is waited f
   await expect(page.getByText(/no running job is waited for/)).toBeVisible();
   await expect(page.getByRole('button', { name: /Drain timeout/ })).toContainText('60');
   await page.getByRole('checkbox', { name: /Size the slots/ }).uncheck();
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect.poll(() => mock.count('PUT', '/api/v1/settings/pool')).toBe(1);
   await expect.poll(() => mock.count('PUT', '/api/v1/settings/queue')).toBe(1);
   await expect(page.getByText('Settings saved.')).toBeVisible();
@@ -360,7 +360,7 @@ test('The Budgets refuse a repeated order key and Cancel puts the values back', 
   await mock.install(page);
   await page.goto('/settings/budgets');
   await page.getByRole('radio', { name: 'Repository priority' }).nth(1).check();
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(
     page.getByText('Each of the four order keys must be used once.'),
   ).toBeVisible();

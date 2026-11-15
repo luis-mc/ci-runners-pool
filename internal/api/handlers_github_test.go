@@ -589,6 +589,23 @@ func TestRepositoriesFlowOverHTTP(t *testing.T) { // R5.17 to R5.20, R5.28, R5.2
 	if res, b := h.do("PATCH", "/api/v1/repositories/100/policy", map[string]any{"labels": []string{"my-project"}}, owner, hdr); res.StatusCode != 400 || !strings.Contains(string(b), "my-project") {
 		t.Fatalf("%d %s", res.StatusCode, b)
 	}
+	// Extra packages of the pool (runners R5.51): read, set, refused with a line number.
+	res, b = h.do("PUT", "/api/v1/repositories/100/extra-packages", map[string]any{"text": "zlib1g-dev\n# a note\nlibc++-dev\nzlib1g-dev\n"}, owner, hdr)
+	if res.StatusCode != 200 || !strings.Contains(string(b), `"packages":["libc++-dev","zlib1g-dev"]`) {
+		t.Fatalf("set extra packages: %d %s", res.StatusCode, b)
+	}
+	if res, b = h.do("PUT", "/api/v1/repositories/100/extra-packages", map[string]any{"text": "ok-name\n-bad"}, owner, hdr); res.StatusCode != 400 || !strings.Contains(string(b), "line 2") {
+		t.Fatalf("a bad name is refused with its line: %d %s", res.StatusCode, b)
+	}
+	if res, b = h.do("GET", "/api/v1/repositories/100/extra-packages", nil, owner, nil); res.StatusCode != 200 || !strings.Contains(string(b), `"text":"libc++-dev\nzlib1g-dev"`) {
+		t.Fatalf("the refused list changed nothing: %d %s", res.StatusCode, b)
+	}
+	if _, b = h.do("GET", "/api/v1/repositories/100", nil, owner, nil); !strings.Contains(string(b), `"extra_packages":["libc++-dev","zlib1g-dev"]`) {
+		t.Fatalf("the policy shows the list: %s", b)
+	}
+	if res, b = h.do("PUT", "/api/v1/repositories/100/extra-packages", map[string]any{"text": ""}, owner, hdr); res.StatusCode != 200 || !strings.Contains(string(b), `"packages":[]`) {
+		t.Fatalf("an empty text clears the list: %d %s", res.StatusCode, b)
+	}
 	if res, _ := h.do("GET", "/api/v1/repositories/999", nil, owner, nil); res.StatusCode != 404 {
 		t.Fatal(res.StatusCode)
 	}

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
 // PolicyUpdate is a partial change; nil fields keep their value (R5.25).
@@ -23,6 +24,9 @@ type PolicyUpdate struct {
 	LightRunner *bool
 	// LegacyVars turns the old variable names on or off (github-integration R5.39).
 	LegacyVars *bool
+	// ExtraPackages is the whole list as text, one name per line (runners
+	// R5.51). A bad name refuses the update with its line number.
+	ExtraPackages *string
 }
 
 // ErrForkNeedsConfirm: turning fork pull requests on asks first.
@@ -64,6 +68,13 @@ func (u PolicyUpdate) Apply(p Policy) (Policy, error) {
 	}
 	if u.LightRunner != nil {
 		p.LightRunner = *u.LightRunner
+	}
+	if u.ExtraPackages != nil {
+		names, err := runners.ParseExtraPackages(*u.ExtraPackages)
+		if err != nil {
+			return p, auth.Invalid("%s", err.Error())
+		}
+		p.ExtraPackages = names
 	}
 	if u.LegacyVars != nil {
 		p.LegacyVars = *u.LegacyVars

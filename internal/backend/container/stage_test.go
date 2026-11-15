@@ -8,6 +8,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/images"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
 func stagedRig(t *testing.T) (*rig, string) {
@@ -136,5 +137,17 @@ func TestRunArgsGuardPassesLimits(t *testing.T) {
 	j := strings.Join(a, " ")
 	if !strings.Contains(j, "--memory 2048m") || !strings.Contains(j, "--cpus 1.5") {
 		t.Fatal(j)
+	}
+}
+
+func TestDefaultConfigPinsActionsRunnerInKey(t *testing.T) {
+	c := DefaultConfig()
+	if v := c.Pins["actions-runner"]; v == "" {
+		t.Fatalf("no runner pin: %+v", c.Pins)
+	}
+	with := runners.ImageKey(runners.ImageKeyInput{Base: c.BaseName, Pins: c.Pins})
+	other := runners.ImageKey(runners.ImageKeyInput{Base: c.BaseName, Pins: map[string]string{"actions-runner": "0.0.1:x"}})
+	if with == other {
+		t.Fatal("a new pin must change the image key")
 	}
 }

@@ -3,6 +3,7 @@ package runners
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
@@ -16,6 +17,8 @@ type JobRunner struct {
 	Backend   string
 	Labels    []string // generic labels only (R5.36)
 	Scope     Scope
+	// ExtraPackages are the extra packages of the repository's pool (R5.51).
+	ExtraPackages []string
 }
 
 // StartJobRunner makes one ephemeral runner for one job (runners R5.25,
@@ -56,7 +59,7 @@ func (s *Service) StartJobRunner(ctx context.Context, j JobRunner, actor string)
 		return fail(fmt.Errorf("JIT config: %w", err))
 	}
 	spec := backend.RunnerSpec{ID: id, Name: j.Name, OS: "linux", Arch: j.Arch, Labels: j.Labels, GitHubURL: t.URL, Group: t.Group,
-		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, CacheQuota: s.CacheQuota}
+		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, CacheQuota: s.CacheQuota, ExtraPackages: j.ExtraPackages}
 	if m, err := s.Machines.GetMachine(ctx, j.MachineID); err == nil {
 		// The pool size of the machine caps the pool container (R5.27). A
 		// machine with no pool size set leaves the container uncapped.
@@ -66,6 +69,17 @@ func (s *Service) StartJobRunner(ctx context.Context, j JobRunner, actor string)
 		if m.PoolMemoryGiB > 0 {
 			spec.PoolMemoryMB = int(m.PoolMemoryGiB * 1024)
 		}
+		spec.MaxParallel = m.MaxParallel()
+	}
+	if j.Scope.RepositoryID > 0 {
+		spec.Pool.RepoID = strconv.FormatInt(j.Scope.RepositoryID, 10)
+	}
+	if s.PoolSettings != nil {
+		ps, err := s.PoolSettings(ctx, j.Scope)
+		if err != nil {
+			return fail(fmt.Errorf("pool settings: %w", err))
+		}
+		spec.Pool.Layers, spec.Pool.Database = ps.Layers, ps.Database
 	}
 	h, err := s.Agent.AddRunner(ctx, j.MachineID, spec, backend.StartConfig{JITConfig: jit.Encoded()})
 	if err != nil {

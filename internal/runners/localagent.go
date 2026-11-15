@@ -61,7 +61,7 @@ func (l *LocalAgent) AddRunner(ctx context.Context, _ string, spec backend.Runne
 			return backend.Handle{}, err
 		}
 		if spec.Image.ID == "" {
-			img, err := b.PrepareImage(ctx, backend.ImageSpec{OS: spec.OS, Arch: spec.Arch})
+			img, err := b.PrepareImage(ctx, backend.ImageSpec{OS: spec.OS, Arch: spec.Arch, Layers: spec.Pool.Layers, Extras: spec.ExtraPackages})
 			if err != nil {
 				return backend.Handle{}, err
 			}
