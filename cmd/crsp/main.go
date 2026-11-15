@@ -27,6 +27,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/cli"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/hooks"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/jobcmd"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
@@ -55,6 +56,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
 		return hooks.Run(ctx, args[1:], hooks.Env{Stdout: stdout, Stderr: stderr})
+	}
+	if len(args) > 0 && jobcmd.Handles(args[0]) {
+		// `crsp vm` and `crsp db-env` inside a container job (runners R5.48).
+		return jobcmd.Run(args[0], args[1:], stderr)
 	}
 	if len(args) > 0 && args[0] == "update-helper" {
 		// The detached install helper (internal/update); it outlives the service it restarts.

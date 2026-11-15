@@ -1,0 +1,89 @@
+# syntax=docker/dockerfile:1
+# Linux base job image, like a GitHub-hosted runner (runners R5.49, R5.48).
+# Build context: this folder, with the linux build of crsp copied in as ./crsp
+# (CI does it; see the image job of .github/workflows/ci.yml).
+#   docker build --build-arg TARGETARCH=amd64 -t crsp-linux-base images/linux-base
+#
+# Every download below is pinned and SHA-256 checked; a wrong hash fails the build.
+
+# Ubuntu 24.04 LTS, pinned by digest (the multi-arch index).
+FROM ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5
+
+ARG TARGETARCH=amd64
+ARG NODE_VERSION=26.13.1
+ARG NODE_SHA256_AMD64=5c063e46bab0fbc1c17cc445d7ff129cbdcd0471be6ed83b6ab864f8143bc864
+ARG NODE_SHA256_ARM64=89e1853138db51e8b82d3e98ba9c0d3f2956a28e5e55ea1b7e12d25aae92d5dd
+ARG COREPACK_VERSION=0.36.0
+ARG COREPACK_SHA256=9128cfe26aee0c99f4fc68c15c6b8b12309a68be0de2c012cdfea2a463cb722f
+ARG GH_VERSION=2.83.0
+ARG GH_SHA256_AMD64=a5cf6cdb40fc67751adf561126b3314044779cea81ba4f254fbe8e9a69f1676f
+ARG GH_SHA256_ARM64=12311e320d4cfdb54d7fa2d58cd1e3a2ccb4c12e1c3abb32b0a2e48bd0f991bf
+ARG JOB_UID=1001
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8
+# Node's bin comes first on PATH for every user and before the corepack step.
+ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      build-essential ca-certificates curl git jq libatomic1 libicu74 \
+      pkg-config postgresql-client python3 unzip xz-utils zip \
+ && rm -rf /var/lib/apt/lists/*
+
+# Node LTS (no corepack inside the tarball since Node 25, so corepack is
+# installed from a pinned, hash-checked npm tarball) and the pnpm/yarn shims.
+RUN set -eu; \
+    case "${TARGETARCH}" in \
+      amd64) node_arch=x64;   node_sha="${NODE_SHA256_AMD64}" ;; \
+      arm64) node_arch=arm64; node_sha="${NODE_SHA256_ARM64}" ;; \
+      *) echo "unsupported TARGETARCH ${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    f="node-v${NODE_VERSION}-linux-${node_arch}.tar.xz"; \
+    curl -fsSL -o "/tmp/${f}" "https://nodejs.org/dist/v${NODE_VERSION}/${f}"; \
+    echo "${node_sha}  /tmp/${f}" | sha256sum -c -; \
+    tar -xJf "/tmp/${f}" -C /usr/local --strip-components=1 --no-same-owner \
+      --exclude='*/CHANGELOG.md' --exclude='*/README.md' --exclude='*/LICENSE'; \
+    rm -f "/tmp/${f}"; \
+    curl -fsSL -o /tmp/corepack.tgz "https://registry.npmjs.org/corepack/-/corepack-${COREPACK_VERSION}.tgz"; \
+    echo "${COREPACK_SHA256}  /tmp/corepack.tgz" | sha256sum -c -; \
+    npm install -g /tmp/corepack.tgz; \
+    rm -f /tmp/corepack.tgz; \
+    corepack enable
+
+# GitHub CLI.
+RUN set -eu; \
+    case "${TARGETARCH}" in \
+      amd64) gh_sha="${GH_SHA256_AMD64}" ;; \
+      arm64) gh_sha="${GH_SHA256_ARM64}" ;; \
+      *) echo "unsupported TARGETARCH ${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    f="gh_${GH_VERSION}_linux_${TARGETARCH}.tar.gz"; \
+    curl -fsSL -o "/tmp/${f}" "https://github.com/cli/cli/releases/download/v${GH_VERSION}/${f}"; \
+    echo "${gh_sha}  /tmp/${f}" | sha256sum -c -; \
+    tar -xzf "/tmp/${f}" -C /tmp; \
+    install -m 0755 "/tmp/gh_${GH_VERSION}_linux_${TARGETARCH}/bin/gh" /usr/local/bin/gh; \
+    rm -rf "/tmp/${f}" "/tmp/gh_${GH_VERSION}_linux_${TARGETARCH}"
+
+# The crsp binary, for `crsp vm` and `crsp db-env` (runners R5.48). A running
+# container job gets the agent's own binary mounted over it.
+COPY --chmod=0755 crsp /usr/local/bin/crsp
+
+# A fixed non-root job user with no sudo.
+RUN groupadd --gid "${JOB_UID}" runner \
+ && useradd --uid "${JOB_UID}" --gid runner --create-home --shell /bin/bash runner \
+ && ! command -v sudo
+
+# Self-check: every tool runs, or the build fails (runners R5.49).
+RUN git --version && curl --version >/dev/null && jq --version && zip -v >/dev/null \
+ && unzip -v >/dev/null && python3 --version && gcc --version >/dev/null && make --version >/dev/null \
+ && pkg-config --version && psql --version \
+ && node --version && corepack --version && gh --version \
+ && test -x "$(command -v pnpm)" && test -x "$(command -v yarn)" \
+ && ldconfig -p | grep -q libatomic \
+ && crsp version >/dev/null
+
+USER runner
+WORKDIR /home/runner
