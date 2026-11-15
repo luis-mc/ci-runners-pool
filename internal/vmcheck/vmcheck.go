@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -333,7 +334,7 @@ func PrunePlan(files map[string][]File, keep int, nowUnix int64) []string {
 	for _, kind := range []string{"images", "bases", "snaps"} {
 		groups := map[string][]File{}
 		for _, f := range files[kind] {
-			if m := pruneRe.FindStringSubmatch(path.Base(f.Path)); m != nil {
+			if m := pruneRe.FindStringSubmatch(filepath.Base(f.Path)); m != nil {
 				groups[m[1]] = append(groups[m[1]], f)
 			}
 		}
@@ -350,13 +351,13 @@ func PrunePlan(files map[string][]File, keep int, nowUnix int64) []string {
 				}
 				return g[i].Path < g[j].Path
 			})
-			for _, f := range g[max(keep, 0):] {
+			for _, f := range g[min(max(keep, 0), len(g)):] {
 				out = append(out, f.Path)
 			}
 		}
 	}
 	for _, f := range files["tmp"] {
-		if strings.Contains(path.Base(f.Path), ".tmp-") && f.ModUnix < nowUnix-86400 {
+		if strings.Contains(filepath.Base(f.Path), ".tmp-") && f.ModUnix < nowUnix-86400 {
 			out = append(out, f.Path)
 		}
 	}

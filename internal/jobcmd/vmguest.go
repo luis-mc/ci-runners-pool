@@ -159,7 +159,9 @@ func vmRun(args []string, cat vmcheck.Catalogue, env Env) int {
 	spec.CacheDir, spec.WorkDir, spec.Out = gs.CacheDir, gs.WorkDir, gs.Out
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	warnMemory(env, guestDeps(env).FreeMemMB, spec.MemMB)
 	out, err := vmcheck.Run(ctx, cat, spec, guestDeps(env), time.Now)
+	trimCache(ctx, spec.CacheDir, cat, env)
 	return report(out, err, env)
 }
 
@@ -178,6 +180,8 @@ func vmSELinux(args []string, cat vmcheck.Catalogue, env Env) int {
 	spec.CacheDir, spec.WorkDir, spec.Out = gs.CacheDir, gs.WorkDir, gs.Out
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	warnMemory(env, guestDeps(env).FreeMemMB, spec.MemMB)
 	out, err := vmcheck.SELinux(ctx, cat, spec, guestDeps(env), time.Now)
+	trimCache(ctx, spec.CacheDir, cat, env)
 	return report(out, err, env)
 }
