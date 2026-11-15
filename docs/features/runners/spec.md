@@ -179,7 +179,7 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 
 **R5.28** (M4) — **Hyper-V and WSL2 VMs on Windows.** The Hyper-V backend starts a VM per job from a prepared disk with a differencing disk on top, and deletes the differencing disk after the job. The WSL2 backend starts a Linux microVM or container per job inside WSL2.
 
-**R5.29** (M5) — **Tart VMs on macOS, at most two.** The Tart backend clones a VM per job from a prepared image. The agent never runs more than two macOS VMs on one Mac at once, counting VMs it did not start. A third job waits for a free VM and says why.
+**R5.29** (M5, NOT YET IMPLEMENTED) — **macOS VMs on Apple's Virtualization.framework, at most two.** (Owner decision D54, 2026-11-15.) crsp uses its own code on Apple's Virtualization.framework, not Tart: Tart moved to OpenAI and is under FSL-1.1-ALv2, a licence the product does not take on. The macOS backend creates a VM per job from a prepared image, with its own image preparation and cloning, and no external VM tool. The agent never runs more than two macOS VMs on one Mac at once, counting VMs it did not start. A third job waits for a free VM and says why. This is spec text only; no code exists.
 
 **R5.30** (M6) — **MicroVMs with snapshots.** On Linux with KVM, the Firecracker or Cloud Hypervisor backend boots an image once, takes a snapshot, and starts each job from that snapshot. The snapshot is keyed by image, kernel, vCPU count and memory; a change of any of them makes a new snapshot. After a restore the guest clock is set from the host and the guest random pool is reseeded (port DS R5.29).
 
@@ -304,7 +304,7 @@ flowchart TB
     iface --> mac[persistent-macos]
     iface --> ctr[container M2]
     iface --> hv[hyperv, wsl2 M4]
-    iface --> tart[tart M5]
+    iface --> macvm[macvm M5]
     iface --> mvm[firecracker, cloud-hypervisor M6]
   end
   link <--> linkc
@@ -382,7 +382,7 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.26 | internal/backend/container/container_test.go TestNothingCarriesOver; internal/demand/demand_test.go TestIdleRunnerRemovedAfterFifteenMinutes, TestRunnerWithAJobIsNotIdle, TestBusyRunnerIsLeftAlone, TestFailedIdleRemovalRetriesLater; internal/runners/ephemeral_test.go TestRemoveIdleRunnerFreesSlot, TestRemoveIdleRunnerLeavesBusyRunner, TestRemoveIdleRunnerFailsClosed, TestRemoveIdleRunnerNotListedStillCleansUp |
 | R5.27 | internal/backend/container/container_test.go TestNoPrivilegedNoSocketKvmDevice, TestOnePoolContainerPerRepository, TestStartRefusals, TestDetectReportsTheEngine |; internal/backend/registry/registry_test.go TestRegistryHoldsOnlyThisOS; internal/runners/ephemeral_test.go TestEphemeralOnlyOnAllowListedMachine, TestEphemeralCountAndFinish; internal/runners/localagent_test.go TestLocalAgentRoutesByKind; cmd/crsp/demand_wiring_test.go TestHostsFollowTheAllowList; internal/backend/container/stage_test.go TestPoolSizeBecomesPoolLimits, TestLimitsFallBackToConfig, TestRunArgsGuardPassesLimits, TestDefaultConfigEmbedsImagesAndNeedsNoInstalledFolder; internal/runners/jit_test.go TestJitRunnerCarriesPoolSize, TestJitRunnerWithNoPoolSizeSetsNoLimit
 | R5.28 | planned: internal/backend/hyperv/hyperv_test.go TestDifferencingDiskDeleted; internal/backend/wsl2/wsl2_test.go |
-| R5.29 | planned: internal/backend/tart/tart_test.go TestAtMostTwoVms |
+| R5.29 | planned: internal/backend/macvm/macvm_test.go TestAtMostTwoVms |
 | R5.30 | planned: internal/backend/microvm/snapshot_test.go TestSnapshotKeyAndRestore (port of test_dl281_vm_check.py) |
 | R5.31 | internal/backend/choose_test.go TestBestBackendFirst |; internal/demand/demand_test.go TestQueuedJobStartsOneRunner (the demand loop takes the machine from the allow list)
 | R5.32 | internal/backend/container/container_test.go TestBuildOnceReusesTheImage (layers and size listed) |
@@ -420,7 +420,7 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R6.3 | internal/backend/windows/windows_test.go TestAccountRights (never in Administrators); internal/backend/linux/linux_test.go TestUnitUserAndGroup; internal/backend/macos/macos_test.go TestHiddenUser |
 | R6.4 | internal/runners/runners_test.go TestIdleCheckRightBeforeAct, TestTimeoutWarnsNeverKills, TestDrainFailsClosed; internal/runners/service_test.go TestRemoveFailsClosedAndTimeoutAsks |
 | R6.5 | planned: internal/backend/container/perf_test.go TestStartTime (M2); microvm perf_test.go (M6) |
-| R6.6 | planned: internal/backend/tart/tart_test.go TestLimitNotConfigurable |
+| R6.6 | planned: internal/backend/macvm/macvm_test.go TestLimitNotConfigurable |
 | R6.7 | planned: internal/runners/retention_test.go TestLogAndUsageRetention |
 | R6.8 | internal/runners/service_test.go TestAuditEntries |
 | R6.9 | planned: CI job runners-windows-service runs hooks as the service account; build tags checked in internal/backend |
@@ -435,7 +435,8 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | RN-4 | Windows runner account | Own local non-admin account; log on as a service; interactive logon denied; folder locked to it | 2026-11-13 |
 | RN-5 | Labels | Generic only; workflows target runners by `RUNS_ON_*` repository variables | 2026-11-14 |
 | RN-6 | Containers | Never privileged; KVM as a device | 2026-11-13 |
-| RN-7 | Tart limit | At most two macOS VMs per Mac, enforced | 2026-11-13 |
+| RN-7 | macOS VM limit | At most two macOS VMs per Mac, enforced | 2026-11-13 |
+| RN-8 | macOS VM backend | crsp's own code on Apple's Virtualization.framework, not Tart (D54) | 2026-11-15 |
 
 Open questions for the owner (proposed answers are in the requirements until decided):
 
@@ -504,7 +505,7 @@ Built by CRSP22: the three persistent backends, the runner rules, plan and apply
 - M1: `internal/runners` and `internal/backend` with the three persistent backends; Runners screen; runner API in `packages/contract/openapi.yaml`; agent link messages in `packages/contract/proto`.
 - M2: container backend, JIT flow, images and layers.
 - M4: Hyper-V and WSL2 VM backends.
-- M5: Tart backend.
+- M5: macOS VM backend on Apple's Virtualization.framework (D54).
 - M6: Firecracker and Cloud Hypervisor backends with snapshots.
 - M7: the registry mirror server that R5.34 uses.
 - After v0.1.0: the parity requirements R5.41 to R5.56 (Linux containers with KVM, Wine prefix, LLVM, Playwright browsers, Postgres roles, the WSL2 engine, the base image, layers, the job environment). The release order is in the [parity plan](../../architecture/parity-plan.md).

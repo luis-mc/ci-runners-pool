@@ -126,7 +126,7 @@ Each requirement names its milestone (M1 to M8, product brief). Those not named 
 
 ### Install and first run
 
-**R5.1** (M1) — One command per OS installs the binary. Linux and macOS: `curl -fsSL <release>/install.sh | sh`. Windows: `irm <release>/install.ps1 | iex`. The script downloads the archive for the OS and architecture, checks its SHA-256 against `SHA256SUMS`, and runs `crsp install`. The script does nothing else.
+**R5.1** (M1) — One command per OS installs the binary. Linux and macOS: `curl -fsSL <release>/install.sh | sh`. Windows: `irm <release>/install.ps1 | iex`. The script downloads the archive for the OS and architecture, checks its SHA-256 against `SHA256SUMS`, checks its build provenance, and runs `crsp install`. The script does nothing else. (Owner decision D51, 2026-11-15.) The provenance check comes after the checksum: when the GitHub CLI (`gh`) is on the machine, the script runs `gh attestation verify <file> --repo luis-mc/ci-runners-shared-pool` and stops, installing nothing, when it fails. When `gh` is not there, the script says clearly that only the checksum was checked and prints the command to run by hand, then goes on. This is the first install, before any `crsp` exists to do the sigstore check of R5.34; later updates use R5.34. Built (CRSP77): `scripts/install/install.sh` and `scripts/install/install.ps1`. The release workflow does not publish them as assets yet.
 
 **R5.2** (M1) — `crsp install --mode controller|agent` registers the service with the OS service manager: a Windows service (through `golang.org/x/sys/windows/svc/mgr`, never a cmd-quoted command line, learning 5), a systemd unit on Linux, a LaunchDaemon on macOS. The service starts at boot and restarts after a crash.
 
@@ -352,7 +352,7 @@ All tests are planned; none exists yet. Paths are where each test will live.
 
 | Requirement | Test |
 |---|---|
-| R5.1 | planned: scripts/install/install_test.sh and install_test.ps1, run in CI on each OS against a release build |
+| R5.1 | scripts/install/install_test.sh (fake release in a folder, fake `gh` on PATH: gh present verifies and installs, gh failing stops, gh absent says checksum only and continues, a bad checksum stops before gh). Planned: a PowerShell test of install.ps1 on Windows (no PowerShell on the CRSP77 sandbox, so install.ps1 was not run), and the run in CI on each OS against a release build |
 | R5.2 | planned: internal/install/service_windows_test.go, service_linux_test.go, service_darwin_test.go TestInstallRegistersService (CI on each OS) |
 | R5.3 | planned: internal/install/tray_test.go TestTrayStartEntryPerOS |
 | R5.4 | planned: internal/install/account_test.go TestServiceRunsAsNonAdmin (Linux, macOS); Windows: installer/smoke.ps1 checks the service runs as LocalSystem |

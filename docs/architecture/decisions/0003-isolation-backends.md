@@ -41,7 +41,7 @@ A runner can only be created on a machine whose backends support its OS and labe
 |---|---|---|
 | Linux | Firecracker or Cloud Hypervisor microVM (with KVM); rootless Podman or Docker container; persistent runner | microVM per job is the default when `/dev/kvm` exists |
 | Windows | Hyper-V VM; WSL2 Linux microVM or container; Windows container; persistent runner under its own service account | Jobs that need the full desktop toolchain often need a persistent runner or a VM |
-| macOS | Tart VM (Apple Virtualization); persistent runner | Apple's licence allows at most two macOS VMs per Mac at once; the agent enforces it |
+| macOS | macOS VM on Apple's Virtualization.framework, with crsp's own code (not Tart); persistent runner | Apple's licence allows at most two macOS VMs per Mac at once; the agent enforces it. Not yet implemented |
 
 Rules every backend keeps:
 
@@ -58,8 +58,16 @@ Rules every backend keeps:
 
 ## Consequences
 
-- Milestones add backends in order: persistent runners (1), containers on Linux and WSL2 (2), Windows service accounts and Hyper-V or WSL2 VMs (4), Tart (5), microVMs (6).
+- Milestones add backends in order: persistent runners (1), containers on Linux and WSL2 (2), Windows service accounts and Hyper-V or WSL2 VMs (4), macOS VMs (5), microVMs (6).
 - Each backend has its own tests and its own doctor checks.
 - A machine with no allowed backend for a label cannot take that label's jobs, and the console says why.
 - Changes that restart runners (an image rebuild, an agent update, a new cap) drain first: they wait until the machine has no running job, or until the drain timeout the user set.
   The check for an idle machine runs right before the restart, not earlier.
+
+## Amendment (2026-11-15, owner decision D54): no Tart
+
+The macOS row said Tart.
+Tart moved to OpenAI and is now under the FSL-1.1-ALv2 licence, which the product does not take on as a dependency.
+crsp uses its own code on Apple's Virtualization.framework for macOS VMs.
+Image preparation, cloning and the two-VM limit are crsp's own.
+The macOS backend is still not implemented; this is the plan, not code.

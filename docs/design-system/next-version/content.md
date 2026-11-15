@@ -282,3 +282,21 @@ The words of the extra packages form on a repository's page (runners R5.51).
 | Buttons | Save packages (busy word: Saving), Cancel (puts the saved list back) |
 | Done | Extra packages saved. |
 | Failed | Could not save the packages. {why} |
+
+## Demand and webhook words
+
+The words of the doctor findings `demand.quiet` and `github.webhook` (github-integration R5.37, doctor R5.16).
+
+| Where | Word |
+|---|---|
+| Quiet, ok | The demand source sees the queued jobs of {repository} |
+| Quiet, warn | {repository} has {n} jobs queued for the pool and the demand source has seen none |
+| Quiet, first detection | Quiet since {time}. |
+| Quiet, restarted | Quiet since {time}. The controller restarted the demand loop once, at {time}, and it is still quiet. |
+| Quiet fix, first | The controller restarts the demand loop once by itself. Run the doctor again in a minute. |
+| Quiet fix, restarted | Restart the controller service. If it stays quiet, check that GitHub is reachable and the App can read Actions (github.app.permissions), then read the controller log for "poll queued jobs". |
+| Webhook, ok | Webhook deliveries arrive ({n} in 24 hours, {n} failed) |
+| Webhook, idle | No webhook delivery in 24 hours, and no job is open |
+| Webhook, failed | {n} of {n} recent webhook deliveries failed |
+| Webhook, none | No webhook delivery arrived in 24 hours while jobs are open |
+| Webhook fix | Check that GitHub can reach the controller (the webhook address in the App settings). The polling fallback is in use meanwhile. |

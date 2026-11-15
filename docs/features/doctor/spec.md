@@ -133,7 +133,7 @@ States:
 
 ### 5.4 GitHub App
 
-**R5.16** — GitHub App checks: installed on every account that has a pool repository and not suspended; the installation grants every permission the product needs; an installation token can be made now from the stored private key; the rate limit is not nearly used up; recent webhook deliveries succeed. Built (CRSP23): installation and permissions. NOT YET IMPLEMENTED: token, rate limit, webhook deliveries.
+**R5.16** — GitHub App checks: installed on every account that has a pool repository and not suspended; the installation grants every permission the product needs; an installation token can be made now from the stored private key; the rate limit is not nearly used up; recent webhook deliveries succeed. Built (CRSP23): installation and permissions. Built (CRSP77): webhook deliveries (`github.webhook`, from GitHub's delivery list for the App: warn when the newest delivery in 24 h failed or at least half failed, or when none arrived in 24 h while a pool repository has open jobs). NOT YET IMPLEMENTED: token, rate limit.
 
 ### 5.5 Repository variables and workflows
 
@@ -298,7 +298,7 @@ GitHub App:
 | `github.app.permissions` | A needed permission is missing (fail) or an update waits for approval (warn) | fail, warn | Accept the permission update; link | no | 1 |
 | `github.app.token` | No installation token can be made: key missing from the secret store, key rejected, or clock skew | fail | Restore the key, or make a new key in the App settings and store it with `crsp github key set` | no | 1 |
 | `github.ratelimit` | Under 10% of the hourly limit left | warn | Wait for the reset time shown | no | 1 |
-| `github.webhook` | Recent webhook deliveries failed or none arrived in 24 h while jobs ran | warn | Check that GitHub can reach the controller; the polling fallback is in use | no | 1 |
+| `github.webhook` | Recent webhook deliveries failed or none arrived in 24 h while jobs ran (built, CRSP77) | warn | Check that GitHub can reach the controller; the polling fallback is in use | no | 1 |
 
 Repositories and workflows:
 
@@ -307,6 +307,7 @@ Repositories and workflows:
 | `repo.vars` | `RUNS_ON_<OS>` unset where used (fail), not a JSON list (fail), different from the product's value (warn) | fail, warn | Set it from the Repositories screen; the `gh variable set` command | no | 1 |
 | `repo.vars.runner` | A `RUNS_ON_<OS>` whose labels no online runner carries | fail | Add or start a runner with those labels | no | 1 |
 | `repo.light` | A pool repository with the light runner on has no online light runner for an OS it serves; says why (no machine with a light slot, the runner is offline, or it is not placed yet) | warn | Set light slots above 0 on a machine of that OS, or turn the light runner off (scheduling R5.65, runners R5.58) | no | 1 |
+| `demand.quiet` | A pool repository has jobs queued on GitHub whose `runs-on` resolves to crsp, but the demand source has seen no demand for it for 10 minutes (config `demand_quiet_minutes`). The controller restarts the demand loop once when it first finds this; the finding says whether it did. Built, CRSP77; github-integration R5.37 | warn | First detection: run the doctor again in a minute. Still quiet after the restart: restart the controller service, check that GitHub is reachable and the App can read Actions, read the log for "poll queued jobs" | no | 1 |
 | `repo.forks` | A public repository lets fork pull requests reach the pool | warn | Turn fork jobs off unless meant | no | 2 |
 | `workflow.labels` | A self-hosted `runs-on` label set no online runner carries, with file and line | fail | Add a runner with the labels, or change the workflow to `fromJSON(vars.RUNS_ON_<OS>)` | no | 1 |
 | `workflow.generic` | A self-hosted job with literal labels | warn | Use `${{ fromJSON(vars.RUNS_ON_<OS>) }}` | no | 1 |
@@ -435,7 +436,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.13 | internal/doctor/checks/checks_test.go TestRunnerHooksNeedAdmin |
 | R5.14 | internal/doctor/checks/runner/hooks_test.go (planned; port of RunnerExecutionPolicyTests and DoctorHookAndPush) |
 | R5.15 | internal/doctor/checks/runner/version_test.go (planned) |
-| R5.16 | internal/doctor/checks/checks_test.go TestAppInstallationAndPermissions, TestAppRateLimitIsSkipWithResetTime |
+| R5.16 | internal/doctor/checks/checks_test.go TestAppInstallationAndPermissions, TestAppRateLimitIsSkipWithResetTime; internal/doctor/checks/demand_test.go TestGithubWebhook (REST client on the fake GitHub server), TestDemandQuiet |
 | R5.17 | internal/doctor/checks/checks_test.go TestRepoVars, TestRepoVarsRunner |
 | R5.18 | internal/doctor/runson/runson_test.go; internal/doctor/checks/checks_test.go TestWorkflowLabels, TestWorkflowUnresolved |
 | R5.19 | internal/doctor/checks/checks_test.go TestWorkflowGeneric, TestRunnerLabelsGeneric |
