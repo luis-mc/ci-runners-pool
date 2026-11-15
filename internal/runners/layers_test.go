@@ -57,7 +57,7 @@ func TestRebuildKeepsHigherPlaywright(t *testing.T) {
 		t.Fatalf("pin must not lower: %+v %v", got, err)
 	}
 	args := strings.Join(got[0].BuildArgs("base:x"), " ")
-	if !strings.Contains(args, "PLAYWRIGHT_VERSION=1.60.0") || !strings.Contains(args, "BASE_IMAGE=base:x") {
+	if !strings.Contains(args, "PLAYWRIGHT_VERSION=1.70.0") || !strings.Contains(args, "BASE_IMAGE=base:x") {
 		t.Fatal(args)
 	}
 }
