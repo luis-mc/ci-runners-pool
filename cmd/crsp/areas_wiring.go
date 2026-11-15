@@ -119,7 +119,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		gh.UseApp(st.App.ID, st.App.ClientID)
 	}
 	rsvc := repos.New(repos.Config{Store: repoStore, GitHub: gh, Tokens: asvc, Audit: asvc,
-		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Up: machineUp{svc: d.Machines},
+		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Sizes: machineCapacity{svc: d.Machines, pool: pool}, Up: machineUp{svc: d.Machines},
 		FallbackGrace: fallbackGrace(d), Now: d.Now})
 	hook := &github.WebhookHandler{
 		Verifier: func() (github.WebhookVerifier, error) {

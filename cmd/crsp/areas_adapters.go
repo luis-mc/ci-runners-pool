@@ -54,6 +54,42 @@ func (c machineCapacity) OSLabels(ctx context.Context) (map[string][]string, err
 	return out, nil
 }
 
+// MachineSizes gives each active machine's OS, labels and pool size for the
+// size variables (scheduling R5.67). A machine with no pool size set offers
+// the CPUs and memory it reported.
+func (c machineCapacity) MachineSizes(ctx context.Context) ([]repos.MachineSize, error) {
+	views, err := c.svc.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []repos.MachineSize
+	for _, v := range views {
+		m := v.Machine
+		if !m.RemovedAt.IsZero() || m.State == "removed" {
+			continue
+		}
+		os := runners.OSName(m.OS)
+		if os == "" {
+			continue
+		}
+		cpus, mem := v.Settings.PoolCPUs, v.Settings.PoolMemoryGiB
+		if cpus <= 0 {
+			cpus = m.Facts.Threads
+		}
+		if mem <= 0 {
+			mem = float64(m.Facts.MemoryBytes) / (1 << 30)
+		}
+		var labels []string
+		for _, l := range []string{archLabel(m.Arch), c.pool} {
+			if l != "" {
+				labels = append(labels, l)
+			}
+		}
+		out = append(out, repos.MachineSize{OS: os, Labels: labels, CPUs: cpus, MemoryGiB: mem})
+	}
+	return out, nil
+}
+
 // machineUp says, per OS, whether some machine can take jobs now: online on
 // the agent link and accepting jobs, so a paused machine or one on battery
 // counts as down (github-integration R5.43). An OS with machines but none up

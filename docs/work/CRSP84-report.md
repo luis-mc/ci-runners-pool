@@ -8,3 +8,15 @@ Status: in progress.
 
 ## Done
 - [x] CRSP89 code + tests (repos)
+- [x] CRSP84 code + tests (scheduler): `warm.go`, `WithWarm` gate hook, `warm_runners` key in `slots.Settings`
+- [x] Spec R5.66/R5.67 marked built (text), change notes CRSP84.md, CRSP89.md
+- [x] cmd adapter `MachineSizes` + `Sizes:` wiring (small hook)
+
+## Not built (open)
+- Agent side: starting/draining warm runners, VM pre-boot variant, console state.
+- `warm_runners` as a stored machine setting (needs SQL column, openapi, proto: outside scheduling).
+- Owner's size-floor map in Settings (`Config.SizeFloors` hook exists, nothing feeds it).
+- Size labels list labels of machines with room; a label shared with a smaller machine cannot split them.
+
+## Checks
+go test -race (scheduler, repos), go build ./cmd/..., GOOS=windows/darwin go vet, gofmt: see final result in PR.
