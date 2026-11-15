@@ -77,7 +77,9 @@ func firstLine(s string) string {
 }
 
 // Stop stops the service.
-func (h ServiceHost) Stop(ctx context.Context, service string) error { return h.do(ctx, "stop", service) }
+func (h ServiceHost) Stop(ctx context.Context, service string) error {
+	return h.do(ctx, "stop", service)
+}
 
 // Start starts the service.
 func (h ServiceHost) Start(ctx context.Context, service string) error {

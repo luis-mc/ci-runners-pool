@@ -52,6 +52,9 @@ type Config struct {
 	// Runners carries out the runner commands of the controller (runners R5.1);
 	// nil answers each with a failure that says the agent has no backend.
 	Runners runners.Agent
+	// RunnerFiles replaces runner files on UpdateRunnerFiles (runners R5.38);
+	// nil means this agent cannot, and its machine report says so.
+	RunnerFiles *RunnerFiles
 	// Images lists the job images for the machine report; nil reports none.
 	Images ImageSource
 	// Redactor learns every token and JIT config the controller sends, so no
@@ -324,7 +327,7 @@ func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 		running = append(running, jobToProto(j))
 	}
 	hello := &agentv1.Hello{
-		MachineId: id, AgentVersion: cfg.Version, ProtocolVersion: agentv1.ProtocolVersion_PROTOCOL_VERSION_1,
+		MachineId: id, AgentVersion: cfg.Version, ProtocolVersion: agentv1.ProtocolVersion_PROTOCOL_VERSION_2,
 		SettingsVersion: set.Version, Facts: facts, Load: loadToProto(rep, cfg.Gate.SlotsUsed()),
 		Holders: &agentv1.HolderReport{Running: running},
 	}
@@ -497,6 +500,8 @@ func (l *link) handle(ctx context.Context, msg *agentv1.SessionResponse) error {
 	case *agentv1.SessionResponse_AddRunner, *agentv1.SessionResponse_StopRunner,
 		*agentv1.SessionResponse_RemoveRunner, *agentv1.SessionResponse_DrainRunner:
 		l.runnerCmd(ctx, msg)
+	case *agentv1.SessionResponse_UpdateRunnerFiles:
+		go l.updateFiles(ctx, m.UpdateRunnerFiles)
 	case *agentv1.SessionResponse_MeasureCaches:
 		go l.reportCaches(ctx, m.MeasureCaches.GetCommandId())
 	case *agentv1.SessionResponse_WipeCache:
