@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -100,68 +101,84 @@ func has(l []string, s string) bool {
 	return false
 }
 
-// Reconcile frees every slot and ticket of the machine whose holder is not in
-// alive (agent reconnect, R5.35). A holder with an unknown process id (0)
-// counts as alive: nothing is freed on a guess (R5.32). Liveness is judged by
-// the agent of the holder's machine, so only slots whose holder machine is
-// this machine are looked at.
-func (e *Engine) Reconcile(ctx context.Context, machineID string, alive []Holder) ([]Freed, error) {
-	liveSet := map[int64]time.Time{}
-	for _, h := range alive {
-		liveSet[h.HolderPID] = h.HolderStarted
-		if h.GatePID != 0 {
-			liveSet[h.GatePID] = h.HolderStarted
-		}
-	}
-	isAlive := func(h slots.Holder) bool {
-		if h.PID == 0 {
-			return true
-		}
-		started, ok := liveSet[h.PID]
-		if !ok {
-			return false
-		}
-		// A reused pid has another start time (proto Holder.holder_started_unix_ms).
-		if !started.IsZero() && !h.Started.IsZero() && !started.Equal(h.Started) {
-			return false
-		}
-		return true
-	}
-	var freed []Freed
+// ErrLeaseLost is returned by Renew for a slot that is gone or was taken again
+// by another holder: a renewal never makes a slot (R5.69).
+var ErrLeaseLost = errors.New("lease is gone")
+
+// Renew extends the lease of the slots the holder holds on the machine, by the
+// holder id the gate request carried and the claims the grants gave (R5.69).
+// Only slots that still hold both are renewed. It returns ErrLeaseLost when
+// none was, so the caller knows the slot was reclaimed.
+func (e *Engine) Renew(ctx context.Context, machineID, holderID string, claims []string) error {
+	n := 0
 	err := e.store.Atomically(ctx, func(tx slots.Tx) error {
 		now := e.now()
+		set, err := tx.Settings(machineID)
+		if err != nil {
+			return err
+		}
 		all, err := tx.Slots(machineID)
 		if err != nil {
 			return err
 		}
 		for _, s := range all {
-			if s.Holder.Machine != "" && s.Holder.Machine != machineID || isAlive(s.Holder) {
+			if s.HolderID != holderID || !has(claims, s.Claim) {
 				continue
 			}
-			if ok, err := tx.FreeSlot(s.MachineID, s.Kind, s.Number, s.Claim); err != nil {
-				return err
-			} else if ok {
-				freed = append(freed, e.freedRow(tx, s, slots.EventStaleFreed, "holder process gone", now))
-			}
-		}
-		tickets, err := tx.Tickets(machineID)
-		if err != nil {
-			return err
-		}
-		for _, t := range tickets {
-			if t.Holder.Machine != "" && t.Holder.Machine != machineID || isAlive(t.Holder) {
+			// A lease that already ended is reclaimed, not revived (R5.69).
+			if !slots.LeaseEnd(s).After(now) {
 				continue
 			}
-			if ok, err := tx.DeleteTicket(t.ID); err != nil {
+			ok, err := tx.RenewSlot(machineID, s.Kind, s.Number, s.HolderID, s.Claim, slots.LeaseExpiry(now, set))
+			if err != nil {
 				return err
-			} else if ok {
-				freed = append(freed, e.droppedRow(tx, t, "holder process gone", now))
+			}
+			if ok {
+				n++
 			}
 		}
 		return nil
 	})
-	e.notifyFreed(freed)
-	return freed, err
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrLeaseLost
+	}
+	return nil
+}
+
+// RenewJobs extends the lease of every slot on the machine that a job in
+// running holds. The agent of the machine lists the jobs it runs on each holder
+// report (agent reconnect R5.35, R5.69); this is the heartbeat of a job that no
+// hook is waiting for any more. A job that is not listed keeps its lease end, so
+// its slot is reclaimed once the lease passes. No process id is looked at.
+func (e *Engine) RenewJobs(ctx context.Context, machineID string, running []JobRef) error {
+	if len(running) == 0 {
+		return nil
+	}
+	return e.store.Atomically(ctx, func(tx slots.Tx) error {
+		now := e.now()
+		set, err := tx.Settings(machineID)
+		if err != nil {
+			return err
+		}
+		all, err := tx.Slots(machineID)
+		if err != nil {
+			return err
+		}
+		for _, j := range running {
+			for _, s := range jobSlots(all, toJob(j)) {
+				if !slots.LeaseEnd(s).After(now) {
+					continue
+				}
+				if _, err := tx.RenewSlot(machineID, s.Kind, s.Number, s.HolderID, s.Claim, slots.LeaseExpiry(now, set)); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
 }
 
 // Sweep frees slots past the slot maximum age and drops expired tickets on

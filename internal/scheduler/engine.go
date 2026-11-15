@@ -151,8 +151,8 @@ func (e *Engine) droppedRow(tx slots.Tx, t slots.Ticket, reason string, now time
 
 // ---------------------------------------------------------------- stale rules
 
-// staleSlots frees slots past their maximum age and drops expired tickets
-// (R5.16, R5.33, R5.34), inside tx. machine "" means every machine.
+// staleSlots frees slots past their maximum age or whose lease ended, and drops
+// expired tickets (R5.16, R5.33, R5.34, R5.69), inside tx. machine "" means every machine.
 func (e *Engine) staleSlots(tx slots.Tx, machine string, now time.Time) ([]Freed, error) {
 	var freed []Freed
 	var all []slots.Slot
@@ -166,19 +166,26 @@ func (e *Engine) staleSlots(tx slots.Tx, machine string, now time.Time) ([]Freed
 		return nil, err
 	}
 	for _, s := range all {
-		if s.ExpiresAt.After(now) {
+		aged := !s.ExpiresAt.After(now)
+		lapsed := !slots.LeaseEnd(s).After(now)
+		if !aged && !lapsed {
 			continue
 		}
 		set, err := tx.Settings(s.MachineID)
 		if err != nil {
 			return nil, err
 		}
+		// The claim keeps a slot that was freed and taken again in between (R5.15).
 		ok, err := tx.FreeSlot(s.MachineID, s.Kind, s.Number, s.Claim)
 		if err != nil {
 			return nil, err
 		}
 		if ok {
-			freed = append(freed, e.freedRow(tx, s, slots.EventStaleFreed, fmt.Sprintf("older than %d min", set.SlotMaxAgeMin), now))
+			reason := "lease expired"
+			if aged {
+				reason = fmt.Sprintf("older than %d min", set.SlotMaxAgeMin)
+			}
+			freed = append(freed, e.freedRow(tx, s, slots.EventStaleFreed, reason, now))
 		}
 	}
 	var tickets []slots.Ticket

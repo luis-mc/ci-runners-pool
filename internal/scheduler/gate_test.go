@@ -2,6 +2,7 @@ package scheduler_test
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"sync"
 	"testing"
@@ -409,57 +410,170 @@ func TestFreesEveryKindHeldByTheJob(t *testing.T) {
 	}
 }
 
-// R5.32 and R5.35. Ported from test_machine.py Slots test_dead_holder_is_freed_at_once_and_logged and
-// test_live_holder_and_other_host_stay_old_slot_is_freed.
-func TestReconcileOnAgentReconnect(t *testing.T) {
+// leaseLimit is the lease length of the default settings: 4 polls of 15 s are
+// under 120 s, so the limit is 120 s (R5.34, R5.69).
+const leaseLimit = 120 * time.Second
+
+func heldBy(r scheduler.GateRequest, gate string, pid int64) scheduler.GateRequest {
+	r.GateID = gate
+	r.Holder = scheduler.Holder{Machine: m1, HolderPID: pid, GatePID: pid + 1}
+	return r
+}
+
+// R5.69: a heartbeat keeps the slot past the first lease end.
+func TestRenewKeepsTheSlot(t *testing.T) {
 	e := newEnv(t)
-	r1 := e.req("a", job("o/r", 1, "x"), 1, quiet)
-	r1.Holder = scheduler.Holder{Machine: m1, HolderPID: 100, GatePID: 101}
-	r2 := e.req("b", job("o/r", 2, "x"), 1, quiet)
-	r2.Holder = scheduler.Holder{Machine: m1, HolderPID: 200, GatePID: 201}
-	goes(t, e.gate(r1))
-	goes(t, e.gate(r2))
-	// a waiting job whose holder is gone loses its ticket too
-	r3 := e.req("c", job("o/r", 3, "x"), 1, quiet)
-	r3.Holder = scheduler.Holder{Machine: m1, HolderPID: 300, GatePID: 301}
-	waits(t, e.gate(r3), scheduler.WaitFreeSlot)
-	freed, err := e.eng.Reconcile(context.Background(), m1, []scheduler.Holder{{HolderPID: 200}})
+	g := goes(t, e.gate(e.req("a", job("o/r", 1, "x"), 1, quiet)))
+	for i := 0; i < 3; i++ {
+		e.advance(leaseLimit - time.Second)
+		if err := e.eng.Renew(context.Background(), m1, "a", []string{g.Claim}); err != nil {
+			t.Fatalf("renew %d: %v", i, err)
+		}
+		if freed, _ := e.eng.Sweep(context.Background(), e.now); len(freed) != 0 {
+			t.Fatalf("freed %+v", freed)
+		}
+	}
+	if st := e.status(m1); len(st.Slots) != 1 {
+		t.Fatalf("status %+v", st)
+	}
+}
+
+// R5.69: the agent's holder report renews the lease of the jobs it lists.
+func TestRenewJobsKeepsListedJobsOnly(t *testing.T) {
+	e := newEnv(t)
+	goes(t, e.gate(e.req("a", job("o/r", 1, "x"), 1, quiet)))
+	goes(t, e.gate(e.req("b", job("o/r", 2, "x"), 1, quiet)))
+	e.advance(leaseLimit - time.Second)
+	if err := e.eng.RenewJobs(context.Background(), m1, []scheduler.JobRef{job("o/r", 2, "x")}); err != nil {
+		t.Fatal(err)
+	}
+	e.advance(2 * time.Second)
+	freed, err := e.eng.Sweep(context.Background(), e.now)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(freed) != 2 {
+	if len(freed) != 1 || freed[0].Job.RunID != 1 || freed[0].Reason != "lease expired" {
 		t.Fatalf("freed %+v", freed)
 	}
+	if st := e.status(m1); len(st.Slots) != 1 || st.Slots[0].Job.RunID != 2 {
+		t.Fatalf("status %+v", st)
+	}
+}
+
+// R5.69: a lease that is not renewed ends, the slot is freed and logged stale-freed.
+func TestExpiredLeaseReclaimsTheSlot(t *testing.T) {
+	e := newEnv(t)
+	goes(t, e.gate(e.req("a", job("o/r", 1, "x"), 1, quiet)))
+	e.advance(leaseLimit - time.Second)
+	if freed, _ := e.eng.Sweep(context.Background(), e.now); len(freed) != 0 {
+		t.Fatalf("freed early %+v", freed)
+	}
+	e.advance(2 * time.Second)
+	freed, err := e.eng.Sweep(context.Background(), e.now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(freed) != 1 || freed[0].Reason != "lease expired" {
+		t.Fatalf("freed %+v", freed)
+	}
+	_, events, err := e.st.SlotLogForTests(context.Background(), m1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) == 0 || events[len(events)-1] != slots.EventStaleFreed {
+		t.Fatalf("log %+v", events)
+	}
+}
+
+// R5.69: a late renewal never revives a lease that ended, and a renewal never makes a slot.
+func TestRenewAfterExpiryIsLost(t *testing.T) {
+	e := newEnv(t)
+	g := goes(t, e.gate(e.req("a", job("o/r", 1, "x"), 1, quiet)))
+	e.advance(leaseLimit + time.Second)
+	if err := e.eng.Renew(context.Background(), m1, "a", []string{g.Claim}); !errors.Is(err, scheduler.ErrLeaseLost) {
+		t.Fatalf("renew after expiry: %v", err)
+	}
+	if _, err := e.eng.Sweep(context.Background(), e.now); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.eng.Renew(context.Background(), m1, "a", []string{g.Claim}); !errors.Is(err, scheduler.ErrLeaseLost) {
+		t.Fatalf("renew of a freed slot: %v", err)
+	}
+	if st := e.status(m1); len(st.Slots) != 0 {
+		t.Fatalf("status %+v", st)
+	}
+}
+
+// R5.69: a new job that gets the same process id as a dead holder can neither
+// keep the old slot nor take it over; only the holder id and claim count.
+func TestReusedPidCannotStealASlot(t *testing.T) {
+	e := newEnv(t)
+	e.settings(m1, func(s *slots.Settings) { s.JobSlots = 1 })
+	old := goes(t, e.gate(heldBy(e.req("a", job("o/r", 1, "x"), 1, quiet), "a", 100)))
+	// the old holder dies; its pid 100 is given to another job that waits
+	newer := heldBy(e.req("b", job("o/r", 2, "x"), 1, quiet), "b", 100)
+	waits(t, e.gate(newer), scheduler.WaitFreeSlot)
+	// the pid is alive and listed, but it is not the lease: nothing extends the old slot
+	if err := e.eng.Renew(context.Background(), m1, "b", []string{old.Claim}); !errors.Is(err, scheduler.ErrLeaseLost) {
+		t.Fatalf("renew with the other holder id: %v", err)
+	}
+	if err := e.eng.RenewJobs(context.Background(), m1, []scheduler.JobRef{job("o/r", 2, "x")}); err != nil {
+		t.Fatal(err)
+	}
+	e.advance(leaseLimit + time.Second)
+	// the old lease ended, so the next poll of the waiting job reclaims and takes the slot
+	got := goes(t, e.gate(newer))
+	if got.Claim == old.Claim {
+		t.Fatal("new holder got the old claim")
+	}
+	// the dead holder's late renewal, with its own id and claim, must not touch the new slot
+	if err := e.eng.Renew(context.Background(), m1, "a", []string{old.Claim}); !errors.Is(err, scheduler.ErrLeaseLost) {
+		t.Fatalf("late renewal of the dead holder: %v", err)
+	}
+	e.advance(leaseLimit - time.Second)
+	if st := e.status(m1); len(st.Slots) != 1 || st.Slots[0].Job.RunID != 2 {
+		t.Fatalf("status %+v", st)
+	}
+}
+
+// R5.69: crash recovery. The holder and its agent die without a release; the
+// slot is reclaimed on its own, with no process check, and a waiting job goes.
+func TestCrashedHolderSlotIsReclaimedForTheQueue(t *testing.T) {
+	e := newEnv(t)
+	e.settings(m1, func(s *slots.Settings) { s.JobSlots = 1 })
+	goes(t, e.gate(e.req("a", job("o/r", 1, "x"), 1, quiet)))
+	waiting := e.req("b", job("o/r", 2, "x"), 1, quiet)
+	waits(t, e.gate(waiting), scheduler.WaitFreeSlot)
+	// the waiter keeps beating; the holder never renews
+	for i := 0; i < 3; i++ {
+		e.advance(40 * time.Second)
+		if _, err := e.eng.Beat(context.Background(), m1, "b", quiet); err != nil {
+			t.Fatal(err)
+		}
+	}
+	d, err := e.eng.Beat(context.Background(), m1, "b", quiet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	goes(t, d)
 	st := e.status(m1)
 	if len(st.Slots) != 1 || st.Slots[0].Job.RunID != 2 || len(st.Tickets) != 0 {
 		t.Fatalf("status %+v", st)
 	}
 }
 
-// R5.32: an unknown process id counts as alive; nothing is freed on a guess.
-func TestUnknownHolderCountsAsAlive(t *testing.T) {
+// R5.69: a hook that polls again for a slot it holds renews the lease.
+func TestRetriedGateRenewsTheLease(t *testing.T) {
 	e := newEnv(t)
 	r := e.req("a", job("o/r", 1, "x"), 1, quiet)
-	r.Holder = scheduler.Holder{Machine: m1}
 	goes(t, e.gate(r))
-	freed, _ := e.eng.Reconcile(context.Background(), m1, nil)
-	if len(freed) != 0 {
-		t.Fatalf("freed %+v", freed)
+	for i := 0; i < 3; i++ {
+		e.advance(leaseLimit - time.Second)
+		goes(t, e.gate(r))
 	}
-}
-
-// R5.32: liveness of another machine's holder is judged by that machine, not by this reconcile.
-func TestReconcileLooksOnlyAtItsOwnHolders(t *testing.T) {
-	e := newEnv(t)
-	r := e.req("a", job("o/r", 1, "x"), 1, quiet)
-	r.Holder = scheduler.Holder{Machine: "m2", HolderPID: 55}
-	goes(t, e.gate(r))
-	freed, _ := e.eng.Reconcile(context.Background(), m1, nil)
-	if len(freed) != 0 {
-		t.Fatalf("freed %+v", freed)
+	if st := e.status(m1); len(st.Slots) != 1 {
+		t.Fatalf("status %+v", st)
 	}
-	freed, _ = e.eng.Reconcile(context.Background(), "m2", nil)
-	_ = freed
 }
 
 // R5.33. Ported from test_machine.py Slots test_live_holder_and_other_host_stay_old_slot_is_freed.

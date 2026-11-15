@@ -88,6 +88,14 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 		return Decision{}, err
 	}
 	held := jobSlots(all, job)
+	// A request or beat from the holder of a slot renews its lease (R5.69).
+	for _, h := range held {
+		if h.HolderID == req.GateID && slots.LeaseEnd(h).After(now) {
+			if _, err := tx.RenewSlot(h.MachineID, h.Kind, h.Number, h.HolderID, h.Claim, slots.LeaseExpiry(now, set)); err != nil {
+				return Decision{}, err
+			}
+		}
+	}
 	var grants []Grant
 	var heavyHeld, ciHeld *slots.Slot
 	for i := range held {
@@ -327,7 +335,8 @@ func (e *Engine) takeSlot(tx slots.Tx, req GateRequest, kind slots.Kind, number 
 		h.Machine = req.MachineID
 	}
 	s := slots.Slot{MachineID: req.MachineID, Kind: kind, Number: number, Claim: newClaim(), Job: toJob(req.Job),
-		Holder: h, QueuedAt: queuedAt, TakenAt: now, ExpiresAt: slots.SlotExpiry(now, set)}
+		Holder: h, QueuedAt: queuedAt, TakenAt: now, ExpiresAt: slots.SlotExpiry(now, set),
+		HolderID: req.GateID, LeaseExpiresAt: slots.LeaseExpiry(now, set)}
 	if err := tx.InsertSlot(s); err != nil {
 		if errors.Is(err, slots.ErrSlotTaken) {
 			return slots.Slot{}, false, nil

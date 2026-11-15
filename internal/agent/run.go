@@ -254,6 +254,15 @@ func jobToProto(j machines.JobRef) *agentv1.JobRef {
 	return out
 }
 
+// runningReport lists the jobs that run on this machine.
+func runningReport(jobs []machines.JobRef) *agentv1.HolderReport {
+	var running []*agentv1.JobRef
+	for _, j := range jobs {
+		running = append(running, jobToProto(j))
+	}
+	return &agentv1.HolderReport{Running: running}
+}
+
 func loadToProto(r load.Report, slots int) *agentv1.LoadReport {
 	return &agentv1.LoadReport{
 		SampledAtUnixMs: r.SampledAt.UnixMilli(), MemoryPct: r.MemoryPct, MemoryKnown: r.MemoryKnown, CpuPct: r.CPUPct, CpuKnown: r.CPUKnown,
@@ -435,6 +444,10 @@ func (l *link) sendLoop(ctx context.Context, cancel context.CancelFunc, lastRecv
 		case <-ld.C:
 			rep, _ := cfg.Sampler.Latest()
 			if fail(l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_LoadReport{LoadReport: loadToProto(rep, cfg.Gate.SlotsUsed())}})) {
+				return
+			}
+			// The holder report is the lease heartbeat of the jobs that run here (scheduling R5.69).
+			if fail(l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_HolderReport{HolderReport: runningReport(cfg.Gate.Running())}})) {
 				return
 			}
 		case <-rd.C:

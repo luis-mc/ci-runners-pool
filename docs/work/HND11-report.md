@@ -10,3 +10,6 @@ Plan
 
 Log
 - started
+- slots hold lease (holder_id, lease_expires_at), Renew/RenewJobs, pid Reconcile removed
+- agent sends holder report every load tick; controller renews leases
+- migration 00013, spec R5.69, change note HND11

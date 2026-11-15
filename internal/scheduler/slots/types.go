@@ -73,7 +73,12 @@ type Slot struct {
 	Holder       Holder
 	QueuedAt     time.Time
 	TakenAt      time.Time
-	ExpiresAt    time.Time
+	// ExpiresAt is the age limit: taken at plus the slot maximum age (R5.33).
+	ExpiresAt time.Time
+	// HolderID names the lease holder: the gate id that took the slot (R5.69).
+	HolderID string
+	// LeaseExpiresAt is when the lease ends unless a heartbeat renews it (R5.69).
+	LeaseExpiresAt time.Time
 }
 
 // Slot-log events and outcomes (R5.38).
@@ -137,6 +142,9 @@ type Tx interface {
 	InsertSlot(s Slot) error
 	// FreeSlot deletes the slot; with a non-empty claim only when it still holds that claim (R5.15).
 	FreeSlot(machineID string, kind Kind, number int, claim string) (bool, error)
+	// RenewSlot moves the lease end of the slot that still holds this holder id
+	// and claim; false when the slot is gone or taken again by another (R5.69).
+	RenewSlot(machineID string, kind Kind, number int, holderID, claim string, leaseExpiresAt time.Time) (bool, error)
 	// RunningByRepository counts ci and heavy slots held pool-wide per repository (R5.9, R5.10).
 	RunningByRepository() (map[string]int, error)
 
