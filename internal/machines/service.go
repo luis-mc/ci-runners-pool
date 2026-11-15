@@ -89,6 +89,7 @@ type Service struct {
 
 	mu       sync.Mutex
 	loads    map[string]Load
+	policies map[string]Policy
 	lastKept map[string]time.Time
 	running  map[string][]JobRef
 	runners  map[string][]string
@@ -108,7 +109,7 @@ func New(o Options) *Service {
 	}
 	return &Service{
 		o: o, sessions: newSessions(),
-		loads: map[string]Load{}, lastKept: map[string]time.Time{}, running: map[string][]JobRef{},
+		loads: map[string]Load{}, policies: map[string]Policy{}, lastKept: map[string]time.Time{}, running: map[string][]JobRef{},
 		runners: map[string][]string{}, fails: map[string][]time.Time{}, blocked: map[string]time.Time{},
 		updates: map[string]AgentUpdate{},
 	}

@@ -15,6 +15,13 @@ const (
 	LabelOpenGitHub   = "Open on GitHub"
 	LabelStartAtLogin = "Start at login"
 	LabelQuit         = "Quit tray"
+	LabelMode         = "Mode"
+	LabelAutomatic    = "Automatic"
+	LabelAlways       = "Always"
+	LabelPaused       = "Paused"
+	LabelPauseHour    = "Pause for 1 hour"
+	LabelPauseUntil   = "Pause until I resume"
+	LabelResume       = "Resume"
 	// RepoURL is the repository page that Open on GitHub opens.
 	RepoURL = "https://github.com/luis-mc/ci-runners-shared-pool"
 )
@@ -25,6 +32,13 @@ const (
 	IDHeader    = "header"
 	IDService   = "service"
 	IDSep1      = "sep1"
+	IDMode      = "mode"
+	IDModeAuto  = "mode_automatic"
+	IDModeAlw   = "mode_always"
+	IDModePause = "mode_paused"
+	IDPauseHour = "pause_hour"
+	IDPauseTill = "pause_until_resumed"
+	IDResume    = "resume"
 	IDOpen      = "open"
 	IDCheck     = "check"
 	IDUpdate    = "update"
@@ -46,6 +60,10 @@ type MenuItem struct {
 	Checked   bool
 	Separator bool
 	Hidden    bool // present in the model, not shown
+	// Parent is the ID of the submenu this item sits in; empty for the top level.
+	Parent string
+	// Radio marks an item of a group where exactly one is ticked (Checked).
+	Radio bool
 }
 
 // UpdateInfo is what the service says about updates (operations R5.11 to R5.18).
@@ -85,6 +103,9 @@ func Header(version string, st Status) string {
 	}
 	if st.Update.AutoOff {
 		base += " · auto-update off"
+	}
+	if w := st.Policy.Word(); w != "" {
+		base += " · " + w
 	}
 	return base
 }
@@ -133,10 +154,38 @@ func plural(n int, noun string) string {
 // Windows, macOS and Linux.
 func BuildMenu(version string, st Status, startAtLogin bool) []MenuItem {
 	showUpdate := st.Update.Available && st.Update.AutoOff && !st.Update.Updating() && st.Update.Latest != ""
-	return []MenuItem{
+	return append(append([]MenuItem{
 		{ID: IDHeader, Label: Header(version, st)},
 		{ID: IDService, Label: st.ServiceLine()},
 		{ID: IDSep1, Separator: true},
+	}, policyItems(st)...), buildRest(st, startAtLogin, showUpdate)...)
+}
+
+// policyItems are the Mode submenu, the pause items and Resume (CRSP75, R5.31).
+// With no policy from the service they are hidden: an older service cannot
+// change the mode. The three modes are radio items; the one in force is ticked.
+// Pause items hide while the user holds a pause, and Resume shows then.
+func policyItems(st Status) []MenuItem {
+	p := st.Policy
+	hide := !p.Known
+	mode := p.Mode
+	if mode == "" {
+		mode = ModeAutomatic
+	}
+	paused := p.UserPaused()
+	return []MenuItem{
+		{ID: IDMode, Label: LabelMode, Action: true, Hidden: hide},
+		{ID: IDModeAuto, Label: LabelAutomatic, Action: true, Radio: true, Switch: true, Checked: mode == ModeAutomatic, Parent: IDMode, Hidden: hide},
+		{ID: IDModeAlw, Label: LabelAlways, Action: true, Radio: true, Switch: true, Checked: mode == ModeAlways, Parent: IDMode, Hidden: hide},
+		{ID: IDModePause, Label: LabelPaused, Action: true, Radio: true, Switch: true, Checked: mode == ModePaused, Parent: IDMode, Hidden: hide},
+		{ID: IDPauseHour, Label: LabelPauseHour, Action: true, Hidden: hide || paused},
+		{ID: IDPauseTill, Label: LabelPauseUntil, Action: true, Hidden: hide || paused},
+		{ID: IDResume, Label: LabelResume, Action: true, Hidden: hide || !paused},
+	}
+}
+
+func buildRest(st Status, startAtLogin, showUpdate bool) []MenuItem {
+	return []MenuItem{
 		{ID: IDOpen, Label: LabelOpen, Action: true},
 		{ID: IDCheck, Label: LabelCheck, Action: true},
 		{ID: IDUpdate, Label: updateLabel + st.Update.Latest, Action: true, Hidden: !showUpdate},

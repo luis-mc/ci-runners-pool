@@ -7,6 +7,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/load"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/power"
 )
 
 // Gate is the machine's own job-started gate (machines R5.23, runner-pool
@@ -30,6 +31,13 @@ type Gate struct {
 	// held names the runners that take no new job while a cache wipe waits.
 	held    map[string]bool
 	sampler *load.Sampler
+
+	// The machine policy (CRSP75, R5.59 to R5.61): the power source and the clock.
+	power power.Reader
+	now   func() time.Time
+	pwMu  sync.Mutex
+	pwAt  time.Time
+	pwNow power.State
 }
 
 // NewGate returns a gate over a load sampler. Until settings arrive it holds
@@ -67,6 +75,7 @@ type Decision struct {
 // Start asks to start a job on a backend. When it answers Go the job counts as
 // running until Finish.
 func (g *Gate) Start(key string, job machines.JobRef, backend string) Decision {
+	ps := g.currentPower()
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if !g.have {
@@ -81,6 +90,11 @@ func (g *Gate) Start(key string, job machines.JobRef, backend string) Decision {
 	}
 	if job.RunnerName != "" && g.held[job.RunnerName] {
 		why = append(why, "cache_wipe")
+	}
+	if g.state == machines.StateActive {
+		if acc := g.acceptanceLocked(ps, g.clock()); !acc.Accepting && acc.Reason != machines.PauseReasonBudget {
+			why = append(why, acc.Reason)
+		}
 	}
 	if len(g.running) >= g.settings.JobSlots {
 		why = append(why, "free_slot")

@@ -35,8 +35,17 @@ type Notifier func(title, body string)
 // Launcher opens a URL or folder with the OS default handler.
 type Launcher func(target string) error
 
+// PolicySetter changes this machine's mode and pause through the service
+// (tray R5.31). Each call answers with the status after the change.
+type PolicySetter interface {
+	SetMode(ctx context.Context, mode string) (Status, error)
+	Pause(ctx context.Context, kind string) (Status, error)
+	Resume(ctx context.Context) (Status, error)
+}
+
 // Opener implements Open and Open log folder.
 type Opener struct {
+	Policy  PolicySetter
 	Links   LinkSource
 	Targets TargetLinkSource // for the Review steps; nil when the service cannot
 	Checker UpdateChecker
@@ -148,5 +157,37 @@ func OSLauncher(target string) error {
 		return err
 	}
 	go func() { _ = cmd.Wait() }()
+	return nil
+}
+
+// SetMode sets the machine mode and hands the new status to show, so the menu
+// follows the change without waiting for the next poll.
+func (o *Opener) SetMode(ctx context.Context, mode string, show func(Status)) error {
+	return o.policy("Could not change the mode", show, func() (Status, error) { return o.Policy.SetMode(ctx, mode) })
+}
+
+// PauseFor pauses new jobs for one hour or until Resume.
+func (o *Opener) PauseFor(ctx context.Context, kind string, show func(Status)) error {
+	return o.policy("Could not pause", show, func() (Status, error) { return o.Policy.Pause(ctx, kind) })
+}
+
+// Resume ends a pause from the tray, and the Paused mode.
+func (o *Opener) Resume(ctx context.Context, show func(Status)) error {
+	return o.policy("Could not resume", show, func() (Status, error) { return o.Policy.Resume(ctx) })
+}
+
+func (o *Opener) policy(failTitle string, show func(Status), do func() (Status, error)) error {
+	if o.Policy == nil {
+		o.notify(failTitle, "This service cannot change the mode. Open the console and go to Machines.")
+		return fmt.Errorf("no policy setter")
+	}
+	st, err := do()
+	if err != nil {
+		o.notify(failTitle, err.Error())
+		return err
+	}
+	if show != nil {
+		show(st)
+	}
 	return nil
 }

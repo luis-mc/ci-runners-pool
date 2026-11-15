@@ -47,6 +47,30 @@ func (d machineDrainer) local(ctx context.Context) (machines.View, error) {
 	return machines.View{}, errors.New("this machine has not joined the pool yet, so it cannot drain")
 }
 
+// policy reads this machine's mode and whether it takes new jobs, for the tray
+// (tray R5.31). ok is false when the machine has not joined yet.
+func (d machineDrainer) policy(ctx context.Context) (machines.View, bool) {
+	if d.svc == nil {
+		return machines.View{}, false
+	}
+	v, err := d.local(ctx)
+	return v, err == nil
+}
+
+// setPolicy changes this machine's mode or pause as the tray's user. The
+// console shows the same change, because both write the machine's settings.
+func (d machineDrainer) setPolicy(ctx context.Context, actor string, u machines.SettingsUpdate) error {
+	if d.svc == nil {
+		return errors.New("this machine has not joined the pool yet")
+	}
+	v, err := d.local(ctx)
+	if err != nil {
+		return err
+	}
+	_, _, err = d.svc.UpdateSettings(ctx, actor, v.Machine.ID, u)
+	return err
+}
+
 func (d machineDrainer) RunningJobs(ctx context.Context) ([]update.Job, error) {
 	v, err := d.local(ctx)
 	if err != nil {

@@ -33,6 +33,14 @@ type Backend interface {
 	Check(ctx context.Context) (tray.Response, error)
 	// Link answers `link`: a one-time URL for this caller, landing on target.
 	Link(ctx context.Context, c Caller, target string) (string, error)
+	// SetMode answers `mode`: set this machine's mode (automatic, always or
+	// paused), then like Status.
+	SetMode(ctx context.Context, c Caller, mode string) (tray.Response, error)
+	// Pause answers `pause`: pause new jobs for one hour (one_hour) or until
+	// Resume (until_resumed), then like Status.
+	Pause(ctx context.Context, c Caller, kind string) (tray.Response, error)
+	// Resume answers `resume`: end a pause and the Paused mode, then like Status.
+	Resume(ctx context.Context, c Caller) (tray.Response, error)
 }
 
 // ErrNoPeer says the OS could not name the caller; the channel then answers nothing but an error (spec section 8: closed, no link).
@@ -115,6 +123,15 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 		answer(reply, fail, r, err)
 	case "check":
 		r, err := s.Backend.Check(ctx)
+		answer(reply, fail, r, err)
+	case "mode":
+		r, err := s.Backend.SetMode(ctx, who, req.Mode)
+		answer(reply, fail, r, err)
+	case "pause":
+		r, err := s.Backend.Pause(ctx, who, req.Pause)
+		answer(reply, fail, r, err)
+	case "resume":
+		r, err := s.Backend.Resume(ctx, who)
 		answer(reply, fail, r, err)
 	case "link":
 		u, err := s.Backend.Link(ctx, who, req.Target)

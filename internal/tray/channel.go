@@ -13,8 +13,27 @@ import (
 
 // Request is one JSON line sent over the local channel (spec section 7).
 type Request struct {
-	Call   string `json:"call"`             // status | link | check
+	Call   string `json:"call"`             // status | link | check | mode | pause | resume
 	Target string `json:"target,omitempty"` // call=link: the console path to open, "" for the start page
+	Mode   string `json:"mode,omitempty"`   // call=mode: automatic, always or paused
+	Pause  string `json:"pause,omitempty"`  // call=pause: one_hour or until_resumed
+}
+
+// PolicyInfo is what the service says about this machine's mode and whether it
+// takes new jobs (tray R5.31, machines R5.59 to R5.61). An older service leaves
+// it out; the tray then shows no mode and offers none.
+type PolicyInfo struct {
+	// Mode is automatic, always or paused.
+	Mode string `json:"mode"`
+	// Accepting is whether the machine takes new jobs; PauseReason is why not:
+	// paused, on_battery, quiet_hours or budget.
+	Accepting   bool   `json:"accepting"`
+	PauseReason string `json:"pause_reason,omitempty"`
+	OnBattery   bool   `json:"on_battery,omitempty"`
+	// PauseUntilMs is the end of a pause from the tray with a timer (Unix ms);
+	// UntilResumed is a pause that lasts until Resume.
+	PauseUntilMs int64 `json:"pause_until_ms,omitempty"`
+	UntilResumed bool  `json:"until_resumed,omitempty"`
 }
 
 // Response is one JSON line answered by the service.
@@ -36,6 +55,9 @@ type Response struct {
 	LatestVersion   string `json:"latest_version,omitempty"`
 	UpdateAvailable bool   `json:"update_available,omitempty"`
 	UpdateState     string `json:"update_state,omitempty"`
+
+	// Policy is this machine's mode and acceptance (CRSP75).
+	Policy *PolicyInfo `json:"policy,omitempty"`
 }
 
 // Dialer opens the local channel: a named pipe on Windows, a Unix socket elsewhere.
@@ -116,10 +138,49 @@ func statusFrom(r Response) Status {
 	if st == "" {
 		st = StateHealthy
 	}
-	return Status{
+	out := Status{
 		State: st, Running: r.Running, Waiting: r.Waiting, Runners: r.Runners, Fault: r.Fault, Version: r.Version,
 		Update: UpdateInfo{Latest: r.LatestVersion, Available: r.UpdateAvailable, State: r.UpdateState, AutoOff: r.AutoUpdate != nil && !*r.AutoUpdate},
 	}
+	if p := r.Policy; p != nil {
+		out.Policy = MachinePolicy{
+			Known: true, Mode: p.Mode, Accepting: p.Accepting, PauseReason: p.PauseReason, OnBattery: p.OnBattery,
+			UntilResumed: p.UntilResumed,
+		}
+		if p.PauseUntilMs > 0 {
+			out.Policy.PauseUntil = time.UnixMilli(p.PauseUntilMs)
+		}
+	}
+	return out
+}
+
+// SetMode asks the service to set this machine's mode: automatic, always or
+// paused. The console shows the change at once (tray R5.31).
+func (c *Client) SetMode(ctx context.Context, mode string) (Status, error) {
+	r, err := c.call(ctx, Request{Call: "mode", Mode: mode})
+	if err != nil {
+		return Status{}, err
+	}
+	return statusFrom(r), nil
+}
+
+// Pause asks the service to pause new jobs on this machine: for one hour
+// (PauseOneHour) or until Resume (PauseUntilResumed).
+func (c *Client) Pause(ctx context.Context, kind string) (Status, error) {
+	r, err := c.call(ctx, Request{Call: "pause", Pause: kind})
+	if err != nil {
+		return Status{}, err
+	}
+	return statusFrom(r), nil
+}
+
+// Resume asks the service to end a pause from the tray, and a Paused mode.
+func (c *Client) Resume(ctx context.Context) (Status, error) {
+	r, err := c.call(ctx, Request{Call: "resume"})
+	if err != nil {
+		return Status{}, err
+	}
+	return statusFrom(r), nil
 }
 
 // Check asks the service to look for a newer stable release now (Look for updates).

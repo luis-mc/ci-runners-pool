@@ -11,6 +11,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/cpucap"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/load"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
@@ -56,6 +57,9 @@ type Config struct {
 	// Redactor learns every token and JIT config the controller sends, so no
 	// log line or answer shows one (runners R5.11); nil makes a private one.
 	Redactor *redact.Redactor
+	// CPUCap sets the CPU cap on the runner processes (machines R5.62); nil uses
+	// the OS applier.
+	CPUCap cpucap.Applier
 
 	// Intervals; the defaults are the spec's (R5.35, R5.13, R5.16).
 	HeartbeatEvery time.Duration // 10 s
@@ -64,6 +68,9 @@ type Config struct {
 	SampleEvery    time.Duration // 5 s
 	DrainPollEvery time.Duration // 2 s
 	CacheEvery     time.Duration // 5 min
+	// PolicyEvery is how often the agent checks the power source and the pause
+	// timer; 0 takes 5 s (machines R5.60).
+	PolicyEvery time.Duration
 	// BudgetEvery is how often the pool-wide cache budget is checked; 0 takes 10 min (caches R5.48).
 	BudgetEvery time.Duration
 	// Backoff is the reconnect delay; Sleep waits for it (tests replace both).
@@ -98,7 +105,7 @@ func (c *Config) defaults() {
 		v time.Duration
 	}{
 		{&c.HeartbeatEvery, machines.HeartbeatEvery}, {&c.LoadEvery, 15 * time.Second}, {&c.RedetectEvery, 10 * time.Minute},
-		{&c.SampleEvery, load.SampleEvery}, {&c.DrainPollEvery, 2 * time.Second}, {&c.CacheEvery, 5 * time.Minute},
+		{&c.SampleEvery, load.SampleEvery}, {&c.DrainPollEvery, 2 * time.Second}, {&c.CacheEvery, 5 * time.Minute}, {&c.PolicyEvery, 5 * time.Second},
 	} {
 		if *d.p == 0 {
 			*d.p = d.v
@@ -124,6 +131,13 @@ func (c *Config) defaults() {
 	}
 }
 
+func untilTime(ms int64) time.Time {
+	if ms <= 0 {
+		return time.Time{}
+	}
+	return time.UnixMilli(ms).UTC()
+}
+
 // SettingsFromProto converts the wire settings.
 func SettingsFromProto(p *agentv1.MachineSettings) machines.Settings {
 	return machines.Settings{
@@ -135,6 +149,8 @@ func SettingsFromProto(p *agentv1.MachineSettings) machines.Settings {
 		AllowedBackends: p.GetAllowedBackends(), CacheCapBytes: p.GetCacheCapBytes(),
 		DrainTimeoutMinutes: int(p.GetDrainTimeoutMinutes()), WindowsSymlinkRight: p.GetWindowsSymlinkRight(),
 		PoolMemoryGiB: p.GetPoolMemoryGib(), PoolCPUs: int(p.GetPoolCpus()),
+		Mode: p.GetMode(), PauseOnBattery: p.GetPauseOnBattery(), PauseUntil: untilTime(p.GetPauseUntilUnixMs()),
+		PausedUntilResumed: p.GetPauseUntilResumed(), CPUCapPct: int(p.GetCpuCapPct()),
 	}
 }
 
@@ -263,6 +279,11 @@ type link struct {
 
 	wipes  *wiper
 	budget *Budgeter
+
+	// kick wakes the policy loop; capMu guards cap, the last CPU cap set.
+	kick  chan struct{}
+	capMu sync.Mutex
+	cap   capState
 }
 
 func (l *link) send(m *agentv1.SessionRequest) error {
@@ -282,7 +303,7 @@ func (l *link) redetect(ctx context.Context) *agentv1.Facts {
 func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	l := &link{cfg: cfg}
+	l := &link{cfg: cfg, kick: make(chan struct{}, 1)}
 	l.budget = NewBudgeter(cfg)
 	l.wipes = &wiper{cfg: cfg, send: l.send, fsys: cfg.cacheFS(), poll: cfg.DrainPollEvery}
 	l.stream = newClient(pin, cfg.Controller).Session(ctx)
@@ -332,6 +353,7 @@ func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 	go l.cacheLoop(ctx)
 	go l.machineReportLoop(ctx)
 	go l.budgetLoop(ctx)
+	go l.policyLoop(ctx)
 
 	for {
 		msg, err := l.stream.Receive()
@@ -458,6 +480,7 @@ func (l *link) handle(ctx context.Context, msg *agentv1.SessionResponse) error {
 	switch m := msg.GetMessage().(type) {
 	case *agentv1.SessionResponse_Settings:
 		applySettings(cfg, m.Settings)
+		l.kickPolicy()
 	case *agentv1.SessionResponse_Drain:
 		l.setDrain(m.Drain.GetCommandId(), m.Drain.GetRunnerNames()...)
 		_ = l.reportDrain() // the first check right away

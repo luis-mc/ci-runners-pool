@@ -20,6 +20,32 @@ type fakeBackend struct {
 	caller  Caller
 	target  string
 	linkErr error
+	// The policy calls (CRSP75): the last mode and pause the tray sent.
+	mode, pause string
+	resumed     int
+}
+
+func (f *fakeBackend) policy() tray.Response {
+	r, _ := f.Status(context.Background())
+	mode := f.mode
+	if mode == "" {
+		mode = "automatic"
+	}
+	r.Policy = &tray.PolicyInfo{Mode: mode, Accepting: mode != "paused" && f.pause == "", PauseReason: "paused", UntilResumed: f.pause == "until_resumed"}
+	return r
+}
+func (f *fakeBackend) SetMode(_ context.Context, c Caller, mode string) (tray.Response, error) {
+	f.caller, f.mode = c, mode
+	return f.policy(), nil
+}
+func (f *fakeBackend) Pause(_ context.Context, c Caller, kind string) (tray.Response, error) {
+	f.caller, f.pause = c, kind
+	return f.policy(), nil
+}
+func (f *fakeBackend) Resume(_ context.Context, c Caller) (tray.Response, error) {
+	f.caller, f.pause, f.mode = c, "", ""
+	f.resumed++
+	return f.policy(), nil
 }
 
 func (f *fakeBackend) Status(context.Context) (tray.Response, error) {
@@ -151,5 +177,23 @@ func TestSocketMode0660(t *testing.T) {
 	_ = os.WriteFile(reg, []byte("x"), 0o600)
 	if _, err := Listen(reg, nil); err == nil {
 		t.Fatal("must not remove a regular file")
+	}
+}
+
+// CRSP75: the tray changes the mode and the pause over the channel, and the
+// answer carries the policy it shows.
+func TestChannelModePauseAndResume(t *testing.T) {
+	fb := &fakeBackend{}
+	c, _ := start(t, fb)
+	ctx := context.Background()
+	st, err := c.SetMode(ctx, tray.ModePaused)
+	if err != nil || fb.mode != "paused" || !st.Policy.Known || st.Policy.Mode != "paused" || st.Policy.Accepting {
+		t.Fatalf("set mode: %v %+v %q", err, st.Policy, fb.mode)
+	}
+	if st, err = c.Pause(ctx, tray.PauseUntilResumed); err != nil || fb.pause != "until_resumed" || !st.Policy.UntilResumed {
+		t.Fatalf("pause: %v %+v", err, st.Policy)
+	}
+	if st, err = c.Resume(ctx); err != nil || fb.resumed != 1 || st.Policy.Mode != "automatic" {
+		t.Fatalf("resume: %v %+v", err, st.Policy)
 	}
 }

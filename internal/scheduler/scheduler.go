@@ -59,6 +59,8 @@ const (
 	WaitRepoParallelLimit WaitReason = "repository_parallel_limit"
 	WaitMachineDrained    WaitReason = "machine_drained"
 	WaitQuietHours        WaitReason = "quiet_hours"
+	WaitPaused            WaitReason = "paused"
+	WaitOnBattery         WaitReason = "on_battery"
 	WaitLostRace          WaitReason = "lost_race"
 	WaitUnknown           WaitReason = "unknown"
 )

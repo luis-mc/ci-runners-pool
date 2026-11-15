@@ -156,7 +156,12 @@ func runController() error {
 	mr.Service.SetTypical(usualDuration(db))
 
 	um := startUpdates(ctx, cfg, logger, mr, ops.Settings, idle)
-	queue := scheduler.NewEngine(db, scheduler.WithLogger(logger))
+	// A machine that is paused, on battery or in quiet hours holds new jobs with
+	// that reason (scheduling R5.67, machines R5.60).
+	queue := scheduler.NewEngine(db, scheduler.WithLogger(logger), scheduler.WithAccepting(func(id string) (bool, string) {
+		p := mr.Service.Policy(id)
+		return p.Accepting, p.PauseReason
+	}))
 	go scheduler.RunSweeper(ctx, queue, logger, 30*time.Second)
 
 	sec, err := secrets.Open(ctx, cfg.DataDir)

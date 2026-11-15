@@ -105,6 +105,18 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 		return Decision{Go: grants}, nil
 	}
 
+	if r, text, hold := e.notAccepting(req.MachineID); hold {
+		// R5.67: a machine that does not accept holds the job, whatever slot is free.
+		if tk, ok, err := tx.Ticket(req.GateID); err != nil {
+			return Decision{}, err
+		} else if ok {
+			if err := tx.SetTicketWait(tk.ID, string(r)); err != nil {
+				return Decision{}, err
+			}
+		}
+		return Decision{Wait: []WaitReason{r}, WaitText: text}, nil
+	}
+
 	over, overText := overBudget(req.Load, budget)
 	measured := req.Load.MemoryKnown || req.Load.CPUKnown
 
@@ -266,6 +278,27 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 		out.Go = append([]Grant{*heavyGrant}, out.Go...)
 	}
 	return out, nil
+}
+
+// notAccepting reports the hold of a machine that is paused, on battery or in
+// quiet hours (machines R5.60).
+func (e *Engine) notAccepting(machineID string) (WaitReason, string, bool) {
+	if e.accepting == nil {
+		return "", "", false
+	}
+	ok, reason := e.accepting(machineID)
+	if ok {
+		return "", "", false
+	}
+	switch reason {
+	case "paused":
+		return WaitPaused, "this machine is paused", true
+	case "on_battery":
+		return WaitOnBattery, "this machine is on battery", true
+	case "quiet_hours":
+		return WaitQuietHours, "this machine is in quiet hours", true
+	}
+	return "", "", false
 }
 
 func grantOf(s slots.Slot) Grant {
