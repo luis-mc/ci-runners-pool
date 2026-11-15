@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/container"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/redact"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
@@ -117,9 +116,16 @@ func (a DBAccess) DBEnvFile() string {
 	return b.String()
 }
 
+// Engine is the part of the container engine Postgres uses: the call that
+// runs `docker <args>`. The container backend's Engine satisfies it; it is
+// declared here because that package imports this one.
+type Engine interface {
+	Command(args ...string) (sys.Command, error)
+}
+
 // Postgres manages the server of one pool.
 type Postgres struct {
-	Engine  container.Engine
+	Engine  Engine
 	Cmd     sys.Commands
 	Secrets secrets.Store
 	Owners  RoleOwners

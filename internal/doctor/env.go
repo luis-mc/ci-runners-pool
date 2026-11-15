@@ -91,6 +91,21 @@ type Fleet interface {
 	Repositories(ctx context.Context) ([]Repository, error)
 }
 
+// CacheUsage is what an agent measured of one runner's cache folder: the bytes
+// it holds and its declared cap (0 when it has none).
+type CacheUsage struct {
+	MachineID, RunnerName string
+	// Kind is tool_cache or rust_cache.
+	Kind      string
+	Size, Cap int64
+}
+
+// CacheFleet is the optional part of Fleet that lists the measured caches
+// (caches R5.42). A Fleet that does not have it makes the cache checks skip.
+type CacheFleet interface {
+	Caches(ctx context.Context) ([]CacheUsage, error)
+}
+
 // Machine is a machine as the checks need it.
 type Machine struct {
 	ID, Name, OS string

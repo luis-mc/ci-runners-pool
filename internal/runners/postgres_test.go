@@ -7,7 +7,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/container"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 )
@@ -15,13 +14,9 @@ import (
 // fakeEngine builds `docker <args>` calls and never runs one.
 type fakeEngine struct{}
 
-func (fakeEngine) Detect(context.Context) (container.Status, error) {
-	return container.Status{Present: true, Usable: true}, nil
-}
 func (fakeEngine) Command(args ...string) (sys.Command, error) {
 	return sys.Command{Name: "docker", Args: args}, nil
 }
-func (e fakeEngine) Run(context.Context, ...string) (sys.Result, error) { return sys.Result{}, nil }
 
 // fakePG answers docker calls and records them. SQL on stdin is kept.
 type fakePG struct {

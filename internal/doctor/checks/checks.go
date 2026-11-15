@@ -30,6 +30,8 @@ func Register(reg *doctor.Registry) {
 		doctor.NewCheck("machine.load.budget", doctor.GroupMachine, M1, false, machineLoadBudget),
 		doctor.NewCheck("machine.disk", doctor.GroupMachine, M1, false, machineDisk),
 		doctor.NewCheck("machine.guard.disk", doctor.GroupMachine, M1, false, machineDiskGuard),
+		doctor.NewCheck("cache.cap", doctor.GroupMachine, M1, false, cacheCap),
+		doctor.NewCheck("cache.disk", doctor.GroupMachine, M1, false, cacheDisk),
 		doctor.NewCheck("runner.detected", doctor.GroupRunner, M1, false, runnerDetected),
 		doctor.NewCheck("runner.service", doctor.GroupRunner, M1, false, runnerService),
 		doctor.NewCheck("runner.registered", doctor.GroupRunner, M1, false, runnerRegistered),
