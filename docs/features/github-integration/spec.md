@@ -231,7 +231,7 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R5.33** (M1, NOT YET IMPLEMENTED) — **Offline runner cleanup.** When an agent cannot run the remove step (machine gone), the controller deletes the runner with `DELETE .../actions/runners/{id}` after a yes that names it.
 
-**R5.34** (M2, NOT YET IMPLEMENTED) — **JIT config.** For an ephemeral runner the controller calls `generate-jitconfig` (repository or organization level) with the runner name, runner group and labels. It passes the encoded config to the agent over the agent link and drops it. The config is a secret: never stored or logged.
+**R5.34** (M2, v0.3.0, Built CRSP52) — **JIT config.** For an ephemeral runner the controller calls `generate-jitconfig` (repository or organization level) with the runner name, runner group and labels. It passes the encoded config to the agent over the agent link and drops it. The config is a secret: never stored or logged. Built: `GenerateJITConfig` in `internal/github/jitconfig.go`. The value is a `JITConfig` that masks itself in `%v`, `%#v`, `String` and JSON; the one way out is `Encoded()`, used by the controller to fill the agent call.
 
 ### 5.8 Demand
 
@@ -383,7 +383,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.31 | internal/github/client_test.go |
 | R5.32 | internal/github/client_test.go |
 | R5.33 | planned: internal/github/runner_delete_test.go |
-| R5.34 | planned: internal/github/jitconfig_test.go |
+| R5.34 | internal/github/jitconfig_test.go TestJitConfigNeverStoredOrLogged, TestJitConfigOrganizationScopeAndName |
 | R5.35 | planned: internal/github/scaleset_test.go |
 | R5.36 | internal/github/webhook_test.go; internal/api/handlers_github_test.go |
 | R5.37 | internal/github/poller_test.go |
@@ -415,7 +415,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 
 ## 11. Not built yet
 
-Built by CRSP19: the requirements marked built. Still NOT YET IMPLEMENTED: R5.6 (hourly health loop), R5.7, R5.21, R5.22 (webhook-driven), R5.33, R5.34, R5.35, R5.38, R6.1 (key import from a file and the no-secret-column test), R6.3, R6.4, R6.10 to R6.12. The controller wiring is built by CRSP41 (`cmd/crsp/areas_wiring.go`: the App record, users, sessions, repositories and the one-time setup link printed at start; the webhook route; the RUNS_ON restore every 10 minutes). The production SQL store is also open: users, sessions and the App record last until the controller restarts. The web screens are open too. The seams:
+Built by CRSP19: the requirements marked built. Still NOT YET IMPLEMENTED: R5.6 (hourly health loop), R5.7, R5.21, R5.22 (webhook-driven), R5.33, R5.35, R5.38, R6.1 (key import from a file and the no-secret-column test), R6.3, R6.4, R6.10 to R6.12. The controller wiring is built by CRSP41 (`cmd/crsp/areas_wiring.go`: the App record, users, sessions, repositories and the one-time setup link printed at start; the webhook route; the RUNS_ON restore every 10 minutes). The production SQL store is also open: users, sessions and the App record last until the controller restarts. The web screens are open too. The seams:
 
 - The HTTP contract: `packages/contract/openapi.yaml` gains the operations of section 7.
 - The schema: a new goose migration in `internal/store/migrations/` adds the tables of section 7.

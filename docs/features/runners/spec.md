@@ -171,11 +171,11 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 
 ### 5.6 Ephemeral JIT runners
 
-**R5.25** (M2) — **One runner per job with a JIT config.** For an ephemeral runner the controller asks GitHub for a JIT config for one job and hands it to the agent. The runner takes one job and exits. The JIT config is passed in memory or in a file only the runner can read, and is deleted at start. It is never stored in the database or logged.
+**R5.25** (M2, v0.3.0, Built CRSP52) — **One runner per job with a JIT config.** For an ephemeral runner the controller asks GitHub for a JIT config for one job and hands it to the agent. The runner takes one job and exits. The JIT config is passed in memory or in a file only the runner can read, and is deleted at start. It is never stored in the database or logged. Built: `internal/runners/jit.go` `StartJobRunner` asks GitHub for the config (`internal/github/jitconfig.go`), passes it to the agent in the same call and drops it; the container backend writes it to a `0700` tmpfs file only the job user reads, and the start script deletes the file before the runner runs. It is in no argument, record, event, audit line, log or error text. Plain `generate-jitconfig` is used, not scale sets (open question 8).
 
-**R5.26** (M2) — **Nothing carries over.** After the job, the agent calls `Stop` and `CleanUp` (R5.10). The next job gets a new runner from the image. No state passes between jobs except the shared caches the user turned on.
+**R5.26** (M2, v0.3.0, Built CRSP52) — **Nothing carries over.** After the job, the agent calls `Stop` and `CleanUp` (R5.10). The next job gets a new runner from the image. No state passes between jobs except the shared caches the user turned on. Built: each runner gets its own folder under `/home/runner/jobs`, copied from the image; `CleanUp` removes it and any config file, safe twice and when the container is gone (`internal/backend/container/container.go`).
 
-**R5.27** (M2) — **Containers on Linux and WSL2.** The container backend uses rootless Podman, or Docker when Podman is not there. The job runs as a non-root user. The container never runs with `--privileged` and never gets the Docker socket. When the machine allows KVM for that runner, `/dev/kvm` is passed with `--device` only. Memory and CPU caps come from the machine's load budget.
+**R5.27** (M2, v0.3.0, Built CRSP52) — **Containers on Linux and WSL2.** The container backend uses rootless Podman, or Docker when Podman is not there. The job runs as a non-root user. The container never runs with `--privileged` and never gets the Docker socket. When the machine allows KVM for that runner, `/dev/kvm` is passed with `--device` only. Memory and CPU caps come from the machine's load budget. Built in part: Docker only (rootless Podman is open question 15). One pool container per repository (`PoolName`), `--user 1001:1001`, `--cap-drop ALL` with `no-new-privileges` as the one capability set (open question 14), `--device /dev/kvm` only when the machine allows it, memory and CPU caps from `Config.Limits`. `CheckRunArgs` refuses `--privileged`, `--cap-add`, host PID, network, IPC or user namespace, any other device, any engine socket and root, before every `docker run`. The registry does not list the backend yet (open question 17).
 
 **R5.28** (M4) — **Hyper-V and WSL2 VMs on Windows.** The Hyper-V backend starts a VM per job from a prepared disk with a differencing disk on top, and deletes the differencing disk after the job. The WSL2 backend starts a Linux microVM or container per job inside WSL2.
 
@@ -183,17 +183,17 @@ No mocks yet. The Runners screen and the Create runner wizard follow design syst
 
 **R5.30** (M6) — **MicroVMs with snapshots.** On Linux with KVM, the Firecracker or Cloud Hypervisor backend boots an image once, takes a snapshot, and starts each job from that snapshot. The snapshot is keyed by image, kernel, vCPU count and memory; a change of any of them makes a new snapshot. After a restore the guest clock is set from the host and the guest random pool is reseeded (port DS R5.29).
 
-**R5.31** (M2) — **Best backend first.** When the user does not choose, the agent uses the first allowed backend in the order of decision 0003 for that OS (for Linux with `/dev/kvm`: microVM, then container, then persistent).
+**R5.31** (M2, v0.3.0, Built CRSP52) — **Best backend first.** When the user does not choose, the agent uses the first allowed backend in the order of decision 0003 for that OS (for Linux with `/dev/kvm`: microVM, then container, then persistent). Built: `backend.Order` and `backend.Choose` (`internal/backend/choose.go`). A backend that is absent, not allowed or not usable is skipped; a backend the user chose is the only one tried, and its failure is named. `PlanAdd` does not call it yet (open question 17).
 
 ### 5.7 Images
 
-**R5.32** (M2) — **Base images with tool layers.** Each OS has a few base images. The user turns tool layers on per pool: build tools, browsers for Playwright, packaging tools, cross-compilers. The layer list of an image is shown with its size (port DS R5.9, R5.11).
+**R5.32** (M2, v0.3.0, Built CRSP52) — **Base images with tool layers.** Each OS has a few base images. The user turns tool layers on per pool: build tools, browsers for Playwright, packaging tools, cross-compilers. The layer list of an image is shown with its size (port DS R5.9, R5.11). Built in part: layer names go into the image as a build argument and a label, and `ListImages` shows each image with its layers and total size. A size per layer is not read (open question 16). The tool lists of the layers are R5.50.
 
-**R5.33** (M2) — **Build once per machine, keep the newest few.** An image is keyed by its base, its layers and its pinned versions. A machine builds each key once and reuses it. It keeps the newest 3 images per OS (a setting) and deletes older ones that no runner uses.
+**R5.33** (M2, v0.3.0, Built CRSP52) — **Build once per machine, keep the newest few.** An image is keyed by its base, its layers and its pinned versions. A machine builds each key once and reuses it. It keeps the newest 3 images per OS (a setting) and deletes older ones that no runner uses. Built: `runners.ImageKey` (base, sorted layers, pinned versions), `PrepareImage` builds a key once, `PruneImages` keeps the newest 3 per OS (`DefaultKeepImages`) and never deletes an image a pool container uses.
 
 **R5.34** (M2) — **Pull through the registry mirror.** When the pool has a registry mirror, image pulls go through it. When the mirror cannot be reached, pulls go to the upstream registry and the console says so once.
 
-**R5.35** (M2) — **Rebuild with drain.** A rebuild builds the new image while the old one keeps serving jobs. Runners switch to the new image only when idle; the idle check runs right before the switch. A build failure keeps the old image and says `the rebuild failed: <reason>` (port DS R5.10, R5.13, R5.15; learning 1).
+**R5.35** (M2, v0.3.0, Built CRSP52) — **Rebuild with drain.** A rebuild builds the new image while the old one keeps serving jobs. Runners switch to the new image only when idle; the idle check runs right before the switch. A build failure keeps the old image and says `the rebuild failed: <reason>` (port DS R5.10, R5.13, R5.15; learning 1). Built: `Backend.Refresh` builds aside, stops new runners (`ErrDraining`), waits with `runners.Drain` (idle check right before the swap, then once more under the lock), swaps, and puts the old image back when the new one does not start. A failed build says `the rebuild failed: <reason>` and changes nothing.
 
 ### 5.10 Runner caches (M1)
 
@@ -376,17 +376,17 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.22 | internal/backend/linux/linux_test.go TestUnitHardeningAndFolderMode |
 | R5.23 | internal/backend/macos/macos_test.go TestDaemonPlistUserAndFolder, TestHiddenUser |
 | R5.24 | internal/backend/registry/registry_test.go TestRegistryHoldsOnlyThisOS; build-tagged files internal/backend/registry/registry_{windows,linux,darwin}.go (the CI matrix job is not added) |
-| R5.25 | planned: internal/runners/jit_test.go TestJitConfigNotStored |
-| R5.26 | planned: internal/backend/container/container_test.go TestNothingCarriesOver |
-| R5.27 | planned: internal/backend/container/container_test.go TestNoPrivilegedNoSocketKvmDevice |
+| R5.25 | internal/runners/jit_test.go TestJitConfigNotStored, TestJitFailureIsNamedAndLeavesNoSecret, TestJitRunnerRefusesProjectLabels; internal/backend/container/container_test.go TestJitConfigOnlyInAFileAndDeletedAtStart; internal/github/jitconfig_test.go TestJitConfigNeverStoredOrLogged |
+| R5.26 | internal/backend/container/container_test.go TestNothingCarriesOver |
+| R5.27 | internal/backend/container/container_test.go TestNoPrivilegedNoSocketKvmDevice, TestOnePoolContainerPerRepository, TestStartRefusals, TestDetectReportsTheEngine |
 | R5.28 | planned: internal/backend/hyperv/hyperv_test.go TestDifferencingDiskDeleted; internal/backend/wsl2/wsl2_test.go |
 | R5.29 | planned: internal/backend/tart/tart_test.go TestAtMostTwoVms |
 | R5.30 | planned: internal/backend/microvm/snapshot_test.go TestSnapshotKeyAndRestore (port of test_dl281_vm_check.py) |
-| R5.31 | planned: internal/backend/choose_test.go TestBestBackendFirst |
-| R5.32 | planned: internal/runners/images_test.go TestLayersListed |
-| R5.33 | planned: internal/runners/images_test.go TestBuildOnceKeepNewest |
+| R5.31 | internal/backend/choose_test.go TestBestBackendFirst |
+| R5.32 | internal/backend/container/container_test.go TestBuildOnceReusesTheImage (layers and size listed) |
+| R5.33 | internal/runners/images_keys_test.go TestBuildOnceKeepNewest; internal/backend/container/container_test.go TestBuildOnceReusesTheImage, TestPruneKeepsNewestAndWhatPoolsUse |
 | R5.34 | planned: internal/runners/images_test.go TestMirrorFallback |
-| R5.35 | planned: internal/runners/images_test.go TestRebuildDrainsAndKeepsOldOnFailure (port of test_dl289_refresh_drain.py) |
+| R5.35 | internal/backend/container/container_test.go TestRebuildDrainsAndKeepsOldOnFailure, TestRefreshNeverCutsARunningJob, TestSwapFailureRestoresTheOldImage |
 | R5.36 | internal/runners/runners_test.go TestGenericLabelsOnly (port of test_dl316_windows_only_generic.py); internal/runners/service_test.go TestPlanRefusesProjectLabels |
 | R5.37 | internal/runners/runners_test.go TestPinnedHash, TestValidSHA256 (port of the test_dl310 pin tests and test_dl165_pool_refresh_hash_result.py); internal/backend/windows/windows_test.go TestWrongHashRefused; linux and macos TestWrongHashRefused |
 | R5.38 | planned: internal/runners/update_test.go TestUpdateDrainsThenSwaps |
@@ -412,7 +412,7 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.58 | internal/backend/windows/windows_test.go TestAccountSwitchResetsFolderACL, TestACLResetFailureStopsBeforeLock |
 | R5.59 | `internal/backend/persistent/listener_test.go` TestEndListenersEscalatesTermThenKill, TestEndListenersReportsALeftoverListener; `internal/backend/linux/linux_test.go` TestStopEndsASurvivingListenerGroup, TestStopSkipsKillWhenTerminateWorks, TestStopReportsAListenerThatWillNotDie, TestUnitKillsTheGroupOnStop |
 | R5.60 | `internal/backend/persistent/listener_test.go` TestCheckNoListener; `internal/backend/linux/linux_test.go` TestFreshStartRefusedWhileAListenerRuns |
-| R6.1 | no backend in M1 starts a container; nothing to test until M2 |
+| R6.1 | internal/backend/container/container_test.go TestNoPrivilegedNoSocketKvmDevice (CRSP52) |
 | R6.2 | internal/runners/service_test.go TestNoTokenOrPasswordStoredOrLogged; internal/backend/linux/linux_test.go TestTokenOnlyInEnvAndUpdateOff |
 | R6.3 | internal/backend/windows/windows_test.go TestAccountRights (never in Administrators); internal/backend/linux/linux_test.go TestUnitUserAndGroup; internal/backend/macos/macos_test.go TestHiddenUser |
 | R6.4 | internal/runners/runners_test.go TestIdleCheckRightBeforeAct, TestTimeoutWarnsNeverKills, TestDrainFailsClosed; internal/runners/service_test.go TestRemoveFailsClosedAndTimeoutAsks |
@@ -446,7 +446,7 @@ Open questions for the owner (proposed answers are in the requirements until dec
 5. R6.7: log retention 14 days or 200 MB per machine; usage 90 days. Confirm.
 6. R5.5: should the product offer to adopt a hand-made runner, or only replace it (R5.6)?
 7. R5.21: Linux runners as systemd system units (admin needed at install). Confirm against user units.
-8. R5.25: JIT configs per job through the runner scale set client (`actions/scaleset`), or the plain `generate-jitconfig` API? The proposal is scale sets.
+8. R5.25: JIT configs per job through the runner scale set client (`actions/scaleset`), or the plain `generate-jitconfig` API? The proposal is scale sets. CRSP52 built the plain `generate-jitconfig` call (github-integration R5.34), the conservative option: no new dependency and the same encoded config. Alternative: scale sets, which also give the demand signal.
 9. R6.5: start-time budgets (15 s container, 5 s microVM). Confirm.
 10. R5.49 (CRSP49): the Actions runner is not in the base image yet. Proposed: the pool lifecycle (next wave) installs the pinned runner of R5.37 into the image by a second layer. Alternative: bake it into the base Dockerfile with the same hash check.
 11. R5.49 (CRSP49): Node. The newest LTS on nodejs.org (v26.13.1) has no `corepack` in its tarball, so the image installs `corepack` 0.36.0 from a SHA-256 checked npm tarball and runs `corepack enable`. Alternative: pin an older LTS that still ships corepack.
@@ -456,6 +456,12 @@ Open questions for the owner (proposed answers are in the requirements until dec
 15. R5.54 (CRSP54): the owner of a declared role is kept per pool by `RoleOwners` (in memory in this build; the store table comes with the pool lifecycle). Until then the conflict check holds only while the agent runs. Confirm a table in the store.
 16. R5.54 (CRSP54): a rerun sets the login's password to the stored one again and keeps it; the password is rotated only when the runner is removed and added again. Alternative: rotate on a schedule.
 17. R5.54 (CRSP54): `crsp db-env` finds the settings by `CRSP_DB_ENV_FILE` (a path) in the job environment, and masks `PGPASSWORD` and `DATABASE_URL`. Outside a pool job it exits 0; inside one without `GITHUB_ENV` it exits 1. Confirm the variable name.
+18. R5.27 (CRSP52): "one capability set". Built as `--cap-drop ALL` with `no-new-privileges` and nothing added. Alternatives: add a short fixed list (for example `SYS_CHROOT`, `SETUID`, `SETGID`) when a layer needs it; or allow the Chromium sandbox of the Playwright layer through its own seccomp profile. Nothing is added until a layer proves it needs it.
+19. R5.27 (CRSP52): the engine is Docker (the interface of CRSP49 hides it). Rootless Podman is not built. Alternative: a Podman `Engine` with the same flags, tried first on Linux as the requirement says.
+20. R5.32 (CRSP52): the list shows each image with its layer names and its total size, not a size per layer. Alternative: build each layer as its own image stage and read `docker history`.
+21. R5.27, R5.31 (CRSP52): the container backend is built and tested but not added to the registry of a binary, and `PlanAdd` does not call `Choose` or `StartJobRunner` yet, because the registry test and the M1 plan refuse ephemeral runners. Wiring needs the demand loop (github-integration R5.37). Alternative: register it now behind the per-machine allow list.
+22. R5.25 (CRSP52): the runner folder of each job is a copy of `/opt/actions-runner` (`cp -a`), so concurrent runners never share state. Alternative: hard links (`cp -al`), faster but the runner may write into linked files. This also needs the Actions runner in the image (open question 10).
+23. R5.35 (CRSP52): a job that GitHub gives to a runner in the few milliseconds between the last idle check and the swap is not seen, because the Worker process has not started. The check runs twice, the second under the same lock that stops new runners. Alternative: ask GitHub for the runner's busy flag as a third check (runners R6.4 already does for persistent runners). A waiting runner with no job is stopped by the swap and the controller asks for a new JIT config.
 
 ## 11. Not built yet
 
