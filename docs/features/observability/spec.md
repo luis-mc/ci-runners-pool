@@ -131,7 +131,7 @@ Milestone numbers are those of the product brief.
 
 **R5.4** — (M1) The web console keeps one live store fed by the stream. The Overview, the running-jobs strip and every running state read that store (design system UX-19, UX-34).
 
-**R5.5** — (M1) Every queued job carries one wait reason from a fixed list: free slot, load over budget, no online runner with the labels, repository parallel limit, machine drained, quiet hours, unknown. The reason names the machine, the numbers or the labels. "No runner with the labels" is raised once the job has waited 2 minutes (setting) and no online runner carries all its labels (ported from `warn_queued_jobs` in dev-standards `ci_watch.py`).
+**R5.5** — (M1) Every queued job carries one wait reason from a fixed list: free slot, load over budget, no online runner with the labels, repository parallel limit, machine drained, quiet hours, load not measured (scheduling R5.22, decision D53), unknown. The reason names the machine, the numbers or the labels. "No runner with the labels" is raised once the job has waited 2 minutes (setting) and no online runner carries all its labels (ported from `warn_queued_jobs` in dev-standards `ci_watch.py`). The overview also returns `waiting`: each queued job with its reason in words (scheduling R5.48, CRSP76).
 
 **R5.6** — (M1) Relative times ("4 min ago") read one shared clock that pauses while the page is hidden and catches up when shown (design system UX-53). Statuses use the word, glyph and colour set (design system UX-58).
 
