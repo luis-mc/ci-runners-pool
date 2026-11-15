@@ -203,6 +203,47 @@
       }
     }
   },
+  "syft": {
+    "version": "1.33.0",
+    "note": "CRSP90: SBOM generator for the release (release.yml). sha256 from the syft_1.33.0_checksums.txt of the release; the linux_x64 archive was hashed after download and matches.",
+    "platforms": {
+      "linux_x64": {
+        "kind": "archive",
+        "url": "https://github.com/anchore/syft/releases/download/v1.33.0/syft_1.33.0_linux_amd64.tar.gz",
+        "sha256": "adc1b944a827ed3432bcd9f1dbdbc8fa3c0dca7d3d449e7084c90248c2c6cb50",
+        "bin_dir": ".",
+        "bin": "syft"
+      },
+      "linux_arm64": {
+        "kind": "archive",
+        "url": "https://github.com/anchore/syft/releases/download/v1.33.0/syft_1.33.0_linux_arm64.tar.gz",
+        "sha256": "6688be30048149df88e5959a756dbab086022a04d0f7497790cd298a9669f49d",
+        "bin_dir": ".",
+        "bin": "syft"
+      },
+      "darwin_x64": {
+        "kind": "archive",
+        "url": "https://github.com/anchore/syft/releases/download/v1.33.0/syft_1.33.0_darwin_amd64.tar.gz",
+        "sha256": "90c4f6b6c4bbef5c1c28de84de9920ff862dbb779bfea326feb28bacba479c34",
+        "bin_dir": ".",
+        "bin": "syft"
+      },
+      "darwin_arm64": {
+        "kind": "archive",
+        "url": "https://github.com/anchore/syft/releases/download/v1.33.0/syft_1.33.0_darwin_arm64.tar.gz",
+        "sha256": "3ce47ab610260c5acfe6cc5991e250e08b3b9b36812abafb56db817569e0348b",
+        "bin_dir": ".",
+        "bin": "syft"
+      },
+      "windows_x64": {
+        "kind": "archive",
+        "url": "https://github.com/anchore/syft/releases/download/v1.33.0/syft_1.33.0_windows_amd64.zip",
+        "sha256": "0e1326e27a5e48102d9f806eb03b9c80d3d5e7b78abfd19a04887b2a0edd22b7",
+        "bin_dir": ".",
+        "bin": "syft"
+      }
+    }
+  },
   "nfpm": {
     "version": "2.49.0",
     "platforms": {
