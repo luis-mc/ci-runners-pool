@@ -239,7 +239,7 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R5.36** (M1, built) — **`workflow_job` webhook.** When webhooks are on, `POST /webhooks/github` takes `workflow_job` events (queued, in_progress, completed) and installation events. It checks `X-Hub-Signature-256` with the webhook secret before it reads the body. It records each delivery id and ignores a repeat.
 
-**R5.37** (M1, built) — **REST polling fallback.** With no scale set and no webhook, the controller polls queued and in-progress workflow runs and their jobs for each enabled repository. The default interval is 30 seconds. It sends ETags, backs off when idle, and keeps within the rate budget of R6.6.
+**R5.37** (M1, built; wired into the controller by CRSP58, container runners only) — **REST polling fallback.** With no scale set and no webhook, the controller polls queued and in-progress workflow runs and their jobs for each enabled repository. The default interval is 30 seconds. It sends ETags, backs off when idle, and keeps within the rate budget of R6.6. Built: `github.Poller` and `REST.ListOpenJobs` list the queued and in-progress runs and their jobs; the runs list is sent with `If-None-Match` and a 304 reuses the last answer (it costs no rate limit); rate-limit headers feed the half-budget rule (R6.6) and a limit makes the poller wait for the reset. The controller polls every 15 seconds (`demandPollEvery`, not 30) and backs off to 5 minutes while nothing changes. Only repositories with the pool on are polled, and nothing is polled while no machine has the container backend in its allow list. `internal/demand` matches the `runs-on` labels of each queued job (`self-hosted`, `linux`, an architecture, `docker`, the pool name; a project label, `kvm`, `gpu`, Windows or macOS match nothing) to a machine and starts one ephemeral JIT runner for the job (runners R5.25, R5.27), within the machine's job slots. A fork pull request waits unless the policy allows forks (R5.26). Scale set and webhook are not used for demand.
 
 **R5.38** (M1, NOT YET IMPLEMENTED) — **Reconcile.** Whatever the source, the controller reconciles its job view with REST every 5 minutes. A missed webhook or a broken session never leaves a job waiting unseen for longer than that.
 
@@ -386,7 +386,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.34 | internal/github/jitconfig_test.go TestJitConfigNeverStoredOrLogged, TestJitConfigOrganizationScopeAndName |
 | R5.35 | planned: internal/github/scaleset_test.go |
 | R5.36 | internal/github/webhook_test.go; internal/api/handlers_github_test.go |
-| R5.37 | internal/github/poller_test.go |
+| R5.37 | internal/github/poller_test.go; internal/github/client_test.go TestOpenJobsUsesETag; internal/demand/demand_test.go TestQueuedJobStartsOneRunner, TestLabelsThatDoNotMatchStartNothing, TestSlotBudgetHoldsJobsBack, TestForkPullRequest, TestTakenJobAndFailedStart, TestRunnerTookAnotherJob |
 | R5.38 | planned: internal/github/reconcile_test.go |
 | R5.39 | internal/repos/variables_test.go TestLegacyNamesWrittenAndRemovedWithSetting (CRSP47); the API field `legacy_vars` is in `packages/contract/openapi.yaml` |
 | R6.1 | planned: internal/secrets/store_test.go; internal/store/no_secrets_test.go (schema has no secret column) |
@@ -425,6 +425,11 @@ Built by CRSP19: the requirements marked built. Still NOT YET IMPLEMENTED: R5.6 
 Open questions (CRSP47):
 
 - R5.39: an old name (`CI_RUNS_ON`, `CI_RUNS_ON_WINDOWS`) is deleted only when the store lists it as written by the controller, because the old pool may have written it and it is not ours to remove. Alternative: delete any old name when `legacy_vars` is turned off. The conservative choice is built. The console switch and the doctor warning for a setting left on are still to build; the API field `legacy_vars` is there.
+
+Open questions (CRSP58):
+
+- R5.37: the poll interval is 15 seconds with a back-off to 5 minutes. The old pool polled every 15 seconds. Alternative: 30 seconds as before, to spend less of the hourly limit; the runs list is conditional, so a quiet repository costs two 304 answers per round.
+- R5.37: the webhook `workflow_job` event still only logs. Alternative: feed it to the same demand loop when webhooks are on, so a job starts a runner at once and the poll is the 5-minute reconcile (R5.38).
 
 Open checks for M1, each recorded as a fixture when built:
 
