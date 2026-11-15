@@ -211,3 +211,26 @@ func TestCheckRunsOnEndToEndWithETags(t *testing.T) { // R5.30, R6.6
 		t.Fatalf("%+v", fs)
 	}
 }
+
+func TestCheckAllRunsOnCoversEnabledRepositories(t *testing.T) { // R5.30
+	e := newEnv(t)
+	e.world()
+	ctx := context.Background()
+	e.fake.SetWorkflow("alice/secret", ".github/workflows/ci.yml", wf)
+	e.turnOn(101)
+	// Findings are cleared by hand to show that the hourly pass writes them back.
+	e.fake.SetWorkflow("alice/secret", ".github/workflows/ci.yml", "jobs:\n  a:\n    runs-on: ${{ fromJSON(vars.RUNS_ON_LINUX) }}\n")
+	if err := e.svc.CheckAllRunsOn(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if fs, _ := e.svc.Findings(ctx, 101); len(fs) != 0 {
+		t.Fatalf("the pass reads the fixed file: %+v", fs)
+	}
+	e.fake.SetWorkflow("alice/secret", ".github/workflows/ci.yml", wf)
+	if err := e.svc.CheckAllRunsOn(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if fs, _ := e.svc.Findings(ctx, 101); len(fs) == 0 {
+		t.Fatal("the pass found nothing in a file with findings")
+	}
+}

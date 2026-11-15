@@ -215,7 +215,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 **R5.29** (M1, built) — **Variables when the pool is off.** Turning the pool off for a repository names the `RUNS_ON_*` variables the controller would delete. It deletes them only after a yes. The question says that workflows that read them will fail to start.
 
-**R5.30** (M1, built) — **`runs-on` check.** The controller reads every file in `.github/workflows/` of an enabled repository on enable, on policy change and every hour (with ETags). It reports a finding with file and line when:
+**R5.30** (M1, built) — **`runs-on` check.** The controller reads every file in `.github/workflows/` of an enabled repository on enable, on policy change and every hour (with ETags). Built (HND3): `repos.Service.CheckAllRunsOn` and the hourly tick of `runsOnLoop` in `cmd/crsp/areas_wiring.go`; like the 10-minute RUNS_ON restore it does nothing until a GitHub App exists and stops its round at a rate limit (R6.6). It reports a finding with file and line when:
 
 - a self-hosted job names a literal label set that no runner of the pool carries (fail);
 - a self-hosted job uses literal labels instead of `fromJSON(vars.RUNS_ON_<OS>)` (warning);
