@@ -140,16 +140,20 @@ type WorkflowFile struct {
 
 // Job is a workflow job as GitHub reports it (R5.36 to R5.38).
 type Job struct {
-	ID          int64
-	RunID       int64
-	RunAttempt  int
-	Repository  string
-	Workflow    string
-	Name        string
-	HeadSHA     string
-	HeadBranch  string
-	Event       string
-	FromFork    bool
+	ID         int64
+	RunID      int64
+	RunAttempt int
+	Repository string
+	Workflow   string
+	Name       string
+	HeadSHA    string
+	HeadBranch string
+	Event      string
+	FromFork   bool
+	// Partial is true for a job read from a webhook: the event that started its
+	// run and whether it came from a fork are not known yet (CRSP82). A partial
+	// job never gets a runner until the poller reads the run.
+	Partial     bool
 	Labels      []string
 	Status      string // queued, in_progress or completed
 	Conclusion  string

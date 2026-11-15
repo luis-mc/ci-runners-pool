@@ -45,6 +45,9 @@ func (e demandEnv) Repo(ctx context.Context, fullName string) (demand.Repo, bool
 		if !strings.EqualFold(r.FullName, fullName) {
 			continue
 		}
+		if r.Visibility == "public" {
+			return demand.Repo{}, false, nil // crsp never serves a public repository (CRSP82)
+		}
 		pol, err := e.repos.GetPolicy(ctx, r.ID)
 		if err != nil {
 			return demand.Repo{}, false, err

@@ -22,7 +22,7 @@ type Fleet interface {
 func (s *Service) SetFleet(f Fleet) { s.cfg.Fleet = f }
 
 // StopServingPublic stops serving a repository that is public (github-integration
-// R5.69, CRSP82): crsp serves private repositories only, because anyone can
+// R5.47, CRSP82): crsp serves private repositories only, because anyone can
 // open a pull request against a public one. In this order: the pool is turned
 // off (no runner is registered after this), the RUNS_ON variables are set to the
 // hosted labels (so queued and new jobs run on GitHub), the runners are removed,

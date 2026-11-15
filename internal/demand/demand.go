@@ -161,6 +161,11 @@ func (l *Loop) Run(ctx context.Context, jobs <-chan github.Job) {
 func (l *Loop) Observe(ctx context.Context, j github.Job) {
 	l.mu.Lock()
 	l.init()
+	// A webhook knows less than the poller: it never wipes the event and the
+	// fork flag the poller read (CRSP82).
+	if old, ok := l.seen[j.ID]; ok && j.Partial && !old.Partial {
+		j.Event, j.FromFork, j.Partial = old.Event, old.FromFork, false
+	}
 	switch j.Status {
 	case "queued":
 		l.seen[j.ID] = j
@@ -337,6 +342,10 @@ func (l *Loop) try(ctx context.Context, j github.Job, w *waiting, hosts []Host, 
 		return
 	}
 	if !on {
+		return
+	}
+	if j.Partial {
+		l.note(j, w, "waiting to learn whether this job comes from a fork")
 		return
 	}
 	if j.FromFork && !repo.AllowFork {

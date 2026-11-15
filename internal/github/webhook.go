@@ -152,7 +152,7 @@ func ParseWorkflowJobEvent(body []byte) (Job, error) {
 	j := ev.WorkflowJob.job(ev.Repository.FullName, apiRun{})
 	// Fork and event come from the run, which the event omits; the poller and
 	// reconcile fill them in. A webhook never claims "not from a fork".
-	j.FromFork = false
+	j.FromFork, j.Partial = false, true
 	if j.CreatedAt.IsZero() {
 		j.CreatedAt = time.Now().UTC()
 	}

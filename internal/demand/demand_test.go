@@ -347,3 +347,33 @@ func TestIdleRunnerSlotIsFreed(t *testing.T) {
 		t.Fatal("not removed")
 	}
 }
+
+// CRSP82: a job from a webhook does not say whether it comes from a fork, so
+// it gets no runner until the poller read its run; the webhook never wipes
+// what the poller read.
+func TestWebhookJobWaitsForForkFlag(t *testing.T) {
+	ctx := context.Background()
+	l, fr, _ := newLoop(2)
+	hook := queued(1, linuxLabels...)
+	hook.Partial = true
+	l.Observe(ctx, hook)
+	l.Dispatch(ctx)
+	if len(fr.started) != 0 {
+		t.Fatal("a job of unknown origin got a runner")
+	}
+	full := queued(1, linuxLabels...)
+	full.Event, full.FromFork = "pull_request", true
+	l.Observe(ctx, full)
+	l.Observe(ctx, hook) // a later webhook for the same job
+	l.Dispatch(ctx)
+	if len(fr.started) != 0 {
+		t.Fatal("the webhook wiped the fork flag: a fork pull request got a runner")
+	}
+	ok := queued(2, linuxLabels...)
+	ok.Event = "push"
+	l.Observe(ctx, ok)
+	l.Dispatch(ctx)
+	if len(fr.started) != 1 {
+		t.Fatalf("a push job of a known origin got %d runners", len(fr.started))
+	}
+}

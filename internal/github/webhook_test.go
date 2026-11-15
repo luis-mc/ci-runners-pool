@@ -152,3 +152,14 @@ func TestWebhookRepositoryEvent(t *testing.T) {
 		t.Fatalf("an event with no repository: %d", c)
 	}
 }
+
+// CRSP82: a job from a webhook is partial: its fork flag is not known.
+func TestWebhookJobIsPartial(t *testing.T) {
+	j, err := ParseWorkflowJobEvent(fake.WorkflowJobQueuedEvent())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !j.Partial || j.FromFork {
+		t.Fatalf("partial %v fork %v", j.Partial, j.FromFork)
+	}
+}
