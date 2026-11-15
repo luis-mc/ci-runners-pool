@@ -3,7 +3,7 @@ id: caches
 title: Caches
 apps: [controller, agent, web-console, cli]
 topics: [caching, scheduling, security, operations, ui]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference
@@ -109,7 +109,7 @@ States:
 
 ### Actions cache server (milestone 7)
 
-**R5.1** — The cache server answers the Twirp service `github.actions.results.api.v1.CacheService` at `/twirp/github.actions.results.api.v1.CacheService/<Method>` for the methods `CreateCacheEntry`, `FinalizeCacheEntryUpload` and `GetCacheEntryDownloadURL`, with JSON and protobuf bodies and the field names of the toolkit's generated types (section 7.1).
+**R5.1** — The cache server answers the Twirp service `github.actions.results.api.v1.CacheService` at `/twirp/github.actions.results.api.v1.CacheService/<Method>` for the methods `CreateCacheEntry`, `FinalizeCacheEntryUpload` and `GetCacheEntryDownloadURL`, with JSON and protobuf bodies and the field names of the toolkit's generated types (section 7.1). **Planned (CRSP87, M7):** the LAN receiver that speaks this service to other machines is R5.50 step 3, behind this contract test.
 
 **R5.2** — The upload address the server returns accepts the Azure Blob calls that `BlockBlobClient.uploadFile` makes: Put Blob for a single shot (up to 128 MiB) and Put Block plus Put Block List for larger files. The download address answers a plain HTTP GET, with `Range` support.
 
@@ -141,7 +141,7 @@ States:
 
 Ported from dev-standards `claude/plugins/delivery/templates/shared/scripts/delivery/ci_tool.py` and `tools.json` (decision 0005). Its tests are ported with it (section 9).
 
-**R5.14** — Each machine has one shared tool cache folder that survives jobs. The agent makes it available to every job at one fixed path and sets `CI_TOOLS_DIR` to it. Until this milestone-2 folder exists, a persistent runner gets its own folder instead (R5.39). It is never the job's temp folder or workspace. The layout is `<dir>/<tool>/<version>/<file>`.
+**R5.14** — Each machine has one shared tool cache folder that survives jobs. The agent makes it available to every job at one fixed path and sets `CI_TOOLS_DIR` to it. Until this milestone-2 folder exists, a persistent runner gets its own folder instead (R5.39). It is never the job's temp folder or workspace. The layout is `<dir>/<tool>/<version>/<file>`. **Planned (CRSP87, M7):** peers share this folder over the LAN in R5.50 step 1, hash-checked.
 
 **R5.15** — Pins use the `tools.json` format: per tool a `version` and per platform (`linux_x64`, `linux_arm64`, `darwin_x64`, `darwin_arm64`, `windows_x64`) an entry with `kind` (`file`, `archive`, `wheel`, `crate`), `url`, `sha256`, and optional `file`, `bin` and `bin_dir`.
 
@@ -169,7 +169,7 @@ Owner decision of 2026-11-14 (CRSP21, CRSP26; dev-standards D302): on 14 Nov an 
 
 **R5.37** (M1) — **Eviction between jobs, oldest first.** The job-completed hook brings each cache under its quota. It removes whole top-level entries (a tool version, a build profile folder), the least recently used first, and stops as soon as the folder fits. "Used" is the newest modification time of any file in the entry; a tie goes by path. A job that reuses a cached entry keeps it from the next eviction by touching it. Nothing is evicted while a job runs: the hook runs after the job, and a runner that is busy removes nothing. An eviction that fails is logged and never fails the hook. Built (CRSP21).
 
-**R5.38** (M1) — **Disk guard in the job-started gate.** When the volume of the runner's cache folder has under 10% free (`cache_min_free_pct`, default 10, 1 to 50), the gate holds new jobs on that machine. They wait and are not failed. The hook writes one log line that names the free share, which reaches the job's Set up job step. The hold ends when 12% is free (the limit plus 2 points, so it does not flap). The hold counts against the gate's maximum wait; when that passes the job fails and can be re-run, also when the on-timeout rule is `run`, because a job that runs on a full disk can stop every runner on the machine. A disk that cannot be read never holds a job. The doctor check `machine.guard.disk` fails for a machine under the limit and says why jobs wait. Built (CRSP21).
+**R5.38** (M1) — **Disk guard in the job-started gate.** When the volume of the runner's cache folder has under 10% free (`cache_min_free_pct`, default 10, 1 to 50), the gate holds new jobs on that machine. They wait and are not failed. The hook writes one log line that names the free share, which reaches the job's Set up job step. The hold ends when 12% is free (the limit plus 2 points, so it does not flap). The hold counts against the gate's maximum wait; when that passes the job fails and can be re-run, also when the on-timeout rule is `run`, because a job that runs on a full disk can stop every runner on the machine. A disk that cannot be read never holds a job. The doctor check `machine.guard.disk` fails for a machine under the limit and says why jobs wait. Built (CRSP21). **Planned (CRSP83, M2):** the same hold, with a free-space floor, applies before a VM or job starts, machines R5.60.
 
 **R5.39** (M1) — **A tool cache folder per runner.** Each persistent runner's `.env` sets `CI_TOOLS_DIR` to its own `<runner folder>/cache/tools`, `CARGO_TARGET_DIR` to its own `<runner folder>/cache/rust-target`, and the quotas as `CI_TOOLS_QUOTA_GIB` and `CRSP_RUST_CACHE_CAP_GIB`. Two runners never share a folder, so one runner cannot fill another's quota. The delivery scripts `ci_tool.py` and `rust_ci.py` read these values. Built (CRSP26).
 
@@ -241,6 +241,8 @@ Owner decision of 2026-11-14 (CRSP21, CRSP26; dev-standards D302): on 14 Nov an 
 **R5.48** (M1, v0.2.0, Built CRSP48) — **A pool-wide disk budget, enforced on a timer.** All cache folders of the runners on one machine (`cache/tools` and `cache/rust-target`) have one budget, `cache_budget_gib` (default 150; 0 or absent takes the default, negative is refused). The agent checks it every 10 minutes (not only at pool start). When the total passes the budget, it removes whole top-level cache entries across all runners, the least recently used first (the order of R5.37), and stops as soon as the total fits. Before it removes anything from a runner, it keeps new jobs out of that runner and checks in the same step that no job runs on it; a runner with a job running is counted but never touched, and the rest of the budget pass goes on with the idle runners. When only caches in use remain, the pass says so in the agent log and tries again at the next tick. The value reaches the agent through each runner's `.env` as `CRSP_CACHE_BUDGET_GIB`; a runner without it is not enforced. Cause: handover lesson 24.
 
 **R5.49** (M1, v0.2.0, Built CRSP48) — **A size alert for one cache file or folder.** On the same timer the agent finds each cache file, and each top-level cache folder, that holds more than `cache_alert_gib` (default 20; 0 or absent takes the default). It writes one warning line in the agent log naming the path and its size, once for each path until that path falls under the threshold again. The value reaches the agent as `CRSP_CACHE_ALERT_GIB` in the runner `.env`. The alert is a log line; a notification waits for the notifications feature (question Q7). Nothing is removed by the alert.
+
+**R5.50** (M7, NOT YET IMPLEMENTED, CRSP87) — **Shared caches on the LAN, in three steps.** Machines of one pool can share caches over the local network, in this order, each its own setting and each off until turned on: (1) a shared tool cache (R5.14) that crsp owns end to end: a machine asks the cache holder for `<tool>/<version>/<file>` and checks the SHA-256 before use; (2) a package proxy for npm, PyPI, crates and apt, with its own folder, size cap and eviction; (3) an Actions cache receiver that speaks the Twirp protocol of R5.1 to other machines. Step 3 comes last because that protocol is not published by GitHub: it ships only behind a contract test that runs the real `@actions/cache` package against the receiver (R5.1), and a failure of that test turns step 3 off with a doctor message instead of breaking jobs. A LAN peer that cannot be reached is skipped, and the job falls back to its local cache or a fresh download. Peers authenticate with the machine key, and cache keys never cross repositories.
 
 ## 6. Non-functional requirements
 
@@ -385,6 +387,7 @@ Rows for R5.36 to R5.40, R5.42, R5.43, R5.44, R5.45, R5.48 and R5.49 are built a
 | R5.47 | internal/vmcheck/cache_test.go TestSharedCacheModeAndLock, TestSizeCapEvictsOldestFirstKeepsNewestImageAndWaitsForRunningVMs, TestPruneNeverTouchesADiskARunningVMUses; internal/jobcmd/vmprune_test.go TestCapComesFromFlagThenEnvThenDefault; internal/vmcheck/boot_test.go TestDownloadChecksDigestAndCachesByDigest, TestDownloadRefusesAWrongDigestAndLeavesNothing |
 | R5.48 | internal/runnercache/budget_test.go TestBudgetEvictsOldestAcrossRunnersAndSkipsBusy, TestBudgetStaysOverWhenOnlyBusyCachesRemain, TestBudgetUnderOrOffRemovesNothing; internal/agent/cachebudget_test.go TestBudgetPassWithoutBudgetOrOverDoesNothing, TestBudgetPassAlertsOnceAndKeepsBusyRunner |
 | R5.49 | internal/runnercache/budget_test.go TestSizeAlertPastThresholdForFileAndFolder; internal/agent/cachebudget_test.go TestBudgetPassAlertsOnceAndKeepsBusyRunner |
+| R5.50 | planned: internal/cache/lan_test.go TestToolCacheChecksHashFromPeer, TestUnreachablePeerFallsBack, TestKeysNeverCrossRepositories; internal/proxy/proxy_test.go TestPackageProxyCapAndEviction; e2e/caches/actions-cache-lan-contract.test.ts (real @actions/cache against the receiver; CRSP87) |
 | R6.1 | internal/cache/bench_test.go (lookup p95 with 100,000 entries; 1 GiB download speed) |
 | R6.2 | internal/cache/evict_test.go (default 20 GiB, ceiling, refuse under 10% free) |
 | R6.3 | internal/cache/integrity_test.go (changed blob becomes a miss and is deleted) |

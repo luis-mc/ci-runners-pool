@@ -4,10 +4,12 @@ import (
 	"context"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/demand"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/repos"
@@ -86,50 +88,141 @@ func (e demandEnv) Hosts(ctx context.Context) ([]demand.Host, error) {
 	return out, nil
 }
 
-// startDemand runs the poller and the demand loop until the returned stop is
-// called. Nothing is polled while no machine can start a container runner, so
-// a controller whose allow list is empty spends no GitHub quota on it.
-func startDemand(ctx context.Context, logger *slog.Logger, gh *github.REST, env demandEnv, svc *runners.Service, pool string) (stop func()) {
-	ctx, cancel := context.WithCancel(ctx)
-	loop := &demand.Loop{Env: env, Runners: svc, PoolName: pool, Logger: logger}
+// demandRunner runs the poller and the demand loop, and can restart both once
+// (the quiet-demand watchdog, github-integration R5.37). The loop keeps its
+// state across a restart, so no second runner starts for a job it already
+// served.
+type demandRunner struct {
+	logger *slog.Logger
+	gh     *github.REST
+	env    demandEnv
+	loop   *demand.Loop
+
+	mu     sync.Mutex
+	ctx    context.Context
+	poller *github.Poller
+	cancel context.CancelFunc
+	done   chan struct{}
+}
+
+// targets lists the repositories to poll. Nothing is polled while no machine
+// can start a container runner, so a controller whose allow list is empty
+// spends no GitHub quota on it.
+func (d *demandRunner) targets(ctx context.Context) ([]github.PollTarget, error) {
+	if d.gh.AppID() == 0 {
+		return nil, nil
+	}
+	hosts, err := d.env.Hosts(ctx)
+	if err != nil || len(hosts) == 0 {
+		return nil, err
+	}
+	on := true
+	rs, err := d.env.repos.ListRepositories(ctx, repos.ListFilter{Pool: &on})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]github.PollTarget, 0, len(rs))
+	for _, r := range rs {
+		out = append(out, github.PollTarget{InstallationID: r.InstallationID, Owner: r.Owner, Repo: r.Name})
+	}
+	return out, nil
+}
+
+// start makes a new poller and runs it with the loop.
+func (d *demandRunner) start() {
+	ctx, cancel := context.WithCancel(d.ctx)
 	poller := &github.Poller{
-		Client:   gh,
+		Client:   d.gh,
 		Interval: demandPollEvery,
-		Targets: func(ctx context.Context) ([]github.PollTarget, error) {
-			if gh.AppID() == 0 {
-				return nil, nil
-			}
-			hosts, err := env.Hosts(ctx)
-			if err != nil || len(hosts) == 0 {
-				return nil, err
-			}
-			on := true
-			rs, err := env.repos.ListRepositories(ctx, repos.ListFilter{Pool: &on})
-			if err != nil {
-				return nil, err
-			}
-			out := make([]github.PollTarget, 0, len(rs))
-			for _, r := range rs {
-				out = append(out, github.PollTarget{InstallationID: r.InstallationID, Owner: r.Owner, Repo: r.Name})
-			}
-			return out, nil
-		},
+		Targets:  d.targets,
 		OnError: func(err error) {
 			if ctx.Err() == nil {
-				logger.Warn("poll queued jobs", "err", err)
+				d.logger.Warn("poll queued jobs", "err", err)
 			}
 		},
 	}
 	jobs, err := poller.Jobs(ctx)
 	if err != nil {
-		logger.Error("start the demand poller", "err", err)
+		d.logger.Error("start the demand poller", "err", err)
 		cancel()
-		return func() {}
+		return
 	}
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		loop.Run(ctx, jobs)
+		d.loop.Run(ctx, jobs)
 	}()
-	return func() { cancel(); <-done }
+	d.poller, d.cancel, d.done = poller, cancel, done
+}
+
+func (d *demandRunner) stopCurrent() {
+	if d.cancel != nil {
+		d.cancel()
+		<-d.done
+		d.cancel, d.done = nil, nil
+	}
+}
+
+// Restart stops the poller and the loop and starts them again.
+func (d *demandRunner) Restart() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.ctx.Err() != nil {
+		return
+	}
+	d.stopCurrent()
+	d.start()
+}
+
+// LastDemand implements demand.DemandSeen over the current poller.
+func (d *demandRunner) LastDemand(fullName string) time.Time {
+	d.mu.Lock()
+	p := d.poller
+	d.mu.Unlock()
+	if p == nil {
+		return time.Time{}
+	}
+	return p.LastDemand(fullName)
+}
+
+// Stop ends the poller and the loop.
+func (d *demandRunner) Stop() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.stopCurrent()
+}
+
+// startDemand runs the poller, the demand loop and the quiet-demand watchdog
+// until the returned stop is called. The watchdog's state is what the doctor
+// check `demand.quiet` reads.
+func startDemand(ctx context.Context, logger *slog.Logger, gh *github.REST, env demandEnv, svc *runners.Service, pool string, quiet time.Duration) (stop func(), wd *demand.Watchdog) {
+	ctx, cancel := context.WithCancel(ctx)
+	dr := &demandRunner{logger: logger, gh: gh, env: env, ctx: ctx,
+		loop: &demand.Loop{Env: env, Runners: svc, PoolName: pool, Logger: logger}}
+	dr.mu.Lock()
+	dr.start()
+	dr.mu.Unlock()
+	wd = &demand.Watchdog{Lister: gh, Targets: dr.targets, Source: dr, Restart: dr.Restart,
+		PoolName: pool, Quiet: quiet, Logger: logger}
+	wdDone := make(chan struct{})
+	go func() {
+		defer close(wdDone)
+		wd.Run(ctx, time.Minute)
+	}()
+	return func() { cancel(); <-wdDone; dr.Stop() }, wd
+}
+
+// quietSource gives the doctor what the quiet-demand watchdog found.
+type quietSource struct{ wd *demand.Watchdog }
+
+var _ doctor.DemandSource = quietSource{}
+
+// QuietDemand implements doctor.DemandSource.
+func (q quietSource) QuietDemand(context.Context) ([]doctor.QuietDemand, error) {
+	var out []doctor.QuietDemand
+	for _, r := range q.wd.QuietRepos() {
+		out = append(out, doctor.QuietDemand{Repository: r.Repository, Queued: r.Queued, Since: r.Since,
+			Restarted: r.Restarted, RestartedAt: r.RestartedAt})
+	}
+	return out, nil
 }

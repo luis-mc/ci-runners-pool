@@ -82,6 +82,7 @@ func toGenSettings(st settings.Settings) gen.Settings {
 		BackupTimeLocal:            &t,
 		BackupKeepDays:             intPtr(st.BackupKeepDays),
 		MaxEventStreams:            intPtr(st.MaxEventStreams),
+		FallbackGraceMinutes:       intPtr(st.FallbackGraceMinutes),
 		AutoUpdate:                 &st.AutoUpdate,
 	}
 }
@@ -121,6 +122,7 @@ func (s *server) UpdateSettings(ctx context.Context, req gen.UpdateSettingsReque
 		BackupTimeLocal:            b.BackupTimeLocal,
 		BackupKeepDays:             b.BackupKeepDays,
 		MaxEventStreams:            b.MaxEventStreams,
+		FallbackGraceMinutes:       b.FallbackGraceMinutes,
 		AutoUpdate:                 b.AutoUpdate,
 	})
 	if err != nil {

@@ -2684,6 +2684,9 @@ components:
           repository_parallel_limit,
           machine_drained,
           quiet_hours,
+          load_not_measured,
+          paused,
+          on_battery,
           unknown,
         ]
     Severity:
@@ -3045,6 +3048,8 @@ components:
             $ref: '#/components/schemas/RepositoryVariable'
         policy:
           $ref: '#/components/schemas/RepositoryPolicy'
+        routing:
+          $ref: '#/components/schemas/RepositoryRouting'
       example:
         id: 700100
         full_name: luis-mc/app
@@ -3066,6 +3071,33 @@ components:
           labels: [self-hosted, linux, x64]
           runner_groups: []
           light_runner: true
+    RepositoryRouting:
+      type: object
+      description: Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
+      required: [where, why, used_minutes]
+      properties:
+        where:
+          type: string
+          enum: [crsp, hosted, waiting]
+        why:
+          type: string
+          description: A code the console turns into words. machine_up, fallback_on, fallback_off, grace, cap_reached or public_repository.
+          enum:
+            [machine_up, fallback_on, fallback_off, grace, cap_reached, public_repository]
+        oses:
+          type: array
+          description: The operating systems the reason is about.
+          items:
+            type: string
+            enum: [linux, windows, macos]
+        used_minutes:
+          type: integer
+          description: Fallback minutes counted this month (UTC), best effort.
+      example:
+        where: hosted
+        why: fallback_on
+        oses: [linux]
+        used_minutes: 12
     RepositoryVariable:
       type: object
       required: [name, status]
@@ -3133,6 +3165,18 @@ components:
           description: Extra distribution packages of the pool image (runners R5.51).
           items:
             type: string
+        hosted_fallback:
+          type: boolean
+          description: Run on GitHub-hosted runners while no crsp machine can take the jobs (github-integration R5.42). Off by default; GitHub may bill those minutes for a private repository.
+        fallback_cap_minutes:
+          type: integer
+          description: Monthly cap of fallback minutes; absent means no cap.
+          minimum: 1
+        hosted_labels:
+          type: object
+          description: The hosted label per operating system; a missing one is the default (ubuntu-latest, windows-latest, macos-latest).
+          additionalProperties:
+            type: string
         updated_at:
           type: string
           format: date-time
@@ -3160,6 +3204,21 @@ components:
         confirm_fork_risk:
           type: boolean
           description: Needed to turn fork jobs on (github-integration R5.26).
+        hosted_fallback:
+          type: boolean
+          description: Turn the hosted fallback on or off (github-integration R5.42). A public repository is refused.
+        confirm_fallback_cost:
+          type: boolean
+          description: The yes to the question that says GitHub may bill the fallback minutes. Needed to turn the fallback on.
+        fallback_cap_minutes:
+          type: integer
+          minimum: 0
+          description: Monthly cap of fallback minutes; 0 clears it.
+        hosted_labels:
+          type: object
+          description: Hosted label per operating system (linux, windows, macos); an empty value puts the default back.
+          additionalProperties:
+            type: string
         labels:
           type: array
           items:
@@ -3403,6 +3462,13 @@ components:
           $ref: '#/components/schemas/MachineState'
         online:
           type: boolean
+        accepting:
+          type: boolean
+          description: Whether the machine takes new jobs (machines R5.62). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts.
+        pause_reason:
+          $ref: '#/components/schemas/PauseReason'
+        policy:
+          $ref: '#/components/schemas/MachinePolicy'
         is_controller:
           type: boolean
           description: The controller's own machine (machines R5.1); it has no special path.
@@ -3611,6 +3677,51 @@ components:
           type: integer
           minimum: 0
           description: The CPUs the pool may use on this machine (machines R5.58). 0 means not set. Split over the job slots it gives CI_MAX_PARALLEL (runners R5.53).
+        mode:
+          $ref: '#/components/schemas/MachineMode'
+        pause_on_battery:
+          type: boolean
+          description: Automatic pauses while the machine runs on battery. On by default; Always ignores it (machines R5.61, R5.63).
+        cpu_cap_pct:
+          $ref: '#/components/schemas/CpuCapPct'
+        pause_until:
+          type: string
+          format: date-time
+          description: A pause from the tray with a timer ends at this time. Absent when none runs (machines R5.61).
+        pause_until_resumed:
+          type: boolean
+          description: A pause from the tray holds until Resume.
+    MachineMode:
+      type: string
+      description: Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.61).
+      enum: [automatic, always, paused]
+    CpuCapPct:
+      type: integer
+      description: The share of the whole machine's CPU the runner processes may use, in percent (machines R5.64). Separate from the load budget. 100 is no cap.
+      enum: [25, 50, 75, 100]
+    PauseReason:
+      type: string
+      description: Why a machine takes no new job (machines R5.62). Other features read these exact names.
+      enum: [paused, on_battery, quiet_hours, budget]
+    CpuCapState:
+      type: string
+      description: What the agent did with the CPU cap. not_supported is macOS (machines R5.64).
+      enum: [applied, not_supported, failed]
+    MachinePolicy:
+      type: object
+      description: What the agent last reported about the power source and the CPU cap (machines R5.62 to R5.64).
+      required: [battery_known, on_battery]
+      properties:
+        on_battery:
+          type: boolean
+        battery_known:
+          type: boolean
+          description: False when no battery reading was possible; the machine then counts as on mains.
+        cpu_cap_state:
+          $ref: '#/components/schemas/CpuCapState'
+        cpu_cap_detail:
+          type: string
+          description: Why the cap is not applied, in words fit to show.
     PoolSizeCheckRequest:
       type: object
       required: [pool_memory_gib, pool_cpus]
@@ -3748,6 +3859,16 @@ components:
           type: integer
           minimum: 0
           description: The pool CPUs. Send it with pool_memory_gib.
+        mode:
+          $ref: '#/components/schemas/MachineMode'
+        pause_on_battery:
+          type: boolean
+        cpu_cap_pct:
+          $ref: '#/components/schemas/CpuCapPct'
+        pause:
+          type: string
+          description: A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.61).
+          enum: [one_hour, until_resumed, none]
         confirm_shrink:
           type: boolean
           description: The explicit yes to a pool size below the current one. confirm does not stand for it (machines R5.58).
@@ -4311,6 +4432,25 @@ components:
                 $ref: '#/components/schemas/Slot'
               reason:
                 type: string
+    WaitingJob:
+      type: object
+      description: One queued or held job with the first reason it waits (scheduling R5.48).
+      required: [job_id, repository, job_name, reason, words]
+      properties:
+        job_id:
+          type: integer
+          format: int64
+        repository:
+          type: string
+        job_name:
+          type: string
+        machine_id:
+          type: string
+        reason:
+          $ref: '#/components/schemas/WaitReason'
+        words:
+          type: string
+          description: The reason in words, with its numbers (memory 91% > 85%, 2 ahead in the queue).
     Overview:
       type: object
       required: [machines, queued_count, running, last_event_id]
@@ -4325,6 +4465,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Job'
+        waiting:
+          type: array
+          description: >-
+            Why each queued or held job waits, in words, first blocking reason
+            only, in the order of the queue (scheduling R5.48, web-console R5.20).
+          items:
+            $ref: '#/components/schemas/WaitingJob'
         running:
           type: array
           items:
@@ -4575,6 +4722,11 @@ components:
           type: integer
           minimum: 1
           maximum: 200
+        fallback_grace_minutes:
+          type: integer
+          minimum: 1
+          maximum: 60
+          description: github-integration R5.43. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3.
         auto_update:
           type: boolean
           description: operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first.
@@ -4587,6 +4739,7 @@ components:
         backup_time_local: '03:00'
         backup_keep_days: 14
         max_event_streams: 50
+        fallback_grace_minutes: 3
         auto_update: true
     UpdateStatus:
       type: object

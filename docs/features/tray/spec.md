@@ -38,7 +38,7 @@ The tray is a small icon on each desktop machine in the pool. It shows whether t
 
 **Non-goals.**
 
-- The tray is not a second console. Settings, machines, runners and jobs live in the web console only.
+- The tray is not a second console. Settings, machines, runners and jobs live in the web console only. The one exception is the local machine's mode and pause (R5.42): the person who sits at the machine can hold it from taking jobs without opening the console.
 - The tray never runs runners or jobs, and holds no secret.
 - No tray on headless machines; the CLI covers them.
 
@@ -93,6 +93,9 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 | `CI Runners Shared Pool <version> - up to date` | Text, grey, not pressable | Reads `- update <v> available` when a newer stable release exists, `- updating…` while an update drains, downloads or installs, and ends with ` · auto-update off` when Automatic updates is off. With no answer from the service it shows only the name and version. |
 | `Service: Running · N jobs running · M waiting` | Text, grey, not pressable | The state is a word: Running, Waiting, Failed, Stopped or Starting. Stopped reads `Service: Stopped at 14:30 · exit code 3`. The tooltip keeps the glyph form (R5.2). |
 | (separator) | | |
+| Mode | Submenu with three radio items: Automatic, Always, Paused. The mode in force is ticked (R5.42). | Hidden when the service does not report a machine policy. |
+| Pause for 1 hour, Pause until I resume | Action | Pause new jobs on this machine; the running jobs finish. Hidden while a pause or the Paused mode holds. |
+| Resume | Action | Ends the pause, and returns the Paused mode to Automatic. Shown only while a pause or the Paused mode holds. |
 | Open CI Runners Shared Pool | Action. It is not bold: the owner accepted a plain entry, and the menu has no default-entry code path. | Opens the console, signed in, through a one-time link. |
 | Look for updates | Action | Asks the service to look for a newer stable release now and says the result in one notice. |
 | Update to `<version>` | Action | Shown only when a newer release waits for a yes, that is, Automatic updates is off. Opens the console Review step. |
@@ -125,7 +128,7 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 ### Menu and status
 
-**R5.1** — The tray menu MUST hold, in this order, on Windows, macOS and Linux: the version line, the service line, a separator, Open CI Runners Shared Pool, Look for updates, Update to `<version>` (only when a newer release waits for a yes), Restart the service, Open log folder, Open on GitHub, Start at login, a separator, Quit tray. The first two lines are grey text. (M1, CRSP19)
+**R5.1** — The tray menu MUST hold, in this order, on Windows, macOS and Linux: the version line, the service line, a separator, Mode (a submenu), Pause for 1 hour, Pause until I resume, Resume, Open CI Runners Shared Pool, Look for updates, Update to `<version>` (only when a newer release waits for a yes), Restart the service, Open log folder, Open on GitHub, Start at login, a separator, Quit tray. The first two lines are grey text. (M1, CRSP19)
 
 **R5.2** — The service line MUST read `Service: <word> · N jobs running · M waiting` with the state as a word (UX-58). The tooltip MUST show the same facts with the UX-58 glyph: product name, glyph and state word, running job count and waiting job count. A stopped service shows the stop time and exit code instead of counts, in both. (M1, CRSP19)
 
@@ -134,6 +137,10 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 **R5.4** — The icon MUST always be the same round disc with the letters CRSP in it, the same as the app icon (decision tray D8). Only the disc colour changes with the state. The tooltip and the menu header MUST name the state in words (R5.2), so the state is never shown by colour alone (UX-26). The program icon (`crsp.exe`, the Start Menu entry, the Apps list) is the healthy disc, 16 to 256 px. (M1)
 
 **R5.5** — Quit MUST close only the tray. It MUST NOT stop the service or any job. (M1)
+
+### Mode and pause (CRSP75)
+
+**R5.42** — The tray MUST show this machine's mode and let the person change it (machines R5.61): a Mode submenu with Automatic, Always and Paused as radio items (the one in force ticked), Pause for 1 hour, Pause until I resume, and Resume. A pause item hides while a pause or the Paused mode holds; Resume shows then and ends the pause and the Paused mode. The menu header ends with ` · Paused` or ` · On battery` (or ` · Quiet hours`) while the machine takes no new job, and the tooltip says it in lower case. A machine over its load budget is working, so the header does not say Busy. A change goes to the controller as a machine setting through the local channel calls `mode`, `pause` and `resume`, and the status answer carries the policy back (`policy`: mode, accepting, pause_reason, on_battery, pause_until_ms, until_resumed). The console shows the change at once, a change in the console reaches the menu on the next 5-second poll (R5.3), and each change is in the audit log as `tray:<os user>`. A failed change shows one notice and changes nothing. The running jobs always finish. (M1)
 
 ### Open and the one-time sign-in link
 
@@ -240,7 +247,7 @@ flowchart LR
 ```
 
 - **Package.** `internal/tray` holds the menu, the status poller, the autostart writers per OS (build tags), the single-instance lock, and the Linux tray-host probe. `fyne.io/systray` draws the icon and menu.
-- **Local channel.** One small request-response protocol (JSON lines) on the named pipe `\\.\pipe\crsp-tray` or the socket `/run/crsp/tray.sock` (Linux) or `/var/run/crsp/tray.sock` (macOS). Calls: `status` (also carries `version`, `auto_update`, `latest_version`, `update_available`, `update_state`), `link` (returns a one-time URL; an optional `target` is the console path to land on, for the Review steps), `check` (look for a newer stable release, answers like `status`), `notices` (M8). Restart and update are not channel calls: the tray opens the console Review step with `link`, and the console calls the HTTP API (`POST /api/v1/update/apply?confirmed=true`, `POST /api/v1/service/restart?confirmed=true`). The service reads the caller's OS user from the pipe or the socket.
+- **Local channel.** One small request-response protocol (JSON lines) on the named pipe `\\.\pipe\crsp-tray` or the socket `/run/crsp/tray.sock` (Linux) or `/var/run/crsp/tray.sock` (macOS). Calls: `status` (also carries `version`, `auto_update`, `latest_version`, `update_available`, `update_state`), `link` (returns a one-time URL; an optional `target` is the console path to land on, for the Review steps), `check` (look for a newer stable release, answers like `status`), `mode` (`mode`: automatic, always or paused), `pause` (`pause`: one_hour or until_resumed) and `resume`, which answer like `status` (CRSP75, R5.42), `notices` (M8). Restart and update are not channel calls: the tray opens the console Review step with `link`, and the console calls the HTTP API (`POST /api/v1/update/apply?confirmed=true`, `POST /api/v1/service/restart?confirmed=true`). The service reads the caller's OS user from the pipe or the socket.
 - **One-time link.** The controller stores `link_codes(hash, github_user_id, purpose, target_path, expires_at, used_at)`. The URL is `<scheme>://<host>:8460/auth/link?code=<code>`, `http` for 127.0.0.1 and ::1, `https` for any other address (web-console R5.1). The console marks the code used in the same transaction that makes the session, then redirects to `target_path`.
 - **Bindings.** The controller stores `tray_bindings(machine_id, os_user_id, github_user_id, created_at)`. `os_user_id` is the Windows SID or the Unix uid.
 - **Service state.** Windows: `QueryServiceStatusEx` (exit code from `dwWin32ExitCode` or `dwServiceSpecificExitCode`). macOS: `launchctl print` (last exit code). Linux: `systemctl show -p ActiveState,ExecMainStatus,ExecMainExitTimestamp`. None of these needs admin.
@@ -267,6 +274,7 @@ Rows marked built have tests that exist and run in CI. Rows marked planned are n
 | Requirement | Test |
 |---|---|
 | R5.1 | built: internal/tray/menu_test.go, TestMenuOrder, TestUpdateItemOnlyWhenNewerAndAutoOff |
+| R5.42 | built (CRSP75): internal/tray/policy_test.go, TestModeSubmenuIsThreeRadioItemsWithOneTick, TestPauseAndResumeItems, TestNoPolicyHidesTheModeItems, TestHeaderNamesWhyTheMachineTakesNoJobs, TestClientSetsModePauseAndResume, TestOpenerChangesPolicyAndNoticesAFailure; internal/trayserver/server_unix_test.go, TestChannelModePauseAndResume; internal/machines/policy_test.go, TestPauseFromTheTray |
 | R5.2 | built: internal/tray/menu_test.go, TestServiceLinePerState, TestHeaderPerUpdateState; internal/tray/tray_test.go, TestStatusTextPerState (tooltip) |
 | R5.3 | built: internal/tray/tray_test.go, TestPollerUpdatesWithin10s (injected clock) |
 | R5.4 | built: internal/tray/tray_test.go, TestIconIsAlwaysTheDiscDifferingOnlyInColour, TestCommittedAppIconMatches |

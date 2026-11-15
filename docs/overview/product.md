@@ -73,7 +73,7 @@ See decision 0002.
 ## Machines (nodes)
 
 - Add a machine by running one install command that the console shows, with a one-time join code. The agent connects outbound to the controller over TLS; no inbound port opens on the machine (decision 0004).
-- The agent detects and reports: OS and version, CPU and architecture, memory, disk, isolation backends (Docker, Podman, containerd or nerdctl, WSL2, Hyper-V, KVM, Apple Virtualization through Tart, Firecracker), GPU, and measured load.
+- The agent detects and reports: OS and version, CPU and architecture, memory, disk, isolation backends (Docker, Podman, containerd or nerdctl, WSL2, Hyper-V, KVM, Apple Virtualization, Firecracker), GPU, and measured load.
 - Per machine: active or drained, the load budget (default: at or below 85% memory and 60% CPU in total), the number of job slots, the backends allowed, a cache size cap, and maintenance windows.
 - Drain, never kill: changes that restart runners (image rebuilds, agent updates, a new cap) wait until the machine has no running job and say what they wait for. The drain timeout (one per machine, default 60 minutes) only starts a warning; crsp never stops the job.
 
@@ -85,7 +85,7 @@ See decision 0003. Each backend implements one interface: prepare image, start r
 |---|---|---|
 | Linux | Firecracker or Cloud Hypervisor microVM (with KVM); rootless Podman or Docker container; persistent runner | microVM per job is the default when `/dev/kvm` exists |
 | Windows | Hyper-V VM; WSL2 Linux microVM or container; Windows container; persistent runner as a service account | jobs that need the full desktop toolchain often need a persistent runner or a VM |
-| macOS | Tart VM (Apple Virtualization); persistent runner | at most two macOS VMs per Mac at once; enforce it |
+| macOS | macOS VM on Apple's Virtualization.framework, crsp's own code, not Tart (not yet implemented); persistent runner | at most two macOS VMs per Mac at once; enforce it |
 
 - Images: a few base images per OS with tool layers the user turns on (build tools, browsers for Playwright, packaging tools, cross-compilers). Build once per machine, keep the newest few, pull through a local registry mirror.
 - Snapshots: boot a VM once, snapshot it, start each job from the snapshot (about 11 s saved per VM start in dev-standards).
@@ -180,7 +180,7 @@ dev-standards (github.com/luis-mc/dev-standards, public; same owner, so its code
 2. **Ephemeral containers on Linux and WSL2**: JIT runners, one container per job, images with layers, tool cache, doctor. Move this repository's CI onto it.
 3. **More machines**: outbound agents on more machines (join codes are built in M1), placement by label and load, drain, agent auto-update.
 4. **Windows**: service-account runners with the learnings above, then Hyper-V or WSL2 VMs.
-5. **macOS**: Tart VMs and persistent runners on Apple Silicon.
+5. **macOS**: macOS VMs (crsp's own code on Apple's Virtualization.framework, not Tart) and persistent runners on Apple Silicon.
 6. **MicroVMs**: Firecracker or Cloud Hypervisor per job where KVM exists, with snapshots.
 7. **Caches**: Actions cache server, git mirror, registry mirror.
 8. **Product polish**: notifications, config as code with a dry-run plan, minutes-saved report, public docs site, installers per OS, code signing.

@@ -2,6 +2,7 @@ package scheduler_test
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -177,12 +178,49 @@ func TestDroppedTicketQueuedAgainKeepsPlace(t *testing.T) {
 	}
 }
 
-// R5.22. Ported from test_machine.py Gate test_unmeasurable_load_does_not_hold_the_job.
-func TestUnmeasurableLoadDoesNotHold(t *testing.T) {
+// R5.22 (decision D53): this differs from the old pool on purpose. A load that
+// cannot be measured holds the job; it never counts as under budget.
+func TestUnmeasurableLoadHolds(t *testing.T) {
 	e := newEnv(t)
-	goes(t, e.gate(e.req("a", job("o/r", 1, "x"), 1, scheduler.Load{})))
+	d := e.gate(e.req("a", job("o/r", 1, "x"), 1, scheduler.Load{}))
+	waits(t, d, scheduler.WaitLoadNotMeasured)
+	if d.WaitText != scheduler.LoadNotMeasuredText {
+		t.Fatalf("wait text %q", d.WaitText)
+	}
+	// the job keeps its place and takes no slot
+	if len(e.status(m1).Tickets) != 1 || len(e.status(m1).Slots) != 0 {
+		t.Fatalf("status %+v", e.status(m1))
+	}
+	// the same job goes once the load is measured
+	goes(t, e.gate(e.req("a", job("o/r", 1, "x"), 1, quiet)))
+	// a light job is held too
+	l := e.gate(e.req("l", job("o/r", 2, "smoke"), 1, scheduler.Load{}))
+	waits(t, l, scheduler.WaitLoadNotMeasured)
 	// memory known, CPU unknown: memory decides
-	waits(t, e.gate(e.req("b", job("o/r", 2, "x"), 1, scheduler.Load{MemoryPct: 99, MemoryKnown: true})), scheduler.WaitLoadOverBudget)
+	waits(t, e.gate(e.req("b", job("o/r", 3, "x"), 1, scheduler.Load{MemoryPct: 99, MemoryKnown: true})), scheduler.WaitLoadOverBudget)
+}
+
+// R5.48: every reason has its words, and the figures of the gate's line stay.
+func TestWaitWordsForEveryReason(t *testing.T) {
+	cases := []struct {
+		r    scheduler.WaitReason
+		text string
+		want string
+	}{
+		{scheduler.WaitLoadNotMeasured, "load not measured yet", "Load not measured yet."},
+		{scheduler.WaitLoadOverBudget, "memory 91% > 85%", "Over the load budget: memory 91% > 85%."},
+		{scheduler.WaitLoadOverBudget, "", "Over the memory or CPU budget."},
+		{scheduler.WaitFreeSlot, "2 ahead in the queue", "No free slot: 2 ahead in the queue."},
+		{scheduler.WaitLostRace, "", "No free slot."},
+		{scheduler.WaitNoRunnerLabels, "", "No machine has this OS and these labels."},
+		{scheduler.WaitMachineDrained, "", "The machine is drained."},
+		{scheduler.WaitUnknown, "", "Waiting. The reason is not known yet."},
+	}
+	for _, c := range cases {
+		if got := scheduler.WaitWords(c.r, c.text); !strings.HasPrefix(got, c.want) {
+			t.Errorf("%s %q: got %q, want prefix %q", c.r, c.text, got, c.want)
+		}
+	}
 }
 
 // R5.4: a repository budget lowers, never raises.

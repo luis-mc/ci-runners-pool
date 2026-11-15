@@ -131,7 +131,7 @@ Milestone numbers are those of the product brief.
 
 **R5.4** — (M1) The web console keeps one live store fed by the stream. The Overview, the running-jobs strip and every running state read that store (design system UX-19, UX-34).
 
-**R5.5** — (M1) Every queued job carries one wait reason from a fixed list: free slot, load over budget, no online runner with the labels, repository parallel limit, machine drained, quiet hours, unknown. The reason names the machine, the numbers or the labels. "No runner with the labels" is raised once the job has waited 2 minutes (setting) and no online runner carries all its labels (ported from `warn_queued_jobs` in dev-standards `ci_watch.py`).
+**R5.5** — (M1) Every queued job carries one wait reason from a fixed list: free slot, load over budget, no online runner with the labels, repository parallel limit, machine drained, quiet hours, load not measured (scheduling R5.22, decision D53), unknown. The reason names the machine, the numbers or the labels. "No runner with the labels" is raised once the job has waited 2 minutes (setting) and no online runner carries all its labels (ported from `warn_queued_jobs` in dev-standards `ci_watch.py`). The overview also returns `waiting`: each queued job with its reason in words (scheduling R5.48, CRSP76).
 
 **R5.6** — (M1) Relative times ("4 min ago") read one shared clock that pauses while the page is hidden and catches up when shown (design system UX-53). Statuses use the word, glyph and colour set (design system UX-58).
 
@@ -198,6 +198,8 @@ Milestone numbers are those of the product brief.
 ### Retention
 
 **R5.32** — (M1) A retention job runs every hour and deletes data past the limits in R6.8. Owners change the limits in Settings, within the floor and ceiling. A value outside them is refused with the allowed range.
+
+**R5.33** (M3, NOT YET IMPLEMENTED, CRSP92) — **Speed comparison.** The owner picks one workflow of one repository. crsp runs it on the pool and on GitHub-hosted runners, once each on the same commit, and shows the two times next to each other with the minutes saved (R5.15) and the machine it ran on. The comparison is started by hand, asks first because it uses hosted minutes, runs at most once at a time, and never runs without the owner starting it. The result is kept with the date and the commit, and the console shows a number only when both runs succeeded.
 
 ## 6. Non-functional requirements
 
@@ -334,6 +336,7 @@ Rows that name a file without "planned" are built (CRSP18, CRSP23). Planned rows
 | R5.30 | planned: internal/logs/crash_test.go TestPanicWritesCrashFile, TestSetCrashOutputFolder |
 | R5.31 | planned: internal/logs/crash_test.go TestUnreportedCrashShownOnce |
 | R5.32 | internal/settings/retention_test.go TestHourlyJobDeletesPastLimit, TestRetentionUsesSettings; internal/settings/settings_test.go TestOutOfRangeRefusedWithRange, TestEveryRangeMatchesFloorAndCeiling |
+| R5.33 | planned: internal/bench/compare_test.go TestRunsBothOnTheSameCommit, TestNothingShownWhenARunFails, TestNeverStartsByItself (CRSP92) |
 | R6.1 | planned: internal/events/latency_test.go TestP95UnderTwoSeconds |
 | R6.2 | internal/events/hub_test.go TestLoadThrottlePerMachine (the median of three is the machines feature) |
 | R6.3 | internal/events/hub_test.go TestSSEFormatAndServe (heartbeat), TestSlowSubscriberIsClosedAndNeverBlocksPublisher, TestStreamCap; internal/api/handlers_live_test.go TestStreamEventsTooManyStreams |

@@ -3,7 +3,7 @@ id: notifications
 title: Notifications
 apps: [controller, web-console, tray, cli]
 topics: [observability, operations, ui, security]
-status: proposed
+status: building
 version: 0.1.0
 owner: owner
 type: reference

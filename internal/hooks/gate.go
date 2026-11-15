@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -92,6 +93,14 @@ func (c *GateConfig) logf(format string, a ...any) {
 	}
 }
 
+// warnUnmeasured puts one ::warning on the job: the load cannot be measured,
+// the job waits, and the doctor says why (R5.22, decision D53).
+func (c *GateConfig) warnUnmeasured() {
+	if c.Report != nil {
+		c.Report("this machine cannot measure its load, so the job waits (it never runs unmeasured); run `crsp doctor` and fix check machine.load.measured")
+	}
+}
+
 // budget is the machine's budget, lowered by the repository's, never raised (R5.4).
 func (c *GateConfig) budget() load.Budget {
 	lb := slots.Limits(slots.Budget{MemoryPct: c.Machine.BudgetMemoryPct, CPUPct: c.Machine.BudgetCPUPct}, c.BudgetMemoryPct, c.BudgetCPUPct)
@@ -154,6 +163,7 @@ func RunGate(ctx context.Context, cfg GateConfig) int {
 	var lastReasons string
 	began := false
 	haveTicket := false
+	warned := false
 	for {
 		reading := cfg.Measure()
 		var dec scheduler.Decision
@@ -197,10 +207,15 @@ func RunGate(ctx context.Context, cfg GateConfig) int {
 			cfg.logf("slot %s taken after %.0f s", slots.SlotLabel(slots.Kind(g.Kind), g.Number), cfg.now().Sub(start).Seconds())
 			return ExitGo
 		}
+		unmeasured := slices.Contains(dec.Wait, scheduler.WaitLoadNotMeasured)
 		if dec.Timeout != "" {
-			return finishTimeout(ctx, &cfg, dec.Timeout, nil, haveTicket)
+			return finishTimeout(ctx, &cfg, dec.Timeout, nil, haveTicket, unmeasured)
 		}
 		// Hold.
+		if unmeasured && !warned {
+			warned = true
+			cfg.warnUnmeasured()
+		}
 		reasons := dec.WaitText
 		if reasons == "" {
 			reasons = "waiting"
@@ -214,7 +229,7 @@ func RunGate(ctx context.Context, cfg GateConfig) int {
 			lastReasons = reasons
 		}
 		if timedOut(cfg.now().Sub(start), poll, maxWait) {
-			return finishTimeout(ctx, &cfg, cfg.Gate.OnTimeout, []string{lastReasons}, true)
+			return finishTimeout(ctx, &cfg, cfg.Gate.OnTimeout, []string{lastReasons}, true, unmeasured)
 		}
 		cfg.sleep(ctx, poll)
 		if ctx.Err() != nil {
@@ -225,7 +240,9 @@ func RunGate(ctx context.Context, cfg GateConfig) int {
 }
 
 // finishTimeout removes the ticket and exits by the on-timeout rule (R5.20).
-func finishTimeout(ctx context.Context, cfg *GateConfig, onTimeout string, reasons []string, cancel bool) int {
+// A job held because its load is not measured never runs on timeout: the rule
+// "run" becomes "fail" for it, with the reason in the log (R5.22, D53).
+func finishTimeout(ctx context.Context, cfg *GateConfig, onTimeout string, reasons []string, cancel, unmeasured bool) int {
 	if cancel && cfg.Client != nil {
 		cctx, stop := context.WithTimeout(context.WithoutCancel(ctx), CallTimeout)
 		defer stop()
@@ -237,6 +254,9 @@ func finishTimeout(ctx context.Context, cfg *GateConfig, onTimeout string, reaso
 			line += " (" + top + ")"
 		}
 	}
+	if unmeasured {
+		onTimeout = slots.OnTimeoutFail
+	}
 	if onTimeout == slots.OnTimeoutRun {
 		cfg.logf("%s; the job runs without a slot", line)
 		return ExitGo
@@ -247,18 +267,23 @@ func finishTimeout(ctx context.Context, cfg *GateConfig, onTimeout string, reaso
 
 // loadOnlyWait is the fallback when the agent or controller cannot be reached:
 // poll the load until under budget, with the same maximum wait and on-timeout
-// rule. When the load cannot be measured the job goes and the reason is logged
-// (R5.22, R5.23).
+// rule. When the load cannot be measured the job waits too, and on timeout it
+// fails, never runs (R5.22, R5.23, decision D53).
 func loadOnlyWait(ctx context.Context, cfg *GateConfig, start time.Time, poll, maxWait time.Duration, b load.Budget) int {
 	var last string
 	began := false
+	warned := false
 	for {
 		r := cfg.Measure()
-		if !r.Measurable() {
-			cfg.logf("the load cannot be measured: the job runs without a load check")
-			return ExitGo
-		}
+		unmeasured := !r.Measurable()
 		over, why := load.Over(r, b)
+		if unmeasured {
+			over, why = true, []string{scheduler.LoadNotMeasuredText}
+			if !warned {
+				warned = true
+				cfg.warnUnmeasured()
+			}
+		}
 		if !over {
 			cfg.logf("under budget (memory %.0f%%, CPU %.0f%%): the job runs without a slot count", r.MemoryPct, r.CPUPct)
 			return ExitGo
@@ -272,7 +297,7 @@ func loadOnlyWait(ctx context.Context, cfg *GateConfig, start time.Time, poll, m
 			last = reasons
 		}
 		if timedOut(cfg.now().Sub(start), poll, maxWait) {
-			return finishTimeout(ctx, cfg, cfg.Gate.OnTimeout, []string{last}, false)
+			return finishTimeout(ctx, cfg, cfg.Gate.OnTimeout, []string{last}, false, unmeasured)
 		}
 		cfg.sleep(ctx, poll)
 		if ctx.Err() != nil {

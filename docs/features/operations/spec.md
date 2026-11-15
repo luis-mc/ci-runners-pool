@@ -126,7 +126,7 @@ Each requirement names its milestone (M1 to M8, product brief). Those not named 
 
 ### Install and first run
 
-**R5.1** (M1) — One command per OS installs the binary. Linux and macOS: `curl -fsSL <release>/install.sh | sh`. Windows: `irm <release>/install.ps1 | iex`. The script downloads the archive for the OS and architecture, checks its SHA-256 against `SHA256SUMS`, and runs `crsp install`. The script does nothing else.
+**R5.1** (M1) — One command per OS installs the binary. Linux and macOS: `curl -fsSL <release>/install.sh | sh`. Windows: `irm <release>/install.ps1 | iex`. The script downloads the archive for the OS and architecture, checks its SHA-256 against `SHA256SUMS`, checks its build provenance, and runs `crsp install`. The script does nothing else. (Owner decision D51, 2026-11-15.) The provenance check comes after the checksum: when the GitHub CLI (`gh`) is on the machine, the script runs `gh attestation verify <file> --repo luis-mc/ci-runners-shared-pool` and stops, installing nothing, when it fails. When `gh` is not there, the script says clearly that only the checksum was checked and prints the command to run by hand, then goes on. This is the first install, before any `crsp` exists to do the sigstore check of R5.34; later updates use R5.34. Built (CRSP77): `scripts/install/install.sh` and `scripts/install/install.ps1`. The release workflow does not publish them as assets yet.
 
 **R5.2** (M1) — `crsp install --mode controller|agent` registers the service with the OS service manager: a Windows service (through `golang.org/x/sys/windows/svc/mgr`, never a cmd-quoted command line, learning 5), a systemd unit on Linux, a LaunchDaemon on macOS. The service starts at boot and restarts after a crash.
 
@@ -275,6 +275,12 @@ Tests: `internal/update/update_test.go` (decisions, verify, lock, backoff, helpe
 
 **R5.34** (M3) — Uninstalling an agent revokes its machine key on the controller. Uninstalling a controller that still has machines names them and asks again.
 
+**R5.42** (M3, NOT YET IMPLEMENTED, CRSP88) — **Trial modes before switching a repository.** Each repository has a rollout mode: `observe` (crsp logs what it would do for each queued job and starts nothing), `shadow` (crsp starts runners and takes jobs only for a copy of the workflow the owner marks, while the repository's real jobs stay on GitHub), `canary` (this one repository runs live while the others stay off) and `live`. The mode changes only by a command or a console action that asks first, and the console shows the mode on each repository row. Observe writes one line per job: the labels, the machine it would pick and the reason it could not. A repository never moves two steps at once, and going back is allowed at any time.
+
+**R5.43** (M8, NOT YET IMPLEMENTED, CRSP90) — **Signed installers and an SBOM.** Each release signs the Windows MSI with Authenticode and the macOS package with a Developer ID, and has it notarized. Each release also publishes a software bill of materials (SPDX JSON) for every installer and binary. The updater (R5.34) and the install script check the signature or notarization as well as the SHA-256 and the attestation. A release whose signing step is missing fails the release job.
+
+**R5.44** (M3, NOT YET IMPLEMENTED, CRSP91) — **Recovery for an agent stuck on an old version.** An agent that stays on an older version than the controller after the controller asked it to update (R5.39) for more than one hour is marked `stuck on old version`. The marked machine gets a reinstall-in-place command (`crsp agent reinstall`) that downloads the matching release, checks the SHA-256, the attestation and the signature (R5.43), keeps the machine key, the data folder and the runners, and replaces the program. The console shows a card for the machine with the version it has, the version it needs and a copyable form of the command with a one-time token. The card disappears when the version matches.
+
 ## 6. Non-functional requirements
 
 **R6.1** (M3) — An update never stops a running job. A controller restart never stops a job on any machine; agents reconnect with backoff.
@@ -352,7 +358,7 @@ All tests are planned; none exists yet. Paths are where each test will live.
 
 | Requirement | Test |
 |---|---|
-| R5.1 | planned: scripts/install/install_test.sh and install_test.ps1, run in CI on each OS against a release build |
+| R5.1 | scripts/install/install_test.sh (fake release in a folder, fake `gh` on PATH: gh present verifies and installs, gh failing stops, gh absent says checksum only and continues, a bad checksum stops before gh). Planned: a PowerShell test of install.ps1 on Windows (no PowerShell on the CRSP77 sandbox, so install.ps1 was not run), and the run in CI on each OS against a release build |
 | R5.2 | planned: internal/install/service_windows_test.go, service_linux_test.go, service_darwin_test.go TestInstallRegistersService (CI on each OS) |
 | R5.3 | planned: internal/install/tray_test.go TestTrayStartEntryPerOS |
 | R5.4 | planned: internal/install/account_test.go TestServiceRunsAsNonAdmin (Linux, macOS); Windows: installer/smoke.ps1 checks the service runs as LocalSystem |
@@ -393,6 +399,9 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R5.32 | planned: internal/install/uninstall_test.go TestListsWhatGoesAndKeepsData, TestDeregistersWithRemoveToken |
 | R5.33 | planned: internal/install/uninstall_test.go TestPurgeDataNamesEachItem |
 | R5.34 | planned: internal/install/uninstall_test.go TestAgentKeyRevoked, TestControllerWithMachinesAsksAgain |
+| R5.42 | planned: internal/repos/rollout_test.go TestObserveStartsNothingAndLogsTheDecision, TestShadowLeavesRealJobsOnGitHub, TestNoSkippingSteps (CRSP88) |
+| R5.43 | planned: .github/workflows/release_test.go TestReleaseFailsWithoutSignatures, TestSbomPublishedPerAsset; internal/update/signature_test.go TestRefusesUnsignedInstaller (CRSP90) |
+| R5.44 | planned: internal/update/agent_reinstall_test.go TestReinstallKeepsKeyDataAndRunners, TestStuckAfterAnHour; internal/cli/agent_test.go TestAgentReinstallCommand (CRSP91) |
 | R6.1 | planned: internal/update/rollout_test.go TestControllerRestartKeepsJobs (two-machine integration) |
 | R6.2 | planned: internal/update/checker_test.go TestOnlyReleaseRequests (HTTP recorder) |
 | R6.3 | planned: internal/update/verify_test.go TestNoNetworkFailsClosed |

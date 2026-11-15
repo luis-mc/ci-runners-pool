@@ -147,7 +147,7 @@ The states named for every list follow the design system: loading (component 16,
 
 - **Purpose:** see the pool at a glance and jump to what needs you.
 - **Data:** `getOverview`, then `streamEvents`.
-- **Shows:** a card per machine (component 8, UX-10) with its state word (UX-58) and three level bars for memory, CPU and slots against its budget (UX-41, owner question Q4); the queue count; the running jobs (component 15); today's minutes saved as a lettered figure (component 31). Each item links to its screen.
+- **Shows:** a card per machine (component 8, UX-10) with its state word (UX-58) and three level bars for memory, CPU and slots against its budget (UX-41, owner question Q4); the queue count; the running jobs (component 15); the section "Why jobs wait" (component 15): every queued or held job with the first reason it waits, in words, from `waiting` of `getOverview` (scheduling R5.48, UX-34, UX-19); today's minutes saved as a lettered figure (component 31). Each item links to its screen.
 - **Actions:** none. The overview only shows and links (UX-52).
 - **States:** loading; empty (no machine yet: "No machines yet. Add a machine to start." links to Machines, content.md); could not load; live; live updates paused.
 - **Components:** 1, 8, 15, 17, 19, 27, 31.
@@ -176,6 +176,7 @@ The states named for every list follow the design system: loading (component 16,
 - **Data:** `listMachines`, `getMachine`, `updateMachine`, `checkMachinePoolSize`, `drainMachine`, `resumeMachine`, `removeMachine`, `createJoinCode`, `getJoinCode`, `revokeJoinCode`, `getInstallCommand`.
 - **List:** a card per machine (component 8) or a table (component 15): name, OS, CPU and architecture, state (online, offline, drained, draining; UX-58), backends, load bars, slots used of total, last seen (UX-53).
 - **Detail:** the facts list (component 8); backends found and allowed (component 22); the load budget (memory and CPU percent, with the number keypad, component 37, UX-56); job slots; cache size cap; maintenance windows (time picker, component 36); the drain timeout; the agent's log (component 26).
+- **When it works (CRSP75):** a section of the machine page, Mode (Automatic, Always, Paused: one-choice rows, component 13), the switch Pause on battery (UX-22, saved at once) and the CPU for runners (25, 50, 75 or 100%: one-choice rows), with the power source and the reason when the machine takes no new job (UX-58). A pause from the tray shows with its end and a Resume button. On macOS the CPU values are off and say "Not supported on macOS yet." (UX-38). The list has a Takes jobs column (Taking jobs, Paused, On battery, Quiet hours, Busy). The words are in `docs/design-system/next-version/content.md` (Machine policy words). A change in the tray and a change here show each other: both write the machine's settings and the screen reloads on the machines live event.
 - **Pool size:** the "Pool size" wizard (component 4; UX-5, UX-30, UX-54) shows the size now and the room, takes the memory (number keypad with one decimal) and the CPUs, and Reviews: the check, the sizing figures, the nearest sizes (UX-6) and, for a lower size, a tick "Yes, lower the pool size" (UX-62). Its words are in the design system content (pool size words).
 - **Add a machine:** the page's one primary opens the "Add a machine" wizard, the same as in first run. The install command sits in a monospace block with a Copy button (owner question Q2). The join code shows once, with its time left (UX-29).
 - **Actions and confirmations:**
@@ -316,7 +317,7 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 ### Screens
 
-**R5.20** (built, CRSP24) — The overview shows the machines with their load bars, the queue count, the running jobs and today's minutes saved, all live. It has no command; each item links to its screen.
+**R5.20** (built, CRSP24; why jobs wait, CRSP76) — The overview shows the machines with their load bars, the queue count, the running jobs and today's minutes saved, all live. It has no command; each item links to its screen. The section "Why jobs wait" lists every queued or held job with its first blocking reason in words (scheduling R5.48): no machine for the OS or labels, over the memory or CPU budget with the numbers, no free slot with how many are ahead, load not measured yet. It reads `waiting` of the overview, one source for the console and the gate; when a live event changes a job, the row falls back to the job's own wait reason until the next snapshot.
 
 **R5.21** (built, CRSP24, extra packages CRSP70) — The repositories screen lists the repositories from GitHub with pool state, labels, limits and variable status. It turns the pool on and off, and edits a repository's policy. A repository's page has a form of its own for the extra packages of its pool image (runners R5.51): a text area, one name per line, saved with Save packages through `setRepositoryExtraPackages`; a bad name shows its line number above the box and in the list at the top before anything is sent. A repository where the user lacks GitHub admin rights shows the turn-on action disabled with that reason.
 
@@ -341,6 +342,14 @@ A command the role does not allow is shown disabled with its reason. The API ref
 **R5.31** (built, CRSP24) — Every list and detail screen has the loading, empty and could-not-load states of section 4, and the empty state offers the action that fills it when the user's role allows it.
 
 **R5.32** (built, CRSP24) — Every date, time, number, size and percent on screen comes from the one formatter (component 28).
+
+**R5.33** (M3, NOT YET IMPLEMENTED, CRSP91) — **Agent recovery card.** A machine marked `stuck on old version` (operations R5.44) shows one card on its page: the version it has, the version it needs, and the reinstall command with a copy button. The card follows design-system UX-4 and uses the shared card and copy parts; it has no hand-made layout.
+
+**R5.34** (built, CRSP74) — The Repositories screen says where each repository's jobs go now (*crsp machines*, *GitHub-hosted runners* or *waiting for a machine*) in a column and, with the reason in words, on the repository page, which also has the *Hosted fallback* section: the choice *When no crsp machine can take these jobs*, the monthly cap and the hosted labels. Turning the fallback on asks first in the question card (UX-9) and says GitHub may bill the minutes; a public repository cannot take it. Rules: UX-9, UX-22, UX-38. Words: content.md, *Hosted fallback words*. Contract: github-integration R5.42, R5.44.
+
+**R5.35** (built, CRSP74) — While any repository runs on GitHub-hosted runners the Overview shows one line in the banner slot, with a link to Repositories (design-system UX-14: it never pushes the machines and jobs down).
+
+**R5.65** (built, CRSP75) — The machine page has a When it works section and the list a Takes jobs column (machines R5.61 to R5.64, section 4.4). The mode, the Pause on battery switch and the CPU cap save at once with `updateMachine` and show a busy state while they do (UX-13, UX-22). The page says why a machine takes no new job (Paused, On battery, Quiet hours, Busy), and names a pause from the tray with its end and a Resume. A viewer sees the values with the controls off and the reason beside them (UX-38). On macOS the CPU cap is off with its reason; a cap the agent could not set shows the agent's reason as a Problem message. No stylesheet or style attribute is added: the section uses the shared parts only.
 
 ## 6. Non-functional requirements
 
@@ -495,7 +504,7 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.17 | Vitest, Playwright e2e | `apps/web/src/screens/wizards.test.tsx`, `e2e/tests/web-console/flows.spec.ts` |
 | R5.18 | Vitest, Playwright e2e | `apps/web/src/screens/wizards.test.tsx`, `e2e/tests/web-console/flows.spec.ts` |
 | R5.19 | design kit guard | `scripts/design/wizard-behaviour.ts` driven by `apps/web/src/screens/wizards.test.tsx`, one driver per wizard; Stop on an applying plan: the `Stop on a repository plan` and `Stop on a runner plan` tests in the same file, `e2e/tests/web-console/exports-stop.spec.ts` |
-| R5.20 | Vitest | `apps/web/src/screens/overview/Overview.test.tsx` |
+| R5.20 | Vitest, Go test | `apps/web/src/screens/overview/Overview.test.tsx` (the waiting list in words); `internal/api/handlers_live_test.go` TestGetOverview (contract: `waiting`); `internal/overview/overview_test.go` TestWaitingListHasWords |
 | R5.21 | Vitest | `apps/web/src/screens/repositories/Repositories.test.tsx` (extra packages: save, refuse with the line, controller refusal) |
 | R5.22 | Vitest | `apps/web/src/screens/machines/Machines.test.tsx` (pool size: review and save, over the budget, lower size needs its yes, changed meanwhile, viewer), `apps/web/src/screens/wizards.test.tsx` (pool-size, the ten states) |
 | R5.23 | Vitest | `apps/web/src/screens/runners/Runners.test.tsx` |
@@ -507,7 +516,11 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.29 | Vitest, Go test, Playwright e2e | `apps/web/src/screens/settings/ConfigExport.test.tsx`, `internal/configexport/configexport_test.go`, `internal/api/handlers_ops_test.go` (TestExportConfig), `e2e/tests/web-console/exports-stop.spec.ts` |
 | R5.30 | Vitest, Playwright e2e | the question-card tests in each screen test file, `e2e/tests/web-console/flows.spec.ts`, `apps/web/src/screens/settings/Notifications.test.tsx`, `e2e/tests/web-console/notifications.spec.ts` (delete a channel) |
 | R5.31 | Vitest | the loading, empty and could-not-load tests in each screen test file, `apps/web/src/screens/settings/Notifications.test.tsx` |
+| R5.34 | Vitest | `apps/web/src/screens/repositories/Repositories.test.tsx` (where the jobs go, the question card, a public repository) |
+| R5.35 | Vitest | `apps/web/src/shell/Shell.test.tsx` (the Overview line) |
 | R5.32 | Vitest | `packages/ui/src/components/format.test.ts`, `apps/web/src/screens/settings/Notifications.test.tsx` (last test time) |
+| R5.33 | Vitest | planned: `apps/web/src/screens/machines/AgentRecoveryCard.test.tsx` (CRSP91) |
+| R5.65 | Vitest | `apps/web/src/screens/machines/MachinePolicy.test.tsx` (shows the mode, battery switch and CPU cap; saves each at once; says why a machine takes no job; a pause from the tray and Resume; macOS cap off; failed cap; viewer; the Takes jobs column) |
 | R6.1 | Go test | `internal/api/session_cookie_test.go` (flags: not Secure on loopback, Secure off loopback; 256-bit value, only the hash stored), `internal/auth/session_test.go` (cookie attributes, `CookieSecure` by address, no time expiry, no idle expiry, survives a restart). |
 | R6.2 | Go test, Vitest | `internal/api/csrf_test.go` (every changing operation of the contract: no token, wrong token, no, foreign or null Origin, per-session token), `apps/web/src/api/csrf.test.tsx` and `apps/web/src/shell/Shell.test.tsx` (the console sends it) |
 | R6.3 | Go test, Playwright e2e | `internal/webui/headers_test.go`; NOT YET IMPLEMENTED: `e2e/tests/web-console/no-external-requests.spec.ts` |

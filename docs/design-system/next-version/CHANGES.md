@@ -20,3 +20,7 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C15: extra packages words added: the field, its help, its messages and the line-numbered mistake (content.md; runners R5.51, CRSP70)
 - C16: Connect GitHub error words and the App name help added (content.md; github-integration R5.3, OPS10)
 - C17: console look is TUI panes with six user-selectable colour themes: the Colour themes section and `--ds-color-selection` (tokens.md), the pane, reverse-video selection and key-hint bar (components.md 8, 41), the theme choice (components.md 42), UX-60 extended to a theme and a mode (ux-rules.md), the theme words (content.md); owner decisions LOOK D1 and D2 (2026-11-15; LOOK2)
+- C18: demand and webhook words added: the findings `demand.quiet` and `github.webhook` (content.md; github-integration R5.37, doctor R5.16, CRSP77)
+- C19: hosted fallback words added: the section, choices, question card, list column, reasons and the Overview line (content.md; github-integration R5.42 to R5.46, CRSP74)
+- C20: "Why a job waits" words added: section, caption, column, empty and one sentence per wait reason (content.md; scheduling R5.48 and R5.22, CRSP76)
+- C21: machine policy words added: the mode, the battery pause, the CPU cap, the state words and the tray menu words; actions Pause for 1 hour, Pause until I resume and Resume (content.md; machines R5.61 to R5.64, tray R5.42, web-console R5.65, CRSP75)

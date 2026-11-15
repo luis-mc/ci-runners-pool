@@ -97,6 +97,33 @@ func machineLoadFresh(ctx context.Context, env doctor.Env) []doctor.Finding {
 	return out
 }
 
+// machineLoadMeasured: the machine can read its load. The gate holds every job
+// of a machine whose load it cannot measure (scheduling R5.22, decision D53),
+// so a machine that cannot measure is a fail, not a hint. New check.
+func machineLoadMeasured(ctx context.Context, env doctor.Env) []doctor.Finding {
+	ms, out := scopedMachines(ctx, env, "machine.load.measured")
+	for _, m := range ms {
+		if !isOnline(env, m) {
+			out = append(out, offlineSkip("machine.load.measured", m))
+			continue
+		}
+		if m.Load == nil {
+			out = append(out, skip("machine.load.measured", machineSubject(m), m.Name+" has sent no load figures", "machine.load.fresh says so too."))
+			continue
+		}
+		f := doctor.Finding{Check: "machine.load.measured", Subject: machineSubject(m)}
+		if !m.Load.MemoryKnown && !m.Load.CPUKnown {
+			f.Severity, f.Title = doctor.Fail, m.Name+" cannot measure its load"
+			f.Detail = "Neither memory nor CPU could be read, so the gate holds every job on this machine with the reason \"load not measured\"."
+			f.Fix = doctor.Fix{Text: "Restart the agent on that machine and check that it may read memory and CPU figures (on Linux, /proc; on Windows, the performance counters). Jobs go on as soon as one figure is read.", Link: machineLink(m)}
+		} else {
+			f.Severity, f.Title = doctor.OK, m.Name+" measures its load"
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
 // machineLoadBudget: memory or CPU over the budget for more than 10 minutes. New check.
 func machineLoadBudget(ctx context.Context, env doctor.Env) []doctor.Finding {
 	ms, out := scopedMachines(ctx, env, "machine.load.budget")

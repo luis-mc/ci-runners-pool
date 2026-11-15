@@ -105,7 +105,7 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 
 	auto, _ := DefaultAutostart(o.Exe)
 	opener := &Opener{
-		Links: client, Targets: client, Checker: client, Version: o.Version,
+		Links: client, Targets: client, Checker: client, Policy: client, Version: o.Version,
 		Browser: OSLauncher, Files: OSLauncher,
 		Notify: DesktopNotice, Current: current, LogDir: LogDir,
 	}
@@ -126,7 +126,9 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 				continue
 			}
 			var mi *systray.MenuItem
-			if it.Switch {
+			if it.Parent != "" {
+				mi = sys[it.Parent].AddSubMenuItemCheckbox(it.Label, "", it.Checked)
+			} else if it.Switch {
 				mi = systray.AddMenuItemCheckbox(it.Label, "", it.Checked)
 			} else {
 				mi = systray.AddMenuItem(it.Label, "")
@@ -141,6 +143,8 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 		}
 		open, check, upd, restart := sys[IDOpen], sys[IDCheck], sys[IDUpdate], sys[IDRestart]
 		logs, gh, login, quit := sys[IDLogs], sys[IDGitHub], sys[IDLogin], sys[IDQuit]
+		modeAuto, modeAlw, modePause := sys[IDModeAuto], sys[IDModeAlw], sys[IDModePause]
+		pauseHour, pauseTill, resume := sys[IDPauseHour], sys[IDPauseTill], sys[IDResume]
 
 		var relaunchOnce sync.Once
 		p := &Poller{Source: client, Manager: ServiceState}
@@ -160,6 +164,18 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 						sys[it.ID].Hide()
 					} else {
 						sys[it.ID].Show()
+					}
+				case IDMode, IDPauseHour, IDPauseTill, IDResume:
+					if it.Hidden {
+						sys[it.ID].Hide()
+					} else {
+						sys[it.ID].Show()
+					}
+				case IDModeAuto, IDModeAlw, IDModePause:
+					if it.Checked {
+						sys[it.ID].Check()
+					} else {
+						sys[it.ID].Uncheck()
 					}
 				}
 			}
@@ -187,6 +203,18 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 					go func() { _ = opener.OpenReview(ctx, ReviewUpdatePath) }()
 				case <-restart.ClickedCh:
 					go func() { _ = opener.OpenReview(ctx, ReviewRestartPath) }()
+				case <-modeAuto.ClickedCh:
+					go func() { _ = opener.SetMode(ctx, ModeAutomatic, p.OnStatus) }()
+				case <-modeAlw.ClickedCh:
+					go func() { _ = opener.SetMode(ctx, ModeAlways, p.OnStatus) }()
+				case <-modePause.ClickedCh:
+					go func() { _ = opener.SetMode(ctx, ModePaused, p.OnStatus) }()
+				case <-pauseHour.ClickedCh:
+					go func() { _ = opener.PauseFor(ctx, PauseOneHour, p.OnStatus) }()
+				case <-pauseTill.ClickedCh:
+					go func() { _ = opener.PauseFor(ctx, PauseUntilResumed, p.OnStatus) }()
+				case <-resume.ClickedCh:
+					go func() { _ = opener.Resume(ctx, p.OnStatus) }()
 				case <-gh.ClickedCh:
 					go func() { _ = opener.OpenGitHub() }()
 				case <-logs.ClickedCh:

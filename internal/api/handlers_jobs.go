@@ -45,6 +45,12 @@ func waitReason(r string) *gen.WaitReason {
 		out = gen.WaitReasonMachineDrained
 	case "quiet_hours":
 		out = gen.WaitReasonQuietHours
+	case "load_not_measured":
+		out = gen.WaitReasonLoadNotMeasured
+	case "paused":
+		out = gen.WaitReasonPaused
+	case "on_battery":
+		out = gen.WaitReasonOnBattery
 	default:
 		out = gen.WaitReasonUnknown
 	}

@@ -129,7 +129,7 @@ func only(t *testing.T, fs []doctor.Finding, check string) doctor.Finding {
 func TestEveryRegisteredCheckIsM1AndHasAnID(t *testing.T) {
 	reg := doctor.NewRegistry()
 	Register(reg)
-	if len(reg.All()) != 26 {
+	if len(reg.All()) != 31 {
 		t.Fatalf("checks: %v", reg.SortedIDs())
 	}
 	for _, c := range reg.All() {
@@ -176,6 +176,26 @@ func TestLoadFresh(t *testing.T) {
 		sev[f.Subject.Name] = f.Severity
 	}
 	if sev["alpha"] != doctor.OK || sev["beta"] != doctor.Fail || sev["gamma"] != doctor.Fail || sev["delta"] != doctor.Skip {
+		t.Fatalf("severities = %v", sev)
+	}
+}
+
+// R5.9 (scheduling R5.22, D53): a machine that cannot measure its load is a fail.
+func TestLoadMeasured(t *testing.T) {
+	blind := healthyMachine()
+	blind.ID, blind.Name = "m2", "beta"
+	blind.Load.MemoryKnown, blind.Load.CPUKnown = false, false
+	half := healthyMachine()
+	half.ID, half.Name = "m3", "gamma"
+	half.Load.CPUKnown = false
+	off := healthyMachine()
+	off.ID, off.Name, off.Online = "m4", "delta", false
+	fs := run(t, doctor.Env{Fleet: &fleet{machines: []doctor.Machine{healthyMachine(), blind, half, off}}}, "machine.load.measured")
+	sev := map[string]doctor.Severity{}
+	for _, f := range fs {
+		sev[f.Subject.Name] = f.Severity
+	}
+	if sev["alpha"] != doctor.OK || sev["beta"] != doctor.Fail || sev["gamma"] != doctor.OK || sev["delta"] != doctor.Skip {
 		t.Fatalf("severities = %v", sev)
 	}
 }

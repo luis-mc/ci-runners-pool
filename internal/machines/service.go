@@ -89,6 +89,7 @@ type Service struct {
 
 	mu       sync.Mutex
 	loads    map[string]Load
+	policies map[string]Policy
 	lastKept map[string]time.Time
 	running  map[string][]JobRef
 	runners  map[string][]string
@@ -108,7 +109,7 @@ func New(o Options) *Service {
 	}
 	return &Service{
 		o: o, sessions: newSessions(),
-		loads: map[string]Load{}, lastKept: map[string]time.Time{}, running: map[string][]JobRef{},
+		loads: map[string]Load{}, policies: map[string]Policy{}, lastKept: map[string]time.Time{}, running: map[string][]JobRef{},
 		runners: map[string][]string{}, fails: map[string][]time.Time{}, blocked: map[string]time.Time{},
 		updates: map[string]AgentUpdate{},
 	}
@@ -343,7 +344,7 @@ func (s *Service) Join(ctx context.Context, in JoinInput) (JoinResult, error) {
 	key := randomToken("crsp_mk_", 32)
 	m := Machine{
 		ID: id, OS: f.OS, Arch: f.Arch, Facts: f, State: StateActive, IsController: in.Local,
-		AgentVersion: in.AgentVersion, JoinedAt: now,
+		AgentVersion: in.AgentVersion, JoinedAt: now, Accepting: true,
 	}
 	set := DefaultSettings()
 	set.JobSlots = defaultSlots(f)

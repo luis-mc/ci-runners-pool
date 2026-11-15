@@ -30,6 +30,9 @@ type RefreshResult struct {
 //     nothing: no job is ever cut.
 //  3. Swap: stop and remove the old container, start the new one. When the new
 //     one cannot start, the old image is started again and the result says so.
+//
+// A pool container that is not running (Exited) is drained at once: no wait,
+// no drain file, no poll (handover lesson 27).
 func (b *Backend) Refresh(ctx context.Context, owner, repo string, spec backend.ImageSpec, drain runners.Drain) (RefreshResult, error) {
 	pool := PoolName(owner, repo)
 	res := RefreshResult{To: b.KeyFor(spec)}
@@ -39,7 +42,7 @@ func (b *Backend) Refresh(ctx context.Context, owner, repo string, spec backend.
 		res.Message = "the rebuild failed: " + err.Error()
 		return res, fmt.Errorf("the rebuild failed: %w", err)
 	}
-	exists, _, oldKey, err := b.poolState(ctx, pool)
+	exists, running, oldKey, err := b.poolState(ctx, pool)
 	if err != nil {
 		return res, err
 	}
@@ -51,6 +54,24 @@ func (b *Backend) Refresh(ctx context.Context, owner, repo string, spec backend.
 	if !exists {
 		// Nothing runs: the next Start creates the pool from the new image.
 		res.Message = "no pool container yet; the next runner starts on image " + res.To
+		return res, nil
+	}
+
+	if !running {
+		// An Exited pool (after a Docker restart) has no supervisor that could
+		// answer a drain and no job to wait for: it is drained at once
+		// (handover lesson 27). Hold the lock so no runner starts mid-swap.
+		b.mu.Lock()
+		defer b.mu.Unlock()
+		if drain.OnStep != nil {
+			drain.OnStep("drain: the pool container is not running; treated as drained")
+		}
+		if err := b.swap(ctx, owner, repo, pool, oldKey, img.ID, &res); err != nil {
+			if res.Message == "" {
+				res.Message = "the pool was not changed: " + err.Error()
+			}
+			return res, err
+		}
 		return res, nil
 	}
 

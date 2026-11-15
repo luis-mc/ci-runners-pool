@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 )
 
 // OSMinutes is the minutes saved on one OS.
@@ -117,10 +118,12 @@ func (s *Service) Get(ctx context.Context) (gen.Overview, error) {
 	if queued == nil {
 		queued = []gen.Job{}
 	}
+	waiting := Waiting(queued)
 	out := gen.Overview{
 		Machines:    machines,
 		QueuedCount: count,
 		Queued:      &queued,
+		Waiting:     &waiting,
 		Running:     running,
 		LastEventId: strconv.FormatUint(last, 10),
 	}
@@ -143,6 +146,28 @@ func (s *Service) Get(ctx context.Context) (gen.Overview, error) {
 	sort.Slice(minutes, func(i, j int) bool { return minutes[i].Os < minutes[j].Os })
 	out.MinutesSavedToday = &minutes
 	return out, nil
+}
+
+// Waiting lists, for each queued or held job, the first reason it waits, in
+// words (scheduling R5.48). It reads the gate's WaitReason and WaitText from the
+// job, so the console and the gate say the same thing (one source of truth,
+// UX-34). A job with no reason yet reads "reason not known yet", never blank.
+func Waiting(queued []gen.Job) []gen.WaitingJob {
+	out := make([]gen.WaitingJob, 0, len(queued))
+	for _, j := range queued {
+		reason := gen.WaitReasonUnknown
+		if j.WaitReason != nil {
+			reason = *j.WaitReason
+		}
+		text := ""
+		if j.WaitText != nil {
+			text = *j.WaitText
+		}
+		w := gen.WaitingJob{JobId: j.Id, Repository: j.Repository, JobName: j.JobName, Reason: reason,
+			Words: scheduler.WaitWords(scheduler.WaitReason(reason), text), MachineId: j.MachineId}
+		out = append(out, w)
+	}
+	return out
 }
 
 // Snapshot implements events.Snapshotter: the Overview as JSON.

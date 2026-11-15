@@ -6,7 +6,9 @@ import (
 	"log/slog"
 	"net"
 	"net/url"
+	"time"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tray"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/trayserver"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
@@ -35,7 +37,60 @@ func (b trayBackend) response(ctx context.Context, st update.Status) tray.Respon
 		State: tray.StateHealthy, Running: len(st.RunningJobs), Version: st.Current, AutoUpdate: &on,
 		LatestVersion: st.Latest, UpdateAvailable: st.Available, UpdateState: string(st.State),
 		LogDir: tray.LogDir(),
+		Policy: b.policy(ctx),
 	}
+}
+
+// policy is this machine's mode and acceptance; nil before the machine joined.
+func (b trayBackend) policy(ctx context.Context) *tray.PolicyInfo {
+	v, ok := b.Drain.policy(ctx)
+	if !ok {
+		return nil
+	}
+	p := &tray.PolicyInfo{
+		Mode: v.Settings.EffectiveMode(), Accepting: v.Policy.Accepting, PauseReason: v.Policy.PauseReason, OnBattery: v.Policy.OnBattery,
+		UntilResumed: v.Settings.PausedUntilResumed,
+	}
+	if !v.Settings.PauseUntil.IsZero() && v.Settings.PauseUntil.After(time.Now()) {
+		p.PauseUntilMs = v.Settings.PauseUntil.UnixMilli()
+	}
+	return p
+}
+
+func trayActor(c trayserver.Caller) string { return "tray:" + c.OSUser }
+
+// SetMode sets this machine's mode (tray R5.42).
+func (b trayBackend) SetMode(ctx context.Context, c trayserver.Caller, mode string) (tray.Response, error) {
+	if err := b.Drain.setPolicy(ctx, trayActor(c), machines.SettingsUpdate{Mode: &mode}); err != nil {
+		return tray.Response{}, err
+	}
+	return b.Status(ctx)
+}
+
+// Pause pauses new jobs for one hour or until Resume (tray R5.42).
+func (b trayBackend) Pause(ctx context.Context, c trayserver.Caller, kind string) (tray.Response, error) {
+	if kind != machines.PauseOneHour && kind != machines.PauseUntilResumedValue {
+		return tray.Response{}, errors.New("a pause is one_hour or until_resumed")
+	}
+	if err := b.Drain.setPolicy(ctx, trayActor(c), machines.SettingsUpdate{Pause: &kind}); err != nil {
+		return tray.Response{}, err
+	}
+	return b.Status(ctx)
+}
+
+// Resume ends a pause from the tray and, when the mode is Paused, returns it to
+// Automatic (tray R5.42).
+func (b trayBackend) Resume(ctx context.Context, c trayserver.Caller) (tray.Response, error) {
+	none := machines.PauseNone
+	u := machines.SettingsUpdate{Pause: &none}
+	if v, ok := b.Drain.policy(ctx); ok && v.Settings.EffectiveMode() == machines.ModePaused {
+		auto := machines.ModeAutomatic
+		u.Mode = &auto
+	}
+	if err := b.Drain.setPolicy(ctx, trayActor(c), u); err != nil {
+		return tray.Response{}, err
+	}
+	return b.Status(ctx)
 }
 
 func (b trayBackend) Status(ctx context.Context) (tray.Response, error) {

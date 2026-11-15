@@ -10,10 +10,10 @@ import (
 // Follow-the-controller (operations R5.39 to R5.41). An agent-only machine
 // updates to the version its controller runs, with the same rules as the
 // controller's own update: verified downloads, a drain that never cuts a job
-// and gives up after 60 minutes, three tries per version, and the per-OS apply.
+// and gives up after the machine's drain timeout (machines R5.33, 60 minutes by default), three tries per version, and the per-OS apply.
 
 // FollowActor is the actor name of a follow update; like the automatic update
-// it waits at most AutoDrainLimit for running jobs.
+// it waits at most the machine's drain timeout for running jobs.
 const FollowActor = "follow-controller"
 
 // ErrUnprivileged says this process cannot install a package or an MSI, so it
@@ -55,7 +55,7 @@ func Privileged() bool { return privileged() }
 
 // Follow starts an update to version, the controller's. It does nothing when
 // this build is not older, when the retry rule says to wait, or when an update
-// runs already. It downloads, verifies, drains (cancelled after AutoDrainLimit,
+// runs already. It downloads, verifies, drains (cancelled after the machine's drain timeout,
 // then the next ask tries again) and installs when idle.
 func (m *Manager) Follow(ctx context.Context, version string) (Status, error) {
 	if !Newer(m.o.Current, version) {

@@ -11,6 +11,8 @@ code:
   - internal/agent/**
   - internal/machines/**
   - internal/load/**
+  - internal/power/**
+  - internal/cpucap/**
 design_system: [UX-4, UX-5, UX-6, UX-9, UX-13, UX-16, UX-17, UX-18, UX-19, UX-22, UX-26, UX-29, UX-30, UX-38, UX-41, UX-52, UX-53, UX-58, UX-62]
 last_verified: 2026-11-15
 artifact:
@@ -18,7 +20,7 @@ generator: luismc-docs 2.6.1
 ---
 # Machines
 
-PARTLY BUILT (CRSP20). The M1 agent link, join codes, machine keys, detection, load measurement, settings, drain and the controller's own agent are built; see the change note. Not built: R5.14, R5.27 to R5.29, R5.49, R6.9, R6.10. Every requirement not built is NOT YET IMPLEMENTED. Each one names its milestone: **M1** (one machine, the controller's own) or **M3** (more machines, placement and removal), or a later one where it says so.
+PARTLY BUILT (CRSP20). The M1 agent link, join codes, machine keys, detection, load measurement, settings, drain and the controller's own agent are built; see the change note. Not built: R5.14, R5.27 to R5.29, R5.49, R6.9, R6.10. Every requirement not built is NOT YET IMPLEMENTED. Each one names its milestone: **M1** (one machine, the controller's own) or **M3** (more machines, placement and removal), or a later one where it says so. CRSP75 built the machine mode, the battery pause, the `Accepting` status and the CPU cap (R5.61 to R5.64); quiet hours (R5.28) are still not built.
 
 Sources: the product brief ([product.md](../../overview/product.md)), decisions [0003](../../architecture/decisions/0003-isolation-backends.md), [0004](../../architecture/decisions/0004-agent-link.md) and [0005](../../architecture/decisions/0005-product-boundary.md). Requirements ported from dev-standards cite their origin there: `docs/features/runner-pool/spec.md` (runner-pool R5.x) and `docs/architecture/DELIVERYSPEC.md` (DL-x).
 
@@ -89,6 +91,8 @@ The Machines screen and the Add machine wizard follow design system v1 ([ux-rule
 | Machines, list | One card per machine: name, OS, state word (online, offline, drained, draining), backends, load bars for memory and CPU against the budget, slots used of total, last seen | UX-10, UX-41, UX-51, UX-53, UX-58 |
 | Machines, empty | "No machines yet." and the **Add machine** action | UX-6, UX-4 |
 | Machine detail | Facts, backends with their reason when not usable, settings, running jobs, the install command again | UX-25, UX-22, UX-61 |
+| Machine detail, When it works | The mode (Automatic, Always, Paused), the Pause on battery switch, the CPU cap (25, 50, 75, 100%), the power source, and the reason when the machine takes no new job. Each control saves at once. A pause from the tray shows with its end and a Resume | UX-13, UX-22, UX-38, UX-58 |
+| Machines, list column Takes jobs | The word Taking jobs, Paused, On battery, Quiet hours or Busy | UX-58 |
 | Add machine | Wizard: pick the OS, copy the command, wait for the machine to join, Done | UX-5, UX-29, UX-30, UX-54 |
 | Waiting for join | Names what it waits for and when the code expires | UX-29, UX-6 |
 | Draining | Names each job it waits for and the time left before the drain timeout | UX-29, UX-34 |
@@ -133,7 +137,7 @@ The overview shows machines and load and only links here (UX-52). Busy buttons f
 
 **R5.13** (M1) — The agent detects again at start, every 10 minutes, and when the user presses **Check again**. A change in facts or backends is shown on the machine and written to the audit log.
 
-**R5.14** (M5) — On a Mac the agent reports how many macOS VMs run, and the controller never starts more than two at once (decision 0003).
+**R5.14** (M5, NOT YET IMPLEMENTED) — On a Mac the agent reports how many macOS VMs run (crsp's own VMs on Apple's Virtualization.framework, runners R5.29, and any other macOS VM it can see), and the controller never starts more than two at once (decision 0003).
 
 ### 5.4 Load measurement
 
@@ -168,6 +172,9 @@ Ported from dev-standards `claude/plugins/delivery/scripts/load.py` and `load_gu
 | Drain timeout (one per machine) | 60 minutes | 5 minutes to 24 hours |
 | Maintenance windows | none | weekly windows, local time |
 | Quiet hours | none | weekly windows, local time, with their own budget and slots |
+| Mode | automatic | automatic, always, paused (R5.61) |
+| Pause on battery | on | on or off (R5.63) |
+| CPU cap for runners | 100% | 25, 50, 75, 100% (R5.64) |
 
 **R5.22a** (M1) (built, CRSP37) — The pool has its own defaults for a machine that joins: memory budget (10 to 95%, default 85%), CPU budget (10 to 95%, default 60%), whether slots are sized from the machine's cores and memory within the budget (default yes), job slots when they are not sized or the machine does not report its size (0 to 64, default 2) and the drain timeout (5 to 1440 minutes, default 60). An admin changes them in Settings, Budgets (`getPoolSettings`, `updatePoolSettings`); each change writes one audit row. A change reaches only machines that join afterwards. A machine that already joined keeps its own settings, so the change restarts no runner and waits for no running job (UX-62). A machine that already joined is changed in its own settings (R5.22).
 
@@ -195,7 +202,7 @@ Ported from runner-pool R5.10 (no rebuild under a running job) and learning 1 of
 
 **R5.32** (M1) — The idle check runs right before the restart, in the same step that keeps new jobs out. If a job started since the drain began, the change waits again. An idle check taken earlier never counts.
 
-**R5.33** (M1) — **One drain timeout per machine.** It is the machine setting `drain_timeout_minutes` (default 60 minutes, 5 minutes to 24 hours). When it passes with jobs still running, crsp never stops a job: it keeps waiting and warns. The change stays waiting and the machine stays draining; nothing is stopped and nothing is offered that stops a job (no "stop those jobs now", no `stop_jobs` decision). The controller records the timeout once in the audit log and raises one warning (an alert event) that names the machine, the change and the jobs. The console and the CLI show "still draining, N jobs running, waited X" and the jobs. The user may wait longer (5 minutes to 24 hours from now) or cancel the change; both leave the jobs running. An automatic update does not wait past its limit: it postpones and tries again at the next check (operations spec, CRSP19).
+**R5.33** (M1) — **One drain timeout per machine.** It is the machine setting `drain_timeout_minutes` (default 60 minutes, 5 minutes to 24 hours). When it passes with jobs still running, crsp never stops a job: it keeps waiting and warns. The change stays waiting and the machine stays draining; nothing is stopped and nothing is offered that stops a job (no "stop those jobs now", no `stop_jobs` decision). The controller records the timeout once in the audit log and raises one warning (an alert event) that names the machine, the change and the jobs. The console and the CLI show "still draining, N jobs running, waited X" and the jobs. The user may wait longer (5 minutes to 24 hours from now) or cancel the change; both leave the jobs running. An automatic update does not wait past its limit: it postpones and tries again at the next check (operations spec, CRSP19). Built (HND5): that limit is this setting on the machine that updates, for the controller's own update and for an agent's follow update (`update.Manager` reads `Drainer.DrainTimeoutMinutes`, the agent's `UpdateDrainer` reads it from the settings the controller sent); there is no fixed 60 minutes left in the code, only the default of the setting.
 
 **R5.34** (M1) — **Resume** returns a drained machine to active. A change that is still waiting is cancelled first, after a yes.
 
@@ -247,7 +254,7 @@ Ported from runner-pool R5.10 (no rebuild under a running job) and learning 1 of
 
 Each requirement below targets a milestone after v0.1.0 and is **NOT YET IMPLEMENTED**. Until this is built, jobs that need it run on GitHub-hosted runners. Source: the handover page ([section 3 items 8 and 13](../../architecture/dev-standards-handover.md)).
 
-**R5.53** (after v0.1.0, Built in part CRSP56 and CRSP61 (`agent.ReadWSLKVM` and `ParseWSLKVM` read the WSL VM: `/dev/kvm` and whether `kvm_intel` or `kvm_amd` is loaded, read-only; the doctor check `kvm.module` says how to fix it, doctor R5.32): `agent.ParseWslconfig`, `PlanKVMLoad`, `container.LoaderModule`, `KVMWait` and the loader service of `images/layers/compose.kvm.yaml`; the agent does not yet read `.wslconfig` on a real machine or report KVM state to the doctor) — **KVM on WSL2.** On Windows with WSL2, after `wsl --shutdown` or a reboot `/dev/kvm` is gone until the module `kvm_intel` or `kvm_amd` is loaded in the WSL VM. The agent checks `nestedVirtualization=true` in the user's `.wslconfig` and reports it as the backend reason when it is off ("nested virtualization is off in .wslconfig"); it never edits that file without a yes. When it is on and `/dev/kvm` is missing, the agent loads the module through a one-shot privileged helper that exits after the load; runners are never privileged. The `kvm` label (runners R5.36) is added only after `/dev/kvm` is usable. The step runs again at every WSL start.
+**R5.53** (after v0.1.0, Built in part CRSP56 and CRSP61 (`agent.ReadWSLKVM` and `ParseWSLKVM` read the WSL VM: `/dev/kvm` and whether `kvm_intel` or `kvm_amd` is loaded, read-only; the doctor check `kvm.module` says how to fix it, doctor R5.32): `agent.ParseWslconfig`, `PlanKVMLoad`, `container.LoaderModule`, `KVMWait` and the loader service of `images/layers/compose.kvm.yaml`; the agent does not yet read `.wslconfig` on a real machine or report KVM state to the doctor) — **KVM on WSL2.** On Windows with WSL2, after `wsl --shutdown` or a reboot `/dev/kvm` is gone until the module `kvm_intel` or `kvm_amd` is loaded in the WSL VM. The agent checks `nestedVirtualization=true` in the user's `.wslconfig` and reports it as the backend reason when it is off ("nested virtualization is off in .wslconfig"); it never edits that file without a yes. When it is on and `/dev/kvm` is missing, the agent loads the module through a one-shot privileged helper that exits after the load; runners are never privileged. The `kvm` label (runners R5.36) is added only after `/dev/kvm` is usable. The step runs again at every WSL start. The pool container gets no `/dev/kvm` mapping (lesson 28, HND1): it is given the cgroup rule `c 10:232 rwm`, and its `kvm-wait.sh` creates the node with `mknod` once `/proc/misc` lists `kvm`, inside the bounded wait; when the wait ends without the device the pool starts without KVM and logs it.
 
 **R5.54** (M2, v0.3.0, partly built, CRSP50) — **WSL memory sizing.** The agent reads the `memory=` and `processors=` values of `.wslconfig` and the memory the WSL VM holds (R5.17), and shows them in the machine facts. The runner count and per-runner memory cap are set from the declared value, never from a live reading. It exports the CPU limit to jobs and splits it per runner, so `nproc` in a container matches the cap. A declared value above what the machine can give is refused with the reason. A change to `.wslconfig` needs `wsl --shutdown`, so the console says it waits for the machine to drain (R5.30). Built (CRSP50): the agent reads `.wslconfig` (`memory=`, `processors=`, `nestedVirtualization=`) from the console user's profile, then its own, into the machine facts (`internal/poolsize`, `internal/agent/wslconfig.go`); a declared value above what the machine has is refused with the reason; the CPU split (`poolsize.PerRunner`, the pool CPUs over the job slots) is exported to jobs as `CI_MAX_PARALLEL` (runners R5.53). NOT YET IMPLEMENTED: the cpuset for container jobs (`poolsize.CPUSet` is ready; the container backend is v0.3.0), the per-runner memory cap, the console showing the declared values and the drain wait for a `.wslconfig` change.
 
@@ -262,6 +269,18 @@ Each requirement below targets a milestone after v0.1.0 and is **NOT YET IMPLEME
 **R5.56** (M1) — **A job far past its usual time is flagged, and the user has a named choice.** When the holder has run twice as long as its usual duration or more, the change marks it (`over_usual`), the audit log records `machine.drain.stuck` once, and the notifier is told once (`StuckNotifier`). Once the drain timeout has passed (R5.33) or the holder is flagged, the change lists its named choices (`choices`): wait longer or cancel the change. The drain never waits silently, and it offers nothing that stops a job (R5.33). The drain timeout stays 60 minutes per machine by default. Built (CRSP38).
 
 **R5.57** (M1) — **A change for a runner set waits only for that set.** (Lesson 21.) A drain, restart or image swap can name the runners it touches (`runner_names`, `Drain.runner_names`). The controller counts only the jobs on those runners (names compare without case), whatever else the machine runs, including a busy runner of the same repository. The agent keeps new jobs out of those runners only (the gate answers `runner_draining`), the machine stays active, and the change runs when no job runs on its runners. The idle check and the hold are one step, as in R5.32. Without runner names the change is the whole machine, as before. Built (CRSP38).
+
+**R5.60** (M2, NOT YET IMPLEMENTED, CRSP83) — **Free-disk floor before a job or VM starts.** Each machine has a setting `disk_min_free_gib` (default 20, with a percentage form like `cache_min_free_pct` in caches R5.38). Before the agent starts a runner container, a VM or a differencing disk, it reads the free space of the volume that holds the runner folders and VM disks. Under the floor it starts nothing new: the job waits and is not failed, the gate log line names the free space, and the hold ends when the free space is the floor plus 2 GiB (so it does not flap). Running jobs are never cut. A disk that cannot be read never holds a job (caches R5.38). The hold counts against the gate's maximum wait like the cache hold. The doctor warns before the floor is reached (doctor R5.37).
+
+### 5.14 Laptop and desk policy (CRSP75, owner decision D51)
+
+**R5.61** (M1, built CRSP75) — **A machine has a mode.** `Automatic` (default) takes jobs, and pauses while the machine runs on battery (R5.63) and while the user has paused it from the tray with a timer ("Pause for 1 hour") or until they resume ("Pause until I resume"). `Always` takes jobs on battery too. `Paused` takes no new job and lets the running jobs finish; it never cuts one and uses the drain rules (R5.30 to R5.32: the idle check and the hold are one step). A pause from the tray holds in every mode, also `Always`. The mode, the pause and the battery switch are machine settings: the console, the tray and the CLI change the same values, so they follow each other (they reach the agent as R5.24). Quiet hours (R5.28) stay as specified. The pause timer is an absolute time set by the controller's clock; the agent compares it with its own clock.
+
+**R5.62** (M1, built CRSP75) — **The machine status says whether it takes new jobs.** Machine status has `Accepting bool` and `PauseReason string`. The reason is one of `paused`, `on_battery`, `quiet_hours`, `budget`, and is empty while accepting; the names are exact because another feature reads `online && Accepting` to decide on hosted fallback. The agent decides (mode, battery, the pause, its drain state, and the load against the budget) and sends an `AcceptingReport` over the existing agent link with each change, after Hello, and every 15 seconds. A machine that reported nothing accepts. A drained or draining machine reports `paused`. A full slot table is not a reason: the machine still accepts and the job waits for a slot. `quiet_hours` is defined and held by the scheduling gate, but nothing sets it until R5.28 is built. The scheduling gate holds new jobs with the reason (scheduling R5.68).
+
+**R5.63** (M1, built CRSP75) — **Battery detection is per OS, and unknown is mains.** Windows reads `GetSystemPowerStatus` (AC line offline with a system battery is on battery). Linux reads `/sys/class/power_supply` (a battery with no mains or USB supply online, or a lone discharging battery, is on battery; a peripheral's battery does not count). macOS reads the first line of `pmset -g batt`. A state that cannot be read, a desktop with no battery, or an unknown line status counts as on mains, so a desktop is never paused for a battery. The agent reports the power source with the Accepting report; the console shows it.
+
+**R5.64** (M1, built CRSP75) — **A CPU cap for runner processes, per machine.** Values 25, 50, 75 and 100% of all the machine's cores (default 100, no cap). Windows puts the runner service process trees (services named `actions.runner.*`, and the children they start) in a Job Object with a hard CPU rate. Linux writes cgroup v2 `cpu.max` in the cgroup that crsp owns for each runner service (`system.slice/actions.runner.*.service`). macOS is not supported yet: the console says so and offers no value. The agent applies the cap when the setting changes and again every minute, so a runner service that started since is capped within a minute; it reports `applied`, `not_supported` or `failed` with the reason. The cap is separate from the admission budget (85% memory, 60% CPU, R5.22), which is unchanged: the budget decides whether a job may start, the cap limits what runners use once running.
 
 ## 6. Non-functional requirements
 
@@ -360,12 +379,12 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.11 | internal/agent/backends_test.go | planned |
 | R5.12 | internal/machines/settings_test.go | planned |
 | R5.13 | internal/agent/backends_test.go | planned |
-| R5.14 | internal/agent/tart_limit_test.go | planned (M5) |
+| R5.14 | internal/agent/macvm_limit_test.go | planned (M5) |
 | R5.15 | internal/load/sample_test.go | planned; ports `test_load.py` |
-| R5.16 | internal/load/median_test.go | planned; ports DL176 cases |
+| R5.16 | internal/load/median_test.go | Built: `internal/load/median_test.go` TestMedianIgnoresASpike, TestSamplerDecidesOnMedianOfLastFive |
 | R5.17 | internal/load/wslvm_test.go | planned; ports `test_dl177_pool_measure.py` VmReadTests |
 | R5.18 | internal/load/docker_test.go | planned; ports `test_dl177_pool_measure.py` DockerReadTests |
-| R5.19 | internal/load/cgroup_test.go | planned |
+| R5.19 | internal/load/cgroup_test.go | Built: `internal/load/cgroup_test.go` TestCgroupWorseOfHostAndContainer |
 | R5.20 | internal/load/unknown_test.go | planned |
 | R5.21 | internal/load/measure_only_test.go | planned |
 | R5.22 | internal/machines/settings_test.go | planned |
@@ -407,6 +426,11 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.57 | `internal/machines/holder_test.go` TestScopedDrainCountsOnlyItsOwnRunners; `internal/agent/drain_idle_test.go` TestScopedHoldCountsOnlyItsOwnRunners, TestHoldRunnersWithoutNamesIsTheWholeMachine | new |
 | R5.58 | `internal/poolsize/poolsize_test.go` TestPoolSizeThatFitsIsAccepted, TestMemoryBudgetRefusalNamesNearestSize, TestRatioRefusalSaysTheNeed, TestShrinkNeedsExplicitConfirm; `internal/machines/pool_size_test.go` TestPoolSizeShrinkNeedsItsOwnConfirm, TestAnotherChangeDoesNotShrinkThePool; `internal/api/machines_pool_size_test.go` TestPoolSizeThroughTheAPI; `internal/load/sizing_test.go` TestSizingReadIsMedianOfFiveSamplesOneSecondApart; `internal/runners/jit_test.go` TestJitRunnerCarriesPoolSize; `internal/backend/container/stage_test.go` TestPoolSizeBecomesPoolLimits | built; `internal/machines` PoolSizeCheck is covered by `internal/api/machines_pool_size_test.go` TestPoolSizeCheckDryRun and the console by `apps/web/src/screens/machines/Machines.test.tsx` (Machine detail, the pool size) and `apps/web/src/screens/wizards.test.tsx` (pool-size). Port of `test_dl176_pool_resize.py` in the checks above |
 | R5.59 | `internal/agent/runner_link_test.go` TestMachineReportArrivesAfterHello; `cmd/crsp/remote_wiring_test.go` TestReportSourcesReadTheAgentReport, TestKVMReportedChecksRunOnTheReport | new |
+| R5.60 | planned: internal/agent/diskfloor_test.go TestNoNewRunnerUnderTheFloor, TestHoldEndsWithMargin, TestUnreadableDiskNeverHolds (CRSP83) |
+| R5.61 | `internal/machines/policy_test.go` TestPolicyDefaults, TestModeTransitions, TestPauseFromTheTray, TestPolicyReachesTheAgent; `internal/agent/policy_test.go` TestAutomaticAcceptsOnMains, TestAlwaysIgnoresBattery, TestPausedTakesNoNewJobAndFinishesRunning, TestTimedPauseEndsAndUntilResumedDoesNot, TestTrayPauseHoldsInAlways; `internal/api/machines_policy_test.go` TestMachinePolicyThroughTheAPI; `apps/web/src/screens/machines/MachinePolicy.test.tsx` | new |
+| R5.62 | `internal/machines/policy_test.go` TestAcceptingReportSetsMachineStatus; `internal/agent/policy_test.go` TestAcceptingReportAndCPUCapOverTheLink, TestOverBudgetReportsBudget, TestDrainedMachineReportsPaused; `internal/api/machines_policy_test.go` TestMachineStatusShowsTheAgentsReport; `internal/scheduler/accepting_test.go` | new |
+| R5.63 | `internal/power/power_test.go` TestLinuxSupplies, TestPmset, TestSystemPowerStatus; `internal/agent/policy_test.go` TestAutomaticPausesOnBatteryAndNeverCutsARunningJob, TestBatteryPauseSwitchOff | new |
+| R5.64 | `internal/cpucap/cpucap_test.go` TestCPUMax, TestApplyCgroupsWritesCPUMaxOfEachRunnerService, TestApplyCgroupsWithoutCgroupV2; `internal/cpucap/cap_windows_test.go` (GOOS=windows) TestJobObjectCapReadsBack, TestJobObjectAssignsAProcessTree; `internal/machines/policy_test.go` TestCPUCapValues; `internal/agent/policy_test.go` TestAcceptingReportAndCPUCapOverTheLink | new |
 | R6.1 | internal/machines/tls_test.go | planned |
 | R6.2 | internal/machines/secrets_test.go | planned |
 | R6.3 | internal/machines/joincode_test.go | planned |
@@ -444,6 +468,16 @@ Open questions from CRSP50 (the conservative choice is built; change it by answe
 | M-11 | The size is changed by someone else while the form is at Review. (CRSP70) | The save reads the check again; when the current size differs from the one reviewed, the wizard ends at Done as stopped and saves nothing. | Save anyway; or lock the form for one editor. |
 | M-9 | `.wslconfig` has the file but no `nestedVirtualization` line. (CRSP63) | Reported as off, so `kvm.wslconfig` fails and says to add the line, though WSL2 may default to on. | Report not known and skip. |
 
+Open questions from CRSP75 (the conservative choice is built; change it by answering):
+
+| ID | Question | Built (conservative) | Alternatives |
+|---|---|---|---|
+| M-12 | Does a pause from the tray hold in `Always` mode? | Yes. `Always` ignores the battery only; an explicit pause is the user's word. | The pause applies in `Automatic` only, so the tray's Pause does nothing in `Always`. |
+| M-13 | Does the controller gate hold on the `budget` reason? | No. The gate checks the live load itself; a report up to 15 seconds old would hold a job that fits now. `budget` is shown, not held. | Hold on the reported reason too. |
+| M-14 | What does a drained or draining machine report? | `Accepting` false with `paused`, since the four reasons are fixed. | Add a fifth reason `draining`. |
+| M-15 | Should an agent that still holds an older settings file (no mode) pause on battery? | No: with no field the battery pause is off, so an old cache never pauses a desktop by surprise. A new machine starts with it on. | Treat a missing field as on. |
+| M-16 | Where does the Linux CPU cap apply when the agent is not root? | The write is tried and reported as `failed` with the reason; the console shows it. | Set `CPUQuota=` in the runner unit when crsp writes it, so systemd owns the cap. |
+
 ## 11. Not built yet
 
 Everything not named as built at the top is NOT YET IMPLEMENTED. The seams that will change:
@@ -462,3 +496,5 @@ Source: internal/config/config.go
 Source: cmd/crsp/main.go
 
 Planned, not yet in the tree: `internal/agent/`, `internal/machines/`, `internal/load/`, `apps/web/src/machines/`.
+
+Built in CRSP75: `internal/power/` (battery), `internal/cpucap/` (CPU cap), `internal/machines/policy.go`, `internal/agent/policy.go`, `apps/web/src/screens/machines/MachinePolicy.tsx`.

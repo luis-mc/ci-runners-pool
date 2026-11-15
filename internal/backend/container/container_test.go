@@ -80,11 +80,11 @@ func TestNoPrivilegedNoSocketKvmDevice(t *testing.T) {
 		}
 	}
 
-	// KVM: --device /dev/kvm and nothing else, still not privileged.
+	// KVM: the cgroup rule and never a device mapping, still not privileged.
 	k := newRig(t, func(c *Config) { c.KVM = true })
 	k.start("job-1", "demo", k.image())
 	kargs := strings.Join(k.pool("demo").args, " ")
-	if !strings.Contains(kargs, "--device /dev/kvm") || strings.Contains(kargs, "--privileged") || strings.Count(kargs, "--device") != 1 {
+	if !strings.Contains(kargs, "--device-cgroup-rule "+KVMCgroupRule) || strings.Contains(kargs, "--privileged") || strings.Contains(kargs, "--device ") {
 		t.Errorf("kvm run args: %s", kargs)
 	}
 
@@ -494,4 +494,36 @@ func TestSwapFailureRestoresTheOldImage(t *testing.T) {
 	if err != nil || res.Swapped || !strings.Contains(res.Message, "already") {
 		t.Fatalf("%+v %v", res, err)
 	}
+}
+
+// TestRefreshOfAStoppedPoolDoesNotWait: handover lesson 27. An Exited pool is
+// drained at once: the drain is never asked, and the swap runs.
+func TestRefreshOfAStoppedPoolDoesNotWait(t *testing.T) {
+	ctx := context.Background()
+	r := newRig(t)
+	old := r.image("node")
+	r.start("job-1", "demo", old)
+	r.f.containers[PoolName("luis-mc", "demo")].running = false
+	r.f.workers = 1 // would block a running pool; a stopped one has no job
+	var asked int
+	dr := runners.Drain{
+		Idle:    func(context.Context) (bool, string, error) { asked++; return false, "never", nil },
+		Timeout: time.Minute,
+		Sleep: func(context.Context, time.Duration) error {
+			t.Error("slept while waiting on a stopped pool")
+			return context.Canceled
+		},
+	}
+	res, err := r.b.Refresh(ctx, "luis-mc", "demo", backend.ImageSpec{OS: "linux", Layers: []string{"node", "stopped"}}, dr)
+	if err != nil || !res.Swapped {
+		t.Fatalf("%+v %v\n%s", res, err, r.f.text())
+	}
+	if asked != 0 {
+		t.Errorf("the drain was asked %d times", asked)
+	}
+	if c := r.f.containers[PoolName("luis-mc", "demo")]; c == nil || !c.running || c.image == old.ID {
+		t.Errorf("the pool did not start on the new image: %+v", c)
+	}
+	// Draining flag is not left behind.
+	r.start("job-2", "demo", r.image("node", "stopped"))
 }

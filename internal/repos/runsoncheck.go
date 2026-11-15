@@ -2,6 +2,7 @@ package repos
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"time"
 
@@ -55,6 +56,30 @@ func (s *Service) workflowFiles(ctx context.Context, r Repository) (map[string][
 	s.etags[r.ID], s.cache[r.ID] = newEtags, newCache
 	s.mu.Unlock()
 	return out, nil
+}
+
+// CheckAllRunsOn runs CheckRunsOn for every enabled repository (R5.30, every
+// hour). On a rate limit it stops and returns the error, which carries the
+// reset time (R6.6); any other error is kept and the next repository goes on.
+func (s *Service) CheckAllRunsOn(ctx context.Context) error {
+	on := true
+	rs, err := s.cfg.Store.ListRepositories(ctx, ListFilter{Pool: &on})
+	if err != nil {
+		return err
+	}
+	var errs []error
+	for _, r := range rs {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if err := s.CheckRunsOn(ctx, r.ID); err != nil {
+			if errors.Is(err, github.ErrRateLimited) {
+				return err
+			}
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // CheckRunsOn reads every workflow file of a repository and stores the

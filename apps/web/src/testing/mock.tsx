@@ -152,7 +152,11 @@ export function machine(over: Partial<Schemas['Machine']> = {}): Schemas['Machin
       allowed_backends: ['docker'],
       drain_timeout_minutes: 30,
       windows_symlink_right: false,
+      mode: 'automatic',
+      pause_on_battery: true,
+      cpu_cap_pct: 100,
     },
+    accepting: true,
     load: {
       memory_pct: 40,
       cpu_pct: 20,

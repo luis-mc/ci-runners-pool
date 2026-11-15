@@ -42,6 +42,21 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request) {
 		delete(app, "webhook_secret")
 		delete(app, "pem")
 		writeJSON(w, 200, app)
+	case r.Method == "GET" && p == "/app/hook/deliveries":
+		if !s.checkJWT(bearer(r)) {
+			unauthorized(w)
+			return
+		}
+		items := []map[string]any{}
+		for _, d := range s.Deliveries {
+			status := "OK"
+			if d.StatusCode < 200 || d.StatusCode > 299 {
+				status = fmt.Sprintf("Invalid HTTP Response: %d", d.StatusCode)
+			}
+			items = append(items, map[string]any{"id": d.ID, "delivered_at": d.DeliveredAt.UTC().Format(time.RFC3339),
+				"event": d.Event, "status": status, "status_code": d.StatusCode})
+		}
+		writeJSON(w, 200, items)
 	case r.Method == "GET" && strings.HasPrefix(p, "/users/"):
 		if !s.checkJWT(bearer(r)) {
 			unauthorized(w)
