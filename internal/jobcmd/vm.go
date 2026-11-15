@@ -25,7 +25,10 @@ const (
 )
 
 const vmUsage = `usage: crsp vm list
-       crsp vm boot <distro> [--mem MiB] [--cpus N] [--timeout 5m] [--ready REGEXP] [--cache DIR]`
+       crsp vm boot <distro> [--mem MiB] [--cpus N] [--timeout 5m] [--ready REGEXP] [--cache DIR]
+       crsp vm prepare <distro> [--cache DIR]
+       crsp vm run <distro> [--package PATH] [--install CMD]... [--check CMD]... [--mem MiB] [--cpus N] [--timeout 5m] [--run-timeout 30m] [--cache DIR]
+       crsp vm selinux <distro> [--rpm FILE] [--module FILE.pp] [--service UNIT [--context TYPE]] [--mem MiB] [--cpus N] [--timeout 5m] [--run-timeout 30m] [--cache DIR]`
 
 // VM is `crsp vm` (caches R5.46, port of vm_check.py): `list` prints the
 // distros of the catalogue; `boot` downloads the image (checked against the
@@ -49,6 +52,12 @@ func VM(args []string, env Env) int {
 		return 0
 	case "boot":
 		return vmBoot(args[1:], cat, env)
+	case "prepare":
+		return vmPrepare(args[1:], cat, env)
+	case "run":
+		return vmRun(args[1:], cat, env)
+	case "selinux":
+		return vmSELinux(args[1:], cat, env)
 	}
 	_, _ = fmt.Fprintf(env.Stderr, "crsp vm: unknown command %q\n%s\n", args[0], vmUsage)
 	return ExitVMUsage
@@ -91,16 +100,7 @@ func vmBoot(args []string, cat vmcheck.Catalogue, env Env) int {
 		_, _ = fmt.Fprintf(env.Stderr, "crsp vm: %v\n%s\n", err, vmUsage)
 		return ExitVMUsage
 	}
-	if cache == "" {
-		cache = env.Getenv(VMCacheVar)
-	}
-	if cache == "" {
-		home, herr := os.UserHomeDir()
-		if herr != nil {
-			home = os.TempDir()
-		}
-		cache = filepath.Join(home, ".cache", "crsp", "vm")
-	}
+	cache = cacheDir(cache, env)
 	work, err := os.MkdirTemp("", "crsp-vm-")
 	if err != nil {
 		_, _ = fmt.Fprintln(env.Stderr, "crsp vm:", err)
@@ -126,4 +126,19 @@ func vmBoot(args []string, cat vmcheck.Catalogue, env Env) int {
 	}
 	_, _ = fmt.Fprintf(env.Stdout, "PASS %s (%s) booted in %s: %s\n", out.Distro, out.Image, out.Elapsed.Round(time.Second), strings.TrimSpace(out.Line))
 	return 0
+}
+
+// cacheDir is --cache, else CRSP_VM_CACHE, else ~/.cache/crsp/vm.
+func cacheDir(flagValue string, env Env) string {
+	if flagValue != "" {
+		return flagValue
+	}
+	if v := env.Getenv(VMCacheVar); v != "" {
+		return v
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		home = os.TempDir()
+	}
+	return filepath.Join(home, ".cache", "crsp", "vm")
 }
