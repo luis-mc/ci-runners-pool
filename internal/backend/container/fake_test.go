@@ -26,6 +26,9 @@ type fakeDocker struct {
 	failBuild   string
 	failRunTag  string // `run` of this image fails
 	failStart   string
+	failNetwork string
+	wineLine    string // `wine --version` prints wine-<line>; empty: wine is not there
+	wineBoots   int
 	inspectFail string
 	now         time.Time
 }
@@ -100,6 +103,11 @@ func (f *fakeDocker) handle(cmd sys.Command) sys.Result {
 			return fail1("Error: No such object: " + name)
 		}
 		return sys.Result{Stdout: fmt.Sprintf("%t %s\n", c.running, c.key)}
+	case "network":
+		if f.failNetwork != "" {
+			return fail1(f.failNetwork)
+		}
+		return ok0()
 	case "run":
 		return f.run(a)
 	case "start":
@@ -192,7 +200,7 @@ func (f *fakeDocker) exec(a []string, stdin string) sys.Result {
 		case "-d":
 			detached = true
 			i++
-		case "-u", "-w":
+		case "-u", "-w", "-e":
 			i += 2
 		default:
 			goto found
@@ -223,12 +231,36 @@ found:
 		return sys.Result{ExitCode: 1}
 	case "cat":
 		return sys.Result{Stdout: c.files[rest[1]]}
+	case "test":
+		if _, there := c.files[rest[2]]; there {
+			return ok0()
+		}
+		return sys.Result{ExitCode: 1}
+	case "mkdir":
+		c.files[rest[2]] = ""
+		return ok0()
+	case "rm":
+		delete(c.files, rest[3])
+		return ok0()
+	case "env":
+		// env -u TMPDIR <tool> ...
+		switch {
+		case len(rest) > 4 && rest[3] == "wine" && rest[4] == "--version":
+			if f.wineLine == "" {
+				return fail1("wine: not found")
+			}
+			return sys.Result{Stdout: "wine-" + f.wineLine + " (Ubuntu)\n"}
+		case len(rest) > 5 && rest[5] == "wineboot":
+			f.wineBoots++
+			c.files["/wine/system.reg"] = ""
+		}
+		return ok0()
 	case "sh":
 		script := rest[2]
 		switch {
 		case strings.HasPrefix(script, "mkdir -p"):
 			c.files[rest[4]] = ""
-		case strings.HasPrefix(script, "umask 077 && cat >"):
+		case strings.HasPrefix(script, "umask 077 && cat >"), strings.HasPrefix(script, "cat >"):
 			c.files[rest[4]] = stdin
 		case strings.HasPrefix(script, "rm -rf"):
 			for _, p := range rest[4:] {
