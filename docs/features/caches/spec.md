@@ -388,7 +388,6 @@ Rows for R5.36 to R5.40, R5.42, R5.43, R5.44, R5.45, R5.48 and R5.49 are built a
 | D2 | How to send `actions/cache` to the pool | A runner patched at install for the pinned runner version (section 7.2); owner to confirm (Q1) | 2026-11-14 (proposed) |
 | D3 | Tool cache language | A Go port of `ci_tool.py` inside the one binary, with its tests ported | 2026-11-14 (proposed) |
 | D4 | Wipe at drain timeout | Delete nothing and say so; never cut a job | 2026-11-14 (proposed) |
-| D5 | Defaults of the disk limits (CRSP48) | Per key 25 GiB, Rust cache 40 GiB, pool budget 150 GiB, alert at 20 GiB (all in GiB, per machine for the budget); the most cautious values that keep one repository from filling a disk, until the owner sets others | 2026-11-15 (proposed) |
 
 Open questions for the owner:
 
@@ -405,6 +404,7 @@ Open questions for the owner:
 - **Q12** (CRSP48) — How does a job name its Rust cache key? Chosen now: `CRSP_RUST_CACHE_KEY`, else the most recently changed key counts as in use (nothing in use is ever removed whole). Alternative: the hook reads the key from the job's `CARGO_TARGET_DIR` subfolder when workflows set one per key.
 - **Q13** (CRSP48) — Is the pool budget per machine (chosen now, because the disk is per machine) or should the controller divide one budget across machines? Alternative: a per-machine value in the machine settings, which waits for `cache_cap_bytes` to be read.
 - **Q14** (CRSP48) — The budget pass removes whole entries of idle runners, including a Rust key a runner will reuse next. Chosen: yes, oldest first, because the lesson is that a full disk stops every runner. Alternative: spare the newest Rust key of each runner until nothing else is left.
+- **Q15** (CRSP48) — Are the default disk limits right (one key 25 GiB, Rust cache 40 GiB, pool budget 150 GiB, alert at 20 GiB)? Chosen now: the most cautious values that keep one repository from filling a disk.
 - **Q6** — Does the tool cache command run inside jobs from the product binary (mounted read-only), or does the product also ship the Python `ci_tool.py` for workflows that call it today?
 
 ## 11. Not built yet
