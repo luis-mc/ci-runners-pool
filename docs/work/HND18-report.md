@@ -10,8 +10,8 @@ Branch `HND18-vm-doctor` from origin/main (40f779d). Parity item: caches R5.46 `
 5. Spec (caches R5.46, R5.51 next free ID if needed), change notes, docs check, draft PR.
 
 ## Status
-- [ ] 1 env types
-- [ ] 2 checks
+- [x] 1 env types
+- [x] 2 checks (tests with fakes in vm_test.go)
 - [ ] 3 manifest
 - [ ] 4 probe and command
 - [ ] 5 docs and PR

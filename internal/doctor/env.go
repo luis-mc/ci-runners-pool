@@ -20,6 +20,9 @@ type Env struct {
 	GitHub GitHub
 	// KVM is nil when no agent reports KVM; the kvm checks then skip.
 	KVM KVMSource
+	// VM is nil when the VM backend of this machine is not read (the live
+	// controller does not read it; `crsp vm doctor` does); the vm checks then skip.
+	VM VMSource
 	// Engines is nil when no agent reports its container engine; machine.engine then skips.
 	Engines EngineSource
 	// Demand is nil when the demand source is not running; demand.quiet then skips.
@@ -323,4 +326,56 @@ type QuietDemand struct {
 // wait. The controller's watchdog keeps it; a check only reads it.
 type DemandSource interface {
 	QuietDemand(ctx context.Context) ([]QuietDemand, error)
+}
+
+// VMTool is one program the VM backend runs.
+type VMTool struct {
+	Name  string
+	Found bool
+}
+
+// VMDisk is what the cache holds of one distro: the downloaded image, its
+// prepared base disk and the package list that base was built with (caches
+// R5.46).
+type VMDisk struct {
+	Distro string
+	// ImagePresent is false when the cache has no image of the distro.
+	ImagePresent bool
+	// ImageChecked is false when the file could not be read to its end;
+	// ImageOK is then ignored. ImageOK is true when the digest of the file
+	// starts with the digest in its name.
+	ImageChecked, ImageOK bool
+	// BasePresent is true when the prepared base disk of the image exists.
+	BasePresent bool
+	// Packages is the manifest of the base disk; empty when it has none.
+	Packages []string
+}
+
+// VMState is what the VM backend of one machine looks like (caches R5.46,
+// `crsp vm doctor`).
+type VMState struct {
+	Machine Machine
+	// Accelerator names the hypervisor this OS uses: KVM, Hyper-V or
+	// Virtualization.framework. AccelKnown is false when it could not be asked.
+	Accelerator         string
+	AccelKnown, AccelOK bool
+	AccelDetail         string
+	Tools               []VMTool
+	SeedTool            VMTool
+	Disks               []VMDisk
+	CacheDir            string
+	// FreeKnown is false when the free space could not be read.
+	FreeKnown             bool
+	FreeBytes, FloorBytes int64
+	// Bridge is the network bridge the VMs may use; BridgeKnown is false when
+	// the OS has no such thing to ask or it could not be asked.
+	Bridge                     string
+	BridgeKnown, BridgePresent bool
+	// Needed lists the packages the runners need in the base disk.
+	Needed []string
+}
+
+// VMSource reads the VM backend of this machine.
+type VMSource interface {
+	VM(ctx context.Context) (VMState, error)
 }
