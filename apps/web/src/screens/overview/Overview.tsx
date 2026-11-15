@@ -21,6 +21,7 @@ import {
 import { useEffect, useState } from 'react';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useLiveState, useLiveStore } from '../../live/LiveProvider';
+import { waitWords } from '../jobs/Jobs';
 
 type Machine = Schemas['Machine'];
 type Job = Schemas['Job'];
@@ -82,6 +83,36 @@ const jobColumns: Column<Job>[] = [
     header: 'Machine',
     cell: (j) => j.runner_name ?? j.machine_id ?? 'not placed',
   },
+];
+
+/** Why each queued job waits (scheduling R5.48): the server's words, else the job's own reason (UX-34). */
+export interface WaitingRow {
+  id: number;
+  repository: string;
+  job: string;
+  words: string;
+}
+
+export function waitingRows(
+  o: Pick<Schemas['Overview'], 'queued' | 'waiting'>,
+): WaitingRow[] {
+  const words = new Map((o.waiting ?? []).map((w) => [w.job_id, w.words]));
+  return (o.queued ?? []).map((j) => ({
+    id: j.id,
+    repository: j.repository,
+    job: j.job_name,
+    words: words.get(j.id) ?? sentence(waitWords(j)),
+  }));
+}
+
+function sentence(w: string): string {
+  return `${w.charAt(0).toUpperCase()}${w.slice(1)}.`;
+}
+
+const waitingColumns: Column<WaitingRow>[] = [
+  { id: 'repo', header: 'Repository', cell: (r) => r.repository },
+  { id: 'job', header: 'Job', cell: (r) => r.job },
+  { id: 'why', header: 'Why it waits', cell: (r) => r.words },
 ];
 
 export function Overview() {
@@ -153,6 +184,18 @@ export function Overview() {
                 columns={jobColumns}
                 rows={o.running}
                 rowKey={(j) => String(j.id)}
+              />
+            )}
+          </Section>
+          <Section title="Why jobs wait">
+            {(o.queued ?? []).length === 0 ? (
+              <Empty title="No jobs are waiting." />
+            ) : (
+              <Table
+                caption="Waiting jobs"
+                columns={waitingColumns}
+                rows={waitingRows(o)}
+                rowKey={(r) => String(r.id)}
               />
             )}
           </Section>

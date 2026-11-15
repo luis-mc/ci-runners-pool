@@ -228,6 +228,8 @@ function reduceOverview(o: Overview, ev: LiveEvent): Overview {
       return {
         ...o,
         queued: [...(o.queued ?? []).filter((j) => j.id !== ev.job?.id), ev.job],
+        // The server's words for this job are out of date now; the screen falls back to the job's own reason.
+        waiting: (o.waiting ?? []).filter((w) => w.job_id !== ev.job?.id),
         queued_count: Math.max(
           o.queued_count,
           (o.queued ?? []).filter((j) => j.id !== ev.job?.id).length + 1,
@@ -238,6 +240,7 @@ function reduceOverview(o: Overview, ev: LiveEvent): Overview {
       return {
         ...o,
         queued: (o.queued ?? []).filter((j) => j.id !== ev.job?.id),
+        waiting: (o.waiting ?? []).filter((w) => w.job_id !== ev.job?.id),
         queued_count: Math.max(
           0,
           o.queued_count - ((o.queued ?? []).some((j) => j.id === ev.job?.id) ? 1 : 0),

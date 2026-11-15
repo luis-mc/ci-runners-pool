@@ -54,6 +54,8 @@ Each action has one word. The Never use column lists words that must not stand i
 | Exporting | The busy word of Export, while the controller builds the file. | Downloading |
 | Load more | Read the next rows of a list that has more on the controller. | Show more, Next page |
 | Send test | Send one clearly marked test notice through a channel and say what happened. It changes nothing else. | Test, Ping, Verify, Send a test |
+| Pause for 1 hour, Pause until I resume | Hold a machine from taking new jobs for an hour, or until Resume. The running jobs finish. | Stop, Suspend, Disable |
+| Resume | End a pause, and let the machine take jobs again. The machine page and the tray use it. | Unpause, Restart, Enable |
 
 Add a row for each action the project needs. A new action gets a word that is not used above.
 
@@ -179,6 +181,43 @@ The words of the repository policy form for the light runner (scheduling R5.65).
 | A light runner is kept free for jobs that last seconds, so they do not wait behind a long build. A workflow uses it with runs-on: ${{ vars.RUNS_ON_LIGHT }}. | The note under the switch. |
 | No light runner is online for {os} on {repository} | The doctor finding when the runner is missing. |
 
+## Machine policy words
+
+The words of the machine mode, the battery pause and the CPU cap (machines R5.61 to R5.64, tray R5.42, web-console R5.65). The tray and the console use the same words.
+
+| Word | Where and meaning |
+|---|---|
+| When it works | The section title on the machine page. |
+| Mode | The name of the one-choice list and of the tray submenu. |
+| Automatic | A mode. Takes jobs. Pauses on battery and while you have paused it from the tray. |
+| Always | A mode. Takes jobs on battery too. A pause from the tray still holds. |
+| Paused | A mode, and a state word. Takes no new job. The jobs that run finish. |
+| Takes jobs | The column of the machines list. |
+| Taking jobs | State word: the machine takes new jobs. |
+| Paused, On battery, Quiet hours | State words: why the machine takes no new job. |
+| Busy | State word: the load is over the budget, so a new job waits. The tray header does not say it. |
+| Now | The facts line with the state word. |
+| Paused until | The end of a pause from the tray with a timer. A date and time (Dates, times and numbers). |
+| Until you resume | The value of the fact Paused for a pause from the tray that has no end. |
+| Power | The facts line. Values: On battery, On mains. Shown only when the machine's battery state is known. |
+| Pause on battery | The switch. Saved at once. |
+| Always ignores the battery. | The note under the switch in Always. |
+| Off: the machine keeps taking jobs on battery. | The note under the switch when it is off. |
+| On: Automatic takes no new job while the machine runs on battery. | The note under the switch when it is on. |
+| CPU for runners | The name of the CPU cap list. Values: 25%, 50%, 75%, 100%. |
+| The most CPU the runner processes may use. The load budget stays as it is. | The help under the CPU cap list. |
+| Not supported on macOS yet. The runners use all the CPU. | The help under the CPU cap list on macOS. |
+| Not supported on macOS yet. | The reason on each CPU cap value on macOS. |
+| The CPU cap was not set. {why} | Problem message when the agent could not set the cap. |
+| It takes no new job. The jobs that run finish. | Note under the state when the machine is paused. |
+| It takes no new job while it runs on battery. The jobs that run finish. | Note when the machine is on battery. |
+| It takes no new job in quiet hours. The jobs that run finish. | Note in quiet hours. |
+| Its load is over the budget. A new job waits until the load drops. | Note when the state is Busy. |
+| Could not save. {why} | Problem message when a change was not saved. |
+| Could not change the mode. Could not pause. Could not resume. | Titles of the tray notice when a menu change failed. |
+| This service cannot change the mode. Open the console and go to Machines. | Tray notice for a service that does not report a policy. |
+| waits because its machine is paused, waits because its machine runs on battery | Job wait reasons on the jobs screen. |
+
 ## Connect GitHub words
 
 The words the Connect GitHub step shows when GitHub sends the person back with an error (github-integration R5.3, web-console setup screens). The page picks the message by the error code in the address and then clears the code from the address.
@@ -209,6 +248,24 @@ The events, severities and channel kinds of the notifications feature, as people
 | Info, Warning, Error | The lowest severity a channel gets. |
 | Email, Webhook, Desktop | The kinds of channel. |
 | Channel | One way of being told: an email address, a webhook or a desktop notice. |
+
+## Why a job waits
+
+The words of the list "Why jobs wait" (scheduling R5.48). The gate's own line with its numbers goes after the colon; the reason alone gives the plain sentence.
+
+| Reason | Words |
+|---|---|
+| Section title | Why jobs wait |
+| Table caption | Waiting jobs |
+| Column | Why it waits |
+| Empty | No jobs are waiting. |
+| No machine for the OS or labels | No machine has this OS and these labels. |
+| Over the budget | Over the load budget: {numbers}. (Over the memory or CPU budget.) |
+| No free slot | No free slot: {n} ahead in the queue. |
+| Parallel limit | The repository is at its parallel limit. |
+| Machine drained | The machine is drained. |
+| Load not measured | Load not measured yet. The machine cannot read its load, so the job waits. Run the doctor to see why. |
+| Reason not known | Waiting. The reason is not known yet. |
 
 ## Component words
 
@@ -298,3 +355,44 @@ The words of Settings, Appearance (UX-60).
 | Passing message | Saving the mode. |
 | Failure | Could not save the mode. |
 | Key-hint bar | `/` search, `j k` move, `Enter` open, `?` keys |
+
+## Demand and webhook words
+
+The words of the doctor findings `demand.quiet` and `github.webhook` (github-integration R5.37, doctor R5.16).
+
+| Where | Word |
+|---|---|
+| Quiet, ok | The demand source sees the queued jobs of {repository} |
+| Quiet, warn | {repository} has {n} jobs queued for the pool and the demand source has seen none |
+| Quiet, first detection | Quiet since {time}. |
+| Quiet, restarted | Quiet since {time}. The controller restarted the demand loop once, at {time}, and it is still quiet. |
+| Quiet fix, first | The controller restarts the demand loop once by itself. Run the doctor again in a minute. |
+| Quiet fix, restarted | Restart the controller service. If it stays quiet, check that GitHub is reachable and the App can read Actions (github.app.permissions), then read the controller log for "poll queued jobs". |
+| Webhook, ok | Webhook deliveries arrive ({n} in 24 hours, {n} failed) |
+| Webhook, idle | No webhook delivery in 24 hours, and no job is open |
+| Webhook, failed | {n} of {n} recent webhook deliveries failed |
+| Webhook, none | No webhook delivery arrived in 24 hours while jobs are open |
+| Webhook fix | Check that GitHub can reach the controller (the webhook address in the App settings). The polling fallback is in use meanwhile. |
+
+## Hosted fallback words
+
+The words of the hosted fallback on a repository's page, the list and the Overview (github-integration R5.42 to R5.46).
+
+| Where | Word |
+|---|---|
+| Section | Hosted fallback |
+| Choice | When no crsp machine can take these jobs |
+| Choices | Wait for a crsp machine, Run on GitHub-hosted runners |
+| Help | Waiting costs nothing. Jobs stay queued on GitHub for up to 24 hours. |
+| Reason, public | A public repository never runs on GitHub-hosted runners. |
+| Fields | Monthly cap of hosted minutes (help: 0 means no cap. Once the cap is reached this month, jobs wait again.), Hosted label for {os} (optional; help: Blank uses {default}.) |
+| Note | GitHub may bill these minutes for a private repository. crsp switches back as soon as a machine is up. |
+| Button | Save fallback (busy word: Saving) |
+| Question card | Title: Run on GitHub-hosted runners? Lines: GitHub may bill the minutes that run on GitHub-hosted runners for a private repository. / Jobs of {repository} run there only while no crsp machine can take them. crsp switches back as soon as a machine is up. Action: Turn on (busy word: Saving) |
+| Done | Saved. |
+| Column and fact | Jobs go to: crsp machines, GitHub-hosted runners, waiting for a machine, pool off |
+| Why | A crsp machine is up. / No crsp machine for {os} is up, so jobs run on GitHub-hosted runners. / No crsp machine for {os} is up. Jobs wait for one. / No crsp machine for {os} is up. Jobs move to GitHub-hosted runners if none comes back soon. / The monthly cap of hosted minutes is reached. Jobs wait for a crsp machine. / A public repository never runs on GitHub-hosted runners. Jobs wait for a crsp machine. |
+| Fact | Hosted minutes this month |
+| Overview line | {n} repository runs on GitHub-hosted runners because no crsp machine is up. / {n} repositories run on GitHub-hosted runners because no crsp machine is up. |
+| Doctor, waiting | Jobs of {repository} wait: no crsp machine is up for {os} |
+| Doctor, on hosted | Jobs of {repository} run on GitHub-hosted runners ({os}) |

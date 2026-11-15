@@ -258,6 +258,12 @@ func repoVarsRunner(ctx context.Context, env doctor.Env) []doctor.Finding {
 		for _, n := range names {
 			labels, _ := runson.ParseLabelList(vars[n])
 			f := doctor.Finding{Check: "repo.vars.runner", Subject: varSubject(r, n)}
+			if hosted(r, runson.OSOfVariable(n)) {
+				// On the hosted fallback the variable names a GitHub-hosted label on purpose.
+				f.Severity, f.Title = doctor.OK, n+" is on a GitHub-hosted label on purpose (hosted fallback)"
+				out = append(out, f)
+				continue
+			}
 			if anyCarries(runners, labels) {
 				f.Severity, f.Title = doctor.OK, "A runner is online for "+n+" on "+r.FullName
 			} else {

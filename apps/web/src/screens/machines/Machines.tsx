@@ -34,6 +34,7 @@ import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
 import { machineStatus } from '../overview/Overview';
+import { MachinePolicySection, PolicyStatus } from './MachinePolicy';
 import { PoolSizeWizard } from './PoolSize';
 
 type Machine = Schemas['Machine'];
@@ -69,6 +70,12 @@ export function MachinesList() {
         return <Status kind={s.kind} word={s.word} />;
       },
       sort: (m) => machineStatus(m).word,
+    },
+    {
+      id: 'takes',
+      header: 'Takes jobs',
+      cell: (m) => <PolicyStatus m={m} />,
+      sort: (m) => (m.accepting === false ? 1 : 0),
     },
     {
       id: 'backends',
@@ -363,6 +370,7 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
           ))}
         </Stack>
       </Section>
+      <MachinePolicySection m={m} onChanged={onChanged} />
       <Section title="Budget and slots">
         <form
           onSubmit={(e) => {

@@ -37,6 +37,7 @@ import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
+import { HostedFallback, WhereJobsGo, routingWhy } from './fallback';
 import { allRepositories, applyChanges, type Repository } from './plans';
 
 const PAGE = 25;
@@ -111,6 +112,12 @@ export function RepositoriesList() {
       header: 'Priority',
       cell: (r) => r.policy.priority,
       sort: (r) => r.policy.priority,
+    },
+    {
+      id: 'where',
+      header: 'Jobs go to',
+      cell: (r) => <WhereJobsGo r={r} />,
+      sort: (r) => r.routing?.where ?? '',
     },
     {
       id: 'vars',
@@ -471,6 +478,16 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
               ),
             },
             { name: 'Variables', value: <Status kind={vs.kind} word={vs.word} /> },
+            { name: 'Jobs go to', value: <WhereJobsGo r={r} /> },
+            { name: 'Why', value: routingWhy(r) },
+            ...(r.routing && r.policy.hosted_fallback
+              ? [
+                  {
+                    name: 'Hosted minutes this month',
+                    value: String(r.routing.used_minutes),
+                  },
+                ]
+              : []),
             ...r.variables.map((x) => ({
               name: x.name,
               value: x.status.replace('_', ' '),
@@ -557,6 +574,9 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
             </FormActions>
           </Stack>
         </form>
+      </Section>
+      <Section title="Hosted fallback">
+        <HostedFallback r={r} onChanged={onChanged} />
       </Section>
       <Section title="Extra packages">
         <ExtraPackages r={r} onChanged={onChanged} />

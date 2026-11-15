@@ -5,9 +5,13 @@
 # After `wsl --shutdown`, a reboot or a Docker restart, Docker's VM has no
 # kvm_intel or kvm_amd module. The loader below loads it at every Docker start,
 # so the pool needs no Windows scheduled task. Only the loader is privileged
-# and it exits at once; the pool is never privileged and gets /dev/kvm only
-# as a device. The pool waits a bounded time for /dev/kvm (kvm-wait.sh), then
-# starts without KVM and without the kvm label; the doctor says why (kvm.host).
+# and it exits at once; the pool is never privileged. The pool is never given
+# /dev/kvm as a `devices:` mapping: at daemon boot Docker restarts the pool
+# before the loader, and a mapping to a missing file fails the container start
+# (handover lesson 28). It gets the cgroup rule for char device 10:232, and
+# kvm-wait.sh creates /dev/kvm with mknod once /proc/misc lists kvm. The wait is
+# bounded; after it the pool starts without KVM and without the kvm label, and
+# the doctor says why (kvm.host).
 services:
   kvm-loader:
     image: ${CRSP_KVM_LOADER_IMAGE:-alpine:3.20}
@@ -27,8 +31,8 @@ services:
         # Stay up so restart: unless-stopped runs the loader again at every Docker start.
         exec sleep infinity
   pool:
-    devices:
-      - /dev/kvm:/dev/kvm
+    device_cgroup_rules:
+      - 'c 10:232 rwm'
     group_add:
       - '${CRSP_KVM_GID:-993}'
     entrypoint: ['/usr/local/bin/kvm-wait.sh']

@@ -196,6 +196,7 @@ func TestExtractBinaryOnlyTheBinary(t *testing.T) {
 // ---------------------------------------------------------------- manager
 
 type fakeDrainer struct {
+	minutes   int
 	mu        sync.Mutex
 	jobs      []Job
 	begun     []Kind
@@ -215,7 +216,12 @@ func (d *fakeDrainer) BeginDrain(_ context.Context, k Kind, _ string) error {
 	d.begun = append(d.begun, k)
 	return nil
 }
-func (d *fakeDrainer) DrainTimeoutMinutes(context.Context) int { return 60 }
+func (d *fakeDrainer) DrainTimeoutMinutes(context.Context) int {
+	if d.minutes != 0 {
+		return d.minutes
+	}
+	return 60
+}
 func (d *fakeDrainer) CancelDrain(context.Context, string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -616,6 +622,28 @@ func TestAutoUpdateCancelsDrainAfterTheLimit(t *testing.T) {
 	// The lock is free again, so the next check can start over.
 	if _, err := h.m.Check(context.Background()); err != nil || len(h.d.begun) != 2 {
 		t.Fatalf("%v begun=%v", err, h.d.begun)
+	}
+}
+
+// Machines R5.33: the automatic wait is the machine's drain timeout setting.
+func TestAutoDrainLimitIsTheMachineDrainTimeout(t *testing.T) {
+	h := newHarness(t, "linux", true, true)
+	ctx := context.Background()
+	for _, c := range []struct {
+		minutes int
+		limit   time.Duration
+		want    time.Duration
+	}{
+		{0, 0, 60 * time.Minute},
+		{90, 0, 90 * time.Minute},
+		{5, 0, 5 * time.Minute},
+		{-1, 0, 60 * time.Minute},
+		{90, 20 * time.Millisecond, 20 * time.Millisecond}, // an explicit option still wins
+	} {
+		h.d.minutes, h.m.o.AutoDrainLimit = c.minutes, c.limit
+		if got := h.m.autoDrainLimit(ctx); got != c.want {
+			t.Errorf("setting %d option %s: limit %s, want %s", c.minutes, c.limit, got, c.want)
+		}
 	}
 }
 

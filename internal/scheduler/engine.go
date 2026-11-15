@@ -21,6 +21,8 @@ type Engine struct {
 	log   *slog.Logger
 	wake  *waker
 	alert func(Alert)
+	// accepting says whether a machine takes new jobs and why not (machines R5.62).
+	accepting func(machineID string) (ok bool, reason string)
 }
 
 // Option configures an Engine.
@@ -37,6 +39,15 @@ func WithLogger(l *slog.Logger) Option { return func(e *Engine) { e.log = l } }
 // (R5.61). The callback must not block; the console and the notifications read
 // the alert from there.
 func WithAlerts(f func(Alert)) Option { return func(e *Engine) { e.alert = f } }
+
+// WithAccepting sets where the gate reads a machine's acceptance: the agent's
+// own report of paused, on battery or quiet hours (scheduling R5.68). A machine
+// that is not accepting holds every new job with that reason. A machine the
+// callback knows nothing about accepts. The budget reason is not held here:
+// the gate checks the live load itself.
+func WithAccepting(f func(machineID string) (ok bool, reason string)) Option {
+	return func(e *Engine) { e.accepting = f }
+}
 
 // NewEngine returns the slot queue over a store.
 func NewEngine(store slots.Store, opts ...Option) *Engine {

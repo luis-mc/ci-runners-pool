@@ -235,11 +235,55 @@ func TestNoAgentFallsBackToLoadOnlyWait(t *testing.T) {
 	if code := hooks.RunGate(context.Background(), cfg); code != 1 {
 		t.Fatalf("exit %d", code)
 	}
-	// unmeasurable: the job goes and the reason is logged
+	// unmeasurable (decision D53, on purpose unlike the old pool): the job
+	// waits and polls; it does not exit 0. It goes when the load is measured.
 	w.lines = nil
-	cfg = w.cfg(nil, gate, load.Reading{}, "g", 3)
-	if code := hooks.RunGate(context.Background(), cfg); code != 0 || !strings.Contains(w.text(), "cannot be measured") {
-		t.Fatalf("exit %d\n%s", code, w.text())
+	cfg = w.cfg(nil, slots.GateSettings{MaxWaitMin: 5, PollSec: 15, OnTimeout: "fail"}, load.Reading{}, "g", 3)
+	calls = 0
+	var reported []string
+	cfg.Report = func(m string) { reported = append(reported, m) }
+	cfg.Measure = func() load.Reading {
+		calls++
+		if calls < 4 {
+			return load.Reading{}
+		}
+		return quiet
+	}
+	if code := hooks.RunGate(context.Background(), cfg); code != 0 || calls < 4 {
+		t.Fatalf("exit %d, %d measures\n%s", code, calls, w.text())
+	}
+	if len(reported) != 1 || !strings.Contains(reported[0], "crsp doctor") {
+		t.Fatalf("the warning is given once with what to do: %q", reported)
+	}
+}
+
+// R5.22, R5.23 (D53): never measured means the on-timeout rule "run" becomes
+// "fail", with and without an agent.
+func TestUnmeasuredTimeoutNeverRuns(t *testing.T) {
+	w := newWorld(t)
+	run := slots.GateSettings{MaxWaitMin: 1, PollSec: 15, OnTimeout: "run"}
+	cfg := w.cfg(nil, run, load.Reading{}, "g", 1)
+	if code := hooks.RunGate(context.Background(), cfg); code != hooks.ExitTimeout {
+		t.Fatalf("no agent: exit %d\n%s", code, w.text())
+	}
+	if !strings.Contains(w.text(), "load not measured yet") || !strings.Contains(w.text(), "the job fails and can be re-run") {
+		t.Fatalf("log:\n%s", w.text())
+	}
+	// with an agent that answers: the gate holds, then the same rule applies
+	w.lines = nil
+	a := agent{w.eng, slots.Defaults()}
+	cfg = w.cfg(a, run, load.Reading{}, "g2", 2)
+	if code := hooks.RunGate(context.Background(), cfg); code != hooks.ExitTimeout {
+		t.Fatalf("agent: exit %d\n%s", code, w.text())
+	}
+	if strings.Contains(w.text(), "runs without a slot") {
+		t.Fatalf("the job must not run:\n%s", w.text())
+	}
+	// a measured, hot machine keeps the old rule: run on timeout
+	w.lines = nil
+	cfg = w.cfg(nil, run, hot, "g3", 3)
+	if code := hooks.RunGate(context.Background(), cfg); code != 0 {
+		t.Fatalf("hot: exit %d", code)
 	}
 }
 

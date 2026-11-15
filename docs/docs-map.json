@@ -58,6 +58,9 @@
     "internal/configio/**": [
       "docs/features/operations/spec.md"
     ],
+    "internal/cpucap/**": [
+      "docs/features/machines/spec.md"
+    ],
     "internal/doctor/**": [
       "docs/features/doctor/spec.md"
     ],
@@ -96,6 +99,9 @@
     ],
     "internal/overview/**": [
       "docs/features/observability/spec.md"
+    ],
+    "internal/power/**": [
+      "docs/features/machines/spec.md"
     ],
     "internal/repos/**": [
       "docs/features/github-integration/spec.md"

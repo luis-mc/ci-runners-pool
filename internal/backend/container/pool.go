@@ -26,7 +26,7 @@ const (
 	// JITDir is a tmpfs only the job user can read. The JIT config is written
 	// here for a moment and deleted by the runner's start script (runners R5.25).
 	JITDir = "/run/crsp"
-	// KVMDevice is the only device a pool container may get (runners R5.27).
+	// KVMDevice is the only device a pool container may use, allowed by KVMCgroupRule (runners R5.27).
 	KVMDevice = "/dev/kvm"
 )
 
@@ -53,7 +53,7 @@ type PoolSpec struct {
 	ImageTag    string
 	ImageKey    string
 	Limits      Limits
-	// KVM passes /dev/kvm with --device when the machine allows it for this
+	// KVM allows /dev/kvm with --device-cgroup-rule when the machine allows it for this
 	// runner and the agent checked it (runners R5.27, R5.41).
 	KVM bool
 	// CrspHostPath, when set, is the agent's own linux binary, mounted
@@ -139,8 +139,8 @@ func RunArgs(p PoolSpec) ([]string, error) {
 var ErrUnsafeRun = errors.New("container run refused")
 
 // CheckRunArgs refuses every `docker run` that is privileged, shares the host
-// PID, network, IPC or user namespace, adds a capability, passes a device other
-// than /dev/kvm, mounts an engine socket, or runs as root. It is the guard on
+// PID, network, IPC or user namespace, adds a capability, maps a device or
+// allows a device other than the KVM rule, mounts an engine socket, or runs as root. It is the guard on
 // the one place the backend starts a container (runners R5.27, R6.1).
 func CheckRunArgs(args []string) error {
 	refuse := func(why string) error { return fmt.Errorf("%w: %s", ErrUnsafeRun, why) }
@@ -184,8 +184,10 @@ func CheckRunArgs(args []string) error {
 				return refuse("a security profile is never turned off")
 			}
 		case "--device":
-			if v := next(); v != KVMDevice && !strings.HasPrefix(v, KVMDevice+":") {
-				return refuse("the only device is " + KVMDevice + ", not " + v)
+			return refuse("no device is mapped, not even " + KVMDevice + ": " + next() + " (use the cgroup rule " + KVMCgroupRule + ")")
+		case "--device-cgroup-rule":
+			if v := next(); v != KVMCgroupRule {
+				return refuse("the only device rule is " + KVMCgroupRule + ", not " + v)
 			}
 		case "-v", "--volume", "--mount":
 			if v := next(); mentionsSocket(v) {

@@ -46,6 +46,54 @@ type Status struct {
 	ExitCode  int       // StateStopped
 	Version   string    // the version the service runs, "" when it does not say
 	Update    UpdateInfo
+	Policy    MachinePolicy
+}
+
+// Modes of a machine (machines R5.61) and the two pauses of the tray.
+const (
+	ModeAutomatic = "automatic"
+	ModeAlways    = "always"
+	ModePaused    = "paused"
+
+	PauseOneHour      = "one_hour"
+	PauseUntilResumed = "until_resumed"
+)
+
+// MachinePolicy is this machine's mode and whether it takes new jobs. Known is
+// false when the service did not say (an older service, or no machine yet).
+type MachinePolicy struct {
+	Known       bool
+	Mode        string
+	Accepting   bool
+	PauseReason string
+	OnBattery   bool
+	// PauseUntil is the end of a timed pause from the tray; zero when none.
+	PauseUntil   time.Time
+	UntilResumed bool
+}
+
+// UserPaused says whether the user holds the machine paused: the Paused mode or
+// a pause from the tray.
+func (p MachinePolicy) UserPaused() bool {
+	return p.Known && (p.Mode == ModePaused || p.UntilResumed || !p.PauseUntil.IsZero())
+}
+
+// Word is the short word the header and tooltip show while the machine takes no
+// new jobs: Paused, On battery or Quiet hours. It is empty while accepting, and
+// for the busy case: a machine over its budget is working, not held back.
+func (p MachinePolicy) Word() string {
+	if !p.Known || p.Accepting {
+		return ""
+	}
+	switch p.PauseReason {
+	case "paused":
+		return "Paused"
+	case "on_battery":
+		return "On battery"
+	case "quiet_hours":
+		return "Quiet hours"
+	}
+	return ""
 }
 
 // Text is the status line and the tooltip body (R5.2), without the product name.
@@ -70,7 +118,14 @@ func (s Status) Text() string {
 			return g + " ok · no runners yet"
 		}
 	}
-	return fmt.Sprintf("%s %s · %d running · %d waiting", g, s.State, s.Running, s.Waiting)
+	return fmt.Sprintf("%s %s · %d running · %d waiting", g, s.State, s.Running, s.Waiting) + s.policySuffix()
+}
+
+func (s Status) policySuffix() string {
+	if w := s.Policy.Word(); w != "" {
+		return " · " + strings.ToLower(w)
+	}
+	return ""
 }
 
 // Tooltip is "crsp: " + Text, cut at MaxTooltip characters with an ellipsis.

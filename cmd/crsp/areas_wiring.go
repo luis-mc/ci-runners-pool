@@ -42,6 +42,9 @@ const (
 	// runsOnRestoreEvery is how often the RUNS_ON variables are put back to
 	// what the policy wants (github-integration R5.28).
 	runsOnRestoreEvery = 10 * time.Minute
+	// runsOnCheckEvery is how often the runs-on workflow check runs for every
+	// enabled repository (github-integration R5.30).
+	runsOnCheckEvery = time.Hour
 )
 
 // controllerDeps is everything buildController needs that runController (or a
@@ -116,7 +119,8 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		gh.UseApp(st.App.ID, st.App.ClientID)
 	}
 	rsvc := repos.New(repos.Config{Store: repoStore, GitHub: gh, Tokens: asvc, Audit: asvc,
-		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Now: d.Now})
+		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Up: machineUp{svc: d.Machines},
+		FallbackGrace: fallbackGrace(d), Now: d.Now})
 	hook := &github.WebhookHandler{
 		Verifier: func() (github.WebhookVerifier, error) {
 			app := gh.AppID()
@@ -140,7 +144,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	loopDone := make(chan struct{})
 	go func() {
 		defer close(loopDone)
-		runsOnLoop(loopCtx, logger, gh, rsvc)
+		runsOnLoop(loopCtx, logger, realClock{}, githubLoopTasks(gh, rsvc))
 	}()
 	c.closers = append(c.closers, func() { stopLoop(); <-loopDone })
 
@@ -182,7 +186,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// Demand: poll queued jobs of the repositories with the pool on and start one
 	// ephemeral container runner per job on a machine whose allow list names
 	// the container backend (github-integration R5.37, runners R5.27, R5.31).
-	stopDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines}, runnerSvc, pool)
+	stopDemand, quietDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines}, runnerSvc, pool, d.Cfg.DemandQuiet)
 	c.closers = append(c.closers, stopDemand)
 
 	// Doctor: the M1 check registry over the controller's own data.
@@ -198,6 +202,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		KVM:     reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
 		Engines: reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
 		Extra:   checks.KVMReportedChecks(),
+		Demand:  quietSource{wd: quietDemand},
 	})
 
 	c.Options.Version, c.Options.DB, c.Options.Logger = version, d.DB, logger
@@ -234,30 +239,121 @@ func setupLink(console, code string) string {
 	return strings.TrimRight(console, "/") + "/setup?code=" + url.QueryEscape(code)
 }
 
+// loopClock makes tickers; a test passes a fake one.
+type loopClock interface {
+	// NewTicker returns the tick channel and the stop function.
+	NewTicker(d time.Duration) (<-chan time.Time, func())
+}
+
+type realClock struct{}
+
+func (realClock) NewTicker(d time.Duration) (<-chan time.Time, func()) {
+	t := time.NewTicker(d)
+	return t.C, t.Stop
+}
+
+// runsOnTasks is what the GitHub loops call. A rate-limit error stops the
+// round and waits for the next tick (R6.6).
+type runsOnTasks struct {
+	// Ready is false until a GitHub App exists; the loops do nothing then.
+	Ready func() bool
+	// Reconcile syncs installations and puts the RUNS_ON variables back; it runs
+	// every runsOnRestoreEvery.
+	Reconcile []func(ctx context.Context) (name string, err error)
+	// Check reads the workflow files of every enabled repository; it runs every
+	// runsOnCheckEvery.
+	Check func(ctx context.Context) error
+	// Fallback evaluates the hosted fallback; it runs every fallbackEvery.
+	Fallback func(ctx context.Context) error
+}
+
 // runsOnLoop syncs installations and puts the RUNS_ON variables back every 10
-// minutes until ctx ends. It does nothing until a GitHub App exists.
-func runsOnLoop(ctx context.Context, logger *slog.Logger, gh *github.REST, rsvc *repos.Service) {
-	tick := func() {
-		if gh.AppID() == 0 {
+// minutes, and runs the runs-on workflow check of every enabled repository
+// every hour, until ctx ends. It does nothing until a GitHub App exists.
+func runsOnLoop(ctx context.Context, logger *slog.Logger, clk loopClock, t runsOnTasks) {
+	restore := func() {
+		if !t.Ready() {
 			return
 		}
-		if err := rsvc.ReconcileInstallations(ctx); err != nil && ctx.Err() == nil {
-			logger.Warn("reconcile installations", "err", err)
-		}
-		if err := rsvc.ReconcileAllVariables(ctx); err != nil && ctx.Err() == nil {
-			logger.Warn("restore RUNS_ON variables", "err", err)
+		for _, f := range t.Reconcile {
+			if name, err := f(ctx); err != nil && ctx.Err() == nil {
+				logger.Warn(name, "err", err)
+			}
 		}
 	}
-	tick()
-	t := time.NewTicker(runsOnRestoreEvery)
-	defer t.Stop()
+	// The hosted fallback looks at the machines every half minute; it writes
+	// only for a repository that opted in (github-integration R5.43).
+	fallback := func() {
+		if !t.Ready() || t.Fallback == nil {
+			return
+		}
+		if err := t.Fallback(ctx); err != nil && ctx.Err() == nil {
+			logger.Warn("hosted fallback", "err", err)
+		}
+	}
+	check := func() {
+		if !t.Ready() || t.Check == nil {
+			return
+		}
+		if err := t.Check(ctx); err != nil && ctx.Err() == nil {
+			logger.Warn("runs-on workflow check", "err", err)
+		}
+	}
+	restore()
+	check()
+	fallback()
+	restoreC, stopRestore := clk.NewTicker(runsOnRestoreEvery)
+	defer stopRestore()
+	checkC, stopCheck := clk.NewTicker(runsOnCheckEvery)
+	defer stopCheck()
+	fallbackC, stopFallback := clk.NewTicker(fallbackEvery)
+	defer stopFallback()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-t.C:
-			tick()
+		case <-restoreC:
+			restore()
+		case <-checkC:
+			check()
+		case <-fallbackC:
+			fallback()
 		}
+	}
+}
+
+// fallbackEvery is how often the controller looks at the machines for the
+// hosted fallback.
+const fallbackEvery = 30 * time.Second
+
+// fallbackGrace reads the grace time of the hosted fallback from the settings.
+func fallbackGrace(d controllerDeps) func() time.Duration {
+	return func() time.Duration {
+		if d.Ops == nil || d.Ops.Settings == nil {
+			return 0
+		}
+		st, err := d.Ops.Settings.Get(context.Background())
+		if err != nil {
+			return 0
+		}
+		return time.Duration(st.FallbackGraceMinutes) * time.Minute
+	}
+}
+
+// githubLoopTasks wires the loops to the repository service.
+func githubLoopTasks(gh *github.REST, rsvc *repos.Service) runsOnTasks {
+	return runsOnTasks{
+		Ready: func() bool { return gh.AppID() != 0 },
+		Reconcile: []func(context.Context) (string, error){
+			func(ctx context.Context) (string, error) {
+				return "reconcile installations", rsvc.ReconcileInstallations(ctx)
+			},
+			func(ctx context.Context) (string, error) {
+				return "restore RUNS_ON variables", rsvc.ReconcileAllVariables(ctx)
+			},
+		},
+		Check:    rsvc.CheckAllRunsOn,
+		Fallback: rsvc.EvaluateFallback,
 	}
 }
 

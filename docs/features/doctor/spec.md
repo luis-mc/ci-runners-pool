@@ -115,7 +115,7 @@ States:
 
 ### 5.2 Machines and backends
 
-**R5.9** — Machine checks: agent online, load figures fresh, load within budget, disk space, clock, slot queue health, and the machine config readable by runner accounts. See the catalogue (7.2). Built (CRSP23): `machine.online`, `machine.load.fresh`, `machine.load.budget`, `machine.disk`; built (CRSP21): `machine.guard.disk`. NOT YET IMPLEMENTED: clock, slot queue health, machine config (milestones 1 and 3).
+**R5.9** — Machine checks: agent online, load figures fresh, load within budget, disk space, clock, slot queue health, and the machine config readable by runner accounts. See the catalogue (7.2). Built (CRSP23): `machine.online`, `machine.load.fresh`, `machine.load.budget`, `machine.disk`; built (CRSP76): `machine.load.measured` (a machine that cannot measure its load is a `fail`, because the gate holds its jobs, scheduling R5.22); built (CRSP21): `machine.guard.disk`. NOT YET IMPLEMENTED: clock, slot queue health, machine config (milestones 1 and 3).
 
 **R5.10** — Backend checks, for each backend a machine allows: it is still detected and works, and it keeps the isolation rules of decision 0003 (no Docker socket in jobs, no privileged container, KVM as a device, caps set and applied, image layers present, macOS VM limit). See 7.2. NOT YET IMPLEMENTED (milestones 2, 4, 5, 6).
 
@@ -133,7 +133,7 @@ States:
 
 ### 5.4 GitHub App
 
-**R5.16** — GitHub App checks: installed on every account that has a pool repository and not suspended; the installation grants every permission the product needs; an installation token can be made now from the stored private key; the rate limit is not nearly used up; recent webhook deliveries succeed. Built (CRSP23): installation and permissions. NOT YET IMPLEMENTED: token, rate limit, webhook deliveries.
+**R5.16** — GitHub App checks: installed on every account that has a pool repository and not suspended; the installation grants every permission the product needs; an installation token can be made now from the stored private key; the rate limit is not nearly used up; recent webhook deliveries succeed. Built (CRSP23): installation and permissions. Built (CRSP77): webhook deliveries (`github.webhook`, from GitHub's delivery list for the App: warn when the newest delivery in 24 h failed or at least half failed, or when none arrived in 24 h while a pool repository has open jobs). NOT YET IMPLEMENTED: token, rate limit.
 
 ### 5.5 Repository variables and workflows
 
@@ -184,6 +184,14 @@ States:
 **R5.35** (M1, Built OPS3) — **Tool cache access.** The tool cache check (`runner.toolcache`) is `ok` when the runner's own account can read the files in its tool cache (`_work/_tool` or the configured tool cache folder). The agent opens a file there as the runner account; when that is not possible it reads the owner and the inheritance flag of the files. It is `fail` when a file cannot be opened ("Access is denied"), has another owner than the runner account, or does not inherit access; the detail names the file, and the fix is the two commands `takeown /F <folder> /R /D Y` and `icacls <folder> /reset /T /C` (runners R5.58). An agent that did not look gives `skip`. Built (OPS3): the check and the `ToolCacheProbe` data; the agent filling `ToolCache` is NOT YET IMPLEMENTED, as for R5.14 and R5.30.
 
 **R5.36** (M1, v0.6.0, Built CRSP61: `machine.engine` in `internal/doctor/checks/engine.go`, fed by `doctor.EngineSource`; CRSP63: the live doctor reads the engine each online agent reports in its `MachineReport`, and skips it for a machine that has not reported) — **Container engine check.** `machine.engine` says, for each machine, which container engine it uses and whether it answers: Docker in WSL2 through the Windows `docker` command, Docker in WSL2 through `wsl docker`, Docker Desktop, or Docker on Linux. `ok` names the engine and its version. When the engine does not answer or is not there the finding is `warn` (the machine only cannot run container runners; `container.engine` fails for a machine that has a container pool) with the reason from the agent and a fix for that OS (Windows: start Docker Desktop, or `sudo service docker start` in a WSL2 distro, or install Docker in WSL2 first). The check reads and never starts an engine or changes a Docker Desktop setting (runners R5.47). Port of the machine facts of `delivery_doctor.py`; parity plan row 14.
+
+**R5.37** (M2, NOT YET IMPLEMENTED, CRSP83) — **`machine.disk`: free disk before the floor.** For each machine the doctor reads the free space of the volume that holds runner folders and VM disks and warns when it is under the floor plus 20% of the floor (a margin above the hold of machines R5.60), says how much is free and what the floor is, and names the largest crsp folders so the owner knows what to prune. It goes to failed when the floor holds work. A disk that cannot be read is `unknown`, never red.
+
+**R5.38** (M2, NOT YET IMPLEMENTED, CRSP81) — **`security.reach`: the "What a job can reach" link.** For each served repository the doctor shows one info line that links to the section `What a job can reach` (runners R5.64), and warns when a host service listens on the loopback address of a machine that runs container jobs.
+
+**R5.39** (M1, v0.3.0, Built CRSP74) — **Jobs that wait for a machine.** The check `repo.waiting` names each pool repository whose jobs wait because no crsp machine is up for an OS it uses and whose hosted fallback is off (github-integration R5.42). It is `info`, never `fail`: waiting costs nothing, and the finding says GitHub keeps the jobs queued up to 24 hours. The fix is to start or resume a machine, or to turn the fallback on for the repository. A repository with the fallback on is not listed.
+
+**R5.40** (M1, v0.3.0, Built CRSP74) — **The hosted fallback warns while it runs.** The check `repo.fallback` covers each pool repository that turned the fallback on. It is `warn` while the repository's jobs run on GitHub-hosted runners, because GitHub may bill those minutes for a private repository; it is `ok` while the repository runs on crsp machines. `repo.vars` and `repo.vars.runner` treat the hosted label as correct while the fallback holds (github-integration R5.43).
 
 ## 6. Non-functional requirements
 
@@ -245,6 +253,7 @@ Machines:
 |---|---|---|---|---|---|
 | `machine.online` | The agent's last message is older than the offline timeout (default 90 s) | fail | Start the agent service on that machine; the command per OS | no | 1 |
 | `machine.load.fresh` | The load figures are older than 60 s | fail | Restart the agent; it measures every 15 s | no | 1 |
+| `machine.load.measured` | Neither memory nor CPU can be read on an online machine, so the gate holds every job there with "load not measured" (scheduling R5.22, decision D53) | fail | Restart the agent and check it may read memory and CPU figures; jobs go on as soon as one is read | no | 1 |
 | `machine.load.budget` | Memory or CPU median over the budget for more than 10 minutes | warn | Lower slots or raise the budget on the Machines screen | no | 1 |
 | `machine.disk` | Free space on the work volume under 15% or 10 GB (warn), under 5% or 2 GB (fail); total size of runner work folders | warn, fail | Clean the work folders of idle runners: `crsp runners clean-work --machine NAME` | no | 1 |
 | `machine.guard.disk` | Free space on the runner volume under 10%, where the job-started gate holds new jobs (they wait, they are not failed) until 12% is free | fail | Free space on the volume, or lower the cache quotas: `crsp runners clean-work --machine NAME` | no | 1 |
@@ -298,7 +307,7 @@ GitHub App:
 | `github.app.permissions` | A needed permission is missing (fail) or an update waits for approval (warn) | fail, warn | Accept the permission update; link | no | 1 |
 | `github.app.token` | No installation token can be made: key missing from the secret store, key rejected, or clock skew | fail | Restore the key, or make a new key in the App settings and store it with `crsp github key set` | no | 1 |
 | `github.ratelimit` | Under 10% of the hourly limit left | warn | Wait for the reset time shown | no | 1 |
-| `github.webhook` | Recent webhook deliveries failed or none arrived in 24 h while jobs ran | warn | Check that GitHub can reach the controller; the polling fallback is in use | no | 1 |
+| `github.webhook` | Recent webhook deliveries failed or none arrived in 24 h while jobs ran (built, CRSP77) | warn | Check that GitHub can reach the controller; the polling fallback is in use | no | 1 |
 
 Repositories and workflows:
 
@@ -307,6 +316,9 @@ Repositories and workflows:
 | `repo.vars` | `RUNS_ON_<OS>` unset where used (fail), not a JSON list (fail), different from the product's value (warn) | fail, warn | Set it from the Repositories screen; the `gh variable set` command | no | 1 |
 | `repo.vars.runner` | A `RUNS_ON_<OS>` whose labels no online runner carries | fail | Add or start a runner with those labels | no | 1 |
 | `repo.light` | A pool repository with the light runner on has no online light runner for an OS it serves; says why (no machine with a light slot, the runner is offline, or it is not placed yet) | warn | Set light slots above 0 on a machine of that OS, or turn the light runner off (scheduling R5.65, runners R5.58) | no | 1 |
+| `demand.quiet` | A pool repository has jobs queued on GitHub whose `runs-on` resolves to crsp, but the demand source has seen no demand for it for 10 minutes (config `demand_quiet_minutes`). The controller restarts the demand loop once when it first finds this; the finding says whether it did. Built, CRSP77; github-integration R5.37 | warn | First detection: run the doctor again in a minute. Still quiet after the restart: restart the controller service, check that GitHub is reachable and the App can read Actions, read the log for "poll queued jobs" | no | 1 |
+| `repo.waiting` | A pool repository's jobs wait because no crsp machine is up and its hosted fallback is off | info | Start or resume a machine, or turn the fallback on | no | 1 |
+| `repo.fallback` | A repository with the hosted fallback on runs on GitHub-hosted runners now (GitHub may bill the minutes) | warn (ok while on crsp machines) | Start or resume a machine | no | 1 |
 | `repo.forks` | A public repository lets fork pull requests reach the pool | warn | Turn fork jobs off unless meant | no | 2 |
 | `workflow.labels` | A self-hosted `runs-on` label set no online runner carries, with file and line | fail | Add a runner with the labels, or change the workflow to `fromJSON(vars.RUNS_ON_<OS>)` | no | 1 |
 | `workflow.generic` | A self-hosted job with literal labels | warn | Use `${{ fromJSON(vars.RUNS_ON_<OS>) }}` | no | 1 |
@@ -329,6 +341,7 @@ Each port brings its tests (decision 0005). Source paths are in dev-standards; `
 | Check | Ported from | Source tests | Planned Go test |
 |---|---|---|---|
 | `machine.load.fresh` | DS `machine_items` (`machine.hostload`) | `test_machine.py` HostLoad, DoctorMachine | `internal/doctor/checks/machine/load_test.go` TestLoadFresh |
+| `machine.load.measured` | new (scheduling R5.22, decision D53) | none | `internal/doctor/checks/checks_test.go` TestLoadMeasured |
 | `machine.guard.disk` | new (caches R5.38) | none | `internal/doctor/checks/checks_test.go` TestDiskGuard |
 | `machine.disk` | DS `machine_items` (`machine.disk`), `clean_work` | `test_machine.py` `test_disk_warning_and_clean_work` | `internal/doctor/checks/machine/disk_test.go` TestDisk |
 | `machine.config` | DS `machine_items` (`machine.config`) | `test_machine.py` `test_option_1_without_machine_json_fails` | `internal/doctor/checks/machine/config_test.go` TestConfigReadable |
@@ -435,7 +448,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.13 | internal/doctor/checks/checks_test.go TestRunnerHooksNeedAdmin |
 | R5.14 | internal/doctor/checks/runner/hooks_test.go (planned; port of RunnerExecutionPolicyTests and DoctorHookAndPush) |
 | R5.15 | internal/doctor/checks/runner/version_test.go (planned) |
-| R5.16 | internal/doctor/checks/checks_test.go TestAppInstallationAndPermissions, TestAppRateLimitIsSkipWithResetTime |
+| R5.16 | internal/doctor/checks/checks_test.go TestAppInstallationAndPermissions, TestAppRateLimitIsSkipWithResetTime; internal/doctor/checks/demand_test.go TestGithubWebhook (REST client on the fake GitHub server), TestDemandQuiet |
 | R5.17 | internal/doctor/checks/checks_test.go TestRepoVars, TestRepoVarsRunner |
 | R5.18 | internal/doctor/runson/runson_test.go; internal/doctor/checks/checks_test.go TestWorkflowLabels, TestWorkflowUnresolved |
 | R5.19 | internal/doctor/checks/checks_test.go TestWorkflowGeneric, TestRunnerLabelsGeneric |
@@ -451,11 +464,15 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.29 | internal/doctor/checks/checks_test.go TestRunnerHookRun; internal/hooks/visibility_test.go TestProbeAnswersWithoutTheGate |
 | R5.30 | internal/doctor/checks/checks_test.go TestRunnerListener, TestRunnerHookRun | new |
 | R5.31 | Built (CRSP53): internal/doctor/checks/container_test.go TestEngineCheck, TestImageCurrent, TestToolProbeFailVsCannotProbe, TestLayerScriptQuotesAndChecksFolders, TestToolCacheWritable, TestRecordsAgree, TestContainerChecksRespectMachineScope (fake engine; port of test_dl149_pool_layers.py, test_doctor.py) |
-| R5.32 | internal/doctor/checks/kvm_test.go TestKvmHostFailOnlyWhenOn, TestKvmContainerAndLabel, TestWslconfigNested, TestKvmModuleLoadedInTheWSLVM, TestRegisterKVMIsSeparate (port of test_dl343_kvm_autoload.py); cmd/crsp/remote_wiring_test.go TestReportSourcesReadTheAgentReport, TestKVMReportedChecksRunOnTheReport; internal/doctor/wire/wire_test.go TestNewDoctorWithReportedKVMChecksRegistersTwentyEight |
+| R5.32 | internal/doctor/checks/kvm_test.go TestKvmHostFailOnlyWhenOn, TestKvmContainerAndLabel, TestWslconfigNested, TestKvmModuleLoadedInTheWSLVM, TestRegisterKVMIsSeparate (port of test_dl343_kvm_autoload.py); cmd/crsp/remote_wiring_test.go TestReportSourcesReadTheAgentReport, TestKVMReportedChecksRunOnTheReport; internal/doctor/wire/wire_test.go TestNewDoctorWithReportedKVMChecksRegistersTwentyNine |
 | R5.33 | internal/doctor/checks/coverage_test.go TestCapabilitiesFromWorkflowText, TestUnknownJobIsInfo (CRSP47) |
 | R5.34 | internal/doctor/checks/cache_test.go TestCacheOverQuotaWarns, TestDiskUnderTenPercentWarns, TestCacheChecksSkipWithoutCacheData |
 | R5.35 | internal/doctor/checks/checks_test.go TestRunnerToolCache | new |
-| R5.36 | internal/doctor/checks/engine_test.go TestMachineEngineSaysWhichEngineAndWhetherItAnswers, TestMachineEngineSkipsWithoutAReport; internal/doctor/checks/checks_test.go TestEveryRegisteredCheckIsM1AndHasAnID and internal/doctor/wire/wire_test.go TestNewDoctorRegistersCoreChecksAndRuns (26 checks) ; cmd/crsp/remote_wiring_test.go TestReportSourcesReadTheAgentReport | new |
+| R5.36 | internal/doctor/checks/engine_test.go TestMachineEngineSaysWhichEngineAndWhetherItAnswers, TestMachineEngineSkipsWithoutAReport; internal/doctor/checks/checks_test.go TestEveryRegisteredCheckIsM1AndHasAnID and internal/doctor/wire/wire_test.go TestNewDoctorRegistersCoreChecksAndRuns (31 checks since CRSP76) ; cmd/crsp/remote_wiring_test.go TestReportSourcesReadTheAgentReport | new |
+| R5.37 | planned: internal/doctor/checks/disk_test.go TestWarnsBeforeTheFloor, TestFailsWhenTheFloorHoldsWork, TestUnreadableIsUnknown (CRSP83) |
+| R5.38 | planned: internal/doctor/checks/reach_test.go TestReachLinkPerRepo, TestLoopbackListenerWarns (CRSP81) |
+| R5.39 | internal/doctor/checks/fallback_test.go TestRepoWaitingIsInfoOnlyWithFallbackOff (CRSP74) |
+| R5.40 | internal/doctor/checks/fallback_test.go TestRepoFallbackWarnsWhileOn (CRSP74) |
 | R6.1 | internal/doctor/engine_test.go TestSlowCheckIsSkipNotOk (the timeout); benchmark planned |
 | R6.2 | internal/doctor/checks/checks_test.go TestCallCountBudget |
 | R6.3 | internal/doctor/engine_test.go TestSecretsAreRedactedInFindings |

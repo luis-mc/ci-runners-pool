@@ -20,7 +20,7 @@ func ids(items []MenuItem) []string {
 func TestMenuOrder(t *testing.T) {
 	st := Status{State: StateHealthy, Running: 2, Waiting: 1, Runners: 1, Version: "1.4.0", Update: UpdateInfo{State: "idle"}}
 	m := BuildMenu("1.4.0", st, true)
-	wantIDs := []string{IDHeader, IDService, IDSep1, IDOpen, IDCheck, IDUpdate, IDRestart, IDLogs, IDGitHub, IDLogin, IDSep2, IDQuit}
+	wantIDs := []string{IDHeader, IDService, IDSep1, IDMode, IDModeAuto, IDModeAlw, IDModePause, IDPauseHour, IDPauseTill, IDResume, IDOpen, IDCheck, IDUpdate, IDRestart, IDLogs, IDGitHub, IDLogin, IDSep2, IDQuit}
 	if got := ids(m); strings.Join(got, ",") != strings.Join(wantIDs, ",") {
 		t.Fatalf("order %v", got)
 	}

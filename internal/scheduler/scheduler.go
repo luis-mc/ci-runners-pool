@@ -59,8 +59,13 @@ const (
 	WaitRepoParallelLimit WaitReason = "repository_parallel_limit"
 	WaitMachineDrained    WaitReason = "machine_drained"
 	WaitQuietHours        WaitReason = "quiet_hours"
+	WaitPaused            WaitReason = "paused"
+	WaitOnBattery         WaitReason = "on_battery"
 	WaitLostRace          WaitReason = "lost_race"
-	WaitUnknown           WaitReason = "unknown"
+	// WaitLoadNotMeasured: the machine's load could not be measured, so the
+	// gate holds the job (R5.22, owner decision D53).
+	WaitLoadNotMeasured WaitReason = "load_not_measured"
+	WaitUnknown         WaitReason = "unknown"
 )
 
 // GateRequest is a job-started hook asking for a slot (R5.12).

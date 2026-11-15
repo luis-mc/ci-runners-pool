@@ -18,6 +18,8 @@ type View struct {
 	SlotsUsed     int
 	RunningJobs   []JobRef
 	PendingChange *Change
+	// Policy is what the agent last reported about taking new jobs (R5.62).
+	Policy Policy
 }
 
 // BackendView is a detected backend and whether the user allowed it (R5.12).
@@ -63,7 +65,8 @@ func (s *Service) view(ctx context.Context, m Machine) (View, error) {
 	if err != nil {
 		return View{}, err
 	}
-	v := View{Machine: m, Settings: set}
+	s.fillPolicy(&m)
+	v := View{Machine: m, Settings: set, Policy: s.Policy(m.ID)}
 	allowed := map[string]bool{}
 	for _, b := range set.AllowedBackends {
 		allowed[b] = true
@@ -107,6 +110,9 @@ func validate(set Settings, facts Facts, backends []Backend) error {
 		return bad("the cache size cap is above the free disk")
 	case set.GateOnTimeout != "fail" && set.GateOnTimeout != "run":
 		return bad("gate on timeout is fail or run")
+	}
+	if err := validatePolicy(set); err != nil {
+		return err
 	}
 	usable := map[string]bool{"persistent": true}
 	known := len(backends) > 0
@@ -206,6 +212,10 @@ func (s *Service) UpdateSettings(ctx context.Context, actor, id string, u Settin
 		return View{}, nil, err
 	}
 	next := apply(cur, u)
+	next, err = applyPolicy(next, u, s.now())
+	if err != nil {
+		return View{}, nil, err
+	}
 	if err := validate(next, m.Facts, m.Backends); err != nil {
 		return View{}, nil, err
 	}
@@ -275,6 +285,11 @@ func settingsDiff(a, b Settings) string {
 	add("symlink right", a.WindowsSymlinkRight, b.WindowsSymlinkRight)
 	add("pool memory GiB", a.PoolMemoryGiB, b.PoolMemoryGiB)
 	add("pool CPUs", a.PoolCPUs, b.PoolCPUs)
+	add("mode", a.EffectiveMode(), b.EffectiveMode())
+	add("pause on battery", a.PauseOnBattery, b.PauseOnBattery)
+	add("CPU cap", a.EffectiveCPUCap(), b.EffectiveCPUCap())
+	add("pause until", a.PauseUntil, b.PauseUntil)
+	add("pause until resumed", a.PausedUntilResumed, b.PausedUntilResumed)
 	return out
 }
 
@@ -290,7 +305,16 @@ func ProtoSettings(st Settings, state string) *agentv1.MachineSettings {
 		AllowedBackends: st.AllowedBackends, CacheCapBytes: st.CacheCapBytes,
 		DrainTimeoutMinutes: int32(st.DrainTimeoutMinutes), WindowsSymlinkRight: st.WindowsSymlinkRight, //nolint:gosec // validated
 		PoolMemoryGib: st.PoolMemoryGiB, PoolCpus: int32(st.PoolCPUs), //nolint:gosec // validated
+		Mode: st.EffectiveMode(), PauseOnBattery: st.PauseOnBattery, PauseUntilResumed: st.PausedUntilResumed,
+		PauseUntilUnixMs: untilMs(st.PauseUntil), CpuCapPct: int32(st.EffectiveCPUCap()), //nolint:gosec // validated
 	}
+}
+
+func untilMs(t time.Time) int64 {
+	if t.IsZero() {
+		return 0
+	}
+	return t.UnixMilli()
 }
 
 // pushSettings sends settings to an online agent; an offline agent gets them

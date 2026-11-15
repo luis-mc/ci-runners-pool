@@ -124,6 +124,8 @@ func patchFor(key string, v int) Patch {
 		p.BackupKeepDays = &v
 	case "max_event_streams":
 		p.MaxEventStreams = &v
+	case "fallback_grace_minutes":
+		p.FallbackGraceMinutes = &v
 	}
 	return p
 }

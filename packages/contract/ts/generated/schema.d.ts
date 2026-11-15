@@ -1725,7 +1725,7 @@ export interface components {
          * @description observability R5.5.
          * @enum {string}
          */
-        WaitReason: "free_slot" | "load_over_budget" | "no_runner_with_labels" | "repository_parallel_limit" | "machine_drained" | "quiet_hours" | "unknown";
+        WaitReason: "free_slot" | "load_over_budget" | "no_runner_with_labels" | "repository_parallel_limit" | "machine_drained" | "quiet_hours" | "load_not_measured" | "paused" | "on_battery" | "unknown";
         /** @enum {string} */
         Severity: "ok" | "info" | "skip" | "warn" | "fail";
         /** @enum {string} */
@@ -1993,6 +1993,31 @@ export interface components {
             user_is_github_admin: boolean;
             variables: components["schemas"]["RepositoryVariable"][];
             policy: components["schemas"]["RepositoryPolicy"];
+            routing?: components["schemas"]["RepositoryRouting"];
+        };
+        /**
+         * @description Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
+         * @example {
+         *       "where": "hosted",
+         *       "why": "fallback_on",
+         *       "oses": [
+         *         "linux"
+         *       ],
+         *       "used_minutes": 12
+         *     }
+         */
+        RepositoryRouting: {
+            /** @enum {string} */
+            where: "crsp" | "hosted" | "waiting";
+            /**
+             * @description A code the console turns into words. machine_up, fallback_on, fallback_off, grace, cap_reached or public_repository.
+             * @enum {string}
+             */
+            why: "machine_up" | "fallback_on" | "fallback_off" | "grace" | "cap_reached" | "public_repository";
+            /** @description The operating systems the reason is about. */
+            oses?: ("linux" | "windows" | "macos")[];
+            /** @description Fallback minutes counted this month (UTC), best effort. */
+            used_minutes: number;
         };
         RepositoryVariable: {
             /** @enum {string} */
@@ -2020,6 +2045,14 @@ export interface components {
             budget_cpu_pct?: number;
             /** @description Extra distribution packages of the pool image (runners R5.51). */
             extra_packages?: string[];
+            /** @description Run on GitHub-hosted runners while no crsp machine can take the jobs (github-integration R5.42). Off by default; GitHub may bill those minutes for a private repository. */
+            hosted_fallback?: boolean;
+            /** @description Monthly cap of fallback minutes; absent means no cap. */
+            fallback_cap_minutes?: number;
+            /** @description The hosted label per operating system; a missing one is the default (ubuntu-latest, windows-latest, macos-latest). */
+            hosted_labels?: {
+                [key: string]: string;
+            };
             /** Format: date-time */
             updated_at?: string;
             updated_by?: string;
@@ -2040,6 +2073,16 @@ export interface components {
             legacy_vars?: boolean;
             /** @description Needed to turn fork jobs on (github-integration R5.26). */
             confirm_fork_risk?: boolean;
+            /** @description Turn the hosted fallback on or off (github-integration R5.42). A public repository is refused. */
+            hosted_fallback?: boolean;
+            /** @description The yes to the question that says GitHub may bill the fallback minutes. Needed to turn the fallback on. */
+            confirm_fallback_cost?: boolean;
+            /** @description Monthly cap of fallback minutes; 0 clears it. */
+            fallback_cap_minutes?: number;
+            /** @description Hosted label per operating system (linux, windows, macos); an empty value puts the default back. */
+            hosted_labels?: {
+                [key: string]: string;
+            };
             labels?: string[];
             runner_groups?: string[];
             budget_memory_pct?: number;
@@ -2229,6 +2272,10 @@ export interface components {
             arch: components["schemas"]["Arch"];
             state: components["schemas"]["MachineState"];
             online: boolean;
+            /** @description Whether the machine takes new jobs (machines R5.62). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts. */
+            accepting?: boolean;
+            pause_reason?: components["schemas"]["PauseReason"];
+            policy?: components["schemas"]["MachinePolicy"];
             /** @description The controller's own machine (machines R5.1); it has no special path. */
             is_controller: boolean;
             facts?: components["schemas"]["MachineFacts"];
@@ -2309,6 +2356,46 @@ export interface components {
             pool_memory_gib?: number;
             /** @description The CPUs the pool may use on this machine (machines R5.58). 0 means not set. Split over the job slots it gives CI_MAX_PARALLEL (runners R5.53). */
             pool_cpus?: number;
+            mode?: components["schemas"]["MachineMode"];
+            /** @description Automatic pauses while the machine runs on battery. On by default; Always ignores it (machines R5.61, R5.63). */
+            pause_on_battery?: boolean;
+            cpu_cap_pct?: components["schemas"]["CpuCapPct"];
+            /**
+             * Format: date-time
+             * @description A pause from the tray with a timer ends at this time. Absent when none runs (machines R5.61).
+             */
+            pause_until?: string;
+            /** @description A pause from the tray holds until Resume. */
+            pause_until_resumed?: boolean;
+        };
+        /**
+         * @description Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.61).
+         * @enum {string}
+         */
+        MachineMode: "automatic" | "always" | "paused";
+        /**
+         * @description The share of the whole machine's CPU the runner processes may use, in percent (machines R5.64). Separate from the load budget. 100 is no cap.
+         * @enum {integer}
+         */
+        CpuCapPct: 25 | 50 | 75 | 100;
+        /**
+         * @description Why a machine takes no new job (machines R5.62). Other features read these exact names.
+         * @enum {string}
+         */
+        PauseReason: "paused" | "on_battery" | "quiet_hours" | "budget";
+        /**
+         * @description What the agent did with the CPU cap. not_supported is macOS (machines R5.64).
+         * @enum {string}
+         */
+        CpuCapState: "applied" | "not_supported" | "failed";
+        /** @description What the agent last reported about the power source and the CPU cap (machines R5.62 to R5.64). */
+        MachinePolicy: {
+            on_battery: boolean;
+            /** @description False when no battery reading was possible; the machine then counts as on mains. */
+            battery_known: boolean;
+            cpu_cap_state?: components["schemas"]["CpuCapState"];
+            /** @description Why the cap is not applied, in words fit to show. */
+            cpu_cap_detail?: string;
         };
         /**
          * @example {
@@ -2397,6 +2484,14 @@ export interface components {
             pool_memory_gib?: number;
             /** @description The pool CPUs. Send it with pool_memory_gib. */
             pool_cpus?: number;
+            mode?: components["schemas"]["MachineMode"];
+            pause_on_battery?: boolean;
+            cpu_cap_pct?: components["schemas"]["CpuCapPct"];
+            /**
+             * @description A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.61).
+             * @enum {string}
+             */
+            pause?: "one_hour" | "until_resumed" | "none";
             /** @description The explicit yes to a pool size below the current one. confirm does not stand for it (machines R5.58). */
             confirm_shrink?: boolean;
             /** @description The yes once the jobs a restart waits for are named. */
@@ -2714,10 +2809,23 @@ export interface components {
                 reason: string;
             }[];
         };
+        /** @description One queued or held job with the first reason it waits (scheduling R5.48). */
+        WaitingJob: {
+            /** Format: int64 */
+            job_id: number;
+            repository: string;
+            job_name: string;
+            machine_id?: string;
+            reason: components["schemas"]["WaitReason"];
+            /** @description The reason in words, with its numbers (memory 91% > 85%, 2 ahead in the queue). */
+            words: string;
+        };
         Overview: {
             machines: components["schemas"]["Machine"][];
             queued_count: number;
             queued?: components["schemas"]["Job"][];
+            /** @description Why each queued or held job waits, in words, first blocking reason only, in the order of the queue (scheduling R5.48, web-console R5.20). */
+            waiting?: components["schemas"]["WaitingJob"][];
             running: components["schemas"]["Job"][];
             /** @description Per OS (observability R5.15). */
             minutes_saved_today?: {
@@ -2851,6 +2959,7 @@ export interface components {
          *       "backup_time_local": "03:00",
          *       "backup_keep_days": 14,
          *       "max_event_streams": 50,
+         *       "fallback_grace_minutes": 3,
          *       "auto_update": true
          *     }
          */
@@ -2867,6 +2976,8 @@ export interface components {
             backup_time_local?: string;
             backup_keep_days?: number;
             max_event_streams?: number;
+            /** @description github-integration R5.43. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3. */
+            fallback_grace_minutes?: number;
             /** @description operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first. */
             auto_update?: boolean;
         };

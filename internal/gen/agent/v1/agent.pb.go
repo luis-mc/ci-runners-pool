@@ -472,6 +472,7 @@ type SessionRequest struct {
 	//	*SessionRequest_CacheReport
 	//	*SessionRequest_CacheWipeStatus
 	//	*SessionRequest_MachineReport
+	//	*SessionRequest_AcceptingReport
 	Message       isSessionRequest_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -694,6 +695,15 @@ func (x *SessionRequest) GetMachineReport() *MachineReport {
 	return nil
 }
 
+func (x *SessionRequest) GetAcceptingReport() *AcceptingReport {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_AcceptingReport); ok {
+			return x.AcceptingReport
+		}
+	}
+	return nil
+}
+
 type isSessionRequest_Message interface {
 	isSessionRequest_Message()
 }
@@ -781,6 +791,11 @@ type SessionRequest_MachineReport struct {
 	MachineReport *MachineReport `protobuf:"bytes,22,opt,name=machine_report,json=machineReport,proto3,oneof"`
 }
 
+type SessionRequest_AcceptingReport struct {
+	// Whether the machine takes new jobs, and why not (CRSP75, machines R5.62).
+	AcceptingReport *AcceptingReport `protobuf:"bytes,23,opt,name=accepting_report,json=acceptingReport,proto3,oneof"`
+}
+
 func (*SessionRequest_Hello) isSessionRequest_Message() {}
 
 func (*SessionRequest_Heartbeat) isSessionRequest_Message() {}
@@ -820,6 +835,8 @@ func (*SessionRequest_CacheReport) isSessionRequest_Message() {}
 func (*SessionRequest_CacheWipeStatus) isSessionRequest_Message() {}
 
 func (*SessionRequest_MachineReport) isSessionRequest_Message() {}
+
+func (*SessionRequest_AcceptingReport) isSessionRequest_Message() {}
 
 // SessionResponse is one message from the controller.
 type SessionResponse struct {
@@ -3426,6 +3443,18 @@ type MachineSettings struct {
 	// not set: the pool then follows the budget alone.
 	PoolMemoryGib float64 `protobuf:"fixed64,18,opt,name=pool_memory_gib,json=poolMemoryGib,proto3" json:"pool_memory_gib,omitempty"`
 	PoolCpus      int32   `protobuf:"varint,19,opt,name=pool_cpus,json=poolCpus,proto3" json:"pool_cpus,omitempty"`
+	// The machine policy (CRSP75, machines R5.61 to R5.64).
+	// mode is automatic, always or paused; "" means automatic.
+	Mode string `protobuf:"bytes,20,opt,name=mode,proto3" json:"mode,omitempty"`
+	// Automatic pauses while the machine runs on battery.
+	PauseOnBattery bool `protobuf:"varint,21,opt,name=pause_on_battery,json=pauseOnBattery,proto3" json:"pause_on_battery,omitempty"`
+	// A pause from the tray with a timer: the pause ends at this time. 0 means no
+	// timed pause.
+	PauseUntilUnixMs int64 `protobuf:"varint,22,opt,name=pause_until_unix_ms,json=pauseUntilUnixMs,proto3" json:"pause_until_unix_ms,omitempty"`
+	// A pause from the tray until the user resumes.
+	PauseUntilResumed bool `protobuf:"varint,23,opt,name=pause_until_resumed,json=pauseUntilResumed,proto3" json:"pause_until_resumed,omitempty"`
+	// The CPU cap for runner processes in percent: 25, 50, 75 or 100. 0 means 100.
+	CpuCapPct     int32 `protobuf:"varint,24,opt,name=cpu_cap_pct,json=cpuCapPct,proto3" json:"cpu_cap_pct,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3589,6 +3618,41 @@ func (x *MachineSettings) GetPoolMemoryGib() float64 {
 func (x *MachineSettings) GetPoolCpus() int32 {
 	if x != nil {
 		return x.PoolCpus
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *MachineSettings) GetPauseOnBattery() bool {
+	if x != nil {
+		return x.PauseOnBattery
+	}
+	return false
+}
+
+func (x *MachineSettings) GetPauseUntilUnixMs() int64 {
+	if x != nil {
+		return x.PauseUntilUnixMs
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetPauseUntilResumed() bool {
+	if x != nil {
+		return x.PauseUntilResumed
+	}
+	return false
+}
+
+func (x *MachineSettings) GetCpuCapPct() int32 {
+	if x != nil {
+		return x.CpuCapPct
 	}
 	return 0
 }
@@ -5207,6 +5271,115 @@ func (x *ImageReport) GetCreatedUnixMs() int64 {
 	return 0
 }
 
+// AcceptingReport says whether the machine takes new jobs and why not. The
+// agent sends it with Hello and each time the answer changes, and with every
+// LoadReport while the answer is not "accepting" (CRSP75, machines R5.62).
+type AcceptingReport struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Accepting bool                   `protobuf:"varint,1,opt,name=accepting,proto3" json:"accepting,omitempty"`
+	// paused, on_battery, quiet_hours or budget; empty while accepting.
+	PauseReason string `protobuf:"bytes,2,opt,name=pause_reason,json=pauseReason,proto3" json:"pause_reason,omitempty"`
+	// Battery state the agent read; unknown counts as on mains (R5.63).
+	OnBattery    bool `protobuf:"varint,3,opt,name=on_battery,json=onBattery,proto3" json:"on_battery,omitempty"`
+	BatteryKnown bool `protobuf:"varint,4,opt,name=battery_known,json=batteryKnown,proto3" json:"battery_known,omitempty"`
+	// The CPU cap the agent applied to the runner processes (R5.64).
+	CpuCapPct int32 `protobuf:"varint,5,opt,name=cpu_cap_pct,json=cpuCapPct,proto3" json:"cpu_cap_pct,omitempty"`
+	// applied, not_supported or failed. not_supported is macOS.
+	CpuCapState string `protobuf:"bytes,6,opt,name=cpu_cap_state,json=cpuCapState,proto3" json:"cpu_cap_state,omitempty"`
+	// Why the cap is not applied; shown in the console.
+	CpuCapDetail string `protobuf:"bytes,7,opt,name=cpu_cap_detail,json=cpuCapDetail,proto3" json:"cpu_cap_detail,omitempty"`
+	// When a timed pause from the tray ends; 0 when none or until resumed.
+	PauseUntilUnixMs int64 `protobuf:"varint,8,opt,name=pause_until_unix_ms,json=pauseUntilUnixMs,proto3" json:"pause_until_unix_ms,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *AcceptingReport) Reset() {
+	*x = AcceptingReport{}
+	mi := &file_agent_v1_agent_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AcceptingReport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AcceptingReport) ProtoMessage() {}
+
+func (x *AcceptingReport) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AcceptingReport.ProtoReflect.Descriptor instead.
+func (*AcceptingReport) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *AcceptingReport) GetAccepting() bool {
+	if x != nil {
+		return x.Accepting
+	}
+	return false
+}
+
+func (x *AcceptingReport) GetPauseReason() string {
+	if x != nil {
+		return x.PauseReason
+	}
+	return ""
+}
+
+func (x *AcceptingReport) GetOnBattery() bool {
+	if x != nil {
+		return x.OnBattery
+	}
+	return false
+}
+
+func (x *AcceptingReport) GetBatteryKnown() bool {
+	if x != nil {
+		return x.BatteryKnown
+	}
+	return false
+}
+
+func (x *AcceptingReport) GetCpuCapPct() int32 {
+	if x != nil {
+		return x.CpuCapPct
+	}
+	return 0
+}
+
+func (x *AcceptingReport) GetCpuCapState() string {
+	if x != nil {
+		return x.CpuCapState
+	}
+	return ""
+}
+
+func (x *AcceptingReport) GetCpuCapDetail() string {
+	if x != nil {
+		return x.CpuCapDetail
+	}
+	return ""
+}
+
+func (x *AcceptingReport) GetPauseUntilUnixMs() int64 {
+	if x != nil {
+		return x.PauseUntilUnixMs
+	}
+	return 0
+}
+
 type GateDecision_Go struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Slots []*SlotGrant           `protobuf:"bytes,1,rep,name=slots,proto3" json:"slots,omitempty"`
@@ -5218,7 +5391,7 @@ type GateDecision_Go struct {
 
 func (x *GateDecision_Go) Reset() {
 	*x = GateDecision_Go{}
-	mi := &file_agent_v1_agent_proto_msgTypes[54]
+	mi := &file_agent_v1_agent_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5230,7 +5403,7 @@ func (x *GateDecision_Go) String() string {
 func (*GateDecision_Go) ProtoMessage() {}
 
 func (x *GateDecision_Go) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[54]
+	mi := &file_agent_v1_agent_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5275,7 +5448,7 @@ type GateDecision_Wait struct {
 
 func (x *GateDecision_Wait) Reset() {
 	*x = GateDecision_Wait{}
-	mi := &file_agent_v1_agent_proto_msgTypes[55]
+	mi := &file_agent_v1_agent_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5287,7 +5460,7 @@ func (x *GateDecision_Wait) String() string {
 func (*GateDecision_Wait) ProtoMessage() {}
 
 func (x *GateDecision_Wait) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[55]
+	mi := &file_agent_v1_agent_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5341,7 +5514,7 @@ type GateDecision_Timeout struct {
 
 func (x *GateDecision_Timeout) Reset() {
 	*x = GateDecision_Timeout{}
-	mi := &file_agent_v1_agent_proto_msgTypes[56]
+	mi := &file_agent_v1_agent_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5353,7 +5526,7 @@ func (x *GateDecision_Timeout) String() string {
 func (*GateDecision_Timeout) ProtoMessage() {}
 
 func (x *GateDecision_Timeout) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[56]
+	mi := &file_agent_v1_agent_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5395,7 +5568,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x12machine_credential\x18\x02 \x01(\tR\x11machineCredential\x12\x1f\n" +
 	"\vcert_sha256\x18\x03 \x01(\tR\n" +
 	"certSha256\x125\n" +
-	"\bsettings\x18\x04 \x01(\v2\x19.agent.v1.MachineSettingsR\bsettings\"\xb1\t\n" +
+	"\bsettings\x18\x04 \x01(\v2\x19.agent.v1.MachineSettingsR\bsettings\"\xf9\t\n" +
 	"\x0eSessionRequest\x12'\n" +
 	"\x05hello\x18\x01 \x01(\v2\x0f.agent.v1.HelloH\x00R\x05hello\x123\n" +
 	"\theartbeat\x18\x02 \x01(\v2\x13.agent.v1.HeartbeatH\x00R\theartbeat\x127\n" +
@@ -5419,7 +5592,8 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\rrunner_result\x18\x11 \x01(\v2\x16.agent.v1.RunnerResultH\x00R\frunnerResult\x12:\n" +
 	"\fcache_report\x18\x14 \x01(\v2\x15.agent.v1.CacheReportH\x00R\vcacheReport\x12G\n" +
 	"\x11cache_wipe_status\x18\x15 \x01(\v2\x19.agent.v1.CacheWipeStatusH\x00R\x0fcacheWipeStatus\x12@\n" +
-	"\x0emachine_report\x18\x16 \x01(\v2\x17.agent.v1.MachineReportH\x00R\rmachineReportB\t\n" +
+	"\x0emachine_report\x18\x16 \x01(\v2\x17.agent.v1.MachineReportH\x00R\rmachineReport\x12F\n" +
+	"\x10accepting_report\x18\x17 \x01(\v2\x19.agent.v1.AcceptingReportH\x00R\x0facceptingReportB\t\n" +
 	"\amessage\"\x97\b\n" +
 	"\x0fSessionResponse\x121\n" +
 	"\thello_ack\x18\x01 \x01(\v2\x12.agent.v1.HelloAckH\x00R\bhelloAck\x123\n" +
@@ -5661,7 +5835,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"slotsFreed\"b\n" +
 	"\fHolderReport\x12&\n" +
 	"\x05alive\x18\x01 \x03(\v2\x10.agent.v1.HolderR\x05alive\x12*\n" +
-	"\arunning\x18\x02 \x03(\v2\x10.agent.v1.JobRefR\arunning\"\xe8\x05\n" +
+	"\arunning\x18\x02 \x03(\v2\x10.agent.v1.JobRefR\arunning\"\xa5\a\n" +
 	"\x0fMachineSettings\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\x03R\aversion\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12*\n" +
@@ -5686,7 +5860,12 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x15drain_timeout_minutes\x18\x10 \x01(\x05R\x13drainTimeoutMinutes\x122\n" +
 	"\x15windows_symlink_right\x18\x11 \x01(\bR\x13windowsSymlinkRight\x12&\n" +
 	"\x0fpool_memory_gib\x18\x12 \x01(\x01R\rpoolMemoryGib\x12\x1b\n" +
-	"\tpool_cpus\x18\x13 \x01(\x05R\bpoolCpus\"\x93\x01\n" +
+	"\tpool_cpus\x18\x13 \x01(\x05R\bpoolCpus\x12\x12\n" +
+	"\x04mode\x18\x14 \x01(\tR\x04mode\x12(\n" +
+	"\x10pause_on_battery\x18\x15 \x01(\bR\x0epauseOnBattery\x12-\n" +
+	"\x13pause_until_unix_ms\x18\x16 \x01(\x03R\x10pauseUntilUnixMs\x12.\n" +
+	"\x13pause_until_resumed\x18\x17 \x01(\bR\x11pauseUntilResumed\x12\x1e\n" +
+	"\vcpu_cap_pct\x18\x18 \x01(\x05R\tcpuCapPct\"\x93\x01\n" +
 	"\x05Drain\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x1f\n" +
@@ -5828,7 +6007,17 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x02os\x18\x03 \x01(\tR\x02os\x12\x16\n" +
 	"\x06layers\x18\x04 \x03(\tR\x06layers\x12\x17\n" +
 	"\asize_mb\x18\x05 \x01(\x03R\x06sizeMb\x12&\n" +
-	"\x0fcreated_unix_ms\x18\x06 \x01(\x03R\rcreatedUnixMs*K\n" +
+	"\x0fcreated_unix_ms\x18\x06 \x01(\x03R\rcreatedUnixMs\"\xaf\x02\n" +
+	"\x0fAcceptingReport\x12\x1c\n" +
+	"\taccepting\x18\x01 \x01(\bR\taccepting\x12!\n" +
+	"\fpause_reason\x18\x02 \x01(\tR\vpauseReason\x12\x1d\n" +
+	"\n" +
+	"on_battery\x18\x03 \x01(\bR\tonBattery\x12#\n" +
+	"\rbattery_known\x18\x04 \x01(\bR\fbatteryKnown\x12\x1e\n" +
+	"\vcpu_cap_pct\x18\x05 \x01(\x05R\tcpuCapPct\x12\"\n" +
+	"\rcpu_cap_state\x18\x06 \x01(\tR\vcpuCapState\x12$\n" +
+	"\x0ecpu_cap_detail\x18\a \x01(\tR\fcpuCapDetail\x12-\n" +
+	"\x13pause_until_unix_ms\x18\b \x01(\x03R\x10pauseUntilUnixMs*K\n" +
 	"\x0fProtocolVersion\x12 \n" +
 	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12PROTOCOL_VERSION_1\x10\x01*\xf8\x01\n" +
@@ -5870,7 +6059,7 @@ func file_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 57)
+var file_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 58)
 var file_agent_v1_agent_proto_goTypes = []any{
 	(ProtocolVersion)(0),         // 0: agent.v1.ProtocolVersion
 	(RunnerState)(0),             // 1: agent.v1.RunnerState
@@ -5930,9 +6119,10 @@ var file_agent_v1_agent_proto_goTypes = []any{
 	(*KvmReport)(nil),            // 55: agent.v1.KvmReport
 	(*EngineReport)(nil),         // 56: agent.v1.EngineReport
 	(*ImageReport)(nil),          // 57: agent.v1.ImageReport
-	(*GateDecision_Go)(nil),      // 58: agent.v1.GateDecision.Go
-	(*GateDecision_Wait)(nil),    // 59: agent.v1.GateDecision.Wait
-	(*GateDecision_Timeout)(nil), // 60: agent.v1.GateDecision.Timeout
+	(*AcceptingReport)(nil),      // 58: agent.v1.AcceptingReport
+	(*GateDecision_Go)(nil),      // 59: agent.v1.GateDecision.Go
+	(*GateDecision_Wait)(nil),    // 60: agent.v1.GateDecision.Wait
+	(*GateDecision_Timeout)(nil), // 61: agent.v1.GateDecision.Timeout
 }
 var file_agent_v1_agent_proto_depIdxs = []int32{
 	11, // 0: agent.v1.JoinRequest.facts:type_name -> agent.v1.Facts
@@ -5958,70 +6148,71 @@ var file_agent_v1_agent_proto_depIdxs = []int32{
 	49, // 20: agent.v1.SessionRequest.cache_report:type_name -> agent.v1.CacheReport
 	52, // 21: agent.v1.SessionRequest.cache_wipe_status:type_name -> agent.v1.CacheWipeStatus
 	54, // 22: agent.v1.SessionRequest.machine_report:type_name -> agent.v1.MachineReport
-	9,  // 23: agent.v1.SessionResponse.hello_ack:type_name -> agent.v1.HelloAck
-	10, // 24: agent.v1.SessionResponse.heartbeat:type_name -> agent.v1.Heartbeat
-	34, // 25: agent.v1.SessionResponse.settings:type_name -> agent.v1.MachineSettings
-	30, // 26: agent.v1.SessionResponse.gate_decision:type_name -> agent.v1.GateDecision
-	32, // 27: agent.v1.SessionResponse.release_ack:type_name -> agent.v1.ReleaseAck
-	17, // 28: agent.v1.SessionResponse.add_runner:type_name -> agent.v1.AddRunner
-	19, // 29: agent.v1.SessionResponse.remove_runner:type_name -> agent.v1.RemoveRunner
-	20, // 30: agent.v1.SessionResponse.drain_runner:type_name -> agent.v1.DrainRunner
-	35, // 31: agent.v1.SessionResponse.drain:type_name -> agent.v1.Drain
-	36, // 32: agent.v1.SessionResponse.resume:type_name -> agent.v1.Resume
-	38, // 33: agent.v1.SessionResponse.redetect:type_name -> agent.v1.Redetect
-	43, // 34: agent.v1.SessionResponse.run_checks:type_name -> agent.v1.RunChecks
-	39, // 35: agent.v1.SessionResponse.machine_removed:type_name -> agent.v1.MachineRemoved
-	46, // 36: agent.v1.SessionResponse.update_agent:type_name -> agent.v1.UpdateAgent
-	21, // 37: agent.v1.SessionResponse.stop_runner:type_name -> agent.v1.StopRunner
-	48, // 38: agent.v1.SessionResponse.measure_caches:type_name -> agent.v1.MeasureCaches
-	51, // 39: agent.v1.SessionResponse.wipe_cache:type_name -> agent.v1.WipeCache
-	53, // 40: agent.v1.SessionResponse.report_machine:type_name -> agent.v1.ReportMachine
-	0,  // 41: agent.v1.Hello.protocol_version:type_name -> agent.v1.ProtocolVersion
-	11, // 42: agent.v1.Hello.facts:type_name -> agent.v1.Facts
-	14, // 43: agent.v1.Hello.load:type_name -> agent.v1.LoadReport
-	15, // 44: agent.v1.Hello.runners:type_name -> agent.v1.RunnerStates
-	33, // 45: agent.v1.Hello.holders:type_name -> agent.v1.HolderReport
-	0,  // 46: agent.v1.HelloAck.protocol_version:type_name -> agent.v1.ProtocolVersion
-	34, // 47: agent.v1.HelloAck.settings:type_name -> agent.v1.MachineSettings
-	12, // 48: agent.v1.Facts.gpus:type_name -> agent.v1.Gpu
-	13, // 49: agent.v1.Facts.backends:type_name -> agent.v1.BackendSupport
-	16, // 50: agent.v1.RunnerStates.runners:type_name -> agent.v1.RunnerStatus
-	1,  // 51: agent.v1.RunnerStatus.state:type_name -> agent.v1.RunnerState
-	24, // 52: agent.v1.RunnerStatus.current_job:type_name -> agent.v1.JobRef
-	18, // 53: agent.v1.AddRunner.runner:type_name -> agent.v1.RunnerSpec
-	1,  // 54: agent.v1.RunnerResult.state:type_name -> agent.v1.RunnerState
-	24, // 55: agent.v1.UsageReport.job:type_name -> agent.v1.JobRef
-	24, // 56: agent.v1.GateRequest.job:type_name -> agent.v1.JobRef
-	25, // 57: agent.v1.GateRequest.holder:type_name -> agent.v1.Holder
-	2,  // 58: agent.v1.SlotGrant.kind:type_name -> agent.v1.SlotKind
-	58, // 59: agent.v1.GateDecision.go:type_name -> agent.v1.GateDecision.Go
-	59, // 60: agent.v1.GateDecision.wait:type_name -> agent.v1.GateDecision.Wait
-	60, // 61: agent.v1.GateDecision.timeout:type_name -> agent.v1.GateDecision.Timeout
-	24, // 62: agent.v1.JobCompleted.job:type_name -> agent.v1.JobRef
-	24, // 63: agent.v1.ReleaseAck.job:type_name -> agent.v1.JobRef
-	25, // 64: agent.v1.HolderReport.alive:type_name -> agent.v1.Holder
-	24, // 65: agent.v1.HolderReport.running:type_name -> agent.v1.JobRef
-	24, // 66: agent.v1.DrainStatus.waiting_for:type_name -> agent.v1.JobRef
-	42, // 67: agent.v1.LogBatch.lines:type_name -> agent.v1.LogLine
-	3,  // 68: agent.v1.LogLine.level:type_name -> agent.v1.LogLevel
-	24, // 69: agent.v1.LogLine.job:type_name -> agent.v1.JobRef
-	45, // 70: agent.v1.CheckResults.results:type_name -> agent.v1.CheckResult
-	24, // 71: agent.v1.UpdateReport.waiting_for:type_name -> agent.v1.JobRef
-	50, // 72: agent.v1.CacheReport.caches:type_name -> agent.v1.CacheStatus
-	24, // 73: agent.v1.CacheWipeStatus.waiting_for:type_name -> agent.v1.JobRef
-	55, // 74: agent.v1.MachineReport.kvm:type_name -> agent.v1.KvmReport
-	56, // 75: agent.v1.MachineReport.engine:type_name -> agent.v1.EngineReport
-	57, // 76: agent.v1.MachineReport.images:type_name -> agent.v1.ImageReport
-	29, // 77: agent.v1.GateDecision.Go.slots:type_name -> agent.v1.SlotGrant
-	4,  // 78: agent.v1.AgentService.Join:input_type -> agent.v1.JoinRequest
-	6,  // 79: agent.v1.AgentService.Session:input_type -> agent.v1.SessionRequest
-	5,  // 80: agent.v1.AgentService.Join:output_type -> agent.v1.JoinResponse
-	7,  // 81: agent.v1.AgentService.Session:output_type -> agent.v1.SessionResponse
-	80, // [80:82] is the sub-list for method output_type
-	78, // [78:80] is the sub-list for method input_type
-	78, // [78:78] is the sub-list for extension type_name
-	78, // [78:78] is the sub-list for extension extendee
-	0,  // [0:78] is the sub-list for field type_name
+	58, // 23: agent.v1.SessionRequest.accepting_report:type_name -> agent.v1.AcceptingReport
+	9,  // 24: agent.v1.SessionResponse.hello_ack:type_name -> agent.v1.HelloAck
+	10, // 25: agent.v1.SessionResponse.heartbeat:type_name -> agent.v1.Heartbeat
+	34, // 26: agent.v1.SessionResponse.settings:type_name -> agent.v1.MachineSettings
+	30, // 27: agent.v1.SessionResponse.gate_decision:type_name -> agent.v1.GateDecision
+	32, // 28: agent.v1.SessionResponse.release_ack:type_name -> agent.v1.ReleaseAck
+	17, // 29: agent.v1.SessionResponse.add_runner:type_name -> agent.v1.AddRunner
+	19, // 30: agent.v1.SessionResponse.remove_runner:type_name -> agent.v1.RemoveRunner
+	20, // 31: agent.v1.SessionResponse.drain_runner:type_name -> agent.v1.DrainRunner
+	35, // 32: agent.v1.SessionResponse.drain:type_name -> agent.v1.Drain
+	36, // 33: agent.v1.SessionResponse.resume:type_name -> agent.v1.Resume
+	38, // 34: agent.v1.SessionResponse.redetect:type_name -> agent.v1.Redetect
+	43, // 35: agent.v1.SessionResponse.run_checks:type_name -> agent.v1.RunChecks
+	39, // 36: agent.v1.SessionResponse.machine_removed:type_name -> agent.v1.MachineRemoved
+	46, // 37: agent.v1.SessionResponse.update_agent:type_name -> agent.v1.UpdateAgent
+	21, // 38: agent.v1.SessionResponse.stop_runner:type_name -> agent.v1.StopRunner
+	48, // 39: agent.v1.SessionResponse.measure_caches:type_name -> agent.v1.MeasureCaches
+	51, // 40: agent.v1.SessionResponse.wipe_cache:type_name -> agent.v1.WipeCache
+	53, // 41: agent.v1.SessionResponse.report_machine:type_name -> agent.v1.ReportMachine
+	0,  // 42: agent.v1.Hello.protocol_version:type_name -> agent.v1.ProtocolVersion
+	11, // 43: agent.v1.Hello.facts:type_name -> agent.v1.Facts
+	14, // 44: agent.v1.Hello.load:type_name -> agent.v1.LoadReport
+	15, // 45: agent.v1.Hello.runners:type_name -> agent.v1.RunnerStates
+	33, // 46: agent.v1.Hello.holders:type_name -> agent.v1.HolderReport
+	0,  // 47: agent.v1.HelloAck.protocol_version:type_name -> agent.v1.ProtocolVersion
+	34, // 48: agent.v1.HelloAck.settings:type_name -> agent.v1.MachineSettings
+	12, // 49: agent.v1.Facts.gpus:type_name -> agent.v1.Gpu
+	13, // 50: agent.v1.Facts.backends:type_name -> agent.v1.BackendSupport
+	16, // 51: agent.v1.RunnerStates.runners:type_name -> agent.v1.RunnerStatus
+	1,  // 52: agent.v1.RunnerStatus.state:type_name -> agent.v1.RunnerState
+	24, // 53: agent.v1.RunnerStatus.current_job:type_name -> agent.v1.JobRef
+	18, // 54: agent.v1.AddRunner.runner:type_name -> agent.v1.RunnerSpec
+	1,  // 55: agent.v1.RunnerResult.state:type_name -> agent.v1.RunnerState
+	24, // 56: agent.v1.UsageReport.job:type_name -> agent.v1.JobRef
+	24, // 57: agent.v1.GateRequest.job:type_name -> agent.v1.JobRef
+	25, // 58: agent.v1.GateRequest.holder:type_name -> agent.v1.Holder
+	2,  // 59: agent.v1.SlotGrant.kind:type_name -> agent.v1.SlotKind
+	59, // 60: agent.v1.GateDecision.go:type_name -> agent.v1.GateDecision.Go
+	60, // 61: agent.v1.GateDecision.wait:type_name -> agent.v1.GateDecision.Wait
+	61, // 62: agent.v1.GateDecision.timeout:type_name -> agent.v1.GateDecision.Timeout
+	24, // 63: agent.v1.JobCompleted.job:type_name -> agent.v1.JobRef
+	24, // 64: agent.v1.ReleaseAck.job:type_name -> agent.v1.JobRef
+	25, // 65: agent.v1.HolderReport.alive:type_name -> agent.v1.Holder
+	24, // 66: agent.v1.HolderReport.running:type_name -> agent.v1.JobRef
+	24, // 67: agent.v1.DrainStatus.waiting_for:type_name -> agent.v1.JobRef
+	42, // 68: agent.v1.LogBatch.lines:type_name -> agent.v1.LogLine
+	3,  // 69: agent.v1.LogLine.level:type_name -> agent.v1.LogLevel
+	24, // 70: agent.v1.LogLine.job:type_name -> agent.v1.JobRef
+	45, // 71: agent.v1.CheckResults.results:type_name -> agent.v1.CheckResult
+	24, // 72: agent.v1.UpdateReport.waiting_for:type_name -> agent.v1.JobRef
+	50, // 73: agent.v1.CacheReport.caches:type_name -> agent.v1.CacheStatus
+	24, // 74: agent.v1.CacheWipeStatus.waiting_for:type_name -> agent.v1.JobRef
+	55, // 75: agent.v1.MachineReport.kvm:type_name -> agent.v1.KvmReport
+	56, // 76: agent.v1.MachineReport.engine:type_name -> agent.v1.EngineReport
+	57, // 77: agent.v1.MachineReport.images:type_name -> agent.v1.ImageReport
+	29, // 78: agent.v1.GateDecision.Go.slots:type_name -> agent.v1.SlotGrant
+	4,  // 79: agent.v1.AgentService.Join:input_type -> agent.v1.JoinRequest
+	6,  // 80: agent.v1.AgentService.Session:input_type -> agent.v1.SessionRequest
+	5,  // 81: agent.v1.AgentService.Join:output_type -> agent.v1.JoinResponse
+	7,  // 82: agent.v1.AgentService.Session:output_type -> agent.v1.SessionResponse
+	81, // [81:83] is the sub-list for method output_type
+	79, // [79:81] is the sub-list for method input_type
+	79, // [79:79] is the sub-list for extension type_name
+	79, // [79:79] is the sub-list for extension extendee
+	0,  // [0:79] is the sub-list for field type_name
 }
 
 func init() { file_agent_v1_agent_proto_init() }
@@ -6054,6 +6245,7 @@ func file_agent_v1_agent_proto_init() {
 		(*SessionRequest_CacheReport)(nil),
 		(*SessionRequest_CacheWipeStatus)(nil),
 		(*SessionRequest_MachineReport)(nil),
+		(*SessionRequest_AcceptingReport)(nil),
 	}
 	file_agent_v1_agent_proto_msgTypes[3].OneofWrappers = []any{
 		(*SessionResponse_HelloAck)(nil),
@@ -6090,7 +6282,7 @@ func file_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_v1_agent_proto_rawDesc), len(file_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   57,
+			NumMessages:   58,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -224,6 +224,8 @@ func (s *Service) dispatch(ctx context.Context, id, agentVersion string, req *ag
 		reply(&agentv1.SessionResponse{Message: &agentv1.SessionResponse_Heartbeat{Heartbeat: &agentv1.Heartbeat{SentAtUnixMs: s.now().UnixMilli()}}})
 	case *agentv1.SessionRequest_LoadReport:
 		_ = s.HandleLoad(ctx, id, msg.LoadReport)
+	case *agentv1.SessionRequest_AcceptingReport:
+		s.HandleAccepting(ctx, id, msg.AcceptingReport)
 	case *agentv1.SessionRequest_Facts:
 		_ = s.HandleFacts(ctx, id, agentVersion, msg.Facts)
 	case *agentv1.SessionRequest_UpdateReport:

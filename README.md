@@ -5,7 +5,7 @@ It runs on Windows, Linux and macOS.
 One binary, `crsp`, has several modes.
 The `controller` mode holds the configuration, talks to GitHub, schedules work, and serves the web console and the API.
 The `agent` mode runs on every machine and connects out to the controller.
-A `tray` mode is planned.
+The `tray` mode shows the pool in the system tray and opens the console.
 
 ## Status
 

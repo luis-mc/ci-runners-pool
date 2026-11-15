@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 # Layer kvm (runners R5.50, R5.41): qemu and the tools a test VM boot needs.
-# The device is passed at run time with --device /dev/kvm, never --privileged.
+# The device is allowed at run time with --device-cgroup-rule 'c 10:232 rwm' and
+# created by kvm-wait.sh; never --device (lesson 28) and never --privileged.
 #   docker build --build-arg BASE_IMAGE=crsp-linux-base:ci -t crsp-layer-kvm images/layers/kvm
 ARG BASE_IMAGE=crsp-linux-base:ci
 FROM ${BASE_IMAGE}

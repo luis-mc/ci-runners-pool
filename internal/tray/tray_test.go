@@ -344,6 +344,12 @@ func TestTrayStateHoldsNoSecret(t *testing.T) {
 
 func TestOpenCommandPrintsLink(t *testing.T) {
 	t.Setenv("CRSP_TRAY_SOCKET", filepath.Join(t.TempDir(), "none.sock"))
+	// Never reach a crsp service installed on the test machine.
+	prev := newClient
+	newClient = func() *Client {
+		return &Client{Timeout: time.Second, Dial: func(context.Context) (net.Conn, error) { return nil, errors.New("no service") }}
+	}
+	t.Cleanup(func() { newClient = prev })
 	var out, errb bytes.Buffer
 	if code := OpenCommand(&out, &errb); code != 1 || !strings.Contains(errb.String(), "service running") {
 		t.Fatalf("code %d %q", code, errb.String())

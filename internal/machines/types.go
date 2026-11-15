@@ -119,9 +119,15 @@ type Machine struct {
 	IsController bool
 	AgentVersion string
 	Online       bool
-	LastSeen     time.Time
-	JoinedAt     time.Time
-	RemovedAt    time.Time
+	// Accepting and PauseReason are what the agent last reported (R5.62). They
+	// are filled when a machine is read; another feature reads `Online &&
+	// Accepting` to decide on hosted fallback. A machine that reported nothing
+	// accepts.
+	Accepting   bool
+	PauseReason string
+	LastSeen    time.Time
+	JoinedAt    time.Time
+	RemovedAt   time.Time
 }
 
 // Settings are the per-machine settings (R5.22, scheduling R5.1).
@@ -147,6 +153,62 @@ type Settings struct {
 	// load budget (R5.58). 0 means not set.
 	PoolMemoryGiB float64
 	PoolCPUs      int
+	// The machine policy (CRSP75, R5.61 to R5.64). An empty Mode is automatic and
+	// a zero CPUCapPct is 100.
+	Mode           string
+	PauseOnBattery bool
+	// PauseUntil is a timed pause from the tray; the zero time means none.
+	// PausedUntilResumed is a pause from the tray that ends at Resume.
+	PauseUntil         time.Time
+	PausedUntilResumed bool
+	CPUCapPct          int
+}
+
+// Machine modes (R5.61).
+const (
+	ModeAutomatic = "automatic"
+	ModeAlways    = "always"
+	ModePaused    = "paused"
+)
+
+// Pause reasons a machine reports when it does not accept new jobs (R5.62).
+// The names are read by other features: do not rename them.
+const (
+	PauseReasonPaused      = "paused"
+	PauseReasonOnBattery   = "on_battery"
+	PauseReasonQuietHours  = "quiet_hours"
+	PauseReasonBudget      = "budget"
+	PauseOneHour           = "one_hour"
+	PauseUntilResumedValue = "until_resumed"
+	PauseNone              = "none"
+)
+
+// CPUCaps are the CPU cap values in percent (R5.64).
+var CPUCaps = []int{25, 50, 75, 100}
+
+// EffectiveMode is the mode with the default filled in.
+func (s Settings) EffectiveMode() string {
+	if s.Mode == "" {
+		return ModeAutomatic
+	}
+	return s.Mode
+}
+
+// EffectiveCPUCap is the CPU cap with the default filled in.
+func (s Settings) EffectiveCPUCap() int {
+	if s.CPUCapPct == 0 {
+		return 100
+	}
+	return s.CPUCapPct
+}
+
+// UserPaused says whether the user holds the machine paused at now: the mode is
+// paused, or a pause from the tray is running (R5.61).
+func (s Settings) UserPaused(now time.Time) bool {
+	if s.EffectiveMode() == ModePaused || s.PausedUntilResumed {
+		return true
+	}
+	return !s.PauseUntil.IsZero() && now.Before(s.PauseUntil)
 }
 
 // DefaultSettings are the defaults of R5.22: budget 85% memory and 60% CPU,
@@ -158,6 +220,7 @@ func DefaultSettings() Settings {
 		LightJobs: []string{}, HeavyJobs: []string{},
 		SlotMaxAgeMinutes: 120, GatePollSeconds: 15, GateMaxWaitMinutes: 30, GateOnTimeout: "fail",
 		AllowedBackends: []string{"persistent"}, CacheCapBytes: 20 << 30, DrainTimeoutMinutes: 60,
+		Mode: ModeAutomatic, PauseOnBattery: true, CPUCapPct: 100,
 	}
 }
 
@@ -178,6 +241,13 @@ type SettingsUpdate struct {
 	WindowsSymlinkRight *bool
 	PoolMemoryGiB       *float64
 	PoolCPUs            *int
+	// Mode is automatic, always or paused (R5.61).
+	Mode           *string
+	PauseOnBattery *bool
+	// CPUCapPct is 25, 50, 75 or 100 (R5.64).
+	CPUCapPct *int
+	// Pause is one_hour, until_resumed or none: a pause from the tray (R5.61).
+	Pause *string
 	// ConfirmShrink is the explicit yes to a pool size below the current one
 	// (R5.58). It is never implied by Confirm.
 	ConfirmShrink bool

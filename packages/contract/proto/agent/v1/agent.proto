@@ -100,6 +100,8 @@ message SessionRequest {
     CacheWipeStatus cache_wipe_status = 21;
     // What the machine can do: KVM, container engine and images (CRSP63).
     MachineReport machine_report = 22;
+    // Whether the machine takes new jobs, and why not (CRSP75, machines R5.62).
+    AcceptingReport accepting_report = 23;
   }
 }
 
@@ -510,6 +512,18 @@ message MachineSettings {
   // not set: the pool then follows the budget alone.
   double pool_memory_gib = 18;
   int32 pool_cpus = 19;
+  // The machine policy (CRSP75, machines R5.61 to R5.64).
+  // mode is automatic, always or paused; "" means automatic.
+  string mode = 20;
+  // Automatic pauses while the machine runs on battery.
+  bool pause_on_battery = 21;
+  // A pause from the tray with a timer: the pause ends at this time. 0 means no
+  // timed pause.
+  int64 pause_until_unix_ms = 22;
+  // A pause from the tray until the user resumes.
+  bool pause_until_resumed = 23;
+  // The CPU cap for runner processes in percent: 25, 50, 75 or 100. 0 means 100.
+  int32 cpu_cap_pct = 24;
 }
 
 // Drain stops new jobs on the machine for a change that restarts runners or
@@ -758,4 +772,26 @@ message ImageReport {
   repeated string layers = 4;
   int64 size_mb = 5;
   int64 created_unix_ms = 6;
+}
+
+// ---------------------------------------------------------------- machine policy
+
+// AcceptingReport says whether the machine takes new jobs and why not. The
+// agent sends it with Hello and each time the answer changes, and with every
+// LoadReport while the answer is not "accepting" (CRSP75, machines R5.62).
+message AcceptingReport {
+  bool accepting = 1;
+  // paused, on_battery, quiet_hours or budget; empty while accepting.
+  string pause_reason = 2;
+  // Battery state the agent read; unknown counts as on mains (R5.63).
+  bool on_battery = 3;
+  bool battery_known = 4;
+  // The CPU cap the agent applied to the runner processes (R5.64).
+  int32 cpu_cap_pct = 5;
+  // applied, not_supported or failed. not_supported is macOS.
+  string cpu_cap_state = 6;
+  // Why the cap is not applied; shown in the console.
+  string cpu_cap_detail = 7;
+  // When a timed pause from the tray ends; 0 when none or until resumed.
+  int64 pause_until_unix_ms = 8;
 }
