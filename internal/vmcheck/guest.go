@@ -239,7 +239,7 @@ func (g *Guest) CopyIn(ctx context.Context, src string) error {
 // is returned for what stops the run being tried (bad spec, no KVM); a guest
 // that does not come up is a failing outcome with fn not called.
 func WithGuest(ctx context.Context, cat Catalogue, spec GuestSpec, deps GuestDeps, now func() time.Time, fn func(ctx context.Context, g *Guest) ([]Step, error)) (RunOutcome, error) {
-	bs, err := spec.BootSpec.Normalize()
+	bs, err := spec.Normalize()
 	if err != nil {
 		return RunOutcome{}, err
 	}
@@ -303,7 +303,10 @@ func WithGuest(ctx context.Context, cat Catalogue, spec GuestSpec, deps GuestDep
 	go func() { exited <- wait() }()
 	stop := func() {
 		cancel()
-		<-exited // killed on purpose; its exit error says nothing new
+		if err := <-exited; err != nil {
+			// Killed on purpose; its exit error says nothing new.
+			return
+		}
 	}
 	defer stop()
 

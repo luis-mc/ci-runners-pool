@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -62,7 +62,7 @@ func validWord(s string) bool {
 }
 
 // ModuleName is the policy module's name: the file name without ".pp".
-func ModuleName(file string) string { return strings.TrimSuffix(path.Base(file), ".pp") }
+func ModuleName(file string) string { return strings.TrimSuffix(filepath.Base(file), ".pp") }
 
 // ParseSemodule lists the module names in `semodule -l` output ("name version" per line).
 func ParseSemodule(text string) []string {
@@ -161,11 +161,11 @@ func SELinux(ctx context.Context, cat Catalogue, spec SELinuxSpec, deps GuestDep
 			steps = append(steps, st)
 			return !st.Failed()
 		}
-		if spec.RPM != "" && !run("install rpm", InDir("sudo dnf install -y "+ShellQuote("./"+path.Base(spec.RPM)))) {
+		if spec.RPM != "" && !run("install rpm", InDir("sudo dnf install -y "+ShellQuote("./"+filepath.Base(spec.RPM)))) {
 			return steps, nil
 		}
 		if spec.Module != "" {
-			if !run("load module", InDir("sudo semodule -i "+ShellQuote(path.Base(spec.Module)))) {
+			if !run("load module", InDir("sudo semodule -i "+ShellQuote(filepath.Base(spec.Module)))) {
 				return steps, nil
 			}
 			list, ok := ask("module listed", "sudo semodule -l")

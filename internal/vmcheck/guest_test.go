@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -137,7 +138,8 @@ func (f *fakeGuest) deps(net vmcheck.Fetcher, vm *fakeVM) vmcheck.GuestDeps {
 			if name == "scp" {
 				cmd = "scp"
 			}
-			if st, err := os.Stat(f.keyPath); err != nil || st.Mode().Perm() != 0o600 {
+			// Windows has no Unix mode bits: there the key must only exist.
+			if st, err := os.Stat(f.keyPath); err != nil || (runtime.GOOS != "windows" && st.Mode().Perm() != 0o600) {
 				f.keyBad = append(f.keyBad, "key missing or not 0600 during "+name)
 			}
 			block := f.block != "" && strings.Contains(cmd, f.block)

@@ -119,7 +119,7 @@ func RealGuestDeps() GuestDeps {
 			return -1, err
 		},
 		FreePort: func() (int, error) {
-			l, err := net.Listen("tcp", "127.0.0.1:0")
+			l, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")
 			if err != nil {
 				return 0, err
 			}

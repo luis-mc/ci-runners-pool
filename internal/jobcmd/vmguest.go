@@ -156,7 +156,6 @@ func vmRun(args []string, cat vmcheck.Catalogue, env Env) int {
 		return ExitVMFail
 	}
 	defer cleanup()
-	spec.GuestSpec.BootSpec.Distro = spec.Distro
 	spec.CacheDir, spec.WorkDir, spec.Out = gs.CacheDir, gs.WorkDir, gs.Out
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
