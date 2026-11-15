@@ -9,9 +9,11 @@ import (
 
 const baseDockerfile = "../../images/linux-base/Dockerfile"
 
-func readDockerfile(t *testing.T) string {
+func readDockerfile(t *testing.T) string { return readFile(t, baseDockerfile) }
+
+func readFile(t *testing.T, path string) string {
 	t.Helper()
-	b, err := os.ReadFile(baseDockerfile)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
