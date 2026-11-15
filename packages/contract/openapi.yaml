@@ -765,6 +765,36 @@ paths:
                 $ref: '#/components/schemas/ExtraPackages'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/repositories/{repositoryId}/webhook-mode:
+    put:
+      operationId: setRepositoryWebhookMode
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [repositories]
+      summary: Switch a repository back to webhook deliveries
+      description: >-
+        github-integration R5.47 (RES14). After deliveries failed the controller
+        polls the repository; this switches it back to webhooks. Only `webhook`
+        is accepted: polling is chosen by the controller when deliveries fail.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookModeUpdate'
+      responses:
+        '200':
+          description: The webhook health after the switch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookHealth'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/repositories/{repositoryId}/runs-on:
     get:
       operationId: getRepositoryRunsOn
@@ -3050,6 +3080,8 @@ components:
           $ref: '#/components/schemas/RepositoryPolicy'
         routing:
           $ref: '#/components/schemas/RepositoryRouting'
+        webhook:
+          $ref: '#/components/schemas/WebhookHealth'
       example:
         id: 700100
         full_name: luis-mc/app
@@ -3071,6 +3103,34 @@ components:
           labels: [self-hosted, linux, x64]
           runner_groups: []
           light_runner: true
+    WebhookHealth:
+      type: object
+      description: The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.47).
+      required: [mode, failures_in_a_row]
+      properties:
+        mode:
+          type: string
+          enum: [webhook, polling]
+        last_delivery_at:
+          type: string
+          format: date-time
+          description: Absent when no delivery was seen.
+        last_result:
+          type: string
+          enum: [ok, failed, missed]
+        failures_in_a_row:
+          type: integer
+        polling_since:
+          type: string
+          format: date-time
+          description: Set in polling mode.
+    WebhookModeUpdate:
+      type: object
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: [webhook]
     RepositoryRouting:
       type: object
       description: Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.

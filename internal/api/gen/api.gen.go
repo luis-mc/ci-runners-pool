@@ -761,19 +761,19 @@ func (e NotificationEvent) Valid() bool {
 
 // Defines values for NotificationKind.
 const (
-	Desktop NotificationKind = "desktop"
-	Email   NotificationKind = "email"
-	Webhook NotificationKind = "webhook"
+	NotificationKindDesktop NotificationKind = "desktop"
+	NotificationKindEmail   NotificationKind = "email"
+	NotificationKindWebhook NotificationKind = "webhook"
 )
 
 // Valid indicates whether the value is a known member of the NotificationKind enum.
 func (e NotificationKind) Valid() bool {
 	switch e {
-	case Desktop:
+	case NotificationKindDesktop:
 		return true
-	case Email:
+	case NotificationKindEmail:
 		return true
-	case Webhook:
+	case NotificationKindWebhook:
 		return true
 	default:
 		return false
@@ -1497,6 +1497,60 @@ func (e WaitReason) Valid() bool {
 	case WaitReasonRepositoryParallelLimit:
 		return true
 	case WaitReasonUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebhookHealthLastResult.
+const (
+	WebhookHealthLastResultFailed WebhookHealthLastResult = "failed"
+	WebhookHealthLastResultMissed WebhookHealthLastResult = "missed"
+	WebhookHealthLastResultOk     WebhookHealthLastResult = "ok"
+)
+
+// Valid indicates whether the value is a known member of the WebhookHealthLastResult enum.
+func (e WebhookHealthLastResult) Valid() bool {
+	switch e {
+	case WebhookHealthLastResultFailed:
+		return true
+	case WebhookHealthLastResultMissed:
+		return true
+	case WebhookHealthLastResultOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebhookHealthMode.
+const (
+	WebhookHealthModePolling WebhookHealthMode = "polling"
+	WebhookHealthModeWebhook WebhookHealthMode = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the WebhookHealthMode enum.
+func (e WebhookHealthMode) Valid() bool {
+	switch e {
+	case WebhookHealthModePolling:
+		return true
+	case WebhookHealthModeWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebhookModeUpdateMode.
+const (
+	WebhookModeUpdateModeWebhook WebhookModeUpdateMode = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the WebhookModeUpdateMode enum.
+func (e WebhookModeUpdateMode) Valid() bool {
+	switch e {
+	case WebhookModeUpdateModeWebhook:
 		return true
 	default:
 		return false
@@ -2627,6 +2681,9 @@ type Repository struct {
 	UserIsGithubAdmin bool                 `json:"user_is_github_admin"`
 	Variables         []RepositoryVariable `json:"variables"`
 	Visibility        RepositoryVisibility `json:"visibility"`
+
+	// Webhook The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.47).
+	Webhook *WebhookHealth `json:"webhook,omitempty"`
 }
 
 // RepositoryVisibility defines model for Repository.Visibility.
@@ -3027,6 +3084,33 @@ type WaitingJob struct {
 	Words string `json:"words"`
 }
 
+// WebhookHealth The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.47).
+type WebhookHealth struct {
+	FailuresInARow int `json:"failures_in_a_row"`
+
+	// LastDeliveryAt Absent when no delivery was seen.
+	LastDeliveryAt *time.Time               `json:"last_delivery_at,omitempty"`
+	LastResult     *WebhookHealthLastResult `json:"last_result,omitempty"`
+	Mode           WebhookHealthMode        `json:"mode"`
+
+	// PollingSince Set in polling mode.
+	PollingSince *time.Time `json:"polling_since,omitempty"`
+}
+
+// WebhookHealthLastResult defines model for WebhookHealth.LastResult.
+type WebhookHealthLastResult string
+
+// WebhookHealthMode defines model for WebhookHealth.Mode.
+type WebhookHealthMode string
+
+// WebhookModeUpdate defines model for WebhookModeUpdate.
+type WebhookModeUpdate struct {
+	Mode WebhookModeUpdateMode `json:"mode"`
+}
+
+// WebhookModeUpdateMode defines model for WebhookModeUpdate.Mode.
+type WebhookModeUpdateMode string
+
 // BackupId defines model for BackupId.
 type BackupId = string
 
@@ -3347,6 +3431,9 @@ type SetRepositoryExtraPackagesJSONRequestBody = ExtraPackagesUpdate
 // UpdateRepositoryPolicyJSONRequestBody defines body for UpdateRepositoryPolicy for application/json ContentType.
 type UpdateRepositoryPolicyJSONRequestBody = RepositoryPolicyUpdate
 
+// SetRepositoryWebhookModeJSONRequestBody defines body for SetRepositoryWebhookMode for application/json ContentType.
+type SetRepositoryWebhookModeJSONRequestBody = WebhookModeUpdate
+
 // PlanRepositoryChangesJSONRequestBody defines body for PlanRepositoryChanges for application/json ContentType.
 type PlanRepositoryChangesJSONRequestBody = PlanRepositoryChangesRequest
 
@@ -3568,6 +3655,9 @@ type ServerInterface interface {
 	// GetRepositoryRunsOn Workflow `runs-on` findings for a repository
 	// (GET /api/v1/repositories/{repositoryId}/runs-on)
 	GetRepositoryRunsOn(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
+	// SetRepositoryWebhookMode Switch a repository back to webhook deliveries
+	// (PUT /api/v1/repositories/{repositoryId}/webhook-mode)
+	SetRepositoryWebhookMode(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
 	// PlanRepositoryChanges Plan turning the pool on or off for repositories
 	// (POST /api/v1/repository-plans)
 	PlanRepositoryChanges(w http.ResponseWriter, r *http.Request)
@@ -5675,6 +5765,32 @@ func (siw *ServerInterfaceWrapper) GetRepositoryRunsOn(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// SetRepositoryWebhookMode operation middleware
+func (siw *ServerInterfaceWrapper) SetRepositoryWebhookMode(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "repositoryId" -------------
+	var repositoryId RepositoryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "repositoryId", r.PathValue("repositoryId"), &repositoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repositoryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetRepositoryWebhookMode(w, r, repositoryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PlanRepositoryChanges operation middleware
 func (siw *ServerInterfaceWrapper) PlanRepositoryChanges(w http.ResponseWriter, r *http.Request) {
 
@@ -6752,6 +6868,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/policy", wrapper.UpdateRepositoryPolicy)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/extra-packages", wrapper.GetRepositoryExtraPackages)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/extra-packages", wrapper.SetRepositoryExtraPackages)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/webhook-mode", wrapper.SetRepositoryWebhookMode)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/runs-on", wrapper.GetRepositoryRunsOn)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings/queue", wrapper.GetQueueSettings)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/settings/queue", wrapper.UpdateQueueSettings)
@@ -9368,6 +9485,46 @@ func (response GetRepositoryRunsOndefaultJSONResponse) VisitGetRepositoryRunsOnR
 	return err
 }
 
+type SetRepositoryWebhookModeRequestObject struct {
+	RepositoryId RepositoryId `json:"repositoryId"`
+	Body         *SetRepositoryWebhookModeJSONRequestBody
+}
+
+type SetRepositoryWebhookModeResponseObject interface {
+	VisitSetRepositoryWebhookModeResponse(w http.ResponseWriter) error
+}
+
+type SetRepositoryWebhookMode200JSONResponse WebhookHealth
+
+func (response SetRepositoryWebhookMode200JSONResponse) VisitSetRepositoryWebhookModeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetRepositoryWebhookModedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response SetRepositoryWebhookModedefaultJSONResponse) VisitSetRepositoryWebhookModeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type PlanRepositoryChangesRequestObject struct {
 	Body *PlanRepositoryChangesJSONRequestBody
 }
@@ -10898,6 +11055,9 @@ type StrictServerInterface interface {
 	// GetRepositoryRunsOn Workflow `runs-on` findings for a repository
 	// (GET /api/v1/repositories/{repositoryId}/runs-on)
 	GetRepositoryRunsOn(ctx context.Context, request GetRepositoryRunsOnRequestObject) (GetRepositoryRunsOnResponseObject, error)
+	// SetRepositoryWebhookMode Switch a repository back to webhook deliveries
+	// (PUT /api/v1/repositories/{repositoryId}/webhook-mode)
+	SetRepositoryWebhookMode(ctx context.Context, request SetRepositoryWebhookModeRequestObject) (SetRepositoryWebhookModeResponseObject, error)
 	// PlanRepositoryChanges Plan turning the pool on or off for repositories
 	// (POST /api/v1/repository-plans)
 	PlanRepositoryChanges(ctx context.Context, request PlanRepositoryChangesRequestObject) (PlanRepositoryChangesResponseObject, error)
@@ -12698,6 +12858,39 @@ func (sh *strictHandler) GetRepositoryRunsOn(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetRepositoryRunsOnResponseObject); ok {
 		if err := validResponse.VisitGetRepositoryRunsOnResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetRepositoryWebhookMode operation middleware
+func (sh *strictHandler) SetRepositoryWebhookMode(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId) {
+	var request SetRepositoryWebhookModeRequestObject
+
+	request.RepositoryId = repositoryId
+
+	var body SetRepositoryWebhookModeJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetRepositoryWebhookMode(ctx, request.(SetRepositoryWebhookModeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetRepositoryWebhookMode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetRepositoryWebhookModeResponseObject); ok {
+		if err := validResponse.VisitSetRepositoryWebhookModeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

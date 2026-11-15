@@ -27,6 +27,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github/fake"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/repos"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/webhookhealth"
 )
 
 var (
@@ -67,6 +68,7 @@ type harness struct {
 	hook    *github.WebhookHandler
 	secrets *secrets.Memory
 	client  *http.Client
+	health  *webhookhealth.Tracker
 }
 
 func newHarness(t *testing.T) *harness { return newHarnessWith(t, nil) }
@@ -89,7 +91,7 @@ func newHarnessWith(t *testing.T, wrap func(*secrets.Memory) secrets.Store) *har
 	asvc := auth.New(astore, auth.Config{GitHub: gh, Secrets: store, WebBase: f.URL,
 		OnApp: func(a auth.AppRecord) { gh.UseApp(a.ID, a.ClientID) }})
 	rsvc := repos.New(repos.Config{Store: rstore, GitHub: gh, Tokens: asvc, Audit: asvc, Capacity: linuxOnly{}})
-	h := &harness{t: t, fake: f, auth: asvc, repos: rsvc, astore: astore, rstore: rstore, secrets: sec}
+	h := &harness{t: t, fake: f, auth: asvc, repos: rsvc, astore: astore, rstore: rstore, secrets: sec, health: webhookhealth.New()}
 
 	seen := map[string]bool{}
 	h.hook = &github.WebhookHandler{
@@ -110,7 +112,7 @@ func newHarnessWith(t *testing.T, wrap func(*secrets.Memory) secrets.Store) *har
 		Events: noEvents{},
 	}
 	mux := http.NewServeMux()
-	Register(mux, Options{Version: "test", DB: okPinger{}, GitHub: &GitHubArea{Auth: asvc, Repos: rsvc, Webhook: h.hook, WebBase: f.URL}})
+	Register(mux, Options{Version: "test", DB: okPinger{}, GitHub: &GitHubArea{Auth: asvc, Repos: rsvc, Webhook: h.hook, WebBase: f.URL, Health: h.health}})
 	h.srv = httptest.NewServer(Recover(slog.New(slog.NewTextHandler(io.Discard, nil)), mux))
 	t.Cleanup(h.srv.Close)
 	h.client = &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}

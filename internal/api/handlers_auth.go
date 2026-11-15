@@ -31,6 +31,8 @@ type GitHubArea struct {
 	// the CLI (R5.14); empty uses github.com.
 	WebBase string
 	Logger  *slog.Logger
+	// Health is the webhook health of each repository (RES14); nil hides it.
+	Health WebhookHealth
 }
 
 // Role needed by each operation of this area, from x-auth in openapi.yaml.
@@ -53,7 +55,7 @@ var githubAreaAuth = map[string]string{
 	"listInstallations": authUser, "getAppInstallUrl": authAdmin, "listRepositories": authUser,
 	"planRepositoryChanges": authAdmin, "stopRepositoryPlan": authAdmin, "getRepositoryPlan": authUser, "applyRepositoryChanges": authAdmin,
 	"getRepository": authUser, "updateRepositoryPolicy": authAdmin, "getRepositoryRunsOn": authUser,
-	"getRepositoryExtraPackages": authUser, "setRepositoryExtraPackages": authAdmin,
+	"getRepositoryExtraPackages": authUser, "setRepositoryExtraPackages": authAdmin, "setRepositoryWebhookMode": authAdmin,
 	"receiveGithubWebhook": authPublic,
 	// CRSP37 notification channels: any signed-in user; a webhook needs an admin (checked in the service).
 	"listNotificationChannels": authUser, "createNotificationChannel": authUser, "updateNotificationChannel": authUser,

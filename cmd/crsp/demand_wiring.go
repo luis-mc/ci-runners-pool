@@ -101,8 +101,10 @@ type demandRunner struct {
 	mu     sync.Mutex
 	ctx    context.Context
 	poller *github.Poller
-	cancel context.CancelFunc
-	done   chan struct{}
+	// onQueued feeds webhook health (RES14); nil does nothing.
+	onQueued func(string, int64)
+	cancel   context.CancelFunc
+	done     chan struct{}
 }
 
 // targets lists the repositories to poll. Nothing is polled while no machine
@@ -135,6 +137,7 @@ func (d *demandRunner) start() {
 		Client:   d.gh,
 		Interval: demandPollEvery,
 		Targets:  d.targets,
+		OnQueued: d.onQueued,
 		OnError: func(err error) {
 			if ctx.Err() == nil {
 				d.logger.Warn("poll queued jobs", "err", err)
@@ -195,9 +198,9 @@ func (d *demandRunner) Stop() {
 // startDemand runs the poller, the demand loop and the quiet-demand watchdog
 // until the returned stop is called. The watchdog's state is what the doctor
 // check `demand.quiet` reads.
-func startDemand(ctx context.Context, logger *slog.Logger, gh *github.REST, env demandEnv, svc *runners.Service, pool string, quiet time.Duration) (stop func(), wd *demand.Watchdog) {
+func startDemand(ctx context.Context, logger *slog.Logger, gh *github.REST, env demandEnv, svc *runners.Service, pool string, quiet time.Duration, onQueued func(string, int64)) (stop func(), wd *demand.Watchdog) {
 	ctx, cancel := context.WithCancel(ctx)
-	dr := &demandRunner{logger: logger, gh: gh, env: env, ctx: ctx,
+	dr := &demandRunner{logger: logger, gh: gh, env: env, ctx: ctx, onQueued: onQueued,
 		loop: &demand.Loop{Env: env, Runners: svc, PoolName: pool, Logger: logger}}
 	dr.mu.Lock()
 	dr.start()

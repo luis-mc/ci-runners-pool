@@ -762,19 +762,19 @@ func (e NotificationEvent) Valid() bool {
 
 // Defines values for NotificationKind.
 const (
-	Desktop NotificationKind = "desktop"
-	Email   NotificationKind = "email"
-	Webhook NotificationKind = "webhook"
+	NotificationKindDesktop NotificationKind = "desktop"
+	NotificationKindEmail   NotificationKind = "email"
+	NotificationKindWebhook NotificationKind = "webhook"
 )
 
 // Valid indicates whether the value is a known member of the NotificationKind enum.
 func (e NotificationKind) Valid() bool {
 	switch e {
-	case Desktop:
+	case NotificationKindDesktop:
 		return true
-	case Email:
+	case NotificationKindEmail:
 		return true
-	case Webhook:
+	case NotificationKindWebhook:
 		return true
 	default:
 		return false
@@ -1498,6 +1498,60 @@ func (e WaitReason) Valid() bool {
 	case WaitReasonRepositoryParallelLimit:
 		return true
 	case WaitReasonUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebhookHealthLastResult.
+const (
+	WebhookHealthLastResultFailed WebhookHealthLastResult = "failed"
+	WebhookHealthLastResultMissed WebhookHealthLastResult = "missed"
+	WebhookHealthLastResultOk     WebhookHealthLastResult = "ok"
+)
+
+// Valid indicates whether the value is a known member of the WebhookHealthLastResult enum.
+func (e WebhookHealthLastResult) Valid() bool {
+	switch e {
+	case WebhookHealthLastResultFailed:
+		return true
+	case WebhookHealthLastResultMissed:
+		return true
+	case WebhookHealthLastResultOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebhookHealthMode.
+const (
+	WebhookHealthModePolling WebhookHealthMode = "polling"
+	WebhookHealthModeWebhook WebhookHealthMode = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the WebhookHealthMode enum.
+func (e WebhookHealthMode) Valid() bool {
+	switch e {
+	case WebhookHealthModePolling:
+		return true
+	case WebhookHealthModeWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebhookModeUpdateMode.
+const (
+	WebhookModeUpdateModeWebhook WebhookModeUpdateMode = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the WebhookModeUpdateMode enum.
+func (e WebhookModeUpdateMode) Valid() bool {
+	switch e {
+	case WebhookModeUpdateModeWebhook:
 		return true
 	default:
 		return false
@@ -2628,6 +2682,9 @@ type Repository struct {
 	UserIsGithubAdmin bool                 `json:"user_is_github_admin"`
 	Variables         []RepositoryVariable `json:"variables"`
 	Visibility        RepositoryVisibility `json:"visibility"`
+
+	// Webhook The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.47).
+	Webhook *WebhookHealth `json:"webhook,omitempty"`
 }
 
 // RepositoryVisibility defines model for Repository.Visibility.
@@ -3028,6 +3085,33 @@ type WaitingJob struct {
 	Words string `json:"words"`
 }
 
+// WebhookHealth The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.47).
+type WebhookHealth struct {
+	FailuresInARow int `json:"failures_in_a_row"`
+
+	// LastDeliveryAt Absent when no delivery was seen.
+	LastDeliveryAt *time.Time               `json:"last_delivery_at,omitempty"`
+	LastResult     *WebhookHealthLastResult `json:"last_result,omitempty"`
+	Mode           WebhookHealthMode        `json:"mode"`
+
+	// PollingSince Set in polling mode.
+	PollingSince *time.Time `json:"polling_since,omitempty"`
+}
+
+// WebhookHealthLastResult defines model for WebhookHealth.LastResult.
+type WebhookHealthLastResult string
+
+// WebhookHealthMode defines model for WebhookHealth.Mode.
+type WebhookHealthMode string
+
+// WebhookModeUpdate defines model for WebhookModeUpdate.
+type WebhookModeUpdate struct {
+	Mode WebhookModeUpdateMode `json:"mode"`
+}
+
+// WebhookModeUpdateMode defines model for WebhookModeUpdate.Mode.
+type WebhookModeUpdateMode string
+
 // BackupId defines model for BackupId.
 type BackupId = string
 
@@ -3347,6 +3431,9 @@ type SetRepositoryExtraPackagesJSONRequestBody = ExtraPackagesUpdate
 
 // UpdateRepositoryPolicyJSONRequestBody defines body for UpdateRepositoryPolicy for application/json ContentType.
 type UpdateRepositoryPolicyJSONRequestBody = RepositoryPolicyUpdate
+
+// SetRepositoryWebhookModeJSONRequestBody defines body for SetRepositoryWebhookMode for application/json ContentType.
+type SetRepositoryWebhookModeJSONRequestBody = WebhookModeUpdate
 
 // PlanRepositoryChangesJSONRequestBody defines body for PlanRepositoryChanges for application/json ContentType.
 type PlanRepositoryChangesJSONRequestBody = PlanRepositoryChangesRequest
@@ -4024,6 +4111,24 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/repositories/{repositoryId}/runs-on (the `GetRepositoryRunsOn` operationId).
 	GetRepositoryRunsOn(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetRepositoryWebhookModeWithBody Switch a repository back to webhook deliveries
+	//
+	// github-integration R5.47 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+	SetRepositoryWebhookModeWithBody(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetRepositoryWebhookMode Switch a repository back to webhook deliveries
+	//
+	// github-integration R5.47 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+	SetRepositoryWebhookMode(ctx context.Context, repositoryId RepositoryId, body SetRepositoryWebhookModeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PlanRepositoryChangesWithBody Plan turning the pool on or off for repositories
 	//
@@ -5696,6 +5801,44 @@ func (c *Client) UpdateRepositoryPolicy(ctx context.Context, repositoryId Reposi
 // Corresponds with GET /api/v1/repositories/{repositoryId}/runs-on (the `GetRepositoryRunsOn` operationId).
 func (c *Client) GetRepositoryRunsOn(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetRepositoryRunsOnRequest(c.Server, repositoryId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetRepositoryWebhookModeWithBody Switch a repository back to webhook deliveries
+//
+// github-integration R5.47 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+func (c *Client) SetRepositoryWebhookModeWithBody(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetRepositoryWebhookModeRequestWithBody(c.Server, repositoryId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetRepositoryWebhookMode Switch a repository back to webhook deliveries
+//
+// github-integration R5.47 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+func (c *Client) SetRepositoryWebhookMode(ctx context.Context, repositoryId RepositoryId, body SetRepositoryWebhookModeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetRepositoryWebhookModeRequest(c.Server, repositoryId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -9444,6 +9587,53 @@ func NewGetRepositoryRunsOnRequest(server string, repositoryId RepositoryId) (*h
 	return req, nil
 }
 
+// NewSetRepositoryWebhookModeRequest calls the generic SetRepositoryWebhookMode builder with application/json body
+func NewSetRepositoryWebhookModeRequest(server string, repositoryId RepositoryId, body SetRepositoryWebhookModeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetRepositoryWebhookModeRequestWithBody(server, repositoryId, "application/json", bodyReader)
+}
+
+// NewSetRepositoryWebhookModeRequestWithBody constructs an http.Request for the SetRepositoryWebhookMode method, with any body, and a specified content type
+func NewSetRepositoryWebhookModeRequestWithBody(server string, repositoryId RepositoryId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "repositoryId", repositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/repositories/%s/webhook-mode", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewPlanRepositoryChangesRequest calls the generic PlanRepositoryChanges builder with application/json body
 func NewPlanRepositoryChangesRequest(server string, body PlanRepositoryChangesJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -11625,6 +11815,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/repositories/{repositoryId}/runs-on (the `GetRepositoryRunsOn` operationId).
 	GetRepositoryRunsOnWithResponse(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*GetRepositoryRunsOnResponse, error)
+
+	// SetRepositoryWebhookModeWithBodyWithResponse Switch a repository back to webhook deliveries
+	//
+	// github-integration R5.47 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+	SetRepositoryWebhookModeWithBodyWithResponse(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetRepositoryWebhookModeResponse, error)
+
+	// SetRepositoryWebhookModeWithResponse Switch a repository back to webhook deliveries
+	//
+	// github-integration R5.47 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+	SetRepositoryWebhookModeWithResponse(ctx context.Context, repositoryId RepositoryId, body SetRepositoryWebhookModeJSONRequestBody, reqEditors ...RequestEditorFn) (*SetRepositoryWebhookModeResponse, error)
 
 	// PlanRepositoryChangesWithBodyWithResponse Plan turning the pool on or off for repositories
 	//
@@ -14964,6 +15172,54 @@ func (r GetRepositoryRunsOnResponse) ContentType() string {
 	return ""
 }
 
+type SetRepositoryWebhookModeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *WebhookHealth
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SetRepositoryWebhookModeResponse) GetJSON200() *WebhookHealth {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r SetRepositoryWebhookModeResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SetRepositoryWebhookModeResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SetRepositoryWebhookModeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetRepositoryWebhookModeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetRepositoryWebhookModeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type PlanRepositoryChangesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -17752,6 +18008,36 @@ func (c *ClientWithResponses) GetRepositoryRunsOnWithResponse(ctx context.Contex
 	return ParseGetRepositoryRunsOnResponse(rsp)
 }
 
+// SetRepositoryWebhookModeWithBodyWithResponse Switch a repository back to webhook deliveries
+//
+// github-integration R5.47 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+func (c *ClientWithResponses) SetRepositoryWebhookModeWithBodyWithResponse(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetRepositoryWebhookModeResponse, error) {
+	rsp, err := c.SetRepositoryWebhookModeWithBody(ctx, repositoryId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetRepositoryWebhookModeResponse(rsp)
+}
+
+// SetRepositoryWebhookModeWithResponse Switch a repository back to webhook deliveries
+//
+// github-integration R5.47 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+func (c *ClientWithResponses) SetRepositoryWebhookModeWithResponse(ctx context.Context, repositoryId RepositoryId, body SetRepositoryWebhookModeJSONRequestBody, reqEditors ...RequestEditorFn) (*SetRepositoryWebhookModeResponse, error) {
+	rsp, err := c.SetRepositoryWebhookMode(ctx, repositoryId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetRepositoryWebhookModeResponse(rsp)
+}
+
 // PlanRepositoryChangesWithBodyWithResponse Plan turning the pool on or off for repositories
 //
 // github-integration R5.20 and R5.29, web-console R5.18. Nothing changes. The plan names each variable to write or delete and the workflows that still use a variable that would go.
@@ -20481,6 +20767,39 @@ func ParseGetRepositoryRunsOnResponse(rsp *http.Response) (*GetRepositoryRunsOnR
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest RunsOnFindingList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetRepositoryWebhookModeResponse parses an HTTP response from a SetRepositoryWebhookModeWithResponse call
+func ParseSetRepositoryWebhookModeResponse(rsp *http.Response) (*SetRepositoryWebhookModeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetRepositoryWebhookModeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WebhookHealth
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

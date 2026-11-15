@@ -134,3 +134,35 @@ func TestVerifierEmptySecretRefuses(t *testing.T) {
 		t.Fatal("an empty secret must verify nothing")
 	}
 }
+
+func TestOnDeliverySeesRepositoryJobAndUse(t *testing.T) { // RES14
+	type seen struct {
+		repo string
+		job  int64
+		used bool
+	}
+	var got []seen
+	h := &WebhookHandler{
+		Verifier:      func() (WebhookVerifier, error) { return NewWebhookVerifier([]byte("s")), nil },
+		FirstDelivery: func(string, string) (bool, error) { return true, nil },
+		Events:        nopEvents{},
+		OnDelivery:    func(r string, id int64, used bool) { got = append(got, seen{r, id, used}) },
+	}
+	post := func(body string) {
+		req := httptest.NewRequest("POST", "/", strings.NewReader(body))
+		req.Header.Set("X-Hub-Signature-256", Sign([]byte("s"), []byte(body)))
+		req.Header.Set("X-GitHub-Delivery", "d")
+		req.Header.Set("X-GitHub-Event", "workflow_job")
+		h.ServeHTTP(httptest.NewRecorder(), req)
+	}
+	post(`{"action":"queued","workflow_job":{"id":5,"status":"queued"},"repository":{"full_name":"a/b"}}`)
+	post(`{"action":"queued","workflow_job":{"id":0},"repository":{"full_name":"a/b"}}`)
+	if len(got) != 2 || got[0] != (seen{"a/b", 5, true}) || got[1] != (seen{"a/b", 0, false}) {
+		t.Fatalf("got %+v", got)
+	}
+}
+
+type nopEvents struct{}
+
+func (nopEvents) Job(Job)                     {}
+func (nopEvents) Installation(string, []byte) {}

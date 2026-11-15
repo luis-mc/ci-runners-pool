@@ -64,6 +64,10 @@ type WebhookHandler struct {
 	// FirstDelivery records a delivery id and reports false for a repeat.
 	FirstDelivery func(id, event string) (bool, error)
 	Events        WebhookEvents
+	// OnDelivery sees every verified delivery: the repository (owner/name, ""
+	// when the body names none), the job id (0 when none) and whether it was
+	// used (webhook health, RES14). Nil does nothing.
+	OnDelivery func(repository string, jobID int64, used bool)
 }
 
 // ServeHTTP implements http.Handler. The signature is checked before the body
@@ -101,14 +105,33 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "workflow_job":
 		job, err := ParseWorkflowJobEvent(body)
 		if err != nil {
+			if h.OnDelivery != nil {
+				h.OnDelivery(bodyRepository(body), 0, false)
+			}
 			http.Error(w, "unreadable workflow_job", http.StatusBadRequest)
 			return
 		}
 		h.Events.Job(job)
+		if h.OnDelivery != nil {
+			h.OnDelivery(job.Repository, job.ID, true)
+		}
 	case "installation", "installation_repositories":
 		h.Events.Installation(event, body)
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+// bodyRepository reads repository.full_name from a delivery body, "" when absent.
+func bodyRepository(body []byte) string {
+	var ev struct {
+		Repository struct {
+			FullName string `json:"full_name"`
+		} `json:"repository"`
+	}
+	if json.Unmarshal(body, &ev) != nil {
+		return ""
+	}
+	return ev.Repository.FullName
 }
 
 // ParseWorkflowJobEvent reads a workflow_job webhook body.

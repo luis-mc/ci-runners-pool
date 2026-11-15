@@ -34,6 +34,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tlsca"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/webhookhealth"
 )
 
 const (
@@ -121,6 +122,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	rsvc := repos.New(repos.Config{Store: repoStore, GitHub: gh, Tokens: asvc, Audit: asvc,
 		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Up: machineUp{svc: d.Machines},
 		FallbackGrace: fallbackGrace(d), Now: d.Now})
+	health := webhookhealth.New()
 	hook := &github.WebhookHandler{
 		Verifier: func() (github.WebhookVerifier, error) {
 			app := gh.AppID()
@@ -135,8 +137,15 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		},
 		FirstDelivery: newDeliveryLog(4096).first,
 		Events:        webhookEvents{ctx: ctx, logger: logger, repos: rsvc},
+		OnDelivery: func(repo string, jobID int64, used bool) {
+			if used {
+				health.Delivered(repo, jobID)
+			} else {
+				health.Record(repo, webhookhealth.ResultFailed)
+			}
+		},
 	}
-	c.Options.GitHub = &api.GitHubArea{Auth: asvc, Repos: rsvc, Webhook: hook, Logger: logger}
+	c.Options.GitHub = &api.GitHubArea{Auth: asvc, Repos: rsvc, Webhook: hook, Logger: logger, Health: health}
 	c.Auth, c.Repos = asvc, rsvc
 
 	// RUNS_ON variables: put back to the policy every 10 minutes, and once now.
@@ -186,7 +195,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// Demand: poll queued jobs of the repositories with the pool on and start one
 	// ephemeral container runner per job on a machine whose allow list names
 	// the container backend (github-integration R5.37, runners R5.27, R5.31).
-	stopDemand, quietDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines}, runnerSvc, pool, d.Cfg.DemandQuiet)
+	stopDemand, quietDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines}, runnerSvc, pool, d.Cfg.DemandQuiet, health.PollSawQueued)
 	c.closers = append(c.closers, stopDemand)
 
 	// Doctor: the M1 check registry over the controller's own data.
