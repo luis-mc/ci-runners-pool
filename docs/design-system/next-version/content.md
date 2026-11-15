@@ -223,3 +223,47 @@ The words of the shared components (`design_system.py components`). A project ch
 | The lowest is {min}. | Number keypad |
 | The highest is {max}. | Number keypad |
 | Type all {n} digits. | Number keypad |
+
+## Pool size words
+
+The words of the Pool size wizard on a machine's page (machines R5.58). The wizard is the shared wizard (component 4); the steps follow UX-30.
+
+| Where | Word |
+|---|---|
+| Section | Pool size |
+| Steps | Size, Review, Saving, Done |
+| Loading | Reading the budget of {machine} |
+| Fact names | Pool size now, Memory of the machine, Used outside the pool, Memory budget, Room for the pool, CPU budget, Decided by, Asked for |
+| Not set | not set |
+| Budget not known | Budget: not known yet; Review says when it is |
+| Fields | Pool memory (help: Memory the pool may use on this machine, in GiB.), Pool CPUs (help: CPUs the pool may use on this machine.) |
+| Mistakes | The pool needs at least {n} GiB. The pool needs at least {n} CPUs. This is the size that is set now. Change it to review. |
+| Review line | The pool of {machine} changes from {size} to {size}. |
+| Fits | This size fits the budget of the machine. |
+| Does not fit | This size does not fit the budget. {reason} |
+| Nearest | The nearest sizes that fit: |
+| Cannot check | The size cannot be checked yet. {why} Try again when the agent has reported. |
+| Lower size | This lowers the pool size. Jobs that need more than the new size wait or fail to start. |
+| The tick | Yes, lower the pool size |
+| Primary | Save {memory} and {cpus} (busy word: Saving) |
+| Reasons beside the primary | Reading the budget. The size cannot be checked yet. This size does not fit. Go back and change it. Tick the box to confirm lowering the pool size. |
+| Saving line | Saving the pool size of {machine} |
+| Paused | Paused. The page closed while the size was saving. Start again to read the size that is set. |
+| Done | The pool size is {size}. |
+| Stopped | Stopped. Nothing was saved. The pool size changed to {size} while you reviewed. |
+| Failed | The pool size was not saved. {why} Try again. |
+
+## Extra packages words
+
+The words of the extra packages form on a repository's page (runners R5.51).
+
+| Where | Word |
+|---|---|
+| Section | Extra packages |
+| Field | Extra packages (optional) |
+| Help | Distribution packages added to the pool image, one name per line. |
+| Note | A changed list builds a new image aside. Running jobs keep the old image until they end. |
+| Mistake | Line {n}: {name} is not a package name. Use letters, digits and + - . only, and do not start with -. |
+| Buttons | Save packages (busy word: Saving), Cancel (puts the saved list back) |
+| Done | Extra packages saved. |
+| Failed | Could not save the packages. {why} |

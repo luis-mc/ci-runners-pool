@@ -15,3 +15,6 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C10: action word Send test, and the notification words (events, severities, kinds) added (content.md; notifications open question 4, CRSP37)
 - C11: text field takes `secret`: hidden while typed, never filled in again (components.md 14; notifications R6.2, CRSP37)
 - C12: light runner words and the switch "Keep a light runner for short jobs" added (content.md; scheduling R5.65, CRSP44)
+- C13: text area field added to the form field family; the number field takes a number of decimals (components.md 14, 37; runners R5.51 and machines R5.58, CRSP70)
+- C14: pool size words added: the Pool size wizard, its steps, fields and messages (content.md; machines R5.58, CRSP70)
+- C15: extra packages words added: the field, its help, its messages and the line-numbered mistake (content.md; runners R5.51, CRSP70)

@@ -666,7 +666,7 @@ function ExtraPackages({ r, onChanged }: { r: Repository; onChanged: () => void 
               setSaved(false);
             }}
           >
-            Undo changes
+            Cancel
           </Button>
           <Button
             kind="primary"

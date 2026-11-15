@@ -173,7 +173,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 
 ## 14. Form field family
 
-- **Used for:** a field (name, help, box, error), a toggle (saved at once) and a check box (waits for Save). Boxes come in three widths. A field for a secret (a password) hides what is typed; the screen never fills it in again and says beside it whether one is set.
+- **Used for:** a field (name, help, box, error), a toggle (saved at once) and a check box (waits for Save). Boxes come in three widths. A text area is the same field with several lines, for a list with one item per line; it keeps the same name, help and error places and takes the full width. The number field of the number keypad (37) takes `decimals` for a measure such as 16.5 GiB. A field for a secret (a password) hides what is typed; the screen never fills it in again and says beside it whether one is set.
 - **Looks:** a name above a box, a help line below it and an error line in the Problem tone when needed.
 - **Source:** `src/ui/field`
 - **Rules:** UX-20, UX-21, UX-22, UX-23, UX-24.
