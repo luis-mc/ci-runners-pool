@@ -1,6 +1,7 @@
 package runnercache_test
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -63,8 +64,8 @@ func TestSizeAlertPastThresholdForFileAndFolder(t *testing.T) {
 	}
 	var file, folder bool
 	for _, o := range got {
-		file = file || (!o.Folder && o.Path == rust+"/k/big.rlib")
-		folder = folder || (o.Folder && o.Path == rust+"/k")
+		file = file || (!o.Folder && o.Path == filepath.FromSlash(rust+"/k/big.rlib"))
+		folder = folder || (o.Folder && o.Path == filepath.FromSlash(rust+"/k"))
 	}
 	if !file || !folder {
 		t.Fatalf("%+v", got)
