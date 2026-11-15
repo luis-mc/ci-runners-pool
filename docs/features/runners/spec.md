@@ -437,7 +437,7 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.65 | planned: internal/backend/windows/hypervcontainer_test.go TestOptionOffByDefault, TestRefusesWhenHostOrImageDoNotMatch, TestFallsBackWithAReason (CRSP85) |
 | R5.66 | planned: internal/backend/hyperv/clone_test.go TestBaseOnlyFromDefaultBranch, TestCloneIsCopyOnWriteAndDeleted, TestOrphanSweepAtStart (CRSP86) |
 | R5.67 | `internal/backend/persistent/session_test.go` TestStaleSessionInsideWindowIsQuiet, TestStaleSessionStartsNoSecondListener, TestStaleSessionPastWindowIsAFault, TestOtherOutputIsClear, TestUnknownRestartIsNeverInWindow; `internal/settings/session_test.go` TestSessionWaitDefaultsSavesAndRefuses |
-| R5.68 | `internal/backend/container/mounts_test.go` TestCrspMountedReadOnlyNoSocket; `poolstart_test.go` TestPoolStartMountsCrspOnlyWhenSet |
+| R5.68 | `internal/backend/container/mounts_test.go` TestCrspMountedReadOnlyNoSocket; `internal/backend/container/poolstart_test.go` TestPoolStartMountsCrspOnlyWhenSet |
 | R5.69 | `internal/backend/container/oom_test.go` TestExitTextNames137, TestStreamLogsReportsMemoryCapWithCap, TestReportUsageStoppedByMemoryCap; `internal/doctor/checks/container_test.go` TestMemoryCapCheck |
 | R6.1 | internal/backend/container/container_test.go TestNoPrivilegedNoSocketKvmDevice (CRSP52) |
 | R6.2 | internal/runners/service_test.go TestNoTokenOrPasswordStoredOrLogged; internal/backend/linux/linux_test.go TestTokenOnlyInEnvAndUpdateOff |
