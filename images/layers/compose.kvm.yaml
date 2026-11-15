@@ -30,7 +30,7 @@ services:
     devices:
       - /dev/kvm:/dev/kvm
     group_add:
-      - "${CRSP_KVM_GID:-993}"
-    entrypoint: ["/usr/local/bin/kvm-wait.sh"]
+      - '${CRSP_KVM_GID:-993}'
+    entrypoint: ['/usr/local/bin/kvm-wait.sh']
     depends_on:
       - kvm-loader
