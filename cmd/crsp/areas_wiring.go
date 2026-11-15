@@ -158,6 +158,17 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		PoolName: pool, CacheQuota: d.Cfg.Cache, Now: d.Now,
 	}
 
+	// Automatic runner updates follow the product's automatic-update setting
+	// (runners R5.38, operations R5.15). The agent link has no update message
+	// yet, so Updater stays nil and an update answers with that reason.
+	if d.Ops != nil && d.Ops.Settings != nil {
+		set := d.Ops.Settings
+		runnerSvc.AutoUpdate = func(ctx context.Context) bool {
+			s, err := set.Get(ctx)
+			return err != nil || s.AutoUpdate
+		}
+	}
+
 	// Light runners: one per repository and OS, on a machine with a light slot
 	// (scheduling R5.65).
 	runnerSvc.Light = lightPlacer{svc: d.Machines}

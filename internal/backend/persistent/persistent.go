@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
 // MetaFile is the file CRSP keeps in each runner folder. It has no secret.
@@ -121,14 +122,23 @@ func Download(ctx context.Context, d sys.Deps, url, dest, sha string) error {
 	if d.Fetch == nil || d.Verify == nil {
 		return errors.New("no downloader configured")
 	}
-	if err := d.Fetch.Fetch(ctx, url, dest); err != nil {
-		return fmt.Errorf("download runner: %w", err)
-	}
-	if err := d.Verify(dest, sha); err != nil {
+	// A wrong hash may come from a cut or corrupted transfer: the file is
+	// deleted and fetched once more. A second wrong hash is refused (runners
+	// R5.37, parity row 31). A pin that is not a real hash is never retried.
+	var err error
+	for attempt := 0; attempt < 2; attempt++ {
+		if err = d.Fetch.Fetch(ctx, url, dest); err != nil {
+			return fmt.Errorf("download runner: %w", err)
+		}
+		if err = d.Verify(dest, sha); err == nil {
+			return nil
+		}
 		_ = d.FS.RemoveAll(dest)
-		return fmt.Errorf("runner download refused: %w", err)
+		if !errors.Is(err, runners.ErrHashMismatch) {
+			break
+		}
 	}
-	return nil
+	return fmt.Errorf("runner download refused: %w", err)
 }
 
 // ScopeSlug turns a GitHub URL into the service-name part owner[-repo].

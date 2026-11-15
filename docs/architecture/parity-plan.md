@@ -60,7 +60,7 @@ Status words: **Built** (code and tests exist), **Specified** (a requirement exi
 | 16 | Routing: variables with the runner labels | `CI_RUNS_ON`, `CI_RUNS_ON_WINDOWS`, label `repo-<route>` | all | Built as `RUNS_ON_*`; the old names are Missing, added for the move | github R5.27 to R5.30; github R5.39 |
 | 17 | One registry of all runners, status, doctor compares with GitHub | `agents.json`, `pool_status.py` | all | Built | runners R5.2, R5.5; doctor R5.11, R5.12 |
 | 18 | Runner version pinned with SHA-256 | `RUNNER_SHA256` | all | Built | runners R5.37 |
-| 19 | Runner auto-update with drain | `pool-refresh` | all | Specified | runners R5.38 |
+| 19 | Runner auto-update with drain | `pool-refresh` | all | Built in part (CRSP59): controller drain, update, truthful result, setting; the agent file swap is open | runners R5.38 |
 | 20 | Never cut a running job: drain, check right before the swap | drain handshake | all | Built for runners; Specified for image swap | runners R6.4; machines R5.30 to R5.33; runners R5.35 |
 | 21 | Base image like a hosted runner: git, curl, jq, zip, build-essential, libatomic, psql client, `gh`, python3 | Dockerfile | J1 to J11 | Missing, added | runners R5.49 |
 | 22 | Node LTS with corepack, `pnpm` shim | Dockerfile (DL215, DL220, DL223) | J1, J7 | Missing, added | runners R5.49 |
@@ -72,7 +72,7 @@ Status words: **Built** (code and tests exist), **Specified** (a requirement exi
 | 28 | `kvm` layer, the device, the group, the `kvm` label | `POOL_KVM`, `compose.kvm.yaml` | J11 | Device and label Specified; layer Missing, added | runners R5.41, R5.50 |
 | 29 | Extra distribution packages per pool | `.delivery/pool.apt` | any | Missing, added | runners R5.51 |
 | 30 | Image layers merged across repositories, `--drop-layer`, Playwright never lowered | `pool-refresh` | n/a | Not needed: a crsp pool is per repository and an image is keyed by its layers | runners R5.33 |
-| 31 | Build aside, drain, swap, truthful result, wrong runner hash fixed | `pool-refresh` | all | Specified | runners R5.33, R5.35, R5.37 |
+| 31 | Build aside, drain, swap, truthful result, wrong runner hash fixed | `pool-refresh` | all | Built (CRSP52 build aside, drain, swap; CRSP59 one re-download on a wrong hash) | runners R5.33, R5.35, R5.37 |
 | 32 | Agent user id clashes | `pool_supervisor.py` (DL284) | all | Not needed: the job user is fixed in the image | runners R5.49 |
 | 33 | Image checks in the doctor: tools found, image current, tool cache writable | `pool.<name>.*` | all | Built (CRSP53), not yet wired to an agent | doctor R5.31 |
 | 34 | Postgres 16 per pool, a login and a database per agent, random password | `pool_agents.py` | J6, J7 | Specified in short | runners R5.45 |
