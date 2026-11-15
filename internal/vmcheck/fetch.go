@@ -78,6 +78,7 @@ func RealDeps() Deps {
 			}
 			return cmd.Wait, nil
 		},
+		FreeMemMB: RealFreeMemMB,
 		Sleep: func(ctx context.Context, d time.Duration) {
 			t := time.NewTimer(d)
 			defer t.Stop()

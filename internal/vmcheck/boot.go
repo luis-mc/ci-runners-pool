@@ -176,6 +176,9 @@ type Deps struct {
 	Start func(ctx context.Context, name string, args ...string) (wait func() error, err error)
 	// Sleep waits between two reads of the serial log.
 	Sleep func(ctx context.Context, d time.Duration)
+	// FreeMemMB is the memory the runner has free, for the warning of
+	// MemoryWarning; nil or ok false means not known.
+	FreeMemMB func() (mb int64, ok bool)
 }
 
 // Outcome is the verdict of a boot.
@@ -217,7 +220,17 @@ func Download(ctx context.Context, f Fetcher, name string, d Distro, cacheDir st
 	if st, serr := os.Stat(path); serr == nil && st.Mode().IsRegular() {
 		return path, img.Name, img.Digest, nil
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+	// One download at a time per distro: a second job waits here and then
+	// finds the file the first made (caches R5.47).
+	unlock, err := Lock(ctx, cacheDir, "image-"+name)
+	if err != nil {
+		return "", "", "", err
+	}
+	defer unlock()
+	if st, serr := os.Stat(path); serr == nil && st.Mode().IsRegular() {
+		return path, img.Name, img.Digest, nil
+	}
+	if err := EnsureCacheDir(cacheDir); err != nil {
 		return "", "", "", err
 	}
 	h, err := NewHash(d.Algo)
@@ -273,11 +286,16 @@ func Boot(ctx context.Context, cat Catalogue, spec BootSpec, deps Deps, now func
 		return out, nil
 	}
 
-	base, imgName, digest, err := Download(ctx, deps.Fetch, spec.Distro, d, spec.CacheDir)
+	image, imgName, digest, err := Download(ctx, deps.Fetch, spec.Distro, d, spec.CacheDir)
 	if err != nil {
 		return fail(err.Error())
 	}
 	out.Image, out.Digest = imgName, digest
+	base, release, err := UseBase(ctx, deps, spec.CacheDir, spec.Distro, image, digest)
+	if err != nil {
+		return fail(err.Error())
+	}
+	defer release()
 
 	if err := os.MkdirAll(spec.WorkDir, 0o750); err != nil {
 		return Outcome{}, err
@@ -335,4 +353,19 @@ func Boot(ctx context.Context, cat Catalogue, spec BootSpec, deps Deps, now func
 		}
 		deps.Sleep(bctx, time.Second)
 	}
+}
+
+// UseBase makes sure the prepared base disk of the image exists and takes a
+// lease on the image and the base, so prune leaves both while the VM runs. The
+// returned function ends the lease.
+func UseBase(ctx context.Context, deps Deps, cacheDir, distro, image, digest string) (string, func(), error) {
+	base, err := EnsureBase(ctx, deps, cacheDir, distro, image, digest)
+	if err != nil {
+		return "", nil, err
+	}
+	release, err := Lease(cacheDir, image, base)
+	if err != nil {
+		return "", nil, err
+	}
+	return base, release, nil
 }

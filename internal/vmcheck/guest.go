@@ -256,11 +256,16 @@ func WithGuest(ctx context.Context, cat Catalogue, spec GuestSpec, deps GuestDep
 		out.Pass, out.ExitCode, out.Detail, out.Elapsed = false, code, detail, now().Sub(start)
 		return out, nil
 	}
-	base, imgName, _, err := Download(ctx, deps.Fetch, bs.Distro, d, bs.CacheDir)
+	image, imgName, digest, err := Download(ctx, deps.Fetch, bs.Distro, d, bs.CacheDir)
 	if err != nil {
 		return fail(1, err.Error())
 	}
 	out.Image = imgName
+	base, release, err := UseBase(ctx, deps.Deps, bs.CacheDir, bs.Distro, image, digest)
+	if err != nil {
+		return fail(1, err.Error())
+	}
+	defer release()
 	// 0o700: the private key lives here for the length of the run.
 	if err := os.MkdirAll(bs.WorkDir, 0o700); err != nil {
 		return RunOutcome{}, err

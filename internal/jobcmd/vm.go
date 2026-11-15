@@ -27,6 +27,7 @@ const (
 const vmUsage = `usage: crsp vm list
        crsp vm boot <distro> [--mem MiB] [--cpus N] [--timeout 5m] [--ready REGEXP] [--cache DIR]
        crsp vm prepare <distro> [--cache DIR]
+       crsp vm prune [--keep N] [--cap-gib N] [--dry-run] [--cache DIR]
        crsp vm run <distro> [--package PATH] [--install CMD]... [--check CMD]... [--mem MiB] [--cpus N] [--timeout 5m] [--run-timeout 30m] [--cache DIR]
        crsp vm selinux <distro> [--rpm FILE] [--module FILE.pp] [--service UNIT [--context TYPE]] [--mem MiB] [--cpus N] [--timeout 5m] [--run-timeout 30m] [--cache DIR]`
 
@@ -52,6 +53,8 @@ func VM(args []string, env Env) int {
 		return 0
 	case "boot":
 		return vmBoot(args[1:], cat, env)
+	case "prune":
+		return vmPrune(args[1:], cat, env)
 	case "prepare":
 		return vmPrepare(args[1:], cat, env)
 	case "run":
@@ -115,7 +118,9 @@ func vmBoot(args []string, cat vmcheck.Catalogue, env Env) int {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	warnMemory(env, deps.FreeMemMB, spec.MemMB)
 	out, err := vmcheck.Boot(ctx, cat, spec, deps, time.Now)
+	trimCache(ctx, cache, cat, env)
 	if err != nil {
 		_, _ = fmt.Fprintln(env.Stderr, "crsp vm:", err)
 		return ExitVMUsage
