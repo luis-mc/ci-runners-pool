@@ -1,0 +1,83 @@
+name: Parity
+
+# Parity gate against the old runner pool (docs/architecture/parity-plan.md,
+# section 6, release v0.7.0). It checks the crsp pool on a self-hosted runner,
+# writes the parity report and uploads it as the artifact `parity-report`
+# (a stable name: artifact-prune.yml keeps the newest one).
+#
+# `soak` = none runs the pool checks only. `soak` = dry-run also judges a fake
+# soak, to prove the report logic; a dry run never counts for the gate. The
+# real soak is not started here (parity-plan P1 to P6; the move runbook).
+on:
+  workflow_dispatch:
+    inputs:
+      soak:
+        description: 'none: pool checks only. dry-run: also judge a fake soak.'
+        type: choice
+        options: [none, dry-run]
+        default: none
+  schedule:
+    - cron: '17 2 * * *'
+
+concurrency:
+  group: parity
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    name: parity checks
+    # The pool's own runner labels, as a JSON list in the repository variable
+    # PARITY_RUNS_ON. The default is any self-hosted Linux runner.
+    runs-on: ${{ fromJSON(vars.PARITY_RUNS_ON || '["self-hosted","linux"]') }}
+    timeout-minutes: 30
+    env:
+      REPORT_DIR: parity-out
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+      - name: Build crsp
+        run: go build -o "$RUNNER_TEMP/crsp" ./cmd/crsp
+      - name: Check the pool
+        id: check
+        # The CLI context of the runner's user is the way in (`crsp login`, see
+        # docs/guides/runbooks/move-to-crsp.md). A failed check fails the step,
+        # but the report is still uploaded below.
+        continue-on-error: true
+        run: |
+          mkdir -p "$REPORT_DIR"
+          "$RUNNER_TEMP/crsp" parity check --out "$REPORT_DIR/parity-report.json"
+      - name: Judge a fake soak (dry run)
+        id: soak
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.soak == 'dry-run' }}
+        continue-on-error: true
+        run: |
+          mkdir -p "$REPORT_DIR"
+          "$RUNNER_TEMP/crsp" parity soak --dry-run --jobs 5 --duration 1h --p95 1m \
+            --out "$REPORT_DIR/parity-soak-dry-run.json"
+      - name: Summary
+        if: ${{ always() }}
+        run: |
+          for f in "$REPORT_DIR"/*.json; do
+            [ -f "$f" ] || continue
+            "$RUNNER_TEMP/crsp" parity report --markdown "$f" >> "$GITHUB_STEP_SUMMARY" || true
+          done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: parity-report
+          path: parity-out/
+          if-no-files-found: warn
+          overwrite: true
+          retention-days: 30
+      - name: Fail when the report did not pass
+        if: ${{ always() }}
+        run: |
+          if [ "${{ steps.check.outcome }}" != "success" ] || [ "${{ steps.soak.outcome }}" = "failure" ]; then
+            echo "The parity report did not pass. See the summary and the parity-report artifact."
+            exit 1
+          fi

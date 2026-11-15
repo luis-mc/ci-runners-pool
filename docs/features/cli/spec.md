@@ -7,7 +7,7 @@ status: building
 version: 0.1.0
 owner: owner
 type: reference
-code: [cmd/crsp/**, internal/cli/**]
+code: [cmd/crsp/**, internal/cli/**, internal/parity/**]
 design_system: [content action-vocabulary, content message-wording, content dates-times-numbers]
 last_verified: 2026-11-14
 artifact:
@@ -122,6 +122,7 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 | `runner list\|create\|remove` | Runners on machines | M1 | `runners` |
 | `job list\|watch` | Queue and history; live view | M1 | `scheduling` |
 | `doctor` | Run every check and print fixes | M2 | `doctor` |
+| `parity check\|soak\|report` | The parity gate against the old pool | M7 | this spec; [parity plan](../../architecture/parity-plan.md) |
 | `config export\|import --dry-run\|apply` | Configuration as a file | M8 | `config-as-code` |
 | `backup\|restore` | Back up and restore the controller | M1 | `backup` |
 | `update` | Update this machine's binary, with drain | M3 | `updates` |
@@ -214,6 +215,8 @@ With `--json`, a refusal prints the contract's `ErrorEnvelope` to stderr and use
 
 **R5.27** — A command run with no subcommand, or `help`, MUST print usage. Usage to stdout exits 0 when asked for; usage after an error goes to stderr and exits 2. (Built today.)
 
+**R5.28** — `parity check` MUST read the runners and a doctor run from the controller and write the parity report: one check per class (linux-container, windows, vm) that a runner of the class is online, one that no runner name is listed twice, and one that the doctor has no `warn` and no `fail`. `parity soak` MUST judge a soak either from an observation file (`--observations`) or as a dry run with fakes (`--dry-run`), and MUST refuse both or neither. A class passes the soak only when at least N jobs of it were submitted, no job is lost, no listener is duplicate and the p95 queue wait is at most the bound; the report passes only when every check and every class passes, and an empty report never passes. A dry run and a check-only run MUST never set `counts_for_gate`. `parity report FILE` MUST judge the file again from its parts, so an edited verdict cannot pass. A report that did not pass exits 8. The report is the JSON file `parity-report.json`, uploaded by `.github/workflows/parity.yml` as the artifact `parity-report`. Source: `internal/cli/cmd_parity.go`, `internal/parity/`; plan: parity plan sections 6 and 8.
+
 ## 6. Non-functional requirements
 
 **R6.1** — The CLI MUST NOT print, log or write to its config file any secret: controller tokens, GitHub tokens, the App private key, the webhook secret, registration or remove tokens. The one-time join code (`machine add`) and the one-time console link (`open`) are the only short-lived codes it prints, and only on those commands.
@@ -298,6 +301,7 @@ Tests are planned unless marked built. Planned paths are written in plain text u
 | R5.25 | built: internal/cli/completion_test.go TestScriptsAndOfflineCompletion |
 | R5.26 | built: cmd/crsp/main_test.go TestRunVersion, TestRunVersionJSON; internal/cli/core_test.go TestVersionJSON |
 | R5.27 | built: cmd/crsp/main_test.go TestRunUsageErrors; internal/cli/core_test.go TestUsageErrors |
+| R5.28 | built: internal/parity/parity_test.go TestEachCriterionFailsItsClass, TestReportEvaluate, TestPercentile95; internal/cli/cmd_parity_test.go TestParityCheckPassesAndWritesReport, TestParitySoakDryRun, TestParityReportIsRejudged |
 | R6.1 | built: internal/cli/login_test.go TestNoSecretInOutputOrConfig (runs commands with a canary token) |
 | R6.2 | built: internal/cli/contexts/contexts_test.go TestNoTokenInFile; internal/cli/core_test.go TestFallbackFileMode |
 | R6.3 | built: internal/cli/core_test.go TestNoInsecureFlag; internal/cli/login_test.go TestLoginErrors |
@@ -360,6 +364,12 @@ Source: internal/cli/cmd_machine.go
 Source: internal/cli/cmd_runner.go
 Source: internal/cli/cmd_job.go
 Source: internal/cli/cmd_ops.go
+Source: internal/cli/cmd_parity.go
+Source: internal/parity/soak.go
+Source: internal/parity/judge.go
+Source: internal/parity/checks.go
+Source: internal/parity/report.go
+Source: internal/parity/fake.go
 Source: internal/cli/contexts/contexts.go
 Source: internal/cli/output/output.go
 Source: internal/api/client/client.gen.go

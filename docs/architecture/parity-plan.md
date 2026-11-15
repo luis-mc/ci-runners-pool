@@ -88,7 +88,7 @@ Status words: **Built** (code and tests exist), **Built in part** (what is built
 | 44 | Cache over quota, low cache disk | `cache-cap`, `cache-disk` | J2 | Built (CRSP48) | doctor R5.34 |
 | 45 | Which jobs of a repository the pool can run | none | all | Built in part (CRSP47: `repo.coverage`, a static capability table per release, `covered`, `missing: <capability>` or `not checked`). Not yet: it does not look at the runners that are online (doctor open question 0); the table is not extended for each release | doctor R5.33 |
 | 46 | Local heavy-work guard, cloud CI session limit, `ci-wait` marker and fallback | delivery | n/a | Not taken (D301) | handover |
-| 47 | Verify workflow `pool-check.yml` | a manual run | n/a | `pool-check.yml` replaced by `crsp doctor` (Built CRSP23, without `--local`). The parity workflow `parity.yml` is not built (v0.7.0) | doctor R5.21 |
+| 47 | Verify workflow `pool-check.yml` | a manual run | n/a | `pool-check.yml` replaced by `crsp doctor` (Built CRSP23, without `--local`). The parity workflow `parity.yml` is built (HND21: `crsp parity check` against the pool, nightly and on demand, artifact `parity-report`); the fixture jobs of J1 to J13 in it are not built (v0.7.0) | doctor R5.21 |
 | 48 | Actions cache server, git mirror, registry mirror | not in the old pool | n/a | Not needed for parity; jobs use GitHub's cache | caches R5.1 to R5.13 (M7) |
 
 ### What is left
@@ -102,7 +102,7 @@ Checked on 15 Nov 2026 (CRSP71). Only real gaps are listed; each names the rows.
 5. **Machine sizing (row 9).** The cpuset waits for the container backend. The pool size form is built (CRSP70).
 6. **`crsp vm` (row 39).** `prepare`, `run` over ssh and `selinux` are built (CRSP65). `prune`, the base disk, the shared VM cache and the memory warning are built (CRSP71). Not yet: `doctor`, packages in the base disk, snapshots and `--resume` (caches R5.46, open question 19), and the owner and group of a machine-wide cache folder (open question 20).
 7. **Pins and tools (rows 23, 25, 27).** LLVM is amd64 only, Wine and dotnet are pinned by line and not by version (runners open questions 28, 31, 38), there is no AppImage tool (open question 39), and the Windows symlink right is not built.
-8. **Coverage and the parity gate (rows 45, 47).** The coverage table does not look at online runners and is not extended each release; `parity.yml`, the soak and the move runbook (v0.7.0) do not exist.
+8. **Coverage and the parity gate (rows 45, 47).** The coverage table does not look at online runners and is not extended each release; `parity.yml` (pool checks, report, artifact), the soak definition with its judge and the move runbook exist (HND21, cli R5.28; [runbook](../guides/runbooks/move-to-crsp.md)). Not yet: the 13 fixture jobs in `parity.yml`, the live collection of a soak from the controller (`crsp parity soak` reads an observation file today), and the first real soak.
 
 ## 4. Releases on this PC
 
@@ -149,7 +149,7 @@ A repository moves one operating system at a time, because it has one variable p
 
 The owner fills the repository names by running the coverage check on the PC. Inside a wave, move the repository with the fewest jobs first, and one repository at a time: wait for one full CI run of a pull request and one run on the default branch before the next.
 
-The steps for one repository and one OS:
+The steps for one repository and one OS are in the [move runbook](../guides/runbooks/move-to-crsp.md); in short:
 
 1. `crsp doctor` shows `covered`.
 2. Turn the pool on for the repository in the console. crsp installs its runners and writes `RUNS_ON_<OS>`. With `legacy_vars` on it also writes `CI_RUNS_ON` or `CI_RUNS_ON_WINDOWS` (github R5.39), so the old templates follow.
@@ -159,6 +159,8 @@ The steps for one repository and one OS:
 6. After 7 green days the repository is done. The old runner is removed with the old pool, by the owner.
 
 ## 6. The parity test
+
+**This gate is the precondition of the dev-standards go messages HND13 and HND14.** Neither message is sent, and nothing in dev-standards is told that crsp covers every private-repo job, until P1 to P10 hold and the report of `parity.yml` has passed with a live soak (`counts_for_gate` true; a dry run never counts).
 
 crsp tells dev-standards "crsp covers every private-repo job" only when all of these hold on the same crsp release **V** on the owner's PC. V is v0.7.0 or later.
 
@@ -193,11 +195,28 @@ What each kind needs as proof. A kind is proven only with both columns.
 | J12 | On the Windows runner: a Rust test, a symlink creation, an MSI build, the packaged smoke. | The Windows job of a repository. |
 | J13 | 4 light and 3 heavy jobs started together: heavy jobs run one at a time, light jobs never wait behind them, and the gate holds a job when the load is over budget. | The slot log of a busy day (`crsp slots`). |
 
-When P1 to P10 hold, the orchestrator sends this message to the dev-standards session, once, and records it in the change note of the release:
+When P1 to P10 hold, and so does the precondition above, the orchestrator sends this message to the dev-standards session, once, and records it in the change note of the release:
 
 > crsp covers every private-repo job. Version V, commit SHA, date. Kinds J1 to J13 are proven (fixture run URLs and one real run URL per repository and kind). The old pool has had no job for 7 days. Deleting it is your owner's decision (D299). Rollback per repository is one variable.
 
 If a kind is added later (a repository gets a new job type), the coverage list shows `missing` and the message is withdrawn until P3 and P4 hold again.
+
+### The soak
+
+The soak is the test behind P1, P3, P5 and P6, defined in `internal/parity` and judged by `crsp parity soak` (cli R5.28). It is not run by the workflow; the owner starts it on the PC once the fixtures exist.
+
+| Part | Value |
+|---|---|
+| Classes | linux container (J1 to J10, J13), windows (J12), vm (J11) |
+| Jobs | N of each class; default N is 200 |
+| Duration | the window the N jobs are spread over; default 7 days (open question 3) |
+| No lost job | every submitted job finishes with a result; a job that never finished, or that the controller marks `lost`, fails the class |
+| No duplicate listener | no runner name answered by two listeners, and no job taken by two runners |
+| Queue wait | the p95 (nearest rank) of the queue wait is at most the bound; default 5 minutes |
+| Not enough jobs | fewer than N submitted jobs in a class fails the class |
+| Record | the parity report (`parity-report.json`): the plan, one row per class with submitted, finished, lost, duplicate, p95 wait and the reasons it failed |
+
+The report passes only when every check and every class passes. A dry run with fakes (`crsp parity soak --dry-run`) proves the logic and never counts for the gate.
 
 ## 7. Transition rules while both pools run
 
