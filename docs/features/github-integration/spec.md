@@ -261,6 +261,8 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R5.46** (M1, v0.3.0, Built CRSP74) — **The doctor and the Overview say it.** The doctor names the repositories whose jobs wait because no machine is up and whose fallback is off (info, never fail: waiting costs nothing), and warns while a repository runs on hosted runners (doctor R5.39, R5.40). `repo.vars` and `repo.vars.runner` accept the hosted label while the fallback holds. The Overview shows one line while any repository is on fallback (web-console R5.35).
 
+**R5.47** (M1, RES14, built) — **Webhook health per repository.** The controller keeps, for each repository, the time and result of the last webhook delivery (`webhook` of the repository: `last_delivery_at`, `last_result` `ok`, `failed` or `missed`, `mode`, `failures_in_a_row`). A verified `workflow_job` that the controller cannot read counts as `failed`; a queued job that polling lists and that no delivery announced within two minutes counts as `missed`. After three failures in a row the repository is in `polling` mode: the console says so and offers *Switch back to webhooks* (`setRepositoryWebhookMode`, admin; only `webhook` is accepted). A delivery that works resets the count but never leaves polling mode by itself. Jobs are learned by the REST poller (R5.37) for every repository with the pool on, so the mode changes what the console says and what the owner sees, not which repositories are polled. The code is in `internal/webhookhealth`; the webhook handler calls it through the small `OnDelivery` hook, and the poller through `OnQueued`.
+
 ## 6. Non-functional requirements
 
 **R6.1** (M1, NOT YET IMPLEMENTED) — **Secrets only in the OS secret store.** The App private key, client secret, webhook secret, CLI tokens and any GitHub user refresh token live only in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service, or a file with mode 0600 when no service exists. They never go to the database, config files, environment files, logs, crash files, API responses or the audit log.
@@ -412,6 +414,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.44 | internal/repos/fallback_test.go (the routing checks in the tests above); apps/web/src/screens/repositories/Repositories.test.tsx "shows where the jobs go now and why" (CRSP74) |
 | R5.45 | internal/repos/fallback_test.go TestFallbackCapStopsFallingBack (CRSP74); internal/repos/fallback_edges_test.go TestFallbackEdges (cap reached mid-month, month rollover) (RES13) |
 | R5.46 | internal/doctor/checks/fallback_test.go; apps/web/src/shell/Shell.test.tsx "says in one line on the Overview" (CRSP74) |
+| R5.47 | internal/webhookhealth/health_test.go; internal/github/webhook_test.go TestOnDeliverySeesRepositoryJobAndUse; internal/api/handlers_webhook_health_test.go; apps/web/src/screens/repositories/Repositories.test.tsx "Webhook health (RES14)" (RES14) |
 | R6.1 | planned: internal/secrets/store_test.go; internal/store/no_secrets_test.go (schema has no secret column) |
 | R6.2 | internal/github/client_test.go |
 | R6.3 | planned: internal/logging/redact_test.go |

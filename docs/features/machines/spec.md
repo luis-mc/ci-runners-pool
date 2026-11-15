@@ -117,6 +117,10 @@ The overview shows machines and load and only links here (UX-52). Busy buttons f
 
 **R5.4** (M1) — A join code works once. It expires after 15 minutes by default (ceiling 24 hours). The console shows when it expires. A new code makes the old unused one invalid.
 
+**R5.3a** (M1, RES3, owner decision D59) — **Copy-and-wait, plus an optional SSH join.** The default is one Copy button with a one-line join command that holds a short-lived, single-use join code (15 minutes, R5.4). The optional path *I have SSH* is for Linux and macOS only: the console asks for the host, the user, an optional port and an SSH key file. The controller (`createJoinCode` then `joinMachineOverSsh`) signs in once with that key, runs the install command with `sudo -n` and signs out. The key is used for that one join: it is never written to the database, to disk or to a log, its bytes are zeroed afterwards, and the answer never holds it. There is no password option; a key that needs a passphrase is refused. The first call only reads the host key and answers `needs_confirmation` with its SHA256 fingerprint; the console asks the owner to confirm it, and the second call carries `host_fingerprint`, which the controller pins for that session. If the command fails, the code made for it is withdrawn and the answer names the failure without the code. Windows stays copy-and-wait.
+
+**R5.4a** (M1, RES3) — **Live join progress.** `getJoinCode` carries `progress`: `waiting` (no agent used the code), `connected` (the agent joined) and `ready` (the machine sent its first heartbeat). It is absent once the code expired or was withdrawn. The wizard shows the three steps live and ends at Done when the machine is ready.
+
 **R5.5** (M1) — At join the agent checks the controller certificate against the fingerprint in the command. On a mismatch it stops and says so. It never joins a controller it cannot verify.
 
 **R5.6** (M1) — At join the controller checks the code, marks it used, and issues a key for this machine only. A used, expired or unknown code is refused with the reason ("this code was already used", "this code expired at 14:05").
@@ -370,6 +374,8 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.2 | internal/machines/local_agent_test.go | planned |
 | R5.3 | internal/machines/joincode_test.go | planned |
 | R5.4 | internal/machines/joincode_test.go | planned |
+| R5.3a | internal/machines/sshjoin_test.go (fake and real SSH exchange); internal/api/machines_ssh_join_test.go; apps/web/src/screens/machines/AddMachine.test.tsx (RES3) |
+| R5.4a | internal/api/machines_ssh_join_test.go TestJoinCodeProgressWaitingConnectedReady; apps/web/src/screens/machines/AddMachine.test.tsx (RES3) |
 | R5.5 | internal/agent/join_test.go | planned |
 | R5.6 | internal/machines/join_test.go | planned |
 | R5.7 | internal/agent/secretstore_test.go | planned |
