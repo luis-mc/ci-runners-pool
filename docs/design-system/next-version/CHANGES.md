@@ -15,3 +15,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C10: action word Send test, and the notification words (events, severities, kinds) added (content.md; notifications open question 4, CRSP37)
 - C11: text field takes `secret`: hidden while typed, never filled in again (components.md 14; notifications R6.2, CRSP37)
 - C12: light runner words and the switch "Keep a light runner for short jobs" added (content.md; scheduling R5.65, CRSP44)
+- C13: Connect GitHub error words and the App name help added (content.md; github-integration R5.3, OPS10)

@@ -4,6 +4,7 @@
 import {
   Button,
   ChoiceField,
+  ExternalButton,
   Facts,
   Loading,
   Failed,
@@ -36,6 +37,39 @@ const CONNECT_STEPS = [
   'Done',
 ] as const;
 
+// The words for the error code GitHub's redirect brings back (content: Connect GitHub words).
+const HALF_MADE =
+  'GitHub made the App, but crsp could not save it. Open the App on GitHub and delete it (App settings, Advanced, Delete GitHub App). Then start again.';
+
+function messageFor(code: string, hasAppUrl: boolean): string {
+  if (hasAppUrl) return HALF_MADE;
+  switch (code) {
+    case 'unavailable':
+      return 'crsp could not save the App because the OS secret store is not available. See the doctor. Then start again.';
+    case 'github_unavailable':
+      return 'GitHub could not be reached. Nothing was changed. Try again.';
+    case 'bad_request':
+      return 'The link back from GitHub did not work. It ran out or was used already. Start again.';
+    case 'conflict':
+      return 'An App is already set up.';
+    default:
+      return 'The App was not created. Start again.';
+  }
+}
+
+// Only a GitHub page is offered as a link; the controller checks it too.
+function safeAppUrl(v: string | null): string | undefined {
+  if (!v) return undefined;
+  try {
+    const u = new URL(v);
+    return u.protocol === 'https:' && u.host === 'github.com' && !u.username
+      ? u.toString()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function ConnectGithubWizard({
   state,
   onDone,
@@ -54,6 +88,11 @@ export function ConnectGithubWizard({
   const [problem, setProblem] = useState<string | undefined>(undefined);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const seen = useRef(false);
+  // The error the redirect from GitHub brought; read once, then cleared from the address.
+  const [back] = useState(() => ({
+    code: params.get('error'),
+    appUrl: safeAppUrl(params.get('app_url')),
+  }));
 
   useEffect(() => {
     if (seen.current || !state) return;
@@ -68,7 +107,16 @@ export function ConnectGithubWizard({
       } else setPhase('done-after-reload');
       return;
     }
-    if (flow === 'started') {
+    if (back.code) {
+      setStep(4);
+      setProblem(messageFor(back.code, back.appUrl !== undefined));
+      setPhase('failed');
+      const next = new URLSearchParams(params);
+      next.delete('error');
+      next.delete('app_url');
+      next.delete('app');
+      setParams(next, { replace: true });
+    } else if (flow === 'started') {
       setStep(3);
       setPhase('paused');
     } else if (flow === 'cancelled') {
@@ -82,7 +130,7 @@ export function ConnectGithubWizard({
       setStep(1);
       setPhase('first-run');
     }
-  }, [state, flow, params, setParams]);
+  }, [state, flow, params, setParams, back]);
 
   const toReview = async () => {
     const e: Record<string, string> = {};
@@ -170,7 +218,13 @@ export function ConnectGithubWizard({
             onChange={setOrg}
           />
         ) : null}
-        <TextField label="App name" value={name} error={errors.name} onChange={setName} />
+        <TextField
+          label="App name"
+          help="GitHub App names are unique across GitHub. If GitHub says the name is taken, delete the old App or choose another name."
+          value={name}
+          error={errors.name}
+          onChange={setName}
+        />
       </Stack>
     );
   else if (step === 2)
@@ -206,9 +260,16 @@ export function ConnectGithubWizard({
   else
     body =
       phase === 'failed' ? (
-        <Message tone="problem">
-          The App was not created. {problem ?? ''} Try again.
-        </Message>
+        <Stack>
+          <Message tone="problem">
+            {back.code
+              ? (problem ?? '')
+              : `The App was not created. ${problem ?? ''} Try again.`}
+          </Message>
+          {back.appUrl ? (
+            <ExternalButton href={back.appUrl}>Open the App on GitHub</ExternalButton>
+          ) : null}
+        </Stack>
       ) : phase === 'stopped' ? (
         <Message tone="note">
           Stopped. GitHub did not create the App. Start again to go back to GitHub.

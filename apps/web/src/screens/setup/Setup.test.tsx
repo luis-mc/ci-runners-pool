@@ -53,6 +53,49 @@ describe('Setup page', () => {
     ).toBeTruthy();
   });
 
+  it('says GitHub made the App but crsp could not save it, links to it, and clears the error (R5.3)', async () => {
+    const api = signedIn()
+      .on('POST', '/api/v1/setup/redeem', state({ setup_link_redeemed: true }))
+      .on('GET', '/api/v1/setup', state({ setup_link_redeemed: true }));
+    renderApp(
+      api,
+      '/setup?code=x&error=unavailable&app_url=' +
+        encodeURIComponent('https://github.com/apps/crsp-home'),
+    );
+    expect(
+      await screen.findByText(/GitHub made the App, but crsp could not save it/),
+    ).toBeTruthy();
+    expect(screen.getByText(/Delete GitHub App/)).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Open the App on GitHub' }).getAttribute('href'),
+    ).toBe('https://github.com/apps/crsp-home');
+    await waitFor(() => expect(window.location.search).not.toContain('error='));
+  });
+
+  it('offers no link to an address that is not on github.com', async () => {
+    const api = signedIn().on(
+      'GET',
+      '/api/v1/setup',
+      state({ setup_link_redeemed: true }),
+    );
+    renderApp(
+      api,
+      '/setup?error=unavailable&app_url=' + encodeURIComponent('https://evil.example/x'),
+    );
+    expect(await screen.findByText(/OS secret store is not available/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Open the App on GitHub' })).toBeNull();
+  });
+
+  it('explains that App names are unique across GitHub (R5.3)', async () => {
+    const api = signedIn().on(
+      'GET',
+      '/api/v1/setup',
+      state({ setup_link_redeemed: true }),
+    );
+    renderApp(api, '/setup');
+    expect(await screen.findByText(/App names are unique across GitHub/)).toBeTruthy();
+  });
+
   it('goes on to the machine wizard once the App is connected and the user is signed in', async () => {
     const api = signedIn()
       .on(

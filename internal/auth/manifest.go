@@ -150,24 +150,62 @@ func (s *Service) CompleteManifest(ctx context.Context, code, state string) (App
 	}
 	id := creds.App.ID
 	// Secrets first. If the store fails nothing is kept and the person starts
-	// again; the database never holds a half-made App.
-	for _, kv := range []struct {
+	// again; the database never holds a half-made App. GitHub gives an empty
+	// webhook secret to an App made without a hook, and a store may refuse an
+	// empty value (Windows DPAPI does), so that one is kept only when it exists.
+	parts := []struct {
 		name string
 		val  []byte
-	}{{"private-key", creds.PrivateKeyPEM}, {"client-secret", []byte(creds.ClientSecret)}, {"webhook-secret", []byte(creds.WebhookSecret)}} {
+	}{{"private-key", creds.PrivateKeyPEM}, {"client-secret", []byte(creds.ClientSecret)}}
+	if creds.WebhookSecret != "" {
+		parts = append(parts, struct {
+			name string
+			val  []byte
+		}{"webhook-secret", []byte(creds.WebhookSecret)})
+	}
+	for _, kv := range parts {
 		if err := s.cfg.Secrets.Put(ctx, secretKey(id, kv.name), kv.val); err != nil {
-			return AppRecord{}, fmt.Errorf("storing the App secrets: %w", err)
+			return AppRecord{}, s.halfMade(ctx, creds.App, fmt.Errorf("storing the App secrets: %w", err))
 		}
 	}
 	rec := AppRecord{ID: id, Slug: creds.App.Slug, ClientID: creds.App.ClientID, OwnerLogin: creds.App.OwnerLogin,
 		OwnerType: creds.App.OwnerType, HTMLURL: creds.App.HTMLURL, WebhookActive: data["webhook"] == "true",
 		Permissions: creds.App.Permissions}
 	if err := s.store.SaveApp(ctx, rec); err != nil {
-		return AppRecord{}, err
+		return AppRecord{}, s.halfMade(ctx, creds.App, err)
 	}
 	if s.cfg.OnApp != nil {
 		s.cfg.OnApp(rec)
 	}
 	s.audit(ctx, "setup", "setup.app_created", "github_app", rec.Slug, "", "done")
 	return rec, nil
+}
+
+// AppCreatedError is a failure after GitHub made the App: the App exists at
+// GitHub but the controller kept nothing. AppURL is the App's page when it is
+// an https://github.com address, so the person can delete the App.
+type AppCreatedError struct {
+	AppURL string
+	Err    error
+}
+
+func (e *AppCreatedError) Error() string {
+	return "GitHub made the App but it was not saved: " + e.Err.Error()
+}
+func (e *AppCreatedError) Unwrap() error { return e.Err }
+
+// SafeAppURL returns u when it is an https://github.com address with no
+// credentials, else "". The page shows it as a link, so nothing else passes.
+func SafeAppURL(u string) string {
+	p, err := url.Parse(u)
+	if err != nil || p.Scheme != "https" || p.Host != "github.com" || p.User != nil {
+		return ""
+	}
+	return p.String()
+}
+
+func (s *Service) halfMade(ctx context.Context, app github.App, err error) error {
+	u := SafeAppURL(app.HTMLURL)
+	s.audit(ctx, "system", "setup.app_incomplete", "github_app", app.Slug, "GitHub made the App but it was not saved: "+u, "failed")
+	return &AppCreatedError{AppURL: u, Err: err}
 }

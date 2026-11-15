@@ -95,17 +95,20 @@ type Server struct {
 	AppID        int64
 	AppPublicKey *rsa.PublicKey
 
-	Users          map[int64]*User
-	UserTokens     map[string]int64 // user access token -> user id
-	Installs       map[int64]*Install
-	Repos          map[int64]*Repo
-	Variables      map[string]map[string]string // full repo name -> name -> value
-	Runners        map[string][]*Runner         // scope ("owner/repo" or "org") -> runners
-	WorkflowFiles  map[string]map[string]string // full repo name -> path -> content
-	Jobs           []*Job
-	ManifestCodes  map[string]bool // unused codes
-	OAuthCodes     map[string]int64
-	OAuthVerifiers map[string]string // code -> expected PKCE challenge
+	Users         map[int64]*User
+	UserTokens    map[string]int64 // user access token -> user id
+	Installs      map[int64]*Install
+	Repos         map[int64]*Repo
+	Variables     map[string]map[string]string // full repo name -> name -> value
+	Runners       map[string][]*Runner         // scope ("owner/repo" or "org") -> runners
+	WorkflowFiles map[string]map[string]string // full repo name -> path -> content
+	Jobs          []*Job
+	ManifestCodes map[string]bool // unused codes
+	// NoWebhookSecret makes a conversion return an empty webhook secret, as
+	// GitHub does for an App made without a hook.
+	NoWebhookSecret bool
+	OAuthCodes      map[string]int64
+	OAuthVerifiers  map[string]string // code -> expected PKCE challenge
 	// DeviceCodes: device code -> approving user id (0 pending, -1 denied).
 	DeviceCodes map[string]int64
 	// ForkApproval is the fork pull request approval policy per repository.
