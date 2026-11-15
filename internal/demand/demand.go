@@ -31,8 +31,11 @@ const Actor = "demand"
 
 // Repo is what the loop needs to know about a repository with the pool on.
 type Repo struct {
-	Scope     runners.Scope
-	AllowFork bool
+	Scope runners.Scope
+	// InstallationID is the GitHub App installation that reads the jobs of
+	// the repository (used by the job re-check, runners R5.68).
+	InstallationID int64
+	AllowFork      bool
 	// ExtraPackages are the pool's extra packages (runners R5.51).
 	ExtraPackages []string
 }
@@ -85,9 +88,17 @@ type Loop struct {
 	Now   func() time.Time
 	// IdleAfter is the time a runner may have no job (default 15 minutes).
 	IdleAfter time.Duration
+	// ReadJob reads one job from GitHub. Before a runner starts for a queued
+	// job whose last event is older than RecheckAfter, the loop reads the job
+	// again and starts nothing when it is no longer queued (runners R5.68).
+	// Nil means no re-check; the state the events gave is trusted.
+	ReadJob func(ctx context.Context, installationID int64, owner, repo string, jobID int64) (github.Job, error)
+	// RecheckAfter is how old an event may be before the API read (default 5 s).
+	RecheckAfter time.Duration
 
 	mu      sync.Mutex
 	seen    map[int64]github.Job // open jobs by id
+	seenAt  map[int64]time.Time  // when the last event of an open job came
 	pending map[int64]*waiting
 	started map[int64]startedRunner // job id -> runner made for it
 }
@@ -111,11 +122,15 @@ const maxFails = 5
 func (l *Loop) init() {
 	if l.seen == nil {
 		l.seen = map[int64]github.Job{}
+		l.seenAt = map[int64]time.Time{}
 		l.pending = map[int64]*waiting{}
 		l.started = map[int64]startedRunner{}
 	}
 	if l.IdleAfter <= 0 {
 		l.IdleAfter = DefaultIdleAfter
+	}
+	if l.RecheckAfter <= 0 {
+		l.RecheckAfter = 5 * time.Second
 	}
 	if l.Every <= 0 {
 		l.Every = 5 * time.Second
@@ -164,11 +179,13 @@ func (l *Loop) Observe(ctx context.Context, j github.Job) {
 	switch j.Status {
 	case "queued":
 		l.seen[j.ID] = j
+		l.seenAt[j.ID] = l.Now()
 		if _, done := l.started[j.ID]; !done && l.pending[j.ID] == nil {
 			l.pending[j.ID] = &waiting{}
 		}
 	case "in_progress":
 		l.seen[j.ID] = j
+		l.seenAt[j.ID] = l.Now()
 		delete(l.pending, j.ID)
 		// The runner of this job has a job now: it is not idle.
 		if strings.HasPrefix(j.RunnerName, RunnerPrefix) {
@@ -181,6 +198,7 @@ func (l *Loop) Observe(ctx context.Context, j github.Job) {
 		}
 	default: // completed
 		delete(l.seen, j.ID)
+		delete(l.seenAt, j.ID)
 		delete(l.pending, j.ID)
 	}
 	var finish []startedRunner
@@ -354,6 +372,9 @@ func (l *Loop) try(ctx context.Context, j github.Job, w *waiting, hosts []Host, 
 			l.note(j, w, "every slot of the machine is in use")
 			continue
 		}
+		if !l.stillQueued(ctx, j, repo) {
+			return
+		}
 		name := fmt.Sprintf("%s%d", RunnerPrefix, j.ID)
 		rec, err := l.Runners.StartJobRunner(ctx, runners.JobRunner{Name: name, MachineID: h.MachineID, Arch: h.Arch,
 			Backend: "docker", Labels: labels, Scope: repo.Scope, ExtraPackages: repo.ExtraPackages}, Actor)
@@ -372,6 +393,46 @@ func (l *Loop) try(ctx context.Context, j github.Job, w *waiting, hosts []Host, 
 	if labelWhy != "" {
 		l.note(j, w, labelWhy)
 	}
+}
+
+// stillQueued is the last check before a runner starts: it never starts one
+// for a job that already finished, was cancelled or was taken (runners R5.68).
+// The webhook or poll state is trusted while it is fresh; when the last event
+// of the job is older than RecheckAfter, one API read settles it. A job that
+// is not queued any more stops waiting. A read that fails starts nothing and
+// the job is tried again on the next tick.
+func (l *Loop) stillQueued(ctx context.Context, j github.Job, repo Repo) bool {
+	if l.ReadJob == nil {
+		return true
+	}
+	l.mu.Lock()
+	at := l.seenAt[j.ID]
+	l.mu.Unlock()
+	if !at.IsZero() && l.Now().Sub(at) < l.RecheckAfter {
+		return true
+	}
+	owner, name, ok := strings.Cut(j.Repository, "/")
+	if !ok {
+		return false
+	}
+	cur, err := l.ReadJob(ctx, repo.InstallationID, owner, name, j.ID)
+	if err != nil {
+		l.Logger.Warn("re-read a queued job before starting a runner", "job", j.ID, "repository", j.Repository, "err", err)
+		return false
+	}
+	if cur.Status == "queued" {
+		l.mu.Lock()
+		l.seenAt[j.ID] = l.Now()
+		l.mu.Unlock()
+		return true
+	}
+	l.mu.Lock()
+	delete(l.pending, j.ID)
+	delete(l.seen, j.ID)
+	delete(l.seenAt, j.ID)
+	l.mu.Unlock()
+	l.Logger.Info("queued job is no longer queued; no runner started", "job", j.ID, "repository", j.Repository, "status", cur.Status, "conclusion", cur.Conclusion)
+	return false
 }
 
 // note keeps the reason a job waits and logs it once.

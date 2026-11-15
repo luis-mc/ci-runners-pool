@@ -99,6 +99,8 @@ func (g *Gate) acceptanceLocked(ps power.State, now time.Time) Acceptance {
 		a.Reason = machines.PauseReasonPaused
 	case g.settings.EffectiveMode() == machines.ModeAutomatic && g.settings.PauseOnBattery && ps.OnBattery:
 		a.Reason = machines.PauseReasonOnBattery
+	case len(g.baseGaps) > 0:
+		a.Reason = machines.PauseReasonBaseImage
 	default:
 		rep, ok := g.sampler.Latest()
 		if good, _ := load.Decide(rep, ok, g.settings.BudgetMemoryPct, g.settings.BudgetCPUPct); !good {
@@ -159,6 +161,7 @@ func (l *link) syncCap(ctx context.Context, set machines.Settings) cpucap.Result
 // acceptingReport builds the message for the controller.
 func (l *link) acceptingReport(ctx context.Context) *agentv1.AcceptingReport {
 	set, _ := l.cfg.Gate.Settings()
+	l.checkBaseImages(ctx)
 	acc := l.cfg.Gate.Acceptance()
 	res := l.syncCap(ctx, set)
 	r := &agentv1.AcceptingReport{

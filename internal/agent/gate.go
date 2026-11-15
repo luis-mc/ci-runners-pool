@@ -31,6 +31,8 @@ type Gate struct {
 	// held names the runners that take no new job while a cache wipe waits.
 	held    map[string]bool
 	sampler *load.Sampler
+	// baseGaps are the runner base images this machine lacks (runners R5.53).
+	baseGaps []BaseImage
 
 	// The machine policy (CRSP75, R5.61 to R5.64): the power source and the clock.
 	power power.Reader

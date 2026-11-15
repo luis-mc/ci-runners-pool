@@ -2382,7 +2382,7 @@ export interface components {
          * @description Why a machine takes no new job (machines R5.62). Other features read these exact names.
          * @enum {string}
          */
-        PauseReason: "paused" | "on_battery" | "quiet_hours" | "budget";
+        PauseReason: "paused" | "on_battery" | "quiet_hours" | "budget" | "base_image_missing";
         /**
          * @description What the agent did with the CPU cap. not_supported is macOS (machines R5.64).
          * @enum {string}

@@ -54,6 +54,9 @@ type Config struct {
 	Runners runners.Agent
 	// Images lists the job images for the machine report; nil reports none.
 	Images ImageSource
+	// BaseImages checks that the runner base image of each backend exists on
+	// this machine before jobs are admitted (runners R5.53); nil checks none.
+	BaseImages BaseImageSource
 	// Redactor learns every token and JIT config the controller sends, so no
 	// log line or answer shows one (runners R5.11); nil makes a private one.
 	Redactor *redact.Redactor

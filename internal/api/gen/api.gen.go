@@ -824,15 +824,18 @@ func (e OS) Valid() bool {
 
 // Defines values for PauseReason.
 const (
-	PauseReasonBudget     PauseReason = "budget"
-	PauseReasonOnBattery  PauseReason = "on_battery"
-	PauseReasonPaused     PauseReason = "paused"
-	PauseReasonQuietHours PauseReason = "quiet_hours"
+	PauseReasonBaseImageMissing PauseReason = "base_image_missing"
+	PauseReasonBudget           PauseReason = "budget"
+	PauseReasonOnBattery        PauseReason = "on_battery"
+	PauseReasonPaused           PauseReason = "paused"
+	PauseReasonQuietHours       PauseReason = "quiet_hours"
 )
 
 // Valid indicates whether the value is a known member of the PauseReason enum.
 func (e PauseReason) Valid() bool {
 	switch e {
+	case PauseReasonBaseImageMissing:
+		return true
 	case PauseReasonBudget:
 		return true
 	case PauseReasonOnBattery:

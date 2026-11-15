@@ -49,7 +49,7 @@ func (e demandEnv) Repo(ctx context.Context, fullName string) (demand.Repo, bool
 		if err != nil {
 			return demand.Repo{}, false, err
 		}
-		return demand.Repo{Scope: runners.Scope{Kind: "repository", RepositoryID: r.ID}, AllowFork: pol.AllowForkPRs, ExtraPackages: pol.ExtraPackages}, true, nil
+		return demand.Repo{InstallationID: r.InstallationID, Scope: runners.Scope{Kind: "repository", RepositoryID: r.ID}, AllowFork: pol.AllowForkPRs, ExtraPackages: pol.ExtraPackages}, true, nil
 	}
 	return demand.Repo{}, false, nil
 }
@@ -198,7 +198,7 @@ func (d *demandRunner) Stop() {
 func startDemand(ctx context.Context, logger *slog.Logger, gh *github.REST, env demandEnv, svc *runners.Service, pool string, quiet time.Duration) (stop func(), wd *demand.Watchdog) {
 	ctx, cancel := context.WithCancel(ctx)
 	dr := &demandRunner{logger: logger, gh: gh, env: env, ctx: ctx,
-		loop: &demand.Loop{Env: env, Runners: svc, PoolName: pool, Logger: logger}}
+		loop: &demand.Loop{Env: env, Runners: svc, PoolName: pool, Logger: logger, ReadJob: gh.GetJob}}
 	dr.mu.Lock()
 	dr.start()
 	dr.mu.Unlock()
