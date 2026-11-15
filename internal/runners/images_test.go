@@ -53,7 +53,7 @@ func TestBaseImageToolListAndSelfCheck(t *testing.T) {
 	if !strings.Contains(d, "PATH=/usr/local/bin:") {
 		t.Error("/usr/local/bin is not first on PATH")
 	}
-	for _, check := range []string{"node --version", "corepack --version", "gh --version", `command -v pnpm`, "ldconfig -p | grep -q libatomic", "crsp version"} {
+	for _, check := range []string{"node --version", "corepack --version", "gh --version", `command -v pnpm`, "ldconfig -p | grep libatomic >/dev/null", "crsp version"} {
 		if !strings.Contains(d, check) {
 			t.Errorf("self-check %q missing", check)
 		}

@@ -109,11 +109,11 @@ RUN git --version && curl --version >/dev/null && jq --version && zip -v >/dev/n
  && pkg-config --version && psql --version \
  && node --version && corepack --version && gh --version \
  && test -x "$(command -v pnpm)" && test -x "$(command -v yarn)" \
- && ldconfig -p | grep -q libatomic \
+ && ldconfig -p | grep libatomic >/dev/null \
  && crsp version >/dev/null
 
 USER runner
 # The runner starts as the job user and prints the pinned version.
-RUN /opt/actions-runner/run.sh --version | grep -qx "${RUNNER_VERSION}" \
+RUN /opt/actions-runner/run.sh --version | grep -x "${RUNNER_VERSION}" >/dev/null \
  && test -f /opt/actions-runner/.env
 WORKDIR /home/runner

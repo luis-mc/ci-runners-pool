@@ -3627,7 +3627,8 @@ components:
         pool_cpus: 4
     PoolSizeCheck:
       type: object
-      required: [known, ok, needs_shrink_confirm, nearest, current_memory_gib, current_cpus]
+      required:
+        [known, ok, needs_shrink_confirm, nearest, current_memory_gib, current_cpus]
       properties:
         known:
           type: boolean
