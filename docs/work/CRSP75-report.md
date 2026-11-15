@@ -21,6 +21,21 @@ Branch `CRSP75-machine-policy`. Owner decision D51 (2026-11-15). Branch only, ne
 5. A machine that has reported nothing (an older agent) counts as accepting.
 6. The machine settings still live in the in-memory repository (the SQLite adapter is not written), so no migration was added.
 
-## Open
+## Done later
 
-See the pull request.
+- API: `mode`, `pause_on_battery`, `cpu_cap_pct`, `pause_until`, `pause_until_resumed` on machine settings; `accepting`, `pause_reason`, `policy` on the machine; PATCH takes `pause` (one_hour, until_resumed, none). Wait reasons `paused`, `on_battery`.
+- Console: When it works section on the machine page, Takes jobs column on the list.
+- Specs: machines R5.60 to R5.63, tray R5.42, scheduling R5.66, web-console R5.65; change notes CRSP75 in the four features; content.md Machine policy words; CHANGES C17.
+
+## Checks run
+
+- `go test -race`: power, cpucap, machines, agent, tray, trayserver, api, cmd/crsp, hooks; scheduler new tests (the full scheduler package takes 5 minutes, it passed before the new test file was added).
+- golangci-lint v2.15.0 (built with Go 1.27.4) on the touched packages: 0 issues. `GOOS=windows go vet` and golangci-lint clean; `GOOS=darwin go vet` clean for the packages without cgo.
+- `pnpm --filter web typecheck lint test`: all green. Prettier on changed files.
+- Not run: the Windows tests (`cap_windows_test.go`, they compile under `GOOS=windows go vet`), the e2e suite, Docker, the full suite.
+- `docs_fold.py` and `docs_check.py` were not found in this environment (no `<luismc-docs>` path). The change notes were written by hand in the existing format; `docs_check.py` still has to run.
+- The `.githooks` files are not executable in this checkout, so git ignored them; the commit-msg rule (no attribution) was kept by hand.
+
+## Open questions
+
+See machines spec M-12 to M-16. In short: a tray pause holds in Always; `budget` is shown but not held by the controller gate; a drained machine reports `paused`; an old settings cache has the battery pause off; the Linux cap needs permission to write the cgroup.
