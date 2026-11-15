@@ -117,3 +117,55 @@ func TestStartApplyAndRemoveRunInBackground(t *testing.T) {
 		t.Error("the removal runs in the background")
 	}
 }
+
+type dockerStub struct{ stubBackend }
+
+func (d *dockerStub) Name() backend.Name { return backend.Docker }
+func (d *dockerStub) PrepareImage(context.Context, backend.ImageSpec) (backend.ImageRef, error) {
+	d.calls = append(d.calls, "prepare")
+	return backend.ImageRef{ID: "crsp-pool:k"}, nil
+}
+
+type twoReg struct{ p, d backend.Backend }
+
+func (t twoReg) All() []backend.Backend { return []backend.Backend{t.d, t.p} }
+func (t twoReg) Get(n backend.Name) (backend.Backend, bool) {
+	switch n {
+	case backend.Persistent:
+		return t.p, true
+	case backend.Docker:
+		return t.d, true
+	}
+	return nil, false
+}
+
+// R5.27, R5.31: a JIT config goes to the container backend, a registration
+// token to the persistent one; a container handle is cleaned up by the container
+// backend and an OS service by the persistent one.
+func TestLocalAgentRoutesByKind(t *testing.T) {
+	ps, ds := &stubBackend{}, &dockerStub{}
+	a := NewLocalAgent(twoReg{ps, ds})
+	ctx := context.Background()
+	if _, err := a.AddRunner(ctx, "m", backend.RunnerSpec{Name: "crsp-job-1", OS: "linux"}, backend.StartConfig{JITConfig: "J"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.AddRunner(ctx, "m", backend.RunnerSpec{Name: "box-1", OS: "linux"}, backend.StartConfig{Registration: "R"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.CleanUp(ctx, "m", "crsp-pool-x:crsp-job-1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.CleanUp(ctx, "m", "actions.runner.x.box-1.service"); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(ds.calls, ","); got != "prepare,start crsp-job-1,cleanup crsp-pool-x:crsp-job-1" {
+		t.Errorf("container backend calls: %s", got)
+	}
+	if got := strings.Join(ps.calls, ","); got != "start box-1,cleanup actions.runner.x.box-1.service" {
+		t.Errorf("persistent backend calls: %s", got)
+	}
+	// A registry without the container backend refuses a JIT config.
+	if _, err := NewLocalAgent(oneReg{ps}).AddRunner(ctx, "m", backend.RunnerSpec{Name: "x"}, backend.StartConfig{JITConfig: "J"}); err == nil {
+		t.Error("no container backend")
+	}
+}

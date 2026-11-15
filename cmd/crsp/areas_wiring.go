@@ -163,6 +163,12 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	runnerSvc.Light = lightPlacer{svc: d.Machines}
 	rsvc.SetLight(lightKeeper{svc: runnerSvc})
 
+	// Demand: poll queued jobs of the repositories with the pool on and start one
+	// ephemeral container runner per job on a machine whose allow list names
+	// the container backend (github-integration R5.37, runners R5.27, R5.31).
+	stopDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines}, runnerSvc, pool)
+	c.closers = append(c.closers, stopDemand)
+
 	// Doctor: the M1 check registry over the controller's own data.
 	_, docSvc := wire.NewDoctor(wire.DoctorDeps{
 		Fleet: doctorFleet{machines: d.Machines, runners: rstore, repos: repoStore, rsvc: rsvc},
