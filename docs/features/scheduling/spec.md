@@ -470,7 +470,7 @@ These dev-standards tests touch the same modules but are not ported here, or go 
 | D3 | The order of service | Repository priority, then event class, then fair share, then queued time. Proposed; the owner confirms (section 11). | 2026-11-14 |
 | D4 | A repository at its parallel limit | Its ticket is passed over, not the whole queue held. | 2026-11-14 |
 | D5 | The ci-wait marker and claim-lost exit 3 | Not ported. They serve the dev-standards cloud fallback, which this product does not have. | 2026-11-14 |
-| D6 | `load_guard.py` | Only its rules are ported: hold new work, never kill, a project may lower but never raise. The tool-call classifier is not. | 2026-11-14 |
+| D6 | `load_guard.py` | Only its rules are ported: hold new work, never kill, fail open, a project may lower but never raise. The tool-call classifier is not. | 2026-11-14 |
 | D7 | CPU smoothing | Two readers, two rules, both built. The one-shot hook reader (this spec, R5.42) takes the mean of up to 3 samples in 30 s. The agent's sampler (machines R5.16) samples every 5 s and decides on the median of the last 5. The median of 5 samples 1 s apart is for sizing (R5.47). | 2026-11-14 |
 | D8 | Gate when the load cannot be measured | Fail open, as in the source. | 2026-11-14 |
 
