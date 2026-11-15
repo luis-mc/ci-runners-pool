@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,6 +17,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/images"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
 // Errors of the pool lifecycle.
@@ -392,6 +394,22 @@ func DefaultConfig() Config {
 		Assets:    images.FS,
 		BuildRoot: filepath.Join(root, "crsp", "image-build"),
 		BaseName:  "linux-base",
+		Pins:      defaultPins(),
 		Limits:    Limits{},
 	}
+}
+
+// defaultPins puts the pinned Actions runner version of this machine's
+// architecture in the image key, so a new pin builds the image aside
+// (runners R5.33, R5.37, R5.49).
+func defaultPins() map[string]string {
+	arch := "x64"
+	if runtime.GOARCH == "arm64" {
+		arch = "arm64"
+	}
+	p, err := runners.PinFor("linux", arch)
+	if err != nil {
+		return nil
+	}
+	return map[string]string{"actions-runner": p.Version + ":" + p.SHA256}
 }

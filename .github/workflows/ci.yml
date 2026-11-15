@@ -202,6 +202,12 @@ jobs:
       - name: Job user is not root and tools run
         run: |
           docker run --rm crsp-linux-base:ci bash -ec 'test "$(id -u)" != 0; node --version; corepack --version; command -v pnpm; gh --version | head -1; crsp version'
+      - name: Actions runner is in the image and runs as the job user
+        run: |
+          want="$(sed -n 's/^ARG RUNNER_VERSION=//p' images/linux-base/Dockerfile)"
+          got="$(docker run --rm crsp-linux-base:ci /opt/actions-runner/run.sh --version)"
+          test "$got" = "$want" || { echo "runner version '$got', pinned '$want'"; exit 1; }
+          docker run --rm crsp-linux-base:ci bash -ec 'test "$(id -u)" != 0; test -w /opt/actions-runner; cp -a /opt/actions-runner /tmp/r && /tmp/r/config.sh --version'
       # runners R5.44: the browsers layer builds on the base image (its build
       # launches each browser headless as the self-check). Build only, no push.
       - name: docker build browsers layer (no push)

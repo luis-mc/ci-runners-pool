@@ -67,3 +67,33 @@ func TestBaseImageToolListAndSelfCheck(t *testing.T) {
 		t.Error("crsp is not copied into the image")
 	}
 }
+
+// The Actions runner in the Dockerfile has the version and hashes of the pins
+// the agent uses (runners R5.37, R5.49, open question 10).
+func TestBaseImageRunnerPinMatchesPins(t *testing.T) {
+	d := readDockerfile(t)
+	arg := func(name string) string {
+		m := regexp.MustCompile(`(?m)^ARG ` + name + `=(\S+)$`).FindStringSubmatch(d)
+		if m == nil {
+			t.Fatalf("no ARG %s in the Dockerfile", name)
+		}
+		return m[1]
+	}
+	for arch, name := range map[string]string{"x64": "RUNNER_SHA256_AMD64", "arm64": "RUNNER_SHA256_ARM64"} {
+		p, err := PinFor("linux", arch)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := arg("RUNNER_VERSION"); got != p.Version {
+			t.Errorf("%s: Dockerfile version %s, pin %s", arch, got, p.Version)
+		}
+		if got := arg(name); got != p.SHA256 {
+			t.Errorf("%s: Dockerfile hash %s, pin %s", arch, got, p.SHA256)
+		}
+	}
+	for _, want := range []string{"sha256sum -c", "/opt/actions-runner", "installdependencies.sh", "DISABLE_RUNNER_UPDATE=1", "run.sh --version"} {
+		if !strings.Contains(d, want) {
+			t.Errorf("Dockerfile lacks %q", want)
+		}
+	}
+}
