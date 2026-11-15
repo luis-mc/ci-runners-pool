@@ -44,7 +44,7 @@ func TestNewLiveSharesOneHubAndStartsWithASnapshot(t *testing.T) {
 
 func TestNewDoctorRegistersCoreChecksAndRuns(t *testing.T) {
 	eng, svc := NewDoctor(DoctorDeps{Fleet: noFleet{}, Store: doctor.NewMemStore()})
-	if got := len(eng.Registry.All()); got != 22 {
+	if got := len(eng.Registry.All()); got != 24 {
 		t.Fatalf("registered %d checks", got)
 	}
 	run, err := eng.Run(context.Background(), doctor.Scope{}, doctor.TriggerSystem, "system")
