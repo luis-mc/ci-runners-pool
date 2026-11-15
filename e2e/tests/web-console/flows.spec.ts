@@ -5,6 +5,7 @@ import {
   cache,
   failure,
   machine,
+  needingRecovery,
   repository,
   runner,
   signedIn,
@@ -165,6 +166,35 @@ test('Drain asks first, names the running jobs, and drains on yes', async ({ pag
   expect(mock.count('POST', '/api/v1/machines/m1/drain')).toBe(0);
   await dialog.getByRole('button', { name: 'Drain' }).click();
   await expect.poll(() => mock.count('POST', '/api/v1/machines/m1/drain')).toBe(1);
+});
+
+test('Agent recovery: the state is shown, Recover is locked while it runs, then the result is shown', async ({
+  page,
+}) => {
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((r) => (release = r));
+  const mock = signedIn()
+    .on('GET', '/api/v1/machines', { items: [needingRecovery()] })
+    .on('GET', '/api/v1/machines/:id', needingRecovery())
+    .on('POST', '/api/v1/machines/:id/recovery', async () => {
+      await held;
+      return undefined;
+    });
+  await mock.install(page);
+  await page.goto('/machines');
+  await expect(page.getByRole('row', { name: /build-1/ })).toContainText(
+    'needs recovery',
+  );
+  await page.getByRole('link', { name: 'build-1' }).click();
+  const section = page.getByRole('region', { name: 'Recovery' });
+  await expect(section).toContainText('0.1.0');
+  await expect(section).toContainText('0.3.0');
+  await section.getByRole('button', { name: 'Recover' }).click();
+  await expect(section.getByRole('button', { name: 'Recovering' })).toBeDisabled();
+  expect(mock.count('POST', '/api/v1/machines/m1/recovery')).toBe(1);
+  release();
+  await expect(section).toContainText('Recovery is ready');
+  await expect(section.getByRole('button', { name: 'Recover' })).toBeDisabled();
 });
 
 test('Escape closes the question and nothing changes (UX-46)', async ({ page }) => {

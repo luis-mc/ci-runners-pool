@@ -1,17 +1,29 @@
 import { expect, test } from '@playwright/test';
 import { expectDomLayout } from '../../scripts/design/dom-layout';
-import { signedIn } from './web-console/fixtures';
+import { needingRecovery, signedIn } from './web-console/fixtures';
 import { jobsAndDoctor } from './web-console/jobs-doctor-fixtures';
 
 // The DOM layout checker (design system, Enforcement kit) on the console's M1 screens, at 360, 393 and 1300 px.
 // It uses the DOM only. The known list (scripts/design/layout.known.json) is empty and only shrinks.
-const SCREENS: { name: string; path: string; ready: string; loads?: string[] }[] = [
+const SCREENS: {
+  name: string;
+  path: string;
+  ready: string;
+  loads?: string[];
+  recovery?: boolean;
+}[] = [
   { name: 'overview', path: '/', ready: 'Overview' },
   { name: 'repositories', path: '/repositories', ready: 'Repositories' },
   { name: 'repository detail', path: '/repositories/octo/app', ready: 'octo/app' },
   { name: 'turn on the pool', path: '/repositories/turn-on', ready: 'Turn on the pool' },
   { name: 'machines', path: '/machines', ready: 'Machines' },
   { name: 'machine detail', path: '/machines/m1', ready: 'build-1' },
+  {
+    name: 'machine detail needing recovery',
+    path: '/machines/m1',
+    ready: 'build-1',
+    recovery: true,
+  },
   { name: 'add a machine', path: '/machines/add', ready: 'Add a machine' },
   { name: 'runners', path: '/runners', ready: 'Runners' },
   { name: 'jobs', path: '/jobs', ready: 'Jobs' },
@@ -36,6 +48,7 @@ const SCREENS: { name: string; path: string; ready: string; loads?: string[] }[]
 for (const screen of SCREENS) {
   test(`layout: ${screen.name}`, async ({ page }) => {
     const mock = jobsAndDoctor(signedIn());
+    if (screen.recovery) mock.on('GET', '/api/v1/machines/:id', needingRecovery());
     if (screen.loads) {
       mock
         .on('GET', '/api/v1/settings/pool', {
@@ -72,6 +85,8 @@ for (const screen of SCREENS) {
       page.getByRole('heading', { level: 1, name: screen.ready }),
     ).toBeVisible();
     if (screen.loads) await expect(page.getByText('Queue order')).toBeVisible();
+    if (screen.recovery)
+      await expect(page.getByRole('button', { name: 'Recover' })).toBeVisible();
     await page.waitForLoadState('networkidle');
     await expectDomLayout(page, screen.name, { spaceVar: '--ds-space-' });
   });
