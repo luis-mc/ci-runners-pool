@@ -2830,39 +2830,49 @@ components:
       type: object
       required: [count, median_seconds, p95_seconds]
       properties:
-        count: {type: integer}
-        median_seconds: {type: number}
-        p95_seconds: {type: number}
+        count: { type: integer }
+        median_seconds: { type: number }
+        p95_seconds: { type: number }
     SpeedSide:
       type: object
       required: [queue, run]
       properties:
-        queue: {$ref: '#/components/schemas/SpeedStat'}
-        run: {$ref: '#/components/schemas/SpeedStat'}
+        queue: { $ref: '#/components/schemas/SpeedStat' }
+        run: { $ref: '#/components/schemas/SpeedStat' }
     SpeedRow:
       type: object
       required: [job, crsp, hosted, minutes_saved, cost_avoided_usd]
       properties:
-        job: {type: string}
-        crsp: {$ref: '#/components/schemas/SpeedSide'}
-        hosted: {$ref: '#/components/schemas/SpeedSide'}
-        minutes_saved: {type: number}
-        cost_avoided_usd: {type: number}
+        job: { type: string }
+        crsp: { $ref: '#/components/schemas/SpeedSide' }
+        hosted: { $ref: '#/components/schemas/SpeedSide' }
+        minutes_saved: { type: number }
+        cost_avoided_usd: { type: number }
     SpeedComparison:
       type: object
-      required: [repository, days, since, excluded, rows, unmatched_jobs, total_minutes_saved, total_cost_avoided_usd]
+      required:
+        [
+          repository,
+          days,
+          since,
+          excluded,
+          rows,
+          unmatched_jobs,
+          total_minutes_saved,
+          total_cost_avoided_usd,
+        ]
       properties:
-        repository: {type: string}
-        days: {type: integer}
-        since: {type: string, format: date-time}
-        excluded: {type: boolean}
-        reason: {type: string}
+        repository: { type: string }
+        days: { type: integer }
+        since: { type: string, format: date-time }
+        excluded: { type: boolean }
+        reason: { type: string }
         rows:
           type: array
-          items: {$ref: '#/components/schemas/SpeedRow'}
-        unmatched_jobs: {type: integer}
-        total_minutes_saved: {type: number}
-        total_cost_avoided_usd: {type: number}
+          items: { $ref: '#/components/schemas/SpeedRow' }
+        unmatched_jobs: { type: integer }
+        total_minutes_saved: { type: number }
+        total_cost_avoided_usd: { type: number }
     Health:
       type: object
       required: [status, version]
@@ -2879,49 +2889,49 @@ components:
       type: object
       required: [name, sensitive]
       properties:
-        name: {type: string}
+        name: { type: string }
         value:
           type: string
           description: Absent for a sensitive variable.
-        sensitive: {type: boolean}
+        sensitive: { type: boolean }
     EnvSet:
       type: object
       required: [name, vars]
       properties:
-        name: {type: string}
+        name: { type: string }
         vars:
           type: array
-          items: {$ref: '#/components/schemas/EnvVar'}
+          items: { $ref: '#/components/schemas/EnvVar' }
     EnvSetList:
       type: object
       required: [items]
       properties:
         items:
           type: array
-          items: {$ref: '#/components/schemas/EnvSet'}
+          items: { $ref: '#/components/schemas/EnvSet' }
     EnvVarInput:
       type: object
       required: [name]
       properties:
-        name: {type: string}
-        value: {type: string}
-        sensitive: {type: boolean}
+        name: { type: string }
+        value: { type: string }
+        sensitive: { type: boolean }
     EnvSetInput:
       type: object
       required: [vars]
       properties:
         vars:
           type: array
-          items: {$ref: '#/components/schemas/EnvVarInput'}
+          items: { $ref: '#/components/schemas/EnvVarInput' }
     ResolvedEnvVar:
       type: object
       required: [name, value, sensitive, source]
       properties:
-        name: {type: string}
+        name: { type: string }
         value:
           type: string
           description: '"***" for a sensitive variable.'
-        sensitive: {type: boolean}
+        sensitive: { type: boolean }
         source:
           type: string
           description: '"machine", "set:<name>" or "runner".'
@@ -2929,10 +2939,10 @@ components:
       type: object
       required: [runner_id, vars]
       properties:
-        runner_id: {type: string}
+        runner_id: { type: string }
         vars:
           type: array
-          items: {$ref: '#/components/schemas/ResolvedEnvVar'}
+          items: { $ref: '#/components/schemas/ResolvedEnvVar' }
     RegistryLogin:
       type: object
       required: [kind, host, username]
@@ -2940,8 +2950,8 @@ components:
         kind:
           type: string
           enum: [container, vm, persistent]
-        host: {type: string}
-        username: {type: string}
+        host: { type: string }
+        username: { type: string }
     RegistryLoginInput:
       type: object
       required: [kind, host, username]
@@ -2949,8 +2959,8 @@ components:
         kind:
           type: string
           enum: [container, vm, persistent]
-        host: {type: string}
-        username: {type: string}
+        host: { type: string }
+        username: { type: string }
         password:
           type: string
           description: Write only. Empty keeps the stored one.
@@ -2958,15 +2968,15 @@ components:
       type: object
       required: [pem]
       properties:
-        pem: {type: string}
+        pem: { type: string }
     RegistrySettings:
       type: object
       required: [logins, ca_bundle_set]
       properties:
         logins:
           type: array
-          items: {$ref: '#/components/schemas/RegistryLogin'}
-        ca_bundle_set: {type: boolean}
+          items: { $ref: '#/components/schemas/RegistryLogin' }
+        ca_bundle_set: { type: boolean }
     ErrorEnvelope:
       type: object
       required: [error]
