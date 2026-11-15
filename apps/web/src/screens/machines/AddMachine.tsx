@@ -6,9 +6,14 @@ import {
   CodeBlock,
   Page,
   PageHeader,
+  ErrorSummary,
   Facts,
   Message,
   ChoiceField,
+  NumberField,
+  Status,
+  TextAreaField,
+  TextField,
   formatTimeLeft,
   formatNumber,
   formatSize,
@@ -20,15 +25,50 @@ import {
 } from '@crsp/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { unwrap, useClient, type Schemas } from '../../api/api';
+import { ApiError, unwrap, useClient, type Schemas } from '../../api/api';
+import { Ask } from '../common';
 import { TIMING } from '../../timing';
 
 type JoinCode = Schemas['JoinCode'];
 type Machine = Schemas['Machine'];
 type OS = Schemas['OS'];
+type Progress = NonNullable<JoinCode['progress']>;
+type Method = 'copy' | 'ssh';
 
 const STEPS = ['Machine', 'Review', 'Joining', 'Done'] as const;
 const TTL_MINUTES = 15;
+
+/** RES3: the three live steps of a join, in order, and the words the page says for each. */
+export const PROGRESS_STEPS: readonly { id: Progress; name: string }[] = [
+  { id: 'waiting', name: 'Waiting for the agent' },
+  { id: 'connected', name: 'Agent connected' },
+  { id: 'ready', name: 'Machine ready' },
+];
+
+/** A controller that sends no progress for a joined code is an older one: it counts as ready. */
+export function progressOf(join: JoinCode): Progress {
+  if (join.progress) return join.progress;
+  return join.state === 'joined' ? 'ready' : 'waiting';
+}
+
+function ProgressSteps({ at }: { at: Progress }) {
+  const index = PROGRESS_STEPS.findIndex((p) => p.id === at);
+  return (
+    <Facts
+      items={PROGRESS_STEPS.map((p, i) => ({
+        name: p.name,
+        value:
+          i < index || at === 'ready' ? (
+            <Status kind="ok" word="done" />
+          ) : i === index ? (
+            <Status kind="running" word="in progress" />
+          ) : (
+            <Status kind="off" word="not yet" />
+          ),
+      }))}
+    />
+  );
+}
 
 interface Props {
   /** The next action on Done, when the page has one (the first-run checklist goes on). */
@@ -51,6 +91,15 @@ export function AddMachineWizard({ onDone }: Props) {
   const [problem, setProblem] = useState<string | undefined>(undefined);
   const [machine, setMachine] = useState<Machine | undefined>(undefined);
   const [stopping, setStopping] = useState(false);
+  const [method, setMethod] = useState<Method>('copy');
+  const [host, setHost] = useState('');
+  const [user, setUser] = useState('');
+  const [port, setPort] = useState(22);
+  const [identity, setIdentity] = useState('');
+  const [progress, setProgress] = useState<Progress>('waiting');
+  const [hostKey, setHostKey] = useState<string | undefined>(undefined);
+  const [sshError, setSshError] = useState<string | undefined>(undefined);
+  const [errors, setErrors] = useState<string[]>([]);
   const known = useRef<Set<string>>(new Set());
   const live = useRef(false);
 
@@ -131,11 +180,35 @@ export function AddMachineWizard({ onDone }: Props) {
   };
 
   // Joining: make the one-time code, then wait for the agent. The code never goes in a URL (R6.4).
-  const startJoining = async () => {
+  // Over SSH the controller runs the command itself; the key text is sent once and dropped here (RES3).
+  const startJoining = async (confirmedHostKey?: string) => {
     setStep(2);
     setPhase('running');
+    setProgress('waiting');
+    setSshError(undefined);
     live.current = true;
     try {
+      if (method === 'ssh') {
+        const join = await unwrap(
+          client.POST('/api/v1/join-codes/ssh', {
+            body: {
+              os: os === 'macos' ? 'macos' : 'linux',
+              host: host.trim(),
+              port,
+              user: user.trim(),
+              identity,
+              ...(confirmedHostKey ? { host_fingerprint: confirmedHostKey } : {}),
+            },
+          }),
+        );
+        setIdentity('');
+        setHostKey(undefined);
+        setCreated({ code: '', join, command: '' });
+        const next = new URLSearchParams(params);
+        next.set('join', join.id);
+        setParams(next, { replace: true });
+        return;
+      }
       const made = await unwrap(
         client.POST('/api/v1/join-codes', { body: { ttl_minutes: TTL_MINUTES } }),
       );
@@ -147,6 +220,19 @@ export function AddMachineWizard({ onDone }: Props) {
       setParams(next, { replace: true });
     } catch (e) {
       live.current = false;
+      if (e instanceof ApiError && e.code === 'needs_confirmation') {
+        // The host key is asked once; nothing ran yet (UX-9).
+        setHostKey(e.details[0]?.text ?? '');
+        setStep(1);
+        setPhase('ready-to-review');
+        return;
+      }
+      if (method === 'ssh' && e instanceof ApiError && e.status < 500) {
+        setSshError(e.message);
+        setStep(1);
+        setPhase('ready-to-review');
+        return;
+      }
       setProblem(e instanceof Error ? e.message : 'Could not make a join code.');
       setStep(3);
       setPhase('failed');
@@ -164,7 +250,8 @@ export function AddMachineWizard({ onDone }: Props) {
       )
         .then(async (join) => {
           if (!live.current) return;
-          if (join.state === 'joined') {
+          setProgress(progressOf(join));
+          if (join.state === 'joined' && progressOf(join) === 'ready') {
             live.current = false;
             await finish(join, false);
             if (onDone) onDone(undefined);
@@ -210,35 +297,108 @@ export function AddMachineWizard({ onDone }: Props) {
     setCommand(undefined);
     setMachine(undefined);
     setProblem(undefined);
+    setProgress('waiting');
+    setHostKey(undefined);
+    setSshError(undefined);
+    setIdentity('');
     setStep(0);
     setPhase('first-run');
   };
 
+  const canSsh = os !== 'windows';
+  const next = async () => {
+    if (method === 'ssh' && os !== 'windows') {
+      const problems: string[] = [];
+      if (!host.trim()) problems.push('Enter the host name or address.');
+      if (!user.trim()) problems.push('Enter the user name.');
+      if (!identity.trim()) problems.push('Paste the SSH key file.');
+      setErrors(problems);
+      if (problems.length) return;
+    }
+    await toReview();
+  };
+  const usingSsh = method === 'ssh' && canSsh;
   let body;
   if (step === 0) {
     body = (
-      <ChoiceField
-        label="Operating system of the machine"
-        help="The machine runs the agent. Pick the system it has."
-        value={os}
-        onChange={(v) => setOs(v as OS)}
-        choices={[
-          { value: 'linux', label: 'Linux' },
-          { value: 'windows', label: 'Windows' },
-          { value: 'macos', label: 'macOS' },
-        ]}
-      />
+      <Stack>
+        <ChoiceField
+          label="Operating system of the machine"
+          help="The machine runs the agent. Pick the system it has."
+          value={os}
+          onChange={(v) => {
+            setOs(v as OS);
+            if (v === 'windows') setMethod('copy');
+          }}
+          choices={[
+            { value: 'linux', label: 'Linux' },
+            { value: 'windows', label: 'Windows' },
+            { value: 'macos', label: 'macOS' },
+          ]}
+        />
+        {canSsh ? (
+          <ChoiceField
+            label="How the machine joins"
+            help="Copy one command and run it on the machine, or let crsp sign in over SSH once."
+            value={method}
+            onChange={(v) => setMethod(v as Method)}
+            choices={[
+              { value: 'copy', label: 'Copy a command' },
+              { value: 'ssh', label: 'I have SSH' },
+            ]}
+          />
+        ) : (
+          <Message tone="note">
+            A Windows machine joins by copying a command. Run it in an administrator
+            terminal.
+          </Message>
+        )}
+        {usingSsh ? (
+          <Stack>
+            <ErrorSummary errors={errors} />
+            <TextField label="Host" value={host} onChange={setHost} width="full" />
+            <TextField label="User" value={user} onChange={setUser} />
+            <NumberField
+              label="SSH port"
+              value={port}
+              min={1}
+              max={65535}
+              onChange={setPort}
+            />
+            <TextAreaField
+              label="SSH key file"
+              help="Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user needs sudo without a password."
+              value={identity}
+              onChange={setIdentity}
+              rows={6}
+              mono
+              width="full"
+            />
+          </Stack>
+        ) : null}
+      </Stack>
     );
   } else if (step === 1) {
     body = (
       <Stack>
+        <Facts
+          items={[
+            { name: 'System', value: os },
+            {
+              name: 'How it joins',
+              value: usingSsh ? `Over SSH as ${user} on ${host}` : 'A copied command',
+            },
+            { name: 'Join code', value: `Lasts ${TTL_MINUTES} minutes and works once` },
+          ]}
+        />
         <Text>
-          Run this command on the machine. It joins the pool with a one-time code.
+          {usingSsh
+            ? 'crsp signs in once with your key, runs the install command and signs out. The key is not stored.'
+            : 'Next you get one command with the join code in it. Run it on the machine.'}
         </Text>
-        <CodeBlock label="Install command" text={command ?? ''} />
-        <Text tone="muted">
-          The join code lasts {TTL_MINUTES} minutes and works once.
-        </Text>
+        {sshError ? (
+          <Message tone="problem">Could not join over SSH. {sshError}</Message>
+        ) : null}
       </Stack>
     );
   } else if (step === 2) {
@@ -253,14 +413,17 @@ export function AddMachineWizard({ onDone }: Props) {
         ) : null}
         {created ? (
           <>
-            <Text>Run this command on the machine now. The code shows once.</Text>
-            <CodeBlock
-              label="Install command with the join code"
-              text={created.command}
-            />
+            {created.command ? (
+              <>
+                <Text>Run this command on the machine now. The code shows once.</Text>
+                <CodeBlock label="Join command" text={created.command} />
+              </>
+            ) : (
+              <Text>crsp ran the install command over SSH. Waiting for the agent.</Text>
+            )}
+            <ProgressSteps at={progress} />
             <Facts
               items={[
-                { name: 'Join code', value: created.code },
                 {
                   name: 'Time left',
                   value: left === undefined ? '' : formatTimeLeft(left),
@@ -327,8 +490,10 @@ export function AddMachineWizard({ onDone }: Props) {
         phase === 'running'
           ? {
               text: created
-                ? `Waiting for the agent, ${formatTimeLeft(Date.parse(created.join.expires_at) - now)}`
-                : 'Making the join code',
+                ? `${PROGRESS_STEPS.find((p) => p.id === progress)?.name ?? 'Waiting for the agent'}, ${formatTimeLeft(Date.parse(created.join.expires_at) - now)}`
+                : usingSsh
+                  ? 'Signing in over SSH'
+                  : 'Making the join code',
             }
           : undefined
       }
@@ -346,7 +511,7 @@ export function AddMachineWizard({ onDone }: Props) {
       }}
       primary={
         step === 0
-          ? { label: 'Next', onPress: () => void toReview() }
+          ? { label: 'Next', onPress: () => void next() }
           : {
               label: 'Join a machine',
               busyLabel: 'Joining',
@@ -358,6 +523,23 @@ export function AddMachineWizard({ onDone }: Props) {
       onTryAgain={startAgain}
     >
       {body}
+      <Ask
+        title="Is this the host key?"
+        action="Yes, sign in"
+        busyLabel="Signing in"
+        q={
+          hostKey !== undefined
+            ? {
+                items: [`Host ${host} shows the key ${hostKey}`],
+                waitsFor: [],
+              }
+            : undefined
+        }
+        busy={false}
+        error={undefined}
+        onCancel={() => setHostKey(undefined)}
+        onConfirm={() => void startJoining(hostKey)}
+      />
     </Wizard>
   );
 }

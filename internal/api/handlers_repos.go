@@ -199,7 +199,7 @@ func (s *server) ListRepositories(ctx context.Context, req gen.ListRepositoriesR
 		page.NextCursor = &c
 	}
 	for _, r := range rows {
-		page.Items = append(page.Items, toRepository(r))
+		page.Items = append(page.Items, s.withHealth(toRepository(r)))
 	}
 	return gen.ListRepositories200JSONResponse(page), nil
 }
@@ -289,7 +289,7 @@ func (s *server) GetRepository(ctx context.Context, req gen.GetRepositoryRequest
 		code, body := failure(err)
 		return gen.GetRepositorydefaultJSONResponse{StatusCode: code, Body: body}, nil
 	}
-	return gen.GetRepository200JSONResponse(toRepository(v)), nil
+	return gen.GetRepository200JSONResponse(s.withHealth(toRepository(v))), nil
 }
 
 // UpdateRepositoryPolicy implements PATCH /api/v1/repositories/{repositoryId}/policy

@@ -52,9 +52,10 @@ test('Add a machine: Review, Joining with a one-time code, then Done with the ma
   ).toBeVisible();
   await page.getByRole('button', { name: 'Next' }).click();
   await expect(page.getByText('Nothing has changed yet.')).toBeVisible();
-  await expect(page.getByLabel('Install command')).toContainText('curl -fsSL');
+  // RES3: Review says what comes next; the command with the join code shows only after Join a machine.
+  await expect(page.getByText('Next you get one command')).toBeVisible();
   await page.getByRole('button', { name: 'Join a machine' }).click();
-  await expect(page.locator('dd', { hasText: 'ABCD-1234' })).toBeVisible();
+  await expect(page.getByLabel('Join command')).toContainText('--code ABCD-1234');
   await expect(page.getByRole('button', { name: 'Stop' })).toBeVisible();
   // The primary is busy and says so; the code is never in the address (R6.4).
   await expect(page.locator('[data-primary][aria-busy="true"]')).toBeDisabled();

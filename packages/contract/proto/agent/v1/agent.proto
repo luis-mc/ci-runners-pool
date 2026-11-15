@@ -306,6 +306,10 @@ message RunnerSpec {
   // Windows: grant "create symbolic links" to the runner account (owner
   // decision for M1, runners R5.14).
   bool windows_symlink_right = 12;
+  // Extra OS packages (apt, dnf, brew or winget ids) the agent installs into
+  // the runner environment, never on the host OS (runners R5.86). The agent
+  // checks each name again.
+  repeated string extra_packages = 13;
 }
 
 // RemoveRunner removes a runner after a drain. The idle check runs right
@@ -771,6 +775,17 @@ message MachineReport {
   // True when this agent understands UpdateRunnerFiles (protocol version 2).
   // The controller sends that message only when this is true.
   bool runner_swap = 7;
+  // Extra package sets that failed to install here (runners R5.86).
+  repeated PackageFailure package_failures = 8;
+}
+
+// PackageFailure is one extra package set the agent could not install.
+message PackageFailure {
+  // Hash of the package set (runners R5.86).
+  string set_hash = 1;
+  repeated string names = 2;
+  string error = 3;
+  int64 failed_unix_ms = 4;
 }
 
 // KvmReport is the KVM state the agent read. It reads only; it never loads a

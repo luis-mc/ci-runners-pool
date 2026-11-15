@@ -484,6 +484,27 @@ func (e JobResult) Valid() bool {
 	}
 }
 
+// Defines values for JoinCodeProgress.
+const (
+	JoinCodeProgressConnected JoinCodeProgress = "connected"
+	JoinCodeProgressReady     JoinCodeProgress = "ready"
+	JoinCodeProgressWaiting   JoinCodeProgress = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the JoinCodeProgress enum.
+func (e JoinCodeProgress) Valid() bool {
+	switch e {
+	case JoinCodeProgressConnected:
+		return true
+	case JoinCodeProgressReady:
+		return true
+	case JoinCodeProgressWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JoinCodeState.
 const (
 	JoinCodeStateExpired JoinCodeState = "expired"
@@ -762,19 +783,19 @@ func (e NotificationEvent) Valid() bool {
 
 // Defines values for NotificationKind.
 const (
-	Desktop NotificationKind = "desktop"
-	Email   NotificationKind = "email"
-	Webhook NotificationKind = "webhook"
+	NotificationKindDesktop NotificationKind = "desktop"
+	NotificationKindEmail   NotificationKind = "email"
+	NotificationKindWebhook NotificationKind = "webhook"
 )
 
 // Valid indicates whether the value is a known member of the NotificationKind enum.
 func (e NotificationKind) Valid() bool {
 	switch e {
-	case Desktop:
+	case NotificationKindDesktop:
 		return true
-	case Email:
+	case NotificationKindEmail:
 		return true
-	case Webhook:
+	case NotificationKindWebhook:
 		return true
 	default:
 		return false
@@ -1411,6 +1432,24 @@ func (e SlotKind) Valid() bool {
 	}
 }
 
+// Defines values for SshJoinRequestOs.
+const (
+	SshJoinRequestOsLinux SshJoinRequestOs = "linux"
+	SshJoinRequestOsMacos SshJoinRequestOs = "macos"
+)
+
+// Valid indicates whether the value is a known member of the SshJoinRequestOs enum.
+func (e SshJoinRequestOs) Valid() bool {
+	switch e {
+	case SshJoinRequestOsLinux:
+		return true
+	case SshJoinRequestOsMacos:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for StartAppManifestRequestAccountType.
 const (
 	StartAppManifestRequestAccountTypeOrganization StartAppManifestRequestAccountType = "organization"
@@ -1444,6 +1483,54 @@ func (e Theme) Valid() bool {
 	case ThemeLight:
 		return true
 	case ThemeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TrialMode.
+const (
+	TrialModeCanary  TrialMode = "canary"
+	TrialModeObserve TrialMode = "observe"
+	TrialModeOff     TrialMode = "off"
+	TrialModeShadow  TrialMode = "shadow"
+)
+
+// Valid indicates whether the value is a known member of the TrialMode enum.
+func (e TrialMode) Valid() bool {
+	switch e {
+	case TrialModeCanary:
+		return true
+	case TrialModeObserve:
+		return true
+	case TrialModeOff:
+		return true
+	case TrialModeShadow:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TrialSetMode.
+const (
+	TrialSetModeCanary  TrialSetMode = "canary"
+	TrialSetModeObserve TrialSetMode = "observe"
+	TrialSetModeOff     TrialSetMode = "off"
+	TrialSetModeShadow  TrialSetMode = "shadow"
+)
+
+// Valid indicates whether the value is a known member of the TrialSetMode enum.
+func (e TrialSetMode) Valid() bool {
+	switch e {
+	case TrialSetModeCanary:
+		return true
+	case TrialSetModeObserve:
+		return true
+	case TrialSetModeOff:
+		return true
+	case TrialSetModeShadow:
 		return true
 	default:
 		return false
@@ -1543,6 +1630,60 @@ func (e WaitReason) Valid() bool {
 	case WaitReasonRepositoryParallelLimit:
 		return true
 	case WaitReasonUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebhookHealthLastResult.
+const (
+	WebhookHealthLastResultFailed WebhookHealthLastResult = "failed"
+	WebhookHealthLastResultMissed WebhookHealthLastResult = "missed"
+	WebhookHealthLastResultOk     WebhookHealthLastResult = "ok"
+)
+
+// Valid indicates whether the value is a known member of the WebhookHealthLastResult enum.
+func (e WebhookHealthLastResult) Valid() bool {
+	switch e {
+	case WebhookHealthLastResultFailed:
+		return true
+	case WebhookHealthLastResultMissed:
+		return true
+	case WebhookHealthLastResultOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebhookHealthMode.
+const (
+	WebhookHealthModePolling WebhookHealthMode = "polling"
+	WebhookHealthModeWebhook WebhookHealthMode = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the WebhookHealthMode enum.
+func (e WebhookHealthMode) Valid() bool {
+	switch e {
+	case WebhookHealthModePolling:
+		return true
+	case WebhookHealthModeWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebhookModeUpdateMode.
+const (
+	WebhookModeUpdateModeWebhook WebhookModeUpdateMode = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the WebhookModeUpdateMode enum.
+func (e WebhookModeUpdateMode) Valid() bool {
+	switch e {
+	case WebhookModeUpdateModeWebhook:
 		return true
 	default:
 		return false
@@ -2202,9 +2343,15 @@ type JoinCode struct {
 	Id        string    `json:"id"`
 
 	// MachineId Set once an agent joined with it.
-	MachineId *string       `json:"machine_id,omitempty"`
-	State     JoinCodeState `json:"state"`
+	MachineId *string `json:"machine_id,omitempty"`
+
+	// Progress How far a copied or SSH join got (RES3). `waiting`: no agent used the code yet. `connected`: the agent joined. `ready`: the machine sent its first heartbeat. Absent once the code expired or was withdrawn.
+	Progress *JoinCodeProgress `json:"progress,omitempty"`
+	State    JoinCodeState     `json:"state"`
 }
+
+// JoinCodeProgress How far a copied or SSH join got (RES3). `waiting`: no agent used the code yet. `connected`: the agent joined. `ready`: the machine sent its first heartbeat. Absent once the code expired or was withdrawn.
+type JoinCodeProgress string
 
 // JoinCodeState defines model for JoinCode.State.
 type JoinCodeState string
@@ -2760,6 +2907,9 @@ type Repository struct {
 	UserIsGithubAdmin bool                 `json:"user_is_github_admin"`
 	Variables         []RepositoryVariable `json:"variables"`
 	Visibility        RepositoryVisibility `json:"visibility"`
+
+	// Webhook The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.50).
+	Webhook *WebhookHealth `json:"webhook,omitempty"`
 }
 
 // RepositoryVisibility defines model for Repository.Visibility.
@@ -3086,6 +3236,25 @@ type SpeedStat struct {
 	P95Seconds    float32 `json:"p95_seconds"`
 }
 
+// SshJoinRequest defines model for SshJoinRequest.
+type SshJoinRequest struct {
+	Host string `json:"host"`
+
+	// HostFingerprint The host key fingerprint the owner confirmed (SHA256:...).
+	HostFingerprint *string `json:"host_fingerprint,omitempty"`
+
+	// Identity The content of the SSH key file, used once for this join and never stored.
+	Identity *string          `json:"identity,omitempty"`
+	Os       SshJoinRequestOs `json:"os"`
+
+	// Port Default 22.
+	Port *int   `json:"port,omitempty"`
+	User string `json:"user"`
+}
+
+// SshJoinRequestOs defines model for SshJoinRequest.Os.
+type SshJoinRequestOs string
+
 // Staleness Set when GitHub did not answer and the last copy is shown (UX-53).
 type Staleness struct {
 	AsOf  *time.Time `json:"as_of,omitempty"`
@@ -3128,6 +3297,64 @@ type Ticket struct {
 
 	// WaitReason observability R5.5.
 	WaitReason *WaitReason `json:"wait_reason,omitempty"`
+}
+
+// Trial defines model for Trial.
+type Trial struct {
+	CanaryJobs     *[]string  `json:"canary_jobs,omitempty"`
+	Crsp           TrialSide  `json:"crsp"`
+	Hosted         TrialSide  `json:"hosted"`
+	Jobs           []TrialJob `json:"jobs"`
+	Mode           TrialMode  `json:"mode"`
+	Percent        *int       `json:"percent,omitempty"`
+	Repository     string     `json:"repository"`
+	ShadowJobs     *[]string  `json:"shadow_jobs,omitempty"`
+	ShadowWorkflow *string    `json:"shadow_workflow,omitempty"`
+	Since          *time.Time `json:"since,omitempty"`
+	Total          int        `json:"total"`
+
+	// Variables The canary variables now written.
+	Variables []string `json:"variables"`
+}
+
+// TrialMode defines model for Trial.Mode.
+type TrialMode string
+
+// TrialJob defines model for TrialJob.
+type TrialJob struct {
+	// Agree Present when the job ran on both sides.
+	Agree     *bool     `json:"agree,omitempty"`
+	Crsp      TrialSide `json:"crsp"`
+	Hosted    TrialSide `json:"hosted"`
+	Job       string    `json:"job"`
+	WouldTake int       `json:"would_take"`
+}
+
+// TrialSet defines model for TrialSet.
+type TrialSet struct {
+	// Jobs Canary only. Jobs that always use crsp.
+	Jobs *[]string    `json:"jobs,omitempty"`
+	Mode TrialSetMode `json:"mode"`
+
+	// Percent Canary only. The share of jobs, chosen by job name.
+	Percent *int `json:"percent,omitempty"`
+
+	// ShadowJobs Shadow only. Jobs to copy; empty means every job crsp would take.
+	ShadowJobs *[]string `json:"shadow_jobs,omitempty"`
+
+	// ShadowWorkflow Shadow only. The workflow file to dispatch.
+	ShadowWorkflow *string `json:"shadow_workflow,omitempty"`
+}
+
+// TrialSetMode defines model for TrialSet.Mode.
+type TrialSetMode string
+
+// TrialSide defines model for TrialSide.
+type TrialSide struct {
+	AvgRunSec  int `json:"avg_run_sec"`
+	AvgWaitSec int `json:"avg_wait_sec"`
+	Runs       int `json:"runs"`
+	Succeeded  int `json:"succeeded"`
 }
 
 // UpdateImageLayersRequest defines model for UpdateImageLayersRequest.
@@ -3212,6 +3439,33 @@ type WaitingJob struct {
 	// Words The reason in words, with its numbers (memory 91% > 85%, 2 ahead in the queue).
 	Words string `json:"words"`
 }
+
+// WebhookHealth The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.50).
+type WebhookHealth struct {
+	FailuresInARow int `json:"failures_in_a_row"`
+
+	// LastDeliveryAt Absent when no delivery was seen.
+	LastDeliveryAt *time.Time               `json:"last_delivery_at,omitempty"`
+	LastResult     *WebhookHealthLastResult `json:"last_result,omitempty"`
+	Mode           WebhookHealthMode        `json:"mode"`
+
+	// PollingSince Set in polling mode.
+	PollingSince *time.Time `json:"polling_since,omitempty"`
+}
+
+// WebhookHealthLastResult defines model for WebhookHealth.LastResult.
+type WebhookHealthLastResult string
+
+// WebhookHealthMode defines model for WebhookHealth.Mode.
+type WebhookHealthMode string
+
+// WebhookModeUpdate defines model for WebhookModeUpdate.
+type WebhookModeUpdate struct {
+	Mode WebhookModeUpdateMode `json:"mode"`
+}
+
+// WebhookModeUpdateMode defines model for WebhookModeUpdate.Mode.
+type WebhookModeUpdateMode string
 
 // BackupId defines model for BackupId.
 type BackupId = string
@@ -3521,6 +3775,9 @@ type UpdateImageLayersJSONRequestBody = UpdateImageLayersRequest
 // CreateJoinCodeJSONRequestBody defines body for CreateJoinCode for application/json ContentType.
 type CreateJoinCodeJSONRequestBody = CreateJoinCodeRequest
 
+// JoinMachineOverSshJSONRequestBody defines body for JoinMachineOverSsh for application/json ContentType.
+type JoinMachineOverSshJSONRequestBody = SshJoinRequest
+
 // UpdateMachineJSONRequestBody defines body for UpdateMachine for application/json ContentType.
 type UpdateMachineJSONRequestBody = MachineSettingsUpdate
 
@@ -3556,6 +3813,12 @@ type SetRepositoryExtraPackagesJSONRequestBody = ExtraPackagesUpdate
 
 // UpdateRepositoryPolicyJSONRequestBody defines body for UpdateRepositoryPolicy for application/json ContentType.
 type UpdateRepositoryPolicyJSONRequestBody = RepositoryPolicyUpdate
+
+// SetRepositoryTrialJSONRequestBody defines body for SetRepositoryTrial for application/json ContentType.
+type SetRepositoryTrialJSONRequestBody = TrialSet
+
+// SetRepositoryWebhookModeJSONRequestBody defines body for SetRepositoryWebhookMode for application/json ContentType.
+type SetRepositoryWebhookModeJSONRequestBody = WebhookModeUpdate
 
 // PlanRepositoryChangesJSONRequestBody defines body for PlanRepositoryChanges for application/json ContentType.
 type PlanRepositoryChangesJSONRequestBody = PlanRepositoryChangesRequest
@@ -3962,6 +4225,24 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/join-codes (the `CreateJoinCode` operationId).
 	CreateJoinCode(ctx context.Context, body CreateJoinCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// JoinMachineOverSshWithBody Join a Linux or macOS machine over SSH
+	//
+	// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+	JoinMachineOverSshWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// JoinMachineOverSsh Join a Linux or macOS machine over SSH
+	//
+	// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+	JoinMachineOverSsh(ctx context.Context, body JoinMachineOverSshJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// RevokeJoinCode Withdraw an unused join code
 	//
 	// Corresponds with DELETE /api/v1/join-codes/{joinCodeId} (the `RevokeJoinCode` operationId).
@@ -4321,6 +4602,49 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/repositories/{repositoryId}/runs-on (the `GetRepositoryRunsOn` operationId).
 	GetRepositoryRunsOn(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRepositoryTrial A repository's trial mode and its report
+	//
+	// github-integration R5.66. Read only: the mode, its settings and the comparison of hosted and crsp outcomes and times.
+	//
+	// Corresponds with GET /api/v1/repositories/{repositoryId}/trial (the `GetRepositoryTrial` operationId).
+	GetRepositoryTrial(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetRepositoryTrialWithBody Set a repository's trial mode
+	//
+	// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+	SetRepositoryTrialWithBody(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetRepositoryTrial Set a repository's trial mode
+	//
+	// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+	SetRepositoryTrial(ctx context.Context, repositoryId RepositoryId, body SetRepositoryTrialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetRepositoryWebhookModeWithBody Switch a repository back to webhook deliveries
+	//
+	// github-integration R5.50 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+	SetRepositoryWebhookModeWithBody(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetRepositoryWebhookMode Switch a repository back to webhook deliveries
+	//
+	// github-integration R5.50 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+	SetRepositoryWebhookMode(ctx context.Context, repositoryId RepositoryId, body SetRepositoryWebhookModeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PlanRepositoryChangesWithBody Plan turning the pool on or off for repositories
 	//
@@ -5398,6 +5722,44 @@ func (c *Client) CreateJoinCode(ctx context.Context, body CreateJoinCodeJSONRequ
 	return c.Client.Do(req)
 }
 
+// JoinMachineOverSshWithBody Join a Linux or macOS machine over SSH
+//
+// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+func (c *Client) JoinMachineOverSshWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinMachineOverSshRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// JoinMachineOverSsh Join a Linux or macOS machine over SSH
+//
+// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+func (c *Client) JoinMachineOverSsh(ctx context.Context, body JoinMachineOverSshJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinMachineOverSshRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // RevokeJoinCode Withdraw an unused join code
 //
 // Corresponds with DELETE /api/v1/join-codes/{joinCodeId} (the `RevokeJoinCode` operationId).
@@ -6208,6 +6570,99 @@ func (c *Client) UpdateRepositoryPolicy(ctx context.Context, repositoryId Reposi
 // Corresponds with GET /api/v1/repositories/{repositoryId}/runs-on (the `GetRepositoryRunsOn` operationId).
 func (c *Client) GetRepositoryRunsOn(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetRepositoryRunsOnRequest(c.Server, repositoryId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRepositoryTrial A repository's trial mode and its report
+//
+// github-integration R5.66. Read only: the mode, its settings and the comparison of hosted and crsp outcomes and times.
+//
+// Corresponds with GET /api/v1/repositories/{repositoryId}/trial (the `GetRepositoryTrial` operationId).
+func (c *Client) GetRepositoryTrial(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRepositoryTrialRequest(c.Server, repositoryId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetRepositoryTrialWithBody Set a repository's trial mode
+//
+// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+func (c *Client) SetRepositoryTrialWithBody(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetRepositoryTrialRequestWithBody(c.Server, repositoryId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetRepositoryTrial Set a repository's trial mode
+//
+// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+func (c *Client) SetRepositoryTrial(ctx context.Context, repositoryId RepositoryId, body SetRepositoryTrialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetRepositoryTrialRequest(c.Server, repositoryId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetRepositoryWebhookModeWithBody Switch a repository back to webhook deliveries
+//
+// github-integration R5.50 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+func (c *Client) SetRepositoryWebhookModeWithBody(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetRepositoryWebhookModeRequestWithBody(c.Server, repositoryId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetRepositoryWebhookMode Switch a repository back to webhook deliveries
+//
+// github-integration R5.50 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+func (c *Client) SetRepositoryWebhookMode(ctx context.Context, repositoryId RepositoryId, body SetRepositoryWebhookModeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetRepositoryWebhookModeRequest(c.Server, repositoryId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -8946,6 +9401,46 @@ func NewCreateJoinCodeRequestWithBody(server string, contentType string, body io
 	return req, nil
 }
 
+// NewJoinMachineOverSshRequest calls the generic JoinMachineOverSsh builder with application/json body
+func NewJoinMachineOverSshRequest(server string, body JoinMachineOverSshJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewJoinMachineOverSshRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewJoinMachineOverSshRequestWithBody constructs an http.Request for the JoinMachineOverSsh method, with any body, and a specified content type
+func NewJoinMachineOverSshRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/join-codes/ssh")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewRevokeJoinCodeRequest constructs an http.Request for the RevokeJoinCode method
 func NewRevokeJoinCodeRequest(server string, joinCodeId JoinCodeId) (*http.Request, error) {
 	var err error
@@ -10318,6 +10813,134 @@ func NewGetRepositoryRunsOnRequest(server string, repositoryId RepositoryId) (*h
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewGetRepositoryTrialRequest constructs an http.Request for the GetRepositoryTrial method
+func NewGetRepositoryTrialRequest(server string, repositoryId RepositoryId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "repositoryId", repositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/repositories/%s/trial", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetRepositoryTrialRequest calls the generic SetRepositoryTrial builder with application/json body
+func NewSetRepositoryTrialRequest(server string, repositoryId RepositoryId, body SetRepositoryTrialJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetRepositoryTrialRequestWithBody(server, repositoryId, "application/json", bodyReader)
+}
+
+// NewSetRepositoryTrialRequestWithBody constructs an http.Request for the SetRepositoryTrial method, with any body, and a specified content type
+func NewSetRepositoryTrialRequestWithBody(server string, repositoryId RepositoryId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "repositoryId", repositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/repositories/%s/trial", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewSetRepositoryWebhookModeRequest calls the generic SetRepositoryWebhookMode builder with application/json body
+func NewSetRepositoryWebhookModeRequest(server string, repositoryId RepositoryId, body SetRepositoryWebhookModeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetRepositoryWebhookModeRequestWithBody(server, repositoryId, "application/json", bodyReader)
+}
+
+// NewSetRepositoryWebhookModeRequestWithBody constructs an http.Request for the SetRepositoryWebhookMode method, with any body, and a specified content type
+func NewSetRepositoryWebhookModeRequestWithBody(server string, repositoryId RepositoryId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "repositoryId", repositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/repositories/%s/webhook-mode", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -12234,6 +12857,24 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/join-codes (the `CreateJoinCode` operationId).
 	CreateJoinCodeWithResponse(ctx context.Context, body CreateJoinCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateJoinCodeResponse, error)
 
+	// JoinMachineOverSshWithBodyWithResponse Join a Linux or macOS machine over SSH
+	//
+	// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+	JoinMachineOverSshWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*JoinMachineOverSshResponse, error)
+
+	// JoinMachineOverSshWithResponse Join a Linux or macOS machine over SSH
+	//
+	// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+	JoinMachineOverSshWithResponse(ctx context.Context, body JoinMachineOverSshJSONRequestBody, reqEditors ...RequestEditorFn) (*JoinMachineOverSshResponse, error)
+
 	// RevokeJoinCodeWithResponse Withdraw an unused join code
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -12637,6 +13278,51 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/repositories/{repositoryId}/runs-on (the `GetRepositoryRunsOn` operationId).
 	GetRepositoryRunsOnWithResponse(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*GetRepositoryRunsOnResponse, error)
+
+	// GetRepositoryTrialWithResponse A repository's trial mode and its report
+	//
+	// github-integration R5.66. Read only: the mode, its settings and the comparison of hosted and crsp outcomes and times.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/repositories/{repositoryId}/trial (the `GetRepositoryTrial` operationId).
+	GetRepositoryTrialWithResponse(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*GetRepositoryTrialResponse, error)
+
+	// SetRepositoryTrialWithBodyWithResponse Set a repository's trial mode
+	//
+	// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+	SetRepositoryTrialWithBodyWithResponse(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetRepositoryTrialResponse, error)
+
+	// SetRepositoryTrialWithResponse Set a repository's trial mode
+	//
+	// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+	SetRepositoryTrialWithResponse(ctx context.Context, repositoryId RepositoryId, body SetRepositoryTrialJSONRequestBody, reqEditors ...RequestEditorFn) (*SetRepositoryTrialResponse, error)
+
+	// SetRepositoryWebhookModeWithBodyWithResponse Switch a repository back to webhook deliveries
+	//
+	// github-integration R5.50 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+	SetRepositoryWebhookModeWithBodyWithResponse(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetRepositoryWebhookModeResponse, error)
+
+	// SetRepositoryWebhookModeWithResponse Switch a repository back to webhook deliveries
+	//
+	// github-integration R5.50 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+	SetRepositoryWebhookModeWithResponse(ctx context.Context, repositoryId RepositoryId, body SetRepositoryWebhookModeJSONRequestBody, reqEditors ...RequestEditorFn) (*SetRepositoryWebhookModeResponse, error)
 
 	// PlanRepositoryChangesWithBodyWithResponse Plan turning the pool on or off for repositories
 	//
@@ -14792,6 +15478,54 @@ func (r CreateJoinCodeResponse) ContentType() string {
 	return ""
 }
 
+type JoinMachineOverSshResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *JoinCode
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r JoinMachineOverSshResponse) GetJSON201() *JoinCode {
+	return r.JSON201
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r JoinMachineOverSshResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r JoinMachineOverSshResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r JoinMachineOverSshResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r JoinMachineOverSshResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r JoinMachineOverSshResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type RevokeJoinCodeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -16390,6 +17124,150 @@ func (r GetRepositoryRunsOnResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetRepositoryRunsOnResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetRepositoryTrialResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Trial
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRepositoryTrialResponse) GetJSON200() *Trial {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetRepositoryTrialResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRepositoryTrialResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRepositoryTrialResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRepositoryTrialResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRepositoryTrialResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SetRepositoryTrialResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Trial
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SetRepositoryTrialResponse) GetJSON200() *Trial {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r SetRepositoryTrialResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SetRepositoryTrialResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SetRepositoryTrialResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetRepositoryTrialResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetRepositoryTrialResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SetRepositoryWebhookModeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *WebhookHealth
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SetRepositoryWebhookModeResponse) GetJSON200() *WebhookHealth {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r SetRepositoryWebhookModeResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SetRepositoryWebhookModeResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SetRepositoryWebhookModeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetRepositoryWebhookModeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetRepositoryWebhookModeResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -18724,6 +19602,36 @@ func (c *ClientWithResponses) CreateJoinCodeWithResponse(ctx context.Context, bo
 	return ParseCreateJoinCodeResponse(rsp)
 }
 
+// JoinMachineOverSshWithBodyWithResponse Join a Linux or macOS machine over SSH
+//
+// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+func (c *ClientWithResponses) JoinMachineOverSshWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*JoinMachineOverSshResponse, error) {
+	rsp, err := c.JoinMachineOverSshWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinMachineOverSshResponse(rsp)
+}
+
+// JoinMachineOverSshWithResponse Join a Linux or macOS machine over SSH
+//
+// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+func (c *ClientWithResponses) JoinMachineOverSshWithResponse(ctx context.Context, body JoinMachineOverSshJSONRequestBody, reqEditors ...RequestEditorFn) (*JoinMachineOverSshResponse, error) {
+	rsp, err := c.JoinMachineOverSsh(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinMachineOverSshResponse(rsp)
+}
+
 // RevokeJoinCodeWithResponse Withdraw an unused join code
 //
 // Returns a wrapper object for the known response body format(s).
@@ -19402,6 +20310,81 @@ func (c *ClientWithResponses) GetRepositoryRunsOnWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseGetRepositoryRunsOnResponse(rsp)
+}
+
+// GetRepositoryTrialWithResponse A repository's trial mode and its report
+//
+// github-integration R5.66. Read only: the mode, its settings and the comparison of hosted and crsp outcomes and times.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/repositories/{repositoryId}/trial (the `GetRepositoryTrial` operationId).
+func (c *ClientWithResponses) GetRepositoryTrialWithResponse(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*GetRepositoryTrialResponse, error) {
+	rsp, err := c.GetRepositoryTrial(ctx, repositoryId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRepositoryTrialResponse(rsp)
+}
+
+// SetRepositoryTrialWithBodyWithResponse Set a repository's trial mode
+//
+// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+func (c *ClientWithResponses) SetRepositoryTrialWithBodyWithResponse(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetRepositoryTrialResponse, error) {
+	rsp, err := c.SetRepositoryTrialWithBody(ctx, repositoryId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetRepositoryTrialResponse(rsp)
+}
+
+// SetRepositoryTrialWithResponse Set a repository's trial mode
+//
+// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+func (c *ClientWithResponses) SetRepositoryTrialWithResponse(ctx context.Context, repositoryId RepositoryId, body SetRepositoryTrialJSONRequestBody, reqEditors ...RequestEditorFn) (*SetRepositoryTrialResponse, error) {
+	rsp, err := c.SetRepositoryTrial(ctx, repositoryId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetRepositoryTrialResponse(rsp)
+}
+
+// SetRepositoryWebhookModeWithBodyWithResponse Switch a repository back to webhook deliveries
+//
+// github-integration R5.50 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+func (c *ClientWithResponses) SetRepositoryWebhookModeWithBodyWithResponse(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetRepositoryWebhookModeResponse, error) {
+	rsp, err := c.SetRepositoryWebhookModeWithBody(ctx, repositoryId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetRepositoryWebhookModeResponse(rsp)
+}
+
+// SetRepositoryWebhookModeWithResponse Switch a repository back to webhook deliveries
+//
+// github-integration R5.50 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
+func (c *ClientWithResponses) SetRepositoryWebhookModeWithResponse(ctx context.Context, repositoryId RepositoryId, body SetRepositoryWebhookModeJSONRequestBody, reqEditors ...RequestEditorFn) (*SetRepositoryWebhookModeResponse, error) {
+	rsp, err := c.SetRepositoryWebhookMode(ctx, repositoryId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetRepositoryWebhookModeResponse(rsp)
 }
 
 // PlanRepositoryChangesWithBodyWithResponse Plan turning the pool on or off for repositories
@@ -21341,6 +22324,39 @@ func ParseCreateJoinCodeResponse(rsp *http.Response) (*CreateJoinCodeResponse, e
 	return response, nil
 }
 
+// ParseJoinMachineOverSshResponse parses an HTTP response from a JoinMachineOverSshWithResponse call
+func ParseJoinMachineOverSshResponse(rsp *http.Response) (*JoinMachineOverSshResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &JoinMachineOverSshResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest JoinCode
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseRevokeJoinCodeResponse parses an HTTP response from a RevokeJoinCodeWithResponse call
 func ParseRevokeJoinCodeResponse(rsp *http.Response) (*RevokeJoinCodeResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -22433,6 +23449,105 @@ func ParseGetRepositoryRunsOnResponse(rsp *http.Response) (*GetRepositoryRunsOnR
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest RunsOnFindingList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRepositoryTrialResponse parses an HTTP response from a GetRepositoryTrialWithResponse call
+func ParseGetRepositoryTrialResponse(rsp *http.Response) (*GetRepositoryTrialResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRepositoryTrialResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Trial
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetRepositoryTrialResponse parses an HTTP response from a SetRepositoryTrialWithResponse call
+func ParseSetRepositoryTrialResponse(rsp *http.Response) (*SetRepositoryTrialResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetRepositoryTrialResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Trial
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetRepositoryWebhookModeResponse parses an HTTP response from a SetRepositoryWebhookModeWithResponse call
+func ParseSetRepositoryWebhookModeResponse(rsp *http.Response) (*SetRepositoryWebhookModeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetRepositoryWebhookModeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WebhookHealth
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

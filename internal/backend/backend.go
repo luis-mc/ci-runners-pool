@@ -174,6 +174,9 @@ type Usage struct {
 	MemoryMedian int64
 	DiskUsed     int64
 	Wall         time.Duration
+	// StoppedBy says why the job or runner ended when the cause is known, such
+	// as "stopped by the memory cap (exit 137)" (runners R5.85).
+	StoppedBy string
 }
 
 // Backend is one isolation backend (decision 0003, runners R5.8).

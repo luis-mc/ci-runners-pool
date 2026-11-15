@@ -81,7 +81,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 	// lands the repository is in memory, so machines and keys last until restart.
 	svc := machines.New(machines.Options{
 		Repo: machines.NewMemRepo(), ControllerAddress: public, AgentPort: port, Fingerprint: ca.Fingerprint(),
-		OnIdle: idle.call, PoolDefaults: pool,
+		OnIdle: idle.call, PoolDefaults: pool, SSH: machines.NewSSHRunner(),
 	})
 	cs := caches.New(caches.Options{Machines: svc, Audit: rec})
 	lk := agentlink.New(svc)

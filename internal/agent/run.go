@@ -11,6 +11,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/cpucap"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/load"
@@ -60,6 +61,15 @@ type Config struct {
 	// BaseImages checks that the runner base image of each backend exists on
 	// this machine before jobs are admitted (runners R5.53); nil checks none.
 	BaseImages BaseImageSource
+	// InstallPackages installs a runner's extra packages into its environment
+	// (the persistent prefix or the VM base disk), never on the host OS
+	// (runners R5.86). A container runner gets them in its image build, so
+	// the hook is not called for it. nil installs none, and a persistent
+	// runner that names packages is refused.
+	InstallPackages func(ctx context.Context, spec backend.RunnerSpec) error
+	// PackageFailures lists the package sets that failed to install, for the
+	// machine report and the doctor (runners R5.86); nil reports none.
+	PackageFailures func() []runners.PackageFailure
 	// Redactor learns every token and JIT config the controller sends, so no
 	// log line or answer shows one (runners R5.11); nil makes a private one.
 	Redactor *redact.Redactor

@@ -715,6 +715,53 @@ paths:
                 $ref: '#/components/schemas/RepositoryPolicy'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/repositories/{repositoryId}/trial:
+    get:
+      operationId: getRepositoryTrial
+      tags: [repositories]
+      summary: A repository's trial mode and its report
+      description: >-
+        github-integration R5.66. Read only: the mode, its settings and the
+        comparison of hosted and crsp outcomes and times.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+      responses:
+        '200':
+          description: The trial.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trial'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: setRepositoryTrial
+      tags: [repositories]
+      summary: Set a repository's trial mode
+      description: >-
+        github-integration R5.66. Public repositories are refused for every
+        mode but `off`. `off` undoes a canary and restores the earlier variables.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrialSet'
+      responses:
+        '200':
+          description: The trial after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trial'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/repositories/{repositoryId}/extra-packages:
     get:
       operationId: getRepositoryExtraPackages
@@ -763,6 +810,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExtraPackages'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/repositories/{repositoryId}/webhook-mode:
+    put:
+      operationId: setRepositoryWebhookMode
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [repositories]
+      summary: Switch a repository back to webhook deliveries
+      description: >-
+        github-integration R5.50 (RES14). After deliveries failed the controller
+        polls the repository; this switches it back to webhooks. Only `webhook`
+        is accepted: polling is chosen by the controller when deliveries fail.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookModeUpdate'
+      responses:
+        '200':
+          description: The webhook health after the switch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookHealth'
         default:
           $ref: '#/components/responses/Error'
   /api/v1/repositories/{repositoryId}/runs-on:
@@ -1158,6 +1235,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JoinCodeCreated'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/join-codes/ssh:
+    post:
+      operationId: joinMachineOverSsh
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [machines]
+      summary: Join a Linux or macOS machine over SSH
+      description: >-
+        machines R5.3a (RES3, owner decision D59). The optional path beside
+        copy-and-wait. The key file in `identity` is used for this one join and
+        is never stored or logged; there is no password option. Without
+        `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation`
+        whose detail is the host key fingerprint to confirm; send the call again
+        with it. The answer is the join code record (never its value); poll it
+        like a copied command.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SshJoinRequest'
+      responses:
+        '201':
+          description: The command ran on the machine; its join code is waiting for the agent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JoinCode'
         default:
           $ref: '#/components/responses/Error'
   /api/v1/join-codes/{joinCodeId}:
@@ -3383,6 +3492,75 @@ components:
         url:
           type: string
           example: https://github.com/apps/crsp-home/installations/new
+    TrialSet:
+      type: object
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: [off, observe, shadow, canary]
+        percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Canary only. The share of jobs, chosen by job name.
+        jobs:
+          type: array
+          items: { type: string }
+          description: Canary only. Jobs that always use crsp.
+        shadow_workflow:
+          type: string
+          description: Shadow only. The workflow file to dispatch.
+        shadow_jobs:
+          type: array
+          items: { type: string }
+          description: Shadow only. Jobs to copy; empty means every job crsp would take.
+    TrialSide:
+      type: object
+      required: [runs, succeeded, avg_wait_sec, avg_run_sec]
+      properties:
+        runs: { type: integer }
+        succeeded: { type: integer }
+        avg_wait_sec: { type: integer }
+        avg_run_sec: { type: integer }
+    TrialJob:
+      type: object
+      required: [job, hosted, crsp, would_take]
+      properties:
+        job: { type: string }
+        hosted: { $ref: '#/components/schemas/TrialSide' }
+        crsp: { $ref: '#/components/schemas/TrialSide' }
+        would_take: { type: integer }
+        agree:
+          type: boolean
+          description: Present when the job ran on both sides.
+    Trial:
+      type: object
+      required: [repository, mode, variables, total, hosted, crsp, jobs]
+      properties:
+        repository: { type: string }
+        mode:
+          type: string
+          enum: [off, observe, shadow, canary]
+        since: { type: string, format: date-time }
+        percent: { type: integer }
+        canary_jobs:
+          type: array
+          items: { type: string }
+        shadow_workflow: { type: string }
+        shadow_jobs:
+          type: array
+          items: { type: string }
+        variables:
+          type: array
+          items: { type: string }
+          description: The canary variables now written.
+        total: { type: integer }
+        hosted: { $ref: '#/components/schemas/TrialSide' }
+        crsp: { $ref: '#/components/schemas/TrialSide' }
+        jobs:
+          type: array
+          items: { $ref: '#/components/schemas/TrialJob' }
     Repository:
       type: object
       required:
@@ -3429,6 +3607,8 @@ components:
           $ref: '#/components/schemas/RepositoryPolicy'
         routing:
           $ref: '#/components/schemas/RepositoryRouting'
+        webhook:
+          $ref: '#/components/schemas/WebhookHealth'
       example:
         id: 700100
         full_name: luis-mc/app
@@ -3450,6 +3630,34 @@ components:
           labels: [self-hosted, linux, x64]
           runner_groups: []
           light_runner: true
+    WebhookHealth:
+      type: object
+      description: The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.50).
+      required: [mode, failures_in_a_row]
+      properties:
+        mode:
+          type: string
+          enum: [webhook, polling]
+        last_delivery_at:
+          type: string
+          format: date-time
+          description: Absent when no delivery was seen.
+        last_result:
+          type: string
+          enum: [ok, failed, missed]
+        failures_in_a_row:
+          type: integer
+        polling_since:
+          type: string
+          format: date-time
+          description: Set in polling mode.
+    WebhookModeUpdate:
+      type: object
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: [webhook]
     RepositoryRouting:
       type: object
       description: Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
@@ -4387,6 +4595,29 @@ components:
           description: Default 15, ceiling 1440 (machines R5.4).
           minimum: 1
           maximum: 1440
+    SshJoinRequest:
+      type: object
+      required: [os, host, user, identity]
+      properties:
+        os:
+          type: string
+          enum: [linux, macos]
+        host:
+          type: string
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: Default 22.
+        user:
+          type: string
+        identity:
+          type: string
+          writeOnly: true
+          description: The content of the SSH key file, used once for this join and never stored.
+        host_fingerprint:
+          type: string
+          description: The host key fingerprint the owner confirmed (SHA256:...).
     JoinCode:
       type: object
       required: [id, state, created_at, expires_at]
@@ -4396,6 +4627,13 @@ components:
         state:
           type: string
           enum: [waiting, joined, expired, revoked]
+        progress:
+          type: string
+          enum: [waiting, connected, ready]
+          description: >-
+            How far a copied or SSH join got (RES3). `waiting`: no agent used the
+            code yet. `connected`: the agent joined. `ready`: the machine sent
+            its first heartbeat. Absent once the code expired or was withdrawn.
         created_at:
           type: string
           format: date-time

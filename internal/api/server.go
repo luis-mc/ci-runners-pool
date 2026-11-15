@@ -75,6 +75,8 @@ type Options struct {
 	Registry *regcreds.Store
 	// Compare serves the speed comparison route (handlers_compare.go). Nil answers 501.
 	Compare CompareService
+	// Trial serves the trial mode routes (handlers_trial.go). Nil answers 501.
+	Trial TrialService
 	// Authn says who a request acts as. Nil uses the GitHub area's sessions and
 	// CLI tokens; with neither, every operation that needs a role answers 401.
 	// A test passes a fixed principal.

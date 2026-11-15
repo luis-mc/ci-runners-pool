@@ -178,7 +178,9 @@ func TestRedetectPeriodicallyAndOnDemandAndChangesAreAudited(t *testing.T) {
 		t.Fatal("the change was not written to the audit log")
 	}
 	// Check again: the controller asks and the agent answers with its facts.
+	p.mu.Lock()
 	calls := len(p.calls)
+	p.mu.Unlock()
 	if err := c.Svc.Redetect(context.Background(), "owner", id); err != nil {
 		t.Fatal(err)
 	}
