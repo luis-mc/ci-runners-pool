@@ -343,7 +343,7 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.32** (built, CRSP24) — Every date, time, number, size and percent on screen comes from the one formatter (component 28).
 
-**R5.33** (M3, NOT YET IMPLEMENTED, CRSP91) — **Agent recovery card.** A machine marked `stuck on old version` (operations R5.44) shows one card on its page: the version it has, the version it needs, and the reinstall command with a copy button. The card follows design-system UX-4 and uses the shared card and copy parts; it has no hand-made layout.
+**R5.33** (M3, NOT YET IMPLEMENTED, CRSP91; the API part is built: the machine has `recovery` and the action `POST /api/v1/machines/{machineId}/recovery`, operations R5.44) — **Agent recovery card.** A machine marked `stuck on old version` (operations R5.44) shows one card on its page: the version it has, the version it needs, and the reinstall command with a copy button. The card follows design-system UX-4 and uses the shared card and copy parts; it has no hand-made layout.
 
 **R5.34** (built, CRSP74) — The Repositories screen says where each repository's jobs go now (*crsp machines*, *GitHub-hosted runners* or *waiting for a machine*) in a column and, with the reason in words, on the repository page, which also has the *Hosted fallback* section: the choice *When no crsp machine can take these jobs*, the monthly cap and the hosted labels. Turning the fallback on asks first in the question card (UX-9) and says GitHub may bill the minutes; a public repository cannot take it. Rules: UX-9, UX-22, UX-38. Words: content.md, *Hosted fallback words*. Contract: github-integration R5.42, R5.44.
 
