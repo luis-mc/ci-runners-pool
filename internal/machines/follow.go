@@ -56,6 +56,7 @@ func (s *Service) Agents(ctx context.Context) ([]AgentInfo, error) {
 
 // AskUpdate asks a connected agent to update itself to version.
 func (s *Service) AskUpdate(machineID, version string) error {
+	s.noteAsked(machineID, version)
 	return s.sessions.send(machineID, &agentv1.SessionResponse{Message: &agentv1.SessionResponse_UpdateAgent{
 		UpdateAgent: &agentv1.UpdateAgent{CommandId: newID("cmd_"), Version: version}}})
 }

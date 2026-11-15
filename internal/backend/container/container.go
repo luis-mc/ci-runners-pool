@@ -173,6 +173,13 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	if b.draining[pool] {
 		return h, ErrDraining
 	}
+	if iso, err := ParseIsolation(r.Pool.Isolation); err != nil {
+		return h, err
+	} else if iso == IsolationHyperV {
+		if err := b.ProbeHyperV(ctx); err != nil {
+			return h, err
+		}
+	}
 	kvm := b.kvmFacts(ctx, runners.NormalizeLayers(r.Pool.Layers))
 	plan, err := PlanPool(b.cfg, r, owner, repo, kvm)
 	if err != nil {

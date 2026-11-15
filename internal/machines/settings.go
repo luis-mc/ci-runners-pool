@@ -20,6 +20,8 @@ type View struct {
 	PendingChange *Change
 	// Policy is what the agent last reported about taking new jobs (R5.62).
 	Policy Policy
+	// Recovery is set when the machine needs recovery (operations R5.44).
+	Recovery *Recovery
 }
 
 // BackendView is a detected backend and whether the user allowed it (R5.12).
@@ -67,6 +69,9 @@ func (s *Service) view(ctx context.Context, m Machine) (View, error) {
 	}
 	s.fillPolicy(&m)
 	v := View{Machine: m, Settings: set, Policy: s.Policy(m.ID)}
+	if r, ok := s.RecoveryOf(m); ok {
+		v.Recovery = &r
+	}
 	allowed := map[string]bool{}
 	for _, b := range set.AllowedBackends {
 		allowed[b] = true

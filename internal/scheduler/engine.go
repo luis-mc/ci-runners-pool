@@ -26,6 +26,10 @@ type Engine struct {
 	// light says whether a runner is on the light queue, read from its stored
 	// route and never from its name (runners R5.70). Nil means no runner is.
 	light func(machineID, runnerName string) bool
+	// warm lists the warm runners of a machine and warmRelease drains some of
+	// them when a real job needs the budget (scheduling R5.66). Both nil: no warm pool.
+	warm        func(machineID string) []WarmRunner
+	warmRelease func(machineID string, names []string)
 }
 
 // Option configures an Engine.

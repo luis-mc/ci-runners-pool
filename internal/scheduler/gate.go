@@ -284,6 +284,8 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 	if over {
 		return wait(WaitLoadOverBudget, overText)
 	}
+	// R5.66: a warm runner yields its budget to a real job, oldest first.
+	e.yieldWarm(req.MachineID, job.RunnerName, set, all, need)
 	s, taken, err := e.takeSlot(tx, req, slots.KindCI, n, t.QueuedAt(), now)
 	if err != nil {
 		return Decision{}, err

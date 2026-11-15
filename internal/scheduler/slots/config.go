@@ -28,6 +28,9 @@ type Settings struct {
 	OnTimeout       string
 	LightJobs       []string
 	HeavyJobs       []string
+	// WarmRunners is how many ready runners the machine keeps (scheduling
+	// R5.66); 0 keeps none.
+	WarmRunners int
 	// Classes is the table of job classes and their weights (R5.69). It is
 	// not a stored setting: every machine starts from DefaultClasses.
 	Classes []JobClass
@@ -55,7 +58,7 @@ func Defaults() Settings {
 var Keys = []string{
 	"budget_memory_pct", "budget_cpu_pct", "job_slots", "light_slots", "heavy_slots",
 	"slot_max_age_minutes", "gate_max_wait_minutes", "gate_poll_seconds", "gate_on_timeout",
-	"light_jobs", "heavy_jobs",
+	"light_jobs", "heavy_jobs", "warm_runners",
 }
 
 // number reads v as a number. A bool is never a number (R5.2).
@@ -129,6 +132,9 @@ func Normalise(raw map[string]any) Settings {
 	}
 	if v, ok := raw["gate_on_timeout"].(string); ok && (v == OnTimeoutFail || v == OnTimeoutRun) {
 		s.OnTimeout = v
+	}
+	if n, ok := whole(raw["warm_runners"], 0); ok {
+		s.WarmRunners = n
 	}
 	if l, ok := strList(raw["light_jobs"]); ok {
 		s.LightJobs = l
