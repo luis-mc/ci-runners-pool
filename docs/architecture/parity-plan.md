@@ -74,11 +74,11 @@ Status words: **Built** (code and tests exist), **Specified** (a requirement exi
 | 30 | Image layers merged across repositories, `--drop-layer`, Playwright never lowered | `pool-refresh` | n/a | Not needed: a crsp pool is per repository and an image is keyed by its layers | runners R5.33 |
 | 31 | Build aside, drain, swap, truthful result, wrong runner hash fixed | `pool-refresh` | all | Specified | runners R5.33, R5.35, R5.37 |
 | 32 | Agent user id clashes | `pool_supervisor.py` (DL284) | all | Not needed: the job user is fixed in the image | runners R5.49 |
-| 33 | Image checks in the doctor: tools found, image current, tool cache writable | `pool.<name>.*` | all | Missing, added | doctor R5.31 |
+| 33 | Image checks in the doctor: tools found, image current, tool cache writable | `pool.<name>.*` | all | Built (CRSP53), not yet wired to an agent | doctor R5.31 |
 | 34 | Postgres 16 per pool, a login and a database per agent, random password | `pool_agents.py` | J6, J7 | Specified in short | runners R5.45 |
 | 35 | `db.env` and the `pool-db-env` step, `CREATEDB` opt-in, declared `NOLOGIN` roles | `pool-add-agent --db-role` | J6, J7 | Missing, added | runners R5.54 |
-| 36 | Per-runner tool cache and Rust cache with quotas and eviction | `/ci-tools`, `cache-sweep` | J1, J2, J8 | Built for persistent runners (CRSP21, CRSP26); container form Missing, added | caches R5.36 to R5.39; caches R5.43 |
-| 37 | Shared-cache mode for a folder many users write | `ci_tool.py` (DL194) | J2 | Specified; scope set by D308 | caches R5.18 to R5.20; caches R5.44 |
+| 36 | Per-runner tool cache and Rust cache with quotas and eviction | `/ci-tools`, `cache-sweep` | J1, J2, J8 | Built for persistent runners (CRSP21, CRSP26); container form Built (CRSP53), not yet started by the agent | caches R5.36 to R5.39; caches R5.43 |
+| 37 | Shared-cache mode for a folder many users write | `ci_tool.py` (DL194) | J2 | Built for the cache part (CRSP53); scope set by D308 | caches R5.18 to R5.20; caches R5.44 |
 | 38 | Rust cache cap: key in use kept, newest other key, `incremental/` first | `rust_ci.py` (DL342) | J2, J8 | Partly built; details Missing, added | caches R5.37; caches R5.45 |
 | 39 | `vm_check.py` and `vm-images.json` | `scripts/delivery` | J11 | Data and checks Built (CRSP26); the boot Missing, added | caches R5.40; caches R5.46, R5.47; runners R5.55 |
 | 40 | Pinned downloads and unpack (`ci_tool.py`, `tools.json`) | delivery scripts | J1 to J4 | Not taken: they stay in delivery (D308) | caches R5.44 |
