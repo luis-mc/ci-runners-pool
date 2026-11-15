@@ -44,7 +44,7 @@ func (s *Service) Tick(ctx context.Context) error {
 		var skew time.Duration
 		_, went, err := s.updateMachine(ctx, m.ID, func(m *Machine) bool {
 			skewed := m.Online && m.LastSeen.Sub(now) > OfflineAfter
-			if !m.Online || !(skewed || now.Sub(m.LastSeen) > OfflineAfter) {
+			if !m.Online || (!skewed && now.Sub(m.LastSeen) <= OfflineAfter) {
 				return false
 			}
 			if skewed {
