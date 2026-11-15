@@ -20,6 +20,8 @@ type Env struct {
 	GitHub GitHub
 	// KVM is nil when no agent reports KVM; the kvm checks then skip.
 	KVM KVMSource
+	// Engines is nil when no agent reports its container engine; machine.engine then skips.
+	Engines EngineSource
 	// PoolName is the pool's name label; RunnerPrefix starts the name of every
 	// runner the product makes (default "crsp-").
 	PoolName     string
@@ -258,6 +260,27 @@ type KVMState struct {
 	WaitedOut bool
 	// NestedKnown is false when .wslconfig could not be read; Nested is then ignored.
 	NestedKnown, Nested bool
+	// ModuleKnown is false when the WSL VM could not be asked; ModuleLoaded is
+	// then ignored. ModuleLoaded is true when kvm_intel or kvm_amd is loaded in
+	// the WSL VM (Windows only, machines R5.53).
+	ModuleKnown, ModuleLoaded bool
+}
+
+// EngineState is the container engine an agent found on its machine (runners
+// R5.47, machines R5.18).
+type EngineState struct {
+	Machine Machine
+	// Kind is docker-wsl2-windows-cli, docker-wsl2-wsl, docker-desktop,
+	// docker-native or none.
+	Kind    string
+	Usable  bool
+	Version string
+	Reason  string
+}
+
+// EngineSource lists the engine per machine; ErrUnreachable when an agent does not answer.
+type EngineSource interface {
+	Engines(ctx context.Context) ([]EngineState, error)
 }
 
 // KVMSource lists the KVM state per machine; ErrUnreachable when an agent does not answer.
