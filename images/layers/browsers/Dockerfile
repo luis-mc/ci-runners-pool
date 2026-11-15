@@ -23,7 +23,11 @@ RUN set -eu; \
     cd /opt/crsp/pw; \
     npm init -y >/dev/null; \
     npm install --no-audit --no-fund --save-exact "playwright-core@${PLAYWRIGHT_VERSION}"; \
-    node node_modules/playwright-core/cli.js install --with-deps chromium firefox webkit; \
+    export DEBUG=pw:install; \
+    timeout 900 node node_modules/playwright-core/cli.js install-deps chromium firefox webkit; \
+    for b in chromium firefox webkit; do \
+      timeout 600 node node_modules/playwright-core/cli.js install "$b" </dev/null; \
+    done; \
     echo "${PLAYWRIGHT_VERSION}" > /opt/crsp/browsers/.crsp-playwright-version; \
     rm -rf /var/lib/apt/lists/* /root/.npm; \
     chmod -R a+rX /opt/crsp
@@ -33,7 +37,7 @@ RUN cd /opt/crsp/pw && node -e ' \
   const pw = require("playwright-core"); \
   (async () => { \
     for (const t of [pw.chromium, pw.firefox, pw.webkit]) { \
-      const b = await t.launch({ headless: true }); \
+      const b = await t.launch({ headless: true, timeout: 60000 }); \
       const p = await b.newPage(); \
       await p.setContent("<p>ok</p>"); \
       await b.close(); \
