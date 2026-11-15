@@ -14,7 +14,9 @@ import (
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/load"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/redact"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 )
 
@@ -46,6 +48,14 @@ type Config struct {
 	Caches CacheSource
 	// CacheFS is the file access of the cache measure and wipe; nil is the real one.
 	CacheFS runnercache.FS
+	// Runners carries out the runner commands of the controller (runners R5.1);
+	// nil answers each with a failure that says the agent has no backend.
+	Runners runners.Agent
+	// Images lists the job images for the machine report; nil reports none.
+	Images ImageSource
+	// Redactor learns every token and JIT config the controller sends, so no
+	// log line or answer shows one (runners R5.11); nil makes a private one.
+	Redactor *redact.Redactor
 
 	// Intervals; the defaults are the spec's (R5.35, R5.13, R5.16).
 	HeartbeatEvery time.Duration // 10 s
@@ -320,6 +330,7 @@ func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 	lastRecv := newStamp()
 	go l.sendLoop(ctx, cancel, lastRecv)
 	go l.cacheLoop(ctx)
+	go l.machineReportLoop(ctx)
 	go l.budgetLoop(ctx)
 
 	for {
@@ -456,7 +467,13 @@ func (l *link) handle(ctx context.Context, msg *agentv1.SessionResponse) error {
 	case *agentv1.SessionResponse_Redetect:
 		f := l.redetect(ctx)
 		_ = l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_Facts{Facts: f}})
+		go l.reportMachine(ctx, "")
 		_ = l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_CommandResult{CommandResult: &agentv1.CommandResult{CommandId: m.Redetect.GetCommandId(), Ok: true, Outcome: "done"}}})
+	case *agentv1.SessionResponse_ReportMachine:
+		go l.reportMachine(ctx, m.ReportMachine.GetCommandId())
+	case *agentv1.SessionResponse_AddRunner, *agentv1.SessionResponse_StopRunner,
+		*agentv1.SessionResponse_RemoveRunner, *agentv1.SessionResponse_DrainRunner:
+		l.runnerCmd(ctx, msg)
 	case *agentv1.SessionResponse_MeasureCaches:
 		go l.reportCaches(ctx, m.MeasureCaches.GetCommandId())
 	case *agentv1.SessionResponse_WipeCache:
@@ -497,6 +514,22 @@ func (l *link) cacheLoop(ctx context.Context) {
 			return
 		case <-t.C:
 			l.reportCaches(ctx, "")
+		}
+	}
+}
+
+// machineReportLoop reports once when the session opens and then every
+// RedetectEvery.
+func (l *link) machineReportLoop(ctx context.Context) {
+	l.reportMachine(ctx, "")
+	t := time.NewTicker(l.cfg.RedetectEvery)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			l.reportMachine(ctx, "")
 		}
 	}
 }
