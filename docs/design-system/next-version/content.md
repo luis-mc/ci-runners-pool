@@ -54,6 +54,8 @@ Each action has one word. The Never use column lists words that must not stand i
 | Exporting | The busy word of Export, while the controller builds the file. | Downloading |
 | Load more | Read the next rows of a list that has more on the controller. | Show more, Next page |
 | Send test | Send one clearly marked test notice through a channel and say what happened. It changes nothing else. | Test, Ping, Verify, Send a test |
+| Pause for 1 hour, Pause until I resume | Hold a machine from taking new jobs for an hour, or until Resume. The running jobs finish. | Stop, Suspend, Disable |
+| Resume | End a pause, and let the machine take jobs again. The machine page and the tray use it. | Unpause, Restart, Enable |
 
 Add a row for each action the project needs. A new action gets a word that is not used above.
 
@@ -178,6 +180,43 @@ The words of the repository policy form for the light runner (scheduling R5.65).
 | Keep a light runner for short jobs | The switch on the policy form. On by default. |
 | A light runner is kept free for jobs that last seconds, so they do not wait behind a long build. A workflow uses it with runs-on: ${{ vars.RUNS_ON_LIGHT }}. | The note under the switch. |
 | No light runner is online for {os} on {repository} | The doctor finding when the runner is missing. |
+
+## Machine policy words
+
+The words of the machine mode, the battery pause and the CPU cap (machines R5.60 to R5.63, tray R5.42, web-console R5.65). The tray and the console use the same words.
+
+| Word | Where and meaning |
+|---|---|
+| When it works | The section title on the machine page. |
+| Mode | The name of the one-choice list and of the tray submenu. |
+| Automatic | A mode. Takes jobs. Pauses on battery and while you have paused it from the tray. |
+| Always | A mode. Takes jobs on battery too. A pause from the tray still holds. |
+| Paused | A mode, and a state word. Takes no new job. The jobs that run finish. |
+| Takes jobs | The column of the machines list. |
+| Taking jobs | State word: the machine takes new jobs. |
+| Paused, On battery, Quiet hours | State words: why the machine takes no new job. |
+| Busy | State word: the load is over the budget, so a new job waits. The tray header does not say it. |
+| Now | The facts line with the state word. |
+| Paused until | The end of a pause from the tray with a timer. A date and time (Dates, times and numbers). |
+| Until you resume | The value of the fact Paused for a pause from the tray that has no end. |
+| Power | The facts line. Values: On battery, On mains. Shown only when the machine's battery state is known. |
+| Pause on battery | The switch. Saved at once. |
+| Always ignores the battery. | The note under the switch in Always. |
+| Off: the machine keeps taking jobs on battery. | The note under the switch when it is off. |
+| On: Automatic takes no new job while the machine runs on battery. | The note under the switch when it is on. |
+| CPU for runners | The name of the CPU cap list. Values: 25%, 50%, 75%, 100%. |
+| The most CPU the runner processes may use. The load budget stays as it is. | The help under the CPU cap list. |
+| Not supported on macOS yet. The runners use all the CPU. | The help under the CPU cap list on macOS. |
+| Not supported on macOS yet. | The reason on each CPU cap value on macOS. |
+| The CPU cap was not set. {why} | Problem message when the agent could not set the cap. |
+| It takes no new job. The jobs that run finish. | Note under the state when the machine is paused. |
+| It takes no new job while it runs on battery. The jobs that run finish. | Note when the machine is on battery. |
+| It takes no new job in quiet hours. The jobs that run finish. | Note in quiet hours. |
+| Its load is over the budget. A new job waits until the load drops. | Note when the state is Busy. |
+| Could not save. {why} | Problem message when a change was not saved. |
+| Could not change the mode. Could not pause. Could not resume. | Titles of the tray notice when a menu change failed. |
+| This service cannot change the mode. Open the console and go to Machines. | Tray notice for a service that does not report a policy. |
+| waits because its machine is paused, waits because its machine runs on battery | Job wait reasons on the jobs screen. |
 
 ## Connect GitHub words
 
