@@ -3506,31 +3506,31 @@ components:
           description: Canary only. The share of jobs, chosen by job name.
         jobs:
           type: array
-          items: {type: string}
+          items: { type: string }
           description: Canary only. Jobs that always use crsp.
         shadow_workflow:
           type: string
           description: Shadow only. The workflow file to dispatch.
         shadow_jobs:
           type: array
-          items: {type: string}
+          items: { type: string }
           description: Shadow only. Jobs to copy; empty means every job crsp would take.
     TrialSide:
       type: object
       required: [runs, succeeded, avg_wait_sec, avg_run_sec]
       properties:
-        runs: {type: integer}
-        succeeded: {type: integer}
-        avg_wait_sec: {type: integer}
-        avg_run_sec: {type: integer}
+        runs: { type: integer }
+        succeeded: { type: integer }
+        avg_wait_sec: { type: integer }
+        avg_run_sec: { type: integer }
     TrialJob:
       type: object
       required: [job, hosted, crsp, would_take]
       properties:
-        job: {type: string}
-        hosted: {$ref: '#/components/schemas/TrialSide'}
-        crsp: {$ref: '#/components/schemas/TrialSide'}
-        would_take: {type: integer}
+        job: { type: string }
+        hosted: { $ref: '#/components/schemas/TrialSide' }
+        crsp: { $ref: '#/components/schemas/TrialSide' }
+        would_take: { type: integer }
         agree:
           type: boolean
           description: Present when the job ran on both sides.
@@ -3538,29 +3538,29 @@ components:
       type: object
       required: [repository, mode, variables, total, hosted, crsp, jobs]
       properties:
-        repository: {type: string}
+        repository: { type: string }
         mode:
           type: string
           enum: [off, observe, shadow, canary]
-        since: {type: string, format: date-time}
-        percent: {type: integer}
+        since: { type: string, format: date-time }
+        percent: { type: integer }
         canary_jobs:
           type: array
-          items: {type: string}
-        shadow_workflow: {type: string}
+          items: { type: string }
+        shadow_workflow: { type: string }
         shadow_jobs:
           type: array
-          items: {type: string}
+          items: { type: string }
         variables:
           type: array
-          items: {type: string}
+          items: { type: string }
           description: The canary variables now written.
-        total: {type: integer}
-        hosted: {$ref: '#/components/schemas/TrialSide'}
-        crsp: {$ref: '#/components/schemas/TrialSide'}
+        total: { type: integer }
+        hosted: { $ref: '#/components/schemas/TrialSide' }
+        crsp: { $ref: '#/components/schemas/TrialSide' }
         jobs:
           type: array
-          items: {$ref: '#/components/schemas/TrialJob'}
+          items: { $ref: '#/components/schemas/TrialJob' }
     Repository:
       type: object
       required:
