@@ -165,7 +165,7 @@ func runController() error {
 	}
 	ctl, err := buildController(ctx, controllerDeps{
 		Cfg: cfg, Logger: logger, DB: db, Secrets: sec, Ops: ops,
-		Machines: mr.Service, CA: mr.CA, Updates: um, Queue: queue, Caches: mr.Caches, MachineSecrets: mr.Secrets,
+		Machines: mr.Service, CA: mr.CA, Updates: um, Queue: queue, Caches: mr.Caches, Link: mr.Link, MachineSecrets: mr.Secrets,
 	})
 	if err != nil {
 		return err

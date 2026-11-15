@@ -93,9 +93,13 @@ message SessionRequest {
     CheckResults check_results = 14;
     UsageReport usage_report = 15;
     UpdateReport update_report = 16;
+    // The answer to AddRunner, RemoveRunner, DrainRunner and StopRunner (CRSP63).
+    RunnerResult runner_result = 17;
     // Field numbers 20 and up belong to the images and caches screen (CRSP36).
     CacheReport cache_report = 20;
     CacheWipeStatus cache_wipe_status = 21;
+    // What the machine can do: KVM, container engine and images (CRSP63).
+    MachineReport machine_report = 22;
   }
 }
 
@@ -116,8 +120,10 @@ message SessionResponse {
     RunChecks run_checks = 12;
     MachineRemoved machine_removed = 13;
     UpdateAgent update_agent = 14;
+    StopRunner stop_runner = 15;
     MeasureCaches measure_caches = 20;
     WipeCache wipe_cache = 21;
+    ReportMachine report_machine = 22;
   }
 }
 
@@ -314,6 +320,35 @@ message RemoveRunner {
 message DrainRunner {
   string command_id = 1;
   string runner_id = 2;
+}
+
+// StopRunner stops a runner's service without removing the registration, and
+// with clean_up also deletes its service entry, account and folder. The
+// controller sends it for the runner of a job that ended (runners R5.26). A
+// container runner is named by its service name, `<pool>:<runner>` (CRSP63).
+message StopRunner {
+  string command_id = 1;
+  string runner_id = 2;
+  string service_name = 3;
+  bool clean_up = 4;
+}
+
+// RunnerResult answers AddRunner, RemoveRunner, DrainRunner and StopRunner. It
+// says what happened and nothing more: ok is true only when the agent did the
+// step. The text in error is redacted and never holds a token or a JIT config
+// (runners R5.11, R6.2).
+message RunnerResult {
+  string command_id = 1;
+  bool ok = 2;
+  string error = 3;
+  // done, already or failed.
+  string outcome = 4;
+  string runner_id = 5;
+  // The service entry or container handle the backend gave the runner; the
+  // controller keeps it to stop and clean up later.
+  string service_ref = 6;
+  // The state the agent saw right after the step.
+  RunnerState state = 7;
 }
 
 // UsageReport is per runner and job, at least every 15 seconds while a job
@@ -663,4 +698,64 @@ message CacheWipeStatus {
   int64 freed_bytes = 4;
   // A redacted text safe to show; set when failed.
   string error = 5;
+}
+
+// ---------------------------------------------------------------- machine report
+
+// ReportMachine asks the agent for a MachineReport now. The agent also sends
+// one with every Redetect and every RedetectEvery, and the controller asks once
+// after Hello (CRSP63).
+message ReportMachine {
+  string command_id = 1;
+}
+
+// MachineReport is what the agent found of the machine's KVM state, container
+// engine and images. It replaces the machine's earlier report. The doctor
+// reads it instead of local facts (doctor R5.32, R5.36; machines R5.53).
+message MachineReport {
+  // The ReportMachine this answers; empty for a report the agent sent itself.
+  string command_id = 1;
+  int64 reported_at_unix_ms = 2;
+  KvmReport kvm = 3;
+  EngineReport engine = 4;
+  repeated ImageReport images = 5;
+  // False when the agent has no container backend, so images is not known
+  // rather than empty.
+  bool images_known = 6;
+}
+
+// KvmReport is the KVM state the agent read. It reads only; it never loads a
+// module or edits `.wslconfig` (machines R5.53). A *_known field false means
+// the agent could not ask, and the value beside it is not to be used.
+message KvmReport {
+  bool device_known = 1;
+  // /dev/kvm exists on the host (Linux) or in the WSL VM (Windows).
+  bool device_present = 2;
+  // Windows: `.wslconfig` was read, and what it sets.
+  bool nested_known = 3;
+  bool nested_virtualization = 4;
+  // Windows: the WSL VM was asked about kvm_intel and kvm_amd.
+  bool module_known = 5;
+  bool module_loaded = 6;
+  string module = 7;
+}
+
+// EngineReport is the container engine of the machine (runners R5.47, machines
+// R5.18).
+message EngineReport {
+  // docker-wsl2-windows-cli, docker-wsl2-wsl, docker-desktop, docker-native or none.
+  string kind = 1;
+  bool usable = 2;
+  string version = 3;
+  string reason = 4;
+}
+
+// ImageReport is one job image on the machine (runners R5.32).
+message ImageReport {
+  string key = 1;
+  string tag = 2;
+  string os = 3;
+  repeated string layers = 4;
+  int64 size_mb = 5;
+  int64 created_unix_ms = 6;
 }
