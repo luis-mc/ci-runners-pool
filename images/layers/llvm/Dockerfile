@@ -8,17 +8,21 @@ ARG BASE_IMAGE=crsp-linux-base:ci
 FROM ${BASE_IMAGE}
 
 ARG TARGETARCH=amd64
-ARG LLVM_VERSION=18.1.8
-ARG LLVM_SHA256_AMD64=54ec30358afcc9fb8aa74307db3046f5187f9fb89fb37064cdde906e062ebf36
+ARG LLVM_VERSION=20.1.8
+ARG LLVM_SHA256_AMD64=1ead36b3dfcb774b57be530df42bec70ab2d239fbce9889447c7a29a4ddc1ae6
 
 USER root
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# The tools link libxml2 (libicu is in the base image).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libxml2 \
+ && rm -rf /var/lib/apt/lists/*
 RUN set -eu; \
     case "${TARGETARCH}" in \
       amd64) llvm_sha="${LLVM_SHA256_AMD64}" ;; \
       *) echo "the llvm layer pins only amd64, got ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
-    d="clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-18.04"; \
+    d="LLVM-${LLVM_VERSION}-Linux-X64"; \
     f="${d}.tar.xz"; \
     curl -fsSL -o "/tmp/${f}" "https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/${f}"; \
     echo "${llvm_sha}  /tmp/${f}" | sha256sum -c -; \
@@ -29,10 +33,6 @@ RUN set -eu; \
     for t in clang clang-cl lld lld-link ld.lld llvm-lib llvm-ar llvm-ranlib llvm-rc llvm-mt llvm-dlltool; do \
       ln -sf "/opt/llvm/bin/${t}" "/usr/local/bin/${t}"; \
     done
-
-# The LLVM 18 binaries link libtinfo.so.5; Ubuntu 24.04 ships libtinfo.so.6.
-RUN ln -s "$(ldconfig -p | awk '/libtinfo\.so\.6 .*x86-64/ {print $NF; exit}')" /usr/lib/x86_64-linux-gnu/libtinfo.so.5 \
- && ldconfig
 
 # Self-check: clang-cl --version and the linkers (runners R5.43).
 RUN clang-cl --version && lld-link --version && llvm-lib --help >/dev/null
