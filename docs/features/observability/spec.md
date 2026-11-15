@@ -199,6 +199,8 @@ Milestone numbers are those of the product brief.
 
 **R5.32** — (M1) A retention job runs every hour and deletes data past the limits in R6.8. Owners change the limits in Settings, within the floor and ceiling. A value outside them is refused with the allowed range.
 
+**R5.33** (M3, NOT YET IMPLEMENTED, CRSP92) — **Speed comparison.** The owner picks one workflow of one repository. crsp runs it on the pool and on GitHub-hosted runners, once each on the same commit, and shows the two times next to each other with the minutes saved (R5.15) and the machine it ran on. The comparison is started by hand, asks first because it uses hosted minutes, runs at most once at a time, and never runs without the owner starting it. The result is kept with the date and the commit, and the console shows a number only when both runs succeeded.
+
 ## 6. Non-functional requirements
 
 **R6.1** — (M1) A change on a machine or in the queue reaches an open console within 2 seconds at the 95th percentile on a local network.
@@ -334,6 +336,7 @@ Rows that name a file without "planned" are built (CRSP18, CRSP23). Planned rows
 | R5.30 | planned: internal/logs/crash_test.go TestPanicWritesCrashFile, TestSetCrashOutputFolder |
 | R5.31 | planned: internal/logs/crash_test.go TestUnreportedCrashShownOnce |
 | R5.32 | internal/settings/retention_test.go TestHourlyJobDeletesPastLimit, TestRetentionUsesSettings; internal/settings/settings_test.go TestOutOfRangeRefusedWithRange, TestEveryRangeMatchesFloorAndCeiling |
+| R5.33 | planned: internal/bench/compare_test.go TestRunsBothOnTheSameCommit, TestNothingShownWhenARunFails, TestNeverStartsByItself (CRSP92) |
 | R6.1 | planned: internal/events/latency_test.go TestP95UnderTwoSeconds |
 | R6.2 | internal/events/hub_test.go TestLoadThrottlePerMachine (the median of three is the machines feature) |
 | R6.3 | internal/events/hub_test.go TestSSEFormatAndServe (heartbeat), TestSlowSubscriberIsClosedAndNeverBlocksPublisher, TestStreamCap; internal/api/handlers_live_test.go TestStreamEventsTooManyStreams |

@@ -341,6 +341,8 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.32** (built, CRSP24) — Every date, time, number, size and percent on screen comes from the one formatter (component 28).
 
+**R5.33** (M3, NOT YET IMPLEMENTED, CRSP91) — **Agent recovery card.** A machine marked `stuck on old version` (operations R5.44) shows one card on its page: the version it has, the version it needs, and the reinstall command with a copy button. The card follows design-system UX-4 and uses the shared card and copy parts; it has no hand-made layout.
+
 ## 6. Non-functional requirements
 
 Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are **NOT YET IMPLEMENTED**.
@@ -507,6 +509,7 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.30 | Vitest, Playwright e2e | the question-card tests in each screen test file, `e2e/tests/web-console/flows.spec.ts`, `apps/web/src/screens/settings/Notifications.test.tsx`, `e2e/tests/web-console/notifications.spec.ts` (delete a channel) |
 | R5.31 | Vitest | the loading, empty and could-not-load tests in each screen test file, `apps/web/src/screens/settings/Notifications.test.tsx` |
 | R5.32 | Vitest | `packages/ui/src/components/format.test.ts`, `apps/web/src/screens/settings/Notifications.test.tsx` (last test time) |
+| R5.33 | Vitest | planned: `apps/web/src/screens/machines/AgentRecoveryCard.test.tsx` (CRSP91) |
 | R6.1 | Go test | `internal/api/session_cookie_test.go` (flags: not Secure on loopback, Secure off loopback; 256-bit value, only the hash stored), `internal/auth/session_test.go` (cookie attributes, `CookieSecure` by address, no time expiry, no idle expiry, survives a restart). |
 | R6.2 | Go test, Vitest | `internal/api/csrf_test.go` (every changing operation of the contract: no token, wrong token, no, foreign or null Origin, per-session token), `apps/web/src/api/csrf.test.tsx` and `apps/web/src/shell/Shell.test.tsx` (the console sends it) |
 | R6.3 | Go test, Playwright e2e | `internal/webui/headers_test.go`; NOT YET IMPLEMENTED: `e2e/tests/web-console/no-external-requests.spec.ts` |

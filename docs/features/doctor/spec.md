@@ -185,6 +185,10 @@ States:
 
 **R5.36** (M1, v0.6.0, Built CRSP61: `machine.engine` in `internal/doctor/checks/engine.go`, fed by `doctor.EngineSource`; CRSP63: the live doctor reads the engine each online agent reports in its `MachineReport`, and skips it for a machine that has not reported) — **Container engine check.** `machine.engine` says, for each machine, which container engine it uses and whether it answers: Docker in WSL2 through the Windows `docker` command, Docker in WSL2 through `wsl docker`, Docker Desktop, or Docker on Linux. `ok` names the engine and its version. When the engine does not answer or is not there the finding is `warn` (the machine only cannot run container runners; `container.engine` fails for a machine that has a container pool) with the reason from the agent and a fix for that OS (Windows: start Docker Desktop, or `sudo service docker start` in a WSL2 distro, or install Docker in WSL2 first). The check reads and never starts an engine or changes a Docker Desktop setting (runners R5.47). Port of the machine facts of `delivery_doctor.py`; parity plan row 14.
 
+**R5.37** (M2, NOT YET IMPLEMENTED, CRSP83) — **`machine.disk`: free disk before the floor.** For each machine the doctor reads the free space of the volume that holds runner folders and VM disks and warns when it is under the floor plus 20% of the floor (a margin above the hold of machines R5.60), says how much is free and what the floor is, and names the largest crsp folders so the owner knows what to prune. It goes to failed when the floor holds work. A disk that cannot be read is `unknown`, never red.
+
+**R5.38** (M2, NOT YET IMPLEMENTED, CRSP81) — **`security.reach`: the "What a job can reach" link.** For each served repository the doctor shows one info line that links to the section `What a job can reach` (runners R5.64), and warns when a host service listens on the loopback address of a machine that runs container jobs.
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -456,6 +460,8 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.34 | internal/doctor/checks/cache_test.go TestCacheOverQuotaWarns, TestDiskUnderTenPercentWarns, TestCacheChecksSkipWithoutCacheData |
 | R5.35 | internal/doctor/checks/checks_test.go TestRunnerToolCache | new |
 | R5.36 | internal/doctor/checks/engine_test.go TestMachineEngineSaysWhichEngineAndWhetherItAnswers, TestMachineEngineSkipsWithoutAReport; internal/doctor/checks/checks_test.go TestEveryRegisteredCheckIsM1AndHasAnID and internal/doctor/wire/wire_test.go TestNewDoctorRegistersCoreChecksAndRuns (26 checks) ; cmd/crsp/remote_wiring_test.go TestReportSourcesReadTheAgentReport | new |
+| R5.37 | planned: internal/doctor/checks/disk_test.go TestWarnsBeforeTheFloor, TestFailsWhenTheFloorHoldsWork, TestUnreadableIsUnknown (CRSP83) |
+| R5.38 | planned: internal/doctor/checks/reach_test.go TestReachLinkPerRepo, TestLoopbackListenerWarns (CRSP81) |
 | R6.1 | internal/doctor/engine_test.go TestSlowCheckIsSkipNotOk (the timeout); benchmark planned |
 | R6.2 | internal/doctor/checks/checks_test.go TestCallCountBudget |
 | R6.3 | internal/doctor/engine_test.go TestSecretsAreRedactedInFindings |

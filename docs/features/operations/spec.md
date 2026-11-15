@@ -275,6 +275,12 @@ Tests: `internal/update/update_test.go` (decisions, verify, lock, backoff, helpe
 
 **R5.34** (M3) — Uninstalling an agent revokes its machine key on the controller. Uninstalling a controller that still has machines names them and asks again.
 
+**R5.42** (M3, NOT YET IMPLEMENTED, CRSP88) — **Trial modes before switching a repository.** Each repository has a rollout mode: `observe` (crsp logs what it would do for each queued job and starts nothing), `shadow` (crsp starts runners and takes jobs only for a copy of the workflow the owner marks, while the repository's real jobs stay on GitHub), `canary` (this one repository runs live while the others stay off) and `live`. The mode changes only by a command or a console action that asks first, and the console shows the mode on each repository row. Observe writes one line per job: the labels, the machine it would pick and the reason it could not. A repository never moves two steps at once, and going back is allowed at any time.
+
+**R5.43** (M8, NOT YET IMPLEMENTED, CRSP90) — **Signed installers and an SBOM.** Each release signs the Windows MSI with Authenticode and the macOS package with a Developer ID, and has it notarized. Each release also publishes a software bill of materials (SPDX JSON) for every installer and binary. The updater (R5.34) and the install script check the signature or notarization as well as the SHA-256 and the attestation. A release whose signing step is missing fails the release job.
+
+**R5.44** (M3, NOT YET IMPLEMENTED, CRSP91) — **Recovery for an agent stuck on an old version.** An agent that stays on an older version than the controller after the controller asked it to update (R5.39) for more than one hour is marked `stuck on old version`. The marked machine gets a reinstall-in-place command (`crsp agent reinstall`) that downloads the matching release, checks the SHA-256, the attestation and the signature (R5.43), keeps the machine key, the data folder and the runners, and replaces the program. The console shows a card for the machine with the version it has, the version it needs and a copyable form of the command with a one-time token. The card disappears when the version matches.
+
 ## 6. Non-functional requirements
 
 **R6.1** (M3) — An update never stops a running job. A controller restart never stops a job on any machine; agents reconnect with backoff.
@@ -393,6 +399,9 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R5.32 | planned: internal/install/uninstall_test.go TestListsWhatGoesAndKeepsData, TestDeregistersWithRemoveToken |
 | R5.33 | planned: internal/install/uninstall_test.go TestPurgeDataNamesEachItem |
 | R5.34 | planned: internal/install/uninstall_test.go TestAgentKeyRevoked, TestControllerWithMachinesAsksAgain |
+| R5.42 | planned: internal/repos/rollout_test.go TestObserveStartsNothingAndLogsTheDecision, TestShadowLeavesRealJobsOnGitHub, TestNoSkippingSteps (CRSP88) |
+| R5.43 | planned: .github/workflows/release_test.go TestReleaseFailsWithoutSignatures, TestSbomPublishedPerAsset; internal/update/signature_test.go TestRefusesUnsignedInstaller (CRSP90) |
+| R5.44 | planned: internal/update/agent_reinstall_test.go TestReinstallKeepsKeyDataAndRunners, TestStuckAfterAnHour; internal/cli/agent_test.go TestAgentReinstallCommand (CRSP91) |
 | R6.1 | planned: internal/update/rollout_test.go TestControllerRestartKeepsJobs (two-machine integration) |
 | R6.2 | planned: internal/update/checker_test.go TestOnlyReleaseRequests (HTTP recorder) |
 | R6.3 | planned: internal/update/verify_test.go TestNoNetworkFailsClosed |
