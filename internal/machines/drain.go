@@ -3,6 +3,7 @@ package machines
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sort"
 	"time"
 
@@ -54,8 +55,7 @@ func (s *Service) beginChange(ctx context.Context, actor string, m Machine, kind
 	// A change for a runner set keeps new jobs out of those runners only; the
 	// machine stays active for the rest (R5.57).
 	if len(d.RunnerNames) == 0 {
-		m.State = StateDraining
-		if err := s.o.Repo.UpdateMachine(ctx, m); err != nil {
+		if _, _, err := s.updateMachine(ctx, m.ID, func(m *Machine) bool { m.State = StateDraining; return true }); err != nil {
 			return Change{}, err
 		}
 	}
@@ -154,13 +154,12 @@ func (s *Service) Resume(ctx context.Context, actor, id string, confirm bool) (V
 		}
 		_ = s.o.Repo.Audit(ctx, actor, "machine.change.cancel", id, c.Kind)
 	}
-	s.setActive(ctx, id, m, actor)
+	s.setActive(ctx, id, actor)
 	return s.Get(ctx, id)
 }
 
-func (s *Service) setActive(ctx context.Context, id string, m Machine, actor string) {
-	m.State = StateActive
-	_ = s.o.Repo.UpdateMachine(ctx, m)
+func (s *Service) setActive(ctx context.Context, id, actor string) {
+	_, _, _ = s.updateMachine(ctx, id, func(m *Machine) bool { m.State = StateActive; return true })
 	_ = s.o.Repo.Audit(ctx, actor, "machine.resume", id, "")
 	_ = s.sessions.send(id, &agentv1.SessionResponse{Message: &agentv1.SessionResponse_Resume{Resume: &agentv1.Resume{CommandId: newID("cmd_")}}})
 	s.notifyMachine(id)
@@ -263,8 +262,7 @@ func (s *Service) DecideChange(ctx context.Context, actor, machineID, changeID s
 	if c.State != ChangeNeedsYou && c.State != ChangeWaiting {
 		return Change{}, fmt.Errorf("%w: this change is %s", ErrConflict, c.State)
 	}
-	m, err := s.o.Repo.GetMachine(ctx, machineID)
-	if err != nil {
+	if _, err := s.o.Repo.GetMachine(ctx, machineID); err != nil {
 		return Change{}, err
 	}
 	switch d {
@@ -285,7 +283,7 @@ func (s *Service) DecideChange(ctx context.Context, actor, machineID, changeID s
 			return Change{}, err
 		}
 		_ = s.o.Repo.Audit(ctx, actor, "machine.change.cancel", machineID, c.Kind)
-		s.setActive(ctx, machineID, m, actor)
+		s.setActive(ctx, machineID, actor)
 	default:
 		return Change{}, fmt.Errorf("%w: unknown decision %q", ErrInvalid, d)
 	}
@@ -338,8 +336,7 @@ func (s *Service) execute(ctx context.Context, c Change) error {
 	}
 	switch c.Kind {
 	case KindDrain:
-		m.State = StateDrained
-		if err := s.o.Repo.UpdateMachine(ctx, m); err != nil {
+		if _, _, err := s.updateMachine(ctx, m.ID, func(m *Machine) bool { m.State = StateDrained; return true }); err != nil {
 			return err
 		}
 		_ = s.o.Repo.Audit(ctx, c.StartedBy, "machine.drained", m.ID, "")
@@ -350,14 +347,14 @@ func (s *Service) execute(ctx context.Context, c Change) error {
 			return err
 		}
 		if c.Detail.Settings != nil {
-			next := *c.Detail.Settings
+			next := mergeChange(cur, c.Detail.Base, *c.Detail.Settings)
 			next.Version = cur.Version + 1
 			if err := s.o.Repo.PutSettings(ctx, m.ID, next); err != nil {
 				return err
 			}
 			_ = s.o.Repo.Audit(ctx, c.StartedBy, "machine.settings", m.ID, settingsDiff(cur, next))
 		}
-		s.setActive(ctx, m.ID, m, c.StartedBy)
+		s.setActive(ctx, m.ID, c.StartedBy)
 		s.pushSettings(m.ID, mustSettings(s.o.Repo.GetSettings(ctx, m.ID)))
 	case KindRemove:
 		if err := finishOr(finish); err != nil {
@@ -374,7 +371,7 @@ func (s *Service) execute(ctx context.Context, c Change) error {
 				return err
 			}
 		}
-		s.setActive(ctx, m.ID, m, c.StartedBy)
+		s.setActive(ctx, m.ID, c.StartedBy)
 	}
 	s.notifyMachine(m.ID)
 	return finish()
@@ -388,6 +385,27 @@ func jobFromProto(j *agentv1.JobRef) JobRef {
 	out := JobRef{Repository: j.GetRepository(), RunID: j.GetRunId(), RunAttempt: int(j.GetRunAttempt()), Job: j.GetJob(), GitHubJobID: j.GetGithubJobId(), RunnerName: j.GetRunnerName()}
 	if ms := j.GetStartedUnixMs(); ms > 0 {
 		out.StartedAt = time.UnixMilli(ms).UTC()
+	}
+	return out
+}
+
+// mergeChange puts the fields a waiting change carries onto the settings as
+// they are now. A field the change did not touch (it equals base) keeps its
+// current value, so a setting changed while the drain waited stays changed.
+// Without a base the change replaces everything, as older changes did.
+func mergeChange(cur Settings, base *Settings, snap Settings) Settings {
+	if base == nil {
+		return snap
+	}
+	out := cur
+	cv, bv, sv, ov := reflect.ValueOf(cur), reflect.ValueOf(*base), reflect.ValueOf(snap), reflect.ValueOf(&out).Elem()
+	for i := 0; i < cv.NumField(); i++ {
+		if cv.Type().Field(i).Name == "Version" {
+			continue
+		}
+		if !reflect.DeepEqual(bv.Field(i).Interface(), sv.Field(i).Interface()) {
+			ov.Field(i).Set(sv.Field(i))
+		}
 	}
 	return out
 }
