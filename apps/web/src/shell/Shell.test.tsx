@@ -7,6 +7,7 @@ import {
   machine,
   overview,
   renderApp,
+  repository,
   signedIn,
   viewer,
 } from '../testing/mock';
@@ -90,6 +91,25 @@ describe('the shell (R5.3)', () => {
     act(() => FakeEventSource.latest().fail());
     expect(await screen.findByText(/Live updates paused/)).toBeTruthy();
     expect(screen.getByText('build-1')).toBeTruthy();
+  });
+
+  it('says in one line on the Overview while a repository runs on hosted runners (R5.68)', async () => {
+    const live = repository({
+      pool_on: true,
+      routing: { where: 'hosted', why: 'fallback_on', oses: ['linux'], used_minutes: 3 },
+    });
+    renderApp(
+      signedIn().on('GET', '/api/v1/github/repositories', {
+        items: [live],
+        stale: { stale: false },
+      }),
+      '/',
+    );
+    expect(
+      await screen.findByText(
+        '1 repository runs on GitHub-hosted runners because no crsp machine is up.',
+      ),
+    ).toBeTruthy();
   });
 
   it('shows not found with a link to the overview', async () => {

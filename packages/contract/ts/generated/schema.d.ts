@@ -1993,6 +1993,31 @@ export interface components {
             user_is_github_admin: boolean;
             variables: components["schemas"]["RepositoryVariable"][];
             policy: components["schemas"]["RepositoryPolicy"];
+            routing?: components["schemas"]["RepositoryRouting"];
+        };
+        /**
+         * @description Where the jobs of a repository go now and why (github-integration R5.68). Absent while the pool is off for the repository.
+         * @example {
+         *       "where": "hosted",
+         *       "why": "fallback_on",
+         *       "oses": [
+         *         "linux"
+         *       ],
+         *       "used_minutes": 12
+         *     }
+         */
+        RepositoryRouting: {
+            /** @enum {string} */
+            where: "crsp" | "hosted" | "waiting";
+            /**
+             * @description A code the console turns into words. machine_up, fallback_on, fallback_off, grace, cap_reached or public_repository.
+             * @enum {string}
+             */
+            why: "machine_up" | "fallback_on" | "fallback_off" | "grace" | "cap_reached" | "public_repository";
+            /** @description The operating systems the reason is about. */
+            oses?: ("linux" | "windows" | "macos")[];
+            /** @description Fallback minutes counted this month (UTC), best effort. */
+            used_minutes: number;
         };
         RepositoryVariable: {
             /** @enum {string} */
@@ -2020,6 +2045,14 @@ export interface components {
             budget_cpu_pct?: number;
             /** @description Extra distribution packages of the pool image (runners R5.51). */
             extra_packages?: string[];
+            /** @description Run on GitHub-hosted runners while no crsp machine can take the jobs (github-integration R5.66). Off by default; GitHub may bill those minutes for a private repository. */
+            hosted_fallback?: boolean;
+            /** @description Monthly cap of fallback minutes; absent means no cap. */
+            fallback_cap_minutes?: number;
+            /** @description The hosted label per operating system; a missing one is the default (ubuntu-latest, windows-latest, macos-latest). */
+            hosted_labels?: {
+                [key: string]: string;
+            };
             /** Format: date-time */
             updated_at?: string;
             updated_by?: string;
@@ -2040,6 +2073,16 @@ export interface components {
             legacy_vars?: boolean;
             /** @description Needed to turn fork jobs on (github-integration R5.26). */
             confirm_fork_risk?: boolean;
+            /** @description Turn the hosted fallback on or off (github-integration R5.66). A public repository is refused. */
+            hosted_fallback?: boolean;
+            /** @description The yes to the question that says GitHub may bill the fallback minutes. Needed to turn the fallback on. */
+            confirm_fallback_cost?: boolean;
+            /** @description Monthly cap of fallback minutes; 0 clears it. */
+            fallback_cap_minutes?: number;
+            /** @description Hosted label per operating system (linux, windows, macos); an empty value puts the default back. */
+            hosted_labels?: {
+                [key: string]: string;
+            };
             labels?: string[];
             runner_groups?: string[];
             budget_memory_pct?: number;
@@ -2851,6 +2894,7 @@ export interface components {
          *       "backup_time_local": "03:00",
          *       "backup_keep_days": 14,
          *       "max_event_streams": 50,
+         *       "fallback_grace_minutes": 3,
          *       "auto_update": true
          *     }
          */
@@ -2867,6 +2911,8 @@ export interface components {
             backup_time_local?: string;
             backup_keep_days?: number;
             max_event_streams?: number;
+            /** @description github-integration R5.67. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3. */
+            fallback_grace_minutes?: number;
             /** @description operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first. */
             auto_update?: boolean;
         };

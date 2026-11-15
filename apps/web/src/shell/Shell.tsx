@@ -26,6 +26,7 @@ import { unwrap, useClient, type Schemas } from '../api/api';
 import { signInUrl, useSession } from '../auth/session';
 import { useLiveState } from '../live/LiveProvider';
 import { wipingLabel } from '../screens/images/labels';
+import { allRepositories } from '../screens/repositories/plans';
 import { SHORTCUTS, handleKey, isMac } from './shortcuts';
 
 export const AREAS: readonly NavItem[] = [
@@ -214,6 +215,26 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const [signingOut, setSigningOut] = useState(false);
   const [setup, setSetup] = useState<Schemas['SetupState'] | undefined>(undefined);
   const client = useClient();
+  // The Overview says in one line while a repository runs on GitHub-hosted runners (github-integration R5.68).
+  const [hosted, setHosted] = useState(0);
+  const onOverview = location.pathname === '/';
+  useEffect(() => {
+    if (!onOverview) return;
+    let on = true;
+    const read = () =>
+      allRepositories(client, { pool: 'on' })
+        .then(
+          (r) =>
+            on && setHosted(r.items.filter((x) => x.routing?.where === 'hosted').length),
+        )
+        .catch(() => undefined);
+    void read();
+    const t = setInterval(() => void read(), 30_000);
+    return () => {
+      on = false;
+      clearInterval(t);
+    };
+  }, [client, onOverview]);
   useEffect(() => {
     let on = true;
     unwrap(client.GET('/api/v1/setup'))
@@ -274,6 +295,18 @@ export function AppShell({ children }: { children?: ReactNode }) {
         action={<TextLink to="/setup">Open the setup page</TextLink>}
       >
         First run is not finished.
+      </Message>,
+    );
+  if (onOverview && hosted > 0)
+    banners.push(
+      <Message
+        key="hosted-fallback"
+        tone="needs-you"
+        action={<TextLink to="/repositories">Open Repositories</TextLink>}
+      >
+        {hosted === 1
+          ? '1 repository runs on GitHub-hosted runners because no crsp machine is up.'
+          : `${hosted} repositories run on GitHub-hosted runners because no crsp machine is up.`}
       </Message>,
     );
   if (live.status === 'paused')

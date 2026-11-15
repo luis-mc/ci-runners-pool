@@ -206,6 +206,91 @@ describe('Repository detail', () => {
     ).toBe(true);
   });
 
+  it('shows where the jobs go now and why (github-integration R5.68)', async () => {
+    const hosted = repository({
+      id: 9,
+      full_name: 'octo/live',
+      name: 'live',
+      pool_on: true,
+      routing: { where: 'hosted', why: 'fallback_on', oses: ['linux'], used_minutes: 12 },
+    });
+    const waiting = repository({
+      id: 10,
+      full_name: 'octo/wait',
+      name: 'wait',
+      pool_on: true,
+      routing: {
+        where: 'waiting',
+        why: 'fallback_off',
+        oses: ['windows'],
+        used_minutes: 0,
+      },
+    });
+    renderApp(withRepos(signedIn(), [hosted, waiting]), '/repositories');
+    const table = await screen.findByRole('table', { name: 'Repositories' });
+    expect(within(table).getByText('GitHub-hosted runners')).toBeTruthy();
+    expect(within(table).getByText('waiting for a machine')).toBeTruthy();
+  });
+
+  it('says why on the repository page and keeps fallback off by default', async () => {
+    const wait = repository({
+      pool_on: true,
+      routing: {
+        where: 'waiting',
+        why: 'fallback_off',
+        oses: ['linux'],
+        used_minutes: 0,
+      },
+    });
+    renderApp(
+      withRepos(signedIn(), [wait]).on('GET', '/api/v1/repositories/:id', wait),
+      '/repositories/octo/app',
+    );
+    await screen.findByRole('heading', { name: 'octo/app' });
+    expect(
+      screen.getByText('No crsp machine for Linux is up. Jobs wait for one.'),
+    ).toBeTruthy();
+    const wait1 = screen.getByRole('radio', { name: 'Wait for a crsp machine' });
+    expect((wait1 as HTMLInputElement).checked).toBe(true);
+  });
+
+  it('asks first before the hosted fallback is turned on (UX-9, R5.66)', async () => {
+    const a = api().on('PATCH', '/api/v1/repositories/:id/policy', on.policy);
+    renderApp(a, '/repositories/octo/app');
+    await screen.findByRole('heading', { name: 'octo/app' });
+    fireEvent.click(screen.getByRole('radio', { name: 'Run on GitHub-hosted runners' }));
+    const form = screen
+      .getByRole('radio', { name: 'Run on GitHub-hosted runners' })
+      .closest('form') as HTMLElement;
+    fireEvent.click(within(form).getByRole('button', { name: 'Save fallback' }));
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Run on GitHub-hosted runners?',
+    });
+    expect(within(dialog).getByText(/GitHub may bill the minutes/)).toBeTruthy();
+    expect(a.count('PATCH', '/api/v1/repositories/7/policy')).toBe(0);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Turn on' }));
+    await waitFor(() =>
+      expect(a.count('PATCH', '/api/v1/repositories/7/policy')).toBe(1),
+    );
+    const sent = a.calls.find((c) => c.method === 'PATCH')?.body as {
+      hosted_fallback: boolean;
+      confirm_fallback_cost: boolean;
+    };
+    expect(sent.hosted_fallback).toBe(true);
+    expect(sent.confirm_fallback_cost).toBe(true);
+  });
+
+  it('refuses the fallback choice for a public repository', async () => {
+    const pub = repository({ visibility: 'public' });
+    renderApp(
+      withRepos(signedIn(), [pub]).on('GET', '/api/v1/repositories/:id', pub),
+      '/repositories/octo/app',
+    );
+    await screen.findByRole('heading', { name: 'octo/app' });
+    const r = screen.getByRole('radio', { name: /Run on GitHub-hosted runners/ });
+    expect((r as HTMLInputElement).disabled).toBe(true);
+  });
+
   it('turns the light runner off from the policy form (scheduling R5.65)', async () => {
     const a = api().on('PATCH', '/api/v1/repositories/:id/policy', on.policy);
     renderApp(a, '/repositories/octo/app');
