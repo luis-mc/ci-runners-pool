@@ -1190,6 +1190,38 @@ paths:
                 $ref: '#/components/schemas/JoinCodeCreated'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/join-codes/ssh:
+    post:
+      operationId: joinMachineOverSsh
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [machines]
+      summary: Join a Linux or macOS machine over SSH
+      description: >-
+        machines R5.3a (RES3, owner decision D59). The optional path beside
+        copy-and-wait. The key file in `identity` is used for this one join and
+        is never stored or logged; there is no password option. Without
+        `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation`
+        whose detail is the host key fingerprint to confirm; send the call again
+        with it. The answer is the join code record (never its value); poll it
+        like a copied command.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SshJoinRequest'
+      responses:
+        '201':
+          description: The command ran on the machine; its join code is waiting for the agent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JoinCode'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/join-codes/{joinCodeId}:
     get:
       operationId: getJoinCode
@@ -4068,6 +4100,29 @@ components:
           description: Default 15, ceiling 1440 (machines R5.4).
           minimum: 1
           maximum: 1440
+    SshJoinRequest:
+      type: object
+      required: [os, host, user, identity]
+      properties:
+        os:
+          type: string
+          enum: [linux, macos]
+        host:
+          type: string
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: Default 22.
+        user:
+          type: string
+        identity:
+          type: string
+          writeOnly: true
+          description: The content of the SSH key file, used once for this join and never stored.
+        host_fingerprint:
+          type: string
+          description: The host key fingerprint the owner confirmed (SHA256:...).
     JoinCode:
       type: object
       required: [id, state, created_at, expires_at]
@@ -4077,6 +4132,13 @@ components:
         state:
           type: string
           enum: [waiting, joined, expired, revoked]
+        progress:
+          type: string
+          enum: [waiting, connected, ready]
+          description: >-
+            How far a copied or SSH join got (RES3). `waiting`: no agent used the
+            code yet. `connected`: the agent joined. `ready`: the machine sent
+            its first heartbeat. Absent once the code expired or was withdrawn.
         created_at:
           type: string
           format: date-time

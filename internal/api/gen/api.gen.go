@@ -483,6 +483,27 @@ func (e JobResult) Valid() bool {
 	}
 }
 
+// Defines values for JoinCodeProgress.
+const (
+	JoinCodeProgressConnected JoinCodeProgress = "connected"
+	JoinCodeProgressReady     JoinCodeProgress = "ready"
+	JoinCodeProgressWaiting   JoinCodeProgress = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the JoinCodeProgress enum.
+func (e JoinCodeProgress) Valid() bool {
+	switch e {
+	case JoinCodeProgressConnected:
+		return true
+	case JoinCodeProgressReady:
+		return true
+	case JoinCodeProgressWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JoinCodeState.
 const (
 	JoinCodeStateExpired JoinCodeState = "expired"
@@ -1365,6 +1386,24 @@ func (e SlotKind) Valid() bool {
 	}
 }
 
+// Defines values for SshJoinRequestOs.
+const (
+	SshJoinRequestOsLinux SshJoinRequestOs = "linux"
+	SshJoinRequestOsMacos SshJoinRequestOs = "macos"
+)
+
+// Valid indicates whether the value is a known member of the SshJoinRequestOs enum.
+func (e SshJoinRequestOs) Valid() bool {
+	switch e {
+	case SshJoinRequestOsLinux:
+		return true
+	case SshJoinRequestOsMacos:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for StartAppManifestRequestAccountType.
 const (
 	StartAppManifestRequestAccountTypeOrganization StartAppManifestRequestAccountType = "organization"
@@ -2152,9 +2191,15 @@ type JoinCode struct {
 	Id        string    `json:"id"`
 
 	// MachineId Set once an agent joined with it.
-	MachineId *string       `json:"machine_id,omitempty"`
-	State     JoinCodeState `json:"state"`
+	MachineId *string `json:"machine_id,omitempty"`
+
+	// Progress How far a copied or SSH join got (RES3). `waiting`: no agent used the code yet. `connected`: the agent joined. `ready`: the machine sent its first heartbeat. Absent once the code expired or was withdrawn.
+	Progress *JoinCodeProgress `json:"progress,omitempty"`
+	State    JoinCodeState     `json:"state"`
 }
+
+// JoinCodeProgress How far a copied or SSH join got (RES3). `waiting`: no agent used the code yet. `connected`: the agent joined. `ready`: the machine sent its first heartbeat. Absent once the code expired or was withdrawn.
+type JoinCodeProgress string
 
 // JoinCodeState defines model for JoinCode.State.
 type JoinCodeState string
@@ -2957,6 +3002,25 @@ type SmtpSettings struct {
 	Username    *string `json:"username,omitempty"`
 }
 
+// SshJoinRequest defines model for SshJoinRequest.
+type SshJoinRequest struct {
+	Host string `json:"host"`
+
+	// HostFingerprint The host key fingerprint the owner confirmed (SHA256:...).
+	HostFingerprint *string `json:"host_fingerprint,omitempty"`
+
+	// Identity The content of the SSH key file, used once for this join and never stored.
+	Identity *string          `json:"identity,omitempty"`
+	Os       SshJoinRequestOs `json:"os"`
+
+	// Port Default 22.
+	Port *int   `json:"port,omitempty"`
+	User string `json:"user"`
+}
+
+// SshJoinRequestOs defines model for SshJoinRequest.Os.
+type SshJoinRequestOs string
+
 // Staleness Set when GitHub did not answer and the last copy is shown (UX-53).
 type Staleness struct {
 	AsOf  *time.Time `json:"as_of,omitempty"`
@@ -3401,6 +3465,9 @@ type UpdateImageLayersJSONRequestBody = UpdateImageLayersRequest
 // CreateJoinCodeJSONRequestBody defines body for CreateJoinCode for application/json ContentType.
 type CreateJoinCodeJSONRequestBody = CreateJoinCodeRequest
 
+// JoinMachineOverSshJSONRequestBody defines body for JoinMachineOverSsh for application/json ContentType.
+type JoinMachineOverSshJSONRequestBody = SshJoinRequest
+
 // UpdateMachineJSONRequestBody defines body for UpdateMachine for application/json ContentType.
 type UpdateMachineJSONRequestBody = MachineSettingsUpdate
 
@@ -3568,6 +3635,9 @@ type ServerInterface interface {
 	// CreateJoinCode Make a one-time join code and the install commands
 	// (POST /api/v1/join-codes)
 	CreateJoinCode(w http.ResponseWriter, r *http.Request)
+	// JoinMachineOverSsh Join a Linux or macOS machine over SSH
+	// (POST /api/v1/join-codes/ssh)
+	JoinMachineOverSsh(w http.ResponseWriter, r *http.Request)
 	// RevokeJoinCode Withdraw an unused join code
 	// (DELETE /api/v1/join-codes/{joinCodeId})
 	RevokeJoinCode(w http.ResponseWriter, r *http.Request, joinCodeId JoinCodeId)
@@ -4991,6 +5061,20 @@ func (siw *ServerInterfaceWrapper) CreateJoinCode(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateJoinCode(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// JoinMachineOverSsh operation middleware
+func (siw *ServerInterfaceWrapper) JoinMachineOverSsh(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.JoinMachineOverSsh(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6886,6 +6970,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/machines/{machineId}/changes/{changeId}", wrapper.GetMachineChange)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/changes/{changeId}", wrapper.DecideMachineChange)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/join-codes", wrapper.CreateJoinCode)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/join-codes/ssh", wrapper.JoinMachineOverSsh)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/join-codes/{joinCodeId}", wrapper.RevokeJoinCode)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/join-codes/{joinCodeId}", wrapper.GetJoinCode)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/install-command", wrapper.GetInstallCommand)
@@ -8338,6 +8423,45 @@ type CreateJoinCodedefaultJSONResponse struct {
 }
 
 func (response CreateJoinCodedefaultJSONResponse) VisitCreateJoinCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type JoinMachineOverSshRequestObject struct {
+	Body *JoinMachineOverSshJSONRequestBody
+}
+
+type JoinMachineOverSshResponseObject interface {
+	VisitJoinMachineOverSshResponse(w http.ResponseWriter) error
+}
+
+type JoinMachineOverSsh201JSONResponse JoinCode
+
+func (response JoinMachineOverSsh201JSONResponse) VisitJoinMachineOverSshResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type JoinMachineOverSshdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response JoinMachineOverSshdefaultJSONResponse) VisitJoinMachineOverSshResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -10968,6 +11092,9 @@ type StrictServerInterface interface {
 	// CreateJoinCode Make a one-time join code and the install commands
 	// (POST /api/v1/join-codes)
 	CreateJoinCode(ctx context.Context, request CreateJoinCodeRequestObject) (CreateJoinCodeResponseObject, error)
+	// JoinMachineOverSsh Join a Linux or macOS machine over SSH
+	// (POST /api/v1/join-codes/ssh)
+	JoinMachineOverSsh(ctx context.Context, request JoinMachineOverSshRequestObject) (JoinMachineOverSshResponseObject, error)
 	// RevokeJoinCode Withdraw an unused join code
 	// (DELETE /api/v1/join-codes/{joinCodeId})
 	RevokeJoinCode(ctx context.Context, request RevokeJoinCodeRequestObject) (RevokeJoinCodeResponseObject, error)
@@ -12036,6 +12163,37 @@ func (sh *strictHandler) CreateJoinCode(w http.ResponseWriter, r *http.Request) 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateJoinCodeResponseObject); ok {
 		if err := validResponse.VisitCreateJoinCodeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// JoinMachineOverSsh operation middleware
+func (sh *strictHandler) JoinMachineOverSsh(w http.ResponseWriter, r *http.Request) {
+	var request JoinMachineOverSshRequestObject
+
+	var body JoinMachineOverSshJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.JoinMachineOverSsh(ctx, request.(JoinMachineOverSshRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "JoinMachineOverSsh")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(JoinMachineOverSshResponseObject); ok {
+		if err := validResponse.VisitJoinMachineOverSshResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

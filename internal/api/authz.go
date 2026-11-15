@@ -35,7 +35,7 @@ var otherAreaAuth = map[string]string{
 
 	"applyUpdate": authAdmin, "checkForUpdate": authAdmin, "exportConfig": authAdmin, "rebuildImage": authAdmin,
 	"restartService": authAdmin, "stopRunnerPlan": authAdmin, "updateImageLayers": authAdmin, "wipeCache": authAdmin,
-	"createJoinCode": authAdmin, "createRunners": authAdmin, "decideMachineChange": authAdmin, "deleteRunner": authAdmin,
+	"createJoinCode": authAdmin, "joinMachineOverSsh": authAdmin, "createRunners": authAdmin, "decideMachineChange": authAdmin, "deleteRunner": authAdmin,
 	"drainMachine": authAdmin, "freeStaleSlots": authAdmin, "getInstallCommand": authAdmin, "getJoinCode": authAdmin,
 	"listBackups": authAdmin, "planRunnerReplacement": authAdmin, "planRunners": authAdmin, "redetectMachine": authAdmin, "checkMachinePoolSize": authAdmin,
 	"removeMachine": authAdmin, "resumeMachine": authAdmin, "revokeJoinCode": authAdmin, "runBackup": authAdmin,

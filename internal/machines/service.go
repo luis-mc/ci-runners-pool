@@ -70,6 +70,9 @@ type Options struct {
 	// built-in defaults. Changing them never touches a machine that already
 	// joined, so no running job waits for it.
 	PoolDefaults func(ctx context.Context) (PoolDefaults, error)
+	// SSH runs the install command over SSH for the optional SSH join
+	// (RES3). Nil means the SSH join is not available.
+	SSH SSHRunner
 }
 
 // PoolDefaults are the settings a new machine starts with.

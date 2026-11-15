@@ -847,6 +847,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/join-codes/ssh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join a Linux or macOS machine over SSH
+         * @description machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+         */
+        post: operations["joinMachineOverSsh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/join-codes/{joinCodeId}": {
         parameters: {
             query?: never;
@@ -2601,10 +2621,27 @@ export interface components {
             /** @description Default 15, ceiling 1440 (machines R5.4). */
             ttl_minutes?: number;
         };
+        SshJoinRequest: {
+            /** @enum {string} */
+            os: "linux" | "macos";
+            host: string;
+            /** @description Default 22. */
+            port?: number;
+            user: string;
+            /** @description The content of the SSH key file, used once for this join and never stored. */
+            identity: string;
+            /** @description The host key fingerprint the owner confirmed (SHA256:...). */
+            host_fingerprint?: string;
+        };
         JoinCode: {
             id: string;
             /** @enum {string} */
             state: "waiting" | "joined" | "expired" | "revoked";
+            /**
+             * @description How far a copied or SSH join got (RES3). `waiting`: no agent used the code yet. `connected`: the agent joined. `ready`: the machine sent its first heartbeat. Absent once the code expired or was withdrawn.
+             * @enum {string}
+             */
+            progress?: "waiting" | "connected" | "ready";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -4595,6 +4632,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JoinCodeCreated"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    joinMachineOverSsh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SshJoinRequest"];
+            };
+        };
+        responses: {
+            /** @description The command ran on the machine; its join code is waiting for the agent. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JoinCode"];
                 };
             };
             default: components["responses"]["Error"];

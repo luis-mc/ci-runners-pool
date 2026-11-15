@@ -484,6 +484,27 @@ func (e JobResult) Valid() bool {
 	}
 }
 
+// Defines values for JoinCodeProgress.
+const (
+	JoinCodeProgressConnected JoinCodeProgress = "connected"
+	JoinCodeProgressReady     JoinCodeProgress = "ready"
+	JoinCodeProgressWaiting   JoinCodeProgress = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the JoinCodeProgress enum.
+func (e JoinCodeProgress) Valid() bool {
+	switch e {
+	case JoinCodeProgressConnected:
+		return true
+	case JoinCodeProgressReady:
+		return true
+	case JoinCodeProgressWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JoinCodeState.
 const (
 	JoinCodeStateExpired JoinCodeState = "expired"
@@ -1366,6 +1387,24 @@ func (e SlotKind) Valid() bool {
 	}
 }
 
+// Defines values for SshJoinRequestOs.
+const (
+	SshJoinRequestOsLinux SshJoinRequestOs = "linux"
+	SshJoinRequestOsMacos SshJoinRequestOs = "macos"
+)
+
+// Valid indicates whether the value is a known member of the SshJoinRequestOs enum.
+func (e SshJoinRequestOs) Valid() bool {
+	switch e {
+	case SshJoinRequestOsLinux:
+		return true
+	case SshJoinRequestOsMacos:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for StartAppManifestRequestAccountType.
 const (
 	StartAppManifestRequestAccountTypeOrganization StartAppManifestRequestAccountType = "organization"
@@ -2153,9 +2192,15 @@ type JoinCode struct {
 	Id        string    `json:"id"`
 
 	// MachineId Set once an agent joined with it.
-	MachineId *string       `json:"machine_id,omitempty"`
-	State     JoinCodeState `json:"state"`
+	MachineId *string `json:"machine_id,omitempty"`
+
+	// Progress How far a copied or SSH join got (RES3). `waiting`: no agent used the code yet. `connected`: the agent joined. `ready`: the machine sent its first heartbeat. Absent once the code expired or was withdrawn.
+	Progress *JoinCodeProgress `json:"progress,omitempty"`
+	State    JoinCodeState     `json:"state"`
 }
+
+// JoinCodeProgress How far a copied or SSH join got (RES3). `waiting`: no agent used the code yet. `connected`: the agent joined. `ready`: the machine sent its first heartbeat. Absent once the code expired or was withdrawn.
+type JoinCodeProgress string
 
 // JoinCodeState defines model for JoinCode.State.
 type JoinCodeState string
@@ -2958,6 +3003,25 @@ type SmtpSettings struct {
 	Username    *string `json:"username,omitempty"`
 }
 
+// SshJoinRequest defines model for SshJoinRequest.
+type SshJoinRequest struct {
+	Host string `json:"host"`
+
+	// HostFingerprint The host key fingerprint the owner confirmed (SHA256:...).
+	HostFingerprint *string `json:"host_fingerprint,omitempty"`
+
+	// Identity The content of the SSH key file, used once for this join and never stored.
+	Identity *string          `json:"identity,omitempty"`
+	Os       SshJoinRequestOs `json:"os"`
+
+	// Port Default 22.
+	Port *int   `json:"port,omitempty"`
+	User string `json:"user"`
+}
+
+// SshJoinRequestOs defines model for SshJoinRequest.Os.
+type SshJoinRequestOs string
+
 // Staleness Set when GitHub did not answer and the last copy is shown (UX-53).
 type Staleness struct {
 	AsOf  *time.Time `json:"as_of,omitempty"`
@@ -3402,6 +3466,9 @@ type UpdateImageLayersJSONRequestBody = UpdateImageLayersRequest
 // CreateJoinCodeJSONRequestBody defines body for CreateJoinCode for application/json ContentType.
 type CreateJoinCodeJSONRequestBody = CreateJoinCodeRequest
 
+// JoinMachineOverSshJSONRequestBody defines body for JoinMachineOverSsh for application/json ContentType.
+type JoinMachineOverSshJSONRequestBody = SshJoinRequest
+
 // UpdateMachineJSONRequestBody defines body for UpdateMachine for application/json ContentType.
 type UpdateMachineJSONRequestBody = MachineSettingsUpdate
 
@@ -3804,6 +3871,24 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /api/v1/join-codes (the `CreateJoinCode` operationId).
 	CreateJoinCode(ctx context.Context, body CreateJoinCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// JoinMachineOverSshWithBody Join a Linux or macOS machine over SSH
+	//
+	// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+	JoinMachineOverSshWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// JoinMachineOverSsh Join a Linux or macOS machine over SSH
+	//
+	// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+	JoinMachineOverSsh(ctx context.Context, body JoinMachineOverSshJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RevokeJoinCode Withdraw an unused join code
 	//
@@ -5104,6 +5189,44 @@ func (c *Client) CreateJoinCodeWithBody(ctx context.Context, contentType string,
 // Corresponds with POST /api/v1/join-codes (the `CreateJoinCode` operationId).
 func (c *Client) CreateJoinCode(ctx context.Context, body CreateJoinCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateJoinCodeRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// JoinMachineOverSshWithBody Join a Linux or macOS machine over SSH
+//
+// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+func (c *Client) JoinMachineOverSshWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinMachineOverSshRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// JoinMachineOverSsh Join a Linux or macOS machine over SSH
+//
+// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+func (c *Client) JoinMachineOverSsh(ctx context.Context, body JoinMachineOverSshJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinMachineOverSshRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -8386,6 +8509,46 @@ func NewCreateJoinCodeRequestWithBody(server string, contentType string, body io
 	return req, nil
 }
 
+// NewJoinMachineOverSshRequest calls the generic JoinMachineOverSsh builder with application/json body
+func NewJoinMachineOverSshRequest(server string, body JoinMachineOverSshJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewJoinMachineOverSshRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewJoinMachineOverSshRequestWithBody constructs an http.Request for the JoinMachineOverSsh method, with any body, and a specified content type
+func NewJoinMachineOverSshRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/join-codes/ssh")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewRevokeJoinCodeRequest constructs an http.Request for the RevokeJoinCode method
 func NewRevokeJoinCodeRequest(server string, joinCodeId JoinCodeId) (*http.Request, error) {
 	var err error
@@ -11471,6 +11634,24 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/join-codes (the `CreateJoinCode` operationId).
 	CreateJoinCodeWithResponse(ctx context.Context, body CreateJoinCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateJoinCodeResponse, error)
 
+	// JoinMachineOverSshWithBodyWithResponse Join a Linux or macOS machine over SSH
+	//
+	// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+	JoinMachineOverSshWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*JoinMachineOverSshResponse, error)
+
+	// JoinMachineOverSshWithResponse Join a Linux or macOS machine over SSH
+	//
+	// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+	JoinMachineOverSshWithResponse(ctx context.Context, body JoinMachineOverSshJSONRequestBody, reqEditors ...RequestEditorFn) (*JoinMachineOverSshResponse, error)
+
 	// RevokeJoinCodeWithResponse Withdraw an unused join code
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -13788,6 +13969,54 @@ func (r CreateJoinCodeResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r CreateJoinCodeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type JoinMachineOverSshResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *JoinCode
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r JoinMachineOverSshResponse) GetJSON201() *JoinCode {
+	return r.JSON201
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r JoinMachineOverSshResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r JoinMachineOverSshResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r JoinMachineOverSshResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r JoinMachineOverSshResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r JoinMachineOverSshResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -17429,6 +17658,36 @@ func (c *ClientWithResponses) CreateJoinCodeWithResponse(ctx context.Context, bo
 	return ParseCreateJoinCodeResponse(rsp)
 }
 
+// JoinMachineOverSshWithBodyWithResponse Join a Linux or macOS machine over SSH
+//
+// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+func (c *ClientWithResponses) JoinMachineOverSshWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*JoinMachineOverSshResponse, error) {
+	rsp, err := c.JoinMachineOverSshWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinMachineOverSshResponse(rsp)
+}
+
+// JoinMachineOverSshWithResponse Join a Linux or macOS machine over SSH
+//
+// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
+func (c *ClientWithResponses) JoinMachineOverSshWithResponse(ctx context.Context, body JoinMachineOverSshJSONRequestBody, reqEditors ...RequestEditorFn) (*JoinMachineOverSshResponse, error) {
+	rsp, err := c.JoinMachineOverSsh(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinMachineOverSshResponse(rsp)
+}
+
 // RevokeJoinCodeWithResponse Withdraw an unused join code
 //
 // Returns a wrapper object for the known response body format(s).
@@ -19815,6 +20074,39 @@ func ParseCreateJoinCodeResponse(rsp *http.Response) (*CreateJoinCodeResponse, e
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
 		var dest JoinCodeCreated
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseJoinMachineOverSshResponse parses an HTTP response from a JoinMachineOverSshWithResponse call
+func ParseJoinMachineOverSshResponse(rsp *http.Response) (*JoinMachineOverSshResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &JoinMachineOverSshResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest JoinCode
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
