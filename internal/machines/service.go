@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -70,6 +71,9 @@ type Options struct {
 	// built-in defaults. Changing them never touches a machine that already
 	// joined, so no running job waits for it.
 	PoolDefaults func(ctx context.Context) (PoolDefaults, error)
+	// MinProtocol is the lowest agent link protocol version a Session accepts
+	// (operations R5.44); an older agent keeps only the recovery call. 0 accepts all.
+	MinProtocol int32
 }
 
 // PoolDefaults are the settings a new machine starts with.
@@ -83,9 +87,10 @@ type PoolDefaults struct {
 
 // Service is the controller side of machines.
 type Service struct {
-	o        Options
-	sessions *Sessions
-	hooks    Hooks
+	o               Options
+	sessions        *Sessions
+	hooks           Hooks
+	recoveryHandler http.Handler
 
 	// rec serialises the read-modify-write of a machine record, so a report of the
 	// agent (heartbeat, facts) never writes back a stale copy over a change of
@@ -103,6 +108,7 @@ type Service struct {
 	fails     map[string][]time.Time
 	blocked   map[string]time.Time
 	updates   map[string]AgentUpdate
+	recov     map[string]recState
 	typical   TypicalFunc
 }
 
@@ -118,7 +124,7 @@ func New(o Options) *Service {
 		o: o, sessions: newSessions(),
 		loads: map[string]Load{}, policies: map[string]Policy{}, lastKept: map[string]time.Time{}, running: map[string][]JobRef{},
 		runners: map[string][]string{}, fails: map[string][]time.Time{}, blocked: map[string]time.Time{},
-		updates: map[string]AgentUpdate{},
+		updates: map[string]AgentUpdate{}, recov: map[string]recState{},
 	}
 }
 

@@ -22,6 +22,7 @@ type MachinesService interface {
 	Resume(ctx context.Context, actor, id string, confirm bool) (machines.View, error)
 	Remove(ctx context.Context, actor, id string, confirm bool) (machines.Change, error)
 	Redetect(ctx context.Context, actor, id string) error
+	ArmRecovery(ctx context.Context, actor, id string) error
 	LoadHistory(ctx context.Context, id string, from, to time.Time) ([]machines.LoadPoint, error)
 	GetChange(ctx context.Context, machineID, id string) (machines.Change, error)
 	DecideChange(ctx context.Context, actor, machineID, changeID string, d machines.Decision, waitMinutes int, confirm bool) (machines.Change, error)
@@ -196,6 +197,9 @@ func machineToAPI(v machines.View, now time.Time) gen.Machine {
 		out.JoinedAt = machinesPtr(m.JoinedAt)
 	}
 	out.Accepting = machinesPtr(m.Accepting)
+	if r := v.Recovery; r != nil {
+		out.Recovery = &gen.MachineRecovery{State: gen.NeedsRecovery, Reason: gen.MachineRecoveryReason(r.Reason), Has: r.Has, Needs: r.Needs, Since: r.Since, Armed: r.Armed}
+	}
 	if m.PauseReason != "" {
 		out.PauseReason = machinesPtr(gen.PauseReason(m.PauseReason))
 	}
@@ -450,6 +454,17 @@ func (s *server) RedetectMachine(ctx context.Context, r gen.RedetectMachineReque
 		return fail[gen.RedetectMachinedefaultJSONResponse](s, err), nil
 	}
 	return gen.RedetectMachine202Response{}, nil
+}
+
+// RecoverMachine implements POST /api/v1/machines/{machineId}/recovery (operations R5.44).
+func (s *server) RecoverMachine(ctx context.Context, r gen.RecoverMachineRequestObject) (gen.RecoverMachineResponseObject, error) {
+	if s.machinesOff() {
+		return machinesUnavailable[gen.RecoverMachinedefaultJSONResponse](), nil
+	}
+	if err := s.opts.Machines.ArmRecovery(ctx, s.actor(ctx), r.MachineId); err != nil {
+		return fail[gen.RecoverMachinedefaultJSONResponse](s, err), nil
+	}
+	return gen.RecoverMachine202Response{}, nil
 }
 
 // GetMachineLoad implements GET /api/v1/machines/{machineId}/load (machines R6.8).

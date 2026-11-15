@@ -631,6 +631,39 @@ func (e MachineMode) Valid() bool {
 	}
 }
 
+// Defines values for MachineRecoveryReason.
+const (
+	OldProtocol MachineRecoveryReason = "old_protocol"
+	Stuck       MachineRecoveryReason = "stuck"
+)
+
+// Valid indicates whether the value is a known member of the MachineRecoveryReason enum.
+func (e MachineRecoveryReason) Valid() bool {
+	switch e {
+	case OldProtocol:
+		return true
+	case Stuck:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MachineRecoveryState.
+const (
+	NeedsRecovery MachineRecoveryState = "needs_recovery"
+)
+
+// Valid indicates whether the value is a known member of the MachineRecoveryState enum.
+func (e MachineRecoveryState) Valid() bool {
+	switch e {
+	case NeedsRecovery:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MachineSettingsGateOnTimeout.
 const (
 	MachineSettingsGateOnTimeoutFail MachineSettingsGateOnTimeout = "fail"
@@ -2266,8 +2299,11 @@ type Machine struct {
 	PendingChange *MachineChange `json:"pending_change,omitempty"`
 
 	// Policy What the agent last reported about the power source and the CPU cap (machines R5.62 to R5.64).
-	Policy      *MachinePolicy `json:"policy,omitempty"`
-	RunningJobs *[]Job         `json:"running_jobs,omitempty"`
+	Policy *MachinePolicy `json:"policy,omitempty"`
+
+	// Recovery Present only when the agent of the machine needs recovery (operations R5.44, web-console R5.33).
+	Recovery    *MachineRecovery `json:"recovery,omitempty"`
+	RunningJobs *[]Job           `json:"running_jobs,omitempty"`
 
 	// Settings machines R5.22, scheduling R5.1.
 	Settings  MachineSettings `json:"settings"`
@@ -2358,6 +2394,29 @@ type MachinePolicy struct {
 	CpuCapState *CpuCapState `json:"cpu_cap_state,omitempty"`
 	OnBattery   bool         `json:"on_battery"`
 }
+
+// MachineRecovery Present only when the agent of the machine needs recovery (operations R5.44, web-console R5.33).
+type MachineRecovery struct {
+	// Armed The owner pressed the action; the agent's next recovery call gets the update.
+	Armed bool `json:"armed"`
+
+	// Has The version the agent runs.
+	Has string `json:"has"`
+
+	// Needs The version the controller runs.
+	Needs string `json:"needs"`
+
+	// Reason old_protocol is an agent too old for the agent link; stuck is an agent that stayed on an old version for an hour after it was asked to update.
+	Reason MachineRecoveryReason `json:"reason"`
+	Since  time.Time             `json:"since"`
+	State  MachineRecoveryState  `json:"state"`
+}
+
+// MachineRecoveryReason old_protocol is an agent too old for the agent link; stuck is an agent that stayed on an old version for an hour after it was asked to update.
+type MachineRecoveryReason string
+
+// MachineRecoveryState defines model for MachineRecovery.State.
+type MachineRecoveryState string
 
 // MachineSettings machines R5.22, scheduling R5.1.
 type MachineSettings struct {
@@ -4081,6 +4140,13 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/machines/{machineId}/pool-size-check (the `CheckMachinePoolSize` operationId).
 	CheckMachinePoolSize(ctx context.Context, machineId MachineId, body CheckMachinePoolSizeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// RecoverMachine Push the signed update to an agent that needs recovery
+	//
+	// operations R5.44. The agent's next recovery call gets the signed update; nothing else changes. Refused (409) when the machine does not need recovery.
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/recovery (the `RecoverMachine` operationId).
+	RecoverMachine(ctx context.Context, machineId MachineId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// RedetectMachine Check again; the agent detects facts and backends now
 	//
 	// machines R5.13.
@@ -5657,6 +5723,23 @@ func (c *Client) CheckMachinePoolSizeWithBody(ctx context.Context, machineId Mac
 // Corresponds with POST /api/v1/machines/{machineId}/pool-size-check (the `CheckMachinePoolSize` operationId).
 func (c *Client) CheckMachinePoolSize(ctx context.Context, machineId MachineId, body CheckMachinePoolSizeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCheckMachinePoolSizeRequest(c.Server, machineId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RecoverMachine Push the signed update to an agent that needs recovery
+//
+// operations R5.44. The agent's next recovery call gets the signed update; nothing else changes. Refused (409) when the machine does not need recovery.
+//
+// Corresponds with POST /api/v1/machines/{machineId}/recovery (the `RecoverMachine` operationId).
+func (c *Client) RecoverMachine(ctx context.Context, machineId MachineId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRecoverMachineRequest(c.Server, machineId)
 	if err != nil {
 		return nil, err
 	}
@@ -9445,6 +9528,40 @@ func NewCheckMachinePoolSizeRequestWithBody(server string, machineId MachineId, 
 	return req, nil
 }
 
+// NewRecoverMachineRequest constructs an http.Request for the RecoverMachine method
+func NewRecoverMachineRequest(server string, machineId MachineId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "machineId", machineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/machines/%s/recovery", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewRedetectMachineRequest constructs an http.Request for the RedetectMachine method
 func NewRedetectMachineRequest(server string, machineId MachineId) (*http.Request, error) {
 	var err error
@@ -12366,6 +12483,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /api/v1/machines/{machineId}/pool-size-check (the `CheckMachinePoolSize` operationId).
 	CheckMachinePoolSizeWithResponse(ctx context.Context, machineId MachineId, body CheckMachinePoolSizeJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckMachinePoolSizeResponse, error)
+
+	// RecoverMachineWithResponse Push the signed update to an agent that needs recovery
+	//
+	// operations R5.44. The agent's next recovery call gets the signed update; nothing else changes. Refused (409) when the machine does not need recovery.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/recovery (the `RecoverMachine` operationId).
+	RecoverMachineWithResponse(ctx context.Context, machineId MachineId, reqEditors ...RequestEditorFn) (*RecoverMachineResponse, error)
 
 	// RedetectMachineWithResponse Check again; the agent detects facts and backends now
 	//
@@ -15314,6 +15440,47 @@ func (r CheckMachinePoolSizeResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r CheckMachinePoolSizeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RecoverMachineResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r RecoverMachineResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RecoverMachineResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RecoverMachineResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RecoverMachineResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RecoverMachineResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -18947,6 +19114,21 @@ func (c *ClientWithResponses) CheckMachinePoolSizeWithResponse(ctx context.Conte
 	return ParseCheckMachinePoolSizeResponse(rsp)
 }
 
+// RecoverMachineWithResponse Push the signed update to an agent that needs recovery
+//
+// operations R5.44. The agent's next recovery call gets the signed update; nothing else changes. Refused (409) when the machine does not need recovery.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/machines/{machineId}/recovery (the `RecoverMachine` operationId).
+func (c *ClientWithResponses) RecoverMachineWithResponse(ctx context.Context, machineId MachineId, reqEditors ...RequestEditorFn) (*RecoverMachineResponse, error) {
+	rsp, err := c.RecoverMachine(ctx, machineId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRecoverMachineResponse(rsp)
+}
+
 // RedetectMachineWithResponse Check again; the agent detects facts and backends now
 //
 // machines R5.13.
@@ -21694,6 +21876,35 @@ func ParseCheckMachinePoolSizeResponse(rsp *http.Response) (*CheckMachinePoolSiz
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRecoverMachineResponse parses an HTTP response from a RecoverMachineWithResponse call
+func ParseRecoverMachineResponse(rsp *http.Response) (*RecoverMachineResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RecoverMachineResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 202:
+		break // No content-type
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error

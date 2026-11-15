@@ -37,7 +37,7 @@ var otherAreaAuth = map[string]string{
 	"restartService": authAdmin, "stopRunnerPlan": authAdmin, "updateImageLayers": authAdmin, "wipeCache": authAdmin,
 	"createJoinCode": authAdmin, "createRunners": authAdmin, "decideMachineChange": authAdmin, "deleteRunner": authAdmin,
 	"drainMachine": authAdmin, "freeStaleSlots": authAdmin, "getInstallCommand": authAdmin, "getJoinCode": authAdmin,
-	"listBackups": authAdmin, "planRunnerReplacement": authAdmin, "planRunners": authAdmin, "redetectMachine": authAdmin, "checkMachinePoolSize": authAdmin,
+	"listBackups": authAdmin, "planRunnerReplacement": authAdmin, "planRunners": authAdmin, "redetectMachine": authAdmin, "recoverMachine": authAdmin, "checkMachinePoolSize": authAdmin,
 	"removeMachine": authAdmin, "resumeMachine": authAdmin, "revokeJoinCode": authAdmin, "runBackup": authAdmin,
 	"runBackupDrill": authAdmin, "runDoctor": authAdmin, "updateMachine": authAdmin, "updatePoolSettings": authAdmin,
 	"updateQueueSettings": authAdmin, "putEnvSet": authAdmin, "deleteEnvSet": authAdmin, "getRegistrySettings": authAdmin,
