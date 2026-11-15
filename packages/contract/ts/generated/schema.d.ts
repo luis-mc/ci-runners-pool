@@ -2232,6 +2232,13 @@ export interface components {
             drain_timeout_minutes: number;
             /** @description Owner decision for M1; grant "create symbolic links" to Windows runner accounts. */
             windows_symlink_right: boolean;
+            /**
+             * Format: double
+             * @description The memory in GiB the pool may use on this machine, set by the owner and checked against the load budget (machines R5.58). 0 means not set.
+             */
+            pool_memory_gib?: number;
+            /** @description The CPUs the pool may use on this machine (machines R5.58). 0 means not set. Split over the job slots it gives CI_MAX_PARALLEL (runners R5.53). */
+            pool_cpus?: number;
         };
         /**
          * @example {
@@ -2255,6 +2262,15 @@ export interface components {
             cache_cap_bytes?: number;
             drain_timeout_minutes?: number;
             windows_symlink_right?: boolean;
+            /**
+             * Format: double
+             * @description The pool memory in GiB. Send it with pool_cpus. A size over the budget is refused with the budget that is short and the nearest sizes that fit (machines R5.58).
+             */
+            pool_memory_gib?: number;
+            /** @description The pool CPUs. Send it with pool_memory_gib. */
+            pool_cpus?: number;
+            /** @description The explicit yes to a pool size below the current one. confirm does not stand for it (machines R5.58). */
+            confirm_shrink?: boolean;
             /** @description The yes once the jobs a restart waits for are named. */
             confirm?: boolean;
         };
