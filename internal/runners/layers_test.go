@@ -69,7 +69,7 @@ func TestPlaywrightLayerSelfCheck(t *testing.T) {
 	d := readFile(t, "../../images/layers/browsers/Dockerfile")
 	for _, want := range []string{
 		"ARG BASE_IMAGE", "FROM ${BASE_IMAGE}", "ARG PLAYWRIGHT_VERSION=",
-		"PLAYWRIGHT_BROWSERS_PATH=/opt/crsp/browsers", "--with-deps chromium firefox webkit",
+		"PLAYWRIGHT_BROWSERS_PATH=/opt/crsp/browsers", "install-deps chromium firefox webkit", "for b in chromium firefox webkit",
 		"pw.chromium, pw.firefox, pw.webkit", "headless: true", "process.exit(1)", "USER runner",
 	} {
 		if !strings.Contains(d, want) {
