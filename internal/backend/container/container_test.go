@@ -80,11 +80,11 @@ func TestNoPrivilegedNoSocketKvmDevice(t *testing.T) {
 		}
 	}
 
-	// KVM: --device /dev/kvm and nothing else, still not privileged.
+	// KVM: the cgroup rule and never a device mapping, still not privileged.
 	k := newRig(t, func(c *Config) { c.KVM = true })
 	k.start("job-1", "demo", k.image())
 	kargs := strings.Join(k.pool("demo").args, " ")
-	if !strings.Contains(kargs, "--device /dev/kvm") || strings.Contains(kargs, "--privileged") || strings.Count(kargs, "--device") != 1 {
+	if !strings.Contains(kargs, "--device-cgroup-rule "+KVMCgroupRule) || strings.Contains(kargs, "--privileged") || strings.Contains(kargs, "--device ") {
 		t.Errorf("kvm run args: %s", kargs)
 	}
 

@@ -12,10 +12,17 @@ import (
 // or give it the host's namespaces (runners R6.1).
 var ErrPrivileged = errors.New("a job container is never privileged and never shares a host namespace")
 
-// KVMArgs returns the `docker run` arguments that pass /dev/kvm. gid is the
+// KVMCgroupRule allows the container to use the KVM character device 10:232.
+// The device is never mapped with --device: a mapping to a file that is missing
+// at Docker's boot fails the container start, and the in-container wait never
+// runs (handover lesson 28). The pool's kvm-wait.sh creates /dev/kvm with
+// mknod once /proc/misc lists kvm.
+const KVMCgroupRule = "c 10:232 rwm"
+
+// KVMArgs returns the `docker run` arguments that allow /dev/kvm. gid is the
 // group id that owns the device on the host (0 means unknown and adds no group).
 func KVMArgs(gid int) []string {
-	args := []string{"--device", KVMDevice}
+	args := []string{"--device-cgroup-rule", KVMCgroupRule}
 	if gid > 0 {
 		args = append(args, "--group-add", fmt.Sprint(gid))
 	}

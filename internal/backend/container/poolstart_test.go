@@ -109,11 +109,11 @@ func TestPoolStartMountsLaneAndSetsJobEnvironment(t *testing.T) {
 	run := runCall(r.f)
 	has(t, run, "target=/ci-tools", "target=/rust-target", "target=/opt/hostedtoolcache", "target=/wine", "target=/ms-playwright",
 		"-e CI_TOOLS_DIR=/ci-tools", "-e CARGO_TARGET_DIR=/rust-target", "-e RUNNER_TOOL_CACHE=/opt/hostedtoolcache")
-	hasNot(t, run, "PLAYWRIGHT_BROWSERS_PATH", "WINEPREFIX", "--device", "--group-add", "crsp/usr/local")
+	hasNot(t, run, "PLAYWRIGHT_BROWSERS_PATH", "WINEPREFIX", "--device", "--device-cgroup-rule", "--group-add", "crsp/usr/local")
 	st := startCall(r.f)
 	has(t, st, "-e CI_MAX_PARALLEL=3", "-e CRSP_CACHE_BUDGET_GIB=", "-e CI_TOOLS_QUOTA_GIB=", "-e CRSP_RUST_CACHE_CAP_GIB=")
 	hasNot(t, st, "CRSP_DB_ENV_FILE", jitSecret)
-	if err := CheckRunArgs(strings.Fields(strings.TrimPrefix(run, "docker"))); err != nil {
+	if err := CheckRunArgs(runFields(run)); err != nil {
 		t.Fatalf("the composed run is refused: %v", err)
 	}
 }
@@ -215,13 +215,13 @@ func TestPoolStartKVMConditions(t *testing.T) {
 				t.Fatal(err)
 			}
 			run := runCall(r.f)
-			if got := strings.Contains(run, "--device /dev/kvm"); got != c.device {
+			if got := strings.Contains(run, "--device-cgroup-rule "+KVMCgroupRule); got != c.device {
 				t.Errorf("device = %v, want %v: %s", got, c.device, run)
 			}
 			if got := strings.Contains(run, "--group-add 108"); got != c.group {
 				t.Errorf("group = %v, want %v", got, c.group)
 			}
-			if err := CheckRunArgs(strings.Fields(strings.TrimPrefix(run, "docker"))); err != nil {
+			if err := CheckRunArgs(runFields(run)); err != nil {
 				t.Errorf("refused: %v", err)
 			}
 			if c.note != "" && !strings.Contains(strings.Join(r.logs, "\n"), "no KVM device") {
@@ -421,9 +421,9 @@ func TestPoolStartAllPiecesTogether(t *testing.T) {
 		t.Fatal(err)
 	}
 	run := runCall(r.f)
-	has(t, run, "--device /dev/kvm", "--group-add 108", "target=/ci-tools", "target=/usr/local/bin/crsp,readonly",
+	has(t, run, "--device-cgroup-rule "+KVMCgroupRule, "--group-add 108", "target=/ci-tools", "target=/usr/local/bin/crsp,readonly",
 		"PLAYWRIGHT_BROWSERS_PATH=/opt/crsp/browsers", "WINEPREFIX=/wine")
-	if err := CheckRunArgs(strings.Fields(strings.TrimPrefix(run, "docker"))); err != nil {
+	if err := CheckRunArgs(runFields(run)); err != nil {
 		t.Fatal(err)
 	}
 	has(t, startCall(r.f), "CI_MAX_PARALLEL=2", "CRSP_DB_ENV_FILE=")
