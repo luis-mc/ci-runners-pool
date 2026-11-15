@@ -337,3 +337,17 @@ func TestToolHomesPerRunner(t *testing.T) {
 		}
 	}
 }
+
+// R5.11: the one-time tokens reach the redactor before any log line is written.
+func TestSecretsRedacted(t *testing.T) {
+	r := newRig()
+	var learned []string
+	r.b.d.Secret = func(s string) { learned = append(learned, s) }
+	cfg := backend.StartConfig{Registration: "REGTOKEN", Removal: "RMTOKEN"}
+	if _, err := r.b.Start(context.Background(), r.spec(), cfg); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(learned, ",") != "REGTOKEN,RMTOKEN" {
+		t.Errorf("learned %v", learned)
+	}
+}
