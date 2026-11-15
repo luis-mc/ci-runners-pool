@@ -16,6 +16,8 @@ var operationCommands = map[string]string{
 	"updateRepositoryPolicy":     "repo policy",
 	"getRepositoryExtraPackages": "repo packages",
 	"setRepositoryExtraPackages": "repo packages --set",
+	"getRepositoryTrial":         "trial OWNER/NAME",
+	"setRepositoryTrial":         "trial OWNER/NAME observe|shadow|canary|off",
 	"listMachines":               "machine list",
 	"createJoinCode":             "machine add",
 	"drainMachine":               "machine drain",
