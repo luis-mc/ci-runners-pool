@@ -22,8 +22,8 @@ func TestManifestPermissionsExact(t *testing.T) { // R5.23
 	if !reflect.DeepEqual(m.DefaultPermissions, want) {
 		t.Fatalf("permissions must be exactly the R5.23 set:\n got %v\nwant %v", m.DefaultPermissions, want)
 	}
-	if !reflect.DeepEqual(m.DefaultEvents, []string{"workflow_job"}) {
-		t.Fatalf("events %v", m.DefaultEvents)
+	if len(m.DefaultEvents) != 0 {
+		t.Fatalf("a local-only App subscribes to no events: %v", m.DefaultEvents)
 	}
 	if m.Public {
 		t.Fatal("the App is private to its owner")
@@ -41,8 +41,12 @@ func TestManifestContent(t *testing.T) { // R5.2, R5.4, R5.5
 	if m.RedirectURL != "http://127.0.0.1:8460/auth/github/app-created" || m.SetupURL == "" || m.URL == "" {
 		t.Fatalf("%+v", m)
 	}
-	if m.HookAttributes.Active {
+	if m.HookAttributes != nil {
 		t.Fatal("webhook must be off when every console address is loopback (R5.5)")
+	}
+	// GitHub refuses a manifest with a hook URL it cannot reach, even inactive.
+	if strings.Contains(string(m.JSON()), "hook_attributes") || strings.Contains(string(m.JSON()), "127.0.0.1:8460/webhooks") {
+		t.Fatal("a local-only manifest must not carry a hook")
 	}
 	if !strings.Contains(string(m.JSON()), `"default_permissions"`) {
 		t.Fatal("json")
@@ -52,13 +56,16 @@ func TestManifestContent(t *testing.T) { // R5.2, R5.4, R5.5
 func TestManifestWebhookOnlyWithPublicURL(t *testing.T) { // R5.5
 	opts := ManifestOptions{AppName: "crsp-home", ConsoleURLs: []string{devConsole, "https://pool.lan:8460"}}
 	m, _ := BuildManifest(opts)
-	if m.HookAttributes.Active {
+	if m.HookAttributes != nil {
 		t.Fatal("off without a webhook URL")
 	}
 	opts.WebhookURL = "https://hooks.example.org/crsp"
 	m, err := BuildManifest(opts)
-	if err != nil || !m.HookAttributes.Active || m.HookAttributes.URL != opts.WebhookURL {
+	if err != nil || m.HookAttributes == nil || !m.HookAttributes.Active || m.HookAttributes.URL != opts.WebhookURL {
 		t.Fatalf("%+v %v", m.HookAttributes, err)
+	}
+	if !reflect.DeepEqual(m.DefaultEvents, []string{"workflow_job"}) {
+		t.Fatalf("events with a public webhook %v", m.DefaultEvents)
 	}
 	opts.WebhookURL = "http://hooks.example.org/crsp"
 	if _, err := BuildManifest(opts); err == nil {
@@ -66,7 +73,7 @@ func TestManifestWebhookOnlyWithPublicURL(t *testing.T) { // R5.5
 	}
 	// All loopback: the URL is ignored and the hook stays off.
 	m, _ = BuildManifest(ManifestOptions{AppName: "crsp-home", ConsoleURLs: []string{devConsole}, WebhookURL: "https://hooks.example.org/x"})
-	if m.HookAttributes.Active {
+	if m.HookAttributes != nil {
 		t.Fatal("local-only controller keeps webhooks off")
 	}
 }
