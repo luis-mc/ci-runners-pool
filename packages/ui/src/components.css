@@ -108,6 +108,22 @@ body {
   border: var(--ds-border-thin) solid var(--ds-color-border);
   border-radius: var(--ds-radius-1);
 }
+/* The key-hint bar at the page foot: text, never buttons (UX-8); drawn at every width (UX-50). */
+.ds-keyhints {
+  padding-inline: var(--ds-page-gutter);
+  padding-block: var(--ds-space-2);
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-size-2);
+  border-block-start: var(--ds-border-thin) solid var(--ds-color-border);
+}
+.ds-keyhints__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-2) var(--ds-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
 .ds-usermenu {
   position: relative;
 }
@@ -372,19 +388,46 @@ body {
   gap: var(--ds-space-4);
 }
 .ds-card {
+  position: relative;
   display: grid;
   align-content: start;
   gap: var(--ds-space-3);
   min-inline-size: 0;
+  margin-block-start: var(--ds-space-2);
   padding: var(--ds-space-4);
   background: var(--ds-color-surface);
-  border: var(--ds-border-thin) solid var(--ds-color-divider);
-  border-radius: var(--ds-radius-3);
+  border: var(--ds-border-thin) solid var(--ds-color-border);
+  border-radius: var(--ds-radius-2);
 }
+/* A pane: the title is cut into the top border, ┤ Title ├, in the primary colour over the page colour. */
 .ds-card__title {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: var(--ds-space-3);
+  max-inline-size: calc(100% - var(--ds-space-5));
   margin: 0;
-  font-size: var(--ds-size-4);
+  padding-inline: var(--ds-space-1);
+  transform: translateY(-50%);
+  font-size: var(--ds-size-3);
+  line-height: var(--ds-line-height-tight);
+  color: var(--ds-color-primary);
+  background: var(--ds-color-page);
   overflow-wrap: anywhere;
+}
+.ds-card__title::before {
+  content: '┤ ' / '';
+  color: var(--ds-color-border);
+}
+.ds-card__title::after {
+  content: ' ├' / '';
+  color: var(--ds-color-border);
+}
+.ds-card__title .ds-link {
+  color: inherit;
+}
+.ds-card__count {
+  margin-inline-start: var(--ds-space-2);
+  color: var(--ds-color-text-muted);
 }
 .ds-card__body {
   display: grid;
@@ -519,9 +562,18 @@ body {
   min-block-size: var(--ds-target-min);
   cursor: pointer;
 }
-.ds-table tr[data-selected],
+/* A selected row is drawn in reverse video: the primary fill with its own text colour. The row under the
+   cursor (j and k) only takes the selection fill. */
 .ds-table tr[data-active] {
-  background: var(--ds-color-note-tint);
+  background: var(--ds-color-selection);
+}
+.ds-table tr[data-selected] {
+  background: var(--ds-color-primary);
+  color: var(--ds-color-on-primary);
+}
+.ds-table tr[data-selected] a,
+.ds-table tr[data-selected] button {
+  color: inherit;
 }
 .ds-table__pick {
   inline-size: var(--ds-target-min);
@@ -625,6 +677,41 @@ body {
 }
 .ds-choice__row[data-disabled] {
   color: var(--ds-color-text-muted);
+}
+.ds-swatches {
+  display: flex;
+  gap: var(--ds-space-1);
+  margin-block-start: var(--ds-space-1);
+  padding: var(--ds-space-1);
+  inline-size: fit-content;
+  background: var(--ds-color-page);
+  border: var(--ds-border-thin) solid var(--ds-color-border);
+  border-radius: var(--ds-radius-1);
+}
+.ds-swatch {
+  display: block;
+  inline-size: var(--ds-space-4);
+  block-size: var(--ds-space-4);
+  border-radius: var(--ds-radius-1);
+}
+.ds-swatch[data-swatch='surface'] {
+  background: var(--ds-color-surface);
+  border: var(--ds-border-thin) solid var(--ds-color-border);
+}
+.ds-swatch[data-swatch='primary'] {
+  background: var(--ds-color-primary);
+}
+.ds-swatch[data-swatch='done'] {
+  background: var(--ds-color-done);
+}
+.ds-swatch[data-swatch='note'] {
+  background: var(--ds-color-note);
+}
+.ds-swatch[data-swatch='needs-you'] {
+  background: var(--ds-color-needs-you);
+}
+.ds-swatch[data-swatch='problem'] {
+  background: var(--ds-color-problem);
 }
 .ds-choice__reason {
   color: var(--ds-color-text-muted);
@@ -775,7 +862,8 @@ body {
   cursor: pointer;
 }
 .ds-results__item[data-active] {
-  background: var(--ds-color-note-tint);
+  background: var(--ds-color-primary);
+  color: var(--ds-color-on-primary);
   font-weight: var(--ds-weight-bold);
 }
 .ds-results__hint {

@@ -19,3 +19,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C14: pool size words added: the Pool size wizard, its steps, fields and messages (content.md; machines R5.58, CRSP70)
 - C15: extra packages words added: the field, its help, its messages and the line-numbered mistake (content.md; runners R5.51, CRSP70)
 - C16: Connect GitHub error words and the App name help added (content.md; github-integration R5.3, OPS10)
+- C17: console look is TUI panes with six user-selectable colour themes: the Colour themes section and `--ds-color-selection` (tokens.md), the pane, reverse-video selection and key-hint bar (components.md 8, 41), the theme choice (components.md 42), UX-60 extended to a theme and a mode (ux-rules.md), the theme words (content.md); owner decisions LOOK D1 and D2 (2026-11-15; LOOK2)

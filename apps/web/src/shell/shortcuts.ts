@@ -10,6 +10,14 @@ export const SHORTCUTS: readonly { keys: string; does: string }[] = [
   { keys: 'Escape', does: 'Close a dialog' },
 ];
 
+/** The key-hint bar at the page foot (UX-57). */
+export const KEY_HINTS: readonly { keys: string; does: string }[] = [
+  { keys: '/', does: 'search' },
+  { keys: 'j k', does: 'move' },
+  { keys: 'Enter', does: 'open' },
+  { keys: '?', does: 'keys' },
+];
+
 export function isTyping(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
