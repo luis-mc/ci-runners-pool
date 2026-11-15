@@ -158,6 +158,9 @@ type Job struct {
 	StartedAt   time.Time
 	CompletedAt time.Time
 	HTMLURL     string
+	// ScaleSetID is set on a job that came from a scale-set session (R5.40).
+	// The runner for such a job takes its JIT config from that scale set.
+	ScaleSetID int64
 }
 
 // OAuth is the web and device sign-in flows (R5.8, R5.14).
