@@ -41,6 +41,15 @@ const (
 // is built, so no flag adds one.
 const CapDrop = "ALL"
 
+// Work dirs of a pool container. The root file system is read-only (runners
+// R5.63); these are the only places the job user can write, all tmpfs.
+const (
+	WorkTmpfsHome      = RunnerHome
+	WorkTmpfsTmp       = "/tmp"
+	WorkTmpfsVarTmp    = "/var/tmp"
+	WorkTmpfsToolCache = "/opt/hostedtoolcache"
+)
+
 // Limits are the caps from the machine's load budget (runners R5.27).
 type Limits struct {
 	MemoryMB int
@@ -99,10 +108,12 @@ func RunArgs(p PoolSpec) ([]string, error) {
 		"--cap-drop", CapDrop,
 		"--security-opt", "no-new-privileges",
 		"--pids-limit", "8192",
+		"--read-only",
 		"--tmpfs", fmt.Sprintf("%s:rw,noexec,nosuid,nodev,mode=0700,uid=%d,gid=%d,size=1m", JITDir, JobUID, JobUID),
 		"--label", LabelPool + "=" + strings.ToLower(p.Owner+"/"+p.Repo),
 		"--label", LabelImage + "=" + p.ImageKey,
 	}
+	a = append(a, workTmpfsArgs(p.Lane != nil)...)
 	if p.Limits.MemoryMB > 0 {
 		a = append(a, "--memory", strconv.Itoa(p.Limits.MemoryMB)+"m")
 	}
@@ -134,6 +145,25 @@ func RunArgs(p PoolSpec) ([]string, error) {
 	return a, nil
 }
 
+// workTmpfsArgs makes the writable work dirs of a read-only root: the runner
+// home (jobs and the job's own files), /tmp and /var/tmp. The tool cache is a
+// tmpfs only when no cache lane mounts it. Sizes are caps, not reservations; the
+// container's memory limit still bounds them. A build output is run from
+// home, so exec stays on; setuid files and device nodes never work (nosuid,
+// nodev).
+func workTmpfsArgs(laneMountsToolCache bool) []string {
+	own := fmt.Sprintf("uid=%d,gid=%d,mode=0755", JobUID, JobUID)
+	a := []string{
+		"--tmpfs", WorkTmpfsHome + ":rw,nosuid,nodev,size=8g," + own,
+		"--tmpfs", WorkTmpfsTmp + ":rw,nosuid,nodev,size=2g,mode=1777",
+		"--tmpfs", WorkTmpfsVarTmp + ":rw,nosuid,nodev,size=1g,mode=1777",
+	}
+	if !laneMountsToolCache {
+		a = append(a, "--tmpfs", WorkTmpfsToolCache+":rw,nosuid,nodev,size=4g,"+own)
+	}
+	return a
+}
+
 // ErrUnsafeRun is returned for a `docker run` that would break a rule of
 // runners R5.27 or R6.1.
 var ErrUnsafeRun = errors.New("container run refused")
@@ -145,7 +175,7 @@ var ErrUnsafeRun = errors.New("container run refused")
 func CheckRunArgs(args []string) error {
 	refuse := func(why string) error { return fmt.Errorf("%w: %s", ErrUnsafeRun, why) }
 	var user string
-	dropped, noNewPrivs := false, false
+	dropped, noNewPrivs, readOnly := false, false, false
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		flag, val, hasVal := strings.Cut(a, "=")
@@ -182,7 +212,11 @@ func CheckRunArgs(args []string) error {
 				noNewPrivs = true
 			} else if strings.Contains(v, "unconfined") {
 				return refuse("a security profile is never turned off")
+			} else if strings.HasPrefix(v, "seccomp=") || strings.HasPrefix(v, "seccomp:") {
+				return refuse("the default seccomp profile is never replaced")
 			}
+		case "--read-only":
+			readOnly = !hasVal || val == "true"
 		case "--device":
 			return refuse("no device is mapped, not even " + KVMDevice + ": " + next() + " (use the cgroup rule " + KVMCgroupRule + ")")
 		case "--device-cgroup-rule":
@@ -202,6 +236,9 @@ func CheckRunArgs(args []string) error {
 	}
 	if user == "" || user == "0" || strings.HasPrefix(user, "0:") || user == "root" || strings.HasPrefix(user, "root:") {
 		return refuse("the job user is never root")
+	}
+	if !readOnly {
+		return refuse("the root file system is read-only; work dirs are tmpfs")
 	}
 	if !dropped || !noNewPrivs {
 		return refuse("the one capability set is --cap-drop ALL with no-new-privileges")

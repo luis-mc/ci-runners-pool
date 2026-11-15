@@ -277,6 +277,22 @@ Each layer has a self-check that runs its main tools. The doctor probes the same
 
 **R5.67** (M1, Built HND23) — **A stale session after a restart is expected for a while.** (Handover lesson 29.) After a real `wsl --shutdown` the pool came back with KVM, but every listener logged "A session for this runner already exists" for about two minutes, until GitHub dropped the sessions it still held. When a runner's listener reports that message right after a restart (container pool start, VM restart, service restart), the supervisor treats it as expected for a bounded window, the pool setting `session_wait_minutes` (default 3, 1 to 30). Inside the window it backs off quietly: one log line says it waits for GitHub to drop the old session and until when, and it never starts a second listener for the runner (R5.59, R5.60; a start goes through the listener guard first). The doctor and the console raise no problem inside the window (doctor R5.41). Past the window it is a real fault: the supervisor returns `ErrSessionStale` and the doctor warns with what to do. A second listener is a fault at any time (R5.46). `persistent.SessionGuard` holds the rule; `settings.GetSessionWait` and `UpdateSessionWait` hold the window. Not built: the setting in the API and the settings screen, and the agent filling `SessionRefused` and `RestartedAt` from the listener log (open question 55).
 
+### 5.13 Security: what a job can reach (CRSP81)
+
+**R5.68** (M2, Built CRSP81; source `docs/architecture/landscape-2026-11.md` G11) — **Job container hardening.** Every pool container is started with exactly these security options, and `CheckRunArgs` refuses a `docker run` that lacks one or breaks one: all capabilities dropped (`--cap-drop ALL`) and none added, because no job step needs one; `--security-opt no-new-privileges`; a read-only root file system (`--read-only`) with `tmpfs` for the only places the job user writes (`/home/runner`, `/tmp`, `/var/tmp`, and `/opt/hostedtoolcache` when no cache lane mounts it; `nosuid`, `nodev`, size capped, and the container's memory limit still bounds them); the engine's default seccomp profile (a `seccomp=` option of any kind is refused, as is `unconfined`); a non-root user; the engine's default bridge network, never the host network and never another container's network; no engine socket; no `--privileged`; no device but the KVM cgroup rule (R5.41). The memory and CPU flags (R5.27, R5.58) and the mounts (R5.48, caches R5.43) are not part of this requirement.
+
+**R5.69** (M2, Built CRSP81) — **What a job can reach is written down.** The list below is exact for a job in a pool container. A change to R5.68 changes this list in the same branch.
+
+| Area | A job can | A job cannot |
+|---|---|---|
+| Network | open outgoing connections to the internet and to the local network through the engine's default bridge; reach services that listen on the host's loopback or bridge gateway address unless the machine's firewall blocks it | share the host network, join another container's network, or listen on a host port (crsp publishes none) |
+| Files | write to its own work dirs (tmpfs, gone with the container); read and write the cache folders the user turned on (caches R5.43); read the crsp binary (R5.48); read everything the image holds | write anywhere else in the image (read-only root); see any host folder other than those; read the JIT config after the runner has started (R5.25) |
+| Devices | use `/dev/kvm` only when the machine allows it for this runner and the agent checked it (R5.41) | use any other device, `/dev/mem`, or the GPU |
+| Privileges | run as user 1001 and start processes up to the process limit | become root, gain a capability, run a setuid program with extra rights (`no-new-privileges`), turn off seccomp, or touch the engine (no socket, not privileged) |
+| Other jobs | share the pool container with other jobs of the same repository (one container per repository, R5.27) | see the container of another repository |
+
+What to do about the open items: a service on the host's loopback address that must stay private needs a firewall rule on the machine; a repository whose jobs must not share a container with other jobs of it needs a pool size of one; anyone with write access to a repository can edit its workflow or its `RUNS_ON_*` variables and so choose which pool runs their code, which is the same trust boundary as the workflow files (github-integration R5.28).
+
 ## 6. Non-functional requirements
 
 All **NOT YET IMPLEMENTED**.
@@ -429,6 +445,8 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.61 | `internal/agent/runner_link_test.go` TestAddJITRunnerOverTheLink, TestFailedAddIsTruthfulAndRedacted, TestStopCleanUpRemoveOverTheLink, TestCommandToOfflineMachineFails; `internal/agentlink/agentlink_test.go` TestOfflineErrorHoldsNoConfig, TestNoAnswerTimesOut, TestContextEndsTheWait, TestResultWithoutOkIsAFailure; `cmd/crsp/demand_wiring_test.go` TestHostsFollowTheAllowList |
 | R5.62 | planned: internal/runners/remove_test.go TestIdleCheckThenDeregisterThenStop, TestBusy422LeavesTheRunner, TestUnknownRunnerCountsAsGone (CRSP80) |
 | R5.63 | planned: internal/backend/container/limits_test.go TestMemoryCPUAndPidsLimitsAlwaysSet, TestNoHostFolderMounts; internal/backend/container/network_test.go TestOneJobNetworkNoContainerToContainerTraffic, TestCheckRunArgsRefusesOtherNetworks (CRSP81) |
+| R5.68 | `internal/backend/container/container_test.go` TestReadOnlyRootWorkTmpfs, TestNoPrivilegedNoSocketKvmDevice (CRSP81) |
+| R5.69 | `internal/backend/container/container_test.go` TestJobReachListMatchesFlags (CRSP81) |
 | R5.64 | planned: docs/guides/security-what-a-job-can-reach_test.go TestSecurityPageListsResidualRisks, TestPageNamesEveryLimit (CRSP81) |
 | R5.65 | planned: internal/backend/windows/hypervcontainer_test.go TestOptionOffByDefault, TestRefusesWhenHostOrImageDoNotMatch, TestFallsBackWithAReason (CRSP85) |
 | R5.66 | planned: internal/backend/hyperv/clone_test.go TestBaseOnlyFromDefaultBranch, TestCloneIsCopyOnWriteAndDeleted, TestOrphanSweepAtStart (CRSP86) |
