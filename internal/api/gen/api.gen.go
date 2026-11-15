@@ -1404,6 +1404,54 @@ func (e Theme) Valid() bool {
 	}
 }
 
+// Defines values for TrialMode.
+const (
+	TrialModeCanary  TrialMode = "canary"
+	TrialModeObserve TrialMode = "observe"
+	TrialModeOff     TrialMode = "off"
+	TrialModeShadow  TrialMode = "shadow"
+)
+
+// Valid indicates whether the value is a known member of the TrialMode enum.
+func (e TrialMode) Valid() bool {
+	switch e {
+	case TrialModeCanary:
+		return true
+	case TrialModeObserve:
+		return true
+	case TrialModeOff:
+		return true
+	case TrialModeShadow:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TrialSetMode.
+const (
+	TrialSetModeCanary  TrialSetMode = "canary"
+	TrialSetModeObserve TrialSetMode = "observe"
+	TrialSetModeOff     TrialSetMode = "off"
+	TrialSetModeShadow  TrialSetMode = "shadow"
+)
+
+// Valid indicates whether the value is a known member of the TrialSetMode enum.
+func (e TrialSetMode) Valid() bool {
+	switch e {
+	case TrialSetModeCanary:
+		return true
+	case TrialSetModeObserve:
+		return true
+	case TrialSetModeOff:
+		return true
+	case TrialSetModeShadow:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateStatusState.
 const (
 	UpdateStatusStateChecking       UpdateStatusState = "checking"
@@ -2944,6 +2992,64 @@ type Ticket struct {
 	WaitReason *WaitReason `json:"wait_reason,omitempty"`
 }
 
+// Trial defines model for Trial.
+type Trial struct {
+	CanaryJobs     *[]string  `json:"canary_jobs,omitempty"`
+	Crsp           TrialSide  `json:"crsp"`
+	Hosted         TrialSide  `json:"hosted"`
+	Jobs           []TrialJob `json:"jobs"`
+	Mode           TrialMode  `json:"mode"`
+	Percent        *int       `json:"percent,omitempty"`
+	Repository     string     `json:"repository"`
+	ShadowJobs     *[]string  `json:"shadow_jobs,omitempty"`
+	ShadowWorkflow *string    `json:"shadow_workflow,omitempty"`
+	Since          *time.Time `json:"since,omitempty"`
+	Total          int        `json:"total"`
+
+	// Variables The canary variables now written.
+	Variables []string `json:"variables"`
+}
+
+// TrialMode defines model for Trial.Mode.
+type TrialMode string
+
+// TrialJob defines model for TrialJob.
+type TrialJob struct {
+	// Agree Present when the job ran on both sides.
+	Agree     *bool     `json:"agree,omitempty"`
+	Crsp      TrialSide `json:"crsp"`
+	Hosted    TrialSide `json:"hosted"`
+	Job       string    `json:"job"`
+	WouldTake int       `json:"would_take"`
+}
+
+// TrialSet defines model for TrialSet.
+type TrialSet struct {
+	// Jobs Canary only. Jobs that always use crsp.
+	Jobs *[]string    `json:"jobs,omitempty"`
+	Mode TrialSetMode `json:"mode"`
+
+	// Percent Canary only. The share of jobs, chosen by job name.
+	Percent *int `json:"percent,omitempty"`
+
+	// ShadowJobs Shadow only. Jobs to copy; empty means every job crsp would take.
+	ShadowJobs *[]string `json:"shadow_jobs,omitempty"`
+
+	// ShadowWorkflow Shadow only. The workflow file to dispatch.
+	ShadowWorkflow *string `json:"shadow_workflow,omitempty"`
+}
+
+// TrialSetMode defines model for TrialSet.Mode.
+type TrialSetMode string
+
+// TrialSide defines model for TrialSide.
+type TrialSide struct {
+	AvgRunSec  int `json:"avg_run_sec"`
+	AvgWaitSec int `json:"avg_wait_sec"`
+	Runs       int `json:"runs"`
+	Succeeded  int `json:"succeeded"`
+}
+
 // UpdateImageLayersRequest defines model for UpdateImageLayersRequest.
 type UpdateImageLayersRequest struct {
 	// EnabledLayers Ids of the layers that are on. Every other layer is off.
@@ -3347,6 +3453,9 @@ type SetRepositoryExtraPackagesJSONRequestBody = ExtraPackagesUpdate
 // UpdateRepositoryPolicyJSONRequestBody defines body for UpdateRepositoryPolicy for application/json ContentType.
 type UpdateRepositoryPolicyJSONRequestBody = RepositoryPolicyUpdate
 
+// SetRepositoryTrialJSONRequestBody defines body for SetRepositoryTrial for application/json ContentType.
+type SetRepositoryTrialJSONRequestBody = TrialSet
+
 // PlanRepositoryChangesJSONRequestBody defines body for PlanRepositoryChanges for application/json ContentType.
 type PlanRepositoryChangesJSONRequestBody = PlanRepositoryChangesRequest
 
@@ -3568,6 +3677,12 @@ type ServerInterface interface {
 	// GetRepositoryRunsOn Workflow `runs-on` findings for a repository
 	// (GET /api/v1/repositories/{repositoryId}/runs-on)
 	GetRepositoryRunsOn(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
+	// GetRepositoryTrial A repository's trial mode and its report
+	// (GET /api/v1/repositories/{repositoryId}/trial)
+	GetRepositoryTrial(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
+	// SetRepositoryTrial Set a repository's trial mode
+	// (PUT /api/v1/repositories/{repositoryId}/trial)
+	SetRepositoryTrial(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
 	// PlanRepositoryChanges Plan turning the pool on or off for repositories
 	// (POST /api/v1/repository-plans)
 	PlanRepositoryChanges(w http.ResponseWriter, r *http.Request)
@@ -5675,6 +5790,58 @@ func (siw *ServerInterfaceWrapper) GetRepositoryRunsOn(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// GetRepositoryTrial operation middleware
+func (siw *ServerInterfaceWrapper) GetRepositoryTrial(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "repositoryId" -------------
+	var repositoryId RepositoryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "repositoryId", r.PathValue("repositoryId"), &repositoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repositoryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRepositoryTrial(w, r, repositoryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetRepositoryTrial operation middleware
+func (siw *ServerInterfaceWrapper) SetRepositoryTrial(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "repositoryId" -------------
+	var repositoryId RepositoryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "repositoryId", r.PathValue("repositoryId"), &repositoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repositoryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetRepositoryTrial(w, r, repositoryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PlanRepositoryChanges operation middleware
 func (siw *ServerInterfaceWrapper) PlanRepositoryChanges(w http.ResponseWriter, r *http.Request) {
 
@@ -6750,6 +6917,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repository-plans/{planId}/apply", wrapper.ApplyRepositoryChanges)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}", wrapper.GetRepository)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/policy", wrapper.UpdateRepositoryPolicy)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/trial", wrapper.GetRepositoryTrial)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/trial", wrapper.SetRepositoryTrial)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/extra-packages", wrapper.GetRepositoryExtraPackages)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/extra-packages", wrapper.SetRepositoryExtraPackages)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/runs-on", wrapper.GetRepositoryRunsOn)
@@ -9368,6 +9537,85 @@ func (response GetRepositoryRunsOndefaultJSONResponse) VisitGetRepositoryRunsOnR
 	return err
 }
 
+type GetRepositoryTrialRequestObject struct {
+	RepositoryId RepositoryId `json:"repositoryId"`
+}
+
+type GetRepositoryTrialResponseObject interface {
+	VisitGetRepositoryTrialResponse(w http.ResponseWriter) error
+}
+
+type GetRepositoryTrial200JSONResponse Trial
+
+func (response GetRepositoryTrial200JSONResponse) VisitGetRepositoryTrialResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRepositoryTrialdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRepositoryTrialdefaultJSONResponse) VisitGetRepositoryTrialResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetRepositoryTrialRequestObject struct {
+	RepositoryId RepositoryId `json:"repositoryId"`
+	Body         *SetRepositoryTrialJSONRequestBody
+}
+
+type SetRepositoryTrialResponseObject interface {
+	VisitSetRepositoryTrialResponse(w http.ResponseWriter) error
+}
+
+type SetRepositoryTrial200JSONResponse Trial
+
+func (response SetRepositoryTrial200JSONResponse) VisitSetRepositoryTrialResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetRepositoryTrialdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response SetRepositoryTrialdefaultJSONResponse) VisitSetRepositoryTrialResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type PlanRepositoryChangesRequestObject struct {
 	Body *PlanRepositoryChangesJSONRequestBody
 }
@@ -10898,6 +11146,12 @@ type StrictServerInterface interface {
 	// GetRepositoryRunsOn Workflow `runs-on` findings for a repository
 	// (GET /api/v1/repositories/{repositoryId}/runs-on)
 	GetRepositoryRunsOn(ctx context.Context, request GetRepositoryRunsOnRequestObject) (GetRepositoryRunsOnResponseObject, error)
+	// GetRepositoryTrial A repository's trial mode and its report
+	// (GET /api/v1/repositories/{repositoryId}/trial)
+	GetRepositoryTrial(ctx context.Context, request GetRepositoryTrialRequestObject) (GetRepositoryTrialResponseObject, error)
+	// SetRepositoryTrial Set a repository's trial mode
+	// (PUT /api/v1/repositories/{repositoryId}/trial)
+	SetRepositoryTrial(ctx context.Context, request SetRepositoryTrialRequestObject) (SetRepositoryTrialResponseObject, error)
 	// PlanRepositoryChanges Plan turning the pool on or off for repositories
 	// (POST /api/v1/repository-plans)
 	PlanRepositoryChanges(ctx context.Context, request PlanRepositoryChangesRequestObject) (PlanRepositoryChangesResponseObject, error)
@@ -12698,6 +12952,65 @@ func (sh *strictHandler) GetRepositoryRunsOn(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetRepositoryRunsOnResponseObject); ok {
 		if err := validResponse.VisitGetRepositoryRunsOnResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRepositoryTrial operation middleware
+func (sh *strictHandler) GetRepositoryTrial(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId) {
+	var request GetRepositoryTrialRequestObject
+
+	request.RepositoryId = repositoryId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRepositoryTrial(ctx, request.(GetRepositoryTrialRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRepositoryTrial")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRepositoryTrialResponseObject); ok {
+		if err := validResponse.VisitGetRepositoryTrialResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetRepositoryTrial operation middleware
+func (sh *strictHandler) SetRepositoryTrial(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId) {
+	var request SetRepositoryTrialRequestObject
+
+	request.RepositoryId = repositoryId
+
+	var body SetRepositoryTrialJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetRepositoryTrial(ctx, request.(SetRepositoryTrialRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetRepositoryTrial")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetRepositoryTrialResponseObject); ok {
+		if err := validResponse.VisitSetRepositoryTrialResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

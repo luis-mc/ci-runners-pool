@@ -1405,6 +1405,54 @@ func (e Theme) Valid() bool {
 	}
 }
 
+// Defines values for TrialMode.
+const (
+	TrialModeCanary  TrialMode = "canary"
+	TrialModeObserve TrialMode = "observe"
+	TrialModeOff     TrialMode = "off"
+	TrialModeShadow  TrialMode = "shadow"
+)
+
+// Valid indicates whether the value is a known member of the TrialMode enum.
+func (e TrialMode) Valid() bool {
+	switch e {
+	case TrialModeCanary:
+		return true
+	case TrialModeObserve:
+		return true
+	case TrialModeOff:
+		return true
+	case TrialModeShadow:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TrialSetMode.
+const (
+	TrialSetModeCanary  TrialSetMode = "canary"
+	TrialSetModeObserve TrialSetMode = "observe"
+	TrialSetModeOff     TrialSetMode = "off"
+	TrialSetModeShadow  TrialSetMode = "shadow"
+)
+
+// Valid indicates whether the value is a known member of the TrialSetMode enum.
+func (e TrialSetMode) Valid() bool {
+	switch e {
+	case TrialSetModeCanary:
+		return true
+	case TrialSetModeObserve:
+		return true
+	case TrialSetModeOff:
+		return true
+	case TrialSetModeShadow:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateStatusState.
 const (
 	UpdateStatusStateChecking       UpdateStatusState = "checking"
@@ -2945,6 +2993,64 @@ type Ticket struct {
 	WaitReason *WaitReason `json:"wait_reason,omitempty"`
 }
 
+// Trial defines model for Trial.
+type Trial struct {
+	CanaryJobs     *[]string  `json:"canary_jobs,omitempty"`
+	Crsp           TrialSide  `json:"crsp"`
+	Hosted         TrialSide  `json:"hosted"`
+	Jobs           []TrialJob `json:"jobs"`
+	Mode           TrialMode  `json:"mode"`
+	Percent        *int       `json:"percent,omitempty"`
+	Repository     string     `json:"repository"`
+	ShadowJobs     *[]string  `json:"shadow_jobs,omitempty"`
+	ShadowWorkflow *string    `json:"shadow_workflow,omitempty"`
+	Since          *time.Time `json:"since,omitempty"`
+	Total          int        `json:"total"`
+
+	// Variables The canary variables now written.
+	Variables []string `json:"variables"`
+}
+
+// TrialMode defines model for Trial.Mode.
+type TrialMode string
+
+// TrialJob defines model for TrialJob.
+type TrialJob struct {
+	// Agree Present when the job ran on both sides.
+	Agree     *bool     `json:"agree,omitempty"`
+	Crsp      TrialSide `json:"crsp"`
+	Hosted    TrialSide `json:"hosted"`
+	Job       string    `json:"job"`
+	WouldTake int       `json:"would_take"`
+}
+
+// TrialSet defines model for TrialSet.
+type TrialSet struct {
+	// Jobs Canary only. Jobs that always use crsp.
+	Jobs *[]string    `json:"jobs,omitempty"`
+	Mode TrialSetMode `json:"mode"`
+
+	// Percent Canary only. The share of jobs, chosen by job name.
+	Percent *int `json:"percent,omitempty"`
+
+	// ShadowJobs Shadow only. Jobs to copy; empty means every job crsp would take.
+	ShadowJobs *[]string `json:"shadow_jobs,omitempty"`
+
+	// ShadowWorkflow Shadow only. The workflow file to dispatch.
+	ShadowWorkflow *string `json:"shadow_workflow,omitempty"`
+}
+
+// TrialSetMode defines model for TrialSet.Mode.
+type TrialSetMode string
+
+// TrialSide defines model for TrialSide.
+type TrialSide struct {
+	AvgRunSec  int `json:"avg_run_sec"`
+	AvgWaitSec int `json:"avg_wait_sec"`
+	Runs       int `json:"runs"`
+	Succeeded  int `json:"succeeded"`
+}
+
 // UpdateImageLayersRequest defines model for UpdateImageLayersRequest.
 type UpdateImageLayersRequest struct {
 	// EnabledLayers Ids of the layers that are on. Every other layer is off.
@@ -3347,6 +3453,9 @@ type SetRepositoryExtraPackagesJSONRequestBody = ExtraPackagesUpdate
 
 // UpdateRepositoryPolicyJSONRequestBody defines body for UpdateRepositoryPolicy for application/json ContentType.
 type UpdateRepositoryPolicyJSONRequestBody = RepositoryPolicyUpdate
+
+// SetRepositoryTrialJSONRequestBody defines body for SetRepositoryTrial for application/json ContentType.
+type SetRepositoryTrialJSONRequestBody = TrialSet
 
 // PlanRepositoryChangesJSONRequestBody defines body for PlanRepositoryChanges for application/json ContentType.
 type PlanRepositoryChangesJSONRequestBody = PlanRepositoryChangesRequest
@@ -4024,6 +4133,31 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/repositories/{repositoryId}/runs-on (the `GetRepositoryRunsOn` operationId).
 	GetRepositoryRunsOn(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRepositoryTrial A repository's trial mode and its report
+	//
+	// github-integration R5.66. Read only: the mode, its settings and the comparison of hosted and crsp outcomes and times.
+	//
+	// Corresponds with GET /api/v1/repositories/{repositoryId}/trial (the `GetRepositoryTrial` operationId).
+	GetRepositoryTrial(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetRepositoryTrialWithBody Set a repository's trial mode
+	//
+	// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+	SetRepositoryTrialWithBody(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetRepositoryTrial Set a repository's trial mode
+	//
+	// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+	SetRepositoryTrial(ctx context.Context, repositoryId RepositoryId, body SetRepositoryTrialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PlanRepositoryChangesWithBody Plan turning the pool on or off for repositories
 	//
@@ -5696,6 +5830,61 @@ func (c *Client) UpdateRepositoryPolicy(ctx context.Context, repositoryId Reposi
 // Corresponds with GET /api/v1/repositories/{repositoryId}/runs-on (the `GetRepositoryRunsOn` operationId).
 func (c *Client) GetRepositoryRunsOn(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetRepositoryRunsOnRequest(c.Server, repositoryId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRepositoryTrial A repository's trial mode and its report
+//
+// github-integration R5.66. Read only: the mode, its settings and the comparison of hosted and crsp outcomes and times.
+//
+// Corresponds with GET /api/v1/repositories/{repositoryId}/trial (the `GetRepositoryTrial` operationId).
+func (c *Client) GetRepositoryTrial(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRepositoryTrialRequest(c.Server, repositoryId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetRepositoryTrialWithBody Set a repository's trial mode
+//
+// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+func (c *Client) SetRepositoryTrialWithBody(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetRepositoryTrialRequestWithBody(c.Server, repositoryId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetRepositoryTrial Set a repository's trial mode
+//
+// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+func (c *Client) SetRepositoryTrial(ctx context.Context, repositoryId RepositoryId, body SetRepositoryTrialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetRepositoryTrialRequest(c.Server, repositoryId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -9444,6 +9633,87 @@ func NewGetRepositoryRunsOnRequest(server string, repositoryId RepositoryId) (*h
 	return req, nil
 }
 
+// NewGetRepositoryTrialRequest constructs an http.Request for the GetRepositoryTrial method
+func NewGetRepositoryTrialRequest(server string, repositoryId RepositoryId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "repositoryId", repositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/repositories/%s/trial", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetRepositoryTrialRequest calls the generic SetRepositoryTrial builder with application/json body
+func NewSetRepositoryTrialRequest(server string, repositoryId RepositoryId, body SetRepositoryTrialJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetRepositoryTrialRequestWithBody(server, repositoryId, "application/json", bodyReader)
+}
+
+// NewSetRepositoryTrialRequestWithBody constructs an http.Request for the SetRepositoryTrial method, with any body, and a specified content type
+func NewSetRepositoryTrialRequestWithBody(server string, repositoryId RepositoryId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "repositoryId", repositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/repositories/%s/trial", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewPlanRepositoryChangesRequest calls the generic PlanRepositoryChanges builder with application/json body
 func NewPlanRepositoryChangesRequest(server string, body PlanRepositoryChangesJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -11625,6 +11895,33 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/repositories/{repositoryId}/runs-on (the `GetRepositoryRunsOn` operationId).
 	GetRepositoryRunsOnWithResponse(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*GetRepositoryRunsOnResponse, error)
+
+	// GetRepositoryTrialWithResponse A repository's trial mode and its report
+	//
+	// github-integration R5.66. Read only: the mode, its settings and the comparison of hosted and crsp outcomes and times.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/repositories/{repositoryId}/trial (the `GetRepositoryTrial` operationId).
+	GetRepositoryTrialWithResponse(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*GetRepositoryTrialResponse, error)
+
+	// SetRepositoryTrialWithBodyWithResponse Set a repository's trial mode
+	//
+	// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+	SetRepositoryTrialWithBodyWithResponse(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetRepositoryTrialResponse, error)
+
+	// SetRepositoryTrialWithResponse Set a repository's trial mode
+	//
+	// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+	SetRepositoryTrialWithResponse(ctx context.Context, repositoryId RepositoryId, body SetRepositoryTrialJSONRequestBody, reqEditors ...RequestEditorFn) (*SetRepositoryTrialResponse, error)
 
 	// PlanRepositoryChangesWithBodyWithResponse Plan turning the pool on or off for repositories
 	//
@@ -14964,6 +15261,102 @@ func (r GetRepositoryRunsOnResponse) ContentType() string {
 	return ""
 }
 
+type GetRepositoryTrialResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Trial
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRepositoryTrialResponse) GetJSON200() *Trial {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetRepositoryTrialResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRepositoryTrialResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRepositoryTrialResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRepositoryTrialResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRepositoryTrialResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SetRepositoryTrialResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Trial
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SetRepositoryTrialResponse) GetJSON200() *Trial {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r SetRepositoryTrialResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SetRepositoryTrialResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SetRepositoryTrialResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetRepositoryTrialResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetRepositoryTrialResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type PlanRepositoryChangesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -17752,6 +18145,51 @@ func (c *ClientWithResponses) GetRepositoryRunsOnWithResponse(ctx context.Contex
 	return ParseGetRepositoryRunsOnResponse(rsp)
 }
 
+// GetRepositoryTrialWithResponse A repository's trial mode and its report
+//
+// github-integration R5.66. Read only: the mode, its settings and the comparison of hosted and crsp outcomes and times.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/repositories/{repositoryId}/trial (the `GetRepositoryTrial` operationId).
+func (c *ClientWithResponses) GetRepositoryTrialWithResponse(ctx context.Context, repositoryId RepositoryId, reqEditors ...RequestEditorFn) (*GetRepositoryTrialResponse, error) {
+	rsp, err := c.GetRepositoryTrial(ctx, repositoryId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRepositoryTrialResponse(rsp)
+}
+
+// SetRepositoryTrialWithBodyWithResponse Set a repository's trial mode
+//
+// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+func (c *ClientWithResponses) SetRepositoryTrialWithBodyWithResponse(ctx context.Context, repositoryId RepositoryId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetRepositoryTrialResponse, error) {
+	rsp, err := c.SetRepositoryTrialWithBody(ctx, repositoryId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetRepositoryTrialResponse(rsp)
+}
+
+// SetRepositoryTrialWithResponse Set a repository's trial mode
+//
+// github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/repositories/{repositoryId}/trial (the `SetRepositoryTrial` operationId).
+func (c *ClientWithResponses) SetRepositoryTrialWithResponse(ctx context.Context, repositoryId RepositoryId, body SetRepositoryTrialJSONRequestBody, reqEditors ...RequestEditorFn) (*SetRepositoryTrialResponse, error) {
+	rsp, err := c.SetRepositoryTrial(ctx, repositoryId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetRepositoryTrialResponse(rsp)
+}
+
 // PlanRepositoryChangesWithBodyWithResponse Plan turning the pool on or off for repositories
 //
 // github-integration R5.20 and R5.29, web-console R5.18. Nothing changes. The plan names each variable to write or delete and the workflows that still use a variable that would go.
@@ -20481,6 +20919,72 @@ func ParseGetRepositoryRunsOnResponse(rsp *http.Response) (*GetRepositoryRunsOnR
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest RunsOnFindingList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRepositoryTrialResponse parses an HTTP response from a GetRepositoryTrialWithResponse call
+func ParseGetRepositoryTrialResponse(rsp *http.Response) (*GetRepositoryTrialResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRepositoryTrialResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Trial
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetRepositoryTrialResponse parses an HTTP response from a SetRepositoryTrialWithResponse call
+func ParseSetRepositoryTrialResponse(rsp *http.Response) (*SetRepositoryTrialResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetRepositoryTrialResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Trial
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

@@ -530,6 +530,30 @@ export interface paths {
         patch: operations["updateRepositoryPolicy"];
         trace?: never;
     };
+    "/api/v1/repositories/{repositoryId}/trial": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A repository's trial mode and its report
+         * @description github-integration R5.66. Read only: the mode, its settings and the comparison of hosted and crsp outcomes and times.
+         */
+        get: operations["getRepositoryTrial"];
+        /**
+         * Set a repository's trial mode
+         * @description github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+         */
+        put: operations["setRepositoryTrial"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/repositories/{repositoryId}/extra-packages": {
         parameters: {
             query?: never;
@@ -1944,6 +1968,49 @@ export interface components {
         AppInstallUrl: {
             /** @example https://github.com/apps/crsp-home/installations/new */
             url: string;
+        };
+        TrialSet: {
+            /** @enum {string} */
+            mode: "off" | "observe" | "shadow" | "canary";
+            /** @description Canary only. The share of jobs, chosen by job name. */
+            percent?: number;
+            /** @description Canary only. Jobs that always use crsp. */
+            jobs?: string[];
+            /** @description Shadow only. The workflow file to dispatch. */
+            shadow_workflow?: string;
+            /** @description Shadow only. Jobs to copy; empty means every job crsp would take. */
+            shadow_jobs?: string[];
+        };
+        TrialSide: {
+            runs: number;
+            succeeded: number;
+            avg_wait_sec: number;
+            avg_run_sec: number;
+        };
+        TrialJob: {
+            job: string;
+            hosted: components["schemas"]["TrialSide"];
+            crsp: components["schemas"]["TrialSide"];
+            would_take: number;
+            /** @description Present when the job ran on both sides. */
+            agree?: boolean;
+        };
+        Trial: {
+            repository: string;
+            /** @enum {string} */
+            mode: "off" | "observe" | "shadow" | "canary";
+            /** Format: date-time */
+            since?: string;
+            percent?: number;
+            canary_jobs?: string[];
+            shadow_workflow?: string;
+            shadow_jobs?: string[];
+            /** @description The canary variables now written. */
+            variables: string[];
+            total: number;
+            hosted: components["schemas"]["TrialSide"];
+            crsp: components["schemas"]["TrialSide"];
+            jobs: components["schemas"]["TrialJob"][];
         };
         /**
          * @example {
@@ -4042,6 +4109,58 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RepositoryPolicy"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRepositoryTrial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub repository id. */
+                repositoryId: components["parameters"]["RepositoryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The trial. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Trial"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setRepositoryTrial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub repository id. */
+                repositoryId: components["parameters"]["RepositoryId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrialSet"];
+            };
+        };
+        responses: {
+            /** @description The trial after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Trial"];
                 };
             };
             default: components["responses"]["Error"];

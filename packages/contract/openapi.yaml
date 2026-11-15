@@ -715,6 +715,53 @@ paths:
                 $ref: '#/components/schemas/RepositoryPolicy'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/repositories/{repositoryId}/trial:
+    get:
+      operationId: getRepositoryTrial
+      tags: [repositories]
+      summary: A repository's trial mode and its report
+      description: >-
+        github-integration R5.66. Read only: the mode, its settings and the
+        comparison of hosted and crsp outcomes and times.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+      responses:
+        '200':
+          description: The trial.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trial'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: setRepositoryTrial
+      tags: [repositories]
+      summary: Set a repository's trial mode
+      description: >-
+        github-integration R5.66. Public repositories are refused for every
+        mode but `off`. `off` undoes a canary and restores the earlier variables.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrialSet'
+      responses:
+        '200':
+          description: The trial after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trial'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/repositories/{repositoryId}/extra-packages:
     get:
       operationId: getRepositoryExtraPackages
@@ -3004,6 +3051,75 @@ components:
         url:
           type: string
           example: https://github.com/apps/crsp-home/installations/new
+    TrialSet:
+      type: object
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: [off, observe, shadow, canary]
+        percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Canary only. The share of jobs, chosen by job name.
+        jobs:
+          type: array
+          items: {type: string}
+          description: Canary only. Jobs that always use crsp.
+        shadow_workflow:
+          type: string
+          description: Shadow only. The workflow file to dispatch.
+        shadow_jobs:
+          type: array
+          items: {type: string}
+          description: Shadow only. Jobs to copy; empty means every job crsp would take.
+    TrialSide:
+      type: object
+      required: [runs, succeeded, avg_wait_sec, avg_run_sec]
+      properties:
+        runs: {type: integer}
+        succeeded: {type: integer}
+        avg_wait_sec: {type: integer}
+        avg_run_sec: {type: integer}
+    TrialJob:
+      type: object
+      required: [job, hosted, crsp, would_take]
+      properties:
+        job: {type: string}
+        hosted: {$ref: '#/components/schemas/TrialSide'}
+        crsp: {$ref: '#/components/schemas/TrialSide'}
+        would_take: {type: integer}
+        agree:
+          type: boolean
+          description: Present when the job ran on both sides.
+    Trial:
+      type: object
+      required: [repository, mode, variables, total, hosted, crsp, jobs]
+      properties:
+        repository: {type: string}
+        mode:
+          type: string
+          enum: [off, observe, shadow, canary]
+        since: {type: string, format: date-time}
+        percent: {type: integer}
+        canary_jobs:
+          type: array
+          items: {type: string}
+        shadow_workflow: {type: string}
+        shadow_jobs:
+          type: array
+          items: {type: string}
+        variables:
+          type: array
+          items: {type: string}
+          description: The canary variables now written.
+        total: {type: integer}
+        hosted: {$ref: '#/components/schemas/TrialSide'}
+        crsp: {$ref: '#/components/schemas/TrialSide'}
+        jobs:
+          type: array
+          items: {$ref: '#/components/schemas/TrialJob'}
     Repository:
       type: object
       required:
