@@ -97,6 +97,7 @@ func (s *Service) HandleLoad(ctx context.Context, machineID string, r *agentv1.L
 	l := Load{
 		MemoryPct: r.GetMemoryPct(), MemoryKnown: r.GetMemoryKnown(), CPUPct: r.GetCpuPct(), CPUKnown: r.GetCpuKnown(),
 		UnknownReason: r.GetUnknownReason(), SlotsUsed: int(r.GetSlotsUsed()), ReceivedAt: now,
+		WSLVMBytes: r.GetWslVmBytes(), ContainersBytes: r.GetContainersBytes(),
 		SampledAt: time.UnixMilli(r.GetSampledAtUnixMs()).UTC(),
 	}
 	if r.GetSampledAtUnixMs() == 0 {
@@ -161,6 +162,8 @@ func FactsFromProto(f *agentv1.Facts) Facts {
 		Arch: f.GetArch(), CPUModel: f.GetCpuModel(), Cores: int(f.GetCores()), Threads: int(f.GetThreads()),
 		MemoryBytes: f.GetMemoryBytes(), DiskTotalBytes: f.GetDiskTotalBytes(), DiskFreeBytes: f.GetDiskFreeBytes(),
 	}
+	out.WSL = WSLFacts{ConfigPresent: f.GetWslConfigPresent(), MemoryBytes: f.GetWslMemoryBytes(),
+		Processors: int(f.GetWslProcessors()), NestedVirtualization: f.GetWslNestedVirtualization()}
 	if f.GetDetectedAtUnixMs() > 0 {
 		out.DetectedAt = time.UnixMilli(f.GetDetectedAtUnixMs()).UTC()
 	}

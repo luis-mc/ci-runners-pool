@@ -645,3 +645,16 @@ func TestToolHomesPerRunner(t *testing.T) {
 		}
 	}
 }
+
+// runners R5.53 / machines R5.54: the runner's CPU count reaches its jobs.
+func TestEnvCarriesCIMaxParallel(t *testing.T) {
+	r := newRig(t)
+	spec := r.spec()
+	spec.MaxParallel = 3
+	if err := start(t, r, spec, backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
+		t.Fatal(err)
+	}
+	if env := string(r.fs.Files[`C:\ProgramData\crsp\runners\box-1\.env`]); !strings.Contains(env, "CI_MAX_PARALLEL=3") {
+		t.Errorf(".env:\n%s", env)
+	}
+}

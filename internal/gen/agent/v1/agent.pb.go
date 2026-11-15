@@ -1333,8 +1333,14 @@ type Facts struct {
 	Gpus             []*Gpu                 `protobuf:"bytes,13,rep,name=gpus,proto3" json:"gpus,omitempty"`
 	Backends         []*BackendSupport      `protobuf:"bytes,14,rep,name=backends,proto3" json:"backends,omitempty"`
 	DetectedAtUnixMs int64                  `protobuf:"varint,15,opt,name=detected_at_unix_ms,json=detectedAtUnixMs,proto3" json:"detected_at_unix_ms,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Windows with WSL2: what `.wslconfig` declares (machines R5.54). A value
+	// the file does not set is 0; wsl_config_present says whether a file was read.
+	WslConfigPresent        bool  `protobuf:"varint,16,opt,name=wsl_config_present,json=wslConfigPresent,proto3" json:"wsl_config_present,omitempty"`
+	WslMemoryBytes          int64 `protobuf:"varint,17,opt,name=wsl_memory_bytes,json=wslMemoryBytes,proto3" json:"wsl_memory_bytes,omitempty"`
+	WslProcessors           int32 `protobuf:"varint,18,opt,name=wsl_processors,json=wslProcessors,proto3" json:"wsl_processors,omitempty"`
+	WslNestedVirtualization bool  `protobuf:"varint,19,opt,name=wsl_nested_virtualization,json=wslNestedVirtualization,proto3" json:"wsl_nested_virtualization,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *Facts) Reset() {
@@ -1470,6 +1476,34 @@ func (x *Facts) GetDetectedAtUnixMs() int64 {
 		return x.DetectedAtUnixMs
 	}
 	return 0
+}
+
+func (x *Facts) GetWslConfigPresent() bool {
+	if x != nil {
+		return x.WslConfigPresent
+	}
+	return false
+}
+
+func (x *Facts) GetWslMemoryBytes() int64 {
+	if x != nil {
+		return x.WslMemoryBytes
+	}
+	return 0
+}
+
+func (x *Facts) GetWslProcessors() int32 {
+	if x != nil {
+		return x.WslProcessors
+	}
+	return 0
+}
+
+func (x *Facts) GetWslNestedVirtualization() bool {
+	if x != nil {
+		return x.WslNestedVirtualization
+	}
+	return false
 }
 
 type Gpu struct {
@@ -3150,8 +3184,12 @@ type MachineSettings struct {
 	CacheCapBytes       int64                  `protobuf:"varint,15,opt,name=cache_cap_bytes,json=cacheCapBytes,proto3" json:"cache_cap_bytes,omitempty"`
 	DrainTimeoutMinutes int32                  `protobuf:"varint,16,opt,name=drain_timeout_minutes,json=drainTimeoutMinutes,proto3" json:"drain_timeout_minutes,omitempty"`
 	WindowsSymlinkRight bool                   `protobuf:"varint,17,opt,name=windows_symlink_right,json=windowsSymlinkRight,proto3" json:"windows_symlink_right,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// The owner's pool size, checked against the budget (machines R5.58). 0 means
+	// not set: the pool then follows the budget alone.
+	PoolMemoryGib float64 `protobuf:"fixed64,18,opt,name=pool_memory_gib,json=poolMemoryGib,proto3" json:"pool_memory_gib,omitempty"`
+	PoolCpus      int32   `protobuf:"varint,19,opt,name=pool_cpus,json=poolCpus,proto3" json:"pool_cpus,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MachineSettings) Reset() {
@@ -3301,6 +3339,20 @@ func (x *MachineSettings) GetWindowsSymlinkRight() bool {
 		return x.WindowsSymlinkRight
 	}
 	return false
+}
+
+func (x *MachineSettings) GetPoolMemoryGib() float64 {
+	if x != nil {
+		return x.PoolMemoryGib
+	}
+	return 0
+}
+
+func (x *MachineSettings) GetPoolCpus() int32 {
+	if x != nil {
+		return x.PoolCpus
+	}
+	return 0
 }
 
 // Drain stops new jobs on the machine for a change that restarts runners or
@@ -4777,7 +4829,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\bsettings\x18\x03 \x01(\v2\x19.agent.v1.MachineSettingsR\bsettings\x12+\n" +
 	"\x11heartbeat_seconds\x18\x04 \x01(\x05R\x10heartbeatSeconds\"2\n" +
 	"\tHeartbeat\x12%\n" +
-	"\x0fsent_at_unix_ms\x18\x01 \x01(\x03R\fsentAtUnixMs\"\xf1\x03\n" +
+	"\x0fsent_at_unix_ms\x18\x01 \x01(\x03R\fsentAtUnixMs\"\xac\x05\n" +
 	"\x05Facts\x12\x1b\n" +
 	"\thost_name\x18\x01 \x01(\tR\bhostName\x12\x0e\n" +
 	"\x02os\x18\x02 \x01(\tR\x02os\x12\x17\n" +
@@ -4795,7 +4847,11 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x0fdisk_free_bytes\x18\f \x01(\x03R\rdiskFreeBytes\x12!\n" +
 	"\x04gpus\x18\r \x03(\v2\r.agent.v1.GpuR\x04gpus\x124\n" +
 	"\bbackends\x18\x0e \x03(\v2\x18.agent.v1.BackendSupportR\bbackends\x12-\n" +
-	"\x13detected_at_unix_ms\x18\x0f \x01(\x03R\x10detectedAtUnixMs\"V\n" +
+	"\x13detected_at_unix_ms\x18\x0f \x01(\x03R\x10detectedAtUnixMs\x12,\n" +
+	"\x12wsl_config_present\x18\x10 \x01(\bR\x10wslConfigPresent\x12(\n" +
+	"\x10wsl_memory_bytes\x18\x11 \x01(\x03R\x0ewslMemoryBytes\x12%\n" +
+	"\x0ewsl_processors\x18\x12 \x01(\x05R\rwslProcessors\x12:\n" +
+	"\x19wsl_nested_virtualization\x18\x13 \x01(\bR\x17wslNestedVirtualization\"V\n" +
 	"\x03Gpu\x12\x16\n" +
 	"\x06vendor\x18\x01 \x01(\tR\x06vendor\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x12!\n" +
@@ -4954,7 +5010,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"slotsFreed\"b\n" +
 	"\fHolderReport\x12&\n" +
 	"\x05alive\x18\x01 \x03(\v2\x10.agent.v1.HolderR\x05alive\x12*\n" +
-	"\arunning\x18\x02 \x03(\v2\x10.agent.v1.JobRefR\arunning\"\xa3\x05\n" +
+	"\arunning\x18\x02 \x03(\v2\x10.agent.v1.JobRefR\arunning\"\xe8\x05\n" +
 	"\x0fMachineSettings\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\x03R\aversion\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12*\n" +
@@ -4977,7 +5033,9 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x10allowed_backends\x18\x0e \x03(\tR\x0fallowedBackends\x12&\n" +
 	"\x0fcache_cap_bytes\x18\x0f \x01(\x03R\rcacheCapBytes\x122\n" +
 	"\x15drain_timeout_minutes\x18\x10 \x01(\x05R\x13drainTimeoutMinutes\x122\n" +
-	"\x15windows_symlink_right\x18\x11 \x01(\bR\x13windowsSymlinkRight\"\x93\x01\n" +
+	"\x15windows_symlink_right\x18\x11 \x01(\bR\x13windowsSymlinkRight\x12&\n" +
+	"\x0fpool_memory_gib\x18\x12 \x01(\x01R\rpoolMemoryGib\x12\x1b\n" +
+	"\tpool_cpus\x18\x13 \x01(\x05R\bpoolCpus\"\x93\x01\n" +
 	"\x05Drain\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x1f\n" +

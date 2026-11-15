@@ -96,6 +96,9 @@ type RunnerSpec struct {
 	// takes the defaults. The runner exports CI_TOOLS_DIR and the quotas to
 	// its jobs (runners R5.39).
 	CacheQuota runnercache.Quota
+	// MaxParallel is the runner's CPU count, exported to its jobs as
+	// CI_MAX_PARALLEL (runners R5.53, machines R5.54). 0 exports none.
+	MaxParallel int
 }
 
 // StartConfig carries the one-time credential to start a runner. Registration
