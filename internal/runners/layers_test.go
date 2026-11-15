@@ -379,7 +379,7 @@ func TestImageBuildMatrixListsArm64(t *testing.T) {
 			t.Errorf("image job lacks %q", want)
 		}
 	}
-	if !regexp.MustCompile(`arch: amd64.*layers: '[^']*\bllvm\b`).MatchString(job) {
+	if !regexp.MustCompile(`(?s)arch: amd64.*layers: '[^']*\bllvm\b`).MatchString(job) {
 		t.Error("the amd64 entry must build the llvm layer")
 	}
 }
