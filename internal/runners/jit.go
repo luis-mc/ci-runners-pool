@@ -3,6 +3,7 @@ package runners
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
@@ -66,6 +67,17 @@ func (s *Service) StartJobRunner(ctx context.Context, j JobRunner, actor string)
 		if m.PoolMemoryGiB > 0 {
 			spec.PoolMemoryMB = int(m.PoolMemoryGiB * 1024)
 		}
+		spec.MaxParallel = m.MaxParallel()
+	}
+	if j.Scope.RepositoryID > 0 {
+		spec.Pool.RepoID = strconv.FormatInt(j.Scope.RepositoryID, 10)
+	}
+	if s.PoolSettings != nil {
+		ps, err := s.PoolSettings(ctx, j.Scope)
+		if err != nil {
+			return fail(fmt.Errorf("pool settings: %w", err))
+		}
+		spec.Pool.Layers, spec.Pool.Database = ps.Layers, ps.Database
 	}
 	h, err := s.Agent.AddRunner(ctx, j.MachineID, spec, backend.StartConfig{JITConfig: jit.Encoded()})
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,6 +17,8 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/images"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 )
 
 // Errors of the pool lifecycle.
@@ -53,6 +56,20 @@ type Config struct {
 	KVM bool
 	// CrspHostPath is the agent's linux binary for the read-only mount.
 	CrspHostPath string
+	// CacheRoot is the machine's cache folder; the lanes of every repository
+	// live under it (caches R5.43). Empty means no pool takes a lane.
+	CacheRoot string
+	// KVMProbe reads /dev/kvm; nil means the machine has none to give. The
+	// device is passed only when the pool has the kvm layer (runners R5.41).
+	KVMProbe func() KVMFacts
+	// KVMWaitInterval and KVMWaitBound bound the wait for /dev/kvm (defaults
+	// 2 s and 60 s).
+	KVMWaitInterval, KVMWaitBound time.Duration
+	// OpenSecrets opens the store of the Postgres passwords; Database replaces
+	// the whole Postgres (tests). With neither, a repository that declares a
+	// database cannot start (ErrNoDatabase).
+	OpenSecrets func(ctx context.Context) (secrets.Store, error)
+	Database    func(ctx context.Context, pool string) (Database, error)
 	// StopGrace is the time `docker stop` gives the idle container.
 	StopGrace time.Duration
 }
@@ -64,8 +81,10 @@ type Backend struct {
 	eng Engine
 	cfg Config
 
-	mu       sync.Mutex
-	draining map[string]bool // pool name -> a swap waits for idle
+	mu        sync.Mutex
+	draining  map[string]bool   // pool name -> a swap waits for idle
+	dbRunners map[string]string // runner ref -> runner id, for runners that got a database
+	owners    runners.MemoryRoleOwners
 }
 
 var _ backend.Backend = (*Backend)(nil)
@@ -75,7 +94,7 @@ func New(d sys.Deps, eng Engine, cfg Config) *Backend {
 	if cfg.StopGrace <= 0 {
 		cfg.StopGrace = 30 * time.Second
 	}
-	return &Backend{d: d, eng: eng, cfg: cfg, draining: map[string]bool{}}
+	return &Backend{d: d, eng: eng, cfg: cfg, draining: map[string]bool{}, dbRunners: map[string]string{}}
 }
 
 // Name implements backend.Backend.
@@ -139,23 +158,74 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	if b.draining[pool] {
 		return h, ErrDraining
 	}
-	if err := b.ensurePool(ctx, PoolSpec{Owner: owner, Repo: repo, ImageTag: r.Image.ID, ImageKey: keyOf(r.Image.ID),
-		Limits: b.limitsFor(r), KVM: b.cfg.KVM, CrspHostPath: b.cfg.CrspHostPath}); err != nil {
+	kvm := b.kvmFacts(ctx, runners.NormalizeLayers(r.Pool.Layers))
+	plan, err := PlanPool(b.cfg, r, owner, repo, kvm)
+	if err != nil {
 		return h, err
 	}
+	if plan.KVMNote != "" {
+		b.log("start", "no KVM device for "+pool+": "+plan.KVMNote)
+	}
+	var db Database
+	if plan.Database != nil {
+		if db, err = b.database(ctx, pool); err != nil {
+			return h, err
+		}
+		if err := db.EnsureServer(ctx); err != nil {
+			return h, fmt.Errorf("database server: %s", b.redact(err.Error()))
+		}
+	}
+	if err := b.ensurePool(ctx, plan.Pool); err != nil {
+		return h, err
+	}
+	if db != nil {
+		if err := b.connectDB(ctx, pool); err != nil {
+			return h, err
+		}
+	}
+	if plan.WinePrefix != "" {
+		b.ensureWine(ctx, pool, plan)
+	}
+	startArgs := []string{"exec", "-d", "-u", JobUser, "-w", jobDir(r.Name)}
+	startArgs = append(startArgs, envArgs(plan.RunnerEnv)...)
+	startArgs = append(startArgs, pool, "sh", "-c", runnerScript, "sh", jitFile(r.Name))
 	steps := []struct {
 		step string
 		args []string
 		in   string
 	}{
 		{"prepare", []string{"exec", "-u", JobUser, pool, "sh", "-c", `mkdir -p "$1" && cp -a "$2/." "$1/"`, "sh", jobDir(r.Name), RunnerDir}, ""},
-		{"register", []string{"exec", "-i", "-u", JobUser, pool, "sh", "-c", `umask 077 && cat > "$1"`, "sh", jitFile(r.Name)}, cfg.JITConfig},
-		{"start", []string{"exec", "-d", "-u", JobUser, "-w", jobDir(r.Name), pool, "sh", "-c", runnerScript, "sh", jitFile(r.Name)}, ""},
+	}
+	rollback := func() {
+		// Do not leave a half-made folder, a config file or a login behind.
+		_ = b.cleanUp(ctx, pool, r.Name)
+		if db != nil {
+			_ = db.Remove(ctx, r.ID)
+		}
 	}
 	for _, s := range steps {
 		if err := b.step(ctx, s.step, s.args, s.in); err != nil {
-			// Do not leave a half-made folder or a config file behind.
-			_ = b.cleanUp(ctx, pool, r.Name)
+			rollback()
+			return h, err
+		}
+	}
+	if db != nil {
+		b.dbRunners[h.Ref] = r.ID
+		if err := b.provisionDB(ctx, db, pool, owner, repo, r); err != nil {
+			rollback()
+			return h, err
+		}
+	}
+	for _, s := range []struct {
+		step string
+		args []string
+		in   string
+	}{
+		{"register", []string{"exec", "-i", "-u", JobUser, pool, "sh", "-c", `umask 077 && cat > "$1"`, "sh", jitFile(r.Name)}, cfg.JITConfig},
+		{"start", startArgs, ""},
+	} {
+		if err := b.step(ctx, s.step, s.args, s.in); err != nil {
+			rollback()
 			return h, err
 		}
 	}
@@ -232,6 +302,13 @@ func (b *Backend) ensurePool(ctx context.Context, p PoolSpec) error {
 	if exists { // stopped: start it again, same image
 		return b.step(ctx, "pool start", []string{"start", name}, "")
 	}
+	if p.LaneRepoID != "" {
+		lane, err := b.takeLane(name, p.LaneRepoID)
+		if err != nil {
+			return err
+		}
+		p.Lane = &lane
+	}
 	args, err := RunArgs(p)
 	if err != nil {
 		return err
@@ -268,7 +345,34 @@ func (b *Backend) CleanUp(ctx context.Context, h backend.Handle) error {
 	if !ok {
 		return fmt.Errorf("bad runner reference %q", h.Ref)
 	}
-	return b.cleanUp(ctx, pool, name)
+	if err := b.cleanUp(ctx, pool, name); err != nil {
+		return err
+	}
+	return b.removeDB(ctx, pool, h)
+}
+
+// removeDB drops the login and database of a runner that got one (runners
+// R5.54). The declared roles stay. The agent link hands CleanUp the runner ref
+// only, so the backend remembers which ref got which login; after an agent
+// restart that memory is gone (runners open question 44).
+func (b *Backend) removeDB(ctx context.Context, pool string, h backend.Handle) error {
+	b.mu.Lock()
+	id, has := b.dbRunners[h.Ref]
+	b.mu.Unlock()
+	if !has {
+		return nil
+	}
+	db, err := b.database(ctx, pool)
+	if err != nil {
+		return err
+	}
+	if err := db.Remove(ctx, id); err != nil {
+		return fmt.Errorf("database: %s", b.redact(err.Error()))
+	}
+	b.mu.Lock()
+	delete(b.dbRunners, h.Ref)
+	b.mu.Unlock()
+	return nil
 }
 
 func (b *Backend) cleanUp(ctx context.Context, pool, name string) error {
@@ -388,10 +492,24 @@ func DefaultConfig() Config {
 	if err != nil || root == "" {
 		root = os.TempDir()
 	}
-	return Config{
+	cfg := Config{
 		Assets:    images.FS,
 		BuildRoot: filepath.Join(root, "crsp", "image-build"),
 		BaseName:  "linux-base",
 		Limits:    Limits{},
+		CacheRoot: filepath.Join(root, "crsp", "cache"),
+		KVMProbe:  ProbeKVM,
+		OpenSecrets: func(ctx context.Context) (secrets.Store, error) {
+			return secrets.Open(ctx, filepath.Join(root, "crsp"))
+		},
 	}
+	// On Linux the agent is a linux binary and is the one the containers mount
+	// (runners R5.48). Elsewhere the container engine cannot see the agent's
+	// own file, so no mount is made until the image copy is the only one.
+	if runtime.GOOS == "linux" {
+		if exe, err := os.Executable(); err == nil {
+			cfg.CrspHostPath = exe
+		}
+	}
+	return cfg
 }
