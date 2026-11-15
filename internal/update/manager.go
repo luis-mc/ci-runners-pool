@@ -112,7 +112,9 @@ type Options struct {
 	GOOS      string
 	// InstallKind is msi, pkg, deb, rpm or tarball; empty reads the install-kind marker next to Exe.
 	InstallKind string
-	// AutoDrainLimit is how long an automatic update waits for running jobs (default 60 min).
+	// AutoDrainLimit is how long an automatic update waits for running jobs. Zero
+	// (the product default) takes the machine's drain timeout setting, Drainer.
+	// DrainTimeoutMinutes (machines R5.33), and 60 minutes when that is unset.
 	AutoDrainLimit time.Duration
 	GOARCH         string
 	Exe            string
@@ -169,9 +171,6 @@ func New(o Options) *Manager {
 	}
 	if o.InstallKind == "" {
 		o.InstallKind = InstallKindFor(o.Exe, o.GOOS)
-	}
-	if o.AutoDrainLimit <= 0 {
-		o.AutoDrainLimit = 60 * time.Minute
 	}
 	if o.Service == "" {
 		o.Service = "crsp"
@@ -375,20 +374,34 @@ func (m *Manager) begin(ctx context.Context, kind Kind, actor string) (Status, e
 	if autoActor(actor) {
 		// An automatic update waits at most AutoDrainLimit; then it lets go and retries at the next check.
 		m.mu.Lock()
-		m.timer = time.AfterFunc(m.o.AutoDrainLimit, func() { m.giveUpDrain(actor) })
+		limit := m.autoDrainLimit(ctx)
+		m.timer = time.AfterFunc(limit, func() { m.giveUpDrain(actor, limit) })
 		m.mu.Unlock()
 	}
 	return m.Status(ctx), nil
 }
 
-func (m *Manager) giveUpDrain(actor string) {
+// autoDrainLimit is how long an automatic update waits: the explicit option,
+// else the machine's drain timeout setting (machines R5.33), else 60 minutes.
+// After it the drain is cancelled and no job is cut.
+func (m *Manager) autoDrainLimit(ctx context.Context) time.Duration {
+	if m.o.AutoDrainLimit > 0 {
+		return m.o.AutoDrainLimit
+	}
+	if min := m.o.Drainer.DrainTimeoutMinutes(ctx); min > 0 {
+		return time.Duration(min) * time.Minute
+	}
+	return 60 * time.Minute
+}
+
+func (m *Manager) giveUpDrain(actor string, limit time.Duration) {
 	m.mu.Lock()
 	if m.pending == nil || m.state != StateWaitingForJobs {
 		m.mu.Unlock()
 		return
 	}
 	m.pending, m.state = nil, StateIdle
-	m.errText = "Running jobs did not end within " + m.o.AutoDrainLimit.String() + ". The drain was cancelled and the machine takes jobs again. The update tries again at the next check."
+	m.errText = "Running jobs did not end within " + limit.String() + ". The drain was cancelled and the machine takes jobs again. The update tries again at the next check."
 	lock := m.lock
 	m.lock = nil
 	m.mu.Unlock()

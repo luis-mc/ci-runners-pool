@@ -159,3 +159,17 @@ func TestUpdateDrainerWaitsForTheRunningJobAndNeverCutsIt(t *testing.T) {
 		t.Fatalf("state %s", g2.State())
 	}
 }
+
+// Machines R5.33: the update drain waits as long as the machine's drain timeout
+// setting says; 60 minutes (the default) until the agent has settings.
+func TestUpdateDrainerTimeoutIsTheMachineSetting(t *testing.T) {
+	g, _, _ := gateWith(t, "700000", func(s *machines.Settings) { s.DrainTimeoutMinutes = 135 })
+	d := &agent.UpdateDrainer{Gate: g}
+	if got := d.DrainTimeoutMinutes(context.Background()); got != 135 {
+		t.Errorf("drain timeout %d, want the machine setting 135", got)
+	}
+	g.SetSettings(machines.Settings{}, machines.StateActive) // an unset value
+	if got := d.DrainTimeoutMinutes(context.Background()); got != 60 {
+		t.Errorf("unset: %d, want 60", got)
+	}
+}

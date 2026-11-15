@@ -3,3 +3,4 @@
 - HND2: done (Refresh treats a stopped pool as drained).
 - HND3: done (CheckAllRunsOn + hourly loop, fake clock test).
 - HND4: done (status building, README tray line, machines test rows; scheduling R5.44 path internal/load is right, unchanged).
+- HND5: done (Manager.autoDrainLimit from Drainer.DrainTimeoutMinutes; agent drainer reads gate settings).

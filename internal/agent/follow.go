@@ -132,8 +132,15 @@ func (d *UpdateDrainer) RunningJobs(context.Context) ([]update.Job, error) {
 	return out, nil
 }
 
-// DrainTimeoutMinutes implements update.Drainer.
-func (d *UpdateDrainer) DrainTimeoutMinutes(context.Context) int { return 60 }
+// DrainTimeoutMinutes implements update.Drainer: the machine's drain timeout
+// setting from the controller (machines R5.33), 60 minutes until the agent has
+// settings.
+func (d *UpdateDrainer) DrainTimeoutMinutes(context.Context) int {
+	if set, ok := d.Gate.Settings(); ok && set.DrainTimeoutMinutes > 0 {
+		return set.DrainTimeoutMinutes
+	}
+	return machines.DefaultSettings().DrainTimeoutMinutes
+}
 
 // BeginDrain implements update.Drainer.
 func (d *UpdateDrainer) BeginDrain(_ context.Context, kind update.Kind, _ string) error {
