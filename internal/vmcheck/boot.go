@@ -301,7 +301,13 @@ func Boot(ctx context.Context, cat Catalogue, spec BootSpec, deps Deps, now func
 	exited := make(chan error, 1)
 	go func() { exited <- wait() }()
 	// stop kills the guest (cancel) and waits for it, so nothing runs on after Boot.
-	stop := func() { cancel(); <-exited }
+	stop := func() {
+		cancel()
+		if err := <-exited; err != nil {
+			// The guest was killed on purpose; its exit error says nothing new.
+			return
+		}
+	}
 
 	for {
 		log, _ := os.ReadFile(serial) //nolint:gosec // the work folder of this boot
