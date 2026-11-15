@@ -24,7 +24,7 @@ require (
 	github.com/sigstore/sigstore-go v1.4.0
 	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/sys v0.50.0
-	google.golang.org/protobuf v1.36.13-0.20261016172727-e9ee2a76ab8e
+	google.golang.org/protobuf v1.37.0-rc.1
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.62.0
 )
