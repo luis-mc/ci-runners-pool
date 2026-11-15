@@ -9,7 +9,7 @@ Branch CRSP86-docker-in-vm. Spec: runners R5.66.
 4. Spec R5.66 text, change note.
 
 ## Status
-- [ ] code
-- [ ] tests
-- [ ] spec + change note
+- [x] code (internal/backend/vmclone, RunnerSpec.NeedsDocker)
+- [x] tests (go test -race ok; golangci-lint not runnable here: Go version mismatch; docs_check not found)
+- [x] spec + change note
 - [ ] draft PR
