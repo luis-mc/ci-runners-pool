@@ -78,6 +78,9 @@ type Machine struct {
 	// PoolCPUs 0 means no pool size is set and no CPU count is exported.
 	PoolCPUs int
 	JobSlots int
+	// PoolMemoryGiB is the owner's pool memory. With PoolCPUs it becomes the
+	// limits of the pool container of each repository (runners R5.27).
+	PoolMemoryGiB float64
 }
 
 // MaxParallel is the CPU count a runner on this machine gives its jobs, or 0

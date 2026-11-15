@@ -3,6 +3,8 @@ package container
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -43,14 +45,24 @@ func (b *Backend) PrepareImage(ctx context.Context, spec backend.ImageSpec) (bac
 		b.log("prepare image", "image "+key+" is there; not built again")
 		return backend.ImageRef{ID: tag, SizeMB: mb}, nil
 	}
-	if b.cfg.Dockerfile == "" || b.cfg.BuildContext == "" {
-		return backend.ImageRef{}, fmt.Errorf("no Dockerfile is set to build image %s", key)
+	dockerfile, buildContext := b.cfg.Dockerfile, b.cfg.BuildContext
+	if dockerfile == "" || buildContext == "" {
+		if b.cfg.Assets == nil {
+			return backend.ImageRef{}, fmt.Errorf("no Dockerfile is set to build image %s", key)
+		}
+		dir, err := b.stageBuild(key)
+		if err != nil {
+			return backend.ImageRef{}, err
+		}
+		defer func() { _ = os.RemoveAll(dir) }()
+		buildContext = filepath.Join(dir, "linux-base")
+		dockerfile = filepath.Join(buildContext, "Dockerfile")
 	}
 	layers := strings.Join(runners.NormalizeLayers(spec.Layers), ",")
 	b.log("prepare image", "building image "+key+" with layers ["+layers+"]")
 	if err := b.step(ctx, "build", []string{"build", "-t", tag,
 		"--label", LabelImage + "=" + key, "--label", labelLayers + "=" + layers, "--label", labelOS + "=linux",
-		"--build-arg", "CRSP_LAYERS=" + layers, "-f", b.cfg.Dockerfile, b.cfg.BuildContext}, ""); err != nil {
+		"--build-arg", "CRSP_LAYERS=" + layers, "-f", dockerfile, buildContext}, ""); err != nil {
 		return backend.ImageRef{}, err
 	}
 	mb, ok, err := b.imageSize(ctx, tag)

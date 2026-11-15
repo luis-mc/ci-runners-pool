@@ -66,3 +66,27 @@ func TestJitRunnerRefusesProjectLabels(t *testing.T) {
 		t.Fatal("no JIT call for a refused request")
 	}
 }
+
+// Question 33: the pool size of the machine goes to the agent as the limits
+// of the repository's pool container.
+func TestJitRunnerCarriesPoolSize(t *testing.T) {
+	m := machine("linux", "x64", true)
+	m.PoolCPUs, m.PoolMemoryGiB = 6, 12
+	r := newRig(m)
+	if _, err := r.svc.StartJobRunner(context.Background(), jobRunner(), "luis-mc"); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.ag.added[0]; got.PoolCPUs != 6 || got.PoolMemoryMB != 12288 {
+		t.Fatalf("pool size not passed: %+v", got)
+	}
+}
+
+func TestJitRunnerWithNoPoolSizeSetsNoLimit(t *testing.T) {
+	r := newRig(machine("linux", "x64", true))
+	if _, err := r.svc.StartJobRunner(context.Background(), jobRunner(), "luis-mc"); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.ag.added[0]; got.PoolCPUs != 0 || got.PoolMemoryMB != 0 {
+		t.Fatalf("a limit was set: %+v", got)
+	}
+}
