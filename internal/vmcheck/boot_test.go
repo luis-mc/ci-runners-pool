@@ -21,11 +21,11 @@ func TestQemuAndOverlayArgs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.MemMB != 2048 || s.CPUs != 2 || s.Timeout != 5*time.Minute || s.Ready != "login:" {
+	if s.MemMB != 1024 || s.CPUs != 2 || s.Timeout != 5*time.Minute || s.Ready != "login:" {
 		t.Fatalf("defaults %+v", s)
 	}
 	got := vmcheck.QemuArgs(s, "/w/o.qcow2", "/w/s.log")
-	want := []string{"-enable-kvm", "-cpu", "host", "-m", "2048", "-smp", "2",
+	want := []string{"-enable-kvm", "-cpu", "host", "-m", "1024", "-smp", "2",
 		"-drive", "file=/w/o.qcow2,if=virtio,format=qcow2", "-nic", "user,model=virtio-net-pci",
 		"-display", "none", "-no-reboot", "-serial", "file:/w/s.log", "-monitor", "none"}
 	if !reflect.DeepEqual(got, want) {

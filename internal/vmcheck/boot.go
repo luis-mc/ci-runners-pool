@@ -26,7 +26,7 @@ import (
 
 // Defaults of a boot.
 const (
-	DefaultMemMB   = 2048
+	DefaultMemMB   = 1024
 	DefaultCPUs    = 2
 	DefaultTimeout = 5 * time.Minute
 	// DefaultReady is the line the serial console shows when a cloud image has
