@@ -105,7 +105,7 @@ func PlanWarm(in WarmInput) WarmPlan {
 		keep = keep[1:]
 	}
 	room := want - len(keep)
-	for room > 0 && !fits(capacity, used, len(keep)+1) {
+	for room > 0 && !fits(capacity, used, len(keep)+room) {
 		room--
 	}
 	if room <= 0 {

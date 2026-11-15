@@ -1,6 +1,6 @@
 # CRSP84 + CRSP89 report (branch CRSP84-warm-pool-size-labels)
 
-Status: in progress.
+
 
 ## Plan
 - CRSP89 (R5.67): `internal/repos/sizelabels.go`. Size variables `RUNS_ON_<OS>_<SIZE>` from the size class table (runners R5.71) or the owner's floors; only machines with room (pool size) are listed; unserved size not written; unknown size refused with a clear message; plain `RUNS_ON_<OS>` unchanged.
@@ -19,4 +19,7 @@ Status: in progress.
 - Size labels list labels of machines with room; a label shared with a smaller machine cannot split them.
 
 ## Checks
-go test -race (scheduler, repos), go build ./cmd/..., GOOS=windows/darwin go vet, gofmt: see final result in PR.
+- go test -race scheduler (full, one bug found and fixed: warm room check), repos: pass. Warm tests rerun after fix: pass.
+- GOOS=windows go vet (scheduler, repos, cmd) and GOOS=darwin go vet (scheduler, repos): clean. gofmt clean.
+- Not run: golangci-lint (installed binary built with go1.25, repo needs 1.27.4); native `go build ./cmd/...` fails in fyne.io/systray on this Linux box (environment, not this change).
+Status: code done.
