@@ -10,7 +10,7 @@ func TestMachineRoutesDeclareTheRoleTheySpecRequires(t *testing.T) {
 		"listMachines": "user", "getMachine": "user", "getMachineLoad": "user", "getMachineChange": "user",
 		"updateMachine": "admin", "drainMachine": "admin", "resumeMachine": "admin", "removeMachine": "admin",
 		"redetectMachine": "admin", "checkMachinePoolSize": "admin", "decideMachineChange": "admin",
-		"createJoinCode": "admin", "getJoinCode": "admin", "revokeJoinCode": "admin", "getInstallCommand": "admin",
+		"createJoinCode": "admin", "joinMachineOverSsh": "admin", "getJoinCode": "admin", "revokeJoinCode": "admin", "getInstallCommand": "admin",
 		"getCaCertificate": "public",
 	}
 	got := map[string]string{}

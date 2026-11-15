@@ -12,6 +12,7 @@ code:
   - internal/auth/**
   - internal/secrets/**
   - internal/repos/**
+  - internal/trial/**
   - internal/cli/auth/**
   - apps/web/src/features/setup/**
   - apps/web/src/features/auth/**
@@ -265,6 +266,10 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R5.48** (M2, Built CRSP82) — **A forked pull request never reaches a pool runner by guesswork.** A job read from a `workflow_job` webhook does not say which event started its run or whether the head repository is a fork, so it is marked partial: the demand loop gives it no runner until the poller has read its run, and a later webhook never wipes what the poller read. The loop never looks up a public repository (R5.47). A fork job of a private repository still waits unless its policy allows fork pull requests after the warning (R5.26).
 
+**R5.49** (M1, Built CRSP88) — **Trial modes before a repository is switched.** The owner can run a private repository in a trial mode, one per repository, stored in the settings table: `observe` (crsp only records which jobs it would take and how long they wait; no variable or workflow is touched), `shadow` (a copy of the selected jobs runs on crsp through a `workflow_dispatch` of the shadow workflow, default `crsp-shadow.yml`; the result is recorded; the real job stays on hosted), `canary` (a percentage of the jobs, or named jobs, read the crsp labels from one `RUNS_ON_CANARY_<JOB>` variable each; the other jobs stay hosted) and `off`. The canary choice depends on the job name only, so it is the same on every run and a job chosen at 10% stays chosen at 50%. The variables are written and deleted only through the owner code in `internal/repos` (audit row, store record), never the controller's own `RUNS_ON_<OS>` ones. On entering a canary the RUNS_ON family variables are saved; `off` puts back exactly those. Public repositories are refused for every mode but `off`. A report per repository compares hosted and crsp runs, results, waits and run times per job. `crsp trial OWNER/NAME [observe|shadow|canary|off]` sets and shows it; `GET /api/v1/repositories/{id}/trial` is the read-only report and `PUT` of the same path sets the mode (the CLI needs it). The hook `trial.Manager.OnJob` takes a finished job; it is not yet called from the webhook (RES14 owns that code). The hosted fallback (R5.42 to R5.46) and the public-repository stop (R5.41) are unchanged.
+
+**R5.50** (M1, RES14, built) — **Webhook health per repository.** The controller keeps, for each repository, the time and result of the last webhook delivery (`webhook` of the repository: `last_delivery_at`, `last_result` `ok`, `failed` or `missed`, `mode`, `failures_in_a_row`). A verified `workflow_job` that the controller cannot read counts as `failed`; a queued job that polling lists and that no delivery announced within two minutes counts as `missed`. After three failures in a row the repository is in `polling` mode: the console says so and offers *Switch back to webhooks* (`setRepositoryWebhookMode`, admin; only `webhook` is accepted). A delivery that works resets the count but never leaves polling mode by itself. Jobs are learned by the REST poller (R5.37) for every repository with the pool on, so the mode changes what the console says and what the owner sees, not which repositories are polled. The code is in `internal/webhookhealth`; the webhook handler calls it through the small `OnDelivery` hook, and the poller through `OnQueued`.
+
 ## 6. Non-functional requirements
 
 **R6.1** (M1, NOT YET IMPLEMENTED) — **Secrets only in the OS secret store.** The App private key, client secret, webhook secret, CLI tokens and any GitHub user refresh token live only in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service, or a file with mode 0600 when no service exists. They never go to the database, config files, environment files, logs, crash files, API responses or the audit log.
@@ -418,6 +423,8 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.47 | `internal/repos/public_test.go` TestPublicizedStopsServing, TestReconcileStopsAPublicRepository, TestPrivateRepositoryStaysServed; `internal/github/webhook_test.go` TestWebhookRepositoryEvent (CRSP82) |
 | R5.48 | `internal/demand/demand_test.go` TestWebhookJobWaitsForForkFlag; `internal/github/webhook_test.go` TestWebhookJobIsPartial (CRSP82) |
 | R5.46 | internal/doctor/checks/fallback_test.go; apps/web/src/shell/Shell.test.tsx "says in one line on the Overview" (CRSP74) |
+| R5.49 | internal/trial/trial_test.go (each mode, canary stable per job name, public refused); internal/repos/trialvars_test.go TestTrialCanaryThroughOwnerCode (off restores the exact variables); internal/api/handlers_trial_test.go; internal/cli/cmd_trial_test.go (CRSP88) |
+| R5.50 | internal/webhookhealth/health_test.go; internal/github/webhook_test.go TestOnDeliverySeesRepositoryJobAndUse; internal/api/handlers_webhook_health_test.go; apps/web/src/screens/repositories/Repositories.test.tsx "Webhook health (RES14)" (RES14) |
 | R6.1 | planned: internal/secrets/store_test.go; internal/store/no_secrets_test.go (schema has no secret column) |
 | R6.2 | internal/github/client_test.go |
 | R6.3 | planned: internal/logging/redact_test.go |

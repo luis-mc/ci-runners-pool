@@ -36,6 +36,8 @@ type Poller struct {
 	OnError func(error)
 	// Now is a seam for tests.
 	Now func() time.Time
+	// OnQueued sees every queued job a round lists (webhook health, RES14).
+	OnQueued func(fullName string, jobID int64)
 
 	known map[int64]Job
 
@@ -142,6 +144,9 @@ func (p *Poller) round(ctx context.Context, out chan<- Job) (changed bool, rlWai
 			seen[j.ID] = true
 			if j.Status == "queued" {
 				p.sawDemand(t.Owner + "/" + t.Repo)
+				if p.OnQueued != nil {
+					p.OnQueued(t.Owner+"/"+t.Repo, j.ID)
+				}
 			}
 			if old, ok := p.known[j.ID]; ok && old.Status == j.Status && old.RunnerName == j.RunnerName {
 				continue

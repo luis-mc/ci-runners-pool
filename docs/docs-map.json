@@ -140,6 +140,9 @@
     "internal/tray/**": [
       "docs/features/tray/spec.md"
     ],
+    "internal/trial/**": [
+      "docs/features/github-integration/spec.md"
+    ],
     "internal/update/**": [
       "docs/features/operations/spec.md"
     ],

@@ -244,3 +244,20 @@ func TestContainerChecksRespectMachineScope(t *testing.T) {
 		t.Fatalf("a pool of another machine was checked: %+v", r.Findings)
 	}
 }
+
+func TestMemoryCapCheck(t *testing.T) {
+	eng := &fakeEngine{status: usable(), answers: []answer{{match: "inspect", res: sys.Result{Stdout: "true 137 4294967296\n"}}}}
+	src := &fakeSource{pools: []ContainerPool{pool()}, eng: eng}
+	fs := runContainer(t, src, "container.memory-cap")
+	if fs[0].Severity != doctor.Fail || !strings.Contains(fs[0].Title, "stopped by the memory cap (exit 137)") || !strings.Contains(fs[0].Detail, "4096 MiB") {
+		t.Fatalf("killed: %+v", fs)
+	}
+	eng.answers = []answer{{match: "inspect", res: sys.Result{Stdout: "false 0 4294967296\n"}}}
+	if fs := runContainer(t, src, "container.memory-cap"); fs[0].Severity != doctor.OK {
+		t.Fatalf("fine: %+v", fs)
+	}
+	eng.answers = []answer{{match: "inspect", res: sys.Result{ExitCode: 1, Stderr: "boom"}}}
+	if fs := runContainer(t, src, "container.memory-cap"); fs[0].Severity != doctor.Warn {
+		t.Fatalf("cannot probe: %+v", fs)
+	}
+}

@@ -13,6 +13,8 @@ import {
   Status,
   Table,
   formatAgo,
+  formatDuration,
+  Facts,
   useNow,
   type Column,
   type StatusKind,
@@ -39,7 +41,7 @@ export function runnerStatus(r: Runner): { kind: StatusKind; word: string } {
     case 'idle':
       return { kind: 'ok', word: 'idle' };
     case 'busy':
-      return { kind: 'running', word: 'running' };
+      return { kind: 'running', word: 'busy' };
     case 'failed':
       return { kind: 'failed', word: 'failed' };
     case 'offline':
@@ -47,6 +49,27 @@ export function runnerStatus(r: Runner): { kind: StatusKind; word: string } {
     default:
       return { kind: 'waiting', word: r.state };
   }
+}
+
+/** RES7: the running job's repository and name, and how long it has run; "none" for a runner with no job. */
+export function currentJobText(r: Runner, now: number): string {
+  const j = r.current_job;
+  if (!j) return 'none';
+  const text = `${j.repository} ${j.job_name}`;
+  if (!j.started_at) return text;
+  const seconds = Math.max(0, (now - Date.parse(j.started_at)) / 1000);
+  return `${text}, running ${formatDuration(seconds)}`;
+}
+
+/** RES7: how many runners are idle and busy, at a glance. */
+export function stateCounts(items: readonly Runner[]): {
+  idle: number;
+  busy: number;
+  other: number;
+} {
+  const idle = items.filter((r) => r.state === 'idle').length;
+  const busy = items.filter((r) => r.state === 'busy').length;
+  return { idle, busy, other: items.length - idle - busy };
 }
 
 export function RunnersList() {
@@ -129,8 +152,7 @@ export function RunnersList() {
     {
       id: 'job',
       header: 'Current job',
-      cell: (r) =>
-        r.current_job ? `${r.current_job.repository} ${r.current_job.job_name}` : 'none',
+      cell: (r) => currentJobText(r, now),
     },
     {
       id: 'age',
@@ -212,6 +234,20 @@ export function RunnersList() {
             );
           return (
             <Stack>
+              <Facts
+                items={[
+                  { name: 'Idle', value: String(stateCounts(data.items).idle) },
+                  { name: 'Busy', value: String(stateCounts(data.items).busy) },
+                  ...(stateCounts(data.items).other > 0
+                    ? [
+                        {
+                          name: 'Not ready',
+                          value: String(stateCounts(data.items).other),
+                        },
+                      ]
+                    : []),
+                ]}
+              />
               <SearchBar value={q} onChange={setQ} label="Search runners" />
               <Chips
                 label="System"

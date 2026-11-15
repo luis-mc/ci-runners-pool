@@ -3,6 +3,7 @@ package checks
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -61,6 +62,7 @@ func RegisterContainer(reg *doctor.Registry, src ContainerSource) {
 		doctor.NewCheck("container.layer.tools", doctor.GroupBackend, M2, false, c.layerTools),
 		doctor.NewCheck("container.toolcache", doctor.GroupBackend, M2, false, c.toolCache),
 		doctor.NewCheck("container.records", doctor.GroupBackend, M2, false, c.records),
+		doctor.NewCheck("container.memory-cap", doctor.GroupBackend, M2, false, c.memoryCap),
 	} {
 		reg.Register(k)
 	}
@@ -325,4 +327,41 @@ func firstLineOf(s string) string {
 		return "no message"
 	}
 	return s
+}
+
+// memoryCap: a pool container, or a job in it, that the kernel killed for the
+// memory cap is reported as such, with the cap value (runners R5.85, handover
+// lesson 15). The check reads docker inspect only.
+func (c *containerChecks) memoryCap(ctx context.Context, env doctor.Env) []doctor.Finding {
+	ps, out := c.pools(ctx, env, "container.memory-cap")
+	for _, p := range ps {
+		s := poolSubject(p)
+		eng, bad := c.engineOf(ctx, p, "container.memory-cap", s, "The memory cap of "+p.Name)
+		if bad != nil {
+			out = append(out, *bad)
+			continue
+		}
+		pctx, cancel := context.WithTimeout(ctx, probeTimeout)
+		res, err := eng.Run(pctx, "inspect", "--format", "{{.State.OOMKilled}} {{.State.ExitCode}} {{.HostConfig.Memory}}", p.Name)
+		cancel()
+		f := strings.Fields(res.Stdout)
+		switch {
+		case err != nil:
+			out = append(out, cannotProbe("container.memory-cap", s, "The memory cap of "+p.Name, "The engine call failed ("+firstLineOf(err.Error())+")."))
+		case res.ExitCode != 0 || len(f) != 3:
+			out = append(out, cannotProbe("container.memory-cap", s, "The memory cap of "+p.Name, "The engine said: "+firstLineOf(res.Stderr)+"."))
+		case f[0] == "true" || f[1] == strconv.Itoa(container.ExitMemoryCap):
+			capText := "no memory cap is set"
+			if n, perr := strconv.ParseInt(f[2], 10, 64); perr == nil && n > 0 {
+				capText = fmt.Sprintf("the memory cap is %d MiB", n/(1024*1024))
+			}
+			out = append(out, doctor.Finding{Check: "container.memory-cap", Subject: s, Severity: doctor.Fail,
+				Title:  "The pool " + p.Name + " was " + container.MemoryCapText,
+				Detail: "The engine reports the container as killed for memory on " + p.MachineName + "; " + capText + ".",
+				Fix:    doctor.Fix{Text: "Give the machine's pool more memory (fewer parallel slots), or make the job lighter."}})
+		default:
+			out = append(out, doctor.Finding{Check: "container.memory-cap", Subject: s, Severity: doctor.OK, Title: "The pool " + p.Name + " was not stopped by the memory cap"})
+		}
+	}
+	return out
 }

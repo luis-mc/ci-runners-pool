@@ -530,6 +530,30 @@ export interface paths {
         patch: operations["updateRepositoryPolicy"];
         trace?: never;
     };
+    "/api/v1/repositories/{repositoryId}/trial": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A repository's trial mode and its report
+         * @description github-integration R5.66. Read only: the mode, its settings and the comparison of hosted and crsp outcomes and times.
+         */
+        get: operations["getRepositoryTrial"];
+        /**
+         * Set a repository's trial mode
+         * @description github-integration R5.66. Public repositories are refused for every mode but `off`. `off` undoes a canary and restores the earlier variables.
+         */
+        put: operations["setRepositoryTrial"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/repositories/{repositoryId}/extra-packages": {
         parameters: {
             query?: never;
@@ -547,6 +571,26 @@ export interface paths {
          * @description runners R5.51. The whole list is replaced. A name has only letters, digits and `+ - .` and does not start with `-`; a bad name refuses the list with its line number and nothing changes. An empty text clears the list.
          */
         put: operations["setRepositoryExtraPackages"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repositories/{repositoryId}/webhook-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Switch a repository back to webhook deliveries
+         * @description github-integration R5.50 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+         */
+        put: operations["setRepositoryWebhookMode"];
         post?: never;
         delete?: never;
         options?: never;
@@ -821,6 +865,26 @@ export interface paths {
          * @description machines R5.3 to R5.6 (M1 by owner decision). The code shows once, in this answer only. A new code makes the old unused one invalid.
          */
         post: operations["createJoinCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/join-codes/ssh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join a Linux or macOS machine over SSH
+         * @description machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+         */
+        post: operations["joinMachineOverSsh"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2183,6 +2247,49 @@ export interface components {
             /** @example https://github.com/apps/crsp-home/installations/new */
             url: string;
         };
+        TrialSet: {
+            /** @enum {string} */
+            mode: "off" | "observe" | "shadow" | "canary";
+            /** @description Canary only. The share of jobs, chosen by job name. */
+            percent?: number;
+            /** @description Canary only. Jobs that always use crsp. */
+            jobs?: string[];
+            /** @description Shadow only. The workflow file to dispatch. */
+            shadow_workflow?: string;
+            /** @description Shadow only. Jobs to copy; empty means every job crsp would take. */
+            shadow_jobs?: string[];
+        };
+        TrialSide: {
+            runs: number;
+            succeeded: number;
+            avg_wait_sec: number;
+            avg_run_sec: number;
+        };
+        TrialJob: {
+            job: string;
+            hosted: components["schemas"]["TrialSide"];
+            crsp: components["schemas"]["TrialSide"];
+            would_take: number;
+            /** @description Present when the job ran on both sides. */
+            agree?: boolean;
+        };
+        Trial: {
+            repository: string;
+            /** @enum {string} */
+            mode: "off" | "observe" | "shadow" | "canary";
+            /** Format: date-time */
+            since?: string;
+            percent?: number;
+            canary_jobs?: string[];
+            shadow_workflow?: string;
+            shadow_jobs?: string[];
+            /** @description The canary variables now written. */
+            variables: string[];
+            total: number;
+            hosted: components["schemas"]["TrialSide"];
+            crsp: components["schemas"]["TrialSide"];
+            jobs: components["schemas"]["TrialJob"][];
+        };
         /**
          * @example {
          *       "id": 700100,
@@ -2232,6 +2339,29 @@ export interface components {
             variables: components["schemas"]["RepositoryVariable"][];
             policy: components["schemas"]["RepositoryPolicy"];
             routing?: components["schemas"]["RepositoryRouting"];
+            webhook?: components["schemas"]["WebhookHealth"];
+        };
+        /** @description The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.50). */
+        WebhookHealth: {
+            /** @enum {string} */
+            mode: "webhook" | "polling";
+            /**
+             * Format: date-time
+             * @description Absent when no delivery was seen.
+             */
+            last_delivery_at?: string;
+            /** @enum {string} */
+            last_result?: "ok" | "failed" | "missed";
+            failures_in_a_row: number;
+            /**
+             * Format: date-time
+             * @description Set in polling mode.
+             */
+            polling_since?: string;
+        };
+        WebhookModeUpdate: {
+            /** @enum {string} */
+            mode: "webhook";
         };
         /**
          * @description Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
@@ -2796,10 +2926,27 @@ export interface components {
             /** @description Default 15, ceiling 1440 (machines R5.4). */
             ttl_minutes?: number;
         };
+        SshJoinRequest: {
+            /** @enum {string} */
+            os: "linux" | "macos";
+            host: string;
+            /** @description Default 22. */
+            port?: number;
+            user: string;
+            /** @description The content of the SSH key file, used once for this join and never stored. */
+            identity: string;
+            /** @description The host key fingerprint the owner confirmed (SHA256:...). */
+            host_fingerprint?: string;
+        };
         JoinCode: {
             id: string;
             /** @enum {string} */
             state: "waiting" | "joined" | "expired" | "revoked";
+            /**
+             * @description How far a copied or SSH join got (RES3). `waiting`: no agent used the code yet. `connected`: the agent joined. `ready`: the machine sent its first heartbeat. Absent once the code expired or was withdrawn.
+             * @enum {string}
+             */
+            progress?: "waiting" | "connected" | "ready";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -4286,6 +4433,58 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    getRepositoryTrial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub repository id. */
+                repositoryId: components["parameters"]["RepositoryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The trial. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Trial"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setRepositoryTrial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub repository id. */
+                repositoryId: components["parameters"]["RepositoryId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrialSet"];
+            };
+        };
+        responses: {
+            /** @description The trial after the change. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Trial"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     getRepositoryExtraPackages: {
         parameters: {
             query?: never;
@@ -4333,6 +4532,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExtraPackages"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setRepositoryWebhookMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub repository id. */
+                repositoryId: components["parameters"]["RepositoryId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookModeUpdate"];
+            };
+        };
+        responses: {
+            /** @description The webhook health after the switch. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookHealth"];
                 };
             };
             default: components["responses"]["Error"];
@@ -4763,6 +4990,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JoinCodeCreated"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    joinMachineOverSsh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SshJoinRequest"];
+            };
+        };
+        responses: {
+            /** @description The command ran on the machine; its join code is waiting for the agent. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JoinCode"];
                 };
             };
             default: components["responses"]["Error"];

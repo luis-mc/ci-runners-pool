@@ -396,3 +396,27 @@ The words of the hosted fallback on a repository's page, the list and the Overvi
 | Overview line | {n} repository runs on GitHub-hosted runners because no crsp machine is up. / {n} repositories run on GitHub-hosted runners because no crsp machine is up. |
 | Doctor, waiting | Jobs of {repository} wait: no crsp machine is up for {os} |
 | Doctor, on hosted | Jobs of {repository} run on GitHub-hosted runners ({os}) |
+
+## Joining a machine, idle and busy, and webhook health words
+
+The words of the Add a machine wizard (machines R5.3a, R5.4a), the runner states (web-console R5.23) and the webhook health of a repository (github-integration R5.50).
+
+| Where | Word |
+|---|---|
+| Join choice | How the machine joins (help: Copy one command and run it on the machine, or let crsp sign in over SSH once.): Copy a command, I have SSH |
+| Windows note | A Windows machine joins by copying a command. Run it in an administrator terminal. |
+| SSH fields | Host, User, SSH port, SSH key file (help: Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user needs sudo without a password.) |
+| SSH errors | Enter the host name or address. / Enter the user name. / Paste the SSH key file. |
+| Review facts | System, How it joins (A copied command / Over SSH as {user} on {host}), Join code (Lasts 15 minutes and works once) |
+| Review lines | crsp signs in once with your key, runs the install command and signs out. The key is not stored. / Next you get one command with the join code in it. Run it on the machine. |
+| Join command | Run this command on the machine now. The code shows once. / crsp ran the install command over SSH. Waiting for the agent. |
+| Join steps | Waiting for the agent, Agent connected, Machine ready; each says done, in progress or not yet |
+| SSH question card | Title: Is this the host key? Line: Host {host} shows the key {fingerprint}. Action: Yes, sign in (busy word: Signing in) |
+| SSH failure | Could not join over SSH. {reason} |
+| Runner state | idle, busy |
+| Runner counts | Idle, Busy, Not ready |
+| Runner job | {repository} {job}, running {duration} |
+| Repository column and fact | Last delivery: no delivery yet, delivered, delivery failed, delivery missed, pool off; Last webhook delivery; Jobs are learned by: webhooks, polling |
+| Polling notice | GitHub deliveries to this repository failed {n} times in a row, so crsp now polls GitHub for its jobs. Jobs still run, but they start a little later. |
+| Polling button | Switch back to webhooks (busy word: Switching) |
+| Polling failure | Could not switch back. {reason} |

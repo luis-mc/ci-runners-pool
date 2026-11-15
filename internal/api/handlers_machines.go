@@ -28,6 +28,7 @@ type MachinesService interface {
 	CreateJoinCode(ctx context.Context, actor string, ttl time.Duration) (machines.CreatedCode, error)
 	GetJoinCode(ctx context.Context, id string) (machines.JoinCode, machines.CodeState, error)
 	RevokeJoinCode(ctx context.Context, actor, id string) error
+	JoinOverSSH(ctx context.Context, actor string, in machines.SSHJoinInput) (machines.CreatedCode, error)
 	InstallCommands(code string) []machines.InstallCommand
 	ControllerInfo() (address string, port int, fingerprint string)
 }
@@ -282,6 +283,12 @@ func installToAPI(svc MachinesService, code string) gen.InstallCommands {
 
 func codeToAPI(c machines.JoinCode, st machines.CodeState) gen.JoinCode {
 	out := gen.JoinCode{Id: c.ID, State: gen.JoinCodeState(st), CreatedAt: c.CreatedAt, ExpiresAt: c.ExpiresAt}
+	switch st {
+	case machines.CodeWaiting:
+		out.Progress = machinesPtr(gen.JoinCodeProgressWaiting)
+	case machines.CodeJoined:
+		out.Progress = machinesPtr(gen.JoinCodeProgressConnected)
+	}
 	if c.MachineID != "" {
 		out.MachineId = machinesPtr(c.MachineID)
 	}
@@ -549,7 +556,14 @@ func (s *server) GetJoinCode(ctx context.Context, r gen.GetJoinCodeRequestObject
 	if err != nil {
 		return fail[gen.GetJoinCodedefaultJSONResponse](s, err), nil
 	}
-	return gen.GetJoinCode200JSONResponse(codeToAPI(c, st)), nil
+	out := codeToAPI(c, st)
+	if st == machines.CodeJoined && c.MachineID != "" {
+		// Ready from the machine's first heartbeat (RES3).
+		if v, err := s.opts.Machines.Get(ctx, c.MachineID); err == nil && v.Machine.Online {
+			out.Progress = machinesPtr(gen.JoinCodeProgressReady)
+		}
+	}
+	return gen.GetJoinCode200JSONResponse(out), nil
 }
 
 // RevokeJoinCode implements DELETE /api/v1/join-codes/{joinCodeId}.
@@ -578,4 +592,31 @@ func (s *server) GetCaCertificate(_ context.Context, _ gen.GetCaCertificateReque
 	}
 	pem := s.opts.CA.CAPEM()
 	return gen.GetCaCertificate200ApplicationxPemFileResponse{Body: bytes.NewReader(pem), ContentLength: int64(len(pem))}, nil
+}
+
+// JoinMachineOverSsh implements POST /api/v1/join-codes/ssh (machines R5.3a, RES3).
+// The key file is passed on once and not kept; nothing here logs the body.
+func (s *server) JoinMachineOverSsh(ctx context.Context, r gen.JoinMachineOverSshRequestObject) (gen.JoinMachineOverSshResponseObject, error) {
+	if s.machinesOff() {
+		return machinesUnavailable[gen.JoinMachineOverSshdefaultJSONResponse](), nil
+	}
+	if r.Body == nil {
+		return fail[gen.JoinMachineOverSshdefaultJSONResponse](s, machines.ErrInvalid), nil
+	}
+	b := r.Body
+	in := machines.SSHJoinInput{OS: string(b.Os), SSHTarget: machines.SSHTarget{Host: b.Host, User: b.User}}
+	if b.Identity != nil {
+		in.Identity = []byte(*b.Identity)
+	}
+	if b.Port != nil {
+		in.Port = *b.Port
+	}
+	if b.HostFingerprint != nil {
+		in.HostFingerprint = *b.HostFingerprint
+	}
+	c, err := s.opts.Machines.JoinOverSSH(ctx, s.actor(ctx), in)
+	if err != nil {
+		return fail[gen.JoinMachineOverSshdefaultJSONResponse](s, err), nil
+	}
+	return gen.JoinMachineOverSsh201JSONResponse(codeToAPI(c.JoinCode, c.JoinCode.State(time.Now()))), nil
 }

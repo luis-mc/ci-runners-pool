@@ -166,12 +166,12 @@ func TestPoolStartMountsCrspOnlyWhenSet(t *testing.T) {
 	if _, err := r.startSpec(r.specWith("j1", nil)); err != nil {
 		t.Fatal(err)
 	}
-	has(t, runCall(r.f), "source=/usr/local/bin/crsp-agent,target=/usr/local/bin/crsp,readonly")
+	has(t, runCall(r.f), "source=/usr/local/bin,target=/opt/crsp-bin,readonly", "CRSP_BIN=/opt/crsp-bin/crsp-agent")
 	r2 := newRig(t)
 	if _, err := r2.startSpec(r2.specWith("j1", nil)); err != nil {
 		t.Fatal(err)
 	}
-	hasNot(t, runCall(r2.f), "target=/usr/local/bin/crsp")
+	hasNot(t, runCall(r2.f), "target=/opt/crsp-bin")
 }
 
 // Row 24: the browsers layer sets the image path; no layer sets none.
@@ -421,7 +421,7 @@ func TestPoolStartAllPiecesTogether(t *testing.T) {
 		t.Fatal(err)
 	}
 	run := runCall(r.f)
-	has(t, run, "--device-cgroup-rule "+KVMCgroupRule, "--group-add 108", "target=/ci-tools", "target=/usr/local/bin/crsp,readonly",
+	has(t, run, "--device-cgroup-rule "+KVMCgroupRule, "--group-add 108", "target=/ci-tools", "target=/opt/crsp-bin,readonly",
 		"PLAYWRIGHT_BROWSERS_PATH=/opt/crsp/browsers", "WINEPREFIX=/wine")
 	if err := CheckRunArgs(runFields(run)); err != nil {
 		t.Fatal(err)

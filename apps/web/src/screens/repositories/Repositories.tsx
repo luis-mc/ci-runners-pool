@@ -39,6 +39,7 @@ import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
 import { HostedFallback, WhereJobsGo, routingWhy } from './fallback';
 import { allRepositories, applyChanges, type Repository } from './plans';
+import { DeliveryStatus, DeliveryWhen, PollingNotice } from './webhookHealth';
 
 const PAGE = 25;
 
@@ -118,6 +119,13 @@ export function RepositoriesList() {
       header: 'Jobs go to',
       cell: (r) => <WhereJobsGo r={r} />,
       sort: (r) => r.routing?.where ?? '',
+    },
+    {
+      id: 'delivery',
+      header: 'Last delivery',
+      cell: (r) =>
+        r.pool_on ? <DeliveryStatus r={r} /> : <Status kind="off" word="pool off" />,
+      sort: (r) => r.webhook?.last_delivery_at ?? '',
     },
     {
       id: 'vars',
@@ -480,6 +488,15 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
             { name: 'Variables', value: <Status kind={vs.kind} word={vs.word} /> },
             { name: 'Jobs go to', value: <WhereJobsGo r={r} /> },
             { name: 'Why', value: routingWhy(r) },
+            ...(r.pool_on
+              ? [
+                  { name: 'Last webhook delivery', value: <DeliveryWhen r={r} /> },
+                  {
+                    name: 'Jobs are learned by',
+                    value: r.webhook?.mode === 'polling' ? 'polling' : 'webhooks',
+                  },
+                ]
+              : []),
             ...(r.routing && r.policy.hosted_fallback
               ? [
                   {
@@ -495,6 +512,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
           ]}
         />
       </Section>
+      {r.pool_on ? <PollingNotice r={r} onChanged={onChanged} /> : null}
       <Section title="Policy">
         <form
           onSubmit={(e) => {
