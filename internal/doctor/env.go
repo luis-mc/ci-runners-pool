@@ -18,6 +18,8 @@ type Env struct {
 	Fleet Fleet
 	// GitHub is nil when the App is not set up; GitHub checks then skip.
 	GitHub GitHub
+	// KVM is nil when no agent reports KVM; the kvm checks then skip.
+	KVM KVMSource
 	// PoolName is the pool's name label; RunnerPrefix starts the name of every
 	// runner the product makes (default "crsp-").
 	PoolName     string
@@ -223,3 +225,27 @@ func (e Env) InScopeMachine(m Machine) bool { return e.Scope.MatchMachine(m.ID, 
 
 // InScopeRepository is a helper for checks.
 func (e Env) InScopeRepository(r Repository) bool { return e.Scope.MatchRepository(r.ID) }
+
+// KVMState is what the agent saw of KVM for one machine and pool (doctor
+// R5.32, machines R5.53). A machine with KVM off in the pool is not listed.
+type KVMState struct {
+	Machine Machine
+	// HostDevice is true when /dev/kvm exists on the host (the WSL VM on Windows).
+	HostDevice bool
+	// ContainerUsable is true when /dev/kvm opens inside a pool container.
+	ContainerUsable bool
+	// LabelPresent is true when the pool's runners carry the kvm label.
+	LabelPresent bool
+	// LoaderRunning is true when the privileged kvm loader service of the
+	// compose file runs (WSL2 only).
+	LoaderRunning bool
+	// WaitedOut is true when the pool gave up waiting for /dev/kvm and started without it.
+	WaitedOut bool
+	// NestedKnown is false when .wslconfig could not be read; Nested is then ignored.
+	NestedKnown, Nested bool
+}
+
+// KVMSource lists the KVM state per machine; ErrUnreachable when an agent does not answer.
+type KVMSource interface {
+	KVM(ctx context.Context) ([]KVMState, error)
+}
