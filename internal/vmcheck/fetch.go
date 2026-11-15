@@ -2,8 +2,10 @@ package vmcheck
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -94,4 +96,35 @@ func firstLineOf(s string) string {
 		}
 	}
 	return s
+}
+
+// RealGuestDeps is the GuestDeps of a runner: RealDeps plus ssh/scp through exec.
+func RealGuestDeps() GuestDeps {
+	return GuestDeps{
+		Deps: RealDeps(),
+		Exec: func(ctx context.Context, out io.Writer, name string, args ...string) (int, error) {
+			cmd := exec.CommandContext(ctx, name, args...) //nolint:gosec // ssh and scp, fixed names
+			cmd.Stdout, cmd.Stderr = out, out
+			cmd.WaitDelay = 5 * time.Second
+			err := cmd.Run()
+			var ee *exec.ExitError
+			switch {
+			case err == nil:
+				return 0, nil
+			case ctx.Err() != nil:
+				return -1, ctx.Err()
+			case errors.As(err, &ee):
+				return ee.ExitCode(), nil
+			}
+			return -1, err
+		},
+		FreePort: func() (int, error) {
+			l, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")
+			if err != nil {
+				return 0, err
+			}
+			defer func() { _ = l.Close() }()
+			return l.Addr().(*net.TCPAddr).Port, nil
+		},
+	}
 }

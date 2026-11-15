@@ -76,7 +76,7 @@ func (l machineLookup) GetMachine(ctx context.Context, id string) (runners.Machi
 		return runners.Machine{}, err
 	}
 	m := runners.Machine{ID: v.Machine.ID, Name: v.Machine.Name, OS: v.Machine.OS, Arch: v.Machine.Arch,
-		PoolCPUs: v.Settings.PoolCPUs, JobSlots: v.Settings.JobSlots}
+		PoolCPUs: v.Settings.PoolCPUs, PoolMemoryGiB: v.Settings.PoolMemoryGiB, JobSlots: v.Settings.JobSlots}
 	for _, b := range v.Backends {
 		kinds := []string{"ephemeral"}
 		if b.Name == string(backend.Persistent) {
@@ -126,25 +126,28 @@ func (r scopeResolver) Resolve(ctx context.Context, s runners.Scope) (runners.Ta
 }
 
 // linkAgent reaches a machine's agent. The controller's own machine runs the
-// persistent backend of this OS directly; the runner messages of the agent
-// link (agent.proto AddRunner, RemoveRunner) are not carried by the agent yet,
-// so another machine answers with a reason (runners R5.1).
+// backend of this OS directly; any other machine gets the runner messages of
+// the agent link (agent.proto AddRunner, StopRunner, RemoveRunner; CRSP63).
 type linkAgent struct {
-	local *runners.LocalAgent
-	svc   *machines.Service
+	local  *runners.LocalAgent
+	svc    *machines.Service
+	remote runners.Agent // the agent link; nil when the link is not wired
 }
 
-var errRemoteRunners = errors.New("this machine is not the controller's own; runner commands over the agent link are not built yet")
+var errRemoteRunners = errors.New("this machine is not the controller's own and the agent link is not wired")
 
-func (a linkAgent) forMachine(ctx context.Context, id string) (*runners.LocalAgent, error) {
+func (a linkAgent) forMachine(ctx context.Context, id string) (runners.Agent, error) {
 	v, err := a.svc.Get(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if !v.Machine.IsController {
+	if v.Machine.IsController {
+		return a.local, nil
+	}
+	if a.remote == nil {
 		return nil, errRemoteRunners
 	}
-	return a.local, nil
+	return a.remote, nil
 }
 
 func (a linkAgent) AddRunner(ctx context.Context, id string, spec backend.RunnerSpec, cfg backend.StartConfig) (backend.Handle, error) {

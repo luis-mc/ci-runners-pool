@@ -57,6 +57,16 @@ func (s *Service) StartJobRunner(ctx context.Context, j JobRunner, actor string)
 	}
 	spec := backend.RunnerSpec{ID: id, Name: j.Name, OS: "linux", Arch: j.Arch, Labels: j.Labels, GitHubURL: t.URL, Group: t.Group,
 		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, CacheQuota: s.CacheQuota}
+	if m, err := s.Machines.GetMachine(ctx, j.MachineID); err == nil {
+		// The pool size of the machine caps the pool container (R5.27). A
+		// machine with no pool size set leaves the container uncapped.
+		if m.PoolCPUs > 0 {
+			spec.PoolCPUs = float64(m.PoolCPUs)
+		}
+		if m.PoolMemoryGiB > 0 {
+			spec.PoolMemoryMB = int(m.PoolMemoryGiB * 1024)
+		}
+	}
 	h, err := s.Agent.AddRunner(ctx, j.MachineID, spec, backend.StartConfig{JITConfig: jit.Encoded()})
 	if err != nil {
 		// The agent's error text is its own; the config is not in it by the

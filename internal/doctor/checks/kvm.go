@@ -6,17 +6,29 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
 )
 
-// RegisterKVM adds the five KVM checks (doctor R5.32). They are not part of
-// Register: no agent reports KVM state yet, so the live doctor does not run
-// them; the controller registers them when the agent's KVM report is wired.
+// KVMReportedChecks are the two KVM checks the agent's machine report feeds:
+// kvm.wslconfig and kvm.module (doctor R5.32, machines R5.53). The controller
+// registers them with the live doctor. The other three need the pool's
+// container and label, which the agent does not report yet.
+func KVMReportedChecks() []doctor.Check {
+	return []doctor.Check{
+		doctor.NewCheck("kvm.wslconfig", doctor.GroupBackend, M2, false, kvmWslconfig),
+		doctor.NewCheck("kvm.module", doctor.GroupBackend, M2, false, kvmModule),
+	}
+}
+
+// RegisterKVM adds all five KVM checks (doctor R5.32), for a source that knows
+// the pool's container and label too. The live doctor registers only
+// KVMReportedChecks.
 func RegisterKVM(reg *doctor.Registry) {
 	for _, c := range []doctor.Check{
 		doctor.NewCheck("kvm.host", doctor.GroupBackend, M2, true, kvmHost),
 		doctor.NewCheck("kvm.container", doctor.GroupBackend, M2, false, kvmContainer),
 		doctor.NewCheck("kvm.label", doctor.GroupBackend, M2, false, kvmLabel),
-		doctor.NewCheck("kvm.wslconfig", doctor.GroupBackend, M2, false, kvmWslconfig),
-		doctor.NewCheck("kvm.module", doctor.GroupBackend, M2, false, kvmModule),
 	} {
+		reg.Register(c)
+	}
+	for _, c := range KVMReportedChecks() {
 		reg.Register(c)
 	}
 }

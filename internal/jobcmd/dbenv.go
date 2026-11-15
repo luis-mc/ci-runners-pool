@@ -22,6 +22,8 @@ type Env struct {
 	Stderr io.Writer
 	// VMDeps replaces the real network, KVM and process calls of `crsp vm` (tests).
 	VMDeps *vmcheck.Deps
+	// VMGuestDeps replaces ssh, scp and the free port of `crsp vm run` and `selinux` (tests).
+	VMGuestDeps *vmcheck.GuestDeps
 }
 
 // secretKeys are the db.env keys whose values are masked in the job log.

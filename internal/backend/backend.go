@@ -99,6 +99,11 @@ type RunnerSpec struct {
 	// MaxParallel is the runner's CPU count, exported to its jobs as
 	// CI_MAX_PARALLEL (runners R5.53, machines R5.54). 0 exports none.
 	MaxParallel int
+	// PoolMemoryMB and PoolCPUs are the pool size of the machine; the
+	// container backend turns them into the limits of the repository's pool
+	// container (runners R5.27). 0 means none is set.
+	PoolMemoryMB int
+	PoolCPUs     float64
 }
 
 // StartConfig carries the one-time credential to start a runner. Registration

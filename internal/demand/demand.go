@@ -10,6 +10,7 @@ package demand
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -57,7 +58,18 @@ type Runners interface {
 	StartJobRunner(ctx context.Context, j runners.JobRunner, actor string) (runners.Record, error)
 	FinishJobRunner(ctx context.Context, runnerID, actor string) error
 	EphemeralOnMachine(ctx context.Context, machineID string) (int, error)
+	// RemoveIdleRunner removes a runner that never got a job, after asking
+	// GitHub that it is not busy. It returns runners.ErrRunnerBusy when it is.
+	RemoveIdleRunner(ctx context.Context, runnerID, actor string) error
 }
+
+// DefaultIdleAfter is how long a runner may wait with no job before the loop
+// removes it and frees its slot (runners R5.26).
+const DefaultIdleAfter = 15 * time.Minute
+
+// idleRetry is the wait before the loop tries again to remove an idle runner
+// whose removal failed.
+const idleRetry = time.Minute
 
 // Loop is the demand loop.
 type Loop struct {
@@ -69,6 +81,8 @@ type Loop struct {
 	// seam for tests.
 	Every time.Duration
 	Now   func() time.Time
+	// IdleAfter is the time a runner may have no job (default 15 minutes).
+	IdleAfter time.Duration
 
 	mu      sync.Mutex
 	seen    map[int64]github.Job // open jobs by id
@@ -84,6 +98,9 @@ type waiting struct {
 
 type startedRunner struct {
 	id, name string
+	at       time.Time // when the runner was started
+	took     bool      // a job ran on it, so the job's end cleans it up
+	retryAt  time.Time // an idle removal that failed waits until then
 }
 
 // maxFails is how many failed starts a job gets before the loop leaves it.
@@ -94,6 +111,9 @@ func (l *Loop) init() {
 		l.seen = map[int64]github.Job{}
 		l.pending = map[int64]*waiting{}
 		l.started = map[int64]startedRunner{}
+	}
+	if l.IdleAfter <= 0 {
+		l.IdleAfter = DefaultIdleAfter
 	}
 	if l.Every <= 0 {
 		l.Every = 5 * time.Second
@@ -128,6 +148,7 @@ func (l *Loop) Run(ctx context.Context, jobs <-chan github.Job) {
 			l.Dispatch(ctx)
 		case <-t.C:
 			l.Dispatch(ctx)
+			l.SweepIdle(ctx)
 		}
 	}
 }
@@ -147,6 +168,15 @@ func (l *Loop) Observe(ctx context.Context, j github.Job) {
 	case "in_progress":
 		l.seen[j.ID] = j
 		delete(l.pending, j.ID)
+		// The runner of this job has a job now: it is not idle.
+		if strings.HasPrefix(j.RunnerName, RunnerPrefix) {
+			for id, st := range l.started {
+				if st.name == j.RunnerName {
+					st.took = true
+					l.started[id] = st
+				}
+			}
+		}
 	default: // completed
 		delete(l.seen, j.ID)
 		delete(l.pending, j.ID)
@@ -177,6 +207,64 @@ func (l *Loop) Observe(ctx context.Context, j github.Job) {
 		}
 		if err := l.Runners.FinishJobRunner(ctx, st.id, Actor); err != nil {
 			l.Logger.Warn("clean up the runner of a finished job", "runner", st.name, "err", err)
+		}
+	}
+}
+
+// SweepIdle removes each runner that has had no job for IdleAfter, so its slot
+// is free again (runners R5.26). GitHub is asked that the runner is not busy
+// first; a busy one is left to its job. The job the runner was made for waits
+// again when it is still queued.
+func (l *Loop) SweepIdle(ctx context.Context) {
+	l.mu.Lock()
+	l.init()
+	now := l.Now()
+	var idle []startedRunner
+	for _, st := range l.started {
+		if !st.took && !st.at.IsZero() && now.Sub(st.at) >= l.IdleAfter && !now.Before(st.retryAt) {
+			idle = append(idle, st)
+		}
+	}
+	l.mu.Unlock()
+	for _, st := range idle {
+		err := l.Runners.RemoveIdleRunner(ctx, st.id, Actor)
+		l.mu.Lock()
+		switch {
+		case errors.Is(err, runners.ErrRunnerBusy):
+			l.markTook(st.name)
+		case err != nil:
+			l.markRetry(st.name, now.Add(idleRetry))
+			l.Logger.Warn("remove an idle runner", "runner", st.name, "err", err)
+		default:
+			for id, s := range l.started {
+				if s.name != st.name {
+					continue
+				}
+				delete(l.started, id)
+				if q, ok := l.seen[id]; ok && q.Status == "queued" {
+					l.pending[id] = &waiting{}
+				}
+			}
+			l.Logger.Info("idle runner removed", "runner", st.name, "idle_after", l.IdleAfter.String())
+		}
+		l.mu.Unlock()
+	}
+}
+
+func (l *Loop) markTook(name string) {
+	for id, s := range l.started {
+		if s.name == name {
+			s.took = true
+			l.started[id] = s
+		}
+	}
+}
+
+func (l *Loop) markRetry(name string, at time.Time) {
+	for id, s := range l.started {
+		if s.name == name {
+			s.retryAt = at
+			l.started[id] = s
 		}
 	}
 }
@@ -274,7 +362,7 @@ func (l *Loop) try(ctx context.Context, j github.Job, w *waiting, hosts []Host, 
 		used[h.MachineID]++
 		l.mu.Lock()
 		delete(l.pending, j.ID)
-		l.started[j.ID] = startedRunner{id: rec.ID, name: name}
+		l.started[j.ID] = startedRunner{id: rec.ID, name: name, at: l.Now()}
 		l.mu.Unlock()
 		l.Logger.Info("runner started for a queued job", "job", j.ID, "repository", j.Repository, "machine", h.MachineID, "runner", name)
 		return

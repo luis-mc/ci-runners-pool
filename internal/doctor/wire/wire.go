@@ -35,6 +35,9 @@ type DoctorDeps struct {
 	PoolName string
 	// Extra registers the checks of other areas (cache, backend, ...).
 	Extra []doctor.Check
+	// KVM and Engines are what agents reported; nil makes those checks skip.
+	KVM     doctor.KVMSource
+	Engines doctor.EngineSource
 }
 
 // NewDoctor makes the engine with the M1 core checks and every extra check,
@@ -48,7 +51,7 @@ func NewDoctor(d DoctorDeps) (*doctor.Engine, *doctor.Service) {
 	eng := &doctor.Engine{
 		Registry: reg, Store: d.Store, Events: d.Events, Logger: d.Logger,
 		Env: func(ctx context.Context) (doctor.Env, error) {
-			env := doctor.Env{Fleet: d.Fleet, PoolName: d.PoolName}
+			env := doctor.Env{Fleet: d.Fleet, PoolName: d.PoolName, KVM: d.KVM, Engines: d.Engines}
 			if d.GitHub != nil {
 				g, err := d.GitHub(ctx)
 				if err != nil {

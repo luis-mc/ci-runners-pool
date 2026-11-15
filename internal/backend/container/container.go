@@ -4,12 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/luis-mc/ci-runners-shared-pool/images"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
 )
@@ -26,14 +30,23 @@ var (
 
 // Config is what the backend is built with.
 type Config struct {
-	// Dockerfile and BuildContext build the base image (images/linux-base).
+	// Dockerfile and BuildContext build the base image (images/linux-base)
+	// from a folder that is already there. They win over Assets.
 	Dockerfile   string
 	BuildContext string
+	// Assets holds the image files (the images/ folder of the repository,
+	// embedded in the binary). Before a build they are written to a folder of
+	// their own under BuildRoot, with the crsp binary, and removed after it
+	// (runners R5.33, open question 36).
+	Assets    fs.FS
+	BuildRoot string
 	// BaseName names the base image in the image key.
 	BaseName string
 	// Pins are the pinned tool versions in the image key, such as the Actions
 	// runner (runners R5.33, R5.37).
-	Pins   map[string]string
+	Pins map[string]string
+	// Limits are the caps of a pool container when the runner spec carries
+	// none; the pool size of the machine in the spec wins (runners R5.27).
 	Limits Limits
 	// KVM is true when the machine allows /dev/kvm for the pool and the agent
 	// checked it works (runners R5.27, R5.41).
@@ -127,7 +140,7 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 		return h, ErrDraining
 	}
 	if err := b.ensurePool(ctx, PoolSpec{Owner: owner, Repo: repo, ImageTag: r.Image.ID, ImageKey: keyOf(r.Image.ID),
-		Limits: b.cfg.Limits, KVM: b.cfg.KVM, CrspHostPath: b.cfg.CrspHostPath}); err != nil {
+		Limits: b.limitsFor(r), KVM: b.cfg.KVM, CrspHostPath: b.cfg.CrspHostPath}); err != nil {
 		return h, err
 	}
 	steps := []struct {
@@ -351,14 +364,34 @@ func (b *Backend) busy(ctx context.Context, pool string) (bool, error) {
 	return true, fmt.Errorf("cannot read the jobs of %s: exit %s", pool, strconv.Itoa(res.ExitCode))
 }
 
+// limitsFor gives the caps of a repository's pool container: the pool size of
+// the machine (CPUs, memory) when the spec carries it, else the backend's own
+// Limits (runners R5.27).
+func (b *Backend) limitsFor(r backend.RunnerSpec) Limits {
+	l := b.cfg.Limits
+	if r.PoolMemoryMB > 0 {
+		l.MemoryMB = r.PoolMemoryMB
+	}
+	if r.PoolCPUs > 0 {
+		l.CPUs = r.PoolCPUs
+	}
+	return l
+}
+
 // DefaultConfig is the production layout of the Linux container backend: the
-// base image comes from the installed `images/linux-base` folder, built on the
-// machine on first use (runners R5.33). Limits stay at zero until the pool
-// size of the machine sets them.
+// base image comes from the image files embedded in the binary, written to a
+// build folder and built on the machine on first use (runners R5.33). Limits
+// stay at zero (no cap) until the spec of a runner brings the pool size of its
+// machine; `Limits` is the fallback for a spec without one.
 func DefaultConfig() Config {
+	root, err := os.UserCacheDir()
+	if err != nil || root == "" {
+		root = os.TempDir()
+	}
 	return Config{
-		Dockerfile:   "/usr/share/crsp/images/linux-base/Dockerfile",
-		BuildContext: "/usr/share/crsp/images/linux-base",
-		BaseName:     "linux-base",
+		Assets:    images.FS,
+		BuildRoot: filepath.Join(root, "crsp", "image-build"),
+		BaseName:  "linux-base",
+		Limits:    Limits{},
 	}
 }
