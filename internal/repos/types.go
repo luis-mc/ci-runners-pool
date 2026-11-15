@@ -40,8 +40,12 @@ type Policy struct {
 	// LightRunner keeps one light runner per OS for the repository and writes
 	// RUNS_ON_LIGHT (scheduling R5.65). On by default.
 	LightRunner bool
-	UpdatedAt   time.Time
-	UpdatedBy   string
+	// LegacyVars also writes CI_RUNS_ON and CI_RUNS_ON_WINDOWS, the old
+	// dev-standards names, while a repository moves off the old pool (R5.39).
+	// Off by default.
+	LegacyVars bool
+	UpdatedAt  time.Time
+	UpdatedBy  string
 }
 
 // DefaultPolicy is what a repository gets when the pool is first turned on:

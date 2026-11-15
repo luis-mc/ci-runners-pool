@@ -98,7 +98,7 @@ func (s *Service) planOn(ctx context.Context, r Repository) ([]Step, error) {
 	}
 	steps := []Step{{Action: ActPoolOn, Target: r.FullName, RepositoryID: r.ID, Pool: true,
 		Text: "Turn the pool on for " + r.FullName}}
-	for _, name := range VariableNames() {
+	for _, name := range keptNames() {
 		if val, ok := want[name]; ok {
 			steps = append(steps, Step{Action: ActWriteVariable, Target: name, RepositoryID: r.ID, Value: val,
 				Text: "Write variable " + name + " of " + r.FullName + " = " + val})
@@ -123,6 +123,12 @@ func (s *Service) planOff(ctx context.Context, r Repository) ([]Step, error) {
 	for _, v := range have {
 		if pools[v.Name] {
 			present = append(present, v.Name)
+		} else if isAlias(v.Name) {
+			if yes, err := s.mayDelete(ctx, r, v.Name); err != nil {
+				return nil, err
+			} else if yes {
+				present = append(present, v.Name)
+			}
 		}
 	}
 	if len(present) == 0 {

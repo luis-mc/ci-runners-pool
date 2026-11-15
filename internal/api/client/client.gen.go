@@ -2296,6 +2296,9 @@ type RepositoryPolicy struct {
 	// Labels Generic labels only (github-integration R5.27).
 	Labels []string `json:"labels"`
 
+	// LegacyVars Also write CI_RUNS_ON and CI_RUNS_ON_WINDOWS with the same labels as RUNS_ON_LINUX and RUNS_ON_WINDOWS, for workflows that still follow the old dev-standards templates (github-integration R5.39). Off by default; for the move from the old pool.
+	LegacyVars *bool `json:"legacy_vars,omitempty"`
+
 	// LightRunner Keep one light runner per OS for this repository and write RUNS_ON_LIGHT, so jobs that last seconds do not queue behind a long build (scheduling R5.65). On by default.
 	LightRunner     bool `json:"light_runner"`
 	MaxParallelJobs int  `json:"max_parallel_jobs"`
@@ -2316,6 +2319,9 @@ type RepositoryPolicyUpdate struct {
 	// ConfirmForkRisk Needed to turn fork jobs on (github-integration R5.26).
 	ConfirmForkRisk *bool     `json:"confirm_fork_risk,omitempty"`
 	Labels          *[]string `json:"labels,omitempty"`
+
+	// LegacyVars Turn the old variable names CI_RUNS_ON and CI_RUNS_ON_WINDOWS on or off (github-integration R5.39).
+	LegacyVars *bool `json:"legacy_vars,omitempty"`
 
 	// LightRunner Turn the light runner on or off (scheduling R5.65).
 	LightRunner     *bool     `json:"light_runner,omitempty"`
