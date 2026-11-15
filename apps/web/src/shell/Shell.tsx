@@ -9,6 +9,7 @@ import {
   Message,
   ResultList,
   SearchBar,
+  KeyHints,
   ShortcutTable,
   Status,
   Text,
@@ -26,7 +27,7 @@ import { unwrap, useClient, type Schemas } from '../api/api';
 import { signInUrl, useSession } from '../auth/session';
 import { useLiveState } from '../live/LiveProvider';
 import { wipingLabel } from '../screens/images/labels';
-import { SHORTCUTS, handleKey, isMac } from './shortcuts';
+import { KEY_HINTS, SHORTCUTS, handleKey, isMac } from './shortcuts';
 
 export const AREAS: readonly NavItem[] = [
   { to: '/', label: 'Overview', end: true },
@@ -313,6 +314,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
         menu={<TopMenu items={AREAS} />}
         banner={<BannerSlot>{banners.length ? banners : undefined}</BannerSlot>}
         strip={<ActivityStrip jobs={jobs} />}
+        hints={<KeyHints items={KEY_HINTS} />}
       >
         {children ?? <Outlet />}
       </Frame>

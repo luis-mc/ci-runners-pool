@@ -186,12 +186,15 @@ export function Frame({
   menu,
   banner,
   strip,
+  hints,
   children,
 }: {
   header: ReactNode;
   menu: ReactNode;
   banner?: ReactNode | undefined;
   strip?: ReactNode | undefined;
+  /** The key-hint bar at the page foot (`KeyHints`). */
+  hints?: ReactNode | undefined;
   children: ReactNode;
 }) {
   return (
@@ -203,7 +206,27 @@ export function Frame({
       <main className="ds-main" id="main">
         {children}
       </main>
+      {hints}
     </div>
+  );
+}
+
+/** The key-hint bar (UX-57): the keys, as plain text and never as buttons (UX-8); drawn at every width (UX-50). */
+export function KeyHints({
+  items,
+}: {
+  items: readonly { keys: string; does: string }[];
+}) {
+  return (
+    <footer className="ds-keyhints" aria-label="Keys">
+      <ul className="ds-keyhints__list">
+        {items.map((h) => (
+          <li key={h.keys}>
+            <kbd className="ds-kbd">{h.keys}</kbd> {h.does}
+          </li>
+        ))}
+      </ul>
+    </footer>
   );
 }
 

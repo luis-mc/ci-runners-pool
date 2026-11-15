@@ -1,4 +1,4 @@
-// Component 8: card, card grid and facts list (UX-10, UX-51).
+// Component 8: card (a pane: the title is cut into the top border), card grid and facts list (UX-10, UX-51).
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -12,11 +12,14 @@ export function CardGrid({ children }: { children: ReactNode }) {
 
 export function Card({
   title,
+  count,
   to,
   children,
   footer,
 }: {
   title: string;
+  /** A number shown after the title, as in ┤ Machines 3 ├. */
+  count?: number | undefined;
   to?: string | undefined;
   children: ReactNode;
   footer?: ReactNode | undefined;
@@ -31,6 +34,7 @@ export function Card({
         ) : (
           title
         )}
+        {count === undefined ? null : <span className="ds-card__count">{count}</span>}
       </h3>
       <div className="ds-card__body">{children}</div>
       {footer ? <div className="ds-card__footer">{footer}</div> : null}

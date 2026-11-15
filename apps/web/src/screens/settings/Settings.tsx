@@ -18,11 +18,15 @@ import {
   Stack,
   Status,
   Table,
+  THEMES,
   Tabs,
   TextField,
   TimePicker,
+  applyThemeName,
   formatDateTime,
   formatSize,
+  rememberThemeMode,
+  savedThemeName,
   type Column,
 } from '@crsp/ui';
 import { useEffect, useState } from 'react';
@@ -276,12 +280,14 @@ export function applyTheme(theme: Schemas['Theme']): void {
   const root = document.documentElement;
   if (theme === 'system') root.removeAttribute('data-theme');
   else root.setAttribute('data-theme', theme);
+  rememberThemeMode(theme);
 }
 
 /** Loads the user's theme once signed in and applies it (UX-60). */
 export function ThemeApplier() {
   const client = useClient();
   useEffect(() => {
+    applyThemeName(savedThemeName());
     let on = true;
     unwrap(client.GET('/api/v1/me/preferences'))
       .then((p) => on && applyTheme(p.theme))
@@ -299,6 +305,7 @@ export function AppearanceSettings() {
     () => unwrap(client.GET('/api/v1/me/preferences')),
     [],
   );
+  const [themeName, setThemeName] = useState(savedThemeName);
   const save = useCommand(async (theme: Schemas['Theme']) => {
     const p = await unwrap(client.PUT('/api/v1/me/preferences', { body: { theme } }));
     applyTheme(p.theme);
@@ -306,11 +313,25 @@ export function AppearanceSettings() {
   });
   return (
     <Section title="Appearance">
-      <Load result={result} what="your theme" reload={reload}>
+      <Load result={result} what="your appearance" reload={reload}>
         {(p) => (
           <Stack>
             <ChoiceField
               label="Theme"
+              help="The colours of the console. The choice is saved at once."
+              value={themeName}
+              onChange={(v) => {
+                setThemeName(v);
+                applyThemeName(v);
+              }}
+              choices={THEMES.map((t) => ({
+                value: t.id,
+                label: t.name,
+                swatch: t.id,
+              }))}
+            />
+            <ChoiceField
+              label="Mode"
               help="System follows your device. The choice is saved at once."
               value={p.theme}
               onChange={(v) => void save.run(v as Schemas['Theme'])}
@@ -320,9 +341,9 @@ export function AppearanceSettings() {
                 { value: 'light', label: 'Light' },
               ]}
             />
-            {save.busy ? <Message tone="note">Saving the theme.</Message> : null}
+            {save.busy ? <Message tone="note">Saving the mode.</Message> : null}
             {save.error ? (
-              <Message tone="problem">Could not save the theme. {save.error}</Message>
+              <Message tone="problem">Could not save the mode. {save.error}</Message>
             ) : null}
           </Stack>
         )}

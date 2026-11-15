@@ -98,6 +98,50 @@ describe('Appearance (UX-60)', () => {
   });
 });
 
+describe('Colour themes (UX-60)', () => {
+  it('offers the six themes with a swatch row each and Tokyo Night by default', async () => {
+    window.localStorage.clear();
+    document.documentElement.removeAttribute('data-theme-name');
+    renderApp(signedIn(), '/settings/appearance');
+    const group = await screen.findByRole('group', { name: 'Theme' });
+    const names = within(group)
+      .getAllByRole('radio')
+      .map((r) => (r as HTMLInputElement).value);
+    expect(names).toEqual([
+      'phosphor',
+      'tokyo-night',
+      'catppuccin',
+      'gruvbox',
+      'solarized',
+      'nord',
+    ]);
+    expect(group.querySelectorAll('.ds-swatches')).toHaveLength(6);
+    expect(
+      within(group).getByRole<HTMLInputElement>('radio', { name: 'Tokyo Night' }).checked,
+    ).toBe(true);
+  });
+
+  it('picks a theme, applies it at once and keeps it in this browser', async () => {
+    window.localStorage.clear();
+    renderApp(signedIn(), '/settings/appearance');
+    fireEvent.click(await screen.findByRole('radio', { name: 'Nord' }));
+    expect(document.documentElement.getAttribute('data-theme-name')).toBe('nord');
+    expect(window.localStorage.getItem('crsp.theme-name')).toBe('nord');
+    expect(screen.getByRole<HTMLInputElement>('radio', { name: 'Nord' }).checked).toBe(
+      true,
+    );
+  });
+
+  it('applies the saved theme on load, and the mode choice stays separate', async () => {
+    window.localStorage.setItem('crsp.theme-name', 'gruvbox');
+    document.documentElement.removeAttribute('data-theme-name');
+    renderApp(signedIn(), '/settings/appearance');
+    await screen.findByRole('radio', { name: 'Gruvbox' });
+    expect(document.documentElement.getAttribute('data-theme-name')).toBe('gruvbox');
+    expect(screen.getByRole('group', { name: 'Mode' })).toBeTruthy();
+  });
+});
+
 describe('Retention and backups', () => {
   it('saves retention', async () => {
     const a = signedIn()
