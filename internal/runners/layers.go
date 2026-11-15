@@ -14,7 +14,7 @@ const (
 
 // PlaywrightPin is the Playwright version the browsers layer is built with
 // unless a pool already has a higher one (runners R5.44).
-const PlaywrightPin = "1.56.1"
+const PlaywrightPin = "1.65.1"
 
 // Layer is one image layer: its name, the folder of its Dockerfile and the
 // version it pins.

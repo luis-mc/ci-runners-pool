@@ -31,10 +31,10 @@ func TestNeverLowerPlaywright(t *testing.T) {
 		cur, want, out string
 		held           bool
 	}{
-		{"", "1.56.1", "1.56.1", false},
-		{"1.50.0", "1.56.1", "1.56.1", false},
-		{"1.56.1", "1.56.1", "1.56.1", false},
-		{"1.58.0", "1.56.1", "1.58.0", true},
+		{"", "1.65.1", "1.65.1", false},
+		{"1.50.0", "1.65.1", "1.65.1", false},
+		{"1.65.1", "1.65.1", "1.65.1", false},
+		{"1.70.0", "1.65.1", "1.70.0", true},
 		{"2.0.0", "1.99.9", "2.0.0", true},
 		{"1.9.0", "1.10.0", "1.10.0", false}, // numeric, not text, order
 	}
@@ -44,7 +44,7 @@ func TestNeverLowerPlaywright(t *testing.T) {
 			t.Errorf("NeverLower(%q,%q) = %q,%v,%v; want %q,%v", c.cur, c.want, v, held, err, c.out, c.held)
 		}
 	}
-	for _, bad := range [][2]string{{"", "latest"}, {"1.x", "1.56.1"}, {"1.56.1", ""}, {"01.2.3", "1.2.3"}} {
+	for _, bad := range [][2]string{{"", "latest"}, {"1.x", "1.65.1"}, {"1.65.1", ""}, {"01.2.3", "1.2.3"}} {
 		if _, _, err := NeverLower(bad[0], bad[1]); err == nil {
 			t.Errorf("NeverLower(%q,%q) accepted", bad[0], bad[1])
 		}
@@ -52,8 +52,8 @@ func TestNeverLowerPlaywright(t *testing.T) {
 }
 
 func TestRebuildKeepsHigherPlaywright(t *testing.T) {
-	got, err := SelectLayers(PoolLayers{Enabled: []string{"browsers"}, PlaywrightCurrent: "1.60.0"})
-	if err != nil || got[0].Version != "1.60.0" || !got[0].Held {
+	got, err := SelectLayers(PoolLayers{Enabled: []string{"browsers"}, PlaywrightCurrent: "1.70.0"})
+	if err != nil || got[0].Version != "1.70.0" || !got[0].Held {
 		t.Fatalf("pin must not lower: %+v %v", got, err)
 	}
 	args := strings.Join(got[0].BuildArgs("base:x"), " ")

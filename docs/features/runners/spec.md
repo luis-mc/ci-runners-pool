@@ -447,7 +447,7 @@ Open questions for the owner (proposed answers are in the requirements until dec
 12. R5.49 (CRSP49): `gh` is pinned at 2.83.0 (the version whose checksums could be read when the image was written). Confirm, or name a newer version and hash.
 13. R5.49 (CRSP49): the job user is `runner`, uid 1001. Confirm the name and id.
 14. R5.44 (CRSP55): the layer is named `browsers` (the task brief and the cache folder of caches R5.43) while R5.50 and dev-standards name it `playwright`. `browsers` is built; renaming is one constant. Confirm the name.
-15. R5.44 (CRSP55): the pinned Playwright version is 1.56.1, taken as a recent release; the build installs it from npm without a hash because `playwright-core` fetches its browsers itself. Alternative: pin a hash per browser download. Confirm the version and whether a hash is wanted.
+15. R5.44 (CRSP55): the pinned Playwright version is 1.65.1, the latest stable release when built (1.56.1 hung extracting Chromium under the base image's Node 26); the build installs it from npm without a hash because `playwright-core` fetches its browsers itself. Alternative: pin a hash per browser download. Confirm the version and whether a hash is wanted.
 16. R5.44 (CRSP55): parity plan row 30 says a per-repository pool needs no merge of layers across repositories. The never-lower rule is built for a rebuild of one pool only. Confirm that is enough.
 
 ## 11. Not built yet
