@@ -11,6 +11,8 @@ code:
   - internal/runners/**
   - internal/backend/**
   - internal/runnercache/**
+  - internal/envsets/**
+  - internal/regcreds/**
 design_system: [UX-4, UX-5, UX-6, UX-9, UX-13, UX-19, UX-25, UX-29, UX-30, UX-38, UX-53, UX-58, UX-61, UX-62]
 last_verified: 2026-11-14
 artifact:
@@ -277,6 +279,14 @@ Each layer has a self-check that runs its main tools. The doctor probes the same
 
 **R5.67** (M1, Built HND23) — **A stale session after a restart is expected for a while.** (Handover lesson 29.) After a real `wsl --shutdown` the pool came back with KVM, but every listener logged "A session for this runner already exists" for about two minutes, until GitHub dropped the sessions it still held. When a runner's listener reports that message right after a restart (container pool start, VM restart, service restart), the supervisor treats it as expected for a bounded window, the pool setting `session_wait_minutes` (default 3, 1 to 30). Inside the window it backs off quietly: one log line says it waits for GitHub to drop the old session and until when, and it never starts a second listener for the runner (R5.59, R5.60; a start goes through the listener guard first). The doctor and the console raise no problem inside the window (doctor R5.41). Past the window it is a real fault: the supervisor returns `ErrSessionStale` and the doctor warns with what to do. A second listener is a fault at any time (R5.46). `persistent.SessionGuard` holds the rule; `settings.GetSessionWait` and `UpdateSessionWait` hold the window. Not built: the setting in the API and the settings screen, and the agent filling `SessionRefused` and `RestartedAt` from the listener log (open question 55).
 
+**R5.68** (M2, Built RES4: `internal/envsets/`, `GET /api/v1/runners/{id}/env`, `crsp runner env`; source: [landscape of 15 Nov 2026](../../architecture/landscape-2026-11.md), task RES4) — **Named environment sets.** An owner stores sets of environment variables once, by name (for example `dotnet-8`), and a runner applies them by listing the names. The environment of a runner is merged in a fixed order: the machine's values, then each applied set in the order the runner lists them, then the runner's own values; a later layer wins. A missing set stops the start of the runner; nothing starts with half an environment. Names that begin `GITHUB_`, `ACTIONS_RUNNER_`, `RUNNER_` or `CRSP_` are refused, so a set cannot change the runner itself (R5.53). `crsp runner env <name>` and the API show the merged result with the layer each value came from. NOT YET IMPLEMENTED: the store tables for a runner's own set list and values, and the call that puts the merged result into the runner `.env` and the container environment; the layers of a runner come from a `LayerSource` that the runner record will implement.
+
+**R5.69** (M2, Built RES4; source: [landscape of 15 Nov 2026](../../architecture/landscape-2026-11.md), task RES4) — **Sensitive values are encrypted and never shown.** A variable flagged sensitive is stored only in the OS secret store (decision 0002), never in the set's metadata, the database or a backup of it. Every view (the API, the CLI, the console) shows `***` for it, and the process redactor learns each such value so a log line that carries one is masked (R5.11, R6.2). Saving a sensitive variable with no value keeps the stored one; removing it, or deleting the set, deletes the stored value. When the secret store is down a save fails closed with `unavailable`.
+
+**R5.70** (M2, Built RES5: `internal/regcreds/`, `/api/v1/registry`; source: [landscape of 15 Nov 2026](../../architecture/landscape-2026-11.md), task RES5) — **Private registry logins per backend.** The owner stores a login (registry host, user name, password) for each backend kind: container, VM and persistent. The password is stored only in the OS secret store; the record holds a `CredentialRef`, the name of that entry, and no API answer returns the password or the reference. The login covers the images of a job and of its service containers. The password reaches the engine only on standard input (`--password-stdin`), or for a VM in a one-time `0600` file in the boot seed that the same boot script removes; it is never in a command line, a log line or the job environment (R6.2). A persistent runner logs in to a config folder inside its own runner folder (`DOCKER_CONFIG`), not to the host's engine login.
+
+**R5.71** (M2, Built RES5; source: [landscape of 15 Nov 2026](../../architecture/landscape-2026-11.md), task RES5) — **A private CA bundle that runners trust.** The owner sets one bundle of PEM certificates (a private key or any other block is refused). Container: the agent writes it to a folder it owns, mounts the folder read-only at `/usr/local/share/ca-certificates/crsp`, and runs `update-ca-certificates` in the container before the runner starts. VM: the bundle is a file in the boot seed at the same path, and the boot script runs `update-ca-certificates`. Persistent: the runner's own environment only (`NODE_EXTRA_CA_CERTS` for the bundle, and `SSL_CERT_FILE`, `GIT_SSL_CAINFO`, `REQUESTS_CA_BUNDLE` and `CARGO_HTTP_CAINFO` for a file that holds the host's public roots first, then the bundle); the files live in the runner folder and the host trust store is never changed. NOT YET IMPLEMENTED: calling `PlanContainer`, `PlanVM` and `PlanPersistent` from the three backends' start, and the real VM seed writer.
+
 ## 6. Non-functional requirements
 
 All **NOT YET IMPLEMENTED**.
@@ -433,6 +443,10 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.65 | planned: internal/backend/windows/hypervcontainer_test.go TestOptionOffByDefault, TestRefusesWhenHostOrImageDoNotMatch, TestFallsBackWithAReason (CRSP85) |
 | R5.66 | planned: internal/backend/hyperv/clone_test.go TestBaseOnlyFromDefaultBranch, TestCloneIsCopyOnWriteAndDeleted, TestOrphanSweepAtStart (CRSP86) |
 | R5.67 | `internal/backend/persistent/session_test.go` TestStaleSessionInsideWindowIsQuiet, TestStaleSessionStartsNoSecondListener, TestStaleSessionPastWindowIsAFault, TestOtherOutputIsClear, TestUnknownRestartIsNeverInWindow; `internal/settings/session_test.go` TestSessionWaitDefaultsSavesAndRefuses |
+| R5.68 | internal/envsets/envsets_test.go TestMergeOrderMachineSetsRunner, TestMergeSetOrderMatters, TestMissingSetFailsTheMerge, TestValidation; internal/api/handlers_envsets_test.go TestEnvSetRoutesMaskSensitiveAndMergeForARunner, TestEnvSetWriteNeedsAdmin; internal/cli/resources_test.go TestRunnerEnvShowsMaskedMergedValues (RES4) |
+| R5.69 | internal/envsets/envsets_test.go TestSensitiveValueNeverInMetaAndMaskedInViews, TestSensitiveEditKeepsValueAndDropsRemoved, TestSecretStoreDownFailsClosed (RES4) |
+| R5.70 | internal/regcreds/regcreds_test.go TestLoginPasswordOnlyInSecretStore, TestLoginRules, TestContainerCAMountUpdateAndLoginOnStdin, TestVMBootInjection; internal/api/handlers_envsets_test.go TestRegistryRoutesNeverReturnThePassword (RES5) |
+| R5.71 | internal/regcreds/regcreds_test.go TestBundleValidation, TestContainerCAMountUpdateAndLoginOnStdin, TestVMBootInjection, TestPersistentRunnerEnvOnlyNeverHostTrustStore, TestNothingSetMeansNothingInjected (RES5) |
 | R6.1 | internal/backend/container/container_test.go TestNoPrivilegedNoSocketKvmDevice (CRSP52) |
 | R6.2 | internal/runners/service_test.go TestNoTokenOrPasswordStoredOrLogged; internal/backend/linux/linux_test.go TestTokenOnlyInEnvAndUpdateOff |
 | R6.3 | internal/backend/windows/windows_test.go TestAccountRights (never in Administrators); internal/backend/linux/linux_test.go TestUnitUserAndGroup; internal/backend/macos/macos_test.go TestHiddenUser |
@@ -516,6 +530,11 @@ Open questions for the owner (proposed answers are in the requirements until dec
 53. R5.44 (CRSP68): `PLAYWRIGHT_BROWSERS_PATH` is set only for a pool with the `browsers` layer. A pool without it gets no value, though the lane has a `browsers` folder. Alternative: point it at the lane folder (caches R5.41).
 54. R5.51 (CRSP70): the pool setting is replaced as a whole list; there is no add and drop. Conservative choice: the owner edits the full list, and `MergeExtraPackages` stays for a later add and drop. Alternative: `--add` and `--drop` on the CLI and two buttons in the console. Also: a remote machine does not get the list yet, because the agent link has no field for it; adding one is a proto change.
 55. R5.67 (HND23): the agent does not yet read the listener log, so nothing sets `SessionRefused` and `RestartedAt` of the doctor runner; the setting has no API field or screen yet. Owner: say whether the setting joins `PoolSettings` (API change) or stays its own key.
+56. R5.68 (RES4): a runner's set list and own values need store tables and fields on the runner record; until then `LayerSource` is the seam and no runner has sets. Alternative: keep them in the runner's settings JSON. Confirm the table.
+57. R5.68 (RES4): a set name that a runner lists is looked up when the runner starts, so a deleted set stops the next start. Alternative: refuse to delete a set a runner lists. Conservative choice: the start fails and says which set is missing.
+58. R5.70 (RES5): logins are per backend kind and per registry host, not per repository. Alternative: a login per repository pool. Confirm.
+59. R5.71 (RES5): the `SSL_CERT_FILE` family of variables replaces a tool's trust list, so the persistent plan writes a combined file with the host's public roots first. The caller must pass the host bundle; the agent does not yet find it on each OS. Alternative: only `NODE_EXTRA_CA_CERTS`, which adds.
+60. RES4 and RES5: the source document names neither task; the scope is the task brief. The TypeScript contract types (`packages/contract/ts/generated/schema.d.ts`) were not regenerated here (no `node_modules`); run `pnpm --filter @crsp/contract run codegen`. `golangci-lint` here was built with Go 1.25 and refuses the repository's Go version, so it was not run.
 
 ## 11. Not built yet
 
@@ -546,6 +565,7 @@ Built by CRSP22: the three persistent backends, the runner rules, plan and apply
 - `internal/backend/container/kvm.go`, `wine.go`: the KVM device, label decision and bounded wait; the Wine prefix (R5.41, R5.42, R5.52).
 - `packaging/hooks/`: the .ps1 and .sh hook scripts.
 - `internal/agentlink/`: the controller's runner commands over the agent link and the machine reports it keeps (R5.61); `internal/agent/runner_cmds.go` and `machine_report.go` are the agent's side.
+- `internal/envsets/`: named environment sets, the merge order and sensitive values (R5.68, R5.69); `internal/regcreds/`: registry logins, the CA bundle and the injection plan per backend (R5.70, R5.71); `internal/api/handlers_envsets.go`: their routes.
 
 Source: internal/runners/service.go, internal/backend/windows/windows.go, internal/backend/linux/linux.go, internal/backend/macos/macos.go, internal/api/handlers_runners.go
 
