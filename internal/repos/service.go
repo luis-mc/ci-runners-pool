@@ -19,6 +19,12 @@ type Config struct {
 	Tokens   TokenSource
 	Audit    Auditor
 	Capacity Capacity
+	// Sizes lists the machines with their pool size, for the size variables
+	// such as RUNS_ON_LINUX_LARGE (scheduling R5.67); nil writes none.
+	Sizes SizeCapacity
+	// SizeFloors is the owner's map of size name to floor; nil or empty means
+	// the size class table (DefaultSizeFloors).
+	SizeFloors func() map[string]SizeFloor
 	// Light keeps the light runners; nil means none are kept.
 	Light LightRunners
 	// Fleet removes job runners of a repository that stops being served (CRSP82); nil means none.
