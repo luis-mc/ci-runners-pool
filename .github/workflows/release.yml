@@ -256,7 +256,7 @@ jobs:
 
       # CRSP90: the SBOMs (SPDX JSON), made before SHA256SUMS so the checksums cover them.
       # syft is pinned and sha256-checked in scripts/delivery/tools.json.
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
       - name: SBOM (Go binary and web console)
