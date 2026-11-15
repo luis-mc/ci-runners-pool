@@ -124,6 +124,15 @@ Get-Process -Name 'Runner.Listener' -ErrorAction SilentlyContinue |
     ForEach-Object { $_.Id }
 `
 
+	// scriptEndListeners ends each process in CRSP_PIDS (comma separated) with
+	// its whole process tree (runners R5.59).
+	scriptEndListeners = scriptHeader + `
+foreach ($id in ($env:CRSP_PIDS -split ',')) {
+    if ($id) { & taskkill.exe /PID $id /T /F | Out-Null }
+}
+exit 0
+`
+
 	scriptStartService = scriptHeader + `
 Start-Service -Name $env:CRSP_SERVICE
 `
