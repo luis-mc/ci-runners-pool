@@ -310,8 +310,10 @@ func (s *Service) UpdatePolicy(ctx context.Context, p auth.Principal, id int64, 
 		return Policy{}, err
 	}
 	s.cfg.Audit.Audit(ctx, p, "policy.changed", "repository", r.FullName, describePolicy(old, np))
-	if !np.HostedFallback {
-		s.dropFallback(id)
+	if !np.HostedFallback && s.dropFallback(id) {
+		// Turned off while on fallback: the switch back is logged like any
+		// other (R5.43); syncVariables below writes the crsp labels at once.
+		s.cfg.Audit.Audit(ctx, p, "fallback.ended", "repository", r.FullName, "fallback was turned off for this repository")
 	}
 	if r.PoolOn {
 		if err := s.syncVariables(ctx, p, r, np); err != nil {

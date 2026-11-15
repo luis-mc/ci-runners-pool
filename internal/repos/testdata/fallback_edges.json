@@ -1,0 +1,223 @@
+[
+  {
+    "name": "grace boundary: one second short stays on crsp",
+    "opt_in": true,
+    "steps": [
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "2m59s"},
+      {"do": "eval"},
+      {"do": "expect", "var": "crsp", "where": "waiting", "why": "grace"}
+    ]
+  },
+  {
+    "name": "grace boundary: exactly the grace time falls back",
+    "opt_in": true,
+    "steps": [
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "3m"},
+      {"do": "eval"},
+      {"do": "expect", "var": "hosted", "where": "hosted", "why": "fallback_on"}
+    ]
+  },
+  {
+    "name": "machine online but not accepting counts as down (an up map of false)",
+    "opt_in": true,
+    "steps": [
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "3m1s"},
+      {"do": "eval"},
+      {"do": "expect", "var": "hosted", "where": "hosted", "why": "fallback_on"},
+      {"do": "up", "os": "Linux", "up": true},
+      {"do": "eval"},
+      {"do": "expect", "var": "crsp", "where": "crsp", "why": "machine_up"}
+    ]
+  },
+  {
+    "name": "flapping inside the grace never flips the variable",
+    "opt_in": true,
+    "steps": [
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "2m50s"},
+      {"do": "eval"},
+      {"do": "up", "os": "Linux", "up": true},
+      {"do": "eval"},
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "2m50s"},
+      {"do": "eval"},
+      {"do": "expect", "var": "crsp", "where": "waiting", "why": "grace"},
+      {"do": "up", "os": "Linux", "up": true},
+      {"do": "eval"},
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "2m"},
+      {"do": "eval"},
+      {"do": "expect", "var": "crsp", "where": "waiting", "why": "grace"},
+      {"do": "expect_audit", "action": "fallback.started", "has": false}
+    ]
+  },
+  {
+    "name": "flapping after the grace: one up pass brings the labels back at once, the next down pass counts the grace again",
+    "opt_in": true,
+    "steps": [
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "3m"},
+      {"do": "eval"},
+      {"do": "expect", "var": "hosted", "where": "hosted", "why": "fallback_on"},
+      {"do": "up", "os": "Linux", "up": true},
+      {"do": "eval"},
+      {"do": "expect", "var": "crsp", "where": "crsp", "why": "machine_up"},
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "2m59s"},
+      {"do": "eval"},
+      {"do": "expect", "var": "crsp", "where": "waiting", "why": "grace"}
+    ]
+  },
+  {
+    "name": "an OS with no machine at all never falls back",
+    "opt_in": true,
+    "steps": [
+      {"do": "no_machine", "os": "Linux"},
+      {"do": "eval"},
+      {"do": "advance", "d": "1h"},
+      {"do": "eval"},
+      {"do": "expect", "var": "crsp", "where": "crsp", "why": "machine_up"}
+    ]
+  },
+  {
+    "name": "cap reached mid-month: back to waiting, running hosted job not stopped, still counted",
+    "opt_in": true,
+    "cap": 5,
+    "steps": [
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "3m"},
+      {"do": "eval"},
+      {"do": "expect", "var": "hosted", "where": "hosted", "why": "fallback_on"},
+      {"do": "job", "id": 7, "label": "ubuntu-latest"},
+      {"do": "eval"},
+      {"do": "advance", "d": "4m59s"},
+      {"do": "eval"},
+      {"do": "expect", "var": "hosted", "where": "hosted", "why": "fallback_on"},
+      {"do": "advance", "d": "1s"},
+      {"do": "eval"},
+      {"do": "expect", "var": "crsp", "where": "waiting", "why": "cap_reached"},
+      {"do": "expect_used", "minutes": 5},
+      {"do": "expect_job_running", "id": 7},
+      {"do": "advance", "d": "1m"},
+      {"do": "eval"},
+      {"do": "expect_used", "minutes": 6},
+      {"do": "expect", "var": "crsp", "where": "waiting", "why": "cap_reached"}
+    ]
+  },
+  {
+    "name": "month rollover: the count starts from zero and the fallback starts again at once",
+    "opt_in": true,
+    "cap": 5,
+    "steps": [
+      {"do": "advance_to", "at": "2026-11-30T23:50:00Z"},
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "3m"},
+      {"do": "eval"},
+      {"do": "job", "id": 7, "label": "ubuntu-latest"},
+      {"do": "eval"},
+      {"do": "advance", "d": "5m"},
+      {"do": "eval"},
+      {"do": "expect", "var": "crsp", "where": "waiting", "why": "cap_reached"},
+      {"do": "job_ends", "id": 7},
+      {"do": "eval"},
+      {"do": "advance_to", "at": "2026-12-01T00:00:00Z"},
+      {"do": "eval"},
+      {"do": "expect_used", "minutes": 0},
+      {"do": "expect", "var": "hosted", "where": "hosted", "why": "fallback_on"}
+    ]
+  },
+  {
+    "name": "a job over the month change: the seconds between two passes land in the month of the later pass",
+    "opt_in": true,
+    "cap": 60,
+    "steps": [
+      {"do": "advance_to", "at": "2026-11-30T23:55:00Z"},
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "3m"},
+      {"do": "eval"},
+      {"do": "job", "id": 7, "label": "ubuntu-latest"},
+      {"do": "eval"},
+      {"do": "advance", "d": "1m"},
+      {"do": "eval"},
+      {"do": "expect_used", "minutes": 1},
+      {"do": "advance_to", "at": "2026-12-01T00:01:00Z"},
+      {"do": "eval"},
+      {"do": "expect_used", "minutes": 2}
+    ]
+  },
+  {
+    "name": "opted out while on fallback: variable restored at once, fallback.ended logged, routing back to waiting",
+    "opt_in": true,
+    "steps": [
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "4m"},
+      {"do": "eval"},
+      {"do": "expect", "var": "hosted", "where": "hosted", "why": "fallback_on"},
+      {"do": "optout"},
+      {"do": "expect", "var": "crsp", "where": "waiting", "why": "fallback_off"},
+      {"do": "expect_audit", "action": "fallback.ended", "has": true},
+      {"do": "eval"},
+      {"do": "advance", "d": "10m"},
+      {"do": "eval"},
+      {"do": "expect", "var": "crsp", "where": "waiting", "why": "fallback_off"}
+    ]
+  },
+  {
+    "name": "opted out and back in: the grace counts again from the machine going down, never from the old fallback",
+    "opt_in": true,
+    "steps": [
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "4m"},
+      {"do": "eval"},
+      {"do": "optout"},
+      {"do": "optin"},
+      {"do": "eval"},
+      {"do": "expect", "var": "hosted", "where": "hosted", "why": "fallback_on"}
+    ]
+  },
+  {
+    "name": "a repository that became public while on fallback is put back and never falls back again",
+    "opt_in": true,
+    "steps": [
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "4m"},
+      {"do": "eval"},
+      {"do": "expect", "var": "hosted", "where": "hosted", "why": "fallback_on"},
+      {"do": "make_public"},
+      {"do": "eval"},
+      {"do": "expect", "var": "crsp", "where": "waiting", "why": "public_repository"},
+      {"do": "advance", "d": "1h"},
+      {"do": "eval"},
+      {"do": "expect", "var": "crsp", "where": "waiting", "why": "public_repository"}
+    ]
+  },
+  {
+    "name": "a repository that did not opt in never changes however long no machine is up",
+    "opt_in": false,
+    "steps": [
+      {"do": "up", "os": "Linux", "up": false},
+      {"do": "eval"},
+      {"do": "advance", "d": "24h"},
+      {"do": "eval"},
+      {"do": "expect", "var": "crsp", "where": "waiting", "why": "fallback_off"},
+      {"do": "expect_audit", "action": "fallback.", "has": false}
+    ]
+  }
+]
