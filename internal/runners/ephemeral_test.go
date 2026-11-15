@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 )
 
 func dockerMachine(allowed bool) Machine {
@@ -73,5 +74,74 @@ func TestEphemeralCountAndFinish(t *testing.T) {
 	pr := p.add(t)
 	if err := p.svc.FinishJobRunner(ctx, pr.ID, "demand"); err == nil {
 		t.Error("finished a persistent runner")
+	}
+}
+
+func idleRig(t *testing.T) (*rig, Record) {
+	t.Helper()
+	m := machine("linux", "x64", true)
+	r := newRig(m)
+	rec, err := r.svc.StartJobRunner(context.Background(), jobRunner(), "demand")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r, rec
+}
+
+// Question 35: an idle runner is deleted at GitHub, stopped, cleaned up and its
+// record dropped, so the slot is free.
+func TestRemoveIdleRunnerFreesSlot(t *testing.T) {
+	r, rec := idleRig(t)
+	r.gh.runners = []github.Runner{{ID: 4242, Name: rec.Name, Status: "online"}}
+	if err := r.svc.RemoveIdleRunner(context.Background(), rec.ID, "demand"); err != nil {
+		t.Fatal(err)
+	}
+	if len(r.gh.deleted) != 1 || r.gh.deleted[0] != 4242 {
+		t.Fatalf("deleted %v", r.gh.deleted)
+	}
+	if len(r.ag.stopped) != 1 {
+		t.Fatalf("stopped %v", r.ag.stopped)
+	}
+	if n, _ := r.svc.EphemeralOnMachine(context.Background(), "m1"); n != 0 {
+		t.Fatalf("slot still held: %d", n)
+	}
+}
+
+func TestRemoveIdleRunnerLeavesBusyRunner(t *testing.T) {
+	r, rec := idleRig(t)
+	r.gh.runners = []github.Runner{{ID: 4242, Name: rec.Name, Status: "online", Busy: true}}
+	err := r.svc.RemoveIdleRunner(context.Background(), rec.ID, "demand")
+	if !errors.Is(err, ErrRunnerBusy) {
+		t.Fatalf("err = %v", err)
+	}
+	if len(r.gh.deleted) != 0 || len(r.ag.stopped) != 0 {
+		t.Fatal("a busy runner was touched")
+	}
+	if n, _ := r.svc.EphemeralOnMachine(context.Background(), "m1"); n != 1 {
+		t.Fatalf("record lost: %d", n)
+	}
+}
+
+func TestRemoveIdleRunnerFailsClosed(t *testing.T) {
+	r, rec := idleRig(t)
+	r.gh.listErr = errors.New("github down")
+	if err := r.svc.RemoveIdleRunner(context.Background(), rec.ID, "demand"); err == nil {
+		t.Fatal("an unreadable runner list removed a runner")
+	}
+	if len(r.ag.stopped) != 0 {
+		t.Fatal("stopped without knowing")
+	}
+}
+
+func TestRemoveIdleRunnerNotListedStillCleansUp(t *testing.T) {
+	r, rec := idleRig(t)
+	if err := r.svc.RemoveIdleRunner(context.Background(), rec.ID, "demand"); err != nil {
+		t.Fatal(err)
+	}
+	if len(r.gh.deleted) != 0 {
+		t.Fatalf("deleted %v", r.gh.deleted)
+	}
+	if n, _ := r.svc.EphemeralOnMachine(context.Background(), "m1"); n != 0 {
+		t.Fatal("slot held")
 	}
 }

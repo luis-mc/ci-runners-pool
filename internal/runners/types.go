@@ -192,6 +192,9 @@ type GitHub interface {
 	// GenerateJITConfig gives the config of one ephemeral runner (runners
 	// R5.25, github-integration R5.34). The caller passes it on and drops it.
 	GenerateJITConfig(ctx context.Context, installationID int64, scope github.RunnerScope, in github.JITRequest) (github.JITConfig, error)
+	// DeleteRunner removes a runner from GitHub. GitHub refuses a runner that
+	// has a job, so a job that starts at that moment is not cut.
+	DeleteRunner(ctx context.Context, installationID int64, scope github.RunnerScope, runnerID int64) error
 }
 
 // RemoveRequest asks an agent to take a runner away.

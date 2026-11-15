@@ -26,11 +26,13 @@ func (f *fakeEnv) Repo(_ context.Context, name string) (Repo, bool, error) {
 func (f *fakeEnv) Hosts(context.Context) ([]Host, error) { return f.hosts, nil }
 
 type fakeRunners struct {
-	mu       sync.Mutex
-	started  []runners.JobRunner
-	finished []string
-	running  map[string]int
-	failNext error
+	mu        sync.Mutex
+	started   []runners.JobRunner
+	finished  []string
+	removed   []string
+	removeErr error
+	running   map[string]int
+	failNext  error
 }
 
 func (f *fakeRunners) StartJobRunner(_ context.Context, j runners.JobRunner, _ string) (runners.Record, error) {
@@ -49,6 +51,15 @@ func (f *fakeRunners) FinishJobRunner(_ context.Context, id, _ string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.finished = append(f.finished, id)
+	return nil
+}
+func (f *fakeRunners) RemoveIdleRunner(_ context.Context, id, _ string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.removeErr != nil {
+		return f.removeErr
+	}
+	f.removed = append(f.removed, id)
 	return nil
 }
 func (f *fakeRunners) EphemeralOnMachine(_ context.Context, m string) (int, error) {
@@ -247,5 +258,92 @@ func TestRunReadsTheChannel(t *testing.T) {
 	cancel()
 	if len(fr.started) != 1 {
 		t.Fatalf("started %d", len(fr.started))
+	}
+}
+
+func startOne(t *testing.T) (*Loop, *fakeRunners, *time.Time) {
+	t.Helper()
+	l, fr, now := newLoop(2)
+	ctx := context.Background()
+	l.Observe(ctx, queued(1, linuxLabels...))
+	l.Dispatch(ctx)
+	if len(fr.started) != 1 {
+		t.Fatal("no runner started")
+	}
+	return l, fr, now
+}
+
+// Question 35: a runner with no job for 15 minutes is removed.
+func TestIdleRunnerRemovedAfterFifteenMinutes(t *testing.T) {
+	l, fr, now := startOne(t)
+	ctx := context.Background()
+	*now = now.Add(14 * time.Minute)
+	l.SweepIdle(ctx)
+	if len(fr.removed) != 0 {
+		t.Fatal("removed too early")
+	}
+	*now = now.Add(2 * time.Minute)
+	l.SweepIdle(ctx)
+	if len(fr.removed) != 1 || fr.removed[0] != "r_crsp-job-1" {
+		t.Fatalf("removed %v", fr.removed)
+	}
+	l.SweepIdle(ctx)
+	if len(fr.removed) != 1 {
+		t.Fatalf("removed twice: %v", fr.removed)
+	}
+	// The job it was made for is still queued, so it waits again.
+	if l.Waiting() != 1 {
+		t.Fatalf("waiting %d", l.Waiting())
+	}
+}
+
+func TestRunnerWithAJobIsNotIdle(t *testing.T) {
+	l, fr, now := startOne(t)
+	ctx := context.Background()
+	l.Observe(ctx, github.Job{ID: 1, Repository: "alice/demo", Status: "in_progress", RunnerName: "crsp-job-1"})
+	*now = now.Add(time.Hour)
+	l.SweepIdle(ctx)
+	if len(fr.removed) != 0 {
+		t.Fatalf("removed a runner with a job: %v", fr.removed)
+	}
+}
+
+func TestBusyRunnerIsLeftAlone(t *testing.T) {
+	l, fr, now := startOne(t)
+	ctx := context.Background()
+	fr.removeErr = runners.ErrRunnerBusy
+	*now = now.Add(20 * time.Minute)
+	l.SweepIdle(ctx)
+	fr.removeErr = nil
+	l.SweepIdle(ctx)
+	if len(fr.removed) != 0 {
+		t.Fatalf("removed a busy runner: %v", fr.removed)
+	}
+}
+
+func TestFailedIdleRemovalRetriesLater(t *testing.T) {
+	l, fr, now := startOne(t)
+	ctx := context.Background()
+	fr.removeErr = errors.New("github down")
+	*now = now.Add(20 * time.Minute)
+	l.SweepIdle(ctx)
+	fr.removeErr = nil
+	l.SweepIdle(ctx) // inside the retry wait
+	if len(fr.removed) != 0 {
+		t.Fatal("retried at once")
+	}
+	*now = now.Add(2 * time.Minute)
+	l.SweepIdle(ctx)
+	if len(fr.removed) != 1 {
+		t.Fatalf("removed %v", fr.removed)
+	}
+}
+
+func TestIdleRunnerSlotIsFreed(t *testing.T) {
+	l, fr, now := startOne(t)
+	*now = now.Add(16 * time.Minute)
+	l.SweepIdle(context.Background())
+	if len(fr.removed) != 1 {
+		t.Fatal("not removed")
 	}
 }
