@@ -11,13 +11,12 @@ import (
 
 // MarkSeen records a heartbeat or any message: the machine is online (R5.35).
 func (s *Service) MarkSeen(ctx context.Context, machineID string) error {
-	m, err := s.o.Repo.GetMachine(ctx, machineID)
-	if err != nil {
-		return err
-	}
-	changed := !m.Online
-	m.Online, m.LastSeen = true, s.now()
-	if err := s.o.Repo.UpdateMachine(ctx, m); err != nil {
+	changed := false
+	if _, _, err := s.updateMachine(ctx, machineID, func(m *Machine) bool {
+		changed = !m.Online
+		m.Online, m.LastSeen = true, s.now()
+		return true
+	}); err != nil {
 		return err
 	}
 	if changed {
@@ -27,7 +26,8 @@ func (s *Service) MarkSeen(ctx context.Context, machineID string) error {
 }
 
 // Tick does the periodic work: it marks a machine that sent nothing for 30
-// seconds offline (R5.35), warns once when a drain passed its timeout, keeps
+// seconds, or whose last heartbeat is dated more than 30 seconds ahead of the
+// controller clock, offline (R5.35), warns once when a drain passed its timeout, keeps
 // it waiting and stops nothing (R5.33), and drops load older than 24 hours
 // (R6.8). The controller calls it every few seconds.
 func (s *Service) Tick(ctx context.Context) error {
@@ -37,11 +37,30 @@ func (s *Service) Tick(ctx context.Context) error {
 		return err
 	}
 	for _, m := range ms {
-		if m.Online && now.Sub(m.LastSeen) > OfflineAfter {
-			m.Online = false
-			if err := s.o.Repo.UpdateMachine(ctx, m); err != nil {
-				return err
+		// A heartbeat dated more than the skew in the future (a clock that
+		// stepped back, a restored record) is not fresh either: it would keep
+		// the machine online until the clock caught up. It is logged once, as
+		// the machine goes offline.
+		var skew time.Duration
+		_, went, err := s.updateMachine(ctx, m.ID, func(m *Machine) bool {
+			skewed := m.Online && m.LastSeen.Sub(now) > OfflineAfter
+			if !m.Online || (!skewed && now.Sub(m.LastSeen) <= OfflineAfter) {
+				return false
 			}
+			if skewed {
+				skew = m.LastSeen.Sub(now)
+			}
+			m.Online = false
+			return true
+		})
+		if err != nil {
+			return err
+		}
+		if skew > 0 {
+			_ = s.o.Repo.Audit(ctx, "system", "machine.heartbeat.skew", m.ID,
+				fmt.Sprintf("last heartbeat dated %s ahead of the controller clock; counted as not fresh", skew.Round(time.Second)))
+		}
+		if went {
 			s.notifyMachine(m.ID)
 		}
 	}
@@ -188,24 +207,25 @@ func (s *Service) HandleFacts(ctx context.Context, machineID, agentVersion strin
 	if pf == nil {
 		return nil
 	}
-	m, err := s.o.Repo.GetMachine(ctx, machineID)
-	if err != nil {
-		return err
-	}
 	facts, backends := FactsFromProto(pf), BackendsFromProto(pf)
 	facts.AgentVersion = agentVersion
-	old := m.Facts
-	old.DetectedAt, facts.DetectedAt = time.Time{}, time.Time{}
-	changed := !reflect.DeepEqual(old, facts) || !reflect.DeepEqual(m.Backends, backends)
-	facts.DetectedAt = FactsFromProto(pf).DetectedAt
-	m.Facts, m.Backends, m.AgentVersion = facts, backends, agentVersion
-	if facts.OS != "" {
-		m.OS = facts.OS
-	}
-	if facts.Arch != "" {
-		m.Arch = facts.Arch
-	}
-	if err := s.o.Repo.UpdateMachine(ctx, m); err != nil {
+	changed := false
+	// Only the reported facts are written; the name, state and settings are the
+	// user's and stay as they are (RES6).
+	if _, _, err := s.updateMachine(ctx, machineID, func(m *Machine) bool {
+		old, nf := m.Facts, facts
+		old.DetectedAt, nf.DetectedAt = time.Time{}, time.Time{}
+		changed = !reflect.DeepEqual(old, nf) || !reflect.DeepEqual(m.Backends, backends)
+		nf.DetectedAt = FactsFromProto(pf).DetectedAt
+		m.Facts, m.Backends, m.AgentVersion = nf, backends, agentVersion
+		if nf.OS != "" {
+			m.OS = nf.OS
+		}
+		if nf.Arch != "" {
+			m.Arch = nf.Arch
+		}
+		return true
+	}); err != nil {
 		return err
 	}
 	if changed {

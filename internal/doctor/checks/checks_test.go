@@ -715,6 +715,33 @@ func TestRunnerListener(t *testing.T) {
 	}
 }
 
+// Doctor R5.39 (runners R5.67, lesson 29): a refused session is no finding
+// inside the wait window after a restart, a warning after it, and a second
+// listener is a failure in any case.
+func TestRunnerListenerStaleSession(t *testing.T) {
+	mk := func(name string, ago time.Duration, pids []int) doctor.Runner {
+		r := persistent("id-"+name, name)
+		r.ListenerKnown, r.ListenerPIDs, r.ServiceRunning = true, pids, true
+		r.SessionRefused, r.RestartedAt = true, now.Add(-ago)
+		return r
+	}
+	sev := func(r doctor.Runner) (doctor.Finding, []doctor.Finding) {
+		fl := &fleet{machines: []doctor.Machine{healthyMachine()}, runners: []doctor.Runner{r}}
+		fs := forCheck(run(t, doctor.Env{Fleet: fl}, "runner.listener"), "runner.listener")
+		return fs[0], fs
+	}
+	if f, _ := sev(mk("inside", 90*time.Second, nil)); f.Severity != doctor.OK || f.Fix.Text != "" {
+		t.Fatalf("inside the window: %+v", f)
+	}
+	f, _ := sev(mk("past", 4*time.Minute, nil))
+	if f.Severity != doctor.Warn || f.Fix.Text == "" {
+		t.Fatalf("past the window: %+v", f)
+	}
+	if f, _ := sev(mk("two", 30*time.Second, []int{1, 2})); f.Severity != doctor.Fail {
+		t.Fatalf("two listeners inside the window: %+v", f)
+	}
+}
+
 // R5.35: the runner account must be able to read its tool cache.
 func TestRunnerToolCache(t *testing.T) {
 	ok, bad, owner, none := persistent("r1", "crsp-ok"), persistent("r2", "crsp-bad"), persistent("r3", "crsp-owner"), persistent("r4", "crsp-none")

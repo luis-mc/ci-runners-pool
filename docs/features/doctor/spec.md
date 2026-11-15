@@ -193,6 +193,8 @@ States:
 
 **R5.40** (M1, v0.3.0, Built CRSP74) — **The hosted fallback warns while it runs.** The check `repo.fallback` covers each pool repository that turned the fallback on. It is `warn` while the repository's jobs run on GitHub-hosted runners, because GitHub may bill those minutes for a private repository; it is `ok` while the repository runs on crsp machines. `repo.vars` and `repo.vars.runner` treat the hosted label as correct while the fallback holds (github-integration R5.43).
 
+**R5.41** (M1, Built HND23) — **A refused session right after a restart is not a finding.** (Runners R5.67, handover lesson 29.) The listener check (`runner.listener`, R5.30) reads two more facts of a runner: `SessionRefused` (the listener's output says a session for the runner already exists) and `RestartedAt` (when its pool, VM or service started). Inside the wait window after `RestartedAt` (`SessionWait`, the pool setting `session_wait_minutes`, default 3 minutes) a refused session is `ok`, with the title "waits for GitHub to drop the old session" and the end time in the detail; the console shows no problem. Past the window it is `warn`, with a fix: look for a second listener or another machine with the same runner name, else remove the runner in GitHub and add it again. More than one listener stays `fail` inside the window too.
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -473,6 +475,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.38 | planned: internal/doctor/checks/reach_test.go TestReachLinkPerRepo, TestLoopbackListenerWarns (CRSP81) |
 | R5.39 | internal/doctor/checks/fallback_test.go TestRepoWaitingIsInfoOnlyWithFallbackOff (CRSP74) |
 | R5.40 | internal/doctor/checks/fallback_test.go TestRepoFallbackWarnsWhileOn (CRSP74) |
+| R5.41 | internal/doctor/checks/checks_test.go TestRunnerListenerStaleSession |
 | R6.1 | internal/doctor/engine_test.go TestSlowCheckIsSkipNotOk (the timeout); benchmark planned |
 | R6.2 | internal/doctor/checks/checks_test.go TestCallCountBudget |
 | R6.3 | internal/doctor/engine_test.go TestSecretsAreRedactedInFindings |

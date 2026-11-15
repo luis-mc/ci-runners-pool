@@ -26,7 +26,10 @@ type Env struct {
 	Demand DemandSource
 	// PoolName is the pool's name label; RunnerPrefix starts the name of every
 	// runner the product makes (default "crsp-").
-	PoolName     string
+	PoolName string
+	// SessionWait is how long after a restart a refused session is expected
+	// (pool setting session_wait_minutes); zero means 3 minutes.
+	SessionWait  time.Duration
 	RunnerPrefix string
 
 	memo *memo
@@ -173,6 +176,11 @@ type Runner struct {
 	ListenerKnown  bool
 	ListenerPIDs   []int
 	ServiceRunning bool
+	// SessionRefused is true when the listener's recent output says "a session
+	// for this runner already exists"; RestartedAt is when the pool, VM or
+	// service of the runner was last started (runners R5.67, doctor R5.39).
+	SessionRefused bool
+	RestartedAt    time.Time
 	// ToolCache is what the agent saw in the runner's tool cache; nil when it
 	// did not look (R5.35).
 	ToolCache *ToolCacheProbe

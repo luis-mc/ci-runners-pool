@@ -1,0 +1,210 @@
+[
+  {
+    "name": "fresh heartbeat: up",
+    "steps": [
+      {
+        "do": "heartbeat"
+      },
+      {
+        "do": "advance",
+        "d": "10s"
+      },
+      {
+        "do": "tick"
+      },
+      {
+        "do": "expect_up",
+        "up": true
+      }
+    ]
+  },
+  {
+    "name": "heartbeat exactly 30 s old is still fresh",
+    "steps": [
+      {
+        "do": "heartbeat"
+      },
+      {
+        "do": "advance",
+        "d": "30s"
+      },
+      {
+        "do": "tick"
+      },
+      {
+        "do": "expect_up",
+        "up": true
+      }
+    ]
+  },
+  {
+    "name": "heartbeat 31 s old is not fresh",
+    "steps": [
+      {
+        "do": "heartbeat"
+      },
+      {
+        "do": "advance",
+        "d": "31s"
+      },
+      {
+        "do": "tick"
+      },
+      {
+        "do": "expect_up",
+        "up": false
+      }
+    ]
+  },
+  {
+    "name": "heartbeat older than the fallback grace: down, and one heartbeat brings it back",
+    "steps": [
+      {
+        "do": "heartbeat"
+      },
+      {
+        "do": "advance",
+        "d": "4m"
+      },
+      {
+        "do": "tick"
+      },
+      {
+        "do": "expect_up",
+        "up": false
+      },
+      {
+        "do": "heartbeat"
+      },
+      {
+        "do": "expect_up",
+        "up": true
+      }
+    ]
+  },
+  {
+    "name": "heartbeat dated 30 s in the future is within the skew: fresh, nothing logged",
+    "steps": [
+      {
+        "do": "last_seen",
+        "offset": "30s"
+      },
+      {
+        "do": "tick"
+      },
+      {
+        "do": "expect_up",
+        "up": true
+      },
+      {
+        "do": "expect_audit",
+        "action": "machine.heartbeat.skew",
+        "has": false
+      }
+    ]
+  },
+  {
+    "name": "heartbeat dated 31 s in the future is beyond the skew: not fresh, logged once",
+    "steps": [
+      {
+        "do": "last_seen",
+        "offset": "31s"
+      },
+      {
+        "do": "tick"
+      },
+      {
+        "do": "tick"
+      },
+      {
+        "do": "expect_up",
+        "up": false
+      },
+      {
+        "do": "expect_audit",
+        "action": "machine.heartbeat.skew",
+        "has": true,
+        "count": 1
+      }
+    ]
+  },
+  {
+    "name": "a future-dated machine comes back with its next real heartbeat",
+    "steps": [
+      {
+        "do": "last_seen",
+        "offset": "10m"
+      },
+      {
+        "do": "tick"
+      },
+      {
+        "do": "expect_up",
+        "up": false
+      },
+      {
+        "do": "heartbeat"
+      },
+      {
+        "do": "expect_up",
+        "up": true
+      }
+    ]
+  },
+  {
+    "name": "online but not accepting is down (paused)",
+    "steps": [
+      {
+        "do": "heartbeat"
+      },
+      {
+        "do": "accepting",
+        "accepting": false,
+        "reason": "paused"
+      },
+      {
+        "do": "expect_up",
+        "up": false
+      }
+    ]
+  },
+  {
+    "name": "accepting again is up at once",
+    "steps": [
+      {
+        "do": "accepting",
+        "accepting": false,
+        "reason": "on_battery"
+      },
+      {
+        "do": "expect_up",
+        "up": false
+      },
+      {
+        "do": "accepting",
+        "accepting": true
+      },
+      {
+        "do": "expect_up",
+        "up": true
+      }
+    ]
+  },
+  {
+    "name": "a second machine that is up keeps the OS up",
+    "steps": [
+      {
+        "do": "accepting",
+        "accepting": false,
+        "reason": "paused"
+      },
+      {
+        "do": "second_machine"
+      },
+      {
+        "do": "expect_up",
+        "up": true
+      }
+    ]
+  }
+]

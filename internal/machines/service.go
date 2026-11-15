@@ -87,6 +87,11 @@ type Service struct {
 	sessions *Sessions
 	hooks    Hooks
 
+	// rec serialises the read-modify-write of a machine record, so a report of the
+	// agent (heartbeat, facts) never writes back a stale copy over a change of
+	// the user (a rename, a drain) made between its read and its write.
+	rec sync.Mutex
+
 	mu       sync.Mutex
 	loads    map[string]Load
 	policies map[string]Policy
@@ -116,6 +121,22 @@ func New(o Options) *Service {
 }
 
 func (s *Service) now() time.Time { return s.o.Now().UTC() }
+
+// updateMachine reads the record afresh, lets fn change it and writes it back
+// when fn says it changed something. fn sees the newest record, never one read
+// earlier by the caller.
+func (s *Service) updateMachine(ctx context.Context, id string, fn func(m *Machine) (changed bool)) (Machine, bool, error) {
+	s.rec.Lock()
+	defer s.rec.Unlock()
+	m, err := s.o.Repo.GetMachine(ctx, id)
+	if err != nil {
+		return Machine{}, false, err
+	}
+	if !fn(&m) {
+		return m, false, nil
+	}
+	return m, true, s.o.Repo.UpdateMachine(ctx, m)
+}
 
 // ---------------------------------------------------------------- secrets
 

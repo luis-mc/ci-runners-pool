@@ -308,7 +308,11 @@ type Change struct {
 type ChangeDetail struct {
 	// Settings is the settings the change applies when the machine is idle.
 	Settings *Settings `json:"settings,omitempty"`
-	Reason   string    `json:"reason,omitempty"`
+	// Base is the settings the change was made from. When the change runs only the
+	// fields that differ between Base and Settings are written, so a setting the
+	// user changed while the change waited is not undone (RES6).
+	Base   *Settings `json:"base,omitempty"`
+	Reason string    `json:"reason,omitempty"`
 	// WaitingFor names the jobs it waits for now.
 	WaitingFor []JobRef `json:"waiting_for,omitempty"`
 	// RunnerNames are the runners the change touches (R5.57). Empty means every
