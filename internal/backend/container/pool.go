@@ -80,6 +80,9 @@ type PoolSpec struct {
 	// Env is the pool-wide job environment (runners R5.53): the browsers path
 	// and the Wine prefix.
 	Env map[string]string
+	// Isolation is the container isolation mode (runners R5.65); empty is
+	// process isolation, the engine default.
+	Isolation Isolation
 }
 
 var nameRe = regexp.MustCompile(`[^a-z0-9]+`)
@@ -118,6 +121,7 @@ func RunArgs(p PoolSpec) ([]string, error) {
 		"--label", LabelPool + "=" + strings.ToLower(p.Owner+"/"+p.Repo),
 		"--label", LabelImage + "=" + p.ImageKey,
 	}
+	a = append(a, IsolationArgs(p.Isolation)...)
 	a = append(a, workTmpfsArgs(p.Lane != nil, uid)...)
 	a = append(a, ResourceArgs(p.Limits.MemoryMB, p.CPUSet)...)
 	if p.Limits.CPUs > 0 {

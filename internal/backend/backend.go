@@ -132,6 +132,9 @@ type PoolSetup struct {
 	RepoID string
 	// Database is set when the repository declares a database (runners R5.54).
 	Database *PoolDatabase
+	// Isolation is the container isolation of the runner definition: empty or
+	// "process" (default) or "hyperv" (runners R5.65).
+	Isolation string
 }
 
 // PoolDatabase is what a repository declares for its Postgres login.
