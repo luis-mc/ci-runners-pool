@@ -29,6 +29,9 @@ var (
 	ErrRateLimited = errors.New("github rate limited")
 	// ErrNotFound: the App, installation, repository or runner is gone.
 	ErrNotFound = errors.New("github: not found")
+	// ErrRunnerBusy: GitHub answered 422 to the delete of a runner, which means
+	// the runner has a job. Callers leave the runner running (R5.33, R5.62).
+	ErrRunnerBusy = errors.New("github: the runner has a job")
 	// ErrForbidden: a permission is missing (R5.24).
 	ErrForbidden = errors.New("github: forbidden")
 )

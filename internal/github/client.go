@@ -320,6 +320,9 @@ func (c *REST) classify(res *http.Response, data []byte) error {
 		return &RateLimitError{ResetAt: reset, Secondary: res.Header.Get("X-RateLimit-Remaining") != "0"}
 	}
 	switch {
+	case res.StatusCode == http.StatusUnprocessableEntity && res.Request.Method == http.MethodDelete && strings.Contains(res.Request.URL.Path, "/actions/runners/"):
+		// GitHub refuses to delete a runner that has a job (R5.32, runners R5.62).
+		return fmt.Errorf("%w: %s", ErrRunnerBusy, res.Request.URL.Path)
 	case res.StatusCode == http.StatusNotFound:
 		return fmt.Errorf("%w: %s", ErrNotFound, res.Request.URL.Path)
 	case res.StatusCode == http.StatusForbidden || res.StatusCode == http.StatusUnauthorized:

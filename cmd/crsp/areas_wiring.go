@@ -187,6 +187,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// ephemeral container runner per job on a machine whose allow list names
 	// the container backend (github-integration R5.37, runners R5.27, R5.31).
 	stopDemand, quietDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines}, runnerSvc, pool, d.Cfg.DemandQuiet, d.Cfg.ScaleSetDemand)
+	startSweep(ctx, logger, runnerSvc, d.Cfg.RunnerSweepDays)
 	c.closers = append(c.closers, stopDemand)
 
 	// Doctor: the M1 check registry over the controller's own data.
