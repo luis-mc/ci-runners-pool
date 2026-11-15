@@ -715,6 +715,56 @@ paths:
                 $ref: '#/components/schemas/RepositoryPolicy'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/repositories/{repositoryId}/extra-packages:
+    get:
+      operationId: getRepositoryExtraPackages
+      tags: [repositories]
+      summary: The extra distribution packages of a repository's pool
+      description: >-
+        runners R5.51. One package name per line in `text`; `packages` is the
+        same list sorted without repeats. A changed list changes the image
+        key, so the new image builds aside.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+      responses:
+        '200':
+          description: The list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtraPackages'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: setRepositoryExtraPackages
+      tags: [repositories]
+      summary: Set the extra distribution packages of a repository's pool
+      description: >-
+        runners R5.51. The whole list is replaced. A name has only letters,
+        digits and `+ - .` and does not start with `-`; a bad name refuses the
+        list with its line number and nothing changes. An empty text clears
+        the list.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExtraPackagesUpdate'
+      responses:
+        '200':
+          description: The saved list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtraPackages'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/repositories/{repositoryId}/runs-on:
     get:
       operationId: getRepositoryRunsOn
@@ -3047,6 +3097,11 @@ components:
           type: integer
           minimum: 1
           maximum: 100
+        extra_packages:
+          type: array
+          description: Extra distribution packages of the pool image (runners R5.51).
+          items:
+            type: string
         updated_at:
           type: string
           format: date-time
@@ -3093,6 +3148,31 @@ components:
       example:
         priority: 10
         max_parallel_jobs: 3
+    ExtraPackages:
+      type: object
+      required: [packages, text]
+      properties:
+        packages:
+          type: array
+          description: The names, sorted, without repeats.
+          items:
+            type: string
+        text:
+          type: string
+          description: The names, one per line.
+      example:
+        packages: [libc++-dev, zlib1g-dev]
+        text: "libc++-dev\nzlib1g-dev"
+    ExtraPackagesUpdate:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          description: The whole list, one name per line. Blank lines and lines that start with # are skipped.
+          maxLength: 20000
+      example:
+        text: "zlib1g-dev\nlibc++-dev"
     RepositoryPage:
       type: object
       required: [items, stale]

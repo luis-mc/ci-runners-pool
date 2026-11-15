@@ -1678,6 +1678,21 @@ type ExchangeCliTokenRequest struct {
 	Name string `json:"name"`
 }
 
+// ExtraPackages defines model for ExtraPackages.
+type ExtraPackages struct {
+	// Packages The names, sorted, without repeats.
+	Packages []string `json:"packages"`
+
+	// Text The names, one per line.
+	Text string `json:"text"`
+}
+
+// ExtraPackagesUpdate defines model for ExtraPackagesUpdate.
+type ExtraPackagesUpdate struct {
+	// Text The whole list, one name per line. Blank lines and lines that start with
+	Text string `json:"text"`
+}
+
 // FreeSlotsRequest defines model for FreeSlotsRequest.
 type FreeSlotsRequest struct {
 	Confirm *bool `json:"confirm,omitempty"`
@@ -2307,6 +2322,9 @@ type RepositoryPolicy struct {
 	// BudgetMemoryPct May lower the machine budget for this repository's jobs, never raise it (scheduling R5.4).
 	BudgetMemoryPct *int `json:"budget_memory_pct,omitempty"`
 
+	// ExtraPackages Extra distribution packages of the pool image (runners R5.51).
+	ExtraPackages *[]string `json:"extra_packages,omitempty"`
+
 	// Labels Generic labels only (github-integration R5.27).
 	Labels []string `json:"labels"`
 
@@ -2933,6 +2951,9 @@ type CreateNotificationChannelJSONRequestBody = NotificationChannelInput
 // UpdateNotificationChannelJSONRequestBody defines body for UpdateNotificationChannel for application/json ContentType.
 type UpdateNotificationChannelJSONRequestBody = NotificationChannelUpdate
 
+// SetRepositoryExtraPackagesJSONRequestBody defines body for SetRepositoryExtraPackages for application/json ContentType.
+type SetRepositoryExtraPackagesJSONRequestBody = ExtraPackagesUpdate
+
 // UpdateRepositoryPolicyJSONRequestBody defines body for UpdateRepositoryPolicy for application/json ContentType.
 type UpdateRepositoryPolicyJSONRequestBody = RepositoryPolicyUpdate
 
@@ -3142,6 +3163,12 @@ type ServerInterface interface {
 	// GetRepository One repository with its policy and variable status
 	// (GET /api/v1/repositories/{repositoryId})
 	GetRepository(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
+	// GetRepositoryExtraPackages The extra distribution packages of a repository's pool
+	// (GET /api/v1/repositories/{repositoryId}/extra-packages)
+	GetRepositoryExtraPackages(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
+	// SetRepositoryExtraPackages Set the extra distribution packages of a repository's pool
+	// (PUT /api/v1/repositories/{repositoryId}/extra-packages)
+	SetRepositoryExtraPackages(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
 	// UpdateRepositoryPolicy Change a repository's policy
 	// (PATCH /api/v1/repositories/{repositoryId}/policy)
 	UpdateRepositoryPolicy(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
@@ -5125,6 +5152,58 @@ func (siw *ServerInterfaceWrapper) GetRepository(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// GetRepositoryExtraPackages operation middleware
+func (siw *ServerInterfaceWrapper) GetRepositoryExtraPackages(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "repositoryId" -------------
+	var repositoryId RepositoryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "repositoryId", r.PathValue("repositoryId"), &repositoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repositoryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRepositoryExtraPackages(w, r, repositoryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetRepositoryExtraPackages operation middleware
+func (siw *ServerInterfaceWrapper) SetRepositoryExtraPackages(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "repositoryId" -------------
+	var repositoryId RepositoryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "repositoryId", r.PathValue("repositoryId"), &repositoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repositoryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetRepositoryExtraPackages(w, r, repositoryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // UpdateRepositoryPolicy operation middleware
 func (siw *ServerInterfaceWrapper) UpdateRepositoryPolicy(w http.ResponseWriter, r *http.Request) {
 
@@ -6252,6 +6331,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repository-plans/{planId}/apply", wrapper.ApplyRepositoryChanges)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}", wrapper.GetRepository)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/policy", wrapper.UpdateRepositoryPolicy)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/extra-packages", wrapper.GetRepositoryExtraPackages)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/extra-packages", wrapper.SetRepositoryExtraPackages)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/runs-on", wrapper.GetRepositoryRunsOn)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings/queue", wrapper.GetQueueSettings)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/settings/queue", wrapper.UpdateQueueSettings)
@@ -8669,6 +8750,85 @@ func (response GetRepositorydefaultJSONResponse) VisitGetRepositoryResponse(w ht
 	return err
 }
 
+type GetRepositoryExtraPackagesRequestObject struct {
+	RepositoryId RepositoryId `json:"repositoryId"`
+}
+
+type GetRepositoryExtraPackagesResponseObject interface {
+	VisitGetRepositoryExtraPackagesResponse(w http.ResponseWriter) error
+}
+
+type GetRepositoryExtraPackages200JSONResponse ExtraPackages
+
+func (response GetRepositoryExtraPackages200JSONResponse) VisitGetRepositoryExtraPackagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRepositoryExtraPackagesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRepositoryExtraPackagesdefaultJSONResponse) VisitGetRepositoryExtraPackagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetRepositoryExtraPackagesRequestObject struct {
+	RepositoryId RepositoryId `json:"repositoryId"`
+	Body         *SetRepositoryExtraPackagesJSONRequestBody
+}
+
+type SetRepositoryExtraPackagesResponseObject interface {
+	VisitSetRepositoryExtraPackagesResponse(w http.ResponseWriter) error
+}
+
+type SetRepositoryExtraPackages200JSONResponse ExtraPackages
+
+func (response SetRepositoryExtraPackages200JSONResponse) VisitSetRepositoryExtraPackagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetRepositoryExtraPackagesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response SetRepositoryExtraPackagesdefaultJSONResponse) VisitSetRepositoryExtraPackagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type UpdateRepositoryPolicyRequestObject struct {
 	RepositoryId RepositoryId `json:"repositoryId"`
 	Body         *UpdateRepositoryPolicyJSONRequestBody
@@ -10263,6 +10423,12 @@ type StrictServerInterface interface {
 	// GetRepository One repository with its policy and variable status
 	// (GET /api/v1/repositories/{repositoryId})
 	GetRepository(ctx context.Context, request GetRepositoryRequestObject) (GetRepositoryResponseObject, error)
+	// GetRepositoryExtraPackages The extra distribution packages of a repository's pool
+	// (GET /api/v1/repositories/{repositoryId}/extra-packages)
+	GetRepositoryExtraPackages(ctx context.Context, request GetRepositoryExtraPackagesRequestObject) (GetRepositoryExtraPackagesResponseObject, error)
+	// SetRepositoryExtraPackages Set the extra distribution packages of a repository's pool
+	// (PUT /api/v1/repositories/{repositoryId}/extra-packages)
+	SetRepositoryExtraPackages(ctx context.Context, request SetRepositoryExtraPackagesRequestObject) (SetRepositoryExtraPackagesResponseObject, error)
 	// UpdateRepositoryPolicy Change a repository's policy
 	// (PATCH /api/v1/repositories/{repositoryId}/policy)
 	UpdateRepositoryPolicy(ctx context.Context, request UpdateRepositoryPolicyRequestObject) (UpdateRepositoryPolicyResponseObject, error)
@@ -11918,6 +12084,65 @@ func (sh *strictHandler) GetRepository(w http.ResponseWriter, r *http.Request, r
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetRepositoryResponseObject); ok {
 		if err := validResponse.VisitGetRepositoryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRepositoryExtraPackages operation middleware
+func (sh *strictHandler) GetRepositoryExtraPackages(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId) {
+	var request GetRepositoryExtraPackagesRequestObject
+
+	request.RepositoryId = repositoryId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRepositoryExtraPackages(ctx, request.(GetRepositoryExtraPackagesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRepositoryExtraPackages")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRepositoryExtraPackagesResponseObject); ok {
+		if err := validResponse.VisitGetRepositoryExtraPackagesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetRepositoryExtraPackages operation middleware
+func (sh *strictHandler) SetRepositoryExtraPackages(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId) {
+	var request SetRepositoryExtraPackagesRequestObject
+
+	request.RepositoryId = repositoryId
+
+	var body SetRepositoryExtraPackagesJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetRepositoryExtraPackages(ctx, request.(SetRepositoryExtraPackagesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetRepositoryExtraPackages")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetRepositoryExtraPackagesResponseObject); ok {
+		if err := validResponse.VisitSetRepositoryExtraPackagesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

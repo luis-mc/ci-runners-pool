@@ -341,6 +341,9 @@ func describePolicy(a, b Policy) string {
 	if strings.Join(a.RunnerGroups, ",") != strings.Join(b.RunnerGroups, ",") {
 		d = append(d, "runner groups "+strings.Join(b.RunnerGroups, ","))
 	}
+	if strings.Join(a.ExtraPackages, ",") != strings.Join(b.ExtraPackages, ",") {
+		d = append(d, "extra packages "+strings.Join(b.ExtraPackages, ","))
+	}
 	if a.LightRunner != b.LightRunner {
 		d = append(d, fmt.Sprintf("light runner %t to %t", a.LightRunner, b.LightRunner))
 	}

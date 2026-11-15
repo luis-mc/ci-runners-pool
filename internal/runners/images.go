@@ -19,6 +19,9 @@ type ImageKeyInput struct {
 	Layers []string
 	// Pins maps a tool name to its pinned version, such as the Actions runner.
 	Pins map[string]string
+	// Extras are the pool's extra distribution packages (R5.51). No names
+	// leave the key as it was, so existing images stay valid.
+	Extras []string
 }
 
 // ImageKey is the key of an image. The same base, the same layers (in any
@@ -31,8 +34,12 @@ func ImageKey(in ImageKeyInput) string {
 		pins = append(pins, k+"="+v)
 	}
 	sort.Strings(pins)
+	parts := []string{"base:" + in.Base, "layers:" + strings.Join(layers, ","), "pins:" + strings.Join(pins, ",")}
+	if extras := NormalizeLayers(in.Extras); len(extras) > 0 {
+		parts = append(parts, "extras:"+strings.Join(extras, ","))
+	}
 	h := sha256.New()
-	for _, part := range []string{"base:" + in.Base, "layers:" + strings.Join(layers, ","), "pins:" + strings.Join(pins, ",")} {
+	for _, part := range parts {
 		h.Write([]byte(part))
 		h.Write([]byte{0})
 	}

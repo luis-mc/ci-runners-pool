@@ -530,6 +530,30 @@ export interface paths {
         patch: operations["updateRepositoryPolicy"];
         trace?: never;
     };
+    "/api/v1/repositories/{repositoryId}/extra-packages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The extra distribution packages of a repository's pool
+         * @description runners R5.51. One package name per line in `text`; `packages` is the same list sorted without repeats. A changed list changes the image key, so the new image builds aside.
+         */
+        get: operations["getRepositoryExtraPackages"];
+        /**
+         * Set the extra distribution packages of a repository's pool
+         * @description runners R5.51. The whole list is replaced. A name has only letters, digits and `+ - .` and does not start with `-`; a bad name refuses the list with its line number and nothing changes. An empty text clears the list.
+         */
+        put: operations["setRepositoryExtraPackages"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/repositories/{repositoryId}/runs-on": {
         parameters: {
             query?: never;
@@ -1974,6 +1998,8 @@ export interface components {
             /** @description May lower the machine budget for this repository's jobs, never raise it (scheduling R5.4). */
             budget_memory_pct?: number;
             budget_cpu_pct?: number;
+            /** @description Extra distribution packages of the pool image (runners R5.51). */
+            extra_packages?: string[];
             /** Format: date-time */
             updated_at?: string;
             updated_by?: string;
@@ -1998,6 +2024,30 @@ export interface components {
             runner_groups?: string[];
             budget_memory_pct?: number;
             budget_cpu_pct?: number;
+        };
+        /**
+         * @example {
+         *       "packages": [
+         *         "libc++-dev",
+         *         "zlib1g-dev"
+         *       ],
+         *       "text": "libc++-dev\nzlib1g-dev"
+         *     }
+         */
+        ExtraPackages: {
+            /** @description The names, sorted, without repeats. */
+            packages: string[];
+            /** @description The names, one per line. */
+            text: string;
+        };
+        /**
+         * @example {
+         *       "text": "zlib1g-dev\nlibc++-dev"
+         *     }
+         */
+        ExtraPackagesUpdate: {
+            /** @description The whole list, one name per line. Blank lines and lines that start with */
+            text: string;
         };
         RepositoryPage: {
             items: components["schemas"]["Repository"][];
@@ -3803,6 +3853,58 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RepositoryPolicy"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRepositoryExtraPackages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub repository id. */
+                repositoryId: components["parameters"]["RepositoryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The list. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtraPackages"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setRepositoryExtraPackages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub repository id. */
+                repositoryId: components["parameters"]["RepositoryId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtraPackagesUpdate"];
+            };
+        };
+        responses: {
+            /** @description The saved list. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExtraPackages"];
                 };
             };
             default: components["responses"]["Error"];

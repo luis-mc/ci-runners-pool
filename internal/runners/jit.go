@@ -16,6 +16,8 @@ type JobRunner struct {
 	Backend   string
 	Labels    []string // generic labels only (R5.36)
 	Scope     Scope
+	// ExtraPackages are the extra packages of the repository's pool (R5.51).
+	ExtraPackages []string
 }
 
 // StartJobRunner makes one ephemeral runner for one job (runners R5.25,
@@ -56,7 +58,7 @@ func (s *Service) StartJobRunner(ctx context.Context, j JobRunner, actor string)
 		return fail(fmt.Errorf("JIT config: %w", err))
 	}
 	spec := backend.RunnerSpec{ID: id, Name: j.Name, OS: "linux", Arch: j.Arch, Labels: j.Labels, GitHubURL: t.URL, Group: t.Group,
-		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, CacheQuota: s.CacheQuota}
+		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, CacheQuota: s.CacheQuota, ExtraPackages: j.ExtraPackages}
 	if m, err := s.Machines.GetMachine(ctx, j.MachineID); err == nil {
 		// The pool size of the machine caps the pool container (R5.27). A
 		// machine with no pool size set leaves the container uncapped.

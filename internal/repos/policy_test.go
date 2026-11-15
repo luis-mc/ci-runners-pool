@@ -72,6 +72,32 @@ func TestForkPullRequestsAskFirst(t *testing.T) { // R5.26
 	}
 }
 
+func TestPolicyExtraPackages(t *testing.T) { // runners R5.51
+	base := DefaultPolicy()
+	text := "zlib1g-dev\n\n# note\nlibc++-dev\nzlib1g-dev"
+	got, err := PolicyUpdate{ExtraPackages: &text}.Apply(base)
+	if err != nil || strings.Join(got.ExtraPackages, ",") != "libc++-dev,zlib1g-dev" {
+		t.Fatalf("%v %v", got.ExtraPackages, err)
+	}
+	bad := "zlib1g-dev\n-evil"
+	kept, err := PolicyUpdate{ExtraPackages: &bad}.Apply(got)
+	if err == nil || !strings.Contains(err.Error(), "line 2") {
+		t.Fatalf("a bad name is refused with its line: %v", err)
+	}
+	if strings.Join(kept.ExtraPackages, ",") != "libc++-dev,zlib1g-dev" {
+		t.Fatal("a refused list changes nothing")
+	}
+	same, _ := PolicyUpdate{Priority: ip(3)}.Apply(got)
+	if len(same.ExtraPackages) != 2 {
+		t.Fatal("another change keeps the list")
+	}
+	empty := ""
+	cleared, _ := PolicyUpdate{ExtraPackages: &empty}.Apply(got)
+	if len(cleared.ExtraPackages) != 0 {
+		t.Fatal("empty text clears the list")
+	}
+}
+
 func TestUpdatePolicyEndToEnd(t *testing.T) { // R5.25, R5.26, R5.28
 	e := newEnv(t)
 	e.world()
