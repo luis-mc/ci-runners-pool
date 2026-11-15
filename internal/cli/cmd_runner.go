@@ -79,6 +79,8 @@ func cmdRunner() *command {
 					yesFlag(fs)
 				},
 				run: func(c *call, _ []string) error { return c.runnerAdd() }},
+			{name: "env", summary: "show the merged environment of a runner (sensitive values masked)", args: "NAME",
+				run: func(c *call, args []string) error { return c.runnerEnv(args) }},
 			{name: "remove", summary: "remove a runner after its job ends", args: "NAME [--yes]",
 				flags: drainFlags,
 				run:   func(c *call, args []string) error { return c.runnerRemove(args) }},
@@ -300,5 +302,54 @@ func (c *call) runnerRemove(args []string) error {
 		return output.JSON(c.env.Stdout, map[string]string{"removed": run.Name})
 	}
 	_, _ = fmt.Fprintf(c.env.Stderr, "Runner %s removed.\n", run.Name)
+	return nil
+}
+
+// runnerEnv shows the merged environment of a runner: machine values, then
+// each set in order, then the runner's own (runners R5.68, R5.69). The API
+// masks sensitive values; this command prints what it is given.
+func (c *call) runnerEnv(args []string) error {
+	if len(args) != 1 {
+		return fail(ExitUsage, "Usage: crsp runner env NAME")
+	}
+	s, err := c.open()
+	if err != nil {
+		return err
+	}
+	rs, err := c.runners(s, client.ListRunnersParams{})
+	if err != nil {
+		return err
+	}
+	var run *client.Runner
+	for i := range rs {
+		if strings.EqualFold(rs[i].Name, args[0]) || rs[i].Id == args[0] {
+			run = &rs[i]
+		}
+	}
+	if run == nil {
+		return fail(ExitNotFound, "No runner %q. Run crsp runner list.", args[0])
+	}
+	r, err := s.client.GetRunnerEnvWithResponse(c.env.Context, run.Id)
+	if err != nil {
+		return s.transport(err)
+	}
+	if err := apiError(r.StatusCode(), r.Body); err != nil {
+		return err
+	}
+	if r.JSON200 == nil {
+		return nil
+	}
+	if c.g.json {
+		return output.JSON(c.env.Stdout, *r.JSON200)
+	}
+	if len(r.JSON200.Vars) == 0 {
+		_, _ = fmt.Fprintln(c.env.Stderr, "This runner has no environment values from machine, sets or its own list.")
+		return nil
+	}
+	var rows [][]string
+	for _, v := range r.JSON200.Vars {
+		rows = append(rows, []string{v.Name, v.Value, v.Source})
+	}
+	output.Table(c.env.Stdout, output.MaxWidth, []string{"NAME", "VALUE", "FROM"}, rows)
 	return nil
 }

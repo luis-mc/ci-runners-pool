@@ -497,3 +497,23 @@ func TestBackupRestoreOwnerOnly(t *testing.T) {
 		t.Fatal("unknown backup")
 	}
 }
+
+func TestRunnerEnvShowsMaskedMergedValues(t *testing.T) { // runners R5.68, R5.69
+	f := newFixture(t)
+	f.machines(machineJSON("build-01", "active", true))
+	f.reply("GET /api/v1/runners", 200, map[string]any{"items": []any{runnerJSON("linux-03", "m_build-01", nil)}})
+	f.reply("GET /api/v1/runners/r_linux-03/env", 200, map[string]any{"runner_id": "r_linux-03", "vars": []any{
+		map[string]any{"name": "DOTNET_ROOT", "value": "/opt/dotnet", "sensitive": false, "source": "set:dotnet-8"},
+		map[string]any{"name": "FEED_LOGIN", "value": "***", "sensitive": true, "source": "set:dotnet-8"},
+	}})
+	code, out, _ := f.run("runner", "env", "linux-03")
+	if code != 0 || !strings.Contains(out, "DOTNET_ROOT") || !strings.Contains(out, "set:dotnet-8") || !strings.Contains(out, "***") {
+		t.Fatalf("%d %q", code, out)
+	}
+	if code, _, e := f.run("runner", "env", "nope"); code != ExitNotFound || !strings.Contains(e, "No runner") {
+		t.Fatalf("%d %q", code, e)
+	}
+	if code, _, _ := f.run("runner", "env"); code != ExitUsage {
+		t.Fatalf("usage: %d", code)
+	}
+}
