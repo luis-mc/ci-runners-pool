@@ -41,9 +41,18 @@ type ScaleSetDemand struct {
 	Refresh time.Duration
 	Now     func() time.Time
 
-	mu      sync.Mutex
-	clients map[string]*ScaleSetClient
-	err     error
+	mu         sync.Mutex
+	clients    map[string]*ScaleSetClient
+	err        error
+	lastDemand map[string]time.Time // lower-case owner/repo -> last queued job
+}
+
+// LastDemand is the time a queued job of the repository last came through a
+// session (what the quiet-demand watchdog reads, R5.37).
+func (d *ScaleSetDemand) LastDemand(fullName string) time.Time {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.lastDemand[strings.ToLower(fullName)]
 }
 
 var _ Demand = (*ScaleSetDemand)(nil)
@@ -202,6 +211,14 @@ func (d *ScaleSetDemand) session(ctx context.Context, t ScaleSetTarget, out chan
 			return err
 		}
 		for _, j := range jobs {
+			if j.Status == "queued" {
+				d.mu.Lock()
+				if d.lastDemand == nil {
+					d.lastDemand = map[string]time.Time{}
+				}
+				d.lastDemand[strings.ToLower(j.Repository)] = d.now()
+				d.mu.Unlock()
+			}
 			select {
 			case out <- j:
 			case <-ctx.Done():

@@ -403,3 +403,19 @@ func (c *REST) withInstallation(ctx context.Context, id int64, r req) (req, erro
 	r.installation = id
 	return r, nil
 }
+
+// APIBase is the REST address in use (the scale-set client registers there).
+func (c *REST) APIBase() string {
+	if c.cfg.APIBase != "" {
+		return c.cfg.APIBase
+	}
+	return DefaultAPIBase
+}
+
+// WebBase is the web address in use.
+func (c *REST) WebBase() string {
+	if c.cfg.WebBase != "" {
+		return c.cfg.WebBase
+	}
+	return DefaultWebBase
+}

@@ -205,3 +205,17 @@ func TestDemandQuietMinutes(t *testing.T) { // github-integration R5.37
 		t.Fatalf("out of range accepted: %v", err)
 	}
 }
+
+func TestScaleSetAndSweepSettings(t *testing.T) { // github-integration R5.40, R5.33
+	cfg, err := LoadFor("linux", env(nil), files(nil))
+	if err != nil || cfg.ScaleSetDemand || cfg.RunnerSweepDays != 7 {
+		t.Fatalf("defaults: %+v %v", cfg, err)
+	}
+	cfg, err = LoadFor("linux", env(nil), files(map[string]string{"/etc/crsp/config.toml": "scaleset_demand = true\nrunner_sweep_days = 0\n"}))
+	if err != nil || !cfg.ScaleSetDemand || cfg.RunnerSweepDays != 0 {
+		t.Fatalf("file: %+v %v", cfg, err)
+	}
+	if _, err = LoadFor("linux", env(nil), files(map[string]string{"/etc/crsp/config.toml": "runner_sweep_days = 400\n"})); err == nil {
+		t.Fatal("400 days is refused")
+	}
+}
