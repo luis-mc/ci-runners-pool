@@ -28,6 +28,7 @@ func Register(reg *doctor.Registry) {
 		doctor.NewCheck("machine.online", doctor.GroupMachine, M1, false, machineOnline),
 		doctor.NewCheck("machine.load.fresh", doctor.GroupMachine, M1, false, machineLoadFresh),
 		doctor.NewCheck("machine.load.budget", doctor.GroupMachine, M1, false, machineLoadBudget),
+		doctor.NewCheck("machine.engine", doctor.GroupMachine, M1, false, machineEngine),
 		doctor.NewCheck("machine.disk", doctor.GroupMachine, M1, false, machineDisk),
 		doctor.NewCheck("machine.guard.disk", doctor.GroupMachine, M1, false, machineDiskGuard),
 		doctor.NewCheck("cache.cap", doctor.GroupMachine, M1, false, cacheCap),
