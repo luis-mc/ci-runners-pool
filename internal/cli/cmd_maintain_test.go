@@ -73,7 +73,7 @@ func TestMaintainDrainsRunsAndReleases(t *testing.T) {
 		t.Fatalf("body %v", body)
 	}
 	drain, lastPoll, run, resume := f.indexOf("POST /api/v1/machines/m_build-01/drain"), f.indexOf("GET /api/v1/machines/m_build-01/changes/c1"), f.indexOf("POST /api/v1/machines/m_build-01/command"), f.indexOf("POST /api/v1/machines/m_build-01/resume")
-	if !(drain >= 0 && drain < lastPoll && lastPoll < run && run < resume) {
+	if drain < 0 || drain >= lastPoll || lastPoll >= run || run >= resume {
 		t.Fatalf("order drain %d poll %d run %d resume %d: %v", drain, lastPoll, run, resume, f.calls)
 	}
 	if f.count("GET /api/v1/machines/m_build-01/changes/c1") != 2 {
