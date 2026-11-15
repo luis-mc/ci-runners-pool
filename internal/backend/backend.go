@@ -119,6 +119,10 @@ type RunnerSpec struct {
 	// Pool is what the repository's pool settings ask for (runners R5.50,
 	// R5.54). The zero value asks for the base image only.
 	Pool PoolSetup
+	// NeedsDocker asks for Docker inside the job (runners R5.66). The job then
+	// runs in a per-job clone of a VM base disk with its own engine, never with
+	// the host's Docker socket, and a machine with no VM backend refuses it.
+	NeedsDocker bool
 }
 
 // PoolSetup is the part of a repository's pool settings the container backend
@@ -132,6 +136,9 @@ type PoolSetup struct {
 	RepoID string
 	// Database is set when the repository declares a database (runners R5.54).
 	Database *PoolDatabase
+	// Isolation is the container isolation of the runner definition: empty or
+	// "process" (default) or "hyperv" (runners R5.65).
+	Isolation string
 }
 
 // PoolDatabase is what a repository declares for its Postgres login.

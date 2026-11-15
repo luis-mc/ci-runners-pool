@@ -35,6 +35,13 @@ type Hooks struct {
 	ControllerVersion string
 }
 
+// RecoveryPath is the frozen recovery call (internal/recovery.Path).
+const RecoveryPath = "/recovery/v1/poll"
+
+// SetRecoveryHandler mounts the recovery call on the link server; call it
+// before NewLinkServer.
+func (s *Service) SetRecoveryHandler(h http.Handler) { s.recoveryHandler = h }
+
 // SetHooks sets the hooks; call it before the link serves.
 func (s *Service) SetHooks(h Hooks) { s.hooks = h }
 
@@ -113,6 +120,14 @@ func (l *Link) Session(ctx context.Context, stream *connect.BidiStream[agentv1.S
 	if hello == nil {
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("the first message must be Hello"))
 	}
+	if svc.tooOld(int32(hello.GetProtocolVersion())) {
+		// Normal calls are refused; the recovery call stays open (R5.44).
+		svc.noteRefused(m.ID, hello.GetAgentVersion())
+		_ = svc.o.Repo.Audit(ctx, "agent", "machine.agent_too_old", m.ID, hello.GetAgentVersion())
+		svc.notifyMachine(m.ID)
+		return connect.NewError(connect.CodeFailedPrecondition, ErrTooOld)
+	}
+	svc.clearRefused(m.ID)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	ss := svc.sessions.open(m.ID, cancel)
@@ -272,6 +287,9 @@ func NewLinkServer(addr string, ca *tlsca.Authority, svc *Service) *http.Server 
 	mux := http.NewServeMux()
 	path, h := svc.LinkHandler()
 	mux.Handle(path, h)
+	if rh := svc.recoveryHandler; rh != nil {
+		mux.Handle(RecoveryPath, rh)
+	}
 	return &http.Server{
 		Addr: addr, Handler: mux, TLSConfig: ca.ServerTLS(),
 		ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute,

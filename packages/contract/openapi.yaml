@@ -1094,6 +1094,23 @@ paths:
           description: Asked; the result comes on the event stream.
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}/recovery:
+    post:
+      operationId: recoverMachine
+      x-cli: none
+      x-cli-reason: 'Later: machine detail commands (cli open question 7).'
+      tags: [machines]
+      summary: Push the signed update to an agent that needs recovery
+      description: operations R5.44. The agent's next recovery call gets the signed update; nothing else changes. Refused (409) when the machine does not need recovery.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+      responses:
+        '202':
+          description: Armed; the agent picks the update up on its next recovery call.
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/machines/{machineId}/load:
     get:
       operationId: getMachineLoad
@@ -4020,6 +4037,30 @@ components:
         approved_steps: [s1, s2]
 
     # ---------- machines
+    MachineRecovery:
+      type: object
+      description: Present only when the agent of the machine needs recovery (operations R5.44, web-console R5.33).
+      required: [state, reason, has, needs, since, armed]
+      properties:
+        state:
+          type: string
+          enum: [needs_recovery]
+        reason:
+          type: string
+          enum: [old_protocol, stuck]
+          description: old_protocol is an agent too old for the agent link; stuck is an agent that stayed on an old version for an hour after it was asked to update.
+        has:
+          type: string
+          description: The version the agent runs.
+        needs:
+          type: string
+          description: The version the controller runs.
+        since:
+          type: string
+          format: date-time
+        armed:
+          type: boolean
+          description: The owner pressed the action; the agent's next recovery call gets the update.
     Machine:
       type: object
       required:
@@ -4077,6 +4118,8 @@ components:
             $ref: '#/components/schemas/Job'
         pending_change:
           $ref: '#/components/schemas/MachineChange'
+        recovery:
+          $ref: '#/components/schemas/MachineRecovery'
         last_seen_at:
           type: string
           format: date-time

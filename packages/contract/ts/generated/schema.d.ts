@@ -767,6 +767,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/machines/{machineId}/recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Push the signed update to an agent that needs recovery
+         * @description operations R5.44. The agent's next recovery call gets the signed update; nothing else changes. Refused (409) when the machine does not need recovery.
+         */
+        post: operations["recoverMachine"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/machines/{machineId}/load": {
         parameters: {
             query?: never;
@@ -2592,6 +2612,24 @@ export interface components {
             /** @description Ids of the steps the user said yes to. */
             approved_steps: string[];
         };
+        /** @description Present only when the agent of the machine needs recovery (operations R5.44, web-console R5.33). */
+        MachineRecovery: {
+            /** @enum {string} */
+            state: "needs_recovery";
+            /**
+             * @description old_protocol is an agent too old for the agent link; stuck is an agent that stayed on an old version for an hour after it was asked to update.
+             * @enum {string}
+             */
+            reason: "old_protocol" | "stuck";
+            /** @description The version the agent runs. */
+            has: string;
+            /** @description The version the controller runs. */
+            needs: string;
+            /** Format: date-time */
+            since: string;
+            /** @description The owner pressed the action; the agent's next recovery call gets the update. */
+            armed: boolean;
+        };
         /**
          * @example {
          *       "id": "m_01JCRSP0001",
@@ -2653,6 +2691,7 @@ export interface components {
             slots_used: number;
             running_jobs?: components["schemas"]["Job"][];
             pending_change?: components["schemas"]["MachineChange"];
+            recovery?: components["schemas"]["MachineRecovery"];
             /** Format: date-time */
             last_seen_at: string;
             /** Format: date-time */
@@ -4833,6 +4872,27 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Asked; the result comes on the event stream. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    recoverMachine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Armed; the agent picks the update up on its next recovery call. */
             202: {
                 headers: {
                     [name: string]: unknown;

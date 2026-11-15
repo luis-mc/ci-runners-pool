@@ -98,6 +98,12 @@ func PlanPool(cfg Config, r backend.RunnerSpec, owner, repo string, kvm KVMFacts
 	}
 	plan := PoolPlan{Layers: layers, RunnerEnv: map[string]string{}, Database: r.Pool.Database}
 
+	iso, err := ParseIsolation(r.Pool.Isolation)
+	if err != nil {
+		return PoolPlan{}, err
+	}
+	p.Isolation = iso
+
 	// The crsp binary mount (R5.48).
 	p.CrspHostPath = cfg.CrspHostPath
 

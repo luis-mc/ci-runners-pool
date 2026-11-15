@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sort"
 	"strings"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
@@ -55,7 +56,7 @@ func keptNames() []string { return append(VariableNames(), LegacyAliasNames()...
 // deleted only when the store lists it as written by the controller: the old
 // pool may have written CI_RUNS_ON, and that one is not ours to touch (R5.39).
 func (s *Service) mayDelete(ctx context.Context, r Repository, name string) (bool, error) {
-	if !isAlias(name) {
+	if !isAlias(name) && !isSizeVar(name) {
 		return true, nil
 	}
 	rows, err := s.cfg.Store.ListManagedVariables(ctx, r.ID)
@@ -68,6 +69,28 @@ func (s *Service) mayDelete(ctx context.Context, r Repository, name string) (boo
 		}
 	}
 	return false, nil
+}
+
+// namesToCheck is keptNames plus every size variable that is wanted or that
+// exists; a size variable that exists is deleted only if the store lists it as
+// written by the controller (mayDelete).
+func namesToCheck(want, cur map[string]string) []string {
+	out := keptNames()
+	var extra []string
+	for _, m := range []map[string]string{want, cur} {
+		for n := range m {
+			if isSizeVar(n) {
+				extra = append(extra, n)
+			}
+		}
+	}
+	sort.Strings(extra)
+	for i, n := range extra {
+		if i == 0 || extra[i-1] != n {
+			out = append(out, n)
+		}
+	}
+	return out
 }
 
 // VariableNames lists the three managed variable names.
@@ -154,17 +177,28 @@ func (s *Service) desired(ctx context.Context, pol Policy, hosted map[string]str
 		}
 	}
 	out := map[string]string{}
+	base := map[string]bool{}
 	for _, v := range variableOrder {
 		labels, served := capy[v.OS]
 		if !served || (len(enabled) > 0 && !enabled[v.OS]) {
 			continue
 		}
+		base[v.OS] = true
 		list := labelList(v.OS, labels, pol.Labels)
 		if h := hosted[v.OS]; h != "" {
 			list = []string{h}
 		}
 		b, _ := json.Marshal(list)
 		out[v.Var] = string(b)
+	}
+	// Size variables beside the plain ones (R5.67); the plain ones are unchanged.
+	sized, err := s.sizeVariables(ctx, pol, base, hosted)
+	if err != nil {
+		return nil, err
+	}
+	for name, list := range sized {
+		b, _ := json.Marshal(list)
+		out[name] = string(b)
 	}
 	if pol.LegacyVars {
 		for _, a := range legacyAlias {
@@ -210,7 +244,7 @@ func (s *Service) syncVariables(ctx context.Context, actor auth.Principal, r Rep
 	for _, v := range have {
 		cur[v.Name] = v.Value
 	}
-	for _, name := range keptNames() {
+	for _, name := range namesToCheck(want, cur) {
 		val, ok := want[name]
 		got, exists := cur[name]
 		if !ok {
@@ -334,7 +368,7 @@ func (s *Service) ReconcileVariables(ctx context.Context, repoID int64) error {
 		cur[v.Name] = v.Value
 	}
 	now := s.cfg.Now()
-	for _, name := range keptNames() {
+	for _, name := range namesToCheck(want, cur) {
 		val, ok := want[name]
 		got, exists := cur[name]
 		if !ok {

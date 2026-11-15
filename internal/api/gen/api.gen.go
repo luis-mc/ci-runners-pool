@@ -651,6 +651,39 @@ func (e MachineMode) Valid() bool {
 	}
 }
 
+// Defines values for MachineRecoveryReason.
+const (
+	OldProtocol MachineRecoveryReason = "old_protocol"
+	Stuck       MachineRecoveryReason = "stuck"
+)
+
+// Valid indicates whether the value is a known member of the MachineRecoveryReason enum.
+func (e MachineRecoveryReason) Valid() bool {
+	switch e {
+	case OldProtocol:
+		return true
+	case Stuck:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MachineRecoveryState.
+const (
+	NeedsRecovery MachineRecoveryState = "needs_recovery"
+)
+
+// Valid indicates whether the value is a known member of the MachineRecoveryState enum.
+func (e MachineRecoveryState) Valid() bool {
+	switch e {
+	case NeedsRecovery:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MachineSettingsGateOnTimeout.
 const (
 	MachineSettingsGateOnTimeoutFail MachineSettingsGateOnTimeout = "fail"
@@ -2412,8 +2445,11 @@ type Machine struct {
 	PendingChange *MachineChange `json:"pending_change,omitempty"`
 
 	// Policy What the agent last reported about the power source and the CPU cap (machines R5.62 to R5.64).
-	Policy      *MachinePolicy `json:"policy,omitempty"`
-	RunningJobs *[]Job         `json:"running_jobs,omitempty"`
+	Policy *MachinePolicy `json:"policy,omitempty"`
+
+	// Recovery Present only when the agent of the machine needs recovery (operations R5.44, web-console R5.33).
+	Recovery    *MachineRecovery `json:"recovery,omitempty"`
+	RunningJobs *[]Job           `json:"running_jobs,omitempty"`
 
 	// Settings machines R5.22, scheduling R5.1.
 	Settings  MachineSettings `json:"settings"`
@@ -2504,6 +2540,29 @@ type MachinePolicy struct {
 	CpuCapState *CpuCapState `json:"cpu_cap_state,omitempty"`
 	OnBattery   bool         `json:"on_battery"`
 }
+
+// MachineRecovery Present only when the agent of the machine needs recovery (operations R5.44, web-console R5.33).
+type MachineRecovery struct {
+	// Armed The owner pressed the action; the agent's next recovery call gets the update.
+	Armed bool `json:"armed"`
+
+	// Has The version the agent runs.
+	Has string `json:"has"`
+
+	// Needs The version the controller runs.
+	Needs string `json:"needs"`
+
+	// Reason old_protocol is an agent too old for the agent link; stuck is an agent that stayed on an old version for an hour after it was asked to update.
+	Reason MachineRecoveryReason `json:"reason"`
+	Since  time.Time             `json:"since"`
+	State  MachineRecoveryState  `json:"state"`
+}
+
+// MachineRecoveryReason old_protocol is an agent too old for the agent link; stuck is an agent that stayed on an old version for an hour after it was asked to update.
+type MachineRecoveryReason string
+
+// MachineRecoveryState defines model for MachineRecovery.State.
+type MachineRecoveryState string
 
 // MachineSettings machines R5.22, scheduling R5.1.
 type MachineSettings struct {
@@ -4001,6 +4060,9 @@ type ServerInterface interface {
 	// CheckMachinePoolSize Check a pool size against the budget without saving it
 	// (POST /api/v1/machines/{machineId}/pool-size-check)
 	CheckMachinePoolSize(w http.ResponseWriter, r *http.Request, machineId MachineId)
+	// RecoverMachine Push the signed update to an agent that needs recovery
+	// (POST /api/v1/machines/{machineId}/recovery)
+	RecoverMachine(w http.ResponseWriter, r *http.Request, machineId MachineId)
 	// RedetectMachine Check again; the agent detects facts and backends now
 	// (POST /api/v1/machines/{machineId}/redetect)
 	RedetectMachine(w http.ResponseWriter, r *http.Request, machineId MachineId)
@@ -5887,6 +5949,32 @@ func (siw *ServerInterfaceWrapper) CheckMachinePoolSize(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// RecoverMachine operation middleware
+func (siw *ServerInterfaceWrapper) RecoverMachine(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RecoverMachine(w, r, machineId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // RedetectMachine operation middleware
 func (siw *ServerInterfaceWrapper) RedetectMachine(w http.ResponseWriter, r *http.Request) {
 
@@ -7601,6 +7689,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/resume", wrapper.ResumeMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/pool-size-check", wrapper.CheckMachinePoolSize)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/redetect", wrapper.RedetectMachine)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/recovery", wrapper.RecoverMachine)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/machines/{machineId}/load", wrapper.GetMachineLoad)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/machines/{machineId}/slots", wrapper.ListSlots)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/slots/free-stale", wrapper.FreeStaleSlots)
@@ -9703,6 +9792,39 @@ type CheckMachinePoolSizedefaultJSONResponse struct {
 }
 
 func (response CheckMachinePoolSizedefaultJSONResponse) VisitCheckMachinePoolSizeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RecoverMachineRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+}
+
+type RecoverMachineResponseObject interface {
+	VisitRecoverMachineResponse(w http.ResponseWriter) error
+}
+
+type RecoverMachine202Response struct {
+}
+
+func (response RecoverMachine202Response) VisitRecoverMachineResponse(w http.ResponseWriter) error {
+	w.WriteHeader(202)
+	return nil
+}
+
+type RecoverMachinedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RecoverMachinedefaultJSONResponse) VisitRecoverMachineResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -12237,6 +12359,9 @@ type StrictServerInterface interface {
 	// CheckMachinePoolSize Check a pool size against the budget without saving it
 	// (POST /api/v1/machines/{machineId}/pool-size-check)
 	CheckMachinePoolSize(ctx context.Context, request CheckMachinePoolSizeRequestObject) (CheckMachinePoolSizeResponseObject, error)
+	// RecoverMachine Push the signed update to an agent that needs recovery
+	// (POST /api/v1/machines/{machineId}/recovery)
+	RecoverMachine(ctx context.Context, request RecoverMachineRequestObject) (RecoverMachineResponseObject, error)
 	// RedetectMachine Check again; the agent detects facts and backends now
 	// (POST /api/v1/machines/{machineId}/redetect)
 	RedetectMachine(ctx context.Context, request RedetectMachineRequestObject) (RedetectMachineResponseObject, error)
@@ -13755,6 +13880,32 @@ func (sh *strictHandler) CheckMachinePoolSize(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CheckMachinePoolSizeResponseObject); ok {
 		if err := validResponse.VisitCheckMachinePoolSizeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RecoverMachine operation middleware
+func (sh *strictHandler) RecoverMachine(w http.ResponseWriter, r *http.Request, machineId MachineId) {
+	var request RecoverMachineRequestObject
+
+	request.MachineId = machineId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RecoverMachine(ctx, request.(RecoverMachineRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RecoverMachine")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RecoverMachineResponseObject); ok {
+		if err := validResponse.VisitRecoverMachineResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

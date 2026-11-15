@@ -16,6 +16,7 @@ import (
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/load"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/recovery"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/redact"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
@@ -73,6 +74,9 @@ type Config struct {
 	// Redactor learns every token and JIT config the controller sends, so no
 	// log line or answer shows one (runners R5.11); nil makes a private one.
 	Redactor *redact.Redactor
+	// Recoverer installs a signed recovery target when the controller refuses
+	// the Session as too old (operations R5.44); nil makes the agent wait.
+	Recoverer Recoverer
 	// CPUCap sets the CPU cap on the runner processes (machines R5.64); nil uses
 	// the OS applier.
 	CPUCap cpucap.Applier
@@ -220,6 +224,14 @@ func Run(ctx context.Context, cfg Config) error {
 			continue // the controller's own agent joins again the same way (R5.1)
 		case errors.Is(err, ErrPinMismatch):
 			return err
+		case errors.Is(err, ErrNeedsRecovery):
+			log.Warn("the controller refused this agent as too old; asking for a recovery update")
+			if rerr := recoverOnce(ctx, cfg, key, id, pin); rerr != nil && !errors.Is(rerr, recovery.ErrNoUpdate) {
+				log.Warn("recovery call", "err", rerr)
+			}
+			if serr := cfg.Sleep(ctx, cfg.Backoff.Next()); serr != nil {
+				return nil
+			}
 		case err != nil:
 			d := cfg.Backoff.Next()
 			log.Warn("link lost; reconnecting", "err", err, "in", d.String())
@@ -404,6 +416,9 @@ func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 }
 
 func classify(err error) error {
+	if isTooOld(err) {
+		return ErrNeedsRecovery
+	}
 	if connect.CodeOf(err) == connect.CodeUnauthenticated {
 		return ErrRemoved
 	}

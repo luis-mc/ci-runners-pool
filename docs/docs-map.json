@@ -112,6 +112,9 @@
     "internal/power/**": [
       "docs/features/machines/spec.md"
     ],
+    "internal/recovery/**": [
+      "docs/features/operations/spec.md"
+    ],
     "internal/regcreds/**": [
       "docs/features/runners/spec.md"
     ],

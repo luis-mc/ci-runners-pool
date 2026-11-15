@@ -85,7 +85,13 @@ func agentRun(args []string, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	cfg.UpdaterFor = func(g *agent.Gate) agent.Updater { return newAgentUpdater(cfg, g, logger) }
+	rec := &agentRecoverer{}
+	cfg.Recoverer = rec
+	cfg.UpdaterFor = func(g *agent.Gate) agent.Updater {
+		u := newAgentUpdater(cfg, g, logger)
+		rec.set(u)
+		return u
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	err = agent.Run(ctx, cfg)

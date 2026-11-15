@@ -160,6 +160,8 @@ func Check(path string, jobs []RunsOnJob, vars map[string]string, pool [][]strin
 				if isPoolVar(j.Var) {
 					out = append(out, Finding{Path: path, Line: j.Line, Kind: KindUsesVar,
 						Text: "job " + j.Job + " reads " + j.Var + ", which is not set; turn the pool on for this repository or set it"})
+				} else if _, size, ok := ParseSizeVariable(j.Var); ok {
+					out = append(out, Finding{Path: path, Line: j.Line, Kind: KindUsesVar, Text: sizeNotSetText(j.Job, j.Var, size)})
 				}
 				continue
 			}
@@ -178,6 +180,15 @@ func Check(path string, jobs []RunsOnJob, vars map[string]string, pool [][]strin
 		}
 	}
 	return out
+}
+
+// sizeNotSetText says why a size variable is not set: an unknown size name, or
+// no machine with that much room (R5.67).
+func sizeNotSetText(job, name, size string) string {
+	if _, known := DefaultSizeFloors()[size]; !known {
+		return "job " + job + " reads " + name + ", which is not set; size " + `"` + size + `"` + " is not one of " + knownSizes(DefaultSizeFloors()) + " and not a size added in Settings"
+	}
+	return "job " + job + " reads " + name + ", which is not set; no machine has that much room in its pool size"
 }
 
 func isPoolVar(n string) bool {
