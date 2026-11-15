@@ -243,7 +243,7 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R5.38** (M1, NOT YET IMPLEMENTED) — **Reconcile.** Whatever the source, the controller reconciles its job view with REST every 5 minutes. A missed webhook or a broken session never leaves a job waiting unseen for longer than that.
 
-**R5.39** (M1, v0.2.0, NOT YET IMPLEMENTED) — **Legacy variable names during the move (transition).** A repository setting `legacy_vars` (off by default) makes the product also write `CI_RUNS_ON` (the Linux label list) and `CI_RUNS_ON_WINDOWS` (the Windows one) with the same JSON as `RUNS_ON_LINUX` and `RUNS_ON_WINDOWS`, and delete them under the same rules (R5.28, R5.29). It exists because workflows that follow the old dev-standards templates read those names until dev-standards moves to `RUNS_ON_*` (its decisions D300, D307). The console shows when it is on and the doctor warns when it stays on after no workflow reads the old names. It never touches `NIGHTLY_RUNS_ON`, which the owner sets by hand. A repository moves from the old pool to crsp by this variable alone; it moves back by setting the old labels again.
+**R5.39** (M1, v0.2.0, Built CRSP47 except the console switch and the doctor warning) — **Legacy variable names during the move (transition).** A repository setting `legacy_vars` (off by default) makes the product also write `CI_RUNS_ON` (the Linux label list) and `CI_RUNS_ON_WINDOWS` (the Windows one) with the same JSON as `RUNS_ON_LINUX` and `RUNS_ON_WINDOWS`, and delete them under the same rules (R5.28, R5.29). It exists because workflows that follow the old dev-standards templates read those names until dev-standards moves to `RUNS_ON_*` (its decisions D300, D307). The console shows when it is on and the doctor warns when it stays on after no workflow reads the old names. It never touches `NIGHTLY_RUNS_ON`, which the owner sets by hand. A repository moves from the old pool to crsp by this variable alone; it moves back by setting the old labels again.
 
 ## 6. Non-functional requirements
 
@@ -388,7 +388,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.36 | internal/github/webhook_test.go; internal/api/handlers_github_test.go |
 | R5.37 | internal/github/poller_test.go |
 | R5.38 | planned: internal/github/reconcile_test.go |
-| R5.39 | planned: internal/github/variables_test.go TestLegacyNamesWrittenAndRemovedWithSetting (v0.2.0) |
+| R5.39 | internal/repos/variables_test.go TestLegacyNamesWrittenAndRemovedWithSetting (CRSP47); the API field `legacy_vars` is in `packages/contract/openapi.yaml` |
 | R6.1 | planned: internal/secrets/store_test.go; internal/store/no_secrets_test.go (schema has no secret column) |
 | R6.2 | internal/github/client_test.go |
 | R6.3 | planned: internal/logging/redact_test.go |
@@ -421,6 +421,10 @@ Built by CRSP19: the requirements marked built. Still NOT YET IMPLEMENTED: R5.6 
 - The schema: a new goose migration in `internal/store/migrations/` adds the tables of section 7.
 - The config: `internal/config/config.go` gains the console addresses and moves the default port to 8460.
 - The agent link: `packages/contract/proto/agent/v1/agent.proto` gains messages that carry a registration token or JIT config to the agent.
+
+Open questions (CRSP47):
+
+- R5.39: an old name (`CI_RUNS_ON`, `CI_RUNS_ON_WINDOWS`) is deleted only when the store lists it as written by the controller, because the old pool may have written it and it is not ours to remove. Alternative: delete any old name when `legacy_vars` is turned off. The conservative choice is built. The console switch and the doctor warning for a setting left on are still to build; the API field `legacy_vars` is there.
 
 Open checks for M1, each recorded as a fixture when built:
 
