@@ -29,6 +29,14 @@ type Request struct {
 	Header       http.Header
 }
 
+// JITRequest is one generate-jitconfig call the fake saw.
+type JITRequest struct {
+	Scope  string
+	Name   string
+	Group  int64
+	Labels []string
+}
+
 // Repo is a repository of the fake.
 type Repo struct {
 	ID            int64
@@ -119,6 +127,8 @@ type Server struct {
 	instTokens map[string]int64
 	removeToks map[string]bool
 	regToks    map[string]bool
+	jitCfgs    map[string]string
+	jitReqs    []JITRequest
 	requests   []Request
 	nextID     int64
 
@@ -143,7 +153,7 @@ func New() *Server {
 		Repos: map[int64]*Repo{}, Variables: map[string]map[string]string{},
 		Runners: map[string][]*Runner{}, WorkflowFiles: map[string]map[string]string{},
 		ManifestCodes: map[string]bool{}, OAuthCodes: map[string]int64{}, OAuthVerifiers: map[string]string{}, DeviceCodes: map[string]int64{}, ForkApproval: map[string]string{},
-		instTokens: map[string]int64{}, removeToks: map[string]bool{}, regToks: map[string]bool{},
+		instTokens: map[string]int64{}, removeToks: map[string]bool{}, regToks: map[string]bool{}, jitCfgs: map[string]string{},
 		RateLimit: 5000, RateRemaining: 5000,
 		AppID: 1234567, nextID: 1000, Now: time.Now,
 		ClientSecret: "FAKE-CLIENT-SECRET-NOT-REAL",

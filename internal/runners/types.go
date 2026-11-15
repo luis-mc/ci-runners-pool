@@ -169,6 +169,9 @@ type GitHub interface {
 	CreateRegistrationToken(ctx context.Context, installationID int64, scope github.RunnerScope) (string, error)
 	CreateRemoveToken(ctx context.Context, installationID int64, scope github.RunnerScope) (string, error)
 	ListRunners(ctx context.Context, installationID int64, scope github.RunnerScope) ([]github.Runner, error)
+	// GenerateJITConfig gives the config of one ephemeral runner (runners
+	// R5.25, github-integration R5.34). The caller passes it on and drops it.
+	GenerateJITConfig(ctx context.Context, installationID int64, scope github.RunnerScope, in github.JITRequest) (github.JITConfig, error)
 }
 
 // RemoveRequest asks an agent to take a runner away.
