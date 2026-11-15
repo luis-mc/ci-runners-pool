@@ -217,8 +217,17 @@ jobs:
           for layer in windows-packaging linux-packaging llvm kvm; do
             docker build --build-arg BASE_IMAGE=crsp-linux-base:ci --tag "crsp-layer-${layer}:ci" "images/layers/${layer}"
           done
+      # runners R5.51: the extra packages layer is last, on top of a packaging
+      # layer, with a list of names (CRSP60). Build only, no push.
+      - name: docker build extra packages layer (no push)
+        run: |
+          docker build --build-arg BASE_IMAGE=crsp-layer-linux-packaging:ci --build-arg "EXTRA_PACKAGES=zlib1g-dev libc++-dev" --tag crsp-layer-extra-packages:ci images/layers/extra-packages
+          if docker build --build-arg BASE_IMAGE=crsp-linux-base:ci --build-arg "EXTRA_PACKAGES=ok;rm" images/layers/extra-packages; then echo "a bad name was accepted"; exit 1; fi
       - name: Layer tools run as the job user
         run: |
+          docker run --rm crsp-layer-linux-packaging:ci bash -ec 'test "$(id -u)" != 0; dpkg-buildpackage --version | head -1; fakeroot --version | head -1; rpmbuild --version'
+          docker run --rm crsp-layer-windows-packaging:ci bash -ec 'test "$(id -u)" != 0; dotnet --version; wine --version; command -v xvfb-run xauth msiinfo'
+          docker run --rm crsp-layer-extra-packages:ci bash -ec 'test "$(id -u)" != 0; dpkg -s zlib1g-dev libc++-dev >/dev/null; command -v dpkg-deb'
           docker run --rm crsp-layer-llvm:ci bash -ec 'test "$(id -u)" != 0; clang-cl --version | head -1; lld-link --version | head -1; command -v llvm-lib'
           docker run --rm crsp-layer-kvm:ci bash -ec 'test "$(id -u)" != 0; qemu-system-x86_64 --version | head -1; kvm-wait.sh true'
 

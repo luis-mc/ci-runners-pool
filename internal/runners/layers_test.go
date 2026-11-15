@@ -103,7 +103,7 @@ func layerFile(t *testing.T, l Layer) string {
 func TestLayerToolLists(t *testing.T) {
 	want := map[string][]string{
 		"windows-packaging": {"dotnet-sdk-8.0", "wine", "wine64", "xvfb", "xauth", "msitools"},
-		"linux-packaging": {"dpkg-dev", "rpm", "make", "checkpolicy", "selinux-policy-dev", "policycoreutils",
+		"linux-packaging": {"dpkg-dev", "fakeroot", "rpm", "make", "checkpolicy", "selinux-policy-dev", "policycoreutils",
 			"gnupg", "shellcheck", "systemd", "createrepo-c"},
 		"kvm": {"qemu-system-x86", "qemu-utils", "cloud-image-utils", "openssh-client"},
 	}
@@ -238,6 +238,80 @@ func TestLayerSetKeyCoversLayersAndExtras(t *testing.T) {
 	} {
 		if k == a {
 			t.Errorf("%s does not change the key", name)
+		}
+	}
+}
+
+// TestPlanImageExtrasLastAndKeyed: the extra packages are the last layer and
+// a changed list changes the image key (R5.51, R5.33).
+func TestPlanImageExtrasLastAndKeyed(t *testing.T) {
+	p := PoolLayers{Enabled: []string{"linux-packaging", "windows-packaging"}}
+	a, err := PlanImage("base:ci", "sha256:x", p, []string{"zlib1g-dev", "libc++-dev"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var order []string
+	for _, s := range a.Steps {
+		order = append(order, s.Layer)
+	}
+	if strings.Join(order, " ") != "linux-packaging windows-packaging extra-packages" {
+		t.Fatalf("order %v", order)
+	}
+	last := a.Steps[2]
+	if strings.Join(last.Args, " ") != "--build-arg BASE_IMAGE={prev} --build-arg EXTRA_PACKAGES=libc++-dev zlib1g-dev" {
+		t.Errorf("args %v", last.Args)
+	}
+	if a.Steps[0].Args[1] != "BASE_IMAGE=base:ci" {
+		t.Errorf("first base %v", a.Steps[0].Args)
+	}
+	b, _ := PlanImage("base:ci", "sha256:x", p, []string{"zlib1g-dev"})
+	if a.Key == b.Key {
+		t.Error("a changed extra list keeps the key")
+	}
+	none, _ := PlanImage("base:ci", "sha256:x", p, nil)
+	if len(none.Steps) != 2 {
+		t.Errorf("empty list added a step: %v", none.Steps)
+	}
+	only, _ := PlanImage("base:ci", "sha256:x", PoolLayers{}, []string{"jq"})
+	if len(only.Steps) != 1 || only.Steps[0].Args[1] != "BASE_IMAGE=base:ci" {
+		t.Errorf("only extras: %+v", only.Steps)
+	}
+	if _, err := PlanImage("base:ci", "sha256:x", p, []string{"ok", "-bad"}); err == nil {
+		t.Error("bad name planned")
+	} else {
+		var pe *PackageError
+		if !errors.As(err, &pe) {
+			t.Errorf("err %v", err)
+		}
+	}
+}
+
+// TestPackagingLayersSelectable: the packaging layers are chosen by name and
+// pin their lines (R5.50).
+func TestPackagingLayersSelectable(t *testing.T) {
+	got, err := SelectLayers(PoolLayers{Enabled: []string{"windows-packaging", "linux-packaging"}})
+	if err != nil || len(got) != 2 || got[0].Name != "linux-packaging" {
+		t.Fatalf("got %+v %v", got, err)
+	}
+	win, _ := LayerByName("windows-packaging")
+	d := layerFile(t, win)
+	for _, want := range []string{"ARG DOTNET_SDK_LINE=8.0", "ARG WINE_LINE=9.0", `grep -q "^${DOTNET_SDK_LINE}\.`, `grep -q "^wine-${WINE_LINE}"`} {
+		if !strings.Contains(d, want) {
+			t.Errorf("windows-packaging lacks %q", want)
+		}
+	}
+}
+
+// TestExtraPackagesDockerfile: the layer checks names again and every package.
+func TestExtraPackagesDockerfile(t *testing.T) {
+	b, err := os.ReadFile("../../" + ExtraPackagesDockerfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := string(b)
+	for _, want := range []string{"FROM ${BASE_IMAGE}", "ARG EXTRA_PACKAGES", "USER root", "USER runner", "Self-check", "dpkg -s", "extra package name refused"} {
+		if !strings.Contains(d, want) {
+			t.Errorf("extra-packages Dockerfile lacks %q", want)
 		}
 	}
 }

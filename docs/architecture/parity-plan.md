@@ -66,11 +66,11 @@ Status words: **Built** (code and tests exist), **Specified** (a requirement exi
 | 22 | Node LTS with corepack, `pnpm` shim | Dockerfile (DL215, DL220, DL223) | J1, J7 | Missing, added | runners R5.49 |
 | 23 | LLVM, `clang-cl`, `lld-link`, `llvm-lib` | Dockerfile base | J8 | Specified | runners R5.43 |
 | 24 | Playwright browsers and system libraries | `POOL_BROWSERS` | J7 | Specified | runners R5.44; caches R5.41 |
-| 25 | `windows-packaging` layer: dotnet 8, wine, xvfb, xauth, msitools | `POOL_LAYERS` | J9 | Wine Specified; the rest Missing, added | runners R5.42, R5.50 |
+| 25 | `windows-packaging` layer: dotnet 8, wine, xvfb, xauth, msitools | `POOL_LAYERS` | J9 | Built (pinned by line; exact pins open, runners open question 32) | runners R5.42, R5.50 |
 | 26 | Wine prefix per agent, made once, `TMPDIR` unset, `POOL_WINE_PREFIX` | supervisor | J9 | Specified; kept prefix and old name Missing, added | runners R5.42, R5.52 |
-| 27 | `linux-packaging` layer | `POOL_LAYERS` | J10 | Missing, added | runners R5.50 |
+| 27 | `linux-packaging` layer | `POOL_LAYERS` | J10 | Built (no AppImage tool, runners open question 33) | runners R5.50 |
 | 28 | `kvm` layer, the device, the group, the `kvm` label | `POOL_KVM`, `compose.kvm.yaml` | J11 | Device and label Specified; layer Missing, added | runners R5.41, R5.50 |
-| 29 | Extra distribution packages per pool | `.delivery/pool.apt` | any | Missing, added | runners R5.51 |
+| 29 | Extra distribution packages per pool | `.delivery/pool.apt` | any | Built as the last layer and in the image key; the pool setting that stores the list is not built | runners R5.51 |
 | 30 | Image layers merged across repositories, `--drop-layer`, Playwright never lowered | `pool-refresh` | n/a | Not needed: a crsp pool is per repository and an image is keyed by its layers | runners R5.33 |
 | 31 | Build aside, drain, swap, truthful result, wrong runner hash fixed | `pool-refresh` | all | Built (CRSP52 build aside, drain, swap; CRSP59 one re-download on a wrong hash) | runners R5.33, R5.35, R5.37 |
 | 32 | Agent user id clashes | `pool_supervisor.py` (DL284) | all | Not needed: the job user is fixed in the image | runners R5.49 |
