@@ -202,6 +202,13 @@ jobs:
       - name: Job user is not root and tools run
         run: |
           docker run --rm crsp-linux-base:ci bash -ec 'test "$(id -u)" != 0; node --version; corepack --version; command -v pnpm; gh --version | head -1; crsp version'
+      # runners R5.44: the browsers layer builds on the base image (its build
+      # launches each browser headless as the self-check). Build only, no push.
+      - name: docker build browsers layer (no push)
+        run: docker build --build-arg BASE_IMAGE=crsp-linux-base:ci --tag crsp-linux-browsers:ci images/layers/browsers
+      - name: Browsers sit at the fixed path
+        run: |
+          docker run --rm crsp-linux-browsers:ci bash -ec 'test "$PLAYWRIGHT_BROWSERS_PATH" = /opt/crsp/browsers; test -n "$(ls /opt/crsp/browsers)"; test "$(id -u)" != 0'
 
   e2e:
     name: e2e (Playwright)
