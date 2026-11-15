@@ -551,6 +551,8 @@ func (l *link) handle(ctx context.Context, msg *agentv1.SessionResponse) error {
 		l.runnerCmd(ctx, msg)
 	case *agentv1.SessionResponse_UpdateRunnerFiles:
 		go l.updateFiles(ctx, m.UpdateRunnerFiles)
+	case *agentv1.SessionResponse_RunHostCommand:
+		go l.runHostCommand(ctx, m.RunHostCommand)
 	case *agentv1.SessionResponse_MeasureCaches:
 		go l.reportCaches(ctx, m.MeasureCaches.GetCommandId())
 	case *agentv1.SessionResponse_WipeCache:

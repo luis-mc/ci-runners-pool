@@ -131,6 +131,9 @@ message SessionResponse {
     ReportMachine report_machine = 22;
     // Protocol version 2: replace the runner files of one runner (runners R5.38).
     UpdateRunnerFiles update_runner_files = 23;
+    // Host maintenance (cli R5.29, HND24): run one command on the machine. The
+    // controller sends it only when the machine's report says `host_command`.
+    RunHostCommand run_host_command = 24;
   }
 }
 
@@ -364,6 +367,21 @@ message RunnerResult {
   string version = 8;
   // UpdateRunnerFiles: the swap failed and the previous files were put back.
   bool rolled_back = 9;
+  // RunHostCommand: the exit code of the command (-1 when it did not start or
+  // was stopped by the timeout) and the last bytes of its output, redacted.
+  int32 exit_code = 10;
+  string output = 11;
+}
+
+// RunHostCommand runs one command on the machine for host maintenance (cli
+// R5.29, HND24). argv is run directly, never through a shell. The agent
+// answers with one RunnerResult (outcome done, or failed with exit_code and
+// output). The controller sends it only to a drained, idle machine, so no job
+// is running. A command that is still running after timeout_seconds is killed.
+message RunHostCommand {
+  string command_id = 1;
+  repeated string argv = 2;
+  int32 timeout_seconds = 3;
 }
 
 // UpdateRunnerFiles replaces the runner files of one persistent runner (runners
@@ -777,6 +795,8 @@ message MachineReport {
   bool runner_swap = 7;
   // Extra package sets that failed to install here (runners R5.86).
   repeated PackageFailure package_failures = 8;
+  // True when this agent understands RunHostCommand (HND24).
+  bool host_command = 9;
 }
 
 // PackageFailure is one extra package set the agent could not install.

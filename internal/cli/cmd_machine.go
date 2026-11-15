@@ -160,6 +160,7 @@ func cmdMachine() *command {
 					_, _ = fmt.Fprintf(c.env.Stderr, "Machine %s takes jobs again.\n", m.Name)
 					return nil
 				}},
+			maintainCommand(),
 			{name: "remove", summary: "drain and remove a machine", args: "NAME [--yes]",
 				flags: drainFlags,
 				run:   func(c *call, args []string) error { return c.drainOrRemove(args, true) }},
@@ -227,8 +228,24 @@ func (c *call) drainOrRemove(args []string, remove bool) error {
 	if change == nil {
 		return fail(ExitFailed, "The controller sent no change to follow.")
 	}
-	// One drain timeout per machine, set in its settings. When it passes, the
-	// command keeps waiting and warns; it never stops a job (cli R5.16).
+	if err := c.waitChange(s, m, change); err != nil {
+		return err
+	}
+	if c.g.json {
+		return output.JSON(c.env.Stdout, change)
+	}
+	past := "drained"
+	if remove {
+		past = "removed"
+	}
+	_, _ = fmt.Fprintf(c.env.Stderr, "Machine %s %s.\n", m.Name, past)
+	return nil
+}
+
+// waitChange follows a drain change until it is done. One drain timeout per
+// machine, set in its settings: when it passes, the command keeps waiting and
+// warns; it never stops a job (cli R5.16).
+func (c *call) waitChange(s *session, m client.Machine, change *client.MachineChange) error {
 	timeout := time.Duration(m.Settings.DrainTimeoutMinutes) * time.Minute
 	started := c.env.Now()
 	var lastWarn time.Time
@@ -269,13 +286,5 @@ func (c *call) drainOrRemove(args []string, remove bool) error {
 			change = g.JSON200
 		}
 	}
-	if c.g.json {
-		return output.JSON(c.env.Stdout, change)
-	}
-	past := "drained"
-	if remove {
-		past = "removed"
-	}
-	_, _ = fmt.Fprintf(c.env.Stderr, "Machine %s %s.\n", m.Name, past)
 	return nil
 }

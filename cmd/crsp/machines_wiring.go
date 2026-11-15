@@ -85,6 +85,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 	})
 	cs := caches.New(caches.Options{Machines: svc, Audit: rec})
 	lk := agentlink.New(svc)
+	svc.SetHostRunner(lk)
 	svc.SetHooks(machines.Hooks{ControllerVersion: version,
 		OnHello: func(ctx context.Context, id string, h *agentv1.Hello) { cs.OnHello(ctx, id, h); lk.OnHello(id) },
 		OnMessage: func(ctx context.Context, id string, m *agentv1.SessionRequest, reply func(*agentv1.SessionResponse)) bool {

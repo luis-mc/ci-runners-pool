@@ -2236,6 +2236,26 @@ type Health struct {
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
 
+// HostCommandRequest defines model for HostCommandRequest.
+type HostCommandRequest struct {
+	// Command The program and its arguments; run without a shell.
+	Command []string `json:"command"`
+
+	// TimeoutSeconds How long the command may run. Default 1800.
+	TimeoutSeconds *int `json:"timeout_seconds,omitempty"`
+}
+
+// HostCommandResult defines model for HostCommandResult.
+type HostCommandResult struct {
+	// ExitCode -1 when the command did not start or was stopped.
+	ExitCode int     `json:"exit_code"`
+	Message  *string `json:"message,omitempty"`
+	Ok       bool    `json:"ok"`
+
+	// Output The last 64 KiB of the combined output, redacted.
+	Output string `json:"output"`
+}
+
 // Image One image on one machine (runners R5.32 and R5.33).
 type Image struct {
 	// Base The base image.
@@ -3842,6 +3862,9 @@ type UpdateMachineJSONRequestBody = MachineSettingsUpdate
 // DecideMachineChangeJSONRequestBody defines body for DecideMachineChange for application/json ContentType.
 type DecideMachineChangeJSONRequestBody = MachineChangeDecision
 
+// RunMachineCommandJSONRequestBody defines body for RunMachineCommand for application/json ContentType.
+type RunMachineCommandJSONRequestBody = HostCommandRequest
+
 // DrainMachineJSONRequestBody defines body for DrainMachine for application/json ContentType.
 type DrainMachineJSONRequestBody = DrainRequest
 
@@ -4051,6 +4074,9 @@ type ServerInterface interface {
 	// DecideMachineChange Answer a change that needs you after the drain timeout
 	// (POST /api/v1/machines/{machineId}/changes/{changeId})
 	DecideMachineChange(w http.ResponseWriter, r *http.Request, machineId MachineId, changeId ChangeId)
+	// RunMachineCommand Run one command on a drained machine (host maintenance)
+	// (POST /api/v1/machines/{machineId}/command)
+	RunMachineCommand(w http.ResponseWriter, r *http.Request, machineId MachineId)
 	// DrainMachine Stop new jobs on a machine; running jobs finish
 	// (POST /api/v1/machines/{machineId}/drain)
 	DrainMachine(w http.ResponseWriter, r *http.Request, machineId MachineId)
@@ -5833,6 +5859,32 @@ func (siw *ServerInterfaceWrapper) DecideMachineChange(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DecideMachineChange(w, r, machineId, changeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RunMachineCommand operation middleware
+func (siw *ServerInterfaceWrapper) RunMachineCommand(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RunMachineCommand(w, r, machineId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -7686,6 +7738,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/machines/{machineId}", wrapper.GetMachine)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/machines/{machineId}", wrapper.UpdateMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/drain", wrapper.DrainMachine)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/command", wrapper.RunMachineCommand)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/resume", wrapper.ResumeMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/pool-size-check", wrapper.CheckMachinePoolSize)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/redetect", wrapper.RedetectMachine)
@@ -9672,6 +9725,46 @@ type DecideMachineChangedefaultJSONResponse struct {
 }
 
 func (response DecideMachineChangedefaultJSONResponse) VisitDecideMachineChangeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunMachineCommandRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	Body      *RunMachineCommandJSONRequestBody
+}
+
+type RunMachineCommandResponseObject interface {
+	VisitRunMachineCommandResponse(w http.ResponseWriter) error
+}
+
+type RunMachineCommand200JSONResponse HostCommandResult
+
+func (response RunMachineCommand200JSONResponse) VisitRunMachineCommandResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RunMachineCommanddefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RunMachineCommanddefaultJSONResponse) VisitRunMachineCommandResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -12350,6 +12443,9 @@ type StrictServerInterface interface {
 	// DecideMachineChange Answer a change that needs you after the drain timeout
 	// (POST /api/v1/machines/{machineId}/changes/{changeId})
 	DecideMachineChange(ctx context.Context, request DecideMachineChangeRequestObject) (DecideMachineChangeResponseObject, error)
+	// RunMachineCommand Run one command on a drained machine (host maintenance)
+	// (POST /api/v1/machines/{machineId}/command)
+	RunMachineCommand(ctx context.Context, request RunMachineCommandRequestObject) (RunMachineCommandResponseObject, error)
 	// DrainMachine Stop new jobs on a machine; running jobs finish
 	// (POST /api/v1/machines/{machineId}/drain)
 	DrainMachine(ctx context.Context, request DrainMachineRequestObject) (DrainMachineResponseObject, error)
@@ -13784,6 +13880,39 @@ func (sh *strictHandler) DecideMachineChange(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(DecideMachineChangeResponseObject); ok {
 		if err := validResponse.VisitDecideMachineChangeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RunMachineCommand operation middleware
+func (sh *strictHandler) RunMachineCommand(w http.ResponseWriter, r *http.Request, machineId MachineId) {
+	var request RunMachineCommandRequestObject
+
+	request.MachineId = machineId
+
+	var body RunMachineCommandJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RunMachineCommand(ctx, request.(RunMachineCommandRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RunMachineCommand")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RunMachineCommandResponseObject); ok {
+		if err := validResponse.VisitRunMachineCommandResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

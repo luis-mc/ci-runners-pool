@@ -60,5 +60,6 @@ func (l *link) reportMachine(ctx context.Context, commandID string) {
 	rep := buildMachineReport(ctx, l.cfg.sys(), f, l.cfg.Images, l.cfg.PackageFailures, time.Now())
 	rep.CommandId = commandID
 	rep.RunnerSwap = l.cfg.RunnerFiles != nil
+	rep.HostCommand = true
 	_ = l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_MachineReport{MachineReport: rep}})
 }

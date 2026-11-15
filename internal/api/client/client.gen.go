@@ -2237,6 +2237,26 @@ type Health struct {
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
 
+// HostCommandRequest defines model for HostCommandRequest.
+type HostCommandRequest struct {
+	// Command The program and its arguments; run without a shell.
+	Command []string `json:"command"`
+
+	// TimeoutSeconds How long the command may run. Default 1800.
+	TimeoutSeconds *int `json:"timeout_seconds,omitempty"`
+}
+
+// HostCommandResult defines model for HostCommandResult.
+type HostCommandResult struct {
+	// ExitCode -1 when the command did not start or was stopped.
+	ExitCode int     `json:"exit_code"`
+	Message  *string `json:"message,omitempty"`
+	Ok       bool    `json:"ok"`
+
+	// Output The last 64 KiB of the combined output, redacted.
+	Output string `json:"output"`
+}
+
 // Image One image on one machine (runners R5.32 and R5.33).
 type Image struct {
 	// Base The base image.
@@ -3843,6 +3863,9 @@ type UpdateMachineJSONRequestBody = MachineSettingsUpdate
 // DecideMachineChangeJSONRequestBody defines body for DecideMachineChange for application/json ContentType.
 type DecideMachineChangeJSONRequestBody = MachineChangeDecision
 
+// RunMachineCommandJSONRequestBody defines body for RunMachineCommand for application/json ContentType.
+type RunMachineCommandJSONRequestBody = HostCommandRequest
+
 // DrainMachineJSONRequestBody defines body for DrainMachine for application/json ContentType.
 type DrainMachineJSONRequestBody = DrainRequest
 
@@ -4377,6 +4400,24 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /api/v1/machines/{machineId}/changes/{changeId} (the `DecideMachineChange` operationId).
 	DecideMachineChange(ctx context.Context, machineId MachineId, changeId ChangeId, body DecideMachineChangeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RunMachineCommandWithBody Run one command on a drained machine (host maintenance)
+	//
+	// cli R5.29 (HND24). The machine must be drained and idle; the command is run directly by the agent, never through a shell, and no job is touched. A command that ran and failed answers 200 with `ok` false.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
+	RunMachineCommandWithBody(ctx context.Context, machineId MachineId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RunMachineCommand Run one command on a drained machine (host maintenance)
+	//
+	// cli R5.29 (HND24). The machine must be drained and idle; the command is run directly by the agent, never through a shell, and no job is touched. A command that ran and failed answers 200 with `ok` false.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
+	RunMachineCommand(ctx context.Context, machineId MachineId, body RunMachineCommandJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DrainMachineWithBody Stop new jobs on a machine; running jobs finish
 	//
@@ -5992,6 +6033,44 @@ func (c *Client) DecideMachineChangeWithBody(ctx context.Context, machineId Mach
 // Corresponds with POST /api/v1/machines/{machineId}/changes/{changeId} (the `DecideMachineChange` operationId).
 func (c *Client) DecideMachineChange(ctx context.Context, machineId MachineId, changeId ChangeId, body DecideMachineChangeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDecideMachineChangeRequest(c.Server, machineId, changeId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RunMachineCommandWithBody Run one command on a drained machine (host maintenance)
+//
+// cli R5.29 (HND24). The machine must be drained and idle; the command is run directly by the agent, never through a shell, and no job is touched. A command that ran and failed answers 200 with `ok` false.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
+func (c *Client) RunMachineCommandWithBody(ctx context.Context, machineId MachineId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRunMachineCommandRequestWithBody(c.Server, machineId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RunMachineCommand Run one command on a drained machine (host maintenance)
+//
+// cli R5.29 (HND24). The machine must be drained and idle; the command is run directly by the agent, never through a shell, and no job is touched. A command that ran and failed answers 200 with `ok` false.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
+func (c *Client) RunMachineCommand(ctx context.Context, machineId MachineId, body RunMachineCommandJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRunMachineCommandRequest(c.Server, machineId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -9856,6 +9935,53 @@ func NewDecideMachineChangeRequestWithBody(server string, machineId MachineId, c
 	return req, nil
 }
 
+// NewRunMachineCommandRequest calls the generic RunMachineCommand builder with application/json body
+func NewRunMachineCommandRequest(server string, machineId MachineId, body RunMachineCommandJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRunMachineCommandRequestWithBody(server, machineId, "application/json", bodyReader)
+}
+
+// NewRunMachineCommandRequestWithBody constructs an http.Request for the RunMachineCommand method, with any body, and a specified content type
+func NewRunMachineCommandRequestWithBody(server string, machineId MachineId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "machineId", machineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/machines/%s/command", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewDrainMachineRequest calls the generic DrainMachine builder with application/json body
 func NewDrainMachineRequest(server string, machineId MachineId, body DrainMachineJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -13080,6 +13206,24 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/machines/{machineId}/changes/{changeId} (the `DecideMachineChange` operationId).
 	DecideMachineChangeWithResponse(ctx context.Context, machineId MachineId, changeId ChangeId, body DecideMachineChangeJSONRequestBody, reqEditors ...RequestEditorFn) (*DecideMachineChangeResponse, error)
 
+	// RunMachineCommandWithBodyWithResponse Run one command on a drained machine (host maintenance)
+	//
+	// cli R5.29 (HND24). The machine must be drained and idle; the command is run directly by the agent, never through a shell, and no job is touched. A command that ran and failed answers 200 with `ok` false.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
+	RunMachineCommandWithBodyWithResponse(ctx context.Context, machineId MachineId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RunMachineCommandResponse, error)
+
+	// RunMachineCommandWithResponse Run one command on a drained machine (host maintenance)
+	//
+	// cli R5.29 (HND24). The machine must be drained and idle; the command is run directly by the agent, never through a shell, and no job is touched. A command that ran and failed answers 200 with `ok` false.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
+	RunMachineCommandWithResponse(ctx context.Context, machineId MachineId, body RunMachineCommandJSONRequestBody, reqEditors ...RequestEditorFn) (*RunMachineCommandResponse, error)
+
 	// DrainMachineWithBodyWithResponse Stop new jobs on a machine; running jobs finish
 	//
 	// machines R5.30 to R5.33.
@@ -16030,6 +16174,54 @@ func (r DecideMachineChangeResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r DecideMachineChangeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RunMachineCommandResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *HostCommandResult
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RunMachineCommandResponse) GetJSON200() *HostCommandResult {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r RunMachineCommandResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RunMachineCommandResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RunMachineCommandResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RunMachineCommandResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RunMachineCommandResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -19947,6 +20139,36 @@ func (c *ClientWithResponses) DecideMachineChangeWithResponse(ctx context.Contex
 	return ParseDecideMachineChangeResponse(rsp)
 }
 
+// RunMachineCommandWithBodyWithResponse Run one command on a drained machine (host maintenance)
+//
+// cli R5.29 (HND24). The machine must be drained and idle; the command is run directly by the agent, never through a shell, and no job is touched. A command that ran and failed answers 200 with `ok` false.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
+func (c *ClientWithResponses) RunMachineCommandWithBodyWithResponse(ctx context.Context, machineId MachineId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RunMachineCommandResponse, error) {
+	rsp, err := c.RunMachineCommandWithBody(ctx, machineId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRunMachineCommandResponse(rsp)
+}
+
+// RunMachineCommandWithResponse Run one command on a drained machine (host maintenance)
+//
+// cli R5.29 (HND24). The machine must be drained and idle; the command is run directly by the agent, never through a shell, and no job is touched. A command that ran and failed answers 200 with `ok` false.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
+func (c *ClientWithResponses) RunMachineCommandWithResponse(ctx context.Context, machineId MachineId, body RunMachineCommandJSONRequestBody, reqEditors ...RequestEditorFn) (*RunMachineCommandResponse, error) {
+	rsp, err := c.RunMachineCommand(ctx, machineId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRunMachineCommandResponse(rsp)
+}
+
 // DrainMachineWithBodyWithResponse Stop new jobs on a machine; running jobs finish
 //
 // machines R5.30 to R5.33.
@@ -22789,6 +23011,39 @@ func ParseDecideMachineChangeResponse(rsp *http.Response) (*DecideMachineChangeR
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest MachineChange
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRunMachineCommandResponse parses an HTTP response from a RunMachineCommandWithResponse call
+func ParseRunMachineCommandResponse(rsp *http.Response) (*RunMachineCommandResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RunMachineCommandResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest HostCommandResult
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

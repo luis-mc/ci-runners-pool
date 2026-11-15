@@ -126,6 +126,11 @@ func (l *Link) Forget(machineID string) {
 // call sends the message built with the command id and waits for the result.
 // The returned error holds the agent's redacted text and never the message.
 func (l *Link) call(ctx context.Context, machineID string, build func(id string) *agentv1.SessionResponse) (*agentv1.RunnerResult, error) {
+	return l.callWait(ctx, machineID, 0, build)
+}
+
+// callWait is call with its own wait; zero takes the link's timeout.
+func (l *Link) callWait(ctx context.Context, machineID string, wait time.Duration, build func(id string) *agentv1.SessionResponse) (*agentv1.RunnerResult, error) {
 	id := newCommandID()
 	ch := make(chan *agentv1.RunnerResult, 1)
 	l.mu.Lock()
@@ -135,7 +140,9 @@ func (l *Link) call(ctx context.Context, machineID string, build func(id string)
 	if err := l.Sender.Send(machineID, build(id)); err != nil {
 		return nil, fmt.Errorf("the machine's agent is not connected: %w", err)
 	}
-	wait := l.Timeout
+	if wait <= 0 {
+		wait = l.Timeout
+	}
 	if wait <= 0 {
 		wait = DefaultTimeout
 	}
