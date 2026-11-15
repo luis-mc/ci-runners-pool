@@ -229,10 +229,11 @@ func (s *Service) UpdateSettings(ctx context.Context, actor, id string, u Settin
 			return View{}, nil, fmt.Errorf("%w: a machine name is 1 to 64 characters", ErrInvalid)
 		}
 		if *u.Name != m.Name {
-			m.Name = *u.Name
-			if err := s.o.Repo.UpdateMachine(ctx, m); err != nil {
+			nm, _, err := s.updateMachine(ctx, id, func(m *Machine) bool { m.Name = *u.Name; return true })
+			if err != nil {
 				return View{}, nil, err
 			}
+			m = nm
 			_ = s.o.Repo.Audit(ctx, actor, "machine.rename", id, m.Name)
 		}
 	}
@@ -250,7 +251,7 @@ func (s *Service) UpdateSettings(ctx context.Context, actor, id string, u Settin
 				Names:   jobNames(jobs),
 			}
 		}
-		c, err := s.beginChange(ctx, actor, m, KindSettings, ChangeDetail{Settings: &next, Reason: "allowed backends changed"}, cur.DrainTimeoutMinutes)
+		c, err := s.beginChange(ctx, actor, m, KindSettings, ChangeDetail{Settings: &next, Base: &cur, Reason: "allowed backends changed"}, cur.DrainTimeoutMinutes)
 		if err != nil {
 			return View{}, nil, err
 		}

@@ -83,6 +83,19 @@ jobs:
           ./gitleaks git --config .gitleaks.toml --redact --no-banner --log-opts="HEAD"
           rm -f gitleaks gitleaks.tgz
 
+      # Workflow lint (actionlint runs shellcheck on run: blocks; the runner image
+      # ships shellcheck). Pinned release, checksum verified, same as gitleaks.
+      - name: Workflow lint (actionlint)
+        env:
+          ACTIONLINT_VERSION: 1.7.7
+          ACTIONLINT_SHA256: 023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+        run: |
+          curl -fsSL -o actionlint.tgz "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          echo "${ACTIONLINT_SHA256}  actionlint.tgz" | sha256sum -c -
+          tar -xzf actionlint.tgz actionlint
+          ./actionlint -color
+          rm -f actionlint actionlint.tgz
+
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version-file: go.mod

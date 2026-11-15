@@ -151,6 +151,12 @@ func TestWipeWaitsForTheRunningJobThenEmptiesTheFolder(t *testing.T) {
 	folder := runnerFolder(t)
 	cfg.Caches = staticRunners{{Name: "r1", Folder: folder}}
 	cfg.CacheEvery = 50 * time.Millisecond
+	// The agent ends its link after three silent heartbeats. At 50 ms that is
+	// 150 ms, which a loaded Windows runner overruns (GC, race build, parallel
+	// packages): the link drops, the WipeCache sent on it is lost and the old
+	// session's wiper stops without a report, so the controller shows "wiping"
+	// for ever. Heartbeats play no part here; keep the link up.
+	cfg.HeartbeatEvery = 2 * time.Second
 	runAgent(t, cfg)
 
 	var list []caches.Cache

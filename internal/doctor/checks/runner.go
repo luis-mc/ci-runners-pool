@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
+	listener "github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 )
@@ -387,6 +389,14 @@ func runnerListener(ctx context.Context, env doctor.Env) []doctor.Finding {
 			f.Severity, f.Title = doctor.Fail, r.Name+" has a listener but its service is stopped"
 			f.Detail = fmt.Sprintf("The listener (process %d) outlived its service. Starting the service would start a second listener, which GitHub refuses.", r.ListenerPIDs[0])
 			f.Fix = doctor.Fix{Text: "End that listener process, or restart the runner from the Runners screen when it is idle.", Link: "/runners"}
+		case r.SessionRefused && listener.InSessionWindow(r.RestartedAt, env.Now, env.SessionWait):
+			until := r.RestartedAt.Add(sessionWait(env)).UTC().Format("15:04:05Z")
+			f.Severity, f.Title = doctor.OK, "The listener of "+r.Name+" waits for GitHub to drop the old session"
+			f.Detail = "After the restart GitHub still holds the old session, which is expected until " + until + ". No second listener is started."
+		case r.SessionRefused:
+			f.Severity, f.Title = doctor.Warn, "GitHub still refuses the session of "+r.Name
+			f.Detail = "The listener logs \"a session for this runner already exists\" and the wait after the last restart (" + sessionWait(env).String() + ") is over."
+			f.Fix = doctor.Fix{Text: "Look for a second listener or another machine that uses this runner name; if there is none, remove the runner in GitHub and add it again from the Runners screen.", Link: "/runners"}
 		case n == 0 && r.ServiceRunning:
 			f.Severity, f.Title = doctor.Warn, "The service of "+r.Name+" runs without a listener"
 			f.Detail = "The service wrapper is up, but no Runner.Listener process runs from the runner folder, so the runner takes no job."
@@ -397,6 +407,14 @@ func runnerListener(ctx context.Context, env doctor.Env) []doctor.Finding {
 		out = append(out, f)
 	}
 	return out
+}
+
+// sessionWait is the stale-session window of the run.
+func sessionWait(env doctor.Env) time.Duration {
+	if env.SessionWait > 0 {
+		return env.SessionWait
+	}
+	return listener.DefaultSessionWindow
 }
 
 var genericLabels = map[string]bool{

@@ -275,6 +275,8 @@ Each layer has a self-check that runs its main tools. The doctor probes the same
 
 **R5.66** (M4, M5 for macOS, NOT YET IMPLEMENTED, CRSP86) — **Docker inside a job through a cloned VM.** A job that needs Docker itself runs in a VM cloned copy-on-write for that job: a Hyper-V differencing disk on Windows (R5.28), a clone on macOS (R5.29). The base the clone comes from is built only from the repository's default branch, never from a pull request or any other branch, and is rebuilt when that branch moves. The job's VM is deleted when the job ends. At start the agent sweeps orphans: every VM and disk that crsp made and that no runner owns is deleted and logged. A job never gets the host's Docker socket (R5.27).
 
+**R5.67** (M1, Built HND23) — **A stale session after a restart is expected for a while.** (Handover lesson 29.) After a real `wsl --shutdown` the pool came back with KVM, but every listener logged "A session for this runner already exists" for about two minutes, until GitHub dropped the sessions it still held. When a runner's listener reports that message right after a restart (container pool start, VM restart, service restart), the supervisor treats it as expected for a bounded window, the pool setting `session_wait_minutes` (default 3, 1 to 30). Inside the window it backs off quietly: one log line says it waits for GitHub to drop the old session and until when, and it never starts a second listener for the runner (R5.59, R5.60; a start goes through the listener guard first). The doctor and the console raise no problem inside the window (doctor R5.41). Past the window it is a real fault: the supervisor returns `ErrSessionStale` and the doctor warns with what to do. A second listener is a fault at any time (R5.46). `persistent.SessionGuard` holds the rule; `settings.GetSessionWait` and `UpdateSessionWait` hold the window. Not built: the setting in the API and the settings screen, and the agent filling `SessionRefused` and `RestartedAt` from the listener log (open question 55).
+
 ## 6. Non-functional requirements
 
 All **NOT YET IMPLEMENTED**.
@@ -430,6 +432,7 @@ Rows that name a test file are built and run in CI; rows that say `planned:` are
 | R5.64 | planned: docs/guides/security-what-a-job-can-reach_test.go TestSecurityPageListsResidualRisks, TestPageNamesEveryLimit (CRSP81) |
 | R5.65 | planned: internal/backend/windows/hypervcontainer_test.go TestOptionOffByDefault, TestRefusesWhenHostOrImageDoNotMatch, TestFallsBackWithAReason (CRSP85) |
 | R5.66 | planned: internal/backend/hyperv/clone_test.go TestBaseOnlyFromDefaultBranch, TestCloneIsCopyOnWriteAndDeleted, TestOrphanSweepAtStart (CRSP86) |
+| R5.67 | `internal/backend/persistent/session_test.go` TestStaleSessionInsideWindowIsQuiet, TestStaleSessionStartsNoSecondListener, TestStaleSessionPastWindowIsAFault, TestOtherOutputIsClear, TestUnknownRestartIsNeverInWindow; `internal/settings/session_test.go` TestSessionWaitDefaultsSavesAndRefuses |
 | R6.1 | internal/backend/container/container_test.go TestNoPrivilegedNoSocketKvmDevice (CRSP52) |
 | R6.2 | internal/runners/service_test.go TestNoTokenOrPasswordStoredOrLogged; internal/backend/linux/linux_test.go TestTokenOnlyInEnvAndUpdateOff |
 | R6.3 | internal/backend/windows/windows_test.go TestAccountRights (never in Administrators); internal/backend/linux/linux_test.go TestUnitUserAndGroup; internal/backend/macos/macos_test.go TestHiddenUser |
@@ -512,6 +515,7 @@ Open questions for the owner (proposed answers are in the requirements until dec
 52. R5.48 (CRSP68): the `crsp` mount is made only when the agent is a Linux binary (its own file). On Windows with WSL2 the pool has only the copy in the image, which can differ in version from the agent. Alternative: stage a linux binary into the engine.
 53. R5.44 (CRSP68): `PLAYWRIGHT_BROWSERS_PATH` is set only for a pool with the `browsers` layer. A pool without it gets no value, though the lane has a `browsers` folder. Alternative: point it at the lane folder (caches R5.41).
 54. R5.51 (CRSP70): the pool setting is replaced as a whole list; there is no add and drop. Conservative choice: the owner edits the full list, and `MergeExtraPackages` stays for a later add and drop. Alternative: `--add` and `--drop` on the CLI and two buttons in the console. Also: a remote machine does not get the list yet, because the agent link has no field for it; adding one is a proto change.
+55. R5.67 (HND23): the agent does not yet read the listener log, so nothing sets `SessionRefused` and `RestartedAt` of the doctor runner; the setting has no API field or screen yet. Owner: say whether the setting joins `PoolSettings` (API change) or stays its own key.
 
 ## 11. Not built yet
 

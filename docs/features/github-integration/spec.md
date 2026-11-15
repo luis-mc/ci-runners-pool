@@ -390,10 +390,10 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.22 | planned: internal/github/installation_reconcile_test.go |
 | R5.23 | internal/auth/manifest_test.go |
 | R5.24 | internal/github/client_test.go |
-| R5.25 | internal/repos/policy_test.go |
+| R5.25 | internal/repos/policy_test.go; internal/repos/policy_survive_test.go TestRepositoryPolicyNeverRevertsOnItsOwn (RES6) |
 | R5.26 | internal/repos/policy_test.go (approval setting); planned: internal/hooks/forkpr_test.go TestForkPullRequestFailsAtJobStart (hook guard) |
 | R5.27 | internal/repos/labels_test.go |
-| R5.28 | internal/repos/variables_test.go (set and delete per OS on runner add and remove, delete when the policy turns an OS off, delete with the pool off, migration of old names, case-insensitive compare and lowercase labels); internal/github/fake (variable names upper case, `VariableNames`) |
+| R5.28 | internal/repos/variables_test.go (set and delete per OS on runner add and remove, delete when the policy turns an OS off, delete with the pool off, migration of old names, case-insensitive compare and lowercase labels); internal/github/fake (variable names upper case, `VariableNames`); internal/repos/policy_survive_test.go TestRepositoryPolicyNeverRevertsOnItsOwn (the restore loop keeps the policy, RES6) |
 | R5.29 | internal/repos/variables_test.go |
 | R5.30 | internal/repos/runson_test.go |
 | R5.31 | internal/github/client_test.go |
@@ -407,10 +407,10 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.39 | internal/repos/variables_test.go TestLegacyNamesWrittenAndRemovedWithSetting (CRSP47); the API field `legacy_vars` is in `packages/contract/openapi.yaml` |
 | R5.40 | planned: internal/demand/scaleset_test.go TestScaleSetBehindDemandSeam, TestFallsBackToPollingAndRetries; internal/backend/container/jitstdin_test.go TestJitConfigOnlyOnStdin, TestInspectShowsNoJitConfig (CRSP79) |
 | R5.41 | planned: internal/repos/visibility_test.go TestRecheckBeforeEachRunnerStart, TestPublicRepoDrainsThenStops, TestUnreadableVisibilityCountsAsPublic; packaging/hooks/hooks_test.go TestForkGuardFailsForkedPullRequestJob (CRSP82) |
-| R5.42 | internal/repos/fallback_test.go TestFallbackNeedsConfirmAndRefusesPublic; apps/web/src/screens/repositories/Repositories.test.tsx "asks first before the hosted fallback is turned on", "refuses the fallback choice for a public repository" (CRSP74) |
-| R5.43 | internal/repos/fallback_test.go TestFallbackDefaultOffNeverRewritten, TestFallbackFlipsAfterGraceAndBack, TestFallbackOtherRepositoriesUntouched, TestFallbackOptOutWhileOnRestores; cmd/crsp/fallback_up_test.go TestUpByOS (a paused machine counts as down) (CRSP74) |
+| R5.42 | internal/repos/fallback_test.go TestFallbackNeedsConfirmAndRefusesPublic; apps/web/src/screens/repositories/Repositories.test.tsx "asks first before the hosted fallback is turned on", "refuses the fallback choice for a public repository" (CRSP74); internal/repos/fallback_edges_test.go TestFallbackEdges (public repository, opt-out while on fallback, RES13) |
+| R5.43 | internal/repos/fallback_test.go TestFallbackDefaultOffNeverRewritten, TestFallbackFlipsAfterGraceAndBack, TestFallbackOtherRepositoriesUntouched, TestFallbackOptOutWhileOnRestores; cmd/crsp/fallback_up_test.go TestUpByOS (a paused machine counts as down) (CRSP74); internal/repos/fallback_edges_test.go TestFallbackEdges (grace boundary, flapping, an OS with no machine, opt-out logs fallback.ended; fixtures in internal/repos/testdata/fallback_edges.json); cmd/crsp/machine_up_edges_test.go TestMachineUpEdges (heartbeat age, accepting=false; fixtures in cmd/crsp/testdata/machine_up.json) (RES13) |
 | R5.44 | internal/repos/fallback_test.go (the routing checks in the tests above); apps/web/src/screens/repositories/Repositories.test.tsx "shows where the jobs go now and why" (CRSP74) |
-| R5.45 | internal/repos/fallback_test.go TestFallbackCapStopsFallingBack (CRSP74) |
+| R5.45 | internal/repos/fallback_test.go TestFallbackCapStopsFallingBack (CRSP74); internal/repos/fallback_edges_test.go TestFallbackEdges (cap reached mid-month, month rollover) (RES13) |
 | R5.46 | internal/doctor/checks/fallback_test.go; apps/web/src/shell/Shell.test.tsx "says in one line on the Overview" (CRSP74) |
 | R6.1 | planned: internal/secrets/store_test.go; internal/store/no_secrets_test.go (schema has no secret column) |
 | R6.2 | internal/github/client_test.go |

@@ -387,21 +387,21 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.19 | internal/load/cgroup_test.go | Built: `internal/load/cgroup_test.go` TestCgroupWorseOfHostAndContainer |
 | R5.20 | internal/load/unknown_test.go | planned |
 | R5.21 | internal/load/measure_only_test.go | planned |
-| R5.22 | internal/machines/settings_test.go | planned |
+| R5.22 | internal/machines/settings_test.go | planned; internal/machines/settings_survive_test.go TestUserSettingsNeverRevertAfterReconnectOrSync, TestUserSettingsSurviveAControllerRestart (RES6) |
 | R5.22a | internal/machines/pool_defaults_test.go; internal/settings/pool_test.go; internal/api/handlers_pool_test.go | built, CRSP37 |
 | R5.23 | internal/agent/gate_test.go | planned; ports runner-pool R5.2 cases |
-| R5.24 | internal/agent/settings_cache_test.go | planned |
+| R5.24 | internal/agent/settings_cache_test.go | planned; internal/agent/settings_survive_test.go TestAgentReconnectKeepsTheUsersSettings (RES6) |
 | R5.25 | internal/machines/settings_test.go | planned |
 | R5.26 | internal/machines/drain_test.go | planned |
 | R5.27 | internal/machines/windows_test.go | planned |
 | R5.28 | internal/machines/quiet_hours_test.go | planned |
 | R5.29 | internal/runnercache/runnercache_test.go TestEvictionOrderOldestFirstUntilItFits, TestNeverEvictsWhileARunnerIsBusy; internal/hooks/hooks_test.go TestJobDoneEvictsOldestOverQuota | built for the runner quotas; planned (M7) for the machine setting |
-| R5.30 | internal/machines/drain_test.go | planned |
+| R5.30 | internal/machines/drain_test.go | planned; internal/machines/settings_survive_test.go TestSettingChangedWhileADrainWaitsIsNotUndone, TestFactsSyncDoesNotRevertARename (RES6) |
 | R5.31 | internal/machines/drain_test.go | planned |
 | R5.32 | internal/agent/drain_idle_test.go | planned |
 | R5.33 | internal/machines/drain_timeout_test.go TestDrainTimeoutWarnsAndKeepsWaiting, TestDrainTimeoutIsPerMachine, TestNoDecisionStopsJobs | built |
 | R5.34 | internal/machines/drain_test.go | planned |
-| R5.35 | internal/machines/offline_test.go | planned |
+| R5.35 | internal/machines/offline_test.go | planned; cmd/crsp/machine_up_edges_test.go TestMachineUpEdges (a heartbeat dated more than 30 s ahead is not fresh and is logged as machine.heartbeat.skew, RES13) |
 | R5.36 | internal/agent/backoff_test.go | planned |
 | R5.37 | internal/agent/link_loss_test.go | planned |
 | R5.38 | internal/machines/reconcile_test.go | planned |
