@@ -39,6 +39,7 @@ func SpecFromProto(p *agentv1.RunnerSpec) backend.RunnerSpec {
 		ID: p.GetRunnerId(), Name: p.GetName(), OS: p.GetOs(), Arch: p.GetArch(), Labels: p.GetLabels(),
 		GitHubURL: p.GetGithubUrl(), Group: p.GetRunnerGroup(), RunnerVersion: p.GetRunnerVersion(),
 		RunnerSHA256: p.GetRunnerSha256(), WindowsSymlinkRight: p.GetWindowsSymlinkRight(),
+		ExtraPackages: p.GetExtraPackages(),
 	}
 }
 
@@ -55,7 +56,12 @@ func (l *link) runnerCmd(ctx context.Context, msg *agentv1.SessionResponse) {
 				l.answer(a.GetCommandId(), a.GetRunner().GetRunnerId(), false, "failed", "", errNoRunners)
 				return
 			}
-			h, err := run.AddRunner(ctx, "", SpecFromProto(a.GetRunner()), cfg)
+			spec := SpecFromProto(a.GetRunner())
+			if err := l.preparePackages(ctx, spec, cfg); err != nil {
+				l.answer(a.GetCommandId(), a.GetRunner().GetRunnerId(), false, "failed", "", err)
+				return
+			}
+			h, err := run.AddRunner(ctx, "", spec, cfg)
 			if err != nil {
 				l.answer(a.GetCommandId(), a.GetRunner().GetRunnerId(), false, "failed", "", err)
 				return
@@ -103,4 +109,24 @@ func outcomeOf(err error) string {
 		return "failed"
 	}
 	return "done"
+}
+
+// preparePackages checks a runner's extra packages and, for a persistent
+// runner, installs them into its prefix (runners R5.68). A bad name refuses
+// the add before anything runs. A container runner (JIT config) gets the
+// packages in its image build, so nothing is installed here for it.
+func (l *link) preparePackages(ctx context.Context, spec backend.RunnerSpec, cfg backend.StartConfig) error {
+	if len(spec.ExtraPackages) == 0 {
+		return nil
+	}
+	if err := runners.ValidatePackageNames(spec.ExtraPackages); err != nil {
+		return err
+	}
+	if cfg.JITConfig != "" {
+		return nil
+	}
+	if l.cfg.InstallPackages == nil {
+		return errors.New("this agent cannot install extra packages into a runner environment")
+	}
+	return l.cfg.InstallPackages(ctx, spec)
 }

@@ -2182,8 +2182,12 @@ type RunnerSpec struct {
 	// Windows: grant "create symbolic links" to the runner account (owner
 	// decision for M1, runners R5.14).
 	WindowsSymlinkRight bool `protobuf:"varint,12,opt,name=windows_symlink_right,json=windowsSymlinkRight,proto3" json:"windows_symlink_right,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Extra OS packages (apt, dnf, brew or winget ids) the agent installs into
+	// the runner environment, never on the host OS (runners R5.68). The agent
+	// checks each name again.
+	ExtraPackages []string `protobuf:"bytes,13,rep,name=extra_packages,json=extraPackages,proto3" json:"extra_packages,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RunnerSpec) Reset() {
@@ -2298,6 +2302,13 @@ func (x *RunnerSpec) GetWindowsSymlinkRight() bool {
 		return x.WindowsSymlinkRight
 	}
 	return false
+}
+
+func (x *RunnerSpec) GetExtraPackages() []string {
+	if x != nil {
+		return x.ExtraPackages
+	}
+	return nil
 }
 
 // RemoveRunner removes a runner after a drain. The idle check runs right
@@ -4940,9 +4951,11 @@ type MachineReport struct {
 	Images           []*ImageReport `protobuf:"bytes,5,rep,name=images,proto3" json:"images,omitempty"`
 	// False when the agent has no container backend, so images is not known
 	// rather than empty.
-	ImagesKnown   bool `protobuf:"varint,6,opt,name=images_known,json=imagesKnown,proto3" json:"images_known,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ImagesKnown bool `protobuf:"varint,6,opt,name=images_known,json=imagesKnown,proto3" json:"images_known,omitempty"`
+	// Extra package sets that failed to install here (runners R5.68).
+	PackageFailures []*PackageFailure `protobuf:"bytes,7,rep,name=package_failures,json=packageFailures,proto3" json:"package_failures,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *MachineReport) Reset() {
@@ -5017,6 +5030,83 @@ func (x *MachineReport) GetImagesKnown() bool {
 	return false
 }
 
+func (x *MachineReport) GetPackageFailures() []*PackageFailure {
+	if x != nil {
+		return x.PackageFailures
+	}
+	return nil
+}
+
+// PackageFailure is one extra package set the agent could not install.
+type PackageFailure struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Hash of the package set (runners R5.68).
+	SetHash       string   `protobuf:"bytes,1,opt,name=set_hash,json=setHash,proto3" json:"set_hash,omitempty"`
+	Names         []string `protobuf:"bytes,2,rep,name=names,proto3" json:"names,omitempty"`
+	Error         string   `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	FailedUnixMs  int64    `protobuf:"varint,4,opt,name=failed_unix_ms,json=failedUnixMs,proto3" json:"failed_unix_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PackageFailure) Reset() {
+	*x = PackageFailure{}
+	mi := &file_agent_v1_agent_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PackageFailure) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PackageFailure) ProtoMessage() {}
+
+func (x *PackageFailure) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PackageFailure.ProtoReflect.Descriptor instead.
+func (*PackageFailure) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *PackageFailure) GetSetHash() string {
+	if x != nil {
+		return x.SetHash
+	}
+	return ""
+}
+
+func (x *PackageFailure) GetNames() []string {
+	if x != nil {
+		return x.Names
+	}
+	return nil
+}
+
+func (x *PackageFailure) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *PackageFailure) GetFailedUnixMs() int64 {
+	if x != nil {
+		return x.FailedUnixMs
+	}
+	return 0
+}
+
 // KvmReport is the KVM state the agent read. It reads only; it never loads a
 // module or edits `.wslconfig` (machines R5.53). A *_known field false means
 // the agent could not ask, and the value beside it is not to be used.
@@ -5038,7 +5128,7 @@ type KvmReport struct {
 
 func (x *KvmReport) Reset() {
 	*x = KvmReport{}
-	mi := &file_agent_v1_agent_proto_msgTypes[51]
+	mi := &file_agent_v1_agent_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5050,7 +5140,7 @@ func (x *KvmReport) String() string {
 func (*KvmReport) ProtoMessage() {}
 
 func (x *KvmReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[51]
+	mi := &file_agent_v1_agent_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5063,7 +5153,7 @@ func (x *KvmReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KvmReport.ProtoReflect.Descriptor instead.
 func (*KvmReport) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{51}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *KvmReport) GetDeviceKnown() bool {
@@ -5130,7 +5220,7 @@ type EngineReport struct {
 
 func (x *EngineReport) Reset() {
 	*x = EngineReport{}
-	mi := &file_agent_v1_agent_proto_msgTypes[52]
+	mi := &file_agent_v1_agent_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5142,7 +5232,7 @@ func (x *EngineReport) String() string {
 func (*EngineReport) ProtoMessage() {}
 
 func (x *EngineReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[52]
+	mi := &file_agent_v1_agent_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5155,7 +5245,7 @@ func (x *EngineReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EngineReport.ProtoReflect.Descriptor instead.
 func (*EngineReport) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{52}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *EngineReport) GetKind() string {
@@ -5201,7 +5291,7 @@ type ImageReport struct {
 
 func (x *ImageReport) Reset() {
 	*x = ImageReport{}
-	mi := &file_agent_v1_agent_proto_msgTypes[53]
+	mi := &file_agent_v1_agent_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5213,7 +5303,7 @@ func (x *ImageReport) String() string {
 func (*ImageReport) ProtoMessage() {}
 
 func (x *ImageReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[53]
+	mi := &file_agent_v1_agent_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5226,7 +5316,7 @@ func (x *ImageReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImageReport.ProtoReflect.Descriptor instead.
 func (*ImageReport) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{53}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *ImageReport) GetKey() string {
@@ -5296,7 +5386,7 @@ type AcceptingReport struct {
 
 func (x *AcceptingReport) Reset() {
 	*x = AcceptingReport{}
-	mi := &file_agent_v1_agent_proto_msgTypes[54]
+	mi := &file_agent_v1_agent_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5308,7 +5398,7 @@ func (x *AcceptingReport) String() string {
 func (*AcceptingReport) ProtoMessage() {}
 
 func (x *AcceptingReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[54]
+	mi := &file_agent_v1_agent_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5321,7 +5411,7 @@ func (x *AcceptingReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptingReport.ProtoReflect.Descriptor instead.
 func (*AcceptingReport) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{54}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *AcceptingReport) GetAccepting() bool {
@@ -5391,7 +5481,7 @@ type GateDecision_Go struct {
 
 func (x *GateDecision_Go) Reset() {
 	*x = GateDecision_Go{}
-	mi := &file_agent_v1_agent_proto_msgTypes[55]
+	mi := &file_agent_v1_agent_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5403,7 +5493,7 @@ func (x *GateDecision_Go) String() string {
 func (*GateDecision_Go) ProtoMessage() {}
 
 func (x *GateDecision_Go) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[55]
+	mi := &file_agent_v1_agent_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5448,7 +5538,7 @@ type GateDecision_Wait struct {
 
 func (x *GateDecision_Wait) Reset() {
 	*x = GateDecision_Wait{}
-	mi := &file_agent_v1_agent_proto_msgTypes[56]
+	mi := &file_agent_v1_agent_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5460,7 +5550,7 @@ func (x *GateDecision_Wait) String() string {
 func (*GateDecision_Wait) ProtoMessage() {}
 
 func (x *GateDecision_Wait) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[56]
+	mi := &file_agent_v1_agent_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5514,7 +5604,7 @@ type GateDecision_Timeout struct {
 
 func (x *GateDecision_Timeout) Reset() {
 	*x = GateDecision_Timeout{}
-	mi := &file_agent_v1_agent_proto_msgTypes[57]
+	mi := &file_agent_v1_agent_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5526,7 +5616,7 @@ func (x *GateDecision_Timeout) String() string {
 func (*GateDecision_Timeout) ProtoMessage() {}
 
 func (x *GateDecision_Timeout) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[57]
+	mi := &file_agent_v1_agent_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5713,7 +5803,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\fregistration\x18\x03 \x01(\tH\x00R\fregistration\x12\x1f\n" +
 	"\n" +
 	"jit_config\x18\x04 \x01(\tH\x00R\tjitConfigB\a\n" +
-	"\x05start\"\xe9\x02\n" +
+	"\x05start\"\x90\x03\n" +
 	"\n" +
 	"RunnerSpec\x12\x1b\n" +
 	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12\x12\n" +
@@ -5729,7 +5819,8 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x0erunner_version\x18\n" +
 	" \x01(\tR\rrunnerVersion\x12#\n" +
 	"\rrunner_sha256\x18\v \x01(\tR\frunnerSha256\x122\n" +
-	"\x15windows_symlink_right\x18\f \x01(\bR\x13windowsSymlinkRight\"\xe0\x01\n" +
+	"\x15windows_symlink_right\x18\f \x01(\bR\x13windowsSymlinkRight\x12%\n" +
+	"\x0eextra_packages\x18\r \x03(\tR\rextraPackages\"\xe0\x01\n" +
 	"\fRemoveRunner\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x1b\n" +
@@ -5979,7 +6070,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x05error\x18\x05 \x01(\tR\x05error\".\n" +
 	"\rReportMachine\x12\x1d\n" +
 	"\n" +
-	"command_id\x18\x01 \x01(\tR\tcommandId\"\x86\x02\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\"\xcb\x02\n" +
 	"\rMachineReport\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12-\n" +
@@ -5987,7 +6078,13 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x03kvm\x18\x03 \x01(\v2\x13.agent.v1.KvmReportR\x03kvm\x12.\n" +
 	"\x06engine\x18\x04 \x01(\v2\x16.agent.v1.EngineReportR\x06engine\x12-\n" +
 	"\x06images\x18\x05 \x03(\v2\x15.agent.v1.ImageReportR\x06images\x12!\n" +
-	"\fimages_known\x18\x06 \x01(\bR\vimagesKnown\"\x8d\x02\n" +
+	"\fimages_known\x18\x06 \x01(\bR\vimagesKnown\x12C\n" +
+	"\x10package_failures\x18\a \x03(\v2\x18.agent.v1.PackageFailureR\x0fpackageFailures\"}\n" +
+	"\x0ePackageFailure\x12\x19\n" +
+	"\bset_hash\x18\x01 \x01(\tR\asetHash\x12\x14\n" +
+	"\x05names\x18\x02 \x03(\tR\x05names\x12\x14\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\x12$\n" +
+	"\x0efailed_unix_ms\x18\x04 \x01(\x03R\ffailedUnixMs\"\x8d\x02\n" +
 	"\tKvmReport\x12!\n" +
 	"\fdevice_known\x18\x01 \x01(\bR\vdeviceKnown\x12%\n" +
 	"\x0edevice_present\x18\x02 \x01(\bR\rdevicePresent\x12!\n" +
@@ -6059,7 +6156,7 @@ func file_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 58)
+var file_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 59)
 var file_agent_v1_agent_proto_goTypes = []any{
 	(ProtocolVersion)(0),         // 0: agent.v1.ProtocolVersion
 	(RunnerState)(0),             // 1: agent.v1.RunnerState
@@ -6116,13 +6213,14 @@ var file_agent_v1_agent_proto_goTypes = []any{
 	(*CacheWipeStatus)(nil),      // 52: agent.v1.CacheWipeStatus
 	(*ReportMachine)(nil),        // 53: agent.v1.ReportMachine
 	(*MachineReport)(nil),        // 54: agent.v1.MachineReport
-	(*KvmReport)(nil),            // 55: agent.v1.KvmReport
-	(*EngineReport)(nil),         // 56: agent.v1.EngineReport
-	(*ImageReport)(nil),          // 57: agent.v1.ImageReport
-	(*AcceptingReport)(nil),      // 58: agent.v1.AcceptingReport
-	(*GateDecision_Go)(nil),      // 59: agent.v1.GateDecision.Go
-	(*GateDecision_Wait)(nil),    // 60: agent.v1.GateDecision.Wait
-	(*GateDecision_Timeout)(nil), // 61: agent.v1.GateDecision.Timeout
+	(*PackageFailure)(nil),       // 55: agent.v1.PackageFailure
+	(*KvmReport)(nil),            // 56: agent.v1.KvmReport
+	(*EngineReport)(nil),         // 57: agent.v1.EngineReport
+	(*ImageReport)(nil),          // 58: agent.v1.ImageReport
+	(*AcceptingReport)(nil),      // 59: agent.v1.AcceptingReport
+	(*GateDecision_Go)(nil),      // 60: agent.v1.GateDecision.Go
+	(*GateDecision_Wait)(nil),    // 61: agent.v1.GateDecision.Wait
+	(*GateDecision_Timeout)(nil), // 62: agent.v1.GateDecision.Timeout
 }
 var file_agent_v1_agent_proto_depIdxs = []int32{
 	11, // 0: agent.v1.JoinRequest.facts:type_name -> agent.v1.Facts
@@ -6148,7 +6246,7 @@ var file_agent_v1_agent_proto_depIdxs = []int32{
 	49, // 20: agent.v1.SessionRequest.cache_report:type_name -> agent.v1.CacheReport
 	52, // 21: agent.v1.SessionRequest.cache_wipe_status:type_name -> agent.v1.CacheWipeStatus
 	54, // 22: agent.v1.SessionRequest.machine_report:type_name -> agent.v1.MachineReport
-	58, // 23: agent.v1.SessionRequest.accepting_report:type_name -> agent.v1.AcceptingReport
+	59, // 23: agent.v1.SessionRequest.accepting_report:type_name -> agent.v1.AcceptingReport
 	9,  // 24: agent.v1.SessionResponse.hello_ack:type_name -> agent.v1.HelloAck
 	10, // 25: agent.v1.SessionResponse.heartbeat:type_name -> agent.v1.Heartbeat
 	34, // 26: agent.v1.SessionResponse.settings:type_name -> agent.v1.MachineSettings
@@ -6185,9 +6283,9 @@ var file_agent_v1_agent_proto_depIdxs = []int32{
 	24, // 57: agent.v1.GateRequest.job:type_name -> agent.v1.JobRef
 	25, // 58: agent.v1.GateRequest.holder:type_name -> agent.v1.Holder
 	2,  // 59: agent.v1.SlotGrant.kind:type_name -> agent.v1.SlotKind
-	59, // 60: agent.v1.GateDecision.go:type_name -> agent.v1.GateDecision.Go
-	60, // 61: agent.v1.GateDecision.wait:type_name -> agent.v1.GateDecision.Wait
-	61, // 62: agent.v1.GateDecision.timeout:type_name -> agent.v1.GateDecision.Timeout
+	60, // 60: agent.v1.GateDecision.go:type_name -> agent.v1.GateDecision.Go
+	61, // 61: agent.v1.GateDecision.wait:type_name -> agent.v1.GateDecision.Wait
+	62, // 62: agent.v1.GateDecision.timeout:type_name -> agent.v1.GateDecision.Timeout
 	24, // 63: agent.v1.JobCompleted.job:type_name -> agent.v1.JobRef
 	24, // 64: agent.v1.ReleaseAck.job:type_name -> agent.v1.JobRef
 	25, // 65: agent.v1.HolderReport.alive:type_name -> agent.v1.Holder
@@ -6200,19 +6298,20 @@ var file_agent_v1_agent_proto_depIdxs = []int32{
 	24, // 72: agent.v1.UpdateReport.waiting_for:type_name -> agent.v1.JobRef
 	50, // 73: agent.v1.CacheReport.caches:type_name -> agent.v1.CacheStatus
 	24, // 74: agent.v1.CacheWipeStatus.waiting_for:type_name -> agent.v1.JobRef
-	55, // 75: agent.v1.MachineReport.kvm:type_name -> agent.v1.KvmReport
-	56, // 76: agent.v1.MachineReport.engine:type_name -> agent.v1.EngineReport
-	57, // 77: agent.v1.MachineReport.images:type_name -> agent.v1.ImageReport
-	29, // 78: agent.v1.GateDecision.Go.slots:type_name -> agent.v1.SlotGrant
-	4,  // 79: agent.v1.AgentService.Join:input_type -> agent.v1.JoinRequest
-	6,  // 80: agent.v1.AgentService.Session:input_type -> agent.v1.SessionRequest
-	5,  // 81: agent.v1.AgentService.Join:output_type -> agent.v1.JoinResponse
-	7,  // 82: agent.v1.AgentService.Session:output_type -> agent.v1.SessionResponse
-	81, // [81:83] is the sub-list for method output_type
-	79, // [79:81] is the sub-list for method input_type
-	79, // [79:79] is the sub-list for extension type_name
-	79, // [79:79] is the sub-list for extension extendee
-	0,  // [0:79] is the sub-list for field type_name
+	56, // 75: agent.v1.MachineReport.kvm:type_name -> agent.v1.KvmReport
+	57, // 76: agent.v1.MachineReport.engine:type_name -> agent.v1.EngineReport
+	58, // 77: agent.v1.MachineReport.images:type_name -> agent.v1.ImageReport
+	55, // 78: agent.v1.MachineReport.package_failures:type_name -> agent.v1.PackageFailure
+	29, // 79: agent.v1.GateDecision.Go.slots:type_name -> agent.v1.SlotGrant
+	4,  // 80: agent.v1.AgentService.Join:input_type -> agent.v1.JoinRequest
+	6,  // 81: agent.v1.AgentService.Session:input_type -> agent.v1.SessionRequest
+	5,  // 82: agent.v1.AgentService.Join:output_type -> agent.v1.JoinResponse
+	7,  // 83: agent.v1.AgentService.Session:output_type -> agent.v1.SessionResponse
+	82, // [82:84] is the sub-list for method output_type
+	80, // [80:82] is the sub-list for method input_type
+	80, // [80:80] is the sub-list for extension type_name
+	80, // [80:80] is the sub-list for extension extendee
+	0,  // [0:80] is the sub-list for field type_name
 }
 
 func init() { file_agent_v1_agent_proto_init() }
@@ -6282,7 +6381,7 @@ func file_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_v1_agent_proto_rawDesc), len(file_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   58,
+			NumMessages:   59,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

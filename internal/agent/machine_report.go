@@ -16,6 +16,10 @@ type ImageSource func(ctx context.Context) (images []runners.Image, ok bool, err
 // It reads only: it never loads a module, edits `.wslconfig` or starts an
 // engine (machines R5.53, runners R5.47). facts carries what `.wslconfig` sets.
 func BuildMachineReport(ctx context.Context, sys Sys, facts *agentv1.Facts, imgs ImageSource, now time.Time) *agentv1.MachineReport {
+	return buildMachineReport(ctx, sys, facts, imgs, nil, now)
+}
+
+func buildMachineReport(ctx context.Context, sys Sys, facts *agentv1.Facts, imgs ImageSource, pkgFails func() []runners.PackageFailure, now time.Time) *agentv1.MachineReport {
 	rep := &agentv1.MachineReport{ReportedAtUnixMs: now.UnixMilli(), Kvm: &agentv1.KvmReport{}}
 	k := rep.Kvm
 	if sys.GOOS() == "windows" {
@@ -39,6 +43,12 @@ func BuildMachineReport(ctx context.Context, sys Sys, facts *agentv1.Facts, imgs
 			}
 		}
 	}
+	if pkgFails != nil {
+		for _, f := range pkgFails() {
+			rep.PackageFailures = append(rep.PackageFailures, &agentv1.PackageFailure{
+				SetHash: f.SetHash, Names: f.Names, Error: f.Error, FailedUnixMs: f.At.UnixMilli()})
+		}
+	}
 	return rep
 }
 
@@ -47,7 +57,7 @@ func (l *link) reportMachine(ctx context.Context, commandID string) {
 	l.factMu.Lock()
 	f := l.facts
 	l.factMu.Unlock()
-	rep := BuildMachineReport(ctx, l.cfg.sys(), f, l.cfg.Images, time.Now())
+	rep := buildMachineReport(ctx, l.cfg.sys(), f, l.cfg.Images, l.cfg.PackageFailures, time.Now())
 	rep.CommandId = commandID
 	_ = l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_MachineReport{MachineReport: rep}})
 }

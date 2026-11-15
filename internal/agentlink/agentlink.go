@@ -170,6 +170,7 @@ func (a *Agent) AddRunner(ctx context.Context, machineID string, spec backend.Ru
 			RunnerId: spec.ID, Name: spec.Name, Os: spec.OS, Arch: spec.Arch, Kind: kind, Backend: be,
 			Labels: spec.Labels, GithubUrl: spec.GitHubURL, RunnerGroup: spec.Group,
 			RunnerVersion: spec.RunnerVersion, RunnerSha256: spec.RunnerSHA256, WindowsSymlinkRight: spec.WindowsSymlinkRight,
+			ExtraPackages: spec.ExtraPackages,
 		}}
 		if cfg.JITConfig != "" {
 			add.Start = &agentv1.AddRunner_JitConfig{JitConfig: cfg.JITConfig}

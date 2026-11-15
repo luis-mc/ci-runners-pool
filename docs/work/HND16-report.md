@@ -9,8 +9,13 @@ Branch HND16-remote-packages, base 40f779d.
 4. Spec R5.68 + change note.
 
 ## Status
-- [ ] proto
-- [ ] package install step + cache
-- [ ] agent wiring
-- [ ] doctor report
-- [ ] docs
+- [x] proto
+- [x] package install step + cache
+- [x] agent wiring
+- [x] doctor report
+- [x] docs
+
+## Notes
+- golangci-lint here is built with go1.25 and cannot load the config (needs 1.27); gofmt, go vet, `GOOS=windows go vet ./...` and `go test -race` on touched packages are green.
+- No docs_fold.py in this sandbox; change note written by hand in the existing format.
+- Open: backend PackageExec for persistent prefix / VM disk; controller feeding package_failures to the doctor (spec open question 56).
