@@ -228,6 +228,51 @@ func (e CacheKind) Valid() bool {
 	}
 }
 
+// Defines values for CpuCapPct.
+const (
+	N100 CpuCapPct = 100
+	N25  CpuCapPct = 25
+	N50  CpuCapPct = 50
+	N75  CpuCapPct = 75
+)
+
+// Valid indicates whether the value is a known member of the CpuCapPct enum.
+func (e CpuCapPct) Valid() bool {
+	switch e {
+	case N100:
+		return true
+	case N25:
+		return true
+	case N50:
+		return true
+	case N75:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CpuCapState.
+const (
+	CpuCapStateApplied      CpuCapState = "applied"
+	CpuCapStateFailed       CpuCapState = "failed"
+	CpuCapStateNotSupported CpuCapState = "not_supported"
+)
+
+// Valid indicates whether the value is a known member of the CpuCapState enum.
+func (e CpuCapState) Valid() bool {
+	switch e {
+	case CpuCapStateApplied:
+		return true
+	case CpuCapStateFailed:
+		return true
+	case CpuCapStateNotSupported:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DoctorRunState.
 const (
 	DoctorRunStateDone    DoctorRunState = "done"
@@ -564,6 +609,27 @@ func (e MachineChangeDecisionDecision) Valid() bool {
 	}
 }
 
+// Defines values for MachineMode.
+const (
+	MachineModeAlways    MachineMode = "always"
+	MachineModeAutomatic MachineMode = "automatic"
+	MachineModePaused    MachineMode = "paused"
+)
+
+// Valid indicates whether the value is a known member of the MachineMode enum.
+func (e MachineMode) Valid() bool {
+	switch e {
+	case MachineModeAlways:
+		return true
+	case MachineModeAutomatic:
+		return true
+	case MachineModePaused:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MachineSettingsGateOnTimeout.
 const (
 	MachineSettingsGateOnTimeoutFail MachineSettingsGateOnTimeout = "fail"
@@ -594,6 +660,27 @@ func (e MachineSettingsUpdateGateOnTimeout) Valid() bool {
 	case MachineSettingsUpdateGateOnTimeoutFail:
 		return true
 	case MachineSettingsUpdateGateOnTimeoutRun:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MachineSettingsUpdatePause.
+const (
+	None         MachineSettingsUpdatePause = "none"
+	OneHour      MachineSettingsUpdatePause = "one_hour"
+	UntilResumed MachineSettingsUpdatePause = "until_resumed"
+)
+
+// Valid indicates whether the value is a known member of the MachineSettingsUpdatePause enum.
+func (e MachineSettingsUpdatePause) Valid() bool {
+	switch e {
+	case None:
+		return true
+	case OneHour:
+		return true
+	case UntilResumed:
 		return true
 	default:
 		return false
@@ -729,6 +816,30 @@ func (e OS) Valid() bool {
 	case Macos:
 		return true
 	case Windows:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PauseReason.
+const (
+	PauseReasonBudget     PauseReason = "budget"
+	PauseReasonOnBattery  PauseReason = "on_battery"
+	PauseReasonPaused     PauseReason = "paused"
+	PauseReasonQuietHours PauseReason = "quiet_hours"
+)
+
+// Valid indicates whether the value is a known member of the PauseReason enum.
+func (e PauseReason) Valid() bool {
+	switch e {
+	case PauseReasonBudget:
+		return true
+	case PauseReasonOnBattery:
+		return true
+	case PauseReasonPaused:
+		return true
+	case PauseReasonQuietHours:
 		return true
 	default:
 		return false
@@ -1284,6 +1395,8 @@ const (
 	WaitReasonLoadOverBudget          WaitReason = "load_over_budget"
 	WaitReasonMachineDrained          WaitReason = "machine_drained"
 	WaitReasonNoRunnerWithLabels      WaitReason = "no_runner_with_labels"
+	WaitReasonOnBattery               WaitReason = "on_battery"
+	WaitReasonPaused                  WaitReason = "paused"
 	WaitReasonQuietHours              WaitReason = "quiet_hours"
 	WaitReasonRepositoryParallelLimit WaitReason = "repository_parallel_limit"
 	WaitReasonUnknown                 WaitReason = "unknown"
@@ -1299,6 +1412,10 @@ func (e WaitReason) Valid() bool {
 	case WaitReasonMachineDrained:
 		return true
 	case WaitReasonNoRunnerWithLabels:
+		return true
+	case WaitReasonOnBattery:
+		return true
+	case WaitReasonPaused:
 		return true
 	case WaitReasonQuietHours:
 		return true
@@ -1594,6 +1711,12 @@ type ConsoleLink struct {
 	// Url The one-time console link. Shown once.
 	Url string `json:"url"`
 }
+
+// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.62). Separate from the load budget. 100 is no cap.
+type CpuCapPct int
+
+// CpuCapState What the agent did with the CPU cap. not_supported is macOS (machines R5.62).
+type CpuCapState string
 
 // CreateJoinCodeRequest defines model for CreateJoinCodeRequest.
 type CreateJoinCodeRequest struct {
@@ -1939,8 +2062,10 @@ type LoadHistory struct {
 
 // Machine defines model for Machine.
 type Machine struct {
-	Arch     Arch             `json:"arch"`
-	Backends []BackendSupport `json:"backends"`
+	// Accepting Whether the machine takes new jobs (machines R5.60). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts.
+	Accepting *bool            `json:"accepting,omitempty"`
+	Arch      Arch             `json:"arch"`
+	Backends  []BackendSupport `json:"backends"`
 
 	// Facts machines R5.10.
 	Facts *MachineFacts `json:"facts,omitempty"`
@@ -1955,9 +2080,15 @@ type Machine struct {
 	Online       bool       `json:"online"`
 	Os           OS         `json:"os"`
 
+	// PauseReason Why a machine takes no new job (machines R5.60). Other features read these exact names.
+	PauseReason *PauseReason `json:"pause_reason,omitempty"`
+
 	// PendingChange A change that waits for a drain (machines R5.30 to R5.33).
 	PendingChange *MachineChange `json:"pending_change,omitempty"`
-	RunningJobs   *[]Job         `json:"running_jobs,omitempty"`
+
+	// Policy What the agent last reported about the power source and the CPU cap (machines R5.60 to R5.62).
+	Policy      *MachinePolicy `json:"policy,omitempty"`
+	RunningJobs *[]Job         `json:"running_jobs,omitempty"`
 
 	// Settings machines R5.22, scheduling R5.1.
 	Settings  MachineSettings `json:"settings"`
@@ -2033,12 +2164,31 @@ type MachineList struct {
 	Items []Machine `json:"items"`
 }
 
+// MachineMode Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.59).
+type MachineMode string
+
+// MachinePolicy What the agent last reported about the power source and the CPU cap (machines R5.60 to R5.62).
+type MachinePolicy struct {
+	// BatteryKnown False when no battery reading was possible; the machine then counts as on mains.
+	BatteryKnown bool `json:"battery_known"`
+
+	// CpuCapDetail Why the cap is not applied, in words fit to show.
+	CpuCapDetail *string `json:"cpu_cap_detail,omitempty"`
+
+	// CpuCapState What the agent did with the CPU cap. not_supported is macOS (machines R5.62).
+	CpuCapState *CpuCapState `json:"cpu_cap_state,omitempty"`
+	OnBattery   bool         `json:"on_battery"`
+}
+
 // MachineSettings machines R5.22, scheduling R5.1.
 type MachineSettings struct {
-	AllowedBackends     []BackendName                 `json:"allowed_backends"`
-	BudgetCpuPct        int                           `json:"budget_cpu_pct"`
-	BudgetMemoryPct     int                           `json:"budget_memory_pct"`
-	CacheCapBytes       *int64                        `json:"cache_cap_bytes,omitempty"`
+	AllowedBackends []BackendName `json:"allowed_backends"`
+	BudgetCpuPct    int           `json:"budget_cpu_pct"`
+	BudgetMemoryPct int           `json:"budget_memory_pct"`
+	CacheCapBytes   *int64        `json:"cache_cap_bytes,omitempty"`
+
+	// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.62). Separate from the load budget. 100 is no cap.
+	CpuCapPct           *CpuCapPct                    `json:"cpu_cap_pct,omitempty"`
 	DrainTimeoutMinutes int                           `json:"drain_timeout_minutes"`
 	GateMaxWaitMinutes  *int                          `json:"gate_max_wait_minutes,omitempty"`
 	GateOnTimeout       *MachineSettingsGateOnTimeout `json:"gate_on_timeout,omitempty"`
@@ -2048,6 +2198,18 @@ type MachineSettings struct {
 	JobSlots            int                           `json:"job_slots"`
 	LightJobs           *[]string                     `json:"light_jobs,omitempty"`
 	LightSlots          int                           `json:"light_slots"`
+
+	// Mode Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.59).
+	Mode *MachineMode `json:"mode,omitempty"`
+
+	// PauseOnBattery Automatic pauses while the machine runs on battery. On by default; Always ignores it (machines R5.59, R5.61).
+	PauseOnBattery *bool `json:"pause_on_battery,omitempty"`
+
+	// PauseUntil A pause from the tray with a timer ends at this time. Absent when none runs (machines R5.59).
+	PauseUntil *time.Time `json:"pause_until,omitempty"`
+
+	// PauseUntilResumed A pause from the tray holds until Resume.
+	PauseUntilResumed *bool `json:"pause_until_resumed,omitempty"`
 
 	// PoolCpus The CPUs the pool may use on this machine (machines R5.58). 0 means not set. Split over the job slots it gives CI_MAX_PARALLEL (runners R5.53).
 	PoolCpus *int `json:"pool_cpus,omitempty"`
@@ -2074,7 +2236,10 @@ type MachineSettingsUpdate struct {
 	Confirm *bool `json:"confirm,omitempty"`
 
 	// ConfirmShrink The explicit yes to a pool size below the current one. confirm does not stand for it (machines R5.58).
-	ConfirmShrink       *bool                               `json:"confirm_shrink,omitempty"`
+	ConfirmShrink *bool `json:"confirm_shrink,omitempty"`
+
+	// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.62). Separate from the load budget. 100 is no cap.
+	CpuCapPct           *CpuCapPct                          `json:"cpu_cap_pct,omitempty"`
 	DrainTimeoutMinutes *int                                `json:"drain_timeout_minutes,omitempty"`
 	GateOnTimeout       *MachineSettingsUpdateGateOnTimeout `json:"gate_on_timeout,omitempty"`
 	HeavyJobs           *[]string                           `json:"heavy_jobs,omitempty"`
@@ -2082,7 +2247,14 @@ type MachineSettingsUpdate struct {
 	JobSlots            *int                                `json:"job_slots,omitempty"`
 	LightJobs           *[]string                           `json:"light_jobs,omitempty"`
 	LightSlots          *int                                `json:"light_slots,omitempty"`
-	Name                *string                             `json:"name,omitempty"`
+
+	// Mode Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.59).
+	Mode *MachineMode `json:"mode,omitempty"`
+	Name *string      `json:"name,omitempty"`
+
+	// Pause A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.59).
+	Pause          *MachineSettingsUpdatePause `json:"pause,omitempty"`
+	PauseOnBattery *bool                       `json:"pause_on_battery,omitempty"`
 
 	// PoolCpus The pool CPUs. Send it with pool_memory_gib.
 	PoolCpus *int `json:"pool_cpus,omitempty"`
@@ -2094,6 +2266,9 @@ type MachineSettingsUpdate struct {
 
 // MachineSettingsUpdateGateOnTimeout defines model for MachineSettingsUpdate.GateOnTimeout.
 type MachineSettingsUpdateGateOnTimeout string
+
+// MachineSettingsUpdatePause A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.59).
+type MachineSettingsUpdatePause string
 
 // MachineState active and drained are set by the user; draining while a drain waits.
 type MachineState string
@@ -2218,6 +2393,9 @@ type Overview struct {
 	QueuedCount int    `json:"queued_count"`
 	Running     []Job  `json:"running"`
 }
+
+// PauseReason Why a machine takes no new job (machines R5.60). Other features read these exact names.
+type PauseReason string
 
 // Plan A planned change. Nothing changes until it is applied. Each step names what it does; steps that delete need their own yes (UX-62).
 type Plan struct {

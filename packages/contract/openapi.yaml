@@ -2684,6 +2684,8 @@ components:
           repository_parallel_limit,
           machine_drained,
           quiet_hours,
+          paused,
+          on_battery,
           unknown,
         ]
     Severity:
@@ -3403,6 +3405,13 @@ components:
           $ref: '#/components/schemas/MachineState'
         online:
           type: boolean
+        accepting:
+          type: boolean
+          description: Whether the machine takes new jobs (machines R5.60). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts.
+        pause_reason:
+          $ref: '#/components/schemas/PauseReason'
+        policy:
+          $ref: '#/components/schemas/MachinePolicy'
         is_controller:
           type: boolean
           description: The controller's own machine (machines R5.1); it has no special path.
@@ -3611,6 +3620,51 @@ components:
           type: integer
           minimum: 0
           description: The CPUs the pool may use on this machine (machines R5.58). 0 means not set. Split over the job slots it gives CI_MAX_PARALLEL (runners R5.53).
+        mode:
+          $ref: '#/components/schemas/MachineMode'
+        pause_on_battery:
+          type: boolean
+          description: Automatic pauses while the machine runs on battery. On by default; Always ignores it (machines R5.59, R5.61).
+        cpu_cap_pct:
+          $ref: '#/components/schemas/CpuCapPct'
+        pause_until:
+          type: string
+          format: date-time
+          description: A pause from the tray with a timer ends at this time. Absent when none runs (machines R5.59).
+        pause_until_resumed:
+          type: boolean
+          description: A pause from the tray holds until Resume.
+    MachineMode:
+      type: string
+      description: Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.59).
+      enum: [automatic, always, paused]
+    CpuCapPct:
+      type: integer
+      description: The share of the whole machine's CPU the runner processes may use, in percent (machines R5.62). Separate from the load budget. 100 is no cap.
+      enum: [25, 50, 75, 100]
+    PauseReason:
+      type: string
+      description: Why a machine takes no new job (machines R5.60). Other features read these exact names.
+      enum: [paused, on_battery, quiet_hours, budget]
+    CpuCapState:
+      type: string
+      description: What the agent did with the CPU cap. not_supported is macOS (machines R5.62).
+      enum: [applied, not_supported, failed]
+    MachinePolicy:
+      type: object
+      description: What the agent last reported about the power source and the CPU cap (machines R5.60 to R5.62).
+      required: [battery_known, on_battery]
+      properties:
+        on_battery:
+          type: boolean
+        battery_known:
+          type: boolean
+          description: False when no battery reading was possible; the machine then counts as on mains.
+        cpu_cap_state:
+          $ref: '#/components/schemas/CpuCapState'
+        cpu_cap_detail:
+          type: string
+          description: Why the cap is not applied, in words fit to show.
     PoolSizeCheckRequest:
       type: object
       required: [pool_memory_gib, pool_cpus]
@@ -3748,6 +3802,16 @@ components:
           type: integer
           minimum: 0
           description: The pool CPUs. Send it with pool_memory_gib.
+        mode:
+          $ref: '#/components/schemas/MachineMode'
+        pause_on_battery:
+          type: boolean
+        cpu_cap_pct:
+          $ref: '#/components/schemas/CpuCapPct'
+        pause:
+          type: string
+          description: A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.59).
+          enum: [one_hour, until_resumed, none]
         confirm_shrink:
           type: boolean
           description: The explicit yes to a pool size below the current one. confirm does not stand for it (machines R5.58).

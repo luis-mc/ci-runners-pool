@@ -89,24 +89,39 @@ func validatePolicy(set Settings) error {
 	default:
 		return bad("the machine mode is automatic, always or paused")
 	}
+	if !validCap(set.EffectiveCPUCap()) {
+		return bad("the CPU cap is 25, 50, 75 or 100 percent")
+	}
+	return nil
+}
+
+func validCap(pct int) bool {
 	for _, c := range CPUCaps {
-		if set.EffectiveCPUCap() == c {
-			return nil
+		if pct == c {
+			return true
 		}
 	}
-	return bad("the CPU cap is 25, 50, 75 or 100 percent")
+	return false
 }
 
 // applyPolicy applies the policy fields of an update. now is the controller
 // clock: a timed pause is an absolute time the agent compares to its own clock.
 func applyPolicy(set Settings, u SettingsUpdate, now time.Time) (Settings, error) {
 	if u.Mode != nil {
+		switch *u.Mode {
+		case ModeAutomatic, ModeAlways, ModePaused:
+		default:
+			return set, fmt.Errorf("%w: the machine mode is automatic, always or paused", ErrInvalid)
+		}
 		set.Mode = *u.Mode
 	}
 	if u.PauseOnBattery != nil {
 		set.PauseOnBattery = *u.PauseOnBattery
 	}
 	if u.CPUCapPct != nil {
+		if !validCap(*u.CPUCapPct) {
+			return set, fmt.Errorf("%w: the CPU cap is 25, 50, 75 or 100 percent", ErrInvalid)
+		}
 		set.CPUCapPct = *u.CPUCapPct
 	}
 	if u.Pause != nil {

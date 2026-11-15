@@ -17,6 +17,12 @@ import (
 
 func poolMux(t *testing.T) (*http.ServeMux, string) {
 	t.Helper()
+	_, mux, id := poolSvcMux(t)
+	return mux, id
+}
+
+func poolSvcMux(t *testing.T) (*machines.Service, *http.ServeMux, string) {
+	t.Helper()
 	svc := machines.New(machines.Options{Repo: machines.NewMemRepo(), ControllerAddress: "pool.lan", AgentPort: 8461, Fingerprint: strings.Repeat("ab", 32)})
 	code, err := svc.CreateJoinCode(context.Background(), "owner", 0)
 	if err != nil {
@@ -31,7 +37,7 @@ func poolMux(t *testing.T) (*http.ServeMux, string) {
 	}
 	mux := http.NewServeMux()
 	Register(mux, Options{Version: "test", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Machines: svc, CA: fakeCA{}, Authn: asRole(auth.RoleOwner)})
-	return mux, res.MachineID
+	return svc, mux, res.MachineID
 }
 
 // machines R5.58 over the API: saved when it fits, 400 with the reason when it

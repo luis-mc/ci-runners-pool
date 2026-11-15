@@ -7,6 +7,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/load"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/power"
 )
 
 func gateWith(t *testing.T, memAvailKB string, mutate func(*machines.Settings)) (*agent.Gate, *load.Sampler, *fakeSys) {
@@ -16,6 +17,7 @@ func gateWith(t *testing.T, memAvailKB string, mutate func(*machines.Settings)) 
 	sm := load.NewSampler(p)
 	sm.Sample()
 	g := agent.NewGate(sm)
+	g.SetPower(power.Static{}) // mains: the real power source of the test machine must not matter
 	s := machines.DefaultSettings()
 	s.JobSlots = 2
 	if mutate != nil {

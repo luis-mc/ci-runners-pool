@@ -173,6 +173,13 @@ func settingsToAPI(st machines.Settings) gen.MachineSettings {
 	if st.GateOnTimeout != "" {
 		out.GateOnTimeout = machinesPtr(gen.MachineSettingsGateOnTimeout(st.GateOnTimeout))
 	}
+	out.Mode = machinesPtr(gen.MachineMode(st.EffectiveMode()))
+	out.PauseOnBattery = machinesPtr(st.PauseOnBattery)
+	out.CpuCapPct = machinesPtr(gen.CpuCapPct(st.EffectiveCPUCap()))
+	out.PauseUntilResumed = machinesPtr(st.PausedUntilResumed)
+	if !st.PauseUntil.IsZero() {
+		out.PauseUntil = machinesPtr(st.PauseUntil)
+	}
 	return out
 }
 
@@ -188,6 +195,18 @@ func machineToAPI(v machines.View, now time.Time) gen.Machine {
 	if !m.JoinedAt.IsZero() {
 		out.JoinedAt = machinesPtr(m.JoinedAt)
 	}
+	out.Accepting = machinesPtr(m.Accepting)
+	if m.PauseReason != "" {
+		out.PauseReason = machinesPtr(gen.PauseReason(m.PauseReason))
+	}
+	pol := gen.MachinePolicy{OnBattery: v.Policy.OnBattery, BatteryKnown: v.Policy.BatteryKnown}
+	if v.Policy.CPUCapState != "" {
+		pol.CpuCapState = machinesPtr(gen.CpuCapState(v.Policy.CPUCapState))
+	}
+	if v.Policy.CPUCapDetail != "" {
+		pol.CpuCapDetail = machinesPtr(v.Policy.CPUCapDetail)
+	}
+	out.Policy = &pol
 	for _, b := range v.Backends {
 		bs := gen.BackendSupport{Name: gen.BackendName(b.Name), Present: b.Present, Usable: b.Usable, Allowed: b.Allowed}
 		if b.Version != "" {
@@ -318,6 +337,16 @@ func (s *server) UpdateMachine(ctx context.Context, r gen.UpdateMachineRequestOb
 	}
 	if b.GateOnTimeout != nil {
 		u.GateOnTimeout = machinesPtr(string(*b.GateOnTimeout))
+	}
+	if b.Mode != nil {
+		u.Mode = machinesPtr(string(*b.Mode))
+	}
+	u.PauseOnBattery = b.PauseOnBattery
+	if b.CpuCapPct != nil {
+		u.CPUCapPct = machinesPtr(int(*b.CpuCapPct))
+	}
+	if b.Pause != nil {
+		u.Pause = machinesPtr(string(*b.Pause))
 	}
 	if b.AllowedBackends != nil {
 		names := make([]string, 0, len(*b.AllowedBackends))

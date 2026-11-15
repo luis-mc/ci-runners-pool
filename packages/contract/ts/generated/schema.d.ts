@@ -1725,7 +1725,7 @@ export interface components {
          * @description observability R5.5.
          * @enum {string}
          */
-        WaitReason: "free_slot" | "load_over_budget" | "no_runner_with_labels" | "repository_parallel_limit" | "machine_drained" | "quiet_hours" | "unknown";
+        WaitReason: "free_slot" | "load_over_budget" | "no_runner_with_labels" | "repository_parallel_limit" | "machine_drained" | "quiet_hours" | "paused" | "on_battery" | "unknown";
         /** @enum {string} */
         Severity: "ok" | "info" | "skip" | "warn" | "fail";
         /** @enum {string} */
@@ -2229,6 +2229,10 @@ export interface components {
             arch: components["schemas"]["Arch"];
             state: components["schemas"]["MachineState"];
             online: boolean;
+            /** @description Whether the machine takes new jobs (machines R5.60). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts. */
+            accepting?: boolean;
+            pause_reason?: components["schemas"]["PauseReason"];
+            policy?: components["schemas"]["MachinePolicy"];
             /** @description The controller's own machine (machines R5.1); it has no special path. */
             is_controller: boolean;
             facts?: components["schemas"]["MachineFacts"];
@@ -2309,6 +2313,46 @@ export interface components {
             pool_memory_gib?: number;
             /** @description The CPUs the pool may use on this machine (machines R5.58). 0 means not set. Split over the job slots it gives CI_MAX_PARALLEL (runners R5.53). */
             pool_cpus?: number;
+            mode?: components["schemas"]["MachineMode"];
+            /** @description Automatic pauses while the machine runs on battery. On by default; Always ignores it (machines R5.59, R5.61). */
+            pause_on_battery?: boolean;
+            cpu_cap_pct?: components["schemas"]["CpuCapPct"];
+            /**
+             * Format: date-time
+             * @description A pause from the tray with a timer ends at this time. Absent when none runs (machines R5.59).
+             */
+            pause_until?: string;
+            /** @description A pause from the tray holds until Resume. */
+            pause_until_resumed?: boolean;
+        };
+        /**
+         * @description Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.59).
+         * @enum {string}
+         */
+        MachineMode: "automatic" | "always" | "paused";
+        /**
+         * @description The share of the whole machine's CPU the runner processes may use, in percent (machines R5.62). Separate from the load budget. 100 is no cap.
+         * @enum {integer}
+         */
+        CpuCapPct: 25 | 50 | 75 | 100;
+        /**
+         * @description Why a machine takes no new job (machines R5.60). Other features read these exact names.
+         * @enum {string}
+         */
+        PauseReason: "paused" | "on_battery" | "quiet_hours" | "budget";
+        /**
+         * @description What the agent did with the CPU cap. not_supported is macOS (machines R5.62).
+         * @enum {string}
+         */
+        CpuCapState: "applied" | "not_supported" | "failed";
+        /** @description What the agent last reported about the power source and the CPU cap (machines R5.60 to R5.62). */
+        MachinePolicy: {
+            on_battery: boolean;
+            /** @description False when no battery reading was possible; the machine then counts as on mains. */
+            battery_known: boolean;
+            cpu_cap_state?: components["schemas"]["CpuCapState"];
+            /** @description Why the cap is not applied, in words fit to show. */
+            cpu_cap_detail?: string;
         };
         /**
          * @example {
@@ -2397,6 +2441,14 @@ export interface components {
             pool_memory_gib?: number;
             /** @description The pool CPUs. Send it with pool_memory_gib. */
             pool_cpus?: number;
+            mode?: components["schemas"]["MachineMode"];
+            pause_on_battery?: boolean;
+            cpu_cap_pct?: components["schemas"]["CpuCapPct"];
+            /**
+             * @description A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.59).
+             * @enum {string}
+             */
+            pause?: "one_hour" | "until_resumed" | "none";
             /** @description The explicit yes to a pool size below the current one. confirm does not stand for it (machines R5.58). */
             confirm_shrink?: boolean;
             /** @description The yes once the jobs a restart waits for are named. */
