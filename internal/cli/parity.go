@@ -29,6 +29,7 @@ var operationCommands = map[string]string{
 	"createRunners":              "runner add",
 	"deleteRunner":               "runner remove",
 	"getRunner":                  "runner remove",
+	"getRunnerEnv":               "runner env",
 	"listJobs":                   "job list",
 	"streamEvents":               "job watch",
 	"runDoctor":                  "doctor",

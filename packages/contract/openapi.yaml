@@ -1428,6 +1428,201 @@ paths:
                 $ref: '#/components/schemas/Runner'
         default:
           $ref: '#/components/responses/Error'
+  # ------------------------------------------- env sets and registry (RES4, RES5)
+  /api/v1/runners/{runnerId}/env:
+    get:
+      operationId: getRunnerEnv
+      tags: [runners]
+      summary: The merged environment of a runner, sensitive values masked
+      description: >-
+        runners R5.68, R5.69. Order: machine, then each applied set in the
+        order the runner lists them, then the runner's own values; a later
+        layer wins. Each value names its source.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RunnerId'
+      responses:
+        '200':
+          description: The merged environment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunnerEnv'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/env-sets:
+    get:
+      operationId: listEnvSets
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Every named environment set
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The sets. A sensitive variable has no value.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvSetList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/env-sets/{setName}:
+    put:
+      operationId: putEnvSet
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Create or replace an environment set
+      description: >-
+        runners R5.68. A sensitive variable sent without a value keeps its
+        stored value.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/SetName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnvSetInput'
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvSet'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteEnvSet
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Delete an environment set and its stored sensitive values
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/SetName'
+      responses:
+        '204':
+          description: Deleted.
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry:
+    get:
+      operationId: getRegistrySettings
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Registry logins per backend and whether a private CA bundle is set
+      description: runners R5.70, R5.71. No password is ever returned.
+      x-auth: admin
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrySettings'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/logins:
+    put:
+      operationId: putRegistryLogin
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Store a registry login for one backend kind
+      description: >-
+        runners R5.70. The password goes to the secret store. An empty
+        password keeps the stored one.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistryLoginInput'
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryLogin'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/logins/{kind}/{host}:
+    delete:
+      operationId: deleteRegistryLogin
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Remove a registry login and its stored password
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - name: kind
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [container, vm, persistent]
+        - name: host
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Removed.
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/ca-bundle:
+    put:
+      operationId: putRegistryCaBundle
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Set the private CA bundle that runners trust
+      description: runners R5.71. PEM certificates only; a private key is refused.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaBundleInput'
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrySettings'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteRegistryCaBundle
+      x-cli: none
+      x-cli-reason: 'The console owns this screen first; a command follows in its own task.'
+      tags: [runners]
+      summary: Remove the private CA bundle
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      responses:
+        '204':
+          description: Removed.
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/runners/{runnerId}/replace:
     post:
       operationId: planRunnerReplacement
@@ -2503,6 +2698,12 @@ components:
       required: true
       schema:
         type: string
+    SetName:
+      name: setName
+      in: path
+      required: true
+      schema:
+        type: string
     RunnerId:
       name: runnerId
       in: path
@@ -2598,6 +2799,98 @@ components:
       example:
         status: ok
         version: v0.1.0
+    EnvVar:
+      type: object
+      required: [name, sensitive]
+      properties:
+        name: {type: string}
+        value:
+          type: string
+          description: Absent for a sensitive variable.
+        sensitive: {type: boolean}
+    EnvSet:
+      type: object
+      required: [name, vars]
+      properties:
+        name: {type: string}
+        vars:
+          type: array
+          items: {$ref: '#/components/schemas/EnvVar'}
+    EnvSetList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/EnvSet'}
+    EnvVarInput:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string}
+        value: {type: string}
+        sensitive: {type: boolean}
+    EnvSetInput:
+      type: object
+      required: [vars]
+      properties:
+        vars:
+          type: array
+          items: {$ref: '#/components/schemas/EnvVarInput'}
+    ResolvedEnvVar:
+      type: object
+      required: [name, value, sensitive, source]
+      properties:
+        name: {type: string}
+        value:
+          type: string
+          description: '"***" for a sensitive variable.'
+        sensitive: {type: boolean}
+        source:
+          type: string
+          description: '"machine", "set:<name>" or "runner".'
+    RunnerEnv:
+      type: object
+      required: [runner_id, vars]
+      properties:
+        runner_id: {type: string}
+        vars:
+          type: array
+          items: {$ref: '#/components/schemas/ResolvedEnvVar'}
+    RegistryLogin:
+      type: object
+      required: [kind, host, username]
+      properties:
+        kind:
+          type: string
+          enum: [container, vm, persistent]
+        host: {type: string}
+        username: {type: string}
+    RegistryLoginInput:
+      type: object
+      required: [kind, host, username]
+      properties:
+        kind:
+          type: string
+          enum: [container, vm, persistent]
+        host: {type: string}
+        username: {type: string}
+        password:
+          type: string
+          description: Write only. Empty keeps the stored one.
+    CaBundleInput:
+      type: object
+      required: [pem]
+      properties:
+        pem: {type: string}
+    RegistrySettings:
+      type: object
+      required: [logins, ca_bundle_set]
+      properties:
+        logins:
+          type: array
+          items: {$ref: '#/components/schemas/RegistryLogin'}
+        ca_bundle_set: {type: boolean}
     ErrorEnvelope:
       type: object
       required: [error]

@@ -1029,6 +1029,48 @@ func (e QueueSettingsOrder) Valid() bool {
 	}
 }
 
+// Defines values for RegistryLoginKind.
+const (
+	RegistryLoginKindContainer  RegistryLoginKind = "container"
+	RegistryLoginKindPersistent RegistryLoginKind = "persistent"
+	RegistryLoginKindVm         RegistryLoginKind = "vm"
+)
+
+// Valid indicates whether the value is a known member of the RegistryLoginKind enum.
+func (e RegistryLoginKind) Valid() bool {
+	switch e {
+	case RegistryLoginKindContainer:
+		return true
+	case RegistryLoginKindPersistent:
+		return true
+	case RegistryLoginKindVm:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryLoginInputKind.
+const (
+	RegistryLoginInputKindContainer  RegistryLoginInputKind = "container"
+	RegistryLoginInputKindPersistent RegistryLoginInputKind = "persistent"
+	RegistryLoginInputKindVm         RegistryLoginInputKind = "vm"
+)
+
+// Valid indicates whether the value is a known member of the RegistryLoginInputKind enum.
+func (e RegistryLoginInputKind) Valid() bool {
+	switch e {
+	case RegistryLoginInputKindContainer:
+		return true
+	case RegistryLoginInputKindPersistent:
+		return true
+	case RegistryLoginInputKindVm:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RepositoryVisibility.
 const (
 	Internal RepositoryVisibility = "internal"
@@ -1599,6 +1641,27 @@ func (e ListJobsParamsState) Valid() bool {
 	}
 }
 
+// Defines values for DeleteRegistryLoginParamsKind.
+const (
+	DeleteRegistryLoginParamsKindContainer  DeleteRegistryLoginParamsKind = "container"
+	DeleteRegistryLoginParamsKindPersistent DeleteRegistryLoginParamsKind = "persistent"
+	DeleteRegistryLoginParamsKindVm         DeleteRegistryLoginParamsKind = "vm"
+)
+
+// Valid indicates whether the value is a known member of the DeleteRegistryLoginParamsKind enum.
+func (e DeleteRegistryLoginParamsKind) Valid() bool {
+	switch e {
+	case DeleteRegistryLoginParamsKindContainer:
+		return true
+	case DeleteRegistryLoginParamsKindPersistent:
+		return true
+	case DeleteRegistryLoginParamsKindVm:
+		return true
+	default:
+		return false
+	}
+}
+
 // AddUserRequest defines model for AddUserRequest.
 type AddUserRequest struct {
 	Login string             `json:"login"`
@@ -1707,6 +1770,11 @@ type BackupDrillState string
 type BackupList struct {
 	Items     []Backup     `json:"items"`
 	LastDrill *BackupDrill `json:"last_drill,omitempty"`
+}
+
+// CaBundleInput defines model for CaBundleInput.
+type CaBundleInput struct {
+	Pem string `json:"pem"`
 }
 
 // Cache One cache on one machine (caches R5.8 to R5.14).
@@ -1868,6 +1936,38 @@ type DrainHolder struct {
 // DrainRequest defines model for DrainRequest.
 type DrainRequest struct {
 	Reason *string `json:"reason,omitempty"`
+}
+
+// EnvSet defines model for EnvSet.
+type EnvSet struct {
+	Name string   `json:"name"`
+	Vars []EnvVar `json:"vars"`
+}
+
+// EnvSetInput defines model for EnvSetInput.
+type EnvSetInput struct {
+	Vars []EnvVarInput `json:"vars"`
+}
+
+// EnvSetList defines model for EnvSetList.
+type EnvSetList struct {
+	Items []EnvSet `json:"items"`
+}
+
+// EnvVar defines model for EnvVar.
+type EnvVar struct {
+	Name      string `json:"name"`
+	Sensitive bool   `json:"sensitive"`
+
+	// Value Absent for a sensitive variable.
+	Value *string `json:"value,omitempty"`
+}
+
+// EnvVarInput defines model for EnvVarInput.
+type EnvVarInput struct {
+	Name      string  `json:"name"`
+	Sensitive *bool   `json:"sensitive,omitempty"`
+	Value     *string `json:"value,omitempty"`
 }
 
 // ErrorBody defines model for ErrorBody.
@@ -2609,6 +2709,35 @@ type RedeemSetupLinkRequest struct {
 	Code string `json:"code"`
 }
 
+// RegistryLogin defines model for RegistryLogin.
+type RegistryLogin struct {
+	Host     string            `json:"host"`
+	Kind     RegistryLoginKind `json:"kind"`
+	Username string            `json:"username"`
+}
+
+// RegistryLoginKind defines model for RegistryLogin.Kind.
+type RegistryLoginKind string
+
+// RegistryLoginInput defines model for RegistryLoginInput.
+type RegistryLoginInput struct {
+	Host string                 `json:"host"`
+	Kind RegistryLoginInputKind `json:"kind"`
+
+	// Password Write only. Empty keeps the stored one.
+	Password *string `json:"password,omitempty"`
+	Username string  `json:"username"`
+}
+
+// RegistryLoginInputKind defines model for RegistryLoginInput.Kind.
+type RegistryLoginInputKind string
+
+// RegistrySettings defines model for RegistrySettings.
+type RegistrySettings struct {
+	CaBundleSet bool            `json:"ca_bundle_set"`
+	Logins      []RegistryLogin `json:"logins"`
+}
+
 // Repository defines model for Repository.
 type Repository struct {
 	DefaultBranch  *string          `json:"default_branch,omitempty"`
@@ -2745,6 +2874,18 @@ type RepositoryVariable struct {
 // RepositoryVariableName defines model for RepositoryVariable.Name.
 type RepositoryVariableName string
 
+// ResolvedEnvVar defines model for ResolvedEnvVar.
+type ResolvedEnvVar struct {
+	Name      string `json:"name"`
+	Sensitive bool   `json:"sensitive"`
+
+	// Source "machine", "set:<name>" or "runner".
+	Source string `json:"source"`
+
+	// Value "***" for a sensitive variable.
+	Value string `json:"value"`
+}
+
 // Role defines model for Role.
 type Role string
 
@@ -2773,6 +2914,12 @@ type Runner struct {
 	RunnerVersion *string     `json:"runner_version,omitempty"`
 	Scope         RunnerScope `json:"scope"`
 	State         RunnerState `json:"state"`
+}
+
+// RunnerEnv defines model for RunnerEnv.
+type RunnerEnv struct {
+	RunnerId string           `json:"runner_id"`
+	Vars     []ResolvedEnvVar `json:"vars"`
 }
 
 // RunnerKind defines model for RunnerKind.
@@ -3084,6 +3231,9 @@ type RunId = string
 // RunnerId defines model for RunnerId.
 type RunnerId = string
 
+// SetName defines model for SetName.
+type SetName = string
+
 // To defines model for To.
 type To = time.Time
 
@@ -3244,6 +3394,9 @@ type DeleteNotificationChannelParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// DeleteRegistryLoginParamsKind defines parameters for DeleteRegistryLogin.
+type DeleteRegistryLoginParamsKind string
+
 // ListRunnersParams defines parameters for ListRunners.
 type ListRunnersParams struct {
 	MachineId *string      `form:"machine_id,omitempty" json:"machine_id,omitempty"`
@@ -3311,6 +3464,9 @@ type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
 // RunDoctorJSONRequestBody defines body for RunDoctor for application/json ContentType.
 type RunDoctorJSONRequestBody = DoctorScope
 
+// PutEnvSetJSONRequestBody defines body for PutEnvSet for application/json ContentType.
+type PutEnvSetJSONRequestBody = EnvSetInput
+
 // UpdateImageLayersJSONRequestBody defines body for UpdateImageLayers for application/json ContentType.
 type UpdateImageLayersJSONRequestBody = UpdateImageLayersRequest
 
@@ -3340,6 +3496,12 @@ type CreateNotificationChannelJSONRequestBody = NotificationChannelInput
 
 // UpdateNotificationChannelJSONRequestBody defines body for UpdateNotificationChannel for application/json ContentType.
 type UpdateNotificationChannelJSONRequestBody = NotificationChannelUpdate
+
+// PutRegistryCaBundleJSONRequestBody defines body for PutRegistryCaBundle for application/json ContentType.
+type PutRegistryCaBundleJSONRequestBody = CaBundleInput
+
+// PutRegistryLoginJSONRequestBody defines body for PutRegistryLogin for application/json ContentType.
+type PutRegistryLoginJSONRequestBody = RegistryLoginInput
 
 // SetRepositoryExtraPackagesJSONRequestBody defines body for SetRepositoryExtraPackages for application/json ContentType.
 type SetRepositoryExtraPackagesJSONRequestBody = ExtraPackagesUpdate
@@ -3436,6 +3598,15 @@ type ServerInterface interface {
 	// GetDoctorRun A doctor run with its findings
 	// (GET /api/v1/doctor/runs/{runId})
 	GetDoctorRun(w http.ResponseWriter, r *http.Request, runId RunId)
+	// ListEnvSets Every named environment set
+	// (GET /api/v1/env-sets)
+	ListEnvSets(w http.ResponseWriter, r *http.Request)
+	// DeleteEnvSet Delete an environment set and its stored sensitive values
+	// (DELETE /api/v1/env-sets/{setName})
+	DeleteEnvSet(w http.ResponseWriter, r *http.Request, setName SetName)
+	// PutEnvSet Create or replace an environment set
+	// (PUT /api/v1/env-sets/{setName})
+	PutEnvSet(w http.ResponseWriter, r *http.Request, setName SetName)
 	// StreamEvents The live view as server-sent events
 	// (GET /api/v1/events)
 	StreamEvents(w http.ResponseWriter, r *http.Request, params StreamEventsParams)
@@ -3553,6 +3724,21 @@ type ServerInterface interface {
 	// GetOverview The overview snapshot
 	// (GET /api/v1/overview)
 	GetOverview(w http.ResponseWriter, r *http.Request)
+	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
+	// (GET /api/v1/registry)
+	GetRegistrySettings(w http.ResponseWriter, r *http.Request)
+	// DeleteRegistryCaBundle Remove the private CA bundle
+	// (DELETE /api/v1/registry/ca-bundle)
+	DeleteRegistryCaBundle(w http.ResponseWriter, r *http.Request)
+	// PutRegistryCaBundle Set the private CA bundle that runners trust
+	// (PUT /api/v1/registry/ca-bundle)
+	PutRegistryCaBundle(w http.ResponseWriter, r *http.Request)
+	// PutRegistryLogin Store a registry login for one backend kind
+	// (PUT /api/v1/registry/logins)
+	PutRegistryLogin(w http.ResponseWriter, r *http.Request)
+	// DeleteRegistryLogin Remove a registry login and its stored password
+	// (DELETE /api/v1/registry/logins/{kind}/{host})
+	DeleteRegistryLogin(w http.ResponseWriter, r *http.Request, kind DeleteRegistryLoginParamsKind, host string)
 	// GetRepository One repository with its policy and variable status
 	// (GET /api/v1/repositories/{repositoryId})
 	GetRepository(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
@@ -3601,6 +3787,9 @@ type ServerInterface interface {
 	// GetRunner One runner
 	// (GET /api/v1/runners/{runnerId})
 	GetRunner(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
+	// GetRunnerEnv The merged environment of a runner, sensitive values masked
+	// (GET /api/v1/runners/{runnerId}/env)
+	GetRunnerEnv(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
@@ -4167,6 +4356,72 @@ func (siw *ServerInterfaceWrapper) GetDoctorRun(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDoctorRun(w, r, runId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListEnvSets operation middleware
+func (siw *ServerInterfaceWrapper) ListEnvSets(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListEnvSets(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteEnvSet operation middleware
+func (siw *ServerInterfaceWrapper) DeleteEnvSet(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "setName" -------------
+	var setName SetName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "setName", r.PathValue("setName"), &setName, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "setName", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteEnvSet(w, r, setName)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutEnvSet operation middleware
+func (siw *ServerInterfaceWrapper) PutEnvSet(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "setName" -------------
+	var setName SetName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "setName", r.PathValue("setName"), &setName, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "setName", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutEnvSet(w, r, setName)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -5545,6 +5800,97 @@ func (siw *ServerInterfaceWrapper) GetOverview(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// GetRegistrySettings operation middleware
+func (siw *ServerInterfaceWrapper) GetRegistrySettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRegistrySettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteRegistryCaBundle operation middleware
+func (siw *ServerInterfaceWrapper) DeleteRegistryCaBundle(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteRegistryCaBundle(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutRegistryCaBundle operation middleware
+func (siw *ServerInterfaceWrapper) PutRegistryCaBundle(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutRegistryCaBundle(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutRegistryLogin operation middleware
+func (siw *ServerInterfaceWrapper) PutRegistryLogin(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutRegistryLogin(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteRegistryLogin operation middleware
+func (siw *ServerInterfaceWrapper) DeleteRegistryLogin(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "kind" -------------
+	var kind DeleteRegistryLoginParamsKind
+
+	err = runtime.BindStyledParameterWithOptions("simple", "kind", r.PathValue("kind"), &kind, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kind", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "host" -------------
+	var host string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "host", r.PathValue("host"), &host, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "host", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteRegistryLogin(w, r, kind, host)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetRepository operation middleware
 func (siw *ServerInterfaceWrapper) GetRepository(w http.ResponseWriter, r *http.Request) {
 
@@ -5990,6 +6336,32 @@ func (siw *ServerInterfaceWrapper) GetRunner(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetRunner(w, r, runnerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRunnerEnv operation middleware
+func (siw *ServerInterfaceWrapper) GetRunnerEnv(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "runnerId" -------------
+	var runnerId RunnerId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runnerId", r.PathValue("runnerId"), &runnerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runnerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRunnerEnv(w, r, runnerId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6781,6 +7153,15 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/runner-plans/{planId}/apply", wrapper.CreateRunners)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/runners/{runnerId}", wrapper.DeleteRunner)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners/{runnerId}", wrapper.GetRunner)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners/{runnerId}/env", wrapper.GetRunnerEnv)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/env-sets", wrapper.ListEnvSets)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/env-sets/{setName}", wrapper.DeleteEnvSet)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/env-sets/{setName}", wrapper.PutEnvSet)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/registry", wrapper.GetRegistrySettings)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/registry/logins", wrapper.PutRegistryLogin)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/registry/logins/{kind}/{host}", wrapper.DeleteRegistryLogin)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/registry/ca-bundle", wrapper.DeleteRegistryCaBundle)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/registry/ca-bundle", wrapper.PutRegistryCaBundle)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/runners/{runnerId}/replace", wrapper.PlanRunnerReplacement)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/jobs", wrapper.ListJobs)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/jobs/{jobId}", wrapper.GetJob)
@@ -7492,6 +7873,117 @@ type GetDoctorRundefaultJSONResponse struct {
 }
 
 func (response GetDoctorRundefaultJSONResponse) VisitGetDoctorRunResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvSetsRequestObject struct {
+}
+
+type ListEnvSetsResponseObject interface {
+	VisitListEnvSetsResponse(w http.ResponseWriter) error
+}
+
+type ListEnvSets200JSONResponse EnvSetList
+
+func (response ListEnvSets200JSONResponse) VisitListEnvSetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListEnvSetsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListEnvSetsdefaultJSONResponse) VisitListEnvSetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteEnvSetRequestObject struct {
+	SetName SetName `json:"setName"`
+}
+
+type DeleteEnvSetResponseObject interface {
+	VisitDeleteEnvSetResponse(w http.ResponseWriter) error
+}
+
+type DeleteEnvSet204Response struct {
+}
+
+func (response DeleteEnvSet204Response) VisitDeleteEnvSetResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteEnvSetdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DeleteEnvSetdefaultJSONResponse) VisitDeleteEnvSetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutEnvSetRequestObject struct {
+	SetName SetName `json:"setName"`
+	Body    *PutEnvSetJSONRequestBody
+}
+
+type PutEnvSetResponseObject interface {
+	VisitPutEnvSetResponse(w http.ResponseWriter) error
+}
+
+type PutEnvSet200JSONResponse EnvSet
+
+func (response PutEnvSet200JSONResponse) VisitPutEnvSetResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutEnvSetdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response PutEnvSetdefaultJSONResponse) VisitPutEnvSetResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -9171,6 +9663,188 @@ func (response GetOverviewdefaultJSONResponse) VisitGetOverviewResponse(w http.R
 	return err
 }
 
+type GetRegistrySettingsRequestObject struct {
+}
+
+type GetRegistrySettingsResponseObject interface {
+	VisitGetRegistrySettingsResponse(w http.ResponseWriter) error
+}
+
+type GetRegistrySettings200JSONResponse RegistrySettings
+
+func (response GetRegistrySettings200JSONResponse) VisitGetRegistrySettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRegistrySettingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRegistrySettingsdefaultJSONResponse) VisitGetRegistrySettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteRegistryCaBundleRequestObject struct {
+}
+
+type DeleteRegistryCaBundleResponseObject interface {
+	VisitDeleteRegistryCaBundleResponse(w http.ResponseWriter) error
+}
+
+type DeleteRegistryCaBundle204Response struct {
+}
+
+func (response DeleteRegistryCaBundle204Response) VisitDeleteRegistryCaBundleResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteRegistryCaBundledefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DeleteRegistryCaBundledefaultJSONResponse) VisitDeleteRegistryCaBundleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutRegistryCaBundleRequestObject struct {
+	Body *PutRegistryCaBundleJSONRequestBody
+}
+
+type PutRegistryCaBundleResponseObject interface {
+	VisitPutRegistryCaBundleResponse(w http.ResponseWriter) error
+}
+
+type PutRegistryCaBundle200JSONResponse RegistrySettings
+
+func (response PutRegistryCaBundle200JSONResponse) VisitPutRegistryCaBundleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutRegistryCaBundledefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response PutRegistryCaBundledefaultJSONResponse) VisitPutRegistryCaBundleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutRegistryLoginRequestObject struct {
+	Body *PutRegistryLoginJSONRequestBody
+}
+
+type PutRegistryLoginResponseObject interface {
+	VisitPutRegistryLoginResponse(w http.ResponseWriter) error
+}
+
+type PutRegistryLogin200JSONResponse RegistryLogin
+
+func (response PutRegistryLogin200JSONResponse) VisitPutRegistryLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutRegistryLogindefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response PutRegistryLogindefaultJSONResponse) VisitPutRegistryLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteRegistryLoginRequestObject struct {
+	Kind DeleteRegistryLoginParamsKind `json:"kind"`
+	Host string                        `json:"host"`
+}
+
+type DeleteRegistryLoginResponseObject interface {
+	VisitDeleteRegistryLoginResponse(w http.ResponseWriter) error
+}
+
+type DeleteRegistryLogin204Response struct {
+}
+
+func (response DeleteRegistryLogin204Response) VisitDeleteRegistryLoginResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteRegistryLogindefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DeleteRegistryLogindefaultJSONResponse) VisitDeleteRegistryLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetRepositoryRequestObject struct {
 	RepositoryId RepositoryId `json:"repositoryId"`
 }
@@ -9789,6 +10463,45 @@ type GetRunnerdefaultJSONResponse struct {
 }
 
 func (response GetRunnerdefaultJSONResponse) VisitGetRunnerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRunnerEnvRequestObject struct {
+	RunnerId RunnerId `json:"runnerId"`
+}
+
+type GetRunnerEnvResponseObject interface {
+	VisitGetRunnerEnvResponse(w http.ResponseWriter) error
+}
+
+type GetRunnerEnv200JSONResponse RunnerEnv
+
+func (response GetRunnerEnv200JSONResponse) VisitGetRunnerEnvResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRunnerEnvdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRunnerEnvdefaultJSONResponse) VisitGetRunnerEnvResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -10766,6 +11479,15 @@ type StrictServerInterface interface {
 	// GetDoctorRun A doctor run with its findings
 	// (GET /api/v1/doctor/runs/{runId})
 	GetDoctorRun(ctx context.Context, request GetDoctorRunRequestObject) (GetDoctorRunResponseObject, error)
+	// ListEnvSets Every named environment set
+	// (GET /api/v1/env-sets)
+	ListEnvSets(ctx context.Context, request ListEnvSetsRequestObject) (ListEnvSetsResponseObject, error)
+	// DeleteEnvSet Delete an environment set and its stored sensitive values
+	// (DELETE /api/v1/env-sets/{setName})
+	DeleteEnvSet(ctx context.Context, request DeleteEnvSetRequestObject) (DeleteEnvSetResponseObject, error)
+	// PutEnvSet Create or replace an environment set
+	// (PUT /api/v1/env-sets/{setName})
+	PutEnvSet(ctx context.Context, request PutEnvSetRequestObject) (PutEnvSetResponseObject, error)
 	// StreamEvents The live view as server-sent events
 	// (GET /api/v1/events)
 	StreamEvents(ctx context.Context, request StreamEventsRequestObject) (StreamEventsResponseObject, error)
@@ -10883,6 +11605,21 @@ type StrictServerInterface interface {
 	// GetOverview The overview snapshot
 	// (GET /api/v1/overview)
 	GetOverview(ctx context.Context, request GetOverviewRequestObject) (GetOverviewResponseObject, error)
+	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
+	// (GET /api/v1/registry)
+	GetRegistrySettings(ctx context.Context, request GetRegistrySettingsRequestObject) (GetRegistrySettingsResponseObject, error)
+	// DeleteRegistryCaBundle Remove the private CA bundle
+	// (DELETE /api/v1/registry/ca-bundle)
+	DeleteRegistryCaBundle(ctx context.Context, request DeleteRegistryCaBundleRequestObject) (DeleteRegistryCaBundleResponseObject, error)
+	// PutRegistryCaBundle Set the private CA bundle that runners trust
+	// (PUT /api/v1/registry/ca-bundle)
+	PutRegistryCaBundle(ctx context.Context, request PutRegistryCaBundleRequestObject) (PutRegistryCaBundleResponseObject, error)
+	// PutRegistryLogin Store a registry login for one backend kind
+	// (PUT /api/v1/registry/logins)
+	PutRegistryLogin(ctx context.Context, request PutRegistryLoginRequestObject) (PutRegistryLoginResponseObject, error)
+	// DeleteRegistryLogin Remove a registry login and its stored password
+	// (DELETE /api/v1/registry/logins/{kind}/{host})
+	DeleteRegistryLogin(ctx context.Context, request DeleteRegistryLoginRequestObject) (DeleteRegistryLoginResponseObject, error)
 	// GetRepository One repository with its policy and variable status
 	// (GET /api/v1/repositories/{repositoryId})
 	GetRepository(ctx context.Context, request GetRepositoryRequestObject) (GetRepositoryResponseObject, error)
@@ -10931,6 +11668,9 @@ type StrictServerInterface interface {
 	// GetRunner One runner
 	// (GET /api/v1/runners/{runnerId})
 	GetRunner(ctx context.Context, request GetRunnerRequestObject) (GetRunnerResponseObject, error)
+	// GetRunnerEnv The merged environment of a runner, sensitive values masked
+	// (GET /api/v1/runners/{runnerId}/env)
+	GetRunnerEnv(ctx context.Context, request GetRunnerEnvRequestObject) (GetRunnerEnvResponseObject, error)
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(ctx context.Context, request PlanRunnerReplacementRequestObject) (PlanRunnerReplacementResponseObject, error)
@@ -11478,6 +12218,89 @@ func (sh *strictHandler) GetDoctorRun(w http.ResponseWriter, r *http.Request, ru
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetDoctorRunResponseObject); ok {
 		if err := validResponse.VisitGetDoctorRunResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListEnvSets operation middleware
+func (sh *strictHandler) ListEnvSets(w http.ResponseWriter, r *http.Request) {
+	var request ListEnvSetsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListEnvSets(ctx, request.(ListEnvSetsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListEnvSets")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListEnvSetsResponseObject); ok {
+		if err := validResponse.VisitListEnvSetsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteEnvSet operation middleware
+func (sh *strictHandler) DeleteEnvSet(w http.ResponseWriter, r *http.Request, setName SetName) {
+	var request DeleteEnvSetRequestObject
+
+	request.SetName = setName
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteEnvSet(ctx, request.(DeleteEnvSetRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteEnvSet")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteEnvSetResponseObject); ok {
+		if err := validResponse.VisitDeleteEnvSetResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PutEnvSet operation middleware
+func (sh *strictHandler) PutEnvSet(w http.ResponseWriter, r *http.Request, setName SetName) {
+	var request PutEnvSetRequestObject
+
+	request.SetName = setName
+
+	var body PutEnvSetJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PutEnvSet(ctx, request.(PutEnvSetRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PutEnvSet")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PutEnvSetResponseObject); ok {
+		if err := validResponse.VisitPutEnvSetResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -12561,6 +13384,143 @@ func (sh *strictHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetRegistrySettings operation middleware
+func (sh *strictHandler) GetRegistrySettings(w http.ResponseWriter, r *http.Request) {
+	var request GetRegistrySettingsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRegistrySettings(ctx, request.(GetRegistrySettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRegistrySettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRegistrySettingsResponseObject); ok {
+		if err := validResponse.VisitGetRegistrySettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteRegistryCaBundle operation middleware
+func (sh *strictHandler) DeleteRegistryCaBundle(w http.ResponseWriter, r *http.Request) {
+	var request DeleteRegistryCaBundleRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteRegistryCaBundle(ctx, request.(DeleteRegistryCaBundleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteRegistryCaBundle")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteRegistryCaBundleResponseObject); ok {
+		if err := validResponse.VisitDeleteRegistryCaBundleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PutRegistryCaBundle operation middleware
+func (sh *strictHandler) PutRegistryCaBundle(w http.ResponseWriter, r *http.Request) {
+	var request PutRegistryCaBundleRequestObject
+
+	var body PutRegistryCaBundleJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PutRegistryCaBundle(ctx, request.(PutRegistryCaBundleRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PutRegistryCaBundle")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PutRegistryCaBundleResponseObject); ok {
+		if err := validResponse.VisitPutRegistryCaBundleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PutRegistryLogin operation middleware
+func (sh *strictHandler) PutRegistryLogin(w http.ResponseWriter, r *http.Request) {
+	var request PutRegistryLoginRequestObject
+
+	var body PutRegistryLoginJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PutRegistryLogin(ctx, request.(PutRegistryLoginRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PutRegistryLogin")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PutRegistryLoginResponseObject); ok {
+		if err := validResponse.VisitPutRegistryLoginResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteRegistryLogin operation middleware
+func (sh *strictHandler) DeleteRegistryLogin(w http.ResponseWriter, r *http.Request, kind DeleteRegistryLoginParamsKind, host string) {
+	var request DeleteRegistryLoginRequestObject
+
+	request.Kind = kind
+	request.Host = host
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteRegistryLogin(ctx, request.(DeleteRegistryLoginRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteRegistryLogin")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteRegistryLoginResponseObject); ok {
+		if err := validResponse.VisitDeleteRegistryLoginResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetRepository operation middleware
 func (sh *strictHandler) GetRepository(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId) {
 	var request GetRepositoryRequestObject
@@ -13009,6 +13969,32 @@ func (sh *strictHandler) GetRunner(w http.ResponseWriter, r *http.Request, runne
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetRunnerResponseObject); ok {
 		if err := validResponse.VisitGetRunnerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRunnerEnv operation middleware
+func (sh *strictHandler) GetRunnerEnv(w http.ResponseWriter, r *http.Request, runnerId RunnerId) {
+	var request GetRunnerEnvRequestObject
+
+	request.RunnerId = runnerId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRunnerEnv(ctx, request.(GetRunnerEnvRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRunnerEnv")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRunnerEnvResponseObject); ok {
+		if err := validResponse.VisitGetRunnerEnvResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

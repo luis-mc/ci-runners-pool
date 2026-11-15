@@ -350,3 +350,31 @@ func Lines(in []Resolved) ([]string, error) {
 	}
 	return out, nil
 }
+
+// LayerSource gives the layers of one runner: the values of its machine, the
+// sets it applies in order and its own values. The runner record owns them.
+type LayerSource interface {
+	Layers(ctx context.Context, runnerID string) (Layers, error)
+}
+
+// Service is what the API and the CLI call: the registry plus the layers of
+// each runner.
+type Service struct {
+	*Registry
+	Source LayerSource
+}
+
+// RunnerEnv returns the merged environment of a runner with every sensitive
+// value masked (runners R5.68, R5.69). The real values go only to the runner
+// start, through Registry.Merge.
+func (s *Service) RunnerEnv(ctx context.Context, runnerID string) ([]Resolved, error) {
+	l, err := s.Source.Layers(ctx, runnerID)
+	if err != nil {
+		return nil, err
+	}
+	m, err := s.Registry.Merge(ctx, l)
+	if err != nil {
+		return nil, err
+	}
+	return Redacted(m), nil
+}
