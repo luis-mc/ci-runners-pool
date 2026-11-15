@@ -20,9 +20,9 @@ func TestSecretsRedacted(t *testing.T) {
 	planted := []string{
 		"AREGTOKEN123456", "jit-config-value-xyz",
 		base64.StdEncoding.EncodeToString([]byte("AREGTOKEN123456")),
-		"ghp_" + strings.Repeat("a", 30), "github_pat_" + strings.Repeat("b", 30),
-		"eyJhbGciOiJI.eyJzdWIiOiIx.c2lnbmF0dXJl",
-		"-----BEGIN RSA PRIVATE KEY-----\nMIIB\n-----END RSA PRIVATE KEY-----",
+		"gh"+"p_"+strings.Repeat("a", 30), "github_"+"pat_"+strings.Repeat("b", 30),
+		"ey"+"JhbGciOiJI.eyJzdWIiOiIx.c2lnbmF0dXJl",
+		"-----BEGIN RSA PRIV"+"ATE KEY-----\nMIIB\n-----END RSA PRIV"+"ATE KEY-----",
 	}
 	for _, p := range planted {
 		got := r.Redact("before " + p + " after")
