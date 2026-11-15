@@ -54,10 +54,10 @@ Status words: **Built** (code and tests exist), **Specified** (a requirement exi
 | 10 | Pool size set by the owner, checked against the budget, no accidental shrink | `pool-plan --pool-gib`, `--shrink` | all | Built in part (CRSP50): check, API, shrink confirm; the console form is open | machines R5.58 |
 | 11 | Windows runner as a service with its own account, rights, symlink right, PowerShell hooks, execution policy, remove token, rerun, replace the old one | `win-*` steps | J12 | Built (CRSP22) | runners R5.5, R5.6, R5.13 to R5.20, R5.40 |
 | 12 | `RUSTUP_HOME` and `CARGO_HOME` per Windows runner | runner `.env` | J2, J12 | Missing, added | runners R5.56 |
-| 13 | Linux job runners in a pool container, one per repository, non-root, no Docker socket, one cap | `pool_supervisor.py`, Docker | J1 to J11 | Specified | runners R5.27, R5.25, R5.26, R5.31; github R5.34 |
+| 13 | Linux job runners in a pool container, one per repository, non-root, no Docker socket, one cap | `pool_supervisor.py`, Docker | J1 to J11 | Built in part (CRSP52 backend, CRSP58 wiring: a queued job starts one ephemeral runner on a machine that allows the container backend; the pool lifecycle, image install and remote machines are not built) | runners R5.27, R5.25, R5.26, R5.31; github R5.34, R5.37 |
 | 14 | The container engine on this PC: Docker in WSL2 through the Windows CLI | Docker Desktop | J1 to J11 | Missing, added | runners R5.47 |
 | 15 | `crsp` binary inside the job for `crsp vm`, `crsp db-env` | scripts in the image | J6, J11 | Missing, added | runners R5.48 |
-| 16 | Routing: variables with the runner labels | `CI_RUNS_ON`, `CI_RUNS_ON_WINDOWS`, label `repo-<route>` | all | Built as `RUNS_ON_*`; the old names are Missing, added for the move | github R5.27 to R5.30; github R5.39 |
+| 16 | Routing: variables with the runner labels | `CI_RUNS_ON`, `CI_RUNS_ON_WINDOWS`, label `repo-<route>` | all | Built as `RUNS_ON_*`; the old names are Missing, added for the move. CRSP58: a queued job whose `runs-on` labels (`self-hosted`, `linux`, architecture, `docker`, pool name) a container runner honours is matched to a machine and gets a runner | github R5.27 to R5.30, R5.37; github R5.39 |
 | 17 | One registry of all runners, status, doctor compares with GitHub | `agents.json`, `pool_status.py` | all | Built | runners R5.2, R5.5; doctor R5.11, R5.12 |
 | 18 | Runner version pinned with SHA-256 | `RUNNER_SHA256` | all | Built | runners R5.37 |
 | 19 | Runner auto-update with drain | `pool-refresh` | all | Specified | runners R5.38 |

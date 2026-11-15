@@ -157,20 +157,35 @@ func (s *Service) PlanAdd(ctx context.Context, req AddRequest, actor string) (Pl
 	for i, a := range specs {
 		p.Steps = append(p.Steps, Step{
 			ID: fmt.Sprintf("s%d", i+1), Action: ActAddRunner, Target: a.Name, State: "planned",
-			Text: fmt.Sprintf("Add %s runner %s on machine %s (%s, keeps state between jobs, own account %s)",
-				a.Kind, a.Name, m.Name, OSName(a.OS), AccountName(a.Name, nil)),
+			Text: addText(a, m.Name),
 		})
 	}
 	return p, s.Store.SavePlan(ctx, p)
 }
 
+func addText(a AddSpec, machine string) string {
+	if a.Kind == "ephemeral" {
+		return fmt.Sprintf("Add ephemeral runner %s on machine %s (%s, in a container, takes one job and is removed)", a.Name, machine, OSName(a.OS))
+	}
+	return fmt.Sprintf("Add %s runner %s on machine %s (%s, keeps state between jobs, own account %s)",
+		a.Kind, a.Name, machine, OSName(a.OS), AccountName(a.Name, nil))
+}
+
 func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]AddSpec, error) {
-	if req.Kind != "persistent" {
+	if req.Kind != "persistent" && req.Kind != "ephemeral" {
 		return nil, refuse("machine %s: %s runners are not built yet", m.Name, req.Kind)
 	}
 	be, err := chooseBackend(m, req.OS, req.Kind)
 	if err != nil {
+		if req.Kind == "ephemeral" {
+			// Ephemeral runners run in containers and only on a machine whose
+			// allow list names the container backend (runners R5.27).
+			return nil, refuse("%v; ephemeral runners need the container backend allowed on the machine (it is off by default)", err)
+		}
 		return nil, err
+	}
+	if req.Kind == "ephemeral" && req.OS != "linux" {
+		return nil, refuse("machine %s: ephemeral runners run Linux containers only, not %s", m.Name, OSName(req.OS))
 	}
 	verified := map[string]bool{}
 	for _, v := range be.Verified {
@@ -470,6 +485,11 @@ func (s *Service) runStep(ctx context.Context, p Plan, st Step, actor string) er
 // addRunner registers and starts one persistent runner. The registration token
 // is fetched now, used once and dropped (runners R6.2).
 func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error {
+	if a.Kind == "ephemeral" {
+		_, err := s.StartJobRunner(ctx, JobRunner{Name: a.Name, MachineID: a.MachineID, Arch: a.Arch,
+			Backend: a.Backend, Labels: a.Labels, Scope: a.Scope}, actor)
+		return err
+	}
 	pin, err := PinFor(a.OS, a.Arch)
 	if err != nil {
 		return err

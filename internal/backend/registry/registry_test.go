@@ -34,13 +34,18 @@ func TestEveryBackendImplementsInterface(t *testing.T) {
 
 func TestRegistryHoldsOnlyThisOS(t *testing.T) {
 	reg := Platform(sys.Deps{})
-	want := map[string]bool{"windows": true, "linux": true, "darwin": true}[runtime.GOOS]
-	if got := len(reg.All()) == 1; got != want {
-		t.Fatalf("GOOS=%s: %d backends", runtime.GOOS, len(reg.All()))
+	// Linux also carries the container backend (runners R5.27); no other OS does.
+	want := map[string]int{"windows": 1, "linux": 2, "darwin": 1}[runtime.GOOS]
+	if len(reg.All()) != want {
+		t.Fatalf("GOOS=%s: %d backends, want %d", runtime.GOOS, len(reg.All()), want)
 	}
-	if want {
+	if want > 0 {
 		if _, ok := reg.Get(backend.Persistent); !ok {
 			t.Fatal("no persistent backend")
 		}
+	}
+	_, hasDocker := reg.Get(backend.Docker)
+	if hasDocker != (runtime.GOOS == "linux") {
+		t.Fatalf("GOOS=%s: container backend present is %v", runtime.GOOS, hasDocker)
 	}
 }

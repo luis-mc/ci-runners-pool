@@ -3,6 +3,7 @@ package runners
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 )
@@ -29,8 +30,45 @@ func (l *LocalAgent) persistent() (backend.Backend, error) {
 	return b, nil
 }
 
-// AddRunner starts a persistent runner.
+// container returns the container backend, when this binary has one.
+func (l *LocalAgent) container() (backend.Backend, error) {
+	b, ok := l.Registry.Get(backend.Docker)
+	if !ok {
+		return nil, errors.New("this machine has no container runner backend")
+	}
+	return b, nil
+}
+
+// isContainerRef tells a container handle (`<pool>:<runner>`) from the name of
+// an OS service, which never holds a colon.
+func isContainerRef(ref string) bool { return strings.Contains(ref, ":") }
+
+// forRef picks the backend that owns a handle.
+func (l *LocalAgent) forRef(ref string) (backend.Backend, error) {
+	if isContainerRef(ref) {
+		return l.container()
+	}
+	return l.persistent()
+}
+
+// AddRunner starts a runner. A JIT config means an ephemeral runner in a
+// container (runners R5.25, R5.27); a registration token means a persistent
+// one. The caller has checked that the machine's allow list names the backend.
 func (l *LocalAgent) AddRunner(ctx context.Context, _ string, spec backend.RunnerSpec, cfg backend.StartConfig) (backend.Handle, error) {
+	if cfg.JITConfig != "" {
+		b, err := l.container()
+		if err != nil {
+			return backend.Handle{}, err
+		}
+		if spec.Image.ID == "" {
+			img, err := b.PrepareImage(ctx, backend.ImageSpec{OS: spec.OS, Arch: spec.Arch})
+			if err != nil {
+				return backend.Handle{}, err
+			}
+			spec.Image = img
+		}
+		return b.Start(ctx, spec, cfg)
+	}
 	b, err := l.persistent()
 	if err != nil {
 		return backend.Handle{}, err
@@ -40,7 +78,7 @@ func (l *LocalAgent) AddRunner(ctx context.Context, _ string, spec backend.Runne
 
 // StopService stops the runner's service.
 func (l *LocalAgent) StopService(ctx context.Context, _ string, service string) error {
-	b, err := l.persistent()
+	b, err := l.forRef(service)
 	if err != nil {
 		return err
 	}
@@ -71,7 +109,7 @@ func (l *LocalAgent) RemoveRunner(ctx context.Context, _ string, req RemoveReque
 
 // CleanUp removes the service entry, the account and the folder.
 func (l *LocalAgent) CleanUp(ctx context.Context, _ string, service string) error {
-	b, err := l.persistent()
+	b, err := l.forRef(service)
 	if err != nil {
 		return err
 	}
