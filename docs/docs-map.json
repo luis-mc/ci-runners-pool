@@ -55,6 +55,9 @@
     "internal/cli/auth/**": [
       "docs/features/github-integration/spec.md"
     ],
+    "internal/compare/**": [
+      "docs/features/observability/spec.md"
+    ],
     "internal/configio/**": [
       "docs/features/operations/spec.md"
     ],
