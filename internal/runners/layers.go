@@ -278,6 +278,6 @@ func LayerSetKey(baseDigest string, layers, extras []string) string {
 	sort.Strings(ls)
 	sort.Strings(es)
 	h := sha256.New()
-	fmt.Fprintf(h, "base=%s\nlayers=%s\nextras=%s\n", baseDigest, strings.Join(ls, ","), strings.Join(es, ","))
+	_, _ = fmt.Fprintf(h, "base=%s\nlayers=%s\nextras=%s\n", baseDigest, strings.Join(ls, ","), strings.Join(es, ","))
 	return hex.EncodeToString(h.Sum(nil))[:16]
 }
