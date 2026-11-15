@@ -388,7 +388,6 @@ Rows for R5.36 to R5.40, R5.42, R5.45, R5.48 and R5.49 are built and run in CI. 
 | D2 | How to send `actions/cache` to the pool | A runner patched at install for the pinned runner version (section 7.2); owner to confirm (Q1) | 2026-11-14 (proposed) |
 | D3 | Tool cache language | A Go port of `ci_tool.py` inside the one binary, with its tests ported | 2026-11-14 (proposed) |
 | D4 | Wipe at drain timeout | Delete nothing and say so; never cut a job | 2026-11-14 (proposed) |
-| D5 | Defaults of the disk limits (CRSP48) | Per key 25 GiB, Rust cache 40 GiB, pool budget 150 GiB, alert at 20 GiB (all in GiB, per machine for the budget); the most cautious values that keep one repository from filling a disk, until the owner sets others | 2026-11-15 (proposed) |
 
 Open questions for the owner:
 
@@ -397,6 +396,7 @@ Open questions for the owner:
 - **Q3** — Is tying a request to a job by the runner's network address plus the runtime token's claims enough, given GitHub's runtime token signature cannot be checked locally?
 - **Q4** — Default size cap: 20 GiB per pool, and should there also be a cap per repository (GitHub uses 10 GB)?
 - **Q5** — Should persistent runners also get the git URL rewrite, or only ephemeral ones?
+- **Q11** (CRSP48) — Are the default disk limits right (one key 25 GiB, Rust cache 40 GiB, pool budget 150 GiB, alert at 20 GiB)? Chosen now: the most cautious values that keep one repository from filling a disk.
 - **Q7** (CRSP48) — Where should the size alert (R5.49) go besides the agent log: a notification, a finding in the doctor, or both? Chosen now: the log line only, the safe option because a wrong notification costs attention and no data. Alternative: a `cache.size` doctor check once the agent reports the biggest item of each cache (needs a field on the cache report).
 - **Q8** (CRSP48) — How does a job name its Rust cache key? Chosen now: `CRSP_RUST_CACHE_KEY`, else the most recently changed key counts as in use (nothing in use is ever removed whole). Alternative: the hook reads the key from the job's `CARGO_TARGET_DIR` subfolder when workflows set one per key.
 - **Q9** (CRSP48) — Is the pool budget per machine (chosen now, because the disk is per machine) or should the controller divide one budget across machines? Alternative: a per-machine value in the machine settings, which waits for `cache_cap_bytes` to be read.
