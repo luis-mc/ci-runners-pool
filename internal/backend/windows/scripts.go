@@ -7,9 +7,10 @@ package windows
 const (
 	scriptHeader = "$ErrorActionPreference = 'Stop'\n"
 
-	// scriptAccount makes the group and the local account, sets its password
-	// and its rights (runners R5.13, R5.14). The account is never an
-	// administrator. Needs CRSP_ACCOUNT, CRSP_GROUP, CRSP_PASSWORD, CRSP_SYMLINK.
+	// scriptAccount makes the group and the local account and sets its
+	// password (runners R5.13). Its rights are set by the RightsGranter
+	// (R5.14). The account is never an administrator. Needs CRSP_ACCOUNT,
+	// CRSP_GROUP, CRSP_PASSWORD.
 	scriptAccount = scriptHeader + `
 if (-not (Get-LocalGroup -Name $env:CRSP_GROUP -ErrorAction SilentlyContinue)) {
     New-LocalGroup -Name $env:CRSP_GROUP -Description 'CRSP runner accounts' | Out-Null
@@ -23,10 +24,12 @@ if (Get-LocalUser -Name $env:CRSP_ACCOUNT -ErrorAction SilentlyContinue) {
 if (-not (Get-LocalGroupMember -Group $env:CRSP_GROUP -Member $env:CRSP_ACCOUNT -ErrorAction SilentlyContinue)) {
     Add-LocalGroupMember -Group $env:CRSP_GROUP -Member $env:CRSP_ACCOUNT
 }
-` + scriptRightsBody
+`
 
-	// scriptRights changes only the rights, for a rerun where the symlink
-	// setting changed (runners R5.14, R5.20). Needs CRSP_ACCOUNT, CRSP_SYMLINK.
+	// scriptRights sets the rights of the account: log on as a service, the
+	// two deny logons, and the symlink right to match the setting (runners
+	// R5.14, R5.20). Used at account creation and at a rerun. Needs
+	// CRSP_ACCOUNT, CRSP_SYMLINK.
 	scriptRights = scriptHeader + scriptRightsBody
 
 	scriptRightsBody = `
@@ -60,6 +63,29 @@ try {
     Set-Content -LiteralPath $inf -Value $lines -Encoding Unicode
     secedit.exe /configure /db $db /cfg $inf /areas USER_RIGHTS | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "secedit configure failed with exit code $LASTEXITCODE" }
+} finally {
+    Remove-Item -LiteralPath $inf, $db -Force -ErrorAction SilentlyContinue
+}
+`
+
+	// scriptRightsStatus reads, without changing anything, whether the account
+	// holds SeCreateSymbolicLinkPrivilege and whether Developer Mode is on
+	// (runners R5.14). Prints `symlink=True;devmode=False`. Needs CRSP_ACCOUNT.
+	scriptRightsStatus = scriptHeader + `
+$sid = (New-Object System.Security.Principal.NTAccount($env:CRSP_ACCOUNT)).Translate([System.Security.Principal.SecurityIdentifier]).Value
+$inf = Join-Path ([System.IO.Path]::GetTempPath()) ('crsp-rights-' + [guid]::NewGuid().ToString('N') + '.inf')
+$db = Join-Path ([System.IO.Path]::GetTempPath()) ('crsp-rights-' + [guid]::NewGuid().ToString('N') + '.sdb')
+try {
+    secedit.exe /export /cfg $inf /areas USER_RIGHTS | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "secedit export failed with exit code $LASTEXITCODE" }
+    $held = $false
+    foreach ($l in (Get-Content -LiteralPath $inf)) {
+        if ($l -match '^SeCreateSymbolicLinkPrivilege\s*=') {
+            $held = (($l -split '=', 2)[1].Split(',') | ForEach-Object { $_.Trim() }) -contains ('*' + $sid)
+        }
+    }
+    $dev = (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -ErrorAction SilentlyContinue).AllowDevelopmentWithoutDevLicense -eq 1
+    Write-Output ('symlink=' + $held + ';devmode=' + $dev)
 } finally {
     Remove-Item -LiteralPath $inf, $db -Force -ErrorAction SilentlyContinue
 }
