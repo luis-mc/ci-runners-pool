@@ -152,6 +152,11 @@ func cmdRepo() *command {
 					yesFlag(fs)
 				},
 				run: func(c *call, args []string) error { return c.repoPolicy(args) }},
+			{name: "packages", summary: "show or set the extra distribution packages of a repository's pool", args: "OWNER/NAME [--set A,B]",
+				flags: func(c *call, fs *flag.FlagSet) {
+					fs.String("set", "", "the whole list, names comma separated; an empty value clears it")
+				},
+				run: func(c *call, args []string) error { return c.repoPackages(args) }},
 		},
 	}
 }
@@ -333,6 +338,66 @@ func (c *call) repoPolicy(args []string) error {
 		_, _ = fmt.Fprintln(c.env.Stderr, "Policy saved.")
 	}
 	return nil
+}
+
+// repoPackages shows the extra packages of a repository's pool, or replaces
+// the list with --set (runners R5.51). A bad name is refused by the server with
+// its line number and nothing changes.
+func (c *call) repoPackages(args []string) error {
+	if len(args) != 1 {
+		return fail(ExitUsage, "Usage: crsp repo packages OWNER/NAME [--set A,B]")
+	}
+	s, err := c.open()
+	if err != nil {
+		return err
+	}
+	repo, err := c.findRepo(s, args[0])
+	if err != nil {
+		return err
+	}
+	var list client.ExtraPackages
+	if c.fs.Lookup("set") != nil && flagSet(c.fs, "set") {
+		text := strings.Join(splitList(c.fs.Lookup("set").Value.String()), "\n")
+		r, err := s.client.SetRepositoryExtraPackagesWithResponse(c.env.Context, repo.Id, client.ExtraPackagesUpdate{Text: text})
+		if err != nil {
+			return s.transport(err)
+		}
+		if err := apiError(r.StatusCode(), r.Body); err != nil {
+			return err
+		}
+		if r.JSON200 != nil {
+			list = *r.JSON200
+		}
+		defer func() {
+			_, _ = fmt.Fprintln(c.env.Stderr, "Extra packages saved. A changed list builds a new image aside.")
+		}()
+	} else {
+		r, err := s.client.GetRepositoryExtraPackagesWithResponse(c.env.Context, repo.Id)
+		if err != nil {
+			return s.transport(err)
+		}
+		if err := apiError(r.StatusCode(), r.Body); err != nil {
+			return err
+		}
+		if r.JSON200 != nil {
+			list = *r.JSON200
+		}
+	}
+	if c.g.json {
+		return output.JSON(c.env.Stdout, list)
+	}
+	if len(list.Packages) == 0 {
+		_, _ = fmt.Fprintf(c.env.Stdout, "%s: no extra packages.\n", repo.FullName)
+		return nil
+	}
+	_, _ = fmt.Fprintf(c.env.Stdout, "%s: %s\n", repo.FullName, strings.Join(list.Packages, ", "))
+	return nil
+}
+
+func flagSet(fs *flag.FlagSet, name string) bool {
+	seen := false
+	fs.Visit(func(f *flag.Flag) { seen = seen || f.Name == name })
+	return seen
 }
 
 func onOff(b bool) string {

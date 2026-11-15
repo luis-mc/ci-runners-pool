@@ -21,6 +21,7 @@ import {
   Stack,
   Status,
   Table,
+  TextAreaField,
   TextField,
   TextLink,
   formatPast,
@@ -557,6 +558,9 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
           </Stack>
         </form>
       </Section>
+      <Section title="Extra packages">
+        <ExtraPackages r={r} onChanged={onChanged} />
+      </Section>
       <Ask
         title="Allow jobs from public forks?"
         action="Allow"
@@ -578,5 +582,104 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
         onConfirm={() => void offQ.confirm()}
       />
     </>
+  );
+}
+
+const PACKAGE_NAME = /^[A-Za-z0-9][A-Za-z0-9+.-]*$/;
+
+/** The first mistake of a package list, with its line number, as the controller words it (runners R5.51). */
+export function packageMistakes(text: string): string[] {
+  const out: string[] = [];
+  text
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .forEach((raw, i) => {
+      const line = raw.trim();
+      if (line === '' || line.startsWith('#') || PACKAGE_NAME.test(line)) return;
+      out.push(
+        `Line ${i + 1}: ${line} is not a package name. Use letters, digits and + - . only, and do not start with -.`,
+      );
+    });
+  return out;
+}
+
+/** The extra distribution packages of the repository's pool image, one per line (runners R5.51). */
+function ExtraPackages({ r, onChanged }: { r: Repository; onChanged: () => void }) {
+  const client = useClient();
+  const session = useSession();
+  const admin = session.can('admin');
+  const start = (r.policy.extra_packages ?? []).join('\n');
+  const [text, setText] = useState(start);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [saved, setSaved] = useState(false);
+  const save = useCommand(async () => {
+    setSaved(false);
+    const problems = packageMistakes(text);
+    setErrors(problems);
+    if (problems.length) return;
+    const list = await unwrap(
+      client.PUT('/api/v1/repositories/{repositoryId}/extra-packages', {
+        params: { path: { repositoryId: r.id } },
+        body: { text },
+      }),
+    );
+    setText(list.text);
+    setSaved(true);
+    onChanged();
+  });
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save.run();
+      }}
+    >
+      <Stack>
+        <ErrorSummary errors={errors} />
+        <TextAreaField
+          label="Extra packages"
+          help="Distribution packages added to the pool image, one name per line."
+          value={text}
+          onChange={(x) => {
+            setText(x);
+            setSaved(false);
+          }}
+          rows={6}
+          width="full"
+          mono
+          optional
+          error={errors[0]}
+        />
+        <Message tone="note">
+          A changed list builds a new image aside. Running jobs keep the old image until
+          they end.
+        </Message>
+        {saved ? <Message tone="done">Extra packages saved.</Message> : null}
+        {save.error ? (
+          <Message tone="problem">Could not save the packages. {save.error}</Message>
+        ) : null}
+        <FormActions>
+          <Button
+            onPress={() => {
+              setText(start);
+              setErrors([]);
+              setSaved(false);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            kind="primary"
+            submit
+            busy={save.busy}
+            busyLabel="Saving"
+            disabled={!admin}
+            reason={session.whyNot('admin')}
+          >
+            Save packages
+          </Button>
+        </FormActions>
+      </Stack>
+    </form>
   );
 }

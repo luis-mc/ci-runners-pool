@@ -598,6 +598,11 @@ body {
   border: var(--ds-border-medium) solid var(--ds-color-border);
   border-radius: var(--ds-radius-1);
 }
+.ds-input--area {
+  padding-block: var(--ds-space-2);
+  resize: vertical;
+  line-height: var(--ds-line-height);
+}
 .ds-input[data-mono] {
   font-family: var(--ds-font-mono);
 }

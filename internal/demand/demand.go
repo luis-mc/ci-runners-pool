@@ -33,6 +33,8 @@ const Actor = "demand"
 type Repo struct {
 	Scope     runners.Scope
 	AllowFork bool
+	// ExtraPackages are the pool's extra packages (runners R5.51).
+	ExtraPackages []string
 }
 
 // Host is a machine that may start container runners: online, active, Linux,
@@ -354,7 +356,7 @@ func (l *Loop) try(ctx context.Context, j github.Job, w *waiting, hosts []Host, 
 		}
 		name := fmt.Sprintf("%s%d", RunnerPrefix, j.ID)
 		rec, err := l.Runners.StartJobRunner(ctx, runners.JobRunner{Name: name, MachineID: h.MachineID, Arch: h.Arch,
-			Backend: "docker", Labels: labels, Scope: repo.Scope}, Actor)
+			Backend: "docker", Labels: labels, Scope: repo.Scope, ExtraPackages: repo.ExtraPackages}, Actor)
 		if err != nil {
 			l.fail(j, w, err)
 			return

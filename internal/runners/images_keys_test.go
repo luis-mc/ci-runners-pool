@@ -23,6 +23,24 @@ func TestBuildOnceKeepNewest(t *testing.T) {
 		}
 	}
 
+	// R5.51: the extra package names are part of the key; none leaves it as it was.
+	withNone := in
+	withNone.Extras = []string{}
+	if ImageKey(withNone) != k {
+		t.Error("no extra packages must not change the key")
+	}
+	a := in
+	a.Extras = []string{"zlib1g-dev", "libc++-dev", "zlib1g-dev"}
+	b := in
+	b.Extras = []string{"libc++-dev", "zlib1g-dev"}
+	if ImageKey(a) == k || ImageKey(a) != ImageKey(b) {
+		t.Error("extra packages change the key, in any order")
+	}
+	b.Extras = []string{"libc++-dev"}
+	if ImageKey(a) == ImageKey(b) {
+		t.Error("a changed list must give a new key")
+	}
+
 	at := func(h int) time.Time { return time.Date(2026, 11, 15, h, 0, 0, 0, time.UTC) }
 	imgs := []Image{
 		{Key: "a", OS: "linux", CreatedAt: at(1)}, {Key: "b", OS: "linux", CreatedAt: at(2)},

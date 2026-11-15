@@ -715,6 +715,56 @@ paths:
                 $ref: '#/components/schemas/RepositoryPolicy'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/repositories/{repositoryId}/extra-packages:
+    get:
+      operationId: getRepositoryExtraPackages
+      tags: [repositories]
+      summary: The extra distribution packages of a repository's pool
+      description: >-
+        runners R5.51. One package name per line in `text`; `packages` is the
+        same list sorted without repeats. A changed list changes the image
+        key, so the new image builds aside.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+      responses:
+        '200':
+          description: The list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtraPackages'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: setRepositoryExtraPackages
+      tags: [repositories]
+      summary: Set the extra distribution packages of a repository's pool
+      description: >-
+        runners R5.51. The whole list is replaced. A name has only letters,
+        digits and `+ - .` and does not start with `-`; a bad name refuses the
+        list with its line number and nothing changes. An empty text clears
+        the list.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExtraPackagesUpdate'
+      responses:
+        '200':
+          description: The saved list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtraPackages'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/repositories/{repositoryId}/runs-on:
     get:
       operationId: getRepositoryRunsOn
@@ -917,6 +967,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Machine'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}/pool-size-check:
+    post:
+      operationId: checkMachinePoolSize
+      x-cli: none
+      x-cli-reason: 'The console form shows this check before it saves; the CLI gets the same refusal from `crsp machines set`.'
+      tags: [machines]
+      summary: Check a pool size against the budget without saving it
+      description: >-
+        machines R5.58. Answers whether the memory and CPUs fit the budget, the
+        sizing figures behind the answer and the nearest sizes that pass. It
+        says when the size is below the current one, which the save then asks
+        to confirm. 0 and 0 mean clearing the size. Nothing changes.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PoolSizeCheckRequest'
+      responses:
+        '200':
+          description: The check.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoolSizeCheck'
         default:
           $ref: '#/components/responses/Error'
   /api/v1/machines/{machineId}/redetect:
@@ -3047,6 +3128,11 @@ components:
           type: integer
           minimum: 1
           maximum: 100
+        extra_packages:
+          type: array
+          description: Extra distribution packages of the pool image (runners R5.51).
+          items:
+            type: string
         updated_at:
           type: string
           format: date-time
@@ -3093,6 +3179,31 @@ components:
       example:
         priority: 10
         max_parallel_jobs: 3
+    ExtraPackages:
+      type: object
+      required: [packages, text]
+      properties:
+        packages:
+          type: array
+          description: The names, sorted, without repeats.
+          items:
+            type: string
+        text:
+          type: string
+          description: The names, one per line.
+      example:
+        packages: [libc++-dev, zlib1g-dev]
+        text: "libc++-dev\nzlib1g-dev"
+    ExtraPackagesUpdate:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          description: The whole list, one name per line. Blank lines and lines that start with # are skipped.
+          maxLength: 20000
+      example:
+        text: "zlib1g-dev\nlibc++-dev"
     RepositoryPage:
       type: object
       required: [items, stale]
@@ -3500,6 +3611,84 @@ components:
           type: integer
           minimum: 0
           description: The CPUs the pool may use on this machine (machines R5.58). 0 means not set. Split over the job slots it gives CI_MAX_PARALLEL (runners R5.53).
+    PoolSizeCheckRequest:
+      type: object
+      required: [pool_memory_gib, pool_cpus]
+      properties:
+        pool_memory_gib:
+          type: number
+          format: double
+          minimum: 0
+        pool_cpus:
+          type: integer
+          minimum: 0
+      example:
+        pool_memory_gib: 16
+        pool_cpus: 4
+    PoolSizeCheck:
+      type: object
+      required: [known, ok, needs_shrink_confirm, nearest, current_memory_gib, current_cpus]
+      properties:
+        known:
+          type: boolean
+          description: False when the controller lacks the machine figures to check; `why` says what is missing.
+        why:
+          type: string
+        ok:
+          type: boolean
+          description: The size fits and, when it is a shrink, needs only the explicit yes.
+        needs_shrink_confirm:
+          type: boolean
+          description: The size is below the current one; saving needs confirm_shrink.
+        reason:
+          type: string
+          description: Why it is refused, naming the budget that is short.
+        short:
+          type: string
+          enum: [floor, cpu, memory, ratio, docker]
+        nearest:
+          type: array
+          description: Sizes that pass, as sentences.
+          items:
+            type: string
+        total_gib:
+          type: number
+          format: double
+        used_outside_gib:
+          type: number
+          format: double
+        memory_budget_gib:
+          type: number
+          format: double
+        room_gib:
+          type: number
+          format: double
+        cpu_budget:
+          type: integer
+        docker_ceiling_gib:
+          type: number
+          format: double
+        decided:
+          type: string
+          description: The figure that decided.
+        current_memory_gib:
+          type: number
+          format: double
+        current_cpus:
+          type: integer
+      example:
+        known: true
+        ok: true
+        needs_shrink_confirm: false
+        nearest: []
+        total_gib: 32
+        used_outside_gib: 8
+        memory_budget_gib: 27.2
+        room_gib: 19.2
+        cpu_budget: 4
+        decided: fits
+        current_memory_gib: 0
+        current_cpus: 0
     MachineSettingsUpdate:
       type: object
       properties:

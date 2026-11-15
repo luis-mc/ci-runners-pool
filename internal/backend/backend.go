@@ -68,6 +68,9 @@ type ImageSpec struct {
 	OS     string
 	Arch   string
 	Layers []string
+	// Extras are the extra distribution packages of the pool (runners R5.51);
+	// they are part of the image key.
+	Extras []string
 }
 
 // ImageRef is a prepared image on this machine.
@@ -104,6 +107,9 @@ type RunnerSpec struct {
 	// container (runners R5.27). 0 means none is set.
 	PoolMemoryMB int
 	PoolCPUs     float64
+	// ExtraPackages are the extra distribution packages of the repository's
+	// pool (runners R5.51); the image is built with them.
+	ExtraPackages []string
 	// Pool is what the repository's pool settings ask for (runners R5.50,
 	// R5.54). The zero value asks for the base image only.
 	Pool PoolSetup

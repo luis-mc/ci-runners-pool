@@ -47,7 +47,7 @@ func (e demandEnv) Repo(ctx context.Context, fullName string) (demand.Repo, bool
 		if err != nil {
 			return demand.Repo{}, false, err
 		}
-		return demand.Repo{Scope: runners.Scope{Kind: "repository", RepositoryID: r.ID}, AllowFork: pol.AllowForkPRs}, true, nil
+		return demand.Repo{Scope: runners.Scope{Kind: "repository", RepositoryID: r.ID}, AllowFork: pol.AllowForkPRs, ExtraPackages: pol.ExtraPackages}, true, nil
 	}
 	return demand.Repo{}, false, nil
 }

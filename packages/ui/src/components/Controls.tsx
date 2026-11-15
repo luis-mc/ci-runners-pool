@@ -132,6 +132,7 @@ export function NumberField({
   unit,
   min,
   max,
+  decimals,
   onChange,
   help,
   error,
@@ -141,6 +142,8 @@ export function NumberField({
   unit?: string | undefined;
   min?: number | undefined;
   max?: number | undefined;
+  /** Digits after the point; 0 (the default) takes whole numbers only. */
+  decimals?: number | undefined;
   onChange: (value: number) => void;
   help?: string | undefined;
   error?: string | undefined;
@@ -177,6 +180,7 @@ export function NumberField({
             {...(unit ? { unit } : {})}
             {...(min !== undefined ? { min } : {})}
             {...(max !== undefined ? { max } : {})}
+            {...(decimals ? { decimals } : {})}
             onDone={(v) => {
               onChange(Number(v));
               setOpen(false);

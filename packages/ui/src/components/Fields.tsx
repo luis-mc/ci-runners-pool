@@ -87,6 +87,41 @@ export function TextField(
   );
 }
 
+/** A text box of several lines, one item per line (components 14, UX-20, UX-21, UX-23). */
+export function TextAreaField(
+  props: FieldShellProps & {
+    value: string;
+    onChange: (value: string) => void;
+    rows?: number | undefined;
+    mono?: boolean | undefined;
+    readOnly?: boolean | undefined;
+  },
+) {
+  const id = useId();
+  const helpId = `${id}-h`;
+  const errorId = `${id}-e`;
+  return (
+    <Shell {...props} htmlFor={id} helpId={helpId} errorId={errorId}>
+      <textarea
+        id={id}
+        className="ds-input ds-input--area"
+        rows={props.rows ?? 6}
+        value={props.value}
+        readOnly={props.readOnly}
+        spellCheck={false}
+        autoComplete="off"
+        data-mono={props.mono || undefined}
+        aria-invalid={props.error ? true : undefined}
+        aria-describedby={
+          [props.help ? helpId : '', props.error ? errorId : ''].join(' ').trim() ||
+          undefined
+        }
+        onChange={(e) => props.onChange(e.target.value)}
+      />
+    </Shell>
+  );
+}
+
 export interface Choice {
   value: string;
   label: string;

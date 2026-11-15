@@ -27,7 +27,7 @@ func ImageTag(key string) string { return ImageRepo + ":" + key }
 // KeyFor is the image key of a spec on this machine: the base, the layers and
 // the pinned versions (runners R5.33).
 func (b *Backend) KeyFor(spec backend.ImageSpec) string {
-	return runners.ImageKey(runners.ImageKeyInput{Base: b.cfg.BaseName, Layers: spec.Layers, Pins: b.cfg.Pins})
+	return runners.ImageKey(runners.ImageKeyInput{Base: b.cfg.BaseName, Layers: spec.Layers, Pins: b.cfg.Pins, Extras: spec.Extras})
 }
 
 // PrepareImage implements backend.Backend. A machine builds each key once and
@@ -62,7 +62,7 @@ func (b *Backend) PrepareImage(ctx context.Context, spec backend.ImageSpec) (bac
 	b.log("prepare image", "building image "+key+" with layers ["+layers+"]")
 	if err := b.step(ctx, "build", []string{"build", "-t", tag,
 		"--label", LabelImage + "=" + key, "--label", labelLayers + "=" + layers, "--label", labelOS + "=linux",
-		"--build-arg", "CRSP_LAYERS=" + layers, "-f", dockerfile, buildContext}, ""); err != nil {
+		"--build-arg", "CRSP_LAYERS=" + layers, "--build-arg", "EXTRA_PACKAGES=" + strings.Join(runners.NormalizeLayers(spec.Extras), " "), "-f", dockerfile, buildContext}, ""); err != nil {
 		return backend.ImageRef{}, err
 	}
 	mb, ok, err := b.imageSize(ctx, tag)
