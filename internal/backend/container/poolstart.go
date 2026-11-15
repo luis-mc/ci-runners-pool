@@ -186,7 +186,7 @@ func (b *Backend) kvmFacts(ctx context.Context, layers []string) KVMFacts {
 	if !f.Exists {
 		w := KVMWait{Exists: func() bool { f = b.cfg.KVMProbe(); return f.Exists }, Sleep: b.d.Sleep,
 			Interval: b.cfg.KVMWaitInterval, Bound: b.cfg.KVMWaitBound, Log: func(m string) { b.log("start", m) }}
-		w.Wait(ctx)
+		_ = w.Wait(ctx)
 	}
 	return f
 }

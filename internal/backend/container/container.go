@@ -81,10 +81,10 @@ type Backend struct {
 	eng Engine
 	cfg Config
 
-	mu       sync.Mutex
-	draining map[string]bool // pool name -> a swap waits for idle
-	dbPools  map[string]bool // pool name -> a runner of it got a database
-	owners   runners.MemoryRoleOwners
+	mu        sync.Mutex
+	draining  map[string]bool   // pool name -> a swap waits for idle
+	dbRunners map[string]string // runner ref -> runner id, for runners that got a database
+	owners    runners.MemoryRoleOwners
 }
 
 var _ backend.Backend = (*Backend)(nil)
@@ -94,7 +94,7 @@ func New(d sys.Deps, eng Engine, cfg Config) *Backend {
 	if cfg.StopGrace <= 0 {
 		cfg.StopGrace = 30 * time.Second
 	}
-	return &Backend{d: d, eng: eng, cfg: cfg, draining: map[string]bool{}, dbPools: map[string]bool{}}
+	return &Backend{d: d, eng: eng, cfg: cfg, draining: map[string]bool{}, dbRunners: map[string]string{}}
 }
 
 // Name implements backend.Backend.
@@ -210,7 +210,7 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 		}
 	}
 	if db != nil {
-		b.dbPools[pool] = true
+		b.dbRunners[h.Ref] = r.ID
 		if err := b.provisionDB(ctx, db, pool, owner, repo, r); err != nil {
 			rollback()
 			return h, err
@@ -348,25 +348,30 @@ func (b *Backend) CleanUp(ctx context.Context, h backend.Handle) error {
 	if err := b.cleanUp(ctx, pool, name); err != nil {
 		return err
 	}
-	return b.removeDB(ctx, pool, h.RunnerID)
+	return b.removeDB(ctx, pool, h)
 }
 
-// removeDB drops the login and database of a runner of a pool that has a
-// Postgres (runners R5.54). The declared roles stay.
-func (b *Backend) removeDB(ctx context.Context, pool, runnerID string) error {
+// removeDB drops the login and database of a runner that got one (runners
+// R5.54). The declared roles stay. The agent link hands CleanUp the runner ref
+// only, so the backend remembers which ref got which login; after an agent
+// restart that memory is gone (runners open question 44).
+func (b *Backend) removeDB(ctx context.Context, pool string, h backend.Handle) error {
 	b.mu.Lock()
-	has := b.dbPools[pool]
+	id, has := b.dbRunners[h.Ref]
 	b.mu.Unlock()
-	if !has || runnerID == "" {
+	if !has {
 		return nil
 	}
 	db, err := b.database(ctx, pool)
 	if err != nil {
 		return err
 	}
-	if err := db.Remove(ctx, runnerID); err != nil {
+	if err := db.Remove(ctx, id); err != nil {
 		return fmt.Errorf("database: %s", b.redact(err.Error()))
 	}
+	b.mu.Lock()
+	delete(b.dbRunners, h.Ref)
+	b.mu.Unlock()
 	return nil
 }
 

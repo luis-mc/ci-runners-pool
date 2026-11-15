@@ -118,11 +118,15 @@ func TestStartApplyAndRemoveRunInBackground(t *testing.T) {
 	}
 }
 
-type dockerStub struct{ stubBackend }
+type dockerStub struct {
+	stubBackend
+	layers []string
+}
 
 func (d *dockerStub) Name() backend.Name { return backend.Docker }
-func (d *dockerStub) PrepareImage(context.Context, backend.ImageSpec) (backend.ImageRef, error) {
+func (d *dockerStub) PrepareImage(_ context.Context, s backend.ImageSpec) (backend.ImageRef, error) {
 	d.calls = append(d.calls, "prepare")
+	d.layers = s.Layers
 	return backend.ImageRef{ID: "crsp-pool:k"}, nil
 }
 
@@ -167,5 +171,17 @@ func TestLocalAgentRoutesByKind(t *testing.T) {
 	// A registry without the container backend refuses a JIT config.
 	if _, err := NewLocalAgent(oneReg{ps}).AddRunner(ctx, "m", backend.RunnerSpec{Name: "x"}, backend.StartConfig{JITConfig: "J"}); err == nil {
 		t.Error("no container backend")
+	}
+}
+
+// CRSP68: the image is built with the layers the repository's pool turned on.
+func TestLocalAgentBuildsTheImageWithThePoolLayers(t *testing.T) {
+	ds := &dockerStub{}
+	spec := backend.RunnerSpec{Name: "crsp-job-1", OS: "linux", Pool: backend.PoolSetup{Layers: []string{"browsers", "kvm"}}}
+	if _, err := NewLocalAgent(twoReg{&stubBackend{}, ds}).AddRunner(context.Background(), "m", spec, backend.StartConfig{JITConfig: "J"}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(ds.layers, ",") != "browsers,kvm" {
+		t.Errorf("layers = %v", ds.layers)
 	}
 }

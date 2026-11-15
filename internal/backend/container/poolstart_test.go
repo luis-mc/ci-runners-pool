@@ -461,8 +461,22 @@ func TestCleanUpRemovesTheLogin(t *testing.T) {
 	if !contains(db.calls, "remove r_j1") {
 		t.Errorf("login not removed: %v", db.calls)
 	}
+	// Done once: a second clean up of the same runner asks Postgres nothing.
+	n := len(db.calls)
+	if err := r.b.CleanUp(context.Background(), h); err != nil || len(db.calls) != n {
+		t.Errorf("second clean up: %v %v", err, db.calls)
+	}
+	// A failed removal is an error and is tried again by the next clean up.
+	h2, err := r.startSpec(r.specWith("j2", func(s *backend.RunnerSpec) { s.Pool.Database = &backend.PoolDatabase{} }))
+	if err != nil {
+		t.Fatal(err)
+	}
 	db.failRemove = errors.New("psql down")
-	if err := r.b.CleanUp(context.Background(), h); err == nil {
+	if err := r.b.CleanUp(context.Background(), h2); err == nil {
 		t.Error("a failed login removal was hidden")
+	}
+	db.failRemove = nil
+	if err := r.b.CleanUp(context.Background(), h2); err != nil || !contains(db.calls, "remove r_j2") {
+		t.Errorf("retry: %v %v", err, db.calls)
 	}
 }
