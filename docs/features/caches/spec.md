@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-**PARTLY BUILT (CRSP21, CRSP26, CRSP36).** Milestone 1 builds the per-runner cache quotas with eviction, the disk guard, the per-runner `CI_TOOLS_DIR`, the `vm_check` port (R5.36 to R5.40, built) and the list and wipe of those per-runner caches on the Images and caches screen (R5.42, built). Every other requirement is **NOT YET IMPLEMENTED**. The shared per-machine tool cache is planned for milestone 2. The Actions cache server, git mirror, registry mirror, cache warmth and wipe are planned for milestone 7. The package proxy has no milestone yet.
+**PARTLY BUILT (CRSP21, CRSP26, CRSP36, CRSP48).** Milestone 1 builds the per-runner cache quotas with eviction, the Rust cache cap with its per-key cap (R5.45), the pool-wide disk budget and size alert (R5.48, R5.49), the disk guard, the per-runner `CI_TOOLS_DIR`, the `vm_check` port (R5.36 to R5.40, built) and the list and wipe of those per-runner caches on the Images and caches screen (R5.42, built). Every other requirement is **NOT YET IMPLEMENTED**. The shared per-machine tool cache is planned for milestone 2. The Actions cache server, git mirror, registry mirror, cache warmth and wipe are planned for milestone 7. The package proxy has no milestone yet.
 
 ## 1. In one paragraph
 
@@ -215,11 +215,15 @@ Owner decision of 2026-11-14 (CRSP21, CRSP26; dev-standards D302): on 14 Nov an 
 
 **R5.44** (M2, v0.3.0, NOT YET IMPLEMENTED) — **What of `ci_tool.py` and `rust_ci.py` crsp takes (dev-standards D308).** crsp takes only the cache parts: the shared-cache rules for a folder that several users write (R5.18 to R5.20), the per-runner quotas (R5.36, R5.37, R5.39) and the Rust cache cap (R5.45). The pinned download, unpack and build logic and the `tools.json` format (R5.15 to R5.17, R5.21 to R5.23) stay in the delivery scripts, because projects also run them on GitHub-hosted runners; R5.15 to R5.17 and R5.21 to R5.23 are **not built** in crsp unless the owner reverses D308. Jobs find the cache through `CI_TOOLS_DIR` and `CARGO_TARGET_DIR` only (runners R5.53); crsp never reads `tools.json`. The delivery scripts keep working unchanged when the two variables are set.
 
-**R5.45** (M1, v0.2.0, NOT YET IMPLEMENTED) — **The Rust cache cap keeps its old details.** On top of R5.37, for the `rust-target` folder: before each job (in the job-started hook) and after it, the cache is brought under `cache_rust_gib`. An entry that a running job uses is never removed. When the total is still over after the oldest entries are gone, the newest other entry goes. When one entry alone is over the cap, its `incremental/` folders go first and then its whole content. The hook writes one line that names what it removed and why, which reaches the job's log. Cause: the 14 Nov 2026 disk-full, when the old cleanup never touched the key in use (port DS R5.53, `rust_ci.py` `enforce_cap`). `CRSP_RUST_CACHE_CAP_GIB` is the same value as the old `RUST_TARGET_CAP_GB`.
+**R5.45** (M1, v0.2.0, Built CRSP48) — **The Rust cache cap keeps its old details, and each cache key has its own cap.** On top of R5.37, for the `rust-target` folder: before each job (in the job-started hook) and after it (in the job-completed hook), the cache is brought under `cache_rust_gib` and each key under `cache_rust_key_gib` (default 25, a value above `cache_rust_gib` counts as `cache_rust_gib`; 0 or absent takes the default, negative is refused). A key is a top-level folder of `rust-target`. The key the job uses is named by `CRSP_RUST_CACHE_KEY`; when that is not set, the key changed most recently stands for it. The steps, in order: (1) a key over the key cap loses its `incremental/` folders (largest first), then its content (a key that is not in use goes whole, the key in use keeps its folder); (2) while the folder is over `cache_rust_gib`, the other keys go whole, oldest first, so the newest other key is the last to go; (3) when the key in use alone is still over `cache_rust_gib`, its `incremental/` folders go first and then its whole content. A key a job uses is never removed whole, and a runner that is busy removes nothing. The hook writes one line per removal that names what went and why, which reaches the job's log. Cause: the 14 Nov 2026 disk-full and the 15 Nov one (handover lesson 24), when the old cleanup never touched the key in use and one run grew the current key to 308 GB (port DS R5.53, `rust_ci.py` `enforce_cap`). `CRSP_RUST_CACHE_CAP_GIB` is the same value as the old `RUST_TARGET_CAP_GB`; the runner `.env` also carries `CRSP_RUST_CACHE_KEY_CAP_GIB`.
 
 **R5.46** (M2, v0.6.0, NOT YET IMPLEMENTED) — **`crsp vm` boots test VMs on a `kvm` runner.** This finishes R5.40, which ports the data and the checks but not the boot. `crsp vm prepare|run|selinux|prune|doctor` replace `scripts/delivery/vm_check.py` whole (dev-standards D302, D308). It uses `qemu-system-x86_64` of the `kvm` layer (runners R5.50), standard tools only, Linux only. Defaults `-m 1024 -smp 2`. `prepare` downloads and checksums the image (SHA-256 or SHA-512 as the catalogue says), builds the prepared base disk (keyed by image checksum and package list) and, with `--resume`, a snapshot (keyed by base key, qemu version, `-cpu host` model, memory and CPUs; a mismatch rebuilds it). `run` makes a thin overlay on the base (or a copy of the snapshot disk), boots or `-loadvm ready`, sets the guest clock from the host and reseeds the guest random pool after a resume, runs the commands over ssh with a key made once in the cache (mode 600), and always deletes the overlay and kills qemu, also on error or timeout. It exits with the code of the first failing command and `--json FILE` gets timings. `selinux` checks Enforcing, installs an rpm, loads an optional policy module and reports no AVC denial since boot. `prune --keep N` keeps the newest per distro. `doctor` reports `/dev/kvm`, the tools, the cache and the free disk. `--images FILE` takes the catalogue shape of `vm-images.json`. A checksum file that cannot be read (no network) falls back to the newest cached image. Port of DS R5.29 and `test_dl281_vm_check.py`.
 
 **R5.47** (M2, v0.6.0, NOT YET IMPLEMENTED) — **One VM cache for all `kvm` runners.** The VM cache is the one folder several runner users write, so the shared-cache rules of R5.18 apply to it: on Linux and in containers it is `<cache>/vm-cache`, owned by root with the `kvm` group and mode `2775`; every write goes to a temporary name under a `flock` lock and is renamed, so two jobs never download or build the same thing twice. It has its own quota, evicted oldest first between jobs and never while a VM job runs. `CRSP_VM_CACHE` or `--cache` overrides the path.
+
+**R5.48** (M1, v0.2.0, Built CRSP48) — **A pool-wide disk budget, enforced on a timer.** All cache folders of the runners on one machine (`cache/tools` and `cache/rust-target`) have one budget, `cache_budget_gib` (default 150; 0 or absent takes the default, negative is refused). The agent checks it every 10 minutes (not only at pool start). When the total passes the budget, it removes whole top-level cache entries across all runners, the least recently used first (the order of R5.37), and stops as soon as the total fits. Before it removes anything from a runner, it keeps new jobs out of that runner and checks in the same step that no job runs on it; a runner with a job running is counted but never touched, and the rest of the budget pass goes on with the idle runners. When only caches in use remain, the pass says so in the agent log and tries again at the next tick. The value reaches the agent through each runner's `.env` as `CRSP_CACHE_BUDGET_GIB`; a runner without it is not enforced. Cause: handover lesson 24.
+
+**R5.49** (M1, v0.2.0, Built CRSP48) — **A size alert for one cache file or folder.** On the same timer the agent finds each cache file, and each top-level cache folder, that holds more than `cache_alert_gib` (default 20; 0 or absent takes the default). It writes one warning line in the agent log naming the path and its size, once for each path until that path falls under the threshold again. The value reaches the agent as `CRSP_CACHE_ALERT_GIB` in the runner `.env`. The alert is a log line; a notification waits for the notifications feature (question Q7). Nothing is removed by the alert.
 
 ## 6. Non-functional requirements
 
@@ -311,7 +315,7 @@ flowchart TB
 
 ## 9. How it is proven
 
-Rows for R5.36 to R5.40 and R5.42 are built and run in CI. Every other row is planned: none of those tests exist yet (NOT YET IMPLEMENTED). Paths are written without code marks until the files exist.
+Rows for R5.36 to R5.40, R5.42, R5.45, R5.48 and R5.49 are built and run in CI. Every other row is planned: none of those tests exist yet (NOT YET IMPLEMENTED). Paths are written without code marks until the files exist.
 
 | Requirement | Planned test |
 |---|---|
@@ -359,9 +363,11 @@ Rows for R5.36 to R5.40 and R5.42 are built and run in CI. Every other row is pl
 | R5.41 | planned: internal/cache/playwright_test.go TestBrowsersPathSharedPerMachine (after v0.1.0) |
 | R5.43 | planned: internal/runnercache/lane_test.go TestLaneLockOneJobAtATime, TestLanesNeverMixRepositories (v0.3.0) |
 | R5.44 | planned: internal/runnercache/scope_test.go TestJobsReadOnlyTheTwoVariables (v0.3.0); the pinned-download scope is a decision, nothing to test |
-| R5.45 | planned: internal/runnercache/rustcap_test.go TestIncrementalFirstThenWholeEntry, TestEntryInUseKept (v0.2.0; port of test_dl342_cache_cap.py) |
+| R5.45 | internal/runnercache/rustcap_test.go TestIncrementalFirstThenWholeEntry, TestEntryInUseKept, TestNewestOtherKeyGoesLastAndInUseTrimmedAlone, TestKeyCapTrimsOneKeyWithoutTouchingTheRest, TestNewestKeyStandsForTheOneInUseWhenUnnamed, TestRustCapBusyRunnerRemovesNothing, TestRustKeyCapClampsToTotalAndEnvCarriesIt; internal/hooks/hooks_test.go TestGateBringsRustCacheUnderItsCapBeforeTheJob, TestJobDoneTrimsKeyInUseIncrementalFirst; internal/config/config_test.go TestCacheQuotaKeys |
 | R5.46 | planned: internal/vmcheck/boot_test.go TestOverlayDeletedAndQemuKilled, TestResumeKeyMismatchRebuilds (v0.6.0; port of test_dl281_vm_check.py) |
 | R5.47 | planned: internal/vmcheck/cache_test.go TestSharedCacheModeAndLock (v0.6.0) |
+| R5.48 | internal/runnercache/budget_test.go TestBudgetEvictsOldestAcrossRunnersAndSkipsBusy, TestBudgetStaysOverWhenOnlyBusyCachesRemain, TestBudgetUnderOrOffRemovesNothing; internal/agent/cachebudget_test.go TestBudgetPassWithoutBudgetOrOverDoesNothing, TestBudgetPassAlertsOnceAndKeepsBusyRunner |
+| R5.49 | internal/runnercache/budget_test.go TestSizeAlertPastThresholdForFileAndFolder; internal/agent/cachebudget_test.go TestBudgetPassAlertsOnceAndKeepsBusyRunner |
 | R6.1 | internal/cache/bench_test.go (lookup p95 with 100,000 entries; 1 GiB download speed) |
 | R6.2 | internal/cache/evict_test.go (default 20 GiB, ceiling, refuse under 10% free) |
 | R6.3 | internal/cache/integrity_test.go (changed blob becomes a miss and is deleted) |
@@ -382,6 +388,7 @@ Rows for R5.36 to R5.40 and R5.42 are built and run in CI. Every other row is pl
 | D2 | How to send `actions/cache` to the pool | A runner patched at install for the pinned runner version (section 7.2); owner to confirm (Q1) | 2026-11-14 (proposed) |
 | D3 | Tool cache language | A Go port of `ci_tool.py` inside the one binary, with its tests ported | 2026-11-14 (proposed) |
 | D4 | Wipe at drain timeout | Delete nothing and say so; never cut a job | 2026-11-14 (proposed) |
+| D5 | Defaults of the disk limits (CRSP48) | Per key 25 GiB, Rust cache 40 GiB, pool budget 150 GiB, alert at 20 GiB (all in GiB, per machine for the budget); the most cautious values that keep one repository from filling a disk, until the owner sets others | 2026-11-15 (proposed) |
 
 Open questions for the owner:
 
@@ -390,11 +397,15 @@ Open questions for the owner:
 - **Q3** — Is tying a request to a job by the runner's network address plus the runtime token's claims enough, given GitHub's runtime token signature cannot be checked locally?
 - **Q4** — Default size cap: 20 GiB per pool, and should there also be a cap per repository (GitHub uses 10 GB)?
 - **Q5** — Should persistent runners also get the git URL rewrite, or only ephemeral ones?
+- **Q7** (CRSP48) — Where should the size alert (R5.49) go besides the agent log: a notification, a finding in the doctor, or both? Chosen now: the log line only, the safe option because a wrong notification costs attention and no data. Alternative: a `cache.size` doctor check once the agent reports the biggest item of each cache (needs a field on the cache report).
+- **Q8** (CRSP48) — How does a job name its Rust cache key? Chosen now: `CRSP_RUST_CACHE_KEY`, else the most recently changed key counts as in use (nothing in use is ever removed whole). Alternative: the hook reads the key from the job's `CARGO_TARGET_DIR` subfolder when workflows set one per key.
+- **Q9** (CRSP48) — Is the pool budget per machine (chosen now, because the disk is per machine) or should the controller divide one budget across machines? Alternative: a per-machine value in the machine settings, which waits for `cache_cap_bytes` to be read.
+- **Q10** (CRSP48) — The budget pass removes whole entries of idle runners, including a Rust key a runner will reuse next. Chosen: yes, oldest first, because the lesson is that a full disk stops every runner. Alternative: spare the newest Rust key of each runner until nothing else is left.
 - **Q6** — Does the tool cache command run inside jobs from the product binary (mounted read-only), or does the product also ship the Python `ci_tool.py` for workflows that call it today?
 
 ## 11. Not built yet
 
-Built in milestone 1: R5.36 to R5.40. Not built there: the folders are made by the runner's first job, not by the agent at install; the alert of the disk guard is the job log line and the doctor finding (no notification yet); the quotas are the same for every runner (a per-machine value waits for the machine settings, whose `cache_cap_bytes` is stored but not yet read by the quota); the VM boot of `vm_check`. Everything else above is NOT YET IMPLEMENTED. In addition:
+Built in milestone 1: R5.36 to R5.40, R5.45, R5.48 and R5.49. Not built there: the folders are made by the runner's first job, not by the agent at install; the alert of the disk guard is the job log line and the doctor finding (no notification yet); the quotas are the same for every runner (a per-machine value waits for the machine settings, whose `cache_cap_bytes` is stored but not yet read by the quota); the VM boot of `vm_check`. Everything else above is NOT YET IMPLEMENTED. In addition:
 
 - **Package proxy** (npm, PyPI, crates, apt): no milestone. The seam is the registry mirror's upstream list and the agent's engine settings (R5.25); a package proxy would add per-ecosystem settings (`npm_config_registry`, `PIP_INDEX_URL`, Cargo `source.replacement`, apt proxy) the same way.
 - **Cache sharing between pools**: not planned. The seam is the pool column in `cache_entries`.
@@ -405,6 +416,7 @@ Built in milestone 1: R5.36 to R5.40. Not built there: the folders are made by t
 Built (milestone 1):
 
 - internal/runnercache/ (quota, scan and oldest-first eviction, disk guard, the runner's cache environment, the real disk read per OS)
+- internal/runnercache/ also holds the Rust cap (`rustcap.go`), the pool-wide budget (`budget.go`) and the size alert (`alert.go`); internal/agent/cachebudget.go runs them on a timer
 - internal/vmcheck/ (port of `vm_check.py` logic and `vm-images.json` data)
 - internal/hooks/gate.go `diskHold` and internal/hooks/jobdone.go `sweepCaches` call them; internal/config/config.go has the keys; internal/backend/{windows,linux,macos} write the `.env`.
 

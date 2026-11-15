@@ -45,7 +45,7 @@ type Entry struct {
 func Scan(fsys FS, dir string) ([]Entry, error) { return scanWith(fsys, dir, nil) }
 
 // scanWith is Scan that also calls onFile for every file it sees, so one walk
-// serves both the sizes and the size alert (caches R5.48).
+// serves both the sizes and the size alert (caches R5.49).
 func scanWith(fsys FS, dir string, onFile func(path string, size int64)) ([]Entry, error) {
 	des, err := fsys.ReadDir(dir)
 	if err != nil {

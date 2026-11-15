@@ -19,7 +19,7 @@ func (f *memFS) add(path string, size int, age time.Duration) {
 }
 
 func (f *memFS) ReadDir(d string) ([]fs.DirEntry, error) { return fs.ReadDir(f.m, d) }
-func (f *memFS) Stat(p string) (fs.FileInfo, error)       { return fs.Stat(f.m, p) }
+func (f *memFS) Stat(p string) (fs.FileInfo, error)      { return fs.Stat(f.m, p) }
 func (f *memFS) RemoveAll(p string) error {
 	for k := range f.m {
 		if k == p || strings.HasPrefix(k, p+"/") {
