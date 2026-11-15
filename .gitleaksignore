@@ -1,0 +1,2 @@
+# CRSP47: the first version of the redactor test named a runner token variable in a string; a false positive in history, fixed in the next commit.
+ac3ed37373ed913098ce2fca9ae2ad21287c3add:internal/redact/redact_test.go:project-named-secret:39

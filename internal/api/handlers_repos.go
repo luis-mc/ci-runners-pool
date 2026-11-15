@@ -44,6 +44,10 @@ func (a *GitHubArea) refresh(ctx context.Context, p auth.Principal) (time.Time, 
 func toPolicy(p repos.Policy) gen.RepositoryPolicy {
 	out := gen.RepositoryPolicy{AllowForkPullRequests: p.AllowForkPRs, Labels: nonNil(p.Labels), RunnerGroups: nonNil(p.RunnerGroups),
 		MaxParallelJobs: p.MaxParallelJobs, Priority: p.Priority, LightRunner: p.LightRunner}
+	if p.LegacyVars {
+		v := true
+		out.LegacyVars = &v
+	}
 	if p.BudgetCPUPct > 0 {
 		v := p.BudgetCPUPct
 		out.BudgetCpuPct = &v
@@ -269,7 +273,7 @@ func (s *server) UpdateRepositoryPolicy(ctx context.Context, req gen.UpdateRepos
 	}
 	b := req.Body
 	u := repos.PolicyUpdate{Priority: b.Priority, MaxParallelJobs: b.MaxParallelJobs, AllowForkPRs: b.AllowForkPullRequests,
-		Labels: b.Labels, RunnerGroups: b.RunnerGroups, BudgetMemoryPct: b.BudgetMemoryPct, BudgetCPUPct: b.BudgetCpuPct, LightRunner: b.LightRunner}
+		Labels: b.Labels, RunnerGroups: b.RunnerGroups, BudgetMemoryPct: b.BudgetMemoryPct, BudgetCPUPct: b.BudgetCpuPct, LightRunner: b.LightRunner, LegacyVars: b.LegacyVars}
 	u.ConfirmForkRisk = b.ConfirmForkRisk != nil && *b.ConfirmForkRisk
 	pol, err := s.ghArea().Repos.UpdatePolicy(ctx, s.principal(ctx), req.RepositoryId, u)
 	if err != nil {

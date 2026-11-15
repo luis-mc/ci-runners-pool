@@ -21,6 +21,8 @@ type PolicyUpdate struct {
 	BudgetCPUPct    *int
 	// LightRunner turns the repository's light runner on or off (R5.65).
 	LightRunner *bool
+	// LegacyVars turns the old variable names on or off (github-integration R5.39).
+	LegacyVars *bool
 }
 
 // ErrForkNeedsConfirm: turning fork pull requests on asks first.
@@ -62,6 +64,9 @@ func (u PolicyUpdate) Apply(p Policy) (Policy, error) {
 	}
 	if u.LightRunner != nil {
 		p.LightRunner = *u.LightRunner
+	}
+	if u.LegacyVars != nil {
+		p.LegacyVars = *u.LegacyVars
 	}
 	for _, b := range []struct {
 		name string

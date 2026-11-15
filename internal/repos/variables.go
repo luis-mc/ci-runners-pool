@@ -21,6 +21,55 @@ var variableOrder = []struct{ OS, Var string }{
 // deleted on upgrade, only where the store knows the controller created them.
 var legacyVariableNames = []string{"CRSP_RUNS_ON_LINUX", "CRSP_RUNS_ON_WINDOWS", "CRSP_RUNS_ON_MACOS"}
 
+// legacyAlias maps a managed variable to the old dev-standards name written for
+// it while a repository's legacy_vars setting is on (R5.39). NIGHTLY_RUNS_ON is
+// never written; the owner sets it by hand.
+var legacyAlias = []struct{ Var, Old string }{
+	{"RUNS_ON_LINUX", "CI_RUNS_ON"},
+	{"RUNS_ON_WINDOWS", "CI_RUNS_ON_WINDOWS"},
+}
+
+// LegacyAliasNames lists the old names legacy_vars writes.
+func LegacyAliasNames() []string {
+	out := make([]string, 0, len(legacyAlias))
+	for _, a := range legacyAlias {
+		out = append(out, a.Old)
+	}
+	return out
+}
+
+func isAlias(name string) bool {
+	for _, a := range legacyAlias {
+		if a.Old == name {
+			return true
+		}
+	}
+	return false
+}
+
+// keptNames is every variable the controller may write: the three managed ones,
+// then the old aliases.
+func keptNames() []string { return append(VariableNames(), LegacyAliasNames()...) }
+
+// mayDelete says whether the controller may delete name from r. An old alias is
+// deleted only when the store lists it as written by the controller: the old
+// pool may have written CI_RUNS_ON, and that one is not ours to touch (R5.39).
+func (s *Service) mayDelete(ctx context.Context, r Repository, name string) (bool, error) {
+	if !isAlias(name) {
+		return true, nil
+	}
+	rows, err := s.cfg.Store.ListManagedVariables(ctx, r.ID)
+	if err != nil {
+		return false, err
+	}
+	for _, row := range rows {
+		if row.Name == name {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // VariableNames lists the three managed variable names.
 func VariableNames() []string {
 	out := make([]string, 0, len(variableOrder))
@@ -100,6 +149,13 @@ func (s *Service) Desired(ctx context.Context, pol Policy) (map[string]string, e
 		b, _ := json.Marshal(labelList(v.OS, labels, pol.Labels))
 		out[v.Var] = string(b)
 	}
+	if pol.LegacyVars {
+		for _, a := range legacyAlias {
+			if val, ok := out[a.Var]; ok {
+				out[a.Old] = val
+			}
+		}
+	}
 	return out, nil
 }
 
@@ -137,11 +193,16 @@ func (s *Service) syncVariables(ctx context.Context, actor auth.Principal, r Rep
 	for _, v := range have {
 		cur[v.Name] = v.Value
 	}
-	for _, name := range VariableNames() {
+	for _, name := range keptNames() {
 		val, ok := want[name]
 		got, exists := cur[name]
 		if !ok {
 			if exists {
+				if yes, err := s.mayDelete(ctx, r, name); err != nil {
+					return err
+				} else if !yes {
+					continue
+				}
 				if err := s.deleteVariable(ctx, actor, r, name); err != nil {
 					return err
 				}
@@ -256,12 +317,17 @@ func (s *Service) ReconcileVariables(ctx context.Context, repoID int64) error {
 		cur[v.Name] = v.Value
 	}
 	now := s.cfg.Now()
-	for _, name := range VariableNames() {
+	for _, name := range keptNames() {
 		val, ok := want[name]
 		got, exists := cur[name]
 		if !ok {
 			// No runner for this OS, or the pool is off for it: no variable.
 			if exists {
+				if yes, err := s.mayDelete(bg, r, name); err != nil {
+					return err
+				} else if !yes {
+					continue
+				}
 				if err := s.deleteVariable(bg, System, r, name); err != nil {
 					return err
 				}

@@ -59,6 +59,8 @@ describe('the shell (R5.3)', () => {
   it('shows the pool status as a word and a glyph (UX-58)', async () => {
     renderApp(signedIn(), '/');
     await screen.findByRole('heading', { name: 'Overview' });
+    // The live stream opens in an effect after the first paint; wait for it.
+    await waitFor(() => FakeEventSource.latest());
     act(() =>
       FakeEventSource.latest().emit({
         id: '1',
@@ -74,6 +76,8 @@ describe('the shell (R5.3)', () => {
   it('says Live updates paused and keeps the last data (R5.7)', async () => {
     renderApp(signedIn(), '/');
     await screen.findByRole('heading', { name: 'Overview' });
+    // The live stream opens in an effect after the first paint; wait for it.
+    await waitFor(() => FakeEventSource.latest());
     act(() =>
       FakeEventSource.latest().emit({
         id: '1',

@@ -1969,6 +1969,8 @@ export interface components {
             runner_groups: string[];
             /** @description Keep one light runner per OS for this repository and write RUNS_ON_LIGHT, so jobs that last seconds do not queue behind a long build (scheduling R5.65). On by default. */
             light_runner: boolean;
+            /** @description Also write CI_RUNS_ON and CI_RUNS_ON_WINDOWS with the same labels as RUNS_ON_LINUX and RUNS_ON_WINDOWS, for workflows that still follow the old dev-standards templates (github-integration R5.39). Off by default; for the move from the old pool. */
+            legacy_vars?: boolean;
             /** @description May lower the machine budget for this repository's jobs, never raise it (scheduling R5.4). */
             budget_memory_pct?: number;
             budget_cpu_pct?: number;
@@ -1988,6 +1990,8 @@ export interface components {
             allow_fork_pull_requests?: boolean;
             /** @description Turn the light runner on or off (scheduling R5.65). */
             light_runner?: boolean;
+            /** @description Turn the old variable names CI_RUNS_ON and CI_RUNS_ON_WINDOWS on or off (github-integration R5.39). */
+            legacy_vars?: boolean;
             /** @description Needed to turn fork jobs on (github-integration R5.26). */
             confirm_fork_risk?: boolean;
             labels?: string[];

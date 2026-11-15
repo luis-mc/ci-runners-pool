@@ -344,6 +344,9 @@ func describePolicy(a, b Policy) string {
 	if a.LightRunner != b.LightRunner {
 		d = append(d, fmt.Sprintf("light runner %t to %t", a.LightRunner, b.LightRunner))
 	}
+	if a.LegacyVars != b.LegacyVars {
+		d = append(d, fmt.Sprintf("old variable names %t to %t", a.LegacyVars, b.LegacyVars))
+	}
 	if a.BudgetMemoryPct != b.BudgetMemoryPct || a.BudgetCPUPct != b.BudgetCPUPct {
 		d = append(d, "budget")
 	}
