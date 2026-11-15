@@ -70,6 +70,11 @@ type Config struct {
 	// database cannot start (ErrNoDatabase).
 	OpenSecrets func(ctx context.Context) (secrets.Store, error)
 	Database    func(ctx context.Context, pool string) (Database, error)
+	// CPUBudget is how many logical CPUs the pool may pin to containers
+	// (machines R5.54, R5.58). With it a pool container with a CPU limit gets
+	// a cpuset of its own, never shared with another pool container. 0: no
+	// pinning, as before.
+	CPUBudget int
 	// StopGrace is the time `docker stop` gives the idle container.
 	StopGrace time.Duration
 }
@@ -85,6 +90,7 @@ type Backend struct {
 	draining  map[string]bool   // pool name -> a swap waits for idle
 	dbRunners map[string]string // runner ref -> runner id, for runners that got a database
 	owners    runners.MemoryRoleOwners
+	cpus      *CPUAllocator // nil when the config has no CPU budget
 }
 
 var _ backend.Backend = (*Backend)(nil)
@@ -94,7 +100,11 @@ func New(d sys.Deps, eng Engine, cfg Config) *Backend {
 	if cfg.StopGrace <= 0 {
 		cfg.StopGrace = 30 * time.Second
 	}
-	return &Backend{d: d, eng: eng, cfg: cfg, draining: map[string]bool{}, dbRunners: map[string]string{}}
+	b := &Backend{d: d, eng: eng, cfg: cfg, draining: map[string]bool{}, dbRunners: map[string]string{}}
+	if cfg.CPUBudget > 0 {
+		b.cpus = NewCPUAllocator(cfg.CPUBudget)
+	}
+	return b
 }
 
 // Name implements backend.Backend.
@@ -309,11 +319,19 @@ func (b *Backend) ensurePool(ctx context.Context, p PoolSpec) error {
 		}
 		p.Lane = &lane
 	}
-	args, err := RunArgs(p)
-	if err != nil {
+	if err := b.pin(&p); err != nil {
 		return err
 	}
-	return b.step(ctx, "pool create", args, "")
+	args, err := RunArgs(p)
+	if err != nil {
+		b.unpin(name)
+		return err
+	}
+	if err := b.step(ctx, "pool create", args, ""); err != nil {
+		b.unpin(name)
+		return err
+	}
+	return nil
 }
 
 // Stop implements backend.Backend. Callers drain first and check for an idle
@@ -348,6 +366,7 @@ func (b *Backend) CleanUp(ctx context.Context, h backend.Handle) error {
 	if err := b.cleanUp(ctx, pool, name); err != nil {
 		return err
 	}
+	b.releaseIfGone(ctx, pool)
 	return b.removeDB(ctx, pool, h)
 }
 
@@ -500,6 +519,9 @@ func DefaultConfig() Config {
 		Limits:    Limits{},
 		CacheRoot: filepath.Join(root, "crsp", "cache"),
 		KVMProbe:  ProbeKVM,
+		// The default CPU budget of a machine is 60% of its CPUs (machines
+		// R5.22a), at least 1.
+		CPUBudget: max(1, runtime.NumCPU()*60/100),
 		OpenSecrets: func(ctx context.Context) (secrets.Store, error) {
 			return secrets.Open(ctx, filepath.Join(root, "crsp"))
 		},

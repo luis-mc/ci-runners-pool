@@ -53,6 +53,9 @@ type PoolSpec struct {
 	ImageTag    string
 	ImageKey    string
 	Limits      Limits
+	// CPUSet pins the container to these CPUs (`--cpuset-cpus`), taken from the
+	// machine's CPU budget by the backend (machines R5.54). Empty: not pinned.
+	CPUSet string
 	// KVM allows /dev/kvm with --device-cgroup-rule when the machine allows it for this
 	// runner and the agent checked it (runners R5.27, R5.41).
 	KVM bool
@@ -103,9 +106,7 @@ func RunArgs(p PoolSpec) ([]string, error) {
 		"--label", LabelPool + "=" + strings.ToLower(p.Owner+"/"+p.Repo),
 		"--label", LabelImage + "=" + p.ImageKey,
 	}
-	if p.Limits.MemoryMB > 0 {
-		a = append(a, "--memory", strconv.Itoa(p.Limits.MemoryMB)+"m")
-	}
+	a = append(a, ResourceArgs(p.Limits.MemoryMB, p.CPUSet)...)
 	if p.Limits.CPUs > 0 {
 		a = append(a, "--cpus", strconv.FormatFloat(p.Limits.CPUs, 'f', -1, 64))
 	}

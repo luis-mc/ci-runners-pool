@@ -122,11 +122,19 @@ func (b *Backend) swap(ctx context.Context, owner, repo, pool, oldKey, newTag st
 	if err := b.step(ctx, "pool remove", []string{"rm", pool}, ""); err != nil {
 		return err
 	}
+	b.unpin(pool)
 	nu := base
 	nu.ImageTag, nu.ImageKey = newTag, keyOf(newTag)
-	args, err := RunArgs(nu)
+	err := b.pin(&nu)
+	var args []string
+	if err == nil {
+		args, err = RunArgs(nu)
+	}
 	if err == nil {
 		err = b.step(ctx, "pool create", args, "")
+	}
+	if err != nil {
+		b.unpin(pool)
 	}
 	if err == nil {
 		res.Swapped = true
@@ -137,11 +145,16 @@ func (b *Backend) swap(ctx context.Context, owner, repo, pool, oldKey, newTag st
 	// The new container did not start. Put the old image back.
 	old := base
 	old.ImageTag, old.ImageKey = ImageTag(oldKey), oldKey
-	oargs, oerr := RunArgs(old)
+	oerr := b.pin(&old)
+	var oargs []string
+	if oerr == nil {
+		oargs, oerr = RunArgs(old)
+	}
 	if oerr == nil {
 		oerr = b.step(ctx, "pool create", oargs, "")
 	}
 	if oerr != nil {
+		b.unpin(pool)
 		res.Message = "the swap failed and the old image did not start again: " + strings.TrimSpace(err.Error()) + "; " + oerr.Error()
 		return fmt.Errorf("%s", res.Message)
 	}
