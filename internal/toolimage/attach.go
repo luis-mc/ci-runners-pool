@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path/filepath"
+	"path"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
@@ -59,7 +59,7 @@ type Deps struct {
 // same digest reuses them. Kind disk keeps only the packed file (the
 // unpacked tree is deleted); kind virtiofs keeps the tree.
 func Prepare(ctx context.Context, d Deps, root string, ref Ref, kind string) (backend.ToolMount, error) {
-	tree := filepath.Join(root, ref.Hex())
+	tree := path.Join(root, ref.Hex())
 	m := backend.ToolMount{Kind: kind, Digest: ref.Digest, GuestPath: backend.ToolGuestPath, Tag: backend.ToolShareTag, ReadOnly: true}
 	switch kind {
 	case KindVirtiofs:

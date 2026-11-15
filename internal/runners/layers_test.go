@@ -365,7 +365,7 @@ func TestImageBuildMatrixListsArm64(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w := string(raw)
+	w := strings.ReplaceAll(string(raw), "\r\n", "\n") // a Windows checkout has CRLF
 	i := strings.Index(w, "\n  image:\n")
 	if i < 0 {
 		t.Fatal("no image job in ci.yml")

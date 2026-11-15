@@ -29,6 +29,9 @@ type world struct {
 	mu    sync.Mutex
 	now   time.Time
 	lines []string
+	// running are the jobs that fill() started; they stay up while a gate waits,
+	// so the agent's holder report renews their leases (scheduling R5.70).
+	running []scheduler.JobRef
 }
 
 func newWorld(t *testing.T) *world {
@@ -50,7 +53,11 @@ func (w *world) clock() time.Time { w.mu.Lock(); defer w.mu.Unlock(); return w.n
 func (w *world) sleep(_ context.Context, d time.Duration) {
 	w.mu.Lock()
 	w.now = w.now.Add(d)
+	running := append([]scheduler.JobRef(nil), w.running...)
 	w.mu.Unlock()
+	if len(running) > 0 {
+		_ = w.eng.RenewJobs(context.Background(), machine, running)
+	}
 }
 
 // agent is the in-process agent: the engine plus a hello.
@@ -87,6 +94,9 @@ func (w *world) fill(n int) {
 		if code := hooks.RunGate(context.Background(), w.cfg(a, gate, quiet, "fill"+string(rune('a'+i)), int64(900+i))); code != 0 {
 			w.t.Fatalf("fill %d: exit %d", i, code)
 		}
+		w.mu.Lock()
+		w.running = append(w.running, scheduler.JobRef{Repository: "o/r", RunID: int64(900 + i), RunAttempt: 1, Job: "build"})
+		w.mu.Unlock()
 	}
 }
 
