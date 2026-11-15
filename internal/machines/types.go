@@ -208,7 +208,7 @@ type Load struct {
 	// and the containers (R5.17); they feed the pool-size check.
 	WSLVMBytes      int64
 	ContainersBytes int64
-	SampledAt     time.Time
+	SampledAt       time.Time
 	// ReceivedAt is controller time, used for the stale mark (R6.7).
 	ReceivedAt time.Time
 }

@@ -139,7 +139,7 @@ func (q *Queries) GetMachineChange(ctx context.Context, arg GetMachineChangePara
 }
 
 const getMachineSettings = `-- name: GetMachineSettings :one
-SELECT machine_id, version, budget_memory_pct, budget_cpu_pct, job_slots, light_slots, heavy_slots, light_jobs, heavy_jobs, slot_max_age_minutes, gate_poll_seconds, gate_max_wait_minutes, gate_on_timeout, allowed_backends, cache_cap_bytes, drain_timeout_minutes, windows_symlink_right, updated_at, updated_by FROM machine_settings WHERE machine_id = ?
+SELECT machine_id, version, budget_memory_pct, budget_cpu_pct, job_slots, light_slots, heavy_slots, light_jobs, heavy_jobs, slot_max_age_minutes, gate_poll_seconds, gate_max_wait_minutes, gate_on_timeout, allowed_backends, cache_cap_bytes, drain_timeout_minutes, windows_symlink_right, updated_at, updated_by, pool_memory_gib, pool_cpus FROM machine_settings WHERE machine_id = ?
 `
 
 func (q *Queries) GetMachineSettings(ctx context.Context, machineID string) (MachineSetting, error) {
@@ -165,6 +165,8 @@ func (q *Queries) GetMachineSettings(ctx context.Context, machineID string) (Mac
 		&i.WindowsSymlinkRight,
 		&i.UpdatedAt,
 		&i.UpdatedBy,
+		&i.PoolMemoryGib,
+		&i.PoolCpus,
 	)
 	return i, err
 }
@@ -566,7 +568,7 @@ UPDATE machine_settings SET
     version = version + 1,
     budget_memory_pct = ?, budget_cpu_pct = ?, job_slots = ?, light_slots = ?, heavy_slots = ?,
     light_jobs = ?, heavy_jobs = ?, gate_on_timeout = ?, allowed_backends = ?, cache_cap_bytes = ?,
-    drain_timeout_minutes = ?, windows_symlink_right = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), updated_by = ?
+    drain_timeout_minutes = ?, windows_symlink_right = ?, pool_memory_gib = ?, pool_cpus = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), updated_by = ?
 WHERE machine_id = ?
 `
 
@@ -583,6 +585,8 @@ type UpdateMachineSettingsParams struct {
 	CacheCapBytes       int64
 	DrainTimeoutMinutes int64
 	WindowsSymlinkRight int64
+	PoolMemoryGib       float64
+	PoolCpus            int64
 	UpdatedBy           string
 	MachineID           string
 }
@@ -601,6 +605,8 @@ func (q *Queries) UpdateMachineSettings(ctx context.Context, arg UpdateMachineSe
 		arg.CacheCapBytes,
 		arg.DrainTimeoutMinutes,
 		arg.WindowsSymlinkRight,
+		arg.PoolMemoryGib,
+		arg.PoolCpus,
 		arg.UpdatedBy,
 		arg.MachineID,
 	)
