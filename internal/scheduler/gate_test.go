@@ -309,7 +309,8 @@ func TestLightOffMeansNormalQueue(t *testing.T) {
 // test_second_heavy_waits_and_holds_no_ci_slot, test_normal_job_flows_while_heavy_waits.
 func TestHeavySlots(t *testing.T) {
 	e := newEnv(t)
-	e.settings(m1, func(s *slots.Settings) { s.HeavyJobs = []string{"e2e", "o/other:*"} })
+	// three job slots: an e2e job weighs 2 of them (R5.69), so a normal job still fits beside it
+	e.settings(m1, func(s *slots.Settings) { s.JobSlots = 3; s.HeavyJobs = []string{"e2e", "o/other:*"} })
 	d := e.gate(e.req("h1", job("o/r", 1, "e2e"), 1, quiet))
 	if len(d.Go) != 2 || d.Go[0].Kind != scheduler.SlotHeavy || d.Go[1].Kind != scheduler.SlotCI {
 		t.Fatalf("decision %+v", d)

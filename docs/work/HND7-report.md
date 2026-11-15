@@ -11,11 +11,12 @@ Source: `docs/architecture/dev-standards-handover.md` lesson 5, rule D4. Branch 
 
 ## Status
 - [x] Report
-- [ ] Code
-- [ ] Tests
+- [x] Code
+- [x] Tests (scheduler weight/heavy/light/accepting subset and slots, store: green; golangci-lint not run: binary built for go1.25, repo needs 1.27)
 - [x] Spec R5.69 and change note (written by hand: docs_fold.py is not in this sandbox, so docs_check was not run)
 - [ ] Draft PR
 
 ## Notes
 - `internal/agent/gate.go` (agent-side load-only fallback, R5.23) is not changed: it never admits by slots.
 - Weight above the machine budget is clamped to it, so a heavy class can still run alone.
+- TestHeavySlots set to 3 job slots: an e2e job now weighs 2 units, so it fills a default 2-slot machine (intended by R5.69).
