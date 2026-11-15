@@ -15,7 +15,7 @@ Branch: HND24-maintenance-command (from origin/main 83317c3). Source: handover l
 - [x] agent (code; tests pending)
 - [x] agent link (code; tests pending)
 - [x] API (code; tests pending)
-- [ ] CLI
+- [x] CLI (code + tests)
 - [ ] docs
 - [ ] checks, draft PR
 
