@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/agentlink"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
@@ -20,6 +21,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/configexport"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor/checks"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor/wire"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/events"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
@@ -58,6 +60,8 @@ type controllerDeps struct {
 	Queue    scheduler.SlotQueue
 	// Caches is the caches service of the machines runtime (web-console R5.25).
 	Caches *caches.Service
+	// Link carries runner commands to remote machines and reports (CRSP63); nil keeps remote machines unreachable.
+	Link *agentlink.Link
 	// MachineSecrets is the secret source the config export reads (mr.Secrets).
 	MachineSecrets secrets.Store
 	// Backends are the runner backends of the controller's own OS; nil means none.
@@ -154,7 +158,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	rstore := runners.NewMemStore()
 	runnerSvc := &runners.Service{
 		Store: rstore, Machines: machineLookup{svc: d.Machines}, Resolver: scopeResolver{repos: repoStore, auth: asvc},
-		GitHub: gh, Agent: linkAgent{local: runners.NewLocalAgent(reg), svc: d.Machines}, Audit: runnerAudit{auth: asvc},
+		GitHub: gh, Agent: linkAgent{local: runners.NewLocalAgent(reg), svc: d.Machines, remote: remoteAgent(d.Link)}, Audit: runnerAudit{auth: asvc},
 		PoolName: pool, CacheQuota: d.Cfg.Cache, Now: d.Now,
 	}
 
@@ -191,6 +195,9 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 			return gh, nil
 		},
 		Store: doctor.NewMemStore(), Events: hub, Logger: logger, PoolName: pool,
+		KVM:     reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
+		Engines: reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
+		Extra:   checks.KVMReportedChecks(),
 	})
 
 	c.Options.Version, c.Options.DB, c.Options.Logger = version, d.DB, logger

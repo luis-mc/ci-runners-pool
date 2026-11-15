@@ -53,8 +53,8 @@ func (e demandEnv) Repo(ctx context.Context, fullName string) (demand.Repo, bool
 }
 
 // Hosts lists the machines that may start container runners (runners R5.9,
-// R5.27): the controller's own machine only, until the runner messages of the
-// agent link are built; online, active, Linux; the container backend present,
+// R5.27): the controller's own machine, or another machine whose agent is
+// connected over the agent link (CRSP63); online, active, Linux; the container backend present,
 // usable and in the machine's allow list, which is off by default; and a job
 // slot budget above zero (the pool size of CRSP50).
 func (e demandEnv) Hosts(ctx context.Context) ([]demand.Host, error) {
@@ -69,7 +69,7 @@ func (e demandEnv) Hosts(ctx context.Context) ([]demand.Host, error) {
 		if state == "" {
 			state = m.State
 		}
-		if !m.RemovedAt.IsZero() || !m.Online || !m.IsController || m.OS != "linux" ||
+		if !m.RemovedAt.IsZero() || !m.Online || m.OS != "linux" ||
 			(state != "" && state != machines.StateActive) || v.Settings.JobSlots < 1 {
 			continue
 		}

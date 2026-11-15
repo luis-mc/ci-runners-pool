@@ -49,17 +49,23 @@ func TestHostsFollowTheAllowList(t *testing.T) {
 		t.Fatalf("allowed: %v", got)
 	}
 	for name, mod := range map[string]func(*machines.View){
-		"not the controller": func(v *machines.View) { v.Machine.IsController = false },
-		"offline":            func(v *machines.View) { v.Machine.Online = false },
-		"windows":            func(v *machines.View) { v.Machine.OS = "windows" },
-		"draining":           func(v *machines.View) { v.Settings.State = machines.StateDraining },
-		"no slots":           func(v *machines.View) { v.Settings.JobSlots = 0 },
+		"offline":  func(v *machines.View) { v.Machine.Online = false },
+		"windows":  func(v *machines.View) { v.Machine.OS = "windows" },
+		"draining": func(v *machines.View) { v.Settings.State = machines.StateDraining },
+		"no slots": func(v *machines.View) { v.Settings.JobSlots = 0 },
 	} {
 		v := linuxView(true, true)
 		mod(&v)
 		if got := hosts(v); len(got) != 0 {
 			t.Errorf("%s: %v", name, got)
 		}
+	}
+	// CRSP63: a connected machine that is not the controller's own takes
+	// runners over the agent link.
+	remote := linuxView(true, true)
+	remote.Machine.IsController = false
+	if got := hosts(remote); len(got) != 1 {
+		t.Fatalf("remote machine: %v", got)
 	}
 	h, _ := demandEnv{machines: fakeMachines{[]machines.View{linuxView(true, true)}}}.Hosts(ctx)
 	if h[0].Slots != 2 || h[0].Arch != "x64" {
