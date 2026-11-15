@@ -3485,6 +3485,15 @@ components:
         windows_symlink_right:
           type: boolean
           description: Owner decision for M1; grant "create symbolic links" to Windows runner accounts.
+        pool_memory_gib:
+          type: number
+          format: double
+          minimum: 0
+          description: The memory in GiB the pool may use on this machine, set by the owner and checked against the load budget (machines R5.58). 0 means not set.
+        pool_cpus:
+          type: integer
+          minimum: 0
+          description: The CPUs the pool may use on this machine (machines R5.58). 0 means not set. Split over the job slots it gives CI_MAX_PARALLEL (runners R5.53).
     MachineSettingsUpdate:
       type: object
       properties:
@@ -3534,6 +3543,18 @@ components:
           maximum: 1440
         windows_symlink_right:
           type: boolean
+        pool_memory_gib:
+          type: number
+          format: double
+          minimum: 0
+          description: The pool memory in GiB. Send it with pool_cpus. A size over the budget is refused with the budget that is short and the nearest sizes that fit (machines R5.58).
+        pool_cpus:
+          type: integer
+          minimum: 0
+          description: The pool CPUs. Send it with pool_memory_gib.
+        confirm_shrink:
+          type: boolean
+          description: The explicit yes to a pool size below the current one. confirm does not stand for it (machines R5.58).
         confirm:
           type: boolean
           description: The yes once the jobs a restart waits for are named.

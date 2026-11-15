@@ -289,7 +289,7 @@ func ProtoSettings(st Settings, state string) *agentv1.MachineSettings {
 		GateMaxWaitMinutes: int32(st.GateMaxWaitMinutes), GateOnTimeout: st.GateOnTimeout, //nolint:gosec // validated
 		AllowedBackends: st.AllowedBackends, CacheCapBytes: st.CacheCapBytes,
 		DrainTimeoutMinutes: int32(st.DrainTimeoutMinutes), WindowsSymlinkRight: st.WindowsSymlinkRight, //nolint:gosec // validated
-		PoolMemoryGib: st.PoolMemoryGiB, PoolCpus: int32(st.PoolCPUs),                                  //nolint:gosec // validated
+		PoolMemoryGib: st.PoolMemoryGiB, PoolCpus: int32(st.PoolCPUs), //nolint:gosec // validated
 	}
 }
 
