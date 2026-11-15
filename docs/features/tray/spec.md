@@ -107,13 +107,13 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 **States.**
 
-| State | Icon glyph | Tooltip text (example) |
+| State | Disc colour | Tooltip text (example) |
 |---|---|---|
-| Healthy | `✓` | `crsp: ✓ ok · 2 running · 1 waiting` |
-| Waiting (jobs wait over the limit, or load is over budget) | `◷` | `crsp: ◷ waiting · 0 running · 4 waiting` |
-| Failed (service runs and reports a fault) | `✕` | `crsp: ✕ failed · GitHub not reachable` |
-| Stopped | `✕` | `crsp: ✕ stopped at 14:30 · exit code 3` |
-| Starting (no answer yet) | `▶` | `crsp: ▶ starting` |
+| Healthy | green `#1a7f37` | `crsp: ✓ ok · 2 running · 1 waiting` |
+| Waiting (jobs wait over the limit, or load is over budget) | amber `#9a6700` | `crsp: ◷ waiting · 0 running · 4 waiting` |
+| Failed (service runs and reports a fault) | red `#c62828` | `crsp: ✕ failed · GitHub not reachable` |
+| Stopped | slate grey `#4b5563` | `crsp: ✕ stopped at 14:30 · exit code 3` |
+| Starting (no answer yet) | blue `#0b5cc2` | `crsp: ▶ starting` |
 
 - Empty: no runners yet reads `✓ ok · no runners yet`, and Open leads to the console's first-run wizard (UX-6).
 - Waiting: the tray never blocks on the service; a slow answer keeps the last state for up to 15 s, then shows Starting or Stopped.
@@ -131,7 +131,7 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 **R5.3** — The tray MUST ask the local service for status every 5 seconds and update the icon, tooltip and status line within 10 seconds of a change. (M1)
 
-**R5.4** — The icon MUST differ per state by shape (glyph), not by colour alone. (M1)
+**R5.4** — The icon MUST always be the same round disc with the letters CRSP in it, the same as the app icon (decision tray D8). Only the disc colour changes with the state. The tooltip and the menu header MUST name the state in words (R5.2), so the state is never shown by colour alone (UX-26). The program icon (`crsp.exe`, the Start Menu entry, the Apps list) is the healthy disc, 16 to 256 px. (M1)
 
 **R5.5** — Quit MUST close only the tray. It MUST NOT stop the service or any job. (M1)
 
@@ -269,7 +269,7 @@ Rows marked built have tests that exist and run in CI. Rows marked planned are n
 | R5.1 | built: internal/tray/menu_test.go, TestMenuOrder, TestUpdateItemOnlyWhenNewerAndAutoOff |
 | R5.2 | built: internal/tray/menu_test.go, TestServiceLinePerState, TestHeaderPerUpdateState; internal/tray/tray_test.go, TestStatusTextPerState (tooltip) |
 | R5.3 | built: internal/tray/tray_test.go, TestPollerUpdatesWithin10s (injected clock) |
-| R5.4 | built: internal/tray/tray_test.go, TestIconPerStateDiffersByGlyph |
+| R5.4 | built: internal/tray/tray_test.go, TestIconIsAlwaysTheDiscDifferingOnlyInColour, TestCommittedAppIconMatches |
 | R5.5 | built: internal/tray/tray_test.go, TestQuitLeavesServiceRunning (the client has no stop call) |
 | R5.6 | built: internal/tray/tray_test.go, TestOpenAsksLinkAndLaunchesBrowser, TestClientStatusAndLink (fake channel and browser) |
 | R5.7 | built (TRAY1): cmd/crsp/auth_wiring_unix_test.go, TestOpenSignsInOnceFromTheBoundOSUser (redirect without the code, working session, replay refused), TestOpenLinkExpiresAfterSixtySeconds; apps/web/src/shell/Shell.test.tsx, says the tray link expired and offers GitHub sign-in |
@@ -315,6 +315,7 @@ Rows marked built have tests that exist and run in CI. Rows marked planned are n
 | T4 | Linux desktop with no tray area | One notice, then exit 2; no fallback window. Proposed; open question 4. | 2026-11-14 |
 | T5 | Who does a one-time link sign in? | The GitHub user bound once to this machine and OS user. Proposed; open question 1. | 2026-11-14 |
 | T7 | Where is the yes for Restart and Update asked, and when is it not needed? | On the console Review step, never in the tray (owner, 2026-11-14). With Automatic updates on (default, all OSes) an update needs no yes: it drains and installs by itself. Restart always needs the Review step. | 2026-11-14 |
+| D8 | What does the tray icon look like? | Always the app icon: a round disc with the letters CRSP. Only the disc colour changes with the state; the words in the tooltip and menu header name it. Replaces the shape-per-state rule. (owner, v0.1.0 test) | 2026-11-15 |
 | T6 | How is the tray proven? | CI starts the built binary on each OS (smoke), because two trays once passed every test and crashed at start (comics-organizer). | 2026-11-14 |
 
 ## 11. Not built yet

@@ -47,7 +47,7 @@ function Leftovers {
   $path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
   if ($path -split ';' | Where-Object { $_.TrimEnd('\') -ieq $progDir }) { $l += 'PATH entry' }
   if (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Name 'crsp-tray' -ErrorAction SilentlyContinue) { $l += 'tray autostart' }
-  if (Test-Path (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'crsp.lnk')) { $l += 'Start Menu shortcut' }
+  if (Test-Path (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'CI Runners Shared Pool.lnk')) { $l += 'Start Menu shortcut' }
   if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\crsp') { $l += 'ARP entry' }
   return $l
 }
@@ -78,7 +78,7 @@ if ($r) {
   $pf = $r | Get-NetFirewallPortFilter
   Check 'firewall rule ports 8460,8461 tcp' ($pf.Protocol -eq 'TCP' -and (($pf.LocalPort | Sort-Object) -join ',') -eq '8460,8461') "$($pf.Protocol) $($pf.LocalPort -join ',')"
 }
-Check 'Start Menu shortcut' (Test-Path (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'crsp.lnk'))
+Check 'Start Menu shortcut' (Test-Path (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'CI Runners Shared Pool.lnk'))
 $run = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Name 'crsp-tray' -ErrorAction SilentlyContinue).'crsp-tray'
 Check 'tray autostart at sign-in' ($run -like '*crsp.exe" tray') $run
 Check 'install-kind marker says msi' ((Get-Content (Join-Path $progDir 'install-kind') -Raw -ErrorAction SilentlyContinue).Trim() -eq 'msi')
@@ -102,7 +102,7 @@ if ($UpgradeMsi) {
   Check 'service was restarted (new process)' ($pid2 -and $pid2 -ne $pid1) "pid $pid1 -> $pid2"
   Check 'data kept by upgrade' (Test-Path (Join-Path $dataDir 'keep-me.txt'))
   # The package's own entry is hidden (SystemComponent=1); the visible one is the package's.
-  $prod = @(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -eq 'crsp' -and $_.SystemComponent -ne 1 })
+  $prod = @(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -eq 'CI Runners Shared Pool' -and $_.SystemComponent -ne 1 })
   Check 'one crsp entry in Apps' ($prod.Count -eq 1) "$($prod.Count)"
   Check 'firewall rule still there, once' (@(Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue).Count -eq 1)
   $path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
@@ -122,7 +122,7 @@ if ($FailingMsi) {
   Write-Host "== a failed upgrade rolls back $FailingMsi"
   $rc = Msiexec @('/i', "`"$FailingMsi`"") (Join-Path $LogDir 'failed-upgrade.log')
   Check 'failed upgrade exits non-zero (1603)' ($rc -eq 1603) "exit $rc"
-  Check 'old version still installed after rollback' (@(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -eq 'crsp' -and $_.SystemComponent -ne 1 -and $_.DisplayVersion -eq $installedVersion }).Count -eq 1) "wanted $installedVersion"
+  Check 'old version still installed after rollback' (@(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -eq 'CI Runners Shared Pool' -and $_.SystemComponent -ne 1 -and $_.DisplayVersion -eq $installedVersion }).Count -eq 1) "wanted $installedVersion"
   Check 'service running again after rollback' (WaitRunning) ("state " + (SvcState))
   Check 'firewall rule and PATH intact after rollback' ($null -ne (Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue) -and [bool]([Environment]::GetEnvironmentVariable('Path','Machine') -split ';' | Where-Object { $_.TrimEnd('\') -ieq $progDir }))
   # What the log says about the rollback, so a failure can be read in the CI output.
@@ -134,7 +134,7 @@ if ($FailingMsi) {
   Write-Host '--- state after the failed upgrade'
   Write-Host ("  service: " + ((Get-Service crsp -ErrorAction SilentlyContinue | Out-String).Trim()))
   Write-Host ("  Program Files\crsp exists: " + (Test-Path $progDir))
-  Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -eq 'crsp' } | ForEach-Object { Write-Host "  ARP crsp $($_.DisplayVersion) SystemComponent=$($_.SystemComponent) $($_.PSChildName)" }
+  Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -eq 'CI Runners Shared Pool' } | ForEach-Object { Write-Host "  ARP crsp $($_.DisplayVersion) SystemComponent=$($_.SystemComponent) $($_.PSChildName)" }
   Check 'msiexec log shows the rollback' ((Get-Content (Join-Path $LogDir 'failed-upgrade.log') -Raw) -match 'Rollback')
 }
 
