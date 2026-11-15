@@ -191,3 +191,26 @@ func TestOpenReturnsAStore(t *testing.T) {
 		t.Fatal("backend must be named")
 	}
 }
+
+// dpapiLike refuses an empty value the way Windows DPAPI does.
+func dpapiLike(b []byte) ([]byte, error) {
+	if len(b) == 0 {
+		return nil, errors.New("empty secret")
+	}
+	return b, nil
+}
+
+func TestFileTransformRefusesEmpty(t *testing.T) {
+	f, err := NewFile(filepath.Join(t.TempDir(), "s"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.transform, f.untransform = dpapiLike, func(b []byte) ([]byte, error) { return b, nil }
+	ctx := context.Background()
+	if err := f.Put(ctx, "crsp/a", []byte("x")); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Put(ctx, "crsp/b", nil); !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("empty value: %v", err)
+	}
+}

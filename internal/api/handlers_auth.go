@@ -302,7 +302,12 @@ func (s *server) CompleteAppManifest(ctx context.Context, req gen.CompleteAppMan
 	a := s.ghArea()
 	if _, err := a.Auth.CompleteManifest(ctx, req.Params.Code, req.Params.State); err != nil {
 		_, code, _ := errorFor(err)
-		return a.redirectWithError("/setup", code, nil), nil
+		var extra url.Values
+		var made *auth.AppCreatedError
+		if errors.As(err, &made) && made.AppURL != "" {
+			extra = url.Values{"app_url": {made.AppURL}}
+		}
+		return a.redirectWithError("/setup", code, extra), nil
 	}
 	return gen.RedirectResponse{Headers: gen.RedirectResponseHeaders{Location: "/setup?step=app-created"}}, nil
 }

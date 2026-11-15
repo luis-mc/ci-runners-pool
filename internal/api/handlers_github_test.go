@@ -69,7 +69,10 @@ type harness struct {
 	client  *http.Client
 }
 
-func newHarness(t *testing.T) *harness {
+func newHarness(t *testing.T) *harness { return newHarnessWith(t, nil) }
+
+// newHarnessWith lets a test wrap the secret store the auth service uses.
+func newHarnessWith(t *testing.T, wrap func(*secrets.Memory) secrets.Store) *harness {
 	t.Helper()
 	f := fake.New()
 	t.Cleanup(f.Close)
@@ -77,9 +80,13 @@ func newHarness(t *testing.T) *harness {
 	f.AppPublicKey = &k.PublicKey
 	f.PEM = string(pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k)}))
 	sec := secrets.NewMemory()
-	gh := github.New(github.Config{APIBase: f.URL, WebBase: f.URL, Secrets: sec})
+	var store secrets.Store = sec
+	if wrap != nil {
+		store = wrap(sec)
+	}
+	gh := github.New(github.Config{APIBase: f.URL, WebBase: f.URL, Secrets: store})
 	astore, rstore := auth.NewMemStore(), repos.NewMemStore()
-	asvc := auth.New(astore, auth.Config{GitHub: gh, Secrets: sec, WebBase: f.URL,
+	asvc := auth.New(astore, auth.Config{GitHub: gh, Secrets: store, WebBase: f.URL,
 		OnApp: func(a auth.AppRecord) { gh.UseApp(a.ID, a.ClientID) }})
 	rsvc := repos.New(repos.Config{Store: rstore, GitHub: gh, Tokens: asvc, Audit: asvc, Capacity: linuxOnly{}})
 	h := &harness{t: t, fake: f, auth: asvc, repos: rsvc, astore: astore, rstore: rstore, secrets: sec}
@@ -839,5 +846,34 @@ func TestStopRepositoryPlanOverHTTP(t *testing.T) {
 	_, b = h.do("GET", "/api/v1/repository-plans/"+plan.ID, nil, owner, nil)
 	if !strings.Contains(string(b), `"planned"`) {
 		t.Fatalf("a refused stop changed the plan: %s", b)
+	}
+}
+
+// failingPut is a secret store that cannot keep anything.
+type failingPut struct{ *secrets.Memory }
+
+func (failingPut) Put(context.Context, secrets.Key, []byte) error { return secrets.ErrUnavailable }
+
+func TestAppCreatedFailureLinksHalfMadeApp(t *testing.T) { // R5.3
+	h := newHarnessWith(t, func(m *secrets.Memory) secrets.Store { return failingPut{m} })
+	c := cookies{}
+	code, err := h.auth.NewSetupCode(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res, b := h.do("POST", "/api/v1/setup/redeem", map[string]string{"code": code}, c, nil); res.StatusCode != 200 {
+		t.Fatalf("redeem: %d %s", res.StatusCode, b)
+	}
+	res, b := h.do("POST", "/api/v1/setup/github-app", map[string]any{"account_type": "user", "app_name": "crsp-test", "console_urls": []string{h.srv.URL}}, c, nil)
+	var form struct{ State string }
+	_ = json.Unmarshal(b, &form)
+	h.fake.IssueManifestCode("mc")
+	res, _ = h.do("GET", "/auth/github/app-created?code=mc&state="+url.QueryEscape(form.State), nil, c, nil)
+	loc, err := url.Parse(res.Header.Get("Location"))
+	if err != nil || res.StatusCode != 302 || loc.Path != "/setup" {
+		t.Fatalf("redirect: %d %v", res.StatusCode, res.Header)
+	}
+	if loc.Query().Get("error") != "unavailable" || loc.Query().Get("app_url") != "https://github.com/apps/crsp-dev-fake" {
+		t.Fatalf("error and app_url: %s", loc.RawQuery)
 	}
 }

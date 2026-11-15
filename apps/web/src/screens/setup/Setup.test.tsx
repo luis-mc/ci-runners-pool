@@ -3,7 +3,10 @@
 // from the banner slot until all three are done.
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { apiError, renderApp, signedIn } from '../../testing/mock';
+import { messageFor } from './Setup';
 
 afterEach(cleanup);
 
@@ -53,6 +56,49 @@ describe('Setup page', () => {
     ).toBeTruthy();
   });
 
+  it('says GitHub made the App but crsp could not save it, links to it, and clears the error (R5.3)', async () => {
+    const api = signedIn()
+      .on('POST', '/api/v1/setup/redeem', state({ setup_link_redeemed: true }))
+      .on('GET', '/api/v1/setup', state({ setup_link_redeemed: true }));
+    renderApp(
+      api,
+      '/setup?code=x&error=unavailable&app_url=' +
+        encodeURIComponent('https://github.com/apps/crsp-home'),
+    );
+    expect(
+      await screen.findByText(/GitHub made the App, but crsp could not save it/),
+    ).toBeTruthy();
+    expect(screen.getByText(/Delete GitHub App/)).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Open the App on GitHub' }).getAttribute('href'),
+    ).toBe('https://github.com/apps/crsp-home');
+    await waitFor(() => expect(window.location.search).not.toContain('error='));
+  });
+
+  it('offers no link to an address that is not on github.com', async () => {
+    const api = signedIn().on(
+      'GET',
+      '/api/v1/setup',
+      state({ setup_link_redeemed: true }),
+    );
+    renderApp(
+      api,
+      '/setup?error=unavailable&app_url=' + encodeURIComponent('https://evil.example/x'),
+    );
+    expect(await screen.findByText(/OS secret store is not available/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Open the App on GitHub' })).toBeNull();
+  });
+
+  it('explains that App names are unique across GitHub (R5.3)', async () => {
+    const api = signedIn().on(
+      'GET',
+      '/api/v1/setup',
+      state({ setup_link_redeemed: true }),
+    );
+    renderApp(api, '/setup');
+    expect(await screen.findByText(/App names are unique across GitHub/)).toBeTruthy();
+  });
+
   it('goes on to the machine wizard once the App is connected and the user is signed in', async () => {
     const api = signedIn()
       .on(
@@ -90,6 +136,37 @@ describe('Setup page', () => {
     expect(await screen.findByText('Nothing has changed yet.')).toBeTruthy();
     expect(screen.getByText('acme')).toBeTruthy();
     expect(api.count('POST', '/api/v1/setup/github-app')).toBe(0);
+  });
+});
+
+// UX-6 guard: every error code the server can put on /setup?error= shows words on the page.
+// The codes are read from internal/api/errors.go, so a new code is covered without editing this test.
+// Tests run from apps/web (pnpm --filter web) or from the repository root.
+const errorsGo = ['../../internal/api/errors.go', 'internal/api/errors.go']
+  .map((p) => resolve(process.cwd(), p))
+  .find((p) => existsSync(p));
+const serverCodes = [
+  ...readFileSync(errorsGo ?? 'internal/api/errors.go', 'utf8').matchAll(
+    /^\s*Code\w+\s*=\s*"([a-z_]+)"/gm,
+  ),
+].map((m) => m[1]);
+
+describe('Setup errors (UX-6)', () => {
+  it('reads the server error codes', () => {
+    expect(serverCodes).toContain('unavailable');
+    expect(serverCodes.length).toBeGreaterThan(5);
+  });
+
+  it.each(serverCodes)('shows a message for error=%s', async (code) => {
+    const api = signedIn().on(
+      'GET',
+      '/api/v1/setup',
+      state({ setup_link_redeemed: true }),
+    );
+    renderApp(api, '/setup?error=' + code);
+    const words = messageFor(code, false);
+    expect(words.length).toBeGreaterThan(10);
+    expect(await screen.findByText(words)).toBeTruthy();
   });
 });
 
