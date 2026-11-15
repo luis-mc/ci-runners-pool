@@ -245,3 +245,147 @@ describe('Machine detail, a drain that waits', () => {
     expect(screen.getByText(/never stops a job/)).toBeTruthy();
   });
 });
+
+// machines R5.58: the pool size form is a wizard with a Review step that shows the budget check.
+describe('Machine detail, the pool size', () => {
+  const fits = {
+    known: true,
+    ok: true,
+    needs_shrink_confirm: false,
+    nearest: [],
+    total_gib: 32,
+    used_outside_gib: 8,
+    memory_budget_gib: 27.2,
+    room_gib: 19.2,
+    cpu_budget: 4,
+    decided: 'fits',
+    current_memory_gib: 0,
+    current_cpus: 0,
+  };
+
+  /** Type a value on the number keypad of a field (the first key replaces the value). */
+  async function typeNumber(field: RegExp, keys: string[]) {
+    fireEvent.click(await screen.findByRole('button', { name: field }));
+    const dialog = await screen.findByRole('dialog');
+    for (const k of keys)
+      fireEvent.click(within(dialog).getByRole('button', { name: k }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  }
+
+  /** The step bar also has a Review button; the one that acts is in the action bar. */
+  const review = () =>
+    screen
+      .getAllByRole('button', { name: 'Review' })
+      .find((b) => b.closest('.ds-action-bar')) as HTMLButtonElement;
+
+  const api = (check: Record<string, unknown>, m = machine()) =>
+    signedIn()
+      .on('GET', '/api/v1/machines/:id', m)
+      .on('POST', '/api/v1/machines/:id/pool-size-check', check)
+      .on('PATCH', '/api/v1/machines/:id', m);
+
+  it('shows the current size, reviews the check, then saves (UX-30)', async () => {
+    const a = api(fits);
+    renderApp(a, '/machines/m1');
+    await screen.findByRole('group', { name: 'Pool size' });
+    expect(await screen.findByText('not set')).toBeTruthy();
+    expect(await screen.findByText('Room for the pool')).toBeTruthy();
+    await typeNumber(/Pool memory/, ['1', '6', '.', '5']);
+    await typeNumber(/Pool CPUs/, ['4']);
+    fireEvent.click(review());
+    expect(
+      await screen.findByText(/This size fits the budget of the machine/),
+    ).toBeTruthy();
+    expect(screen.getByText('Room for the pool')).toBeTruthy();
+    expect(screen.getByText(/Nothing has changed yet/)).toBeTruthy();
+    expect(a.count('PATCH', '/api/v1/machines/m1')).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Save 16.5 GiB and 4 CPUs' }));
+    expect(await screen.findByText(/The pool size is/)).toBeTruthy();
+    const patch = a.calls.find((c) => c.method === 'PATCH')?.body as Record<
+      string,
+      unknown
+    >;
+    expect(patch).toEqual({ pool_memory_gib: 16.5, pool_cpus: 4 });
+  });
+
+  it('names the budget that is short and the nearest size, and does not let the size be saved', async () => {
+    const a = api({
+      ...fits,
+      ok: false,
+      reason: '30 GiB is above the memory room',
+      short: 'memory',
+      nearest: ['19 GiB fits 4 CPUs'],
+    });
+    renderApp(a, '/machines/m1');
+    await screen.findByRole('group', { name: 'Pool size' });
+    await typeNumber(/Pool memory/, ['3', '0']);
+    fireEvent.click(review());
+    expect(await screen.findByText(/does not fit the budget/)).toBeTruthy();
+    expect(screen.getByText('19 GiB fits 4 CPUs')).toBeTruthy();
+    const save = screen.getByRole('button', { name: /Save 30 GiB/ });
+    expect(
+      save.getAttribute('aria-disabled') === 'true' ||
+        (save as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(
+      screen.getByText('This size does not fit. Go back and change it.'),
+    ).toBeTruthy();
+    expect(a.count('PATCH', '/api/v1/machines/m1')).toBe(0);
+  });
+
+  it('needs its own yes to lower the size and sends confirm_shrink (R5.58)', async () => {
+    const m = machine({
+      settings: { ...machine().settings, pool_memory_gib: 16, pool_cpus: 4 },
+    });
+    const a = api(
+      { ...fits, needs_shrink_confirm: true, current_memory_gib: 16, current_cpus: 4 },
+      m,
+    );
+    renderApp(a, '/machines/m1');
+    await screen.findByRole('group', { name: 'Pool size' });
+    await typeNumber(/Pool memory/, ['8']);
+    fireEvent.click(review());
+    expect(await screen.findByText(/This lowers the pool size/)).toBeTruthy();
+    expect(
+      screen.getByText('Tick the box to confirm lowering the pool size.'),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Yes, lower the pool size' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save 8 GiB and 4 CPUs' }));
+    await screen.findByText(/The pool size is/);
+    expect(a.calls.find((c) => c.method === 'PATCH')?.body).toEqual({
+      pool_memory_gib: 8,
+      pool_cpus: 4,
+      confirm_shrink: true,
+    });
+  });
+
+  it('stops without saving when the size changed while it was reviewed', async () => {
+    let n = 0;
+    const a = signedIn()
+      .on('GET', '/api/v1/machines/:id', machine())
+      .on('POST', '/api/v1/machines/:id/pool-size-check', () =>
+        ++n <= 2 ? fits : { ...fits, current_memory_gib: 12, current_cpus: 3 },
+      )
+      .on('PATCH', '/api/v1/machines/:id', machine());
+    renderApp(a, '/machines/m1');
+    await screen.findByRole('group', { name: 'Pool size' });
+    await typeNumber(/Pool CPUs/, ['4']);
+    fireEvent.click(review());
+    fireEvent.click(await screen.findByRole('button', { name: /Save 4 GiB and 4 CPUs/ }));
+    expect(await screen.findByText(/Stopped\. Nothing was saved/)).toBeTruthy();
+    expect(a.count('PATCH', '/api/v1/machines/m1')).toBe(0);
+  });
+
+  it('lets a viewer read the form but not review it (UX-38)', async () => {
+    renderApp(
+      signedIn(viewer)
+        .on('GET', '/api/v1/machines/:id', machine())
+        .on('POST', '/api/v1/machines/:id/pool-size-check', fits),
+      '/machines/m1',
+    );
+    await screen.findByRole('group', { name: 'Pool size' });
+    await screen.findByRole('button', { name: /Pool memory/ });
+    expect(review().disabled).toBe(true);
+  });
+});

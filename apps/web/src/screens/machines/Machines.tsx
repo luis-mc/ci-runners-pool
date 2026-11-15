@@ -34,6 +34,7 @@ import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
 import { machineStatus } from '../overview/Overview';
+import { PoolSizeWizard } from './PoolSize';
 
 type Machine = Schemas['Machine'];
 
@@ -423,6 +424,9 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
             </FormActions>
           </Stack>
         </form>
+      </Section>
+      <Section title="Pool size">
+        <PoolSizeWizard m={m} onChanged={onChanged} />
       </Section>
       <Section title="Remove">
         <Cluster>
