@@ -544,13 +544,17 @@ func TestCrashedHolderSlotIsReclaimedForTheQueue(t *testing.T) {
 	goes(t, e.gate(e.req("a", job("o/r", 1, "x"), 1, quiet)))
 	waiting := e.req("b", job("o/r", 2, "x"), 1, quiet)
 	waits(t, e.gate(waiting), scheduler.WaitFreeSlot)
-	// the waiter keeps beating; the holder never renews
-	for i := 0; i < 3; i++ {
+	// the waiter keeps beating; the holder never renews, so its lease ends
+	// (120 s after the take) and the waiter goes on a beat
+	for i := 0; i < 2; i++ {
 		e.advance(40 * time.Second)
-		if _, err := e.eng.Beat(context.Background(), m1, "b", quiet); err != nil {
+		d, err := e.eng.Beat(context.Background(), m1, "b", quiet)
+		if err != nil {
 			t.Fatal(err)
 		}
+		waits(t, d, scheduler.WaitFreeSlot)
 	}
+	e.advance(41 * time.Second)
 	d, err := e.eng.Beat(context.Background(), m1, "b", quiet)
 	if err != nil {
 		t.Fatal(err)
@@ -580,12 +584,12 @@ func TestRetriedGateRenewsTheLease(t *testing.T) {
 func TestOldSlotFreedByAge(t *testing.T) {
 	e := newEnv(t)
 	goes(t, e.gate(e.req("a", job("o/r", 1, "x"), 1, quiet)))
-	e.advance(119 * time.Minute)
+	e.advanceRenewing(119*time.Minute, job("o/r", 1, "x"))
 	freed, _ := e.eng.Sweep(context.Background(), e.now)
 	if len(freed) != 0 {
 		t.Fatalf("freed too early %+v", freed)
 	}
-	e.advance(2 * time.Minute)
+	e.advanceRenewing(2*time.Minute, job("o/r", 1, "x"))
 	freed, _ = e.eng.Sweep(context.Background(), e.now)
 	if len(freed) != 1 || freed[0].Reason != "older than 120 min" {
 		t.Fatalf("freed %+v", freed)
@@ -598,8 +602,9 @@ func TestTicketExpiry(t *testing.T) {
 	e := newEnv(t)
 	e.fill(2)
 	waits(t, e.gate(e.req("a", job("o/r", 1, "x"), 1, quiet)), scheduler.WaitFreeSlot)
+	held := []scheduler.JobRef{job("o/r", 900, "build"), job("o/r", 901, "build")}
 	// a fresh beat keeps it
-	e.advance(100 * time.Second)
+	e.advanceRenewing(100*time.Second, held...)
 	freed, _ := e.eng.Sweep(context.Background(), e.now)
 	if len(freed) != 0 {
 		t.Fatalf("freed %+v", freed)
@@ -607,13 +612,13 @@ func TestTicketExpiry(t *testing.T) {
 	if _, err := e.eng.Beat(context.Background(), m1, "a", quiet); err != nil {
 		t.Fatal(err)
 	}
-	e.advance(100 * time.Second)
+	e.advanceRenewing(100*time.Second, held...)
 	freed, _ = e.eng.Sweep(context.Background(), e.now)
 	if len(freed) != 0 {
 		t.Fatalf("a beat did not keep the ticket: %+v", freed)
 	}
 	// no beat for longer than max(4 polls, 120 s)
-	e.advance(30 * time.Second)
+	e.advanceRenewing(30*time.Second, held...)
 	freed, _ = e.eng.Sweep(context.Background(), e.now)
 	if len(freed) != 1 || freed[0].Reason != "no heartbeat" {
 		t.Fatalf("freed %+v", freed)
