@@ -412,3 +412,68 @@ describe('Repository detail', () => {
     );
   });
 });
+
+describe('Webhook health (RES14)', () => {
+  const polling = repository({
+    id: 9,
+    full_name: 'octo/slow',
+    owner: 'octo',
+    name: 'slow',
+    pool_on: true,
+    webhook: {
+      mode: 'polling',
+      failures_in_a_row: 3,
+      last_result: 'failed',
+      last_delivery_at: new Date(Date.now() - 5 * 60000).toISOString(),
+      polling_since: new Date().toISOString(),
+    },
+  });
+  const healthy = repository({
+    id: 10,
+    full_name: 'octo/fine',
+    owner: 'octo',
+    name: 'fine',
+    pool_on: true,
+    webhook: {
+      mode: 'webhook',
+      failures_in_a_row: 0,
+      last_result: 'ok',
+      last_delivery_at: new Date().toISOString(),
+    },
+  });
+
+  it('shows the last delivery result per repository in the list', async () => {
+    renderApp(withRepos(signedIn(), [polling, healthy, repository()]), '/repositories');
+    const table = await screen.findByRole('table', { name: 'Repositories' });
+    expect(within(table).getByText('delivery failed')).toBeTruthy();
+    expect(within(table).getByText('delivered')).toBeTruthy();
+  });
+
+  it('says crsp polls and switches back on a press', async () => {
+    const a = withRepos(signedIn(), [polling])
+      .on('GET', '/api/v1/repositories/:id', polling)
+      .on('PUT', '/api/v1/repositories/:id/webhook-mode', {
+        mode: 'webhook',
+        failures_in_a_row: 0,
+      });
+    renderApp(a, '/repositories/octo/slow');
+    expect(await screen.findByText(/now polls GitHub for its jobs/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Switch back to webhooks' }));
+    await waitFor(() =>
+      expect(a.count('PUT', '/api/v1/repositories/9/webhook-mode')).toBe(1),
+    );
+    expect(a.calls.find((c) => c.method === 'PUT')?.body).toEqual({ mode: 'webhook' });
+  });
+
+  it('draws no notice while deliveries work', async () => {
+    const a = withRepos(signedIn(), [healthy]).on(
+      'GET',
+      '/api/v1/repositories/:id',
+      healthy,
+    );
+    renderApp(a, '/repositories/octo/fine');
+    await screen.findByRole('heading', { name: 'octo/fine' });
+    expect(screen.queryByText(/now polls GitHub/)).toBeNull();
+    expect(screen.getByText('Last webhook delivery')).toBeTruthy();
+  });
+});

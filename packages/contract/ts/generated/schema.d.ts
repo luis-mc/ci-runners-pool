@@ -554,6 +554,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/repositories/{repositoryId}/webhook-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Switch a repository back to webhook deliveries
+         * @description github-integration R5.47 (RES14). After deliveries failed the controller polls the repository; this switches it back to webhooks. Only `webhook` is accepted: polling is chosen by the controller when deliveries fail.
+         */
+        put: operations["setRepositoryWebhookMode"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/repositories/{repositoryId}/runs-on": {
         parameters: {
             query?: never;
@@ -1994,6 +2014,29 @@ export interface components {
             variables: components["schemas"]["RepositoryVariable"][];
             policy: components["schemas"]["RepositoryPolicy"];
             routing?: components["schemas"]["RepositoryRouting"];
+            webhook?: components["schemas"]["WebhookHealth"];
+        };
+        /** @description The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.47). */
+        WebhookHealth: {
+            /** @enum {string} */
+            mode: "webhook" | "polling";
+            /**
+             * Format: date-time
+             * @description Absent when no delivery was seen.
+             */
+            last_delivery_at?: string;
+            /** @enum {string} */
+            last_result?: "ok" | "failed" | "missed";
+            failures_in_a_row: number;
+            /**
+             * Format: date-time
+             * @description Set in polling mode.
+             */
+            polling_since?: string;
+        };
+        WebhookModeUpdate: {
+            /** @enum {string} */
+            mode: "webhook";
         };
         /**
          * @description Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
@@ -4094,6 +4137,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExtraPackages"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setRepositoryWebhookMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub repository id. */
+                repositoryId: components["parameters"]["RepositoryId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookModeUpdate"];
+            };
+        };
+        responses: {
+            /** @description The webhook health after the switch. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookHealth"];
                 };
             };
             default: components["responses"]["Error"];
