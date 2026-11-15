@@ -211,6 +211,7 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	if cfg.Registration == "" {
 		return backend.Handle{}, errors.New("a persistent runner needs a registration token")
 	}
+	b.learn(cfg.Registration, cfg.Removal, cfg.JITConfig)
 	if !runners.ValidSHA256(r.RunnerSHA256) {
 		return backend.Handle{}, runners.ErrBadHash
 	}
@@ -494,4 +495,16 @@ func (b *Backend) ReportUsage(ctx context.Context, h backend.Handle) (backend.Us
 		}
 	}
 	return backend.Usage{CPU: time.Duration(cpu) * time.Millisecond, MemoryPeak: mem}, nil
+}
+
+// learn gives one-time values to the redactor before any log line is written (runners R5.11).
+func (b *Backend) learn(values ...string) {
+	if b.d.Secret == nil {
+		return
+	}
+	for _, v := range values {
+		if v != "" {
+			b.d.Secret(v)
+		}
+	}
 }

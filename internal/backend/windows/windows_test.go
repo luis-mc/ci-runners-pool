@@ -639,3 +639,22 @@ func TestEnvCarriesCIMaxParallel(t *testing.T) {
 		t.Errorf(".env:\n%s", env)
 	}
 }
+
+// R5.56: RUSTUP_HOME and CARGO_HOME sit under the runner's own folder, so two
+// runner accounts never share a toolchain.
+func TestToolHomesPerRunner(t *testing.T) {
+	r := newRig(t)
+	if err := start(t, r, r.spec(), backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
+		t.Fatal(err)
+	}
+	folder := `C:\ProgramData\crsp\runners\box-1`
+	env := string(r.fs.Files[folder+`\.env`])
+	for _, want := range []string{
+		`RUSTUP_HOME=` + folder + `\cache\tools\rustup` + "\n",
+		`CARGO_HOME=` + folder + `\cache\tools\cargo` + "\n",
+	} {
+		if !strings.Contains(env, want) {
+			t.Errorf(".env lacks %q:\n%s", want, env)
+		}
+	}
+}

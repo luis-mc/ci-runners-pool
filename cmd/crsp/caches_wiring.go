@@ -12,7 +12,7 @@ import (
 // service list (caches R5.36, runners R5.5). The agent measures and wipes; it
 // takes no path from the controller.
 func agentCacheSource() agent.CacheSource {
-	reg := registry.Platform(registry.RealDeps(func(string, string) {}, func(s string) string { return s }))
+	reg := registry.Platform(registry.RealDeps(func(string, string) {}, secretRedactor.Redact, secretRedactor.Add))
 	return agent.FoundRunners{Find: func(ctx context.Context) ([]agent.CacheRunner, error) {
 		b, ok := reg.Get(backend.Persistent)
 		if !ok {

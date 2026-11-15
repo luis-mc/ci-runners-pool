@@ -125,7 +125,8 @@ func TestUnitHardeningAndFolderMode(t *testing.T) {
 	if !strings.Contains(env, "ACTIONS_RUNNER_HOOK_JOB_STARTED=/var/lib/crsp/runners/box-1/hooks/job-started.sh") {
 		t.Errorf(".env:\n%s", env)
 	}
-	for _, want := range []string{"CI_TOOLS_DIR=/var/lib/crsp/runners/box-1/cache/tools\n", "CI_TOOLS_QUOTA_GIB=20\n", "CRSP_RUST_CACHE_CAP_GIB=40\n"} {
+	for _, want := range []string{"CI_TOOLS_DIR=/var/lib/crsp/runners/box-1/cache/tools\n", "CI_TOOLS_QUOTA_GIB=20\n", "CRSP_RUST_CACHE_CAP_GIB=40\n",
+		"RUSTUP_HOME=/var/lib/crsp/runners/box-1/cache/tools/rustup\n", "CARGO_HOME=/var/lib/crsp/runners/box-1/cache/tools/cargo\n"} {
 		if !strings.Contains(env, want) {
 			t.Errorf(".env lacks %q:\n%s", want, env)
 		}
@@ -340,5 +341,33 @@ func TestEnvHasNoCIMaxParallelWithoutAPoolSize(t *testing.T) {
 	r := started(t)
 	if env := string(r.fs.Files["/var/lib/crsp/runners/box-1/.env"]); strings.Contains(env, "CI_MAX_PARALLEL") {
 		t.Errorf("no pool size, no CPU count:\n%s", env)
+	}
+}
+
+// R5.56: the tool homes are under the runner's own folder.
+func TestToolHomesPerRunner(t *testing.T) {
+	r := started(t)
+	env := string(r.fs.Files["/var/lib/crsp/runners/box-1/.env"])
+	for _, want := range []string{
+		"RUSTUP_HOME=/var/lib/crsp/runners/box-1/cache/tools/rustup\n",
+		"CARGO_HOME=/var/lib/crsp/runners/box-1/cache/tools/cargo\n",
+	} {
+		if !strings.Contains(env, want) {
+			t.Errorf(".env lacks %q:\n%s", want, env)
+		}
+	}
+}
+
+// R5.11: the one-time tokens reach the redactor before any log line is written.
+func TestSecretsRedacted(t *testing.T) {
+	r := newRig()
+	var learned []string
+	r.b.d.Secret = func(s string) { learned = append(learned, s) }
+	cfg := backend.StartConfig{Registration: "REGTOKEN", Removal: "RMTOKEN"}
+	if _, err := r.b.Start(context.Background(), r.spec(), cfg); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(learned, ",") != "REGTOKEN,RMTOKEN" {
+		t.Errorf("learned %v", learned)
 	}
 }

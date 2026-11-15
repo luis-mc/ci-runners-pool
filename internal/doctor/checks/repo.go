@@ -59,10 +59,22 @@ type workflowRead struct {
 	badFiles []string
 }
 
+// repoWorkflowFiles reads the raw workflow files once per run (one REST call),
+// for the checks that parse them and for the coverage list (R5.33).
+func repoWorkflowFiles(ctx context.Context, env doctor.Env, r doctor.Repository) ([]github.WorkflowFile, error) {
+	v, err := env.Memo(fmt.Sprintf("workflow-files:%d", r.ID), func() (any, error) {
+		return env.GitHub.ListWorkflowFiles(ctx, r.InstallationID, r.Owner, r.Name, nil)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]github.WorkflowFile), nil
+}
+
 // repoWorkflows reads and parses the workflow files once per run (one REST call).
 func repoWorkflows(ctx context.Context, env doctor.Env, r doctor.Repository) (workflowRead, error) {
 	v, err := env.Memo(fmt.Sprintf("workflows:%d", r.ID), func() (any, error) {
-		files, err := env.GitHub.ListWorkflowFiles(ctx, r.InstallationID, r.Owner, r.Name, nil)
+		files, err := repoWorkflowFiles(ctx, env, r)
 		if err != nil {
 			return nil, err
 		}

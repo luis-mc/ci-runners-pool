@@ -3035,6 +3035,9 @@ components:
         light_runner:
           type: boolean
           description: Keep one light runner per OS for this repository and write RUNS_ON_LIGHT, so jobs that last seconds do not queue behind a long build (scheduling R5.65). On by default.
+        legacy_vars:
+          type: boolean
+          description: Also write CI_RUNS_ON and CI_RUNS_ON_WINDOWS with the same labels as RUNS_ON_LINUX and RUNS_ON_WINDOWS, for workflows that still follow the old dev-standards templates (github-integration R5.39). Off by default; for the move from the old pool.
         budget_memory_pct:
           type: integer
           description: May lower the machine budget for this repository's jobs, never raise it (scheduling R5.4).
@@ -3065,6 +3068,9 @@ components:
         light_runner:
           type: boolean
           description: Turn the light runner on or off (scheduling R5.65).
+        legacy_vars:
+          type: boolean
+          description: Turn the old variable names CI_RUNS_ON and CI_RUNS_ON_WINDOWS on or off (github-integration R5.39).
         confirm_fork_risk:
           type: boolean
           description: Needed to turn fork jobs on (github-integration R5.26).

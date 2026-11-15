@@ -44,6 +44,7 @@ func Register(reg *doctor.Registry) {
 		doctor.NewCheck("repo.vars", doctor.GroupRepository, M1, false, repoVars),
 		doctor.NewCheck("repo.vars.runner", doctor.GroupRepository, M1, false, repoVarsRunner),
 		doctor.NewCheck("repo.light", doctor.GroupRepository, M1, false, repoLight),
+		doctor.NewCheck("repo.coverage", doctor.GroupRepository, M1, false, repoCoverage),
 		doctor.NewCheck("workflow.labels", doctor.GroupWorkflow, M1, false, workflowLabels),
 		doctor.NewCheck("workflow.generic", doctor.GroupWorkflow, M1, false, workflowGeneric),
 		doctor.NewCheck("workflow.unresolved", doctor.GroupWorkflow, M1, false, workflowUnresolved),
