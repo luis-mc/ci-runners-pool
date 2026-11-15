@@ -44,6 +44,8 @@ func Register(reg *doctor.Registry) {
 		doctor.NewCheck("runner.labels.generic", doctor.GroupRunner, M1, false, runnerLabelsGeneric),
 		doctor.NewCheck("github.app.installation", doctor.GroupGitHub, M1, false, appInstallation),
 		doctor.NewCheck("github.app.permissions", doctor.GroupGitHub, M1, false, appPermissions),
+		doctor.NewCheck("github.webhook", doctor.GroupGitHub, M1, false, githubWebhook),
+		doctor.NewCheck("demand.quiet", doctor.GroupRepository, M1, false, demandQuiet),
 		doctor.NewCheck("repo.vars", doctor.GroupRepository, M1, false, repoVars),
 		doctor.NewCheck("repo.vars.runner", doctor.GroupRepository, M1, false, repoVarsRunner),
 		doctor.NewCheck("repo.light", doctor.GroupRepository, M1, false, repoLight),

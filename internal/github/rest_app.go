@@ -236,3 +236,40 @@ func (c *REST) UserCanAdmin(ctx context.Context, tok UserToken, owner, repo stri
 	}
 	return out.Permissions.Admin, nil
 }
+
+// HookDelivery is one webhook delivery of the App as GitHub lists it.
+type HookDelivery struct {
+	ID          int64
+	DeliveredAt time.Time
+	Event       string
+	// Status is GitHub's word ("OK", "Invalid HTTP Response: 502", ...).
+	Status     string
+	StatusCode int
+}
+
+// OK is true when the receiver answered with a 2xx status.
+func (d HookDelivery) OK() bool { return d.StatusCode >= 200 && d.StatusCode < 300 }
+
+// ListHookDeliveries lists the newest webhook deliveries of the App, newest
+// first (doctor `github.webhook`). It needs no extra permission.
+func (c *REST) ListHookDeliveries(ctx context.Context) ([]HookDelivery, error) {
+	jwt, err := c.appJWT(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var raw []struct {
+		ID          int64     `json:"id"`
+		DeliveredAt time.Time `json:"delivered_at"`
+		Event       string    `json:"event"`
+		Status      string    `json:"status"`
+		StatusCode  int       `json:"status_code"`
+	}
+	if _, err := c.do(ctx, req{method: "GET", path: "/app/hook/deliveries", bearer: jwt, query: url.Values{"per_page": {"50"}}}, &raw); err != nil {
+		return nil, err
+	}
+	out := make([]HookDelivery, 0, len(raw))
+	for _, d := range raw {
+		out = append(out, HookDelivery{ID: d.ID, DeliveredAt: d.DeliveredAt, Event: d.Event, Status: d.Status, StatusCode: d.StatusCode})
+	}
+	return out, nil
+}

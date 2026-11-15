@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func env(m map[string]string) func(string) string {
@@ -188,5 +189,19 @@ func TestMissingDefaultFileIsNotAnError(t *testing.T) {
 	_, err = LoadFor("linux", env(nil), func(string) ([]byte, error) { return nil, errors.New("permission denied") })
 	if err == nil {
 		t.Fatal("a file that cannot be read must be refused")
+	}
+}
+
+func TestDemandQuietMinutes(t *testing.T) { // github-integration R5.37
+	cfg, err := LoadFor("linux", env(nil), files(nil))
+	if err != nil || cfg.DemandQuiet != 10*time.Minute {
+		t.Fatalf("default: %v %v", cfg.DemandQuiet, err)
+	}
+	cfg, err = LoadFor("linux", env(nil), files(map[string]string{"/etc/crsp/config.toml": "demand_quiet_minutes = 3\n"}))
+	if err != nil || cfg.DemandQuiet != 3*time.Minute {
+		t.Fatalf("file: %v %v", cfg.DemandQuiet, err)
+	}
+	if _, err = LoadFor("linux", env(nil), files(map[string]string{"/etc/crsp/config.toml": "demand_quiet_minutes = 2000\n"})); err == nil || !strings.Contains(err.Error(), "demand_quiet_minutes") {
+		t.Fatalf("out of range accepted: %v", err)
 	}
 }

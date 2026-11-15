@@ -3,6 +3,8 @@ package github
 import (
 	"context"
 	"errors"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -36,6 +38,27 @@ type Poller struct {
 	Now func() time.Time
 
 	known map[int64]Job
+
+	mu         sync.Mutex
+	lastDemand map[string]time.Time // lower-case owner/repo -> last round that listed a queued job
+}
+
+// LastDemand is the time the poller last listed a queued job of the
+// repository (owner/repo), or the zero time when it has not. The quiet-demand
+// watchdog reads it (doctor `demand.quiet`).
+func (p *Poller) LastDemand(fullName string) time.Time {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.lastDemand[strings.ToLower(fullName)]
+}
+
+func (p *Poller) sawDemand(fullName string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.lastDemand == nil {
+		p.lastDemand = map[string]time.Time{}
+	}
+	p.lastDemand[strings.ToLower(fullName)] = p.Now()
 }
 
 var _ Demand = (*Poller)(nil)
@@ -117,6 +140,9 @@ func (p *Poller) round(ctx context.Context, out chan<- Job) (changed bool, rlWai
 		}
 		for _, j := range jobs {
 			seen[j.ID] = true
+			if j.Status == "queued" {
+				p.sawDemand(t.Owner + "/" + t.Repo)
+			}
 			if old, ok := p.known[j.ID]; ok && old.Status == j.Status && old.RunnerName == j.RunnerName {
 				continue
 			}

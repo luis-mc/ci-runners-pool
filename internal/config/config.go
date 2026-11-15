@@ -24,6 +24,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pelletier/go-toml/v2"
 
@@ -60,7 +61,14 @@ type Config struct {
 	// Cache is the declared cache sizing per runner (runners R5.39): tool
 	// cache quota, Rust build cache cap and the disk guard threshold.
 	Cache runnercache.Quota
+	// DemandQuiet is how long the demand source may see no demand for a
+	// repository that has queued jobs for the pool before the watchdog restarts
+	// it and the doctor warns (github-integration R5.37, doctor `demand.quiet`).
+	DemandQuiet time.Duration
 }
+
+// DefaultDemandQuietMinutes is the default of `demand_quiet_minutes`.
+const DefaultDemandQuietMinutes = 10
 
 // fileSchema is the one schema of config.toml. A key not listed here is refused.
 type fileSchema struct {
@@ -76,10 +84,12 @@ type fileSchema struct {
 	CacheRustKeyGiB int `toml:"cache_rust_key_gib"`
 	CacheBudgetGiB  int `toml:"cache_budget_gib"`
 	CacheAlertGiB   int `toml:"cache_alert_gib"`
+	// Minutes of quiet demand before the watchdog acts; 0 or absent takes 10.
+	DemandQuietMinutes int `toml:"demand_quiet_minutes"`
 }
 
 // Keys are the keys config.toml accepts, for docs and the generated reference.
-var Keys = []string{"data_dir", "listen_addr", "agent_addr", "log_level", "cache_tool_gib", "cache_rust_gib", "cache_min_free_pct", "cache_rust_key_gib", "cache_budget_gib", "cache_alert_gib"}
+var Keys = []string{"data_dir", "listen_addr", "agent_addr", "log_level", "cache_tool_gib", "cache_rust_gib", "cache_min_free_pct", "cache_rust_key_gib", "cache_budget_gib", "cache_alert_gib", "demand_quiet_minutes"}
 
 var (
 	placeholder = regexp.MustCompile(`(?i)^\s*(<[^>]*>|\$\{[^}]*\}|change[-_ ]?me|replace[-_ ]?me|todo|tbd|xxx+|your[-_ ].*|example)\s*$`)
@@ -186,6 +196,15 @@ func LoadFor(goos string, getenv func(string) string, readFile func(string) ([]b
 		RustKeyGiB: fs.CacheRustKeyGiB, BudgetGiB: fs.CacheBudgetGiB, AlertGiB: fs.CacheAlertGiB}.WithDefaults()
 	if err := cfg.Cache.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("cache: %w", err))
+	}
+
+	switch q := fs.DemandQuietMinutes; {
+	case q == 0:
+		cfg.DemandQuiet = DefaultDemandQuietMinutes * time.Minute
+	case q < 1 || q > 1440:
+		errs = append(errs, fmt.Errorf("demand_quiet_minutes: %d must be from 1 to 1440", q))
+	default:
+		cfg.DemandQuiet = time.Duration(q) * time.Minute
 	}
 
 	if err := errors.Join(errs...); err != nil {

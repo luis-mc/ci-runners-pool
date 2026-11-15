@@ -92,6 +92,14 @@ type Job struct {
 	RunnerName string
 }
 
+// Delivery is one webhook delivery of the App, as GET /app/hook/deliveries lists it.
+type Delivery struct {
+	ID          int64
+	DeliveredAt time.Time
+	Event       string
+	StatusCode  int
+}
+
 // Server is the fake GitHub.
 type Server struct {
 	*httptest.Server
@@ -111,6 +119,8 @@ type Server struct {
 	Runners       map[string][]*Runner         // scope ("owner/repo" or "org") -> runners
 	WorkflowFiles map[string]map[string]string // full repo name -> path -> content
 	Jobs          []*Job
+	// Deliveries are the App webhook deliveries, newest first.
+	Deliveries    []Delivery
 	ManifestCodes map[string]bool // unused codes
 	// NoWebhookSecret makes a conversion return an empty webhook secret, as
 	// GitHub does for an App made without a hook.

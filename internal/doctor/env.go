@@ -22,6 +22,8 @@ type Env struct {
 	KVM KVMSource
 	// Engines is nil when no agent reports its container engine; machine.engine then skips.
 	Engines EngineSource
+	// Demand is nil when the demand source is not running; demand.quiet then skips.
+	Demand DemandSource
 	// PoolName is the pool's name label; RunnerPrefix starts the name of every
 	// runner the product makes (default "crsp-").
 	PoolName     string
@@ -286,4 +288,23 @@ type EngineSource interface {
 // KVMSource lists the KVM state per machine; ErrUnreachable when an agent does not answer.
 type KVMSource interface {
 	KVM(ctx context.Context) ([]KVMState, error)
+}
+
+// QuietDemand is a repository whose queued jobs for the pool the demand source
+// has not seen for the allowed time (github-integration R5.37).
+type QuietDemand struct {
+	Repository string
+	// Queued is how many queued jobs GitHub lists for the pool.
+	Queued int
+	// Since is when the quiet started.
+	Since time.Time
+	// Restarted is true once the controller restarted the demand loop for it.
+	Restarted   bool
+	RestartedAt time.Time
+}
+
+// DemandSource lists the repositories whose demand source is quiet while jobs
+// wait. The controller's watchdog keeps it; a check only reads it.
+type DemandSource interface {
+	QuietDemand(ctx context.Context) ([]QuietDemand, error)
 }

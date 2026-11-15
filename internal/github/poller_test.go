@@ -172,3 +172,24 @@ func TestPollerAgainstFake(t *testing.T) {
 		t.Fatalf("%+v", j)
 	}
 }
+
+func TestPollerLastDemandIsTheLastQueuedJobListed(t *testing.T) { // doctor demand.quiet
+	c := &pollFake{}
+	p, ch, tick, _ := pollerHarness(t, c)
+	<-tick // first round: nothing open
+	if !p.LastDemand("A/B").IsZero() {
+		t.Fatal("no demand yet")
+	}
+	c.set(Job{ID: 1, Repository: "a/b", Status: "in_progress"})
+	<-tick
+	<-ch
+	if !p.LastDemand("a/b").IsZero() {
+		t.Fatal("an in-progress job is not demand")
+	}
+	c.set(Job{ID: 2, Repository: "a/b", Status: "queued"})
+	<-tick
+	<-ch
+	if p.LastDemand("A/B").IsZero() {
+		t.Fatal("a queued job is demand, whatever the case of the name")
+	}
+}

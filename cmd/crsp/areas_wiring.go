@@ -182,7 +182,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// Demand: poll queued jobs of the repositories with the pool on and start one
 	// ephemeral container runner per job on a machine whose allow list names
 	// the container backend (github-integration R5.37, runners R5.27, R5.31).
-	stopDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines}, runnerSvc, pool)
+	stopDemand, quietDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines}, runnerSvc, pool, d.Cfg.DemandQuiet)
 	c.closers = append(c.closers, stopDemand)
 
 	// Doctor: the M1 check registry over the controller's own data.
@@ -198,6 +198,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		KVM:     reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
 		Engines: reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
 		Extra:   checks.KVMReportedChecks(),
+		Demand:  quietSource{wd: quietDemand},
 	})
 
 	c.Options.Version, c.Options.DB, c.Options.Logger = version, d.DB, logger
