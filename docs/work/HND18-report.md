@@ -14,7 +14,14 @@ Branch `HND18-vm-doctor` from origin/main (40f779d). Parity item: caches R5.46 `
 - [x] 2 checks (tests with fakes in vm_test.go)
 - [x] 3 manifest (manifest.go, EnsureBasePackages, prune keeps manifest with base)
 - [x] 4 probe and command (internal/jobcmd/vmdoctor.go, VMHost fakes)
-- [ ] 5 docs and PR
+- [x] 5 docs (caches R5.46, doctor R5.42, parity plan, change notes); PR open
 
 ## Decisions
 - Packages are not installed into the base disk (needs a guest boot on the base; stays open question 19). The manifest records the list the base was keyed with; a base with no manifest counts as an empty list. A build with packages and no installer is refused, so a manifest never claims what is not in the disk.
+
+## Checks run
+- `go test -race` on internal/jobcmd, internal/vmcheck, internal/doctor/...: green.
+- `GOOS=windows go vet ./internal/... ./cmd/...`: clean.
+- `golangci-lint`: could not run here (binary built with go1.25, repo targets go1.27.4). CI lint covers it. errcheck by hand: every error is checked or discarded with `_ =`.
+- `docs_check.py` and `docs_fold.py`: the luismc-docs plugin is not in this sandbox; the two change notes were written by hand in the existing format.
+- No shell files changed (no shellcheck).
