@@ -160,7 +160,8 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 
 	// Automatic runner updates follow the product's automatic-update setting
 	// (runners R5.38, operations R5.15). The agent link has no update message
-	// yet, so Updater stays nil and an update answers with that reason.
+	// yet, so Updater stays nil and an update answers with that reason. No
+	// command or flag reads this setting.
 	if d.Ops != nil && d.Ops.Settings != nil {
 		set := d.Ops.Settings
 		runnerSvc.AutoUpdate = func(ctx context.Context) bool {
