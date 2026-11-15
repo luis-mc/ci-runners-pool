@@ -502,3 +502,52 @@ func runnerToolCache(ctx context.Context, env doctor.Env) []doctor.Finding {
 	}
 	return out
 }
+
+// runnerSymlink is R5.42: a Windows runner whose setting asks for the symbolic
+// link right holds it (runners R5.14). Without it cargo-xwin and Rust tooling
+// fail on `os error 1314`. Developer Mode also lets the account link, so it
+// makes the finding `ok` with a note. The check reads only: it never grants
+// the right and never turns Developer Mode on.
+func runnerSymlink(ctx context.Context, env doctor.Env) []doctor.Finding {
+	rs, ms, out := persistentRunners(ctx, env, "runner.symlink")
+	for _, r := range rs {
+		if r.OS != "windows" {
+			continue
+		}
+		m := ms[r.MachineID]
+		f := doctor.Finding{Check: "runner.symlink", Subject: runnerSubject(r)}
+		p := r.Symlink
+		switch {
+		case !isOnline(env, m):
+			out = append(out, offlineSkip("runner.symlink", m))
+			continue
+		case p == nil && !r.SymlinkWanted:
+			continue // nothing asked, nothing read: no finding
+		case p == nil:
+			f.Severity, f.Title = doctor.Skip, "The symbolic link right of "+r.Name+" was not looked at"
+			f.Detail = "The agent on " + m.Name + " did not read the rights of the runner's account."
+			f.Fix = doctor.Fix{Text: "Update the agent on " + m.Name + " and run the checks again.", Command: "crsp doctor --check runner.symlink"}
+		case p.Err != "":
+			f.Severity, f.Title = doctor.Skip, "The symbolic link right of "+r.Name+" could not be read"
+			f.Detail = "The agent said: " + p.Err + "."
+			f.Fix = doctor.Fix{Text: "Run the check again from an agent with administrator rights on " + m.Name + ".", Command: "crsp doctor --check runner.symlink"}
+		case r.SymlinkWanted && p.Held:
+			f.Severity, f.Title = doctor.OK, r.Name+" can create symbolic links"
+		case r.SymlinkWanted && p.DeveloperMode:
+			f.Severity, f.Title = doctor.OK, r.Name+" can create symbolic links through Developer Mode"
+			f.Detail = "The account does not hold the right itself; Developer Mode on " + m.Name + " lets it link. Turning Developer Mode off would stop it."
+		case r.SymlinkWanted:
+			f.Severity, f.Title = doctor.Fail, r.Name+" cannot create symbolic links"
+			f.Detail = "The setting asks for the symbolic link right, but the account of " + r.Name + " does not hold it and Developer Mode is off on " + m.Name + ". Jobs that link files fail with \"A required privilege is not held by the client\"."
+			f.Fix = doctor.Fix{Text: "Add the runner again from the Runners screen; it gives the right to the runner's account and to no other account.", Link: "/runners"}
+		case p.Held:
+			f.Severity, f.Title = doctor.Warn, r.Name+" holds a symbolic link right that its setting does not ask for"
+			f.Detail = "The account of " + r.Name + " holds the right while the machine and label settings do not ask for it."
+			f.Fix = doctor.Fix{Text: "Add the runner again from the Runners screen; it takes the right away.", Link: "/runners"}
+		default:
+			f.Severity, f.Title = doctor.OK, r.Name+" holds no symbolic link right, as its setting says"
+		}
+		out = append(out, f)
+	}
+	return out
+}

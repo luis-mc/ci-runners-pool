@@ -184,6 +184,23 @@ type Runner struct {
 	// ToolCache is what the agent saw in the runner's tool cache; nil when it
 	// did not look (R5.35).
 	ToolCache *ToolCacheProbe
+	// SymlinkWanted is true when the machine or label setting asks for the
+	// symbolic link right for this runner (runners R5.14). Symlink is what the
+	// agent read; nil when it did not look (R5.42).
+	SymlinkWanted bool
+	Symlink       *SymlinkProbe
+}
+
+// SymlinkProbe is what the agent read about the symbolic link right of a
+// Windows runner's account. It only reads; Developer Mode is never turned on.
+type SymlinkProbe struct {
+	// Held is true when the account holds SeCreateSymbolicLinkPrivilege.
+	Held bool
+	// DeveloperMode is true when Windows Developer Mode is on (a non-admin
+	// account can then link without the right).
+	DeveloperMode bool
+	// Err is set when the agent could not read the right.
+	Err string
 }
 
 // ToolCacheProbe is what the agent found in a runner's tool cache (_work/_tool
