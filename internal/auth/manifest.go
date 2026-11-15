@@ -29,8 +29,8 @@ type Manifest struct {
 	SetupURL              string            `json:"setup_url"`
 	SetupOnUpdate         bool              `json:"setup_on_update"`
 	Public                bool              `json:"public"`
-	HookAttributes        HookAttributes    `json:"hook_attributes"`
-	DefaultEvents         []string          `json:"default_events"`
+	HookAttributes        *HookAttributes   `json:"hook_attributes,omitempty"`
+	DefaultEvents         []string          `json:"default_events,omitempty"`
 	DefaultPermissions    map[string]string `json:"default_permissions"`
 	RequestOAuthOnInstall bool              `json:"request_oauth_on_install"`
 }
@@ -78,21 +78,23 @@ func BuildManifest(o ManifestOptions) (Manifest, error) {
 		SetupURL:              first + "/repositories",
 		SetupOnUpdate:         true,
 		Public:                false,
-		DefaultEvents:         append([]string(nil), Events...),
 		DefaultPermissions:    map[string]string{},
 		RequestOAuthOnInstall: false,
 	}
 	for k, v := range Permissions {
 		m.DefaultPermissions[k] = v
 	}
-	// Webhooks stay off for a local-only controller (R5.5).
-	m.HookAttributes = HookAttributes{URL: first + "/webhooks/github", Active: false}
+	// Webhooks stay off for a local-only controller (R5.5). GitHub refuses a
+	// manifest whose hook URL is not public, even an inactive one, so a
+	// controller without a public webhook URL sends no hook and no events and
+	// finds jobs by polling (R5.37).
 	if !AllLoopback(o.ConsoleURLs) && o.WebhookURL != "" {
 		u, err := url.Parse(o.WebhookURL)
 		if err != nil || u.Scheme != "https" || u.Host == "" || IsLoopbackHost(u.Host) {
 			return Manifest{}, Invalid("webhook URL must be a public https address")
 		}
-		m.HookAttributes = HookAttributes{URL: o.WebhookURL, Active: true}
+		m.HookAttributes = &HookAttributes{URL: o.WebhookURL, Active: true}
+		m.DefaultEvents = append([]string(nil), Events...)
 	}
 	return m, nil
 }
@@ -113,7 +115,7 @@ func (s *Service) StartManifest(ctx context.Context, o ManifestOptions) (Manifes
 	if err != nil {
 		return ManifestForm{}, err
 	}
-	state := s.states.put("manifest", StateTTL, map[string]string{"webhook": fmt.Sprint(m.HookAttributes.Active)})
+	state := s.states.put("manifest", StateTTL, map[string]string{"webhook": fmt.Sprint(m.HookAttributes != nil && m.HookAttributes.Active)})
 	post := s.cfg.WebBase + "/settings/apps/new"
 	if o.Organization != "" {
 		post = s.cfg.WebBase + "/organizations/" + url.PathEscape(o.Organization) + "/settings/apps/new"

@@ -140,7 +140,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 **R5.4** (M1, built) — **Callback URLs.** The App's callback URLs are the console addresses chosen in the wizard, each ending in `/auth/github/callback`. A loopback address uses `http://127.0.0.1:<port>`. Any other address uses `https`. The controller never registers `https://localhost` (GitHub rejects it) and never registers `http` for a non-loopback host. The dev App uses `http://127.0.0.1:8460/auth/github/callback`.
 
-**R5.5** (M1, built) — **Webhooks off for a local-only controller.** When every console address is loopback, the manifest sets the webhook inactive. Demand then comes from the scale-set API or polling (R5.29 to R5.31). The owner can turn webhooks on later by giving a public HTTPS URL.
+**R5.5** (M1, built) — **Webhooks off for a local-only controller.** When no public HTTPS webhook URL is given (always the case when every console address is loopback), the manifest carries no `hook_attributes` and no `default_events`: GitHub refuses a manifest whose hook URL it cannot reach, even an inactive one (found in the v0.1.0 owner test, OPS7). Demand then comes from the scale-set API or polling (R5.29 to R5.31). The owner can turn webhooks on later by giving a public HTTPS URL.
 
 **R5.6** (M1, NOT YET IMPLEMENTED) — **App health.** The controller reads `GET /app` with an App JWT at start and every hour. When GitHub says the App or its key is gone, GitHub work stops, the console says so, and it offers to run the wizard again. Running jobs are not touched.
 
