@@ -2,14 +2,14 @@
 # The `browsers` image layer: Playwright browsers and their system libraries on
 # top of the base job image (runners R5.44, R5.50; caches R5.41).
 #   docker build --build-arg BASE_IMAGE=crsp-linux-base:ci \
-#     --build-arg PLAYWRIGHT_VERSION=1.56.1 -t crsp-linux-browsers images/layers/browsers
+#     --build-arg PLAYWRIGHT_VERSION=1.65.1 -t crsp-linux-browsers images/layers/browsers
 #
 # The Playwright version is pinned. A rebuild never lowers it for a pool
 # (internal/runners/layers.go, NeverLower); the pool passes the version in.
 ARG BASE_IMAGE=crsp-linux-base:ci
 FROM ${BASE_IMAGE}
 
-ARG PLAYWRIGHT_VERSION=1.56.1
+ARG PLAYWRIGHT_VERSION=1.65.1
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/crsp/browsers \
     PLAYWRIGHT_SKIP_BROWSER_GARBAGE_COLLECTION=1
 
