@@ -868,6 +868,33 @@ func (e PlanStepState) Valid() bool {
 	}
 }
 
+// Defines values for PoolSizeCheckShort.
+const (
+	PoolSizeCheckShortCpu    PoolSizeCheckShort = "cpu"
+	PoolSizeCheckShortDocker PoolSizeCheckShort = "docker"
+	PoolSizeCheckShortFloor  PoolSizeCheckShort = "floor"
+	PoolSizeCheckShortMemory PoolSizeCheckShort = "memory"
+	PoolSizeCheckShortRatio  PoolSizeCheckShort = "ratio"
+)
+
+// Valid indicates whether the value is a known member of the PoolSizeCheckShort enum.
+func (e PoolSizeCheckShort) Valid() bool {
+	switch e {
+	case PoolSizeCheckShortCpu:
+		return true
+	case PoolSizeCheckShortDocker:
+		return true
+	case PoolSizeCheckShortFloor:
+		return true
+	case PoolSizeCheckShortMemory:
+		return true
+	case PoolSizeCheckShortRatio:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for QueueSettingsOrder.
 const (
 	EventClass QueueSettingsOrder = "event_class"
@@ -2261,6 +2288,47 @@ type PoolSettings struct {
 	SizeSlotsFromMachine bool `json:"size_slots_from_machine"`
 }
 
+// PoolSizeCheck defines model for PoolSizeCheck.
+type PoolSizeCheck struct {
+	CpuBudget        *int    `json:"cpu_budget,omitempty"`
+	CurrentCpus      int     `json:"current_cpus"`
+	CurrentMemoryGib float64 `json:"current_memory_gib"`
+
+	// Decided The figure that decided.
+	Decided          *string  `json:"decided,omitempty"`
+	DockerCeilingGib *float64 `json:"docker_ceiling_gib,omitempty"`
+
+	// Known False when the controller lacks the machine figures to check; `why` says what is missing.
+	Known           bool     `json:"known"`
+	MemoryBudgetGib *float64 `json:"memory_budget_gib,omitempty"`
+
+	// Nearest Sizes that pass, as sentences.
+	Nearest []string `json:"nearest"`
+
+	// NeedsShrinkConfirm The size is below the current one; saving needs confirm_shrink.
+	NeedsShrinkConfirm bool `json:"needs_shrink_confirm"`
+
+	// Ok The size fits and, when it is a shrink, needs only the explicit yes.
+	Ok bool `json:"ok"`
+
+	// Reason Why it is refused, naming the budget that is short.
+	Reason         *string             `json:"reason,omitempty"`
+	RoomGib        *float64            `json:"room_gib,omitempty"`
+	Short          *PoolSizeCheckShort `json:"short,omitempty"`
+	TotalGib       *float64            `json:"total_gib,omitempty"`
+	UsedOutsideGib *float64            `json:"used_outside_gib,omitempty"`
+	Why            *string             `json:"why,omitempty"`
+}
+
+// PoolSizeCheckShort defines model for PoolSizeCheck.Short.
+type PoolSizeCheckShort string
+
+// PoolSizeCheckRequest defines model for PoolSizeCheckRequest.
+type PoolSizeCheckRequest struct {
+	PoolCpus      int     `json:"pool_cpus"`
+	PoolMemoryGib float64 `json:"pool_memory_gib"`
+}
+
 // Preferences defines model for Preferences.
 type Preferences struct {
 	Theme Theme `json:"theme"`
@@ -2940,6 +3008,9 @@ type DecideMachineChangeJSONRequestBody = MachineChangeDecision
 // DrainMachineJSONRequestBody defines body for DrainMachine for application/json ContentType.
 type DrainMachineJSONRequestBody = DrainRequest
 
+// CheckMachinePoolSizeJSONRequestBody defines body for CheckMachinePoolSize for application/json ContentType.
+type CheckMachinePoolSizeJSONRequestBody = PoolSizeCheckRequest
+
 // FreeStaleSlotsJSONRequestBody defines body for FreeStaleSlots for application/json ContentType.
 type FreeStaleSlotsJSONRequestBody = FreeSlotsRequest
 
@@ -3428,6 +3499,24 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/machines/{machineId}/load (the `GetMachineLoad` operationId).
 	GetMachineLoad(ctx context.Context, machineId MachineId, params *GetMachineLoadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CheckMachinePoolSizeWithBody Check a pool size against the budget without saving it
+	//
+	// machines R5.58. Answers whether the memory and CPUs fit the budget, the sizing figures behind the answer and the nearest sizes that pass. It says when the size is below the current one, which the save then asks to confirm. 0 and 0 mean clearing the size. Nothing changes.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/pool-size-check (the `CheckMachinePoolSize` operationId).
+	CheckMachinePoolSizeWithBody(ctx context.Context, machineId MachineId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CheckMachinePoolSize Check a pool size against the budget without saving it
+	//
+	// machines R5.58. Answers whether the memory and CPUs fit the budget, the sizing figures behind the answer and the nearest sizes that pass. It says when the size is below the current one, which the save then asks to confirm. 0 and 0 mean clearing the size. Nothing changes.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/pool-size-check (the `CheckMachinePoolSize` operationId).
+	CheckMachinePoolSize(ctx context.Context, machineId MachineId, body CheckMachinePoolSizeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RedetectMachine Check again; the agent detects facts and backends now
 	//
@@ -4822,6 +4911,44 @@ func (c *Client) DrainMachine(ctx context.Context, machineId MachineId, body Dra
 // Corresponds with GET /api/v1/machines/{machineId}/load (the `GetMachineLoad` operationId).
 func (c *Client) GetMachineLoad(ctx context.Context, machineId MachineId, params *GetMachineLoadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetMachineLoadRequest(c.Server, machineId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CheckMachinePoolSizeWithBody Check a pool size against the budget without saving it
+//
+// machines R5.58. Answers whether the memory and CPUs fit the budget, the sizing figures behind the answer and the nearest sizes that pass. It says when the size is below the current one, which the save then asks to confirm. 0 and 0 mean clearing the size. Nothing changes.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/machines/{machineId}/pool-size-check (the `CheckMachinePoolSize` operationId).
+func (c *Client) CheckMachinePoolSizeWithBody(ctx context.Context, machineId MachineId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCheckMachinePoolSizeRequestWithBody(c.Server, machineId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CheckMachinePoolSize Check a pool size against the budget without saving it
+//
+// machines R5.58. Answers whether the memory and CPUs fit the budget, the sizing figures behind the answer and the nearest sizes that pass. It says when the size is below the current one, which the save then asks to confirm. 0 and 0 mean clearing the size. Nothing changes.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/machines/{machineId}/pool-size-check (the `CheckMachinePoolSize` operationId).
+func (c *Client) CheckMachinePoolSize(ctx context.Context, machineId MachineId, body CheckMachinePoolSizeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCheckMachinePoolSizeRequest(c.Server, machineId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -8249,6 +8376,53 @@ func NewGetMachineLoadRequest(server string, machineId MachineId, params *GetMac
 	return req, nil
 }
 
+// NewCheckMachinePoolSizeRequest calls the generic CheckMachinePoolSize builder with application/json body
+func NewCheckMachinePoolSizeRequest(server string, machineId MachineId, body CheckMachinePoolSizeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCheckMachinePoolSizeRequestWithBody(server, machineId, "application/json", bodyReader)
+}
+
+// NewCheckMachinePoolSizeRequestWithBody constructs an http.Request for the CheckMachinePoolSize method, with any body, and a specified content type
+func NewCheckMachinePoolSizeRequestWithBody(server string, machineId MachineId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "machineId", machineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/machines/%s/pool-size-check", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewRedetectMachineRequest constructs an http.Request for the RedetectMachine method
 func NewRedetectMachineRequest(server string, machineId MachineId) (*http.Request, error) {
 	var err error
@@ -10903,6 +11077,24 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/machines/{machineId}/load (the `GetMachineLoad` operationId).
 	GetMachineLoadWithResponse(ctx context.Context, machineId MachineId, params *GetMachineLoadParams, reqEditors ...RequestEditorFn) (*GetMachineLoadResponse, error)
 
+	// CheckMachinePoolSizeWithBodyWithResponse Check a pool size against the budget without saving it
+	//
+	// machines R5.58. Answers whether the memory and CPUs fit the budget, the sizing figures behind the answer and the nearest sizes that pass. It says when the size is below the current one, which the save then asks to confirm. 0 and 0 mean clearing the size. Nothing changes.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/pool-size-check (the `CheckMachinePoolSize` operationId).
+	CheckMachinePoolSizeWithBodyWithResponse(ctx context.Context, machineId MachineId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CheckMachinePoolSizeResponse, error)
+
+	// CheckMachinePoolSizeWithResponse Check a pool size against the budget without saving it
+	//
+	// machines R5.58. Answers whether the memory and CPUs fit the budget, the sizing figures behind the answer and the nearest sizes that pass. It says when the size is below the current one, which the save then asks to confirm. 0 and 0 mean clearing the size. Nothing changes.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/pool-size-check (the `CheckMachinePoolSize` operationId).
+	CheckMachinePoolSizeWithResponse(ctx context.Context, machineId MachineId, body CheckMachinePoolSizeJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckMachinePoolSizeResponse, error)
+
 	// RedetectMachineWithResponse Check again; the agent detects facts and backends now
 	//
 	// machines R5.13.
@@ -13549,6 +13741,54 @@ func (r GetMachineLoadResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetMachineLoadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CheckMachinePoolSizeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PoolSizeCheck
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CheckMachinePoolSizeResponse) GetJSON200() *PoolSizeCheck {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r CheckMachinePoolSizeResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CheckMachinePoolSizeResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CheckMachinePoolSizeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CheckMachinePoolSizeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CheckMachinePoolSizeResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -16807,6 +17047,36 @@ func (c *ClientWithResponses) GetMachineLoadWithResponse(ctx context.Context, ma
 	return ParseGetMachineLoadResponse(rsp)
 }
 
+// CheckMachinePoolSizeWithBodyWithResponse Check a pool size against the budget without saving it
+//
+// machines R5.58. Answers whether the memory and CPUs fit the budget, the sizing figures behind the answer and the nearest sizes that pass. It says when the size is below the current one, which the save then asks to confirm. 0 and 0 mean clearing the size. Nothing changes.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/machines/{machineId}/pool-size-check (the `CheckMachinePoolSize` operationId).
+func (c *ClientWithResponses) CheckMachinePoolSizeWithBodyWithResponse(ctx context.Context, machineId MachineId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CheckMachinePoolSizeResponse, error) {
+	rsp, err := c.CheckMachinePoolSizeWithBody(ctx, machineId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCheckMachinePoolSizeResponse(rsp)
+}
+
+// CheckMachinePoolSizeWithResponse Check a pool size against the budget without saving it
+//
+// machines R5.58. Answers whether the memory and CPUs fit the budget, the sizing figures behind the answer and the nearest sizes that pass. It says when the size is below the current one, which the save then asks to confirm. 0 and 0 mean clearing the size. Nothing changes.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/machines/{machineId}/pool-size-check (the `CheckMachinePoolSize` operationId).
+func (c *ClientWithResponses) CheckMachinePoolSizeWithResponse(ctx context.Context, machineId MachineId, body CheckMachinePoolSizeJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckMachinePoolSizeResponse, error) {
+	rsp, err := c.CheckMachinePoolSize(ctx, machineId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCheckMachinePoolSizeResponse(rsp)
+}
+
 // RedetectMachineWithResponse Check again; the agent detects facts and backends now
 //
 // machines R5.13.
@@ -19273,6 +19543,39 @@ func ParseGetMachineLoadResponse(rsp *http.Response) (*GetMachineLoadResponse, e
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest LoadHistory
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCheckMachinePoolSizeResponse parses an HTTP response from a CheckMachinePoolSizeWithResponse call
+func ParseCheckMachinePoolSizeResponse(rsp *http.Response) (*CheckMachinePoolSizeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CheckMachinePoolSizeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PoolSizeCheck
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

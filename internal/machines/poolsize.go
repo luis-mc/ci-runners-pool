@@ -1,6 +1,7 @@
 package machines
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -92,4 +93,56 @@ func (s *Service) checkPoolSize(id string, m Machine, cur, next Settings, confir
 func sizingLine(r poolsize.Result) string {
 	return fmt.Sprintf("machine %.1f GiB, used outside WSL %.1f GiB, memory budget %.1f GiB, room %.1f GiB, CPU budget %d, decided by the %s",
 		r.TotalGiB, r.UsedOutsideGiB, r.MemBudgetGiB, r.RoomGiB, r.CPUBudget, r.Decided)
+}
+
+// PoolSizeCheck is the dry run of R5.58 for the console's Review step: the
+// result of the check for a proposed size, the current size and whether the
+// change lowers it. Nothing is saved. Known is false, with Why, when the
+// controller lacks the figures to check (no facts or no load yet).
+type PoolSizeCheck struct {
+	Known     bool
+	Why       string
+	Result    poolsize.Result
+	CurMemGiB float64
+	CurCPUs   int
+	Shrinks   bool
+}
+
+// PoolSizeCheck checks a proposed pool size on a machine without saving it.
+// 0 and 0 mean clearing the size.
+func (s *Service) PoolSizeCheck(ctx context.Context, id string, memGiB float64, cpus int) (PoolSizeCheck, error) {
+	v, err := s.Get(ctx, id)
+	if err != nil {
+		return PoolSizeCheck{}, err
+	}
+	cur := v.Settings
+	out := PoolSizeCheck{CurMemGiB: cur.PoolMemoryGiB, CurCPUs: cur.PoolCPUs}
+	if memGiB < 0 || cpus < 0 {
+		return out, fmt.Errorf("%w: the pool size cannot be negative", ErrInvalid)
+	}
+	if memGiB == 0 && cpus == 0 {
+		out.Known, out.Result.OK = true, true
+		out.Shrinks = cur.PoolMemoryGiB > 0 || cur.PoolCPUs > 0
+		return out, nil
+	}
+	if memGiB <= 0 || cpus <= 0 {
+		return out, fmt.Errorf("%w: set the pool memory and the pool CPUs together", ErrInvalid)
+	}
+	next := cur
+	next.PoolMemoryGiB, next.PoolCPUs = memGiB, cpus
+	if why := (poolsize.WSLConfig{
+		MemoryBytes: v.Machine.Facts.WSL.MemoryBytes, MemorySet: v.Machine.Facts.WSL.MemoryBytes > 0,
+		Processors: v.Machine.Facts.WSL.Processors, ProcSet: v.Machine.Facts.WSL.Processors > 0,
+	}).Refusal(v.Machine.Facts.MemoryBytes, v.Machine.Facts.Threads); why != "" {
+		out.Known = true
+		out.Result = poolsize.Result{Reason: why, Short: "docker", Decided: ".wslconfig"}
+		return out, nil
+	}
+	res, err := s.CheckPoolSize(id, v.Machine, cur, next, false)
+	if err != nil {
+		out.Why = strings.TrimPrefix(err.Error(), ErrInvalid.Error()+": ")
+		return out, nil
+	}
+	out.Known, out.Result, out.Shrinks = true, res, res.NeedsShrinkConfirm
+	return out, nil
 }

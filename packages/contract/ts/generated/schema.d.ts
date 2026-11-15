@@ -683,6 +683,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/machines/{machineId}/pool-size-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check a pool size against the budget without saving it
+         * @description machines R5.58. Answers whether the memory and CPUs fit the budget, the sizing figures behind the answer and the nearest sizes that pass. It says when the size is below the current one, which the save then asks to confirm. 0 and 0 mean clearing the size. Nothing changes.
+         */
+        post: operations["checkMachinePoolSize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/machines/{machineId}/redetect": {
         parameters: {
             query?: never;
@@ -2289,6 +2309,64 @@ export interface components {
             pool_memory_gib?: number;
             /** @description The CPUs the pool may use on this machine (machines R5.58). 0 means not set. Split over the job slots it gives CI_MAX_PARALLEL (runners R5.53). */
             pool_cpus?: number;
+        };
+        /**
+         * @example {
+         *       "pool_memory_gib": 16,
+         *       "pool_cpus": 4
+         *     }
+         */
+        PoolSizeCheckRequest: {
+            /** Format: double */
+            pool_memory_gib: number;
+            pool_cpus: number;
+        };
+        /**
+         * @example {
+         *       "known": true,
+         *       "ok": true,
+         *       "needs_shrink_confirm": false,
+         *       "nearest": [],
+         *       "total_gib": 32,
+         *       "used_outside_gib": 8,
+         *       "memory_budget_gib": 27.2,
+         *       "room_gib": 19.2,
+         *       "cpu_budget": 4,
+         *       "decided": "fits",
+         *       "current_memory_gib": 0,
+         *       "current_cpus": 0
+         *     }
+         */
+        PoolSizeCheck: {
+            /** @description False when the controller lacks the machine figures to check; `why` says what is missing. */
+            known: boolean;
+            why?: string;
+            /** @description The size fits and, when it is a shrink, needs only the explicit yes. */
+            ok: boolean;
+            /** @description The size is below the current one; saving needs confirm_shrink. */
+            needs_shrink_confirm: boolean;
+            /** @description Why it is refused, naming the budget that is short. */
+            reason?: string;
+            /** @enum {string} */
+            short?: "floor" | "cpu" | "memory" | "ratio" | "docker";
+            /** @description Sizes that pass, as sentences. */
+            nearest: string[];
+            /** Format: double */
+            total_gib?: number;
+            /** Format: double */
+            used_outside_gib?: number;
+            /** Format: double */
+            memory_budget_gib?: number;
+            /** Format: double */
+            room_gib?: number;
+            cpu_budget?: number;
+            /** Format: double */
+            docker_ceiling_gib?: number;
+            /** @description The figure that decided. */
+            decided?: string;
+            /** Format: double */
+            current_memory_gib: number;
+            current_cpus: number;
         };
         /**
          * @example {
@@ -4134,6 +4212,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Machine"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    checkMachinePoolSize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PoolSizeCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description The check. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PoolSizeCheck"];
                 };
             };
             default: components["responses"]["Error"];

@@ -14,6 +14,7 @@ import (
 // MachinesService is what the machines routes need (machines R5.50 to R5.52,
 // R6.4). *machines.Service implements it.
 type MachinesService interface {
+	PoolSizeCheck(ctx context.Context, id string, memGiB float64, cpus int) (machines.PoolSizeCheck, error)
 	List(ctx context.Context) ([]machines.View, error)
 	Get(ctx context.Context, id string) (machines.View, error)
 	UpdateSettings(ctx context.Context, actor, id string, u machines.SettingsUpdate) (machines.View, *machines.Change, error)
@@ -373,6 +374,42 @@ func (s *server) ResumeMachine(ctx context.Context, r gen.ResumeMachineRequestOb
 		return fail[gen.ResumeMachinedefaultJSONResponse](s, err), nil
 	}
 	return gen.ResumeMachine200JSONResponse(machineToAPI(v, time.Now())), nil
+}
+
+// CheckMachinePoolSize implements POST /api/v1/machines/{machineId}/pool-size-check
+// (machines R5.58): the dry run behind the console's Review step.
+func (s *server) CheckMachinePoolSize(ctx context.Context, r gen.CheckMachinePoolSizeRequestObject) (gen.CheckMachinePoolSizeResponseObject, error) {
+	if s.machinesOff() {
+		return machinesUnavailable[gen.CheckMachinePoolSizedefaultJSONResponse](), nil
+	}
+	if r.Body == nil {
+		return fail[gen.CheckMachinePoolSizedefaultJSONResponse](s, machines.ErrInvalid), nil
+	}
+	c, err := s.opts.Machines.PoolSizeCheck(ctx, r.MachineId, r.Body.PoolMemoryGib, r.Body.PoolCpus)
+	if err != nil {
+		return fail[gen.CheckMachinePoolSizedefaultJSONResponse](s, err), nil
+	}
+	res := c.Result
+	out := gen.PoolSizeCheck{Known: c.Known, Ok: c.Known && (res.OK || res.NeedsShrinkConfirm), NeedsShrinkConfirm: c.Shrinks,
+		Nearest: nonNil(res.Nearest), CurrentMemoryGib: c.CurMemGiB, CurrentCpus: c.CurCPUs,
+		TotalGib: &res.TotalGiB, UsedOutsideGib: &res.UsedOutsideGiB, MemoryBudgetGib: &res.MemBudgetGiB, RoomGib: &res.RoomGiB, CpuBudget: &res.CPUBudget}
+	if c.Why != "" {
+		out.Why = &c.Why
+	}
+	if res.Reason != "" {
+		out.Reason = &res.Reason
+	}
+	if res.Short != "" {
+		short := gen.PoolSizeCheckShort(res.Short)
+		out.Short = &short
+	}
+	if res.DockerCeilingGiB > 0 {
+		out.DockerCeilingGib = &res.DockerCeilingGiB
+	}
+	if res.Decided != "" {
+		out.Decided = &res.Decided
+	}
+	return gen.CheckMachinePoolSize200JSONResponse(out), nil
 }
 
 // RedetectMachine implements POST /api/v1/machines/{machineId}/redetect (Check again, machines R5.13).

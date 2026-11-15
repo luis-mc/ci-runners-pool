@@ -61,3 +61,41 @@ func TestPoolSizeThroughTheAPI(t *testing.T) {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
 }
+
+// machines R5.58: the dry run behind the console's Review step answers the
+// result and the nearest sizes and saves nothing.
+func TestPoolSizeCheckDryRun(t *testing.T) {
+	mux, id := poolMux(t)
+	check := func(mem float64, cpus int) gen.PoolSizeCheck {
+		t.Helper()
+		rec := doM(t, mux, "POST", "/api/v1/machines/"+id+"/pool-size-check", map[string]any{"pool_memory_gib": mem, "pool_cpus": cpus})
+		if rec.Code != 200 {
+			t.Fatalf("%d %s", rec.Code, rec.Body)
+		}
+		var c gen.PoolSizeCheck
+		_ = json.Unmarshal(rec.Body.Bytes(), &c)
+		return c
+	}
+	if c := check(16.5, 4); !c.Known || !c.Ok || c.NeedsShrinkConfirm {
+		t.Fatalf("a size that fits: %+v", c)
+	}
+	c := check(30, 4)
+	if !c.Known || c.Ok || c.Reason == nil || len(c.Nearest) == 0 || c.Short == nil || *c.Short != "memory" || c.RoomGib == nil {
+		t.Fatalf("a size over the budget names the budget and the nearest size: %+v", c)
+	}
+	if rec := doM(t, mux, "GET", "/api/v1/machines/"+id, nil); strings.Contains(rec.Body.String(), `"pool_cpus":4`) {
+		t.Fatalf("the check saved a size: %s", rec.Body)
+	}
+	if rec := doM(t, mux, "PATCH", "/api/v1/machines/"+id, map[string]any{"pool_memory_gib": 16.5, "pool_cpus": 4}); rec.Code != 200 {
+		t.Fatal(rec.Body)
+	}
+	if c := check(8, 4); !c.Ok || !c.NeedsShrinkConfirm || c.CurrentCpus != 4 || c.CurrentMemoryGib != 16.5 {
+		t.Fatalf("a lower size says it needs the explicit yes: %+v", c)
+	}
+	if c := check(0, 0); !c.Known || !c.Ok || !c.NeedsShrinkConfirm {
+		t.Fatalf("clearing is a shrink: %+v", c)
+	}
+	if rec := doM(t, mux, "POST", "/api/v1/machines/"+id+"/pool-size-check", map[string]any{"pool_memory_gib": 8, "pool_cpus": 0}); rec.Code != 400 {
+		t.Fatalf("memory without CPUs is refused: %d", rec.Code)
+	}
+}

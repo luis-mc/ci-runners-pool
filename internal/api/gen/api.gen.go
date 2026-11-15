@@ -867,6 +867,33 @@ func (e PlanStepState) Valid() bool {
 	}
 }
 
+// Defines values for PoolSizeCheckShort.
+const (
+	PoolSizeCheckShortCpu    PoolSizeCheckShort = "cpu"
+	PoolSizeCheckShortDocker PoolSizeCheckShort = "docker"
+	PoolSizeCheckShortFloor  PoolSizeCheckShort = "floor"
+	PoolSizeCheckShortMemory PoolSizeCheckShort = "memory"
+	PoolSizeCheckShortRatio  PoolSizeCheckShort = "ratio"
+)
+
+// Valid indicates whether the value is a known member of the PoolSizeCheckShort enum.
+func (e PoolSizeCheckShort) Valid() bool {
+	switch e {
+	case PoolSizeCheckShortCpu:
+		return true
+	case PoolSizeCheckShortDocker:
+		return true
+	case PoolSizeCheckShortFloor:
+		return true
+	case PoolSizeCheckShortMemory:
+		return true
+	case PoolSizeCheckShortRatio:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for QueueSettingsOrder.
 const (
 	EventClass QueueSettingsOrder = "event_class"
@@ -2260,6 +2287,47 @@ type PoolSettings struct {
 	SizeSlotsFromMachine bool `json:"size_slots_from_machine"`
 }
 
+// PoolSizeCheck defines model for PoolSizeCheck.
+type PoolSizeCheck struct {
+	CpuBudget        *int    `json:"cpu_budget,omitempty"`
+	CurrentCpus      int     `json:"current_cpus"`
+	CurrentMemoryGib float64 `json:"current_memory_gib"`
+
+	// Decided The figure that decided.
+	Decided          *string  `json:"decided,omitempty"`
+	DockerCeilingGib *float64 `json:"docker_ceiling_gib,omitempty"`
+
+	// Known False when the controller lacks the machine figures to check; `why` says what is missing.
+	Known           bool     `json:"known"`
+	MemoryBudgetGib *float64 `json:"memory_budget_gib,omitempty"`
+
+	// Nearest Sizes that pass, as sentences.
+	Nearest []string `json:"nearest"`
+
+	// NeedsShrinkConfirm The size is below the current one; saving needs confirm_shrink.
+	NeedsShrinkConfirm bool `json:"needs_shrink_confirm"`
+
+	// Ok The size fits and, when it is a shrink, needs only the explicit yes.
+	Ok bool `json:"ok"`
+
+	// Reason Why it is refused, naming the budget that is short.
+	Reason         *string             `json:"reason,omitempty"`
+	RoomGib        *float64            `json:"room_gib,omitempty"`
+	Short          *PoolSizeCheckShort `json:"short,omitempty"`
+	TotalGib       *float64            `json:"total_gib,omitempty"`
+	UsedOutsideGib *float64            `json:"used_outside_gib,omitempty"`
+	Why            *string             `json:"why,omitempty"`
+}
+
+// PoolSizeCheckShort defines model for PoolSizeCheck.Short.
+type PoolSizeCheckShort string
+
+// PoolSizeCheckRequest defines model for PoolSizeCheckRequest.
+type PoolSizeCheckRequest struct {
+	PoolCpus      int     `json:"pool_cpus"`
+	PoolMemoryGib float64 `json:"pool_memory_gib"`
+}
+
 // Preferences defines model for Preferences.
 type Preferences struct {
 	Theme Theme `json:"theme"`
@@ -2939,6 +3007,9 @@ type DecideMachineChangeJSONRequestBody = MachineChangeDecision
 // DrainMachineJSONRequestBody defines body for DrainMachine for application/json ContentType.
 type DrainMachineJSONRequestBody = DrainRequest
 
+// CheckMachinePoolSizeJSONRequestBody defines body for CheckMachinePoolSize for application/json ContentType.
+type CheckMachinePoolSizeJSONRequestBody = PoolSizeCheckRequest
+
 // FreeStaleSlotsJSONRequestBody defines body for FreeStaleSlots for application/json ContentType.
 type FreeStaleSlotsJSONRequestBody = FreeSlotsRequest
 
@@ -3121,6 +3192,9 @@ type ServerInterface interface {
 	// GetMachineLoad Load history at 15-second steps, up to 24 hours
 	// (GET /api/v1/machines/{machineId}/load)
 	GetMachineLoad(w http.ResponseWriter, r *http.Request, machineId MachineId, params GetMachineLoadParams)
+	// CheckMachinePoolSize Check a pool size against the budget without saving it
+	// (POST /api/v1/machines/{machineId}/pool-size-check)
+	CheckMachinePoolSize(w http.ResponseWriter, r *http.Request, machineId MachineId)
 	// RedetectMachine Check again; the agent detects facts and backends now
 	// (POST /api/v1/machines/{machineId}/redetect)
 	RedetectMachine(w http.ResponseWriter, r *http.Request, machineId MachineId)
@@ -4828,6 +4902,32 @@ func (siw *ServerInterfaceWrapper) GetMachineLoad(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// CheckMachinePoolSize operation middleware
+func (siw *ServerInterfaceWrapper) CheckMachinePoolSize(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CheckMachinePoolSize(w, r, machineId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // RedetectMachine operation middleware
 func (siw *ServerInterfaceWrapper) RedetectMachine(w http.ResponseWriter, r *http.Request) {
 
@@ -6342,6 +6442,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/machines/{machineId}", wrapper.UpdateMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/drain", wrapper.DrainMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/resume", wrapper.ResumeMachine)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/pool-size-check", wrapper.CheckMachinePoolSize)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/redetect", wrapper.RedetectMachine)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/machines/{machineId}/load", wrapper.GetMachineLoad)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/machines/{machineId}/slots", wrapper.ListSlots)
@@ -8205,6 +8306,46 @@ type GetMachineLoaddefaultJSONResponse struct {
 }
 
 func (response GetMachineLoaddefaultJSONResponse) VisitGetMachineLoadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckMachinePoolSizeRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	Body      *CheckMachinePoolSizeJSONRequestBody
+}
+
+type CheckMachinePoolSizeResponseObject interface {
+	VisitCheckMachinePoolSizeResponse(w http.ResponseWriter) error
+}
+
+type CheckMachinePoolSize200JSONResponse PoolSizeCheck
+
+func (response CheckMachinePoolSize200JSONResponse) VisitCheckMachinePoolSizeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckMachinePoolSizedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CheckMachinePoolSizedefaultJSONResponse) VisitCheckMachinePoolSizeResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -10381,6 +10522,9 @@ type StrictServerInterface interface {
 	// GetMachineLoad Load history at 15-second steps, up to 24 hours
 	// (GET /api/v1/machines/{machineId}/load)
 	GetMachineLoad(ctx context.Context, request GetMachineLoadRequestObject) (GetMachineLoadResponseObject, error)
+	// CheckMachinePoolSize Check a pool size against the budget without saving it
+	// (POST /api/v1/machines/{machineId}/pool-size-check)
+	CheckMachinePoolSize(ctx context.Context, request CheckMachinePoolSizeRequestObject) (CheckMachinePoolSizeResponseObject, error)
 	// RedetectMachine Check again; the agent detects facts and backends now
 	// (POST /api/v1/machines/{machineId}/redetect)
 	RedetectMachine(ctx context.Context, request RedetectMachineRequestObject) (RedetectMachineResponseObject, error)
@@ -11699,6 +11843,39 @@ func (sh *strictHandler) GetMachineLoad(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetMachineLoadResponseObject); ok {
 		if err := validResponse.VisitGetMachineLoadResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CheckMachinePoolSize operation middleware
+func (sh *strictHandler) CheckMachinePoolSize(w http.ResponseWriter, r *http.Request, machineId MachineId) {
+	var request CheckMachinePoolSizeRequestObject
+
+	request.MachineId = machineId
+
+	var body CheckMachinePoolSizeJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CheckMachinePoolSize(ctx, request.(CheckMachinePoolSizeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CheckMachinePoolSize")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CheckMachinePoolSizeResponseObject); ok {
+		if err := validResponse.VisitCheckMachinePoolSizeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
