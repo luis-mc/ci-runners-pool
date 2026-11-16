@@ -30,15 +30,15 @@ import {
   type Column,
   type StatusKind,
 } from '@crsp/ui';
-import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ApiError, unwrap, useClient } from '../../api/api';
 import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
 import { HostedFallback, WhereJobsGo, routingWhy } from './fallback';
-import { allRepositories, applyChanges, type Repository } from './plans';
+import { adminState, allRepositories, applyChanges, type Repository } from './plans';
 import { DeliveryStatus, DeliveryWhen, PollingNotice } from './webhookHealth';
 
 const PAGE = 25;
@@ -62,7 +62,22 @@ export function RepositoriesList() {
   const navigate = useNavigate();
   const now = useNow();
   const v = useVersion('plans');
-  const { result, reload } = useLoad(() => allRepositories(client), [v]);
+  // Coming back from GitHub (?setup_action=install|update) and the Refresh button read GitHub now (CRSP125).
+  const [search, setSearch] = useSearchParams();
+  const force = useRef(search.has('setup_action'));
+  const { result, reload } = useLoad(() => {
+    const refresh = force.current;
+    force.current = false;
+    return allRepositories(client, refresh ? { refresh } : {});
+  }, [v]);
+  useEffect(() => {
+    if (!search.has('setup_action') && !search.has('installation_id')) return;
+    const next = new URLSearchParams(search);
+    next.delete('setup_action');
+    next.delete('installation_id');
+    setSearch(next, { replace: true });
+    // Once, on arrival: the load above has already read the flag.
+  }, []);
   const [q, setQ] = useState('');
   const [pool, setPool] = useState<'' | 'on' | 'off'>('');
   const [page, setPage] = useState(1);
@@ -165,7 +180,7 @@ export function RepositoriesList() {
           const shown = paginate(filtered, Math.min(page, pages), PAGE);
           const selected = new Set([...picked].map(String));
           const chosen = data.items.filter((r) => picked.has(r.id));
-          const noAdmin = chosen.filter((r) => !r.user_is_github_admin);
+          const noAdmin = chosen.filter((r) => adminState(r) === 'no');
           if (data.items.length === 0)
             return (
               <Empty
@@ -211,6 +226,14 @@ export function RepositoriesList() {
                   reason="Nothing is selected."
                 >
                   Clear
+                </Button>
+                <Button
+                  onPress={() => {
+                    force.current = true;
+                    reload();
+                  }}
+                >
+                  Refresh
                 </Button>
                 <InstallAppButton />
               </Cluster>
@@ -461,11 +484,11 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
           ) : (
             <Button
               kind="primary"
-              disabled={!admin || !r.user_is_github_admin}
+              disabled={!admin || adminState(r) === 'no'}
               reason={
                 !admin
                   ? session.whyNot('admin')
-                  : !r.user_is_github_admin
+                  : adminState(r) === 'no'
                     ? 'You need admin rights on this repository in GitHub.'
                     : undefined
               }

@@ -76,6 +76,32 @@ describe('Repositories list', () => {
     expect(screen.getByText(/You need admin rights on octo\/app in GitHub/)).toBeTruthy();
   });
 
+  it('does not block a repository whose admin flag is not known yet (CRSP125)', async () => {
+    renderApp(
+      withRepos(signedIn(), [
+        repository({ user_is_github_admin: false, user_admin_known: false }),
+      ]),
+      '/repositories',
+    );
+    await screen.findByRole('table', { name: 'Repositories' });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select octo/app' }));
+    const button = screen.getByRole<HTMLButtonElement>('button', {
+      name: 'Turn on 1 repository',
+    });
+    expect(button.disabled).toBe(false);
+  });
+
+  it('reads GitHub again when it returns from GitHub and on Refresh (CRSP125)', async () => {
+    const api = withRepos(signedIn());
+    renderApp(api, '/repositories?installation_id=5&setup_action=update');
+    await screen.findByRole('table', { name: 'Repositories' });
+    const loads = () => api.calls.filter((c) => c.path === '/api/v1/github/repositories');
+    expect(loads()[0]?.query.get('refresh')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() => expect(loads().length).toBe(2));
+    expect(loads()[1]?.query.get('refresh')).toBe('true');
+  });
+
   it('turns the pool off only after a question that names each repository and variable (UX-62)', async () => {
     const api = withRepos(signedIn())
       .on('POST', '/api/v1/repository-plans', {
@@ -475,5 +501,48 @@ describe('Webhook health (RES14)', () => {
     await screen.findByRole('heading', { name: 'octo/fine' });
     expect(screen.queryByText(/now polls GitHub/)).toBeNull();
     expect(screen.getByText('Last webhook delivery')).toBeTruthy();
+  });
+});
+
+describe('Turn on the pool: admin notes (CRSP125)', () => {
+  it('says unknown apart from no admin rights and never blames rights for unknown', async () => {
+    const api = withRepos(signedIn(), [
+      repository({ id: 1, full_name: 'octo/a', user_is_github_admin: true }),
+      repository({
+        id: 2,
+        full_name: 'octo/b',
+        user_is_github_admin: false,
+        user_admin_known: false,
+      }),
+      repository({ id: 3, full_name: 'octo/c', user_is_github_admin: false }),
+    ]);
+    renderApp(api, '/repositories/turn-on');
+    await screen.findByText(/GitHub has not said whether you have admin rights on it/);
+    expect(
+      screen.getByText(
+        /1 repository is not listed: you need admin rights on it in GitHub/,
+      ),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Check again' })).toBeTruthy();
+    expect(
+      api.calls
+        .find((c) => c.path === '/api/v1/github/repositories')
+        ?.query.get('refresh'),
+    ).toBe('true');
+  });
+
+  it('shows no rights note when GitHub has not answered for any repository', async () => {
+    const api = withRepos(signedIn(), [
+      repository({
+        id: 2,
+        full_name: 'octo/b',
+        user_is_github_admin: false,
+        user_admin_known: false,
+      }),
+    ]);
+    renderApp(api, '/repositories/turn-on');
+    await screen.findByText(/GitHub has not said whether/);
+    expect(screen.queryByText(/you need admin rights on/)).toBeNull();
+    expect(screen.queryByText(/No repository is free to turn on/)).toBeNull();
   });
 });

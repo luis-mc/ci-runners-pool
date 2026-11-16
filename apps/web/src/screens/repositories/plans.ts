@@ -9,7 +9,7 @@ export type Repository = Schemas['Repository'];
 /** Every repository of the installations: pages are read until the controller has no more. */
 export async function allRepositories(
   client: ApiClient,
-  query: { pool?: 'on' | 'off'; q?: string } = {},
+  query: { pool?: 'on' | 'off'; q?: string; refresh?: boolean } = {},
 ): Promise<{ items: Repository[]; stale: Schemas['Staleness'] }> {
   const items: Repository[] = [];
   let cursor: string | undefined;
@@ -26,6 +26,27 @@ export async function allRepositories(
     if (!cursor) break;
   }
   return { items, stale };
+}
+
+/** Whether the user is a GitHub admin of the repository: yes, no, or not known yet (CRSP125). */
+export function adminState(r: Repository): 'yes' | 'no' | 'unknown' {
+  if (r.user_is_github_admin) return 'yes';
+  return r.user_admin_known === false ? 'unknown' : 'no';
+}
+
+/**
+ * The notes under the repository choice. "No admin rights" is said only for repositories GitHub
+ * answered about; the ones not asked yet are said apart and never blamed on rights (CRSP125).
+ */
+export function adminNotes(repos: Repository[]): { noRights?: string; unknown?: string } {
+  const no = repos.filter((r) => adminState(r) === 'no').length;
+  const unknown = repos.filter((r) => adminState(r) === 'unknown').length;
+  const out: { noRights?: string; unknown?: string } = {};
+  if (no > 0)
+    out.noRights = `${no} ${no === 1 ? 'repository is' : 'repositories are'} not listed: you need admin rights on ${no === 1 ? 'it' : 'them'} in GitHub.`;
+  if (unknown > 0)
+    out.unknown = `${unknown} ${unknown === 1 ? 'repository is' : 'repositories are'} not listed yet: GitHub has not said whether you have admin rights on ${unknown === 1 ? 'it' : 'them'}.`;
+  return out;
 }
 
 export function needsYes(plan: Plan): string[] {

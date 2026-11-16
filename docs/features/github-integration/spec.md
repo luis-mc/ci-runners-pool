@@ -173,7 +173,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 **R5.17** (M1, built) — **List installations.** After sign-in the console lists the App's installations that the user can see, through `GET /user/installations` with the user's token.
 
-**R5.18** (M1, built) — **List repositories.** For each installation the console lists the repositories through `GET /user/installations/{id}/repositories`, all pages. Each row shows whether the user has the GitHub `admin` permission on it.
+**R5.18** (M1, built) — **List repositories.** For each installation the console lists the repositories through `GET /user/installations/{id}/repositories`, all pages. Each row shows whether the user has the GitHub `admin` permission on it. The flag is yes, no or not known yet (`user_admin_known`): a repository no sync listed for the user, or any after a restart, is not known, and the controller asks GitHub fresh (`GET /github/repositories?refresh=true`, as the user) before it says no. `refresh=true` also reads GitHub now whatever the age of the last read; the console sends it when it returns from GitHub (`setup_action` on the setup URL) and on Refresh. A plain load is spared a GitHub call for one minute only, and a change of the installation's repository set (webhook or reconcile) ends that at once (CRSP125).
 
 **R5.19** (M1, built) — **Enable needs GitHub admin.** Turning the pool on or off, or changing a repository's policy, needs the product role admin or owner and the GitHub `admin` permission on that repository. The controller reads that permission fresh, as the user, at the moment of the change. A missing right disables the switch and says why.
 
@@ -181,7 +181,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 **R5.21** (M3, NOT YET IMPLEMENTED) — **Pool per organization.** An admin who is an owner of a GitHub organization can turn the pool on for the organization. The controller then uses organization runners in a runner group named for the pool, with selected repositories only. Repository-level runners are used for personal accounts.
 
-**R5.22** (M1, built in part: the webhook route and the 10-minute reconcile run in the controller since CRSP41; the console reason text for a repository that left is NOT YET IMPLEMENTED) — **Installation changes.** The controller follows installation changes (repositories added or removed, App suspended or uninstalled) by webhook when on, and by a reconcile every 10 minutes. A repository that leaves the installation is turned off, and the console says why.
+**R5.22** (M1, built in part: the webhook route and the 10-minute reconcile run in the controller since CRSP41; the console reason text for a repository that left is NOT YET IMPLEMENTED) — **Installation changes.** The controller follows installation changes (repositories added or removed, App suspended or uninstalled) by webhook when on, and by a reconcile every 10 minutes. A repository that leaves the installation is turned off, and the console says why. It is also marked left (`left_at`) by the user's sync and by the reconcile, kept, and hidden from the repository list and from Turn on the pool; listing it again clears the mark (CRSP125). The reason text on the screen is still CRSP107's.
 
 ### 5.4 Permissions
 

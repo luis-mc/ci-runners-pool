@@ -2374,8 +2374,10 @@ export interface components {
             visibility: "public" | "private" | "internal";
             default_branch?: string;
             pool_on: boolean;
-            /** @description github-integration R5.19; without it the switch is disabled with this reason. */
+            /** @description github-integration R5.19; without it the switch is disabled with this reason. Only a "no" when user_admin_known is not false. */
             user_is_github_admin: boolean;
+            /** @description False while nothing has told whether the user is a GitHub admin of the repository; user_is_github_admin is then false but is not an answer (CRSP125). Absent means true. */
+            user_admin_known?: boolean;
             variables: components["schemas"]["RepositoryVariable"][];
             policy: components["schemas"]["RepositoryPolicy"];
             routing?: components["schemas"]["RepositoryRouting"];
@@ -4357,6 +4359,8 @@ export interface operations {
                 pool?: "on" | "off";
                 /** @description Search by name. */
                 q?: string;
+                /** @description True reads GitHub again now, whatever the age of the last read, and asks GitHub for the admin flag of every row that has none yet (CRSP125). The console sends it when it returns from GitHub and when the person asks for a refresh. */
+                refresh?: boolean;
                 /** @description Opaque cursor from the previous page's `next_cursor`. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];

@@ -27,6 +27,8 @@ import {
   allRepositories,
   needsYes,
   planProgress,
+  adminState,
+  adminNotes,
   type Plan,
   type Repository,
 } from './plans';
@@ -55,6 +57,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
   const [stopping, setStopping] = useState(false);
   const [stopError, setStopError] = useState<string | undefined>(undefined);
   const running = useRef(false);
+  const [round, setRound] = useState(0);
 
   const settle = useCallback((p: Plan, afterReload: boolean) => {
     setPlan(p);
@@ -76,7 +79,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
     let on = true;
     void (async () => {
       try {
-        const all = await allRepositories(client, { pool: 'off' });
+        const all = await allRepositories(client, { pool: 'off', refresh: true });
         if (!on) return;
         setRepos(all.items);
         if (storedPlan) {
@@ -105,10 +108,15 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
     return () => {
       on = false;
     };
-  }, [client, storedPlan, settle]);
+  }, [client, storedPlan, settle, round]);
 
-  const eligible = repos.filter((r) => r.user_is_github_admin);
-  const blocked = repos.filter((r) => !r.user_is_github_admin);
+  const eligible = repos.filter((r) => adminState(r) === 'yes');
+  const notes = adminNotes(repos);
+  const checkAgain = () => {
+    setPhase('loading');
+    setStep(1);
+    setRound((n) => n + 1);
+  };
   const chosen = eligible.filter((r) => picked.has(r.id));
 
   const toReview = async () => {
@@ -227,7 +235,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
     body = (
       <Stack>
         <Text>Choose the repositories that should use the pool.</Text>
-        {eligible.length === 0 ? (
+        {eligible.length === 0 && !notes.unknown ? (
           <Message tone="note">
             No repository is free to turn on. Install the App on a repository, or turn the
             pool off on one first.
@@ -265,13 +273,15 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
             />
           </>
         )}
-        {blocked.length > 0 ? (
-          <Message tone="note">
-            {blocked.length} {blocked.length === 1 ? 'repository is' : 'repositories are'}{' '}
-            not listed: you need admin rights on {blocked.length === 1 ? 'it' : 'them'} in
-            GitHub.
+        {notes.unknown ? (
+          <Message
+            tone="needs-you"
+            action={<Button onPress={checkAgain}>Check again</Button>}
+          >
+            {notes.unknown}
           </Message>
         ) : null}
+        {notes.noRights ? <Message tone="note">{notes.noRights}</Message> : null}
       </Stack>
     );
   } else if (step === 2) {
@@ -357,7 +367,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
       current={phase === 'loading' ? 0 : step}
       firstStep={1}
       phase={phase}
-      reading="Reading repositories"
+      reading="Asking GitHub which repositories you can turn on"
       progress={
         phase === 'running'
           ? {
