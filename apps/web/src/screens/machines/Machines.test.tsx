@@ -68,11 +68,10 @@ describe('Machines list', () => {
   it('says what to do when there is none, and offers Add a machine to an admin', async () => {
     renderApp(signedIn().on('GET', '/api/v1/machines', { items: [] }), '/machines');
     expect(
-      await screen.findByText('No machines yet. Add a machine to start.'),
+      await screen.findByText('No machines yet. Use Add a machine above to start.'),
     ).toBeTruthy();
-    expect(
-      screen.getAllByRole('button', { name: 'Add a machine' }).length,
-    ).toBeGreaterThan(0);
+    // The next action is written once (UX-1): the header's one primary.
+    expect(screen.getAllByRole('button', { name: 'Add a machine' }).length).toBe(1);
   });
 
   it('shows Add a machine disabled with its reason to a viewer (UX-38)', async () => {
@@ -85,6 +84,14 @@ describe('Machines list', () => {
     });
     expect(button.disabled).toBe(true);
     expect(screen.getByText('Only an admin can do this.')).toBeTruthy();
+  });
+
+  it('puts the search, filters and table inside one pane titled Machines', async () => {
+    const api = signedIn().on('GET', '/api/v1/machines', { items: [machine()] });
+    renderApp(api, '/machines');
+    const pane = await screen.findByRole('region', { name: 'Machines' });
+    expect(within(pane).getByRole('textbox', { name: 'Search machines' })).toBeTruthy();
+    expect(within(pane).getByRole('table', { name: 'Machines' })).toBeTruthy();
   });
 
   it('says could not load, why and what next', async () => {
@@ -174,7 +181,7 @@ describe('Machine detail', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
     const dialog = await screen.findByRole('dialog', { name: 'Remove build-1?' });
     expect(within(dialog).getByText('Machine build-1')).toBeTruthy();
-    expect(within(dialog).getByText('Its runners')).toBeTruthy();
+    expect(within(dialog).getByText(/^Its runners/)).toBeTruthy();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(api.count('DELETE', '/api/v1/machines/m1')).toBe(1));
     expect(api.calls.find((c) => c.method === 'DELETE')?.query.get('confirm')).toBe(
@@ -230,6 +237,36 @@ describe('Machine detail', () => {
     expect(
       screen.getByRole<HTMLButtonElement>('button', { name: 'Drain' }).disabled,
     ).toBe(true);
+  });
+});
+
+describe('Machine detail, one page', () => {
+  const base = () =>
+    signedIn().on('GET', '/api/v1/machines/:id', machine({ running_jobs: running }));
+  it('has one primary (Drain), one foot with Cancel and Save, and Remove in its pane', async () => {
+    const api = base();
+    renderApp(api, '/machines/m1');
+    await screen.findByRole('heading', { level: 1, name: 'build-1' });
+    const primaries = Array.from(document.querySelectorAll('button[data-primary]')).map(
+      (b) => b.textContent,
+    );
+    expect(primaries.filter((t) => t === 'Drain')).toEqual(['Drain']);
+    expect(primaries).not.toContain('Save');
+    expect(screen.getAllByRole('button', { name: 'Save' }).length).toBe(1);
+    expect(screen.getAllByRole('button', { name: 'Cancel' }).length).toBe(1);
+    const remove = screen.getByRole('region', { name: 'Remove this machine' });
+    expect(within(remove).getByRole('button', { name: 'Remove' })).toBeTruthy();
+  });
+
+  it('keeps the h1 when the machine could not load', async () => {
+    const api = signedIn().on('GET', '/api/v1/machines/:id', () =>
+      apiError(500, 'internal', 'The controller could not answer.'),
+    );
+    renderApp(api, '/machines/m1');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Machine' }),
+    ).toBeTruthy();
+    expect(await screen.findByText(/Could not load the machine/)).toBeTruthy();
   });
 });
 

@@ -78,7 +78,7 @@ flowchart TD
 The steps in words:
 
 1. The user opens `http://127.0.0.1:8460` on the controller machine or `https://<controller>:8460` from another one. The controller serves the console and its API from one binary (decision 0001).
-2. A fresh controller has no GitHub App yet, so nobody can sign in with GitHub. The setup page opens only through a one-time setup link. The tray's Open, `crsp open` and the controller's first start each give one.
+2. A fresh controller has no GitHub App yet, so nobody can sign in with GitHub. The setup page opens only through a one-time setup link. The tray's Open and the controller's first start each give one.
 3. The first wizard creates the controller's own GitHub App with GitHub's manifest flow (decision 0002).
 4. The user signs in with GitHub through the App's user OAuth flow. The first person to sign in becomes the owner. Later users get in only when the owner has added their GitHub login.
 5. The first-run checklist then leads through two more wizards: add the first machine, and turn the pool on for the first repository.
@@ -97,14 +97,14 @@ The states named for every list follow the design system: loading (component 16,
 
 - **Purpose:** the frame around every signed-in screen.
 - **Header:** the product name, the pool status as a word, glyph and colour (UX-58), the live-update state, a button that opens the command palette (it shows `Ctrl+K`, or `Cmd+K` on macOS), and the user menu (GitHub login, role, sign out).
-- **Top menu (component 2):** Overview, Repositories, Machines, Runners, Jobs, Images and caches, Doctor, Settings. The current area is marked. Detail pages show breadcrumbs (component 2).
+- **Top menu (component 2):** Overview, Repositories, Machines, Runners, Jobs, Images and caches, Doctor, Settings. The current area is marked. Below 601 px the areas are one Menu button that opens the list, so the menu never takes more than one row (UX-15, UX-16; CRSP159). Detail pages show breadcrumbs (component 2).
 - **Page header (component 1):** one headline per screen (UX-3), with the screen's one primary action (UX-4).
 - **Banner slot (component 18):** the one app-wide slot (UX-27). It carries "Live updates paused", "First run is not finished" and "A new version is ready".
 - **Activity strip (component 27):** running work that the console started, such as a drain, an image rebuild or an update (UX-34).
-- **Command palette:** opens with `Ctrl+K` or `Cmd+K` (UX-57). It lists the areas, the detail pages found by name (a machine, a repository, a runner), and the commands the user's role allows. A command opens the one place where it lives (UX-52). It uses the overlay of component 9 and the search bar of component 21. It is not a component of v1 yet (owner question Q1).
+- **Command palette:** opens with `Ctrl+K` or `Cmd+K` (UX-57). It lists the areas, the detail pages found by name (a machine, a repository, a runner), and the commands the user's role allows. A command opens the one place where it lives (UX-52). It opens with focus in its search box; typing filters, Down and Up (and `j` and `k` outside the box) move through the results, `Enter` opens one and `Escape` closes (UX-57). It is the shared `SearchList` in the overlay of component 9. It is not a component of v1 yet (owner question Q1).
 - **Shortcut list:** `?` opens the list of every shortcut (UX-57), in the overlay of component 9.
-- **Shortcuts:** `/` moves to the page's search bar (UX-31). `j` and `k` move down and up a list. `Enter` opens the row. None fires while typing in a field (UX-57).
-- **Theme:** the look is TUI panes. Six colour themes (Phosphor, Tokyo Night, Catppuccin, Gruvbox, Solarized, Nord), Tokyo Night by default, and a mode (system, dark or light, dark by default) are set in Settings, Appearance (UX-60, UX-55). The theme is kept in the browser and applied before the first paint; the mode is saved by the server.
+- **Shortcuts:** `/` moves to the page's search bar (UX-31). Down and Up (and `j` and `k`, except in a text box where they type) move focus through every button, link, input and list item of the page in page order; Up from the first list item goes to the previous control and Down from the last to the next. A group of radios is one stop, and in a multi-line text box Up and Down move the cursor. `Enter` opens the row. The movement is the shared `ArrowNavigation`, mounted once in the shell. None fires while typing in a field (UX-57).
+- **Theme:** the look is TUI panes. Six colour themes (Phosphor, Tokyo Night, Catppuccin, Gruvbox, Solarized, Nord), Phosphor by default, and a mode (system, dark or light; a new install is dark, owner decision D4, set in the server default and in the first-paint script) are set in Settings, Appearance (UX-60, UX-55). The theme is kept in the browser and applied before the first paint; the mode is saved by the server.
 - **States:** loading the session (an unknown-total bar, component 16); live; live updates paused (a Note message in the banner slot, UX-26, while the last data stays on screen with its age, UX-53); not found (component 19, with a link to the overview); page fault ("This page hit a fault.", UX-28).
 - **Milestone:** M1.
 
@@ -126,7 +126,8 @@ The states named for every list follow the design system: loading (component 16,
 **Setup page** (`/setup`)
 
 - **Purpose:** take a fresh controller to a working pool.
-- **Without a setup link:** a page that says how to get one: the tray's Open, or `crsp open` on the controller's machine. No other action.
+- **Without a setup link:** a page that says how to get one: choose Open in the tray menu of the controller's machine. It names no terminal command (UX-6). No other action.
+- **Every step done:** the page header carries one primary, "Open the overview" (UX-4, UX-6). The first repository counts as done when any repository has the pool on, whatever the setup answer says.
 - **With a setup link:** the first-run checklist. It shows three wizards in order. A later one is greyed until the one before it is done (UX-5). Each is a wizard (component 4) whose behaviour comes from the shared wizard (UX-54). Each ends with Review, then its work, then Done (UX-30). The step and state words are those of content.md.
 - **Back from GitHub with an error:** the Connect GitHub wizard reads `?error=` and `?app_url=` once, shows the message for the code (content.md, Connect GitHub words) as its failed state, and clears both from the address. For an App GitHub made but crsp could not save, the message says so, an external button opens the App on GitHub (only an https://github.com address), and the person deletes it there (App settings, Advanced, Delete GitHub App) and starts again. The App name field says that GitHub App names are unique across GitHub.
 
@@ -149,7 +150,7 @@ The states named for every list follow the design system: loading (component 16,
 - **Data:** `getOverview`, then `streamEvents`.
 - **Shows:** a card per machine (component 8, UX-10) with its state word (UX-58) and three level bars for memory, CPU and slots against its budget (UX-41, owner question Q4); the queue count; the running jobs (component 15); the section "Why jobs wait" (component 15): every queued or held job with the first reason it waits, in words, from `waiting` of `getOverview` (scheduling R5.48, UX-34, UX-19); today's minutes saved as a lettered figure (component 31). Each item links to its screen.
 - **Actions:** none. The overview only shows and links (UX-52).
-- **States:** loading; empty (no machine yet: "No machines yet. Add a machine to start." links to Machines, content.md); could not load; live; live updates paused.
+- **States:** loading; empty (no machine yet: "No machines yet. Add a machine to start." links to Machines, content.md); could not load; live; live updates paused. Every section, and the loading and could-not-load states, sit in a pane titled in its top border (UX-10, UX-51); the h1 stays in every state (UX-17).
 - **Components:** 1, 8, 15, 17, 19, 27, 31.
 - **Milestone:** M1. Minutes saved: later (milestone 8).
 
@@ -157,8 +158,8 @@ The states named for every list follow the design system: loading (component 16,
 
 - **Purpose:** choose which repositories use the pool, and with which limits.
 - **Data:** `listInstallations`, `listRepositories`, `getRepository`, `updateRepositoryPolicy`, `getRepositoryExtraPackages`, `setRepositoryExtraPackages`, `planRepositoryChanges`, `applyRepositoryChanges`, `getAppInstallUrl`.
-- **List:** a table (component 15) of name, owner, pool on or off, labels, maximum parallel jobs, priority, and repository variable status (`RUNS_ON_LINUX`, `RUNS_ON_WINDOWS`, `RUNS_ON_MACOS`) as a status word (UX-58). Search and filters (components 11, 12, 21, UX-31): on or off (the segmented Pool filter), owner, variable status. The toolbar is the shared list toolbar (R5.67). A line near the title shows the active types and links to the setting (R5.69); the Visibility column and the greyed public rows are in R5.70. Long lists page (component 10, UX-11).
-- **Detail:** the policy form (component 14): on or off, runner groups and labels, maximum parallel jobs, priority, jobs from public forks, and the switch "Keep a light runner for short jobs" (scheduling R5.64). A form ends with Cancel and Save (UX-24). Turning fork jobs on shows a Needs-you message with the risk, and asks first (UX-9).
+- **List:** a table (component 15) of name, owner, pool on or off, labels, maximum parallel jobs, priority, and repository variable status (`RUNS_ON_LINUX`, `RUNS_ON_WINDOWS`, `RUNS_ON_MACOS`) as a status word (UX-58). Search and filters (components 11, 12, 21, UX-31): on or off (the segmented Pool filter), owner, variable status. The toolbar is the shared list toolbar (R5.67). The toolbar, the table and the pager sit in one pane titled Repositories (component 8); the active types are a chip in the toolbar that opens the setting (R5.69, UX-8); the one primary is Turn on the pool, and the selection buttons are secondary (UX-4); the Visibility column and the greyed public rows are in R5.70. Long lists page (component 10, UX-11).
+- **Detail:** the policy form (component 14): on or off, runner groups and labels, maximum parallel jobs, priority, jobs from public forks, and the switch "Keep a light runner for short jobs" (scheduling R5.64). State, Policy, Hosted fallback and Extra packages are panes. The page has one form with one Save: it sends the policy and the hosted fallback in one request and the extra packages in another, each only when it changed, and Save is the primary once the pool is on (UX-4); a form ends with Cancel and Save (UX-24). A page that cannot load keeps its h1 (UX-17). Turning fork jobs on shows a Needs-you message with the risk; Save asks once, naming each risk (UX-9). In the Turn on the pool wizard each step is a pane, and when no repository is free the message names the real next action: admin rights in GitHub, the public-repositories setting, or installing the App.
 - **Actions and confirmations:**
   - turn the pool on for chosen repositories: the "Turn on the pool" wizard, the same as in first run (component 4, UX-30); the selection bar names the count (component 20, UX-7);
   - turn it off: a question card that names each repository and the variables that go (UX-62);
@@ -207,8 +208,9 @@ The states named for every list follow the design system: loading (component 16,
 - **Data:** `listJobs` (queued, running, done; filters by repository, machine, result, time range), `getJob`, `exportJobs`.
 - **Queue:** a table (component 15) of queued jobs with repository, labels, wait time and the reason it waits ("waits for a free slot on any Linux machine"; UX-29).
 - **History:** a time axis list (component 24, UX-33): repository, workflow and job name, result (UX-58), machine, backend, wait time, run time. Each row opens the detail, with a link to the run on GitHub.
+- **Panes:** Queue, Filters (result, time range, repository, machine) and History (the time axis, with Export in its border line), each a pane (UX-10). The row under the cursor is drawn in reverse video (UX-51).
 - **Actions:** export the history (component 29, UX-39). No command changes a job.
-- **States:** loading; empty ("No jobs yet. Jobs show here when a workflow runs on the pool."); could not load; live; an empty period offers to widen the range (component 24).
+- **States:** loading; empty ("No jobs yet. Jobs show here when a workflow runs on the pool." with the one primary "Add runners", UX-4, UX-6); the detail keeps its h1 "Job" when it could not load (UX-17); could not load; live; an empty period offers to widen the range (component 24).
 - **Detail:** placement and waits are in `scheduling`; history and minutes saved are in `observability`.
 - **Components:** 1, 11, 12, 15, 17, 19, 21, 24, 29.
 - **Milestone:** later (milestone 2). M1 shows the queue and running jobs on the overview.
@@ -241,7 +243,7 @@ The states named for every list follow the design system: loading (component 16,
 
 ### 4.9 Settings
 
-Settings hold configuration only (UX-52). Sub-pages sit under one Settings area, each a form that ends with Cancel and Save (UX-24), or switches saved at once (UX-22).
+Settings hold configuration only (UX-52). Settings has five tabs (CRSP159, owner decision D8): Access (Users and roles, GitHub App, Access for CI), Repositories (Repositories with the public toggle, Budgets), Console (Appearance, Notifications, Updates), Data (Retention, Backups, Config export) and Audit log. Each old sub-page below is a pane inside its tab, in that order, with an anchor (`#users`, `#github-app`, `#access-for-ci`, `#public-repositories`, `#budgets`, `#appearance`, `#notifications`, `#updates`, `#retention`, `#backups`, `#config-export`). The old addresses (`/settings/users`, `/app`, `/budgets`, `/appearance`, `/notifications`, `/updates`, `/retention`, `/backups`, `/export`) go to the right tab and scroll to the section. Sub-pages sit under one Settings area, each a form that ends with Cancel and Save (UX-24), or switches saved at once (UX-22).
 
 | Sub-page | Purpose | Data | Actions and confirmations | Milestone |
 |---|---|---|---|---|
@@ -276,7 +278,7 @@ Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are
 
 **R5.4** (built, CRSP24) — `Ctrl+K` (`Cmd+K` on macOS) opens the command palette from any screen. It finds areas, items by name and commands. It lists only the commands the user's role allows. Choosing an item goes to its page; choosing a command goes to the one place where that command lives.
 
-**R5.5** (built, CRSP24) — The shortcuts `/`, `j`, `k`, `Enter` and `?` work as section 4.0 says, and none fires while focus is in a text field.
+**R5.5** (built, CRSP24) — The shortcuts `/`, Down, Up, `j`, `k`, `Enter` and `?` work as section 4.0 says, and none fires while focus is in a text field.
 
 **R5.6** (built, CRSP24) — The console opens one live event stream (`streamEvents`) per tab. One store holds what it brings, and every screen reads that store for live state.
 
@@ -452,7 +454,7 @@ flowchart LR
 | `/jobs`, `/jobs/:id` | Jobs |
 | `/images`, `/caches` | Images and caches |
 | `/doctor` | Doctor |
-| `/settings/users`, `/settings/app`, `/settings/appearance`, `/settings/budgets`, `/settings/notifications`, `/settings/access`, `/settings/updates`, `/settings/audit`, `/settings/export` | Settings |
+| `/settings/access`, `/settings/repositories`, `/settings/console`, `/settings/data`, `/settings/audit` (and the old one-page addresses, which redirect) | Settings |
 
 **API operations to add** (all under `/api/v1`, each with `x-auth` and `x-rate-limit`). The owning spec fixes each one's shape.
 
@@ -511,8 +513,8 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.1 | Go test | `internal/webui/serve_tls_test.go` (a loopback listener serves plain HTTP with the R6.3 headers; a non-loopback one serves TLS 1.3 with the CA's certificate only, refuses an untrusting client, TLS 1.2 and plain HTTP, and does not start without a certificate; `IsLoopback`), `internal/cli/login_test.go` (login over http on loopback only) |
 | R5.2 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/webui/webui_test.go` (SPA fallback), `e2e/tests/web-console/deep-link.spec.ts` |
 | R5.3 | Vitest | `apps/web/src/shell/Shell.test.tsx` |
-| R5.4 | Vitest, Playwright e2e | `apps/web/src/shell/Shell.test.tsx`, `e2e/tests/web-console/keyboard.spec.ts` |
-| R5.5 | Vitest, Playwright e2e | `apps/web/src/shell/shortcuts.test.ts`, `e2e/tests/web-console/keyboard.spec.ts` |
+| R5.4 | Vitest, Playwright e2e | `apps/web/src/shell/Shell.test.tsx`, `packages/ui/src/components/SearchList.test.tsx`, `e2e/tests/web-console/keyboard.spec.ts` |
+| R5.5 | Vitest, Playwright e2e | `apps/web/src/shell/shortcuts.test.ts`, `packages/ui/src/components/Navigation.test.tsx`, `packages/ui/src/components/SearchList.test.tsx`, `e2e/tests/web-console/keyboard.spec.ts` |
 | R5.6 | Vitest | `apps/web/src/live/store.test.ts` |
 | R5.7 | Vitest | `apps/web/src/live/store.test.ts` (reconnect), `apps/web/src/shell/Shell.test.tsx` (paused banner) |
 | R5.8 | Vitest, Playwright e2e | `apps/web/src/shell/Shell.test.tsx`, `e2e/tests/web-console/deep-link.spec.ts` |

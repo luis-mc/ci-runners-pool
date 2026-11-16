@@ -13,6 +13,7 @@ import {
   Message,
   Page,
   PageHeader,
+  Pane,
   Progress,
   Section,
   Stack,
@@ -123,6 +124,7 @@ function useAskFirst(opts: {
 
 function ImagesTab({ nameOf }: { nameOf: (id: string) => string }) {
   const client = useClient();
+  const session = useSession();
   const v = useVersion('images');
   const { result, reload } = useLoad(() => unwrap(client.GET('/api/v1/images')), [v]);
   const [q, setQ] = useState('');
@@ -134,25 +136,36 @@ function ImagesTab({ nameOf }: { nameOf: (id: string) => string }) {
     <Load result={result} what="images" reload={reload}>
       {(data) =>
         data.items.length === 0 ? (
-          <Empty title="No images yet. Images are built when a runner first needs one." />
-        ) : (
-          <Stack>
-            <ListToolbar
-              label="Images"
-              search={<SearchBar value={q} onChange={setQ} label="Search images" />}
-              count={`${shownImages(data.items).length} ${shownImages(data.items).length === 1 ? 'image' : 'images'}`}
+          <Section title="Images" count={0}>
+            <Empty
+              title="No images yet. Images are built when a runner first needs one."
+              action={
+                session.can('admin') ? (
+                  <LinkButton to="/runners/add">Add runners</LinkButton>
+                ) : undefined
+              }
             />
-            <CardGrid>
-              {shownImages(data.items).map((img) => (
-                <ImageCard
-                  key={img.id}
-                  image={img}
-                  machine={nameOf(img.machine_id)}
-                  onChanged={reload}
-                />
-              ))}
-            </CardGrid>
-          </Stack>
+          </Section>
+        ) : (
+          <Section title="Images" count={shownImages(data.items).length}>
+            <Stack>
+              <ListToolbar
+                label="Images"
+                search={<SearchBar value={q} onChange={setQ} label="Search images" />}
+                count={`${shownImages(data.items).length} ${shownImages(data.items).length === 1 ? 'image' : 'images'}`}
+              />
+              <CardGrid>
+                {shownImages(data.items).map((img) => (
+                  <ImageCard
+                    key={img.id}
+                    image={img}
+                    machine={nameOf(img.machine_id)}
+                    onChanged={reload}
+                  />
+                ))}
+              </CardGrid>
+            </Stack>
+          </Section>
         )
       }
     </Load>
@@ -331,14 +344,16 @@ function CachesTab({ nameOf }: { nameOf: (id: string) => string }) {
       {(data) => {
         if (data.items.length === 0)
           return (
-            <Empty
-              title="No caches yet. Caches show here when a runner has been added."
-              action={
-                session.can('admin') ? (
-                  <LinkButton to="/runners/add">Add runners</LinkButton>
-                ) : undefined
-              }
-            />
+            <Section title="Caches" count={0}>
+              <Empty
+                title="No caches yet. Caches show here when a runner has been added."
+                action={
+                  session.can('admin') ? (
+                    <LinkButton to="/runners/add">Add runners</LinkButton>
+                  ) : undefined
+                }
+              />
+            </Section>
           );
         const byMachine = new Map<string, Cache[]>();
         const found = data.items.filter((c) =>
@@ -349,22 +364,24 @@ function CachesTab({ nameOf }: { nameOf: (id: string) => string }) {
         for (const c of found)
           byMachine.set(c.machine_id, [...(byMachine.get(c.machine_id) ?? []), c]);
         return (
-          <Stack>
-            <ListToolbar
-              label="Caches"
-              search={<SearchBar value={q} onChange={setQ} label="Search caches" />}
-              count={`${found.length} ${found.length === 1 ? 'cache' : 'caches'}`}
-            />
-            {[...byMachine.entries()].map(([machineId, rows]) => (
-              <Section key={machineId} title={nameOf(machineId)}>
-                <CardGrid>
-                  {rows.map((c) => (
-                    <CacheCard key={c.id} cache={c} onChanged={reload} />
-                  ))}
-                </CardGrid>
-              </Section>
-            ))}
-          </Stack>
+          <Section title="Caches" count={found.length}>
+            <Stack>
+              <ListToolbar
+                label="Caches"
+                search={<SearchBar value={q} onChange={setQ} label="Search caches" />}
+                count={`${found.length} ${found.length === 1 ? 'cache' : 'caches'}`}
+              />
+              {[...byMachine.entries()].map(([machineId, rows]) => (
+                <Pane key={machineId} title={nameOf(machineId)} level={3}>
+                  <CardGrid>
+                    {rows.map((c) => (
+                      <CacheCard key={c.id} cache={c} onChanged={reload} />
+                    ))}
+                  </CardGrid>
+                </Pane>
+              ))}
+            </Stack>
+          </Section>
         );
       }}
     </Load>

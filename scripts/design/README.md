@@ -14,3 +14,14 @@ What is here:
 - `contrast.ts`, `contrast.test.ts`, `contrast.known.json`: every text-on-fill token pair (`--ds-color-X` with `--ds-color-on-X`) meets WCAG 2.2 AA (4.5:1) in the light theme, the dark theme and any `[data-theme=NAME]` theme. A theme inherits what it does not set from `:root`. A translucent colour is reported as "cannot judge". How to install: copy the three files to `scripts/design/` (the `guards` command does), set `CONFIG` in `contrast.ts` (token file path, token prefix), and run the test with Vitest.
 
 Known-breach lists (the `*.known.json` files, all read by the kit's tests) only shrink. A diff that adds an entry or raises a count fails `change_notes.py check`, except the change that first installs the list. No screenshot comparison anywhere.
+
+## Console guard specs (Playwright, `e2e/tests/web-console/`)
+
+The kit's checks run on real screens through these specs (CRSP164). They read the route table, so a new screen is covered at once.
+
+- `ux-routes.spec.ts`: every route at 360, 393 and 1300 px in the dark and the light mode: DOM layout (UX-10, UX-15), touch targets of 44 px (UX-16), one primary (UX-4), one h1 in the data, empty and failed states (UX-17), Select all N and Clear on tickable rows (UX-12), no sideways scroll in nav, menus and tab rows (UX-49), every section, list and table inside a Pane (UX-51).
+- `ux-look.spec.ts`: a sample screen in each of the six themes, dark and light; the computed colours must equal the swatches of `docs/project/content/look/02-options.html` (UX-55, UX-60).
+- `ux-keyboard.spec.ts`: Down and Up walk every control in order; the Ctrl+K palette starts in its search box (UX-57).
+- `ux-static.spec.ts`: no `window.alert`, `confirm` or `prompt` in `apps/web/src` or `packages/ui/src` (UX-9).
+
+A case that main fails is a `test.fixme` through `ux-fixme.ts`, with the task that fixes the screen. Delete the line when that task has merged. `UX_NOFIXME=1` runs every case. The layout spec uses no known list: `layout.known.json` stays empty.

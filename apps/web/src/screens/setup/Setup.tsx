@@ -8,6 +8,7 @@ import {
   Facts,
   Loading,
   Failed,
+  LinkButton,
   Message,
   Page,
   PageHeader,
@@ -24,6 +25,7 @@ import { useSearchParams } from 'react-router-dom';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useLoad } from '../../api/hooks';
 import { signInUrl, useSession } from '../../auth/session';
+import { withFirstRepository } from '../../shell/Shell';
 import { AddMachineWizard } from '../machines/AddMachine';
 import { TurnOnPoolWizard } from '../repositories/TurnOnPool';
 
@@ -55,6 +57,31 @@ export function messageFor(code: string, hasAppUrl: boolean): string {
     default:
       return 'The App was not created. Start again.';
   }
+}
+
+/** The first repository is done when any repository has the pool on, whatever the setup answer says. */
+async function withPoolOn(
+  client: ReturnType<typeof useClient>,
+  s: SetupState,
+): Promise<SetupState> {
+  if (s.steps.first_repository !== 'todo') return s;
+  const on = await unwrap(
+    client.GET('/api/v1/github/repositories', {
+      params: { query: { pool: 'on', limit: 1 } },
+    }),
+  )
+    .then((r) => r.items.length > 0)
+    .catch(() => false);
+  return withFirstRepository(s, on);
+}
+
+/** Every first-run step is done. */
+export function allDone(s: SetupState): boolean {
+  return (
+    s.steps.connect_github === 'done' &&
+    s.steps.first_machine === 'done' &&
+    s.steps.first_repository === 'done'
+  );
 }
 
 // Only a GitHub page is offered as a link; the controller checks it too.
@@ -350,12 +377,12 @@ export function SetupPage() {
         const next = new URLSearchParams(params);
         next.delete('code');
         setParams(next, { replace: true });
-        return s;
+        return withPoolOn(client, s);
       } catch (e) {
         setRedeemError(e instanceof Error ? e.message : 'The setup link did not work.');
       }
     }
-    return unwrap(client.GET('/api/v1/setup'));
+    return withPoolOn(client, await unwrap(client.GET('/api/v1/setup')));
   }, [code]);
 
   return (
@@ -364,11 +391,20 @@ export function SetupPage() {
         <PageHeader
           title="Set up the pool"
           lead="From a fresh controller to a first green job."
+          action={
+            result.state === 'ready' &&
+            allDone(result.data) &&
+            session.state.status === 'ready' ? (
+              <LinkButton to="/" kind="primary">
+                Open the overview
+              </LinkButton>
+            ) : undefined
+          }
         />
         {redeemError ? (
           <Message tone="problem">
-            The setup link did not work. {redeemError} Get a new link from the tray's Open
-            or `crsp open`.
+            The setup link did not work. {redeemError} Get a new link: choose Open in the
+            tray menu of the controller's machine.
           </Message>
         ) : null}
         {result.state === 'loading' ? <Loading what="Reading the controller" /> : null}
@@ -407,8 +443,8 @@ function Checklist({
       <Section title="Get a setup link">
         <Message tone="needs-you" action={<Button onPress={reload}>Try again</Button>}>
           This controller has no GitHub App yet. Open the setup page through a setup link:
-          choose Open in the tray menu of the controller's machine, or run `crsp open`
-          there. When this page opens from that link, press Try again.
+          choose Open in the tray menu of the controller's machine. When this page opens
+          from that link, press Try again.
         </Message>
       </Section>
     );

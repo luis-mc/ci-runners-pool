@@ -58,6 +58,8 @@ describe('Images', () => {
         'No images yet. Images are built when a runner first needs one.',
       ),
     ).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Images' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'Add runners' }).length).toBe(1);
     expect(
       screen.getByRole('tab', { name: 'Images' }).getAttribute('aria-selected'),
     ).toBe('true');
@@ -146,7 +148,9 @@ describe('Caches', () => {
         'No caches yet. Caches show here when a runner has been added.',
       ),
     ).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Add runners' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'Add runners' }).length).toBe(1);
+    expect(screen.getByRole('region', { name: 'Caches' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1 })).toBeTruthy();
   });
 
   it('says could not load, why and what next', async () => {

@@ -2,6 +2,8 @@
 // sort. A wide table may scroll sideways inside its frame, the page never does (UX-49). j and k move the
 // active row, Enter opens it (UX-57): the shell sets `data-list-row` and the handler reads it.
 import { useMemo, useState, type ReactNode } from 'react';
+import { useKeyHints } from './KeyHints';
+import { Pane } from './Pane';
 
 export interface Column<T> {
   id: string;
@@ -9,6 +11,8 @@ export interface Column<T> {
   cell: (row: T) => ReactNode;
   /** A sort value. A column without one does not sort. */
   sort?: ((row: T) => string | number) | undefined;
+  /** Left out of the two-line fold at phone width; the row still shows it on a wide screen (UX-25). */
+  secondary?: boolean | undefined;
 }
 
 export function Table<T>({
@@ -21,8 +25,11 @@ export function Table<T>({
   onToggle,
   toggleLabel,
   muted,
+  title,
 }: {
   caption: string;
+  /** Draws the table inside a pane with this title and the row count; leave out when the page already has one. */
+  title?: string | undefined;
   columns: readonly Column<T>[];
   rows: readonly T[];
   rowKey: (row: T) => string;
@@ -34,6 +41,14 @@ export function Table<T>({
   /** A row the screen shows greyed because it cannot be used now; its reason sits in the row. */
   muted?: ((row: T) => boolean) | undefined;
 }) {
+  useKeyHints(
+    rows.length > 0
+      ? [
+          { keys: 'j / k', does: 'Move' },
+          ...(onOpen ? [{ keys: 'Enter', does: 'Open' }] : []),
+        ]
+      : [],
+  );
   const [sortBy, setSortBy] = useState<{ id: string; dir: 1 | -1 } | null>(null);
   const sorted = useMemo(() => {
     const col = columns.find((c) => c.id === sortBy?.id);
@@ -45,7 +60,7 @@ export function Table<T>({
       return (x < y ? -1 : x > y ? 1 : 0) * sortBy.dir;
     });
   }, [rows, columns, sortBy]);
-  return (
+  const table = (
     <div className="ds-table-frame">
       <table className="ds-table">
         <caption className="ds-visually-hidden">{caption}</caption>
@@ -117,8 +132,13 @@ export function Table<T>({
                     />
                   </td>
                 ) : null}
-                {columns.map((c) => (
-                  <td key={c.id} data-label={c.header}>
+                {columns.map((c, i) => (
+                  <td
+                    key={c.id}
+                    data-label={c.header}
+                    data-lead={i === 0 || undefined}
+                    data-secondary={(i > 0 && c.secondary) || undefined}
+                  >
                     {c.cell(row)}
                   </td>
                 ))}
@@ -128,6 +148,13 @@ export function Table<T>({
         </tbody>
       </table>
     </div>
+  );
+  return title ? (
+    <Pane title={title} count={rows.length}>
+      {table}
+    </Pane>
+  ) : (
+    table
   );
 }
 

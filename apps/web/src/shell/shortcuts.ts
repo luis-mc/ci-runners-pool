@@ -1,10 +1,11 @@
-// Keyboard first (UX-57, R5.5). Ctrl/Cmd+K opens the palette; `/` goes to the search bar; j and k move down and
-// up a list; Enter opens the row; `?` lists every shortcut. None fires while typing in a field.
+// Keyboard first (UX-57, R5.5). Ctrl/Cmd+K opens the palette; `/` goes to the search bar; Enter opens the row;
+// `?` lists every shortcut. Down, Up, j and k move focus through the page: that is `ArrowNavigation` in @crsp/ui.
+// None of these fires while typing in a field.
 export const SHORTCUTS: readonly { keys: string; does: string }[] = [
   { keys: 'Ctrl+K', does: 'Open the command palette (Cmd+K on macOS)' },
   { keys: '/', does: "Go to the page's search bar" },
-  { keys: 'j', does: 'Move down a list' },
-  { keys: 'k', does: 'Move up a list' },
+  { keys: 'Down or j', does: 'Move to the next control or list item' },
+  { keys: 'Up or k', does: 'Move to the previous control or list item' },
   { keys: 'Enter', does: 'Open the chosen row' },
   { keys: '?', does: 'List every shortcut' },
   { keys: 'Escape', does: 'Close a dialog' },
@@ -61,20 +62,6 @@ export function handleKey(
       return true;
     }
     return false;
-  }
-  if (e.key === 'j' || e.key === 'k') {
-    const rows = Array.from(root.querySelectorAll<HTMLElement>('[data-list-row]'));
-    if (rows.length === 0) return false;
-    const at = rows.findIndex(
-      (r) => r === document.activeElement || r.contains(document.activeElement),
-    );
-    const next =
-      e.key === 'j'
-        ? Math.min(rows.length - 1, at + 1)
-        : Math.max(0, at <= 0 ? 0 : at - 1);
-    rows[next]?.focus();
-    e.preventDefault();
-    return true;
   }
   if (e.key === 'Enter') {
     const row = document.activeElement;

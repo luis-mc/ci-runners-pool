@@ -8,6 +8,7 @@ import {
   Message,
   Page,
   PageHeader,
+  Section,
   ListToolbar,
   SearchBar,
   Stack,
@@ -305,14 +306,9 @@ export function RunnersList() {
           );
           if (data.items.length === 0)
             return (
-              <Empty
-                title="No runners yet. Add runners to start."
-                action={
-                  admin ? (
-                    <LinkButton to="/runners/add">Add runners</LinkButton>
-                  ) : undefined
-                }
-              />
+              <Section title="Runners" count={0}>
+                <Empty title="No runners yet. Use Add runners at the top to start." />
+              </Section>
             );
           return (
             <Stack>
@@ -346,98 +342,110 @@ export function RunnersList() {
                   {failedWords(data.items.filter((r) => r.state === 'failed').length)}
                 </Message>
               ) : null}
-              <ListToolbar
-                label="Runners"
-                search={<SearchBar value={q} onChange={setQ} label="Search runners" />}
-                filters={
-                  <>
-                    <Chips
-                      label="System"
-                      options={[
-                        { value: 'linux', label: 'Linux' },
-                        { value: 'windows', label: 'Windows' },
-                        { value: 'macos', label: 'macOS' },
-                      ]}
-                      value={os}
-                      onChange={setOs}
-                    />
-                    <Chips
-                      label="Isolation"
-                      options={[
-                        { value: 'microVM', label: 'microVM' },
-                        { value: 'VM', label: 'VM' },
-                        { value: 'container', label: 'container' },
-                        { value: 'persistent', label: 'persistent' },
-                      ]}
-                      value={iso}
-                      onChange={setIso}
-                    />
-                  </>
-                }
-                selection={
-                  picked.size > 0 ? (
-                    <>
-                      <span>{`${picked.size} selected`}</span>
-                      <Button
-                        kind="danger"
-                        disabled={!admin}
-                        reason={why}
-                        onPress={() =>
-                          del.ask(
-                            chosen.map((r) => `Runner ${r.name}`),
-                            chosen.flatMap((r) =>
-                              r.current_job
-                                ? [
-                                    `${r.current_job.repository} ${r.current_job.job_name}`,
-                                  ]
-                                : [],
-                            ),
-                          )
-                        }
-                      >
-                        {`Delete ${chosen.length} ${chosen.length === 1 ? 'runner' : 'runners'}`}
-                      </Button>
-                    </>
-                  ) : null
-                }
-                count={`${rows.length} ${rows.length === 1 ? 'runner' : 'runners'}`}
-              />
-              {rows.length === 0 ? (
-                <Message
-                  tone="note"
-                  action={
-                    <Button
-                      onPress={() => {
-                        setQ('');
-                        setOs('');
-                        setIso('');
-                      }}
+              <Section title="Runners" count={rows.length}>
+                <Stack>
+                  <ListToolbar
+                    label="Runners"
+                    search={
+                      <SearchBar value={q} onChange={setQ} label="Search runners" />
+                    }
+                    filters={
+                      <>
+                        <Chips
+                          label="System"
+                          options={[
+                            { value: 'linux', label: 'Linux' },
+                            { value: 'windows', label: 'Windows' },
+                            { value: 'macos', label: 'macOS' },
+                          ]}
+                          value={os}
+                          onChange={setOs}
+                        />
+                        <Chips
+                          label="Isolation"
+                          options={[
+                            { value: 'microVM', label: 'microVM' },
+                            { value: 'VM', label: 'VM' },
+                            { value: 'container', label: 'container' },
+                            { value: 'persistent', label: 'persistent' },
+                          ]}
+                          value={iso}
+                          onChange={setIso}
+                        />
+                      </>
+                    }
+                    selection={
+                      <>
+                        <Button onPress={() => setPicked(new Set(rows.map((r) => r.id)))}>
+                          {`Select all ${rows.length}`}
+                        </Button>
+                        {picked.size > 0 ? (
+                          <>
+                            <span>{`${picked.size} selected`}</span>
+                            <Button onPress={() => setPicked(new Set())}>Clear</Button>
+                            <Button
+                              kind="danger"
+                              disabled={!admin}
+                              reason={why}
+                              onPress={() =>
+                                del.ask(
+                                  chosen.map((r) => `Runner ${r.name}`),
+                                  chosen.flatMap((r) =>
+                                    r.current_job
+                                      ? [
+                                          `${r.current_job.repository} ${r.current_job.job_name}`,
+                                        ]
+                                      : [],
+                                  ),
+                                )
+                              }
+                            >
+                              {`Delete ${chosen.length} ${chosen.length === 1 ? 'runner' : 'runners'}`}
+                            </Button>
+                          </>
+                        ) : null}
+                      </>
+                    }
+                    count={`${rows.length} ${rows.length === 1 ? 'runner' : 'runners'}`}
+                  />
+                  {rows.length === 0 ? (
+                    <Message
+                      tone="note"
+                      action={
+                        <Button
+                          onPress={() => {
+                            setQ('');
+                            setOs('');
+                            setIso('');
+                          }}
+                        >
+                          Clear search and filters
+                        </Button>
+                      }
                     >
-                      Clear search and filters
-                    </Button>
-                  }
-                >
-                  {data.items.length} runners are hidden by the search and the filters.
-                  Clear them to see all.
-                </Message>
-              ) : (
-                <Table
-                  caption="Runners"
-                  columns={columns}
-                  rows={rows}
-                  rowKey={(r) => r.id}
-                  selected={picked}
-                  onToggle={(k) =>
-                    setPicked((p) => {
-                      const n = new Set(p);
-                      if (n.has(k)) n.delete(k);
-                      else n.add(k);
-                      return n;
-                    })
-                  }
-                  toggleLabel={(r) => `Select ${r.name}`}
-                />
-              )}
+                      {data.items.length} runners are hidden by the search and the
+                      filters. Clear them to see all.
+                    </Message>
+                  ) : (
+                    <Table
+                      caption="Runners"
+                      columns={columns}
+                      rows={rows}
+                      rowKey={(r) => r.id}
+                      selected={picked}
+                      onToggle={(k) =>
+                        setPicked((p) => {
+                          const n = new Set(p);
+                          if (n.has(k)) n.delete(k);
+                          else n.add(k);
+                          return n;
+                        })
+                      }
+                      toggleLabel={(r) => `Select ${r.name}`}
+                    />
+                  )}
+                </Stack>
+              </Section>
             </Stack>
           );
         }}

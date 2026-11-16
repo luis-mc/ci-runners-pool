@@ -1,10 +1,8 @@
 // The hosted fallback of a repository (github-integration R5.42 to R5.44): where its jobs go now and why, and the
-// setting "When no crsp machine can take these jobs". Turning it on asks first in the page (UX-9).
+// setting "When no crsp machine can take these jobs". The fields are part of the repository page's one form and
+// one Save; turning it on asks first in the page (UX-9).
 import {
-  Button,
   ChoiceField,
-  ErrorSummary,
-  FormActions,
   Message,
   NumberField,
   Stack,
@@ -12,11 +10,6 @@ import {
   TextField,
   type StatusKind,
 } from '@crsp/ui';
-import { useState } from 'react';
-import { unwrap, useClient } from '../../api/api';
-import { useCommand, useQuestion } from '../../api/hooks';
-import { useSession } from '../../auth/session';
-import { Ask } from '../common';
 import type { Repository } from './plans';
 
 const OS_NAME = { linux: 'Linux', windows: 'Windows', macos: 'macOS' } as const;
@@ -70,154 +63,109 @@ export function WhereJobsGo({ r }: { r: Repository }) {
 const WAIT = 'wait';
 const HOSTED = 'hosted';
 
-/** The setting form with its question card. */
-export function HostedFallback({
+/** The hosted fallback setting as the page form holds it. */
+export interface HostedState {
+  mode: typeof WAIT | typeof HOSTED;
+  cap: number;
+  labels: { linux: string; windows: string; macos: string };
+}
+
+export function hostedStart(r: Repository): HostedState {
+  const p = r.policy;
+  return {
+    mode: p.hosted_fallback ? HOSTED : WAIT,
+    cap: p.fallback_cap_minutes ?? 0,
+    labels: {
+      linux: p.hosted_labels?.['linux'] ?? '',
+      windows: p.hosted_labels?.['windows'] ?? '',
+      macos: p.hosted_labels?.['macos'] ?? '',
+    },
+  };
+}
+
+/** The policy fields this setting sends. */
+export function hostedBody(h: HostedState) {
+  return {
+    hosted_fallback: h.mode === HOSTED,
+    fallback_cap_minutes: h.cap,
+    hosted_labels: h.labels,
+  };
+}
+
+export function hostedChanged(a: HostedState, b: HostedState): boolean {
+  return JSON.stringify(a) !== JSON.stringify(b);
+}
+
+export function hostedMistakes(h: HostedState): string[] {
+  return h.cap < 0 ? ['The monthly cap must be 0 or more minutes.'] : [];
+}
+
+/** True when the form turns the fallback on now (it asks first, UX-9). */
+export function turnsFallbackOn(r: Repository, h: HostedState): boolean {
+  return h.mode === HOSTED && !r.policy.hosted_fallback;
+}
+
+export const FALLBACK_COST_ITEMS = (fullName: string) => [
+  'GitHub may bill the minutes that run on GitHub-hosted runners for a private repository.',
+  `Jobs of ${fullName} run there only while no crsp machine can take them. crsp switches back as soon as a machine is up.`,
+];
+
+/** The fields of the setting; the page form owns the state and the Save. */
+export function HostedFields({
   r,
-  onChanged,
+  value,
+  onChange,
 }: {
   r: Repository;
-  onChanged: () => void;
+  value: HostedState;
+  onChange: (next: HostedState) => void;
 }) {
-  const client = useClient();
-  const session = useSession();
-  const admin = session.can('admin');
-  const p = r.policy;
   const isPublic = r.visibility === 'public';
-  const [mode, setMode] = useState(p.hosted_fallback ? HOSTED : WAIT);
-  const [cap, setCap] = useState(p.fallback_cap_minutes ?? 0);
-  const [labels, setLabels] = useState({
-    linux: p.hosted_labels?.['linux'] ?? '',
-    windows: p.hosted_labels?.['windows'] ?? '',
-    macos: p.hosted_labels?.['macos'] ?? '',
-  });
-  const [errors, setErrors] = useState<string[]>([]);
-  const [saved, setSaved] = useState(false);
-
-  const body = () => ({
-    hosted_fallback: mode === HOSTED,
-    fallback_cap_minutes: cap,
-    hosted_labels: labels,
-  });
-  const patch = (extra: { confirm_fallback_cost?: boolean }) =>
-    unwrap(
-      client.PATCH('/api/v1/repositories/{repositoryId}/policy', {
-        params: { path: { repositoryId: r.id } },
-        body: { ...body(), ...extra },
-      }),
-    );
-  const askQ = useQuestion(
-    () => patch({ confirm_fallback_cost: true }),
-    () => {
-      setSaved(true);
-      onChanged();
-    },
-  );
-  const save = useCommand(async () => {
-    setSaved(false);
-    const problems: string[] = [];
-    if (cap < 0) problems.push('The monthly cap must be 0 or more minutes.');
-    setErrors(problems);
-    if (problems.length) return;
-    if (mode === HOSTED && !p.hosted_fallback) {
-      askQ.ask([
-        'GitHub may bill the minutes that run on GitHub-hosted runners for a private repository.',
-        `Jobs of ${r.full_name} run there only while no crsp machine can take them. crsp switches back as soon as a machine is up.`,
-      ]);
-      return;
-    }
-    await patch({});
-    setSaved(true);
-    onChanged();
-  });
-
   return (
-    <>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void save.run();
-        }}
-      >
-        <Stack>
-          <ErrorSummary errors={errors} />
-          <ChoiceField
-            label="When no crsp machine can take these jobs"
-            value={mode}
-            onChange={(v) => {
-              setMode(v);
-              setSaved(false);
-            }}
-            choices={[
-              { value: WAIT, label: 'Wait for a crsp machine' },
-              {
-                value: HOSTED,
-                label: 'Run on GitHub-hosted runners',
-                disabledReason: isPublic
-                  ? 'A public repository never runs on GitHub-hosted runners.'
-                  : undefined,
-              },
-            ]}
-            help="Waiting costs nothing. Jobs stay queued on GitHub for up to 24 hours."
-          />
-          {mode === HOSTED ? (
-            <>
-              <NumberField
-                label="Monthly cap of hosted minutes"
-                value={cap}
-                min={0}
-                onChange={(v) => {
-                  setCap(v);
-                  setSaved(false);
-                }}
-                help="0 means no cap. Once the cap is reached this month, jobs wait again."
-              />
-              {(['linux', 'windows', 'macos'] as const).map((os) => (
-                <TextField
-                  key={os}
-                  label={`Hosted label for ${OS_NAME[os]}`}
-                  optional
-                  value={labels[os]}
-                  onChange={(v) => {
-                    setLabels((l) => ({ ...l, [os]: v }));
-                    setSaved(false);
-                  }}
-                  help={`Blank uses ${os === 'linux' ? 'ubuntu' : os}-latest.`}
-                />
-              ))}
-              <Message tone="needs-you">
-                GitHub may bill these minutes for a private repository. crsp switches back
-                as soon as a machine is up.
-              </Message>
-            </>
-          ) : null}
-          {saved ? <Message tone="done">Saved.</Message> : null}
-          {save.error ? (
-            <Message tone="problem">Could not save. {save.error}</Message>
-          ) : null}
-          <FormActions>
-            <Button
-              kind="primary"
-              submit
-              busy={save.busy}
-              busyLabel="Saving"
-              disabled={!admin}
-              reason={session.whyNot('admin')}
-            >
-              Save fallback
-            </Button>
-          </FormActions>
-        </Stack>
-      </form>
-      <Ask
-        title="Run on GitHub-hosted runners?"
-        action="Turn on"
-        busyLabel="Saving"
-        q={askQ.question}
-        busy={askQ.busy}
-        error={askQ.error}
-        onCancel={askQ.cancel}
-        onConfirm={() => void askQ.confirm()}
+    <Stack>
+      <ChoiceField
+        label="When no crsp machine can take these jobs"
+        value={value.mode}
+        onChange={(v) => onChange({ ...value, mode: v === HOSTED ? HOSTED : WAIT })}
+        choices={[
+          { value: WAIT, label: 'Wait for a crsp machine' },
+          {
+            value: HOSTED,
+            label: 'Run on GitHub-hosted runners',
+            disabledReason: isPublic
+              ? 'A public repository never runs on GitHub-hosted runners.'
+              : undefined,
+          },
+        ]}
+        help="Waiting costs nothing. Jobs stay queued on GitHub for up to 24 hours."
       />
-    </>
+      {value.mode === HOSTED ? (
+        <>
+          <NumberField
+            label="Monthly cap of hosted minutes"
+            value={value.cap}
+            min={0}
+            onChange={(v) => onChange({ ...value, cap: v })}
+            help="0 means no cap. Once the cap is reached this month, jobs wait again."
+          />
+          {(['linux', 'windows', 'macos'] as const).map((os) => (
+            <TextField
+              key={os}
+              label={`Hosted label for ${OS_NAME[os]}`}
+              optional
+              value={value.labels[os]}
+              onChange={(v) =>
+                onChange({ ...value, labels: { ...value.labels, [os]: v } })
+              }
+              help={`Blank uses ${os === 'linux' ? 'ubuntu' : os}-latest.`}
+            />
+          ))}
+          <Message tone="needs-you">
+            GitHub may bill these minutes for a private repository. crsp switches back as
+            soon as a machine is up.
+          </Message>
+        </>
+      ) : null}
+    </Stack>
   );
 }

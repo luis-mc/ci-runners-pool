@@ -295,10 +295,7 @@ describe('Repository detail', () => {
     renderApp(a, '/repositories/octo/app');
     await screen.findByRole('heading', { name: 'octo/app' });
     fireEvent.click(screen.getByRole('radio', { name: 'Run on GitHub-hosted runners' }));
-    const form = screen
-      .getByRole('radio', { name: 'Run on GitHub-hosted runners' })
-      .closest('form') as HTMLElement;
-    fireEvent.click(within(form).getByRole('button', { name: 'Save fallback' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     const dialog = await screen.findByRole('dialog', {
       name: 'Run on GitHub-hosted runners?',
     });
@@ -379,8 +376,8 @@ describe('Repository detail', () => {
     });
     expect(box.value).toBe('libc++-dev\nzlib1g-dev');
     fireEvent.change(box, { target: { value: 'zlib1g-dev' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save packages' }));
-    expect(await screen.findByText('Extra packages saved.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Saved.')).toBeTruthy();
     expect((a.calls.find((c) => c.method === 'PUT')?.body as { text: string }).text).toBe(
       'zlib1g-dev',
     );
@@ -397,7 +394,7 @@ describe('Repository detail', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /Extra packages/ }), {
       target: { value: 'zlib1g-dev\n# a note\n-evil' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save packages' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(
       (await screen.findAllByText(/Line 3: -evil is not a package name/)).length,
     ).toBe(2);
@@ -415,7 +412,7 @@ describe('Repository detail', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /Extra packages/ }), {
       target: { value: 'ok-name' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save packages' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText(/line 1: "a b" is not a package name/)).toBeTruthy();
   });
 

@@ -4,6 +4,7 @@
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { apiError, renderApp, signedIn, viewer, type MockApi } from '../../testing/mock';
+import { section } from './testSection';
 
 afterEach(cleanup);
 
@@ -66,7 +67,7 @@ describe('Notifications: the channel table', () => {
     expect(within(table).getByText('Off')).toBeTruthy();
     expect(within(table).getByText('Delivered')).toBeTruthy();
     expect(within(table).getByText('Not tested')).toBeTruthy();
-    expect(screen.getByRole('tab', { name: 'Notifications' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Console' })).toBeTruthy();
   });
 
   it('says what to do when there is no channel', async () => {
@@ -88,7 +89,9 @@ describe('Notifications: the channel table', () => {
     expect(
       await screen.findByText(/Could not load the notification channels/),
     ).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+    expect(
+      section('notifications').getByRole('button', { name: 'Try again' }),
+    ).toBeTruthy();
   });
 });
 

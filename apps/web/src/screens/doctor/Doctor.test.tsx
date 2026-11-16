@@ -132,12 +132,14 @@ describe('Doctor screen', () => {
     renderApp(api, '/doctor');
     expect(
       await screen.findByText(
-        'No checks have run yet. Run the doctor to look for problems.',
+        'No checks have run yet. Use Run the doctor at the top to look for problems.',
       ),
     ).toBeTruthy();
     const buttons = screen.getAllByRole('button', { name: 'Run the doctor' });
-    expect(buttons.length).toBe(2); // the header's primary, and the empty state's action
-    fireEvent.click(buttons[1] as HTMLElement);
+    expect(buttons.length).toBe(1); // one primary, not a second one in the empty state
+    expect(screen.getByRole('heading', { level: 1, name: 'Doctor' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Findings' })).toBeTruthy();
+    fireEvent.click(buttons[0] as HTMLElement);
     await waitFor(() => expect(api.count('POST', '/api/v1/doctor/runs')).toBe(1));
   });
 

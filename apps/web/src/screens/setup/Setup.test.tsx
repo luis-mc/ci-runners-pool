@@ -24,7 +24,7 @@ describe('Setup page', () => {
     renderApp(api, '/setup');
     expect(
       await screen.findByText(
-        /choose Open in the tray menu of the controller's machine, or run `crsp open`/,
+        /choose Open in the tray menu of the controller.s machine\./,
       ),
     ).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Next' })).toBeNull();
@@ -169,6 +169,81 @@ describe('Setup errors (UX-6)', () => {
     const words = messageFor(code, false);
     expect(words.length).toBeGreaterThan(10);
     expect(await screen.findByText(words)).toBeTruthy();
+  });
+});
+
+describe('Setup page when every step is done (UX-6)', () => {
+  const allDoneState = (over: object = {}) =>
+    state({
+      has_app: true,
+      has_owner: true,
+      setup_link_redeemed: true,
+      steps: { connect_github: 'done', first_machine: 'done', first_repository: 'done' },
+      ...over,
+    });
+
+  it('offers one primary, Open the overview, that goes on', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/setup', allDoneState())
+      .on('GET', '/api/v1/machines', { items: [machine()] });
+    renderApp(api, '/setup');
+    const go = await screen.findByRole('button', { name: 'Open the overview' });
+    expect(go.getAttribute('href')).toBe('/');
+    expect(go.getAttribute('data-kind')).toBe('primary');
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    const primaries = screen
+      .getAllByRole('button')
+      .filter((b) => b.getAttribute('data-kind') === 'primary');
+    expect(primaries).toHaveLength(1);
+  });
+
+  it('counts the first repository when any repository has the pool on', async () => {
+    const api = signedIn()
+      .on(
+        'GET',
+        '/api/v1/setup',
+        allDoneState({
+          steps: {
+            connect_github: 'done',
+            first_machine: 'done',
+            first_repository: 'todo',
+          },
+        }),
+      )
+      .on('GET', '/api/v1/machines', { items: [machine()] })
+      .on('GET', '/api/v1/github/repositories', {
+        items: [{ id: 1, full_name: 'octo/home-automation', pool_on: true }],
+        stale: { stale: false },
+      });
+    renderApp(api, '/setup');
+    expect(await screen.findByRole('button', { name: 'Open the overview' })).toBeTruthy();
+    expect(screen.queryByRole('group', { name: 'Turn on the pool' })).toBeNull();
+  });
+
+  it('does not offer the overview while a step is open', async () => {
+    const api = signedIn()
+      .on(
+        'GET',
+        '/api/v1/setup',
+        allDoneState({
+          steps: {
+            connect_github: 'done',
+            first_machine: 'done',
+            first_repository: 'todo',
+          },
+        }),
+      )
+      .on('GET', '/api/v1/machines', { items: [machine()] })
+      .on('GET', '/api/v1/github/repositories', { items: [], stale: { stale: false } });
+    renderApp(api, '/setup');
+    await screen.findByText('Turn on the first repository');
+    expect(screen.queryByRole('button', { name: 'Open the overview' })).toBeNull();
+  });
+
+  it('never sends the owner to a terminal', async () => {
+    renderApp(signedIn().on('GET', '/api/v1/setup', state()), '/setup');
+    await screen.findByText(/no GitHub App yet/);
+    expect(document.body.textContent).not.toMatch(/crsp open|terminal|command line/i);
   });
 });
 

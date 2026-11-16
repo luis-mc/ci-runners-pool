@@ -124,3 +124,19 @@ describe('Review step', () => {
     expect(screen.getByRole('button', { name: 'Open Updates' })).toBeTruthy();
   });
 });
+
+describe('Update state words', () => {
+  it('says which of the two idle cases is true', async () => {
+    const waiting = signedIn().on('GET', '/api/v1/update', status());
+    renderApp(waiting, '/settings/console');
+    expect(await screen.findByText('Version 1.5.0 is waiting for your yes')).toBeTruthy();
+    cleanup();
+    const current = signedIn().on(
+      'GET',
+      '/api/v1/update',
+      status({ update_available: false }),
+    );
+    renderApp(current, '/settings/console');
+    expect(await screen.findByText('Up to date')).toBeTruthy();
+  });
+});

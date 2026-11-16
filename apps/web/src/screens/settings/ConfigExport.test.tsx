@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderApp, signedIn, viewer } from '../../testing/mock';
+import { section } from './testSection';
 
 afterEach(() => {
   cleanup();
@@ -53,6 +54,8 @@ describe('Config export (R5.29)', () => {
     renderApp(signedIn(viewer), '/settings/export');
     const button = await screen.findByRole('button', { name: 'Export config' });
     expect(button.hasAttribute('disabled')).toBe(true);
-    expect(screen.getByText(/admin/i, { selector: '.ds-button-reason' })).toBeTruthy();
+    expect(
+      section('config-export').getByText(/admin/i, { selector: '.ds-button-reason' }),
+    ).toBeTruthy();
   });
 });

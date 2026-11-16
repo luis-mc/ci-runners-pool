@@ -28,7 +28,7 @@ const api = (user = owner) =>
 describe('Budgets (R5.27)', () => {
   it('has a Budgets tab and shows the pool defaults and the queue order', async () => {
     renderApp(api(), '/settings/budgets');
-    expect(await screen.findByRole('tab', { name: 'Budgets' })).toBeTruthy();
+    expect(await screen.findByRole('tab', { name: 'Repositories' })).toBeTruthy();
     expect(await screen.findByRole('button', { name: /Memory budget/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Drain timeout/ }).textContent).toContain(
       '60',
