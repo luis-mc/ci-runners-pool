@@ -62,6 +62,11 @@ type Service struct {
 	// Light places the light runners of a repository (scheduling R5.65). Nil
 	// turns light runners off.
 	Light LightPlacer
+	// Services lists the OS services of a machine, from its agent. Nil means
+	// the service state is not known, so no runner shows `stopped` (UX-19).
+	Services func(ctx context.Context, machineID string) ([]backend.Found, error)
+
+	lightTry map[string]lightTry // repository and OS -> tries of the failed light runner
 
 	mu      sync.Mutex // one plan apply at a time
 	lightMu sync.Mutex // one light-runner change at a time
@@ -534,6 +539,11 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, WindowsSymlinkRight: a.OS == "windows" && a.Symlink, CacheQuota: s.CacheQuota, MaxParallel: a.MaxParallel}
 	h, err := s.Agent.AddRunner(ctx, a.MachineID, spec, backend.StartConfig{Registration: token})
 	if err != nil {
+		if h.Ref != "" {
+			// The service exists though it did not start; keep its name so a
+			// removal cleans it up.
+			_ = s.Store.SetRunnerService(ctx, id, h.Ref, AccountName(a.Name, nil))
+		}
 		return fail(err)
 	}
 	if err := s.Store.SetRunnerService(ctx, id, h.Ref, AccountName(a.Name, nil)); err != nil {
@@ -612,6 +622,11 @@ func (s *Service) BeginRemove(ctx context.Context, id string, confirm bool, acto
 func (s *Service) finishRemove(ctx context.Context, r Record, prev State, actor string) error {
 	d := s.drainFor(r)
 	err := d.Act(ctx, func(ctx context.Context) error {
+		if prev == Failed {
+			// A runner that never started has nothing to deregister with a
+			// token: take away what it left (UX-6).
+			return s.discardFailed(ctx, r, actor, "runner.remove")
+		}
 		_ = s.Store.SetRunnerState(ctx, r.ID, Removing, "idle; removing")
 		return s.removeRegistration(ctx, r, actor, "runner.remove", false)
 	})

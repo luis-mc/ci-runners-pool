@@ -43,7 +43,9 @@ type Record struct {
 	Folder         string
 	GitHubRunnerID int64
 	CurrentJob     string // empty when none
-	CreatedAt      time.Time
+	// Reason is why the runner is in its state; set with a failure (UX-19).
+	Reason    string
+	CreatedAt time.Time
 }
 
 // KeepsState is true for a persistent runner (runners R5.7).
