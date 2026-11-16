@@ -412,7 +412,7 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R5.42 | planned: internal/repos/rollout_test.go TestObserveStartsNothingAndLogsTheDecision, TestShadowLeavesRealJobsOnGitHub, TestNoSkippingSteps (CRSP88) |
 | R5.43 | planned: .github/workflows/release_test.go TestReleaseFailsWithoutSignatures, TestSbomPublishedPerAsset; internal/update/signature_test.go TestRefusesUnsignedInstaller (CRSP90) |
 | R5.44 | internal/machines/recovery_test.go TestOldAgentIsRefusedAndNeedsRecovery, TestStuckAfterAnHour, TestRecoveryCallNeedsActionAndValidSignature, TestHealthyMachineCannotBeArmed; internal/recovery/recovery_test.go TestCheckAnswer; internal/api/machines_recovery_test.go TestMachineRecoveryStateAndAction; internal/agent/recover_test.go TestClassifyTooOldIsNeedsRecovery (CRSP91). Planned: `crsp agent reinstall` |
-| R5.46 | scripts/ci/test_release_scripts.py: Guard.test_commit_on_unmerged_branch_refused, Guard.test_commit_on_main_passes, Notes.test_writes_subjects_between_tags, Notes.test_keeps_generated_list, Workflow.test_every_job_waits_for_guard (run by `ci.yml` unittest discover) |
+| R5.46 | scripts/ci/test_release_scripts.py: Guard.test_commit_on_unmerged_branch_refused, Guard.test_commit_on_main_passes, Notes.test_writes_subjects_between_tags, Notes.test_keeps_generated_list, Workflow.test_every_job_waits_for_guard |
 | R6.1 | planned: internal/update/rollout_test.go TestControllerRestartKeepsJobs (two-machine integration) |
 | R6.2 | planned: internal/update/checker_test.go TestOnlyReleaseRequests (HTTP recorder) |
 | R6.3 | planned: internal/update/verify_test.go TestNoNetworkFailsClosed |
