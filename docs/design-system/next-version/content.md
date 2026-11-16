@@ -435,3 +435,18 @@ The words of the Recovery section and the State word of a machine whose agent ne
 | Recover | The one action. Admin only (busy word: Recovering). Locked after it worked. |
 | Recovery is ready. The agent gets the update on its next call. | Done message after the call, and for a machine that is already armed. |
 | Could not start recovery. {why} | Problem message when the call is refused or fails. |
+
+## Pool per organization words
+
+The words of the section on the repositories screen (github-integration R5.21).
+
+| Where | Word |
+|---|---|
+| Section | Pool per organization |
+| Lead | Organization runners work in one runner group that only the repositories with the pool on can use. Only an owner of the organization on GitHub can turn this on. Personal accounts keep repository runners. |
+| Columns | Organization, Runners, Runner group, Repositories in the group, Use organization runners |
+| Switch | Organization runners for {organization} (the switch saves at once; words On and Off) |
+| Status | organization runners, repository runners |
+| Reason, not available | The pool per organization is not available here. / the reason the controller names, for example that the App lacks the organization runner permission |
+| Failure | Could not change the pool. {reason} |
+| Refusal | you are not an owner of the {organization} organization in GitHub. |

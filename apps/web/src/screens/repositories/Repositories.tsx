@@ -38,6 +38,7 @@ import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
 import { HostedFallback, WhereJobsGo, routingWhy } from './fallback';
+import { OrgPools } from './OrgPools';
 import { allRepositories, applyChanges, type Repository } from './plans';
 import { DeliveryStatus, DeliveryWhen, PollingNotice } from './webhookHealth';
 
@@ -285,6 +286,7 @@ export function RepositoriesList() {
           );
         }}
       </Load>
+      <OrgPools version={v} />
       <Ask
         title="Turn off these repositories?"
         action="Turn off"
