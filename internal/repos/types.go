@@ -26,6 +26,12 @@ type Repository struct {
 	PoolOn         bool
 	PoolChangedAt  time.Time
 	PoolChangedBy  string
+	// LeftAt is when the repository was last seen to have left its
+	// installation (the owner removed it from the App, or the installation went
+	// away); zero while it is in. A left repository is hidden from listings
+	// unless ListFilter.IncludeLeft is set (CRSP125); the repositories screen
+	// shows why from this field.
+	LeftAt time.Time
 }
 
 // Policy is a repository's policy (R5.25).
@@ -194,6 +200,8 @@ type ListFilter struct {
 	Query          string
 	AfterName      string
 	Limit          int
+	// IncludeLeft also returns repositories that left their installation.
+	IncludeLeft bool
 }
 
 // Store is the data this package needs. MemStore is the in-memory
@@ -208,6 +216,9 @@ type Store interface {
 	GetRepository(ctx context.Context, id int64) (Repository, error)
 	ListRepositories(ctx context.Context, f ListFilter) ([]Repository, error)
 	SetRepositoryPool(ctx context.Context, id int64, on bool, by string, at time.Time) error
+	// SetRepositoryLeft marks a repository as out of its installation at the
+	// given time; a zero time clears the mark. UpsertRepository clears it too.
+	SetRepositoryLeft(ctx context.Context, id int64, at time.Time) error
 
 	GetPolicy(ctx context.Context, repoID int64) (Policy, error)
 	UpsertPolicy(ctx context.Context, repoID int64, p Policy) error

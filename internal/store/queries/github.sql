@@ -21,7 +21,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (id) DO UPDATE SET installation_id = excluded.installation_id,
     full_name = excluded.full_name, owner = excluded.owner, name = excluded.name,
     visibility = excluded.visibility, default_branch = excluded.default_branch,
-    archived = excluded.archived, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now');
+    archived = excluded.archived, left_at = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now');
 
 -- name: GetRepository :one
 SELECT * FROM repositories WHERE id = ?;
@@ -33,9 +33,13 @@ SELECT * FROM repositories WHERE full_name = ?;
 SELECT * FROM repositories
 WHERE (sqlc.narg(installation_id) IS NULL OR installation_id = sqlc.narg(installation_id))
   AND (sqlc.narg(pool_on) IS NULL OR pool_on = sqlc.narg(pool_on))
+  AND (sqlc.arg(include_left) = 1 OR left_at IS NULL)
   AND full_name > sqlc.arg(after_name)
 ORDER BY full_name
 LIMIT sqlc.arg(page_size);
+
+-- name: SetRepositoryLeft :exec
+UPDATE repositories SET left_at = sqlc.narg(left_at) WHERE id = sqlc.arg(id);
 
 -- name: ListPoolRepositories :many
 SELECT * FROM repositories WHERE pool_on = 1 ORDER BY full_name;

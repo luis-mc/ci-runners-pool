@@ -331,6 +331,7 @@ type Repository struct {
 	PoolChangedAt  sql.NullString
 	PoolChangedBy  sql.NullString
 	UpdatedAt      string
+	LeftAt         sql.NullString
 }
 
 type RestoreDrill struct {

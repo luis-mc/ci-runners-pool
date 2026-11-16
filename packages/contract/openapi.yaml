@@ -584,6 +584,16 @@ paths:
           description: Search by name.
           schema:
             type: string
+        - name: refresh
+          in: query
+          required: false
+          description: >-
+            True reads GitHub again now, whatever the age of the last read, and
+            asks GitHub for the admin flag of every row that has none yet
+            (CRSP125). The console sends it when it returns from GitHub and when
+            the person asks for a refresh.
+          schema:
+            type: boolean
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
       responses:
@@ -3643,7 +3653,13 @@ components:
           type: boolean
         user_is_github_admin:
           type: boolean
-          description: github-integration R5.19; without it the switch is disabled with this reason.
+          description: github-integration R5.19; without it the switch is disabled with this reason. Only a "no" when user_admin_known is not false.
+        user_admin_known:
+          type: boolean
+          description: >-
+            False while nothing has told whether the user is a GitHub admin of
+            the repository; user_is_github_admin is then false but is not an
+            answer (CRSP125). Absent means true.
         variables:
           type: array
           items:

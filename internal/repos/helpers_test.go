@@ -150,3 +150,7 @@ func (e *env) turnOn(ids ...int64) Plan {
 	}
 	return plan
 }
+
+var auth3 = auth.Principal{UserID: 3, Login: "carol", Role: auth.RoleAdmin, Source: "web"}
+
+func githubToken(v string) github.UserToken { return github.UserToken{Value: v} }

@@ -90,7 +90,7 @@ func (q *Queries) GetRepoPolicy(ctx context.Context, repositoryID int64) (RepoPo
 }
 
 const getRepository = `-- name: GetRepository :one
-SELECT id, installation_id, full_name, owner, name, visibility, default_branch, archived, pool_on, pool_changed_at, pool_changed_by, updated_at FROM repositories WHERE id = ?
+SELECT id, installation_id, full_name, owner, name, visibility, default_branch, archived, pool_on, pool_changed_at, pool_changed_by, updated_at, left_at FROM repositories WHERE id = ?
 `
 
 func (q *Queries) GetRepository(ctx context.Context, id int64) (Repository, error) {
@@ -109,12 +109,13 @@ func (q *Queries) GetRepository(ctx context.Context, id int64) (Repository, erro
 		&i.PoolChangedAt,
 		&i.PoolChangedBy,
 		&i.UpdatedAt,
+		&i.LeftAt,
 	)
 	return i, err
 }
 
 const getRepositoryByName = `-- name: GetRepositoryByName :one
-SELECT id, installation_id, full_name, owner, name, visibility, default_branch, archived, pool_on, pool_changed_at, pool_changed_by, updated_at FROM repositories WHERE full_name = ?
+SELECT id, installation_id, full_name, owner, name, visibility, default_branch, archived, pool_on, pool_changed_at, pool_changed_by, updated_at, left_at FROM repositories WHERE full_name = ?
 `
 
 func (q *Queries) GetRepositoryByName(ctx context.Context, fullName string) (Repository, error) {
@@ -133,6 +134,7 @@ func (q *Queries) GetRepositoryByName(ctx context.Context, fullName string) (Rep
 		&i.PoolChangedAt,
 		&i.PoolChangedBy,
 		&i.UpdatedAt,
+		&i.LeftAt,
 	)
 	return i, err
 }
@@ -273,7 +275,7 @@ func (q *Queries) ListManagedVariables(ctx context.Context, repositoryID int64) 
 }
 
 const listPoolRepositories = `-- name: ListPoolRepositories :many
-SELECT id, installation_id, full_name, owner, name, visibility, default_branch, archived, pool_on, pool_changed_at, pool_changed_by, updated_at FROM repositories WHERE pool_on = 1 ORDER BY full_name
+SELECT id, installation_id, full_name, owner, name, visibility, default_branch, archived, pool_on, pool_changed_at, pool_changed_by, updated_at, left_at FROM repositories WHERE pool_on = 1 ORDER BY full_name
 `
 
 func (q *Queries) ListPoolRepositories(ctx context.Context) ([]Repository, error) {
@@ -298,6 +300,7 @@ func (q *Queries) ListPoolRepositories(ctx context.Context) ([]Repository, error
 			&i.PoolChangedAt,
 			&i.PoolChangedBy,
 			&i.UpdatedAt,
+			&i.LeftAt,
 		); err != nil {
 			return nil, err
 		}
@@ -313,17 +316,19 @@ func (q *Queries) ListPoolRepositories(ctx context.Context) ([]Repository, error
 }
 
 const listRepositories = `-- name: ListRepositories :many
-SELECT id, installation_id, full_name, owner, name, visibility, default_branch, archived, pool_on, pool_changed_at, pool_changed_by, updated_at FROM repositories
+SELECT id, installation_id, full_name, owner, name, visibility, default_branch, archived, pool_on, pool_changed_at, pool_changed_by, updated_at, left_at FROM repositories
 WHERE (?1 IS NULL OR installation_id = ?1)
   AND (?2 IS NULL OR pool_on = ?2)
-  AND full_name > ?3
+  AND (?3 = 1 OR left_at IS NULL)
+  AND full_name > ?4
 ORDER BY full_name
-LIMIT ?4
+LIMIT ?5
 `
 
 type ListRepositoriesParams struct {
 	InstallationID interface{}
 	PoolOn         interface{}
+	IncludeLeft    interface{}
 	AfterName      string
 	PageSize       int64
 }
@@ -332,6 +337,7 @@ func (q *Queries) ListRepositories(ctx context.Context, arg ListRepositoriesPara
 	rows, err := q.query(ctx, q.listRepositoriesStmt, listRepositories,
 		arg.InstallationID,
 		arg.PoolOn,
+		arg.IncludeLeft,
 		arg.AfterName,
 		arg.PageSize,
 	)
@@ -355,6 +361,7 @@ func (q *Queries) ListRepositories(ctx context.Context, arg ListRepositoriesPara
 			&i.PoolChangedAt,
 			&i.PoolChangedBy,
 			&i.UpdatedAt,
+			&i.LeftAt,
 		); err != nil {
 			return nil, err
 		}
@@ -426,6 +433,20 @@ type SetManagedVariableStatusParams struct {
 
 func (q *Queries) SetManagedVariableStatus(ctx context.Context, arg SetManagedVariableStatusParams) error {
 	_, err := q.exec(ctx, q.setManagedVariableStatusStmt, setManagedVariableStatus, arg.Status, arg.RepositoryID, arg.Name)
+	return err
+}
+
+const setRepositoryLeft = `-- name: SetRepositoryLeft :exec
+UPDATE repositories SET left_at = ?1 WHERE id = ?2
+`
+
+type SetRepositoryLeftParams struct {
+	LeftAt sql.NullString
+	ID     int64
+}
+
+func (q *Queries) SetRepositoryLeft(ctx context.Context, arg SetRepositoryLeftParams) error {
+	_, err := q.exec(ctx, q.setRepositoryLeftStmt, setRepositoryLeft, arg.LeftAt, arg.ID)
 	return err
 }
 
@@ -559,7 +580,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (id) DO UPDATE SET installation_id = excluded.installation_id,
     full_name = excluded.full_name, owner = excluded.owner, name = excluded.name,
     visibility = excluded.visibility, default_branch = excluded.default_branch,
-    archived = excluded.archived, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    archived = excluded.archived, left_at = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 `
 
 type UpsertRepositoryParams struct {

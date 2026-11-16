@@ -22,6 +22,7 @@ func (s *Service) ReconcileInstallations(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	changed := false
 	liveIDs := map[int64]bool{}
 	reach := map[int64]bool{}  // repository ids still reachable
 	public := map[int64]bool{} // repository ids GitHub reported public just now
@@ -44,23 +45,41 @@ func (s *Service) ReconcileInstallations(ctx context.Context) error {
 			}
 			continue
 		}
+		keep := map[int64]bool{}
 		for _, r := range rs {
 			reach[r.ID] = true
+			keep[r.ID] = true
 			public[r.ID] = r.Visibility == "public"
+			if s.isNew(ctx, r.ID) {
+				changed = true
+			}
 			if err := s.cfg.Store.UpsertRepository(ctx, toRepository(r, in.ID)); err != nil {
 				return err
 			}
 		}
+		left, err := s.markLeft(ctx, in.ID, keep)
+		if err != nil {
+			return err
+		}
+		changed = changed || left
 	}
 	for _, k := range known {
 		if !liveIDs[k.ID] {
 			if err := s.cfg.Store.MarkInstallationRemoved(ctx, k.ID); err != nil {
 				return err
 			}
+			left, err := s.markLeft(ctx, k.ID, nil)
+			if err != nil {
+				return err
+			}
+			changed = changed || left
 		}
 	}
+	if changed {
+		s.invalidateSync(-1)
+	}
 	pool := true
-	on, err := s.cfg.Store.ListRepositories(ctx, ListFilter{Pool: &pool})
+	on, err := s.cfg.Store.ListRepositories(ctx, ListFilter{Pool: &pool, IncludeLeft: true})
 	if err != nil {
 		return err
 	}

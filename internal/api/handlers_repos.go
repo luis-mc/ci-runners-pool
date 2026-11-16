@@ -15,7 +15,10 @@ import (
 
 // syncMaxAge is how old a user's repository listing may get before a list
 // call refreshes it from GitHub (R6.11).
-const syncMaxAge = 5 * time.Minute
+// It is short on purpose: only repeated loads of the list are spared a GitHub
+// call. A change of the installation's repository set drops it at once
+// (Service.invalidateSync), and force skips it (CRSP125).
+const syncMaxAge = time.Minute
 
 func staleness(at time.Time, stale bool) gen.Staleness {
 	s := gen.Staleness{Stale: stale}
@@ -28,9 +31,9 @@ func staleness(at time.Time, stale bool) gen.Staleness {
 // refresh syncs the user's listing when it is old or never made. A failure
 // is not an error: the page shows the last known state and says how old it is
 // (section 8). The returned flag is true when the data is stale.
-func (a *GitHubArea) refresh(ctx context.Context, p auth.Principal) (time.Time, bool) {
+func (a *GitHubArea) refresh(ctx context.Context, p auth.Principal, force bool) (time.Time, bool) {
 	last := a.Repos.LastSync(p.UserID)
-	if !last.IsZero() && time.Since(last) < syncMaxAge {
+	if !force && !last.IsZero() && time.Since(last) < syncMaxAge {
 		return last, false
 	}
 	if err := a.Repos.Sync(ctx, p); err != nil {
@@ -109,6 +112,10 @@ func toRepository(v repos.RepositoryView) gen.Repository {
 		}
 		out.Routing = &rt
 	}
+	if !v.AdminKnown {
+		known := false
+		out.UserAdminKnown = &known
+	}
 	if v.DefaultBranch != "" {
 		b := v.DefaultBranch
 		out.DefaultBranch = &b
@@ -124,7 +131,7 @@ func toRepository(v repos.RepositoryView) gen.Repository {
 // ListInstallations implements GET /api/v1/github/installations (R5.17, R5.24).
 func (s *server) ListInstallations(ctx context.Context, _ gen.ListInstallationsRequestObject) (gen.ListInstallationsResponseObject, error) {
 	a, p := s.ghArea(), s.principal(ctx)
-	at, stale := a.refresh(ctx, p)
+	at, stale := a.refresh(ctx, p, false)
 	ins, err := a.Repos.Installations(ctx, p)
 	if err != nil {
 		code, body := failure(err)
@@ -167,7 +174,8 @@ func decodeCursor(c *string) string {
 // ListRepositories implements GET /api/v1/github/repositories (R5.18, R6.11).
 func (s *server) ListRepositories(ctx context.Context, req gen.ListRepositoriesRequestObject) (gen.ListRepositoriesResponseObject, error) {
 	a, p := s.ghArea(), s.principal(ctx)
-	at, stale := a.refresh(ctx, p)
+	force := req.Params.Refresh != nil && *req.Params.Refresh
+	at, stale := a.refresh(ctx, p, force)
 	f := repos.ListFilter{AfterName: decodeCursor(req.Params.Cursor), Limit: 51}
 	limit := 50
 	if req.Params.Limit != nil {
@@ -191,6 +199,9 @@ func (s *server) ListRepositories(ctx context.Context, req gen.ListRepositoriesR
 	if err != nil {
 		code, body := failure(err)
 		return gen.ListRepositoriesdefaultJSONResponse{StatusCode: code, Body: body}, nil
+	}
+	if force {
+		a.Repos.ResolveAdmin(ctx, p, rows)
 	}
 	page := gen.RepositoryPage{Items: []gen.Repository{}, Stale: staleness(at, stale)}
 	if len(rows) > limit {

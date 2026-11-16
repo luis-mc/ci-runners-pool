@@ -46,7 +46,7 @@ type Service struct {
 	cfg Config
 
 	mu     sync.Mutex
-	admin  map[int64]map[int64]bool // user id -> repository id -> GitHub admin, from the last sync
+	admin  map[int64]map[int64]bool // user id -> repository id -> GitHub admin; a missing repository is unknown, not "no"
 	synced map[int64]time.Time
 	etags  map[int64]map[string]string // repository id -> workflow path -> etag
 	cache  map[int64]map[string][]byte // repository id -> workflow path -> content
@@ -98,6 +98,7 @@ func (s *Service) Sync(ctx context.Context, p auth.Principal) error {
 		return err
 	}
 	flags := map[int64]bool{}
+	changed := false
 	for _, in := range ins {
 		if err := s.cfg.Store.UpsertInstallation(ctx, toInstallation(in)); err != nil {
 			return err
@@ -107,16 +108,94 @@ func (s *Service) Sync(ctx context.Context, p auth.Principal) error {
 			return err
 		}
 		for _, r := range repos {
+			if s.isNew(ctx, r.ID) {
+				changed = true
+			}
 			if err := s.cfg.Store.UpsertRepository(ctx, toRepository(r, in.ID)); err != nil {
 				return err
 			}
 			flags[r.ID] = r.Admin
 		}
+		// The user's list only holds what the user can see, so what left the
+		// installation is read from the App's own list, which is the whole set.
+		// When that read fails nothing is dropped; the next round tries again.
+		ars, err := s.cfg.GitHub.ListAppRepositories(github.Background(ctx), in.ID)
+		if err != nil {
+			continue
+		}
+		keep := map[int64]bool{}
+		for _, r := range ars {
+			keep[r.ID] = true
+			if _, seen := flags[r.ID]; seen {
+				continue
+			}
+			if s.isNew(ctx, r.ID) {
+				changed = true
+			}
+			if err := s.cfg.Store.UpsertRepository(ctx, toRepository(r, in.ID)); err != nil {
+				return err
+			}
+		}
+		left, err := s.markLeft(ctx, in.ID, keep)
+		if err != nil {
+			return err
+		}
+		changed = changed || left
 	}
 	s.mu.Lock()
 	s.admin[p.UserID], s.synced[p.UserID] = flags, s.cfg.Now()
 	s.mu.Unlock()
+	if changed {
+		s.invalidateSync(p.UserID)
+	}
 	return nil
+}
+
+// isNew is true when the store has no row for the repository, or the row is
+// marked as left: listing it again changes what the user sees.
+func (s *Service) isNew(ctx context.Context, id int64) bool {
+	r, err := s.cfg.Store.GetRepository(ctx, id)
+	return err != nil || !r.LeftAt.IsZero()
+}
+
+// markLeft marks the repositories of an installation that are not in keep as
+// having left it, and turns the pool off for the ones that were served. It
+// returns true when something changed (CRSP125).
+func (s *Service) markLeft(ctx context.Context, installationID int64, keep map[int64]bool) (bool, error) {
+	rs, err := s.cfg.Store.ListRepositories(ctx, ListFilter{InstallationID: installationID, IncludeLeft: true})
+	if err != nil {
+		return false, err
+	}
+	changed := false
+	for _, r := range rs {
+		if keep[r.ID] || !r.LeftAt.IsZero() {
+			continue
+		}
+		if r.PoolOn {
+			if err := s.cfg.Store.SetRepositoryPool(ctx, r.ID, false, System.Login, s.cfg.Now()); err != nil {
+				return changed, err
+			}
+			s.cfg.Audit.Audit(ctx, System, "pool.off", "repository", r.FullName, "the repository left the App's installation")
+		}
+		if err := s.cfg.Store.SetRepositoryLeft(ctx, r.ID, s.cfg.Now()); err != nil {
+			return changed, err
+		}
+		changed = true
+	}
+	return changed, nil
+}
+
+// invalidateSync makes the next list of every user but except read GitHub
+// again: the installation's repository set changed (a webhook or the
+// reconcile saw it), so a listing younger than the throttle is out of date.
+func (s *Service) invalidateSync(except int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for id := range s.synced {
+		if id != except {
+			delete(s.synced, id)
+		}
+	}
 }
 
 // LastSync is when the user's listing was last refreshed from GitHub.
@@ -163,9 +242,13 @@ func (s *Service) Installations(ctx context.Context, p auth.Principal) ([]Instal
 // GitHub admin flag.
 type RepositoryView struct {
 	Repository
-	Policy         Policy
-	Variables      []ManagedVariable
-	UserIsAdmin    bool
+	Policy      Policy
+	Variables   []ManagedVariable
+	UserIsAdmin bool
+	// AdminKnown is false while nothing has told whether the user is a GitHub
+	// admin of the repository (no sync listed it for them, or the server
+	// restarted); UserIsAdmin is then false but does not mean "no" (CRSP125).
+	AdminKnown     bool
 	FindingsFail   int
 	FindingsWarn   int
 	VariablesDrift bool
@@ -205,9 +288,68 @@ func (s *Service) view(ctx context.Context, p auth.Principal, r Repository) (Rep
 		v.Routing = rt
 	}
 	s.mu.Lock()
-	v.UserIsAdmin = s.admin[p.UserID][r.ID]
+	v.UserIsAdmin, v.AdminKnown = s.adminOf(p.UserID, r.ID)
 	s.mu.Unlock()
 	return v, nil
+}
+
+// adminOf reads the remembered flag; the caller holds s.mu.
+func (s *Service) adminOf(userID, repoID int64) (admin, known bool) {
+	admin, known = s.admin[userID][repoID]
+	return admin, known
+}
+
+// ResolveAdmin asks GitHub, as the user, for the admin flag of every row whose
+// flag is unknown, and fills the rows and the remembered flags (CRSP125). A
+// repository GitHub hides from the user is a known "no". When the user's token
+// is gone or GitHub does not answer, the row stays unknown.
+func (s *Service) ResolveAdmin(ctx context.Context, p auth.Principal, rows []RepositoryView) {
+	var todo []int
+	for i, r := range rows {
+		if !r.AdminKnown {
+			todo = append(todo, i)
+		}
+	}
+	if len(todo) == 0 {
+		return
+	}
+	tok, err := s.cfg.Tokens.GitHubToken(p.UserID)
+	if err != nil {
+		return
+	}
+	type answer struct{ admin, known bool }
+	got := make([]answer, len(rows))
+	sem := make(chan struct{}, 8)
+	var wg sync.WaitGroup
+	for _, i := range todo {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(i int) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			r := rows[i]
+			ok, err := s.cfg.GitHub.UserCanAdmin(ctx, tok, r.Owner, r.Name)
+			switch {
+			case err == nil:
+				got[i] = answer{ok, true}
+			case errors.Is(err, github.ErrNotFound) || errors.Is(err, github.ErrForbidden):
+				got[i] = answer{false, true}
+			}
+		}(i)
+	}
+	wg.Wait()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.admin[p.UserID] == nil {
+		s.admin[p.UserID] = map[int64]bool{}
+	}
+	for _, i := range todo {
+		if !got[i].known {
+			continue
+		}
+		s.admin[p.UserID][rows[i].ID] = got[i].admin
+		rows[i].UserIsAdmin, rows[i].AdminKnown = got[i].admin, true
+	}
 }
 
 // List returns one page of repositories from the store, after the last full

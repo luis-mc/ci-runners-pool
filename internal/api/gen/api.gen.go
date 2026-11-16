@@ -2981,7 +2981,10 @@ type Repository struct {
 	// Routing Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
 	Routing *RepositoryRouting `json:"routing,omitempty"`
 
-	// UserIsGithubAdmin github-integration R5.19; without it the switch is disabled with this reason.
+	// UserAdminKnown False while nothing has told whether the user is a GitHub admin of the repository; user_is_github_admin is then false but is not an answer (CRSP125). Absent means true.
+	UserAdminKnown *bool `json:"user_admin_known,omitempty"`
+
+	// UserIsGithubAdmin github-integration R5.19; without it the switch is disabled with this reason. Only a "no" when user_admin_known is not false.
 	UserIsGithubAdmin bool                 `json:"user_is_github_admin"`
 	Variables         []RepositoryVariable `json:"variables"`
 	Visibility        RepositoryVisibility `json:"visibility"`
@@ -3711,6 +3714,9 @@ type ListRepositoriesParams struct {
 
 	// Q Search by name.
 	Q *string `form:"q,omitempty" json:"q,omitempty"`
+
+	// Refresh True reads GitHub again now, whatever the age of the last read, and asks GitHub for the admin flag of every row that has none yet (CRSP125). The console sends it when it returns from GitHub and when the person asks for a refresh.
+	Refresh *bool `form:"refresh,omitempty" json:"refresh,omitempty"`
 
 	// Cursor Opaque cursor from the previous page's `next_cursor`.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
@@ -5252,6 +5258,19 @@ func (siw *ServerInterfaceWrapper) ListRepositories(w http.ResponseWriter, r *ht
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "refresh" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "refresh", r.URL.Query(), &params.Refresh, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "refresh"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "refresh", Err: err})
 		}
 		return
 	}

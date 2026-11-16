@@ -67,7 +67,20 @@ func (m *MemStore) UpsertRepository(_ context.Context, r Repository) error {
 	if old, ok := m.repos[r.ID]; ok {
 		r.PoolOn, r.PoolChangedAt, r.PoolChangedBy = old.PoolOn, old.PoolChangedAt, old.PoolChangedBy
 	}
+	r.LeftAt = time.Time{} // a repository that is listed is in
 	m.repos[r.ID] = r
+	return nil
+}
+
+func (m *MemStore) SetRepositoryLeft(_ context.Context, id int64, at time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	r, ok := m.repos[id]
+	if !ok {
+		return auth.ErrNotFound
+	}
+	r.LeftAt = at
+	m.repos[id] = r
 	return nil
 }
 
@@ -87,6 +100,9 @@ func (m *MemStore) ListRepositories(_ context.Context, f ListFilter) ([]Reposito
 	var out []Repository
 	for _, r := range m.repos {
 		if f.InstallationID != 0 && r.InstallationID != f.InstallationID {
+			continue
+		}
+		if !f.IncludeLeft && !r.LeftAt.IsZero() {
 			continue
 		}
 		if f.Pool != nil && r.PoolOn != *f.Pool {
