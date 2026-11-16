@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"path"
 	"sort"
@@ -268,6 +269,21 @@ func (s *Server) appInstallations(w http.ResponseWriter, r *http.Request) {
 		if s.Installs[id] == nil {
 			notFound(w)
 			return
+		}
+		// Like GitHub, a request for permissions the installation lacks fails as a
+		// whole with 422 (CRSP148); the body of each request is kept for tests.
+		raw, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+		s.tokenReqs = append(s.tokenReqs, string(raw))
+		var ask struct {
+			Permissions map[string]string `json:"permissions"`
+		}
+		if len(raw) > 0 && json.Unmarshal(raw, &ask) == nil {
+			for name, level := range ask.Permissions {
+				if s.Installs[id].Perms[name] != level && !(level == "read" && s.Installs[id].Perms[name] == "write") {
+					writeJSON(w, 422, map[string]any{"message": "The permissions requested are not granted to this installation."})
+					return
+				}
+			}
 		}
 		s.nextID++
 		tok := "ghs_" + "FAKE" + strconv.FormatInt(s.nextID, 10) + strings.Repeat("z", 20)

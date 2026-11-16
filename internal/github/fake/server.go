@@ -156,6 +156,7 @@ type Server struct {
 
 	instTokens map[string]int64
 	tokensMade int
+	tokenReqs  []string
 	appPerms   map[string]string
 	removeToks map[string]bool
 	regToks    map[string]bool
@@ -588,4 +589,12 @@ func (s *Server) GroupByName(org, name string) (Group, bool) {
 		}
 	}
 	return Group{}, false
+}
+
+// TokenRequestBodies returns the body of each installation token request, so a
+// test can check that no permissions were asked for (CRSP148).
+func (s *Server) TokenRequestBodies() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.tokenReqs...)
 }

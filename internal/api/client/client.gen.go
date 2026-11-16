@@ -1684,6 +1684,30 @@ func (e SshJoinRequestOs) Valid() bool {
 	}
 }
 
+// Defines values for StalenessReason.
+const (
+	StalenessReasonGithubError       StalenessReason = "github_error"
+	StalenessReasonPermissionMissing StalenessReason = "permission_missing"
+	StalenessReasonSessionExpired    StalenessReason = "session_expired"
+	StalenessReasonUnreachable       StalenessReason = "unreachable"
+)
+
+// Valid indicates whether the value is a known member of the StalenessReason enum.
+func (e StalenessReason) Valid() bool {
+	switch e {
+	case StalenessReasonGithubError:
+		return true
+	case StalenessReasonPermissionMissing:
+		return true
+	case StalenessReasonSessionExpired:
+		return true
+	case StalenessReasonUnreachable:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for StartAppManifestRequestAccountType.
 const (
 	StartAppManifestRequestAccountTypeOrganization StartAppManifestRequestAccountType = "organization"
@@ -3855,9 +3879,21 @@ type SshJoinRequestOs string
 
 // Staleness Set when GitHub did not answer and the last copy is shown (UX-53).
 type Staleness struct {
-	AsOf  *time.Time `json:"as_of,omitempty"`
-	Stale bool       `json:"stale"`
+	AsOf *time.Time `json:"as_of,omitempty"`
+
+	// Message What GitHub said, word for word, when it answered.
+	Message *string `json:"message,omitempty"`
+
+	// Reason Why the list is the last copy (CRSP148, UX-28).
+	Reason *StalenessReason `json:"reason,omitempty"`
+	Stale  bool             `json:"stale"`
+
+	// Status The HTTP status GitHub answered with, when it answered.
+	Status *int `json:"status,omitempty"`
 }
+
+// StalenessReason Why the list is the last copy (CRSP148, UX-28).
+type StalenessReason string
 
 // StartAppManifestRequest defines model for StartAppManifestRequest.
 type StartAppManifestRequest struct {
