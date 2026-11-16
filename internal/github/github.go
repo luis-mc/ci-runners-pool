@@ -34,6 +34,10 @@ var (
 	ErrRunnerBusy = errors.New("github: the runner has a job")
 	// ErrForbidden: a permission is missing (R5.24).
 	ErrForbidden = errors.New("github: forbidden")
+	// ErrBadKey: a candidate App private key is not a PEM RSA key (R5.7).
+	ErrBadKey = errors.New("github: not a usable private key")
+	// ErrKeyRefused: GitHub does not accept the key for this App (R5.7).
+	ErrKeyRefused = errors.New("github: the key is not for this App")
 )
 
 // RateLimitError carries when a limit resets.
@@ -190,6 +194,10 @@ type AppClient interface {
 	ConvertManifest(ctx context.Context, code string) (AppCredentials, error)
 	// GetApp reads GET /app with an App JWT.
 	GetApp(ctx context.Context) (App, error)
+	// CheckAppKey signs an App JWT with a candidate private key and reads
+	// GET /app; it returns ErrBadKey or ErrKeyRefused when the key does not
+	// belong to the App (R5.7). The key is never stored or logged.
+	CheckAppKey(ctx context.Context, appID int64, pemBytes []byte) error
 }
 
 // UserClient is what the console lists with the signed-in user's token
