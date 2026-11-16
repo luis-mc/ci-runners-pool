@@ -11,6 +11,7 @@ import {
   Message,
   Page,
   PageHeader,
+  Pane,
   Stack,
   Table,
   Text,
@@ -261,61 +262,72 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
 
   let body;
   if (step <= 1) {
+    const onlyPublicLeft = publicOff.length > 0 && blocked.length === 0;
     body = (
       <Stack>
         <MissingPermissionsGuide />
-        <Text>Choose the repositories that should use the pool.</Text>
-        {eligible.length === 0 ? (
-          <Message
-            tone="needs-you"
-            action={
-              <Cluster>
-                <InstallAppButton
-                  label="Install the App on a repository"
-                  onReturn={() => void readAgain()}
-                />
-                <LinkButton to="/repositories">Open Repositories</LinkButton>
-              </Cluster>
-            }
-          >
-            {blocked.length > 0
-              ? 'No repository is free for you to turn on. Install the App on a repository you own, or ask an owner of the others to turn them on.'
-              : 'No repository is waiting. Install the App on a repository to turn the pool on for it, or open Repositories to see the ones that already use it.'}
-          </Message>
-        ) : (
-          <>
-            <Cluster>
-              <Button onPress={() => setPicked(new Set(eligible.map((r) => r.id)))}>
-                {`Select all ${eligible.length}`}
-              </Button>
-              <Button
-                onPress={() => setPicked(new Set())}
-                disabled={picked.size === 0}
-                reason="Nothing is selected."
+        <Pane title="Repositories to turn on" count={eligible.length}>
+          <Stack>
+            <Text>Choose the repositories that should use the pool.</Text>
+            {eligible.length === 0 ? (
+              <Message
+                tone="needs-you"
+                action={
+                  <Cluster>
+                    {onlyPublicLeft ? (
+                      <LinkButton to={PUBLIC_SETTING_PATH}>Open the setting</LinkButton>
+                    ) : (
+                      <InstallAppButton
+                        label="Install the App on a repository"
+                        onReturn={() => void readAgain()}
+                      />
+                    )}
+                    <LinkButton to="/repositories">Open Repositories</LinkButton>
+                  </Cluster>
+                }
               >
-                Clear
-              </Button>
-            </Cluster>
-            <Table
-              caption="Repositories to turn on"
-              columns={cols}
-              rows={eligible}
-              rowKey={(r) => String(r.id)}
-              selected={new Set([...picked].map(String))}
-              onToggle={(k) =>
-                setPicked((p) => {
-                  const n = new Set(p);
-                  const id = Number(k);
-                  if (n.has(id)) n.delete(id);
-                  else n.add(id);
-                  return n;
-                })
-              }
-              toggleLabel={(r) => `Select ${r.full_name}`}
-            />
-          </>
-        )}
-        {publicOff.length > 0 ? (
+                {blocked.length > 0
+                  ? `No repository is free for you to turn on. ${blocked.length === 1 ? 'One needs' : `${blocked.length} need`} admin rights in GitHub: ask an owner to give you admin rights, then open this page again. Or install the App on a repository you own.`
+                  : onlyPublicLeft
+                    ? 'No repository is free: the ones left are public, and public repositories are off. Turn them on in Settings, then open this page again.'
+                    : 'No repository is waiting. Install the App on a repository to turn the pool on for it, or open Repositories to see the ones that already use it.'}
+              </Message>
+            ) : (
+              <>
+                <Cluster>
+                  <Button onPress={() => setPicked(new Set(eligible.map((r) => r.id)))}>
+                    {`Select all ${eligible.length}`}
+                  </Button>
+                  <Button
+                    onPress={() => setPicked(new Set())}
+                    disabled={picked.size === 0}
+                    reason="Nothing is selected."
+                  >
+                    Clear
+                  </Button>
+                </Cluster>
+                <Table
+                  caption="Repositories to turn on"
+                  columns={cols}
+                  rows={eligible}
+                  rowKey={(r) => String(r.id)}
+                  selected={new Set([...picked].map(String))}
+                  onToggle={(k) =>
+                    setPicked((p) => {
+                      const n = new Set(p);
+                      const id = Number(k);
+                      if (n.has(id)) n.delete(id);
+                      else n.add(id);
+                      return n;
+                    })
+                  }
+                  toggleLabel={(r) => `Select ${r.full_name}`}
+                />
+              </>
+            )}
+          </Stack>
+        </Pane>
+        {publicOff.length > 0 && eligible.length > 0 ? (
           <Message
             tone="note"
             action={<LinkButton to={PUBLIC_SETTING_PATH}>Open the setting</LinkButton>}
@@ -325,7 +337,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
             public repositories are off. Turn them on in Settings to use the pool there.
           </Message>
         ) : null}
-        {blocked.length > 0 ? (
+        {blocked.length > 0 && eligible.length > 0 ? (
           <Message tone="note">
             {blocked.length} {blocked.length === 1 ? 'repository is' : 'repositories are'}{' '}
             not listed: you need admin rights on {blocked.length === 1 ? 'it' : 'them'} in
@@ -336,35 +348,42 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
     );
   } else if (step === 2) {
     body = (
-      <Stack>
-        <Text>
-          {chosen.length} {chosen.length === 1 ? 'repository' : 'repositories'} will use
-          the pool. These steps run:
-        </Text>
-        <BulletList
-          items={(plan?.steps ?? []).map(
-            (s) => `${s.text}${s.needs_yes ? ' (needs your yes)' : ''}`,
-          )}
-        />
-        <Message tone="note">{LIGHT_RUNNER_WHY}</Message>
-      </Stack>
+      <Pane title="Review">
+        <Stack>
+          <Text>
+            {chosen.length} {chosen.length === 1 ? 'repository' : 'repositories'} will use
+            the pool. These steps run:
+          </Text>
+          <BulletList
+            items={(plan?.steps ?? []).map(
+              (s) => `${s.text}${s.needs_yes ? ' (needs your yes)' : ''}`,
+            )}
+          />
+          <Message tone="note">{LIGHT_RUNNER_WHY}</Message>
+        </Stack>
+      </Pane>
     );
   } else if (step === 3) {
     body = (
-      <Stack>
-        {phase === 'paused' ? (
-          <Message tone="needs-you">
-            Paused. The page closed while the plan ran. Start again to plan what is left.
-          </Message>
-        ) : null}
-        {stopError ? <Message tone="problem">Could not stop. {stopError}</Message> : null}
-        <Facts
-          items={(shown?.steps ?? []).map((s) => ({
-            name: s.text,
-            value: s.state,
-          }))}
-        />
-      </Stack>
+      <Pane title="Turning on">
+        <Stack>
+          {phase === 'paused' ? (
+            <Message tone="needs-you">
+              Paused. The page closed while the plan ran. Start again to plan what is
+              left.
+            </Message>
+          ) : null}
+          {stopError ? (
+            <Message tone="problem">Could not stop. {stopError}</Message>
+          ) : null}
+          <Facts
+            items={(shown?.steps ?? []).map((s) => ({
+              name: s.text,
+              value: s.state,
+            }))}
+          />
+        </Stack>
+      </Pane>
     );
   } else {
     const done = plan?.steps.filter((s) => s.state === 'done') ?? [];
@@ -372,42 +391,44 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
     const left =
       plan?.steps.filter((s) => s.state !== 'done' && s.state !== 'failed') ?? [];
     body = (
-      <Stack>
-        {phase === 'failed' && !plan ? (
-          <Message tone="problem">
-            The pool was not turned on. {problem ?? ''} Try again.
-          </Message>
-        ) : null}
-        {phase === 'stopped' ? (
-          <Message tone="note">
-            Stopped. {done.length} steps were done and {left.length} are left.
-          </Message>
-        ) : null}
-        {phase === 'failed' && plan ? (
-          <Message tone="problem">
-            {failed.length} {failed.length === 1 ? 'step' : 'steps'} failed.{' '}
-            {problem ?? ''} {done.length} done, {left.length} left. Try again to repeat
-            the failed steps.
-          </Message>
-        ) : null}
-        {phase === 'done' || phase === 'done-after-reload' ? (
-          <Message tone="done">
-            The pool is on. {done.length} {done.length === 1 ? 'step' : 'steps'} done.{' '}
-            {LIGHT_RUNNER_DONE}
-          </Message>
-        ) : null}
-        <Facts
-          items={[
-            ...done.map((s) => ({ name: s.text, value: 'done' })),
-            ...failed.map((s) => ({
-              name: s.text,
-              value: `failed: ${s.error ?? 'no reason given'}`,
-            })),
-            ...left.map((s) => ({ name: s.text, value: 'left' })),
-            ...(plan ? [] : [{ name: 'Repositories turned on', value: '0' }]),
-          ]}
-        />
-      </Stack>
+      <Pane title="Result">
+        <Stack>
+          {phase === 'failed' && !plan ? (
+            <Message tone="problem">
+              The pool was not turned on. {problem ?? ''} Try again.
+            </Message>
+          ) : null}
+          {phase === 'stopped' ? (
+            <Message tone="note">
+              Stopped. {done.length} steps were done and {left.length} are left.
+            </Message>
+          ) : null}
+          {phase === 'failed' && plan ? (
+            <Message tone="problem">
+              {failed.length} {failed.length === 1 ? 'step' : 'steps'} failed.{' '}
+              {problem ?? ''} {done.length} done, {left.length} left. Try again to repeat
+              the failed steps.
+            </Message>
+          ) : null}
+          {phase === 'done' || phase === 'done-after-reload' ? (
+            <Message tone="done">
+              The pool is on. {done.length} {done.length === 1 ? 'step' : 'steps'} done.{' '}
+              {LIGHT_RUNNER_DONE}
+            </Message>
+          ) : null}
+          <Facts
+            items={[
+              ...done.map((s) => ({ name: s.text, value: 'done' })),
+              ...failed.map((s) => ({
+                name: s.text,
+                value: `failed: ${s.error ?? 'no reason given'}`,
+              })),
+              ...left.map((s) => ({ name: s.text, value: 'left' })),
+              ...(plan ? [] : [{ name: 'Repositories turned on', value: '0' }]),
+            ]}
+          />
+        </Stack>
+      </Pane>
     );
   }
 
