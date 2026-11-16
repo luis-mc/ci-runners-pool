@@ -60,6 +60,8 @@ type controllerDeps struct {
 	// Machines is the machines service; CA the controller's certificate authority.
 	Machines *machines.Service
 	CA       api.CAProvider
+	// PublicHost is the name runners reach the controller at; the parity setup writes it (CRSP141).
+	PublicHost string
 	// Packages serves the release packages to new machines (machines R5.65); nil for a development build.
 	Packages api.PackageServer
 	Updates  api.UpdateService
@@ -264,6 +266,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	c.Options.Settings, c.Options.Audit, c.Options.Backup = d.Ops.Settings, d.Ops.Audit, d.Ops.Backup
 	c.Options.Machines, c.Options.CA, c.Options.Update = d.Machines, d.CA, d.Updates
 	c.Options.Packages = d.Packages
+	c.Options.PublicHost, c.Options.ListenAddr = d.PublicHost, d.Cfg.ListenAddr
 	c.Options.Jobs, c.Options.Slots, c.Options.Live = d.DB, d.Queue, live
 	c.Options.Runners, c.Options.Doctor = runnerSvc, docSvc
 	c.Options.Caches, c.Options.Events = d.Caches, hub

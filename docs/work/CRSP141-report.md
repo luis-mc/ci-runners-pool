@@ -10,3 +10,4 @@ Branch `CRSP141-parity-address`. Status: started.
 5. Specs (operations R5.85, github-integration R5.84, web-console R5.91 and test rows) and change notes.
 
 ## Log
+- Go done: `repos.ParityAddress`, `getParityAddress` (server side check over https with the controller CA), `setupRepositoryParity` ignores browser address and answers `needs_address`; wired from `CRSP_PUBLIC_HOST` + listen address. Codegen (Go, TS) regenerated.

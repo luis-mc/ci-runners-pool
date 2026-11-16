@@ -913,9 +913,31 @@ func (e OS) Valid() bool {
 	}
 }
 
+// Defines values for ParityAddressStatus.
+const (
+	ParityAddressStatusNeedsAddress ParityAddressStatus = "needs_address"
+	ParityAddressStatusOk           ParityAddressStatus = "ok"
+	ParityAddressStatusUnreachable  ParityAddressStatus = "unreachable"
+)
+
+// Valid indicates whether the value is a known member of the ParityAddressStatus enum.
+func (e ParityAddressStatus) Valid() bool {
+	switch e {
+	case ParityAddressStatusNeedsAddress:
+		return true
+	case ParityAddressStatusOk:
+		return true
+	case ParityAddressStatusUnreachable:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ParitySetupStatus.
 const (
 	ParitySetupStatusDone            ParitySetupStatus = "done"
+	ParitySetupStatusNeedsAddress    ParitySetupStatus = "needs_address"
 	ParitySetupStatusNeedsPermission ParitySetupStatus = "needs_permission"
 )
 
@@ -923,6 +945,8 @@ const (
 func (e ParitySetupStatus) Valid() bool {
 	switch e {
 	case ParitySetupStatusDone:
+		return true
+	case ParitySetupStatusNeedsAddress:
 		return true
 	case ParitySetupStatusNeedsPermission:
 		return true
@@ -3022,6 +3046,22 @@ type Overview struct {
 	Waiting *[]WaitingJob `json:"waiting,omitempty"`
 }
 
+// ParityAddress defines model for ParityAddress.
+type ParityAddress struct {
+	// Problem Why the address does not answer, or why the controller has none.
+	Problem *string `json:"problem,omitempty"`
+
+	// Setting The setting to fix when the controller has no address a runner can reach.
+	Setting *string             `json:"setting,omitempty"`
+	Status  ParityAddressStatus `json:"status"`
+
+	// Url The address that will be written as CRSP_URL. Empty with needs_address.
+	Url *string `json:"url,omitempty"`
+}
+
+// ParityAddressStatus defines model for ParityAddress.Status.
+type ParityAddressStatus string
+
 // ParitySetup defines model for ParitySetup.
 type ParitySetup struct {
 	// AccessId The id of the access credential that was made.
@@ -3029,6 +3069,12 @@ type ParitySetup struct {
 
 	// AccessName The name of the repository Actions value that holds the access, CRSP_ACCESS.
 	AccessName *string `json:"access_name,omitempty"`
+
+	// AddressProblem With needs_address, why the controller has no address a runner can reach.
+	AddressProblem *string `json:"address_problem,omitempty"`
+
+	// AddressSetting With needs_address, the setting to fix.
+	AddressSetting *string `json:"address_setting,omitempty"`
 
 	// AppPermissionsUrl The GitHub page where the App's owner asks for the permission.
 	AppPermissionsUrl *string `json:"app_permissions_url,omitempty"`
@@ -3043,11 +3089,8 @@ type ParitySetup struct {
 // ParitySetupStatus defines model for ParitySetup.Status.
 type ParitySetupStatus string
 
-// ParitySetupRequest defines model for ParitySetupRequest.
-type ParitySetupRequest struct {
-	// ControllerUrl The address the runner reaches the controller at. Empty uses the address of this console.
-	ControllerUrl *string `json:"controller_url,omitempty"`
-}
+// ParitySetupRequest No fields. The address is the controller's own, never one the browser sends (CRSP141).
+type ParitySetupRequest = map[string]interface{}
 
 // PauseReason Why a machine takes no new job (machines R5.62). Other features read these exact names.
 type PauseReason string
@@ -5055,6 +5098,13 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/packages/{name} (the `GetPackage` operationId).
 	GetPackage(ctx context.Context, name string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetParityAddress The address the parity setup will write, and whether it answers
+	//
+	// github-integration R5.84 (CRSP141). The address a runner uses to reach the controller: https, the public host and the console port, the same address machines join at. The controller calls it from the server side with its own CA and says whether it answers. A controller with no such address answers `needs_address` with the setting to fix.
+	//
+	// Corresponds with GET /api/v1/parity-address (the `GetParityAddress` operationId).
+	GetParityAddress(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
 	//
 	// runners R5.77, R5.78. No password is ever returned.
@@ -5142,7 +5192,7 @@ type ClientInterface interface {
 
 	// SetupRepositoryParityWithBody Set up parity for this repository
 	//
-	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -5151,7 +5201,7 @@ type ClientInterface interface {
 
 	// SetupRepositoryParity Set up parity for this repository
 	//
-	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7234,6 +7284,23 @@ func (c *Client) GetPackage(ctx context.Context, name string, reqEditors ...Requ
 	return c.Client.Do(req)
 }
 
+// GetParityAddress The address the parity setup will write, and whether it answers
+//
+// github-integration R5.84 (CRSP141). The address a runner uses to reach the controller: https, the public host and the console port, the same address machines join at. The controller calls it from the server side with its own CA and says whether it answers. A controller with no such address answers `needs_address` with the setting to fix.
+//
+// Corresponds with GET /api/v1/parity-address (the `GetParityAddress` operationId).
+func (c *Client) GetParityAddress(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetParityAddressRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
 //
 // runners R5.77, R5.78. No password is ever returned.
@@ -7431,7 +7498,7 @@ func (c *Client) SetRepositoryExtraPackages(ctx context.Context, repositoryId Re
 
 // SetupRepositoryParityWithBody Set up parity for this repository
 //
-// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7450,7 +7517,7 @@ func (c *Client) SetupRepositoryParityWithBody(ctx context.Context, repositoryId
 
 // SetupRepositoryParity Set up parity for this repository
 //
-// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -11857,6 +11924,33 @@ func NewGetPackageRequest(server string, name string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewGetParityAddressRequest constructs an http.Request for the GetParityAddress method
+func NewGetParityAddressRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/parity-address")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetRegistrySettingsRequest constructs an http.Request for the GetRegistrySettings method
 func NewGetRegistrySettingsRequest(server string) (*http.Request, error) {
 	var err error
@@ -14887,6 +14981,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/packages/{name} (the `GetPackage` operationId).
 	GetPackageWithResponse(ctx context.Context, name string, reqEditors ...RequestEditorFn) (*GetPackageResponse, error)
 
+	// GetParityAddressWithResponse The address the parity setup will write, and whether it answers
+	//
+	// github-integration R5.84 (CRSP141). The address a runner uses to reach the controller: https, the public host and the console port, the same address machines join at. The controller calls it from the server side with its own CA and says whether it answers. A controller with no such address answers `needs_address` with the setting to fix.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/parity-address (the `GetParityAddress` operationId).
+	GetParityAddressWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetParityAddressResponse, error)
+
 	// GetRegistrySettingsWithResponse Registry logins per backend and whether a private CA bundle is set
 	//
 	// runners R5.77, R5.78. No password is ever returned.
@@ -14984,7 +15087,7 @@ type ClientWithResponsesInterface interface {
 
 	// SetupRepositoryParityWithBodyWithResponse Set up parity for this repository
 	//
-	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14993,7 +15096,7 @@ type ClientWithResponsesInterface interface {
 
 	// SetupRepositoryParityWithResponse Set up parity for this repository
 	//
-	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -18949,6 +19052,54 @@ func (r GetPackageResponse) ContentType() string {
 	return ""
 }
 
+type GetParityAddressResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ParityAddress
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetParityAddressResponse) GetJSON200() *ParityAddress {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetParityAddressResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetParityAddressResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetParityAddressResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetParityAddressResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetParityAddressResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetRegistrySettingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -22823,6 +22974,21 @@ func (c *ClientWithResponses) GetPackageWithResponse(ctx context.Context, name s
 	return ParseGetPackageResponse(rsp)
 }
 
+// GetParityAddressWithResponse The address the parity setup will write, and whether it answers
+//
+// github-integration R5.84 (CRSP141). The address a runner uses to reach the controller: https, the public host and the console port, the same address machines join at. The controller calls it from the server side with its own CA and says whether it answers. A controller with no such address answers `needs_address` with the setting to fix.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/parity-address (the `GetParityAddress` operationId).
+func (c *ClientWithResponses) GetParityAddressWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetParityAddressResponse, error) {
+	rsp, err := c.GetParityAddress(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetParityAddressResponse(rsp)
+}
+
 // GetRegistrySettingsWithResponse Registry logins per backend and whether a private CA bundle is set
 //
 // runners R5.77, R5.78. No password is ever returned.
@@ -22986,7 +23152,7 @@ func (c *ClientWithResponses) SetRepositoryExtraPackagesWithResponse(ctx context
 
 // SetupRepositoryParityWithBodyWithResponse Set up parity for this repository
 //
-// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23001,7 +23167,7 @@ func (c *ClientWithResponses) SetupRepositoryParityWithBodyWithResponse(ctx cont
 
 // SetupRepositoryParityWithResponse Set up parity for this repository
 //
-// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -26296,6 +26462,39 @@ func ParseGetPackageResponse(rsp *http.Response) (*GetPackageResponse, error) {
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetParityAddressResponse parses an HTTP response from a GetParityAddressWithResponse call
+func ParseGetParityAddressResponse(rsp *http.Response) (*GetParityAddressResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetParityAddressResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ParityAddress
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {

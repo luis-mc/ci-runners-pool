@@ -43,6 +43,8 @@ type machinesRuntime struct {
 	// Link carries runner commands to remote agents and holds their machine reports.
 	Link *agentlink.Link
 	CA   *tlsca.Authority
+	// PublicHost is the name agents and runners use for this controller (CRSP_PUBLIC_HOST, else the host name).
+	PublicHost string
 	// Packages holds the release packages that downloaded installers fetch; nil for a development build.
 	Packages *packages.Store
 	// Secrets is the secret store of the controller, read by the config export.
@@ -181,7 +183,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 			}
 		}()
 	}
-	return &machinesRuntime{Service: svc, Caches: cs, Link: lk, CA: ca, Packages: pkgs, Secrets: store, stop: func() {
+	return &machinesRuntime{Service: svc, Caches: cs, Link: lk, CA: ca, PublicHost: public, Packages: pkgs, Secrets: store, stop: func() {
 		cancel()
 		_ = link.Close()
 		<-done

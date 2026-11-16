@@ -396,6 +396,30 @@ paths:
           description: Revoked.
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/parity-address:
+    get:
+      operationId: getParityAddress
+      x-cli: none
+      x-cli-reason: 'A console check: it shows what the parity setup will write (owner rule: everything from the web console).'
+      tags: [repositories]
+      summary: The address the parity setup will write, and whether it answers
+      description: >-
+        github-integration R5.84 (CRSP141). The address a runner uses to reach
+        the controller: https, the public host and the console port, the same
+        address machines join at. The controller calls it from the server side
+        with its own CA and says whether it answers. A controller with no such
+        address answers `needs_address` with the setting to fix.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      responses:
+        '200':
+          description: The address and the result of calling it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParityAddress'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/repositories/{repositoryId}/parity-setup:
     post:
       operationId: setupRepositoryParity
@@ -407,7 +431,10 @@ paths:
         github-integration R5.84. Makes a `parity` access credential and writes
         it as the repository Actions secret CRSP_ACCESS, and the controller
         address and CA fingerprint as the variables CRSP_URL and
-        CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the
+        CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one
+        machines use to join (https, the controller CA), never the address of
+        the browser, never loopback or http (CRSP141); when the controller has
+        none the answer is `needs_address` and nothing is made. When the App lacks the
         `secrets` or `actions_variables` write permission nothing is made: the
         answer is `needs_permission` with the GitHub pages that grant it.
       x-auth: admin
@@ -3770,17 +3797,30 @@ components:
           $ref: '#/components/schemas/AccessCredential'
     ParitySetupRequest:
       type: object
+      description: No fields. The address is the controller's own, never one the browser sends (CRSP141).
+    ParityAddress:
+      type: object
+      required: [status]
       properties:
-        controller_url:
+        status:
           type: string
-          description: The address the runner reaches the controller at. Empty uses the address of this console.
+          enum: [ok, unreachable, needs_address]
+        url:
+          type: string
+          description: The address that will be written as CRSP_URL. Empty with needs_address.
+        problem:
+          type: string
+          description: Why the address does not answer, or why the controller has none.
+        setting:
+          type: string
+          description: The setting to fix when the controller has no address a runner can reach.
     ParitySetup:
       type: object
       required: [status]
       properties:
         status:
           type: string
-          enum: [done, needs_permission]
+          enum: [done, needs_permission, needs_address]
         missing_permissions:
           type: array
           items:
@@ -3801,6 +3841,12 @@ components:
         access_id:
           type: string
           description: The id of the access credential that was made.
+        address_problem:
+          type: string
+          description: With needs_address, why the controller has no address a runner can reach.
+        address_setting:
+          type: string
+          description: With needs_address, the setting to fix.
     CliToken:
       type: object
       required: [id, name, user_id, user_login, created_at, expires_at]

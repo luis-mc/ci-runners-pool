@@ -912,9 +912,31 @@ func (e OS) Valid() bool {
 	}
 }
 
+// Defines values for ParityAddressStatus.
+const (
+	ParityAddressStatusNeedsAddress ParityAddressStatus = "needs_address"
+	ParityAddressStatusOk           ParityAddressStatus = "ok"
+	ParityAddressStatusUnreachable  ParityAddressStatus = "unreachable"
+)
+
+// Valid indicates whether the value is a known member of the ParityAddressStatus enum.
+func (e ParityAddressStatus) Valid() bool {
+	switch e {
+	case ParityAddressStatusNeedsAddress:
+		return true
+	case ParityAddressStatusOk:
+		return true
+	case ParityAddressStatusUnreachable:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ParitySetupStatus.
 const (
 	ParitySetupStatusDone            ParitySetupStatus = "done"
+	ParitySetupStatusNeedsAddress    ParitySetupStatus = "needs_address"
 	ParitySetupStatusNeedsPermission ParitySetupStatus = "needs_permission"
 )
 
@@ -922,6 +944,8 @@ const (
 func (e ParitySetupStatus) Valid() bool {
 	switch e {
 	case ParitySetupStatusDone:
+		return true
+	case ParitySetupStatusNeedsAddress:
 		return true
 	case ParitySetupStatusNeedsPermission:
 		return true
@@ -3021,6 +3045,22 @@ type Overview struct {
 	Waiting *[]WaitingJob `json:"waiting,omitempty"`
 }
 
+// ParityAddress defines model for ParityAddress.
+type ParityAddress struct {
+	// Problem Why the address does not answer, or why the controller has none.
+	Problem *string `json:"problem,omitempty"`
+
+	// Setting The setting to fix when the controller has no address a runner can reach.
+	Setting *string             `json:"setting,omitempty"`
+	Status  ParityAddressStatus `json:"status"`
+
+	// Url The address that will be written as CRSP_URL. Empty with needs_address.
+	Url *string `json:"url,omitempty"`
+}
+
+// ParityAddressStatus defines model for ParityAddress.Status.
+type ParityAddressStatus string
+
 // ParitySetup defines model for ParitySetup.
 type ParitySetup struct {
 	// AccessId The id of the access credential that was made.
@@ -3028,6 +3068,12 @@ type ParitySetup struct {
 
 	// AccessName The name of the repository Actions value that holds the access, CRSP_ACCESS.
 	AccessName *string `json:"access_name,omitempty"`
+
+	// AddressProblem With needs_address, why the controller has no address a runner can reach.
+	AddressProblem *string `json:"address_problem,omitempty"`
+
+	// AddressSetting With needs_address, the setting to fix.
+	AddressSetting *string `json:"address_setting,omitempty"`
 
 	// AppPermissionsUrl The GitHub page where the App's owner asks for the permission.
 	AppPermissionsUrl *string `json:"app_permissions_url,omitempty"`
@@ -3042,11 +3088,8 @@ type ParitySetup struct {
 // ParitySetupStatus defines model for ParitySetup.Status.
 type ParitySetupStatus string
 
-// ParitySetupRequest defines model for ParitySetupRequest.
-type ParitySetupRequest struct {
-	// ControllerUrl The address the runner reaches the controller at. Empty uses the address of this console.
-	ControllerUrl *string `json:"controller_url,omitempty"`
-}
+// ParitySetupRequest No fields. The address is the controller's own, never one the browser sends (CRSP141).
+type ParitySetupRequest = map[string]interface{}
 
 // PauseReason Why a machine takes no new job (machines R5.62). Other features read these exact names.
 type PauseReason string
@@ -4503,6 +4546,9 @@ type ServerInterface interface {
 	// GetPackage A release package, or SHA256SUMS
 	// (GET /api/v1/packages/{name})
 	GetPackage(w http.ResponseWriter, r *http.Request, name string)
+	// GetParityAddress The address the parity setup will write, and whether it answers
+	// (GET /api/v1/parity-address)
+	GetParityAddress(w http.ResponseWriter, r *http.Request)
 	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
 	// (GET /api/v1/registry)
 	GetRegistrySettings(w http.ResponseWriter, r *http.Request)
@@ -6874,6 +6920,20 @@ func (siw *ServerInterfaceWrapper) GetPackage(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// GetParityAddress operation middleware
+func (siw *ServerInterfaceWrapper) GetParityAddress(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetParityAddress(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetRegistrySettings operation middleware
 func (siw *ServerInterfaceWrapper) GetRegistrySettings(w http.ResponseWriter, r *http.Request) {
 
@@ -8356,6 +8416,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/access-credentials", wrapper.ListAccessCredentials)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/access-credentials", wrapper.CreateAccessCredential)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/access-credentials/{credentialId}", wrapper.RevokeAccessCredential)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/parity-address", wrapper.GetParityAddress)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/parity-setup", wrapper.SetupRepositoryParity)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/logout", wrapper.SignOut)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/console-links", wrapper.CreateConsoleLink)
@@ -11439,6 +11500,44 @@ func (response GetPackagedefaultJSONResponse) VisitGetPackageResponse(w http.Res
 	return err
 }
 
+type GetParityAddressRequestObject struct {
+}
+
+type GetParityAddressResponseObject interface {
+	VisitGetParityAddressResponse(w http.ResponseWriter) error
+}
+
+type GetParityAddress200JSONResponse ParityAddress
+
+func (response GetParityAddress200JSONResponse) VisitGetParityAddressResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetParityAddressdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetParityAddressdefaultJSONResponse) VisitGetParityAddressResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetRegistrySettingsRequestObject struct {
 }
 
@@ -13696,6 +13795,9 @@ type StrictServerInterface interface {
 	// GetPackage A release package, or SHA256SUMS
 	// (GET /api/v1/packages/{name})
 	GetPackage(ctx context.Context, request GetPackageRequestObject) (GetPackageResponseObject, error)
+	// GetParityAddress The address the parity setup will write, and whether it answers
+	// (GET /api/v1/parity-address)
+	GetParityAddress(ctx context.Context, request GetParityAddressRequestObject) (GetParityAddressResponseObject, error)
 	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
 	// (GET /api/v1/registry)
 	GetRegistrySettings(ctx context.Context, request GetRegistrySettingsRequestObject) (GetRegistrySettingsResponseObject, error)
@@ -15855,6 +15957,30 @@ func (sh *strictHandler) GetPackage(w http.ResponseWriter, r *http.Request, name
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetPackageResponseObject); ok {
 		if err := validResponse.VisitGetPackageResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetParityAddress operation middleware
+func (sh *strictHandler) GetParityAddress(w http.ResponseWriter, r *http.Request) {
+	var request GetParityAddressRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetParityAddress(ctx, request.(GetParityAddressRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetParityAddress")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetParityAddressResponseObject); ok {
+		if err := validResponse.VisitGetParityAddressResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -285,6 +285,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/parity-address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The address the parity setup will write, and whether it answers
+         * @description github-integration R5.84 (CRSP141). The address a runner uses to reach the controller: https, the public host and the console port, the same address machines join at. The controller calls it from the server side with its own CA and says whether it answers. A controller with no such address answers `needs_address` with the setting to fix.
+         */
+        get: operations["getParityAddress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/repositories/{repositoryId}/parity-setup": {
         parameters: {
             query?: never;
@@ -296,7 +316,7 @@ export interface paths {
         put?: never;
         /**
          * Set up parity for this repository
-         * @description github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+         * @description github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
          */
         post: operations["setupRepositoryParity"];
         delete?: never;
@@ -2423,13 +2443,21 @@ export interface components {
             value: string;
             info: components["schemas"]["AccessCredential"];
         };
-        ParitySetupRequest: {
-            /** @description The address the runner reaches the controller at. Empty uses the address of this console. */
-            controller_url?: string;
+        /** @description No fields. The address is the controller's own, never one the browser sends (CRSP141). */
+        ParitySetupRequest: Record<string, never>;
+        ParityAddress: {
+            /** @enum {string} */
+            status: "ok" | "unreachable" | "needs_address";
+            /** @description The address that will be written as CRSP_URL. Empty with needs_address. */
+            url?: string;
+            /** @description Why the address does not answer, or why the controller has none. */
+            problem?: string;
+            /** @description The setting to fix when the controller has no address a runner can reach. */
+            setting?: string;
         };
         ParitySetup: {
             /** @enum {string} */
-            status: "done" | "needs_permission";
+            status: "done" | "needs_permission" | "needs_address";
             missing_permissions?: string[];
             /** @description The GitHub page where the App's owner asks for the permission. */
             app_permissions_url?: string;
@@ -2440,6 +2468,10 @@ export interface components {
             variable_names?: string[];
             /** @description The id of the access credential that was made. */
             access_id?: string;
+            /** @description With needs_address, why the controller has no address a runner can reach. */
+            address_problem?: string;
+            /** @description With needs_address, the setting to fix. */
+            address_setting?: string;
         };
         CliToken: {
             id: string;
@@ -4573,6 +4605,27 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getParityAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The address and the result of calling it. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParityAddress"];
+                };
             };
             default: components["responses"]["Error"];
         };
