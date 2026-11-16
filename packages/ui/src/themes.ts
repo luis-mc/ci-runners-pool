@@ -14,12 +14,15 @@ export const THEMES: readonly ThemeInfo[] = [
   { id: 'nord', name: 'Nord' },
 ];
 
-/** The theme of a new install, and of a page where none is set. */
-export const DEFAULT_THEME_ID = 'tokyo-night';
+/** The theme of a new install, and of a page where none is set: Phosphor, dark (owner decision LOOK D11). */
+export const DEFAULT_THEME_ID = 'phosphor';
 
 /** Where the choice is kept in this browser, so the page paints in it before anything loads (public/theme-init.js). */
 export const THEME_NAME_STORAGE = 'crsp.theme-name';
 export const THEME_MODE_STORAGE = 'crsp.theme-mode';
+
+/** The mode of a new install, until the user chooses system or light. */
+export const DEFAULT_THEME_MODE = 'dark';
 
 export function isThemeId(value: unknown): value is string {
   return THEMES.some((t) => t.id === value);

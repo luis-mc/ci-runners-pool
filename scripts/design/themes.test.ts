@@ -113,7 +113,7 @@ const REQUIRED_COLOURS = [
 const ALLOWED = /^--ds-(color-|radius-[123]$|glow-focus$|scanline-focus$|shadow-[23]$)/;
 
 describe('every theme defines every token', () => {
-  it('has the six themes, Tokyo Night default', () => {
+  it('has the six themes, Phosphor default', () => {
     expect(THEME_DATA.map((t) => t.id)).toEqual([
       'phosphor',
       'tokyo-night',
@@ -122,7 +122,7 @@ describe('every theme defines every token', () => {
       'solarized',
       'nord',
     ]);
-    expect(DEFAULT_THEME).toBe('tokyo-night');
+    expect(DEFAULT_THEME).toBe('phosphor');
   });
 
   for (const t of THEME_DATA)
@@ -153,7 +153,7 @@ describe('every theme defines every token', () => {
         }
       });
 
-  it('the page without a theme is Tokyo Night, dark and light', () => {
+  it('the page without a theme is Phosphor, dark and light', () => {
     const def = THEME_DATA.find((t) => t.id === DEFAULT_THEME) as ThemeData;
     const dark = declared(':root', '');
     const light = declared(':root:not([data-theme=dark])', LIGHT_MEDIA);

@@ -230,4 +230,4 @@ export const THEME_DATA: readonly ThemeData[] = [
   },
 ];
 
-export const DEFAULT_THEME = 'tokyo-night';
+export const DEFAULT_THEME = 'phosphor';
