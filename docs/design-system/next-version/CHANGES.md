@@ -55,3 +55,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C50: stale Starter banner removed from ux-rules.md (v1 approved 2026-11-13; CRSP144)
 - C51: update dialog words added: the actions Install now and Later and the link What changed, the dialog line about running jobs and the tray notices; Look for updates and Automatic updates reworded so a look only looks and only the regular check installs (content.md; tray R5.43, operations R5.87, CRSP147)
 - C52: GitHub error words added: Your GitHub sign-in ended, GitHub could not be reached, GitHub refused, GitHub answered with its real status and message, and the last-copy sentence (content.md; github-integration R5.88 and R5.89, UX-28, CRSP148)
+- C53: Guard column filled for UX-4, 9, 10, 12, 15, 16, 17, 49, 51, 55, 57 and 60: the route layout spec, the look parity spec, the keyboard walk and the dialog scan (ux-rules.md; CRSP164)

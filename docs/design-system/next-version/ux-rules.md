@@ -8,20 +8,20 @@ Every rule has an ID. A feature spec and the code cite the ID (`design system UX
 | UX-1 | **Consistent everywhere.** The same thing looks, reads and behaves the same on every screen. | none yet |
 | UX-2 | **Reuse shared components.** A part that nearly fits is extended, never copied. | none yet |
 | UX-3 | **One headline says where you are.** Use plain words. Never show a raw path or code as the main text. | none yet |
-| UX-4 | **One primary action per screen.** It is labelled by what it does, and its reason is next to it. An action on a choice names the work and its count ("Rename 12 files"). With nothing chosen it is disabled and says what to do ("Tick the files to rename"). | none yet |
+| UX-4 | **One primary action per screen.** It is labelled by what it does, and its reason is next to it. An action on a choice names the work and its count ("Rename 12 files"). With nothing chosen it is disabled and says what to do ("Tick the files to rename"). | `e2e/tests/web-console/ux-routes.spec.ts` |
 | UX-5 | **A guided flow is a wizard.** A step bar sits on top. Only the current step shows. Back and the one primary action sit at the bottom. Done steps can be viewed. Later steps are greyed. A wizard that changes something ends as UX-30 says. | none yet |
 | UX-6 | **No dead ends.** Empty, failed and waiting states say what is going on and offer the next step. | none yet |
 | UX-7 | **Never act on hidden items.** The count on an action is the count the user can see. | none yet |
 | UX-8 | **Only buttons look like buttons.** Information never does. An action is never a plain link. | none yet |
-| UX-9 | **Ask first in the page.** Use one question card: Cancel on the left, the action on the right. Never use the browser's alert, confirm or prompt. | none yet |
-| UX-10 | **Boxed sections share one card look and sit in one grid.** Use as many columns as fit, with equal widths. Cards never touch. | none yet |
+| UX-9 | **Ask first in the page.** Use one question card: Cancel on the left, the action on the right. Never use the browser's alert, confirm or prompt. | `e2e/tests/web-console/ux-static.spec.ts` |
+| UX-10 | **Boxed sections share one card look and sit in one grid.** Use as many columns as fit, with equal widths. Cards never touch. | `e2e/tests/web-console/ux-routes.spec.ts` |
 | UX-11 | **Long lists use the one shared pager.** A preview ends with "See all N". | none yet |
-| UX-12 | **Choice lists start with Select all N and Clear.** | none yet |
+| UX-12 | **Choice lists start with Select all N and Clear.** | `e2e/tests/web-console/ux-routes.spec.ts` |
 | UX-13 | **A button that starts work is not pressable while it runs.** It says that it is running. Every button that sends a request stays busy until the answer. The busy state comes from the server's answer, not a timer. | none yet |
 | UX-14 | **The core content comes first.** Secondary notices never push it down. | none yet |
-| UX-15 | **Use the width on wide screens.** Do not leave a narrow column in the middle of a wide page. | none yet |
-| UX-16 | **Every screen works from 360 px to desktop.** The page never scrolls sideways. Touch targets are at least 44 px. | none yet |
-| UX-17 | **Accessible.** Contrast meets WCAG 2.2 AA in every theme. Focus is always visible. Pages use landmarks and one h1. Motion respects prefers-reduced-motion. Every status and chart has a text equivalent. | none yet |
+| UX-15 | **Use the width on wide screens.** Do not leave a narrow column in the middle of a wide page. | `e2e/tests/web-console/ux-routes.spec.ts` |
+| UX-16 | **Every screen works from 360 px to desktop.** The page never scrolls sideways. Touch targets are at least 44 px. | `e2e/tests/web-console/ux-routes.spec.ts` |
+| UX-17 | **Accessible.** Contrast meets WCAG 2.2 AA in every theme. Focus is always visible. Pages use landmarks and one h1. Motion respects prefers-reduced-motion. Every status and chart has a text equivalent. | `e2e/tests/web-console/ux-routes.spec.ts`, `e2e/tests/web-console/ux-keyboard.spec.ts` |
 | UX-18 | **Dates, times and numbers are written one way.** Dates are year-month-day. Times are 24-hour, in local time. See content.md. | none yet |
 | UX-19 | **Running state is read from one source of truth.** A screen never sets its own flag for it. | none yet |
 | UX-20 | **A field has its name above the box.** Help sits between the name and the box. Mark only optional fields. | none yet |
@@ -53,18 +53,18 @@ Every rule has an ID. A feature spec and the code cite the ID (`design system UX
 | UX-46 | **Escape closes an overlay.** It counts as Cancel. An overlay with unsaved input asks first (UX-9). A click outside closes a popover. | none yet |
 | UX-47 | **An overlay is named for assistive technology.** It has role dialog, is labelled by its title, and sets aria-modal when it is modal. | none yet |
 | UX-48 | **An overlay is never stacked on an overlay.** One opens at a time. A second step replaces the first, or becomes a page. | none yet |
-| UX-49 | **The page scrolls, never a box inside it.** A frame is as tall as its section. Long lists use the pager. Only a wide table may scroll sideways inside its frame. The page itself never scrolls sideways (UX-16). | none yet |
+| UX-49 | **The page scrolls, never a box inside it.** A frame is as tall as its section. Long lists use the pager. Only a wide table may scroll sideways inside its frame. The page itself never scrolls sideways (UX-16). | `e2e/tests/web-console/ux-routes.spec.ts` |
 | UX-50 | **Nothing is shown only on hover.** A menu or control is drawn at every width and for every pointer, mouse or touch. | none yet |
-| UX-51 | **One shape per kind of card.** Same height, no small variant, long names stop at two lines. A state is said in words, never a bare colour frame. | none yet |
+| UX-51 | **One shape per kind of card.** Same height, no small variant, long names stop at two lines. A state is said in words, never a bare colour frame. | `e2e/tests/web-console/ux-routes.spec.ts` |
 | UX-52 | **An overview only shows and links.** It has no command buttons. Each command lives in one place. Settings hold configuration only. | none yet |
 | UX-53 | **"x ago" keeps ageing while the page stays open.** It reads one shared clock that pauses while the page is hidden and catches up when shown. | none yet |
 | UX-54 | **A wizard's behaviour belongs to the shared wizard.** Current step, locks, Stop, busy and Done live in one part. A page passes data only. With the enforcement kit installed, its wizard harness (`scripts/design/wizard-behaviour.ts`) proves it; write that path in the Guard column then. | none yet |
-| UX-55 | **A theme changes token values only, never a component.** A theme may change one named accent slot. | none yet |
+| UX-55 | **A theme changes token values only, never a component.** A theme may change one named accent slot. | `e2e/tests/web-console/ux-look.spec.ts` |
 | UX-56 | **Dates use the date picker, times use the time picker, and the number keypad is only for counts, measures and codes.** Never a native date, time or number input. With the enforcement kit installed, its raw-inputs guard (`scripts/design/raw-inputs.test.ts`) proves it; write that path in the Guard column then. | none yet |
-| UX-57 | **Keyboard first.** Every action works from the keyboard. `Ctrl+K` (`Cmd+K` on macOS) opens the command palette. `/` moves to the page's search bar. `j` and `k` move down and up a list; `Enter` opens the row. `?` lists every shortcut. A shortcut never fires while typing in a field. | none yet |
+| UX-57 | **Keyboard first.** Every action works from the keyboard. `Ctrl+K` (`Cmd+K` on macOS) opens the command palette. `/` moves to the page's search bar. `j` and `k` move down and up a list; `Enter` opens the row. `?` lists every shortcut. A shortcut never fires while typing in a field. | `e2e/tests/web-console/ux-keyboard.spec.ts` |
 | UX-58 | **A status is a word, a glyph and a colour.** Healthy: `✓ ok` in Done green. Waiting: `◷ waiting` in Needs you amber. Failed: `✕ failed` in Problem red. Info: `ⓘ` in Note cyan. Running: `▶ running`. The word is always there; the colour never stands alone. | none yet |
 | UX-59 | **Glow and scanline only on focus.** The focused control gets `--ds-glow-focus` and `--ds-scanline-focus`. Nothing else glows, flickers or scans. Under prefers-reduced-motion nothing animates. | none yet |
-| UX-60 | **The user picks a theme and a mode in Settings.** Six named themes: Phosphor, Tokyo Night, Catppuccin, Gruvbox, Solarized, Nord. Tokyo Night is the default for a new install. A mode is system, dark or light; dark is the default mode. Both are saved at once and applied before the first paint, so the page never flashes. A theme changes token values only (UX-55). | `scripts/design/themes.test.ts` |
+| UX-60 | **The user picks a theme and a mode in Settings.** Six named themes: Phosphor, Tokyo Night, Catppuccin, Gruvbox, Solarized, Nord. Tokyo Night is the default for a new install. A mode is system, dark or light; dark is the default mode. Both are saved at once and applied before the first paint, so the page never flashes. A theme changes token values only (UX-55). | `scripts/design/themes.test.ts`, `e2e/tests/web-console/ux-look.spec.ts` |
 | UX-61 | **Every runner names its isolation.** A runner row and its detail say `microVM`, `VM`, `container` or `persistent`. A persistent runner also says `state kept between jobs`. | none yet |
 | UX-62 | **A destructive step names what goes and asks for a yes.** Deleting a runner, removing a machine or wiping a cache lists each item that goes in the question card (UX-9). A change that would stop running jobs names the jobs and waits for the drain. | none yet |
 | UX-63 | **Built from reused components.** Everything comes from the shared UI package (UX-2). No one-off variants. The count of duplicated UI code may only go down. | none yet; add a jscpd count of the UI code with a stored baseline |
