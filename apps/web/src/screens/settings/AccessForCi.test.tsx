@@ -54,6 +54,17 @@ describe('Access for CI list (R5.90)', () => {
 });
 
 describe('Make an access (R5.90)', () => {
+  it('shows the form only after the action Make an access, and Cancel closes it', async () => {
+    renderApp(api(), '/settings/access');
+    await screen.findByRole('table', { name: 'Access for CI' });
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Make an access' }));
+    expect(screen.getByRole('textbox', { name: 'Name' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Make an access' })).toBeTruthy();
+  });
+
   it('makes one with the parity scope and shows the value once', async () => {
     const a = api().on('POST', '/api/v1/access-credentials', {
       value: 'crsp_acc_shownonce123',
@@ -61,6 +72,7 @@ describe('Make an access (R5.90)', () => {
     });
     renderApp(a, '/settings/access');
     await screen.findByRole('table', { name: 'Access for CI' });
+    fireEvent.click(screen.getByRole('button', { name: 'Make an access' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
       target: { value: 'second' },
     });
@@ -84,6 +96,7 @@ describe('Make an access (R5.90)', () => {
     const a = api();
     renderApp(a, '/settings/access');
     await screen.findByRole('table', { name: 'Access for CI' });
+    fireEvent.click(screen.getByRole('button', { name: 'Make an access' }));
     fireEvent.click(screen.getByRole('button', { name: 'Make' }));
     expect(await screen.findByText(/Write a name for the access/)).toBeTruthy();
     expect(a.count('POST', '/api/v1/access-credentials')).toBe(0);
@@ -137,6 +150,31 @@ describe('Set up parity for this repository (R5.91)', () => {
     expect(await screen.findByText(/Parity is set up for octo\/app/)).toBeTruthy();
     expect(a.count('POST', '/api/v1/repositories/100/parity-setup')).toBe(1);
     expect(document.body.textContent).not.toContain('crsp_acc_');
+  });
+
+  it('lists the access that Set up parity made, with no reload of the page', async () => {
+    let made = false;
+    const a = signedIn()
+      .on('GET', '/api/v1/access-credentials', () =>
+        Response.json({ items: made ? [{ ...live, name: 'parity: octo/app' }] : [] }),
+      )
+      .on('GET', '/api/v1/github/repositories', {
+        items: [repo],
+        stale: { stale: false },
+      })
+      .on('POST', '/api/v1/repositories/:id/parity-setup', () => {
+        made = true;
+        return Response.json({ status: 'done', access_name: 'CRSP_ACCESS' });
+      });
+    renderApp(a, '/settings/access');
+    expect(await screen.findByText(/No access yet/)).toBeTruthy();
+    await pick();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Set up parity for this repository' }),
+    );
+    const table = await screen.findByRole('table', { name: 'Access for CI' });
+    expect(within(table).getByText('parity: octo/app')).toBeTruthy();
+    expect(screen.queryByText(/No access yet/)).toBeNull();
   });
 
   it('names the GitHub pages when the App lacks the permission, and made nothing', async () => {

@@ -108,6 +108,51 @@ describe('the shell (R5.3)', () => {
     ).toBeTruthy();
   });
 
+  it('counts the first repository when any repository has the pool on', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/setup', {
+        has_app: true,
+        has_owner: true,
+        setup_link_redeemed: true,
+        steps: {
+          connect_github: 'done',
+          first_machine: 'done',
+          first_repository: 'todo',
+        },
+      })
+      .on('GET', '/api/v1/github/repositories', {
+        items: [{ id: 1, full_name: 'octo/home-automation', pool_on: true }],
+        stale: { stale: false },
+      });
+    renderApp(api, '/');
+    await screen.findByRole('heading', { name: 'Overview' });
+    await waitFor(() =>
+      expect(api.count('GET', '/api/v1/github/repositories')).toBeGreaterThan(0),
+    );
+    expect(screen.queryByText(/Next: turn on the first repository/)).toBeNull();
+  });
+
+  it('keeps the banner when no repository has the pool on', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/setup', {
+        has_app: true,
+        has_owner: true,
+        setup_link_redeemed: true,
+        steps: {
+          connect_github: 'done',
+          first_machine: 'done',
+          first_repository: 'todo',
+        },
+      })
+      .on('GET', '/api/v1/github/repositories', { items: [], stale: { stale: false } });
+    renderApp(api, '/');
+    expect(
+      await screen.findByText(
+        'First run is not finished. Next: turn on the first repository.',
+      ),
+    ).toBeTruthy();
+  });
+
   it('says Live updates paused and keeps the last data (R5.7)', async () => {
     renderApp(signedIn(), '/');
     await screen.findByRole('heading', { name: 'Overview' });

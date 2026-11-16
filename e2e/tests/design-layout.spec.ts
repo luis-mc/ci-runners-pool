@@ -53,6 +53,7 @@ const SCREENS: {
     ready: 'Settings',
     loads: ['/api/v1/settings/pool', '/api/v1/settings/queue'],
   },
+  { name: 'settings access for CI', path: '/settings/access', ready: 'Settings' },
   { name: 'settings audit log', path: '/settings/audit', ready: 'Settings' },
   { name: 'settings config export', path: '/settings/export', ready: 'Settings' },
 ];
@@ -144,3 +145,37 @@ for (const path of ['/repositories', '/machines', '/runners', '/jobs']) {
     expect(Math.max(...tops) - Math.min(...tops)).toBeLessThan(8);
   });
 }
+
+// UX-15, CRSP140: the Settings tabs are one row at every width; a row that does not fit scrolls inside its frame.
+for (const width of [1232, 1300, 393, 360]) {
+  test(`settings tabs are one row at ${width} px`, async ({ page }) => {
+    const mock = jobsAndDoctor(signedIn());
+    await mock.install(page);
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/settings/users');
+    const list = page.getByRole('tablist', { name: 'Settings' });
+    await expect(list).toBeVisible();
+    const tops = await list
+      .getByRole('tab')
+      .evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+    expect(new Set(tops).size).toBe(1);
+    const page_ = await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    );
+    expect(page_).toBe(true);
+  });
+}
+
+// CRSP140: every titled part of a page is a pane with its title in the top border.
+test('settings access for CI shows panes and the form only on demand', async ({
+  page,
+}) => {
+  const mock = jobsAndDoctor(signedIn());
+  await mock.install(page);
+  await page.goto('/settings/access');
+  await expect(page.getByRole('region', { name: 'Access for CI' })).toBeVisible();
+  await expect(page.locator('.ds-pane').first()).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Make an access' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Make an access' }).click();
+  await expect(page.getByRole('region', { name: 'Make an access' })).toBeVisible();
+});

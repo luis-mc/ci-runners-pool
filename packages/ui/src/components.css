@@ -388,7 +388,6 @@ body {
   align-content: start;
   gap: var(--ds-space-3);
   min-inline-size: 0;
-  margin-block-start: var(--ds-space-2);
   padding: var(--ds-space-4);
   background: var(--ds-color-surface);
   border: var(--ds-border-thin) solid var(--ds-color-border);
@@ -426,9 +425,6 @@ body {
 }
 .ds-pane:focus-within {
   border-color: var(--ds-color-focus);
-}
-.ds-pane[data-actions] {
-  margin-block-start: var(--ds-space-5);
 }
 /* The actions of a pane sit in the top border line at the right end, over the page colour. */
 .ds-pane__actions {

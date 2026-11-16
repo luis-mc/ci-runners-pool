@@ -325,7 +325,7 @@ These tokens take a different value at each width. The gutter is the space at th
 | Token | Value | Use |
 |---|---|---|
 | `--ds-frame-narrow` | `40rem` | a page of one form or one column of text |
-| `--ds-frame-wide` | `72rem` | a page of cards, tables or lists |
+| `--ds-frame-wide` | `76rem` | a page of panes, tables or lists (a pane takes 2rem of its width for border and padding) |
 
 ### Control heights
 

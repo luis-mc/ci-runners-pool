@@ -44,3 +44,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C39: the pane is a shared part (`Pane`) with the title cut into the top border, optional actions in the border line and a focus ring on the border; every titled page section is a pane (components.md 8; owner decision LOOK D1, CRSP140)
 - C40: the row under the cursor (`j` and `k`) is the selected row and is drawn in reverse video; a ticked row takes the selection fill (components.md 41; owner decision LOOK D1, CRSP140)
 - C41: tabs are one row at every width and scroll sideways inside their frame when they do not fit (components.md 3; UX-15, CRSP140)
+- C42: `--ds-frame-wide` is 76rem, so a list toolbar still fits one row inside a pane (tokens.md; UX-11, CRSP140)
