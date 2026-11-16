@@ -1,7 +1,5 @@
 # UX rules
 
-> **Starter.** Every item in this file is a starter item. Keep, change or delete each one before v1 is approved.
-
 Every rule has an ID. A feature spec and the code cite the ID (`design system UX-1`); they do not copy the rule. Each rule names the guard test that proves it, or `none yet`. When you add a guard, write its path in the Guard column. Never reuse the ID of a deleted rule.
 
 <!-- rule-table:start -->
@@ -69,6 +67,11 @@ Every rule has an ID. A feature spec and the code cite the ID (`design system UX
 | UX-60 | **The user picks a theme and a mode in Settings.** Six named themes: Phosphor, Tokyo Night, Catppuccin, Gruvbox, Solarized, Nord. Tokyo Night is the default for a new install. A mode is system, dark or light; dark is the default mode. Both are saved at once and applied before the first paint, so the page never flashes. A theme changes token values only (UX-55). | `scripts/design/themes.test.ts` |
 | UX-61 | **Every runner names its isolation.** A runner row and its detail say `microVM`, `VM`, `container` or `persistent`. A persistent runner also says `state kept between jobs`. | none yet |
 | UX-62 | **A destructive step names what goes and asks for a yes.** Deleting a runner, removing a machine or wiping a cache lists each item that goes in the question card (UX-9). A change that would stop running jobs names the jobs and waits for the drain. | none yet |
+| UX-63 | **Built from reused components.** Everything comes from the shared UI package (UX-2). No one-off variants. The count of duplicated UI code may only go down. | none yet; add a jscpd count of the UI code with a stored baseline |
+| UX-64 | **No redundant buttons.** One action per outcome. Two buttons that lead to the same result are a defect. A step that needs several buttons without saying which is next is a defect. | none yet |
+| UX-65 | **A result says what happened and what comes next.** It follows UX-27 (one line under the button) and UX-6 (no dead ends). | none yet |
+| UX-66 | **Done is a receipt.** It lists what really happened, never the plan (UX-30). It offers Try again or Undo where they exist. | none yet |
+| UX-67 | **A short sign-in flow is plain screens, not a wizard.** This is the one exception to UX-5. | none yet |
 <!-- rule-table:end -->
 
 ## How to add a rule

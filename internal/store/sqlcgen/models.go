@@ -330,6 +330,12 @@ type RepoPolicy struct {
 	UpdatedBy       string
 }
 
+type ReposState struct {
+	ID      int64
+	Body    string
+	SavedAt string
+}
+
 type Repository struct {
 	ID             int64
 	InstallationID int64

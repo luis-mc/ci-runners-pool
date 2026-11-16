@@ -57,6 +57,26 @@ import { DeliveryStatus, DeliveryWhen, PollingNotice } from './webhookHealth';
 
 const PAGE = 25;
 
+/** Why the list is the last copy, with what GitHub really said (UX-28). */
+function staleWhy(s: {
+  reason?: 'session_expired' | 'permission_missing' | 'unreachable' | 'github_error';
+  status?: number;
+  message?: string;
+}): string {
+  switch (s.reason) {
+    case 'session_expired':
+      return 'Your GitHub sign-in ended. Sign in with GitHub again to refresh the list.';
+    case 'unreachable':
+      return 'GitHub could not be reached.';
+    case 'permission_missing':
+      return `GitHub refused (${s.status ?? 403}): ${s.message ?? 'a permission is missing'}. Grant the permission in the guide below.`;
+    case 'github_error':
+      return `GitHub answered ${s.status ?? 'with an error'}: ${s.message ?? 'no message'}.`;
+    default:
+      return 'The list could not be refreshed.';
+  }
+}
+
 /** Why the pool is off, when the controller turned it off (github-integration R5.22). */
 export function poolOffWhy(r: Repository): string | undefined {
   return r.pool_off_reason === 'left_installation'
@@ -236,7 +256,11 @@ export function RepositoriesList() {
           const shown = paginate(filtered, Math.min(page, pages), PAGE);
           const selected = new Set([...picked].map(String));
           const chosen = data.items.filter((r) => picked.has(r.id));
-          const noAdmin = chosen.filter((r) => !r.user_is_github_admin);
+          // While the list is the last copy the admin flag is unknown, not "no": the
+          // plan checks it again at the change (CRSP148, R5.19).
+          const noAdmin = data.stale.stale
+            ? []
+            : chosen.filter((r) => !r.user_is_github_admin);
           const publicOff = chosen.filter((r) => publicWhileOff(r, enabled));
           if (data.items.length === 0)
             return (
@@ -249,8 +273,10 @@ export function RepositoriesList() {
             <Stack>
               {data.stale.stale ? (
                 <Message tone="needs-you">
-                  GitHub is not answering. The list is the last copy
-                  {data.stale.as_of ? `, from ${formatPast(data.stale.as_of, now)}` : ''}.
+                  {staleWhy(data.stale)}
+                  {data.stale.as_of
+                    ? ` The list is the last copy, from ${formatPast(data.stale.as_of, now)}.`
+                    : ' The list is the last copy.'}
                 </Message>
               ) : null}
               <ListToolbar

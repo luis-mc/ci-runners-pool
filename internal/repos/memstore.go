@@ -23,6 +23,12 @@ type MemStore struct {
 	plans    map[string]Plan
 	fallback map[string]int64
 	orgPools map[int64]OrgPool
+
+	// persist, when set, writes the whole state after a change (CRSP148): the
+	// controller restarts on every upgrade and must not lose the pool state.
+	persist  Persister
+	saveErr  error
+	saveSoon *time.Timer
 }
 
 // NewMemStore returns an empty store.
@@ -37,6 +43,7 @@ func (m *MemStore) UpsertInstallation(_ context.Context, i Installation) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.installs[i.ID] = i
+	m.saveLater()
 	return nil
 }
 
@@ -46,6 +53,7 @@ func (m *MemStore) MarkInstallationRemoved(_ context.Context, id int64) error {
 	i := m.installs[id]
 	i.Removed = true
 	m.installs[id] = i
+	m.saveLater()
 	return nil
 }
 
@@ -69,6 +77,7 @@ func (m *MemStore) UpsertRepository(_ context.Context, r Repository) error {
 		r.PoolOn, r.PoolChangedAt, r.PoolChangedBy = old.PoolOn, old.PoolChangedAt, old.PoolChangedBy
 	}
 	m.repos[r.ID] = r
+	m.saveLater()
 	return nil
 }
 
@@ -117,7 +126,7 @@ func (m *MemStore) SetRepositoryPool(_ context.Context, id int64, on bool, by st
 	}
 	r.PoolOn, r.PoolChangedBy, r.PoolChangedAt = on, by, at
 	m.repos[id] = r
-	return nil
+	return m.saveNow()
 }
 
 func (m *MemStore) GetPolicy(_ context.Context, id int64) (Policy, error) {
@@ -134,7 +143,7 @@ func (m *MemStore) UpsertPolicy(_ context.Context, id int64, p Policy) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.policies[id] = p
-	return nil
+	return m.saveNow()
 }
 
 func (m *MemStore) ListManagedVariables(_ context.Context, id int64) ([]ManagedVariable, error) {
@@ -154,7 +163,7 @@ func (m *MemStore) UpsertManagedVariable(_ context.Context, v ManagedVariable) e
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.vars[[2]any{v.RepositoryID, v.Name}] = v
-	return nil
+	return m.saveNow()
 }
 
 func (m *MemStore) SetManagedVariableStatus(_ context.Context, id int64, name, status string, at time.Time) error {
@@ -165,6 +174,7 @@ func (m *MemStore) SetManagedVariableStatus(_ context.Context, id int64, name, s
 		v.Status, v.CheckedAt = status, at
 		m.vars[k] = v
 	}
+	m.saveLater()
 	return nil
 }
 
@@ -172,13 +182,14 @@ func (m *MemStore) DeleteManagedVariable(_ context.Context, id int64, name strin
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	delete(m.vars, [2]any{id, name})
-	return nil
+	return m.saveNow()
 }
 
 func (m *MemStore) ReplaceFindings(_ context.Context, id int64, fs []Finding, at time.Time) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.findings[id], m.checked[id] = append([]Finding(nil), fs...), at
+	m.saveLater()
 	return nil
 }
 
@@ -192,7 +203,7 @@ func (m *MemStore) InsertPlan(_ context.Context, p Plan) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.plans[p.ID] = p
-	return nil
+	return m.saveNow()
 }
 
 func (m *MemStore) GetPlan(_ context.Context, id string) (Plan, error) {
@@ -212,7 +223,7 @@ func (m *MemStore) UpdatePlan(_ context.Context, p Plan) error {
 		return auth.ErrNotFound
 	}
 	m.plans[p.ID] = p
-	return nil
+	return m.saveNow()
 }
 
 func fallbackKey(id int64, month string) string { return strconv.FormatInt(id, 10) + "|" + month }
@@ -227,6 +238,7 @@ func (m *MemStore) AddFallbackSeconds(_ context.Context, id int64, month string,
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.fallback[fallbackKey(id, month)] += seconds
+	m.saveLater()
 	return nil
 }
 
@@ -244,5 +256,5 @@ func (m *MemStore) SetOrgPool(_ context.Context, o OrgPool) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.orgPools[o.InstallationID] = o
-	return nil
+	return m.saveNow()
 }

@@ -52,3 +52,19 @@ jobs:
       - name: Build the MSI (not the shipped file)
         if: steps.gate.outputs.present == 'true'
         run: bash scripts/delivery/windows-msi-linux.sh
+      # CRSP147: one entry in the Windows programs list. The authoring has no second Uninstall key,
+      # no hidden MSI entry, one UpgradeCode and a major upgrade (installer/wxs_test.go has the same rules).
+      - name: One programs-list entry (authoring check)
+        run: |
+          python3 - <<'PY'
+          import re, sys
+          s = re.sub(r"(?s)<!--.*?-->", "", open("installer/crsp.wxs").read())
+          bad = []
+          if "CurrentVersion\\Uninstall" in s: bad.append("the package writes its own Uninstall key (a second entry)")
+          if "ARPSYSTEMCOMPONENT" in s: bad.append("a hidden MSI entry is authored")
+          if s.count('UpgradeCode="C1D62442-6DB4-4FF0-9F28-A1CE3121B332"') != 1: bad.append("the shipped UpgradeCode must appear once")
+          if "<MajorUpgrade" not in s: bad.append("MajorUpgrade is missing")
+          if bad:
+              print("\n".join(bad)); sys.exit(1)
+          print("one programs-list entry: ok")
+          PY

@@ -134,18 +134,54 @@ describe('Repositories list', () => {
     ).toBeTruthy();
   });
 
-  it('shows the last copy with its age when GitHub does not answer', async () => {
+  it('shows the last copy with its age when GitHub cannot be reached', async () => {
     const api = signedIn().on('GET', '/api/v1/github/repositories', {
       items: [repository()],
-      stale: { stale: true, as_of: '2026-11-14T08:00:00Z' },
+      stale: { stale: true, as_of: '2026-11-14T08:00:00Z', reason: 'unreachable' },
     });
     renderApp(api, '/repositories');
     expect(
       await screen.findByText(
-        /GitHub is not answering\. The list is the last copy, from 2026-11-14/,
+        /GitHub could not be reached\. The list is the last copy, from 2026-11-14/,
       ),
     ).toBeTruthy();
     expect(screen.getByRole('table', { name: 'Repositories' })).toBeTruthy();
+  });
+
+  it('says the sign-in ended, never that GitHub is down (CRSP148)', async () => {
+    const api = signedIn().on('GET', '/api/v1/github/repositories', {
+      items: [repository()],
+      stale: { stale: true, reason: 'session_expired' },
+    });
+    renderApp(api, '/repositories');
+    expect(await screen.findByText(/Your GitHub sign-in ended/)).toBeTruthy();
+    expect(screen.queryByText(/not answering/)).toBeNull();
+  });
+
+  it('shows the real GitHub status and message (UX-28, CRSP148)', async () => {
+    const api = signedIn().on('GET', '/api/v1/github/repositories', {
+      items: [repository()],
+      stale: {
+        stale: true,
+        reason: 'github_error',
+        status: 422,
+        message: 'Validation Failed',
+      },
+    });
+    renderApp(api, '/repositories');
+    expect(
+      await screen.findByText(/GitHub answered 422: Validation Failed\./),
+    ).toBeTruthy();
+  });
+
+  it('does not say "you need admin rights" while the list is the last copy (CRSP148)', async () => {
+    const api = signedIn().on('GET', '/api/v1/github/repositories', {
+      items: [repository({ user_is_github_admin: false })],
+      stale: { stale: true, reason: 'session_expired' },
+    });
+    renderApp(api, '/repositories');
+    await screen.findByText(/Your GitHub sign-in ended/);
+    expect(screen.queryByText(/You need admin rights/)).toBeNull();
   });
 
   it('says could not load when the controller fails', async () => {

@@ -2686,6 +2686,15 @@ export interface components {
             stale: boolean;
             /** Format: date-time */
             as_of?: string;
+            /**
+             * @description Why the list is the last copy (CRSP148, UX-28).
+             * @enum {string}
+             */
+            reason?: "session_expired" | "permission_missing" | "unreachable" | "github_error";
+            /** @description The HTTP status GitHub answered with, when it answered. */
+            status?: number;
+            /** @description What GitHub said, word for word, when it answered. */
+            message?: string;
         };
         AppHealth: {
             /** @description True when GitHub says the App or its key is gone (R5.6). */

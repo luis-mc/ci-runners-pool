@@ -13,7 +13,7 @@ import (
 
 // Request is one JSON line sent over the local channel (spec section 7).
 type Request struct {
-	Call   string `json:"call"`             // status | link | check | mode | pause | resume
+	Call   string `json:"call"`             // status | link | check | install | mode | pause | resume
 	Target string `json:"target,omitempty"` // call=link: the console path to open, "" for the start page
 	Mode   string `json:"mode,omitempty"`   // call=mode: automatic, always or paused
 	Pause  string `json:"pause,omitempty"`  // call=pause: one_hour or until_resumed
@@ -55,6 +55,7 @@ type Response struct {
 	LatestVersion   string `json:"latest_version,omitempty"`
 	UpdateAvailable bool   `json:"update_available,omitempty"`
 	UpdateState     string `json:"update_state,omitempty"`
+	ReleaseURL      string `json:"release_url,omitempty"` // the release page of LatestVersion (What changed)
 
 	// Policy is this machine's mode and acceptance (CRSP75).
 	Policy *PolicyInfo `json:"policy,omitempty"`
@@ -140,7 +141,7 @@ func statusFrom(r Response) Status {
 	}
 	out := Status{
 		State: st, Running: r.Running, Waiting: r.Waiting, Runners: r.Runners, Fault: r.Fault, Version: r.Version,
-		Update: UpdateInfo{Latest: r.LatestVersion, Available: r.UpdateAvailable, State: r.UpdateState, AutoOff: r.AutoUpdate != nil && !*r.AutoUpdate},
+		Update: UpdateInfo{Latest: r.LatestVersion, Available: r.UpdateAvailable, State: r.UpdateState, ReleaseURL: r.ReleaseURL, Jobs: r.Running, AutoOff: r.AutoUpdate != nil && !*r.AutoUpdate},
 	}
 	if p := r.Policy; p != nil {
 		out.Policy = MachinePolicy{
@@ -186,6 +187,16 @@ func (c *Client) Resume(ctx context.Context) (Status, error) {
 // Check asks the service to look for a newer stable release now (Look for updates).
 func (c *Client) Check(ctx context.Context) (Status, error) {
 	r, err := c.Call(ctx, "check")
+	if err != nil {
+		return Status{}, err
+	}
+	return statusFrom(r), nil
+}
+
+// Install asks the service to install the newest stable release (Install now).
+// It drains first: no running job is cut. Only a person's yes in the tray sends it.
+func (c *Client) Install(ctx context.Context) (Status, error) {
+	r, err := c.Call(ctx, "install")
 	if err != nil {
 		return Status{}, err
 	}

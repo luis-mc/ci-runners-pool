@@ -3,7 +3,9 @@ package repos
 import (
 	"context"
 	"errors"
+	"strings"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 )
 
@@ -23,6 +25,7 @@ func (s *Service) ReconcileInstallations(ctx context.Context) error {
 		return err
 	}
 	liveIDs := map[int64]bool{}
+	var fresh []Repository    // repositories the store did not know before this read
 	reach := map[int64]bool{} // repository ids still reachable
 	for _, in := range live {
 		liveIDs[in.ID] = true
@@ -30,6 +33,11 @@ func (s *Service) ReconcileInstallations(ctx context.Context) error {
 			return err
 		}
 		if in.Suspended {
+			// A suspended installation is not a removed one: its repositories
+			// keep their pool state until GitHub lifts the suspension (CRSP148).
+			for _, r := range s.reposOf(ctx, in.ID) {
+				reach[r.ID] = true
+			}
 			continue
 		}
 		rs, err := s.cfg.GitHub.ListAppRepositories(bg, in.ID)
@@ -45,11 +53,17 @@ func (s *Service) ReconcileInstallations(ctx context.Context) error {
 		}
 		for _, r := range rs {
 			reach[r.ID] = true
+			if _, err := s.cfg.Store.GetRepository(ctx, r.ID); errors.Is(err, auth.ErrNotFound) {
+				fresh = append(fresh, toRepository(r, in.ID))
+			} else if err != nil {
+				return err
+			}
 			if err := s.cfg.Store.UpsertRepository(ctx, toRepository(r, in.ID)); err != nil {
 				return err
 			}
 		}
 	}
+	s.adoptPools(ctx, fresh)
 	for _, k := range known {
 		if !liveIDs[k.ID] {
 			if err := s.cfg.Store.MarkInstallationRemoved(ctx, k.ID); err != nil {
@@ -97,4 +111,39 @@ func (s *Service) ReconcileInstallations(ctx context.Context) error {
 func (s *Service) reposOf(ctx context.Context, installationID int64) []Repository {
 	rs, _ := s.cfg.Store.ListRepositories(ctx, ListFilter{InstallationID: installationID})
 	return rs
+}
+
+// adoptPools turns the pool on for a repository the store does not know yet but
+// whose variables show the pool already runs it: RUNS_ON_LIGHT, or a RUNS_ON_
+// variable with a crsp label. The store of an older version lived in memory, so
+// an upgrade left the repositories with their pool off while GitHub still held
+// the variables (CRSP148). A GitHub error leaves the repository as it is.
+func (s *Service) adoptPools(ctx context.Context, fresh []Repository) {
+	for _, r := range fresh {
+		vars, err := s.cfg.GitHub.ListVariables(ctx, r.InstallationID, r.Owner, r.Name)
+		if err != nil {
+			continue
+		}
+		if !poolVariables(vars) {
+			continue
+		}
+		if err := s.cfg.Store.SetRepositoryPool(ctx, r.ID, true, System.Login, s.cfg.Now()); err != nil {
+			continue
+		}
+		s.cfg.Audit.Audit(ctx, System, "pool.adopted", "repository", r.FullName, "the repository's variables show the pool runs it; the pool switch was restored")
+	}
+}
+
+func poolVariables(vars []github.Variable) bool {
+	for _, v := range vars {
+		if v.Name == VarLight && v.Value == LightValue {
+			return true
+		}
+		for _, o := range variableOrder {
+			if v.Name == o.Var && strings.Contains(v.Value, "crsp-") {
+				return true
+			}
+		}
+	}
+	return false
 }

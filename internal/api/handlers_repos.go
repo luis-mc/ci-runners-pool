@@ -18,29 +18,71 @@ import (
 // call refreshes it from GitHub (R6.11).
 const syncMaxAge = 5 * time.Minute
 
-func staleness(at time.Time, stale bool) gen.Staleness {
-	s := gen.Staleness{Stale: stale}
-	if !at.IsZero() {
+// syncState is what a list call knows of its refresh: the age of the data,
+// whether it is the last copy, and the error that made it so.
+type syncState struct {
+	at    time.Time
+	stale bool
+	cause error
+}
+
+func staleness(st syncState) gen.Staleness {
+	s := gen.Staleness{Stale: st.stale}
+	if !st.at.IsZero() {
+		at := st.at
 		s.AsOf = &at
+	}
+	if st.stale && st.cause != nil {
+		reason, status, msg := staleCause(st.cause)
+		s.Reason = &reason
+		if status != 0 {
+			s.Status = &status
+		}
+		if msg != "" {
+			s.Message = &msg
+		}
 	}
 	return s
 }
 
+// staleCause names why a refresh failed: the sign-in is gone, a permission is
+// missing, GitHub could not be reached, or GitHub answered with an error (its
+// real status and words are kept, UX-28).
+func staleCause(err error) (gen.StalenessReason, int, string) {
+	var api *github.APIError
+	status, msg := 0, ""
+	if errors.As(err, &api) {
+		status, msg = api.Status, api.Message
+	}
+	switch {
+	case errors.Is(err, auth.ErrGitHubSessionExpired):
+		return gen.StalenessReasonSessionExpired, 0, "sign in with GitHub again"
+	case errors.Is(err, github.ErrUnavailable) && status == 0:
+		return gen.StalenessReasonUnreachable, 0, err.Error()
+	case errors.Is(err, github.ErrForbidden) && status == http.StatusForbidden:
+		return gen.StalenessReasonPermissionMissing, status, msg
+	}
+	if msg == "" {
+		msg = err.Error()
+	}
+	return gen.StalenessReasonGithubError, status, msg
+}
+
 // refresh syncs the user's listing when it is old or never made. A failure
-// is not an error: the page shows the last known state and says how old it is
-// (section 8). The returned flag is true when the data is stale.
-func (a *GitHubArea) refresh(ctx context.Context, p auth.Principal) (time.Time, bool) {
+// is not an error: the page shows the last known state, says how old it is
+// and why it could not be refreshed (section 8).
+func (a *GitHubArea) refresh(ctx context.Context, p auth.Principal) syncState {
 	last := a.Repos.LastSync(p.UserID)
 	if !last.IsZero() && time.Since(last) < syncMaxAge {
-		return last, false
+		return syncState{at: last}
 	}
 	if err := a.Repos.Sync(ctx, p); err != nil {
 		if !errors.Is(err, auth.ErrGitHubSessionExpired) {
 			a.log().Warn("repository sync failed", "err", err)
 		}
-		return last, true
+		return syncState{at: last, stale: true, cause: err}
 	}
-	return a.Repos.LastSync(p.UserID), false
+	return syncState{at: a.Repos.LastSync(p.UserID)}
 }
 
 func toPolicy(p repos.Policy) gen.RepositoryPolicy {
@@ -137,7 +179,7 @@ func toRepository(v repos.RepositoryView) gen.Repository {
 // ListInstallations implements GET /api/v1/github/installations (R5.17, R5.24).
 func (s *server) ListInstallations(ctx context.Context, _ gen.ListInstallationsRequestObject) (gen.ListInstallationsResponseObject, error) {
 	a, p := s.ghArea(), s.principal(ctx)
-	at, stale := a.refresh(ctx, p)
+	st := a.refresh(ctx, p)
 	ins, err := a.Repos.Installations(ctx, p)
 	if err != nil {
 		code, body := failure(err)
@@ -153,7 +195,7 @@ func (s *server) ListInstallations(ctx context.Context, _ gen.ListInstallationsR
 		}
 		items = append(items, gi)
 	}
-	return gen.ListInstallations200JSONResponse{Items: items, Stale: staleness(at, stale)}, nil
+	return gen.ListInstallations200JSONResponse{Items: items, Stale: staleness(st)}, nil
 }
 
 // GetAppHealth implements GET /api/v1/github/app-health (R5.6).
@@ -198,7 +240,7 @@ func decodeCursor(c *string) string {
 // ListRepositories implements GET /api/v1/github/repositories (R5.18, R6.11).
 func (s *server) ListRepositories(ctx context.Context, req gen.ListRepositoriesRequestObject) (gen.ListRepositoriesResponseObject, error) {
 	a, p := s.ghArea(), s.principal(ctx)
-	at, stale := a.refresh(ctx, p)
+	st := a.refresh(ctx, p)
 	f := repos.ListFilter{AfterName: decodeCursor(req.Params.Cursor), Limit: 51}
 	limit := 50
 	if req.Params.Limit != nil {
@@ -223,7 +265,7 @@ func (s *server) ListRepositories(ctx context.Context, req gen.ListRepositoriesR
 		code, body := failure(err)
 		return gen.ListRepositoriesdefaultJSONResponse{StatusCode: code, Body: body}, nil
 	}
-	page := gen.RepositoryPage{Items: []gen.Repository{}, Stale: staleness(at, stale)}
+	page := gen.RepositoryPage{Items: []gen.Repository{}, Stale: staleness(st)}
 	if len(rows) > limit {
 		rows = rows[:limit]
 		c := base64.RawURLEncoding.EncodeToString([]byte(rows[len(rows)-1].FullName))

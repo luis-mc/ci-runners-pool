@@ -130,6 +130,9 @@ type Options struct {
 	// StartMSI starts msiexec detached (Windows update); MSILog is its log path (default %ProgramData%\crsp\logs).
 	StartMSI func(ctx context.Context, msi, log string) (int, error)
 	MSILog   string
+	// AfterInstall runs once at the first start after an update that succeeded, with the new
+	// version. On Windows it starts the tray for each signed-in user (CRSP147).
+	AfterInstall func(version string)
 	// Privileged says whether this process may install (default: root or an elevated token).
 	Privileged func() bool
 	Pid        func() int
@@ -203,7 +206,10 @@ func New(o Options) *Manager {
 		o.AutoUpdate = func(context.Context) bool { return true }
 	}
 	m := &Manager{o: o, state: StateIdle}
-	RecoverMSI(o.Dir, o.Current, o.Now())
+	if settled, res := recoverMSI(o.Dir, o.Current, o.Now()); settled && res.OK && o.AfterInstall != nil {
+		// The new build runs: the old tray was ended by the MSI, so start the tray again (CRSP147).
+		go o.AfterInstall(res.To)
+	}
 	if r, ok := ReadResult(o.Dir); ok && !r.OK && r.To != o.Current {
 		m.state, m.errText = StateFailed, "The last update to "+r.To+" failed: "+r.Error
 	}
@@ -237,10 +243,21 @@ func (m *Manager) busy() bool {
 	return false
 }
 
-// Check looks for a newer stable release. It downloads nothing. With
-// auto-update on and a newer release, the update then starts by itself (and
-// drains first); a refused or failed automatic try is shown in Status.Error.
+// Check looks for a newer stable release now. It downloads nothing and never
+// starts an install, whatever the Automatic updates setting says: a person who
+// asked to look is only told (CRSP147). Installing takes Apply after a yes.
 func (m *Manager) Check(ctx context.Context) (Status, error) {
+	return m.check(ctx, false)
+}
+
+// AutoCheck is the scheduled look: like Check, and with auto-update on and a
+// newer release the update then starts by itself (and drains first); a refused
+// or failed automatic try is shown in Status.Error.
+func (m *Manager) AutoCheck(ctx context.Context) (Status, error) {
+	return m.check(ctx, true)
+}
+
+func (m *Manager) check(ctx context.Context, auto bool) (Status, error) {
 	m.mu.Lock()
 	if m.busy() {
 		m.mu.Unlock()
@@ -271,7 +288,7 @@ func (m *Manager) Check(ctx context.Context) (Status, error) {
 		return m.Status(ctx), err
 	}
 
-	if st := m.Status(ctx); st.Available && st.AutoUpdate {
+	if st := m.Status(ctx); auto && st.Available && st.AutoUpdate {
 		if ok, why := AutoAllowed(readFailures(m.o.Dir), st.Latest, m.o.Now()); !ok {
 			m.setError(why)
 			return m.Status(ctx), nil
@@ -559,7 +576,7 @@ func (m *Manager) Run(ctx context.Context, first, every time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			if _, err := m.Check(ctx); err != nil {
+			if _, err := m.AutoCheck(ctx); err != nil {
 				m.o.Logger.Warn("update check failed", "err", err)
 			}
 			t.Reset(every)
