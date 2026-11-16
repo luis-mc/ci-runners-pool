@@ -274,6 +274,27 @@ func (e CpuCapState) Valid() bool {
 	}
 }
 
+// Defines values for CreateJoinFileRequestOs.
+const (
+	CreateJoinFileRequestOsLinux   CreateJoinFileRequestOs = "linux"
+	CreateJoinFileRequestOsMacos   CreateJoinFileRequestOs = "macos"
+	CreateJoinFileRequestOsWindows CreateJoinFileRequestOs = "windows"
+)
+
+// Valid indicates whether the value is a known member of the CreateJoinFileRequestOs enum.
+func (e CreateJoinFileRequestOs) Valid() bool {
+	switch e {
+	case CreateJoinFileRequestOsLinux:
+		return true
+	case CreateJoinFileRequestOsMacos:
+		return true
+	case CreateJoinFileRequestOsWindows:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DoctorRunState.
 const (
 	DoctorRunStateDone    DoctorRunState = "done"
@@ -2086,6 +2107,17 @@ type CreateJoinCodeRequest struct {
 	// TtlMinutes Default 15, ceiling 1440 (machines R5.4).
 	TtlMinutes *int `json:"ttl_minutes,omitempty"`
 }
+
+// CreateJoinFileRequest defines model for CreateJoinFileRequest.
+type CreateJoinFileRequest struct {
+	Os CreateJoinFileRequestOs `json:"os"`
+
+	// TtlMinutes Default 15, ceiling 1440 (machines R5.4).
+	TtlMinutes *int `json:"ttl_minutes,omitempty"`
+}
+
+// CreateJoinFileRequestOs defines model for CreateJoinFileRequest.Os.
+type CreateJoinFileRequestOs string
 
 // DoctorFinding defines model for DoctorFinding.
 type DoctorFinding struct {
@@ -3968,6 +4000,9 @@ type CreateJoinCodeJSONRequestBody = CreateJoinCodeRequest
 // JoinMachineOverSshJSONRequestBody defines body for JoinMachineOverSsh for application/json ContentType.
 type JoinMachineOverSshJSONRequestBody = SshJoinRequest
 
+// CreateJoinFileJSONRequestBody defines body for CreateJoinFile for application/json ContentType.
+type CreateJoinFileJSONRequestBody = CreateJoinFileRequest
+
 // UpdateMachineJSONRequestBody defines body for UpdateMachine for application/json ContentType.
 type UpdateMachineJSONRequestBody = MachineSettingsUpdate
 
@@ -4498,6 +4533,24 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/join-codes/{joinCodeId} (the `GetJoinCode` operationId).
 	GetJoinCode(ctx context.Context, joinCodeId JoinCodeId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CreateJoinFileWithBody Download an installer file with a one-time join code built in
+	//
+	// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/join-files (the `CreateJoinFile` operationId).
+	CreateJoinFileWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateJoinFile Download an installer file with a one-time join code built in
+	//
+	// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/join-files (the `CreateJoinFile` operationId).
+	CreateJoinFile(ctx context.Context, body CreateJoinFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListMachines Every machine with state, backends, load and slots
 	//
 	// machines R5.50.
@@ -4760,6 +4813,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/overview (the `GetOverview` operationId).
 	GetOverview(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetPackage A release package, or SHA256SUMS
+	//
+	// machines R5.50. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
+	//
+	// Corresponds with GET /api/v1/packages/{name} (the `GetPackage` operationId).
+	GetPackage(ctx context.Context, name string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
 	//
@@ -6177,6 +6237,44 @@ func (c *Client) GetJoinCode(ctx context.Context, joinCodeId JoinCodeId, reqEdit
 	return c.Client.Do(req)
 }
 
+// CreateJoinFileWithBody Download an installer file with a one-time join code built in
+//
+// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/join-files (the `CreateJoinFile` operationId).
+func (c *Client) CreateJoinFileWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateJoinFileRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateJoinFile Download an installer file with a one-time join code built in
+//
+// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/join-files (the `CreateJoinFile` operationId).
+func (c *Client) CreateJoinFile(ctx context.Context, body CreateJoinFileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateJoinFileRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // ListMachines Every machine with state, backends, load and slots
 //
 // machines R5.50.
@@ -6760,6 +6858,23 @@ func (c *Client) TestNotificationChannel(ctx context.Context, channelId ChannelI
 // Corresponds with GET /api/v1/overview (the `GetOverview` operationId).
 func (c *Client) GetOverview(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetOverviewRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetPackage A release package, or SHA256SUMS
+//
+// machines R5.50. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
+//
+// Corresponds with GET /api/v1/packages/{name} (the `GetPackage` operationId).
+func (c *Client) GetPackage(ctx context.Context, name string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetPackageRequest(c.Server, name)
 	if err != nil {
 		return nil, err
 	}
@@ -10107,6 +10222,46 @@ func NewGetJoinCodeRequest(server string, joinCodeId JoinCodeId) (*http.Request,
 	return req, nil
 }
 
+// NewCreateJoinFileRequest calls the generic CreateJoinFile builder with application/json body
+func NewCreateJoinFileRequest(server string, body CreateJoinFileJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateJoinFileRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateJoinFileRequestWithBody constructs an http.Request for the CreateJoinFile method, with any body, and a specified content type
+func NewCreateJoinFileRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/join-files")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListMachinesRequest constructs an http.Request for the ListMachines method
 func NewListMachinesRequest(server string) (*http.Request, error) {
 	var err error
@@ -11108,6 +11263,40 @@ func NewGetOverviewRequest(server string) (*http.Request, error) {
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/overview")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetPackageRequest constructs an http.Request for the GetPackage method
+func NewGetPackageRequest(server string, name string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "name", name, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/packages/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -13685,6 +13874,24 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/join-codes/{joinCodeId} (the `GetJoinCode` operationId).
 	GetJoinCodeWithResponse(ctx context.Context, joinCodeId JoinCodeId, reqEditors ...RequestEditorFn) (*GetJoinCodeResponse, error)
 
+	// CreateJoinFileWithBodyWithResponse Download an installer file with a one-time join code built in
+	//
+	// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/join-files (the `CreateJoinFile` operationId).
+	CreateJoinFileWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateJoinFileResponse, error)
+
+	// CreateJoinFileWithResponse Download an installer file with a one-time join code built in
+	//
+	// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/join-files (the `CreateJoinFile` operationId).
+	CreateJoinFileWithResponse(ctx context.Context, body CreateJoinFileJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateJoinFileResponse, error)
+
 	// ListMachinesWithResponse Every machine with state, backends, load and slots
 	//
 	// machines R5.50.
@@ -13977,6 +14184,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/overview (the `GetOverview` operationId).
 	GetOverviewWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetOverviewResponse, error)
+
+	// GetPackageWithResponse A release package, or SHA256SUMS
+	//
+	// machines R5.50. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/packages/{name} (the `GetPackage` operationId).
+	GetPackageWithResponse(ctx context.Context, name string, reqEditors ...RequestEditorFn) (*GetPackageResponse, error)
 
 	// GetRegistrySettingsWithResponse Registry logins per backend and whether a private CA bundle is set
 	//
@@ -16630,6 +16846,55 @@ func (r GetJoinCodeResponse) ContentType() string {
 	return ""
 }
 
+// CreateJoinFileResponse201Headers the declared response headers of an HTTP 201 response for CreateJoinFile
+type CreateJoinFileResponse201Headers struct {
+	ContentDisposition string
+	XJoinCodeId        string
+}
+
+type CreateJoinFileResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+	// Headers201 the parsed response headers for an HTTP 201 response
+	Headers201 *CreateJoinFileResponse201Headers
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r CreateJoinFileResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateJoinFileResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateJoinFileResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateJoinFileResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateJoinFileResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ListMachinesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -17762,6 +18027,47 @@ func (r GetOverviewResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetOverviewResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetPackageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetPackageResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetPackageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetPackageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetPackageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetPackageResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -20902,6 +21208,36 @@ func (c *ClientWithResponses) GetJoinCodeWithResponse(ctx context.Context, joinC
 	return ParseGetJoinCodeResponse(rsp)
 }
 
+// CreateJoinFileWithBodyWithResponse Download an installer file with a one-time join code built in
+//
+// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/join-files (the `CreateJoinFile` operationId).
+func (c *ClientWithResponses) CreateJoinFileWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateJoinFileResponse, error) {
+	rsp, err := c.CreateJoinFileWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateJoinFileResponse(rsp)
+}
+
+// CreateJoinFileWithResponse Download an installer file with a one-time join code built in
+//
+// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/join-files (the `CreateJoinFile` operationId).
+func (c *ClientWithResponses) CreateJoinFileWithResponse(ctx context.Context, body CreateJoinFileJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateJoinFileResponse, error) {
+	rsp, err := c.CreateJoinFile(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateJoinFileResponse(rsp)
+}
+
 // ListMachinesWithResponse Every machine with state, backends, load and slots
 //
 // machines R5.50.
@@ -21391,6 +21727,21 @@ func (c *ClientWithResponses) GetOverviewWithResponse(ctx context.Context, reqEd
 		return nil, err
 	}
 	return ParseGetOverviewResponse(rsp)
+}
+
+// GetPackageWithResponse A release package, or SHA256SUMS
+//
+// machines R5.50. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/packages/{name} (the `GetPackage` operationId).
+func (c *ClientWithResponses) GetPackageWithResponse(ctx context.Context, name string, reqEditors ...RequestEditorFn) (*GetPackageResponse, error) {
+	rsp, err := c.GetPackage(ctx, name, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetPackageResponse(rsp)
 }
 
 // GetRegistrySettingsWithResponse Registry logins per backend and whether a private CA bundle is set
@@ -23849,6 +24200,52 @@ func ParseGetJoinCodeResponse(rsp *http.Response) (*GetJoinCodeResponse, error) 
 	return response, nil
 }
 
+// ParseCreateJoinFileResponse parses an HTTP response from a CreateJoinFileWithResponse call
+func ParseCreateJoinFileResponse(rsp *http.Response) (*CreateJoinFileResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateJoinFileResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 201:
+		var headers CreateJoinFileResponse201Headers
+		if values := rsp.Header.Values("Content-Disposition"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Disposition", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentDisposition = value
+		}
+		if values := rsp.Header.Values("X-Join-Code-Id"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "X-Join-Code-Id", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.XJoinCodeId = value
+		}
+		response.Headers201 = &headers
+	}
+
+	return response, nil
+}
+
 // ParseListMachinesResponse parses an HTTP response from a ListMachinesWithResponse call
 func ParseListMachinesResponse(rsp *http.Response) (*ListMachinesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -24624,6 +25021,32 @@ func ParseGetOverviewResponse(rsp *http.Response) (*GetOverviewResponse, error) 
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetPackageResponse parses an HTTP response from a GetPackageWithResponse call
+func ParseGetPackageResponse(rsp *http.Response) (*GetPackageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetPackageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {

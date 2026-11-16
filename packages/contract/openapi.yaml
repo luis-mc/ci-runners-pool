@@ -1384,6 +1384,80 @@ paths:
                 $ref: '#/components/schemas/JoinCodeCreated'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/join-files:
+    post:
+      operationId: createJoinFile
+      tags: [machines]
+      summary: Download an installer file with a one-time join code built in
+      description: >-
+        machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it
+        works once and lives 15 minutes by default; an older unused code becomes
+        invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a
+        `.sh` for Linux, a `.command` for macOS. The file holds the controller
+        address, the certificate fingerprint, the code and the SHA-256 of the
+        release packages, and nothing else secret. The file name says the OS and
+        the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit
+        entry never holds the code. 501 when this controller has no release
+        packages to hand out (a development build).
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJoinFileRequest'
+      responses:
+        '201':
+          description: The installer file.
+          headers:
+            Content-Disposition:
+              required: true
+              schema:
+                type: string
+              example: attachment; filename="crsp-join-linux-until-20261114T1215Z.sh"
+            X-Join-Code-Id:
+              required: true
+              schema:
+                type: string
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/packages/{name}:
+    get:
+      operationId: getPackage
+      x-cli: none
+      x-cli-reason: 'Fetched by the installer file on the new machine, not by a person.'
+      tags: [machines]
+      summary: A release package, or SHA256SUMS
+      description: >-
+        machines R5.50. The release packages this controller was built from
+        (installers and SHA256SUMS), checked against SHA256SUMS before they are
+        served. Public data, like the GitHub release; only names the release lists
+        are served. The installer file checks the SHA-256 itself.
+      x-auth: public
+      x-rate-limit: 30/minute/ip
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 100
+      responses:
+        '200':
+          description: The package.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/join-codes/ssh:
     post:
       operationId: joinMachineOverSsh
@@ -4941,6 +5015,18 @@ components:
     CreateJoinCodeRequest:
       type: object
       properties:
+        ttl_minutes:
+          type: integer
+          description: Default 15, ceiling 1440 (machines R5.4).
+          minimum: 1
+          maximum: 1440
+    CreateJoinFileRequest:
+      type: object
+      required: [os]
+      properties:
+        os:
+          type: string
+          enum: [windows, linux, macos]
         ttl_minutes:
           type: integer
           description: Default 15, ceiling 1440 (machines R5.4).

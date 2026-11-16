@@ -31,6 +31,7 @@ type MachinesService interface {
 	GetJoinCode(ctx context.Context, id string) (machines.JoinCode, machines.CodeState, error)
 	RevokeJoinCode(ctx context.Context, actor, id string) error
 	JoinOverSSH(ctx context.Context, actor string, in machines.SSHJoinInput) (machines.CreatedCode, error)
+	CreateJoinFile(ctx context.Context, actor, os string, ttl time.Duration) (machines.JoinFile, error)
 	InstallCommands(code string) []machines.InstallCommand
 	ControllerInfo() (address string, port int, fingerprint string)
 }

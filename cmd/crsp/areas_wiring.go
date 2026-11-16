@@ -60,6 +60,8 @@ type controllerDeps struct {
 	// Machines is the machines service; CA the controller's certificate authority.
 	Machines *machines.Service
 	CA       api.CAProvider
+	// Packages serves the release packages to new machines (machines R5.50); nil for a development build.
+	Packages api.PackageServer
 	Updates  api.UpdateService
 	Queue    scheduler.SlotQueue
 	// Caches is the caches service of the machines runtime (web-console R5.25).
@@ -254,6 +256,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	c.Options.Version, c.Options.DB, c.Options.Logger = version, d.DB, logger
 	c.Options.Settings, c.Options.Audit, c.Options.Backup = d.Ops.Settings, d.Ops.Audit, d.Ops.Backup
 	c.Options.Machines, c.Options.CA, c.Options.Update = d.Machines, d.CA, d.Updates
+	c.Options.Packages = d.Packages
 	c.Options.Jobs, c.Options.Slots, c.Options.Live = d.DB, d.Queue, live
 	c.Options.Runners, c.Options.Doctor = runnerSvc, docSvc
 	c.Options.Caches, c.Options.Events = d.Caches, hub

@@ -11,7 +11,7 @@ func TestMachineRoutesDeclareTheRoleTheySpecRequires(t *testing.T) {
 		"updateMachine": "admin", "drainMachine": "admin", "resumeMachine": "admin", "removeMachine": "admin",
 		"redetectMachine": "admin", "recoverMachine": "admin", "checkMachinePoolSize": "admin", "decideMachineChange": "admin",
 		"runMachineCommand": "owner", "createJoinCode": "admin", "joinMachineOverSsh": "admin", "getJoinCode": "admin", "revokeJoinCode": "admin", "getInstallCommand": "admin",
-		"getCaCertificate": "public",
+		"getCaCertificate": "public", "createJoinFile": "admin", "getPackage": "public",
 	}
 	got := map[string]string{}
 	for _, op := range loadContractOps(t) {
