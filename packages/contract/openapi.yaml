@@ -1390,7 +1390,7 @@ paths:
       tags: [machines]
       summary: Download an installer file with a one-time join code built in
       description: >-
-        machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it
+        machines R5.65 (CRSP122, owner decision D70). Makes a join code (R5.4: it
         works once and lives 15 minutes by default; an older unused code becomes
         invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a
         `.sh` for Linux, a `.command` for macOS. The file holds the controller
@@ -1435,7 +1435,7 @@ paths:
       tags: [machines]
       summary: A release package, or SHA256SUMS
       description: >-
-        machines R5.50. The release packages this controller was built from
+        machines R5.65. The release packages this controller was built from
         (installers and SHA256SUMS), checked against SHA256SUMS before they are
         served. Public data, like the GitHub release; only names the release lists
         are served. The installer file checks the SHA-256 itself.

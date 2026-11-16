@@ -197,7 +197,7 @@ describe('I have SSH', () => {
   });
 });
 
-// machines R5.50 (CRSP122): "Download an installer" is one more entry of the join choice. The file is made
+// machines R5.65 (CRSP122): "Download an installer" is one more entry of the join choice. The file is made
 // only when Join a machine is pressed; the wizard then waits on the code's progress like a copied command.
 describe('Download an installer', () => {
   let saved: { name: string; type: string }[] = [];

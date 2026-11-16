@@ -75,7 +75,7 @@ type Options struct {
 	// (RES3). Nil means the SSH join is not available.
 	SSH SSHRunner
 	// Packages gives the release packages a downloaded installer file fetches
-	// (R5.50). Nil means the download option is not available.
+	// (R5.65). Nil means the download option is not available.
 	Packages PackageSource
 	// ConsoleURL is the address the packages are fetched from, such as
 	// https://pool.lan:8460, as the machine to join sees it.

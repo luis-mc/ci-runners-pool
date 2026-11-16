@@ -60,7 +60,7 @@ type controllerDeps struct {
 	// Machines is the machines service; CA the controller's certificate authority.
 	Machines *machines.Service
 	CA       api.CAProvider
-	// Packages serves the release packages to new machines (machines R5.50); nil for a development build.
+	// Packages serves the release packages to new machines (machines R5.65); nil for a development build.
 	Packages api.PackageServer
 	Updates  api.UpdateService
 	Queue    scheduler.SlotQueue

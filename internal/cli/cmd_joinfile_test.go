@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// machines R5.50: `crsp machine join-file` saves the installer the controller made.
+// machines R5.65: `crsp machine join-file` saves the installer the controller made.
 func TestMachineJoinFileSavesTheFile(t *testing.T) {
 	f := newFixture(t)
 	var req map[string]any

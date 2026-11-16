@@ -1,5 +1,5 @@
 // Package joinfile renders the installer file the owner downloads from the
-// Add a machine screen (machines R5.50, CRSP122, owner decision D70). The file
+// Add a machine screen (machines R5.65, CRSP122, owner decision D70). The file
 // carries the controller address, the certificate fingerprint, a one-time join
 // code and the release's public SHA256SUMS lines, and nothing else secret.
 // Windows files use CRLF line ends; shell files use LF.

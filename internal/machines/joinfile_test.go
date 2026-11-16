@@ -40,7 +40,7 @@ func codeOf(t *testing.T, content []byte) string {
 	return string(m[2])
 }
 
-// R5.50: the file holds a code that works once and lives 15 minutes (R5.4).
+// R5.65: the file holds a code that works once and lives 15 minutes (R5.4).
 func TestJoinFileCodeWorksOnceAndExpires(t *testing.T) {
 	e := fileEnv(t, fakePackages{sums: joinSums})
 	ctx := context.Background()
@@ -90,7 +90,7 @@ func TestJoinFileWithdrawsAnOlderCode(t *testing.T) {
 	}
 }
 
-// R5.50, R6.4: the audit entry says who, the OS and the expiry; never the code.
+// R5.65, R6.4: the audit entry says who, the OS and the expiry; never the code.
 func TestJoinFileAuditHasNoCode(t *testing.T) {
 	e := fileEnv(t, fakePackages{sums: joinSums})
 	f, err := e.Svc.CreateJoinFile(context.Background(), "alice", "windows", 0)

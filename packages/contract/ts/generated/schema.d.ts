@@ -1002,7 +1002,7 @@ export interface paths {
         put?: never;
         /**
          * Download an installer file with a one-time join code built in
-         * @description machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+         * @description machines R5.65 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
          */
         post: operations["createJoinFile"];
         delete?: never;
@@ -1020,7 +1020,7 @@ export interface paths {
         };
         /**
          * A release package, or SHA256SUMS
-         * @description machines R5.50. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
+         * @description machines R5.65. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
          */
         get: operations["getPackage"];
         put?: never;

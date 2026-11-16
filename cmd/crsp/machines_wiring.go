@@ -84,7 +84,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 		return nil, err
 	}
 
-	// The release packages a downloaded installer fetches (machines R5.50): only
+	// The release packages a downloaded installer fetches (machines R5.65): only
 	// for a stable release build, and only when the console is reachable from
 	// another machine.
 	var pkgs *packages.Store

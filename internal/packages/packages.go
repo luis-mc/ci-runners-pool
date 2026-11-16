@@ -1,5 +1,5 @@
 // Package packages holds the release packages the controller hands to new
-// machines (machines R5.50, CRSP122). It proxies the GitHub release the
+// machines (machines R5.65, CRSP122). It proxies the GitHub release the
 // controller was built from: SHA256SUMS first, then each package on demand,
 // checked against SHA256SUMS before it is kept or served.
 package packages

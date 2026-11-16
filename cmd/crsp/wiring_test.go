@@ -21,10 +21,12 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/packages"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tlsca"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 )
 
 // realController builds the controller the way runController does, over a
@@ -55,7 +57,7 @@ func realController(t *testing.T) (*controller, http.Handler) {
 
 	ctl, err := buildController(ctx, controllerDeps{
 		Cfg: cfg, Logger: logger, DB: db, Secrets: sec, Ops: ops,
-		Machines: svc, CA: ca, Updates: um, Queue: queue,
+		Machines: svc, CA: ca, Updates: um, Queue: queue, Packages: wiringPackages(t),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -211,5 +213,19 @@ func TestFirstRunFlow(t *testing.T) {
 	}
 	if err := json.Unmarshal(man.Body.Bytes(), &form); err != nil || form.State == "" || form.PostURL == "" || form.Manifest["name"] == nil {
 		t.Fatalf("manifest form: %v %s", err, man.Body)
+	}
+}
+
+type wiringRelease struct{}
+
+func (wiringRelease) Latest(context.Context) (update.Release, error) {
+	return update.Release{Version: "1.0.0", Assets: map[string]string{"SHA256SUMS": "https://example.test/SHA256SUMS"}}, nil
+}
+
+// wiringPackages is a package store of a release that lists no installer, so a package answers 404, not 501.
+func wiringPackages(t *testing.T) *packages.Store {
+	return &packages.Store{
+		Source: wiringRelease{}, Dir: t.TempDir(), AllowURL: func(string) bool { return true },
+		Fetch: func(_ context.Context, _, dst string) error { return os.WriteFile(dst, nil, 0o600) },
 	}
 }

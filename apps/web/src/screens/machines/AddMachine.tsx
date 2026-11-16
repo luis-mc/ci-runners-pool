@@ -71,7 +71,7 @@ function ProgressSteps({ at }: { at: Progress }) {
   );
 }
 
-/** What to do with the downloaded file on the machine, per system (machines R5.50). */
+/** What to do with the downloaded file on the machine, per system (machines R5.65). */
 export function downloadWords(os: OS, name: string): string {
   const saved = `The installer is saved as ${name}. It works once and holds the join code.`;
   if (os === 'windows')
@@ -203,7 +203,7 @@ export function AddMachineWizard({ onDone }: Props) {
     live.current = true;
     try {
       if (method === 'download') {
-        // The file is made only now, by this press: it mints the one-time code (machines R5.50).
+        // The file is made only now, by this press: it mints the one-time code (machines R5.65).
         const res = await client.POST('/api/v1/join-files', {
           body: { os, ttl_minutes: TTL_MINUTES },
           parseAs: 'blob',

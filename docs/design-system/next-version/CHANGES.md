@@ -33,4 +33,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C28: first-machine step words added: "This PC, {host name}, is in the pool." and the action Add another machine (content.md; machines R5.1, CRSP120)
 - C29: runner state words not registered, stopped and unknown, their reasons, and the action Remove on a failed runner added (content.md; web-console R5.23, runners R5.79, CRSP128)
 - C30: Linux-on-Windows words added: the System column text for a Windows machine with Linux containers, the Add runners note and the one-time backend reason (content.md; runners R5.47, machines R5.18, CRSP127)
-- C31: installer download words added: the join choice Download an installer, the review and wait lines, the saved-file line per system and the failure line; the Windows note now covers a copied command only (content.md; machines R5.50, web-console R5.17, CRSP122)
+- C31: installer download words added: the join choice Download an installer, the review and wait lines, the saved-file line per system and the failure line; the Windows note now covers a copied command only (content.md; machines R5.65, web-console R5.66, CRSP122)

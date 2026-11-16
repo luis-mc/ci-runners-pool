@@ -70,7 +70,7 @@ func codeIn(t *testing.T, body string) string {
 	return m[1] + m[2]
 }
 
-func TestJoinFileNeedsAdmin(t *testing.T) { // R5.50
+func TestJoinFileNeedsAdmin(t *testing.T) { // R5.65
 	mux, _, _ := joinFileMux(t, auth.RoleViewer, true)
 	if rec := doM(t, mux, "POST", "/api/v1/join-files", map[string]any{"os": "linux"}); rec.Code != 403 {
 		t.Fatalf("viewer: %d, want 403", rec.Code)
@@ -81,7 +81,7 @@ func TestJoinFileNeedsAdmin(t *testing.T) { // R5.50
 	}
 }
 
-func TestJoinFilePerOS(t *testing.T) { // R5.50
+func TestJoinFilePerOS(t *testing.T) { // R5.65
 	cases := []struct{ os, ext, eol string }{{"windows", "cmd", "\r\n"}, {"linux", "sh", "\n"}, {"macos", "command", "\n"}}
 	for _, c := range cases {
 		mux, _, _ := joinFileMux(t, auth.RoleAdmin, true)
@@ -111,7 +111,7 @@ func TestJoinFilePerOS(t *testing.T) { // R5.50
 	}
 }
 
-// R5.50, R5.4: the code of the file works once; the audit never holds it; the
+// R5.65, R5.4: the code of the file works once; the audit never holds it; the
 // wizard polls the code by the id in the header.
 func TestJoinFileCodeSingleUseAuditAndPolling(t *testing.T) {
 	mux, svc, repo := joinFileMux(t, auth.RoleAdmin, true)
@@ -172,7 +172,7 @@ func TestJoinFileWithoutPackagesIsNotImplemented(t *testing.T) {
 	}
 }
 
-// R5.50: the package endpoint serves what SHA256SUMS lists, byte for byte.
+// R5.65: the package endpoint serves what SHA256SUMS lists, byte for byte.
 func TestPackageEndpointServesWithSha256(t *testing.T) {
 	mux, _, _ := joinFileMux(t, "", true)
 	rec := doM(t, mux, "GET", "/api/v1/packages/crsp-linux-amd64.deb", nil)

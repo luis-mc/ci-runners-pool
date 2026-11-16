@@ -4535,7 +4535,7 @@ type ClientInterface interface {
 
 	// CreateJoinFileWithBody Download an installer file with a one-time join code built in
 	//
-	// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+	// machines R5.65 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -4544,7 +4544,7 @@ type ClientInterface interface {
 
 	// CreateJoinFile Download an installer file with a one-time join code built in
 	//
-	// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+	// machines R5.65 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -4816,7 +4816,7 @@ type ClientInterface interface {
 
 	// GetPackage A release package, or SHA256SUMS
 	//
-	// machines R5.50. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
+	// machines R5.65. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
 	//
 	// Corresponds with GET /api/v1/packages/{name} (the `GetPackage` operationId).
 	GetPackage(ctx context.Context, name string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -6239,7 +6239,7 @@ func (c *Client) GetJoinCode(ctx context.Context, joinCodeId JoinCodeId, reqEdit
 
 // CreateJoinFileWithBody Download an installer file with a one-time join code built in
 //
-// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+// machines R5.65 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
 //
 // Takes any type of body and a specified content type.
 //
@@ -6258,7 +6258,7 @@ func (c *Client) CreateJoinFileWithBody(ctx context.Context, contentType string,
 
 // CreateJoinFile Download an installer file with a one-time join code built in
 //
-// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+// machines R5.65 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
 //
 // Takes a body of the `application/json` content type.
 //
@@ -6870,7 +6870,7 @@ func (c *Client) GetOverview(ctx context.Context, reqEditors ...RequestEditorFn)
 
 // GetPackage A release package, or SHA256SUMS
 //
-// machines R5.50. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
+// machines R5.65. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
 //
 // Corresponds with GET /api/v1/packages/{name} (the `GetPackage` operationId).
 func (c *Client) GetPackage(ctx context.Context, name string, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -13876,7 +13876,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateJoinFileWithBodyWithResponse Download an installer file with a one-time join code built in
 	//
-	// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+	// machines R5.65 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -13885,7 +13885,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateJoinFileWithResponse Download an installer file with a one-time join code built in
 	//
-	// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+	// machines R5.65 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14187,7 +14187,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetPackageWithResponse A release package, or SHA256SUMS
 	//
-	// machines R5.50. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
+	// machines R5.65. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21210,7 +21210,7 @@ func (c *ClientWithResponses) GetJoinCodeWithResponse(ctx context.Context, joinC
 
 // CreateJoinFileWithBodyWithResponse Download an installer file with a one-time join code built in
 //
-// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+// machines R5.65 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -21225,7 +21225,7 @@ func (c *ClientWithResponses) CreateJoinFileWithBodyWithResponse(ctx context.Con
 
 // CreateJoinFileWithResponse Download an installer file with a one-time join code built in
 //
-// machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+// machines R5.65 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -21731,7 +21731,7 @@ func (c *ClientWithResponses) GetOverviewWithResponse(ctx context.Context, reqEd
 
 // GetPackageWithResponse A release package, or SHA256SUMS
 //
-// machines R5.50. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
+// machines R5.65. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
 //
 // Returns a wrapper object for the known response body format(s).
 //

@@ -14,7 +14,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/packages"
 )
 
-// PackageServer gives the release packages (machines R5.50). *packages.Store implements it.
+// PackageServer gives the release packages (machines R5.65). *packages.Store implements it.
 type PackageServer interface {
 	Sums(ctx context.Context) ([]byte, string, error)
 	Open(ctx context.Context, name string) (*os.File, int64, error)
@@ -22,7 +22,7 @@ type PackageServer interface {
 
 var _ PackageServer = (*packages.Store)(nil)
 
-// CreateJoinFile implements POST /api/v1/join-files (machines R5.50, CRSP122):
+// CreateJoinFile implements POST /api/v1/join-files (machines R5.65, CRSP122):
 // one join code, one installer file for the OS. The audit entry is written by
 // the service and never holds the code.
 func (s *server) CreateJoinFile(ctx context.Context, r gen.CreateJoinFileRequestObject) (gen.CreateJoinFileResponseObject, error) {

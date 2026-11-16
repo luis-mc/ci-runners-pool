@@ -11,7 +11,7 @@ import (
 )
 
 // PackageSource gives the SHA256SUMS text and version of the release the
-// controller was built from (machines R5.50).
+// controller was built from (machines R5.65).
 type PackageSource interface {
 	Sums(ctx context.Context) (sums []byte, version string, err error)
 }
@@ -25,7 +25,7 @@ type JoinFile struct {
 
 // CreateJoinFile mints a join code (R5.4: works once, 15 minutes by default, an
 // older unused code becomes invalid) and renders the installer of os with it
-// (R5.50). The audit entry names who, the OS and the expiry, never the code. If
+// (R5.65). The audit entry names who, the OS and the expiry, never the code. If
 // the file cannot be made the code is withdrawn.
 func (s *Service) CreateJoinFile(ctx context.Context, actor, osName string, ttl time.Duration) (JoinFile, error) {
 	if _, ok := joinfile.Extension(osName); !ok {
