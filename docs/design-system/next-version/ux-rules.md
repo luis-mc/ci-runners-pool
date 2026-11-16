@@ -1,5 +1,23 @@
 # UX rules
 
+## Core UX Principles
+
+> **Binding.** These seven principles are not starter items. Do not delete or weaken them. Every UX rule below serves one of them.
+
+Every screen of every app must be:
+
+- **CORE-1 Consistent**: the same thing looks and behaves the same everywhere (same wizard, buttons and words for the same action).
+- **CORE-2 Built from reused components** (shared UI package; no one-off variants; the duplication check stays green).
+- **CORE-3 Clear**: one headline says where you are; plain words; never raw file paths or codes as the main text.
+- **CORE-4 User-friendly and intuitive**: an action takes exactly what you see (never hidden items); no redundant buttons; nothing to decode.
+- **CORE-5 Assertive**: one primary action per screen, labelled by what it does ("Import 8 files"), with its reason; say what happened and what comes next.
+- **CORE-6 Guided**: a step-by-step path drawn as the wizard (a step bar on top, only the current step below it, Back and the one primary action at the bottom; done steps can be looked back at, later steps are greyed and not pressable); no dead ends.
+- **CORE-7 Boxed sections are consistent and aligned**: boxed sections (cards) present their content the same way (title, fonts, the layout of their facts and their action); boxes that sit next to each other share one width and one height, in a grid that makes the best use of the horizontal and vertical space on desktop and phone (as many columns as fit, never one narrow column with empty space beside it), with clear, balanced spacing between them so no box or its shadow touches or overlaps the next; a card may span 2 columns only when its row stays full.
+
+A UI change that fails any of these is not done. Every UI brief and PR body checks itself against them and cites the CORE IDs it checked.
+
+## Rules
+
 Every rule has an ID. A feature spec and the code cite the ID (`design system UX-1`); they do not copy the rule. Each rule names the guard test that proves it, or `none yet`. When you add a guard, write its path in the Guard column. Never reuse the ID of a deleted rule.
 
 <!-- rule-table:start -->
@@ -67,11 +85,11 @@ Every rule has an ID. A feature spec and the code cite the ID (`design system UX
 | UX-60 | **The user picks a theme and a mode in Settings.** Six named themes: Phosphor, Tokyo Night, Catppuccin, Gruvbox, Solarized, Nord. Tokyo Night is the default for a new install. A mode is system, dark or light; dark is the default mode. Both are saved at once and applied before the first paint, so the page never flashes. A theme changes token values only (UX-55). | `scripts/design/themes.test.ts` |
 | UX-61 | **Every runner names its isolation.** A runner row and its detail say `microVM`, `VM`, `container` or `persistent`. A persistent runner also says `state kept between jobs`. | none yet |
 | UX-62 | **A destructive step names what goes and asks for a yes.** Deleting a runner, removing a machine or wiping a cache lists each item that goes in the question card (UX-9). A change that would stop running jobs names the jobs and waits for the drain. | none yet |
-| UX-63 | **Built from reused components.** Everything comes from the shared UI package (UX-2). No one-off variants. The count of duplicated UI code may only go down. | none yet; add a jscpd count of the UI code with a stored baseline |
-| UX-64 | **No redundant buttons.** One action per outcome. Two buttons that lead to the same result are a defect. A step that needs several buttons without saying which is next is a defect. | none yet |
-| UX-65 | **A result says what happened and what comes next.** It follows UX-27 (one line under the button) and UX-6 (no dead ends). | none yet |
-| UX-66 | **Done is a receipt.** It lists what really happened, never the plan (UX-30). It offers Try again or Undo where they exist. | none yet |
-| UX-67 | **A short sign-in flow is plain screens, not a wizard.** This is the one exception to UX-5. | none yet |
+| UX-63 | **Retired: moved to CORE-2.** The ID is never reused. | none |
+| UX-64 | **Retired: moved to CORE-4.** The ID is never reused. | none |
+| UX-65 | **Retired: moved to CORE-5.** The ID is never reused. | none |
+| UX-66 | **Retired: moved to CORE-5.** The ID is never reused. | none |
+| UX-67 | **Retired: moved to CORE-6.** The ID is never reused. | none |
 <!-- rule-table:end -->
 
 ## How to add a rule
