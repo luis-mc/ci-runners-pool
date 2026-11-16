@@ -108,6 +108,9 @@ type AddRequest struct {
 var nonSlug = strings.NewReplacer(" ", "-", "_", "-", ".", "-")
 
 // chooseBackend finds an allowed, usable backend for the OS and kind (R5.1).
+// A Windows machine whose container engine runs Linux containers (Docker
+// Desktop on WSL2) also takes Linux runners, in the container backend and
+// ephemeral only (R5.47).
 func chooseBackend(m Machine, os, kind string) (BackendOption, error) {
 	if m.OS == os {
 		for _, b := range m.Backends {
@@ -116,7 +119,24 @@ func chooseBackend(m Machine, os, kind string) (BackendOption, error) {
 			}
 		}
 	}
+	if crossesToLinuxContainers(m, os) {
+		if kind != "ephemeral" {
+			return BackendOption{}, refuse("machine %s: Linux runners on a Windows machine run in containers, so they are ephemeral, not persistent", m.Name)
+		}
+		for _, b := range m.Backends {
+			if b.Name == backend.Docker && b.Usable && b.Allowed && contains(b.Kinds, kind) && contains(b.OS, os) {
+				return b, nil
+			}
+		}
+		return BackendOption{}, refuse("machine %s: Linux containers run here, but the container backend is not allowed on this machine (it is off by default)", m.Name)
+	}
 	return BackendOption{}, refuse("machine %s: no allowed backend for %s", m.Name, OSName(os))
+}
+
+// crossesToLinuxContainers says a Linux runner is asked of a Windows machine
+// whose engine runs Linux containers.
+func crossesToLinuxContainers(m Machine, os string) bool {
+	return os == "linux" && m.OS == "windows" && m.ContainerOS == "linux"
 }
 
 func contains(l []string, s string) bool {
@@ -203,6 +223,11 @@ func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]Ad
 		verified[v] = true
 	}
 	want := append([]string{"self-hosted", req.OS, m.Arch}, req.Labels...)
+	if crossesToLinuxContainers(m, req.OS) && s.PoolName != "" {
+		// A container runner on a Windows machine takes the pool's jobs
+		// (R5.47), so it carries the pool label.
+		want = append(want, s.PoolName)
+	}
 	labels, err := ValidateLabels(want, s.PoolName, verified)
 	if err != nil {
 		return nil, refuse("%v", err)

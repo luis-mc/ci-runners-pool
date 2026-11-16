@@ -241,6 +241,11 @@ func (s *Service) dispatch(ctx context.Context, id, agentVersion string, req *ag
 		_ = s.HandleLoad(ctx, id, msg.LoadReport)
 	case *agentv1.SessionRequest_AcceptingReport:
 		s.HandleAccepting(ctx, id, msg.AcceptingReport)
+	case *agentv1.SessionRequest_MachineReport:
+		s.HandleMachineReport(id, msg.MachineReport)
+		if s.hooks.OnMessage != nil {
+			s.hooks.OnMessage(ctx, id, req, reply)
+		}
 	case *agentv1.SessionRequest_Facts:
 		_ = s.HandleFacts(ctx, id, agentVersion, msg.Facts)
 	case *agentv1.SessionRequest_UpdateReport:

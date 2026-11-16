@@ -104,6 +104,7 @@ type Service struct {
 	mu       sync.Mutex
 	loads    map[string]Load
 	policies map[string]Policy
+	engines  map[string]Engine
 	lastKept map[string]time.Time
 	running  map[string][]JobRef
 	// onRunning sees each running-jobs report (SetRunningObserver).
@@ -126,7 +127,7 @@ func New(o Options) *Service {
 	}
 	return &Service{
 		o: o, sessions: newSessions(),
-		loads: map[string]Load{}, policies: map[string]Policy{}, lastKept: map[string]time.Time{}, running: map[string][]JobRef{},
+		loads: map[string]Load{}, policies: map[string]Policy{}, engines: map[string]Engine{}, lastKept: map[string]time.Time{}, running: map[string][]JobRef{},
 		runners: map[string][]string{}, fails: map[string][]time.Time{}, blocked: map[string]time.Time{},
 		updates: map[string]AgentUpdate{}, recov: map[string]recState{},
 	}

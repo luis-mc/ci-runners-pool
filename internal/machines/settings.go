@@ -20,6 +20,9 @@ type View struct {
 	PendingChange *Change
 	// Policy is what the agent last reported about taking new jobs (R5.62).
 	Policy Policy
+	// Engine is the container engine the agent last reported (R5.18). The zero
+	// value means nothing was reported.
+	Engine Engine
 	// Recovery is set when the machine needs recovery (operations R5.44).
 	Recovery *Recovery
 }
@@ -68,7 +71,7 @@ func (s *Service) view(ctx context.Context, m Machine) (View, error) {
 		return View{}, err
 	}
 	s.fillPolicy(&m)
-	v := View{Machine: m, Settings: set, Policy: s.Policy(m.ID)}
+	v := View{Machine: m, Settings: set, Policy: s.Policy(m.ID), Engine: s.Engine(m.ID)}
 	if r, ok := s.RecoveryOf(m); ok {
 		v.Recovery = &r
 	}

@@ -33,25 +33,42 @@ func (c machineCapacity) OSLabels(ctx context.Context) (map[string][]string, err
 		if !m.RemovedAt.IsZero() || m.State == "removed" {
 			continue
 		}
-		os := runners.OSName(m.OS)
-		if os == "" {
-			continue
-		}
-		have := map[string]bool{}
-		for _, l := range out[os] {
-			have[strings.ToLower(l)] = true
-		}
-		for _, l := range []string{archLabel(m.Arch), c.pool} {
-			if l != "" && !have[strings.ToLower(l)] {
-				out[os] = append(out[os], l)
+		for _, os := range servedOSes(v) {
+			have := map[string]bool{}
+			for _, l := range out[os] {
 				have[strings.ToLower(l)] = true
 			}
-		}
-		if _, ok := out[os]; !ok {
-			out[os] = nil
+			for _, l := range []string{archLabel(m.Arch), c.pool} {
+				if l != "" && !have[strings.ToLower(l)] {
+					out[os] = append(out[os], l)
+					have[strings.ToLower(l)] = true
+				}
+			}
+			if _, ok := out[os]; !ok {
+				out[os] = nil
+			}
 		}
 	}
 	return out, nil
+}
+
+// servedOSes is the OS of a machine and, for a Windows machine whose engine runs
+// Linux containers with the container backend allowed and usable, linux too:
+// its pool runners are Linux container runners (runners R5.47).
+func servedOSes(v machines.View) []string {
+	os := runners.OSName(v.Machine.OS)
+	if os == "" {
+		return nil
+	}
+	out := []string{os}
+	if v.Machine.OS == "windows" && v.Engine.RunsLinuxContainers() {
+		for _, b := range v.Backends {
+			if b.Name == string(backend.Docker) && b.Present && b.Usable && b.Allowed {
+				return append(out, runners.OSName("linux"))
+			}
+		}
+	}
+	return out
 }
 
 // MachineSizes gives each active machine's OS, labels and pool size for the
@@ -111,12 +128,10 @@ func upByOS(views []machines.View) map[string]bool {
 		if !m.RemovedAt.IsZero() || m.State == "removed" {
 			continue
 		}
-		os := runners.OSName(m.OS)
-		if os == "" {
-			continue
-		}
 		up := m.Online && m.Accepting && m.State == machines.StateActive
-		out[os] = out[os] || up
+		for _, os := range servedOSes(v) {
+			out[os] = out[os] || up
+		}
 	}
 	return out
 }
@@ -144,15 +159,23 @@ func (l machineLookup) GetMachine(ctx context.Context, id string) (runners.Machi
 	}
 	m := runners.Machine{ID: v.Machine.ID, Name: v.Machine.Name, OS: v.Machine.OS, Arch: v.Machine.Arch,
 		PoolCPUs: v.Settings.PoolCPUs, PoolMemoryGiB: v.Settings.PoolMemoryGiB, JobSlots: v.Settings.JobSlots}
+	if v.Engine.RunsLinuxContainers() {
+		m.ContainerOS = "linux"
+	}
 	for _, b := range v.Backends {
 		kinds := []string{"ephemeral"}
 		if b.Name == string(backend.Persistent) {
 			kinds = []string{"persistent"}
 		}
-		m.Backends = append(m.Backends, runners.BackendOption{
+		opt := runners.BackendOption{
 			Name: backend.Name(b.Name), Usable: b.Present && b.Usable, Allowed: b.Allowed,
 			Reason: b.Reason, Kinds: kinds, OS: []string{v.Machine.OS},
-		})
+		}
+		if b.Name == string(backend.Docker) && m.ContainerOS != "" && v.Machine.OS != m.ContainerOS {
+			// The container backend runs the containers' OS, not the host's.
+			opt.OS = []string{m.ContainerOS}
+		}
+		m.Backends = append(m.Backends, opt)
 	}
 	return m, nil
 }

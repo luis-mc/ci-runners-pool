@@ -59,7 +59,8 @@ func (e demandEnv) Repo(ctx context.Context, fullName string) (demand.Repo, bool
 
 // Hosts lists the machines that may start container runners (runners R5.9,
 // R5.27): the controller's own machine, or another machine whose agent is
-// connected over the agent link (CRSP63); online, active, Linux; the container backend present,
+// connected over the agent link (CRSP63); online, active, Linux (or Windows
+// whose engine runs Linux containers, R5.47); the container backend present,
 // usable and in the machine's allow list, which is off by default; and a job
 // slot budget above zero (the pool size of CRSP50).
 func (e demandEnv) Hosts(ctx context.Context) ([]demand.Host, error) {
@@ -74,7 +75,7 @@ func (e demandEnv) Hosts(ctx context.Context) ([]demand.Host, error) {
 		if state == "" {
 			state = m.State
 		}
-		if !m.RemovedAt.IsZero() || !m.Online || m.OS != "linux" ||
+		if !m.RemovedAt.IsZero() || !m.Online || !runsLinuxContainers(v) ||
 			(state != "" && state != machines.StateActive) || v.Settings.JobSlots < 1 {
 			continue
 		}
@@ -262,4 +263,10 @@ func (q quietSource) QuietDemand(context.Context) ([]doctor.QuietDemand, error) 
 			Restarted: r.Restarted, RestartedAt: r.RestartedAt})
 	}
 	return out, nil
+}
+
+// runsLinuxContainers is true for a Linux machine and for a Windows machine whose
+// container engine runs Linux containers (Docker Desktop on WSL2, runners R5.47).
+func runsLinuxContainers(v machines.View) bool {
+	return v.Machine.OS == "linux" || (v.Machine.OS == "windows" && v.Engine.RunsLinuxContainers())
 }
