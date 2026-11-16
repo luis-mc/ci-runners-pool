@@ -840,3 +840,21 @@ func TestDiskFloorNamesWhatToClean(t *testing.T) {
 		t.Errorf("%d findings", len(fs))
 	}
 }
+
+func TestSymlinkProbeFrom(t *testing.T) {
+	if doctor.SymlinkProbeFrom(false, false, false, "") != nil {
+		t.Fatal("unknown must be nil so the check skips")
+	}
+	if p := doctor.SymlinkProbeFrom(false, false, false, "boom"); p == nil || p.Err != "boom" {
+		t.Fatalf("%+v", p)
+	}
+	if p := doctor.SymlinkProbeFrom(true, true, false, ""); !p.Held || p.DeveloperMode {
+		t.Fatalf("%+v", p)
+	}
+	if p := doctor.SymlinkProbeFrom(true, true, true, ""); p.Held || !p.DeveloperMode {
+		t.Fatalf("%+v", p)
+	}
+	if p := doctor.SymlinkProbeFrom(true, false, false, ""); p.Held || p.DeveloperMode {
+		t.Fatalf("%+v", p)
+	}
+}

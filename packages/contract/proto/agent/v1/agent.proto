@@ -797,6 +797,20 @@ message MachineReport {
   repeated PackageFailure package_failures = 8;
   // True when this agent understands RunHostCommand (HND24).
   bool host_command = 9;
+  // Whether this machine's agent account can make symbolic links (doctor R5.42).
+  SymlinkReport symlink = 10;
+}
+
+// SymlinkReport is what the agent read about symbolic links. It makes a link in
+// a temporary folder and reads Developer Mode; it never grants a right or turns
+// Developer Mode on.
+message SymlinkReport {
+  // False when the agent could not tell; can_link is then not to be used.
+  bool known = 1;
+  bool can_link = 2;
+  // Windows: Developer Mode is on.
+  bool developer_mode = 3;
+  string error = 4;
 }
 
 // PackageFailure is one extra package set the agent could not install.

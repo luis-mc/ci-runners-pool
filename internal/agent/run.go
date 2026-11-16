@@ -71,6 +71,9 @@ type Config struct {
 	// PackageFailures lists the package sets that failed to install, for the
 	// machine report and the doctor (runners R5.86); nil reports none.
 	PackageFailures func() []runners.PackageFailure
+	// Symlink reads whether this account can make symbolic links, for the
+	// machine report (doctor R5.42); nil uses ProbeSymlink.
+	Symlink SymlinkProber
 	// Redactor learns every token and JIT config the controller sends, so no
 	// log line or answer shows one (runners R5.11); nil makes a private one.
 	Redactor *redact.Redactor
@@ -101,6 +104,13 @@ type Config struct {
 	// Backoff is the reconnect delay; Sleep waits for it (tests replace both).
 	Backoff *Backoff
 	Sleep   func(ctx context.Context, d time.Duration) error
+}
+
+func (c Config) symlinkProber() SymlinkProber {
+	if c.Symlink != nil {
+		return c.Symlink
+	}
+	return ProbeSymlink
 }
 
 func (c Config) sys() Sys {
