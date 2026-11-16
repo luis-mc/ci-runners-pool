@@ -272,11 +272,11 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 ## 6. Non-functional requirements
 
-**R6.1** (M1, NOT YET IMPLEMENTED) — **Secrets only in the OS secret store.** The App private key, client secret, webhook secret, CLI tokens and any GitHub user refresh token live only in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service, or a file with mode 0600 when no service exists. They never go to the database, config files, environment files, logs, crash files, API responses or the audit log.
+**R6.1** (M1, built, CRSP106) — **Secrets only in the OS secret store.** The App private key, client secret, webhook secret, CLI tokens and any GitHub user refresh token live only in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service, or a file with mode 0600 when no service exists. They never go to the database, config files, environment files, logs, crash files, API responses or the audit log.
 
 **R6.2** (M1, built) — **Short-lived tokens in memory.** App JWTs live at most 10 minutes. Installation tokens are cached in memory only and renewed 5 minutes before expiry. Registration tokens, remove tokens and JIT configs are dropped after their one use. No personal access token is ever asked for or stored.
 
-**R6.3** (M1, NOT YET IMPLEMENTED) — **Redaction.** The logger redacts every value that matches a GitHub token prefix (`ghs_`, `ghu_`, `ghr_`, `gho_`, `ghp_`, `github_pat_`), a PEM block, or a known secret value. A test feeds each kind through every log path and finds none in the output.
+**R6.3** (M1, built, CRSP106) — **Redaction.** The logger redacts every value that matches a GitHub token prefix (`ghs_`, `ghu_`, `ghr_`, `gho_`, `ghp_`, `github_pat_`), a PEM block, or a known secret value. A test feeds each kind through every log path and finds none in the output.
 
 **R6.4** (M1, built, CRSP33, changed by CRSP42, D38) — **Transport.** Any non-loopback console address serves only HTTPS, with the controller CA's certificate (TLS 1.3). Plain HTTP is served only on `127.0.0.1` and `::1`. An OAuth callback that arrives over HTTP on a non-loopback host is refused (`ErrInsecure`). The callback of a local controller stays `http://127.0.0.1:<port>/auth/github/callback` (R5.4).
 
@@ -425,9 +425,9 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.46 | internal/doctor/checks/fallback_test.go; apps/web/src/shell/Shell.test.tsx "says in one line on the Overview" (CRSP74) |
 | R5.49 | internal/trial/trial_test.go (each mode, canary stable per job name, public refused); internal/repos/trialvars_test.go TestTrialCanaryThroughOwnerCode (off restores the exact variables); internal/api/handlers_trial_test.go; internal/cli/cmd_trial_test.go (CRSP88) |
 | R5.50 | internal/webhookhealth/health_test.go; internal/github/webhook_test.go TestOnDeliverySeesRepositoryJobAndUse; internal/api/handlers_webhook_health_test.go; apps/web/src/screens/repositories/Repositories.test.tsx "Webhook health (RES14)" (RES14) |
-| R6.1 | planned: internal/secrets/store_test.go; internal/store/no_secrets_test.go (schema has no secret column) |
+| R6.1 | internal/secrets/store_test.go; internal/store/no_secrets_test.go TestIntegrationSchemaHasNoSecretColumn; internal/logging/redact_test.go TestStoreValuesBecomeKnownSecrets (CRSP106) |
 | R6.2 | internal/github/client_test.go |
-| R6.3 | planned: internal/logging/redact_test.go |
+| R6.3 | internal/logging/redact_test.go TestEverySecretKindIsRedactedOnEveryLogPath, TestStoreValuesBecomeKnownSecrets, TestPlainRecordsAreUntouched; internal/redact/redact_test.go (CRSP106) |
 | R6.4 | internal/webui/serve_tls_test.go (loopback serves HTTP, anything else TLS only); internal/auth/oauth_test.go TestCallbackOverHTTPOnNonLoopbackRefused; internal/auth/callback_urls_test.go |
 | R6.5 | internal/github/webhook_test.go; internal/api/handlers_github_test.go |
 | R6.6 | internal/github/client_test.go |
@@ -451,7 +451,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 
 ## 11. Not built yet
 
-Built by CRSP19: the requirements marked built. Still NOT YET IMPLEMENTED: R5.6 (hourly health loop), R5.7, R5.21, R5.22 (webhook-driven), R5.33 (the yes path; the sweep is built by CRSP80), R5.35 (built later by CRSP79), R5.38, R6.1 (key import from a file and the no-secret-column test), R6.3, R6.4, R6.10 to R6.12. The controller wiring is built by CRSP41 (`cmd/crsp/areas_wiring.go`: the App record, users, sessions, repositories and the one-time setup link printed at start; the webhook route; the RUNS_ON restore every 10 minutes). The production SQL store is also open: users, sessions and the App record last until the controller restarts. The web screens are open too. The seams:
+Built by CRSP19: the requirements marked built. Still NOT YET IMPLEMENTED: R5.6 (hourly health loop), R5.7, R5.21, R5.22 (webhook-driven), R5.33 (the yes path; the sweep is built by CRSP80), R5.35 (built later by CRSP79), R5.38, R6.1 (key import from a file), R6.4, R6.10 to R6.12. The controller wiring is built by CRSP41 (`cmd/crsp/areas_wiring.go`: the App record, users, sessions, repositories and the one-time setup link printed at start; the webhook route; the RUNS_ON restore every 10 minutes). The production SQL store is also open: users, sessions and the App record last until the controller restarts. The web screens are open too. The seams:
 
 - The HTTP contract: `packages/contract/openapi.yaml` gains the operations of section 7.
 - The schema: a new goose migration in `internal/store/migrations/` adds the tables of section 7.
@@ -487,4 +487,4 @@ Open checks for M1, each recorded as a fixture when built:
 - Source: internal/repos/service.go
 - Source: internal/secrets/memory.go
 
-Code lives in `internal/github/` (with the fake in `internal/github/fake/`, not `githubfake`), `internal/auth/`, `internal/repos/` and `internal/secrets/`. Planned and not built: `internal/cli/auth/` and the web features `apps/web/src/features/setup/`, `auth/`, `repositories/` and `users/`.
+Code lives in `internal/github/` (with the fake in `internal/github/fake/`, not `githubfake`), `internal/auth/`, `internal/repos/`, `internal/secrets/` and `internal/logging/`. Planned and not built: `internal/cli/auth/` and the web features `apps/web/src/features/setup/`, `auth/`, `repositories/` and `users/`.

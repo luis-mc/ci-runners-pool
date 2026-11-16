@@ -17,6 +17,7 @@ import (
 	"syscall"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/logging"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
@@ -80,7 +81,8 @@ func agentRun(args []string, stderr io.Writer) error {
 	if f.controller == "" {
 		return errors.New("the controller address is required: --controller host:8461")
 	}
-	logger := slog.New(slog.NewJSONHandler(stderr, nil))
+	logger := slog.New(logging.NewHandler(slog.NewJSONHandler(stderr, nil), secretRedactor))
+	slog.SetDefault(logger)
 	cfg, err := agentConfig(f, logger)
 	if err != nil {
 		return err

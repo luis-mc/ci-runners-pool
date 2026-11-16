@@ -13,4 +13,6 @@
 - Spec: R6.1, R6.3 marked built; change note CRSP106.
 
 ## Status
-In progress.
+Done. Tests: internal/logging, internal/secrets, internal/redact, internal/store, cmd/crsp pass with -race; golangci-lint 2.15 clean; GOOS=windows/darwin vet clean on touched packages (cmd/crsp on darwin fails on the cgo systray dependency, as on main). `docs_check.py` is not installed in this sandbox: not run.
+
+Note: the agent and controller CA key stores (`agent.NewFileStore`) stay file-based at 0600; they hold no R6.1 secret.
