@@ -60,7 +60,7 @@ func (m *MemStore) ListRunners(_ context.Context, f Filter) ([]Record, error) {
 }
 
 // SetRunnerState implements Store.
-func (m *MemStore) SetRunnerState(_ context.Context, id string, to State, _ string) error {
+func (m *MemStore) SetRunnerState(_ context.Context, id string, to State, detail string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	r, ok := m.runners[id]
@@ -68,6 +68,10 @@ func (m *MemStore) SetRunnerState(_ context.Context, id string, to State, _ stri
 		return ErrNotFound
 	}
 	r.State = to
+	r.FailedReason = ""
+	if to == Failed {
+		r.FailedReason = detail
+	}
 	m.runners[id] = r
 	return nil
 }

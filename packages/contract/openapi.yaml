@@ -4866,6 +4866,9 @@ components:
         keeps_state:
           type: boolean
           description: True for a persistent runner (runners R5.7, UX-61).
+        failed_reason:
+          type: string
+          description: Whole plain reason the runner is in the failed state, with what the clean-up left behind. Only present when state is failed.
         github_runner_id:
           type: integer
           format: int64

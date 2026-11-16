@@ -3129,7 +3129,10 @@ type Runner struct {
 	CreatedAt *time.Time  `json:"created_at,omitempty"`
 
 	// CurrentJob One job attempt (observability R5.7, R5.8).
-	CurrentJob     *Job      `json:"current_job,omitempty"`
+	CurrentJob *Job `json:"current_job,omitempty"`
+
+	// FailedReason Whole plain reason the runner is in the failed state, with what the clean-up left behind. Only present when state is failed.
+	FailedReason   *string   `json:"failed_reason,omitempty"`
 	GithubRunnerId *int64    `json:"github_runner_id,omitempty"`
 	Id             string    `json:"id"`
 	Isolation      Isolation `json:"isolation"`

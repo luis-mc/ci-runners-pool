@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
@@ -532,9 +533,12 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 	}
 	spec := backend.RunnerSpec{ID: id, Name: a.Name, OS: a.OS, Arch: a.Arch, Labels: a.Labels, GitHubURL: t.URL, Group: t.Group,
 		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, WindowsSymlinkRight: a.OS == "windows" && a.Symlink, CacheQuota: s.CacheQuota, MaxParallel: a.MaxParallel}
+	// Names GitHub already knows before the add: only a registration that the
+	// add itself made is removed when it fails.
+	before, listErr := s.GitHub.ListRunners(ctx, t.InstallationID, t.Scope)
 	h, err := s.Agent.AddRunner(ctx, a.MachineID, spec, backend.StartConfig{Registration: token})
 	if err != nil {
-		return fail(err)
+		return fail(s.withRegistrationCleanup(ctx, t, a.Name, before, listErr, err))
 	}
 	if err := s.Store.SetRunnerService(ctx, id, h.Ref, AccountName(a.Name, nil)); err != nil {
 		return err
@@ -544,6 +548,39 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 	}
 	s.audit(ctx, actor, "runner.add", a.MachineID, id, a.Name)
 	return nil
+}
+
+// withRegistrationCleanup removes the GitHub registration a failed add left
+// (the agent has already removed its service, account and folder) and says in
+// the error what it did or what is left. A runner of the same name that GitHub
+// knew before the add is never touched.
+func (s *Service) withRegistrationCleanup(ctx context.Context, t Target, name string, before []github.Runner, listErr, cause error) error {
+	ctx = context.WithoutCancel(ctx)
+	left := func(why string) error {
+		return fmt.Errorf("%w. Left behind: GitHub registration %s (%s); remove it in the repository's runner settings", cause, name, why)
+	}
+	if listErr != nil {
+		return left("could not read the runners on GitHub: " + listErr.Error())
+	}
+	for _, r := range before {
+		if r.Name == name {
+			return cause // an older runner of that name; not ours to remove
+		}
+	}
+	after, err := s.GitHub.ListRunners(ctx, t.InstallationID, t.Scope)
+	if err != nil {
+		return left("could not read the runners on GitHub: " + err.Error())
+	}
+	for _, r := range after {
+		if r.Name != name {
+			continue
+		}
+		if err := s.GitHub.DeleteRunner(ctx, t.InstallationID, t.Scope, r.ID); err != nil {
+			return left(err.Error())
+		}
+		return fmt.Errorf("%w. Cleaned up: GitHub registration %s", cause, name)
+	}
+	return cause
 }
 
 // removeRegistration removes a runner from GitHub with a remove token, never a

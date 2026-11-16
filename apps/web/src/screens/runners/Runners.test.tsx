@@ -62,6 +62,23 @@ describe('Runners list', () => {
     expect(within(table).getByText('idle')).toBeTruthy();
   });
 
+  it('shows why a runner failed', async () => {
+    const api = signedIn().on('GET', '/api/v1/runners', {
+      items: [
+        runner({
+          state: 'failed',
+          failed_reason:
+            'register service: the account has no right to log on as a service',
+        }),
+      ],
+    });
+    renderApp(api, '/runners');
+    const table = await screen.findByRole('table', { name: 'Runners' });
+    expect(
+      within(table).getByText(/the account has no right to log on as a service/),
+    ).toBeTruthy();
+  });
+
   it('reloads when a runner event arrives (live)', async () => {
     let n = 0;
     const api = signedIn().on('GET', '/api/v1/runners', () => {

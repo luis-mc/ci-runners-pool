@@ -43,7 +43,10 @@ type Record struct {
 	Folder         string
 	GitHubRunnerID int64
 	CurrentJob     string // empty when none
-	CreatedAt      time.Time
+	// FailedReason is the whole plain reason a runner is in the failed state,
+	// including what the clean-up left behind. Empty in every other state.
+	FailedReason string
+	CreatedAt    time.Time
 }
 
 // KeepsState is true for a persistent runner (runners R5.7).

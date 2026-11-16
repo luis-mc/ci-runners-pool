@@ -3104,6 +3104,8 @@ export interface components {
             managed: boolean;
             /** @description True for a persistent runner (runners R5.7, UX-61). */
             keeps_state: boolean;
+            /** @description Whole plain reason the runner is in the failed state, with what the clean-up left behind. Only present when state is failed. */
+            failed_reason?: string;
             /** Format: int64 */
             github_runner_id?: number;
             current_job?: components["schemas"]["Job"];

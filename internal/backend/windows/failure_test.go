@@ -22,7 +22,7 @@ func TestRightBeforeServiceAndPasswordPassed(t *testing.T) {
 		t.Fatal(err)
 	}
 	rights, check, svc, acct := idx(r, "LsaAddAccountRights"), idx(r, "CrspLogon"), idx(r, "Start-Service"), idx(r, "New-LocalUser")
-	if !(acct >= 0 && acct < rights && rights < check && check < svc) {
+	if acct < 0 || acct >= rights || rights >= check || check >= svc {
 		t.Fatalf("order: account %d, rights %d, logon check %d, service %d", acct, rights, check, svc)
 	}
 	if strings.Contains(r.cmd.Calls[rights].Stdin, "secedit") {

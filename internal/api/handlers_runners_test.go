@@ -143,6 +143,22 @@ func TestIsolationInResponse(t *testing.T) {
 	}
 }
 
+// A failed runner carries its whole reason; any other state has none.
+func TestFailedReasonInResponse(t *testing.T) {
+	st := sample()
+	r := st.recs["r1"]
+	r.State, r.FailedReason = runners.Failed, "register service: the account has no right to log on as a service"
+	st.recs["r1"] = r
+	rec := do(runnersMux(st), http.MethodGet, "/api/v1/runners/r1", "")
+	if !strings.Contains(rec.Body.String(), `"failed_reason":"register service: the account has no right to log on as a service"`) {
+		t.Errorf("%s", rec.Body)
+	}
+	rec = do(runnersMux(sample()), http.MethodGet, "/api/v1/runners/r1", "")
+	if strings.Contains(rec.Body.String(), "failed_reason") {
+		t.Errorf("an idle runner has no reason: %s", rec.Body)
+	}
+}
+
 // R5.1: a refused plan answers with the reason.
 func TestPlanRefusalCarriesReason(t *testing.T) {
 	f := sample()

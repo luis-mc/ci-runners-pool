@@ -61,6 +61,10 @@ func (m *memStore) SetRunnerState(_ context.Context, id string, to State, detail
 	}
 	m.events = append(m.events, fmt.Sprintf("%s %s->%s %s", id, r.State, to, detail))
 	r.State = to
+	r.FailedReason = ""
+	if to == Failed {
+		r.FailedReason = detail
+	}
 	m.runners[id] = r
 	return nil
 }

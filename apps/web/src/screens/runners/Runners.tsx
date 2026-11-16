@@ -145,7 +145,12 @@ export function RunnersList() {
       header: 'State',
       cell: (r) => {
         const s = runnerStatus(r);
-        return <Status kind={s.kind} word={s.word} />;
+        return (
+          <>
+            <Status kind={s.kind} word={s.word} />
+            {r.state === 'failed' && r.failed_reason ? ` ${r.failed_reason}` : null}
+          </>
+        );
       },
       sort: (r) => r.state,
     },

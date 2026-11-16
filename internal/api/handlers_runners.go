@@ -112,6 +112,10 @@ func toGenRunner(r runners.Record) gen.Runner {
 		id := r.GitHubRunnerID
 		out.GithubRunnerId = &id
 	}
+	if r.State == runners.Failed && r.FailedReason != "" {
+		why := r.FailedReason
+		out.FailedReason = &why
+	}
 	if !r.CreatedAt.IsZero() {
 		t := r.CreatedAt
 		out.CreatedAt = &t
