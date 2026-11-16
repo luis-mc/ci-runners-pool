@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 	"unicode/utf16"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/joinfile"
 )
 
 // Join over SSH to a Windows machine that runs the OpenSSH server (machines
@@ -21,9 +23,15 @@ type PackageRef struct {
 	Name   string
 	URL    string
 	SHA256 string
-	// SelfSigned makes the machine accept the certificate of the address (the
-	// controller's own); the SHA-256 check still decides what is installed.
+	// SelfSigned says the address is the controller's own. The machine then
+	// accepts only the certificate chain that holds the pinned fingerprint (the
+	// same one the join command carries, CRSP133); the SHA-256 check still
+	// decides what is installed. A false value keeps the normal TLS check (the
+	// GitHub release).
 	SelfSigned bool
+	// PinSHA256 is that fingerprint. joinWindows fills it from the controller's
+	// own; a source does not set it.
+	PinSHA256 string
 }
 
 // WindowsPackageSource says where the Windows installer of the controller's own
@@ -118,11 +126,12 @@ func parseProbe(shell, out string) (winProbe, error) {
 }
 
 // winDownloadScript downloads the installer, checks its SHA-256 before it runs
-// anything, installs it quietly and prints where crsp.exe is.
+// anything, installs it quietly and prints where crsp.exe is. From the
+// controller's own address it accepts only the pinned certificate (CRSP133).
 func winDownloadScript(ref PackageRef) string {
 	trust := ""
 	if ref.SelfSigned {
-		trust = "Add-Type -TypeDefinition 'using System.Net; public class CrspTrust { public static void Enable() { ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; } }'\n[CrspTrust]::Enable()\ntry { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]'Tls12,Tls13' } catch { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 }\n"
+		trust = joinfile.PowerShellPin + "[CrspPin]::Enable(" + psQuote(ref.PinSHA256) + ")\n"
 	}
 	return trust + fmt.Sprintf(`
 $msi = Join-Path $env:TEMP %s
@@ -177,6 +186,12 @@ func (s *Service) joinWindows(ctx context.Context, in SSHJoinInput, installArgs 
 		ref, err := s.o.WindowsPackages.WindowsPackage(ctx, probe.Arch)
 		if err != nil {
 			return "", fmt.Errorf("crsp.exe is not on the machine and its installer could not be found: %w", err)
+		}
+		if ref.SelfSigned {
+			ref.PinSHA256 = strings.ToLower(strings.ReplaceAll(s.o.Fingerprint, ":", ""))
+			if !shaRe.MatchString(ref.PinSHA256) {
+				return "", errors.New("this controller has no certificate fingerprint to pin the installer download to")
+			}
 		}
 		if !shaRe.MatchString(ref.SHA256) || !winRoot.MatchString(ref.Name) || !strings.HasPrefix(ref.URL, "https://") {
 			return "", errors.New("the installer source gave an address or a checksum that is not valid")
