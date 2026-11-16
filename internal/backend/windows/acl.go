@@ -53,4 +53,4 @@ func redactWith(d sys.Deps, s string) string {
 	return s
 }
 
-func firstLineOf(d sys.Deps, s string) string { return redactWith(d, firstLine(s)) }
+func firstLineOf(d sys.Deps, s string) string { return redactWith(d, collapse(s)) }

@@ -50,7 +50,7 @@ func (p psRights) Status(ctx context.Context, account string) (RightsStatus, err
 		return RightsStatus{}, fmt.Errorf("rights status: %w", err)
 	}
 	if res.ExitCode != 0 {
-		return RightsStatus{}, fmt.Errorf("rights status: powershell exited %d: %s", res.ExitCode, p.b.redact(firstLine(res.Stderr+res.Stdout)))
+		return RightsStatus{}, fmt.Errorf("rights status: powershell exited %d: %s", res.ExitCode, p.b.redact(plainError(res.Stderr, res.Stdout)))
 	}
 	return ParseRightsStatus(res.Stdout), nil
 }
