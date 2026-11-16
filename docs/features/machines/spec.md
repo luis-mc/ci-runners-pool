@@ -141,7 +141,7 @@ The overview shows machines and load and only links here (UX-52). Busy buttons f
 
 **R5.13** (M1) — The agent detects again at start, every 10 minutes, and when the user presses **Check again**. A change in facts or backends is shown on the machine and written to the audit log.
 
-**R5.14** (M5, NOT YET IMPLEMENTED) — On a Mac the agent reports how many macOS VMs run (crsp's own VMs on Apple's Virtualization.framework, runners R5.29, and any other macOS VM it can see), and the controller never starts more than two at once (decision 0003).
+**R5.14** (M5, Built in part CRSP114: the report; the controller's start limit and the count on a real Mac are NOT YET IMPLEMENTED) — On a Mac the agent reports how many macOS VMs run (crsp's own VMs on Apple's Virtualization.framework, runners R5.29, and any other macOS VM it can see), and the controller never starts more than two at once (decision 0003).
 
 ### 5.4 Load measurement
 
@@ -385,7 +385,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.11 | internal/agent/backends_test.go | planned |
 | R5.12 | internal/machines/settings_test.go | planned |
 | R5.13 | internal/agent/backends_test.go | planned |
-| R5.14 | internal/agent/macvm_limit_test.go | planned (M5) |
+| R5.14 | internal/agent/macvm_limit_test.go | built in part (CRSP114) |
 | R5.15 | internal/load/sample_test.go | planned; ports `test_load.py` |
 | R5.16 | internal/load/median_test.go | Built: `internal/load/median_test.go` TestMedianIgnoresASpike, TestSamplerDecidesOnMedianOfLastFive |
 | R5.17 | internal/load/wslvm_test.go | planned; ports `test_dl177_pool_measure.py` VmReadTests |

@@ -59,6 +59,9 @@ type Config struct {
 	RunnerFiles *RunnerFiles
 	// Images lists the job images for the machine report; nil reports none.
 	Images ImageSource
+	// MacVMs counts the macOS VMs of this Mac for the machine report (machines
+	// R5.14); nil on any OS but macOS, and the report then says nothing.
+	MacVMs MacVMSource
 	// BaseImages checks that the runner base image of each backend exists on
 	// this machine before jobs are admitted (runners R5.53); nil checks none.
 	BaseImages BaseImageSource

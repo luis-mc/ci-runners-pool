@@ -4,9 +4,27 @@ import (
 	"context"
 	"time"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/macvm"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
+
+// MacVMSource reads the macOS VM state of this Mac (macvm.Limiter.Report).
+type MacVMSource func(ctx context.Context) (macvm.Report, error)
+
+// addMacVMs sets the macOS VM count of the report. A source that fails is
+// reported as not known, never as zero: the controller must not start a VM on
+// a count it could not read (machines R5.14).
+func addMacVMs(ctx context.Context, rep *agentv1.MachineReport, src MacVMSource) {
+	if src == nil {
+		return
+	}
+	r, err := src(ctx)
+	rep.MacosVms = &agentv1.MacVmReport{
+		Known: err == nil && r.Known, Running: int32(r.Running), Ours: int32(r.Ours), //nolint:gosec // at most a few VMs
+		Limit: macvm.MaxVMs, UnusableReason: r.Unusable,
+	}
+}
 
 // ImageSource lists the job images of this machine; ok is false when the agent
 // has no container backend, so the list is not known rather than empty.
@@ -58,6 +76,7 @@ func (l *link) reportMachine(ctx context.Context, commandID string) {
 	f := l.facts
 	l.factMu.Unlock()
 	rep := buildMachineReport(ctx, l.cfg.sys(), f, l.cfg.Images, l.cfg.PackageFailures, time.Now())
+	addMacVMs(ctx, rep, l.cfg.MacVMs)
 	rep.CommandId = commandID
 	rep.RunnerSwap = l.cfg.RunnerFiles != nil
 	rep.HostCommand = true

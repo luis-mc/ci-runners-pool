@@ -273,3 +273,33 @@ func (v *slotVM) Stop(ctx context.Context) error {
 	defer v.release()
 	return v.VM.Stop(ctx)
 }
+
+// Report is the macOS VM state of this Mac for the machine report (machines
+// R5.14).
+type Report struct {
+	// Known is false when the VMs could not be counted.
+	Known bool
+	Count
+	// Unusable says why macOS VMs cannot run here; empty when they can.
+	Unusable string
+}
+
+// Report reads the support and the count. A Mac that cannot run macOS VMs
+// (Intel, macOS older than 13) still reports, with Known true and the reason:
+// it has no VM from crsp, but a VM from another tool may still run there.
+func (l *Limiter) Report(ctx context.Context) (Report, error) {
+	sup, err := Detect(ctx, l.FW)
+	if err != nil {
+		return Report{}, err
+	}
+	r := Report{Limit: MaxVMs}
+	if !sup.Usable {
+		r.Unusable = sup.Reason
+	}
+	c, err := l.Count(ctx)
+	if err != nil {
+		return r, err
+	}
+	r.Known, r.Count = true, c
+	return r, nil
+}

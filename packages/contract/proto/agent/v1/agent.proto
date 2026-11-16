@@ -797,6 +797,22 @@ message MachineReport {
   repeated PackageFailure package_failures = 8;
   // True when this agent understands RunHostCommand (HND24).
   bool host_command = 9;
+  // How many macOS VMs run on this Mac (machines R5.14). Unset on other OSes.
+  MacVmReport macos_vms = 10;
+}
+
+// MacVmReport is the macOS VM count of a Mac (machines R5.14, runners R5.29).
+message MacVmReport {
+  // False when the agent could not count, so running is not to be used.
+  bool known = 1;
+  // Every macOS VM on the Mac, also VMs the agent did not start.
+  int32 running = 2;
+  // The VMs the agent started.
+  int32 ours = 3;
+  // The hard limit, 2 (Apple's licence).
+  int32 limit = 4;
+  // Why macOS VMs cannot run here (Intel Mac, macOS older than 13); empty when they can.
+  string unusable_reason = 5;
 }
 
 // PackageFailure is one extra package set the agent could not install.
