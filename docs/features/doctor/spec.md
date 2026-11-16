@@ -199,6 +199,8 @@ States:
 
 **R5.43** (M2, Built in part HND18: `checks.RegisterVM` in `internal/doctor/checks/vm.go`, fed by `doctor.VMSource`; `crsp vm doctor` runs them; the live controller does not) — **VM backend checks.** (Caches R5.46.) Seven checks on the VM backend of one machine: `vm.accel` (KVM, Hyper-V or Virtualization.framework is available; `fail` with the fix for that OS), `vm.tools` (qemu, `qemu-img`, ssh tools on the PATH; `fail` naming the missing ones), `vm.seedtool` (`cloud-localds`; `fail`), `vm.basedisk` (one finding for each distro in the cache: image present, its digest matches its name, the base disk made; `fail` for a missing or damaged image, `warn` for a base not made yet, `skip` for an unreadable image, `info` for an empty cache), `vm.disk` (free space of the cache's disk against the floor; `fail` below it), `vm.network` (the bridge is there; `warn` when it is not, because guests still start on user-mode networking) and `vm.packages` (the packages the runners need are in the manifest of each base disk; `warn` for a drift, naming the packages). Every finding that is not ok has a fix. A source that cannot be read is a `skip`. They are not in the live registry: `crsp vm doctor` registers them and reads this machine.
 
+**R5.44** (M1, CRSP136) — **`machine.docker.compact`: the agent can make Docker's disk smaller.** For each online machine whose Docker disk compact policy is on (caches R5.52) and that has a Docker Desktop disk file, the doctor says `ok` when the agent runs with administrator rights, and `warn` when it does not: "The agent on <machine> cannot make Docker's disk smaller", with the size of the disk file and that the compact is skipped every night. The fix names the Machine page (the console action: the Docker disk section, with the action Turn off and the words to install the agent again from an administrator window) and the CLI `crsp machine settings <machine> --docker-compact off`. A machine that is offline is `skip`; a machine without the policy on or without a disk file has no finding. The check reads only.
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -493,6 +495,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R6.6 | internal/doctor/checks/machine/disk_test.go TestBusyMachineSkipsDiskScan (planned) |
 | R6.7 | e2e/tests/doctor.spec.ts layout at 360, 393 and 1300 px and axe scan (planned) |
 | R6.8 | internal/api/handlers_live_test.go TestDoctorRoutes (API); internal/doctor/cli/cli_test.go (CLI) |
+| R5.44 | internal/doctor/checks/dockercompact_test.go TestDockerCompactNeedsAdminRights, TestDockerCompactOfflineMachineIsSkipped |
 
 ## 10. Decisions
 

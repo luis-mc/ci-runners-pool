@@ -10,12 +10,14 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'installer/**'
+      - 'internal/tray/**'
       - 'cmd/crsp/service_*.go'
       - '.github/workflows/installer.yml'
   push:
     branches: [main]
     paths:
       - 'installer/**'
+      - 'internal/tray/**'
       - 'cmd/crsp/service_*.go'
       - '.github/workflows/installer.yml'
   workflow_dispatch:
@@ -96,6 +98,28 @@ jobs:
           $exe = Get-ChildItem $target -Recurse -Filter crsp.exe | Select-Object -First 1
           if (-not $exe) { throw 'crsp.exe is not in the MSI' }
           Write-Host "crsp.exe in the MSI: $($exe.FullName) ($($exe.Length) bytes)"
+
+      # CRSP138 (operations R5.86): upgrade a running tray's install from the
+      # previous release; fails over 60 s or on a Files in Use entry in the log.
+      - name: Upgrade with the tray running (previous release to this build)
+        if: ${{ !cancelled() && matrix.arch == 'x64' }}
+        timeout-minutes: 10
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $prev = 'installer/out/previous'
+          New-Item -ItemType Directory -Force -Path $prev | Out-Null
+          foreach ($tag in 'v0.1.1', 'v0.1.2') {
+            gh release download $tag --repo $env:GITHUB_REPOSITORY --pattern 'crsp-windows-amd64.msi' --dir $prev --clobber
+            if ($LASTEXITCODE -eq 0 -and (Test-Path "$prev/crsp-windows-amd64.msi")) { Write-Host "previous release: $tag"; break }
+          }
+          if (-not (Test-Path "$prev/crsp-windows-amd64.msi")) { throw 'no previous release MSI could be downloaded' }
+          ./installer/build.ps1 -Arch x64 -Exe installer/out/crsp.exe -Version 0.9.0 -Out installer/out/v0.9.0
+          ./installer/upgrade-test.ps1 `
+            -PreviousMsi "$prev/crsp-windows-amd64.msi" `
+            -NewMsi installer/out/v0.9.0/crsp-windows-amd64.msi `
+            -MaxSeconds 60 `
+            -LogDir installer/out/logs
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: ${{ always() }}

@@ -2,13 +2,25 @@ package api
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/sha256"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
+	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/repos"
 )
 
 // makeAccess makes an access credential as the owner and returns its value and id.
@@ -163,8 +175,8 @@ func TestSetupParityWritesTheSecretAndVariablesThroughGitHub(t *testing.T) { // 
 	if strings.Contains(string(b), sec) {
 		t.Fatal("the answer holds the credential value")
 	}
-	if got, _ := h.fake.Variable("alice/app", "CRSP_URL"); got != h.srv.URL {
-		t.Fatalf("CRSP_URL = %q, want %q", got, h.srv.URL)
+	if got, _ := h.fake.Variable("alice/app", "CRSP_URL"); got != "https://crsp.example:8460" {
+		t.Fatalf("CRSP_URL = %q, want the join address, not the address of the browser (%s)", got, h.srv.URL)
 	}
 	sum := sha256.Sum256([]byte{0, 0, 0}) // fakeCA's certificate is 3 zero bytes
 	if got, _ := h.fake.Variable("alice/app", "CRSP_CA_FINGERPRINT"); got != hex.EncodeToString(sum[:]) {
@@ -199,18 +211,140 @@ func TestSetupParityWritesTheSecretAndVariablesThroughGitHub(t *testing.T) { // 
 	}
 }
 
-func TestSetupParityUsesTheAddressGiven(t *testing.T) { // R5.84
+func TestSetupParityIgnoresTheAddressOfTheBrowser(t *testing.T) { // R5.84, CRSP141
 	h, owner, csrf := parityRepo(t)
-	res, b := h.do("POST", "/api/v1/repositories/100/parity-setup", map[string]any{"controller_url": "https://crsp.example:8460/"}, owner, map[string]string{"X-CSRF-Token": csrf})
-	if res.StatusCode != 200 {
+	for _, body := range []map[string]any{{"controller_url": "http://127.0.0.1:8460"}, {"controller_url": "https://other.example:1"}, {}} {
+		res, b := h.do("POST", "/api/v1/repositories/100/parity-setup", body, owner, map[string]string{"X-CSRF-Token": csrf, "Origin": h.srv.URL})
+		if res.StatusCode != 200 || !strings.Contains(string(b), `"status":"done"`) {
+			t.Fatalf("%v: %d %s", body, res.StatusCode, b)
+		}
+		got, _ := h.fake.Variable("alice/app", "CRSP_URL")
+		if got != "https://crsp.example:8460" || strings.Contains(got, "127.0.0.1") || strings.HasPrefix(got, "http://") {
+			t.Fatalf("CRSP_URL = %q", got)
+		}
+	}
+}
+
+func TestSetupParityRefusesWhenTheControllerHasNoReachableAddress(t *testing.T) { // R5.84, CRSP141
+	for _, c := range []struct{ name, public, listen, setting string }{
+		{"no public host", "", "0.0.0.0:8460", "CRSP_PUBLIC_HOST"},
+		{"loopback public host", "127.0.0.1", "0.0.0.0:8460", "CRSP_PUBLIC_HOST"},
+		{"loopback listen", "pool.lan", "127.0.0.1:8460", "CRSP_LISTEN_ADDR"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			h := newHarnessWith(t, nil, func(_ *repos.Config, o *Options) { o.PublicHost, o.ListenAddr = c.public, c.listen })
+			owner, csrf := h.setup(1, "alice")
+			h.fake.AddInstall(10, "alice", "User", 1)
+			h.fake.AddRepo(100, 10, "alice", "app", true, 1)
+			_, _ = h.do("GET", "/api/v1/github/repositories", nil, owner, nil)
+			res, b := h.do("POST", "/api/v1/repositories/100/parity-setup", map[string]any{}, owner, map[string]string{"X-CSRF-Token": csrf})
+			var out struct {
+				Status  string
+				Problem string `json:"address_problem"`
+				Setting string `json:"address_setting"`
+			}
+			_ = json.Unmarshal(b, &out)
+			if res.StatusCode != 200 || out.Status != "needs_address" || out.Setting != c.setting || !strings.Contains(out.Problem, c.setting) {
+				t.Fatalf("%d %s", res.StatusCode, b)
+			}
+			cs, _ := h.astore.ListAccessCredentials(context.Background())
+			if len(cs) != 0 || len(h.fake.SecretNames("alice/app")) != 0 || len(h.fake.VariableNames("alice/app")) != 0 {
+				t.Fatal("something was made or written")
+			}
+		})
+	}
+}
+
+func TestParityAddressShowsTheAddressAndChecksIt(t *testing.T) { // R5.84, CRSP141
+	var called string
+	var fail error
+	h := newHarnessWith(t, nil, func(_ *repos.Config, o *Options) {
+		o.ParityProbe = func(_ context.Context, addr string) error { called = addr; return fail }
+	})
+	owner, _ := h.setup(1, "alice")
+	get := func() (string, string, string) {
+		res, b := h.do("GET", "/api/v1/parity-address", nil, owner, nil)
+		if res.StatusCode != 200 {
+			t.Fatalf("%d %s", res.StatusCode, b)
+		}
+		var out struct{ Status, URL, Problem string }
+		_ = json.Unmarshal(b, &out)
+		return out.Status, out.URL, out.Problem
+	}
+	if st, u, _ := get(); st != "ok" || u != "https://crsp.example:8460" || called != u {
+		t.Fatalf("ok: %q %q called %q", st, u, called)
+	}
+	fail = errors.New("connection refused")
+	st, u, pr := get()
+	if st != "unreachable" || u != "https://crsp.example:8460" || !strings.Contains(pr, "connection refused") || !strings.Contains(pr, u) {
+		t.Fatalf("unreachable: %q %q %q", st, u, pr)
+	}
+	// A request that is not an admin is refused.
+	if res, _ := h.do("GET", "/api/v1/parity-address", nil, nil, nil); res.StatusCode != 401 {
+		t.Fatalf("anonymous: %d", res.StatusCode)
+	}
+}
+
+func TestParityAddressNeedsAnAddress(t *testing.T) { // R5.84, CRSP141
+	h := newHarnessWith(t, nil, func(_ *repos.Config, o *Options) {
+		o.PublicHost = ""
+		o.ParityProbe = func(context.Context, string) error { t.Fatal("probed with no address"); return nil }
+	})
+	owner, _ := h.setup(1, "alice")
+	res, b := h.do("GET", "/api/v1/parity-address", nil, owner, nil)
+	if res.StatusCode != 200 || !strings.Contains(string(b), `"status":"needs_address"`) || !strings.Contains(string(b), `"setting":"CRSP_PUBLIC_HOST"`) || strings.Contains(string(b), `"url"`) {
 		t.Fatalf("%d %s", res.StatusCode, b)
 	}
-	if got, _ := h.fake.Variable("alice/app", "CRSP_URL"); got != "https://crsp.example:8460" {
-		t.Fatalf("CRSP_URL = %q", got)
+}
+
+type pemCA []byte
+
+func (p pemCA) CAPEM() []byte { return p }
+
+func TestProbeControllerCallsOverHTTPSWithTheControllerCA(t *testing.T) { // R5.84, CRSP141
+	var srv *httptest.Server
+	srv = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/ca.pem" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: srv.Certificate().Raw}))
+	}))
+	defer srv.Close()
+	ca := pemCA(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: srv.Certificate().Raw}))
+	if err := probeController(context.Background(), srv.URL, ca); err != nil {
+		t.Fatalf("answers: %v", err)
 	}
-	res, b = h.do("POST", "/api/v1/repositories/100/parity-setup", map[string]any{"controller_url": "ftp://x"}, owner, map[string]string{"X-CSRF-Token": csrf})
-	if res.StatusCode != 400 {
-		t.Fatalf("bad address: %d %s", res.StatusCode, b)
+	// A CA that did not sign the server certificate does not trust it.
+	k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tpl := &x509.Certificate{SerialNumber: big.NewInt(7), Subject: pkix.Name{CommonName: "another ca"}, NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour), IsCA: true, BasicConstraintsValid: true}
+	der, err := x509.CreateCertificate(rand.Reader, tpl, tpl, &k.PublicKey, k)
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherCA := pemCA(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}))
+	if err := probeController(context.Background(), srv.URL, otherCA); err == nil {
+		t.Fatal("a server the CA did not sign was accepted")
+	}
+	// The answer is not the controller's CA.
+	wrong := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(otherCA)
+	}))
+	defer wrong.Close()
+	if err := probeController(context.Background(), wrong.URL, ca); err == nil {
+		t.Fatal("an address that serves another CA was accepted")
+	}
+	// Nothing listens, or plain http.
+	plain := httptest.NewServer(http.NotFoundHandler())
+	plain.Close()
+	if err := probeController(context.Background(), plain.URL, ca); err == nil {
+		t.Fatal("a closed address was accepted")
+	}
+	if err := probeController(context.Background(), srv.URL, nil); err == nil {
+		t.Fatal("no CA was accepted")
 	}
 }
 
@@ -222,17 +356,31 @@ func TestSetupParityWithoutThePermissionMakesNothingAndNamesThePages(t *testing.
 		t.Fatalf("%d %s", res.StatusCode, b)
 	}
 	var out struct {
-		Status            string
-		Missing           []string `json:"missing_permissions"`
-		AppPermissionsURL string   `json:"app_permissions_url"`
-		InstallationURL   string   `json:"installation_url"`
+		Status  string
+		Missing []string `json:"missing_permissions"`
+		Grant   struct {
+			Ready bool
+			Next  string
+			Steps []struct {
+				ID          string
+				Done        bool
+				Permissions []string
+				URL         string
+			}
+		}
 	}
 	_ = json.Unmarshal(b, &out)
 	if out.Status != "needs_permission" || len(out.Missing) != 1 || out.Missing[0] != "secrets" {
 		t.Fatalf("%s", b)
 	}
-	if !strings.HasPrefix(out.AppPermissionsURL, "https://github.com/settings/apps/") || !strings.HasSuffix(out.AppPermissionsURL, "/permissions") ||
-		out.InstallationURL != "https://github.com/settings/installations/10" {
+	// One step list: installed (done), ask (waiting, next), accept (waiting).
+	if out.Grant.Ready || out.Grant.Next != "ask" || len(out.Grant.Steps) != 3 {
+		t.Fatalf("grant: %s", b)
+	}
+	ask, accept := out.Grant.Steps[1], out.Grant.Steps[2]
+	if ask.ID != "ask" || ask.Done || !strings.HasPrefix(ask.URL, "https://github.com/settings/apps/") || !strings.HasSuffix(ask.URL, "/permissions") ||
+		accept.ID != "accept" || accept.Done || accept.URL != "https://github.com/settings/installations/10" ||
+		strings.Join(accept.Permissions, ",") != "secrets" {
 		t.Fatalf("pages: %s", b)
 	}
 	// Nothing was made or written.
@@ -277,5 +425,95 @@ func TestSetupParityNeedsGitHubAdminOfTheRepository(t *testing.T) { // R5.84
 	}
 	if len(h.fake.SecretNames("alice/theirs")) != 0 {
 		t.Fatal("a secret was written")
+	}
+}
+
+type grantOut struct {
+	Ready bool
+	Next  string
+	Steps []struct {
+		ID          string
+		Done        bool
+		Permissions []string
+		URL         string
+	}
+	Missing []string
+}
+
+func getGrant(t *testing.T, h *harness, owner cookies, query string) grantOut {
+	t.Helper()
+	res, b := h.do("GET", "/api/v1/github/grant?"+query, nil, owner, nil)
+	if res.StatusCode != 200 {
+		t.Fatalf("%d %s", res.StatusCode, b)
+	}
+	var g grantOut
+	if err := json.Unmarshal(b, &g); err != nil {
+		t.Fatal(err)
+	}
+	return g
+}
+
+func TestGrantReadsBothSidesOfGitHub(t *testing.T) { // R5.86
+	h, owner, _ := parityRepo(t)
+	h.fake.Installs[10].Perms["secrets"] = "read"
+	// The App does not ask for it yet: step ask is next.
+	h.fake.SetAppPermissions(map[string]string{"actions_variables": "write"})
+	g := getGrant(t, h, owner, "permissions=secrets,actions_variables&repository_id=100")
+	if g.Ready || g.Next != "ask" || strings.Join(g.Missing, ",") != "secrets" {
+		t.Fatalf("not asked: %+v", g)
+	}
+	// The App asks, the installation has not accepted: step accept is next.
+	h.fake.SetAppPermissions(map[string]string{"actions_variables": "write", "secrets": "write"})
+	g = getGrant(t, h, owner, "permissions=secrets,actions_variables&repository_id=100")
+	if g.Ready || g.Next != "accept" || !g.Steps[1].Done || g.Steps[2].Done || g.Steps[2].URL != "https://github.com/settings/installations/10" {
+		t.Fatalf("asked, not accepted: %+v", g)
+	}
+	// The installation accepts: everything is granted.
+	h.fake.Installs[10].Perms["secrets"] = "write"
+	g = getGrant(t, h, owner, "permissions=secrets,actions_variables&installation_id=10")
+	if !g.Ready || g.Next != "" || len(g.Missing) != 0 || !g.Steps[1].Done || !g.Steps[2].Done {
+		t.Fatalf("all done: %+v", g)
+	}
+}
+
+func TestGrantWithoutAnInstallationStartsWithInstall(t *testing.T) { // R5.86
+	h := newHarness(t)
+	owner, _ := h.setup(1, "alice")
+	g := getGrant(t, h, owner, "permissions=secrets")
+	if g.Ready || g.Next != "install" || len(g.Steps) != 3 || g.Steps[0].ID != "install" ||
+		!strings.HasPrefix(g.Steps[0].URL, "https://github.com/apps/") || !strings.HasSuffix(g.Steps[0].URL, "/installations/new") {
+		t.Fatalf("%+v", g)
+	}
+}
+
+func TestGrantNeedsAPermissionNameAndAnAdmin(t *testing.T) { // R5.86
+	h, owner, _ := parityRepo(t)
+	if res, _ := h.do("GET", "/api/v1/github/grant", nil, owner, nil); res.StatusCode != 400 {
+		t.Fatalf("no permission named: %d", res.StatusCode)
+	}
+	if res, _ := h.do("GET", "/api/v1/github/grant?permissions=secrets", nil, nil, nil); res.StatusCode != 401 {
+		t.Fatalf("signed out: %d", res.StatusCode)
+	}
+}
+
+func TestAcceptedPermissionsRefreshTheInstallationToken(t *testing.T) { // R5.87
+	h, owner, csrf := parityRepo(t)
+	h.fake.Installs[10].Perms["secrets"] = "read"
+	h.do("POST", "/api/v1/repositories/100/parity-setup", map[string]any{}, owner, map[string]string{"X-CSRF-Token": csrf}) //nolint:errcheck // the answer is needs_permission, checked elsewhere
+	// The owner accepts on GitHub; the next read sees it and the token is new.
+	before := h.fake.TokensMade()
+	h.fake.Installs[10].Perms["secrets"] = "write"
+	g := getGrant(t, h, owner, "permissions=secrets&installation_id=10")
+	if !g.Ready {
+		t.Fatalf("%+v", g)
+	}
+	if err := h.repos.PermissionsAccepted(context.Background(), 10); err != nil {
+		t.Fatal(err)
+	}
+	if res, b := h.do("POST", "/api/v1/repositories/100/parity-setup", map[string]any{}, owner, map[string]string{"X-CSRF-Token": csrf}); res.StatusCode != 200 || !strings.Contains(string(b), `"done"`) {
+		t.Fatalf("%d %s", res.StatusCode, b)
+	}
+	if h.fake.TokensMade() <= before {
+		t.Fatalf("no new installation token after the permissions were accepted: %d <= %d", h.fake.TokensMade(), before)
 	}
 }

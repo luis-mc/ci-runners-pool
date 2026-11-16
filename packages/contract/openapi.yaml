@@ -396,6 +396,30 @@ paths:
           description: Revoked.
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/parity-address:
+    get:
+      operationId: getParityAddress
+      x-cli: none
+      x-cli-reason: 'A console check: it shows what the parity setup will write (owner rule: everything from the web console).'
+      tags: [repositories]
+      summary: The address the parity setup will write, and whether it answers
+      description: >-
+        github-integration R5.84 (CRSP141). The address a runner uses to reach
+        the controller: https, the public host and the console port, the same
+        address machines join at. The controller calls it from the server side
+        with its own CA and says whether it answers. A controller with no such
+        address answers `needs_address` with the setting to fix.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      responses:
+        '200':
+          description: The address and the result of calling it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParityAddress'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/repositories/{repositoryId}/parity-setup:
     post:
       operationId: setupRepositoryParity
@@ -407,7 +431,10 @@ paths:
         github-integration R5.84. Makes a `parity` access credential and writes
         it as the repository Actions secret CRSP_ACCESS, and the controller
         address and CA fingerprint as the variables CRSP_URL and
-        CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the
+        CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one
+        machines use to join (https, the controller CA), never the address of
+        the browser, never loopback or http (CRSP141); when the controller has
+        none the answer is `needs_address` and nothing is made. When the App lacks the
         `secrets` or `actions_variables` write permission nothing is made: the
         answer is `needs_permission` with the GitHub pages that grant it.
       x-auth: admin
@@ -736,6 +763,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrgPool'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/github/grant:
+    get:
+      operationId: getGithubGrant
+      x-cli: none
+      x-cli-reason: 'A console part: it guides the owner through GitHub pages.'
+      tags: [repositories]
+      summary: What a task still needs from GitHub, step by step
+      description: >-
+        github-integration R5.86. Reads both sides of GitHub: what the App asks
+        for (GET /app) and what the installation accepted (GET
+        /app/installations/{id}). Says for each step (install, ask, accept)
+        whether it is done, names the permissions still waiting, and gives the
+        GitHub page of each step and the id of the next one.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - name: permissions
+          in: query
+          description: GitHub permission names, comma separated, such as `secrets,actions_variables`.
+          schema:
+            type: string
+        - name: installation_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: repository_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: The grant state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GithubGrant'
         default:
           $ref: '#/components/responses/Error'
   /api/v1/github/install-url:
@@ -3768,29 +3835,79 @@ components:
           description: The credential. Shown once.
         info:
           $ref: '#/components/schemas/AccessCredential'
+    GithubGrant:
+      type: object
+      required: [ready, steps, missing]
+      description: github-integration R5.86.
+      properties:
+        ready:
+          type: boolean
+          description: Every needed permission is accepted by the installation.
+        next:
+          type: string
+          enum: [install, ask, accept]
+          description: The first step that is not done. Absent when ready.
+        missing:
+          type: array
+          description: The needed permissions that are not accepted yet, by GitHub's name.
+          items:
+            type: string
+        installation_id:
+          type: integer
+          format: int64
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/GithubGrantStep'
+    GithubGrantStep:
+      type: object
+      required: [id, done, permissions]
+      properties:
+        id:
+          type: string
+          enum: [install, ask, accept]
+        done:
+          type: boolean
+        permissions:
+          type: array
+          description: The permissions still waiting at this step.
+          items:
+            type: string
+        url:
+          type: string
+          description: The GitHub page of the step. Absent when the step has none.
     ParitySetupRequest:
       type: object
+      description: No fields. The address is the controller's own, never one the browser sends (CRSP141).
+    ParityAddress:
+      type: object
+      required: [status]
       properties:
-        controller_url:
+        status:
           type: string
-          description: The address the runner reaches the controller at. Empty uses the address of this console.
+          enum: [ok, unreachable, needs_address]
+        url:
+          type: string
+          description: The address that will be written as CRSP_URL. Empty with needs_address.
+        problem:
+          type: string
+          description: Why the address does not answer, or why the controller has none.
+        setting:
+          type: string
+          description: The setting to fix when the controller has no address a runner can reach.
     ParitySetup:
       type: object
       required: [status]
       properties:
         status:
           type: string
-          enum: [done, needs_permission]
+          enum: [done, needs_permission, needs_address]
         missing_permissions:
           type: array
           items:
             type: string
-        app_permissions_url:
-          type: string
-          description: The GitHub page where the App's owner asks for the permission.
-        installation_url:
-          type: string
-          description: The GitHub page where the installation's owner accepts it.
+        grant:
+          $ref: '#/components/schemas/GithubGrant'
         access_name:
           type: string
           description: The name of the repository Actions value that holds the access, CRSP_ACCESS.
@@ -3801,6 +3918,12 @@ components:
         access_id:
           type: string
           description: The id of the access credential that was made.
+        address_problem:
+          type: string
+          description: With needs_address, why the controller has no address a runner can reach.
+        address_setting:
+          type: string
+          description: With needs_address, the setting to fix.
     CliToken:
       type: object
       required: [id, name, user_id, user_login, created_at, expires_at]
@@ -4768,6 +4891,8 @@ components:
           $ref: '#/components/schemas/MachineChange'
         recovery:
           $ref: '#/components/schemas/MachineRecovery'
+        docker_compact_status:
+          $ref: '#/components/schemas/DockerCompactStatus'
         last_seen_at:
           type: string
           format: date-time
@@ -4969,6 +5094,64 @@ components:
         pause_until_resumed:
           type: boolean
           description: A pause from the tray holds until Resume.
+        docker_compact:
+          $ref: '#/components/schemas/DockerCompactMode'
+        docker_compact_threshold_gib:
+          type: integer
+          minimum: 0
+          maximum: 100000
+          description: How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54).
+        docker_compact_idle_minutes:
+          type: integer
+          minimum: 0
+          maximum: 1440
+          description: How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
+        docker_compact_quiet_start:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+          description: Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
+        docker_compact_quiet_end:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+          description: End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
+    DockerCompactMode:
+      type: string
+      description: The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
+      enum: [auto, 'on', 'off']
+    DockerCompactStatus:
+      type: object
+      description: The Docker disk compact policy of one machine and what the agent reported about the disk file (caches R5.51 to R5.54). Read only.
+      required: [enabled, running, can_compact, disk_present]
+      properties:
+        enabled:
+          type: boolean
+          description: The policy is on for this machine.
+        reason:
+          type: string
+          description: Why the last look did not compact, or `run`. One of off, offline, not_active, no_report, no_admin, below_threshold, outside_quiet_hours, busy, not_idle_long_enough, done_today, already_running, change_open.
+        running:
+          type: boolean
+        disk_present:
+          type: boolean
+          description: The agent found a Docker Desktop disk file.
+        can_compact:
+          type: boolean
+          description: The agent has the administrator rights the compact needs.
+        file_bytes:
+          type: integer
+          format: int64
+        used_bytes:
+          type: integer
+          format: int64
+        reclaimable_bytes:
+          type: integer
+          format: int64
+        last_at:
+          type: string
+          format: date-time
+        last_result:
+          type: string
+          description: Sizes of the last compact, or why it failed.
     MachineMode:
       type: string
       description: Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.61).
@@ -5143,6 +5326,26 @@ components:
           type: boolean
         cpu_cap_pct:
           $ref: '#/components/schemas/CpuCapPct'
+        docker_compact:
+          $ref: '#/components/schemas/DockerCompactMode'
+        docker_compact_threshold_gib:
+          type: integer
+          minimum: 0
+          maximum: 100000
+          description: How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54).
+        docker_compact_idle_minutes:
+          type: integer
+          minimum: 0
+          maximum: 1440
+          description: How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
+        docker_compact_quiet_start:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+          description: Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
+        docker_compact_quiet_end:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+          description: End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
         pause:
           type: string
           description: A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.61).

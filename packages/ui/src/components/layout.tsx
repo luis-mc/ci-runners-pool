@@ -1,5 +1,6 @@
 // Layout primitives. Apps pass data and children; they never write a class or a style (UX-2, R6.8).
 import type { ReactNode } from 'react';
+import { Pane } from './Pane';
 
 type Gap = 'tight' | 'normal' | 'loose';
 
@@ -74,22 +75,26 @@ export function Code({ children }: { children: ReactNode }) {
   return <code className="ds-code">{children}</code>;
 }
 
-/** A titled part of a page. The title is a level-2 heading. */
+/** A titled part of a page: a pane (component 8). The title is a level-2 heading; a hint is a note inside the pane. */
 export function Section({
   title,
   children,
   hint,
+  actions,
+  count,
 }: {
   title: string;
   children: ReactNode;
   hint?: string | undefined;
+  /** Buttons for the whole section, drawn in the pane's top border line. */
+  actions?: ReactNode | undefined;
+  count?: number | undefined;
 }) {
   return (
-    <section className="ds-section" aria-label={title}>
-      <h2 className="ds-h2">{title}</h2>
+    <Pane title={title} count={count} actions={actions}>
       {hint ? <Text tone="muted">{hint}</Text> : null}
       {children}
-    </section>
+    </Pane>
   );
 }
 

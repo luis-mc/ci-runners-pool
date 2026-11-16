@@ -310,6 +310,27 @@ func (e CreateJoinFileRequestOs) Valid() bool {
 	}
 }
 
+// Defines values for DockerCompactMode.
+const (
+	DockerCompactModeAuto DockerCompactMode = "auto"
+	DockerCompactModeOff  DockerCompactMode = "off"
+	DockerCompactModeOn   DockerCompactMode = "on"
+)
+
+// Valid indicates whether the value is a known member of the DockerCompactMode enum.
+func (e DockerCompactMode) Valid() bool {
+	switch e {
+	case DockerCompactModeAuto:
+		return true
+	case DockerCompactModeOff:
+		return true
+	case DockerCompactModeOn:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DoctorRunState.
 const (
 	DoctorRunStateDone    DoctorRunState = "done"
@@ -370,6 +391,48 @@ func (e FreeSlotsRequestSlotsKind) Valid() bool {
 	case FreeSlotsRequestSlotsKindHeavy:
 		return true
 	case FreeSlotsRequestSlotsKindLight:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GithubGrantNext.
+const (
+	GithubGrantNextAccept  GithubGrantNext = "accept"
+	GithubGrantNextAsk     GithubGrantNext = "ask"
+	GithubGrantNextInstall GithubGrantNext = "install"
+)
+
+// Valid indicates whether the value is a known member of the GithubGrantNext enum.
+func (e GithubGrantNext) Valid() bool {
+	switch e {
+	case GithubGrantNextAccept:
+		return true
+	case GithubGrantNextAsk:
+		return true
+	case GithubGrantNextInstall:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GithubGrantStepId.
+const (
+	GithubGrantStepIdAccept  GithubGrantStepId = "accept"
+	GithubGrantStepIdAsk     GithubGrantStepId = "ask"
+	GithubGrantStepIdInstall GithubGrantStepId = "install"
+)
+
+// Valid indicates whether the value is a known member of the GithubGrantStepId enum.
+func (e GithubGrantStepId) Valid() bool {
+	switch e {
+	case GithubGrantStepIdAccept:
+		return true
+	case GithubGrantStepIdAsk:
+		return true
+	case GithubGrantStepIdInstall:
 		return true
 	default:
 		return false
@@ -913,9 +976,31 @@ func (e OS) Valid() bool {
 	}
 }
 
+// Defines values for ParityAddressStatus.
+const (
+	ParityAddressStatusNeedsAddress ParityAddressStatus = "needs_address"
+	ParityAddressStatusOk           ParityAddressStatus = "ok"
+	ParityAddressStatusUnreachable  ParityAddressStatus = "unreachable"
+)
+
+// Valid indicates whether the value is a known member of the ParityAddressStatus enum.
+func (e ParityAddressStatus) Valid() bool {
+	switch e {
+	case ParityAddressStatusNeedsAddress:
+		return true
+	case ParityAddressStatusOk:
+		return true
+	case ParityAddressStatusUnreachable:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ParitySetupStatus.
 const (
 	ParitySetupStatusDone            ParitySetupStatus = "done"
+	ParitySetupStatusNeedsAddress    ParitySetupStatus = "needs_address"
 	ParitySetupStatusNeedsPermission ParitySetupStatus = "needs_permission"
 )
 
@@ -923,6 +1008,8 @@ const (
 func (e ParitySetupStatus) Valid() bool {
 	switch e {
 	case ParitySetupStatusDone:
+		return true
+	case ParitySetupStatusNeedsAddress:
 		return true
 	case ParitySetupStatusNeedsPermission:
 		return true
@@ -2225,6 +2312,32 @@ type CreateJoinFileRequest struct {
 // CreateJoinFileRequestOs defines model for CreateJoinFileRequest.Os.
 type CreateJoinFileRequestOs string
 
+// DockerCompactMode The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
+type DockerCompactMode string
+
+// DockerCompactStatus The Docker disk compact policy of one machine and what the agent reported about the disk file (caches R5.51 to R5.54). Read only.
+type DockerCompactStatus struct {
+	// CanCompact The agent has the administrator rights the compact needs.
+	CanCompact bool `json:"can_compact"`
+
+	// DiskPresent The agent found a Docker Desktop disk file.
+	DiskPresent bool `json:"disk_present"`
+
+	// Enabled The policy is on for this machine.
+	Enabled   bool       `json:"enabled"`
+	FileBytes *int64     `json:"file_bytes,omitempty"`
+	LastAt    *time.Time `json:"last_at,omitempty"`
+
+	// LastResult Sizes of the last compact, or why it failed.
+	LastResult *string `json:"last_result,omitempty"`
+
+	// Reason Why the last look did not compact, or `run`. One of off, offline, not_active, no_report, no_admin, below_threshold, outside_quiet_hours, busy, not_idle_long_enough, done_today, already_running, change_open.
+	Reason           *string `json:"reason,omitempty"`
+	ReclaimableBytes *int64  `json:"reclaimable_bytes,omitempty"`
+	Running          bool    `json:"running"`
+	UsedBytes        *int64  `json:"used_bytes,omitempty"`
+}
+
 // DoctorFinding defines model for DoctorFinding.
 type DoctorFinding struct {
 	Check     string    `json:"check"`
@@ -2407,6 +2520,39 @@ type GitHubApp struct {
 	Slug          string             `json:"slug"`
 	WebhookActive bool               `json:"webhook_active"`
 }
+
+// GithubGrant github-integration R5.86.
+type GithubGrant struct {
+	InstallationId *int64 `json:"installation_id,omitempty"`
+
+	// Missing The needed permissions that are not accepted yet, by GitHub's name.
+	Missing []string `json:"missing"`
+
+	// Next The first step that is not done. Absent when ready.
+	Next *GithubGrantNext `json:"next,omitempty"`
+
+	// Ready Every needed permission is accepted by the installation.
+	Ready bool              `json:"ready"`
+	Steps []GithubGrantStep `json:"steps"`
+}
+
+// GithubGrantNext The first step that is not done. Absent when ready.
+type GithubGrantNext string
+
+// GithubGrantStep defines model for GithubGrantStep.
+type GithubGrantStep struct {
+	Done bool              `json:"done"`
+	Id   GithubGrantStepId `json:"id"`
+
+	// Permissions The permissions still waiting at this step.
+	Permissions []string `json:"permissions"`
+
+	// Url The GitHub page of the step. Absent when the step has none.
+	Url *string `json:"url,omitempty"`
+}
+
+// GithubGrantStepId defines model for GithubGrantStep.Id.
+type GithubGrantStepId string
 
 // Health defines model for Health.
 type Health struct {
@@ -2629,6 +2775,9 @@ type Machine struct {
 	// ContainerOs The operating system the machine's container engine runs containers for (machines R5.18, runners R5.47), when the engine answers. A Windows machine with Docker Desktop on WSL2 says `linux`. Absent when the engine does not answer or the agent has not reported.
 	ContainerOs *OS `json:"container_os,omitempty"`
 
+	// DockerCompactStatus The Docker disk compact policy of one machine and what the agent reported about the disk file (caches R5.51 to R5.54). Read only.
+	DockerCompactStatus *DockerCompactStatus `json:"docker_compact_status,omitempty"`
+
 	// Facts machines R5.10.
 	Facts *MachineFacts `json:"facts,omitempty"`
 	Id    string        `json:"id"`
@@ -2776,16 +2925,31 @@ type MachineSettings struct {
 	CacheCapBytes   *int64        `json:"cache_cap_bytes,omitempty"`
 
 	// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.64). Separate from the load budget. 100 is no cap.
-	CpuCapPct           *CpuCapPct                    `json:"cpu_cap_pct,omitempty"`
-	DrainTimeoutMinutes int                           `json:"drain_timeout_minutes"`
-	GateMaxWaitMinutes  *int                          `json:"gate_max_wait_minutes,omitempty"`
-	GateOnTimeout       *MachineSettingsGateOnTimeout `json:"gate_on_timeout,omitempty"`
-	GatePollSeconds     *int                          `json:"gate_poll_seconds,omitempty"`
-	HeavyJobs           *[]string                     `json:"heavy_jobs,omitempty"`
-	HeavySlots          int                           `json:"heavy_slots"`
-	JobSlots            int                           `json:"job_slots"`
-	LightJobs           *[]string                     `json:"light_jobs,omitempty"`
-	LightSlots          int                           `json:"light_slots"`
+	CpuCapPct *CpuCapPct `json:"cpu_cap_pct,omitempty"`
+
+	// DockerCompact The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
+	DockerCompact *DockerCompactMode `json:"docker_compact,omitempty"`
+
+	// DockerCompactIdleMinutes How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
+	DockerCompactIdleMinutes *int `json:"docker_compact_idle_minutes,omitempty"`
+
+	// DockerCompactQuietEnd End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
+	DockerCompactQuietEnd *string `json:"docker_compact_quiet_end,omitempty"`
+
+	// DockerCompactQuietStart Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
+	DockerCompactQuietStart *string `json:"docker_compact_quiet_start,omitempty"`
+
+	// DockerCompactThresholdGib How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54).
+	DockerCompactThresholdGib *int                          `json:"docker_compact_threshold_gib,omitempty"`
+	DrainTimeoutMinutes       int                           `json:"drain_timeout_minutes"`
+	GateMaxWaitMinutes        *int                          `json:"gate_max_wait_minutes,omitempty"`
+	GateOnTimeout             *MachineSettingsGateOnTimeout `json:"gate_on_timeout,omitempty"`
+	GatePollSeconds           *int                          `json:"gate_poll_seconds,omitempty"`
+	HeavyJobs                 *[]string                     `json:"heavy_jobs,omitempty"`
+	HeavySlots                int                           `json:"heavy_slots"`
+	JobSlots                  int                           `json:"job_slots"`
+	LightJobs                 *[]string                     `json:"light_jobs,omitempty"`
+	LightSlots                int                           `json:"light_slots"`
 
 	// Mode Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.61).
 	Mode *MachineMode `json:"mode,omitempty"`
@@ -2827,14 +2991,29 @@ type MachineSettingsUpdate struct {
 	ConfirmShrink *bool `json:"confirm_shrink,omitempty"`
 
 	// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.64). Separate from the load budget. 100 is no cap.
-	CpuCapPct           *CpuCapPct                          `json:"cpu_cap_pct,omitempty"`
-	DrainTimeoutMinutes *int                                `json:"drain_timeout_minutes,omitempty"`
-	GateOnTimeout       *MachineSettingsUpdateGateOnTimeout `json:"gate_on_timeout,omitempty"`
-	HeavyJobs           *[]string                           `json:"heavy_jobs,omitempty"`
-	HeavySlots          *int                                `json:"heavy_slots,omitempty"`
-	JobSlots            *int                                `json:"job_slots,omitempty"`
-	LightJobs           *[]string                           `json:"light_jobs,omitempty"`
-	LightSlots          *int                                `json:"light_slots,omitempty"`
+	CpuCapPct *CpuCapPct `json:"cpu_cap_pct,omitempty"`
+
+	// DockerCompact The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
+	DockerCompact *DockerCompactMode `json:"docker_compact,omitempty"`
+
+	// DockerCompactIdleMinutes How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
+	DockerCompactIdleMinutes *int `json:"docker_compact_idle_minutes,omitempty"`
+
+	// DockerCompactQuietEnd End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
+	DockerCompactQuietEnd *string `json:"docker_compact_quiet_end,omitempty"`
+
+	// DockerCompactQuietStart Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
+	DockerCompactQuietStart *string `json:"docker_compact_quiet_start,omitempty"`
+
+	// DockerCompactThresholdGib How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54).
+	DockerCompactThresholdGib *int                                `json:"docker_compact_threshold_gib,omitempty"`
+	DrainTimeoutMinutes       *int                                `json:"drain_timeout_minutes,omitempty"`
+	GateOnTimeout             *MachineSettingsUpdateGateOnTimeout `json:"gate_on_timeout,omitempty"`
+	HeavyJobs                 *[]string                           `json:"heavy_jobs,omitempty"`
+	HeavySlots                *int                                `json:"heavy_slots,omitempty"`
+	JobSlots                  *int                                `json:"job_slots,omitempty"`
+	LightJobs                 *[]string                           `json:"light_jobs,omitempty"`
+	LightSlots                *int                                `json:"light_slots,omitempty"`
 
 	// Mode Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.61).
 	Mode *MachineMode `json:"mode,omitempty"`
@@ -3022,6 +3201,22 @@ type Overview struct {
 	Waiting *[]WaitingJob `json:"waiting,omitempty"`
 }
 
+// ParityAddress defines model for ParityAddress.
+type ParityAddress struct {
+	// Problem Why the address does not answer, or why the controller has none.
+	Problem *string `json:"problem,omitempty"`
+
+	// Setting The setting to fix when the controller has no address a runner can reach.
+	Setting *string             `json:"setting,omitempty"`
+	Status  ParityAddressStatus `json:"status"`
+
+	// Url The address that will be written as CRSP_URL. Empty with needs_address.
+	Url *string `json:"url,omitempty"`
+}
+
+// ParityAddressStatus defines model for ParityAddress.Status.
+type ParityAddressStatus string
+
 // ParitySetup defines model for ParitySetup.
 type ParitySetup struct {
 	// AccessId The id of the access credential that was made.
@@ -3030,11 +3225,14 @@ type ParitySetup struct {
 	// AccessName The name of the repository Actions value that holds the access, CRSP_ACCESS.
 	AccessName *string `json:"access_name,omitempty"`
 
-	// AppPermissionsUrl The GitHub page where the App's owner asks for the permission.
-	AppPermissionsUrl *string `json:"app_permissions_url,omitempty"`
+	// AddressProblem With needs_address, why the controller has no address a runner can reach.
+	AddressProblem *string `json:"address_problem,omitempty"`
 
-	// InstallationUrl The GitHub page where the installation's owner accepts it.
-	InstallationUrl    *string           `json:"installation_url,omitempty"`
+	// AddressSetting With needs_address, the setting to fix.
+	AddressSetting *string `json:"address_setting,omitempty"`
+
+	// Grant github-integration R5.86.
+	Grant              *GithubGrant      `json:"grant,omitempty"`
 	MissingPermissions *[]string         `json:"missing_permissions,omitempty"`
 	Status             ParitySetupStatus `json:"status"`
 	VariableNames      *[]string         `json:"variable_names,omitempty"`
@@ -3043,11 +3241,8 @@ type ParitySetup struct {
 // ParitySetupStatus defines model for ParitySetup.Status.
 type ParitySetupStatus string
 
-// ParitySetupRequest defines model for ParitySetupRequest.
-type ParitySetupRequest struct {
-	// ControllerUrl The address the runner reaches the controller at. Empty uses the address of this console.
-	ControllerUrl *string `json:"controller_url,omitempty"`
-}
+// ParitySetupRequest No fields. The address is the controller's own, never one the browser sends (CRSP141).
+type ParitySetupRequest = map[string]interface{}
 
 // PauseReason Why a machine takes no new job (machines R5.62). Other features read these exact names.
 type PauseReason string
@@ -4029,6 +4224,14 @@ type ExportJobsParamsFormat string
 // ExportJobsParamsState defines parameters for ExportJobs.
 type ExportJobsParamsState string
 
+// GetGithubGrantParams defines parameters for GetGithubGrant.
+type GetGithubGrantParams struct {
+	// Permissions GitHub permission names, comma separated, such as `secrets,actions_variables`.
+	Permissions    *string `form:"permissions,omitempty" json:"permissions,omitempty"`
+	InstallationId *int64  `form:"installation_id,omitempty" json:"installation_id,omitempty"`
+	RepositoryId   *int64  `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+}
+
 // ListRepositoriesParams defines parameters for ListRepositories.
 type ListRepositoriesParams struct {
 	InstallationId *int64                      `form:"installation_id,omitempty" json:"installation_id,omitempty"`
@@ -4617,6 +4820,13 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/github/app-health (the `GetAppHealth` operationId).
 	GetAppHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetGithubGrant What a task still needs from GitHub, step by step
+	//
+	// github-integration R5.86. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
+	//
+	// Corresponds with GET /api/v1/github/grant (the `GetGithubGrant` operationId).
+	GetGithubGrant(ctx context.Context, params *GetGithubGrantParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	//
 	// web-console 4.3.
@@ -5055,6 +5265,13 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/packages/{name} (the `GetPackage` operationId).
 	GetPackage(ctx context.Context, name string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetParityAddress The address the parity setup will write, and whether it answers
+	//
+	// github-integration R5.84 (CRSP141). The address a runner uses to reach the controller: https, the public host and the console port, the same address machines join at. The controller calls it from the server side with its own CA and says whether it answers. A controller with no such address answers `needs_address` with the setting to fix.
+	//
+	// Corresponds with GET /api/v1/parity-address (the `GetParityAddress` operationId).
+	GetParityAddress(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
 	//
 	// runners R5.77, R5.78. No password is ever returned.
@@ -5142,7 +5359,7 @@ type ClientInterface interface {
 
 	// SetupRepositoryParityWithBody Set up parity for this repository
 	//
-	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -5151,7 +5368,7 @@ type ClientInterface interface {
 
 	// SetupRepositoryParity Set up parity for this repository
 	//
-	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -6236,6 +6453,23 @@ func (c *Client) GetAppHealth(ctx context.Context, reqEditors ...RequestEditorFn
 	return c.Client.Do(req)
 }
 
+// GetGithubGrant What a task still needs from GitHub, step by step
+//
+// github-integration R5.86. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
+//
+// Corresponds with GET /api/v1/github/grant (the `GetGithubGrant` operationId).
+func (c *Client) GetGithubGrant(ctx context.Context, params *GetGithubGrantParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetGithubGrantRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetAppInstallUrl GitHub's page to install the App on more repositories
 //
 // web-console 4.3.
@@ -7234,6 +7468,23 @@ func (c *Client) GetPackage(ctx context.Context, name string, reqEditors ...Requ
 	return c.Client.Do(req)
 }
 
+// GetParityAddress The address the parity setup will write, and whether it answers
+//
+// github-integration R5.84 (CRSP141). The address a runner uses to reach the controller: https, the public host and the console port, the same address machines join at. The controller calls it from the server side with its own CA and says whether it answers. A controller with no such address answers `needs_address` with the setting to fix.
+//
+// Corresponds with GET /api/v1/parity-address (the `GetParityAddress` operationId).
+func (c *Client) GetParityAddress(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetParityAddressRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
 //
 // runners R5.77, R5.78. No password is ever returned.
@@ -7431,7 +7682,7 @@ func (c *Client) SetRepositoryExtraPackages(ctx context.Context, repositoryId Re
 
 // SetupRepositoryParityWithBody Set up parity for this repository
 //
-// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 //
 // Takes any type of body and a specified content type.
 //
@@ -7450,7 +7701,7 @@ func (c *Client) SetupRepositoryParityWithBody(ctx context.Context, repositoryId
 
 // SetupRepositoryParity Set up parity for this repository
 //
-// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -9968,6 +10219,84 @@ func NewGetAppHealthRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewGetGithubGrantRequest constructs an http.Request for the GetGithubGrant method
+func NewGetGithubGrantRequest(server string, params *GetGithubGrantParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/github/grant")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Permissions != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "permissions", *params.Permissions, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.InstallationId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "installation_id", *params.InstallationId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.RepositoryId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repository_id", *params.RepositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetAppInstallUrlRequest constructs an http.Request for the GetAppInstallUrl method
 func NewGetAppInstallUrlRequest(server string) (*http.Request, error) {
 	var err error
@@ -11840,6 +12169,33 @@ func NewGetPackageRequest(server string, name string) (*http.Request, error) {
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/packages/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetParityAddressRequest constructs an http.Request for the GetParityAddress method
+func NewGetParityAddressRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/parity-address")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -14393,6 +14749,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/github/app-health (the `GetAppHealth` operationId).
 	GetAppHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAppHealthResponse, error)
 
+	// GetGithubGrantWithResponse What a task still needs from GitHub, step by step
+	//
+	// github-integration R5.86. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/github/grant (the `GetGithubGrant` operationId).
+	GetGithubGrantWithResponse(ctx context.Context, params *GetGithubGrantParams, reqEditors ...RequestEditorFn) (*GetGithubGrantResponse, error)
+
 	// GetAppInstallUrlWithResponse GitHub's page to install the App on more repositories
 	//
 	// web-console 4.3.
@@ -14887,6 +15252,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/packages/{name} (the `GetPackage` operationId).
 	GetPackageWithResponse(ctx context.Context, name string, reqEditors ...RequestEditorFn) (*GetPackageResponse, error)
 
+	// GetParityAddressWithResponse The address the parity setup will write, and whether it answers
+	//
+	// github-integration R5.84 (CRSP141). The address a runner uses to reach the controller: https, the public host and the console port, the same address machines join at. The controller calls it from the server side with its own CA and says whether it answers. A controller with no such address answers `needs_address` with the setting to fix.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/parity-address (the `GetParityAddress` operationId).
+	GetParityAddressWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetParityAddressResponse, error)
+
 	// GetRegistrySettingsWithResponse Registry logins per backend and whether a private CA bundle is set
 	//
 	// runners R5.77, R5.78. No password is ever returned.
@@ -14984,7 +15358,7 @@ type ClientWithResponsesInterface interface {
 
 	// SetupRepositoryParityWithBodyWithResponse Set up parity for this repository
 	//
-	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -14993,7 +15367,7 @@ type ClientWithResponsesInterface interface {
 
 	// SetupRepositoryParityWithResponse Set up parity for this repository
 	//
-	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+	// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -16954,6 +17328,54 @@ func (r GetAppHealthResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetAppHealthResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetGithubGrantResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *GithubGrant
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetGithubGrantResponse) GetJSON200() *GithubGrant {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetGithubGrantResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetGithubGrantResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetGithubGrantResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetGithubGrantResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetGithubGrantResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -18943,6 +19365,54 @@ func (r GetPackageResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetPackageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetParityAddressResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ParityAddress
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetParityAddressResponse) GetJSON200() *ParityAddress {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetParityAddressResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetParityAddressResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetParityAddressResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetParityAddressResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetParityAddressResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -21993,6 +22463,21 @@ func (c *ClientWithResponses) GetAppHealthWithResponse(ctx context.Context, reqE
 	return ParseGetAppHealthResponse(rsp)
 }
 
+// GetGithubGrantWithResponse What a task still needs from GitHub, step by step
+//
+// github-integration R5.86. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/github/grant (the `GetGithubGrant` operationId).
+func (c *ClientWithResponses) GetGithubGrantWithResponse(ctx context.Context, params *GetGithubGrantParams, reqEditors ...RequestEditorFn) (*GetGithubGrantResponse, error) {
+	rsp, err := c.GetGithubGrant(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetGithubGrantResponse(rsp)
+}
+
 // GetAppInstallUrlWithResponse GitHub's page to install the App on more repositories
 //
 // web-console 4.3.
@@ -22823,6 +23308,21 @@ func (c *ClientWithResponses) GetPackageWithResponse(ctx context.Context, name s
 	return ParseGetPackageResponse(rsp)
 }
 
+// GetParityAddressWithResponse The address the parity setup will write, and whether it answers
+//
+// github-integration R5.84 (CRSP141). The address a runner uses to reach the controller: https, the public host and the console port, the same address machines join at. The controller calls it from the server side with its own CA and says whether it answers. A controller with no such address answers `needs_address` with the setting to fix.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/parity-address (the `GetParityAddress` operationId).
+func (c *ClientWithResponses) GetParityAddressWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetParityAddressResponse, error) {
+	rsp, err := c.GetParityAddress(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetParityAddressResponse(rsp)
+}
+
 // GetRegistrySettingsWithResponse Registry logins per backend and whether a private CA bundle is set
 //
 // runners R5.77, R5.78. No password is ever returned.
@@ -22986,7 +23486,7 @@ func (c *ClientWithResponses) SetRepositoryExtraPackagesWithResponse(ctx context
 
 // SetupRepositoryParityWithBodyWithResponse Set up parity for this repository
 //
-// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -23001,7 +23501,7 @@ func (c *ClientWithResponses) SetupRepositoryParityWithBodyWithResponse(ctx cont
 
 // SetupRepositoryParityWithResponse Set up parity for this repository
 //
-// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+// github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -24925,6 +25425,39 @@ func ParseGetAppHealthResponse(rsp *http.Response) (*GetAppHealthResponse, error
 	return response, nil
 }
 
+// ParseGetGithubGrantResponse parses an HTTP response from a GetGithubGrantWithResponse call
+func ParseGetGithubGrantResponse(rsp *http.Response) (*GetGithubGrantResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetGithubGrantResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest GithubGrant
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetAppInstallUrlResponse parses an HTTP response from a GetAppInstallUrlWithResponse call
 func ParseGetAppInstallUrlResponse(rsp *http.Response) (*GetAppInstallUrlResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -26296,6 +26829,39 @@ func ParseGetPackageResponse(rsp *http.Response) (*GetPackageResponse, error) {
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetParityAddressResponse parses an HTTP response from a GetParityAddressWithResponse call
+func ParseGetParityAddressResponse(rsp *http.Response) (*GetParityAddressResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetParityAddressResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ParityAddress
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {

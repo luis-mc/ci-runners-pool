@@ -72,8 +72,8 @@ var githubAreaAuth = map[string]string{
 	"replaceAppPrivateKey": authOwner, "getPublicRepositories": authUser, "setPublicRepositories": authOwner,
 	// CRSP134 access credentials for CI and the parity setup action.
 	"listAccessCredentials": authAdmin, "createAccessCredential": authAdmin, "revokeAccessCredential": authAdmin,
-	"setupRepositoryParity": authAdmin,
-	"receiveGithubWebhook":  authPublic,
+	"setupRepositoryParity": authAdmin, "getParityAddress": authAdmin, "getGithubGrant": authAdmin,
+	"receiveGithubWebhook": authPublic,
 	// CRSP37 notification channels: any signed-in user; a webhook needs an admin (checked in the service).
 	"listNotificationChannels": authUser, "createNotificationChannel": authUser, "updateNotificationChannel": authUser,
 	"deleteNotificationChannel": authUser, "testNotificationChannel": authUser,

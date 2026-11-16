@@ -309,6 +309,27 @@ func (e CreateJoinFileRequestOs) Valid() bool {
 	}
 }
 
+// Defines values for DockerCompactMode.
+const (
+	DockerCompactModeAuto DockerCompactMode = "auto"
+	DockerCompactModeOff  DockerCompactMode = "off"
+	DockerCompactModeOn   DockerCompactMode = "on"
+)
+
+// Valid indicates whether the value is a known member of the DockerCompactMode enum.
+func (e DockerCompactMode) Valid() bool {
+	switch e {
+	case DockerCompactModeAuto:
+		return true
+	case DockerCompactModeOff:
+		return true
+	case DockerCompactModeOn:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DoctorRunState.
 const (
 	DoctorRunStateDone    DoctorRunState = "done"
@@ -369,6 +390,48 @@ func (e FreeSlotsRequestSlotsKind) Valid() bool {
 	case FreeSlotsRequestSlotsKindHeavy:
 		return true
 	case FreeSlotsRequestSlotsKindLight:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GithubGrantNext.
+const (
+	GithubGrantNextAccept  GithubGrantNext = "accept"
+	GithubGrantNextAsk     GithubGrantNext = "ask"
+	GithubGrantNextInstall GithubGrantNext = "install"
+)
+
+// Valid indicates whether the value is a known member of the GithubGrantNext enum.
+func (e GithubGrantNext) Valid() bool {
+	switch e {
+	case GithubGrantNextAccept:
+		return true
+	case GithubGrantNextAsk:
+		return true
+	case GithubGrantNextInstall:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GithubGrantStepId.
+const (
+	GithubGrantStepIdAccept  GithubGrantStepId = "accept"
+	GithubGrantStepIdAsk     GithubGrantStepId = "ask"
+	GithubGrantStepIdInstall GithubGrantStepId = "install"
+)
+
+// Valid indicates whether the value is a known member of the GithubGrantStepId enum.
+func (e GithubGrantStepId) Valid() bool {
+	switch e {
+	case GithubGrantStepIdAccept:
+		return true
+	case GithubGrantStepIdAsk:
+		return true
+	case GithubGrantStepIdInstall:
 		return true
 	default:
 		return false
@@ -912,9 +975,31 @@ func (e OS) Valid() bool {
 	}
 }
 
+// Defines values for ParityAddressStatus.
+const (
+	ParityAddressStatusNeedsAddress ParityAddressStatus = "needs_address"
+	ParityAddressStatusOk           ParityAddressStatus = "ok"
+	ParityAddressStatusUnreachable  ParityAddressStatus = "unreachable"
+)
+
+// Valid indicates whether the value is a known member of the ParityAddressStatus enum.
+func (e ParityAddressStatus) Valid() bool {
+	switch e {
+	case ParityAddressStatusNeedsAddress:
+		return true
+	case ParityAddressStatusOk:
+		return true
+	case ParityAddressStatusUnreachable:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ParitySetupStatus.
 const (
 	ParitySetupStatusDone            ParitySetupStatus = "done"
+	ParitySetupStatusNeedsAddress    ParitySetupStatus = "needs_address"
 	ParitySetupStatusNeedsPermission ParitySetupStatus = "needs_permission"
 )
 
@@ -922,6 +1007,8 @@ const (
 func (e ParitySetupStatus) Valid() bool {
 	switch e {
 	case ParitySetupStatusDone:
+		return true
+	case ParitySetupStatusNeedsAddress:
 		return true
 	case ParitySetupStatusNeedsPermission:
 		return true
@@ -2224,6 +2311,32 @@ type CreateJoinFileRequest struct {
 // CreateJoinFileRequestOs defines model for CreateJoinFileRequest.Os.
 type CreateJoinFileRequestOs string
 
+// DockerCompactMode The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
+type DockerCompactMode string
+
+// DockerCompactStatus The Docker disk compact policy of one machine and what the agent reported about the disk file (caches R5.51 to R5.54). Read only.
+type DockerCompactStatus struct {
+	// CanCompact The agent has the administrator rights the compact needs.
+	CanCompact bool `json:"can_compact"`
+
+	// DiskPresent The agent found a Docker Desktop disk file.
+	DiskPresent bool `json:"disk_present"`
+
+	// Enabled The policy is on for this machine.
+	Enabled   bool       `json:"enabled"`
+	FileBytes *int64     `json:"file_bytes,omitempty"`
+	LastAt    *time.Time `json:"last_at,omitempty"`
+
+	// LastResult Sizes of the last compact, or why it failed.
+	LastResult *string `json:"last_result,omitempty"`
+
+	// Reason Why the last look did not compact, or `run`. One of off, offline, not_active, no_report, no_admin, below_threshold, outside_quiet_hours, busy, not_idle_long_enough, done_today, already_running, change_open.
+	Reason           *string `json:"reason,omitempty"`
+	ReclaimableBytes *int64  `json:"reclaimable_bytes,omitempty"`
+	Running          bool    `json:"running"`
+	UsedBytes        *int64  `json:"used_bytes,omitempty"`
+}
+
 // DoctorFinding defines model for DoctorFinding.
 type DoctorFinding struct {
 	Check     string    `json:"check"`
@@ -2406,6 +2519,39 @@ type GitHubApp struct {
 	Slug          string             `json:"slug"`
 	WebhookActive bool               `json:"webhook_active"`
 }
+
+// GithubGrant github-integration R5.86.
+type GithubGrant struct {
+	InstallationId *int64 `json:"installation_id,omitempty"`
+
+	// Missing The needed permissions that are not accepted yet, by GitHub's name.
+	Missing []string `json:"missing"`
+
+	// Next The first step that is not done. Absent when ready.
+	Next *GithubGrantNext `json:"next,omitempty"`
+
+	// Ready Every needed permission is accepted by the installation.
+	Ready bool              `json:"ready"`
+	Steps []GithubGrantStep `json:"steps"`
+}
+
+// GithubGrantNext The first step that is not done. Absent when ready.
+type GithubGrantNext string
+
+// GithubGrantStep defines model for GithubGrantStep.
+type GithubGrantStep struct {
+	Done bool              `json:"done"`
+	Id   GithubGrantStepId `json:"id"`
+
+	// Permissions The permissions still waiting at this step.
+	Permissions []string `json:"permissions"`
+
+	// Url The GitHub page of the step. Absent when the step has none.
+	Url *string `json:"url,omitempty"`
+}
+
+// GithubGrantStepId defines model for GithubGrantStep.Id.
+type GithubGrantStepId string
 
 // Health defines model for Health.
 type Health struct {
@@ -2628,6 +2774,9 @@ type Machine struct {
 	// ContainerOs The operating system the machine's container engine runs containers for (machines R5.18, runners R5.47), when the engine answers. A Windows machine with Docker Desktop on WSL2 says `linux`. Absent when the engine does not answer or the agent has not reported.
 	ContainerOs *OS `json:"container_os,omitempty"`
 
+	// DockerCompactStatus The Docker disk compact policy of one machine and what the agent reported about the disk file (caches R5.51 to R5.54). Read only.
+	DockerCompactStatus *DockerCompactStatus `json:"docker_compact_status,omitempty"`
+
 	// Facts machines R5.10.
 	Facts *MachineFacts `json:"facts,omitempty"`
 	Id    string        `json:"id"`
@@ -2775,16 +2924,31 @@ type MachineSettings struct {
 	CacheCapBytes   *int64        `json:"cache_cap_bytes,omitempty"`
 
 	// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.64). Separate from the load budget. 100 is no cap.
-	CpuCapPct           *CpuCapPct                    `json:"cpu_cap_pct,omitempty"`
-	DrainTimeoutMinutes int                           `json:"drain_timeout_minutes"`
-	GateMaxWaitMinutes  *int                          `json:"gate_max_wait_minutes,omitempty"`
-	GateOnTimeout       *MachineSettingsGateOnTimeout `json:"gate_on_timeout,omitempty"`
-	GatePollSeconds     *int                          `json:"gate_poll_seconds,omitempty"`
-	HeavyJobs           *[]string                     `json:"heavy_jobs,omitempty"`
-	HeavySlots          int                           `json:"heavy_slots"`
-	JobSlots            int                           `json:"job_slots"`
-	LightJobs           *[]string                     `json:"light_jobs,omitempty"`
-	LightSlots          int                           `json:"light_slots"`
+	CpuCapPct *CpuCapPct `json:"cpu_cap_pct,omitempty"`
+
+	// DockerCompact The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
+	DockerCompact *DockerCompactMode `json:"docker_compact,omitempty"`
+
+	// DockerCompactIdleMinutes How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
+	DockerCompactIdleMinutes *int `json:"docker_compact_idle_minutes,omitempty"`
+
+	// DockerCompactQuietEnd End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
+	DockerCompactQuietEnd *string `json:"docker_compact_quiet_end,omitempty"`
+
+	// DockerCompactQuietStart Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
+	DockerCompactQuietStart *string `json:"docker_compact_quiet_start,omitempty"`
+
+	// DockerCompactThresholdGib How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54).
+	DockerCompactThresholdGib *int                          `json:"docker_compact_threshold_gib,omitempty"`
+	DrainTimeoutMinutes       int                           `json:"drain_timeout_minutes"`
+	GateMaxWaitMinutes        *int                          `json:"gate_max_wait_minutes,omitempty"`
+	GateOnTimeout             *MachineSettingsGateOnTimeout `json:"gate_on_timeout,omitempty"`
+	GatePollSeconds           *int                          `json:"gate_poll_seconds,omitempty"`
+	HeavyJobs                 *[]string                     `json:"heavy_jobs,omitempty"`
+	HeavySlots                int                           `json:"heavy_slots"`
+	JobSlots                  int                           `json:"job_slots"`
+	LightJobs                 *[]string                     `json:"light_jobs,omitempty"`
+	LightSlots                int                           `json:"light_slots"`
 
 	// Mode Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.61).
 	Mode *MachineMode `json:"mode,omitempty"`
@@ -2826,14 +2990,29 @@ type MachineSettingsUpdate struct {
 	ConfirmShrink *bool `json:"confirm_shrink,omitempty"`
 
 	// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.64). Separate from the load budget. 100 is no cap.
-	CpuCapPct           *CpuCapPct                          `json:"cpu_cap_pct,omitempty"`
-	DrainTimeoutMinutes *int                                `json:"drain_timeout_minutes,omitempty"`
-	GateOnTimeout       *MachineSettingsUpdateGateOnTimeout `json:"gate_on_timeout,omitempty"`
-	HeavyJobs           *[]string                           `json:"heavy_jobs,omitempty"`
-	HeavySlots          *int                                `json:"heavy_slots,omitempty"`
-	JobSlots            *int                                `json:"job_slots,omitempty"`
-	LightJobs           *[]string                           `json:"light_jobs,omitempty"`
-	LightSlots          *int                                `json:"light_slots,omitempty"`
+	CpuCapPct *CpuCapPct `json:"cpu_cap_pct,omitempty"`
+
+	// DockerCompact The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
+	DockerCompact *DockerCompactMode `json:"docker_compact,omitempty"`
+
+	// DockerCompactIdleMinutes How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
+	DockerCompactIdleMinutes *int `json:"docker_compact_idle_minutes,omitempty"`
+
+	// DockerCompactQuietEnd End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
+	DockerCompactQuietEnd *string `json:"docker_compact_quiet_end,omitempty"`
+
+	// DockerCompactQuietStart Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
+	DockerCompactQuietStart *string `json:"docker_compact_quiet_start,omitempty"`
+
+	// DockerCompactThresholdGib How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54).
+	DockerCompactThresholdGib *int                                `json:"docker_compact_threshold_gib,omitempty"`
+	DrainTimeoutMinutes       *int                                `json:"drain_timeout_minutes,omitempty"`
+	GateOnTimeout             *MachineSettingsUpdateGateOnTimeout `json:"gate_on_timeout,omitempty"`
+	HeavyJobs                 *[]string                           `json:"heavy_jobs,omitempty"`
+	HeavySlots                *int                                `json:"heavy_slots,omitempty"`
+	JobSlots                  *int                                `json:"job_slots,omitempty"`
+	LightJobs                 *[]string                           `json:"light_jobs,omitempty"`
+	LightSlots                *int                                `json:"light_slots,omitempty"`
 
 	// Mode Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.61).
 	Mode *MachineMode `json:"mode,omitempty"`
@@ -3021,6 +3200,22 @@ type Overview struct {
 	Waiting *[]WaitingJob `json:"waiting,omitempty"`
 }
 
+// ParityAddress defines model for ParityAddress.
+type ParityAddress struct {
+	// Problem Why the address does not answer, or why the controller has none.
+	Problem *string `json:"problem,omitempty"`
+
+	// Setting The setting to fix when the controller has no address a runner can reach.
+	Setting *string             `json:"setting,omitempty"`
+	Status  ParityAddressStatus `json:"status"`
+
+	// Url The address that will be written as CRSP_URL. Empty with needs_address.
+	Url *string `json:"url,omitempty"`
+}
+
+// ParityAddressStatus defines model for ParityAddress.Status.
+type ParityAddressStatus string
+
 // ParitySetup defines model for ParitySetup.
 type ParitySetup struct {
 	// AccessId The id of the access credential that was made.
@@ -3029,11 +3224,14 @@ type ParitySetup struct {
 	// AccessName The name of the repository Actions value that holds the access, CRSP_ACCESS.
 	AccessName *string `json:"access_name,omitempty"`
 
-	// AppPermissionsUrl The GitHub page where the App's owner asks for the permission.
-	AppPermissionsUrl *string `json:"app_permissions_url,omitempty"`
+	// AddressProblem With needs_address, why the controller has no address a runner can reach.
+	AddressProblem *string `json:"address_problem,omitempty"`
 
-	// InstallationUrl The GitHub page where the installation's owner accepts it.
-	InstallationUrl    *string           `json:"installation_url,omitempty"`
+	// AddressSetting With needs_address, the setting to fix.
+	AddressSetting *string `json:"address_setting,omitempty"`
+
+	// Grant github-integration R5.86.
+	Grant              *GithubGrant      `json:"grant,omitempty"`
 	MissingPermissions *[]string         `json:"missing_permissions,omitempty"`
 	Status             ParitySetupStatus `json:"status"`
 	VariableNames      *[]string         `json:"variable_names,omitempty"`
@@ -3042,11 +3240,8 @@ type ParitySetup struct {
 // ParitySetupStatus defines model for ParitySetup.Status.
 type ParitySetupStatus string
 
-// ParitySetupRequest defines model for ParitySetupRequest.
-type ParitySetupRequest struct {
-	// ControllerUrl The address the runner reaches the controller at. Empty uses the address of this console.
-	ControllerUrl *string `json:"controller_url,omitempty"`
-}
+// ParitySetupRequest No fields. The address is the controller's own, never one the browser sends (CRSP141).
+type ParitySetupRequest = map[string]interface{}
 
 // PauseReason Why a machine takes no new job (machines R5.62). Other features read these exact names.
 type PauseReason string
@@ -4028,6 +4223,14 @@ type ExportJobsParamsFormat string
 // ExportJobsParamsState defines parameters for ExportJobs.
 type ExportJobsParamsState string
 
+// GetGithubGrantParams defines parameters for GetGithubGrant.
+type GetGithubGrantParams struct {
+	// Permissions GitHub permission names, comma separated, such as `secrets,actions_variables`.
+	Permissions    *string `form:"permissions,omitempty" json:"permissions,omitempty"`
+	InstallationId *int64  `form:"installation_id,omitempty" json:"installation_id,omitempty"`
+	RepositoryId   *int64  `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+}
+
 // ListRepositoriesParams defines parameters for ListRepositories.
 type ListRepositoriesParams struct {
 	InstallationId *int64                      `form:"installation_id,omitempty" json:"installation_id,omitempty"`
@@ -4377,6 +4580,9 @@ type ServerInterface interface {
 	// GetAppHealth Whether the GitHub App and its key still exist
 	// (GET /api/v1/github/app-health)
 	GetAppHealth(w http.ResponseWriter, r *http.Request)
+	// GetGithubGrant What a task still needs from GitHub, step by step
+	// (GET /api/v1/github/grant)
+	GetGithubGrant(w http.ResponseWriter, r *http.Request, params GetGithubGrantParams)
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	// (GET /api/v1/github/install-url)
 	GetAppInstallUrl(w http.ResponseWriter, r *http.Request)
@@ -4503,6 +4709,9 @@ type ServerInterface interface {
 	// GetPackage A release package, or SHA256SUMS
 	// (GET /api/v1/packages/{name})
 	GetPackage(w http.ResponseWriter, r *http.Request, name string)
+	// GetParityAddress The address the parity setup will write, and whether it answers
+	// (GET /api/v1/parity-address)
+	GetParityAddress(w http.ResponseWriter, r *http.Request)
 	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
 	// (GET /api/v1/registry)
 	GetRegistrySettings(w http.ResponseWriter, r *http.Request)
@@ -5640,6 +5849,65 @@ func (siw *ServerInterfaceWrapper) GetAppHealth(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetAppHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGithubGrant operation middleware
+func (siw *ServerInterfaceWrapper) GetGithubGrant(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetGithubGrantParams
+
+	// ------------- Optional query parameter "permissions" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "permissions", r.URL.Query(), &params.Permissions, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "permissions"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "permissions", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "installation_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "installation_id", r.URL.Query(), &params.InstallationId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "installation_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "installation_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "repository_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "repository_id", r.URL.Query(), &params.RepositoryId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "repository_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repository_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGithubGrant(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6865,6 +7133,20 @@ func (siw *ServerInterfaceWrapper) GetPackage(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetPackage(w, r, name)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetParityAddress operation middleware
+func (siw *ServerInterfaceWrapper) GetParityAddress(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetParityAddress(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -8356,6 +8638,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/access-credentials", wrapper.ListAccessCredentials)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/access-credentials", wrapper.CreateAccessCredential)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/access-credentials/{credentialId}", wrapper.RevokeAccessCredential)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/parity-address", wrapper.GetParityAddress)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/parity-setup", wrapper.SetupRepositoryParity)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/logout", wrapper.SignOut)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/console-links", wrapper.CreateConsoleLink)
@@ -8371,6 +8654,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/app-health", wrapper.GetAppHealth)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/org-pools", wrapper.ListOrgPools)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/github/installations/{installationId}/org-pool", wrapper.SetOrgPool)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/grant", wrapper.GetGithubGrant)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/install-url", wrapper.GetAppInstallUrl)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/repositories", wrapper.ListRepositories)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repository-plans", wrapper.PlanRepositoryChanges)
@@ -9773,6 +10057,45 @@ type GetAppHealthdefaultJSONResponse struct {
 }
 
 func (response GetAppHealthdefaultJSONResponse) VisitGetAppHealthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetGithubGrantRequestObject struct {
+	Params GetGithubGrantParams
+}
+
+type GetGithubGrantResponseObject interface {
+	VisitGetGithubGrantResponse(w http.ResponseWriter) error
+}
+
+type GetGithubGrant200JSONResponse GithubGrant
+
+func (response GetGithubGrant200JSONResponse) VisitGetGithubGrantResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetGithubGrantdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetGithubGrantdefaultJSONResponse) VisitGetGithubGrantResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -11428,6 +11751,44 @@ type GetPackagedefaultJSONResponse struct {
 }
 
 func (response GetPackagedefaultJSONResponse) VisitGetPackageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetParityAddressRequestObject struct {
+}
+
+type GetParityAddressResponseObject interface {
+	VisitGetParityAddressResponse(w http.ResponseWriter) error
+}
+
+type GetParityAddress200JSONResponse ParityAddress
+
+func (response GetParityAddress200JSONResponse) VisitGetParityAddressResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetParityAddressdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetParityAddressdefaultJSONResponse) VisitGetParityAddressResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -13570,6 +13931,9 @@ type StrictServerInterface interface {
 	// GetAppHealth Whether the GitHub App and its key still exist
 	// (GET /api/v1/github/app-health)
 	GetAppHealth(ctx context.Context, request GetAppHealthRequestObject) (GetAppHealthResponseObject, error)
+	// GetGithubGrant What a task still needs from GitHub, step by step
+	// (GET /api/v1/github/grant)
+	GetGithubGrant(ctx context.Context, request GetGithubGrantRequestObject) (GetGithubGrantResponseObject, error)
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	// (GET /api/v1/github/install-url)
 	GetAppInstallUrl(ctx context.Context, request GetAppInstallUrlRequestObject) (GetAppInstallUrlResponseObject, error)
@@ -13696,6 +14060,9 @@ type StrictServerInterface interface {
 	// GetPackage A release package, or SHA256SUMS
 	// (GET /api/v1/packages/{name})
 	GetPackage(ctx context.Context, request GetPackageRequestObject) (GetPackageResponseObject, error)
+	// GetParityAddress The address the parity setup will write, and whether it answers
+	// (GET /api/v1/parity-address)
+	GetParityAddress(ctx context.Context, request GetParityAddressRequestObject) (GetParityAddressResponseObject, error)
 	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
 	// (GET /api/v1/registry)
 	GetRegistrySettings(ctx context.Context, request GetRegistrySettingsRequestObject) (GetRegistrySettingsResponseObject, error)
@@ -14677,6 +15044,32 @@ func (sh *strictHandler) GetAppHealth(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetAppHealthResponseObject); ok {
 		if err := validResponse.VisitGetAppHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetGithubGrant operation middleware
+func (sh *strictHandler) GetGithubGrant(w http.ResponseWriter, r *http.Request, params GetGithubGrantParams) {
+	var request GetGithubGrantRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetGithubGrant(ctx, request.(GetGithubGrantRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetGithubGrant")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetGithubGrantResponseObject); ok {
+		if err := validResponse.VisitGetGithubGrantResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -15855,6 +16248,30 @@ func (sh *strictHandler) GetPackage(w http.ResponseWriter, r *http.Request, name
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetPackageResponseObject); ok {
 		if err := validResponse.VisitGetPackageResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetParityAddress operation middleware
+func (sh *strictHandler) GetParityAddress(w http.ResponseWriter, r *http.Request) {
+	var request GetParityAddressRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetParityAddress(ctx, request.(GetParityAddressRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetParityAddress")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetParityAddressResponseObject); ok {
+		if err := validResponse.VisitGetParityAddressResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

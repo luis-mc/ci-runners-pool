@@ -76,3 +76,51 @@ func TestMachineStatusShowsTheAgentsReport(t *testing.T) {
 		t.Fatalf("policy %+v", m.Policy)
 	}
 }
+
+// caches R5.51 to R5.54 over the API: the compact policy is saved with its defaults
+// shown, wrong values give 400, and the agent's disk report shows as a status.
+func TestMachineDockerCompactSettingsAndStatus(t *testing.T) {
+	svc, mux, id := poolSvcMux(t)
+	var m gen.Machine
+	get := func() {
+		t.Helper()
+		m = gen.Machine{}
+		rec := doM(t, mux, "GET", "/api/v1/machines/"+id, nil)
+		if rec.Code != 200 || json.Unmarshal(rec.Body.Bytes(), &m) != nil {
+			t.Fatalf("%d %s", rec.Code, rec.Body)
+		}
+	}
+	get()
+	s := m.Settings
+	if *s.DockerCompact != gen.DockerCompactModeAuto || *s.DockerCompactThresholdGib != 30 || *s.DockerCompactIdleMinutes != 30 ||
+		*s.DockerCompactQuietStart != "01:00" || *s.DockerCompactQuietEnd != "06:00" || m.DockerCompactStatus != nil {
+		t.Fatalf("defaults: %+v status %+v", s, m.DockerCompactStatus)
+	}
+	rec := doM(t, mux, "PATCH", "/api/v1/machines/"+id, map[string]any{
+		"docker_compact": "on", "docker_compact_threshold_gib": 50, "docker_compact_idle_minutes": 45,
+		"docker_compact_quiet_start": "02:30", "docker_compact_quiet_end": "05:00"})
+	if rec.Code != 200 {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+	get()
+	s = m.Settings
+	if *s.DockerCompact != gen.DockerCompactModeOn || *s.DockerCompactThresholdGib != 50 || *s.DockerCompactIdleMinutes != 45 ||
+		*s.DockerCompactQuietStart != "02:30" || *s.DockerCompactQuietEnd != "05:00" {
+		t.Fatalf("saved: %+v", s)
+	}
+	if rec := doM(t, mux, "PATCH", "/api/v1/machines/"+id, map[string]any{"docker_compact": "auto"}); rec.Code != 200 {
+		t.Fatalf("auto: %d %s", rec.Code, rec.Body)
+	}
+	for _, body := range []map[string]any{{"docker_compact": "sometimes"}, {"docker_compact_quiet_start": "1am"}, {"docker_compact_idle_minutes": 5000}} {
+		if rec := doM(t, mux, "PATCH", "/api/v1/machines/"+id, body); rec.Code != 400 {
+			t.Errorf("%v: %d %s", body, rec.Code, rec.Body)
+		}
+	}
+	svc.HandleMachineReport(id, &agentv1.MachineReport{DockerDisk: &agentv1.DockerDiskReport{
+		Present: true, FileBytes: 236 << 30, UsedKnown: true, UsedBytes: 71 << 30, CanCompact: false}})
+	get()
+	st := m.DockerCompactStatus
+	if st == nil || !st.DiskPresent || st.CanCompact || *st.FileBytes != 236<<30 || *st.ReclaimableBytes != 165<<30 {
+		t.Fatalf("status %+v", st)
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -181,11 +182,26 @@ func settingsToAPI(st machines.Settings) gen.MachineSettings {
 	out.PauseOnBattery = machinesPtr(st.PauseOnBattery)
 	out.CpuCapPct = machinesPtr(gen.CpuCapPct(st.EffectiveCPUCap()))
 	out.PauseUntilResumed = machinesPtr(st.PausedUntilResumed)
+	mode := gen.DockerCompactModeAuto
+	switch st.CompactMode {
+	case machines.CompactOn:
+		mode = gen.DockerCompactModeOn
+	case machines.CompactOff:
+		mode = gen.DockerCompactModeOff
+	}
+	pol := st.EffectiveCompact()
+	out.DockerCompact = machinesPtr(mode)
+	out.DockerCompactThresholdGib = machinesPtr(int(pol.ThresholdBytes >> 30))
+	out.DockerCompactIdleMinutes = machinesPtr(int(pol.Idle / time.Minute))
+	out.DockerCompactQuietStart = machinesPtr(clockText(pol.QuietStart))
+	out.DockerCompactQuietEnd = machinesPtr(clockText(pol.QuietEnd))
 	if !st.PauseUntil.IsZero() {
 		out.PauseUntil = machinesPtr(st.PauseUntil)
 	}
 	return out
 }
+
+func clockText(min int) string { return fmt.Sprintf("%02d:%02d", min/60, min%60) }
 
 func f32(v float64) *float32 { x := float32(v); return &x }
 
@@ -217,6 +233,22 @@ func machineToAPI(v machines.View, now time.Time) gen.Machine {
 		pol.CpuCapDetail = machinesPtr(v.Policy.CPUCapDetail)
 	}
 	out.Policy = &pol
+	if cs := v.Compact; cs.Disk.Reported {
+		d := gen.DockerCompactStatus{Enabled: cs.Enabled, Running: cs.Running, DiskPresent: cs.Disk.Present, CanCompact: cs.Disk.CanCompact}
+		if cs.Reason != "" {
+			d.Reason = machinesPtr(cs.Reason)
+		}
+		if cs.Disk.Present {
+			d.FileBytes, d.UsedBytes, d.ReclaimableBytes = machinesPtr(cs.Disk.FileBytes), machinesPtr(cs.Disk.UsedBytes), machinesPtr(cs.Disk.Reclaimable())
+		}
+		if !cs.LastAt.IsZero() {
+			d.LastAt = machinesPtr(cs.LastAt)
+		}
+		if cs.LastResult != "" {
+			d.LastResult = machinesPtr(cs.LastResult)
+		}
+		out.DockerCompactStatus = &d
+	}
 	for _, b := range v.Backends {
 		bs := gen.BackendSupport{Name: gen.BackendName(b.Name), Present: b.Present, Usable: b.Usable, Allowed: b.Allowed}
 		if b.Version != "" {
@@ -358,6 +390,15 @@ func (s *server) UpdateMachine(ctx context.Context, r gen.UpdateMachineRequestOb
 		u.Mode = machinesPtr(string(*b.Mode))
 	}
 	u.PauseOnBattery = b.PauseOnBattery
+	if b.DockerCompact != nil {
+		mode := string(*b.DockerCompact)
+		if mode == string(gen.DockerCompactModeAuto) {
+			mode = machines.CompactAuto
+		}
+		u.CompactMode = &mode
+	}
+	u.CompactThresholdGiB, u.CompactIdleMinutes = b.DockerCompactThresholdGib, b.DockerCompactIdleMinutes
+	u.CompactQuietStart, u.CompactQuietEnd = b.DockerCompactQuietStart, b.DockerCompactQuietEnd
 	if b.CpuCapPct != nil {
 		u.CPUCapPct = machinesPtr(int(*b.CpuCapPct))
 	}

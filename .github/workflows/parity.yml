@@ -102,12 +102,33 @@ jobs:
           retention-days: 30
       - name: Fail when the report did not pass
         if: ${{ always() }}
+        # Says the real cause (CRSP141). Everything it needs comes in as
+        # environment, so it still runs when every earlier step was skipped:
+        # it reads no file of the checkout.
+        env:
+          ACCESS_OUTCOME: ${{ steps.access.outcome }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          SOAK_OUTCOME: ${{ steps.soak.outcome }}
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
         run: |
-          if [ "${{ steps.access.outcome }}" != "success" ]; then
-            echo "The parity access is not set up. In the crsp web console open Settings, Access for CI, pick this repository and press 'Set up parity for this repository'."
-            exit 1
-          fi
-          if [ "${{ steps.check.outcome }}" != "success" ] || [ "${{ steps.soak.outcome }}" = "failure" ]; then
+          case "$ACCESS_OUTCOME" in
+            success) ;;
+            failure)
+              echo "The parity access is not set up. In the crsp web console open Settings, Access for CI, pick this repository and press 'Set up parity for this repository'."
+              exit 1
+              ;;
+            *)
+              # The access step did not run (skipped or cancelled, or no outcome at all).
+              why="The cause is not known here; open the log of this job and read the first step that did not run."
+              if [ "$JOB_STATUS" = "cancelled" ]; then
+                why="The run was cancelled or timed out (timeout-minutes is 30), for example while it waited for a free slot in the self-hosted pool."
+              fi
+              echo "::error title=Parity did not reach the checks::The job did not reach the checks: the access step was ${ACCESS_OUTCOME:-not run}. ${why} This says nothing about the parity access; run the workflow again when the pool has a free slot."
+              exit 1
+              ;;
+          esac
+          if [ "$CHECK_OUTCOME" != "success" ] || [ "$SOAK_OUTCOME" = "failure" ]; then
             echo "The parity report did not pass. See the summary and the parity-report artifact."
             exit 1
           fi

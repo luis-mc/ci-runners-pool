@@ -103,10 +103,13 @@ export function ExternalButton({
   href,
   children,
   kind = 'default',
+  onOpen,
 }: {
   href: string;
   children: ReactNode;
   kind?: ButtonKind | undefined;
+  /** Called when the link is pressed, for a page that waits for the person to come back. */
+  onOpen?: (() => void) | undefined;
 }) {
   return (
     <a
@@ -117,6 +120,7 @@ export function ExternalButton({
       role="button"
       target="_blank"
       rel="noopener noreferrer"
+      onClick={onOpen}
     >
       {children}
     </a>

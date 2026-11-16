@@ -29,6 +29,7 @@ import {
   publicWhileOff,
   usePublicRepositories,
 } from './publicRepositories';
+import { MissingPermissionsGuide } from '../GrantGuide';
 import { InstallAppButton } from './InstallApp';
 import {
   allRepositories,
@@ -262,6 +263,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
   if (step <= 1) {
     body = (
       <Stack>
+        <MissingPermissionsGuide />
         <Text>Choose the repositories that should use the pool.</Text>
         {eligible.length === 0 ? (
           <Message

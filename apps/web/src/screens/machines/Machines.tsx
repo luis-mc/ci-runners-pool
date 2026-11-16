@@ -38,6 +38,7 @@ import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
 import { machineStatus } from '../overview/Overview';
+import { MachineDockerDiskSection } from './MachineDockerDisk';
 import { MachinePolicySection, PolicyStatus } from './MachinePolicy';
 import { PoolSizeWizard } from './PoolSize';
 import { RecoverySection } from './Recovery';
@@ -381,6 +382,7 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
       </Section>
       <RecoverySection m={m} onChanged={onChanged} />
       <MachinePolicySection m={m} onChanged={onChanged} />
+      <MachineDockerDiskSection m={m} onChanged={onChanged} />
       <form
         onSubmit={(e) => {
           e.preventDefault();

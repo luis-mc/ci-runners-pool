@@ -155,6 +155,8 @@ type Server struct {
 	PEM          string
 
 	instTokens map[string]int64
+	tokensMade int
+	appPerms   map[string]string
 	removeToks map[string]bool
 	regToks    map[string]bool
 	jitCfgs    map[string]string
@@ -330,6 +332,21 @@ func (s *Server) Secret(fullName, name string) (string, bool) {
 	defer s.mu.Unlock()
 	v, ok := s.secrets[fullName][name]
 	return v, ok
+}
+
+// SetAppPermissions sets what GET /app says the App asks for (CRSP139); nil
+// goes back to the fixture.
+func (s *Server) SetAppPermissions(m map[string]string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.appPerms = m
+}
+
+// TokensMade counts the installation tokens issued so far.
+func (s *Server) TokensMade() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.tokensMade
 }
 
 // SecretNames lists the secret names of a repository, sorted.

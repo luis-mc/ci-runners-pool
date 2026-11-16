@@ -7,11 +7,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agentlink"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/dockercompact"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 )
@@ -41,7 +43,9 @@ type hostRig struct {
 	gate *agent.Gate
 }
 
-func startHost(t *testing.T) *hostRig {
+func startHost(t *testing.T) *hostRig { return startHostWith(t, nil) }
+
+func startHostWith(t *testing.T, mutate func(*agent.Config)) *hostRig {
 	t.Helper()
 	c := startController(t)
 	lk := agentlink.New(c.Svc)
@@ -57,6 +61,9 @@ func startHost(t *testing.T) *hostRig {
 	cfg := fastConfig(t, c, code.Code)
 	cfg.Gate = agent.NewGate(cfg.Sampler)
 	cfg.HeartbeatEvery = 2 * time.Second
+	if mutate != nil {
+		mutate(&cfg)
+	}
 	r := &hostRig{svc: c.Svc, lk: lk, gate: cfg.Gate}
 	runAgent(t, cfg)
 	waitFor(t, "online", func() bool {
@@ -167,5 +174,91 @@ func TestHostCommandRefusesEmptyAndUnknown(t *testing.T) {
 	}
 	if _, err := r.svc.RunHostCommand(context.Background(), "owner", "m_nope", []string{"x"}, time.Minute); !errors.Is(err, machines.ErrNotFound) {
 		t.Fatalf("unknown: %v", err)
+	}
+}
+
+// scriptHost is a dockercompact.Host that records calls; nothing real runs.
+type scriptHost struct {
+	mu    sync.Mutex
+	calls []string
+	admin bool
+	size  int64
+}
+
+func (h *scriptHost) GOOS() string   { return "windows" }
+func (h *scriptHost) Elevated() bool { return h.admin }
+func (h *scriptHost) Run(_ context.Context, _ time.Duration, name string, args ...string) (dockercompact.Result, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	line := strings.TrimSpace(name + " " + strings.Join(args, " "))
+	h.calls = append(h.calls, line)
+	switch {
+	case strings.HasPrefix(line, "wsl -d docker-desktop -e df"):
+		return dockercompact.Result{Out: "Filesystem 1B-blocks Used Available Use% Mounted\n/dev/sdc 200 100 100 50% /mnt\n"}, nil
+	case strings.HasPrefix(line, "powershell") && strings.Contains(line, "Get-Command"):
+		return dockercompact.Result{ExitCode: 3}, nil
+	case strings.HasPrefix(line, "diskpart"):
+		h.size = 40 << 30
+	}
+	return dockercompact.Result{}, nil
+}
+func (h *scriptHost) FileSize(p string) (int64, bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.size, strings.HasSuffix(p, "docker_data.vhdx")
+}
+func (h *scriptHost) Getenv(k string) string {
+	if k == "LOCALAPPDATA" {
+		return `C:\L`
+	}
+	return ""
+}
+func (h *scriptHost) ReadFile(string) (string, error)            { return "", errors.New("none") }
+func (h *scriptHost) WriteTemp(string, string) (string, error)   { return `C:\T\s.txt`, nil }
+func (h *scriptHost) Remove(string)                              {}
+func (h *scriptHost) Sleep(context.Context, time.Duration) error { return nil }
+func (h *scriptHost) has(prefix string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, c := range h.calls {
+		if strings.HasPrefix(c, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// caches R5.51 to R5.54: the docker-compact command runs the helper, not a program of
+// that name; the answer carries the RESULT line; the machine report names the
+// disk file and the admin right.
+func TestHostCommandDockerCompactRunsTheHelper(t *testing.T) {
+	fake := &scriptHost{admin: true, size: 236 << 30}
+	r := startHostWith(t, func(c *agent.Config) { c.DockerHost = fake })
+	waitFor(t, "docker disk report", func() bool {
+		rep := r.lk.Reports()[r.id]
+		d := rep.GetDockerDisk()
+		return d != nil && d.GetPresent() && d.GetCanCompact() && d.GetFileBytes() == 236<<30 && d.GetUsedKnown() && d.GetUsedBytes() == 100
+	})
+	r.drain(t)
+	out, err := r.svc.RunHostCommand(context.Background(), "owner", r.id, []string{"docker-compact"}, time.Minute)
+	if err != nil || !out.OK {
+		t.Fatalf("out %+v err %v", out, err)
+	}
+	rep, ok := dockercompact.ParseReport(out.Output)
+	if !ok || rep.FileBefore() != 236<<30 || rep.FileAfter() != 40<<30 || !fake.has("wsl --shutdown") || !fake.has("docker desktop start") {
+		t.Fatalf("report %+v ok %v calls %v", rep, ok, fake.calls)
+	}
+}
+
+func TestHostCommandDockerCompactFailureKeepsTheOutput(t *testing.T) {
+	fake := &scriptHost{admin: false, size: 10 << 30}
+	r := startHostWith(t, func(c *agent.Config) { c.DockerHost = fake })
+	r.drain(t)
+	out, err := r.svc.RunHostCommand(context.Background(), "owner", r.id, []string{"docker-compact"}, time.Minute)
+	if err != nil || out.OK || !strings.Contains(out.Message, "administrator") {
+		t.Fatalf("out %+v err %v", out, err)
+	}
+	if fake.has("docker desktop stop") {
+		t.Fatalf("stopped Docker without admin: %v", fake.calls)
 	}
 }

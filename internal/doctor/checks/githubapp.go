@@ -20,6 +20,7 @@ var RequiredPermissions = map[string]string{
 	"actions_variables": "write",
 	"contents":          "read",
 	"metadata":          "read",
+	"secrets":           "write",
 }
 
 // OrgPermissions are needed in addition on organization installations.
