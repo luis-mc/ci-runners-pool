@@ -104,6 +104,18 @@ Each word is used for one thing in a wizard (UX-30).
 | Start again | The wizard has ended (Done or Stopped) and the user begins a new run. |
 | Put back | Undo what the run changed, when that can be undone. |
 
+## App health and left-installation words
+
+The words of the App-gone banner on the Overview (github-integration R5.6) and the reason a repository left the installation (R5.22).
+
+| Where | Word |
+|---|---|
+| Banner (problem) | The GitHub App is gone. {reason} crsp has stopped its GitHub work. Jobs that are running keep running. |
+| Banner action | Run the setup wizard again |
+| Reasons | GitHub does not know this App any more. / GitHub refused the App's key. / The App's key is not in this machine's secret store. |
+| List word | left the installation (in the Last delivery column of a repository the controller turned off) |
+| Repository fact | Why it is off: This repository left the GitHub App's installation, so its pool was turned off. |
+
 ## Message wording
 
 A message is one or two short sentences in plain words. It names the thing, never a code or a path.

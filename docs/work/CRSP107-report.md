@@ -15,7 +15,16 @@ Branch CRSP107-app-health-reconcile. Spec: github-integration R5.6, R5.22 (reaso
 5. Docs: content.md words, CHANGES, spec marks, change note.
 
 ## Status
-- [ ] Go
-- [ ] API and codegen
-- [ ] Web
-- [ ] Docs
+- [x] Go: `internal/github/apphealth.go`, `reconciled.go`, `repos.ChangedByInstallation`, wiring in `cmd/crsp` (loops, poller targets, installation webhook gated).
+- [x] API: `GET /api/v1/github/app-health`, `Repository.pool_off_reason`; codegen drift none.
+- [x] Web: `AppGoneBanner` (Overview), reason in list and repository page; shared parts only (Message, TextLink, Status, Facts).
+- [x] Docs: content.md words, CHANGES C24, spec R5.6, R5.22, R5.38 marked built, change notes (github-integration, web-console).
+
+## Checks
+- go test -race: internal/github, internal/repos, internal/api, cmd/crsp (touched tests); golangci-lint 0 issues; GOOS=windows vet ok for touched packages; darwin vet ok for internal packages (cmd/crsp darwin needs cgo systray, not buildable here).
+- web: tsc, eslint, vitest. Two failures (AuditLog and ConfigExport download tests) fail the same on main with Node 22 here.
+- docs_check.py: the luismc-docs plugin is not in this sandbox; not run. Change notes added for github-integration and web-console.
+
+## Not done
+- No page-visual check (no running controller here). The wizard link goes to `/setup`, which says how to get a setup link.
+- Poller-only demand is not wrapped by the reconcile: it already reads at least every 5 minutes.
