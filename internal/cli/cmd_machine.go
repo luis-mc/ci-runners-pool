@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"mime"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -165,18 +164,14 @@ func cmdMachine() *command {
 					if path == "" {
 						path = joinFileName(r.HTTPResponse.Header.Get("Content-Disposition"), osName)
 					}
-					// Owner only: the file holds a one-time code. The shell files may run.
-					mode := os.FileMode(0o600)
-					if osName != "windows" {
-						mode = 0o700
-					}
-					if err := os.WriteFile(path, r.Body, mode); err != nil { //nolint:gosec // the caller's own --out
+					// Owner only on every system: the file holds a one-time code.
+					if err := writeOwnerOnly(path, r.Body, osName != "windows"); err != nil {
 						return fail(ExitFailed, "Could not save the file: %v", err)
 					}
 					if c.g.json {
 						return output.JSON(c.env.Stdout, map[string]string{"file": path, "join_code_id": r.HTTPResponse.Header.Get("X-Join-Code-Id")})
 					}
-					_, _ = fmt.Fprintf(c.env.Stderr, "Copy this file to the new machine and open it there. Its code works once and expires in %d minutes.\n", mins)
+					_, _ = fmt.Fprintf(c.env.Stderr, "Copy this file to the new machine and open it there. Its code works once and expires in %d minutes. Delete the file after you use it.\n", mins)
 					_, _ = fmt.Fprintln(c.env.Stdout, path)
 					return nil
 				}},
