@@ -23,4 +23,6 @@ export * from './components/Controls';
 export * from './components/Wizard';
 export * from './components/Grant';
 export * from './components/Shell';
+export * from './components/Navigation';
+export * from './components/SearchList';
 export * from './themes';

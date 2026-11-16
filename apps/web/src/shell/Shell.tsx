@@ -7,13 +7,12 @@ import {
   Frame,
   Header,
   Message,
-  ResultList,
-  SearchBar,
+  ArrowNavigation,
+  SearchList,
   KeyHints,
   LinkButton,
   ShortcutTable,
   Status,
-  Text,
   TextLink,
   TopMenu,
   UserMenu,
@@ -98,8 +97,6 @@ function Palette({ onClose }: { onClose: () => void }) {
   const client = useClient();
   const navigate = useNavigate();
   const live = useLiveState();
-  const [q, setQ] = useState('');
-  const [active, setActive] = useState(0);
   const [found, setFound] = useState<Command[]>([]);
 
   useEffect(() => {
@@ -182,9 +179,6 @@ function Palette({ onClose }: { onClose: () => void }) {
     return items;
   }, [live.overview, found, session]);
 
-  const shown = all
-    .filter((i) => i.label.toLowerCase().includes(q.trim().toLowerCase()))
-    .slice(0, 12);
   const go = (id: string) => {
     const hit = all.find((i) => i.id === id);
     if (hit) {
@@ -193,36 +187,16 @@ function Palette({ onClose }: { onClose: () => void }) {
     }
   };
 
+  // Focus starts in the search box: the user opened the palette to type (UX-35, UX-57).
   return (
     <Dialog title="Commands" onClose={onClose} initialFocus="first">
-      <div
-        onKeyDown={(e) => {
-          if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            setActive((a) => Math.min(shown.length - 1, a + 1));
-          } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            setActive((a) => Math.max(0, a - 1));
-          } else if (e.key === 'Enter') {
-            const it = shown[active];
-            if (it) go(it.id);
-          }
-        }}
-      >
-        <SearchBar
-          value={q}
-          onChange={(v) => {
-            setQ(v);
-            setActive(0);
-          }}
-          label="Search areas, items and commands"
-        />
-        {shown.length === 0 ? (
-          <Text>Nothing matches. Clear the search to see every area.</Text>
-        ) : (
-          <ResultList label="Results" items={shown} active={active} onPick={go} />
-        )}
-      </div>
+      <SearchList
+        items={all}
+        onPick={go}
+        label="Search areas, items and commands"
+        empty="Nothing matches. Clear the search to see every area."
+        autoFocus
+      />
     </Dialog>
   );
 }
@@ -359,37 +333,39 @@ export function AppShell({ children }: { children?: ReactNode }) {
 
   return (
     <>
-      <Frame
-        header={
-          <Header
-            product="CI Runners Shared Pool"
-            status={<PoolStatus />}
-            live={<LiveState />}
-            paletteHint={isMac() ? 'Cmd+K' : 'Ctrl+K'}
-            onPalette={() => setPalette(true)}
-            menu={
-              <UserMenu
-                login={user.login}
-                role={user.role}
-                busy={signingOut}
-                onSignOut={() => {
-                  setSigningOut(true);
-                  void session.signOut().finally(() => {
-                    setSigningOut(false);
-                    void navigate('/sign-in');
-                  });
-                }}
-              />
-            }
-          />
-        }
-        menu={<TopMenu items={AREAS} />}
-        banner={<BannerSlot>{banners.length ? banners : undefined}</BannerSlot>}
-        strip={<ActivityStrip jobs={jobs} />}
-        hints={<KeyHints items={KEY_HINTS} />}
-      >
-        {children ?? <Outlet />}
-      </Frame>
+      <ArrowNavigation>
+        <Frame
+          header={
+            <Header
+              product="CI Runners Shared Pool"
+              status={<PoolStatus />}
+              live={<LiveState />}
+              paletteHint={isMac() ? 'Cmd+K' : 'Ctrl+K'}
+              onPalette={() => setPalette(true)}
+              menu={
+                <UserMenu
+                  login={user.login}
+                  role={user.role}
+                  busy={signingOut}
+                  onSignOut={() => {
+                    setSigningOut(true);
+                    void session.signOut().finally(() => {
+                      setSigningOut(false);
+                      void navigate('/sign-in');
+                    });
+                  }}
+                />
+              }
+            />
+          }
+          menu={<TopMenu items={AREAS} />}
+          banner={<BannerSlot>{banners.length ? banners : undefined}</BannerSlot>}
+          strip={<ActivityStrip jobs={jobs} />}
+          hints={<KeyHints items={KEY_HINTS} />}
+        >
+          {children ?? <Outlet />}
+        </Frame>
+      </ArrowNavigation>
       {palette ? <Palette onClose={() => setPalette(false)} /> : null}
       {help ? (
         <Dialog title="Shortcuts" onClose={() => setHelp(false)}>

@@ -101,9 +101,9 @@ The states named for every list follow the design system: loading (component 16,
 - **Page header (component 1):** one headline per screen (UX-3), with the screen's one primary action (UX-4).
 - **Banner slot (component 18):** the one app-wide slot (UX-27). It carries "Live updates paused", "First run is not finished" and "A new version is ready".
 - **Activity strip (component 27):** running work that the console started, such as a drain, an image rebuild or an update (UX-34).
-- **Command palette:** opens with `Ctrl+K` or `Cmd+K` (UX-57). It lists the areas, the detail pages found by name (a machine, a repository, a runner), and the commands the user's role allows. A command opens the one place where it lives (UX-52). It uses the overlay of component 9 and the search bar of component 21. It is not a component of v1 yet (owner question Q1).
+- **Command palette:** opens with `Ctrl+K` or `Cmd+K` (UX-57). It lists the areas, the detail pages found by name (a machine, a repository, a runner), and the commands the user's role allows. A command opens the one place where it lives (UX-52). It opens with focus in its search box; typing filters, Down and Up (and `j` and `k` outside the box) move through the results, `Enter` opens one and `Escape` closes (UX-57). It is the shared `SearchList` in the overlay of component 9. It is not a component of v1 yet (owner question Q1).
 - **Shortcut list:** `?` opens the list of every shortcut (UX-57), in the overlay of component 9.
-- **Shortcuts:** `/` moves to the page's search bar (UX-31). `j` and `k` move down and up a list. `Enter` opens the row. None fires while typing in a field (UX-57).
+- **Shortcuts:** `/` moves to the page's search bar (UX-31). Down and Up (and `j` and `k`, except in a text box where they type) move focus through every button, link, input and list item of the page in page order; Up from the first list item goes to the previous control and Down from the last to the next. A group of radios is one stop, and in a multi-line text box Up and Down move the cursor. `Enter` opens the row. The movement is the shared `ArrowNavigation`, mounted once in the shell. None fires while typing in a field (UX-57).
 - **Theme:** the look is TUI panes. Six colour themes (Phosphor, Tokyo Night, Catppuccin, Gruvbox, Solarized, Nord), Tokyo Night by default, and a mode (system, dark or light, dark by default) are set in Settings, Appearance (UX-60, UX-55). The theme is kept in the browser and applied before the first paint; the mode is saved by the server.
 - **States:** loading the session (an unknown-total bar, component 16); live; live updates paused (a Note message in the banner slot, UX-26, while the last data stays on screen with its age, UX-53); not found (component 19, with a link to the overview); page fault ("This page hit a fault.", UX-28).
 - **Milestone:** M1.
@@ -276,7 +276,7 @@ Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are
 
 **R5.4** (built, CRSP24) — `Ctrl+K` (`Cmd+K` on macOS) opens the command palette from any screen. It finds areas, items by name and commands. It lists only the commands the user's role allows. Choosing an item goes to its page; choosing a command goes to the one place where that command lives.
 
-**R5.5** (built, CRSP24) — The shortcuts `/`, `j`, `k`, `Enter` and `?` work as section 4.0 says, and none fires while focus is in a text field.
+**R5.5** (built, CRSP24) — The shortcuts `/`, Down, Up, `j`, `k`, `Enter` and `?` work as section 4.0 says, and none fires while focus is in a text field.
 
 **R5.6** (built, CRSP24) — The console opens one live event stream (`streamEvents`) per tab. One store holds what it brings, and every screen reads that store for live state.
 
@@ -511,8 +511,8 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.1 | Go test | `internal/webui/serve_tls_test.go` (a loopback listener serves plain HTTP with the R6.3 headers; a non-loopback one serves TLS 1.3 with the CA's certificate only, refuses an untrusting client, TLS 1.2 and plain HTTP, and does not start without a certificate; `IsLoopback`), `internal/cli/login_test.go` (login over http on loopback only) |
 | R5.2 | Go test, Playwright e2e | NOT YET IMPLEMENTED: `internal/webui/webui_test.go` (SPA fallback), `e2e/tests/web-console/deep-link.spec.ts` |
 | R5.3 | Vitest | `apps/web/src/shell/Shell.test.tsx` |
-| R5.4 | Vitest, Playwright e2e | `apps/web/src/shell/Shell.test.tsx`, `e2e/tests/web-console/keyboard.spec.ts` |
-| R5.5 | Vitest, Playwright e2e | `apps/web/src/shell/shortcuts.test.ts`, `e2e/tests/web-console/keyboard.spec.ts` |
+| R5.4 | Vitest, Playwright e2e | `apps/web/src/shell/Shell.test.tsx`, `packages/ui/src/components/SearchList.test.tsx`, `e2e/tests/web-console/keyboard.spec.ts` |
+| R5.5 | Vitest, Playwright e2e | `apps/web/src/shell/shortcuts.test.ts`, `packages/ui/src/components/Navigation.test.tsx`, `packages/ui/src/components/SearchList.test.tsx`, `e2e/tests/web-console/keyboard.spec.ts` |
 | R5.6 | Vitest | `apps/web/src/live/store.test.ts` |
 | R5.7 | Vitest | `apps/web/src/live/store.test.ts` (reconnect), `apps/web/src/shell/Shell.test.tsx` (paused banner) |
 | R5.8 | Vitest, Playwright e2e | `apps/web/src/shell/Shell.test.tsx`, `e2e/tests/web-console/deep-link.spec.ts` |
