@@ -7,10 +7,10 @@ name: Package Windows
 #     succeeded (artifact_prune.py --hold windows-installer --hold-workflow package-windows.yml);
 #   - the token request retries a 5xx answer after 1, 2 and 4 seconds (publish_token.py).
 # PRODUCT: fill the build and publish commands. Re-running failed jobs then finds the installer.
+# CRSP145: not run on tag pushes. release.yml builds, signs and publishes the MSI for every tag;
+# this template's build step is a placeholder and produced no build/*.msi there.
 on:
   workflow_dispatch:
-  push:
-    tags: ['v*']
 
 permissions:
   contents: read
