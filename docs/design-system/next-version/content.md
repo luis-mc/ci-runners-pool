@@ -435,3 +435,14 @@ The words of the Recovery section and the State word of a machine whose agent ne
 | Recover | The one action. Admin only (busy word: Recovering). Locked after it worked. |
 | Recovery is ready. The agent gets the update on its next call. | Done message after the call, and for a machine that is already armed. |
 | Could not start recovery. {why} | Problem message when the call is refused or fails. |
+
+## Offline runner cleanup words
+
+The words of the action that deletes the registration of an offline runner whose machine cannot remove it (github-integration R5.33, web-console 4.5).
+
+| Word | Where and meaning |
+|---|---|
+| Delete registration | The button in the Managed column of a managed runner whose state is offline, and the action of its question card. Admin only (busy word: Deleting). |
+| Delete {runner}? | The title of the question card. |
+| The registration of offline runner {runner} on GitHub. | First line of the card: what goes. |
+| Its record here, and its folder if its machine answers. | Second line of the card. |

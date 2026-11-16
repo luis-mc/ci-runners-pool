@@ -165,6 +165,25 @@ describe('Runners list', () => {
     );
   });
 
+  it('deletes the registration of an offline runner after a yes that names it (R5.33)', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/runners', {
+        items: [
+          runner({ id: 'r9', name: 'crsp-gone-1', state: 'offline', managed: true }),
+        ],
+      })
+      .on('DELETE', '/api/v1/runners/:id/registration', runner({ id: 'r9' }));
+    renderApp(api, '/runners');
+    await screen.findByRole('table', { name: 'Runners' });
+    fireEvent.click(screen.getByRole('button', { name: 'Delete registration' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete crsp-gone-1?' });
+    expect(api.count('DELETE', '/api/v1/runners/r9/registration')).toBe(0);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete registration' }));
+    await waitFor(() =>
+      expect(api.count('DELETE', '/api/v1/runners/r9/registration')).toBe(1),
+    );
+  });
+
   it('keeps a viewer from adding or deleting, and says why', async () => {
     renderApp(
       signedIn(viewer).on('GET', '/api/v1/runners', { items: [runner()] }),

@@ -186,7 +186,7 @@ With `--json`, a refusal prints the contract's `ErrorEnvelope` to stderr and use
 
 ### Changes that remove or stop
 
-**R5.14** — A command that removes, disables, restores, applies or restarts (`repo disable`, `machine drain`, `machine maintain`, `machine remove`, `runner remove`, `context remove`, `config apply`, `restore`, `update`) MUST first print what goes: each item by name, and the running jobs it would wait for or stop. It then MUST ask "Type yes to go on:" when stdin is a terminal.
+**R5.14** — A command that removes, disables, restores, applies or restarts (`repo disable`, `machine drain`, `machine maintain`, `machine remove`, `runner remove`, `runner delete-offline`, `context remove`, `config apply`, `restore`, `update`) MUST first print what goes: each item by name, and the running jobs it would wait for or stop. It then MUST ask "Type yes to go on:" when stdin is a terminal.
 
 **R5.15** — With `--yes`, the command MUST skip the question but still print the list. Without `--yes` and without a terminal, it MUST change nothing and exit 5.
 

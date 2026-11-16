@@ -9,4 +9,4 @@ Task: R5.26 fork guard in the job-started hook + hook test; R5.33 offline runner
 4. Spec text, change notes, design-system next-version content + CHANGES.
 
 ## Status
-- [ ] 1  - [ ] 2  - [ ] 3  - [ ] 4
+- [x] 1  - [x] 2  - [x] 3  - [x] 4 (docs_check.py not found in this sandbox: not run; change notes written by hand)

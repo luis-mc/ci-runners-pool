@@ -123,6 +123,23 @@ export function RunnersList() {
     },
   );
 
+  // github-integration R5.33: the yes path for an offline runner whose machine cannot remove it.
+  const [cleaning, setCleaning] = useState<Runner | undefined>(undefined);
+  const cleanup = useQuestion(
+    async () => {
+      if (!cleaning) return;
+      await unwrap(
+        client.DELETE('/api/v1/runners/{runnerId}/registration', {
+          params: { path: { runnerId: cleaning.id }, query: { confirm: true } },
+        }),
+      );
+    },
+    () => {
+      setCleaning(undefined);
+      reload();
+    },
+  );
+
   const columns: Column<Runner>[] = [
     { id: 'name', header: 'Name', cell: (r) => r.name, sort: (r) => r.name },
     {
@@ -165,7 +182,27 @@ export function RunnersList() {
       header: 'Managed',
       cell: (r) =>
         r.managed ? (
-          'yes'
+          r.state === 'offline' ? (
+            <Button
+              onPress={() => {
+                cleanup.cancel();
+                setCleaning(r);
+                cleanup.ask(
+                  [
+                    `The registration of offline runner ${r.name} on GitHub.`,
+                    `Its record here, and its folder if its machine answers.`,
+                  ],
+                  [],
+                );
+              }}
+              disabled={!admin}
+              reason={why}
+            >
+              Delete registration
+            </Button>
+          ) : (
+            'yes'
+          )
         ) : (
           <Button
             onPress={() => {
@@ -338,6 +375,19 @@ export function RunnersList() {
           setReplacing(undefined);
         }}
         onConfirm={() => void replace.confirm()}
+      />
+      <Ask
+        title={`Delete ${cleaning?.name ?? 'the runner'}?`}
+        action="Delete registration"
+        busyLabel="Deleting"
+        q={cleanup.question}
+        busy={cleanup.busy}
+        error={cleanup.error}
+        onCancel={() => {
+          cleanup.cancel();
+          setCleaning(undefined);
+        }}
+        onConfirm={() => void cleanup.confirm()}
       />
     </Page>
   );
