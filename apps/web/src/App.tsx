@@ -32,6 +32,7 @@ import {
 import { BudgetsSettings } from './screens/settings/Budgets';
 import { AuditLogSettings, ConfigExportSettings } from './screens/settings/AuditLog';
 import { NotificationsSettings } from './screens/settings/Notifications';
+import { AccessForCiSettings } from './screens/settings/AccessForCi';
 import { UpdateReviewPage, UpdatesSettings } from './screens/settings/Updates';
 import { SetupPage } from './screens/setup/Setup';
 
@@ -127,6 +128,7 @@ export function App({
                 <Route path="backups" element={<BackupsSettings />} />
                 <Route path="budgets" element={<BudgetsSettings />} />
                 <Route path="notifications" element={<NotificationsSettings />} />
+                <Route path="access" element={<AccessForCiSettings />} />
                 <Route path="updates" element={<UpdatesSettings />} />
                 <Route path="audit" element={<AuditLogSettings />} />
                 <Route path="export" element={<ConfigExportSettings />} />

@@ -47,6 +47,7 @@ const TABS = [
   { id: 'backups', label: 'Backups' },
   { id: 'budgets', label: 'Budgets' },
   { id: 'notifications', label: 'Notifications' },
+  { id: 'access', label: 'Access for CI' },
   { id: 'updates', label: 'Updates' },
   { id: 'audit', label: 'Audit log' },
   { id: 'export', label: 'Config export' },
