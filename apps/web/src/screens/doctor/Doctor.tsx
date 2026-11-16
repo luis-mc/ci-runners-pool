@@ -222,20 +222,9 @@ export function DoctorScreen() {
           const problems = data.items.filter(isProblem);
           if (data.items.length === 0 && !data.last_run_at)
             return (
-              <Empty
-                title="No checks have run yet. Run the doctor to look for problems."
-                action={
-                  <Button
-                    busy={running || start.busy}
-                    busyLabel="Running the doctor"
-                    disabled={!admin}
-                    reason={why}
-                    onPress={() => void start.run()}
-                  >
-                    Run the doctor
-                  </Button>
-                }
-              />
+              <Section title="Findings">
+                <Empty title="No checks have run yet. Use Run the doctor at the top to look for problems." />
+              </Section>
             );
           const last = data.last_run_at ? formatPast(data.last_run_at, now) : undefined;
           return (

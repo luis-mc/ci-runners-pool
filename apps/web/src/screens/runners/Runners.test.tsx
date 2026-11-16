@@ -122,7 +122,28 @@ describe('Runners list', () => {
 
   it('says what to do when there is no runner', async () => {
     renderApp(signedIn().on('GET', '/api/v1/runners', { items: [] }), '/runners');
-    expect(await screen.findByText('No runners yet. Add runners to start.')).toBeTruthy();
+    expect(
+      await screen.findByText('No runners yet. Use Add runners at the top to start.'),
+    ).toBeTruthy();
+    // One Add runners action, in the header; the h1 stays; the empty state sits in a pane.
+    expect(screen.getAllByRole('button', { name: 'Add runners' }).length).toBe(1);
+    expect(screen.getByRole('heading', { level: 1, name: 'Runners' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Runners' })).toBeTruthy();
+  });
+
+  it('selects all shown runners and clears the selection (UX-12)', async () => {
+    renderApp(
+      signedIn().on('GET', '/api/v1/runners', {
+        items: [runner(), runner({ id: 'r2', name: 'crsp-2' })],
+      }),
+      '/runners',
+    );
+    const all = await screen.findByRole('button', { name: 'Select all 2' });
+    expect(screen.getByRole('region', { name: 'Runners' })).toBeTruthy();
+    fireEvent.click(all);
+    expect(await screen.findByText('2 selected')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    await waitFor(() => expect(screen.queryByText('2 selected')).toBeNull());
   });
 
   it('deletes after a question that names each runner and the job it runs (UX-62)', async () => {
