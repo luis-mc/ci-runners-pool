@@ -170,8 +170,13 @@ export function Tabs({
   const list = useRef<HTMLDivElement>(null);
   // The row never wraps (UX-15), so a row wider than its frame scrolls; keep the chosen tab in view.
   useEffect(() => {
-    const el = list.current?.querySelector<HTMLElement>('[aria-selected="true"]');
-    el?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    // Only the row scrolls (scrollIntoView would also move the page and the focus start point).
+    const row = list.current;
+    const el = row?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!row || !el) return;
+    if (el.offsetLeft < row.scrollLeft) row.scrollLeft = el.offsetLeft;
+    else if (el.offsetLeft + el.offsetWidth > row.scrollLeft + row.clientWidth)
+      row.scrollLeft = el.offsetLeft + el.offsetWidth - row.clientWidth;
   }, [current]);
   const move = (e: KeyboardEvent<HTMLDivElement>) => {
     const at = tabs.findIndex((t) => t.id === current);

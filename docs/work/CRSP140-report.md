@@ -10,13 +10,10 @@ Branch `CRSP140-tui-panes`, from main f6f720c.
 - "Make an access" form always open.
 - Setup state backend (`AnyPoolOn`, memory store) is right and tested; the banner trusted `/setup` only.
 
-## Plan
-1. Design system next-version: Pane (8), Tabs overflow (3), selected row (41), CHANGES C39..
-2. `Pane` in packages/ui; `Section` and `Card` render it; Table cursor row reverse video; Tabs overflow into More.
-3. Screens: every section is a Pane (through Section/Card, no per-screen styling).
-4. Access page: reload after parity, form behind "Make an access".
-5. Banner: first repository counts when any repository has the pool on.
-6. Tests, change note, PR.
-
-## Status
-- [ ] 1 [ ] 2 [ ] 3 [ ] 4 [ ] 5 [ ] 6
+## Done
+- Design system next-version: components 3, 8, 41; tokens `--ds-frame-wide` 76rem; CHANGES C39 to C42.
+- `Pane` in packages/ui; `Section` and `Card` render it; cursor row reverse video; tabs one row, scroll, arrow keys.
+- Access list reloads after Set up parity; form shown only after Make an access.
+- Banner: first repository done when the repository list has a pool-on repository (backend `AnyPoolOn` was already right and tested).
+- Tests: Vitest (ui 54, web 331), design scans 103, Playwright design-layout (39) and a11y (70) green, keyboard, flows, deep-link green.
+- Environment: pre-push needed golangci-lint v2.15.0 built with go1.27.4 and Node 24; neither is in the sandbox.
