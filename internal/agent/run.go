@@ -13,6 +13,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/cpucap"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/dockercompact"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/load"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
@@ -86,6 +87,10 @@ type Config struct {
 	// CPUCap sets the CPU cap on the runner processes (machines R5.64); nil uses
 	// the OS applier.
 	CPUCap cpucap.Applier
+
+	// DockerHost is the OS access of the docker-compact helper (caches R5.50); nil
+	// is the real one. Tests give a fake: the real compact never runs in tests.
+	DockerHost dockercompact.Host
 
 	// DiskFloorGiB is the free space the DataDir volume needs before a job or VM
 	// starts, in GiB (runners R5.83). 0 sets no floor here; the commands resolve

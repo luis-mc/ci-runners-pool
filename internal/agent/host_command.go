@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/dockercompact"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 )
@@ -67,6 +68,10 @@ func (l *link) runHostCommand(ctx context.Context, m *agentv1.RunHostCommand) {
 	}
 	runCtx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
+	if argv[0] == dockercompact.Command {
+		l.runDockerCompact(runCtx, id)
+		return
+	}
 	out := &tailBuffer{max: MaxHostOutput}
 	cmd := exec.CommandContext(runCtx, argv[0], argv[1:]...) //nolint:gosec // the owner names the command; no shell is used
 	cmd.Stdout, cmd.Stderr = out, out

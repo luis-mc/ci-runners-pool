@@ -801,6 +801,23 @@ message MachineReport {
   SymlinkReport symlink = 10;
   // How many macOS VMs run on this Mac (machines R5.14). Unset on other OSes.
   MacVmReport macos_vms = 11;
+  // The Docker disk file of this machine (caches R5.50). Unset by an older agent.
+  DockerDiskReport docker_disk = 12;
+}
+
+// DockerDiskReport is what the agent read about Docker's disk file: the size of
+// the file on disk and the bytes Docker uses inside it. It reads only.
+message DockerDiskReport {
+  // True when a Docker Desktop disk file exists on this machine (Windows).
+  bool present = 1;
+  // The disk files found, with the sum of their sizes on disk.
+  repeated string files = 2;
+  int64 file_bytes = 3;
+  // False when Docker did not answer, so used_bytes is not to be used.
+  bool used_known = 4;
+  int64 used_bytes = 5;
+  // True when the agent has the administrator rights the compact needs.
+  bool can_compact = 6;
 }
 
 // SymlinkReport is what the agent read about symbolic links. It makes a link in
