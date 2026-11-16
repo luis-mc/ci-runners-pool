@@ -181,6 +181,14 @@ type Resolver interface {
 	Resolve(ctx context.Context, s Scope) (Target, error)
 }
 
+// OrgScoper is implemented by a Resolver that knows the pool per organization
+// (github-integration R5.21). OrgScope turns the scope of a repository of an
+// organization whose pool is on into the organization scope with the runner
+// group name; for any other scope it returns false.
+type OrgScoper interface {
+	OrgScope(ctx context.Context, s Scope) (Scope, bool, error)
+}
+
 // Target is a resolved scope.
 type Target struct {
 	Scope          github.RunnerScope

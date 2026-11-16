@@ -139,6 +139,7 @@ func errorFor(err error) (int, string, string) {
 		inv *auth.InvalidError
 		na  *auth.NotAllowedError
 		rl  *github.RateLimitError
+		not *repos.ErrNotOrganization
 	)
 	switch {
 	case errors.Is(err, auth.ErrUnauthenticated):
@@ -152,6 +153,10 @@ func errorFor(err error) (int, string, string) {
 		if errors.As(err, &nad) {
 			return http.StatusForbidden, CodeForbidden, nad.Error()
 		}
+		var noo *repos.ErrNotOrgOwner
+		if errors.As(err, &noo) {
+			return http.StatusForbidden, CodeForbidden, noo.Error()
+		}
 		return http.StatusForbidden, CodeForbidden, "your role does not allow this"
 	case errors.Is(err, auth.ErrNotFound):
 		return http.StatusNotFound, CodeNotFound, "not found"
@@ -162,6 +167,8 @@ func errorFor(err error) (int, string, string) {
 		return http.StatusConflict, CodeConflict, err.Error()
 	case errors.Is(err, auth.ErrBadState), errors.Is(err, auth.ErrBadCode), errors.Is(err, auth.ErrInsecure), errors.As(err, &inv):
 		return http.StatusBadRequest, CodeBadRequest, err.Error()
+	case errors.As(err, &not):
+		return http.StatusConflict, CodeConflict, not.Error()
 	case errors.Is(err, auth.ErrNoApp):
 		return http.StatusConflict, CodeConflict, "the GitHub App is not set up yet"
 	case errors.As(err, &rl):

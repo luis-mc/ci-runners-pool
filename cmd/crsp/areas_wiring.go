@@ -119,7 +119,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	if st, err := asvc.State(ctx); err == nil && st.HasApp {
 		gh.UseApp(st.App.ID, st.App.ClientID)
 	}
-	rsvc := repos.New(repos.Config{Store: repoStore, GitHub: gh, Tokens: asvc, Audit: asvc,
+	rsvc := repos.New(repos.Config{Store: repoStore, GitHub: gh, Tokens: asvc, Audit: asvc, PoolName: pool,
 		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Sizes: machineCapacity{svc: d.Machines, pool: pool}, Up: machineUp{svc: d.Machines},
 		FallbackGrace: fallbackGrace(d), Now: d.Now})
 	health := webhookhealth.New()

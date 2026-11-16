@@ -77,6 +77,13 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, 200, map[string]any{"id": u.ID, "login": u.Login})
+	case r.Method == "GET" && strings.HasPrefix(p, "/user/memberships/orgs/"):
+		u, ok := s.userFor(r)
+		if !ok {
+			unauthorized(w)
+			return
+		}
+		s.membership(w, strings.TrimPrefix(p, "/user/memberships/orgs/"), u.Login)
 	case r.Method == "GET" && p == "/user/installations":
 		s.userInstallations(w, r)
 	case r.Method == "GET" && strings.HasPrefix(p, "/user/installations/") && strings.HasSuffix(p, "/repositories"):
@@ -366,7 +373,128 @@ func (s *Server) orgRoutes(w http.ResponseWriter, r *http.Request) {
 		s.runnerRoutes(w, r, parts[0], strings.TrimPrefix(rest, "actions/runners"))
 		return
 	}
+	if strings.HasPrefix(rest, "memberships/") && r.Method == "GET" {
+		s.membership(w, parts[0], strings.TrimPrefix(rest, "memberships/"))
+		return
+	}
+	if rest == "actions/runner-groups" || strings.HasPrefix(rest, "actions/runner-groups/") {
+		s.groupRoutes(w, r, parts[0], strings.TrimPrefix(strings.TrimPrefix(rest, "actions/runner-groups"), "/"))
+		return
+	}
 	notFound(w)
+}
+
+// membership answers a membership read; an unknown member is a 404, as GitHub
+// answers for a user who is not in the organization.
+func (s *Server) membership(w http.ResponseWriter, org, login string) {
+	role, ok := s.OrgMembers[strings.ToLower(org)][strings.ToLower(login)]
+	if !ok {
+		notFound(w)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"role": role, "state": "active"})
+}
+
+func (s *Server) groupRoutes(w http.ResponseWriter, r *http.Request, org, rest string) {
+	o := strings.ToLower(org)
+	if _, known := s.Groups[o]; !known {
+		notFound(w)
+		return
+	}
+	if rest == "" {
+		switch r.Method {
+		case "GET":
+			items := []map[string]any{}
+			for _, g := range s.Groups[o] {
+				items = append(items, map[string]any{"id": g.ID, "name": g.Name, "visibility": g.Visibility, "default": g.Default})
+			}
+			writeJSON(w, 200, map[string]any{"total_count": len(items), "runner_groups": items})
+		case "POST":
+			var in struct {
+				Name       string  `json:"name"`
+				Visibility string  `json:"visibility"`
+				Repos      []int64 `json:"selected_repository_ids"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&in); err != nil || in.Name == "" {
+				writeJSON(w, 422, map[string]any{"message": "Validation Failed"})
+				return
+			}
+			for _, g := range s.Groups[o] {
+				if strings.EqualFold(g.Name, in.Name) {
+					writeJSON(w, 409, map[string]any{"message": "Runner group name already exists"})
+					return
+				}
+			}
+			if in.Visibility == "" {
+				in.Visibility = "all"
+			}
+			s.nextID++
+			g := &Group{ID: s.nextID, Name: in.Name, Visibility: in.Visibility, Repos: in.Repos}
+			s.Groups[o] = append(s.Groups[o], g)
+			writeJSON(w, 201, map[string]any{"id": g.ID, "name": g.Name, "visibility": g.Visibility, "default": false})
+		default:
+			notFound(w)
+		}
+		return
+	}
+	idText, sub, _ := strings.Cut(rest, "/")
+	id, err := strconv.ParseInt(idText, 10, 64)
+	if err != nil {
+		notFound(w)
+		return
+	}
+	var g *Group
+	for _, x := range s.Groups[o] {
+		if x.ID == id {
+			g = x
+		}
+	}
+	if g == nil {
+		notFound(w)
+		return
+	}
+	switch {
+	case sub == "" && r.Method == "PATCH":
+		var in struct {
+			Visibility string `json:"visibility"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+			writeJSON(w, 422, map[string]any{"message": "Validation Failed"})
+			return
+		}
+		if in.Visibility != "" {
+			g.Visibility = in.Visibility
+		}
+		writeJSON(w, 200, map[string]any{"id": g.ID, "name": g.Name, "visibility": g.Visibility, "default": g.Default})
+	case sub == "repositories" && r.Method == "GET":
+		if g.Visibility != "selected" {
+			writeJSON(w, 409, map[string]any{"message": "The group is not limited to selected repositories"})
+			return
+		}
+		items := []map[string]any{}
+		for _, rid := range g.Repos {
+			if rp := s.Repos[rid]; rp != nil {
+				items = append(items, map[string]any{"id": rp.ID, "full_name": rp.FullName(), "name": rp.Name})
+			}
+		}
+		writeJSON(w, 200, map[string]any{"total_count": len(items), "repositories": items})
+	case sub == "repositories" && r.Method == "PUT":
+		var in struct {
+			Repos []int64 `json:"selected_repository_ids"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil || in.Repos == nil {
+			writeJSON(w, 422, map[string]any{"message": "Validation Failed"})
+			return
+		}
+		if g.Visibility != "selected" {
+			writeJSON(w, 409, map[string]any{"message": "The group is not limited to selected repositories"})
+			return
+		}
+		g.Repos = in.Repos
+		w.WriteHeader(204)
+	default:
+		notFound(w)
+	}
 }
 
 func (s *Server) runnerRoutes(w http.ResponseWriter, r *http.Request, scope, rest string) {

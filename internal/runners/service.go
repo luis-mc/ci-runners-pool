@@ -505,6 +505,9 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 	if err != nil {
 		return err
 	}
+	if a.Scope, err = s.registrationScope(ctx, a.Scope); err != nil {
+		return fmt.Errorf("resolve scope: %w", err)
+	}
 	t, err := s.Resolver.Resolve(ctx, a.Scope)
 	if err != nil {
 		return fmt.Errorf("resolve scope: %w", err)

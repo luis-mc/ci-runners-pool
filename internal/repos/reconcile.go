@@ -72,6 +72,9 @@ func (s *Service) ReconcileInstallations(ctx context.Context) error {
 			return err
 		}
 		s.cfg.Audit.Audit(ctx, System, "pool.off", "repository", r.FullName, "the repository left the App's installation")
+		if err := s.SyncOrgGroup(ctx, r.InstallationID); err != nil {
+			s.cfg.Audit.Audit(ctx, System, "org_pool.sync_failed", "repository", r.FullName, err.Error())
+		}
 	}
 	// The visibility just read is the periodic check of CRSP82.
 	return s.stopPublicOnes(ctx, public)

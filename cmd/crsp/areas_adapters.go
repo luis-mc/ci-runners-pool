@@ -181,15 +181,33 @@ func (r scopeResolver) Resolve(ctx context.Context, s runners.Scope) (runners.Ta
 		}
 		for _, i := range ins {
 			if strings.EqualFold(i.AccountLogin, s.Organization) && !i.Removed {
-				return runners.Target{
-					Scope:          github.RunnerScope{Owner: i.AccountLogin, Organization: i.AccountLogin},
-					InstallationID: i.ID, URL: "https://github.com/" + i.AccountLogin, Group: s.Group,
-				}, nil
+				rs := github.RunnerScope{Owner: i.AccountLogin, Organization: i.AccountLogin}
+				// The group id comes from the pool per organization (R5.21); a
+				// scope with no group uses GitHub's default group.
+				if op, ok, err := repos.OrgPoolByLogin(ctx, r.repos, i.AccountLogin); err != nil {
+					return runners.Target{}, err
+				} else if ok && s.Group != "" && strings.EqualFold(op.GroupName, s.Group) {
+					rs.GroupID = op.GroupID
+				}
+				return runners.Target{Scope: rs, InstallationID: i.ID, URL: "https://github.com/" + i.AccountLogin, Group: s.Group}, nil
 			}
 		}
 		return runners.Target{}, fmt.Errorf("the GitHub App is not installed on %s", s.Organization)
 	}
 	return runners.Target{}, fmt.Errorf("unknown runner scope %q", s.Kind)
+}
+
+// OrgScope implements runners.OrgScoper: a repository of an organization whose
+// pool mode is on registers its runners at organization level (R5.21).
+func (r scopeResolver) OrgScope(ctx context.Context, s runners.Scope) (runners.Scope, bool, error) {
+	if s.Kind != "repository" || s.RepositoryID == 0 {
+		return s, false, nil
+	}
+	op, ok, err := repos.OrgRunnerScope(ctx, r.repos, s.RepositoryID)
+	if err != nil || !ok {
+		return s, false, err
+	}
+	return runners.Scope{Kind: "organization", RepositoryID: s.RepositoryID, Organization: op.Organization, Group: op.GroupName}, true, nil
 }
 
 // linkAgent reaches a machine's agent. The controller's own machine runs the
@@ -313,13 +331,16 @@ func (f doctorFleet) Runners(ctx context.Context) ([]doctor.Runner, error) {
 			ID: r.ID, Name: r.Name, MachineID: r.MachineID, MachineName: names[r.MachineID], OS: r.OS, Kind: r.Kind,
 			Labels: r.Labels, GitHubRunnerID: r.GitHubRunnerID, ServiceName: r.ServiceName, FolderReadable: true,
 		}
-		if r.Scope.Kind == "repository" {
+		if r.Scope.Organization != "" {
+			dr.Scope = github.RunnerScope{Owner: r.Scope.Organization, Organization: r.Scope.Organization}
+			if repo, err := f.repos.GetRepository(ctx, r.Scope.RepositoryID); err == nil {
+				dr.InstallationID = repo.InstallationID
+			}
+		} else if r.Scope.Kind == "repository" {
 			if repo, err := f.repos.GetRepository(ctx, r.Scope.RepositoryID); err == nil {
 				dr.InstallationID = repo.InstallationID
 				dr.Scope = github.RunnerScope{Owner: repo.Owner, Repo: repo.Name}
 			}
-		} else if r.Scope.Organization != "" {
-			dr.Scope = github.RunnerScope{Owner: r.Scope.Organization, Organization: r.Scope.Organization}
 		}
 		out = append(out, dr)
 	}

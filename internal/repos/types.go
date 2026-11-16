@@ -209,6 +209,11 @@ type Store interface {
 	ListRepositories(ctx context.Context, f ListFilter) ([]Repository, error)
 	SetRepositoryPool(ctx context.Context, id int64, on bool, by string, at time.Time) error
 
+	// GetOrgPool returns the pool mode of an installation, or auth.ErrNotFound
+	// when none was ever set (R5.21).
+	GetOrgPool(ctx context.Context, installationID int64) (OrgPool, error)
+	SetOrgPool(ctx context.Context, o OrgPool) error
+
 	GetPolicy(ctx context.Context, repoID int64) (Policy, error)
 	UpsertPolicy(ctx context.Context, repoID int64, p Policy) error
 
@@ -242,6 +247,14 @@ type GitHub interface {
 	SetVariable(ctx context.Context, installationID int64, owner, repo string, v github.Variable) error
 	DeleteVariable(ctx context.Context, installationID int64, owner, repo, name string) error
 	ListWorkflowFiles(ctx context.Context, installationID int64, owner, repo string, etags map[string]string) ([]github.WorkflowFile, error)
+	// Organization pool (R5.21): the owner check and the runner group.
+	OrgMembership(ctx context.Context, tok github.UserToken, org string) (role string, active bool, err error)
+	OrgMemberRole(ctx context.Context, installationID int64, org, login string) (role string, active bool, err error)
+	ListRunnerGroups(ctx context.Context, installationID int64, org string) ([]github.RunnerGroup, error)
+	CreateRunnerGroup(ctx context.Context, installationID int64, org, name string, repoIDs []int64) (github.RunnerGroup, error)
+	SelectRunnerGroup(ctx context.Context, installationID int64, org string, groupID int64) error
+	ListRunnerGroupRepositories(ctx context.Context, installationID int64, org string, groupID int64) ([]int64, error)
+	SetRunnerGroupRepositories(ctx context.Context, installationID int64, org string, groupID int64, repoIDs []int64) error
 	SetForkApproval(ctx context.Context, installationID int64, owner, repo, policy string) error
 	ListOpenJobs(ctx context.Context, installationID int64, owner, repo string) ([]github.Job, error)
 }

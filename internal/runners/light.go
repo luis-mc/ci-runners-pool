@@ -51,7 +51,7 @@ func (s *Service) lightRunners(ctx context.Context, repoID int64) ([]Record, err
 	}
 	var out []Record
 	for _, r := range all {
-		if r.Managed && IsLightRecord(r) && r.Scope.Kind == "repository" && r.Scope.RepositoryID == repoID {
+		if r.Managed && IsLightRecord(r) && r.Scope.RepositoryID == repoID {
 			out = append(out, r)
 		}
 	}

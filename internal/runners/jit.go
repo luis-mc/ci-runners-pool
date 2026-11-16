@@ -42,6 +42,13 @@ func (s *Service) StartJobRunner(ctx context.Context, j JobRunner, actor string)
 	if err != nil {
 		return Record{}, err
 	}
+	if j.JIT == nil {
+		// A runner whose JIT config comes from a scale set registers where the
+		// scale set lives; any other runner follows the pool per organization.
+		if j.Scope, err = s.registrationScope(ctx, j.Scope); err != nil {
+			return Record{}, fmt.Errorf("resolve scope: %w", err)
+		}
+	}
 	t, err := s.Resolver.Resolve(ctx, j.Scope)
 	if err != nil {
 		return Record{}, fmt.Errorf("resolve scope: %w", err)

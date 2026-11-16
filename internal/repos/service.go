@@ -27,6 +27,9 @@ type Config struct {
 	SizeFloors func() map[string]SizeFloor
 	// Light keeps the light runners; nil means none are kept.
 	Light LightRunners
+	// PoolName names the runner group of the pool per organization (R5.21);
+	// empty means "crsp".
+	PoolName string
 	// Fleet removes job runners of a repository that stops being served (CRSP82); nil means none.
 	Fleet Fleet
 	// Up says which OSes have a machine that is online and accepting jobs; nil
