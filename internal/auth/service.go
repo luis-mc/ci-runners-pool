@@ -65,7 +65,7 @@ func New(store Store, cfg Config) *Service {
 
 func secretKey(appID int64, name string) secrets.Key { return github.SecretKey(appID, name) }
 
-var tokenLike = regexp.MustCompile(`(ghs_|ghu_|ghr_|gho_|ghp_|github_pat_)[A-Za-z0-9_]+|crsp_cli_[A-Za-z0-9_-]+|-----BEGIN [A-Z ]+-----[\s\S]*?(-----END [A-Z ]+-----|$)`)
+var tokenLike = regexp.MustCompile(`(ghs_|ghu_|ghr_|gho_|ghp_|github_pat_)[A-Za-z0-9_]+|crsp_cli_[A-Za-z0-9_-]+|crsp_acc_[A-Za-z0-9_-]+|-----BEGIN [A-Z ]+-----[\s\S]*?(-----END [A-Z ]+-----|$)`)
 
 // scrub removes anything that looks like a token or key from text that is
 // about to go in the audit log (R5.16).

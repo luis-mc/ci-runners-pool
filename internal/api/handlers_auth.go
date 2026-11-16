@@ -70,7 +70,10 @@ var githubAreaAuth = map[string]string{
 	"getRepositoryExtraPackages": authUser, "setRepositoryExtraPackages": authAdmin,
 	"getRepositoryTrial": authUser, "setRepositoryTrial": authAdmin, "setRepositoryWebhookMode": authAdmin,
 	"replaceAppPrivateKey": authOwner,
-	"receiveGithubWebhook": authPublic,
+	// CRSP134 access credentials for CI and the parity setup action.
+	"listAccessCredentials": authAdmin, "createAccessCredential": authAdmin, "revokeAccessCredential": authAdmin,
+	"setupRepositoryParity": authAdmin,
+	"receiveGithubWebhook":  authPublic,
 	// CRSP37 notification channels: any signed-in user; a webhook needs an admin (checked in the service).
 	"listNotificationChannels": authUser, "createNotificationChannel": authUser, "updateNotificationChannel": authUser,
 	"deleteNotificationChannel": authUser, "testNotificationChannel": authUser,
@@ -129,7 +132,11 @@ func unsafeMethod(m string) bool {
 // Authenticate implements Authenticator: a CLI bearer token or the session cookie.
 func (a *GitHubArea) Authenticate(ctx context.Context, r *http.Request) (auth.Principal, error) {
 	if h := r.Header.Get("Authorization"); strings.HasPrefix(h, "Bearer ") {
-		return a.Auth.AuthenticateCLI(ctx, strings.TrimPrefix(h, "Bearer "))
+		tok := strings.TrimPrefix(h, "Bearer ")
+		if strings.HasPrefix(tok, auth.AccessCredentialPrefix) {
+			return a.Auth.AuthenticateAccess(ctx, tok)
+		}
+		return a.Auth.AuthenticateCLI(ctx, tok)
 	}
 	c, err := r.Cookie(auth.SessionCookieName)
 	if err != nil {

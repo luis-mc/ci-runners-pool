@@ -18,6 +18,21 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for AccessScope.
+const (
+	Parity AccessScope = "parity"
+)
+
+// Valid indicates whether the value is a known member of the AccessScope enum.
+func (e AccessScope) Valid() bool {
+	switch e {
+	case Parity:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AddUserRequestRole.
 const (
 	AddUserRequestRoleAdmin  AddUserRequestRole = "admin"
@@ -891,6 +906,24 @@ func (e OS) Valid() bool {
 	case OSMacos:
 		return true
 	case OSWindows:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ParitySetupStatus.
+const (
+	ParitySetupStatusDone            ParitySetupStatus = "done"
+	ParitySetupStatusNeedsPermission ParitySetupStatus = "needs_permission"
+)
+
+// Valid indicates whether the value is a known member of the ParitySetupStatus enum.
+func (e ParitySetupStatus) Valid() bool {
+	switch e {
+	case ParitySetupStatusDone:
+		return true
+	case ParitySetupStatusNeedsPermission:
 		return true
 	default:
 		return false
@@ -1886,6 +1919,43 @@ func (e DeleteRegistryLoginParamsKind) Valid() bool {
 		return false
 	}
 }
+
+// AccessCredential defines model for AccessCredential.
+type AccessCredential struct {
+	CreatedAt  time.Time  `json:"created_at"`
+	CreatedBy  string     `json:"created_by"`
+	Id         string     `json:"id"`
+	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
+	Name       string     `json:"name"`
+	RevokedAt  *time.Time `json:"revoked_at,omitempty"`
+
+	// Scope `parity` is read only: the runner list and a doctor run.
+	Scope AccessScope `json:"scope"`
+}
+
+// AccessCredentialCreate defines model for AccessCredentialCreate.
+type AccessCredentialCreate struct {
+	Name string `json:"name"`
+
+	// Scope `parity` is read only: the runner list and a doctor run.
+	Scope AccessScope `json:"scope"`
+}
+
+// AccessCredentialCreated defines model for AccessCredentialCreated.
+type AccessCredentialCreated struct {
+	Info AccessCredential `json:"info"`
+
+	// Value The credential. Shown once.
+	Value string `json:"value"`
+}
+
+// AccessCredentialList defines model for AccessCredentialList.
+type AccessCredentialList struct {
+	Items []AccessCredential `json:"items"`
+}
+
+// AccessScope `parity` is read only: the runner list and a doctor run.
+type AccessScope string
 
 // AddUserRequest defines model for AddUserRequest.
 type AddUserRequest struct {
@@ -2916,6 +2986,33 @@ type Overview struct {
 
 	// Waiting Why each queued or held job waits, in words, first blocking reason only, in the order of the queue (scheduling R5.48, web-console R5.20).
 	Waiting *[]WaitingJob `json:"waiting,omitempty"`
+}
+
+// ParitySetup defines model for ParitySetup.
+type ParitySetup struct {
+	// AccessId The id of the access credential that was made.
+	AccessId *string `json:"access_id,omitempty"`
+
+	// AccessName The name of the repository Actions value that holds the access, CRSP_ACCESS.
+	AccessName *string `json:"access_name,omitempty"`
+
+	// AppPermissionsUrl The GitHub page where the App's owner asks for the permission.
+	AppPermissionsUrl *string `json:"app_permissions_url,omitempty"`
+
+	// InstallationUrl The GitHub page where the installation's owner accepts it.
+	InstallationUrl    *string           `json:"installation_url,omitempty"`
+	MissingPermissions *[]string         `json:"missing_permissions,omitempty"`
+	Status             ParitySetupStatus `json:"status"`
+	VariableNames      *[]string         `json:"variable_names,omitempty"`
+}
+
+// ParitySetupStatus defines model for ParitySetup.Status.
+type ParitySetupStatus string
+
+// ParitySetupRequest defines model for ParitySetupRequest.
+type ParitySetupRequest struct {
+	// ControllerUrl The address the runner reaches the controller at. Empty uses the address of this console.
+	ControllerUrl *string `json:"controller_url,omitempty"`
 }
 
 // PauseReason Why a machine takes no new job (machines R5.62). Other features read these exact names.
@@ -3978,6 +4075,9 @@ type ReceiveGithubWebhookParams struct {
 	XHubSignature256 string `json:"X-Hub-Signature-256"`
 }
 
+// CreateAccessCredentialJSONRequestBody defines body for CreateAccessCredential for application/json ContentType.
+type CreateAccessCredentialJSONRequestBody = AccessCredentialCreate
+
 // ReplaceAppPrivateKeyJSONRequestBody defines body for ReplaceAppPrivateKey for application/json ContentType.
 type ReplaceAppPrivateKeyJSONRequestBody = AppKeyUpload
 
@@ -4041,6 +4141,9 @@ type PutRegistryLoginJSONRequestBody = RegistryLoginInput
 // SetRepositoryExtraPackagesJSONRequestBody defines body for SetRepositoryExtraPackages for application/json ContentType.
 type SetRepositoryExtraPackagesJSONRequestBody = ExtraPackagesUpdate
 
+// SetupRepositoryParityJSONRequestBody defines body for SetupRepositoryParity for application/json ContentType.
+type SetupRepositoryParityJSONRequestBody = ParitySetupRequest
+
 // UpdateRepositoryPolicyJSONRequestBody defines body for UpdateRepositoryPolicy for application/json ContentType.
 type UpdateRepositoryPolicyJSONRequestBody = RepositoryPolicyUpdate
 
@@ -4088,6 +4191,15 @@ type ReceiveGithubWebhookJSONRequestBody ReceiveGithubWebhookJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ListAccessCredentials List access credentials for CI
+	// (GET /api/v1/access-credentials)
+	ListAccessCredentials(w http.ResponseWriter, r *http.Request)
+	// CreateAccessCredential Make an access credential for CI
+	// (POST /api/v1/access-credentials)
+	CreateAccessCredential(w http.ResponseWriter, r *http.Request)
+	// RevokeAccessCredential Revoke an access credential
+	// (DELETE /api/v1/access-credentials/{credentialId})
+	RevokeAccessCredential(w http.ResponseWriter, r *http.Request, credentialId string)
 	// ReplaceAppPrivateKey Replace the GitHub App private key
 	// (PUT /api/v1/app/private-key)
 	ReplaceAppPrivateKey(w http.ResponseWriter, r *http.Request)
@@ -4319,6 +4431,9 @@ type ServerInterface interface {
 	// SetRepositoryExtraPackages Set the extra distribution packages of a repository's pool
 	// (PUT /api/v1/repositories/{repositoryId}/extra-packages)
 	SetRepositoryExtraPackages(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
+	// SetupRepositoryParity Set up parity for this repository
+	// (POST /api/v1/repositories/{repositoryId}/parity-setup)
+	SetupRepositoryParity(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
 	// UpdateRepositoryPolicy Change a repository's policy
 	// (PATCH /api/v1/repositories/{repositoryId}/policy)
 	UpdateRepositoryPolicy(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
@@ -4455,6 +4570,60 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListAccessCredentials operation middleware
+func (siw *ServerInterfaceWrapper) ListAccessCredentials(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAccessCredentials(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateAccessCredential operation middleware
+func (siw *ServerInterfaceWrapper) CreateAccessCredential(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAccessCredential(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeAccessCredential operation middleware
+func (siw *ServerInterfaceWrapper) RevokeAccessCredential(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "credentialId" -------------
+	var credentialId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "credentialId", r.PathValue("credentialId"), &credentialId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "credentialId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeAccessCredential(w, r, credentialId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // ReplaceAppPrivateKey operation middleware
 func (siw *ServerInterfaceWrapper) ReplaceAppPrivateKey(w http.ResponseWriter, r *http.Request) {
@@ -6772,6 +6941,32 @@ func (siw *ServerInterfaceWrapper) SetRepositoryExtraPackages(w http.ResponseWri
 	handler.ServeHTTP(w, r)
 }
 
+// SetupRepositoryParity operation middleware
+func (siw *ServerInterfaceWrapper) SetupRepositoryParity(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "repositoryId" -------------
+	var repositoryId RepositoryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "repositoryId", r.PathValue("repositoryId"), &repositoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repositoryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetupRepositoryParity(w, r, repositoryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // UpdateRepositoryPolicy operation middleware
 func (siw *ServerInterfaceWrapper) UpdateRepositoryPolicy(w http.ResponseWriter, r *http.Request) {
 
@@ -8028,6 +8223,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/cli", wrapper.ExchangeCliToken)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/auth/cli/tokens", wrapper.ListCliTokens)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/auth/cli/tokens/{tokenId}", wrapper.RevokeCliToken)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/access-credentials", wrapper.ListAccessCredentials)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/access-credentials", wrapper.CreateAccessCredential)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/access-credentials/{credentialId}", wrapper.RevokeAccessCredential)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/parity-setup", wrapper.SetupRepositoryParity)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/logout", wrapper.SignOut)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/console-links", wrapper.CreateConsoleLink)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/me", wrapper.GetSession)
@@ -8168,6 +8367,116 @@ type RedirectResponseHeaders struct {
 }
 type RedirectResponse struct {
 	Headers RedirectResponseHeaders
+}
+
+type ListAccessCredentialsRequestObject struct {
+}
+
+type ListAccessCredentialsResponseObject interface {
+	VisitListAccessCredentialsResponse(w http.ResponseWriter) error
+}
+
+type ListAccessCredentials200JSONResponse AccessCredentialList
+
+func (response ListAccessCredentials200JSONResponse) VisitListAccessCredentialsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAccessCredentialsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListAccessCredentialsdefaultJSONResponse) VisitListAccessCredentialsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateAccessCredentialRequestObject struct {
+	Body *CreateAccessCredentialJSONRequestBody
+}
+
+type CreateAccessCredentialResponseObject interface {
+	VisitCreateAccessCredentialResponse(w http.ResponseWriter) error
+}
+
+type CreateAccessCredential201JSONResponse AccessCredentialCreated
+
+func (response CreateAccessCredential201JSONResponse) VisitCreateAccessCredentialResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateAccessCredentialdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CreateAccessCredentialdefaultJSONResponse) VisitCreateAccessCredentialResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeAccessCredentialRequestObject struct {
+	CredentialId string `json:"credentialId"`
+}
+
+type RevokeAccessCredentialResponseObject interface {
+	VisitRevokeAccessCredentialResponse(w http.ResponseWriter) error
+}
+
+type RevokeAccessCredential204Response struct {
+}
+
+func (response RevokeAccessCredential204Response) VisitRevokeAccessCredentialResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RevokeAccessCredentialdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RevokeAccessCredentialdefaultJSONResponse) VisitRevokeAccessCredentialResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type ReplaceAppPrivateKeyRequestObject struct {
@@ -11298,6 +11607,46 @@ func (response SetRepositoryExtraPackagesdefaultJSONResponse) VisitSetRepository
 	return err
 }
 
+type SetupRepositoryParityRequestObject struct {
+	RepositoryId RepositoryId `json:"repositoryId"`
+	Body         *SetupRepositoryParityJSONRequestBody
+}
+
+type SetupRepositoryParityResponseObject interface {
+	VisitSetupRepositoryParityResponse(w http.ResponseWriter) error
+}
+
+type SetupRepositoryParity200JSONResponse ParitySetup
+
+func (response SetupRepositoryParity200JSONResponse) VisitSetupRepositoryParityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetupRepositoryParitydefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response SetupRepositoryParitydefaultJSONResponse) VisitSetupRepositoryParityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type UpdateRepositoryPolicyRequestObject struct {
 	RepositoryId RepositoryId `json:"repositoryId"`
 	Body         *UpdateRepositoryPolicyJSONRequestBody
@@ -12922,6 +13271,15 @@ func (response ReceiveGithubWebhookdefaultJSONResponse) VisitReceiveGithubWebhoo
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// ListAccessCredentials List access credentials for CI
+	// (GET /api/v1/access-credentials)
+	ListAccessCredentials(ctx context.Context, request ListAccessCredentialsRequestObject) (ListAccessCredentialsResponseObject, error)
+	// CreateAccessCredential Make an access credential for CI
+	// (POST /api/v1/access-credentials)
+	CreateAccessCredential(ctx context.Context, request CreateAccessCredentialRequestObject) (CreateAccessCredentialResponseObject, error)
+	// RevokeAccessCredential Revoke an access credential
+	// (DELETE /api/v1/access-credentials/{credentialId})
+	RevokeAccessCredential(ctx context.Context, request RevokeAccessCredentialRequestObject) (RevokeAccessCredentialResponseObject, error)
 	// ReplaceAppPrivateKey Replace the GitHub App private key
 	// (PUT /api/v1/app/private-key)
 	ReplaceAppPrivateKey(ctx context.Context, request ReplaceAppPrivateKeyRequestObject) (ReplaceAppPrivateKeyResponseObject, error)
@@ -13153,6 +13511,9 @@ type StrictServerInterface interface {
 	// SetRepositoryExtraPackages Set the extra distribution packages of a repository's pool
 	// (PUT /api/v1/repositories/{repositoryId}/extra-packages)
 	SetRepositoryExtraPackages(ctx context.Context, request SetRepositoryExtraPackagesRequestObject) (SetRepositoryExtraPackagesResponseObject, error)
+	// SetupRepositoryParity Set up parity for this repository
+	// (POST /api/v1/repositories/{repositoryId}/parity-setup)
+	SetupRepositoryParity(ctx context.Context, request SetupRepositoryParityRequestObject) (SetupRepositoryParityResponseObject, error)
 	// UpdateRepositoryPolicy Change a repository's policy
 	// (PATCH /api/v1/repositories/{repositoryId}/policy)
 	UpdateRepositoryPolicy(ctx context.Context, request UpdateRepositoryPolicyRequestObject) (UpdateRepositoryPolicyResponseObject, error)
@@ -13318,6 +13679,87 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// ListAccessCredentials operation middleware
+func (sh *strictHandler) ListAccessCredentials(w http.ResponseWriter, r *http.Request) {
+	var request ListAccessCredentialsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAccessCredentials(ctx, request.(ListAccessCredentialsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAccessCredentials")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListAccessCredentialsResponseObject); ok {
+		if err := validResponse.VisitListAccessCredentialsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateAccessCredential operation middleware
+func (sh *strictHandler) CreateAccessCredential(w http.ResponseWriter, r *http.Request) {
+	var request CreateAccessCredentialRequestObject
+
+	var body CreateAccessCredentialJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateAccessCredential(ctx, request.(CreateAccessCredentialRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateAccessCredential")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateAccessCredentialResponseObject); ok {
+		if err := validResponse.VisitCreateAccessCredentialResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RevokeAccessCredential operation middleware
+func (sh *strictHandler) RevokeAccessCredential(w http.ResponseWriter, r *http.Request, credentialId string) {
+	var request RevokeAccessCredentialRequestObject
+
+	request.CredentialId = credentialId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeAccessCredential(ctx, request.(RevokeAccessCredentialRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeAccessCredential")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevokeAccessCredentialResponseObject); ok {
+		if err := validResponse.VisitRevokeAccessCredentialResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // ReplaceAppPrivateKey operation middleware
@@ -15420,6 +15862,42 @@ func (sh *strictHandler) SetRepositoryExtraPackages(w http.ResponseWriter, r *ht
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(SetRepositoryExtraPackagesResponseObject); ok {
 		if err := validResponse.VisitSetRepositoryExtraPackagesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetupRepositoryParity operation middleware
+func (sh *strictHandler) SetupRepositoryParity(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId) {
+	var request SetupRepositoryParityRequestObject
+
+	request.RepositoryId = repositoryId
+
+	var body SetupRepositoryParityJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		if !errors.Is(err, io.EOF) {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+			return
+		}
+	} else {
+		request.Body = &body
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetupRepositoryParity(ctx, request.(SetupRepositoryParityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetupRepositoryParity")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetupRepositoryParityResponseObject); ok {
+		if err := validResponse.VisitSetupRepositoryParityResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

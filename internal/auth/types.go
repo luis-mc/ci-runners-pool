@@ -61,9 +61,13 @@ type Principal struct {
 	Source string
 	// SessionHash identifies the web session; empty for a CLI token.
 	SessionHash string
-	// TokenID identifies the CLI token; empty for a web session.
+	// TokenID identifies the CLI token or access credential; empty for a web
+	// session.
 	TokenID string
-	CSRF    string
+	// Scope is set only for an access credential (CRSP134): the principal may
+	// call the operations of that scope and nothing else, whatever its role.
+	Scope string
+	CSRF  string
 }
 
 // Errors the API turns into answers.
@@ -120,6 +124,20 @@ type CLIToken struct {
 	ExpiresAt  time.Time
 	LastUsedAt time.Time
 	RevokedAt  time.Time
+}
+
+// AccessCredential is a stored access credential for automation (CRSP134).
+// Only the hash of the value is kept.
+type AccessCredential struct {
+	ID          string
+	Hash        string
+	Name        string
+	Scope       string
+	CreatedBy   string
+	CreatedByID int64
+	CreatedAt   time.Time
+	LastUsedAt  time.Time
+	RevokedAt   time.Time
 }
 
 // LinkCode is a one-time tray link (tray R6.1).

@@ -25,6 +25,7 @@ var shapes = []*regexp.Regexp{
 	regexp.MustCompile(`github_pat_[A-Za-z0-9_]{20,}`),
 	regexp.MustCompile(`(?s)-----BEGIN [A-Z0-9 ]+-----.*?-----END [A-Z0-9 ]+-----`),
 	regexp.MustCompile(`crsp_cli_[A-Za-z0-9_-]{8,}`),
+	regexp.MustCompile(`crsp_acc_[A-Za-z0-9_-]{8,}`),
 	regexp.MustCompile(`eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}`),
 	regexp.MustCompile(`(?i)(authorization|cookie):\s*[^\r\n]+`),
 	regexp.MustCompile(`(?i)(--token|--pat)\s+\S+`),
