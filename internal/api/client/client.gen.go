@@ -3170,7 +3170,7 @@ type Repository struct {
 	PoolOffReason *RepositoryPoolOffReason `json:"pool_off_reason,omitempty"`
 	PoolOn        bool                     `json:"pool_on"`
 
-	// Problem A fault the owner can fix on a repository (github-integration R5.58). Absent when there is none.
+	// Problem A fault the owner can fix on a repository (github-integration R5.56). Absent when there is none.
 	Problem *RepositoryProblem `json:"problem,omitempty"`
 
 	// Routing Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
@@ -3269,7 +3269,7 @@ type RepositoryPolicyUpdate struct {
 	RunnerGroups    *[]string `json:"runner_groups,omitempty"`
 }
 
-// RepositoryProblem A fault the owner can fix on a repository (github-integration R5.58). Absent when there is none.
+// RepositoryProblem A fault the owner can fix on a repository (github-integration R5.56). Absent when there is none.
 type RepositoryProblem struct {
 	Actions []RepositoryProblemAction `json:"actions"`
 	Code    RepositoryProblemCode     `json:"code"`

@@ -4075,7 +4075,7 @@ components:
     RepositoryProblem:
       type: object
       description: >-
-        A fault the owner can fix on a repository (github-integration R5.58).
+        A fault the owner can fix on a repository (github-integration R5.56).
         Absent when there is none.
       required: [code, text, actions]
       properties:

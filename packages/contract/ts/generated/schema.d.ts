@@ -2644,7 +2644,7 @@ export interface components {
             /** @description Repositories whose pool this change switched off (0 when switching on). */
             stopped: number;
         };
-        /** @description A fault the owner can fix on a repository (github-integration R5.58). Absent when there is none. */
+        /** @description A fault the owner can fix on a repository (github-integration R5.56). Absent when there is none. */
         RepositoryProblem: {
             /** @enum {string} */
             code: "public_pool_on_while_off";
