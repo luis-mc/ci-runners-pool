@@ -153,8 +153,11 @@ func errorFor(err error) (int, string, string) {
 		na  *auth.NotAllowedError
 		rl  *github.RateLimitError
 		not *repos.ErrNotOrganization
+		pub *repos.PublicOffError
 	)
 	switch {
+	case errors.As(err, &pub):
+		return http.StatusConflict, CodePublicRepositoriesOff, pub.Error()
 	case errors.Is(err, auth.ErrUnauthenticated):
 		return http.StatusUnauthorized, CodeUnauthenticated, "sign in first"
 	case errors.Is(err, auth.ErrGitHubSessionExpired):

@@ -59,6 +59,9 @@ func (s *Service) PlanChanges(ctx context.Context, p auth.Principal, changes []C
 		}
 		var more []Step
 		if c.Pool {
+			if err := s.RequirePublicAllowed(ctx, r); err != nil {
+				return Plan{}, err
+			}
 			more, err = s.planOn(ctx, r)
 		} else {
 			more, err = s.planOff(ctx, r)
@@ -229,6 +232,11 @@ func (s *Service) ApplyPlan(ctx context.Context, p auth.Principal, id string, ap
 		if err := s.requireGitHubAdmin(ctx, p, r); err != nil {
 			return plan, err // nothing has changed yet
 		}
+		if c.Pool {
+			if err := s.RequirePublicAllowed(ctx, r); err != nil {
+				return plan, err // R5.55; nothing has changed yet
+			}
+		}
 		repos[r.ID] = r
 	}
 	yes := map[string]bool{}
@@ -309,6 +317,10 @@ func changesOf(p Plan) []Change {
 func (s *Service) runStep(ctx context.Context, p auth.Principal, r Repository, st Step) error {
 	switch st.Action {
 	case ActPoolOn:
+		// The setting may have been switched off since the plan was made (R5.55).
+		if err := s.RequirePublicAllowed(ctx, r); err != nil {
+			return err
+		}
 		pol, err := s.policyOrDefault(ctx, r.ID)
 		if err != nil {
 			return err
@@ -377,7 +389,10 @@ func (s *Service) runStep(ctx context.Context, p auth.Principal, r Repository, s
 // in words, never a raw transport error.
 func publicError(err error) string {
 	var rl *github.RateLimitError
+	var po *PublicOffError
 	switch {
+	case errors.As(err, &po):
+		return po.Error()
 	case errors.As(err, &rl):
 		return "GitHub is limiting requests until " + rl.ResetAt.UTC().Format("15:04 UTC")
 	case errors.Is(err, github.ErrUnavailable):

@@ -23,8 +23,7 @@ func (s *Service) ReconcileInstallations(ctx context.Context) error {
 		return err
 	}
 	liveIDs := map[int64]bool{}
-	reach := map[int64]bool{}  // repository ids still reachable
-	public := map[int64]bool{} // repository ids GitHub reported public just now
+	reach := map[int64]bool{} // repository ids still reachable
 	for _, in := range live {
 		liveIDs[in.ID] = true
 		if err := s.cfg.Store.UpsertInstallation(ctx, toInstallation(in)); err != nil {
@@ -46,7 +45,6 @@ func (s *Service) ReconcileInstallations(ctx context.Context) error {
 		}
 		for _, r := range rs {
 			reach[r.ID] = true
-			public[r.ID] = r.Visibility == "public"
 			if err := s.cfg.Store.UpsertRepository(ctx, toRepository(r, in.ID)); err != nil {
 				return err
 			}
@@ -90,8 +88,10 @@ func (s *Service) ReconcileInstallations(ctx context.Context) error {
 			}
 		}
 	}
-	// The visibility just read is the periodic check of CRSP82.
-	return s.stopPublicOnes(ctx, public)
+	// The visibility just read was stored with each repository above. It stops
+	// nothing: a public repository on the pool carries a problem while public
+	// repositories are off (R5.41, R5.56).
+	return nil
 }
 
 func (s *Service) reposOf(ctx context.Context, installationID int64) []Repository {
