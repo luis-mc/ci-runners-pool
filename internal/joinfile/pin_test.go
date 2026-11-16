@@ -145,7 +145,7 @@ func needTools(t *testing.T) {
 			t.Skipf("%s is not installed", n)
 		}
 	}
-	if m, _ := exec.Command("uname", "-m").Output(); !strings.Contains("x86_64 amd64 aarch64 arm64", strings.TrimSpace(string(m))) {
+	if m, _ := exec.CommandContext(t.Context(), "uname", "-m").Output(); !strings.Contains("x86_64 amd64 aarch64 arm64", strings.TrimSpace(string(m))) {
 		t.Skip("the file supports amd64 and arm64")
 	}
 }

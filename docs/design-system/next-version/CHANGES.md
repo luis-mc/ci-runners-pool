@@ -37,3 +37,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C32: installer download words added: the join choice Download an installer, the review and wait lines, the saved-file line per system and the failure line; the Windows note now covers a copied command only (content.md; machines R5.65, web-console R5.66, CRSP122)
 - C33: field grid added as component 43; the wizard step bar is one row from 601 px up (components.md; first-run findings 9 and 13, CRSP124)
 - C34: first-run words added: the banner with its next step, Install the App buttons and notes, the light runner explanations, Tick, Clear search and filter, Remove this machine and Open Machines (content.md; first-run findings 3, 6, 8, 14 and 15, CRSP124)
+- C35: installer download words changed: the saved-file line says the file holds a one-time join code valid 15 minutes and to delete it after use; the review line says to delete the file (content.md; machines R5.65, CRSP133)
