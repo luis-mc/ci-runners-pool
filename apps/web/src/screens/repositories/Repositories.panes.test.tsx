@@ -46,12 +46,14 @@ describe('Repositories list in a pane', () => {
     expect(primaries()).toEqual(['Turn on the pool']);
   });
 
-  it('shows Select all N and a Clear that says why it is off when nothing is ticked (UX-12)', async () => {
+  it('shows Select all N, and Clear once rows are ticked, in one toolbar line (UX-12)', async () => {
     renderApp(list(signedIn()), '/repositories');
     await screen.findByRole('table', { name: 'Repositories' });
-    expect(screen.getByRole('button', { name: 'Select all 1' })).toBeTruthy();
-    const clear = screen.getByRole<HTMLButtonElement>('button', { name: 'Clear' });
-    expect(clear.disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Select all 1' }));
+    expect(screen.getByText('1 selected')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(screen.queryByText('1 selected')).toBeNull();
   });
 
   it('keeps Select all N equal to the rows the filter leaves (UX-7)', async () => {
