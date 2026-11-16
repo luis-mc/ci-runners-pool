@@ -112,16 +112,19 @@ describe('Tabs', () => {
     { id: 'b', label: 'Two' },
     { id: 'c', label: 'Three' },
   ];
-  it('is one row that never wraps (stylesheet rule) and scrolls when it does not fit', async () => {
+  it('wraps onto as many rows as needed and never scrolls sideways (UX-68)', async () => {
     const { readFileSync } = await import('node:fs');
     const { join } = await import('node:path');
     const css = readFileSync(join(import.meta.dirname, '..', 'components.css'), 'utf8');
     const rule = css.slice(css.indexOf('.ds-tabs {'));
     const block = rule.slice(0, rule.indexOf('}'));
-    expect(block).toContain('flex-wrap: nowrap');
-    expect(block).toContain('overflow-x: auto');
+    expect(block).toContain('flex-wrap: wrap');
+    expect(block).not.toContain('overflow-x');
+    expect(block).not.toContain('nowrap');
     const tab = css.slice(css.indexOf('.ds-tab {'));
-    expect(tab.slice(0, tab.indexOf('}'))).toContain('white-space: nowrap');
+    expect(tab.slice(0, tab.indexOf('}'))).not.toContain('nowrap');
+    const menu = css.slice(css.indexOf('.ds-topmenu {'));
+    expect(menu.slice(0, menu.indexOf('}'))).not.toContain('overflow-x');
   });
 
   it('moves with the arrow keys and keeps one tab in the tab order', () => {

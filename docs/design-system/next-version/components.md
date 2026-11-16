@@ -23,10 +23,10 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 3. Tabs
 
 - **Used for:** switching between views of the same thing. A tab never starts work. Tabs keep their panels mounted, so a tab keeps its state when the user comes back.
-- **Looks:** one row of labels over one panel, never two rows (UX-15). The chosen tab is underlined and bold, so colour is not the only sign. When the labels do not fit the width, the row scrolls sideways inside its frame and the chosen tab is kept in view; the page never scrolls sideways (UX-49). The row is a tab list with arrow-key movement.
+- **Looks:** labels over one panel. When the labels do not fit the width the row wraps onto as many rows as it needs; it never scrolls sideways (UX-68, owner decision LOOK D6). The chosen tab is underlined and bold, so colour is not the only sign. The row is a tab list with arrow-key movement. The top menu wraps the same way.
 - **Source:** `packages/ui/src/components/Controls.tsx` (`Tabs`)
-- **Rules:** UX-1, UX-8, UX-17.
-- **Guard:** none yet.
+- **Rules:** UX-1, UX-8, UX-17, UX-68.
+- **Guard:** `packages/ui/src/components/Pane.test.tsx` (Tabs).
 
 ## 4. Wizard
 
@@ -174,7 +174,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 14. Form field family
 
 - **Used for:** a field (name, help, box, error), a toggle (saved at once) and a check box (waits for Save). Boxes come in three widths. A text area is the same field with several lines, for a list with one item per line; it keeps the same name, help and error places and takes the full width. The number field of the number keypad (37) takes `decimals` for a measure such as 16.5 GiB. A field for a secret (a password) hides what is typed; the screen never fills it in again and says beside it whether one is set. A file field lets the person choose one file; it has the same name, help and error places, the screen reads the file and never shows what is in it, and it is locked with the rest of the form when the person may not use it.
-- **Looks:** a name above a box, a help line below it and an error line in the Problem tone when needed.
+- **Looks:** a name above a box, a help line below it and an error line in the Problem tone when needed. A switch is a button with On or Off and its name always beside it; pressing the name works the switch. A check box and a radio are drawn 16 px inside a 44 px hit area (UX-16).
 - **Source:** `src/ui/field`; `packages/ui/src/components/Fields.tsx` (`FileField`)
 - **Rules:** UX-20, UX-21, UX-22, UX-23, UX-24.
 - **Guard:** none yet.
@@ -182,8 +182,8 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 15. Tables and list rows
 
 - **Used for:** a table to compare three or more facts; rows for everything else. Rows fold to two lines on a phone. Column heads sort.
-- **Looks:** a plain grid with light lines and a bold head row. On a phone each row folds to two lines. A row that cannot be used now is greyed (`muted`); the reason and the link that fixes it sit in the row itself, never only in the grey.
-- **Source:** `src/ui/table`
+- **Looks:** a plain grid with light lines and a bold head row. On a phone (up to 600 px) each row folds to two lines: the first column on the first line, the other columns on the second, each cut with an ellipsis; a column marked `secondary` is left out of the fold. Given a `title` the table is drawn inside a pane with the title and the row count. The head of a sortable column is a button at least 44 px wide and high (UX-16); the row under the cursor stays in reverse video (component 41). A row that cannot be used now is greyed (`muted`); the reason and the link that fixes it sit in the row itself, never only in the grey.
+- **Source:** `packages/ui/src/components/Table.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-25, UX-16, UX-17, UX-18, UX-39.
 - **Guard:** none yet.
 
@@ -214,8 +214,8 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 19. Empty, failed and error states
 
 - **Used for:** a place with nothing to show, something that failed, or content that could not load. It says what, why and what next.
-- **Looks:** a centred block with a short title, one line of why and one button for what next.
-- **Source:** `src/ui/state`
+- **Looks:** a block with a short title, one line of why and one button for what next, shown once. A page passes its headline as `pageTitle` and its next action to the state only, so a failed or empty page keeps its h1 (UX-17) and the action is never also in the page header (UX-64).
+- **Source:** `packages/ui/src/components/State.tsx`
 - **Rules:** UX-6, UX-28, UX-3.
 - **Guard:** none yet.
 
@@ -387,7 +387,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 36. Time picker
 
 - **Used for:** times of day and durations. `units` sets the columns: `h` for an hour setting, `hm` for a time of day such as a reminder, `hms` for a duration such as a rest or a timed hold. It replaces a native time input and a keypad for times.
-- **Looks:** the field name and the value over a rule; then one column per unit, each an up key, the number in a large tabular figure, and a down key, with ":" between columns. A 12-hour locale adds an AM/PM switch after the last column. An optional row of quick-pick chips sits below; the chip that matches the value is pressed.
+- **Looks:** the field name and the value over a rule; then one column per unit, each an up key, the number in a large tabular figure, and a down key, with ":" between columns. The clock is 24-hour by default (UX-18); the locale never changes it. A caller may ask for 12-hour with `hourCycle`, which adds an AM/PM switch after the last column. An optional row of quick-pick chips sits below; the chip that matches the value is pressed.
 - **Source:** `packages/ui/src/pickers/TimePicker.tsx` (logic in `time-picker-logic.ts`, styles in `time-picker.css` and `picker-base.css`)
 - **Rules:** UX-56, UX-16, UX-17, UX-20, UX-22, UX-43.
 - **Guard:** the template's unit tests (`TimePicker.test.tsx`): keyboard, value and limits for `h`, `hm` and `hms`. With the enforcement kit, `scripts/design/raw-inputs.test.ts` bans a native time input (UX-56).
@@ -466,16 +466,16 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 41. Selected row and key-hint bar
 
 - **Used for:** showing which list row is selected, and which keys work (UX-57).
-- **Looks:** the selected row of a table or a result list, the row under the cursor (`j` and `k`, or a click or Tab), is in reverse video: `--ds-color-primary` fill with `--ds-color-on-primary` text. A row the user has ticked (a choice list) takes the `--ds-color-selection` fill and keeps its text colour. The key-hint bar is a footer at the end of the page with a thin top border, listing `/ search`, `j k move`, `Enter open`, `? keys`, each key in the key style of component 38. The hints are text, never buttons (UX-8). The bar is drawn at every width and wraps on a small screen (UX-50).
-- **Source:** `packages/ui/src/components/Table.tsx`, `packages/ui/src/components/Shell.tsx` (`KeyHints`, the `hints` slot of `Frame`), `packages/ui/src/components.css`
+- **Looks:** the selected row of a table or a result list, the row under the cursor (`j` and `k`, or a click or Tab), is in reverse video: `--ds-color-primary` fill with `--ds-color-on-primary` text. A row the user has ticked (a choice list) takes the `--ds-color-selection` fill and keeps its text colour. The key-hint bar is fixed at the window foot, as on the look page, with a thin top border. It lists only the keys that work on the page: a page registers its keys (`useKeyHints`) and a part that adds keys registers them too, so `j / k` and `Enter` show only where a list exists. Each key is in the key style of component 38. The hints are text, never buttons (UX-8). The bar is not drawn on a touch or coarse pointer, where there are no keys.
+- **Source:** `packages/ui/src/components/Table.tsx`, `packages/ui/src/components/KeyHints.tsx` (`KeyHints`, `useKeyHints`), the `hints` slot of `Frame`, `packages/ui/src/components.css`
 - **Rules:** UX-8, UX-50, UX-57, UX-60.
 - **Guard:** none yet.
 
 ## 42. Theme choice
 
 - **Used for:** the Theme choice in Settings, Appearance (UX-60): a one-choice list (component 13) of the six themes.
-- **Looks:** each row shows the theme name and, under it, a small row of that theme's colours (surface, primary, Done, Note, Needs you, Problem) in a box in the theme's page colour. The swatches are drawn from the theme's own tokens; the row is decoration and the name carries the meaning. The mode (system, dark, light) is a second one-choice list beside it.
-- **Source:** `packages/ui/src/components/Fields.tsx` (`Choice.swatch`), `packages/ui/src/themes.ts`
+- **Looks:** each row shows the theme name and, under it, a small row of that theme's colours (surface, primary, Done, Note, Needs you, Problem) in a box in the theme's page colour. The swatches are drawn from the theme's own tokens; the row is decoration and the name carries the meaning. The mode (system, dark, light) is a second one-choice list beside it. `ThemePreview` is a small live sample of a theme in dark or light: a pane with its title in the border, a selected row in reverse video and a primary button, all from that theme's tokens. It is a picture with one label, not a control.
+- **Source:** `packages/ui/src/components/Fields.tsx` (`Choice.swatch`), `packages/ui/src/components/ThemePreview.tsx`, `packages/ui/src/themes.ts`
 - **Rules:** UX-22, UX-55, UX-60.
 - **Guard:** `scripts/design/themes.test.ts` (tokens and contrast); `apps/web/src/screens/settings/Settings.test.tsx` (picking and keeping a theme).
 

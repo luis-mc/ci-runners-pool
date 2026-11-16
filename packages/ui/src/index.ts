@@ -22,5 +22,7 @@ export * from './components/Dialog';
 export * from './components/Controls';
 export * from './components/Wizard';
 export * from './components/Grant';
+export * from './components/KeyHints';
 export * from './components/Shell';
+export * from './components/ThemePreview';
 export * from './themes';

@@ -107,7 +107,11 @@
   --ds-color-problem-tint: #2b2117;
   --ds-color-on-problem-tint: #ff7466;
   --ds-glow-focus: 0 0 0 1px #4dff88, 0 0 8px rgba(77, 255, 136, 0.55);
-  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(77, 255, 136, 0.06) 0 1px, transparent 1px 3px);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(77, 255, 136, 0.06) 0 1px,
+    transparent 1px 3px
+  );
   --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
   --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
   --ds-radius-1: 0;
@@ -227,7 +231,11 @@
   --ds-color-problem-tint: #2b2117;
   --ds-color-on-problem-tint: #ff7466;
   --ds-glow-focus: 0 0 0 1px #4dff88, 0 0 8px rgba(77, 255, 136, 0.55);
-  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(77, 255, 136, 0.06) 0 1px, transparent 1px 3px);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(77, 255, 136, 0.06) 0 1px,
+    transparent 1px 3px
+  );
   --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
   --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
   --ds-radius-1: 0;
@@ -349,7 +357,93 @@
   --ds-color-problem-tint: #2b2117;
   --ds-color-on-problem-tint: #ff7466;
   --ds-glow-focus: 0 0 0 1px #4dff88, 0 0 8px rgba(77, 255, 136, 0.55);
-  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(77, 255, 136, 0.06) 0 1px, transparent 1px 3px);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(77, 255, 136, 0.06) 0 1px,
+    transparent 1px 3px
+  );
+  --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
+  --ds-radius-1: 0;
+  --ds-radius-2: 0;
+  --ds-radius-3: 0;
+}
+:root [data-theme='light'][data-theme-name='phosphor'] {
+  --ds-color-page: #eef5ea;
+  --ds-color-surface: #f9fcf7;
+  --ds-color-text: #0e2a12;
+  --ds-color-text-muted: #3f5e41;
+  --ds-color-border: #5f7d61;
+  --ds-color-divider: #cbd6ca;
+  --ds-color-primary: #0f6b2c;
+  --ds-color-on-primary: #ffffff;
+  --ds-color-focus: #0f6b2c;
+  --ds-color-selection: #d4ead2;
+  --ds-color-done: #0f6b2c;
+  --ds-color-done-bg: #ddebdf;
+  --ds-color-on-done: #ffffff;
+  --ds-color-done-tint: #ddebdf;
+  --ds-color-on-done-tint: #0f6b2c;
+  --ds-color-note: #005f73;
+  --ds-color-note-bg: #dbe9e7;
+  --ds-color-on-note: #ffffff;
+  --ds-color-note-tint: #dbe9e7;
+  --ds-color-on-note-tint: #005f73;
+  --ds-color-needs-you: #8a5200;
+  --ds-color-needs-you-bg: #ece8d9;
+  --ds-color-on-needs-you: #ffffff;
+  --ds-color-needs-you-tint: #ece8d9;
+  --ds-color-on-needs-you-tint: #8a5200;
+  --ds-color-problem: #b3261e;
+  --ds-color-problem-bg: #f1e2dd;
+  --ds-color-on-problem: #ffffff;
+  --ds-color-problem-tint: #f1e2dd;
+  --ds-color-on-problem-tint: #b3261e;
+  --ds-glow-focus: 0 0 0 1px #0f6b2c;
+  --ds-scanline-focus: none;
+  --ds-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.12);
+  --ds-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --ds-radius-1: 0;
+  --ds-radius-2: 0;
+  --ds-radius-3: 0;
+}
+:root [data-theme='dark'][data-theme-name='phosphor'] {
+  --ds-color-page: #040a05;
+  --ds-color-surface: #08130a;
+  --ds-color-text: #b9f7b4;
+  --ds-color-text-muted: #78b874;
+  --ds-color-border: #4a8a47;
+  --ds-color-divider: #1c371c;
+  --ds-color-primary: #4dff88;
+  --ds-color-on-primary: #021207;
+  --ds-color-focus: #4dff88;
+  --ds-color-selection: #123d1a;
+  --ds-color-done: #6dff8f;
+  --ds-color-done-bg: #16341d;
+  --ds-color-on-done: #021207;
+  --ds-color-done-tint: #16341d;
+  --ds-color-on-done-tint: #6dff8f;
+  --ds-color-note: #7fe7ff;
+  --ds-color-note-bg: #19312c;
+  --ds-color-on-note: #021207;
+  --ds-color-note-tint: #19312c;
+  --ds-color-on-note-tint: #7fe7ff;
+  --ds-color-needs-you: #ffc94d;
+  --ds-color-needs-you-bg: #2b2c13;
+  --ds-color-on-needs-you: #021207;
+  --ds-color-needs-you-tint: #2b2c13;
+  --ds-color-on-needs-you-tint: #ffc94d;
+  --ds-color-problem: #ff7466;
+  --ds-color-problem-bg: #2b2117;
+  --ds-color-on-problem: #021207;
+  --ds-color-problem-tint: #2b2117;
+  --ds-color-on-problem-tint: #ff7466;
+  --ds-glow-focus: 0 0 0 1px #4dff88, 0 0 8px rgba(77, 255, 136, 0.55);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(77, 255, 136, 0.06) 0 1px,
+    transparent 1px 3px
+  );
   --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
   --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
   --ds-radius-1: 0;
@@ -389,7 +483,11 @@
   --ds-color-problem-tint: #3a2b37;
   --ds-color-on-problem-tint: #ff8aa0;
   --ds-glow-focus: 0 0 0 1px #7aa2f7, 0 0 8px rgba(122, 162, 247, 0.55);
-  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(122, 162, 247, 0.06) 0 1px, transparent 1px 3px);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(122, 162, 247, 0.06) 0 1px,
+    transparent 1px 3px
+  );
   --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
   --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
   --ds-radius-1: 0;
@@ -511,7 +609,93 @@
   --ds-color-problem-tint: #3a2b37;
   --ds-color-on-problem-tint: #ff8aa0;
   --ds-glow-focus: 0 0 0 1px #7aa2f7, 0 0 8px rgba(122, 162, 247, 0.55);
-  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(122, 162, 247, 0.06) 0 1px, transparent 1px 3px);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(122, 162, 247, 0.06) 0 1px,
+    transparent 1px 3px
+  );
+  --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
+  --ds-radius-1: 0;
+  --ds-radius-2: 0;
+  --ds-radius-3: 0;
+}
+:root [data-theme='light'][data-theme-name='tokyo-night'] {
+  --ds-color-page: #e1e2e7;
+  --ds-color-surface: #f4f5f8;
+  --ds-color-text: #343b58;
+  --ds-color-text-muted: #4f5574;
+  --ds-color-border: #6b7194;
+  --ds-color-divider: #cbcdda;
+  --ds-color-primary: #2350b5;
+  --ds-color-on-primary: #ffffff;
+  --ds-color-focus: #2350b5;
+  --ds-color-selection: #d5d9ea;
+  --ds-color-done: #3a6a17;
+  --ds-color-done-bg: #dee4dd;
+  --ds-color-on-done: #ffffff;
+  --ds-color-done-tint: #dee4dd;
+  --ds-color-on-done-tint: #3a6a17;
+  --ds-color-note: #0f6587;
+  --ds-color-note-bg: #d9e4ea;
+  --ds-color-on-note: #ffffff;
+  --ds-color-note-tint: #d9e4ea;
+  --ds-color-on-note-tint: #0f6587;
+  --ds-color-needs-you: #865500;
+  --ds-color-needs-you-bg: #e7e2da;
+  --ds-color-on-needs-you: #ffffff;
+  --ds-color-needs-you-tint: #e7e2da;
+  --ds-color-on-needs-you-tint: #865500;
+  --ds-color-problem: #b4214a;
+  --ds-color-problem-bg: #ecdce3;
+  --ds-color-on-problem: #ffffff;
+  --ds-color-problem-tint: #ecdce3;
+  --ds-color-on-problem-tint: #b4214a;
+  --ds-glow-focus: 0 0 0 1px #2350b5;
+  --ds-scanline-focus: none;
+  --ds-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.12);
+  --ds-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --ds-radius-1: 0;
+  --ds-radius-2: 0;
+  --ds-radius-3: 0;
+}
+:root [data-theme='dark'][data-theme-name='tokyo-night'] {
+  --ds-color-page: #16161e;
+  --ds-color-surface: #1a1b26;
+  --ds-color-text: #c0caf5;
+  --ds-color-text-muted: #9aa5ce;
+  --ds-color-border: #6b74a3;
+  --ds-color-divider: #32364c;
+  --ds-color-primary: #7aa2f7;
+  --ds-color-on-primary: #11121a;
+  --ds-color-focus: #7aa2f7;
+  --ds-color-selection: #292e48;
+  --ds-color-done: #9ece6a;
+  --ds-color-done-bg: #2c3430;
+  --ds-color-on-done: #11121a;
+  --ds-color-done-tint: #2c3430;
+  --ds-color-on-done-tint: #9ece6a;
+  --ds-color-note: #7dcfff;
+  --ds-color-note-bg: #283444;
+  --ds-color-on-note: #11121a;
+  --ds-color-note-tint: #283444;
+  --ds-color-on-note-tint: #7dcfff;
+  --ds-color-needs-you: #e0af68;
+  --ds-color-needs-you-bg: #36302f;
+  --ds-color-on-needs-you: #11121a;
+  --ds-color-needs-you-tint: #36302f;
+  --ds-color-on-needs-you-tint: #e0af68;
+  --ds-color-problem: #ff8aa0;
+  --ds-color-problem-bg: #3a2b37;
+  --ds-color-on-problem: #11121a;
+  --ds-color-problem-tint: #3a2b37;
+  --ds-color-on-problem-tint: #ff8aa0;
+  --ds-glow-focus: 0 0 0 1px #7aa2f7, 0 0 8px rgba(122, 162, 247, 0.55);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(122, 162, 247, 0.06) 0 1px,
+    transparent 1px 3px
+  );
   --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
   --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
   --ds-radius-1: 0;
@@ -551,7 +735,11 @@
   --ds-color-problem-tint: #3c2d3f;
   --ds-color-on-problem-tint: #f38ba8;
   --ds-glow-focus: 0 0 0 1px #cba6f7, 0 0 8px rgba(203, 166, 247, 0.55);
-  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(203, 166, 247, 0.06) 0 1px, transparent 1px 3px);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(203, 166, 247, 0.06) 0 1px,
+    transparent 1px 3px
+  );
   --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
   --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
   --ds-radius-1: 8px;
@@ -673,7 +861,93 @@
   --ds-color-problem-tint: #3c2d3f;
   --ds-color-on-problem-tint: #f38ba8;
   --ds-glow-focus: 0 0 0 1px #cba6f7, 0 0 8px rgba(203, 166, 247, 0.55);
-  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(203, 166, 247, 0.06) 0 1px, transparent 1px 3px);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(203, 166, 247, 0.06) 0 1px,
+    transparent 1px 3px
+  );
+  --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
+  --ds-radius-1: 8px;
+  --ds-radius-2: 8px;
+  --ds-radius-3: 8px;
+}
+:root [data-theme='light'][data-theme-name='catppuccin'] {
+  --ds-color-page: #e6e9ef;
+  --ds-color-surface: #eff1f5;
+  --ds-color-text: #4c4f69;
+  --ds-color-text-muted: #5c5f77;
+  --ds-color-border: #7c7f93;
+  --ds-color-divider: #cccfd8;
+  --ds-color-primary: #7a2ee0;
+  --ds-color-on-primary: #ffffff;
+  --ds-color-focus: #7a2ee0;
+  --ds-color-selection: #dce0e8;
+  --ds-color-done: #2f6d1a;
+  --ds-color-done-bg: #d8e1db;
+  --ds-color-on-done: #ffffff;
+  --ds-color-done-tint: #d8e1db;
+  --ds-color-on-done-tint: #2f6d1a;
+  --ds-color-note: #0b6680;
+  --ds-color-note-bg: #d4e0e7;
+  --ds-color-on-note: #ffffff;
+  --ds-color-note-tint: #d4e0e7;
+  --ds-color-on-note-tint: #0b6680;
+  --ds-color-needs-you: #835300;
+  --ds-color-needs-you-bg: #e2ded8;
+  --ds-color-on-needs-you: #ffffff;
+  --ds-color-needs-you-tint: #e2ded8;
+  --ds-color-on-needs-you-tint: #835300;
+  --ds-color-problem: #b5163a;
+  --ds-color-problem-bg: #e8d7df;
+  --ds-color-on-problem: #ffffff;
+  --ds-color-problem-tint: #e8d7df;
+  --ds-color-on-problem-tint: #b5163a;
+  --ds-glow-focus: 0 0 0 1px #7a2ee0;
+  --ds-scanline-focus: none;
+  --ds-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.12);
+  --ds-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --ds-radius-1: 8px;
+  --ds-radius-2: 8px;
+  --ds-radius-3: 8px;
+}
+:root [data-theme='dark'][data-theme-name='catppuccin'] {
+  --ds-color-page: #181825;
+  --ds-color-surface: #1e1e2e;
+  --ds-color-text: #cdd6f4;
+  --ds-color-text-muted: #a6adc8;
+  --ds-color-border: #7f849c;
+  --ds-color-divider: #3b3d4f;
+  --ds-color-primary: #cba6f7;
+  --ds-color-on-primary: #1e1e2e;
+  --ds-color-focus: #cba6f7;
+  --ds-color-selection: #313244;
+  --ds-color-done: #a6e3a1;
+  --ds-color-done-bg: #313a3e;
+  --ds-color-on-done: #1e1e2e;
+  --ds-color-done-tint: #313a3e;
+  --ds-color-on-done-tint: #a6e3a1;
+  --ds-color-note: #89dceb;
+  --ds-color-note-bg: #2d3948;
+  --ds-color-on-note: #1e1e2e;
+  --ds-color-note-tint: #2d3948;
+  --ds-color-on-note-tint: #89dceb;
+  --ds-color-needs-you: #f9e2af;
+  --ds-color-needs-you-bg: #3d3940;
+  --ds-color-on-needs-you: #1e1e2e;
+  --ds-color-needs-you-tint: #3d3940;
+  --ds-color-on-needs-you-tint: #f9e2af;
+  --ds-color-problem: #f38ba8;
+  --ds-color-problem-bg: #3c2d3f;
+  --ds-color-on-problem: #1e1e2e;
+  --ds-color-problem-tint: #3c2d3f;
+  --ds-color-on-problem-tint: #f38ba8;
+  --ds-glow-focus: 0 0 0 1px #cba6f7, 0 0 8px rgba(203, 166, 247, 0.55);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(203, 166, 247, 0.06) 0 1px,
+    transparent 1px 3px
+  );
   --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
   --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
   --ds-radius-1: 8px;
@@ -713,7 +987,11 @@
   --ds-color-problem-tint: #3e2f2d;
   --ds-color-on-problem-tint: #ff6b5a;
   --ds-glow-focus: 0 0 0 1px #fabd2f, 0 0 8px rgba(250, 189, 47, 0.55);
-  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(250, 189, 47, 0.06) 0 1px, transparent 1px 3px);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(250, 189, 47, 0.06) 0 1px,
+    transparent 1px 3px
+  );
   --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
   --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
   --ds-radius-1: 0;
@@ -835,7 +1113,93 @@
   --ds-color-problem-tint: #3e2f2d;
   --ds-color-on-problem-tint: #ff6b5a;
   --ds-glow-focus: 0 0 0 1px #fabd2f, 0 0 8px rgba(250, 189, 47, 0.55);
-  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(250, 189, 47, 0.06) 0 1px, transparent 1px 3px);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(250, 189, 47, 0.06) 0 1px,
+    transparent 1px 3px
+  );
+  --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
+  --ds-radius-1: 0;
+  --ds-radius-2: 0;
+  --ds-radius-3: 0;
+}
+:root [data-theme='light'][data-theme-name='gruvbox'] {
+  --ds-color-page: #f2e5bc;
+  --ds-color-surface: #fbf1c7;
+  --ds-color-text: #3c3836;
+  --ds-color-text-muted: #5a514a;
+  --ds-color-border: #7c6f64;
+  --ds-color-divider: #d5caa9;
+  --ds-color-primary: #076678;
+  --ds-color-on-primary: #ffffff;
+  --ds-color-focus: #076678;
+  --ds-color-selection: #ebdbb2;
+  --ds-color-done: #5d5a0a;
+  --ds-color-done-bg: #e8dfb0;
+  --ds-color-on-done: #ffffff;
+  --ds-color-done-tint: #e8dfb0;
+  --ds-color-on-done-tint: #5d5a0a;
+  --ds-color-note: #076678;
+  --ds-color-note-bg: #dee0be;
+  --ds-color-on-note: #ffffff;
+  --ds-color-note-tint: #dee0be;
+  --ds-color-on-note-tint: #076678;
+  --ds-color-needs-you: #8f3e02;
+  --ds-color-needs-you-bg: #eedcaf;
+  --ds-color-on-needs-you: #ffffff;
+  --ds-color-needs-you-tint: #eedcaf;
+  --ds-color-on-needs-you-tint: #8f3e02;
+  --ds-color-problem: #9d0006;
+  --ds-color-problem-bg: #f0d4b0;
+  --ds-color-on-problem: #ffffff;
+  --ds-color-problem-tint: #f0d4b0;
+  --ds-color-on-problem-tint: #9d0006;
+  --ds-glow-focus: 0 0 0 1px #076678;
+  --ds-scanline-focus: none;
+  --ds-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.12);
+  --ds-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --ds-radius-1: 0;
+  --ds-radius-2: 0;
+  --ds-radius-3: 0;
+}
+:root [data-theme='dark'][data-theme-name='gruvbox'] {
+  --ds-color-page: #1d2021;
+  --ds-color-surface: #282828;
+  --ds-color-text: #ebdbb2;
+  --ds-color-text-muted: #bdae93;
+  --ds-color-border: #7c6f64;
+  --ds-color-divider: #413d3a;
+  --ds-color-primary: #fabd2f;
+  --ds-color-on-primary: #1d2021;
+  --ds-color-focus: #fabd2f;
+  --ds-color-selection: #32302f;
+  --ds-color-done: #b8bb26;
+  --ds-color-done-bg: #3c3d28;
+  --ds-color-on-done: #1d2021;
+  --ds-color-done-tint: #3c3d28;
+  --ds-color-on-done-tint: #b8bb26;
+  --ds-color-note: #8ec0a8;
+  --ds-color-note-bg: #363d3a;
+  --ds-color-on-note: #1d2021;
+  --ds-color-note-tint: #363d3a;
+  --ds-color-on-note-tint: #8ec0a8;
+  --ds-color-needs-you: #fe8019;
+  --ds-color-needs-you-bg: #463426;
+  --ds-color-on-needs-you: #1d2021;
+  --ds-color-needs-you-tint: #463426;
+  --ds-color-on-needs-you-tint: #fe8019;
+  --ds-color-problem: #ff6b5a;
+  --ds-color-problem-bg: #3e2f2d;
+  --ds-color-on-problem: #1d2021;
+  --ds-color-problem-tint: #3e2f2d;
+  --ds-color-on-problem-tint: #ff6b5a;
+  --ds-glow-focus: 0 0 0 1px #fabd2f, 0 0 8px rgba(250, 189, 47, 0.55);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(250, 189, 47, 0.06) 0 1px,
+    transparent 1px 3px
+  );
   --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
   --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
   --ds-radius-1: 0;
@@ -875,7 +1239,11 @@
   --ds-color-problem-tint: #2a444e;
   --ds-color-on-problem-tint: #ff9a95;
   --ds-glow-focus: 0 0 0 1px #6cbcf5, 0 0 8px rgba(108, 188, 245, 0.55);
-  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(108, 188, 245, 0.06) 0 1px, transparent 1px 3px);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(108, 188, 245, 0.06) 0 1px,
+    transparent 1px 3px
+  );
   --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
   --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
   --ds-radius-1: 0;
@@ -997,7 +1365,93 @@
   --ds-color-problem-tint: #2a444e;
   --ds-color-on-problem-tint: #ff9a95;
   --ds-glow-focus: 0 0 0 1px #6cbcf5, 0 0 8px rgba(108, 188, 245, 0.55);
-  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(108, 188, 245, 0.06) 0 1px, transparent 1px 3px);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(108, 188, 245, 0.06) 0 1px,
+    transparent 1px 3px
+  );
+  --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
+  --ds-radius-1: 0;
+  --ds-radius-2: 0;
+  --ds-radius-3: 0;
+}
+:root [data-theme='light'][data-theme-name='solarized'] {
+  --ds-color-page: #fdf6e3;
+  --ds-color-surface: #fffbf0;
+  --ds-color-text: #073642;
+  --ds-color-text-muted: #4c6168;
+  --ds-color-border: #6d7f83;
+  --ds-color-divider: #d3d6cf;
+  --ds-color-primary: #1a5f96;
+  --ds-color-on-primary: #ffffff;
+  --ds-color-focus: #1a5f96;
+  --ds-color-selection: #eee8d5;
+  --ds-color-done: #4f6000;
+  --ds-color-done-bg: #eae8d3;
+  --ds-color-on-done: #ffffff;
+  --ds-color-done-tint: #eae8d3;
+  --ds-color-on-done-tint: #4f6000;
+  --ds-color-note: #1d6e68;
+  --ds-color-note-bg: #e4eae0;
+  --ds-color-on-note: #ffffff;
+  --ds-color-note-tint: #e4eae0;
+  --ds-color-on-note-tint: #1d6e68;
+  --ds-color-needs-you: #7d5300;
+  --ds-color-needs-you-bg: #efe7d3;
+  --ds-color-on-needs-you: #ffffff;
+  --ds-color-needs-you-tint: #efe7d3;
+  --ds-color-on-needs-you-tint: #7d5300;
+  --ds-color-problem: #b0201d;
+  --ds-color-problem-bg: #f6e1d7;
+  --ds-color-on-problem: #ffffff;
+  --ds-color-problem-tint: #f6e1d7;
+  --ds-color-on-problem-tint: #b0201d;
+  --ds-glow-focus: 0 0 0 1px #1a5f96;
+  --ds-scanline-focus: none;
+  --ds-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.12);
+  --ds-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --ds-radius-1: 0;
+  --ds-radius-2: 0;
+  --ds-radius-3: 0;
+}
+:root [data-theme='dark'][data-theme-name='solarized'] {
+  --ds-color-page: #002b36;
+  --ds-color-surface: #073642;
+  --ds-color-text: #d2dbd9;
+  --ds-color-text-muted: #a5b4b5;
+  --ds-color-border: #7a9497;
+  --ds-color-divider: #2a525c;
+  --ds-color-primary: #6cbcf5;
+  --ds-color-on-primary: #002b36;
+  --ds-color-focus: #6cbcf5;
+  --ds-color-selection: #0a3f4c;
+  --ds-color-done: #a5c23a;
+  --ds-color-done-bg: #1d4a41;
+  --ds-color-on-done: #002b36;
+  --ds-color-done-tint: #1d4a41;
+  --ds-color-on-done-tint: #a5c23a;
+  --ds-color-note: #4fcfc4;
+  --ds-color-note-bg: #114b54;
+  --ds-color-on-note: #002b36;
+  --ds-color-note-tint: #114b54;
+  --ds-color-on-note-tint: #4fcfc4;
+  --ds-color-needs-you: #e0b13a;
+  --ds-color-needs-you-bg: #254741;
+  --ds-color-on-needs-you: #002b36;
+  --ds-color-needs-you-tint: #254741;
+  --ds-color-on-needs-you-tint: #e0b13a;
+  --ds-color-problem: #ff9a95;
+  --ds-color-problem-bg: #2a444e;
+  --ds-color-on-problem: #002b36;
+  --ds-color-problem-tint: #2a444e;
+  --ds-color-on-problem-tint: #ff9a95;
+  --ds-glow-focus: 0 0 0 1px #6cbcf5, 0 0 8px rgba(108, 188, 245, 0.55);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(108, 188, 245, 0.06) 0 1px,
+    transparent 1px 3px
+  );
   --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
   --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
   --ds-radius-1: 0;
@@ -1037,7 +1491,11 @@
   --ds-color-problem-tint: #49424e;
   --ds-color-on-problem-tint: #ef9aa1;
   --ds-glow-focus: 0 0 0 1px #88c0d0, 0 0 8px rgba(136, 192, 208, 0.55);
-  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(136, 192, 208, 0.06) 0 1px, transparent 1px 3px);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(136, 192, 208, 0.06) 0 1px,
+    transparent 1px 3px
+  );
   --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
   --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
   --ds-radius-1: 6px;
@@ -1159,7 +1617,93 @@
   --ds-color-problem-tint: #49424e;
   --ds-color-on-problem-tint: #ef9aa1;
   --ds-glow-focus: 0 0 0 1px #88c0d0, 0 0 8px rgba(136, 192, 208, 0.55);
-  --ds-scanline-focus: repeating-linear-gradient(0deg, rgba(136, 192, 208, 0.06) 0 1px, transparent 1px 3px);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(136, 192, 208, 0.06) 0 1px,
+    transparent 1px 3px
+  );
+  --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
+  --ds-radius-1: 6px;
+  --ds-radius-2: 6px;
+  --ds-radius-3: 6px;
+}
+:root [data-theme='light'][data-theme-name='nord'] {
+  --ds-color-page: #e5e9f0;
+  --ds-color-surface: #f6f8fb;
+  --ds-color-text: #2e3440;
+  --ds-color-text-muted: #4c566a;
+  --ds-color-border: #6b768c;
+  --ds-color-divider: #ccd1da;
+  --ds-color-primary: #2f6585;
+  --ds-color-on-primary: #ffffff;
+  --ds-color-focus: #2f6585;
+  --ds-color-selection: #dde3ec;
+  --ds-color-done: #466a2c;
+  --ds-color-done-bg: #e1e7e2;
+  --ds-color-on-done: #ffffff;
+  --ds-color-done-tint: #e1e7e2;
+  --ds-color-on-done-tint: #466a2c;
+  --ds-color-note: #3a5d88;
+  --ds-color-note-bg: #dfe5ed;
+  --ds-color-on-note: #ffffff;
+  --ds-color-note-tint: #dfe5ed;
+  --ds-color-on-note-tint: #3a5d88;
+  --ds-color-needs-you: #805600;
+  --ds-color-needs-you-bg: #e8e5dd;
+  --ds-color-on-needs-you: #ffffff;
+  --ds-color-needs-you-tint: #e8e5dd;
+  --ds-color-on-needs-you-tint: #805600;
+  --ds-color-problem: #a3343f;
+  --ds-color-problem-bg: #ece0e4;
+  --ds-color-on-problem: #ffffff;
+  --ds-color-problem-tint: #ece0e4;
+  --ds-color-on-problem-tint: #a3343f;
+  --ds-glow-focus: 0 0 0 1px #2f6585;
+  --ds-scanline-focus: none;
+  --ds-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.12);
+  --ds-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --ds-radius-1: 6px;
+  --ds-radius-2: 6px;
+  --ds-radius-3: 6px;
+}
+:root [data-theme='dark'][data-theme-name='nord'] {
+  --ds-color-page: #20242c;
+  --ds-color-surface: #2e3440;
+  --ds-color-text: #eceff4;
+  --ds-color-text-muted: #b4bccb;
+  --ds-color-border: #76829b;
+  --ds-color-divider: #444b5b;
+  --ds-color-primary: #88c0d0;
+  --ds-color-on-primary: #1b2029;
+  --ds-color-focus: #88c0d0;
+  --ds-color-selection: #363c4a;
+  --ds-color-done: #a3be8c;
+  --ds-color-done-bg: #3e474b;
+  --ds-color-on-done: #1b2029;
+  --ds-color-done-tint: #3e474b;
+  --ds-color-on-done-tint: #a3be8c;
+  --ds-color-note: #93b4d6;
+  --ds-color-note-bg: #38414f;
+  --ds-color-on-note: #1b2029;
+  --ds-color-note-tint: #38414f;
+  --ds-color-on-note-tint: #93b4d6;
+  --ds-color-needs-you: #ebcb8b;
+  --ds-color-needs-you-bg: #48494b;
+  --ds-color-on-needs-you: #1b2029;
+  --ds-color-needs-you-tint: #48494b;
+  --ds-color-on-needs-you-tint: #ebcb8b;
+  --ds-color-problem: #ef9aa1;
+  --ds-color-problem-bg: #49424e;
+  --ds-color-on-problem: #1b2029;
+  --ds-color-problem-tint: #49424e;
+  --ds-color-on-problem-tint: #ef9aa1;
+  --ds-glow-focus: 0 0 0 1px #88c0d0, 0 0 8px rgba(136, 192, 208, 0.55);
+  --ds-scanline-focus: repeating-linear-gradient(
+    0deg,
+    rgba(136, 192, 208, 0.06) 0 1px,
+    transparent 1px 3px
+  );
   --ds-shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.6);
   --ds-shadow-3: 0 0 0 1px rgba(0, 0, 0, 0.8);
   --ds-radius-1: 6px;

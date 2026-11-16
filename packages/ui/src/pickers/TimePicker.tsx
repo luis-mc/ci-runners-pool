@@ -1,6 +1,6 @@
 // TimePicker (luismc-docs component template, React + TypeScript).
 // One spin button per unit: hours only (units="h"), hours and minutes ("hm"), or hours, minutes and seconds ("hms").
-// 24-hour by default; a 12-hour locale (or hourCycle="h12") adds an AM/PM switch after the last column.
+// 24-hour by default (UX-18); hourCycle="h12" adds an AM/PM switch after the last column.
 // Built from design tokens only: the classes are styled in time-picker.css with var(--ds-*).
 // Keyboard (WAI-ARIA APG spinbutton): Up/Down step and wrap, Page Up/Down take a bigger step,
 // Home/End go to the lowest or highest value, Left/Right move between columns, Enter is Done, Escape cancels.
@@ -10,7 +10,6 @@ import {
   dayPeriods,
   formatTime,
   from12,
-  hourCycleFor,
   parseTime,
   spinKey,
   to12,
@@ -91,7 +90,8 @@ export function TimePicker({
 }: TimePickerProps) {
   const words = { ...DEFAULT_TIME_PICKER_LABELS, ...labels };
   const id = useId();
-  const cycle = hourCycle ?? hourCycleFor(locale);
+  // 24-hour unless the caller asks for 12-hour: the locale never decides (UX-18).
+  const cycle: HourCycle = hourCycle ?? 'h23';
   const parts: TimeParts = parseTime(value, units) ?? { h: 0, m: 0, s: 0 };
   const current = formatTime(parts, units);
   const cols = unitsOf(units);

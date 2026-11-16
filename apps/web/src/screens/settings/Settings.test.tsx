@@ -99,7 +99,7 @@ describe('Appearance (UX-60)', () => {
 });
 
 describe('Colour themes (UX-60)', () => {
-  it('offers the six themes with a swatch row each and Tokyo Night by default', async () => {
+  it('offers the six themes with a swatch row each and Phosphor by default', async () => {
     window.localStorage.clear();
     document.documentElement.removeAttribute('data-theme-name');
     renderApp(signedIn(), '/settings/appearance');
@@ -117,7 +117,7 @@ describe('Colour themes (UX-60)', () => {
     ]);
     expect(group.querySelectorAll('.ds-swatches')).toHaveLength(6);
     expect(
-      within(group).getByRole<HTMLInputElement>('radio', { name: 'Tokyo Night' }).checked,
+      within(group).getByRole<HTMLInputElement>('radio', { name: 'Phosphor' }).checked,
     ).toBe(true);
   });
 

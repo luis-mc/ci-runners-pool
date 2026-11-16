@@ -72,6 +72,7 @@ Every rule has an ID. A feature spec and the code cite the ID (`design system UX
 | UX-65 | **A result says what happened and what comes next.** It follows UX-27 (one line under the button) and UX-6 (no dead ends). | none yet |
 | UX-66 | **Done is a receipt.** It lists what really happened, never the plan (UX-30). It offers Try again or Undo where they exist. | none yet |
 | UX-67 | **A short sign-in flow is plain screens, not a wizard.** This is the one exception to UX-5. | none yet |
+| UX-68 | **No menu, tab row or nav ever scrolls sideways.** A row of tabs or menu items that does not fit wraps onto as many rows as it needs. The chosen item stays marked. | `packages/ui/src/components/Pane.test.tsx` (Tabs), `scripts/design/dom-layout.ts` |
 <!-- rule-table:end -->
 
 ## How to add a rule
