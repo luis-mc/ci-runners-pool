@@ -1133,6 +1133,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/public-repositories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether crsp serves public repositories
+         * @description github-integration R5.54. Off by default: crsp offers private repositories only. `public_on_pool` counts the public repositories whose pool is on now, so the console can name the number before the setting is switched off.
+         */
+        get: operations["getPublicRepositories"];
+        /**
+         * Turn public repositories on or off
+         * @description github-integration R5.54 and R5.55. Switching off turns the pool off for every public repository that has it on (its settings stay), sets its RUNS_ON variables to the hosted labels, drains and removes its runners, and audits each. `stopped` is how many repositories that was. Switching on stops nothing and turns nothing on by itself.
+         */
+        put: operations["setPublicRepositories"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runners": {
         parameters: {
             query?: never;
@@ -2592,6 +2616,45 @@ export interface components {
             policy: components["schemas"]["RepositoryPolicy"];
             routing?: components["schemas"]["RepositoryRouting"];
             webhook?: components["schemas"]["WebhookHealth"];
+            problem?: components["schemas"]["RepositoryProblem"];
+        };
+        /**
+         * @example {
+         *       "enabled": false,
+         *       "public_on_pool": 0
+         *     }
+         */
+        PublicRepositories: {
+            /** @description False by default. */
+            enabled: boolean;
+            /**
+             * Format: date-time
+             * @description Absent when the setting was never changed.
+             */
+            changed_at?: string;
+            /** @description Login of who changed it last. Absent when never changed. */
+            changed_by?: string;
+            /** @description Public repositories whose pool is on now. */
+            public_on_pool: number;
+        };
+        PublicRepositoriesSet: {
+            enabled: boolean;
+        };
+        PublicRepositoriesResult: components["schemas"]["PublicRepositories"] & {
+            /** @description Repositories whose pool this change switched off (0 when switching on). */
+            stopped: number;
+        };
+        /** @description A fault the owner can fix on a repository (github-integration R5.58). Absent when there is none. */
+        RepositoryProblem: {
+            /** @enum {string} */
+            code: "public_pool_on_while_off";
+            text: string;
+            actions: components["schemas"]["RepositoryProblemAction"][];
+        };
+        RepositoryProblemAction: {
+            /** @enum {string} */
+            id: "turn_on_public_repositories" | "turn_off_pool";
+            label: string;
         };
         /** @description The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.50). */
         WebhookHealth: {
@@ -5643,6 +5706,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PoolSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPublicRepositories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The setting. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRepositories"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setPublicRepositories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicRepositoriesSet"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRepositoriesResult"];
                 };
             };
             default: components["responses"]["Error"];

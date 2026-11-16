@@ -1186,6 +1186,39 @@ func (e RepositoryVisibility) Valid() bool {
 	}
 }
 
+// Defines values for RepositoryProblemCode.
+const (
+	PublicPoolOnWhileOff RepositoryProblemCode = "public_pool_on_while_off"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryProblemCode enum.
+func (e RepositoryProblemCode) Valid() bool {
+	switch e {
+	case PublicPoolOnWhileOff:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RepositoryProblemActionId.
+const (
+	TurnOffPool              RepositoryProblemActionId = "turn_off_pool"
+	TurnOnPublicRepositories RepositoryProblemActionId = "turn_on_public_repositories"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryProblemActionId enum.
+func (e RepositoryProblemActionId) Valid() bool {
+	switch e {
+	case TurnOffPool:
+		return true
+	case TurnOnPublicRepositories:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RepositoryRoutingOses.
 const (
 	RepositoryRoutingOsesLinux   RepositoryRoutingOses = "linux"
@@ -3036,6 +3069,44 @@ type Preferences struct {
 	Theme Theme `json:"theme"`
 }
 
+// PublicRepositories defines model for PublicRepositories.
+type PublicRepositories struct {
+	// ChangedAt Absent when the setting was never changed.
+	ChangedAt *time.Time `json:"changed_at,omitempty"`
+
+	// ChangedBy Login of who changed it last. Absent when never changed.
+	ChangedBy *string `json:"changed_by,omitempty"`
+
+	// Enabled False by default.
+	Enabled bool `json:"enabled"`
+
+	// PublicOnPool Public repositories whose pool is on now.
+	PublicOnPool int `json:"public_on_pool"`
+}
+
+// PublicRepositoriesResult defines model for PublicRepositoriesResult.
+type PublicRepositoriesResult struct {
+	// ChangedAt Absent when the setting was never changed.
+	ChangedAt *time.Time `json:"changed_at,omitempty"`
+
+	// ChangedBy Login of who changed it last. Absent when never changed.
+	ChangedBy *string `json:"changed_by,omitempty"`
+
+	// Enabled False by default.
+	Enabled bool `json:"enabled"`
+
+	// PublicOnPool Public repositories whose pool is on now.
+	PublicOnPool int `json:"public_on_pool"`
+
+	// Stopped Repositories whose pool this change switched off (0 when switching on).
+	Stopped int `json:"stopped"`
+}
+
+// PublicRepositoriesSet defines model for PublicRepositoriesSet.
+type PublicRepositoriesSet struct {
+	Enabled bool `json:"enabled"`
+}
+
 // QueueSettings defines model for QueueSettings.
 type QueueSettings struct {
 	// FairShare Round-robin by repository within a priority (scheduling R5.9).
@@ -3098,6 +3169,9 @@ type Repository struct {
 	// PoolOffReason Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
 	PoolOffReason *RepositoryPoolOffReason `json:"pool_off_reason,omitempty"`
 	PoolOn        bool                     `json:"pool_on"`
+
+	// Problem A fault the owner can fix on a repository (github-integration R5.58). Absent when there is none.
+	Problem *RepositoryProblem `json:"problem,omitempty"`
 
 	// Routing Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
 	Routing *RepositoryRouting `json:"routing,omitempty"`
@@ -3194,6 +3268,25 @@ type RepositoryPolicyUpdate struct {
 	Priority        *int      `json:"priority,omitempty"`
 	RunnerGroups    *[]string `json:"runner_groups,omitempty"`
 }
+
+// RepositoryProblem A fault the owner can fix on a repository (github-integration R5.58). Absent when there is none.
+type RepositoryProblem struct {
+	Actions []RepositoryProblemAction `json:"actions"`
+	Code    RepositoryProblemCode     `json:"code"`
+	Text    string                    `json:"text"`
+}
+
+// RepositoryProblemCode defines model for RepositoryProblem.Code.
+type RepositoryProblemCode string
+
+// RepositoryProblemAction defines model for RepositoryProblemAction.
+type RepositoryProblemAction struct {
+	Id    RepositoryProblemActionId `json:"id"`
+	Label string                    `json:"label"`
+}
+
+// RepositoryProblemActionId defines model for RepositoryProblemAction.Id.
+type RepositoryProblemActionId string
 
 // RepositoryRouting Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
 type RepositoryRouting struct {
@@ -4068,6 +4161,9 @@ type UpdateSettingsJSONRequestBody = Settings
 
 // UpdatePoolSettingsJSONRequestBody defines body for UpdatePoolSettings for application/json ContentType.
 type UpdatePoolSettingsJSONRequestBody = PoolSettings
+
+// SetPublicRepositoriesJSONRequestBody defines body for SetPublicRepositories for application/json ContentType.
+type SetPublicRepositoriesJSONRequestBody = PublicRepositoriesSet
 
 // UpdateQueueSettingsJSONRequestBody defines body for UpdateQueueSettings for application/json ContentType.
 type UpdateQueueSettingsJSONRequestBody = QueueSettings
@@ -5167,6 +5263,31 @@ type ClientInterface interface {
 	//
 	// Corresponds with PUT /api/v1/settings/pool (the `UpdatePoolSettings` operationId).
 	UpdatePoolSettings(ctx context.Context, body UpdatePoolSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetPublicRepositories Whether crsp serves public repositories
+	//
+	// github-integration R5.54. Off by default: crsp offers private repositories only. `public_on_pool` counts the public repositories whose pool is on now, so the console can name the number before the setting is switched off.
+	//
+	// Corresponds with GET /api/v1/settings/public-repositories (the `GetPublicRepositories` operationId).
+	GetPublicRepositories(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetPublicRepositoriesWithBody Turn public repositories on or off
+	//
+	// github-integration R5.54 and R5.55. Switching off turns the pool off for every public repository that has it on (its settings stay), sets its RUNS_ON variables to the hosted labels, drains and removes its runners, and audits each. `stopped` is how many repositories that was. Switching on stops nothing and turns nothing on by itself.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/settings/public-repositories (the `SetPublicRepositories` operationId).
+	SetPublicRepositoriesWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetPublicRepositories Turn public repositories on or off
+	//
+	// github-integration R5.54 and R5.55. Switching off turns the pool off for every public repository that has it on (its settings stay), sets its RUNS_ON variables to the hosted labels, drains and removes its runners, and audits each. `stopped` is how many repositories that was. Switching on stops nothing and turns nothing on by itself.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/settings/public-repositories (the `SetPublicRepositories` operationId).
+	SetPublicRepositories(ctx context.Context, body SetPublicRepositoriesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetQueueSettings The order of service of the slot queue
 	//
@@ -7662,6 +7783,61 @@ func (c *Client) UpdatePoolSettingsWithBody(ctx context.Context, contentType str
 // Corresponds with PUT /api/v1/settings/pool (the `UpdatePoolSettings` operationId).
 func (c *Client) UpdatePoolSettings(ctx context.Context, body UpdatePoolSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdatePoolSettingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetPublicRepositories Whether crsp serves public repositories
+//
+// github-integration R5.54. Off by default: crsp offers private repositories only. `public_on_pool` counts the public repositories whose pool is on now, so the console can name the number before the setting is switched off.
+//
+// Corresponds with GET /api/v1/settings/public-repositories (the `GetPublicRepositories` operationId).
+func (c *Client) GetPublicRepositories(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetPublicRepositoriesRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetPublicRepositoriesWithBody Turn public repositories on or off
+//
+// github-integration R5.54 and R5.55. Switching off turns the pool off for every public repository that has it on (its settings stay), sets its RUNS_ON variables to the hosted labels, drains and removes its runners, and audits each. `stopped` is how many repositories that was. Switching on stops nothing and turns nothing on by itself.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/settings/public-repositories (the `SetPublicRepositories` operationId).
+func (c *Client) SetPublicRepositoriesWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetPublicRepositoriesRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetPublicRepositories Turn public repositories on or off
+//
+// github-integration R5.54 and R5.55. Switching off turns the pool off for every public repository that has it on (its settings stay), sets its RUNS_ON variables to the hosted labels, drains and removes its runners, and audits each. `stopped` is how many repositories that was. Switching on stops nothing and turns nothing on by itself.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/settings/public-repositories (the `SetPublicRepositories` operationId).
+func (c *Client) SetPublicRepositories(ctx context.Context, body SetPublicRepositoriesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetPublicRepositoriesRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -12628,6 +12804,73 @@ func NewUpdatePoolSettingsRequestWithBody(server string, contentType string, bod
 	return req, nil
 }
 
+// NewGetPublicRepositoriesRequest constructs an http.Request for the GetPublicRepositories method
+func NewGetPublicRepositoriesRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/settings/public-repositories")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetPublicRepositoriesRequest calls the generic SetPublicRepositories builder with application/json body
+func NewSetPublicRepositoriesRequest(server string, body SetPublicRepositoriesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetPublicRepositoriesRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewSetPublicRepositoriesRequestWithBody constructs an http.Request for the SetPublicRepositories method, with any body, and a specified content type
+func NewSetPublicRepositoriesRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/settings/public-repositories")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetQueueSettingsRequest constructs an http.Request for the GetQueueSettings method
 func NewGetQueueSettingsRequest(server string) (*http.Request, error) {
 	var err error
@@ -14580,6 +14823,33 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with PUT /api/v1/settings/pool (the `UpdatePoolSettings` operationId).
 	UpdatePoolSettingsWithResponse(ctx context.Context, body UpdatePoolSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdatePoolSettingsResponse, error)
+
+	// GetPublicRepositoriesWithResponse Whether crsp serves public repositories
+	//
+	// github-integration R5.54. Off by default: crsp offers private repositories only. `public_on_pool` counts the public repositories whose pool is on now, so the console can name the number before the setting is switched off.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/settings/public-repositories (the `GetPublicRepositories` operationId).
+	GetPublicRepositoriesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPublicRepositoriesResponse, error)
+
+	// SetPublicRepositoriesWithBodyWithResponse Turn public repositories on or off
+	//
+	// github-integration R5.54 and R5.55. Switching off turns the pool off for every public repository that has it on (its settings stay), sets its RUNS_ON variables to the hosted labels, drains and removes its runners, and audits each. `stopped` is how many repositories that was. Switching on stops nothing and turns nothing on by itself.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/settings/public-repositories (the `SetPublicRepositories` operationId).
+	SetPublicRepositoriesWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetPublicRepositoriesResponse, error)
+
+	// SetPublicRepositoriesWithResponse Turn public repositories on or off
+	//
+	// github-integration R5.54 and R5.55. Switching off turns the pool off for every public repository that has it on (its settings stay), sets its RUNS_ON variables to the hosted labels, drains and removes its runners, and audits each. `stopped` is how many repositories that was. Switching on stops nothing and turns nothing on by itself.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/settings/public-repositories (the `SetPublicRepositories` operationId).
+	SetPublicRepositoriesWithResponse(ctx context.Context, body SetPublicRepositoriesJSONRequestBody, reqEditors ...RequestEditorFn) (*SetPublicRepositoriesResponse, error)
 
 	// GetQueueSettingsWithResponse The order of service of the slot queue
 	//
@@ -19599,6 +19869,102 @@ func (r UpdatePoolSettingsResponse) ContentType() string {
 	return ""
 }
 
+type GetPublicRepositoriesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PublicRepositories
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetPublicRepositoriesResponse) GetJSON200() *PublicRepositories {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetPublicRepositoriesResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetPublicRepositoriesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetPublicRepositoriesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetPublicRepositoriesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetPublicRepositoriesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SetPublicRepositoriesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PublicRepositoriesResult
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SetPublicRepositoriesResponse) GetJSON200() *PublicRepositoriesResult {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r SetPublicRepositoriesResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SetPublicRepositoriesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SetPublicRepositoriesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetPublicRepositoriesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetPublicRepositoriesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetQueueSettingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -22393,6 +22759,51 @@ func (c *ClientWithResponses) UpdatePoolSettingsWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseUpdatePoolSettingsResponse(rsp)
+}
+
+// GetPublicRepositoriesWithResponse Whether crsp serves public repositories
+//
+// github-integration R5.54. Off by default: crsp offers private repositories only. `public_on_pool` counts the public repositories whose pool is on now, so the console can name the number before the setting is switched off.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/settings/public-repositories (the `GetPublicRepositories` operationId).
+func (c *ClientWithResponses) GetPublicRepositoriesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetPublicRepositoriesResponse, error) {
+	rsp, err := c.GetPublicRepositories(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetPublicRepositoriesResponse(rsp)
+}
+
+// SetPublicRepositoriesWithBodyWithResponse Turn public repositories on or off
+//
+// github-integration R5.54 and R5.55. Switching off turns the pool off for every public repository that has it on (its settings stay), sets its RUNS_ON variables to the hosted labels, drains and removes its runners, and audits each. `stopped` is how many repositories that was. Switching on stops nothing and turns nothing on by itself.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/settings/public-repositories (the `SetPublicRepositories` operationId).
+func (c *ClientWithResponses) SetPublicRepositoriesWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetPublicRepositoriesResponse, error) {
+	rsp, err := c.SetPublicRepositoriesWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetPublicRepositoriesResponse(rsp)
+}
+
+// SetPublicRepositoriesWithResponse Turn public repositories on or off
+//
+// github-integration R5.54 and R5.55. Switching off turns the pool off for every public repository that has it on (its settings stay), sets its RUNS_ON variables to the hosted labels, drains and removes its runners, and audits each. `stopped` is how many repositories that was. Switching on stops nothing and turns nothing on by itself.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/settings/public-repositories (the `SetPublicRepositories` operationId).
+func (c *ClientWithResponses) SetPublicRepositoriesWithResponse(ctx context.Context, body SetPublicRepositoriesJSONRequestBody, reqEditors ...RequestEditorFn) (*SetPublicRepositoriesResponse, error) {
+	rsp, err := c.SetPublicRepositories(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetPublicRepositoriesResponse(rsp)
 }
 
 // GetQueueSettingsWithResponse The order of service of the slot queue
@@ -26093,6 +26504,72 @@ func ParseUpdatePoolSettingsResponse(rsp *http.Response) (*UpdatePoolSettingsRes
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest PoolSettings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetPublicRepositoriesResponse parses an HTTP response from a GetPublicRepositoriesWithResponse call
+func ParseGetPublicRepositoriesResponse(rsp *http.Response) (*GetPublicRepositoriesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetPublicRepositoriesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PublicRepositories
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetPublicRepositoriesResponse parses an HTTP response from a SetPublicRepositoriesWithResponse call
+func ParseSetPublicRepositoriesResponse(rsp *http.Response) (*SetPublicRepositoriesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetPublicRepositoriesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PublicRepositoriesResult
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

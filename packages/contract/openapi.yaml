@@ -1610,6 +1610,55 @@ paths:
         default:
           $ref: '#/components/responses/Error'
 
+  /api/v1/settings/public-repositories:
+    get:
+      operationId: getPublicRepositories
+      tags: [settings]
+      summary: Whether crsp serves public repositories
+      description: >-
+        github-integration R5.54. Off by default: crsp offers private
+        repositories only. `public_on_pool` counts the public repositories whose
+        pool is on now, so the console can name the number before the setting is
+        switched off.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The setting.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicRepositories'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: setPublicRepositories
+      tags: [settings]
+      summary: Turn public repositories on or off
+      description: >-
+        github-integration R5.54 and R5.55. Switching off turns the pool off for
+        every public repository that has it on (its settings stay), sets its
+        RUNS_ON variables to the hosted labels, drains and removes its runners,
+        and audits each. `stopped` is how many repositories that was. Switching
+        on stops nothing and turns nothing on by itself.
+      x-auth: owner
+      x-rate-limit: 10/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicRepositoriesSet'
+      responses:
+        '200':
+          description: Saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicRepositoriesResult'
+        default:
+          $ref: '#/components/responses/Error'
+
   # ---------------------------------------------------------------- runners
   /api/v1/runners:
     get:
@@ -3965,6 +4014,8 @@ components:
           $ref: '#/components/schemas/RepositoryRouting'
         webhook:
           $ref: '#/components/schemas/WebhookHealth'
+        problem:
+          $ref: '#/components/schemas/RepositoryProblem'
       example:
         id: 700100
         full_name: luis-mc/app
@@ -3986,6 +4037,66 @@ components:
           labels: [self-hosted, linux, x64]
           runner_groups: []
           light_runner: true
+    PublicRepositories:
+      type: object
+      required: [enabled, public_on_pool]
+      properties:
+        enabled:
+          type: boolean
+          description: False by default.
+        changed_at:
+          type: string
+          format: date-time
+          description: Absent when the setting was never changed.
+        changed_by:
+          type: string
+          description: Login of who changed it last. Absent when never changed.
+        public_on_pool:
+          type: integer
+          description: Public repositories whose pool is on now.
+      example:
+        enabled: false
+        public_on_pool: 0
+    PublicRepositoriesSet:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+    PublicRepositoriesResult:
+      allOf:
+        - $ref: '#/components/schemas/PublicRepositories'
+        - type: object
+          required: [stopped]
+          properties:
+            stopped:
+              type: integer
+              description: Repositories whose pool this change switched off (0 when switching on).
+    RepositoryProblem:
+      type: object
+      description: >-
+        A fault the owner can fix on a repository (github-integration R5.58).
+        Absent when there is none.
+      required: [code, text, actions]
+      properties:
+        code:
+          type: string
+          enum: [public_pool_on_while_off]
+        text:
+          type: string
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepositoryProblemAction'
+    RepositoryProblemAction:
+      type: object
+      required: [id, label]
+      properties:
+        id:
+          type: string
+          enum: [turn_on_public_repositories, turn_off_pool]
+        label:
+          type: string
     WebhookHealth:
       type: object
       description: The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.50).

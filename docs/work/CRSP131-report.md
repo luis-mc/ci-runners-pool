@@ -24,3 +24,4 @@ Web (CRSP131 b/c, CRSP132)
 ## Log
 
 - CRSP131-web step 1 (CRSP132): shared ListToolbar and Segmented in packages/ui (C35); all seven list screens use it; Vitest, typecheck, eslint, prettier, Playwright design-layout and a11y green on Node 24. Jobs keeps Repository and Machine pickers in a cluster under the toolbar (radio-list fields cannot sit in one row). Clear shows only with a selection.
+- Step 1 (openapi + codegen): GET/PUT /api/v1/settings/public-repositories (getPublicRepositories, setPublicRepositories), schemas PublicRepositories, PublicRepositoriesSet, PublicRepositoriesResult, RepositoryProblem(+Action); Repository.problem. Handlers are stubs (501) until step 2.
