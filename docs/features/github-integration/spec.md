@@ -294,7 +294,7 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R6.11** (M1, NOT YET IMPLEMENTED) — **Limits.** The repository list handles at least 1,000 repositories per installation, 100 per page from GitHub and the console's pager on screen. The first page shows within 3 seconds on a normal home connection.
 
-**R6.12** (M1, NOT YET IMPLEMENTED) — **Accessibility.** The wizard, sign-in, repositories and users screens follow design system v1 (rules UX-17 and the components cited in section 4). No new UX rule is made here.
+**R6.12** (M1, built by CRSP111) — **Accessibility.** The wizard, sign-in, repositories and users screens follow design system v1 (rules UX-17 and the components cited in section 4). No new UX rule is made here.
 
 ## 7. Design
 
@@ -436,7 +436,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R6.9 | internal/github/fake/fixtures_guard_test.go |
 | R6.10 | planned: internal/store/retention_test.go |
 | R6.11 | planned: internal/github/repositories_test.go (1,000 repositories); e2e/github-repositories.spec.ts |
-| R6.12 | planned: e2e/github-a11y.spec.ts |
+| R6.12 | e2e/tests/web-console/a11y.spec.ts (axe in both themes, visible focus, focus order: sign-in, wizard, repositories, users); e2e/tests/design-layout.spec.ts (sign-in, wizard, repositories, users at 360, 393 and 1300 px); scripts/design/no-app-css.test.ts (CRSP111) |
 
 ## 10. Decisions
 
@@ -451,7 +451,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 
 ## 11. Not built yet
 
-Built by CRSP19: the requirements marked built. Still NOT YET IMPLEMENTED: R5.6 (hourly health loop), R5.7, R5.21, R5.22 (webhook-driven), R5.33 (the yes path; the sweep is built by CRSP80), R5.35 (built later by CRSP79), R5.38, R6.1 (key import from a file and the no-secret-column test), R6.3, R6.4, R6.10 to R6.12. The controller wiring is built by CRSP41 (`cmd/crsp/areas_wiring.go`: the App record, users, sessions, repositories and the one-time setup link printed at start; the webhook route; the RUNS_ON restore every 10 minutes). The production SQL store is also open: users, sessions and the App record last until the controller restarts. The web screens are open too. The seams:
+Built by CRSP19: the requirements marked built. Still NOT YET IMPLEMENTED: R5.6 (hourly health loop), R5.7, R5.21, R5.22 (webhook-driven), R5.33 (the yes path; the sweep is built by CRSP80), R5.35 (built later by CRSP79), R5.38, R6.1 (key import from a file and the no-secret-column test), R6.3, R6.4, R6.10, R6.11. The controller wiring is built by CRSP41 (`cmd/crsp/areas_wiring.go`: the App record, users, sessions, repositories and the one-time setup link printed at start; the webhook route; the RUNS_ON restore every 10 minutes). The production SQL store is also open: users, sessions and the App record last until the controller restarts. The web screens are open too. The seams:
 
 - The HTTP contract: `packages/contract/openapi.yaml` gains the operations of section 7.
 - The schema: a new goose migration in `internal/store/migrations/` adds the tables of section 7.

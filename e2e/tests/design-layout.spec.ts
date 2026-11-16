@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { expectDomLayout } from '../../scripts/design/dom-layout';
-import { needingRecovery, signedIn } from './web-console/fixtures';
+import { failure, needingRecovery, signedIn } from './web-console/fixtures';
 import { jobsAndDoctor } from './web-console/jobs-doctor-fixtures';
 
 // The DOM layout checker (design system, Enforcement kit) on the console's M1 screens, at 360, 393 and 1300 px.
@@ -11,7 +11,10 @@ const SCREENS: {
   ready: string;
   loads?: string[];
   recovery?: boolean;
+  signedOut?: boolean;
 }[] = [
+  { name: 'sign-in', path: '/sign-in', ready: 'Sign in', signedOut: true },
+  { name: 'first-run wizard', path: '/setup', ready: 'Set up the pool' },
   { name: 'overview', path: '/', ready: 'Overview' },
   { name: 'repositories', path: '/repositories', ready: 'Repositories' },
   { name: 'repository detail', path: '/repositories/octo/app', ready: 'octo/app' },
@@ -79,6 +82,8 @@ for (const screen of SCREENS) {
         },
       ],
     });
+    if (screen.signedOut)
+      mock.on('GET', '/api/v1/me', failure(401, 'unauthenticated', 'Sign in.'));
     await mock.install(page);
     await page.goto(screen.path);
     await expect(
