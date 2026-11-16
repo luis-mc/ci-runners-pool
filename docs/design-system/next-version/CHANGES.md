@@ -33,3 +33,5 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C28: first-machine step words added: "This PC, {host name}, is in the pool." and the action Add another machine (content.md; machines R5.1, CRSP120)
 - C29: runner state words not registered, stopped and unknown, their reasons, and the action Remove on a failed runner added (content.md; web-console R5.23, runners R5.79, CRSP128)
 - C30: Linux-on-Windows words added: the System column text for a Windows machine with Linux containers, the Add runners note and the one-time backend reason (content.md; runners R5.47, machines R5.18, CRSP127)
+- C31: field grid added as component 43; the wizard step bar is one row from 601 px up (components.md; first-run findings 9 and 13, CRSP124)
+- C32: first-run words added: the banner with its next step, Install the App buttons and notes, the light runner explanations, Tick, Clear search and filter, Remove this machine and Open Machines (content.md; first-run findings 3, 6, 8, 14 and 15, CRSP124)
