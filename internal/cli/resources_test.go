@@ -544,3 +544,24 @@ func TestCompareTableAndJSON(t *testing.T) {
 		}
 	}
 }
+
+// R5.33: delete-offline names the runner, needs a yes, and calls the registration route with confirm.
+func TestRunnerDeleteOffline(t *testing.T) {
+	f := newFixture(t)
+	f.reply("GET /api/v1/runners", 200, map[string]any{"items": []any{runnerJSON("crsp-job-1", "m_gone", nil)}})
+	f.reply("DELETE /api/v1/runners/r_crsp-job-1/registration", 200, runnerJSON("crsp-job-1", "m_gone", nil))
+	if code, _, e := f.run("runner", "delete-offline", "crsp-job-1"); code != ExitNotConfirmed || !strings.Contains(e, "offline runner crsp-job-1") || f.called("DELETE") {
+		t.Fatalf("%d %q", code, e)
+	}
+	code, _, e := f.run("runner", "delete-offline", "crsp-job-1", "--yes")
+	if code != 0 || !strings.Contains(e, "Runner crsp-job-1 deleted.") || !f.called("DELETE /api/v1/runners/r_crsp-job-1/registration?confirm=true") {
+		t.Fatalf("%d %q %v", code, e, f.calls)
+	}
+	f.reply("DELETE /api/v1/runners/r_crsp-job-1/registration", 409, apiErr("conflict", "runner crsp-job-1 is online; remove it instead"))
+	if code, _, e := f.run("runner", "delete-offline", "crsp-job-1", "--yes"); code != ExitConflict || !strings.Contains(e, "is online") {
+		t.Fatalf("%d %q", code, e)
+	}
+	if code, _, _ := f.run("runner", "delete-offline", "nope", "--yes"); code != ExitNotFound {
+		t.Fatal("missing runner")
+	}
+}

@@ -1582,6 +1582,32 @@ paths:
                 $ref: '#/components/schemas/Runner'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/runners/{runnerId}/registration:
+    delete:
+      operationId: deleteRunnerRegistration
+      tags: [runners]
+      summary: Delete the registration of an offline runner whose agent cannot remove it
+      description: >-
+        github-integration R5.33. For a runner GitHub lists as offline and not
+        busy, when its machine cannot run the remove step. Without
+        `confirm=true` it answers 409 needs_confirmation naming the runner.
+        With it the controller deletes the registration at GitHub, then cleans
+        the machine if it answers, and drops the record. An online or busy
+        runner is refused with 409.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RunnerId'
+        - $ref: '#/components/parameters/Confirm'
+      responses:
+        '200':
+          description: Deleted; the record that went.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Runner'
+        default:
+          $ref: '#/components/responses/Error'
   # ------------------------------------------- env sets and registry (RES4, RES5)
   /api/v1/runners/{runnerId}/env:
     get:

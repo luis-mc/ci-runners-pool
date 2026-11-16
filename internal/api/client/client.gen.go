@@ -3792,6 +3792,12 @@ type DeleteRunnerParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// DeleteRunnerRegistrationParams defines parameters for DeleteRunnerRegistration.
+type DeleteRunnerRegistrationParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // RestartServiceParams defines parameters for RestartService.
 type RestartServiceParams struct {
 	// Confirmed The yes to the Review step that named the running jobs (tray R5.16).
@@ -4876,6 +4882,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/runners/{runnerId}/env (the `GetRunnerEnv` operationId).
 	GetRunnerEnv(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteRunnerRegistration Delete the registration of an offline runner whose agent cannot remove it
+	//
+	// github-integration R5.33. For a runner GitHub lists as offline and not busy, when its machine cannot run the remove step. Without `confirm=true` it answers 409 needs_confirmation naming the runner. With it the controller deletes the registration at GitHub, then cleans the machine if it answers, and drops the record. An online or busy runner is refused with 409.
+	//
+	// Corresponds with DELETE /api/v1/runners/{runnerId}/registration (the `DeleteRunnerRegistration` operationId).
+	DeleteRunnerRegistration(ctx context.Context, runnerId RunnerId, params *DeleteRunnerRegistrationParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	//
@@ -7109,6 +7122,23 @@ func (c *Client) GetRunner(ctx context.Context, runnerId RunnerId, reqEditors ..
 // Corresponds with GET /api/v1/runners/{runnerId}/env (the `GetRunnerEnv` operationId).
 func (c *Client) GetRunnerEnv(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetRunnerEnvRequest(c.Server, runnerId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteRunnerRegistration Delete the registration of an offline runner whose agent cannot remove it
+//
+// github-integration R5.33. For a runner GitHub lists as offline and not busy, when its machine cannot run the remove step. Without `confirm=true` it answers 409 needs_confirmation naming the runner. With it the controller deletes the registration at GitHub, then cleans the machine if it answers, and drops the record. An online or busy runner is refused with 409.
+//
+// Corresponds with DELETE /api/v1/runners/{runnerId}/registration (the `DeleteRunnerRegistration` operationId).
+func (c *Client) DeleteRunnerRegistration(ctx context.Context, runnerId RunnerId, params *DeleteRunnerRegistrationParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteRunnerRegistrationRequest(c.Server, runnerId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -11717,6 +11747,67 @@ func NewGetRunnerEnvRequest(server string, runnerId RunnerId) (*http.Request, er
 	return req, nil
 }
 
+// NewDeleteRunnerRegistrationRequest constructs an http.Request for the DeleteRunnerRegistration method
+func NewDeleteRunnerRegistrationRequest(server string, runnerId RunnerId, params *DeleteRunnerRegistrationParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "runnerId", runnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/runners/%s/registration", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Confirm != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirm", *params.Confirm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewPlanRunnerReplacementRequest constructs an http.Request for the PlanRunnerReplacement method
 func NewPlanRunnerReplacementRequest(server string, runnerId RunnerId) (*http.Request, error) {
 	var err error
@@ -13733,6 +13824,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/runners/{runnerId}/env (the `GetRunnerEnv` operationId).
 	GetRunnerEnvWithResponse(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*GetRunnerEnvResponse, error)
+
+	// DeleteRunnerRegistrationWithResponse Delete the registration of an offline runner whose agent cannot remove it
+	//
+	// github-integration R5.33. For a runner GitHub lists as offline and not busy, when its machine cannot run the remove step. Without `confirm=true` it answers 409 needs_confirmation naming the runner. With it the controller deletes the registration at GitHub, then cleans the machine if it answers, and drops the record. An online or busy runner is refused with 409.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /api/v1/runners/{runnerId}/registration (the `DeleteRunnerRegistration` operationId).
+	DeleteRunnerRegistrationWithResponse(ctx context.Context, runnerId RunnerId, params *DeleteRunnerRegistrationParams, reqEditors ...RequestEditorFn) (*DeleteRunnerRegistrationResponse, error)
 
 	// PlanRunnerReplacementWithResponse Plan replacing a runner not made by CRSP with a managed one
 	//
@@ -18209,6 +18309,54 @@ func (r GetRunnerEnvResponse) ContentType() string {
 	return ""
 }
 
+type DeleteRunnerRegistrationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Runner
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r DeleteRunnerRegistrationResponse) GetJSON200() *Runner {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r DeleteRunnerRegistrationResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteRunnerRegistrationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteRunnerRegistrationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteRunnerRegistrationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteRunnerRegistrationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type PlanRunnerReplacementResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -21025,6 +21173,21 @@ func (c *ClientWithResponses) GetRunnerEnvWithResponse(ctx context.Context, runn
 		return nil, err
 	}
 	return ParseGetRunnerEnvResponse(rsp)
+}
+
+// DeleteRunnerRegistrationWithResponse Delete the registration of an offline runner whose agent cannot remove it
+//
+// github-integration R5.33. For a runner GitHub lists as offline and not busy, when its machine cannot run the remove step. Without `confirm=true` it answers 409 needs_confirmation naming the runner. With it the controller deletes the registration at GitHub, then cleans the machine if it answers, and drops the record. An online or busy runner is refused with 409.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /api/v1/runners/{runnerId}/registration (the `DeleteRunnerRegistration` operationId).
+func (c *ClientWithResponses) DeleteRunnerRegistrationWithResponse(ctx context.Context, runnerId RunnerId, params *DeleteRunnerRegistrationParams, reqEditors ...RequestEditorFn) (*DeleteRunnerRegistrationResponse, error) {
+	rsp, err := c.DeleteRunnerRegistration(ctx, runnerId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteRunnerRegistrationResponse(rsp)
 }
 
 // PlanRunnerReplacementWithResponse Plan replacing a runner not made by CRSP with a managed one
@@ -24410,6 +24573,39 @@ func ParseGetRunnerEnvResponse(rsp *http.Response) (*GetRunnerEnvResponse, error
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest RunnerEnv
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteRunnerRegistrationResponse parses an HTTP response from a DeleteRunnerRegistrationWithResponse call
+func ParseDeleteRunnerRegistrationResponse(rsp *http.Response) (*DeleteRunnerRegistrationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteRunnerRegistrationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Runner
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

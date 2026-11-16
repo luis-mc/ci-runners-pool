@@ -21,6 +21,7 @@ type RunnersService interface {
 	StopPlan(ctx context.Context, planID, actor string) (runners.Plan, error)
 	StartApply(ctx context.Context, planID string, approved []string, actor string) (runners.Plan, error)
 	BeginRemove(ctx context.Context, id string, confirm bool, actor string) (runners.Record, func(context.Context) error, error)
+	DeleteOfflineRegistration(ctx context.Context, id string, confirm bool, actor string) (runners.Record, error)
 	StartRemove(ctx context.Context, finish func(context.Context) error)
 }
 
@@ -263,6 +264,21 @@ func (s *server) DeleteRunner(ctx context.Context, req gen.DeleteRunnerRequestOb
 	}
 	s.opts.Runners.StartRemove(ctx, finish)
 	return gen.DeleteRunner202JSONResponse(toGenRunner(r)), nil
+}
+
+// DeleteRunnerRegistration implements DELETE /api/v1/runners/{runnerId}/registration
+// (github-integration R5.33): the yes path of the offline runner cleanup.
+func (s *server) DeleteRunnerRegistration(ctx context.Context, req gen.DeleteRunnerRegistrationRequestObject) (gen.DeleteRunnerRegistrationResponseObject, error) {
+	if s.opts.Runners == nil {
+		return gen.DeleteRunnerRegistrationdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
+	}
+	confirm := req.Params.Confirm != nil && *req.Params.Confirm
+	r, err := s.opts.Runners.DeleteOfflineRegistration(ctx, req.RunnerId, confirm, actorFrom(ctx))
+	if err != nil {
+		code, body := runnerFail(err)
+		return gen.DeleteRunnerRegistrationdefaultJSONResponse{StatusCode: code, Body: body}, nil
+	}
+	return gen.DeleteRunnerRegistration200JSONResponse(toGenRunner(r)), nil
 }
 
 // StopRunnerPlan implements POST /api/v1/runner-plans/{planId}/stop.

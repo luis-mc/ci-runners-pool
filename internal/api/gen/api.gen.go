@@ -3791,6 +3791,12 @@ type DeleteRunnerParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// DeleteRunnerRegistrationParams defines parameters for DeleteRunnerRegistration.
+type DeleteRunnerRegistrationParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // RestartServiceParams defines parameters for RestartService.
 type RestartServiceParams struct {
 	// Confirmed The yes to the Review step that named the running jobs (tray R5.16).
@@ -4203,6 +4209,9 @@ type ServerInterface interface {
 	// GetRunnerEnv The merged environment of a runner, sensitive values masked
 	// (GET /api/v1/runners/{runnerId}/env)
 	GetRunnerEnv(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
+	// DeleteRunnerRegistration Delete the registration of an offline runner whose agent cannot remove it
+	// (DELETE /api/v1/runners/{runnerId}/registration)
+	DeleteRunnerRegistration(w http.ResponseWriter, r *http.Request, runnerId RunnerId, params DeleteRunnerRegistrationParams)
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
@@ -6974,6 +6983,48 @@ func (siw *ServerInterfaceWrapper) GetRunnerEnv(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteRunnerRegistration operation middleware
+func (siw *ServerInterfaceWrapper) DeleteRunnerRegistration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "runnerId" -------------
+	var runnerId RunnerId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runnerId", r.PathValue("runnerId"), &runnerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runnerId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteRunnerRegistrationParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteRunnerRegistration(w, r, runnerId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PlanRunnerReplacement operation middleware
 func (siw *ServerInterfaceWrapper) PlanRunnerReplacement(w http.ResponseWriter, r *http.Request) {
 
@@ -7762,6 +7813,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/runner-plans/{planId}/apply", wrapper.CreateRunners)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/runners/{runnerId}", wrapper.DeleteRunner)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners/{runnerId}", wrapper.GetRunner)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/runners/{runnerId}/registration", wrapper.DeleteRunnerRegistration)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners/{runnerId}/env", wrapper.GetRunnerEnv)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/env-sets", wrapper.ListEnvSets)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/env-sets/{setName}", wrapper.DeleteEnvSet)
@@ -11393,6 +11445,46 @@ func (response GetRunnerEnvdefaultJSONResponse) VisitGetRunnerEnvResponse(w http
 	return err
 }
 
+type DeleteRunnerRegistrationRequestObject struct {
+	RunnerId RunnerId `json:"runnerId"`
+	Params   DeleteRunnerRegistrationParams
+}
+
+type DeleteRunnerRegistrationResponseObject interface {
+	VisitDeleteRunnerRegistrationResponse(w http.ResponseWriter) error
+}
+
+type DeleteRunnerRegistration200JSONResponse Runner
+
+func (response DeleteRunnerRegistration200JSONResponse) VisitDeleteRunnerRegistrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteRunnerRegistrationdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DeleteRunnerRegistrationdefaultJSONResponse) VisitDeleteRunnerRegistrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type PlanRunnerReplacementRequestObject struct {
 	RunnerId RunnerId `json:"runnerId"`
 }
@@ -12572,6 +12664,9 @@ type StrictServerInterface interface {
 	// GetRunnerEnv The merged environment of a runner, sensitive values masked
 	// (GET /api/v1/runners/{runnerId}/env)
 	GetRunnerEnv(ctx context.Context, request GetRunnerEnvRequestObject) (GetRunnerEnvResponseObject, error)
+	// DeleteRunnerRegistration Delete the registration of an offline runner whose agent cannot remove it
+	// (DELETE /api/v1/runners/{runnerId}/registration)
+	DeleteRunnerRegistration(ctx context.Context, request DeleteRunnerRegistrationRequestObject) (DeleteRunnerRegistrationResponseObject, error)
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(ctx context.Context, request PlanRunnerReplacementRequestObject) (PlanRunnerReplacementResponseObject, error)
@@ -15104,6 +15199,33 @@ func (sh *strictHandler) GetRunnerEnv(w http.ResponseWriter, r *http.Request, ru
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetRunnerEnvResponseObject); ok {
 		if err := validResponse.VisitGetRunnerEnvResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteRunnerRegistration operation middleware
+func (sh *strictHandler) DeleteRunnerRegistration(w http.ResponseWriter, r *http.Request, runnerId RunnerId, params DeleteRunnerRegistrationParams) {
+	var request DeleteRunnerRegistrationRequestObject
+
+	request.RunnerId = runnerId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteRunnerRegistration(ctx, request.(DeleteRunnerRegistrationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteRunnerRegistration")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteRunnerRegistrationResponseObject); ok {
+		if err := validResponse.VisitDeleteRunnerRegistrationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

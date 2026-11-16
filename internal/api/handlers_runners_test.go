@@ -76,6 +76,18 @@ func (f *fakeRunners) BeginRemove(_ context.Context, id string, confirm bool, _ 
 	r.State = runners.Draining
 	return r, func(context.Context) error { f.removed = true; return nil }, nil
 }
+func (f *fakeRunners) DeleteOfflineRegistration(_ context.Context, id string, confirm bool, actor string) (runners.Record, error) {
+	r, ok := f.recs[id]
+	if !ok {
+		return r, runners.ErrNotFound
+	}
+	if !confirm {
+		return r, &runners.NeedsConfirmation{Items: []runners.ConfirmItem{{Kind: "registration", Text: "The registration of offline runner " + r.Name + " on GitHub"}}}
+	}
+	f.removed = true
+	f.lastActor = actor
+	return r, nil
+}
 func (f *fakeRunners) StartRemove(ctx context.Context, finish func(context.Context) error) {
 	_ = finish(ctx)
 }
@@ -212,6 +224,22 @@ func TestStopRunnerPlan(t *testing.T) {
 	}
 	rec := do(mux, "POST", "/api/v1/runner-plans/p-done/stop", "")
 	if rec.Code != 409 || !strings.Contains(rec.Body.String(), "nothing to stop") {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+}
+
+// R5.33: deleting an offline registration asks first and names the runner; a yes deletes it.
+func TestDeleteRunnerRegistrationNeedsAYesThatNamesTheRunner(t *testing.T) {
+	f := sample()
+	rec := do(runnersMux(f), http.MethodDelete, "/api/v1/runners/r1/registration", "")
+	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), CodeNeedsConfirmation) || !strings.Contains(rec.Body.String(), "offline runner") || f.removed {
+		t.Fatalf("%d %s removed=%v", rec.Code, rec.Body, f.removed)
+	}
+	rec = do(runnersMux(f), http.MethodDelete, "/api/v1/runners/r1/registration?confirm=true", "")
+	if rec.Code != http.StatusOK || !f.removed {
+		t.Fatalf("%d %s removed=%v", rec.Code, rec.Body, f.removed)
+	}
+	if rec = do(runnersMux(f), http.MethodDelete, "/api/v1/runners/nope/registration?confirm=true", ""); rec.Code != http.StatusNotFound {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
 }

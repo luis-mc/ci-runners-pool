@@ -1111,6 +1111,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runners/{runnerId}/registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete the registration of an offline runner whose agent cannot remove it
+         * @description github-integration R5.33. For a runner GitHub lists as offline and not busy, when its machine cannot run the remove step. Without `confirm=true` it answers 409 needs_confirmation naming the runner. With it the controller deletes the registration at GitHub, then cleans the machine if it answers, and drops the record. An online or busy runner is refused with 409.
+         */
+        delete: operations["deleteRunnerRegistration"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runners/{runnerId}/env": {
         parameters: {
             query?: never;
@@ -5413,6 +5433,32 @@ export interface operations {
         responses: {
             /** @description Removing; waits for the drain. */
             202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Runner"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteRunnerRegistration: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path: {
+                runnerId: components["parameters"]["RunnerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted; the record that went. */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

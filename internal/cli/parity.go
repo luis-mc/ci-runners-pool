@@ -31,6 +31,7 @@ var operationCommands = map[string]string{
 	"getRunnerPlan":              "runner add",
 	"createRunners":              "runner add",
 	"deleteRunner":               "runner remove",
+	"deleteRunnerRegistration":   "runner delete-offline",
 	"getRunner":                  "runner remove",
 	"getRunnerEnv":               "runner env",
 	"listJobs":                   "job list",
