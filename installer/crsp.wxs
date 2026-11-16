@@ -180,7 +180,7 @@
 
     <!-- WixQuietExec puts what a command prints into the MSI log. -->
     <SetProperty Id="StopServiceEarly"
-                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$s = Get-Service -Name crsp -ErrorAction SilentlyContinue; if ($s -and $s.Status -ne 'Stopped') [\{] try [\{] $s.Stop(); $s.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(20)) [\}] catch [\{] [\}] [\}]; $a = Get-CimInstance Win32_Service -Filter 'Name=''crsp-agent''' -ErrorAction SilentlyContinue; if ($a -and $a.State -eq 'Running' -and $a.PathName -like '*[INSTALLFOLDER]*') [\{] Stop-Service -Name crsp-agent -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Force -Path '[DATAFOLDER]' | Out-Null; Set-Content -Path '[DATAFOLDER]agent-was-running.flag' -Value 1 [\}]&quot;"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$s = Get-Service -Name crsp -ErrorAction SilentlyContinue; if ($s -and $s.Status -ne 'Stopped') [\{] try [\{] $s.Stop(); $s.WaitForStatus('Stopped', '00:00:20') [\}] catch [\{] [\}] [\}]; $a = Get-CimInstance Win32_Service -Filter 'Name=''crsp-agent''' -ErrorAction SilentlyContinue; if ($a -and $a.State -eq 'Running' -and $a.PathName -like '*[INSTALLFOLDER]*') [\{] Stop-Service -Name crsp-agent -ErrorAction SilentlyContinue; New-Item -ItemType Directory -Force -Path '[DATAFOLDER]' | Out-Null; Set-Content -Path '[DATAFOLDER]agent-was-running.flag' -Value 1 [\}]&quot;"
                  Before="StopServiceEarly"
                  Sequence="execute" />
     <CustomAction Id="StopServiceEarly"
@@ -212,7 +212,7 @@
       Closes the tray BEFORE InstallValidate (operations R5.86). The tray runs
       crsp.exe from the program folder in the signed-in user's session, so
       InstallValidate used to wait on it (the "Validating install" stall).
-      Each tray under the program folder is asked to quit like a window is
+      The crsp service is stopped here too (waited at most 20 s), so no program is in use when InstallValidate looks. Each tray under the program folder is asked to quit like a window is
       (taskkill without /f posts WM_CLOSE, and the tray quits on it), waited for
       up to 5 s, and ended when it did not leave. It works with every older
       version, because it does not call the installed crsp.exe. Runs as the
@@ -223,7 +223,7 @@
     <SetProperty Id="CloseTrayExe" Value="[System64Folder]WindowsPowerShell\v1.0\powershell.exe" After="CostFinalize" Sequence="execute" />
     <CustomAction Id="CloseTray"
                   Property="CloseTrayExe"
-                  ExeCommand="-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$f = '[INSTALLFOLDER]'; $t = @(Get-CimInstance Win32_Process -Filter 'Name=''crsp.exe''' -ErrorAction SilentlyContinue | Where-Object [\{] $_.ExecutablePath -and $_.ExecutablePath.StartsWith($f, 'OrdinalIgnoreCase') -and $_.CommandLine -match ' tray' [\}]); $t | ForEach-Object [\{] taskkill /pid $_.ProcessId 2&gt;&amp;1 | Out-Null [\}]; $end = (Get-Date).AddSeconds(5); while ((Get-Date) -lt $end -and ($t | Where-Object [\{] Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue [\}])) [\{] Start-Sleep -Milliseconds 200 [\}]; $t | ForEach-Object [\{] Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue [\}]; exit 0&quot;"
+                  ExeCommand="-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$f = '[INSTALLFOLDER]'; $t = @(Get-CimInstance Win32_Process -Filter 'Name=''crsp.exe''' -ErrorAction SilentlyContinue | Where-Object [\{] $_.ExecutablePath -and $_.ExecutablePath.StartsWith($f, 'OrdinalIgnoreCase') -and $_.CommandLine -match ' tray' [\}]); $t | ForEach-Object [\{] taskkill /pid $_.ProcessId 2&gt;&amp;1 | Out-Null [\}]; $end = (Get-Date).AddSeconds(5); while ((Get-Date) -lt $end -and ($t | Where-Object [\{] Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue [\}])) [\{] Start-Sleep -Milliseconds 200 [\}]; $t | ForEach-Object [\{] Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue [\}]; $s = Get-Service -Name crsp -ErrorAction SilentlyContinue; if ($s -and $s.Status -ne 'Stopped') [\{] try [\{] $s.Stop(); $s.WaitForStatus('Stopped', '00:00:20') [\}] catch [\{] [\}] [\}]; exit 0&quot;"
                   Execute="immediate"
                   Impersonate="yes"
                   Return="ignore" />
