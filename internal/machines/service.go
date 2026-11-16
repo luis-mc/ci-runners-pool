@@ -104,6 +104,9 @@ type Service struct {
 	hooks           Hooks
 	recoveryHandler http.Handler
 	host            HostRunner
+	compact         compactBook
+	queue           QueueSource
+	disks           map[string]DockerDisk
 
 	// rec serialises the read-modify-write of a machine record, so a report of the
 	// agent (heartbeat, facts) never writes back a stale copy over a change of
@@ -139,7 +142,7 @@ func New(o Options) *Service {
 	}
 	return &Service{
 		o: o, sessions: newSessions(),
-		loads: map[string]Load{}, policies: map[string]Policy{}, engines: map[string]Engine{}, lastKept: map[string]time.Time{}, running: map[string][]JobRef{},
+		loads: map[string]Load{}, policies: map[string]Policy{}, disks: map[string]DockerDisk{}, engines: map[string]Engine{}, lastKept: map[string]time.Time{}, running: map[string][]JobRef{},
 		runners: map[string][]string{}, fails: map[string][]time.Time{}, blocked: map[string]time.Time{},
 		updates: map[string]AgentUpdate{}, recov: map[string]recState{},
 	}

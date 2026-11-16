@@ -818,6 +818,9 @@ message DockerDiskReport {
   int64 used_bytes = 5;
   // True when the agent has the administrator rights the compact needs.
   bool can_compact = 6;
+  // The offset of the machine's local time from UTC, in seconds, so the
+  // controller reads the quiet-hours window in the machine's own time.
+  int32 utc_offset_seconds = 7;
 }
 
 // SymlinkReport is what the agent read about symbolic links. It makes a link in

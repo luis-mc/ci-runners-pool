@@ -35,6 +35,9 @@ func (s *Service) SetRunning(machineID string, jobs []JobRef, runners []string) 
 	}
 	obs := s.onRunning
 	s.mu.Unlock()
+	if len(jobs) > 0 {
+		s.noteBusy(machineID)
+	}
 	if obs != nil {
 		obs(machineID, jobs)
 	}

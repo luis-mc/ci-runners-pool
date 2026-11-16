@@ -25,6 +25,8 @@ type View struct {
 	Engine Engine
 	// Recovery is set when the machine needs recovery (operations R5.44).
 	Recovery *Recovery
+	// Compact is the Docker disk compact policy state (caches R5.50).
+	Compact CompactStatus
 }
 
 // BackendView is a detected backend and whether the user allowed it (R5.12).
@@ -71,7 +73,7 @@ func (s *Service) view(ctx context.Context, m Machine) (View, error) {
 		return View{}, err
 	}
 	s.fillPolicy(&m)
-	v := View{Machine: m, Settings: set, Policy: s.Policy(m.ID), Engine: s.Engine(m.ID)}
+	v := View{Machine: m, Settings: set, Policy: s.Policy(m.ID), Engine: s.Engine(m.ID), Compact: s.CompactStatus(m, set)}
 	if r, ok := s.RecoveryOf(m); ok {
 		v.Recovery = &r
 	}
@@ -120,6 +122,9 @@ func validate(set Settings, facts Facts, backends []Backend) error {
 		return bad("gate on timeout is fail or run")
 	}
 	if err := validatePolicy(set); err != nil {
+		return err
+	}
+	if err := validateCompact(set); err != nil {
 		return err
 	}
 	usable := map[string]bool{"persistent": true}
@@ -220,6 +225,7 @@ func (s *Service) UpdateSettings(ctx context.Context, actor, id string, u Settin
 		return View{}, nil, err
 	}
 	next := apply(cur, u)
+	next = applyCompact(next, u)
 	next, err = applyPolicy(next, u, s.now())
 	if err != nil {
 		return View{}, nil, err
@@ -297,6 +303,11 @@ func settingsDiff(a, b Settings) string {
 	add("mode", a.EffectiveMode(), b.EffectiveMode())
 	add("pause on battery", a.PauseOnBattery, b.PauseOnBattery)
 	add("CPU cap", a.EffectiveCPUCap(), b.EffectiveCPUCap())
+	add("docker compact", a.CompactMode, b.CompactMode)
+	add("docker compact threshold GiB", a.CompactThresholdGiB, b.CompactThresholdGiB)
+	add("docker compact idle minutes", a.CompactIdleMinutes, b.CompactIdleMinutes)
+	add("docker compact quiet start", a.CompactQuietStart, b.CompactQuietStart)
+	add("docker compact quiet end", a.CompactQuietEnd, b.CompactQuietEnd)
 	add("pause until", a.PauseUntil, b.PauseUntil)
 	add("pause until resumed", a.PausedUntilResumed, b.PausedUntilResumed)
 	return out
