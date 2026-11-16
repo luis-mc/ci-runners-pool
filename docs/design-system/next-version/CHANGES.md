@@ -47,4 +47,3 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C42: the row under the cursor (`j` and `k`) is the selected row and is drawn in reverse video; a ticked row takes the selection fill (components.md 41; owner decision LOOK D1, CRSP140)
 - C43: tabs are one row at every width and scroll sideways inside their frame when they do not fit (components.md 3; UX-15, CRSP140)
 - C44: `--ds-frame-wide` is 76rem, so a list toolbar still fits one row inside a pane (tokens.md; UX-11, CRSP140)
-- C45: content words for the update dialog: Install now, Later, What changed; Look for updates only looks; Automatic updates says that only the regular check installs (content.md; tray R5.18, CRSP147)
