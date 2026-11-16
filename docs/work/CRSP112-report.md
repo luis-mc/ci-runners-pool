@@ -14,4 +14,10 @@
 | observability R5.33 | NOT built | CRSP92 built R5.34 (history comparison) only; the by-hand run on both runner kinds does not exist. Left unchanged (no change note). |
 
 ## CRSP105
-See below once done.
+Cause. Neither test has a timer or poll in the code under test. Both open a fresh SQLite database (`store.Open`, 14 migrations, WAL, one flush each): about 0.6 s under -race on Linux, and on a slow Windows disk long enough to reach `store.DefaultDeadline` (10 s), which bounds the migration. `TestRunRepeats` also slept 100 ms, polled 20 ms for 3 s, and left the `Run` goroutine alive while the cleanup closed the database and removed the folder (a held file blocks folder removal on Windows).
+
+Fix.
+- `store.OpenForTests` (`internal/store/store.go`): same migrations, `synchronous(OFF)`; used by the scheduler fixture and the settings `retention` helper. Production `Open` is unchanged.
+- `TestRunRepeats`: counts runs through the `Now` hook (no sleep, no poll), waits for the `Run` goroutine to end before cleanup, checks every file error. The assertion is the same: a file that turns old after the first run is deleted by a later run.
+
+Result on Linux: both tests pass 20 of 20 with `-race -count=20`; golangci-lint 0 issues; `GOOS=windows` and `GOOS=darwin` `go vet` clean. Not measured: Windows timing (no Windows machine here); the remaining 0.5 s on Linux is the race-instrumented migration CPU. `docs_check` is not available in this sandbox (the docs tools are not installed); CI runs it.

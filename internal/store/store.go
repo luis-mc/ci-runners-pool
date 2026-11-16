@@ -52,8 +52,22 @@ func Open(ctx context.Context, dataDir string) (*Store, error) {
 	return openPath(ctx, filepath.Join(dataDir, DatabaseFile))
 }
 
-func openPath(ctx context.Context, path string) (*Store, error) {
+// OpenForTests is Open without the disk flushes: the migrations of a fresh
+// database take about 0.6 s with them on Linux and over 10 s on a slow Windows
+// disk, which is the whole of DefaultDeadline. Nothing a test checks depends on
+// the file surviving a power cut. Production code uses Open.
+func OpenForTests(ctx context.Context, dataDir string) (*Store, error) {
+	if err := os.MkdirAll(dataDir, 0o700); err != nil {
+		return nil, fmt.Errorf("create data dir: %w", err)
+	}
+	return openPath(ctx, filepath.Join(dataDir, DatabaseFile), "synchronous(OFF)")
+}
+
+func openPath(ctx context.Context, path string, extraPragmas ...string) (*Store, error) {
 	q := url.Values{}
+	for _, p := range extraPragmas {
+		q.Add("_pragma", p)
+	}
 	q.Add("_pragma", fmt.Sprintf("busy_timeout(%d)", busyTimeout.Milliseconds()))
 	q.Add("_pragma", "journal_mode(WAL)")
 	q.Add("_pragma", "foreign_keys(1)")
