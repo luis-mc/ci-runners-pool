@@ -174,10 +174,11 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		reg = registry.Platform(registry.RealDeps(nil, secretRedactor.Redact, secretRedactor.Add), runnerIDSource(logger, d.DB))
 	}
 	rstore := runners.NewMemStore()
+	agent := linkAgent{local: runners.NewLocalAgent(reg), svc: d.Machines, remote: remoteAgent(d.Link)}
 	runnerSvc := &runners.Service{
 		Store: rstore, Machines: machineLookup{svc: d.Machines}, Resolver: scopeResolver{repos: repoStore, auth: asvc},
-		GitHub: gh, Agent: linkAgent{local: runners.NewLocalAgent(reg), svc: d.Machines, remote: remoteAgent(d.Link)}, Audit: runnerAudit{auth: asvc},
-		PoolName: pool, CacheQuota: d.Cfg.Cache, Now: d.Now,
+		GitHub: gh, Agent: agent, Audit: runnerAudit{auth: asvc},
+		PoolName: pool, CacheQuota: d.Cfg.Cache, Now: d.Now, Services: agent.Services,
 	}
 
 	// Automatic runner updates follow the product's automatic-update setting

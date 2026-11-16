@@ -3195,7 +3195,23 @@ components:
       enum: [microVM, VM, container, persistent]
     RunnerState:
       type: string
-      enum: [creating, idle, busy, draining, updating, offline, failed, removing]
+      description: >-
+        What the runner really is (web-console UX-19). idle only when GitHub reports it online and
+        not busy and its service runs; not_registered, stopped and unknown say why it is not.
+      enum:
+        [
+          creating,
+          idle,
+          busy,
+          draining,
+          updating,
+          offline,
+          failed,
+          removing,
+          not_registered,
+          stopped,
+          unknown,
+        ]
     MachineState:
       type: string
       description: active and drained are set by the user; draining while a drain waits.
@@ -4822,6 +4838,7 @@ components:
           id,
           name,
           machine_id,
+          machine_name,
           os,
           arch,
           kind,
@@ -4840,6 +4857,12 @@ components:
           type: string
         machine_id:
           type: string
+        machine_name:
+          type: string
+          description: The name of the machine, as the Machines list shows it (UX-1).
+        reason:
+          type: string
+          description: Why the runner is in a state that is not idle or busy (UX-19). Absent when there is nothing to say.
         os:
           $ref: '#/components/schemas/OS'
         arch:

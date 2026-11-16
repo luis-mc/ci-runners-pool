@@ -13,8 +13,8 @@ import (
 // is declared here so the API depends on an interface, not on the database
 // (STACKSPEC 3.2); *runners.Service implements it.
 type RunnersService interface {
-	List(ctx context.Context, f runners.Filter) ([]runners.Record, error)
-	Get(ctx context.Context, id string) (runners.Record, error)
+	ListView(ctx context.Context, f runners.Filter) ([]runners.View, error)
+	GetView(ctx context.Context, id string) (runners.View, error)
 	PlanAdd(ctx context.Context, req runners.AddRequest, actor string) (runners.Plan, error)
 	PlanReplacement(ctx context.Context, runnerID, actor string) (runners.Plan, error)
 	GetPlan(ctx context.Context, id string) (runners.Plan, error)
@@ -94,19 +94,24 @@ func fromGenScope(s gen.RunnerScope) runners.Scope {
 
 // toGenRunner names the isolation of every runner and marks a persistent one as
 // keeping state (runners R5.7, UX-61).
-func toGenRunner(r runners.Record) gen.Runner {
+func toGenRunner(v runners.View) gen.Runner {
+	r := v.Record
 	out := gen.Runner{
-		Id: r.ID, Name: r.Name, MachineId: r.MachineID, Os: gen.OS(r.OS), Arch: gen.Arch(r.Arch),
+		Id: r.ID, Name: r.Name, MachineId: r.MachineID, MachineName: v.MachineName, Os: gen.OS(r.OS), Arch: gen.Arch(r.Arch),
 		Kind: gen.RunnerKind(r.Kind), Backend: gen.BackendName(r.Backend), Isolation: gen.Isolation(r.Isolation),
-		Labels: append([]string{}, r.Labels...), Scope: toGenScope(r.Scope), State: gen.RunnerState(r.State),
+		Labels: append([]string{}, r.Labels...), Scope: toGenScope(r.Scope), State: gen.RunnerState(v.State),
 		Managed: r.Managed, KeepsState: r.KeepsState(),
 	}
 	if r.Labels == nil {
 		out.Labels = []string{}
 	}
+	if v.Reason != "" {
+		why := v.Reason
+		out.Reason = &why
+	}
 	if r.RunnerVersion != "" {
-		v := r.RunnerVersion
-		out.RunnerVersion = &v
+		ver := r.RunnerVersion
+		out.RunnerVersion = &ver
 	}
 	if r.GitHubRunnerID != 0 {
 		id := r.GitHubRunnerID
@@ -156,7 +161,7 @@ func (s *server) ListRunners(ctx context.Context, req gen.ListRunnersRequestObje
 	if req.Params.State != nil {
 		f.State = string(*req.Params.State)
 	}
-	list, err := s.opts.Runners.List(ctx, f)
+	list, err := s.opts.Runners.ListView(ctx, f)
 	if err != nil {
 		code, body := runnerFail(err)
 		return gen.ListRunnersdefaultJSONResponse{StatusCode: code, Body: body}, nil
@@ -173,7 +178,7 @@ func (s *server) GetRunner(ctx context.Context, req gen.GetRunnerRequestObject) 
 	if s.opts.Runners == nil {
 		return gen.GetRunnerdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
 	}
-	r, err := s.opts.Runners.Get(ctx, req.RunnerId)
+	r, err := s.opts.Runners.GetView(ctx, req.RunnerId)
 	if err != nil {
 		code, body := runnerFail(err)
 		return gen.GetRunnerdefaultJSONResponse{StatusCode: code, Body: body}, nil
@@ -262,7 +267,8 @@ func (s *server) DeleteRunner(ctx context.Context, req gen.DeleteRunnerRequestOb
 		return gen.DeleteRunnerdefaultJSONResponse{StatusCode: code, Body: body}, nil
 	}
 	s.opts.Runners.StartRemove(ctx, finish)
-	return gen.DeleteRunner202JSONResponse(toGenRunner(r)), nil
+	// The runner is draining now; the machine's name comes with the next list.
+	return gen.DeleteRunner202JSONResponse(toGenRunner(runners.View{Record: r, State: r.State, Reason: r.Reason, MachineName: r.MachineID})), nil
 }
 
 // StopRunnerPlan implements POST /api/v1/runner-plans/{planId}/stop.

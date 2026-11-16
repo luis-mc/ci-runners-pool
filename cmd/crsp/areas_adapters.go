@@ -217,6 +217,21 @@ func (a linkAgent) forMachine(ctx context.Context, id string) (runners.Agent, er
 	return a.remote, nil
 }
 
+// Services lists the OS services of a machine. Only the controller's own
+// machine can answer until the agent link carries the service list; for any
+// other machine it errors, and the runner state does not claim a service fact
+// it does not have (UX-19).
+func (a linkAgent) Services(ctx context.Context, id string) ([]backend.Found, error) {
+	v, err := a.svc.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if !v.Machine.IsController {
+		return nil, errRemoteRunners
+	}
+	return a.local.Found(ctx)
+}
+
 func (a linkAgent) AddRunner(ctx context.Context, id string, spec backend.RunnerSpec, cfg backend.StartConfig) (backend.Handle, error) {
 	l, err := a.forMachine(ctx, id)
 	if err != nil {

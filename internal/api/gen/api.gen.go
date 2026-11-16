@@ -1304,14 +1304,17 @@ func (e RunnerScopeKind) Valid() bool {
 
 // Defines values for RunnerState.
 const (
-	RunnerStateBusy     RunnerState = "busy"
-	RunnerStateCreating RunnerState = "creating"
-	RunnerStateDraining RunnerState = "draining"
-	RunnerStateFailed   RunnerState = "failed"
-	RunnerStateIdle     RunnerState = "idle"
-	RunnerStateOffline  RunnerState = "offline"
-	RunnerStateRemoving RunnerState = "removing"
-	RunnerStateUpdating RunnerState = "updating"
+	RunnerStateBusy          RunnerState = "busy"
+	RunnerStateCreating      RunnerState = "creating"
+	RunnerStateDraining      RunnerState = "draining"
+	RunnerStateFailed        RunnerState = "failed"
+	RunnerStateIdle          RunnerState = "idle"
+	RunnerStateNotRegistered RunnerState = "not_registered"
+	RunnerStateOffline       RunnerState = "offline"
+	RunnerStateRemoving      RunnerState = "removing"
+	RunnerStateStopped       RunnerState = "stopped"
+	RunnerStateUnknown       RunnerState = "unknown"
+	RunnerStateUpdating      RunnerState = "updating"
 )
 
 // Valid indicates whether the value is a known member of the RunnerState enum.
@@ -1327,9 +1330,15 @@ func (e RunnerState) Valid() bool {
 		return true
 	case RunnerStateIdle:
 		return true
+	case RunnerStateNotRegistered:
+		return true
 	case RunnerStateOffline:
 		return true
 	case RunnerStateRemoving:
+		return true
+	case RunnerStateStopped:
+		return true
+	case RunnerStateUnknown:
 		return true
 	case RunnerStateUpdating:
 		return true
@@ -3139,13 +3148,21 @@ type Runner struct {
 	Labels     []string   `json:"labels"`
 	MachineId  string     `json:"machine_id"`
 
+	// MachineName The name of the machine, as the Machines list shows it (UX-1).
+	MachineName string `json:"machine_name"`
+
 	// Managed False for a runner not made by CRSP (runners R5.5).
-	Managed       bool        `json:"managed"`
-	Name          string      `json:"name"`
-	Os            OS          `json:"os"`
+	Managed bool   `json:"managed"`
+	Name    string `json:"name"`
+	Os      OS     `json:"os"`
+
+	// Reason Why the runner is in a state that is not idle or busy (UX-19). Absent when there is nothing to say.
+	Reason        *string     `json:"reason,omitempty"`
 	RunnerVersion *string     `json:"runner_version,omitempty"`
 	Scope         RunnerScope `json:"scope"`
-	State         RunnerState `json:"state"`
+
+	// State What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
+	State RunnerState `json:"state"`
 }
 
 // RunnerEnv defines model for RunnerEnv.
@@ -3173,7 +3190,7 @@ type RunnerScope struct {
 // RunnerScopeKind defines model for RunnerScope.Kind.
 type RunnerScopeKind string
 
-// RunnerState defines model for RunnerState.
+// RunnerState What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
 type RunnerState string
 
 // RunsOnFinding defines model for RunsOnFinding.
