@@ -1,7 +1,9 @@
 package parity
 
 import (
+	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -154,5 +156,93 @@ func TestParityWorkflowHasTheTriggersAndNoWritePermission(t *testing.T) { // ope
 	}
 	if !regexp.MustCompile(`(?m)^permissions:\r?\n  contents: read\r?\n`).MatchString(raw) {
 		t.Error("the workflow must have only `contents: read`")
+	}
+}
+
+// finalStep runs the last step of the job with the given outcomes the way a
+// runner does: its `run` text under bash, the values in the environment.
+func finalStep(t *testing.T, access, check, soak, job string) (string, int) {
+	t.Helper()
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("bash is not installed")
+	}
+	wf, _ := loadParityWorkflow(t)
+	steps := wf.Jobs["parity"].Steps
+	st := steps[len(steps)-1]
+	if st.Name != "Fail when the report did not pass" {
+		t.Fatalf("the last step is %q", st.Name)
+	}
+	cmd := exec.CommandContext(context.Background(), bash, "-c", st.Run)
+	cmd.Env = append(os.Environ(),
+		"ACCESS_OUTCOME="+access, "CHECK_OUTCOME="+check, "SOAK_OUTCOME="+soak, "JOB_STATUS="+job)
+	out, err := cmd.CombinedOutput()
+	code := 0
+	if ee, ok := err.(*exec.ExitError); ok {
+		code = ee.ExitCode()
+	} else if err != nil {
+		t.Fatal(err)
+	}
+	return string(out), code
+}
+
+func TestParityFinalStepEnvironmentComesFromTheStepOutcomes(t *testing.T) { // operations R5.85, CRSP141
+	wf, _ := loadParityWorkflow(t)
+	steps := wf.Jobs["parity"].Steps
+	st := steps[len(steps)-1]
+	for env, want := range map[string]string{
+		"ACCESS_OUTCOME": "steps.access.outcome", "CHECK_OUTCOME": "steps.check.outcome",
+		"SOAK_OUTCOME": "steps.soak.outcome", "JOB_STATUS": "job.status",
+	} {
+		if !strings.Contains(st.Env[env], want) {
+			t.Errorf("%s = %q, want it to read %s", env, st.Env[env], want)
+		}
+	}
+	if strings.Contains(st.Run, "${{") {
+		t.Error("the step must read its values from the environment, not from inline expressions")
+	}
+}
+
+func TestParityFinalStepSaysTheRealCause(t *testing.T) { // operations R5.85, CRSP141
+	const notSetUp = "The parity access is not set up"
+	cases := []struct {
+		name                     string
+		access, check, soak, job string
+		code                     int
+		has, hasNot              []string
+	}{
+		{"every step skipped after a timeout", "skipped", "skipped", "skipped", "cancelled", 1,
+			[]string{"did not reach the checks", "access step was skipped", "timed out", "free slot"}, []string{notSetUp, "Set up parity for this repository"}},
+		{"access step cancelled", "cancelled", "skipped", "skipped", "cancelled", 1,
+			[]string{"did not reach the checks", "access step was cancelled", "cancelled or timed out"}, []string{notSetUp}},
+		{"skipped and the cause is unknown", "skipped", "skipped", "skipped", "failure", 1,
+			[]string{"did not reach the checks", "access step was skipped", "not known"}, []string{notSetUp, "timed out"}},
+		{"no outcome at all", "", "", "", "failure", 1,
+			[]string{"did not reach the checks", "not run"}, []string{notSetUp}},
+		{"the access step ran and failed", "failure", "skipped", "skipped", "failure", 1,
+			[]string{notSetUp, "Set up parity for this repository"}, []string{"did not reach the checks"}},
+		{"the check failed", "success", "failure", "skipped", "success", 1,
+			[]string{"The parity report did not pass"}, []string{notSetUp, "did not reach the checks"}},
+		{"the soak failed", "success", "success", "failure", "success", 1,
+			[]string{"The parity report did not pass"}, []string{notSetUp}},
+		{"everything passed", "success", "success", "skipped", "success", 0, nil, []string{notSetUp, "did not reach the checks", "did not pass"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out, code := finalStep(t, c.access, c.check, c.soak, c.job)
+			if code != c.code {
+				t.Fatalf("exit %d, want %d\n%s", code, c.code, out)
+			}
+			for _, w := range c.has {
+				if !strings.Contains(out, w) {
+					t.Errorf("the output lacks %q:\n%s", w, out)
+				}
+			}
+			for _, w := range c.hasNot {
+				if strings.Contains(out, w) {
+					t.Errorf("the output has %q:\n%s", w, out)
+				}
+			}
+		})
 	}
 }
