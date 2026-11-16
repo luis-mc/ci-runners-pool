@@ -29,3 +29,8 @@ Branch `CRSP124-first-run-ux`, base main 10c39e9 (RELEASE-22). Branch only; neve
 | 15 | notes without action | every Note/Problem gets an action |
 
 ## Log
+- Done: findings 1-3, 5-15 in the console (see commits). Finding 4 already on main.
+- Root cause of 2: `overview.EmptySource{}` in cmd/crsp/areas_wiring.go keeps the live snapshot machine list empty; the console now reads the machine list. The Go adapter (CRSP23) is NOT done here: out of scope, and would also feed the command palette, which still reads the live snapshot.
+- Finding 8 kept console-only: the server default stays `persistent` (machines R5.22); the machine page and Add a machine Done now say an installed backend is not turned on and offer Tick.
+- Tests: vitest 444 pass; 2 fail on main too (AuditLog, ConfigExport: Blob text under Node 22). Playwright (temp config on /opt/pw-browsers chromium, deleted): design-layout 24 + 3 new step-bar, a11y 64+4, flows/exports-stop/keyboard/deep-link green. no-app-CSS and design scripts: 103 pass.
+- docs_fold.py and docs_check.py are not in this sandbox: change notes written by hand in the notes format; docs_check not run.
