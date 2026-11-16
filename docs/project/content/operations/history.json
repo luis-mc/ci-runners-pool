@@ -1,0 +1,22 @@
+[
+  {
+    "date": "15 Nov 11:33",
+    "change": "OPS12 item changed from \"Pool lesson 28: /dev/kvm via device_cgroup_rules and supervisor mknod (DL369)\" to \"Lesson 28 recorded in the handover notes (DL369)\""
+  },
+  {
+    "date": "15 Nov 11:33",
+    "change": "OPS11 item changed from \"Pool lesson 27: stopped pool container counts as drained (DL367)\" to \"Lesson 27 recorded in the handover notes (DL367)\""
+  },
+  {
+    "date": "15 Nov 11:27",
+    "change": "RELEASE-11 merged as PR #80 (8706dae); v0.1.1 released"
+  },
+  {
+    "date": "14 Nov 11:08",
+    "change": "dropped: duplicate of OPS1, added twice by mistake"
+  },
+  {
+    "date": "14 Nov 10:47",
+    "change": "Feature artifact created."
+  }
+]

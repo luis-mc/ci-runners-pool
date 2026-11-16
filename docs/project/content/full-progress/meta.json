@@ -1,6 +1,6 @@
 {
   "title": "Full Progress: CI Runners Shared Pool",
   "hero": "Manager for shared self-hosted GitHub Actions runners on your own machines: controller, node agent, web console, CLI and tray in one binary, crsp.",
-  "lede": "Milestone 1 code was written overnight by cloud agents and is all on main (14 Nov, 03:16 Lisbon). It is tested only against a fake GitHub API; nothing has run on a real machine yet. Task IDs here are tracker IDs; branch labels (CRSP16-CRSP27) are named in each item.",
+  "lede": "v0.1.2 is installed on the owner's PC; v0.1.3 (RELEASE-22 to RELEASE-25: first-run rework, TUI panes, guided GitHub grant, parity access) is building. A tag and a build ship no code of their own, so they show under Other work, not as a release. Task IDs are tracker IDs.",
   "extra_css": ""
 }

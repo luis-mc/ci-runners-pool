@@ -1,0 +1,79 @@
+{
+ "decisions": [
+  {
+   "id": "D1",
+   "question": "Console frame style",
+   "options": [
+    {
+     "label": "A Phosphor plain cards",
+     "summary": "Colours only, prompt headlines."
+    },
+    {
+     "label": "B TUI panes",
+     "summary": "Box-line panes with the title in the border, key-hint bar, reverse-video selected row."
+    },
+    {
+     "label": "C Charm plain cards",
+     "summary": "Colours only, rounded."
+    },
+    {
+     "label": "D Powerline status line",
+     "summary": "Segmented status line on top."
+    },
+    {
+     "label": "E Man page sections",
+     "summary": "NAME/SECTION capitals, underlined input."
+    },
+    {
+     "label": "F Command blocks",
+     "summary": "Each card a command block with a state-coloured left edge."
+    }
+   ],
+   "chosen": "B TUI panes",
+   "status": "decided",
+   "decided": "2026-11-15",
+   "asked": "2026-11-15",
+   "task": "LOOK1"
+  },
+  {
+   "id": "D2",
+   "question": "Console colours",
+   "options": [
+    {
+     "label": "One palette for everyone",
+     "summary": "Pick one of the six palettes."
+    },
+    {
+     "label": "All six as user themes",
+     "summary": "Phosphor, Tokyo Night, Catppuccin, Gruvbox, Solarized and Nord, each with dark and light; the user picks in Settings (token values only, UX-55)."
+    }
+   ],
+   "chosen": "All six as user themes",
+   "status": "decided",
+   "decided": "2026-11-15",
+   "asked": "2026-11-15",
+   "owner_words": "Option A to F color schemes as options for user to select",
+   "task": "LOOK1"
+  },
+  {
+   "id": "D3",
+   "question": "Default colour scheme for a new install",
+   "options": [
+    {
+     "label": "Tokyo Night",
+     "summary": "Goes with the B panes it was drawn for; used until the owner picks."
+    },
+    {
+     "label": "Phosphor",
+     "summary": "The classic green terminal."
+    }
+   ],
+   "status": "decided",
+   "asked": "2026-11-15",
+   "task": "LOOK2",
+   "chosen": "Tokyo Night",
+   "decided": "2026-11-15",
+   "owner_words": "Tokyo Night (Recommended)"
+  }
+ ]
+}

@@ -12,13 +12,66 @@
     "title": "Full Progress: CI Runners Shared Pool",
     "file": "full-progress-ci-runners-shared-pool.html",
     "url": "https://claude.ai/artifact/XQbWU86Mtt6zmDpHaHVeC7",
-    "published_sha256": "d3be49976c83c75e82c3b7dfc2ea55db968d69c53fe8958d2f0ecce75b4b15ed",
-    "published_at": "2026-11-14T10:24+00:00",
-    "published_fingerprint": "52d9c9042274e0931c6e1407a0618beb717b76bcc194dcd9a3f1a552a05f6d15"
+    "published_sha256": "72f7ef2d94801f472c7800f8c99c97718c65c36e69224ed7583877f90987e58d",
+    "published_at": "2026-11-16T20:58+00:00",
+    "published_fingerprint": "50294818dc196e0e3344bf90feb4a157498e1bd2cfac7a87ed7ace13e36550d3",
+    "local_path": "C:\\Work\\full-progress\\ci-runners-shared-pool\\full-progress-ci-runners-shared-pool.html",
+    "local_opened": true
   },
-  "feature_artifacts": [],
+  "feature_artifacts": [
+    {
+      "key": "operations",
+      "title": "Feature: Install, update and operations",
+      "file": "feature-install-update-and-operations.html",
+      "prefix": "OPS",
+      "apps": [
+        "crsp"
+      ],
+      "updated": "2026-11-16T00:37+00:00"
+    },
+    {
+      "key": "tray",
+      "title": "Feature: Tray",
+      "file": "feature-tray.html",
+      "prefix": "TRAY",
+      "apps": [
+        "crsp"
+      ],
+      "updated": "2026-11-15T04:30+00:00"
+    },
+    {
+      "key": "look",
+      "title": "Feature: Console look",
+      "file": "feature-console-look.html",
+      "prefix": "LOOK",
+      "apps": [
+        "crsp"
+      ],
+      "updated": "2026-11-15T14:26+00:00"
+    },
+    {
+      "key": "research",
+      "title": "Feature: CRSP Features Research",
+      "file": "feature-crsp-features-research.html",
+      "prefix": "RES",
+      "apps": [
+        "crsp"
+      ],
+      "updated": "2026-11-15T18:37+00:00"
+    },
+    {
+      "key": "handover",
+      "title": "Feature: Runner Pool Handover",
+      "file": "feature-runner-pool-handover.html",
+      "prefix": "HND",
+      "apps": [
+        "crsp"
+      ],
+      "updated": "2026-11-16T20:59+00:00"
+    }
+  ],
   "project_prefixes": [
     "CRSP"
   ],
-  "updated": "2026-11-14T10:30+00:00"
+  "updated": "2026-11-16T21:00+00:00"
 }
