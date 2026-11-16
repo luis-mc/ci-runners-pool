@@ -312,11 +312,11 @@
 
     <!-- What the install window says for each step that can take a moment (operations R5.86). -->
     <UI>
-      <ProgressText Action="CloseTray">Closing the crsp tray</ProgressText>
-      <ProgressText Action="StopServiceEarly">Stopping the crsp service</ProgressText>
-      <ProgressText Action="EndProgramProcesses">Closing programs that use crsp files</ProgressText>
-      <ProgressText Action="StartServices2">Starting the crsp service</ProgressText>
-      <ProgressText Action="RemoveData">Removing the crsp data folder</ProgressText>
+      <ProgressText Action="CloseTray" Message="Closing the crsp tray" />
+      <ProgressText Action="StopServiceEarly" Message="Stopping the crsp service" />
+      <ProgressText Action="EndProgramProcesses" Message="Closing programs that use crsp files" />
+      <ProgressText Action="StartServices2" Message="Starting the crsp service" />
+      <ProgressText Action="RemoveData" Message="Removing the crsp data folder" />
     </UI>
 
     <!-- The dialogs: the minimal install page, and on uninstall one question. -->
