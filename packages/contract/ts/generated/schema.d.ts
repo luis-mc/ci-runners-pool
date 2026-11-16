@@ -390,6 +390,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/github/org-pools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The pool mode of each installation (pool per organization)
+         * @description github-integration R5.21. One row per installation: whether it is an organization, whether the pool per organization can be turned on, and the repositories the organization runner group is visible to.
+         */
+        get: operations["listOrgPools"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/github/installations/{installationId}/org-pool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Turn the pool on or off for an organization
+         * @description github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+         */
+        put: operations["setOrgPool"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/github/install-url": {
         parameters: {
             query?: never;
@@ -2272,6 +2312,59 @@ export interface components {
             repository_selection: "all" | "selected";
             /** @description github-integration R5.24. */
             missing_permissions?: string[];
+        };
+        /**
+         * @example {
+         *       "installation_id": 4455667,
+         *       "organization": "acme",
+         *       "is_organization": true,
+         *       "eligible": true,
+         *       "enabled": true,
+         *       "group_name": "crsp-home",
+         *       "group_id": 7,
+         *       "repositories": [
+         *         "acme/api",
+         *         "acme/web"
+         *       ]
+         *     }
+         */
+        OrgPool: {
+            /** Format: int64 */
+            installation_id: number;
+            /** @description The account login of the installation. */
+            organization: string;
+            /** @description False for a personal account, which keeps repository runners. */
+            is_organization: boolean;
+            /** @description True when the pool per organization can be turned on. */
+            eligible: boolean;
+            /** @description Why it cannot be turned on, when eligible is false. */
+            reason?: string;
+            enabled: boolean;
+            /** @description The runner group, named for the pool. */
+            group_name: string;
+            /** Format: int64 */
+            group_id?: number;
+            /** @description Full names of the repositories the runner group is visible to. */
+            repositories: string[];
+            /** Format: date-time */
+            changed_at?: string;
+            changed_by?: string;
+        };
+        /**
+         * @example {
+         *       "items": []
+         *     }
+         */
+        OrgPoolList: {
+            items: components["schemas"]["OrgPool"][];
+        };
+        /**
+         * @example {
+         *       "enabled": true
+         *     }
+         */
+        OrgPoolSet: {
+            enabled: boolean;
         };
         InstallationList: {
             items: components["schemas"]["Installation"][];
@@ -4324,6 +4417,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InstallationList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listOrgPools: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The installations with their pool mode. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgPoolList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setOrgPool: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub installation id. */
+                installationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgPoolSet"];
+            };
+        };
+        responses: {
+            /** @description The pool mode now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgPool"];
                 };
             };
             default: components["responses"]["Error"];

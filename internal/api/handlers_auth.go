@@ -52,7 +52,7 @@ var githubAreaAuth = map[string]string{
 	"listCliTokens": authUser, "revokeCliToken": authUser, "signOut": authUser, "getSession": authUser,
 	"getPreferences": authUser, "updatePreferences": authUser,
 	"listUsers": authOwner, "addUser": authOwner, "updateUserRole": authOwner, "removeUser": authOwner,
-	"listInstallations": authUser, "getAppInstallUrl": authAdmin, "listRepositories": authUser,
+	"listInstallations": authUser, "listOrgPools": authUser, "setOrgPool": authAdmin, "getAppInstallUrl": authAdmin, "listRepositories": authUser,
 	"planRepositoryChanges": authAdmin, "stopRepositoryPlan": authAdmin, "getRepositoryPlan": authUser, "applyRepositoryChanges": authAdmin,
 	"getRepository": authUser, "updateRepositoryPolicy": authAdmin, "getRepositoryRunsOn": authUser,
 	"getRepositoryExtraPackages": authUser, "setRepositoryExtraPackages": authAdmin,

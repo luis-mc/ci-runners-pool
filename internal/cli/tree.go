@@ -29,7 +29,7 @@ func tree(env *Env) *command {
 		mode("tray", "run the tray in your session", "M8"),
 		cmdVersion(env),
 		cmdLogin(), cmdLogout(), cmdOpen(), cmdContext(),
-		cmdRepo(), cmdTrial(), cmdMachine(), cmdRunner(), cmdJob(),
+		cmdRepo(), cmdOrgPool(), cmdTrial(), cmdMachine(), cmdRunner(), cmdJob(),
 		cmdDoctor(), cmdParity(), cmdCompare(),
 		unbuilt("config", "configuration as a file (export, import, apply)", "M8", "export|import|apply"),
 		cmdBackup(), cmdRestore(),

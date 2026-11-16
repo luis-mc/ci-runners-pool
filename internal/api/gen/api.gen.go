@@ -2782,6 +2782,43 @@ type NotificationTestResult struct {
 // OS defines model for OS.
 type OS string
 
+// OrgPool defines model for OrgPool.
+type OrgPool struct {
+	ChangedAt *time.Time `json:"changed_at,omitempty"`
+	ChangedBy *string    `json:"changed_by,omitempty"`
+
+	// Eligible True when the pool per organization can be turned on.
+	Eligible bool   `json:"eligible"`
+	Enabled  bool   `json:"enabled"`
+	GroupId  *int64 `json:"group_id,omitempty"`
+
+	// GroupName The runner group, named for the pool.
+	GroupName      string `json:"group_name"`
+	InstallationId int64  `json:"installation_id"`
+
+	// IsOrganization False for a personal account, which keeps repository runners.
+	IsOrganization bool `json:"is_organization"`
+
+	// Organization The account login of the installation.
+	Organization string `json:"organization"`
+
+	// Reason Why it cannot be turned on, when eligible is false.
+	Reason *string `json:"reason,omitempty"`
+
+	// Repositories Full names of the repositories the runner group is visible to.
+	Repositories []string `json:"repositories"`
+}
+
+// OrgPoolList defines model for OrgPoolList.
+type OrgPoolList struct {
+	Items []OrgPool `json:"items"`
+}
+
+// OrgPoolSet defines model for OrgPoolSet.
+type OrgPoolSet struct {
+	Enabled bool `json:"enabled"`
+}
+
 // Overview defines model for Overview.
 type Overview struct {
 	// LastEventId Open the stream with this as Last-Event-ID.
@@ -3847,6 +3884,9 @@ type RunDoctorJSONRequestBody = DoctorScope
 // PutEnvSetJSONRequestBody defines body for PutEnvSet for application/json ContentType.
 type PutEnvSetJSONRequestBody = EnvSetInput
 
+// SetOrgPoolJSONRequestBody defines body for SetOrgPool for application/json ContentType.
+type SetOrgPoolJSONRequestBody = OrgPoolSet
+
 // UpdateImageLayersJSONRequestBody defines body for UpdateImageLayers for application/json ContentType.
 type UpdateImageLayersJSONRequestBody = UpdateImageLayersRequest
 
@@ -4020,6 +4060,12 @@ type ServerInterface interface {
 	// ListInstallations The App's installations the user can see
 	// (GET /api/v1/github/installations)
 	ListInstallations(w http.ResponseWriter, r *http.Request)
+	// SetOrgPool Turn the pool on or off for an organization
+	// (PUT /api/v1/github/installations/{installationId}/org-pool)
+	SetOrgPool(w http.ResponseWriter, r *http.Request, installationId int64)
+	// ListOrgPools The pool mode of each installation (pool per organization)
+	// (GET /api/v1/github/org-pools)
+	ListOrgPools(w http.ResponseWriter, r *http.Request)
 	// ListRepositories Repositories of the installations, with pool state and policy
 	// (GET /api/v1/github/repositories)
 	ListRepositories(w http.ResponseWriter, r *http.Request, params ListRepositoriesParams)
@@ -5199,6 +5245,46 @@ func (siw *ServerInterfaceWrapper) ListInstallations(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListInstallations(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetOrgPool operation middleware
+func (siw *ServerInterfaceWrapper) SetOrgPool(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "installationId" -------------
+	var installationId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "installationId", r.PathValue("installationId"), &installationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "installationId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetOrgPool(w, r, installationId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrgPools operation middleware
+func (siw *ServerInterfaceWrapper) ListOrgPools(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrgPools(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -7718,6 +7804,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/users/{userId}", wrapper.RemoveUser)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/users/{userId}", wrapper.UpdateUserRole)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/installations", wrapper.ListInstallations)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/org-pools", wrapper.ListOrgPools)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/github/installations/{installationId}/org-pool", wrapper.SetOrgPool)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/install-url", wrapper.GetAppInstallUrl)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/repositories", wrapper.ListRepositories)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repository-plans", wrapper.PlanRepositoryChanges)
@@ -9010,6 +9098,84 @@ type ListInstallationsdefaultJSONResponse struct {
 }
 
 func (response ListInstallationsdefaultJSONResponse) VisitListInstallationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetOrgPoolRequestObject struct {
+	InstallationId int64 `json:"installationId"`
+	Body           *SetOrgPoolJSONRequestBody
+}
+
+type SetOrgPoolResponseObject interface {
+	VisitSetOrgPoolResponse(w http.ResponseWriter) error
+}
+
+type SetOrgPool200JSONResponse OrgPool
+
+func (response SetOrgPool200JSONResponse) VisitSetOrgPoolResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetOrgPooldefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response SetOrgPooldefaultJSONResponse) VisitSetOrgPoolResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrgPoolsRequestObject struct {
+}
+
+type ListOrgPoolsResponseObject interface {
+	VisitListOrgPoolsResponse(w http.ResponseWriter) error
+}
+
+type ListOrgPools200JSONResponse OrgPoolList
+
+func (response ListOrgPools200JSONResponse) VisitListOrgPoolsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrgPoolsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListOrgPoolsdefaultJSONResponse) VisitListOrgPoolsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -12389,6 +12555,12 @@ type StrictServerInterface interface {
 	// ListInstallations The App's installations the user can see
 	// (GET /api/v1/github/installations)
 	ListInstallations(ctx context.Context, request ListInstallationsRequestObject) (ListInstallationsResponseObject, error)
+	// SetOrgPool Turn the pool on or off for an organization
+	// (PUT /api/v1/github/installations/{installationId}/org-pool)
+	SetOrgPool(ctx context.Context, request SetOrgPoolRequestObject) (SetOrgPoolResponseObject, error)
+	// ListOrgPools The pool mode of each installation (pool per organization)
+	// (GET /api/v1/github/org-pools)
+	ListOrgPools(ctx context.Context, request ListOrgPoolsRequestObject) (ListOrgPoolsResponseObject, error)
 	// ListRepositories Repositories of the installations, with pool state and policy
 	// (GET /api/v1/github/repositories)
 	ListRepositories(ctx context.Context, request ListRepositoriesRequestObject) (ListRepositoriesResponseObject, error)
@@ -13378,6 +13550,63 @@ func (sh *strictHandler) ListInstallations(w http.ResponseWriter, r *http.Reques
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListInstallationsResponseObject); ok {
 		if err := validResponse.VisitListInstallationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetOrgPool operation middleware
+func (sh *strictHandler) SetOrgPool(w http.ResponseWriter, r *http.Request, installationId int64) {
+	var request SetOrgPoolRequestObject
+
+	request.InstallationId = installationId
+
+	var body SetOrgPoolJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetOrgPool(ctx, request.(SetOrgPoolRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetOrgPool")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetOrgPoolResponseObject); ok {
+		if err := validResponse.VisitSetOrgPoolResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListOrgPools operation middleware
+func (sh *strictHandler) ListOrgPools(w http.ResponseWriter, r *http.Request) {
+	var request ListOrgPoolsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOrgPools(ctx, request.(ListOrgPoolsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOrgPools")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListOrgPoolsResponseObject); ok {
+		if err := validResponse.VisitListOrgPoolsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

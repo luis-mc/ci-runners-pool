@@ -2783,6 +2783,43 @@ type NotificationTestResult struct {
 // OS defines model for OS.
 type OS string
 
+// OrgPool defines model for OrgPool.
+type OrgPool struct {
+	ChangedAt *time.Time `json:"changed_at,omitempty"`
+	ChangedBy *string    `json:"changed_by,omitempty"`
+
+	// Eligible True when the pool per organization can be turned on.
+	Eligible bool   `json:"eligible"`
+	Enabled  bool   `json:"enabled"`
+	GroupId  *int64 `json:"group_id,omitempty"`
+
+	// GroupName The runner group, named for the pool.
+	GroupName      string `json:"group_name"`
+	InstallationId int64  `json:"installation_id"`
+
+	// IsOrganization False for a personal account, which keeps repository runners.
+	IsOrganization bool `json:"is_organization"`
+
+	// Organization The account login of the installation.
+	Organization string `json:"organization"`
+
+	// Reason Why it cannot be turned on, when eligible is false.
+	Reason *string `json:"reason,omitempty"`
+
+	// Repositories Full names of the repositories the runner group is visible to.
+	Repositories []string `json:"repositories"`
+}
+
+// OrgPoolList defines model for OrgPoolList.
+type OrgPoolList struct {
+	Items []OrgPool `json:"items"`
+}
+
+// OrgPoolSet defines model for OrgPoolSet.
+type OrgPoolSet struct {
+	Enabled bool `json:"enabled"`
+}
+
 // Overview defines model for Overview.
 type Overview struct {
 	// LastEventId Open the stream with this as Last-Event-ID.
@@ -3848,6 +3885,9 @@ type RunDoctorJSONRequestBody = DoctorScope
 // PutEnvSetJSONRequestBody defines body for PutEnvSet for application/json ContentType.
 type PutEnvSetJSONRequestBody = EnvSetInput
 
+// SetOrgPoolJSONRequestBody defines body for SetOrgPool for application/json ContentType.
+type SetOrgPoolJSONRequestBody = OrgPoolSet
+
 // UpdateImageLayersJSONRequestBody defines body for UpdateImageLayers for application/json ContentType.
 type UpdateImageLayersJSONRequestBody = UpdateImageLayersRequest
 
@@ -4225,6 +4265,31 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/github/installations (the `ListInstallations` operationId).
 	ListInstallations(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetOrgPoolWithBody Turn the pool on or off for an organization
+	//
+	// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+	SetOrgPoolWithBody(ctx context.Context, installationId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetOrgPool Turn the pool on or off for an organization
+	//
+	// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+	SetOrgPool(ctx context.Context, installationId int64, body SetOrgPoolJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListOrgPools The pool mode of each installation (pool per organization)
+	//
+	// github-integration R5.21. One row per installation: whether it is an organization, whether the pool per organization can be turned on, and the repositories the organization runner group is visible to.
+	//
+	// Corresponds with GET /api/v1/github/org-pools (the `ListOrgPools` operationId).
+	ListOrgPools(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListRepositories Repositories of the installations, with pool state and policy
 	//
@@ -5628,6 +5693,61 @@ func (c *Client) GetAppInstallUrl(ctx context.Context, reqEditors ...RequestEdit
 // Corresponds with GET /api/v1/github/installations (the `ListInstallations` operationId).
 func (c *Client) ListInstallations(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListInstallationsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetOrgPoolWithBody Turn the pool on or off for an organization
+//
+// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+func (c *Client) SetOrgPoolWithBody(ctx context.Context, installationId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetOrgPoolRequestWithBody(c.Server, installationId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetOrgPool Turn the pool on or off for an organization
+//
+// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+func (c *Client) SetOrgPool(ctx context.Context, installationId int64, body SetOrgPoolJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetOrgPoolRequest(c.Server, installationId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListOrgPools The pool mode of each installation (pool per organization)
+//
+// github-integration R5.21. One row per installation: whether it is an organization, whether the pool per organization can be turned on, and the repositories the organization runner group is visible to.
+//
+// Corresponds with GET /api/v1/github/org-pools (the `ListOrgPools` operationId).
+func (c *Client) ListOrgPools(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListOrgPoolsRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -8985,6 +9105,80 @@ func NewListInstallationsRequest(server string) (*http.Request, error) {
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/github/installations")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetOrgPoolRequest calls the generic SetOrgPool builder with application/json body
+func NewSetOrgPoolRequest(server string, installationId int64, body SetOrgPoolJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetOrgPoolRequestWithBody(server, installationId, "application/json", bodyReader)
+}
+
+// NewSetOrgPoolRequestWithBody constructs an http.Request for the SetOrgPool method, with any body, and a specified content type
+func NewSetOrgPoolRequestWithBody(server string, installationId int64, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "installationId", installationId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/github/installations/%s/org-pool", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListOrgPoolsRequest constructs an http.Request for the ListOrgPools method
+func NewListOrgPoolsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/github/org-pools")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -13005,6 +13199,33 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/github/installations (the `ListInstallations` operationId).
 	ListInstallationsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListInstallationsResponse, error)
 
+	// SetOrgPoolWithBodyWithResponse Turn the pool on or off for an organization
+	//
+	// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+	SetOrgPoolWithBodyWithResponse(ctx context.Context, installationId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetOrgPoolResponse, error)
+
+	// SetOrgPoolWithResponse Turn the pool on or off for an organization
+	//
+	// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+	SetOrgPoolWithResponse(ctx context.Context, installationId int64, body SetOrgPoolJSONRequestBody, reqEditors ...RequestEditorFn) (*SetOrgPoolResponse, error)
+
+	// ListOrgPoolsWithResponse The pool mode of each installation (pool per organization)
+	//
+	// github-integration R5.21. One row per installation: whether it is an organization, whether the pool per organization can be turned on, and the repositories the organization runner group is visible to.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/github/org-pools (the `ListOrgPools` operationId).
+	ListOrgPoolsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListOrgPoolsResponse, error)
+
 	// ListRepositoriesWithResponse Repositories of the installations, with pool state and policy
 	//
 	// github-integration R5.18. Each row says whether the user has GitHub admin rights on it (R5.19), its pool state and its variable status.
@@ -15310,6 +15531,102 @@ func (r ListInstallationsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ListInstallationsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SetOrgPoolResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *OrgPool
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SetOrgPoolResponse) GetJSON200() *OrgPool {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r SetOrgPoolResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SetOrgPoolResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SetOrgPoolResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetOrgPoolResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetOrgPoolResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListOrgPoolsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *OrgPoolList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListOrgPoolsResponse) GetJSON200() *OrgPoolList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListOrgPoolsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListOrgPoolsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListOrgPoolsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListOrgPoolsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListOrgPoolsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -19800,6 +20117,51 @@ func (c *ClientWithResponses) ListInstallationsWithResponse(ctx context.Context,
 	return ParseListInstallationsResponse(rsp)
 }
 
+// SetOrgPoolWithBodyWithResponse Turn the pool on or off for an organization
+//
+// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+func (c *ClientWithResponses) SetOrgPoolWithBodyWithResponse(ctx context.Context, installationId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetOrgPoolResponse, error) {
+	rsp, err := c.SetOrgPoolWithBody(ctx, installationId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetOrgPoolResponse(rsp)
+}
+
+// SetOrgPoolWithResponse Turn the pool on or off for an organization
+//
+// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+func (c *ClientWithResponses) SetOrgPoolWithResponse(ctx context.Context, installationId int64, body SetOrgPoolJSONRequestBody, reqEditors ...RequestEditorFn) (*SetOrgPoolResponse, error) {
+	rsp, err := c.SetOrgPool(ctx, installationId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetOrgPoolResponse(rsp)
+}
+
+// ListOrgPoolsWithResponse The pool mode of each installation (pool per organization)
+//
+// github-integration R5.21. One row per installation: whether it is an organization, whether the pool per organization can be turned on, and the repositories the organization runner group is visible to.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/github/org-pools (the `ListOrgPools` operationId).
+func (c *ClientWithResponses) ListOrgPoolsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListOrgPoolsResponse, error) {
+	rsp, err := c.ListOrgPools(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListOrgPoolsResponse(rsp)
+}
+
 // ListRepositoriesWithResponse Repositories of the installations, with pool state and policy
 //
 // github-integration R5.18. Each row says whether the user has GitHub admin rights on it (R5.19), its pool state and its variable status.
@@ -22414,6 +22776,72 @@ func ParseListInstallationsResponse(rsp *http.Response) (*ListInstallationsRespo
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest InstallationList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetOrgPoolResponse parses an HTTP response from a SetOrgPoolWithResponse call
+func ParseSetOrgPoolResponse(rsp *http.Response) (*SetOrgPoolResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetOrgPoolResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest OrgPool
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListOrgPoolsResponse parses an HTTP response from a ListOrgPoolsWithResponse call
+func ParseListOrgPoolsResponse(rsp *http.Response) (*ListOrgPoolsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListOrgPoolsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest OrgPoolList
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

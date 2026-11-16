@@ -536,6 +536,62 @@ paths:
                 $ref: '#/components/schemas/InstallationList'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/github/org-pools:
+    get:
+      operationId: listOrgPools
+      tags: [repositories]
+      summary: The pool mode of each installation (pool per organization)
+      description: >-
+        github-integration R5.21. One row per installation: whether it is an
+        organization, whether the pool per organization can be turned on, and
+        the repositories the organization runner group is visible to.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      responses:
+        '200':
+          description: The installations with their pool mode.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgPoolList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/github/installations/{installationId}/org-pool:
+    put:
+      operationId: setOrgPool
+      tags: [repositories]
+      summary: Turn the pool on or off for an organization
+      description: >-
+        github-integration R5.21. Needs the product role admin or owner and
+        that the user is an owner of the organization on GitHub, read fresh. On
+        means runners register at organization level in a runner group named for
+        the pool, visible to the repositories whose pool is on and no others. A
+        personal account is refused: its runners stay at repository level.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - name: installationId
+          in: path
+          required: true
+          description: The numeric GitHub installation id.
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrgPoolSet'
+      responses:
+        '200':
+          description: The pool mode now.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgPool'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/github/install-url:
     get:
       operationId: getAppInstallUrl
@@ -3510,6 +3566,70 @@ components:
         account_type: User
         suspended: false
         repository_selection: selected
+    OrgPool:
+      type: object
+      required: [installation_id, organization, is_organization, eligible, enabled, group_name, repositories]
+      properties:
+        installation_id:
+          type: integer
+          format: int64
+        organization:
+          type: string
+          description: The account login of the installation.
+        is_organization:
+          type: boolean
+          description: False for a personal account, which keeps repository runners.
+        eligible:
+          type: boolean
+          description: True when the pool per organization can be turned on.
+        reason:
+          type: string
+          description: Why it cannot be turned on, when eligible is false.
+        enabled:
+          type: boolean
+        group_name:
+          type: string
+          description: The runner group, named for the pool.
+        group_id:
+          type: integer
+          format: int64
+        repositories:
+          type: array
+          description: Full names of the repositories the runner group is visible to.
+          items:
+            type: string
+        changed_at:
+          type: string
+          format: date-time
+        changed_by:
+          type: string
+      example:
+        installation_id: 4455667
+        organization: acme
+        is_organization: true
+        eligible: true
+        enabled: true
+        group_name: crsp-home
+        group_id: 7
+        repositories: [acme/api, acme/web]
+    OrgPoolList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrgPool'
+      example:
+        items: []
+    OrgPoolSet:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+      example:
+        enabled: true
     InstallationList:
       type: object
       required: [items, stale]

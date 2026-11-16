@@ -386,6 +386,7 @@ func TestRolesEnforcedPerOperation(t *testing.T) { // R5.12
 		{"POST", "/api/v1/repository-plans/x/stop", nil},
 		{"PATCH", "/api/v1/repositories/1/policy", map[string]any{"priority": 1}},
 		{"GET", "/api/v1/github/install-url", nil},
+		{"PUT", "/api/v1/github/installations/1/org-pool", map[string]any{"enabled": true}},
 	}
 	ownerOnly := []call{
 		{"GET", "/api/v1/users", nil},
@@ -413,7 +414,7 @@ func TestRolesEnforcedPerOperation(t *testing.T) { // R5.12
 		}
 	}
 	// A viewer reads.
-	for _, p := range []string{"/api/v1/me", "/api/v1/github/repositories", "/api/v1/github/installations", "/api/v1/auth/cli/tokens", "/api/v1/me/preferences"} {
+	for _, p := range []string{"/api/v1/me", "/api/v1/github/repositories", "/api/v1/github/installations", "/api/v1/github/org-pools", "/api/v1/auth/cli/tokens", "/api/v1/me/preferences"} {
 		if res, b := h.do("GET", p, nil, viewer, nil); res.StatusCode != 200 {
 			t.Errorf("viewer GET %s: %d %s", p, res.StatusCode, b)
 		}
