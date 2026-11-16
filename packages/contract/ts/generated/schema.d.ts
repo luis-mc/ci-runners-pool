@@ -991,6 +991,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/join-files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download an installer file with a one-time join code built in
+         * @description machines R5.50 (CRSP122, owner decision D70). Makes a join code (R5.4: it works once and lives 15 minutes by default; an older unused code becomes invalid) and answers a file for the machine's OS: a `.cmd` for Windows, a `.sh` for Linux, a `.command` for macOS. The file holds the controller address, the certificate fingerprint, the code and the SHA-256 of the release packages, and nothing else secret. The file name says the OS and the expiry. `X-Join-Code-Id` is the id to poll with getJoinCode. The audit entry never holds the code. 501 when this controller has no release packages to hand out (a development build).
+         */
+        post: operations["createJoinFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/packages/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A release package, or SHA256SUMS
+         * @description machines R5.50. The release packages this controller was built from (installers and SHA256SUMS), checked against SHA256SUMS before they are served. Public data, like the GitHub release; only names the release lists are served. The installer file checks the SHA-256 itself.
+         */
+        get: operations["getPackage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/join-codes/ssh": {
         parameters: {
             query?: never;
@@ -3175,6 +3215,12 @@ export interface components {
             confirm?: boolean;
         };
         CreateJoinCodeRequest: {
+            /** @description Default 15, ceiling 1440 (machines R5.4). */
+            ttl_minutes?: number;
+        };
+        CreateJoinFileRequest: {
+            /** @enum {string} */
+            os: "windows" | "linux" | "macos";
             /** @description Default 15, ceiling 1440 (machines R5.4). */
             ttl_minutes?: number;
         };
@@ -5389,6 +5435,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JoinCodeCreated"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createJoinFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateJoinFileRequest"];
+            };
+        };
+        responses: {
+            /** @description The installer file. */
+            201: {
+                headers: {
+                    /** @example attachment; filename="crsp-join-linux-until-20261114T1215Z.sh" */
+                    "Content-Disposition": string;
+                    "X-Join-Code-Id": string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPackage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The package. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
                 };
             };
             default: components["responses"]["Error"];

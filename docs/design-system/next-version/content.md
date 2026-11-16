@@ -415,13 +415,16 @@ The words of the Add a machine wizard (machines R5.3a, R5.4a), the runner states
 
 | Where | Word |
 |---|---|
-| Join choice | How the machine joins (help: Copy one command and run it on the machine, or let crsp sign in over SSH once.): Copy a command, I have SSH |
-| Windows note | A Windows machine joins by copying a command. Run it in an administrator terminal. |
+| Join choice | How the machine joins (help: Copy one command and run it on the machine, let crsp sign in over SSH once, or download a file to open on the machine.): Copy a command, I have SSH (Linux and macOS only), Download an installer |
+| Windows note | Run the command in an administrator terminal. (Shown for a Windows machine that joins by a copied command.) |
 | SSH fields | Host, User, SSH port, SSH key file (help: Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user needs sudo without a password.) |
 | SSH errors | Enter the host name or address. / Enter the user name. / Paste the SSH key file. |
-| Review facts | System, How it joins (A copied command / Over SSH as {user} on {host}), Join code (Lasts 15 minutes and works once) |
-| Review lines | crsp signs in once with your key, runs the install command and signs out. The key is not stored. / Next you get one command with the join code in it. Run it on the machine. |
+| Review facts | System, How it joins (A copied command / Over SSH as {user} on {host} / A downloaded installer), Join code (Lasts 15 minutes and works once) |
+| Review lines | crsp signs in once with your key, runs the install command and signs out. The key is not stored. / Next you get one command with the join code in it. Run it on the machine. / Next you get an installer file for this system with the join code in it. Open it on the machine. |
 | Join command | Run this command on the machine now. The code shows once. / crsp ran the install command over SSH. Waiting for the agent. |
+| Installer saved | The installer is saved as {file name}. It works once and holds the join code. Then, per system: Windows: On the machine, double-click it and accept the administrator prompt. Waiting for the agent. / macOS: On the machine, open it. If it does not open, run it with sh in Terminal. Waiting for the agent. / Linux: On the machine, run it with sh. It asks for sudo. Waiting for the agent. |
+| Installer wait | Making the installer (the wait text while the file is made) |
+| Installer failure | Could not make the installer. {reason} |
 | Join steps | Waiting for the agent, Agent connected, Machine ready; each says done, in progress or not yet |
 | SSH question card | Title: Is this the host key? Line: Host {host} shows the key {fingerprint}. Action: Yes, sign in (busy word: Signing in) |
 | SSH failure | Could not join over SSH. {reason} |
