@@ -315,7 +315,7 @@ func TestAutoOnDownloadsVerifiesThenDrainsThenInstallsOnIdle(t *testing.T) {
 	h := newHarness(t, "linux", true, true)
 	ctx := context.Background()
 	h.d.jobs = []Job{{Repository: "luis-mc/app", RunID: 1, Job: "build"}}
-	st, err := h.m.Check(ctx)
+	st, err := h.m.AutoCheck(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +347,7 @@ func TestAutoOnDownloadsVerifiesThenDrainsThenInstallsOnIdle(t *testing.T) {
 
 func TestBadChecksumOrProvenanceStopsBeforeDrain(t *testing.T) {
 	h := newHarness(t, "linux", true, false)
-	st, err := h.m.Check(context.Background())
+	st, err := h.m.AutoCheck(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -361,7 +361,7 @@ func TestBadChecksumOrProvenanceStopsBeforeDrain(t *testing.T) {
 	}
 	h2 := newHarness(t, "linux", true, true)
 	h2.m.o.Attester = attest{err: &Failure{Check: "provenance", Reason: "signer mismatch"}}
-	st, _ = h2.m.Check(context.Background())
+	st, _ = h2.m.AutoCheck(context.Background())
 	if st.State != StateFailed || !strings.Contains(st.Error, "provenance") || len(h2.d.begun) != 0 {
 		t.Fatalf("%+v", st)
 	}
@@ -608,7 +608,7 @@ func TestAutoUpdateCancelsDrainAfterTheLimit(t *testing.T) {
 	h := newHarness(t, "linux", true, true)
 	h.m.o.AutoDrainLimit = 20 * time.Millisecond
 	h.d.jobs = []Job{{Repository: "a/b", RunID: 1, Job: "x"}}
-	if _, err := h.m.Check(context.Background()); err != nil {
+	if _, err := h.m.AutoCheck(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 	time.Sleep(200 * time.Millisecond)
@@ -620,7 +620,7 @@ func TestAutoUpdateCancelsDrainAfterTheLimit(t *testing.T) {
 		t.Fatal("a job was running; nothing may install")
 	}
 	// The lock is free again, so the next check can start over.
-	if _, err := h.m.Check(context.Background()); err != nil || len(h.d.begun) != 2 {
+	if _, err := h.m.AutoCheck(context.Background()); err != nil || len(h.d.begun) != 2 {
 		t.Fatalf("%v begun=%v", err, h.d.begun)
 	}
 }
@@ -834,5 +834,40 @@ func TestHTTPHealthReadsPlainAndTLS(t *testing.T) {
 		if err != nil || v != "1.2.3" {
 			t.Errorf("%s: %q %v", u, v, err)
 		}
+	}
+}
+
+// CRSP147: a manual check only checks. Auto-update on, a newer release, jobs or none: nothing is
+// downloaded, drained or installed; Apply after a yes is what installs; the scheduled look still does.
+func TestCheckNeverInstallsEvenWithAutoOn(t *testing.T) {
+	h := newHarness(t, "linux", true, true)
+	st, err := h.m.Check(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !st.Available || st.Latest != "1.5.0" || st.State != StateIdle {
+		t.Fatalf("%+v", st)
+	}
+	if len(h.dl) != 0 || len(h.d.begun) != 0 || len(h.spawns) != 0 {
+		t.Fatalf("a manual check installed: dl=%v begun=%v", h.dl, h.d.begun)
+	}
+}
+
+func TestInstallNowInstallsAndLaterDoesNot(t *testing.T) {
+	h := newHarness(t, "linux", false, true)
+	ctx := context.Background()
+	if _, err := h.m.Check(ctx); err != nil {
+		t.Fatal(err)
+	}
+	// Later: the tray calls nothing, so nothing changes.
+	if len(h.d.begun) != 0 {
+		t.Fatal("Later must change nothing")
+	}
+	st, err := h.m.Apply(ctx, KindUpdate, true, "tray")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(h.d.begun) != 1 || h.d.begun[0] != KindUpdate || st.State == StateIdle {
+		t.Fatalf("Install now must start the update: %+v begun=%v", st, h.d.begun)
 	}
 }

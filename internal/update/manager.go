@@ -237,10 +237,21 @@ func (m *Manager) busy() bool {
 	return false
 }
 
-// Check looks for a newer stable release. It downloads nothing. With
-// auto-update on and a newer release, the update then starts by itself (and
-// drains first); a refused or failed automatic try is shown in Status.Error.
+// Check looks for a newer stable release now. It downloads nothing and never
+// starts an install, whatever the Automatic updates setting says: a person who
+// asked to look is only told (CRSP147). Installing takes Apply after a yes.
 func (m *Manager) Check(ctx context.Context) (Status, error) {
+	return m.check(ctx, false)
+}
+
+// AutoCheck is the scheduled look: like Check, and with auto-update on and a
+// newer release the update then starts by itself (and drains first); a refused
+// or failed automatic try is shown in Status.Error.
+func (m *Manager) AutoCheck(ctx context.Context) (Status, error) {
+	return m.check(ctx, true)
+}
+
+func (m *Manager) check(ctx context.Context, auto bool) (Status, error) {
 	m.mu.Lock()
 	if m.busy() {
 		m.mu.Unlock()
@@ -271,7 +282,7 @@ func (m *Manager) Check(ctx context.Context) (Status, error) {
 		return m.Status(ctx), err
 	}
 
-	if st := m.Status(ctx); st.Available && st.AutoUpdate {
+	if st := m.Status(ctx); auto && st.Available && st.AutoUpdate {
 		if ok, why := AutoAllowed(readFailures(m.o.Dir), st.Latest, m.o.Now()); !ok {
 			m.setError(why)
 			return m.Status(ctx), nil
@@ -559,7 +570,7 @@ func (m *Manager) Run(ctx context.Context, first, every time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			if _, err := m.Check(ctx); err != nil {
+			if _, err := m.AutoCheck(ctx); err != nil {
 				m.o.Logger.Warn("update check failed", "err", err)
 			}
 			t.Reset(every)
