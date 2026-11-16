@@ -135,7 +135,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 ### 5.1 The GitHub App
 
-**R5.1** (M1, built) — **First-run gate.** A controller with no App and no owner serves only the first-run wizard and health. The wizard needs a one-time setup code that the controller prints at start and hands to the tray. The code is single use and void once an owner exists.
+**R5.1** (M1, built) — **First-run gate.** A controller with no App and no owner serves only the first-run wizard and health. The wizard needs a one-time setup code that the controller prints at start and hands to the tray. The code is single use and void once an owner exists. `getSetupState` reports three steps: `connect_github` is done with an App and an owner, `first_machine` is done when at least one machine has joined (any state), and `first_repository` is done when at least one repository has its pool on. A failed read is logged and leaves the step todo.
 
 **R5.2** (M1, built) — **Manifest flow.** The wizard creates the App with GitHub's App manifest flow, for a personal account or an organization. The manifest holds the name, the console URL, the callback URLs, the setup URL, the webhook settings, the permissions of R5.23 and the event `workflow_job`. The `state` value is random, single use and expires after 10 minutes.
 
