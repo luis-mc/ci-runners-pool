@@ -1129,6 +1129,21 @@ func (e RegistryLoginInputKind) Valid() bool {
 	}
 }
 
+// Defines values for RepositoryPoolOffReason.
+const (
+	LeftInstallation RepositoryPoolOffReason = "left_installation"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryPoolOffReason enum.
+func (e RepositoryPoolOffReason) Valid() bool {
+	switch e {
+	case LeftInstallation:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RepositoryVisibility.
 const (
 	Internal RepositoryVisibility = "internal"
@@ -1305,14 +1320,17 @@ func (e RunnerScopeKind) Valid() bool {
 
 // Defines values for RunnerState.
 const (
-	RunnerStateBusy     RunnerState = "busy"
-	RunnerStateCreating RunnerState = "creating"
-	RunnerStateDraining RunnerState = "draining"
-	RunnerStateFailed   RunnerState = "failed"
-	RunnerStateIdle     RunnerState = "idle"
-	RunnerStateOffline  RunnerState = "offline"
-	RunnerStateRemoving RunnerState = "removing"
-	RunnerStateUpdating RunnerState = "updating"
+	RunnerStateBusy          RunnerState = "busy"
+	RunnerStateCreating      RunnerState = "creating"
+	RunnerStateDraining      RunnerState = "draining"
+	RunnerStateFailed        RunnerState = "failed"
+	RunnerStateIdle          RunnerState = "idle"
+	RunnerStateNotRegistered RunnerState = "not_registered"
+	RunnerStateOffline       RunnerState = "offline"
+	RunnerStateRemoving      RunnerState = "removing"
+	RunnerStateStopped       RunnerState = "stopped"
+	RunnerStateUnknown       RunnerState = "unknown"
+	RunnerStateUpdating      RunnerState = "updating"
 )
 
 // Valid indicates whether the value is a known member of the RunnerState enum.
@@ -1328,9 +1346,15 @@ func (e RunnerState) Valid() bool {
 		return true
 	case RunnerStateIdle:
 		return true
+	case RunnerStateNotRegistered:
+		return true
 	case RunnerStateOffline:
 		return true
 	case RunnerStateRemoving:
+		return true
+	case RunnerStateStopped:
+		return true
+	case RunnerStateUnknown:
 		return true
 	case RunnerStateUpdating:
 		return true
@@ -1849,9 +1873,27 @@ type AddUserRequest struct {
 // AddUserRequestRole defines model for AddUserRequest.Role.
 type AddUserRequestRole string
 
+// AppHealth defines model for AppHealth.
+type AppHealth struct {
+	// CheckedAt When GitHub last answered. Absent before the first answer.
+	CheckedAt *time.Time `json:"checked_at,omitempty"`
+
+	// Gone True when GitHub says the App or its key is gone (R5.6).
+	Gone bool `json:"gone"`
+
+	// Reason Why, in words for the page. Only when gone.
+	Reason *string `json:"reason,omitempty"`
+}
+
 // AppInstallUrl defines model for AppInstallUrl.
 type AppInstallUrl struct {
 	Url string `json:"url"`
+}
+
+// AppKeyUpload A new App private key, sent once and never returned (github-integration R5.7).
+type AppKeyUpload struct {
+	// Pem The file GitHub gives, in PEM form.
+	Pem string `json:"pem"`
 }
 
 // AppManifestForm defines model for AppManifestForm.
@@ -2446,6 +2488,9 @@ type Machine struct {
 	Arch      Arch             `json:"arch"`
 	Backends  []BackendSupport `json:"backends"`
 
+	// ContainerOs The operating system the machine's container engine runs containers for (machines R5.18, runners R5.47), when the engine answers. A Windows machine with Docker Desktop on WSL2 says `linux`. Absent when the engine does not answer or the agent has not reported.
+	ContainerOs *OS `json:"container_os,omitempty"`
+
 	// Facts machines R5.10.
 	Facts *MachineFacts `json:"facts,omitempty"`
 	Id    string        `json:"id"`
@@ -2783,6 +2828,43 @@ type NotificationTestResult struct {
 // OS defines model for OS.
 type OS string
 
+// OrgPool defines model for OrgPool.
+type OrgPool struct {
+	ChangedAt *time.Time `json:"changed_at,omitempty"`
+	ChangedBy *string    `json:"changed_by,omitempty"`
+
+	// Eligible True when the pool per organization can be turned on.
+	Eligible bool   `json:"eligible"`
+	Enabled  bool   `json:"enabled"`
+	GroupId  *int64 `json:"group_id,omitempty"`
+
+	// GroupName The runner group, named for the pool.
+	GroupName      string `json:"group_name"`
+	InstallationId int64  `json:"installation_id"`
+
+	// IsOrganization False for a personal account, which keeps repository runners.
+	IsOrganization bool `json:"is_organization"`
+
+	// Organization The account login of the installation.
+	Organization string `json:"organization"`
+
+	// Reason Why it cannot be turned on, when eligible is false.
+	Reason *string `json:"reason,omitempty"`
+
+	// Repositories Full names of the repositories the runner group is visible to.
+	Repositories []string `json:"repositories"`
+}
+
+// OrgPoolList defines model for OrgPoolList.
+type OrgPoolList struct {
+	Items []OrgPool `json:"items"`
+}
+
+// OrgPoolSet defines model for OrgPoolSet.
+type OrgPoolSet struct {
+	Enabled bool `json:"enabled"`
+}
+
 // Overview defines model for Overview.
 type Overview struct {
 	// LastEventId Open the stream with this as Last-Event-ID.
@@ -2977,7 +3059,10 @@ type Repository struct {
 	Name           string           `json:"name"`
 	Owner          string           `json:"owner"`
 	Policy         RepositoryPolicy `json:"policy"`
-	PoolOn         bool             `json:"pool_on"`
+
+	// PoolOffReason Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
+	PoolOffReason *RepositoryPoolOffReason `json:"pool_off_reason,omitempty"`
+	PoolOn        bool                     `json:"pool_on"`
 
 	// Routing Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
 	Routing *RepositoryRouting `json:"routing,omitempty"`
@@ -2990,6 +3075,9 @@ type Repository struct {
 	// Webhook The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.50).
 	Webhook *WebhookHealth `json:"webhook,omitempty"`
 }
+
+// RepositoryPoolOffReason Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
+type RepositoryPoolOffReason string
 
 // RepositoryVisibility defines model for Repository.Visibility.
 type RepositoryVisibility string
@@ -3129,7 +3217,10 @@ type Runner struct {
 	CreatedAt *time.Time  `json:"created_at,omitempty"`
 
 	// CurrentJob One job attempt (observability R5.7, R5.8).
-	CurrentJob     *Job      `json:"current_job,omitempty"`
+	CurrentJob *Job `json:"current_job,omitempty"`
+
+	// FailedReason Whole plain reason the runner is in the failed state, with what the clean-up left behind. Only present when state is failed.
+	FailedReason   *string   `json:"failed_reason,omitempty"`
 	GithubRunnerId *int64    `json:"github_runner_id,omitempty"`
 	Id             string    `json:"id"`
 	Isolation      Isolation `json:"isolation"`
@@ -3140,13 +3231,21 @@ type Runner struct {
 	Labels     []string   `json:"labels"`
 	MachineId  string     `json:"machine_id"`
 
+	// MachineName The name of the machine, as the Machines list shows it (UX-1).
+	MachineName string `json:"machine_name"`
+
 	// Managed False for a runner not made by CRSP (runners R5.5).
-	Managed       bool        `json:"managed"`
-	Name          string      `json:"name"`
-	Os            OS          `json:"os"`
+	Managed bool   `json:"managed"`
+	Name    string `json:"name"`
+	Os      OS     `json:"os"`
+
+	// Reason Why the runner is in a state that is not idle or busy (UX-19). Absent when there is nothing to say.
+	Reason        *string     `json:"reason,omitempty"`
 	RunnerVersion *string     `json:"runner_version,omitempty"`
 	Scope         RunnerScope `json:"scope"`
-	State         RunnerState `json:"state"`
+
+	// State What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
+	State RunnerState `json:"state"`
 }
 
 // RunnerEnv defines model for RunnerEnv.
@@ -3174,7 +3273,7 @@ type RunnerScope struct {
 // RunnerScopeKind defines model for RunnerScope.Kind.
 type RunnerScopeKind string
 
-// RunnerState defines model for RunnerState.
+// RunnerState What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
 type RunnerState string
 
 // RunsOnFinding defines model for RunsOnFinding.
@@ -3792,6 +3891,12 @@ type DeleteRunnerParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// DeleteRunnerRegistrationParams defines parameters for DeleteRunnerRegistration.
+type DeleteRunnerRegistrationParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // RestartServiceParams defines parameters for RestartService.
 type RestartServiceParams struct {
 	// Confirmed The yes to the Review step that named the running jobs (tray R5.16).
@@ -3839,6 +3944,9 @@ type ReceiveGithubWebhookParams struct {
 	XHubSignature256 string `json:"X-Hub-Signature-256"`
 }
 
+// ReplaceAppPrivateKeyJSONRequestBody defines body for ReplaceAppPrivateKey for application/json ContentType.
+type ReplaceAppPrivateKeyJSONRequestBody = AppKeyUpload
+
 // ExchangeCliTokenJSONRequestBody defines body for ExchangeCliToken for application/json ContentType.
 type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
 
@@ -3847,6 +3955,9 @@ type RunDoctorJSONRequestBody = DoctorScope
 
 // PutEnvSetJSONRequestBody defines body for PutEnvSet for application/json ContentType.
 type PutEnvSetJSONRequestBody = EnvSetInput
+
+// SetOrgPoolJSONRequestBody defines body for SetOrgPool for application/json ContentType.
+type SetOrgPoolJSONRequestBody = OrgPoolSet
 
 // UpdateImageLayersJSONRequestBody defines body for UpdateImageLayers for application/json ContentType.
 type UpdateImageLayersJSONRequestBody = UpdateImageLayersRequest
@@ -4011,6 +4122,24 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+
+	// ReplaceAppPrivateKeyWithBody Replace the GitHub App private key
+	//
+	// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+	ReplaceAppPrivateKeyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReplaceAppPrivateKey Replace the GitHub App private key
+	//
+	// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+	ReplaceAppPrivateKey(ctx context.Context, body ReplaceAppPrivateKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListAuditEvents The audit log, newest first
 	//
@@ -4212,6 +4341,13 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/exports/jobs (the `ExportJobs` operationId).
 	ExportJobs(ctx context.Context, params *ExportJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetAppHealth Whether the GitHub App and its key still exist
+	//
+	// github-integration R5.6. The controller reads GET /app with an App JWT at start and every hour. While the App or its key is gone, GitHub work is stopped and the console offers the setup wizard again.
+	//
+	// Corresponds with GET /api/v1/github/app-health (the `GetAppHealth` operationId).
+	GetAppHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	//
 	// web-console 4.3.
@@ -4225,6 +4361,31 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/github/installations (the `ListInstallations` operationId).
 	ListInstallations(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetOrgPoolWithBody Turn the pool on or off for an organization
+	//
+	// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+	SetOrgPoolWithBody(ctx context.Context, installationId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetOrgPool Turn the pool on or off for an organization
+	//
+	// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+	SetOrgPool(ctx context.Context, installationId int64, body SetOrgPoolJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListOrgPools The pool mode of each installation (pool per organization)
+	//
+	// github-integration R5.21. One row per installation: whether it is an organization, whether the pool per organization can be turned on, and the repositories the organization runner group is visible to.
+	//
+	// Corresponds with GET /api/v1/github/org-pools (the `ListOrgPools` operationId).
+	ListOrgPools(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListRepositories Repositories of the installations, with pool state and policy
 	//
@@ -4877,6 +5038,13 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/runners/{runnerId}/env (the `GetRunnerEnv` operationId).
 	GetRunnerEnv(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// DeleteRunnerRegistration Delete the registration of an offline runner whose agent cannot remove it
+	//
+	// github-integration R5.33. For a runner GitHub lists as offline and not busy, when its machine cannot run the remove step. Without `confirm=true` it answers 409 needs_confirmation naming the runner. With it the controller deletes the registration at GitHub, then cleans the machine if it answers, and drops the record. An online or busy runner is refused with 409.
+	//
+	// Corresponds with DELETE /api/v1/runners/{runnerId}/registration (the `DeleteRunnerRegistration` operationId).
+	DeleteRunnerRegistration(ctx context.Context, runnerId RunnerId, params *DeleteRunnerRegistrationParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	//
 	// runners R5.6; owner decision for M1 (nothing changes silently). The plan adds the new runner first, then one step per removal, each needing its own yes. Apply it with createRunners.
@@ -5122,6 +5290,44 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /webhooks/github (the `ReceiveGithubWebhook` operationId).
 	ReceiveGithubWebhook(ctx context.Context, params *ReceiveGithubWebhookParams, body ReceiveGithubWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+// ReplaceAppPrivateKeyWithBody Replace the GitHub App private key
+//
+// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+func (c *Client) ReplaceAppPrivateKeyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReplaceAppPrivateKeyRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ReplaceAppPrivateKey Replace the GitHub App private key
+//
+// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+func (c *Client) ReplaceAppPrivateKey(ctx context.Context, body ReplaceAppPrivateKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReplaceAppPrivateKeyRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 // ListAuditEvents The audit log, newest first
@@ -5604,6 +5810,23 @@ func (c *Client) ExportJobs(ctx context.Context, params *ExportJobsParams, reqEd
 	return c.Client.Do(req)
 }
 
+// GetAppHealth Whether the GitHub App and its key still exist
+//
+// github-integration R5.6. The controller reads GET /app with an App JWT at start and every hour. While the App or its key is gone, GitHub work is stopped and the console offers the setup wizard again.
+//
+// Corresponds with GET /api/v1/github/app-health (the `GetAppHealth` operationId).
+func (c *Client) GetAppHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetAppHealthRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetAppInstallUrl GitHub's page to install the App on more repositories
 //
 // web-console 4.3.
@@ -5628,6 +5851,61 @@ func (c *Client) GetAppInstallUrl(ctx context.Context, reqEditors ...RequestEdit
 // Corresponds with GET /api/v1/github/installations (the `ListInstallations` operationId).
 func (c *Client) ListInstallations(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListInstallationsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetOrgPoolWithBody Turn the pool on or off for an organization
+//
+// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+func (c *Client) SetOrgPoolWithBody(ctx context.Context, installationId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetOrgPoolRequestWithBody(c.Server, installationId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetOrgPool Turn the pool on or off for an organization
+//
+// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+func (c *Client) SetOrgPool(ctx context.Context, installationId int64, body SetOrgPoolJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetOrgPoolRequest(c.Server, installationId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListOrgPools The pool mode of each installation (pool per organization)
+//
+// github-integration R5.21. One row per installation: whether it is an organization, whether the pool per organization can be turned on, and the repositories the organization runner group is visible to.
+//
+// Corresponds with GET /api/v1/github/org-pools (the `ListOrgPools` operationId).
+func (c *Client) ListOrgPools(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListOrgPoolsRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -7119,6 +7397,23 @@ func (c *Client) GetRunnerEnv(ctx context.Context, runnerId RunnerId, reqEditors
 	return c.Client.Do(req)
 }
 
+// DeleteRunnerRegistration Delete the registration of an offline runner whose agent cannot remove it
+//
+// github-integration R5.33. For a runner GitHub lists as offline and not busy, when its machine cannot run the remove step. Without `confirm=true` it answers 409 needs_confirmation naming the runner. With it the controller deletes the registration at GitHub, then cleans the machine if it answers, and drops the record. An online or busy runner is refused with 409.
+//
+// Corresponds with DELETE /api/v1/runners/{runnerId}/registration (the `DeleteRunnerRegistration` operationId).
+func (c *Client) DeleteRunnerRegistration(ctx context.Context, runnerId RunnerId, params *DeleteRunnerRegistrationParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteRunnerRegistrationRequest(c.Server, runnerId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 //
 // runners R5.6; owner decision for M1 (nothing changes silently). The plan adds the new runner first, then one step per removal, each needing its own yes. Apply it with createRunners.
@@ -7683,6 +7978,46 @@ func (c *Client) ReceiveGithubWebhook(ctx context.Context, params *ReceiveGithub
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewReplaceAppPrivateKeyRequest calls the generic ReplaceAppPrivateKey builder with application/json body
+func NewReplaceAppPrivateKeyRequest(server string, body ReplaceAppPrivateKeyJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewReplaceAppPrivateKeyRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewReplaceAppPrivateKeyRequestWithBody constructs an http.Request for the ReplaceAppPrivateKey method, with any body, and a specified content type
+func NewReplaceAppPrivateKeyRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/app/private-key")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
 }
 
 // NewListAuditEventsRequest constructs an http.Request for the ListAuditEvents method
@@ -8948,6 +9283,33 @@ func NewExportJobsRequest(server string, params *ExportJobsParams) (*http.Reques
 	return req, nil
 }
 
+// NewGetAppHealthRequest constructs an http.Request for the GetAppHealth method
+func NewGetAppHealthRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/github/app-health")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetAppInstallUrlRequest constructs an http.Request for the GetAppInstallUrl method
 func NewGetAppInstallUrlRequest(server string) (*http.Request, error) {
 	var err error
@@ -8985,6 +9347,80 @@ func NewListInstallationsRequest(server string) (*http.Request, error) {
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/github/installations")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetOrgPoolRequest calls the generic SetOrgPool builder with application/json body
+func NewSetOrgPoolRequest(server string, installationId int64, body SetOrgPoolJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetOrgPoolRequestWithBody(server, installationId, "application/json", bodyReader)
+}
+
+// NewSetOrgPoolRequestWithBody constructs an http.Request for the SetOrgPool method, with any body, and a specified content type
+func NewSetOrgPoolRequestWithBody(server string, installationId int64, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "installationId", installationId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/github/installations/%s/org-pool", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListOrgPoolsRequest constructs an http.Request for the ListOrgPools method
+func NewListOrgPoolsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/github/org-pools")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -11717,6 +12153,67 @@ func NewGetRunnerEnvRequest(server string, runnerId RunnerId) (*http.Request, er
 	return req, nil
 }
 
+// NewDeleteRunnerRegistrationRequest constructs an http.Request for the DeleteRunnerRegistration method
+func NewDeleteRunnerRegistrationRequest(server string, runnerId RunnerId, params *DeleteRunnerRegistrationParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "runnerId", runnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/runners/%s/registration", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Confirm != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirm", *params.Confirm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewPlanRunnerReplacementRequest constructs an http.Request for the PlanRunnerReplacement method
 func NewPlanRunnerReplacementRequest(server string, runnerId RunnerId) (*http.Request, error) {
 	var err error
@@ -12743,6 +13240,24 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
+	// ReplaceAppPrivateKeyWithBodyWithResponse Replace the GitHub App private key
+	//
+	// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+	ReplaceAppPrivateKeyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReplaceAppPrivateKeyResponse, error)
+
+	// ReplaceAppPrivateKeyWithResponse Replace the GitHub App private key
+	//
+	// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+	ReplaceAppPrivateKeyWithResponse(ctx context.Context, body ReplaceAppPrivateKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceAppPrivateKeyResponse, error)
+
 	// ListAuditEventsWithResponse The audit log, newest first
 	//
 	// observability R5.24 to R5.27. Viewers may read it (owner decision for M1). Read-only: no operation edits or deletes a row.
@@ -12987,6 +13502,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/exports/jobs (the `ExportJobs` operationId).
 	ExportJobsWithResponse(ctx context.Context, params *ExportJobsParams, reqEditors ...RequestEditorFn) (*ExportJobsResponse, error)
 
+	// GetAppHealthWithResponse Whether the GitHub App and its key still exist
+	//
+	// github-integration R5.6. The controller reads GET /app with an App JWT at start and every hour. While the App or its key is gone, GitHub work is stopped and the console offers the setup wizard again.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/github/app-health (the `GetAppHealth` operationId).
+	GetAppHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAppHealthResponse, error)
+
 	// GetAppInstallUrlWithResponse GitHub's page to install the App on more repositories
 	//
 	// web-console 4.3.
@@ -13004,6 +13528,33 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/github/installations (the `ListInstallations` operationId).
 	ListInstallationsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListInstallationsResponse, error)
+
+	// SetOrgPoolWithBodyWithResponse Turn the pool on or off for an organization
+	//
+	// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+	SetOrgPoolWithBodyWithResponse(ctx context.Context, installationId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetOrgPoolResponse, error)
+
+	// SetOrgPoolWithResponse Turn the pool on or off for an organization
+	//
+	// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+	SetOrgPoolWithResponse(ctx context.Context, installationId int64, body SetOrgPoolJSONRequestBody, reqEditors ...RequestEditorFn) (*SetOrgPoolResponse, error)
+
+	// ListOrgPoolsWithResponse The pool mode of each installation (pool per organization)
+	//
+	// github-integration R5.21. One row per installation: whether it is an organization, whether the pool per organization can be turned on, and the repositories the organization runner group is visible to.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/github/org-pools (the `ListOrgPools` operationId).
+	ListOrgPoolsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListOrgPoolsResponse, error)
 
 	// ListRepositoriesWithResponse Repositories of the installations, with pool state and policy
 	//
@@ -13734,6 +14285,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/runners/{runnerId}/env (the `GetRunnerEnv` operationId).
 	GetRunnerEnvWithResponse(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*GetRunnerEnvResponse, error)
 
+	// DeleteRunnerRegistrationWithResponse Delete the registration of an offline runner whose agent cannot remove it
+	//
+	// github-integration R5.33. For a runner GitHub lists as offline and not busy, when its machine cannot run the remove step. Without `confirm=true` it answers 409 needs_confirmation naming the runner. With it the controller deletes the registration at GitHub, then cleans the machine if it answers, and drops the record. An online or busy runner is refused with 409.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /api/v1/runners/{runnerId}/registration (the `DeleteRunnerRegistration` operationId).
+	DeleteRunnerRegistrationWithResponse(ctx context.Context, runnerId RunnerId, params *DeleteRunnerRegistrationParams, reqEditors ...RequestEditorFn) (*DeleteRunnerRegistrationResponse, error)
+
 	// PlanRunnerReplacementWithResponse Plan replacing a runner not made by CRSP with a managed one
 	//
 	// runners R5.6; owner decision for M1 (nothing changes silently). The plan adds the new runner first, then one step per removal, each needing its own yes. Apply it with createRunners.
@@ -14011,6 +14571,47 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /webhooks/github (the `ReceiveGithubWebhook` operationId).
 	ReceiveGithubWebhookWithResponse(ctx context.Context, params *ReceiveGithubWebhookParams, body ReceiveGithubWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*ReceiveGithubWebhookResponse, error)
+}
+
+type ReplaceAppPrivateKeyResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ReplaceAppPrivateKeyResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ReplaceAppPrivateKeyResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ReplaceAppPrivateKeyResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ReplaceAppPrivateKeyResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ReplaceAppPrivateKeyResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type ListAuditEventsResponse struct {
@@ -15220,6 +15821,54 @@ func (r ExportJobsResponse) ContentType() string {
 	return ""
 }
 
+type GetAppHealthResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *AppHealth
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetAppHealthResponse) GetJSON200() *AppHealth {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetAppHealthResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetAppHealthResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetAppHealthResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetAppHealthResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetAppHealthResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetAppInstallUrlResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -15310,6 +15959,102 @@ func (r ListInstallationsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ListInstallationsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SetOrgPoolResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *OrgPool
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SetOrgPoolResponse) GetJSON200() *OrgPool {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r SetOrgPoolResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SetOrgPoolResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SetOrgPoolResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetOrgPoolResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetOrgPoolResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListOrgPoolsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *OrgPoolList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListOrgPoolsResponse) GetJSON200() *OrgPoolList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListOrgPoolsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListOrgPoolsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListOrgPoolsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListOrgPoolsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListOrgPoolsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -18209,6 +18954,54 @@ func (r GetRunnerEnvResponse) ContentType() string {
 	return ""
 }
 
+type DeleteRunnerRegistrationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Runner
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r DeleteRunnerRegistrationResponse) GetJSON200() *Runner {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r DeleteRunnerRegistrationResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteRunnerRegistrationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteRunnerRegistrationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteRunnerRegistrationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteRunnerRegistrationResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type PlanRunnerReplacementResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -19358,6 +20151,36 @@ func (r ReceiveGithubWebhookResponse) ContentType() string {
 	return ""
 }
 
+// ReplaceAppPrivateKeyWithBodyWithResponse Replace the GitHub App private key
+//
+// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+func (c *ClientWithResponses) ReplaceAppPrivateKeyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReplaceAppPrivateKeyResponse, error) {
+	rsp, err := c.ReplaceAppPrivateKeyWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReplaceAppPrivateKeyResponse(rsp)
+}
+
+// ReplaceAppPrivateKeyWithResponse Replace the GitHub App private key
+//
+// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+func (c *ClientWithResponses) ReplaceAppPrivateKeyWithResponse(ctx context.Context, body ReplaceAppPrivateKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceAppPrivateKeyResponse, error) {
+	rsp, err := c.ReplaceAppPrivateKey(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReplaceAppPrivateKeyResponse(rsp)
+}
+
 // ListAuditEventsWithResponse The audit log, newest first
 //
 // observability R5.24 to R5.27. Viewers may read it (owner decision for M1). Read-only: no operation edits or deletes a row.
@@ -19770,6 +20593,21 @@ func (c *ClientWithResponses) ExportJobsWithResponse(ctx context.Context, params
 	return ParseExportJobsResponse(rsp)
 }
 
+// GetAppHealthWithResponse Whether the GitHub App and its key still exist
+//
+// github-integration R5.6. The controller reads GET /app with an App JWT at start and every hour. While the App or its key is gone, GitHub work is stopped and the console offers the setup wizard again.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/github/app-health (the `GetAppHealth` operationId).
+func (c *ClientWithResponses) GetAppHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAppHealthResponse, error) {
+	rsp, err := c.GetAppHealth(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetAppHealthResponse(rsp)
+}
+
 // GetAppInstallUrlWithResponse GitHub's page to install the App on more repositories
 //
 // web-console 4.3.
@@ -19798,6 +20636,51 @@ func (c *ClientWithResponses) ListInstallationsWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseListInstallationsResponse(rsp)
+}
+
+// SetOrgPoolWithBodyWithResponse Turn the pool on or off for an organization
+//
+// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+func (c *ClientWithResponses) SetOrgPoolWithBodyWithResponse(ctx context.Context, installationId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetOrgPoolResponse, error) {
+	rsp, err := c.SetOrgPoolWithBody(ctx, installationId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetOrgPoolResponse(rsp)
+}
+
+// SetOrgPoolWithResponse Turn the pool on or off for an organization
+//
+// github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/github/installations/{installationId}/org-pool (the `SetOrgPool` operationId).
+func (c *ClientWithResponses) SetOrgPoolWithResponse(ctx context.Context, installationId int64, body SetOrgPoolJSONRequestBody, reqEditors ...RequestEditorFn) (*SetOrgPoolResponse, error) {
+	rsp, err := c.SetOrgPool(ctx, installationId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetOrgPoolResponse(rsp)
+}
+
+// ListOrgPoolsWithResponse The pool mode of each installation (pool per organization)
+//
+// github-integration R5.21. One row per installation: whether it is an organization, whether the pool per organization can be turned on, and the repositories the organization runner group is visible to.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/github/org-pools (the `ListOrgPools` operationId).
+func (c *ClientWithResponses) ListOrgPoolsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListOrgPoolsResponse, error) {
+	rsp, err := c.ListOrgPools(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListOrgPoolsResponse(rsp)
 }
 
 // ListRepositoriesWithResponse Repositories of the installations, with pool state and policy
@@ -21027,6 +21910,21 @@ func (c *ClientWithResponses) GetRunnerEnvWithResponse(ctx context.Context, runn
 	return ParseGetRunnerEnvResponse(rsp)
 }
 
+// DeleteRunnerRegistrationWithResponse Delete the registration of an offline runner whose agent cannot remove it
+//
+// github-integration R5.33. For a runner GitHub lists as offline and not busy, when its machine cannot run the remove step. Without `confirm=true` it answers 409 needs_confirmation naming the runner. With it the controller deletes the registration at GitHub, then cleans the machine if it answers, and drops the record. An online or busy runner is refused with 409.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /api/v1/runners/{runnerId}/registration (the `DeleteRunnerRegistration` operationId).
+func (c *ClientWithResponses) DeleteRunnerRegistrationWithResponse(ctx context.Context, runnerId RunnerId, params *DeleteRunnerRegistrationParams, reqEditors ...RequestEditorFn) (*DeleteRunnerRegistrationResponse, error) {
+	rsp, err := c.DeleteRunnerRegistration(ctx, runnerId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteRunnerRegistrationResponse(rsp)
+}
+
 // PlanRunnerReplacementWithResponse Plan replacing a runner not made by CRSP with a managed one
 //
 // runners R5.6; owner decision for M1 (nothing changes silently). The plan adds the new runner first, then one step per removal, each needing its own yes. Apply it with createRunners.
@@ -21495,6 +22393,35 @@ func (c *ClientWithResponses) ReceiveGithubWebhookWithResponse(ctx context.Conte
 		return nil, err
 	}
 	return ParseReceiveGithubWebhookResponse(rsp)
+}
+
+// ParseReplaceAppPrivateKeyResponse parses an HTTP response from a ReplaceAppPrivateKeyWithResponse call
+func ParseReplaceAppPrivateKeyResponse(rsp *http.Response) (*ReplaceAppPrivateKeyResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ReplaceAppPrivateKeyResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseListAuditEventsResponse parses an HTTP response from a ListAuditEventsWithResponse call
@@ -22365,6 +23292,39 @@ func ParseExportJobsResponse(rsp *http.Response) (*ExportJobsResponse, error) {
 	return response, nil
 }
 
+// ParseGetAppHealthResponse parses an HTTP response from a GetAppHealthWithResponse call
+func ParseGetAppHealthResponse(rsp *http.Response) (*GetAppHealthResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetAppHealthResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest AppHealth
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetAppInstallUrlResponse parses an HTTP response from a GetAppInstallUrlWithResponse call
 func ParseGetAppInstallUrlResponse(rsp *http.Response) (*GetAppInstallUrlResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -22414,6 +23374,72 @@ func ParseListInstallationsResponse(rsp *http.Response) (*ListInstallationsRespo
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest InstallationList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetOrgPoolResponse parses an HTTP response from a SetOrgPoolWithResponse call
+func ParseSetOrgPoolResponse(rsp *http.Response) (*SetOrgPoolResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetOrgPoolResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest OrgPool
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListOrgPoolsResponse parses an HTTP response from a ListOrgPoolsWithResponse call
+func ParseListOrgPoolsResponse(rsp *http.Response) (*ListOrgPoolsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListOrgPoolsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest OrgPoolList
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -24410,6 +25436,39 @@ func ParseGetRunnerEnvResponse(rsp *http.Response) (*GetRunnerEnvResponse, error
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest RunnerEnv
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteRunnerRegistrationResponse parses an HTTP response from a DeleteRunnerRegistrationWithResponse call
+func ParseDeleteRunnerRegistrationResponse(rsp *http.Response) (*DeleteRunnerRegistrationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteRunnerRegistrationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Runner
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

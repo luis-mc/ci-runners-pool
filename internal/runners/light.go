@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 )
 
 // LightLabel is the label of a light runner (scheduling R5.65). A job that
@@ -51,7 +52,7 @@ func (s *Service) lightRunners(ctx context.Context, repoID int64) ([]Record, err
 	}
 	var out []Record
 	for _, r := range all {
-		if r.Managed && IsLightRecord(r) && r.Scope.Kind == "repository" && r.Scope.RepositoryID == repoID {
+		if r.Managed && IsLightRecord(r) && r.Scope.RepositoryID == repoID {
 			out = append(out, r)
 		}
 	}
@@ -63,10 +64,40 @@ func (s *Service) LightRunners(ctx context.Context, repoID int64) ([]Record, err
 	return s.lightRunners(ctx, repoID)
 }
 
+// LightMaxTries is how many times a failed light runner is tried again before
+// the loop waits for a person to remove it.
+const LightMaxTries = 5
+
+// lightTry is what the loop remembers about the failed light runner of one
+// repository and OS.
+type lightTry struct {
+	tries int
+	next  time.Time
+}
+
+func lightKey(repoID int64, os string) string { return fmt.Sprintf("%d|%s", repoID, os) }
+
+// lightBackoff is the wait after the n-th failed try: 1, 2, 4, 8, 16 minutes.
+func lightBackoff(n int) time.Duration {
+	if n < 1 {
+		n = 1
+	}
+	if n > 5 {
+		n = 5
+	}
+	return time.Minute << (n - 1)
+}
+
 // EnsureLight keeps one light runner for the repository for each OS in oses,
 // on a machine with light slots (scheduling R5.65). An OS that already has
 // one is left alone. An OS without a machine that can host one is reported
 // with its reason, not as an error.
+//
+// A repository keeps at most one light runner record per OS. When it has
+// failed, the loop tries again after a backoff, up to LightMaxTries times:
+// before each new try it takes away what the failed one left (its
+// registration, its service and its record), so the name is free again. The
+// reason of the failure and the next try are in the result (UX-19).
 func (s *Service) EnsureLight(ctx context.Context, repoID int64, repoName string, oses []string, actor string) ([]LightResult, error) {
 	if s.Light == nil {
 		return nil, errors.New("light runners are not set up")
@@ -77,32 +108,133 @@ func (s *Service) EnsureLight(ctx context.Context, repoID int64, repoName string
 	if err != nil {
 		return nil, err
 	}
+	if s.lightTry == nil {
+		s.lightTry = map[string]lightTry{}
+	}
 	var out []LightResult
 	var errs []error
 	for _, os := range oses {
-		res := LightResult{OS: os}
-		for _, r := range have {
-			if r.OS == os && r.State != Failed {
-				res.Runner = r.Name
-			}
-		}
-		if res.Runner != "" {
-			out = append(out, res)
-			continue
-		}
-		name, why, err := s.addLight(ctx, repoID, repoName, os, actor)
-		switch {
-		case err != nil:
-			res.Why = err.Error()
+		res, err := s.ensureLightOS(ctx, have, repoID, repoName, os, actor)
+		if err != nil {
 			errs = append(errs, fmt.Errorf("light runner for %s: %w", OSName(os), err))
-		case why != "":
-			res.Why = why
-		default:
-			res.Runner, res.Added = name, true
 		}
 		out = append(out, res)
 	}
 	return out, errors.Join(errs...)
+}
+
+func (s *Service) ensureLightOS(ctx context.Context, have []Record, repoID int64, repoName, os, actor string) (LightResult, error) {
+	res := LightResult{OS: os}
+	key := lightKey(repoID, os)
+	var live, failed []Record
+	for _, r := range have {
+		switch {
+		case r.OS != os:
+		case r.State == Failed:
+			failed = append(failed, r)
+		default:
+			live = append(live, r)
+		}
+	}
+	sort.SliceStable(failed, func(i, j int) bool { return failed[i].CreatedAt.Before(failed[j].CreatedAt) })
+	var errs []error
+	if len(live) > 0 {
+		// A working runner is all the repository needs: failed leftovers go.
+		res.Runner = live[0].Name
+		delete(s.lightTry, key)
+		for _, f := range failed {
+			if err := s.discardFailed(ctx, f, actor, "light.failed_removed"); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		return res, errors.Join(errs...)
+	}
+	if len(failed) == 0 {
+		delete(s.lightTry, key) // nothing failed (or a person removed it): start counting again
+	}
+	for _, f := range failed[min(1, len(failed)):] {
+		if err := s.discardFailed(ctx, f, actor, "light.failed_removed"); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(failed) > 0 {
+		f, t := failed[0], s.lightTry[key]
+		if t.tries >= LightMaxTries {
+			res.Why = fmt.Sprintf("light runner %s failed %d times, so it is not tried again. Remove it to try again. Reason: %s",
+				f.Name, t.tries, f.Reason)
+			return res, errors.Join(errs...)
+		}
+		if t.tries > 0 && s.now().Before(t.next) {
+			res.Why = fmt.Sprintf("light runner %s failed (try %d of %d); next try at %s. Reason: %s",
+				f.Name, t.tries, LightMaxTries, t.next.UTC().Format("15:04 UTC"), f.Reason)
+			return res, errors.Join(errs...)
+		}
+		if err := s.discardFailed(ctx, f, actor, "light.failed_removed"); err != nil {
+			res.Why = fmt.Sprintf("light runner %s failed and could not be cleaned up: %v", f.Name, err)
+			return res, errors.Join(append(errs, err)...)
+		}
+	}
+	name, why, err := s.addLight(ctx, repoID, repoName, os, actor)
+	switch {
+	case err != nil:
+		t := s.lightTry[key]
+		t.tries++
+		t.next = s.now().Add(lightBackoff(t.tries))
+		s.lightTry[key] = t
+		res.Why = err.Error()
+		errs = append(errs, err)
+	case why != "":
+		res.Why = why
+	default:
+		res.Runner, res.Added = name, true
+	}
+	return res, errors.Join(errs...)
+}
+
+// discardFailed takes away what a failed runner left: a GitHub registration
+// when there is one, its service with the account and folder, and its record.
+// It stops at the first step that fails, so the record stays and a person can
+// see what is left.
+func (s *Service) discardFailed(ctx context.Context, r Record, actor, action string) error {
+	t, err := s.Resolver.Resolve(ctx, r.Scope)
+	if err != nil {
+		return fmt.Errorf("resolve scope: %w", err)
+	}
+	list, err := s.GitHub.ListRunners(ctx, t.InstallationID, t.Scope)
+	if err != nil {
+		return fmt.Errorf("the runner list cannot be read, so nothing is removed: %w", err)
+	}
+	for _, g := range list {
+		if g.Name != r.Name && (r.GitHubRunnerID == 0 || g.ID != r.GitHubRunnerID) {
+			continue
+		}
+		if g.Busy {
+			return fmt.Errorf("runner %s has a job on GitHub; it waits until the job ends", r.Name)
+		}
+		if err := s.GitHub.DeleteRunner(ctx, t.InstallationID, t.Scope, g.ID); err != nil {
+			return fmt.Errorf("remove the registration of %s: %w", r.Name, err)
+		}
+	}
+	service := r.ServiceName
+	if service == "" && s.Services != nil {
+		if found, err := s.Services(ctx, r.MachineID); err == nil {
+			for _, f := range found {
+				if f.Name == r.Name {
+					service = f.ServiceName
+				}
+			}
+		}
+	}
+	if service != "" {
+		if err := s.Agent.CleanUp(ctx, r.MachineID, service); err != nil {
+			return fmt.Errorf("clean up the service %s: %w", service, err)
+		}
+	}
+	if err := s.Store.DeleteRunner(ctx, r.ID); err != nil {
+		return err
+	}
+	s.audit(ctx, actor, action, r.MachineID, r.ID, r.Name)
+	return nil
 }
 
 // addLight places and adds the light runner of one OS. A non-empty why means
@@ -151,7 +283,16 @@ func (s *Service) addLight(ctx context.Context, repoID int64, repoName, os, acto
 		if err != nil {
 			return "", "", refuse("%v", err)
 		}
-		spec := AddSpec{Name: lightName(all, h.MachineID, repoName, os, repoID), MachineID: m.ID, OS: os, Arch: m.Arch,
+		held := all
+		if s.Services != nil {
+			// A service nobody has a record of still holds its name.
+			if found, err := s.Services(ctx, h.MachineID); err == nil {
+				for _, f := range found {
+					held = append(held[:len(held):len(held)], Record{MachineID: h.MachineID, Name: f.Name, ServiceName: f.ServiceName})
+				}
+			}
+		}
+		spec := AddSpec{Name: lightName(held, h.MachineID, repoName, os, repoID), MachineID: m.ID, OS: os, Arch: m.Arch,
 			Kind: "persistent", Backend: string(be.Name), Labels: labels,
 			Scope: Scope{Kind: "repository", RepositoryID: repoID}, Symlink: m.Symlink, MaxParallel: m.MaxParallel()}
 		if err := s.addRunner(ctx, spec, actor); err != nil {
@@ -165,18 +306,29 @@ func (s *Service) addLight(ctx context.Context, repoID int64, repoName, os, acto
 	return "", lastWhy, nil
 }
 
-// lightName is crsp-light-<repository>-<os>; a name taken on the machine by
-// another repository gets the repository id too.
+// lightName is crsp-light-<repository>-<os>; a name that a record or a service
+// on the machine already holds gets the repository id, then a number. A name
+// is never reused while something still holds it.
 func lightName(all []Record, machineID, repoName, os string, repoID int64) string {
 	slug := strings.Trim(strings.ToLower(nonSlug.Replace(repoName)), "-")
 	if slug == "" {
 		slug = "repo"
 	}
-	name := LightNamePrefix + slug + "-" + os
-	for _, r := range all {
-		if r.MachineID == machineID && r.Name == name {
-			return fmt.Sprintf("%s%s-%d-%s", LightNamePrefix, slug, repoID, os)
+	taken := func(name string) bool {
+		for _, r := range all {
+			if r.MachineID == machineID && (r.Name == name || strings.HasSuffix(r.ServiceName, "."+name)) {
+				return true
+			}
 		}
+		return false
+	}
+	name := LightNamePrefix + slug + "-" + os
+	if !taken(name) {
+		return name
+	}
+	name = fmt.Sprintf("%s%s-%d-%s", LightNamePrefix, slug, repoID, os)
+	for n := 2; taken(name); n++ {
+		name = fmt.Sprintf("%s%s-%d-%s-%d", LightNamePrefix, slug, repoID, os, n)
 	}
 	return name
 }

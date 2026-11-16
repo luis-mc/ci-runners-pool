@@ -322,6 +322,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/app/private-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the GitHub App private key
+         * @description github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+         */
+        put: operations["replaceAppPrivateKey"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -383,6 +403,66 @@ export interface paths {
          */
         get: operations["listInstallations"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/github/app-health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether the GitHub App and its key still exist
+         * @description github-integration R5.6. The controller reads GET /app with an App JWT at start and every hour. While the App or its key is gone, GitHub work is stopped and the console offers the setup wizard again.
+         */
+        get: operations["getAppHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/github/org-pools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The pool mode of each installation (pool per organization)
+         * @description github-integration R5.21. One row per installation: whether it is an organization, whether the pool per organization can be turned on, and the repositories the organization runner group is visible to.
+         */
+        get: operations["listOrgPools"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/github/installations/{installationId}/org-pool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Turn the pool on or off for an organization
+         * @description github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
+         */
+        put: operations["setOrgPool"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1106,6 +1186,26 @@ export interface paths {
          * @description runners R5.4. Without `confirm=true` it answers 409 needs_confirmation naming what goes and the job it waits for.
          */
         delete: operations["deleteRunner"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runners/{runnerId}/registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete the registration of an offline runner whose agent cannot remove it
+         * @description github-integration R5.33. For a runner GitHub lists as offline and not busy, when its machine cannot run the remove step. Without `confirm=true` it answers 409 needs_confirmation naming the runner. With it the controller deletes the registration at GitHub, then cleans the machine if it answers, and drops the record. An online or busy runner is refused with 409.
+         */
+        delete: operations["deleteRunnerRegistration"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2052,8 +2152,11 @@ export interface components {
         RunnerKind: "persistent" | "ephemeral";
         /** @enum {string} */
         Isolation: "microVM" | "VM" | "container" | "persistent";
-        /** @enum {string} */
-        RunnerState: "creating" | "idle" | "busy" | "draining" | "updating" | "offline" | "failed" | "removing";
+        /**
+         * @description What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
+         * @enum {string}
+         */
+        RunnerState: "creating" | "idle" | "busy" | "draining" | "updating" | "offline" | "failed" | "removing" | "not_registered" | "stopped" | "unknown";
         /**
          * @description active and drained are set by the user; draining while a drain waits.
          * @enum {string}
@@ -2273,6 +2376,59 @@ export interface components {
             /** @description github-integration R5.24. */
             missing_permissions?: string[];
         };
+        /**
+         * @example {
+         *       "installation_id": 4455667,
+         *       "organization": "acme",
+         *       "is_organization": true,
+         *       "eligible": true,
+         *       "enabled": true,
+         *       "group_name": "crsp-home",
+         *       "group_id": 7,
+         *       "repositories": [
+         *         "acme/api",
+         *         "acme/web"
+         *       ]
+         *     }
+         */
+        OrgPool: {
+            /** Format: int64 */
+            installation_id: number;
+            /** @description The account login of the installation. */
+            organization: string;
+            /** @description False for a personal account, which keeps repository runners. */
+            is_organization: boolean;
+            /** @description True when the pool per organization can be turned on. */
+            eligible: boolean;
+            /** @description Why it cannot be turned on, when eligible is false. */
+            reason?: string;
+            enabled: boolean;
+            /** @description The runner group, named for the pool. */
+            group_name: string;
+            /** Format: int64 */
+            group_id?: number;
+            /** @description Full names of the repositories the runner group is visible to. */
+            repositories: string[];
+            /** Format: date-time */
+            changed_at?: string;
+            changed_by?: string;
+        };
+        /**
+         * @example {
+         *       "items": []
+         *     }
+         */
+        OrgPoolList: {
+            items: components["schemas"]["OrgPool"][];
+        };
+        /**
+         * @example {
+         *       "enabled": true
+         *     }
+         */
+        OrgPoolSet: {
+            enabled: boolean;
+        };
         InstallationList: {
             items: components["schemas"]["Installation"][];
             stale: components["schemas"]["Staleness"];
@@ -2282,6 +2438,17 @@ export interface components {
             stale: boolean;
             /** Format: date-time */
             as_of?: string;
+        };
+        AppHealth: {
+            /** @description True when GitHub says the App or its key is gone (R5.6). */
+            gone: boolean;
+            /** @description Why, in words for the page. Only when gone. */
+            reason?: string;
+            /**
+             * Format: date-time
+             * @description When GitHub last answered. Absent before the first answer.
+             */
+            checked_at?: string;
         };
         AppInstallUrl: {
             /** @example https://github.com/apps/crsp-home/installations/new */
@@ -2374,6 +2541,11 @@ export interface components {
             visibility: "public" | "private" | "internal";
             default_branch?: string;
             pool_on: boolean;
+            /**
+             * @description Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
+             * @enum {string}
+             */
+            pool_off_reason?: "left_installation";
             /** @description github-integration R5.19; without it the switch is disabled with this reason. */
             user_is_github_admin: boolean;
             variables: components["schemas"]["RepositoryVariable"][];
@@ -2398,6 +2570,11 @@ export interface components {
              * @description Set in polling mode.
              */
             polling_since?: string;
+        };
+        /** @description A new App private key, sent once and never returned (github-integration R5.7). */
+        AppKeyUpload: {
+            /** @description The file GitHub gives, in PEM form. */
+            pem: string;
         };
         WebhookModeUpdate: {
             /** @enum {string} */
@@ -2704,6 +2881,8 @@ export interface components {
             policy?: components["schemas"]["MachinePolicy"];
             /** @description The controller's own machine (machines R5.1); it has no special path. */
             is_controller: boolean;
+            /** @description The operating system the machine's container engine runs containers for (machines R5.18, runners R5.47), when the engine answers. A Windows machine with Docker Desktop on WSL2 says `linux`. Absent when the engine does not answer or the agent has not reported. */
+            container_os?: components["schemas"]["OS"];
             facts?: components["schemas"]["MachineFacts"];
             backends: components["schemas"]["BackendSupport"][];
             settings: components["schemas"]["MachineSettings"];
@@ -3091,6 +3270,10 @@ export interface components {
             id: string;
             name: string;
             machine_id: string;
+            /** @description The name of the machine, as the Machines list shows it (UX-1). */
+            machine_name: string;
+            /** @description Why the runner is in a state that is not idle or busy (UX-19). Absent when there is nothing to say. */
+            reason?: string;
             os: components["schemas"]["OS"];
             arch: components["schemas"]["Arch"];
             kind: components["schemas"]["RunnerKind"];
@@ -3104,6 +3287,8 @@ export interface components {
             managed: boolean;
             /** @description True for a persistent runner (runners R5.7, UX-61). */
             keeps_state: boolean;
+            /** @description Whole plain reason the runner is in the failed state, with what the clean-up left behind. Only present when state is failed. */
+            failed_reason?: string;
             /** Format: int64 */
             github_runner_id?: number;
             current_job?: components["schemas"]["Job"];
@@ -4212,6 +4397,29 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    replaceAppPrivateKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppKeyUpload"];
+            };
+        };
+        responses: {
+            /** @description The new key is stored and in use. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     listUsers: {
         parameters: {
             query?: never;
@@ -4324,6 +4532,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InstallationList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAppHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The last answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppHealth"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listOrgPools: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The installations with their pool mode. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgPoolList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setOrgPool: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub installation id. */
+                installationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgPoolSet"];
+            };
+        };
+        responses: {
+            /** @description The pool mode now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgPool"];
                 };
             };
             default: components["responses"]["Error"];
@@ -5413,6 +5691,32 @@ export interface operations {
         responses: {
             /** @description Removing; waits for the drain. */
             202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Runner"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteRunnerRegistration: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path: {
+                runnerId: components["parameters"]["RunnerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted; the record that went. */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

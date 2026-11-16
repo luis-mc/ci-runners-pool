@@ -1128,6 +1128,21 @@ func (e RegistryLoginInputKind) Valid() bool {
 	}
 }
 
+// Defines values for RepositoryPoolOffReason.
+const (
+	LeftInstallation RepositoryPoolOffReason = "left_installation"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryPoolOffReason enum.
+func (e RepositoryPoolOffReason) Valid() bool {
+	switch e {
+	case LeftInstallation:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RepositoryVisibility.
 const (
 	Internal RepositoryVisibility = "internal"
@@ -1304,14 +1319,17 @@ func (e RunnerScopeKind) Valid() bool {
 
 // Defines values for RunnerState.
 const (
-	RunnerStateBusy     RunnerState = "busy"
-	RunnerStateCreating RunnerState = "creating"
-	RunnerStateDraining RunnerState = "draining"
-	RunnerStateFailed   RunnerState = "failed"
-	RunnerStateIdle     RunnerState = "idle"
-	RunnerStateOffline  RunnerState = "offline"
-	RunnerStateRemoving RunnerState = "removing"
-	RunnerStateUpdating RunnerState = "updating"
+	RunnerStateBusy          RunnerState = "busy"
+	RunnerStateCreating      RunnerState = "creating"
+	RunnerStateDraining      RunnerState = "draining"
+	RunnerStateFailed        RunnerState = "failed"
+	RunnerStateIdle          RunnerState = "idle"
+	RunnerStateNotRegistered RunnerState = "not_registered"
+	RunnerStateOffline       RunnerState = "offline"
+	RunnerStateRemoving      RunnerState = "removing"
+	RunnerStateStopped       RunnerState = "stopped"
+	RunnerStateUnknown       RunnerState = "unknown"
+	RunnerStateUpdating      RunnerState = "updating"
 )
 
 // Valid indicates whether the value is a known member of the RunnerState enum.
@@ -1327,9 +1345,15 @@ func (e RunnerState) Valid() bool {
 		return true
 	case RunnerStateIdle:
 		return true
+	case RunnerStateNotRegistered:
+		return true
 	case RunnerStateOffline:
 		return true
 	case RunnerStateRemoving:
+		return true
+	case RunnerStateStopped:
+		return true
+	case RunnerStateUnknown:
 		return true
 	case RunnerStateUpdating:
 		return true
@@ -1848,9 +1872,27 @@ type AddUserRequest struct {
 // AddUserRequestRole defines model for AddUserRequest.Role.
 type AddUserRequestRole string
 
+// AppHealth defines model for AppHealth.
+type AppHealth struct {
+	// CheckedAt When GitHub last answered. Absent before the first answer.
+	CheckedAt *time.Time `json:"checked_at,omitempty"`
+
+	// Gone True when GitHub says the App or its key is gone (R5.6).
+	Gone bool `json:"gone"`
+
+	// Reason Why, in words for the page. Only when gone.
+	Reason *string `json:"reason,omitempty"`
+}
+
 // AppInstallUrl defines model for AppInstallUrl.
 type AppInstallUrl struct {
 	Url string `json:"url"`
+}
+
+// AppKeyUpload A new App private key, sent once and never returned (github-integration R5.7).
+type AppKeyUpload struct {
+	// Pem The file GitHub gives, in PEM form.
+	Pem string `json:"pem"`
 }
 
 // AppManifestForm defines model for AppManifestForm.
@@ -2445,6 +2487,9 @@ type Machine struct {
 	Arch      Arch             `json:"arch"`
 	Backends  []BackendSupport `json:"backends"`
 
+	// ContainerOs The operating system the machine's container engine runs containers for (machines R5.18, runners R5.47), when the engine answers. A Windows machine with Docker Desktop on WSL2 says `linux`. Absent when the engine does not answer or the agent has not reported.
+	ContainerOs *OS `json:"container_os,omitempty"`
+
 	// Facts machines R5.10.
 	Facts *MachineFacts `json:"facts,omitempty"`
 	Id    string        `json:"id"`
@@ -2782,6 +2827,43 @@ type NotificationTestResult struct {
 // OS defines model for OS.
 type OS string
 
+// OrgPool defines model for OrgPool.
+type OrgPool struct {
+	ChangedAt *time.Time `json:"changed_at,omitempty"`
+	ChangedBy *string    `json:"changed_by,omitempty"`
+
+	// Eligible True when the pool per organization can be turned on.
+	Eligible bool   `json:"eligible"`
+	Enabled  bool   `json:"enabled"`
+	GroupId  *int64 `json:"group_id,omitempty"`
+
+	// GroupName The runner group, named for the pool.
+	GroupName      string `json:"group_name"`
+	InstallationId int64  `json:"installation_id"`
+
+	// IsOrganization False for a personal account, which keeps repository runners.
+	IsOrganization bool `json:"is_organization"`
+
+	// Organization The account login of the installation.
+	Organization string `json:"organization"`
+
+	// Reason Why it cannot be turned on, when eligible is false.
+	Reason *string `json:"reason,omitempty"`
+
+	// Repositories Full names of the repositories the runner group is visible to.
+	Repositories []string `json:"repositories"`
+}
+
+// OrgPoolList defines model for OrgPoolList.
+type OrgPoolList struct {
+	Items []OrgPool `json:"items"`
+}
+
+// OrgPoolSet defines model for OrgPoolSet.
+type OrgPoolSet struct {
+	Enabled bool `json:"enabled"`
+}
+
 // Overview defines model for Overview.
 type Overview struct {
 	// LastEventId Open the stream with this as Last-Event-ID.
@@ -2976,7 +3058,10 @@ type Repository struct {
 	Name           string           `json:"name"`
 	Owner          string           `json:"owner"`
 	Policy         RepositoryPolicy `json:"policy"`
-	PoolOn         bool             `json:"pool_on"`
+
+	// PoolOffReason Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
+	PoolOffReason *RepositoryPoolOffReason `json:"pool_off_reason,omitempty"`
+	PoolOn        bool                     `json:"pool_on"`
 
 	// Routing Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
 	Routing *RepositoryRouting `json:"routing,omitempty"`
@@ -2989,6 +3074,9 @@ type Repository struct {
 	// Webhook The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.50).
 	Webhook *WebhookHealth `json:"webhook,omitempty"`
 }
+
+// RepositoryPoolOffReason Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
+type RepositoryPoolOffReason string
 
 // RepositoryVisibility defines model for Repository.Visibility.
 type RepositoryVisibility string
@@ -3128,7 +3216,10 @@ type Runner struct {
 	CreatedAt *time.Time  `json:"created_at,omitempty"`
 
 	// CurrentJob One job attempt (observability R5.7, R5.8).
-	CurrentJob     *Job      `json:"current_job,omitempty"`
+	CurrentJob *Job `json:"current_job,omitempty"`
+
+	// FailedReason Whole plain reason the runner is in the failed state, with what the clean-up left behind. Only present when state is failed.
+	FailedReason   *string   `json:"failed_reason,omitempty"`
 	GithubRunnerId *int64    `json:"github_runner_id,omitempty"`
 	Id             string    `json:"id"`
 	Isolation      Isolation `json:"isolation"`
@@ -3139,13 +3230,21 @@ type Runner struct {
 	Labels     []string   `json:"labels"`
 	MachineId  string     `json:"machine_id"`
 
+	// MachineName The name of the machine, as the Machines list shows it (UX-1).
+	MachineName string `json:"machine_name"`
+
 	// Managed False for a runner not made by CRSP (runners R5.5).
-	Managed       bool        `json:"managed"`
-	Name          string      `json:"name"`
-	Os            OS          `json:"os"`
+	Managed bool   `json:"managed"`
+	Name    string `json:"name"`
+	Os      OS     `json:"os"`
+
+	// Reason Why the runner is in a state that is not idle or busy (UX-19). Absent when there is nothing to say.
+	Reason        *string     `json:"reason,omitempty"`
 	RunnerVersion *string     `json:"runner_version,omitempty"`
 	Scope         RunnerScope `json:"scope"`
-	State         RunnerState `json:"state"`
+
+	// State What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
+	State RunnerState `json:"state"`
 }
 
 // RunnerEnv defines model for RunnerEnv.
@@ -3173,7 +3272,7 @@ type RunnerScope struct {
 // RunnerScopeKind defines model for RunnerScope.Kind.
 type RunnerScopeKind string
 
-// RunnerState defines model for RunnerState.
+// RunnerState What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
 type RunnerState string
 
 // RunsOnFinding defines model for RunsOnFinding.
@@ -3791,6 +3890,12 @@ type DeleteRunnerParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// DeleteRunnerRegistrationParams defines parameters for DeleteRunnerRegistration.
+type DeleteRunnerRegistrationParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // RestartServiceParams defines parameters for RestartService.
 type RestartServiceParams struct {
 	// Confirmed The yes to the Review step that named the running jobs (tray R5.16).
@@ -3838,6 +3943,9 @@ type ReceiveGithubWebhookParams struct {
 	XHubSignature256 string `json:"X-Hub-Signature-256"`
 }
 
+// ReplaceAppPrivateKeyJSONRequestBody defines body for ReplaceAppPrivateKey for application/json ContentType.
+type ReplaceAppPrivateKeyJSONRequestBody = AppKeyUpload
+
 // ExchangeCliTokenJSONRequestBody defines body for ExchangeCliToken for application/json ContentType.
 type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
 
@@ -3846,6 +3954,9 @@ type RunDoctorJSONRequestBody = DoctorScope
 
 // PutEnvSetJSONRequestBody defines body for PutEnvSet for application/json ContentType.
 type PutEnvSetJSONRequestBody = EnvSetInput
+
+// SetOrgPoolJSONRequestBody defines body for SetOrgPool for application/json ContentType.
+type SetOrgPoolJSONRequestBody = OrgPoolSet
 
 // UpdateImageLayersJSONRequestBody defines body for UpdateImageLayers for application/json ContentType.
 type UpdateImageLayersJSONRequestBody = UpdateImageLayersRequest
@@ -3939,6 +4050,9 @@ type ReceiveGithubWebhookJSONRequestBody ReceiveGithubWebhookJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ReplaceAppPrivateKey Replace the GitHub App private key
+	// (PUT /api/v1/app/private-key)
+	ReplaceAppPrivateKey(w http.ResponseWriter, r *http.Request)
 	// ListAuditEvents The audit log, newest first
 	// (GET /api/v1/audit)
 	ListAuditEvents(w http.ResponseWriter, r *http.Request, params ListAuditEventsParams)
@@ -4014,12 +4128,21 @@ type ServerInterface interface {
 	// ExportJobs Export the job history as a file
 	// (GET /api/v1/exports/jobs)
 	ExportJobs(w http.ResponseWriter, r *http.Request, params ExportJobsParams)
+	// GetAppHealth Whether the GitHub App and its key still exist
+	// (GET /api/v1/github/app-health)
+	GetAppHealth(w http.ResponseWriter, r *http.Request)
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	// (GET /api/v1/github/install-url)
 	GetAppInstallUrl(w http.ResponseWriter, r *http.Request)
 	// ListInstallations The App's installations the user can see
 	// (GET /api/v1/github/installations)
 	ListInstallations(w http.ResponseWriter, r *http.Request)
+	// SetOrgPool Turn the pool on or off for an organization
+	// (PUT /api/v1/github/installations/{installationId}/org-pool)
+	SetOrgPool(w http.ResponseWriter, r *http.Request, installationId int64)
+	// ListOrgPools The pool mode of each installation (pool per organization)
+	// (GET /api/v1/github/org-pools)
+	ListOrgPools(w http.ResponseWriter, r *http.Request)
 	// ListRepositories Repositories of the installations, with pool state and policy
 	// (GET /api/v1/github/repositories)
 	ListRepositories(w http.ResponseWriter, r *http.Request, params ListRepositoriesParams)
@@ -4203,6 +4326,9 @@ type ServerInterface interface {
 	// GetRunnerEnv The merged environment of a runner, sensitive values masked
 	// (GET /api/v1/runners/{runnerId}/env)
 	GetRunnerEnv(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
+	// DeleteRunnerRegistration Delete the registration of an offline runner whose agent cannot remove it
+	// (DELETE /api/v1/runners/{runnerId}/registration)
+	DeleteRunnerRegistration(w http.ResponseWriter, r *http.Request, runnerId RunnerId, params DeleteRunnerRegistrationParams)
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
@@ -4285,6 +4411,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ReplaceAppPrivateKey operation middleware
+func (siw *ServerInterfaceWrapper) ReplaceAppPrivateKey(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReplaceAppPrivateKey(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // ListAuditEvents operation middleware
 func (siw *ServerInterfaceWrapper) ListAuditEvents(w http.ResponseWriter, r *http.Request) {
@@ -5180,6 +5320,20 @@ func (siw *ServerInterfaceWrapper) ExportJobs(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// GetAppHealth operation middleware
+func (siw *ServerInterfaceWrapper) GetAppHealth(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAppHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetAppInstallUrl operation middleware
 func (siw *ServerInterfaceWrapper) GetAppInstallUrl(w http.ResponseWriter, r *http.Request) {
 
@@ -5199,6 +5353,46 @@ func (siw *ServerInterfaceWrapper) ListInstallations(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListInstallations(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetOrgPool operation middleware
+func (siw *ServerInterfaceWrapper) SetOrgPool(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "installationId" -------------
+	var installationId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "installationId", r.PathValue("installationId"), &installationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "installationId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetOrgPool(w, r, installationId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrgPools operation middleware
+func (siw *ServerInterfaceWrapper) ListOrgPools(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrgPools(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6974,6 +7168,48 @@ func (siw *ServerInterfaceWrapper) GetRunnerEnv(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteRunnerRegistration operation middleware
+func (siw *ServerInterfaceWrapper) DeleteRunnerRegistration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "runnerId" -------------
+	var runnerId RunnerId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runnerId", r.PathValue("runnerId"), &runnerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runnerId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteRunnerRegistrationParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteRunnerRegistration(w, r, runnerId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PlanRunnerReplacement operation middleware
 func (siw *ServerInterfaceWrapper) PlanRunnerReplacement(w http.ResponseWriter, r *http.Request) {
 
@@ -7713,11 +7949,15 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/me", wrapper.GetSession)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/me/preferences", wrapper.GetPreferences)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/me/preferences", wrapper.UpdatePreferences)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/app/private-key", wrapper.ReplaceAppPrivateKey)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/users", wrapper.ListUsers)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/users", wrapper.AddUser)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/users/{userId}", wrapper.RemoveUser)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/users/{userId}", wrapper.UpdateUserRole)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/installations", wrapper.ListInstallations)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/app-health", wrapper.GetAppHealth)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/org-pools", wrapper.ListOrgPools)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/github/installations/{installationId}/org-pool", wrapper.SetOrgPool)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/install-url", wrapper.GetAppInstallUrl)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/repositories", wrapper.ListRepositories)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repository-plans", wrapper.PlanRepositoryChanges)
@@ -7762,6 +8002,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/runner-plans/{planId}/apply", wrapper.CreateRunners)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/runners/{runnerId}", wrapper.DeleteRunner)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners/{runnerId}", wrapper.GetRunner)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/runners/{runnerId}/registration", wrapper.DeleteRunnerRegistration)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners/{runnerId}/env", wrapper.GetRunnerEnv)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/env-sets", wrapper.ListEnvSets)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/env-sets/{setName}", wrapper.DeleteEnvSet)
@@ -7841,6 +8082,39 @@ type RedirectResponseHeaders struct {
 }
 type RedirectResponse struct {
 	Headers RedirectResponseHeaders
+}
+
+type ReplaceAppPrivateKeyRequestObject struct {
+	Body *ReplaceAppPrivateKeyJSONRequestBody
+}
+
+type ReplaceAppPrivateKeyResponseObject interface {
+	VisitReplaceAppPrivateKeyResponse(w http.ResponseWriter) error
+}
+
+type ReplaceAppPrivateKey204Response struct {
+}
+
+func (response ReplaceAppPrivateKey204Response) VisitReplaceAppPrivateKeyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type ReplaceAppPrivateKeydefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ReplaceAppPrivateKeydefaultJSONResponse) VisitReplaceAppPrivateKeyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type ListAuditEventsRequestObject struct {
@@ -8945,6 +9219,44 @@ func (response ExportJobsdefaultJSONResponse) VisitExportJobsResponse(w http.Res
 	return err
 }
 
+type GetAppHealthRequestObject struct {
+}
+
+type GetAppHealthResponseObject interface {
+	VisitGetAppHealthResponse(w http.ResponseWriter) error
+}
+
+type GetAppHealth200JSONResponse AppHealth
+
+func (response GetAppHealth200JSONResponse) VisitGetAppHealthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAppHealthdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetAppHealthdefaultJSONResponse) VisitGetAppHealthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetAppInstallUrlRequestObject struct {
 }
 
@@ -9010,6 +9322,84 @@ type ListInstallationsdefaultJSONResponse struct {
 }
 
 func (response ListInstallationsdefaultJSONResponse) VisitListInstallationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetOrgPoolRequestObject struct {
+	InstallationId int64 `json:"installationId"`
+	Body           *SetOrgPoolJSONRequestBody
+}
+
+type SetOrgPoolResponseObject interface {
+	VisitSetOrgPoolResponse(w http.ResponseWriter) error
+}
+
+type SetOrgPool200JSONResponse OrgPool
+
+func (response SetOrgPool200JSONResponse) VisitSetOrgPoolResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetOrgPooldefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response SetOrgPooldefaultJSONResponse) VisitSetOrgPoolResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrgPoolsRequestObject struct {
+}
+
+type ListOrgPoolsResponseObject interface {
+	VisitListOrgPoolsResponse(w http.ResponseWriter) error
+}
+
+type ListOrgPools200JSONResponse OrgPoolList
+
+func (response ListOrgPools200JSONResponse) VisitListOrgPoolsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListOrgPoolsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListOrgPoolsdefaultJSONResponse) VisitListOrgPoolsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -11393,6 +11783,46 @@ func (response GetRunnerEnvdefaultJSONResponse) VisitGetRunnerEnvResponse(w http
 	return err
 }
 
+type DeleteRunnerRegistrationRequestObject struct {
+	RunnerId RunnerId `json:"runnerId"`
+	Params   DeleteRunnerRegistrationParams
+}
+
+type DeleteRunnerRegistrationResponseObject interface {
+	VisitDeleteRunnerRegistrationResponse(w http.ResponseWriter) error
+}
+
+type DeleteRunnerRegistration200JSONResponse Runner
+
+func (response DeleteRunnerRegistration200JSONResponse) VisitDeleteRunnerRegistrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteRunnerRegistrationdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DeleteRunnerRegistrationdefaultJSONResponse) VisitDeleteRunnerRegistrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type PlanRunnerReplacementRequestObject struct {
 	RunnerId RunnerId `json:"runnerId"`
 }
@@ -12308,6 +12738,9 @@ func (response ReceiveGithubWebhookdefaultJSONResponse) VisitReceiveGithubWebhoo
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// ReplaceAppPrivateKey Replace the GitHub App private key
+	// (PUT /api/v1/app/private-key)
+	ReplaceAppPrivateKey(ctx context.Context, request ReplaceAppPrivateKeyRequestObject) (ReplaceAppPrivateKeyResponseObject, error)
 	// ListAuditEvents The audit log, newest first
 	// (GET /api/v1/audit)
 	ListAuditEvents(ctx context.Context, request ListAuditEventsRequestObject) (ListAuditEventsResponseObject, error)
@@ -12383,12 +12816,21 @@ type StrictServerInterface interface {
 	// ExportJobs Export the job history as a file
 	// (GET /api/v1/exports/jobs)
 	ExportJobs(ctx context.Context, request ExportJobsRequestObject) (ExportJobsResponseObject, error)
+	// GetAppHealth Whether the GitHub App and its key still exist
+	// (GET /api/v1/github/app-health)
+	GetAppHealth(ctx context.Context, request GetAppHealthRequestObject) (GetAppHealthResponseObject, error)
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	// (GET /api/v1/github/install-url)
 	GetAppInstallUrl(ctx context.Context, request GetAppInstallUrlRequestObject) (GetAppInstallUrlResponseObject, error)
 	// ListInstallations The App's installations the user can see
 	// (GET /api/v1/github/installations)
 	ListInstallations(ctx context.Context, request ListInstallationsRequestObject) (ListInstallationsResponseObject, error)
+	// SetOrgPool Turn the pool on or off for an organization
+	// (PUT /api/v1/github/installations/{installationId}/org-pool)
+	SetOrgPool(ctx context.Context, request SetOrgPoolRequestObject) (SetOrgPoolResponseObject, error)
+	// ListOrgPools The pool mode of each installation (pool per organization)
+	// (GET /api/v1/github/org-pools)
+	ListOrgPools(ctx context.Context, request ListOrgPoolsRequestObject) (ListOrgPoolsResponseObject, error)
 	// ListRepositories Repositories of the installations, with pool state and policy
 	// (GET /api/v1/github/repositories)
 	ListRepositories(ctx context.Context, request ListRepositoriesRequestObject) (ListRepositoriesResponseObject, error)
@@ -12572,6 +13014,9 @@ type StrictServerInterface interface {
 	// GetRunnerEnv The merged environment of a runner, sensitive values masked
 	// (GET /api/v1/runners/{runnerId}/env)
 	GetRunnerEnv(ctx context.Context, request GetRunnerEnvRequestObject) (GetRunnerEnvResponseObject, error)
+	// DeleteRunnerRegistration Delete the registration of an offline runner whose agent cannot remove it
+	// (DELETE /api/v1/runners/{runnerId}/registration)
+	DeleteRunnerRegistration(ctx context.Context, request DeleteRunnerRegistrationRequestObject) (DeleteRunnerRegistrationResponseObject, error)
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(ctx context.Context, request PlanRunnerReplacementRequestObject) (PlanRunnerReplacementResponseObject, error)
@@ -12683,6 +13128,37 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// ReplaceAppPrivateKey operation middleware
+func (sh *strictHandler) ReplaceAppPrivateKey(w http.ResponseWriter, r *http.Request) {
+	var request ReplaceAppPrivateKeyRequestObject
+
+	var body ReplaceAppPrivateKeyJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReplaceAppPrivateKey(ctx, request.(ReplaceAppPrivateKeyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReplaceAppPrivateKey")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReplaceAppPrivateKeyResponseObject); ok {
+		if err := validResponse.VisitReplaceAppPrivateKeyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // ListAuditEvents operation middleware
@@ -13337,6 +13813,30 @@ func (sh *strictHandler) ExportJobs(w http.ResponseWriter, r *http.Request, para
 	}
 }
 
+// GetAppHealth operation middleware
+func (sh *strictHandler) GetAppHealth(w http.ResponseWriter, r *http.Request) {
+	var request GetAppHealthRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAppHealth(ctx, request.(GetAppHealthRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAppHealth")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAppHealthResponseObject); ok {
+		if err := validResponse.VisitGetAppHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetAppInstallUrl operation middleware
 func (sh *strictHandler) GetAppInstallUrl(w http.ResponseWriter, r *http.Request) {
 	var request GetAppInstallUrlRequestObject
@@ -13378,6 +13878,63 @@ func (sh *strictHandler) ListInstallations(w http.ResponseWriter, r *http.Reques
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListInstallationsResponseObject); ok {
 		if err := validResponse.VisitListInstallationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetOrgPool operation middleware
+func (sh *strictHandler) SetOrgPool(w http.ResponseWriter, r *http.Request, installationId int64) {
+	var request SetOrgPoolRequestObject
+
+	request.InstallationId = installationId
+
+	var body SetOrgPoolJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetOrgPool(ctx, request.(SetOrgPoolRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetOrgPool")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetOrgPoolResponseObject); ok {
+		if err := validResponse.VisitSetOrgPoolResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListOrgPools operation middleware
+func (sh *strictHandler) ListOrgPools(w http.ResponseWriter, r *http.Request) {
+	var request ListOrgPoolsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListOrgPools(ctx, request.(ListOrgPoolsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListOrgPools")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListOrgPoolsResponseObject); ok {
+		if err := validResponse.VisitListOrgPoolsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -15104,6 +15661,33 @@ func (sh *strictHandler) GetRunnerEnv(w http.ResponseWriter, r *http.Request, ru
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetRunnerEnvResponseObject); ok {
 		if err := validResponse.VisitGetRunnerEnvResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteRunnerRegistration operation middleware
+func (sh *strictHandler) DeleteRunnerRegistration(w http.ResponseWriter, r *http.Request, runnerId RunnerId, params DeleteRunnerRegistrationParams) {
+	var request DeleteRunnerRegistrationRequestObject
+
+	request.RunnerId = runnerId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteRunnerRegistration(ctx, request.(DeleteRunnerRegistrationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteRunnerRegistration")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteRunnerRegistrationResponseObject); ok {
+		if err := validResponse.VisitDeleteRunnerRegistrationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

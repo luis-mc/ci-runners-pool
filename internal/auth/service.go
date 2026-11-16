@@ -40,6 +40,7 @@ type Service struct {
 	store  Store
 	states *states
 
+	keyMu             sync.Mutex // one key rotation at a time (R5.7)
 	mu                sync.Mutex
 	usedManifestCodes map[string]bool
 	setupCookies      map[string]time.Time // hash -> expiry

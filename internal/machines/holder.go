@@ -88,6 +88,16 @@ func (s *Service) refreshHolder(ctx context.Context, c *Change) bool {
 	if h != nil && h.OverUsual && !c.Detail.StuckAlerted {
 		c.Detail.StuckAlerted = true
 		changed = true
+		s.mu.Lock()
+		if s.stuckSent == nil {
+			s.stuckSent = map[string]bool{}
+		}
+		sent := s.stuckSent[c.ID]
+		s.stuckSent[c.ID] = true
+		s.mu.Unlock()
+		if sent {
+			return changed
+		}
 		_ = s.o.Repo.Audit(ctx, "system", "machine.drain.stuck", c.MachineID, c.Kind+" "+h.Job.Repository+" "+h.Job.Job)
 		if n, ok := s.o.Notify.(StuckNotifier); ok {
 			n.DrainStuck(c.MachineID, c.Kind, *h, s.now().Sub(h.Job.StartedAt))

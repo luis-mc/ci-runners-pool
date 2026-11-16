@@ -156,6 +156,13 @@ func runStarted(ctx context.Context, args []string, e Env) int {
 		return 2
 	}
 	log := e.logger(*logPath)
+	// Before the gate and before any step: a fork pull request on a public
+	// repository fails at once unless the policy allows it (R5.26).
+	if ForkPullRequest(e.Getenv) {
+		_, _ = fmt.Fprintln(e.Stdout, "::error title=crsp::"+ForkRefusal)
+		log("job-started: refused, fork pull request on a public repository (policy)")
+		return 1
+	}
 	var gateID [8]byte
 	_, _ = rand.Read(gateID[:])
 	machine := slots.Defaults()

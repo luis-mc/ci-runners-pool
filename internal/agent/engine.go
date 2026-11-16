@@ -30,6 +30,10 @@ type EngineReport struct {
 	Usable  bool
 	Version string // server version
 	Reason  string // why it is not usable
+	// ContainerOS is the operating system the engine's containers run, "linux"
+	// or "windows", read from `docker info`. Empty when the engine does not
+	// answer. Docker Desktop on WSL2 answers "linux" on Windows.
+	ContainerOS string
 }
 
 const engineVersionFormat = "{{.Server.Version}}"
@@ -43,7 +47,7 @@ func DetectEngine(sys Sys) EngineReport {
 		v, ran := engineVersion(sys, "docker")
 		switch {
 		case v != "":
-			return EngineReport{Kind: EngineNative, Usable: true, Version: v}
+			return EngineReport{Kind: EngineNative, Usable: true, Version: v, ContainerOS: engineOSType(sys, "docker")}
 		case ran:
 			return EngineReport{Kind: EngineNative, Reason: "the docker command is installed but the engine does not answer"}
 		}
@@ -55,10 +59,11 @@ func DetectEngine(sys Sys) EngineReport {
 		if res, ok := sys.Run([]string{"docker", "info", "--format", "{{.OperatingSystem}}"}); ok && res.Code == 0 && IsDockerDesktop(res.Out) {
 			kind = EngineDesktop
 		}
-		return EngineReport{Kind: kind, Usable: true, Version: v}
+		return EngineReport{Kind: kind, Usable: true, Version: v, ContainerOS: engineOSType(sys, "docker")}
 	}
 	if w, wran := engineVersion(sys, "wsl", "docker"); w != "" {
-		return EngineReport{Kind: EngineWSLDirect, Usable: true, Version: w}
+		// A docker engine inside a WSL2 distro runs Linux containers.
+		return EngineReport{Kind: EngineWSLDirect, Usable: true, Version: w, ContainerOS: "linux"}
 	} else if wran && !ran {
 		return EngineReport{Kind: EngineNone, Reason: "WSL2 is there but has no docker engine, and the Windows docker command is not installed"}
 	}
@@ -66,6 +71,21 @@ func DetectEngine(sys Sys) EngineReport {
 		return EngineReport{Kind: EngineWSLViaCLI, Reason: "the Windows docker command is installed but the engine does not answer (Docker Desktop is stopped, or the engine in WSL2 is down)"}
 	}
 	return EngineReport{Kind: EngineNone, Reason: "no docker engine: the Windows docker command cannot run and WSL2 has no docker"}
+}
+
+// engineOSType reads `{{.OSType}}` of `docker info`: the OS the containers of
+// the engine run. Anything but linux or windows is "" (CRLF-safe).
+func engineOSType(sys load.Probe, prog string, pre ...string) string {
+	argv := append(append([]string{prog}, pre...), "info", "--format", "{{.OSType}}")
+	res, ok := sys.Run(argv)
+	if !ok || res.Code != 0 {
+		return ""
+	}
+	switch v := strings.ToLower(trim(res.Out)); v {
+	case "linux", "windows":
+		return v
+	}
+	return ""
 }
 
 // IsDockerDesktop reads the `{{.OperatingSystem}}` of `docker info`.

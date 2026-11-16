@@ -222,3 +222,95 @@ func TestInstallPlanNeedsItsInputs(t *testing.T) {
 		t.Fatal("an empty plan was built")
 	}
 }
+
+// R5.45: without admin rights the install stops before the plan is shown, with
+// one plain line, and runs nothing.
+func TestInstallWithoutAdminRightsStopsFirst(t *testing.T) {
+	for _, goos := range []string{"linux", "darwin", "windows"} {
+		p, _ := agent.BuildInstallPlan(goos, opts)
+		ex := &recExec{}
+		asked := false
+		err := p.RunElevated(context.Background(), false, func(string) bool { asked = true; return true }, ex)
+		if !errors.Is(err, agent.ErrNotElevated) || asked || len(ex.cmds) != 0 || len(ex.files) != 0 {
+			t.Fatalf("%s: err=%v asked=%v ran=%v %v", goos, err, asked, ex.cmds, ex.files)
+		}
+		if strings.Contains(err.Error(), "\n") {
+			t.Fatalf("%s: more than one line: %q", goos, err)
+		}
+		want := "sudo"
+		if goos == "windows" {
+			want = "PowerShell as Administrator"
+		}
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("%s: %q does not say %q", goos, err, want)
+		}
+		if err := p.RunElevated(context.Background(), true, func(string) bool { return true }, &recExec{}); err != nil {
+			t.Fatalf("%s: elevated run failed: %v", goos, err)
+		}
+	}
+}
+
+// A step that fails after earlier ones worked says what was left and how to remove it.
+func TestFailedStepNamesWhatWasLeftBehind(t *testing.T) {
+	win, _ := agent.BuildInstallPlan("windows", opts)
+	err := win.Run(context.Background(), func(string) bool { return true }, &recExec{failN: 2})
+	if err == nil || !strings.Contains(err.Error(), "step 2") || !strings.Contains(err.Error(), "Remove-Item -Recurse -Force 'C:\\ProgramData\\crsp-agent'") {
+		t.Fatalf("err = %v", err)
+	}
+	first := win.Run(context.Background(), func(string) bool { return true }, &recExec{failN: 1})
+	if first == nil || strings.Contains(first.Error(), "undo") {
+		t.Fatalf("nothing was made before step 1: %v", first)
+	}
+}
+
+func TestPowerShellCallIsPlainText(t *testing.T) {
+	win, _ := agent.BuildInstallPlan("windows", opts)
+	c := win.Steps[1].Commands[0]
+	if got := strings.Join(c[:5], " "); got != "powershell.exe -NoProfile -NonInteractive -OutputFormat Text" {
+		t.Fatalf("flags: %s", got)
+	}
+	if !strings.Contains(decodePS(t, c), "$ProgressPreference='SilentlyContinue'") {
+		t.Fatal("progress records are not turned off")
+	}
+}
+
+func TestDefaultDataDirPerOS(t *testing.T) {
+	for goos, want := range map[string]string{"windows": `C:\ProgramData\crsp-agent`, "darwin": "/Library/Application Support/crsp-agent", "linux": "/var/lib/crsp-agent"} {
+		if got := agent.DefaultDataDir(goos); got != want {
+			t.Errorf("%s: %q", goos, got)
+		}
+		p, _ := agent.BuildInstallPlan(goos, opts)
+		var all string
+		for _, s := range p.Steps {
+			for _, c := range s.Commands {
+				all += strings.Join(c, " ") + "\n"
+				if c[0] == "powershell.exe" {
+					all += decodePS(t, c)
+				}
+			}
+			for _, f := range s.Files {
+				all += f.Body
+			}
+		}
+		// The data folder, the join and the service's own arguments name the same folder.
+		if n := strings.Count(all, want); n < 3 {
+			t.Errorf("%s: %d uses of %s (folder, join, service)", goos, n, want)
+		}
+	}
+}
+
+// A CLIXML error from a PowerShell step becomes the exception message, one line.
+func TestCLIXMLErrorIsDecodedToOneLine(t *testing.T) {
+	clixml := `#< CLIXML
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04"><S S="Error">New-Service : Access is denied_x000D__x000A_</S><S S="Error">At line:2 char:1_x000D__x000A_</S><S S="Error">+ New-Service -Name &apos;crsp-agent&apos;_x000D__x000A_</S></Objs>`
+	err := agent.CommandError([]string{"powershell.exe"}, []byte(clixml), errors.New("exit status 1"))
+	if err.Error() != "Access is denied" {
+		t.Fatalf("%q", err)
+	}
+	if got := agent.CommandError([]string{"x"}, nil, errors.New("exit status 3")); got.Error() != "x: exit status 3" {
+		t.Fatalf("%q", got)
+	}
+	if got := agent.PlainCommandOutput("line one\r\nline two\r\n"); got != "line one line two" {
+		t.Fatalf("%q", got)
+	}
+}

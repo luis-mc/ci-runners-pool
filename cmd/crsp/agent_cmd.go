@@ -17,6 +17,7 @@ import (
 	"syscall"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/logging"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
@@ -42,6 +43,13 @@ type agentFlags struct {
 }
 
 func parseAgentFlags(name string, args []string) (*flag.FlagSet, *agentFlags, error) {
+	return parseAgentFlagsFor(runtime.GOOS, name, args)
+}
+
+// parseAgentFlagsFor parses the flags of an agent command. Without --data-dir the
+// machine-wide folder of goos is used, the one the install step makes: the
+// service runs as LocalSystem or root, never from a user profile (R5.44).
+func parseAgentFlagsFor(goos, name string, args []string) (*flag.FlagSet, *agentFlags, error) {
 	fs := flag.NewFlagSet("agent "+name, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	f := &agentFlags{}
@@ -54,11 +62,7 @@ func parseAgentFlags(name string, args []string) (*flag.FlagSet, *agentFlags, er
 		return nil, nil, err
 	}
 	if f.dataDir == "" {
-		dir, err := os.UserConfigDir()
-		if err != nil {
-			return nil, nil, err
-		}
-		f.dataDir = filepath.Join(dir, "crsp-agent")
+		f.dataDir = agent.DefaultDataDir(goos)
 	}
 	return fs, f, nil
 }
@@ -69,7 +73,7 @@ func agentConfig(f *agentFlags, logger *slog.Logger) (agent.Config, error) {
 		return agent.Config{}, err
 	}
 	return agent.Config{Controller: f.controller, Pin: f.fingerprint, JoinCode: f.joinCode, Secrets: store, DataDir: f.dataDir, Version: version, Logger: logger, Caches: agentCacheSource(), DiskFloorGiB: runnercache.FloorSetting(f.diskFloorGiB),
-		Runners: agentRunners(), RunnerFiles: agentRunnerFiles(), Images: agentImageSource(), Redactor: secretRedactor}, nil
+		Runners: agentRunners(), RunnerFiles: agentRunnerFiles(), Images: agentImageSource(), MacVMs: agentMacVMs(), Redactor: secretRedactor}, nil
 }
 
 func agentRun(args []string, stderr io.Writer) error {
@@ -80,7 +84,8 @@ func agentRun(args []string, stderr io.Writer) error {
 	if f.controller == "" {
 		return errors.New("the controller address is required: --controller host:8461")
 	}
-	logger := slog.New(slog.NewJSONHandler(stderr, nil))
+	logger := slog.New(logging.NewHandler(slog.NewJSONHandler(stderr, nil), secretRedactor))
+	slog.SetDefault(logger)
 	cfg, err := agentConfig(f, logger)
 	if err != nil {
 		return err
@@ -125,7 +130,7 @@ type osExec struct{}
 func (osExec) Run(ctx context.Context, argv []string) error {
 	out, err := exec.CommandContext(ctx, argv[0], argv[1:]...).CombinedOutput() //nolint:gosec // argv built by the approved install plan
 	if err != nil {
-		return fmt.Errorf("%s: %w: %s", argv[0], err, strings.TrimSpace(string(out)))
+		return agent.CommandError(argv, out, err)
 	}
 	return nil
 }
@@ -138,9 +143,14 @@ func (osExec) WriteFile(_ context.Context, f agent.File) error {
 }
 
 // agentInstall is the one step that needs admin rights: it lists each admin
-// action and asks for a yes before anything runs (R5.45).
+// action and asks for a yes before anything runs (R5.45). Without admin rights
+// it stops first with one plain line and changes nothing.
 func agentInstall(args []string, stdout io.Writer) error {
-	_, f, err := parseAgentFlags("install", args)
+	return installWith(args, stdout, os.Stdin, runtime.GOOS, agent.Elevated(), osExec{})
+}
+
+func installWith(args []string, stdout io.Writer, stdin io.Reader, goos string, elevated bool, ex agent.Executor) error {
+	_, f, err := parseAgentFlagsFor(goos, "install", args)
 	if err != nil {
 		return err
 	}
@@ -151,18 +161,19 @@ func agentInstall(args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	plan, err := agent.BuildInstallPlan(runtime.GOOS, agent.InstallOptions{
+	plan, err := agent.BuildInstallPlan(goos, agent.InstallOptions{
 		Binary: bin, Controller: f.controller, Fingerprint: f.fingerprint, JoinCode: f.joinCode, DataDir: f.dataDir,
 	})
 	if err != nil {
 		return err
 	}
+	in := bufio.NewReader(stdin)
 	confirm := func(text string) bool {
 		_, _ = fmt.Fprint(stdout, text, "Continue? Type yes: ")
-		line, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+		line, _ := in.ReadString('\n')
 		return strings.EqualFold(strings.TrimSpace(line), "yes")
 	}
-	if err := plan.Run(context.Background(), confirm, osExec{}); err != nil {
+	if err := plan.RunElevated(context.Background(), elevated, confirm, ex); err != nil {
 		return err
 	}
 	_, _ = fmt.Fprintln(stdout, "The agent is installed and running.")

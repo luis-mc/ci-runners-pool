@@ -209,6 +209,20 @@ type SymlinkProbe struct {
 	Err string
 }
 
+// SymlinkProbeFrom maps what an agent reported about symbolic links to the
+// probe of a runner (R5.42). known false gives nil, so the check skips. The
+// agent can link either by the right or by Developer Mode; when it can link
+// and Developer Mode is off, it is the right that holds.
+func SymlinkProbeFrom(known, canLink, developerMode bool, errText string) *SymlinkProbe {
+	if !known {
+		if errText == "" {
+			return nil
+		}
+		return &SymlinkProbe{Err: errText}
+	}
+	return &SymlinkProbe{Held: canLink && !developerMode, DeveloperMode: developerMode}
+}
+
 // ToolCacheProbe is what the agent found in a runner's tool cache (_work/_tool
 // or the configured tool cache folder), seen as the runner's account.
 type ToolCacheProbe struct {

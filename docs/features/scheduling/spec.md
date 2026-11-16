@@ -9,7 +9,7 @@ owner: owner
 type: reference
 code: ["internal/scheduler/**", "internal/hooks/**", "internal/api/handlers_jobs.go", "internal/store/schedstore.go"]
 design_system: [UX-6, UX-14, UX-17, UX-19, UX-29, UX-34, UX-38, UX-41, UX-52, UX-53, UX-58, UX-62, components 15, components 16, components 17, components 19]
-last_verified: 2026-11-14
+last_verified: 2026-11-16
 artifact:
 generator: luismc-docs 2.6.1
 ---
@@ -166,7 +166,7 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 
 **R5.22** — **When the load cannot be measured, the gate holds the job (fail closed).** A load that cannot be read never counts as under budget. The job waits with the reason `load_not_measured` ("load not measured yet") and keeps its place in the queue; a light job waits the same way. It goes as soon as one figure (memory or CPU) is read. The hook prints one `::warning title=crsp::` line with the reason and what to do (run `crsp doctor`; the check `machine.load.measured` names the machine), and the doctor fails that check (doctor R5.9). On timeout the job never runs unmeasured: the on-timeout rule `run` becomes `fail` for a job that waited on an unmeasured load, and the log line says so (R5.20). Owner decision D53 (2026-11-15): this differs from the old pool on purpose, which took a slot without a load check. M1. Built (CRSP76). Source: `runner_load_gate.py` `_ci_wait`, `wait` (old, changed).
 
-**R5.23** — When the hook cannot reach its agent, or the agent cannot reach the controller, the gate falls back to a load-only wait on this machine: it polls the load until under budget, with the same maximum wait and on-timeout rule. When it cannot measure either, it still waits and polls (R5.22); it does not exit 0. The on-timeout action is never "run unmeasured": a job that waited on an unmeasured load fails with the reason and can be re-run, even when the rule is `run`. Decision D53 (2026-11-15), different from the old pool on purpose. M1. Built (CRSP76). Source: `runner_load_gate.py` `main` (`OSError` path), `wait` (old, changed).
+**R5.23** — When the hook cannot reach its agent, or the agent cannot reach the controller, the gate falls back to a load-only wait on this machine: it polls the load until under budget, with the same maximum wait and on-timeout rule. When it cannot measure either, it still waits and polls (R5.22); it does not exit 0. The on-timeout action is never "run unmeasured": a job that waited on an unmeasured load fails with the reason and can be re-run, even when the rule is `run`. Decision D53 (2026-11-15), different from the old pool on purpose. M1. Built (CRSP76). Source: `runner_load_gate.py` `main` (`OSError` path), `wait` (old, changed). The hook also refuses a fork pull request job on a public repository before the gate runs, unless the policy allows it (github-integration R5.26, CRSP108).
 
 **R5.24** — A light job is a job whose job key or shard matches a light-jobs entry, exactly or as a glob, while light slots are above 0. A light job takes a free light slot at once, with no ticket, when the load is under budget. It never takes a job slot while a light slot is free. When every light slot is busy, it takes a ticket and waits in the normal queue for a job slot. Logs name a light slot `light-N`. M1. Built. Source: `machine_slots.py` `is_light_job`, `slot_label`; `runner_load_gate.py` `_ci_wait`.
 

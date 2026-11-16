@@ -95,3 +95,56 @@ for (const theme of ['dark', 'light'] as const) {
     });
   }
 }
+
+// R6.12 (github-integration): on the wizard, sign-in, repositories and users screens the Tab key walks the controls
+// in the order they are read, each one visible, and no control sets a positive tabindex (UX-17).
+const focusScreens = [
+  { name: 'sign-in', url: '/sign-in', signedOut: true },
+  { name: 'first-run wizard', url: '/setup', signedOut: false },
+  { name: 'repositories', url: '/repositories', signedOut: false },
+  { name: 'users', url: '/settings/users', signedOut: false },
+];
+
+for (const screen of focusScreens) {
+  test(`focus order: ${screen.name}`, async ({ page }) => {
+    const mock = jobsAndDoctor(signedIn());
+    if (screen.signedOut)
+      mock.on('GET', '/api/v1/me', failure(401, 'unauthenticated', 'Sign in.'));
+    await mock.install(page);
+    await page.goto(screen.url);
+    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    expect(
+      await page.locator('[tabindex]:not([tabindex="0"]):not([tabindex^="-"])').count(),
+    ).toBe(0);
+    const stops: { pos: number; visible: boolean; tag: string }[] = [];
+    for (let i = 0; i < 40; i++) {
+      await page.keyboard.press('Tab');
+      const stop = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el || el === document.body) return null;
+        const all = Array.from(document.querySelectorAll('*'));
+        const r = el.getBoundingClientRect();
+        return {
+          pos: all.indexOf(el),
+          visible: r.width > 0 && r.height > 0,
+          tag: el.tagName,
+        };
+      });
+      if (!stop) break;
+      if (stops.length > 0 && stop.pos === stops[0]?.pos) break; // wrapped round
+      stops.push(stop);
+    }
+    // A screen with nothing to press (the first-run page when every step is done) has no focus order to judge.
+    const pressable = await page
+      .locator('a[href], button:not([disabled]), input:not([disabled]), select, textarea')
+      .count();
+    if (pressable > 0)
+      expect(stops.length, 'at least one control takes focus').toBeGreaterThan(0);
+    for (const s of stops) expect(s.visible, `${s.tag} is visible`).toBe(true);
+    const order = stops.map((s) => s.pos);
+    expect(order, 'Tab follows the reading order').toEqual(
+      [...order].sort((a, b) => a - b),
+    );
+  });
+}

@@ -133,7 +133,7 @@ The states named for every list follow the design system: loading (component 16,
 | Wizard | Steps | Work step | Done shows |
 |---|---|---|---|
 | Connect GitHub | Reading the controller; Account (personal account or organization, App name); Review | Creating the App: off to GitHub with the manifest, back with the App's keys | The App's name and account, the permissions it got, and one primary: "Sign in with GitHub" |
-| Add the first machine | Machine (OS); Review (the install command, how long the join code lasts) | Joining: waits for the agent to connect, with the code's time left (UX-29) | The machine's name, OS, CPU, memory and the isolation backends found |
+| Add the first machine | Machine (OS); Review (the install command, how long the join code lasts) | Joining: waits for the agent to connect, with the code's time left (UX-29) | The machine's name, OS, CPU, memory and the isolation backends found. When this PC (the controller's own machine, machines R5.1) is already in the pool, the step shows "This PC, {host name}, is in the pool." as done, with the optional action Add another machine for the command path |
 | Turn on the first repository | Reading repositories; Repositories (a one-choice or multi-choice list, component 13, with Select all N and Clear, UX-12); Review (the repositories, the variables to write, the labels) | Turning on: n of N repositories, with the one in hand (UX-30) | Each repository turned on, its variables written, and what failed with its reason |
 
 - **Harness states:** each of the three wizards has all ten states of the wizard harness (UX-30): loading, first-run, planning, ready-to-review, running, paused, stopped, failed, done, done-after-reload. Stop on "Joining" withdraws the join code. A failed or stopped run still ends at Done and says what is left. Done and Stopped offer Start again (content.md, wizard state words).
@@ -194,7 +194,7 @@ The states named for every list follow the design system: loading (component 16,
 - **Purpose:** see every runner and create runners per OS on machines that support it.
 - **Data:** `listRunners`, `getRunner`, `planRunners`, `createRunners`, `deleteRunner`, `streamRunnerLog`.
 - **List:** a live table (component 15): name, machine, OS, backend, isolation (UX-61), labels, state (UX-58), current job, age (UX-53). Search and filters by machine, OS, isolation and state (components 11, 21).
-- **Add runners:** a wizard (component 4): OS; machine (only machines whose backends support the OS; others are greyed with the reason, UX-38); count and labels; Review; Registering (n of N); Done.
+- **Add runners:** a wizard (component 4): OS; machine (only machines whose backends support the OS; others are greyed with the reason, UX-38; a Windows machine whose container engine runs Linux containers also supports Linux, as an ephemeral container runner with a note, CRSP127); count and labels; Review; Registering (n of N); Done.
 - **Actions and confirmations:** delete a runner, or the selected runners: a question card that names each runner and the job it runs, and waits for the drain (UX-62).
 - **States:** loading; empty ("No runners yet. Add runners to start.", or "Add a machine first." when there is none); could not load; live.
 - **Detail:** runner life, JIT config and labels are in `runners`.
@@ -246,6 +246,7 @@ Settings hold configuration only (UX-52). Sub-pages sit under one Settings area,
 | Sub-page | Purpose | Data | Actions and confirmations | Milestone |
 |---|---|---|---|---|
 | Users and roles | Who may sign in, as owner, admin or viewer | `listUsers`, `addUser`, `updateUserRole`, `removeUser` | Add a GitHub login with a role; change a role; remove a user (question card naming the login, UX-62) | M1 |
+| GitHub App | The owner replaces the App private key | `replaceAppPrivateKey` | Replace key (owner): a file field and one action; the key is sent once and never shown; GitHub's refusal keeps the old key and says so (github-integration R5.7) | M8 (built, CRSP115) |
 | Appearance | The user's theme (six named themes, kept in this browser) and mode (system, dark or light, saved by the server) (UX-60) | `getPreferences`, `updatePreferences` (the mode) | Two one-choice lists saved at once (component 13); the theme list shows a swatch row per theme | M1 |
 | Budgets | The pool's default load budget, slots and drain timeout for new machines, and the order of the queue | `getPoolSettings`, `updatePoolSettings`, `getQueueSettings`, `updateQueueSettings` | Save (admin); a change that restarts runners names the jobs it waits for (UX-62). A pool default only reaches machines that join later, so the page says no runner restarts and no job is waited for | M1 (built, CRSP37) |
 | Notifications | Channels (email, webhook, desktop) and the events each one gets | `listNotificationChannels`, `createNotificationChannel`, `updateNotificationChannel`, `deleteNotificationChannel`, `testNotificationChannel` | Add, edit, delete (question card), Send test | M1 for channels and Send test (built, CRSP37); event delivery later (milestone 8) |
@@ -305,7 +306,7 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.14** (built, CRSP24) — While the controller has no GitHub App, `/setup` opens only with a valid one-time setup link (`redeemSetupLink`). Without one, it shows how to get one. A link works once and expires.
 
-**R5.15** (built, CRSP24) — The setup page shows the three first-run wizards of section 4.1 in order. A wizard opens only when the one before it is done. The first-run checklist stays reachable from the banner slot until all three are done.
+**R5.15** (built, CRSP24) — The setup page shows the three first-run wizards of section 4.1 in order. A wizard opens only when the one before it is done. The first-run checklist stays reachable from the banner slot until all three are done. The banner reads `getSetupState` again when a machine or repository changes and goes away when all three steps are done. The pool status in the header reads the same machines list as the Machines screen (UX-19).
 
 **R5.16** (built, CRSP24) — The Connect GitHub wizard creates the App through GitHub's manifest flow and stores what GitHub returns through `completeAppManifest`. Its Done step offers Sign in with GitHub. The first user who then signs in becomes the owner.
 
@@ -323,7 +324,7 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.22** (built, CRSP24, pool size CRSP70) — The machines screen lists the machines with state, backends, load and slots. It adds a machine, edits the budget, slots and allowed backends, drains, resumes and removes. A machine's page has the "Pool size" wizard (machines R5.58): Size, Review, Saving, Done. It shows the current size and the room, a Review step with the budget check, the figures behind it and the nearest sizes that fit, an explicit tick for a lower size, and Done with what was saved.
 
-**R5.23** (built, CRSP24; idle and busy, RES7) — The runners screen lists runners live with their isolation word, labels, state, job and age. A line above the table counts the idle and busy runners; the state chip says `idle` or `busy`, and the current job column gives the running job's repository and name with how long it has run. It adds runners only on machines whose backends support the chosen OS, and deletes runners.
+**R5.23** (built, CRSP24; idle and busy, RES7) — The runners screen lists runners live with their isolation word, labels, state, job and age. A line above the table counts the idle and busy runners; the state chip says `idle` or `busy`, and the current job column gives the running job's repository and name with how long it has run. It adds runners only on machines whose backends support the chosen OS, and deletes runners. The Machine column shows the machine's name as a link to the machine page (UX-1). The state word is the true one (UX-19; runners R5.79): `idle` only when GitHub says online and not busy and the service runs, else `not registered`, `stopped`, `offline` or `unknown`; a state that is not idle or busy shows its reason under the word. A failed runner has a Remove button on its row (UX-6). On a managed runner that is offline it also shows *Delete registration* (CRSP108, github-integration R5.33): a question card names the runner and what goes (words: content.md, *Offline runner cleanup words*), then the registration is deleted at GitHub. A failed runner's whole reason (`failed_reason`, runners R5.87, CRSP126) shows when the record has no other reason.
 
 **R5.24** (built, CRSP35) — The jobs screen shows the queue with each job's wait reason, and the history with filters by repository, machine, result and time range. Each row opens the detail, with a link to the run on GitHub. Export holds every row of the filter, in the order shown.
 
@@ -429,7 +430,7 @@ flowchart LR
 | `/jobs`, `/jobs/:id` | Jobs |
 | `/images`, `/caches` | Images and caches |
 | `/doctor` | Doctor |
-| `/settings/users`, `/settings/appearance`, `/settings/budgets`, `/settings/notifications`, `/settings/updates`, `/settings/audit`, `/settings/export` | Settings |
+| `/settings/users`, `/settings/app`, `/settings/appearance`, `/settings/budgets`, `/settings/notifications`, `/settings/updates`, `/settings/audit`, `/settings/export` | Settings |
 
 **API operations to add** (all under `/api/v1`, each with `x-auth` and `x-rate-limit`). The owning spec fixes each one's shape.
 

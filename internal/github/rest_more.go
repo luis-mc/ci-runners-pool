@@ -35,6 +35,18 @@ func MissingPermissions(granted map[string]string) []string {
 	return missing
 }
 
+// MissingPermissionsOf is MissingPermissions for the named permissions only.
+// It returns nil when each one is granted at the level R5.23 asks for.
+func MissingPermissionsOf(granted map[string]string, names ...string) []string {
+	var missing []string
+	for _, n := range names {
+		if accessRank[granted[n]] < accessRank[RequiredPermissions[n]] {
+			missing = append(missing, n)
+		}
+	}
+	return missing
+}
+
 // ListAppInstallations lists every installation of the App, with the App's
 // JWT (R5.22).
 func (c *REST) ListAppInstallations(ctx context.Context) ([]Installation, error) {

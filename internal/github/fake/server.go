@@ -92,6 +92,16 @@ type Job struct {
 	RunnerName string
 }
 
+// Group is an organization runner group of the fake.
+type Group struct {
+	ID         int64
+	Name       string
+	Visibility string // all, selected or private
+	Default    bool
+	// Repos are the repository ids of a selected group.
+	Repos []int64
+}
+
 // Delivery is one webhook delivery of the App, as GET /app/hook/deliveries lists it.
 type Delivery struct {
 	ID          int64
@@ -130,7 +140,12 @@ type Server struct {
 	// DeviceCodes: device code -> approving user id (0 pending, -1 denied).
 	DeviceCodes map[string]int64
 	// ForkApproval is the fork pull request approval policy per repository.
-	ForkApproval       map[string]string
+	ForkApproval map[string]string
+	// OrgMembers: organization login (lower case) -> user login (lower case) ->
+	// role ("admin" is an owner, "member" a member).
+	OrgMembers map[string]map[string]string
+	// Groups are the runner groups of an organization (lower case login).
+	Groups             map[string][]*Group
 	DeviceSlowDownOnce bool
 	devicePolls        int
 	// ClientSecret is what the token endpoint demands.
@@ -165,7 +180,7 @@ func New() *Server {
 		Users: map[int64]*User{}, UserTokens: map[string]int64{}, Installs: map[int64]*Install{},
 		Repos: map[int64]*Repo{}, Variables: map[string]map[string]string{},
 		Runners: map[string][]*Runner{}, WorkflowFiles: map[string]map[string]string{},
-		ManifestCodes: map[string]bool{}, OAuthCodes: map[string]int64{}, OAuthVerifiers: map[string]string{}, DeviceCodes: map[string]int64{}, ForkApproval: map[string]string{},
+		ManifestCodes: map[string]bool{}, OAuthCodes: map[string]int64{}, OAuthVerifiers: map[string]string{}, DeviceCodes: map[string]int64{}, ForkApproval: map[string]string{}, OrgMembers: map[string]map[string]string{}, Groups: map[string][]*Group{},
 		instTokens: map[string]int64{}, removeToks: map[string]bool{}, regToks: map[string]bool{}, jitCfgs: map[string]string{},
 		RateLimit: 5000, RateRemaining: 5000,
 		AppID: 1234567, nextID: 1000, Now: time.Now,
@@ -493,4 +508,44 @@ func (s *Server) ForkApprovalOf(fullName string) string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.ForkApproval[fullName]
+}
+
+// AddOrgMember makes a user a member of an organization with a role: "admin"
+// (an owner) or "member". The organization also gets its default runner group.
+func (s *Server) AddOrgMember(org, login, role string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	o := strings.ToLower(org)
+	if s.OrgMembers[o] == nil {
+		s.OrgMembers[o] = map[string]string{}
+	}
+	s.OrgMembers[o][strings.ToLower(login)] = role
+	if len(s.Groups[o]) == 0 {
+		s.Groups[o] = []*Group{{ID: 1, Name: "Default", Visibility: "all", Default: true}}
+	}
+}
+
+// AddGroup adds a runner group to an organization and returns it.
+func (s *Server) AddGroup(org, name, visibility string, repos ...int64) *Group {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	o := strings.ToLower(org)
+	s.nextID++
+	g := &Group{ID: s.nextID, Name: name, Visibility: visibility, Repos: repos}
+	s.Groups[o] = append(s.Groups[o], g)
+	return g
+}
+
+// GroupByName returns a copy of the named runner group of an organization.
+func (s *Server) GroupByName(org, name string) (Group, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, g := range s.Groups[strings.ToLower(org)] {
+		if strings.EqualFold(g.Name, name) {
+			c := *g
+			c.Repos = append([]int64(nil), g.Repos...)
+			return c, true
+		}
+	}
+	return Group{}, false
 }

@@ -12,6 +12,8 @@ import {
   Stack,
   Status,
   Table,
+  Text,
+  TextLink,
   formatAgo,
   formatDuration,
   Facts,
@@ -46,6 +48,12 @@ export function runnerStatus(r: Runner): { kind: StatusKind; word: string } {
       return { kind: 'failed', word: 'failed' };
     case 'offline':
       return { kind: 'failed', word: 'offline' };
+    case 'not_registered':
+      return { kind: 'failed', word: 'not registered' };
+    case 'stopped':
+      return { kind: 'failed', word: 'stopped' };
+    case 'unknown':
+      return { kind: 'waiting', word: 'unknown' };
     default:
       return { kind: 'waiting', word: r.state };
   }
@@ -123,13 +131,30 @@ export function RunnersList() {
     },
   );
 
+  // github-integration R5.33: the yes path for an offline runner whose machine cannot remove it.
+  const [cleaning, setCleaning] = useState<Runner | undefined>(undefined);
+  const cleanup = useQuestion(
+    async () => {
+      if (!cleaning) return;
+      await unwrap(
+        client.DELETE('/api/v1/runners/{runnerId}/registration', {
+          params: { path: { runnerId: cleaning.id }, query: { confirm: true } },
+        }),
+      );
+    },
+    () => {
+      setCleaning(undefined);
+      reload();
+    },
+  );
+
   const columns: Column<Runner>[] = [
     { id: 'name', header: 'Name', cell: (r) => r.name, sort: (r) => r.name },
     {
       id: 'machine',
       header: 'Machine',
-      cell: (r) => r.machine_id,
-      sort: (r) => r.machine_id,
+      cell: (r) => <TextLink to={`/machines/${r.machine_id}`}>{r.machine_name}</TextLink>,
+      sort: (r) => r.machine_name,
     },
     { id: 'os', header: 'System', cell: (r) => r.os, sort: (r) => r.os },
     { id: 'backend', header: 'Backend', cell: (r) => r.backend },
@@ -145,7 +170,14 @@ export function RunnersList() {
       header: 'State',
       cell: (r) => {
         const s = runnerStatus(r);
-        return <Status kind={s.kind} word={s.word} />;
+        return (
+          <Stack gap="tight">
+            <Status kind={s.kind} word={s.word} />
+            {(r.reason ?? (r.state === 'failed' ? r.failed_reason : null)) ? (
+              <Text tone="muted">{r.reason ?? r.failed_reason}</Text>
+            ) : null}
+          </Stack>
+        );
       },
       sort: (r) => r.state,
     },
@@ -161,11 +193,51 @@ export function RunnersList() {
       sort: (r) => r.created_at ?? '',
     },
     {
+      id: 'remove',
+      header: 'Action',
+      cell: (r) =>
+        r.managed && r.state === 'failed' ? (
+          <Button
+            kind="danger"
+            onPress={() => {
+              setPicked(new Set([r.id]));
+              del.ask([`Runner ${r.name}`], []);
+            }}
+            disabled={!admin}
+            reason={why}
+          >
+            Remove
+          </Button>
+        ) : (
+          ''
+        ),
+    },
+    {
       id: 'managed',
       header: 'Managed',
       cell: (r) =>
         r.managed ? (
-          'yes'
+          r.state === 'offline' ? (
+            <Button
+              onPress={() => {
+                cleanup.cancel();
+                setCleaning(r);
+                cleanup.ask(
+                  [
+                    `The registration of offline runner ${r.name} on GitHub.`,
+                    `Its record here, and its folder if its machine answers.`,
+                  ],
+                  [],
+                );
+              }}
+              disabled={!admin}
+              reason={why}
+            >
+              Delete registration
+            </Button>
+          ) : (
+            'yes'
+          )
         ) : (
           <Button
             onPress={() => {
@@ -217,7 +289,7 @@ export function RunnersList() {
             (r) =>
               (!os || r.os === os) &&
               (!iso || r.isolation === iso) &&
-              `${r.name} ${r.machine_id} ${r.labels.join(' ')}`
+              `${r.name} ${r.machine_name} ${r.labels.join(' ')}`
                 .toLowerCase()
                 .includes(q.trim().toLowerCase()),
           );
@@ -338,6 +410,19 @@ export function RunnersList() {
           setReplacing(undefined);
         }}
         onConfirm={() => void replace.confirm()}
+      />
+      <Ask
+        title={`Delete ${cleaning?.name ?? 'the runner'}?`}
+        action="Delete registration"
+        busyLabel="Deleting"
+        q={cleanup.question}
+        busy={cleanup.busy}
+        error={cleanup.error}
+        onCancel={() => {
+          cleanup.cancel();
+          setCleaning(undefined);
+        }}
+        onConfirm={() => void cleanup.confirm()}
       />
     </Page>
   );

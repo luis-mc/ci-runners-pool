@@ -107,9 +107,9 @@ The overview shows machines and load and only links here (UX-52). Busy buttons f
 
 ### 5.1 The controller's own machine
 
-**R5.1** (M1) — The controller runs its own agent on the same machine. At first run it joins that agent without a join code, over the same link and port as any other agent (loopback). The machine then appears in the console like any other.
+**R5.1** (M1, built, CRSP120) — The controller runs its own agent on the same machine. At first run it joins that agent without a join code, over the same link and port as any other agent (loopback). The machine then appears in the console like any other. The agent keeps its machine id and key in the controller's data directory (`agent/secrets`), so a restart reuses the machine and makes no second one. If a separately installed agent on the same host (same host name) has already joined, the controller does not make a second machine: it keeps that one, skips its own agent and says so in the log. The setup step "Add the first machine" shows this PC as done.
 
-**R5.2** (M1) — The controller's own machine follows every rule below (load, settings, drain, privilege). It has no special path.
+**R5.2** (M1, built, CRSP120) — The controller's own machine follows every rule below (load, settings, drain, privilege). It has no special path.
 
 ### 5.2 Join
 
@@ -141,7 +141,7 @@ The overview shows machines and load and only links here (UX-52). Busy buttons f
 
 **R5.13** (M1) — The agent detects again at start, every 10 minutes, and when the user presses **Check again**. A change in facts or backends is shown on the machine and written to the audit log.
 
-**R5.14** (M5, NOT YET IMPLEMENTED) — On a Mac the agent reports how many macOS VMs run (crsp's own VMs on Apple's Virtualization.framework, runners R5.29, and any other macOS VM it can see), and the controller never starts more than two at once (decision 0003).
+**R5.14** (M5, Built in part CRSP114: the report; the controller's start limit and the count on a real Mac are NOT YET IMPLEMENTED) — On a Mac the agent reports how many macOS VMs run (crsp's own VMs on Apple's Virtualization.framework, runners R5.29, and any other macOS VM it can see), and the controller never starts more than two at once (decision 0003).
 
 ### 5.4 Load measurement
 
@@ -153,7 +153,7 @@ Ported from dev-standards `claude/plugins/delivery/scripts/load.py` and `load_gu
 
 **R5.17** (M1) — On Windows with WSL2, the WSL VM's memory is the larger of the `vmmem` or `vmmemWSL` working set and its private bytes, and at least the memory its containers use (DL177). Windows trims the working set, so it alone reads too low.
 
-**R5.18** (M1) — On Windows, Docker figures are read through the Windows `docker` CLI first, then through WSL, then reported as unknown. On Linux and macOS the agent never calls `wsl`.
+**R5.18** (M1) — On Windows, Docker figures are read through the Windows `docker` CLI first, then through WSL, then reported as unknown. On Linux and macOS the agent never calls `wsl`. Built by CRSP127: the agent's machine report also says which OS the container engine runs containers for (`container_os`, from `docker info`); the machines service records it per machine and the machine API shows it as `container_os`, so the machine list says "Windows, runs Linux containers" for a Windows machine with Docker Desktop on WSL2. The `wsl2` backend is reported usable when `wsl --status` fails but the docker engine runs on the WSL2 kernel, and the console writes the reason a backend cannot be used once.
 
 **R5.19** (M1) — An agent that runs inside a container also reads the cgroup v2 figures (`memory.current`, `memory.max`, `cpu.stat`) and decides on the worse of host and container.
 
@@ -236,7 +236,7 @@ Ported from runner-pool R5.10 (no rebuild under a running job) and learning 1 of
 
 **R5.44** (M1, changed by CRSP42, D41) — The agent runs as LocalSystem on Windows and as root on Linux and macOS, like the controller (owner decision, 14 Nov). It needs the right to install its own update after the drain (operations R5.39 to R5.41), which a non-admin account cannot do. There is no `crsp-agent` or `_crsp_agent` account. Runner jobs do not run as the agent: each runner runs under its own non-admin per-runner account (runners R5.14, RN-4), which the agent makes. An agent installed before D41 under a non-admin account says `unsupported` to an update ask (operations R5.41) until the install command is run again.
 
-**R5.45** (M1) — Admin rights are needed in one install step only. Before it runs, it lists each admin action (create the data folder, install the service that runs as LocalSystem or root, join the controller, start the service) and asks for a yes. It never runs without that yes.
+**R5.45** (M1, changed by CRSP119) — Admin rights are needed in one install step only. Before it runs, it lists each admin action (create the data folder, install the service that runs as LocalSystem or root, join the controller, start the service) and asks for a yes. It never runs without that yes. Without admin rights (a Windows PowerShell that is not elevated, or a Unix user that is not root) it stops first with one plain line, "open PowerShell as Administrator and run this command again" or "run this command again with sudo", before the list is shown, and changes nothing. The data folder is the machine-wide one of the OS unless `--data-dir` is given: `C:\ProgramData\crsp-agent`, `/Library/Application Support/crsp-agent` or `/var/lib/crsp-agent`; `agent run` and `agent join` use the same default, and the service and the join step get the same folder as `--data-dir`. PowerShell steps run with `-NoProfile -NonInteractive -OutputFormat Text`; a failed step is reported as one plain line with the exception message ("step 2 (register the Windows service ...): Access is denied"), never as raw CLIXML. When a step fails after earlier ones worked, the line also names what was left (the data folder, the service or unit) and how to remove it.
 
 **R5.46** (M1) — The agent is installed as a service that starts at boot and restarts after a crash: a Windows service, a systemd unit, a launchd LaunchDaemon (decision 0005).
 
@@ -264,7 +264,7 @@ Each requirement below targets a milestone after v0.1.0 and is **NOT YET IMPLEME
 
 **R5.58** (M2, v0.3.0, built, CRSP50 and CRSP70) — **The pool size is the owner's, checked against the budget.** The owner sets the memory (GiB) and CPUs the pool may use on a machine. The setting is accepted when it fits: the memory budget (85% of the total, counting the memory used outside WSL, the WSL VM and the guests R5.54 of runners), the CPU budget (60%), the floors (4 GiB and 2 CPUs) and 1.5 GiB per CPU. Otherwise it is refused, naming the budget that is short and the nearest sizes that pass (for example "10 GiB fits 6 CPUs; 7 CPUs needs 10.5 GiB"). Memory used outside WSL is the median of about 5 samples, one second apart, so a short spike of another program does not shrink the room. A change that lowers the size below the current one needs a second, explicit confirmation, never a side effect of another change. The sizing inputs (machine total, used outside WSL, budget, room, Docker ceiling, the figure that decided) are shown with the result. Port of DS R5.20 to R5.24 and `test_dl176_pool_resize.py`. Built (CRSP50): `poolsize.Check` (the floors, the CPU budget, 1.5 GiB per CPU, the memory budget, the Docker ceiling, the nearest sizes), the 5-sample sizing read (`load.SizingRead`, scheduling R5.47), the settings fields `pool_memory_gib` and `pool_cpus` (OpenAPI, migration 00012, wire), the refusal with the sizing inputs in its text, and the shrink rule: a size below the current one, or clearing it, answers 409 `needs_confirmation` and is saved only with `confirm_shrink` (the general `confirm` does not stand for it; another change never touches the pool size, and a lower budget that no longer holds it is refused). Built by CRSP70: the dry run `POST /api/v1/machines/{id}/pool-size-check` (admin; `PoolSizeCheck`: the result, the sizing figures, the nearest sizes and whether the size is below the current one; it saves nothing), and the console form on the machine's page: a wizard Size, Review, Saving, Done (design system UX-5, UX-30). It reads the budget when it opens and shows the room, shows the check and the nearest sizes at Review, asks for its own tick ("Yes, lower the pool size") before a lower size, reads the check once more right before saving and ends at Done with nothing saved when the size changed meanwhile, and sends `confirm_shrink` only for a lower size. NOT YET IMPLEMENTED: clearing the pool size from the console (open question M-10), the controller taking its own 5-sample read (it uses the newest load the agent reported), guest memory in the room (0 until the container backend), and the agent resizing its slots from the pool size. Built by CRSP64: the pool CPUs and memory are the limits (`--cpus`, `--memory`) of each repository pool container of the container backend (runners R5.27, open question 42).
 
-**R5.59** (M2, v0.3.0, Built CRSP63) — **The agent reports what the machine can do.** The agent sends a `MachineReport` after Hello, on `ReportMachine`, with every Redetect and every `RedetectEvery`: the KVM state (`/dev/kvm` present, on Windows whether `.wslconfig` was read and sets `nestedVirtualization`, and whether `kvm_intel` or `kvm_amd` is loaded in the WSL VM), the container engine (`agent.DetectEngine`) and the job images of the container backend. A value the agent could not read is marked not known, never false. The controller keeps the last report of each machine in memory and the doctor reads it (doctor R5.32, R5.36). The agent reads only: it never loads a module, edits `.wslconfig` or starts an engine. A machine that is offline or has not reported yet is left out of the doctor checks. The report is not stored: after a controller restart it is empty until each agent reports again.
+**R5.59** (M2, v0.3.0, Built CRSP63) — **The agent reports what the machine can do.** The agent sends a `MachineReport` after Hello, on `ReportMachine`, with every Redetect and every `RedetectEvery`: the KVM state (`/dev/kvm` present, on Windows whether `.wslconfig` was read and sets `nestedVirtualization`, and whether `kvm_intel` or `kvm_amd` is loaded in the WSL VM), the container engine (`agent.DetectEngine`) the job images of the container backend, and whether the agent's account can make symbolic links (`agent.ProbeSymlink`, Built CRSP109; doctor R5.42). A value the agent could not read is marked not known, never false. The controller keeps the last report of each machine in memory and the doctor reads it (doctor R5.32, R5.36). The agent reads only: it never loads a module, edits `.wslconfig` or starts an engine. A machine that is offline or has not reported yet is left out of the doctor checks. The report is not stored: after a controller restart it is empty until each agent reports again.
 
 ### 5.13 A stuck job and a runner set (M1)
 
@@ -274,7 +274,7 @@ Each requirement below targets a milestone after v0.1.0 and is **NOT YET IMPLEME
 
 **R5.57** (M1) — **A change for a runner set waits only for that set.** (Lesson 21.) A drain, restart or image swap can name the runners it touches (`runner_names`, `Drain.runner_names`). The controller counts only the jobs on those runners (names compare without case), whatever else the machine runs, including a busy runner of the same repository. The agent keeps new jobs out of those runners only (the gate answers `runner_draining`), the machine stays active, and the change runs when no job runs on its runners. The idle check and the hold are one step, as in R5.32. Without runner names the change is the whole machine, as before. Built (CRSP38).
 
-**R5.60** (M2, NOT YET IMPLEMENTED, CRSP83) — **Free-disk floor before a job or VM starts.** Each machine has a setting `disk_min_free_gib` (default 20, with a percentage form like `cache_min_free_pct` in caches R5.38). Before the agent starts a runner container, a VM or a differencing disk, it reads the free space of the volume that holds the runner folders and VM disks. Under the floor it starts nothing new: the job waits and is not failed, the gate log line names the free space, and the hold ends when the free space is the floor plus 2 GiB (so it does not flap). Running jobs are never cut. A disk that cannot be read never holds a job (caches R5.38). The hold counts against the gate's maximum wait like the cache hold. The doctor warns before the floor is reached (doctor R5.37).
+**R5.60** (M2, built in part CRSP83 as runners R5.83: setting `disk_floor_gib`, default 10 GiB, resume at the floor plus 1 GiB; NOT YET IMPLEMENTED: default of 20 GiB, the percentage form, the hold counting against the gate's maximum wait) — **Free-disk floor before a job or VM starts.** Each machine has a setting `disk_min_free_gib` (default 20, with a percentage form like `cache_min_free_pct` in caches R5.38). Before the agent starts a runner container, a VM or a differencing disk, it reads the free space of the volume that holds the runner folders and VM disks. Under the floor it starts nothing new: the job waits and is not failed, the gate log line names the free space, and the hold ends when the free space is the floor plus 2 GiB (so it does not flap). Running jobs are never cut. A disk that cannot be read never holds a job (caches R5.38). The hold counts against the gate's maximum wait like the cache hold. The doctor warns before the floor is reached (doctor R5.37).
 
 ### 5.14 Laptop and desk policy (CRSP75, owner decision D51)
 
@@ -370,8 +370,8 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 
 | Requirement | Test | Status |
 |---|---|---|
-| R5.1 | internal/machines/local_agent_test.go | planned |
-| R5.2 | internal/machines/local_agent_test.go | planned |
+| R5.1 | internal/machines/local_agent_test.go | built (CRSP120) |
+| R5.2 | internal/machines/local_agent_test.go | built (CRSP120) |
 | R5.3 | internal/machines/joincode_test.go | planned |
 | R5.4 | internal/machines/joincode_test.go | planned |
 | R5.3a | internal/machines/sshjoin_test.go (fake and real SSH exchange); internal/api/machines_ssh_join_test.go; apps/web/src/screens/machines/AddMachine.test.tsx (RES3) |
@@ -385,11 +385,11 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.11 | internal/agent/backends_test.go | planned |
 | R5.12 | internal/machines/settings_test.go | planned |
 | R5.13 | internal/agent/backends_test.go | planned |
-| R5.14 | internal/agent/macvm_limit_test.go | planned (M5) |
+| R5.14 | internal/agent/macvm_limit_test.go | built in part (CRSP114) |
 | R5.15 | internal/load/sample_test.go | planned; ports `test_load.py` |
 | R5.16 | internal/load/median_test.go | Built: `internal/load/median_test.go` TestMedianIgnoresASpike, TestSamplerDecidesOnMedianOfLastFive |
 | R5.17 | internal/load/wslvm_test.go | planned; ports `test_dl177_pool_measure.py` VmReadTests |
-| R5.18 | internal/load/docker_test.go | planned; ports `test_dl177_pool_measure.py` DockerReadTests |
+| R5.18 | internal/load/docker_test.go; internal/machines/engine_test.go TestMachineReportRecordsTheEngine; internal/agent/backends_test.go TestBackendsWSL2NotReadyFalseReportWhenDockerDesktopRunsOnWSL2; apps/web/src/screens/machines/Machines.test.tsx | planned; ports `test_dl177_pool_measure.py` DockerReadTests |
 | R5.19 | internal/load/cgroup_test.go | Built: `internal/load/cgroup_test.go` TestCgroupWorseOfHostAndContainer |
 | R5.20 | internal/load/unknown_test.go | planned |
 | R5.21 | internal/load/measure_only_test.go | planned |
@@ -417,7 +417,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.42 | internal/machines/remove_offline_test.go | planned |
 | R5.43 | internal/machines/join_test.go | planned |
 | R5.44 | internal/agent/plan_test.go TestServiceAccounts (built, CRSP42) |
-| R5.45 | internal/agent/install_plan_test.go | planned |
+| R5.45 | internal/agent/plan_test.go TestInstallWithoutAdminRightsStopsFirst, TestFailedStepNamesWhatWasLeftBehind, TestCLIXMLErrorIsDecodedToOneLine; cmd/crsp/agent_install_test.go (built, CRSP119) |
 | R5.46 | internal/agent/service_install_test.go | planned; plus a CI start of the built agent per OS |
 | R5.47 | internal/agent/service_windows_test.go | planned |
 | R5.48 | internal/agent/install_plan_test.go | planned |

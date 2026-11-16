@@ -141,8 +141,40 @@ func TestAddFailureMarksFailed(t *testing.T) {
 		t.Errorf("%+v", got)
 	}
 	all, _ := r.store.ListRunners(ctx, Filter{})
-	if len(all) != 1 || all[0].State != Failed {
+	if len(all) != 1 || all[0].State != Failed || !strings.Contains(all[0].FailedReason, "agent says no") {
 		t.Errorf("%+v", all)
+	}
+}
+
+// A failed add removes the GitHub registration it made, never an older runner
+// of the same name, and says what it left when it cannot.
+func TestRegistrationCleanupAfterFailedAdd(t *testing.T) {
+	r := newRig(machine("windows", "x64", true))
+	ctx := context.Background()
+	cause := errors.New("register service: the account has no right to log on as a service")
+	tg := Target{InstallationID: 7}
+
+	r.gh.runners = []github.Runner{{ID: 5, Name: "box-1"}}
+	err := r.svc.withRegistrationCleanup(ctx, tg, "box-1", nil, nil, cause)
+	if len(r.gh.deleted) != 1 || r.gh.deleted[0] != 5 || !strings.Contains(err.Error(), "Cleaned up: GitHub registration box-1") || !strings.Contains(err.Error(), "no right to log on") {
+		t.Errorf("deleted = %v, err = %v", r.gh.deleted, err)
+	}
+
+	r.gh.deleted = nil
+	err = r.svc.withRegistrationCleanup(ctx, tg, "box-1", []github.Runner{{ID: 5, Name: "box-1"}}, nil, cause)
+	if len(r.gh.deleted) != 0 || err.Error() != cause.Error() {
+		t.Errorf("an older runner of that name stays: deleted = %v, err = %v", r.gh.deleted, err)
+	}
+
+	r.gh.delErr = errors.New("GitHub refused")
+	err = r.svc.withRegistrationCleanup(ctx, tg, "box-1", nil, nil, cause)
+	if !strings.Contains(err.Error(), "Left behind: GitHub registration box-1 (GitHub refused)") {
+		t.Errorf("err = %v", err)
+	}
+
+	err = r.svc.withRegistrationCleanup(ctx, tg, "box-1", nil, errors.New("offline"), cause)
+	if !strings.Contains(err.Error(), "Left behind: GitHub registration box-1 (could not read the runners on GitHub: offline)") {
+		t.Errorf("err = %v", err)
 	}
 }
 
@@ -524,5 +556,27 @@ func TestAddedRunnerGetsItsCPUCount(t *testing.T) {
 	r.add(t)
 	if got := r.ag.added[0].MaxParallel; got != 0 {
 		t.Fatalf("no pool size must export no CPU count, got %d", got)
+	}
+}
+
+// The controller's store keeps the reason of a failed runner and drops it when
+// the runner leaves the failed state.
+func TestMemStoreKeepsFailedReason(t *testing.T) {
+	ctx := context.Background()
+	m := NewMemStore()
+	if err := m.InsertRunner(ctx, Record{ID: "r1", Name: "box-1", State: Creating}); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.SetRunnerState(ctx, "r1", Failed, "the account has no right to log on as a service"); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := m.GetRunner(ctx, "r1"); got.FailedReason != "the account has no right to log on as a service" {
+		t.Errorf("reason = %q", got.FailedReason)
+	}
+	if err := m.SetRunnerState(ctx, "r1", Removing, "removing"); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := m.GetRunner(ctx, "r1"); got.FailedReason != "" {
+		t.Errorf("reason = %q", got.FailedReason)
 	}
 }

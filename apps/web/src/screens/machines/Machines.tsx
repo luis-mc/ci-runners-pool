@@ -62,7 +62,7 @@ export function MachinesList() {
       cell: (m) => <TextLink to={`/machines/${m.id}`}>{m.name}</TextLink>,
       sort: (m) => m.name,
     },
-    { id: 'os', header: 'System', cell: (m) => `${m.os} ${m.arch}`, sort: (m) => m.os },
+    { id: 'os', header: 'System', cell: (m) => systemText(m), sort: (m) => m.os },
     {
       id: 'state',
       header: 'State',
@@ -363,7 +363,11 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
               onChange={(c) =>
                 setAllowed((a) => (c ? [...a, b.name] : a.filter((x) => x !== b.name)))
               }
-              help={b.usable ? (b.version ?? '') : (b.reason ?? 'not usable')}
+              // The reason is written once: as the lock text for an admin, as the help for
+              // a viewer (whose lock text is the admin-only one).
+              help={
+                b.usable ? (b.version ?? '') : admin ? '' : (b.reason ?? 'not usable')
+              }
               {...(!admin || !b.usable
                 ? { disabledReason: !admin ? why : (b.reason ?? 'Not usable here.') }
                 : {})}
@@ -523,4 +527,19 @@ function DrainHolder({ change }: { change: Schemas['MachineChange'] }) {
       </Stack>
     </Section>
   );
+}
+
+const OS_WORD: Record<string, string> = {
+  linux: 'Linux',
+  windows: 'Windows',
+  macos: 'macOS',
+};
+
+/** The System column: the system and arch, or, when the engine runs another
+ * system's containers (Docker Desktop on WSL2), "Windows, runs Linux containers". */
+export function systemText(m: Schemas['Machine']): string {
+  if (m.container_os && m.container_os !== m.os) {
+    return `${OS_WORD[m.os] ?? m.os}, runs ${OS_WORD[m.container_os] ?? m.container_os} containers`;
+  }
+  return `${m.os} ${m.arch}`;
 }

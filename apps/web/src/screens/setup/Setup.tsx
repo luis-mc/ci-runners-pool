@@ -428,6 +428,8 @@ function Checklist({
         <Section key={o.id} title={o.title}>
           {o.id === 'connect' && (i === current || (o.done && !signedIn)) ? (
             <ConnectGithubWizard state={state} onDone={reload} />
+          ) : o.id === 'machine' && o.done && signedIn ? (
+            <FirstMachineDone onDone={reload} />
           ) : o.done && i !== current ? (
             <Message tone="done">{o.title} is done.</Message>
           ) : i > current && current !== -1 ? (
@@ -453,6 +455,32 @@ function Checklist({
           )}
         </Section>
       ))}
+    </Stack>
+  );
+}
+
+/**
+ * The first-machine step when a machine is in the pool. The controller runs its own agent, so on a
+ * fresh install this PC is that machine (machines R5.1): it shows as done by name, and the command
+ * path stays behind "Add another machine" for other computers.
+ */
+export function FirstMachineDone({ onDone }: { onDone: () => void }) {
+  const client = useClient();
+  const { result } = useLoad(() => unwrap(client.GET('/api/v1/machines')), []);
+  const [adding, setAdding] = useState(false);
+  const own =
+    result.state === 'ready' ? result.data.items.find((m) => m.is_controller) : undefined;
+  const host = own ? (own.facts?.host_name ?? own.name) : undefined;
+  return (
+    <Stack>
+      <Message tone="done">
+        {host ? `This PC, ${host}, is in the pool.` : 'Add the first machine is done.'}
+      </Message>
+      {adding ? (
+        <AddMachineWizard onDone={onDone} />
+      ) : (
+        <Button onPress={() => setAdding(true)}>Add another machine</Button>
+      )}
     </Stack>
   );
 }

@@ -94,3 +94,56 @@ func TestRepoNeedsThePoolOn(t *testing.T) {
 		t.Fatal("unknown")
 	}
 }
+
+// CRSP127, runners R5.47: a Windows machine whose engine runs Linux containers
+// is a host for container runners once the container backend is allowed.
+func TestHostsTakeAWindowsMachineWithLinuxContainers(t *testing.T) {
+	win := func(containerOS string, usable, allowed bool) machines.View {
+		v := linuxView(allowed, usable)
+		v.Machine.OS = "windows"
+		v.Engine = machines.Engine{Reported: true, Usable: containerOS != "", Kind: "docker-desktop", ContainerOS: containerOS}
+		return v
+	}
+	count := func(v machines.View) int {
+		h, err := demandEnv{machines: fakeMachines{[]machines.View{v}}}.Hosts(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(h)
+	}
+	if count(win("linux", true, true)) != 1 {
+		t.Error("Windows with Linux containers, allowed: not a host")
+	}
+	if count(win("linux", true, false)) != 0 {
+		t.Error("not allowed: a host")
+	}
+	if count(win("windows", true, true)) != 0 || count(win("", true, true)) != 0 {
+		t.Error("Windows without Linux containers: a host")
+	}
+}
+
+// RUNS_ON_LINUX is written for pool-on repositories once such a machine exists
+// (it serves linux with the arch label and the pool label); without the
+// allowed container backend it serves only windows.
+func TestLinuxVariableServedByWindowsWithLinuxContainers(t *testing.T) {
+	v := linuxView(true, true)
+	v.Machine.OS = "windows"
+	v.Engine = machines.Engine{Reported: true, Usable: true, ContainerOS: "linux"}
+	v.Machine.Accepting = true
+	if got := servedOSes(v); len(got) != 2 || got[0] != "Windows" || got[1] != "Linux" {
+		t.Fatalf("served %v", got)
+	}
+	up := upByOS([]machines.View{v})
+	if !up["Linux"] || !up["Windows"] {
+		t.Fatalf("up %v", up)
+	}
+	v.Backends[1].Allowed = false
+	if got := servedOSes(v); len(got) != 1 || got[0] != "Windows" {
+		t.Fatalf("not allowed: %v", got)
+	}
+	v.Backends[1].Allowed = true
+	v.Engine.ContainerOS = "windows"
+	if got := servedOSes(v); len(got) != 1 {
+		t.Fatalf("windows containers: %v", got)
+	}
+}

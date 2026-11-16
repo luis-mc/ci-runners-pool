@@ -9,7 +9,7 @@ owner: owner
 type: reference
 code: [cmd/crsp/**, internal/cli/**, internal/parity/**]
 design_system: [content action-vocabulary, content message-wording, content dates-times-numbers]
-last_verified: 2026-11-14
+last_verified: 2026-11-16
 artifact:
 generator: luismc-docs 2.6.1
 ---
@@ -17,7 +17,9 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-Today the binary has three commands: `controller`, `agent` (it says it is not built yet) and `version`. Everything else in this spec is NOT YET IMPLEMENTED.
+Today the binary has three commands: `controller`, `agent` (it says it is not built yet) and `version`. Everything else in this spec is NOT YET IMPLEMENTED. On a Mac, `crsp agent` also gives the agent a counter of macOS VMs for its machine report (machines R5.14, CRSP114); it adds no command.
+
+The controller and the agent write their logs through a redacting handler (`internal/logging`, github-integration R6.3), so no token, PEM block or stored secret value reaches a log line.
 
 ## 1. In one paragraph
 
@@ -108,7 +110,7 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 | Command | What it does | Milestone | Owner spec of the behaviour |
 |---|---|---|---|
 | `controller` | Run the controller (built today) | built | `web-console`, `github-integration` |
-| `agent` | Run the agent; `agent join` uses a join command | M1 | `machines` |
+| `agent` | Run the agent; `agent join` uses a join command; `agent install` needs admin rights (it stops first with one plain line otherwise) and the agent commands default `--data-dir` to the machine-wide folder of the OS (CRSP119) | M1 | `machines` |
 | `tray` | Run the tray in the user's session | M8 | `tray` |
 | `version` | Print the version (built today) | built | this spec |
 | `login` | Sign in with the device flow | M1 | `github-integration` |
@@ -126,6 +128,7 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 | `parity check\|soak\|report` | The parity gate against the old pool | M7 | this spec; [parity plan](../../architecture/parity-plan.md) |
 | `config export\|import --dry-run\|apply` | Configuration as a file | M8 | `config-as-code` |
 | `backup\|restore` | Back up and restore the controller | M1 | `backup` |
+| `app rotate-key --file PATH\|-` | Replace the GitHub App private key (owner only; the controller checks it with GitHub first) | M8 | `github-integration` (R5.7) |
 | `update` | Update this machine's binary, with drain | M3 | `updates` |
 | `completion bash\|zsh\|fish\|powershell` | Print a shell completion script | M1 | this spec |
 
@@ -186,7 +189,7 @@ With `--json`, a refusal prints the contract's `ErrorEnvelope` to stderr and use
 
 ### Changes that remove or stop
 
-**R5.14** — A command that removes, disables, restores, applies or restarts (`repo disable`, `machine drain`, `machine maintain`, `machine remove`, `runner remove`, `context remove`, `config apply`, `restore`, `update`) MUST first print what goes: each item by name, and the running jobs it would wait for or stop. It then MUST ask "Type yes to go on:" when stdin is a terminal.
+**R5.14** — A command that removes, disables, restores, applies or restarts (`repo disable`, `machine drain`, `machine maintain`, `machine remove`, `runner remove`, `runner delete-offline`, `context remove`, `config apply`, `restore`, `update`) MUST first print what goes: each item by name, and the running jobs it would wait for or stop. It then MUST ask "Type yes to go on:" when stdin is a terminal.
 
 **R5.15** — With `--yes`, the command MUST skip the question but still print the list. Without `--yes` and without a terminal, it MUST change nothing and exit 5.
 
@@ -391,3 +394,5 @@ Source: packages/contract/oapi-codegen.yaml
 Source: packages/contract/oapi-codegen-client.yaml
 
 Tests: internal/cli/*_test.go, internal/cli/contexts/contexts_test.go, internal/cli/output/output_test.go.
+
+Controller wiring note (CRSP127): `cmd/crsp` treats a Windows machine whose engine runs Linux containers, with the container backend allowed, as serving Linux for container runner hosts and for `RUNS_ON_LINUX` (runners R5.47). No command or flag changed.

@@ -74,6 +74,38 @@ describe('the shell (R5.3)', () => {
     expect(screen.getByText('live')).toBeTruthy();
   });
 
+  it('reads the header count from the machines list, not the overview (UX-19)', async () => {
+    const api = signedIn().on('GET', '/api/v1/machines', {
+      items: [machine(), machine({ id: 'm2', name: 'GameRoomPC-2' })],
+    });
+    renderApp(api, '/');
+    expect(await screen.findByText('2 of 2 online')).toBeTruthy();
+    expect(screen.queryByText('no machines')).toBeNull();
+  });
+
+  it('says no machines only when the machines list is empty', async () => {
+    renderApp(signedIn().on('GET', '/api/v1/machines', { items: [] }), '/');
+    expect(await screen.findByText('no machines')).toBeTruthy();
+  });
+
+  it('hides the first-run banner when all three steps are done', async () => {
+    renderApp(signedIn(), '/');
+    await screen.findByRole('heading', { name: 'Overview' });
+    await screen.findByText('1 of 1 online');
+    expect(screen.queryByText('First run is not finished.')).toBeNull();
+  });
+
+  it('shows the first-run banner while a step is todo', async () => {
+    const api = signedIn().on('GET', '/api/v1/setup', {
+      has_app: true,
+      has_owner: true,
+      setup_link_redeemed: true,
+      steps: { connect_github: 'done', first_machine: 'todo', first_repository: 'done' },
+    });
+    renderApp(api, '/');
+    expect(await screen.findByText('First run is not finished.')).toBeTruthy();
+  });
+
   it('says Live updates paused and keeps the last data (R5.7)', async () => {
     renderApp(signedIn(), '/');
     await screen.findByRole('heading', { name: 'Overview' });

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -201,6 +202,67 @@ func TestListRepositoriesAllPagesAndAdminFlag(t *testing.T) { // R5.18, R6.11
 	}
 	if admin != n/2 || private != n/3 {
 		t.Fatalf("admin %d private %d", admin, private)
+	}
+}
+
+// repoPages counts the repository-list calls the fake saw and checks that the
+// first asks for 100 per page and that every later one follows the Link.
+func repoPages(t *testing.T, e *env, path string) int {
+	t.Helper()
+	pages := 0
+	for _, r := range e.fake.Requests() {
+		if r.Path != path {
+			continue
+		}
+		pages++
+		q, err := url.ParseQuery(r.Query)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if q.Get("per_page") != "100" {
+			t.Errorf("page %d asked for per_page=%q, want 100", pages, q.Get("per_page"))
+		}
+		if want := fmt.Sprint(pages); pages > 1 && q.Get("page") != want {
+			t.Errorf("call %d went to page %q: the Link was not followed", pages, q.Get("page"))
+		}
+	}
+	return pages
+}
+
+func TestRepositoryListsPageThrough1000Repositories(t *testing.T) { // R6.11
+	e := newEnv(t)
+	ctx := context.Background()
+	u := e.fake.AddUser(1, "alice")
+	e.fake.AddInstall(10, "alice", "User", 1)
+	const n = 1001 // 11 pages of at most 100
+	for i := 1; i <= n; i++ {
+		e.fake.AddRepo(int64(i), 10, "alice", fmt.Sprintf("r%04d", i), false, 1)
+	}
+	check := func(name string, got []Repository, err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if len(got) != n {
+			t.Fatalf("%s: %d repositories, want %d", name, len(got), n)
+		}
+		seen := map[int64]bool{}
+		for _, r := range got {
+			seen[r.ID] = true
+		}
+		if len(seen) != n {
+			t.Fatalf("%s: %d distinct repositories, want %d", name, len(seen), n)
+		}
+	}
+	got, err := e.client.ListInstallationRepositories(ctx, UserToken{Value: u}, 10)
+	check("user listing", got, err)
+	if p := repoPages(t, e, "/user/installations/10/repositories"); p != 11 {
+		t.Errorf("user listing took %d calls, want 11", p)
+	}
+	got, err = e.client.ListAppRepositories(ctx, 10)
+	check("installation listing", got, err)
+	if p := repoPages(t, e, "/installation/repositories"); p != 11 {
+		t.Errorf("installation listing took %d calls, want 11", p)
 	}
 }
 

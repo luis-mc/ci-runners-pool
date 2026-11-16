@@ -29,7 +29,7 @@ type fixture struct {
 
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
-	st, err := store.Open(context.Background(), filepath.Join(t.TempDir(), "d"))
+	st, err := store.OpenForTests(context.Background(), filepath.Join(t.TempDir(), "d"))
 	if err != nil {
 		t.Fatal(err)
 	}

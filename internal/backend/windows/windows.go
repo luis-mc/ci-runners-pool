@@ -88,15 +88,22 @@ func New(d sys.Deps, cfg Config) *Backend {
 // process that registers the service and is never kept (runners R5.15).
 func RandomPassword() string {
 	const set = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!#%+-=?@"
-	b := make([]byte, 32)
-	for i := range b {
-		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(set))))
-		if err != nil {
-			panic("crypto/rand failed: " + err.Error())
+	for {
+		b := make([]byte, 32)
+		for i := range b {
+			n, err := rand.Int(rand.Reader, big.NewInt(int64(len(set))))
+			if err != nil {
+				panic("crypto/rand failed: " + err.Error())
+			}
+			b[i] = set[n.Int64()]
 		}
-		b[i] = set[n.Int64()]
+		// Windows password rules want three of four classes; take all four so
+		// a local policy never refuses the account.
+		if s := string(b); strings.ContainsAny(s, "ABCDEFGHJKLMNPQRSTUVWXYZ") && strings.ContainsAny(s, "abcdefghijkmnopqrstuvwxyz") &&
+			strings.ContainsAny(s, "23456789") && strings.ContainsAny(s, "!#%+-=?@") {
+			return s
+		}
 	}
-	return string(b)
 }
 
 // Name implements backend.Backend.
@@ -117,7 +124,7 @@ func (b *Backend) ps(ctx context.Context, script string, env, secret map[string]
 	return b.d.Cmd.Run(ctx, sys.Command{
 		Name:      "powershell.exe",
 		Args:      []string{"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", "-"},
-		Stdin:     script,
+		Stdin:     wrapScript(script),
 		Env:       env,
 		SecretEnv: secret,
 	})
@@ -129,7 +136,7 @@ func (b *Backend) psOK(ctx context.Context, step, script string, env, secret map
 		return fmt.Errorf("%s: %w", step, err)
 	}
 	if res.ExitCode != 0 {
-		return fmt.Errorf("%s: powershell exited %d: %s", step, res.ExitCode, b.redact(firstLine(res.Stderr+res.Stdout)))
+		return fmt.Errorf("%s: powershell exited %d: %s", step, res.ExitCode, b.redact(plainError(res.Stderr, res.Stdout)))
 	}
 	return nil
 }
@@ -145,14 +152,6 @@ func (b *Backend) log(step, msg string) {
 	if b.d.LogLine != nil {
 		b.d.LogLine(step, b.redact(msg))
 	}
-}
-
-func firstLine(s string) string {
-	s = strings.TrimSpace(s)
-	if i := strings.IndexByte(s, '\n'); i >= 0 {
-		return strings.TrimSpace(s[:i])
-	}
-	return s
 }
 
 // Detect reports whether PowerShell is there and whether the agent has the
@@ -217,6 +216,15 @@ var ErrRemovalFailed = errors.New("removing the old runner registration failed; 
 //     inherited access, then lock the folder to the account, Administrators and SYSTEM;
 //  8. register the service as the account and start it.
 func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.StartConfig) (backend.Handle, error) {
+	st := &startState{}
+	h, err := b.start(ctx, r, cfg, st)
+	if err != nil && st.made {
+		err = b.cleanFailedStart(ctx, r, cfg, st, h.Ref, err)
+	}
+	return h, err
+}
+
+func (b *Backend) start(ctx context.Context, r backend.RunnerSpec, cfg backend.StartConfig, st *startState) (backend.Handle, error) {
 	if cfg.Registration == "" {
 		return backend.Handle{}, errors.New("a persistent runner needs a registration token")
 	}
@@ -281,7 +289,9 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 		if err := b.psOK(ctx, "delete old service", scriptDeleteService, oldEnv, nil); err != nil {
 			return h, err
 		}
+		st.made = true
 	case persistent.Fresh:
+		st.made = true
 		archive := Join(b.cfg.Root, "_download-"+r.Name+".zip")
 		if err := b.d.FS.MkdirAll(b.cfg.Root, 0o755); err != nil {
 			return h, err
@@ -298,6 +308,7 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 
 	// Register with GitHub. The runner's own update is off (R5.38). The token
 	// goes in the environment of this one process.
+	st.registered = true
 	if err := b.runner(ctx, "register", folder,
 		persistent.ConfigArgs(r.GitHubURL, r.Name, r.Group, r.Labels), cfg.Registration); err != nil {
 		return h, err
@@ -308,6 +319,7 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	password := b.cfg.NewPassword()
 	secret := map[string]string{"CRSP_PASSWORD": password}
 	env["CRSP_GROUP"] = runners.RunnersGroup
+	st.account = true
 	if err := b.psOK(ctx, "account", scriptAccount, env, secret); err != nil {
 		return h, err
 	}
@@ -331,6 +343,13 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	if err := b.guardStart(ctx, folder); err != nil {
 		return h, err
 	}
+	// Log the account on as a service with the password the service will get,
+	// so a missing right or a wrong password is named in plain words here and
+	// not as an obscure "cannot be started" from Start-Service.
+	if err := b.psOK(ctx, "check logon", scriptCheckLogon, env, secret); err != nil {
+		return h, err
+	}
+	st.service = true
 	if err := b.psOK(ctx, "register service", scriptRegisterService, env, secret); err != nil {
 		return h, err
 	}
@@ -359,7 +378,7 @@ func (b *Backend) runner(ctx context.Context, step, folder string, args []string
 		return fmt.Errorf("%s: %w", step, err)
 	}
 	if res.ExitCode != 0 {
-		return fmt.Errorf("%s: runner exited %d: %s", step, res.ExitCode, b.redact(firstLine(res.Stderr+res.Stdout)))
+		return fmt.Errorf("%s: runner exited %d: %s", step, res.ExitCode, b.redact(plainError(res.Stderr, res.Stdout)))
 	}
 	return nil
 }

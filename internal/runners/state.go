@@ -17,6 +17,14 @@ const (
 	Removing State = "removing"
 )
 
+// Shown-only states (UX-19). A record never holds them: View gives one when
+// GitHub or the agent says the stored idle or busy is not true.
+const (
+	NotRegistered State = "not_registered"
+	Stopped       State = "stopped"
+	Unknown       State = "unknown"
+)
+
 // transitions is the state diagram of the spec, section 3. A persistent runner
 // goes busy to idle; an ephemeral one goes busy to removing.
 var transitions = map[State][]State{

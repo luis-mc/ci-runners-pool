@@ -199,6 +199,9 @@ func machineToAPI(v machines.View, now time.Time) gen.Machine {
 		out.JoinedAt = machinesPtr(m.JoinedAt)
 	}
 	out.Accepting = machinesPtr(m.Accepting)
+	if v.Engine.Usable && v.Engine.ContainerOS != "" {
+		out.ContainerOs = machinesPtr(gen.OS(v.Engine.ContainerOS))
+	}
 	if r := v.Recovery; r != nil {
 		out.Recovery = &gen.MachineRecovery{State: gen.NeedsRecovery, Reason: gen.MachineRecoveryReason(r.Reason), Has: r.Has, Needs: r.Needs, Since: r.Since, Armed: r.Armed}
 	}
