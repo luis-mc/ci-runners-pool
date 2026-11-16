@@ -430,7 +430,7 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R6.9 | planned: internal/install/rerun_test.go, internal/update/swap_test.go TestInterruptedStepsRerun |
 | R6.10 | planned: internal/configio/roundtrip_test.go TestExportImportExportSame |
 | R5.85 | built: internal/parity/workflow_test.go TestParityWorkflowPassesTheAccessToTheCheck, TestParityWorkflowFailsFirstAndNamesTheConsoleAction, TestParityWorkflowNamesAvoidSecretEndings, TestParityWorkflowActionsArePinnedToACommit, TestParityWorkflowHasTheTriggersAndNoWritePermission |
-| R5.86 | internal/tray/quit_test.go TestQuitAllLeavesPoliteTraysAlone, TestQuitAllEndsATrayThatIgnoresTheRequest, TestQuitAllWithNoTrayIsQuick, TestIsTrayCmdline, TestWatchQuitStopsWhenContextEnds; internal/tray/quit_unix_test.go TestWatchQuitCallsQuitOnSIGTERM; installer/upgrade-test.ps1 (job `Upgrade with the tray running` in `.github/workflows/installer.yml`: previous release MSI, tray started, `/qn` upgrade with a log, fails over 60 s or on a Files in Use entry) |
+| R5.86 | internal/tray/quit_test.go TestQuitAllLeavesPoliteTraysAlone, TestQuitAllEndsATrayThatIgnoresTheRequest, TestQuitAllWithNoTrayIsQuick, TestIsTrayCmdline, TestWatchQuitStopsWhenContextEnds; internal/tray/quit_unix_test.go TestWatchQuitCallsQuitOnSIGTERM; installer/upgrade-test.ps1 (job `Upgrade with the tray running` in `.github/workflows/installer.yml`: previous release MSI, tray started, quiet upgrade with a log, fails over 60 s or on a Files in Use entry) |
 
 ## 10. Decisions
 
