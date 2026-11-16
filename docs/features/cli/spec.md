@@ -19,6 +19,8 @@ The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is
 
 Today the binary has three commands: `controller`, `agent` (it says it is not built yet) and `version`. Everything else in this spec is NOT YET IMPLEMENTED.
 
+The controller and the agent write their logs through a redacting handler (`internal/logging`, github-integration R6.3), so no token, PEM block or stored secret value reaches a log line.
+
 ## 1. In one paragraph
 
 `crsp` is one program. It runs the controller, the agent and the tray. It is also the command line for people. The command line can do everything the web console can do: sign in, turn the pool on for a repository, add machines, add runners, watch jobs, run the doctor, and export or import the configuration. It suits headless machines and scripts. It talks to the controller through the same API contract as the web console. It prints plain tables for people and JSON for scripts.
