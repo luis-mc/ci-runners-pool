@@ -155,8 +155,6 @@
       could then show the program twice (CRSP147), so neither is authored any more. A
       Settings uninstall keeps the data; REMOVEDATA=1 on msiexec removes it.
     -->
-    <Property Id="ARPNOMODIFY" Value="1" />
-    <Property Id="ARPNOREPAIR" Value="1" />
 
     <!--
       Uninstall asks whether to remove the data folder, default no. Silently,
