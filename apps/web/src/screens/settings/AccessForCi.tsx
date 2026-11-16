@@ -24,12 +24,13 @@ import {
 } from '@crsp/ui';
 import { useState } from 'react';
 import { unwrap, useClient, type Schemas } from '../../api/api';
-import { useCommand, useLoad, useQuestion } from '../../api/hooks';
+import { useCommand, useLoad, useQuestion, type Loaded } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { Ask, Load } from '../common';
 
 type Credential = Schemas['AccessCredential'];
 type Setup = Schemas['ParitySetup'];
+type Address = Schemas['ParityAddress'];
 
 const PERMISSION_WORDS: Record<string, string> = {
   secrets: 'Secrets (write)',
@@ -251,6 +252,9 @@ function ParitySetupAction() {
       ),
     [],
   );
+  const address = useLoad(() => unwrap(client.GET('/api/v1/parity-address')), []);
+  const needsAddress =
+    address.result.state === 'ready' && address.result.data.status === 'needs_address';
   const [repo, setRepo] = useState('');
   const [outcome, setOutcome] = useState<
     { repo: string; setup: Setup; names: string } | undefined
@@ -286,6 +290,7 @@ function ParitySetupAction() {
                   CRSP_CA_FINGERPRINT, to the repository through the GitHub App. You copy
                   nothing. The parity workflow reads them.
                 </Message>
+                <AddressCheck load={address} />
                 <ChoiceField
                   label="Repository"
                   value={repo}
@@ -303,10 +308,14 @@ function ParitySetupAction() {
                     kind="primary"
                     busy={run.busy}
                     busyLabel="Setting up"
-                    disabled={!chosen || !session.can('admin')}
+                    disabled={!chosen || !session.can('admin') || needsAddress}
                     reason={
                       session.whyNot('admin') ??
-                      (chosen ? undefined : 'Choose a repository first.')
+                      (needsAddress
+                        ? 'The controller has no address a runner can reach. Fix it first.'
+                        : chosen
+                          ? undefined
+                          : 'Choose a repository first.')
                     }
                     onPress={() => {
                       if (chosen) void run.run(chosen.id, chosen.full_name);
@@ -328,6 +337,12 @@ function ParitySetupAction() {
           <Message tone="done">
             Parity is set up for {outcome.repo}. The workflow can run now.
           </Message>
+        ) : null}
+        {outcome?.setup.status === 'needs_address' ? (
+          <NeedsAddress
+            problem={outcome.setup.address_problem}
+            setting={outcome.setup.address_setting}
+          />
         ) : null}
         {outcome?.setup.status === 'needs_permission' ? (
           <NeedsPermission repo={outcome.repo} setup={outcome.setup} />
@@ -370,5 +385,58 @@ function NeedsPermission({ repo, setup }: { repo: string; setup: Setup }) {
         </Cluster>
       </Stack>
     </Message>
+  );
+}
+
+function NeedsAddress({
+  problem,
+  setting,
+}: {
+  problem?: string | undefined;
+  setting?: string | undefined;
+}) {
+  return (
+    <Message tone="needs-you">
+      <Stack>
+        <span>
+          Nothing was made. A runner on another machine or in a container cannot reach
+          this controller yet. {problem ?? ''}
+        </span>
+        {setting ? <Facts items={[{ name: 'Setting to fix', value: setting }]} /> : null}
+      </Stack>
+    </Message>
+  );
+}
+
+function AddressCheck({
+  load,
+}: {
+  load: { result: Loaded<Address>; reload: () => void };
+}) {
+  return (
+    <Load result={load.result} what="the address of the controller" reload={load.reload}>
+      {(a) =>
+        a.status === 'needs_address' ? (
+          <NeedsAddress problem={a.problem} setting={a.setting} />
+        ) : (
+          <Stack>
+            <Facts
+              items={[{ name: 'Address written as CRSP_URL', value: a.url ?? '' }]}
+            />
+            {a.status === 'ok' ? (
+              <Message tone="done">
+                The controller answers at this address over https with its own
+                certificate.
+              </Message>
+            ) : (
+              <Message tone="problem">
+                {a.problem ?? 'The controller did not answer at this address.'} A runner
+                that cannot reach it cannot run the parity checks.
+              </Message>
+            )}
+          </Stack>
+        )
+      }
+    </Load>
   );
 }

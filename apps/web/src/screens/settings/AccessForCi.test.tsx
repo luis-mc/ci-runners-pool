@@ -23,8 +23,17 @@ const revoked = {
 };
 const repo = { id: 100, full_name: 'octo/app', owner: 'octo', name: 'app' };
 
-function api(items: unknown[] = [live, revoked]) {
+const address = {
+  status: 'ok',
+  url: 'https://pool.lan:8460',
+};
+
+function api(
+  items: unknown[] = [live, revoked],
+  parityAddress: Record<string, unknown> = address,
+) {
   return signedIn()
+    .on('GET', '/api/v1/parity-address', parityAddress)
     .on('GET', '/api/v1/access-credentials', { items })
     .on('GET', '/api/v1/github/repositories', { items: [repo], stale: { stale: false } });
 }
@@ -200,5 +209,69 @@ describe('Set up parity for this repository (R5.91)', () => {
     expect(
       await screen.findByText(/Could not set up parity\. Nothing was left behind/),
     ).toBeTruthy();
+  });
+});
+
+describe('The address parity writes (R5.91, CRSP141)', () => {
+  const press = () =>
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Set up parity for this repository' }),
+    );
+
+  it('shows the address before anything is written, and that it answers', async () => {
+    renderApp(api(), '/settings/access');
+    expect(await screen.findByText('https://pool.lan:8460')).toBeTruthy();
+    expect(screen.getByText(/Address written as CRSP_URL/)).toBeTruthy();
+    expect(screen.getByText(/The controller answers at this address/)).toBeTruthy();
+    expect(document.body.textContent).not.toContain('127.0.0.1');
+  });
+
+  it('reports when the controller does not answer at the address', async () => {
+    renderApp(
+      api([live], {
+        status: 'unreachable',
+        url: 'https://pool.lan:8460',
+        problem: 'the controller did not answer at https://pool.lan:8460: timeout',
+      }),
+      '/settings/access',
+    );
+    expect(
+      await screen.findByText(/did not answer at https:\/\/pool\.lan:8460/),
+    ).toBeTruthy();
+    expect(screen.queryByText(/The controller answers at this address/)).toBeNull();
+  });
+
+  it('refuses with a Needs you note that names the setting, and the button waits', async () => {
+    renderApp(
+      api([live], {
+        status: 'needs_address',
+        problem: 'no public host name is set for this controller',
+        setting: 'CRSP_PUBLIC_HOST',
+      }),
+      '/settings/access',
+    );
+    expect(await screen.findByText(/cannot reach this controller yet/)).toBeTruthy();
+    expect(screen.getByText('CRSP_PUBLIC_HOST')).toBeTruthy();
+    const button = await screen.findByRole('button', {
+      name: 'Set up parity for this repository',
+    });
+    fireEvent.click(screen.getByRole('radio', { name: 'octo/app' }));
+    expect(
+      button.hasAttribute('disabled') || button.getAttribute('aria-disabled') === 'true',
+    ).toBe(true);
+  });
+
+  it('shows the refusal when the setup answers needs_address', async () => {
+    const a = api().on('POST', '/api/v1/repositories/:id/parity-setup', {
+      status: 'needs_address',
+      address_problem: 'CRSP_LISTEN_ADDR is loopback',
+      address_setting: 'CRSP_LISTEN_ADDR',
+    });
+    renderApp(a, '/settings/access');
+    await screen.findByRole('button', { name: 'Set up parity for this repository' });
+    fireEvent.click(screen.getByRole('radio', { name: 'octo/app' }));
+    press();
+    expect(await screen.findByText(/CRSP_LISTEN_ADDR is loopback/)).toBeTruthy();
+    expect(screen.queryByText(/Parity is set up/)).toBeNull();
   });
 });
