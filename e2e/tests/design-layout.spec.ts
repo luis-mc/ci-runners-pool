@@ -13,9 +13,26 @@ const SCREENS: {
   recovery?: boolean;
   publicRows?: boolean;
   signedOut?: boolean;
+  tweak?: (m: ReturnType<typeof signedIn>) => unknown;
 }[] = [
   { name: 'sign-in', path: '/sign-in', ready: 'Sign in', signedOut: true },
   { name: 'first-run wizard', path: '/setup', ready: 'Set up the pool' },
+  {
+    name: 'first-run without a setup link',
+    path: '/setup',
+    ready: 'Set up the pool',
+    tweak: (m: ReturnType<typeof signedIn>) =>
+      m.on('GET', '/api/v1/setup', {
+        has_app: false,
+        has_owner: false,
+        setup_link_redeemed: false,
+        steps: {
+          connect_github: 'todo',
+          first_machine: 'todo',
+          first_repository: 'todo',
+        },
+      }),
+  },
   { name: 'overview', path: '/', ready: 'Overview' },
   { name: 'repositories', path: '/repositories', ready: 'Repositories' },
   {
@@ -37,6 +54,13 @@ const SCREENS: {
   { name: 'add a machine', path: '/machines/add', ready: 'Add a machine' },
   { name: 'runners', path: '/runners', ready: 'Runners' },
   { name: 'jobs', path: '/jobs', ready: 'Jobs' },
+  {
+    name: 'jobs empty',
+    path: '/jobs',
+    ready: 'Jobs',
+    tweak: (m: ReturnType<typeof signedIn>) =>
+      m.on('GET', '/api/v1/jobs', { items: [], stale: { stale: false } }),
+  },
   { name: 'job detail', path: '/jobs/2', ready: 'test-2' },
   { name: 'doctor', path: '/doctor', ready: 'Doctor' },
   { name: 'add runners', path: '/runners/add', ready: 'Add runners' },
@@ -61,6 +85,7 @@ const SCREENS: {
 for (const screen of SCREENS) {
   test(`layout: ${screen.name}`, async ({ page }) => {
     const mock = jobsAndDoctor(signedIn());
+    screen.tweak?.(mock);
     if (screen.recovery) mock.on('GET', '/api/v1/machines/:id', needingRecovery());
     if (screen.publicRows) mock.on('GET', '/api/v1/github/repositories', publicRows());
     if (screen.loads) {
@@ -178,4 +203,33 @@ test('settings access for CI shows panes and the form only on demand', async ({
   await expect(page.getByRole('region', { name: 'Make an access' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Make an access' }).click();
   await expect(page.getByRole('region', { name: 'Make an access' })).toBeVisible();
+});
+
+// CRSP160, UX-6: with every step done the setup page offers one primary that goes on, and no word sends the owner to a terminal.
+test('setup done: one primary, Open the overview, and no terminal words', async ({
+  page,
+}) => {
+  await jobsAndDoctor(signedIn()).install(page);
+  await page.goto('/setup');
+  const go = page.getByRole('button', { name: 'Open the overview' });
+  await expect(go).toBeVisible();
+  await expect(page.locator('[data-kind="primary"]')).toHaveCount(1);
+  await expect(page.locator('main')).not.toContainText(/crsp open|terminal/i);
+  await go.click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible();
+});
+
+// CRSP160, UX-6: the first-run text offers the tray's Open, not a command.
+test('setup without a link names the tray, not a terminal', async ({ page }) => {
+  const mock = jobsAndDoctor(signedIn());
+  mock.on('GET', '/api/v1/setup', {
+    has_app: false,
+    has_owner: false,
+    setup_link_redeemed: false,
+    steps: { connect_github: 'todo', first_machine: 'todo', first_repository: 'todo' },
+  });
+  await mock.install(page);
+  await page.goto('/setup');
+  await expect(page.getByText(/Open in the tray menu/)).toBeVisible();
+  await expect(page.locator('main')).not.toContainText(/crsp open|terminal/i);
 });

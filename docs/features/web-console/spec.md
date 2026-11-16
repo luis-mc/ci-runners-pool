@@ -78,7 +78,7 @@ flowchart TD
 The steps in words:
 
 1. The user opens `http://127.0.0.1:8460` on the controller machine or `https://<controller>:8460` from another one. The controller serves the console and its API from one binary (decision 0001).
-2. A fresh controller has no GitHub App yet, so nobody can sign in with GitHub. The setup page opens only through a one-time setup link. The tray's Open, `crsp open` and the controller's first start each give one.
+2. A fresh controller has no GitHub App yet, so nobody can sign in with GitHub. The setup page opens only through a one-time setup link. The tray's Open and the controller's first start each give one.
 3. The first wizard creates the controller's own GitHub App with GitHub's manifest flow (decision 0002).
 4. The user signs in with GitHub through the App's user OAuth flow. The first person to sign in becomes the owner. Later users get in only when the owner has added their GitHub login.
 5. The first-run checklist then leads through two more wizards: add the first machine, and turn the pool on for the first repository.
@@ -126,7 +126,8 @@ The states named for every list follow the design system: loading (component 16,
 **Setup page** (`/setup`)
 
 - **Purpose:** take a fresh controller to a working pool.
-- **Without a setup link:** a page that says how to get one: the tray's Open, or `crsp open` on the controller's machine. No other action.
+- **Without a setup link:** a page that says how to get one: choose Open in the tray menu of the controller's machine. It names no terminal command (UX-6). No other action.
+- **Every step done:** the page header carries one primary, "Open the overview" (UX-4, UX-6). The first repository counts as done when any repository has the pool on, whatever the setup answer says.
 - **With a setup link:** the first-run checklist. It shows three wizards in order. A later one is greyed until the one before it is done (UX-5). Each is a wizard (component 4) whose behaviour comes from the shared wizard (UX-54). Each ends with Review, then its work, then Done (UX-30). The step and state words are those of content.md.
 - **Back from GitHub with an error:** the Connect GitHub wizard reads `?error=` and `?app_url=` once, shows the message for the code (content.md, Connect GitHub words) as its failed state, and clears both from the address. For an App GitHub made but crsp could not save, the message says so, an external button opens the App on GitHub (only an https://github.com address), and the person deletes it there (App settings, Advanced, Delete GitHub App) and starts again. The App name field says that GitHub App names are unique across GitHub.
 
@@ -149,7 +150,7 @@ The states named for every list follow the design system: loading (component 16,
 - **Data:** `getOverview`, then `streamEvents`.
 - **Shows:** a card per machine (component 8, UX-10) with its state word (UX-58) and three level bars for memory, CPU and slots against its budget (UX-41, owner question Q4); the queue count; the running jobs (component 15); the section "Why jobs wait" (component 15): every queued or held job with the first reason it waits, in words, from `waiting` of `getOverview` (scheduling R5.48, UX-34, UX-19); today's minutes saved as a lettered figure (component 31). Each item links to its screen.
 - **Actions:** none. The overview only shows and links (UX-52).
-- **States:** loading; empty (no machine yet: "No machines yet. Add a machine to start." links to Machines, content.md); could not load; live; live updates paused.
+- **States:** loading; empty (no machine yet: "No machines yet. Add a machine to start." links to Machines, content.md); could not load; live; live updates paused. Every section, and the loading and could-not-load states, sit in a pane titled in its top border (UX-10, UX-51); the h1 stays in every state (UX-17).
 - **Components:** 1, 8, 15, 17, 19, 27, 31.
 - **Milestone:** M1. Minutes saved: later (milestone 8).
 
@@ -207,8 +208,9 @@ The states named for every list follow the design system: loading (component 16,
 - **Data:** `listJobs` (queued, running, done; filters by repository, machine, result, time range), `getJob`, `exportJobs`.
 - **Queue:** a table (component 15) of queued jobs with repository, labels, wait time and the reason it waits ("waits for a free slot on any Linux machine"; UX-29).
 - **History:** a time axis list (component 24, UX-33): repository, workflow and job name, result (UX-58), machine, backend, wait time, run time. Each row opens the detail, with a link to the run on GitHub.
+- **Panes:** Queue, Filters (result, time range, repository, machine) and History (the time axis, with Export in its border line), each a pane (UX-10). The row under the cursor is drawn in reverse video (UX-51).
 - **Actions:** export the history (component 29, UX-39). No command changes a job.
-- **States:** loading; empty ("No jobs yet. Jobs show here when a workflow runs on the pool."); could not load; live; an empty period offers to widen the range (component 24).
+- **States:** loading; empty ("No jobs yet. Jobs show here when a workflow runs on the pool." with the one primary "Add runners", UX-4, UX-6); the detail keeps its h1 "Job" when it could not load (UX-17); could not load; live; an empty period offers to widen the range (component 24).
 - **Detail:** placement and waits are in `scheduling`; history and minutes saved are in `observability`.
 - **Components:** 1, 11, 12, 15, 17, 19, 21, 24, 29.
 - **Milestone:** later (milestone 2). M1 shows the queue and running jobs on the overview.

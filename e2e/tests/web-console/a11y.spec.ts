@@ -23,6 +23,13 @@ const screens = [
     recovery: true,
   },
   {
+    name: 'jobs empty',
+    url: '/jobs',
+    signedOut: false,
+    recovery: false,
+    emptyJobs: true,
+  },
+  {
     name: 'repositories with public rows while the setting is off',
     url: '/repositories',
     signedOut: false,
@@ -87,6 +94,8 @@ for (const theme of ['dark', 'light'] as const) {
               },
             ],
           });
+      if ('emptyJobs' in screen)
+        mock.on('GET', '/api/v1/jobs', { items: [], stale: { stale: false } });
       if (screen.signedOut)
         mock.on('GET', '/api/v1/me', failure(401, 'unauthenticated', 'Sign in.'));
       await mock.install(page);
