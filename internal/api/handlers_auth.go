@@ -221,10 +221,25 @@ func (s *server) GetSetupState(ctx context.Context, _ gen.GetSetupStateRequestOb
 		code, body := failure(err)
 		return gen.GetSetupStatedefaultJSONResponse{StatusCode: code, Body: body}, nil
 	}
-	return gen.GetSetupState200JSONResponse(a.setupState(ctx, requestFrom(ctx), st)), nil
+	return gen.GetSetupState200JSONResponse(a.setupState(ctx, requestFrom(ctx), st, s.machineJoined(ctx, a))), nil
 }
 
-func (a *GitHubArea) setupState(ctx context.Context, r *http.Request, st auth.SetupState) gen.SetupState {
+// machineJoined is true when at least one machine has joined, in any state.
+// It reads the same store as GET /api/v1/machines. A failed read is logged and
+// counts as not yet joined.
+func (s *server) machineJoined(ctx context.Context, a *GitHubArea) bool {
+	if s.machinesOff() {
+		return false
+	}
+	vs, err := s.opts.Machines.List(ctx)
+	if err != nil {
+		a.log().Warn("setup state: listing machines failed", "err", err)
+		return false
+	}
+	return len(vs) > 0
+}
+
+func (a *GitHubArea) setupState(ctx context.Context, r *http.Request, st auth.SetupState, machineJoined bool) gen.SetupState {
 	out := gen.SetupState{HasApp: st.HasApp, HasOwner: st.HasOwner,
 		SetupLinkRedeemed: a.Auth.CheckSetupCookie(ctx, cookieValue(r, auth.SetupCookieName))}
 	if st.HasApp {
@@ -236,9 +251,15 @@ func (a *GitHubArea) setupState(ctx context.Context, r *http.Request, st auth.Se
 	if st.HasApp && st.HasOwner {
 		out.Steps.ConnectGithub = "done"
 	}
+	if machineJoined {
+		out.Steps.FirstMachine = "done"
+	}
 	if a.Repos != nil {
-		on := true
-		if rows, err := a.Repos.List(ctx, repos.System, repos.ListFilter{Pool: &on, Limit: 1}); err == nil && len(rows) > 0 {
+		hasPool, err := a.Repos.AnyPoolOn(ctx)
+		if err != nil {
+			a.log().Warn("setup state: listing pool-on repositories failed", "err", err)
+		}
+		if hasPool {
 			out.Steps.FirstRepository = "done"
 		}
 	}
@@ -261,7 +282,7 @@ func (s *server) RedeemSetupLink(ctx context.Context, req gen.RedeemSetupLinkReq
 	c := &http.Cookie{Name: auth.SetupCookieName, Value: cookie, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode,
 		Secure: auth.CookieSecure(r), MaxAge: int(auth.SetupCookieTTL / time.Second)}
 	st, _ := a.Auth.State(ctx)
-	state := a.setupState(ctx, r, st)
+	state := a.setupState(ctx, r, st, s.machineJoined(ctx, a))
 	state.SetupLinkRedeemed = true
 	sc := c.String()
 	return gen.RedeemSetupLink200JSONResponse{Body: state, Headers: gen.RedeemSetupLink200ResponseHeaders{SetCookie: &sc}}, nil
