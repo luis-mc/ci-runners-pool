@@ -39,6 +39,12 @@ function WaitRunning([int]$sec = 40) {
   for ($i = 0; $i -lt $sec; $i++) { if ((SvcState) -eq 'Running') { Start-Sleep 2; if ((SvcState) -eq 'Running') { return $true } }; Start-Sleep 1 }
   return $false
 }
+# Every Apps-list entry of the product, from both registry views and from all users' uninstall keys.
+# A hidden one (SystemComponent=1) is not listed by Windows, so it is not counted (CRSP147).
+function ArpEntries {
+  $roots = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
+  @(Get-ItemProperty $roots -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq 'CI Runners Shared Pool' -and $_.SystemComponent -ne 1 })
+}
 function Leftovers {
   $l = @()
   if (Test-Path $progDir) { $l += 'Program Files\crsp' }
@@ -48,7 +54,7 @@ function Leftovers {
   if ($path -split ';' | Where-Object { $_.TrimEnd('\') -ieq $progDir }) { $l += 'PATH entry' }
   if (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Name 'crsp-tray' -ErrorAction SilentlyContinue) { $l += 'tray autostart' }
   if (Test-Path (Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'CI Runners Shared Pool.lnk')) { $l += 'Start Menu shortcut' }
-  if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\crsp') { $l += 'ARP entry' }
+  if ((ArpEntries).Count -gt 0) { $l += 'ARP entry' }
   return $l
 }
 
@@ -101,15 +107,16 @@ if ($UpgradeMsi) {
   $pid2 = (Get-CimInstance Win32_Service -Filter "Name='crsp'").ProcessId
   Check 'service was restarted (new process)' ($pid2 -and $pid2 -ne $pid1) "pid $pid1 -> $pid2"
   Check 'data kept by upgrade' (Test-Path (Join-Path $dataDir 'keep-me.txt'))
-  # The package's own entry is hidden (SystemComponent=1); the visible one is the package's.
-  $prod = @(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -eq 'CI Runners Shared Pool' -and $_.SystemComponent -ne 1 })
+  # The package's own entry is the only one; the upgrade replaced the old product's.
+  $prod = ArpEntries
   Check 'one crsp entry in Apps' ($prod.Count -eq 1) "$($prod.Count)"
   Check 'firewall rule still there, once' (@(Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue).Count -eq 1)
   $path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
   Check 'PATH has the folder once' (@($path -split ';' | Where-Object { $_.TrimEnd('\') -ieq $progDir }).Count -eq 1)
   $Msi = $UpgradeMsi
 }
-$installedVersion = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\crsp').DisplayVersion
+Check 'one crsp entry in Apps after install' ((ArpEntries).Count -eq 1) "$((ArpEntries).Count)"
+$installedVersion = (ArpEntries | Select-Object -First 1).DisplayVersion
 if ($DowngradeMsi) {
   Write-Host "== downgrade is refused $DowngradeMsi"
   $rc = Msiexec @('/i', "`"$DowngradeMsi`"") (Join-Path $LogDir 'downgrade.log')
@@ -122,7 +129,7 @@ if ($FailingMsi) {
   Write-Host "== a failed upgrade rolls back $FailingMsi"
   $rc = Msiexec @('/i', "`"$FailingMsi`"") (Join-Path $LogDir 'failed-upgrade.log')
   Check 'failed upgrade exits non-zero (1603)' ($rc -eq 1603) "exit $rc"
-  Check 'old version still installed after rollback' (@(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -eq 'CI Runners Shared Pool' -and $_.SystemComponent -ne 1 -and $_.DisplayVersion -eq $installedVersion }).Count -eq 1) "wanted $installedVersion"
+  Check 'old version still installed after rollback' (@(ArpEntries | Where-Object { $_.DisplayVersion -eq $installedVersion }).Count -eq 1 -and (ArpEntries).Count -eq 1) "wanted $installedVersion"
   Check 'service running again after rollback' (WaitRunning) ("state " + (SvcState))
   Check 'firewall rule and PATH intact after rollback' ($null -ne (Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue) -and [bool]([Environment]::GetEnvironmentVariable('Path','Machine') -split ';' | Where-Object { $_.TrimEnd('\') -ieq $progDir }))
   # What the log says about the rollback, so a failure can be read in the CI output.
