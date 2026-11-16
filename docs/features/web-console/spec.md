@@ -194,7 +194,7 @@ The states named for every list follow the design system: loading (component 16,
 - **Purpose:** see every runner and create runners per OS on machines that support it.
 - **Data:** `listRunners`, `getRunner`, `planRunners`, `createRunners`, `deleteRunner`, `streamRunnerLog`.
 - **List:** a live table (component 15): name, machine, OS, backend, isolation (UX-61), labels, state (UX-58), current job, age (UX-53). Search and filters by machine, OS, isolation and state (components 11, 21).
-- **Add runners:** a wizard (component 4): OS; machine (only machines whose backends support the OS; others are greyed with the reason, UX-38); count and labels; Review; Registering (n of N); Done.
+- **Add runners:** a wizard (component 4): OS; machine (only machines whose backends support the OS; others are greyed with the reason, UX-38; a Windows machine whose container engine runs Linux containers also supports Linux, as an ephemeral container runner with a note, CRSP127); count and labels; Review; Registering (n of N); Done.
 - **Actions and confirmations:** delete a runner, or the selected runners: a question card that names each runner and the job it runs, and waits for the drain (UX-62).
 - **States:** loading; empty ("No runners yet. Add runners to start.", or "Add a machine first." when there is none); could not load; live.
 - **Detail:** runner life, JIT config and labels are in `runners`.
