@@ -882,3 +882,47 @@ func TestAppCreatedFailureLinksHalfMadeApp(t *testing.T) { // R5.3
 		t.Fatalf("error and app_url: %s", loc.RawQuery)
 	}
 }
+
+// CRSP125: the list is read from GitHub again when the console asks (the return
+// from GitHub), whatever the age of the last read, and the rows that left are gone.
+func TestRepositoriesRefreshFollowsTheInstallation(t *testing.T) {
+	h := newHarness(t)
+	owner, _ := h.setup(1, "alice")
+	h.fake.AddInstall(10, "alice", "User", 1)
+	for i, name := range []string{"app", "lib", "docs"} {
+		h.fake.AddRepo(int64(100+i), 10, "alice", name, true, 1)
+	}
+	type row struct {
+		FullName          string `json:"full_name"`
+		UserIsGithubAdmin bool   `json:"user_is_github_admin"`
+		UserAdminKnown    *bool  `json:"user_admin_known"`
+	}
+	list := func(q string) []row {
+		t.Helper()
+		_, b := h.do("GET", "/api/v1/github/repositories"+q, nil, owner, nil)
+		var page struct{ Items []row }
+		if err := json.Unmarshal(b, &page); err != nil {
+			t.Fatalf("%s", b)
+		}
+		return page.Items
+	}
+	if got := list(""); len(got) != 3 {
+		t.Fatalf("%+v", got)
+	}
+	// The owner limits the App to one repository; a plain load inside the
+	// throttle still shows the old list, the forced one does not.
+	h.fake.Lock(func() { delete(h.fake.Repos, 101); delete(h.fake.Repos, 102) })
+	if got := list("?refresh=true"); len(got) != 1 || got[0].FullName != "alice/app" || !got[0].UserIsGithubAdmin {
+		t.Fatalf("a forced refresh drops what left: %+v", got)
+	}
+	// It comes back and the App-token reconcile adds it: the throttle is dropped,
+	// so the next plain load reads GitHub and has the flag.
+	h.fake.AddRepo(101, 10, "alice", "lib", true, 1)
+	if err := h.repos.ReconcileInstallations(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	got := list("")
+	if len(got) != 2 || got[1].FullName != "alice/lib" || !got[1].UserIsGithubAdmin || got[1].UserAdminKnown != nil {
+		t.Fatalf("a changed installation is read at once: %+v", got)
+	}
+}
