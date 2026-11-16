@@ -246,6 +246,7 @@ Settings hold configuration only (UX-52). Sub-pages sit under one Settings area,
 | Sub-page | Purpose | Data | Actions and confirmations | Milestone |
 |---|---|---|---|---|
 | Users and roles | Who may sign in, as owner, admin or viewer | `listUsers`, `addUser`, `updateUserRole`, `removeUser` | Add a GitHub login with a role; change a role; remove a user (question card naming the login, UX-62) | M1 |
+| GitHub App | The owner replaces the App private key | `replaceAppPrivateKey` | Replace key (owner): a file field and one action; the key is sent once and never shown; GitHub's refusal keeps the old key and says so (github-integration R5.7) | M8 (built, CRSP115) |
 | Appearance | The user's theme (six named themes, kept in this browser) and mode (system, dark or light, saved by the server) (UX-60) | `getPreferences`, `updatePreferences` (the mode) | Two one-choice lists saved at once (component 13); the theme list shows a swatch row per theme | M1 |
 | Budgets | The pool's default load budget, slots and drain timeout for new machines, and the order of the queue | `getPoolSettings`, `updatePoolSettings`, `getQueueSettings`, `updateQueueSettings` | Save (admin); a change that restarts runners names the jobs it waits for (UX-62). A pool default only reaches machines that join later, so the page says no runner restarts and no job is waited for | M1 (built, CRSP37) |
 | Notifications | Channels (email, webhook, desktop) and the events each one gets | `listNotificationChannels`, `createNotificationChannel`, `updateNotificationChannel`, `deleteNotificationChannel`, `testNotificationChannel` | Add, edit, delete (question card), Send test | M1 for channels and Send test (built, CRSP37); event delivery later (milestone 8) |
@@ -429,7 +430,7 @@ flowchart LR
 | `/jobs`, `/jobs/:id` | Jobs |
 | `/images`, `/caches` | Images and caches |
 | `/doctor` | Doctor |
-| `/settings/users`, `/settings/appearance`, `/settings/budgets`, `/settings/notifications`, `/settings/updates`, `/settings/audit`, `/settings/export` | Settings |
+| `/settings/users`, `/settings/app`, `/settings/appearance`, `/settings/budgets`, `/settings/notifications`, `/settings/updates`, `/settings/audit`, `/settings/export` | Settings |
 
 **API operations to add** (all under `/api/v1`, each with `x-auth` and `x-rate-limit`). The owning spec fixes each one's shape.
 

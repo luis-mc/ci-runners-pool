@@ -126,6 +126,7 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 | `parity check\|soak\|report` | The parity gate against the old pool | M7 | this spec; [parity plan](../../architecture/parity-plan.md) |
 | `config export\|import --dry-run\|apply` | Configuration as a file | M8 | `config-as-code` |
 | `backup\|restore` | Back up and restore the controller | M1 | `backup` |
+| `app rotate-key --file PATH\|-` | Replace the GitHub App private key (owner only; the controller checks it with GitHub first) | M8 | `github-integration` (R5.7) |
 | `update` | Update this machine's binary, with drain | M3 | `updates` |
 | `completion bash\|zsh\|fish\|powershell` | Print a shell completion script | M1 | this spec |
 
