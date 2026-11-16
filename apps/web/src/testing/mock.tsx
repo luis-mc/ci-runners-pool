@@ -177,6 +177,7 @@ export function runner(over: Partial<Schemas['Runner']> = {}): Schemas['Runner']
     id: 'r1',
     name: 'crsp-linux-1',
     machine_id: 'm1',
+    machine_name: 'box',
     os: 'linux',
     arch: 'x64',
     kind: 'persistent',

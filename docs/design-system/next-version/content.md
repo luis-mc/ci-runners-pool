@@ -435,3 +435,19 @@ The words of the Recovery section and the State word of a machine whose agent ne
 | Recover | The one action. Admin only (busy word: Recovering). Locked after it worked. |
 | Recovery is ready. The agent gets the update on its next call. | Done message after the call, and for a machine that is already armed. |
 | Could not start recovery. {why} | Problem message when the call is refused or fails. |
+
+## Runner state words
+
+The state word of a runner on the Runners screen (web-console R5.23, runners R5.79; UX-19). A word other than idle or busy shows its reason in a muted line under it.
+
+| Word | Meaning and reason line |
+|---|---|
+| idle | GitHub lists the runner online and not busy, and its service runs. No reason line. |
+| busy | GitHub says the runner has a job. No reason line. |
+| not registered | GitHub does not list a runner with this name. Reason: "GitHub does not list a runner with this name". |
+| stopped | The service of the runner is stopped or missing. Reason: "its service is stopped" or "its service is not on the machine". |
+| offline | GitHub lists the runner offline. Reason: "GitHub reports it offline". |
+| unknown | GitHub could not be read. Reason: "GitHub could not be read, so the state is not known". |
+| failed | The runner did not start. The reason line is the reason of the failure. |
+| Remove | The action on the row of a failed runner (busy word: Removing). Asks first in the question card, which names the runner (UX-9, UX-62). |
+

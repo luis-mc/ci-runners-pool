@@ -235,3 +235,62 @@ describe('Idle and busy at a glance (RES7)', () => {
     expect(screen.getByText('Busy')).toBeTruthy();
   });
 });
+
+describe('Runners list truth (UX-1, UX-6, UX-19)', () => {
+  it('links the machine name to the machine page', async () => {
+    const api = signedIn().on('GET', '/api/v1/runners', {
+      items: [runner({ machine_id: 'm9', machine_name: 'GameRoomPC' })],
+    });
+    renderApp(api, '/runners');
+    const table = await screen.findByRole('table', { name: 'Runners' });
+    const link = within(table).getByRole('link', { name: 'GameRoomPC' });
+    expect(link.getAttribute('href')).toBe('/machines/m9');
+    expect(within(table).queryByText('m9')).toBeNull();
+  });
+
+  it('shows the real state word with its reason', async () => {
+    const api = signedIn().on('GET', '/api/v1/runners', {
+      items: [
+        runner({
+          state: 'not_registered',
+          reason: 'GitHub does not list a runner with this name',
+        }),
+        runner({
+          id: 'r2',
+          name: 'b',
+          state: 'stopped',
+          reason: 'its service is stopped',
+        }),
+      ],
+    });
+    renderApp(api, '/runners');
+    const table = await screen.findByRole('table', { name: 'Runners' });
+    expect(within(table).getByText('not registered')).toBeTruthy();
+    expect(
+      within(table).getByText('GitHub does not list a runner with this name'),
+    ).toBeTruthy();
+    expect(within(table).getByText('stopped')).toBeTruthy();
+    expect(within(table).queryByText('idle')).toBeNull();
+    expect(runnerStatus(runner({ state: 'unknown' })).word).toBe('unknown');
+  });
+
+  it('offers Remove on a failed runner and asks first', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/runners', {
+        items: [
+          runner({ state: 'failed', reason: 'the service did not start' }),
+          runner({ id: 'r2', name: 'fine' }),
+        ],
+      })
+      .on('DELETE', '/api/v1/runners/:id', runner({ state: 'draining' }));
+    renderApp(api, '/runners');
+    const table = await screen.findByRole('table', { name: 'Runners' });
+    expect(within(table).getByText('the service did not start')).toBeTruthy();
+    expect(within(table).getAllByRole('button', { name: 'Remove' })).toHaveLength(1);
+    fireEvent.click(within(table).getByRole('button', { name: 'Remove' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete these runners?' });
+    expect(within(dialog).getByText('Runner crsp-linux-1')).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(api.count('DELETE', '/api/v1/runners/r1')).toBe(1));
+  });
+});

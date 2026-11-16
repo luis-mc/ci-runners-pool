@@ -2052,8 +2052,11 @@ export interface components {
         RunnerKind: "persistent" | "ephemeral";
         /** @enum {string} */
         Isolation: "microVM" | "VM" | "container" | "persistent";
-        /** @enum {string} */
-        RunnerState: "creating" | "idle" | "busy" | "draining" | "updating" | "offline" | "failed" | "removing";
+        /**
+         * @description What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
+         * @enum {string}
+         */
+        RunnerState: "creating" | "idle" | "busy" | "draining" | "updating" | "offline" | "failed" | "removing" | "not_registered" | "stopped" | "unknown";
         /**
          * @description active and drained are set by the user; draining while a drain waits.
          * @enum {string}
@@ -3091,6 +3094,10 @@ export interface components {
             id: string;
             name: string;
             machine_id: string;
+            /** @description The name of the machine, as the Machines list shows it (UX-1). */
+            machine_name: string;
+            /** @description Why the runner is in a state that is not idle or busy (UX-19). Absent when there is nothing to say. */
+            reason?: string;
             os: components["schemas"]["OS"];
             arch: components["schemas"]["Arch"];
             kind: components["schemas"]["RunnerKind"];

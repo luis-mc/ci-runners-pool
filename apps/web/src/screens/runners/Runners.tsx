@@ -12,6 +12,8 @@ import {
   Stack,
   Status,
   Table,
+  Text,
+  TextLink,
   formatAgo,
   formatDuration,
   Facts,
@@ -46,6 +48,12 @@ export function runnerStatus(r: Runner): { kind: StatusKind; word: string } {
       return { kind: 'failed', word: 'failed' };
     case 'offline':
       return { kind: 'failed', word: 'offline' };
+    case 'not_registered':
+      return { kind: 'failed', word: 'not registered' };
+    case 'stopped':
+      return { kind: 'failed', word: 'stopped' };
+    case 'unknown':
+      return { kind: 'waiting', word: 'unknown' };
     default:
       return { kind: 'waiting', word: r.state };
   }
@@ -128,8 +136,8 @@ export function RunnersList() {
     {
       id: 'machine',
       header: 'Machine',
-      cell: (r) => r.machine_id,
-      sort: (r) => r.machine_id,
+      cell: (r) => <TextLink to={`/machines/${r.machine_id}`}>{r.machine_name}</TextLink>,
+      sort: (r) => r.machine_name,
     },
     { id: 'os', header: 'System', cell: (r) => r.os, sort: (r) => r.os },
     { id: 'backend', header: 'Backend', cell: (r) => r.backend },
@@ -145,7 +153,12 @@ export function RunnersList() {
       header: 'State',
       cell: (r) => {
         const s = runnerStatus(r);
-        return <Status kind={s.kind} word={s.word} />;
+        return (
+          <Stack gap="tight">
+            <Status kind={s.kind} word={s.word} />
+            {r.reason ? <Text tone="muted">{r.reason}</Text> : null}
+          </Stack>
+        );
       },
       sort: (r) => r.state,
     },
@@ -159,6 +172,26 @@ export function RunnersList() {
       header: 'Age',
       cell: (r) => (r.created_at ? formatAgo(r.created_at, now) : 'not known'),
       sort: (r) => r.created_at ?? '',
+    },
+    {
+      id: 'remove',
+      header: 'Action',
+      cell: (r) =>
+        r.managed && r.state === 'failed' ? (
+          <Button
+            kind="danger"
+            onPress={() => {
+              setPicked(new Set([r.id]));
+              del.ask([`Runner ${r.name}`], []);
+            }}
+            disabled={!admin}
+            reason={why}
+          >
+            Remove
+          </Button>
+        ) : (
+          ''
+        ),
     },
     {
       id: 'managed',
@@ -217,7 +250,7 @@ export function RunnersList() {
             (r) =>
               (!os || r.os === os) &&
               (!iso || r.isolation === iso) &&
-              `${r.name} ${r.machine_id} ${r.labels.join(' ')}`
+              `${r.name} ${r.machine_name} ${r.labels.join(' ')}`
                 .toLowerCase()
                 .includes(q.trim().toLowerCase()),
           );
