@@ -151,3 +151,89 @@ func TestShHookExportsNonInteractiveEnvToCrsp(t *testing.T) {
 		t.Fatalf("exit %d output %q", code, out)
 	}
 }
+
+// R5.26, R5.41: a forked pull request job fails at job start with the policy
+// message, through the real sh hook and a real crsp binary. The PowerShell hook
+// runs the same `crsp hook job-started`; it is checked by text, and run when
+// pwsh is on the machine.
+func buildCrsp(t *testing.T) string {
+	t.Helper()
+	bin := filepath.Join(t.TempDir(), "crsp")
+	if runtime.GOOS == "windows" {
+		bin += ".exe"
+	}
+	cmd := exec.CommandContext(t.Context(), "go", "build", "-o", bin, "../../cmd/crsp")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("go build: %v\n%s", err, out)
+	}
+	return bin
+}
+
+func forkEventFile(t *testing.T) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), "event.json")
+	body := `{"repository":{"private":false,"full_name":"o/r"},"pull_request":{"head":{"repo":{"fork":true,"full_name":"x/r"}}}}`
+	if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+func TestForkGuardFailsForkedPullRequestJob(t *testing.T) {
+	crsp := buildCrsp(t)
+	event := forkEventFile(t)
+	env := append(os.Environ(), "CRSP_BIN="+crsp, "GITHUB_EVENT_NAME=pull_request", "GITHUB_EVENT_PATH="+event,
+		"CRSP_ALLOW_FORK_PRS=")
+	check := func(kind string, out []byte, err error) {
+		t.Helper()
+		ee, ok := err.(*exec.ExitError)
+		if !ok || ee.ExitCode() != 1 {
+			t.Fatalf("%s: err %v, want exit 1; output %q", kind, err, out)
+		}
+		if !strings.Contains(string(out), "::error title=crsp::") || !strings.Contains(string(out), "does not allow fork pull requests") {
+			t.Fatalf("%s: output %q", kind, out)
+		}
+	}
+	if runtime.GOOS != "windows" {
+		body, err := Unix("job-started")
+		if err != nil {
+			t.Fatal(err)
+		}
+		script := filepath.Join(t.TempDir(), "job-started.sh")
+		if err := os.WriteFile(script, body, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		cmd := exec.CommandContext(t.Context(), "/bin/sh", script)
+		cmd.Env = env
+		out, err := cmd.CombinedOutput()
+		check("sh", out, err)
+		// the same job with the policy on is not refused here
+		cmd = exec.CommandContext(t.Context(), "/bin/sh", script)
+		cmd.Env = append(env, "CRSP_ALLOW_FORK_PRS=1", "CRSP_HOOK_PROBE=1")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("policy on: %v %q", err, out)
+		}
+	}
+	ps, err := Windows("job-started")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"& $crsp hook $hook @args", "exit $LASTEXITCODE"} {
+		if !strings.Contains(string(ps), want) {
+			t.Errorf("job-started.ps1 lacks %q: the guard would not reach the job", want)
+		}
+	}
+	pwsh, err := exec.LookPath("pwsh")
+	if err != nil {
+		t.Log("pwsh not found: the .ps1 hook is checked by text only")
+		return
+	}
+	script := filepath.Join(t.TempDir(), "job-started.ps1")
+	if err := os.WriteFile(script, ps, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.CommandContext(t.Context(), pwsh, "-NoProfile", "-File", script)
+	cmd.Env = env
+	out, err := cmd.CombinedOutput()
+	check("ps1", out, err)
+}
