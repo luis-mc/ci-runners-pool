@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-Today the binary has three commands: `controller`, `agent` (it says it is not built yet) and `version`. Everything else in this spec is NOT YET IMPLEMENTED.
+Today the binary has three commands: `controller`, `agent` (it says it is not built yet) and `version`. Everything else in this spec is NOT YET IMPLEMENTED. On a Mac, `crsp agent` also gives the agent a counter of macOS VMs for its machine report (machines R5.14, CRSP114); it adds no command.
 
 ## 1. In one paragraph
 
