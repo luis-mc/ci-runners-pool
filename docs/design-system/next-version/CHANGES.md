@@ -55,3 +55,6 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C50: stale Starter banner removed from ux-rules.md (v1 approved 2026-11-13; CRSP144)
 - C51: update dialog words added: the actions Install now and Later and the link What changed, the dialog line about running jobs and the tray notices; Look for updates and Automatic updates reworded so a look only looks and only the regular check installs (content.md; tray R5.43, operations R5.87, CRSP147)
 - C52: GitHub error words added: Your GitHub sign-in ended, GitHub could not be reached, GitHub refused, GitHub answered with its real status and message, and the last-copy sentence (content.md; github-integration R5.88 and R5.89, UX-28, CRSP148)
+- C53: Core UX Principles CORE-1 to CORE-7 added at the top of ux-rules.md as binding rules, in the words and place of luismc-docs 2.7.0 (ux-rules.md; owner decision D86, 2026-11-16, CRSP149)
+- C54: rules UX-63 to UX-67 retired and marked as moved to CORE-2, CORE-4, CORE-5, CORE-5 and CORE-6; the IDs are never reused. The 2.7.0 starter rules UX-57 to UX-61 were not copied: crsp keeps its own UX-57 to UX-62 (ux-rules.md; owner decision D86, 2026-11-16, CRSP149)
+- C55: the design-system checklist cites the Core UX Principles CORE-1 to CORE-7 as 2.7.0 does (AGENTS.md, .github/pull_request_template.md; owner decision D86, 2026-11-16, CRSP149)
