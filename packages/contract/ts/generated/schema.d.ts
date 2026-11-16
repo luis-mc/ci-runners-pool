@@ -322,6 +322,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/app/private-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the GitHub App private key
+         * @description github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+         */
+        put: operations["replaceAppPrivateKey"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -2399,6 +2419,11 @@ export interface components {
              */
             polling_since?: string;
         };
+        /** @description A new App private key, sent once and never returned (github-integration R5.7). */
+        AppKeyUpload: {
+            /** @description The file GitHub gives, in PEM form. */
+            pem: string;
+        };
         WebhookModeUpdate: {
             /** @enum {string} */
             mode: "webhook";
@@ -4208,6 +4233,29 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Preferences"];
                 };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    replaceAppPrivateKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppKeyUpload"];
+            };
+        };
+        responses: {
+            /** @description The new key is stored and in use. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["Error"];
         };

@@ -8,6 +8,7 @@ var operationCommands = map[string]string{
 	"getCliLoginConfig":          "login",
 	"exchangeCliToken":           "login",
 	"revokeCliToken":             "logout",
+	"replaceAppPrivateKey":       "app rotate-key",
 	"createConsoleLink":          "open",
 	"listRepositories":           "repo list",
 	"planRepositoryChanges":      "repo enable|disable",

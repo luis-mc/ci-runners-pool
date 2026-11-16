@@ -427,6 +427,30 @@ paths:
                 $ref: '#/components/schemas/Preferences'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/app/private-key:
+    put:
+      operationId: replaceAppPrivateKey
+      tags: [auth]
+      summary: Replace the GitHub App private key
+      description: >-
+        github-integration R5.7. The owner sends a new private key once. The
+        controller signs an App JWT with it and reads `GET /app`; only when
+        GitHub accepts it for the same App does the key replace the old one in
+        the OS secret store. A refused key leaves the old one in place. The key
+        is never returned, logged or written to the audit log.
+      x-auth: owner
+      x-rate-limit: 5/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppKeyUpload'
+      responses:
+        '204':
+          description: The new key is stored and in use.
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/users:
     get:
       operationId: listUsers
@@ -3696,6 +3720,17 @@ components:
           type: string
           format: date-time
           description: Set in polling mode.
+    AppKeyUpload:
+      type: object
+      description: A new App private key, sent once and never returned (github-integration R5.7).
+      required: [pem]
+      additionalProperties: false
+      properties:
+        pem:
+          type: string
+          minLength: 1
+          maxLength: 16384
+          description: The file GitHub gives, in PEM form.
     WebhookModeUpdate:
       type: object
       required: [mode]

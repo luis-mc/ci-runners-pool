@@ -1853,6 +1853,12 @@ type AppInstallUrl struct {
 	Url string `json:"url"`
 }
 
+// AppKeyUpload A new App private key, sent once and never returned (github-integration R5.7).
+type AppKeyUpload struct {
+	// Pem The file GitHub gives, in PEM form.
+	Pem string `json:"pem"`
+}
+
 // AppManifestForm defines model for AppManifestForm.
 type AppManifestForm struct {
 	Manifest map[string]interface{} `json:"manifest"`
@@ -3838,6 +3844,9 @@ type ReceiveGithubWebhookParams struct {
 	XHubSignature256 string `json:"X-Hub-Signature-256"`
 }
 
+// ReplaceAppPrivateKeyJSONRequestBody defines body for ReplaceAppPrivateKey for application/json ContentType.
+type ReplaceAppPrivateKeyJSONRequestBody = AppKeyUpload
+
 // ExchangeCliTokenJSONRequestBody defines body for ExchangeCliToken for application/json ContentType.
 type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
 
@@ -3939,6 +3948,9 @@ type ReceiveGithubWebhookJSONRequestBody ReceiveGithubWebhookJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ReplaceAppPrivateKey Replace the GitHub App private key
+	// (PUT /api/v1/app/private-key)
+	ReplaceAppPrivateKey(w http.ResponseWriter, r *http.Request)
 	// ListAuditEvents The audit log, newest first
 	// (GET /api/v1/audit)
 	ListAuditEvents(w http.ResponseWriter, r *http.Request, params ListAuditEventsParams)
@@ -4285,6 +4297,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ReplaceAppPrivateKey operation middleware
+func (siw *ServerInterfaceWrapper) ReplaceAppPrivateKey(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReplaceAppPrivateKey(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // ListAuditEvents operation middleware
 func (siw *ServerInterfaceWrapper) ListAuditEvents(w http.ResponseWriter, r *http.Request) {
@@ -7713,6 +7739,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/me", wrapper.GetSession)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/me/preferences", wrapper.GetPreferences)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/me/preferences", wrapper.UpdatePreferences)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/app/private-key", wrapper.ReplaceAppPrivateKey)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/users", wrapper.ListUsers)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/users", wrapper.AddUser)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/users/{userId}", wrapper.RemoveUser)
@@ -7841,6 +7868,39 @@ type RedirectResponseHeaders struct {
 }
 type RedirectResponse struct {
 	Headers RedirectResponseHeaders
+}
+
+type ReplaceAppPrivateKeyRequestObject struct {
+	Body *ReplaceAppPrivateKeyJSONRequestBody
+}
+
+type ReplaceAppPrivateKeyResponseObject interface {
+	VisitReplaceAppPrivateKeyResponse(w http.ResponseWriter) error
+}
+
+type ReplaceAppPrivateKey204Response struct {
+}
+
+func (response ReplaceAppPrivateKey204Response) VisitReplaceAppPrivateKeyResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type ReplaceAppPrivateKeydefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ReplaceAppPrivateKeydefaultJSONResponse) VisitReplaceAppPrivateKeyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type ListAuditEventsRequestObject struct {
@@ -12308,6 +12368,9 @@ func (response ReceiveGithubWebhookdefaultJSONResponse) VisitReceiveGithubWebhoo
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// ReplaceAppPrivateKey Replace the GitHub App private key
+	// (PUT /api/v1/app/private-key)
+	ReplaceAppPrivateKey(ctx context.Context, request ReplaceAppPrivateKeyRequestObject) (ReplaceAppPrivateKeyResponseObject, error)
 	// ListAuditEvents The audit log, newest first
 	// (GET /api/v1/audit)
 	ListAuditEvents(ctx context.Context, request ListAuditEventsRequestObject) (ListAuditEventsResponseObject, error)
@@ -12683,6 +12746,37 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// ReplaceAppPrivateKey operation middleware
+func (sh *strictHandler) ReplaceAppPrivateKey(w http.ResponseWriter, r *http.Request) {
+	var request ReplaceAppPrivateKeyRequestObject
+
+	var body ReplaceAppPrivateKeyJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReplaceAppPrivateKey(ctx, request.(ReplaceAppPrivateKeyRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReplaceAppPrivateKey")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReplaceAppPrivateKeyResponseObject); ok {
+		if err := validResponse.VisitReplaceAppPrivateKeyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // ListAuditEvents operation middleware

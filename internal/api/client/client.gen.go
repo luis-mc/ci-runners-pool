@@ -1854,6 +1854,12 @@ type AppInstallUrl struct {
 	Url string `json:"url"`
 }
 
+// AppKeyUpload A new App private key, sent once and never returned (github-integration R5.7).
+type AppKeyUpload struct {
+	// Pem The file GitHub gives, in PEM form.
+	Pem string `json:"pem"`
+}
+
 // AppManifestForm defines model for AppManifestForm.
 type AppManifestForm struct {
 	Manifest map[string]interface{} `json:"manifest"`
@@ -3839,6 +3845,9 @@ type ReceiveGithubWebhookParams struct {
 	XHubSignature256 string `json:"X-Hub-Signature-256"`
 }
 
+// ReplaceAppPrivateKeyJSONRequestBody defines body for ReplaceAppPrivateKey for application/json ContentType.
+type ReplaceAppPrivateKeyJSONRequestBody = AppKeyUpload
+
 // ExchangeCliTokenJSONRequestBody defines body for ExchangeCliToken for application/json ContentType.
 type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
 
@@ -4011,6 +4020,24 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+
+	// ReplaceAppPrivateKeyWithBody Replace the GitHub App private key
+	//
+	// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+	ReplaceAppPrivateKeyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReplaceAppPrivateKey Replace the GitHub App private key
+	//
+	// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+	ReplaceAppPrivateKey(ctx context.Context, body ReplaceAppPrivateKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListAuditEvents The audit log, newest first
 	//
@@ -5122,6 +5149,44 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /webhooks/github (the `ReceiveGithubWebhook` operationId).
 	ReceiveGithubWebhook(ctx context.Context, params *ReceiveGithubWebhookParams, body ReceiveGithubWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+// ReplaceAppPrivateKeyWithBody Replace the GitHub App private key
+//
+// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+func (c *Client) ReplaceAppPrivateKeyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReplaceAppPrivateKeyRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ReplaceAppPrivateKey Replace the GitHub App private key
+//
+// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+func (c *Client) ReplaceAppPrivateKey(ctx context.Context, body ReplaceAppPrivateKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReplaceAppPrivateKeyRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 // ListAuditEvents The audit log, newest first
@@ -7683,6 +7748,46 @@ func (c *Client) ReceiveGithubWebhook(ctx context.Context, params *ReceiveGithub
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewReplaceAppPrivateKeyRequest calls the generic ReplaceAppPrivateKey builder with application/json body
+func NewReplaceAppPrivateKeyRequest(server string, body ReplaceAppPrivateKeyJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewReplaceAppPrivateKeyRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewReplaceAppPrivateKeyRequestWithBody constructs an http.Request for the ReplaceAppPrivateKey method, with any body, and a specified content type
+func NewReplaceAppPrivateKeyRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/app/private-key")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
 }
 
 // NewListAuditEventsRequest constructs an http.Request for the ListAuditEvents method
@@ -12743,6 +12848,24 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
+	// ReplaceAppPrivateKeyWithBodyWithResponse Replace the GitHub App private key
+	//
+	// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+	ReplaceAppPrivateKeyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReplaceAppPrivateKeyResponse, error)
+
+	// ReplaceAppPrivateKeyWithResponse Replace the GitHub App private key
+	//
+	// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+	ReplaceAppPrivateKeyWithResponse(ctx context.Context, body ReplaceAppPrivateKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceAppPrivateKeyResponse, error)
+
 	// ListAuditEventsWithResponse The audit log, newest first
 	//
 	// observability R5.24 to R5.27. Viewers may read it (owner decision for M1). Read-only: no operation edits or deletes a row.
@@ -14011,6 +14134,47 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /webhooks/github (the `ReceiveGithubWebhook` operationId).
 	ReceiveGithubWebhookWithResponse(ctx context.Context, params *ReceiveGithubWebhookParams, body ReceiveGithubWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*ReceiveGithubWebhookResponse, error)
+}
+
+type ReplaceAppPrivateKeyResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ReplaceAppPrivateKeyResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ReplaceAppPrivateKeyResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ReplaceAppPrivateKeyResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ReplaceAppPrivateKeyResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ReplaceAppPrivateKeyResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type ListAuditEventsResponse struct {
@@ -19358,6 +19522,36 @@ func (r ReceiveGithubWebhookResponse) ContentType() string {
 	return ""
 }
 
+// ReplaceAppPrivateKeyWithBodyWithResponse Replace the GitHub App private key
+//
+// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+func (c *ClientWithResponses) ReplaceAppPrivateKeyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReplaceAppPrivateKeyResponse, error) {
+	rsp, err := c.ReplaceAppPrivateKeyWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReplaceAppPrivateKeyResponse(rsp)
+}
+
+// ReplaceAppPrivateKeyWithResponse Replace the GitHub App private key
+//
+// github-integration R5.7. The owner sends a new private key once. The controller signs an App JWT with it and reads `GET /app`; only when GitHub accepts it for the same App does the key replace the old one in the OS secret store. A refused key leaves the old one in place. The key is never returned, logged or written to the audit log.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
+func (c *ClientWithResponses) ReplaceAppPrivateKeyWithResponse(ctx context.Context, body ReplaceAppPrivateKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceAppPrivateKeyResponse, error) {
+	rsp, err := c.ReplaceAppPrivateKey(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReplaceAppPrivateKeyResponse(rsp)
+}
+
 // ListAuditEventsWithResponse The audit log, newest first
 //
 // observability R5.24 to R5.27. Viewers may read it (owner decision for M1). Read-only: no operation edits or deletes a row.
@@ -21495,6 +21689,35 @@ func (c *ClientWithResponses) ReceiveGithubWebhookWithResponse(ctx context.Conte
 		return nil, err
 	}
 	return ParseReceiveGithubWebhookResponse(rsp)
+}
+
+// ParseReplaceAppPrivateKeyResponse parses an HTTP response from a ReplaceAppPrivateKeyWithResponse call
+func ParseReplaceAppPrivateKeyResponse(rsp *http.Response) (*ReplaceAppPrivateKeyResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ReplaceAppPrivateKeyResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseListAuditEventsResponse parses an HTTP response from a ListAuditEventsWithResponse call
