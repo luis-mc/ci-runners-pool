@@ -10,6 +10,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/repos"
 )
 
@@ -109,6 +110,10 @@ func toRepository(v repos.RepositoryView) gen.Repository {
 		}
 		out.Routing = &rt
 	}
+	if v.LeftInstallation() {
+		why := gen.LeftInstallation
+		out.PoolOffReason = &why
+	}
 	if v.DefaultBranch != "" {
 		b := v.DefaultBranch
 		out.DefaultBranch = &b
@@ -141,6 +146,24 @@ func (s *server) ListInstallations(ctx context.Context, _ gen.ListInstallationsR
 		items = append(items, gi)
 	}
 	return gen.ListInstallations200JSONResponse{Items: items, Stale: staleness(at, stale)}, nil
+}
+
+// GetAppHealth implements GET /api/v1/github/app-health (R5.6).
+func (s *server) GetAppHealth(_ context.Context, _ gen.GetAppHealthRequestObject) (gen.GetAppHealthResponseObject, error) {
+	var st github.AppState
+	if src := s.ghArea().AppHealth; src != nil {
+		st = src.State()
+	}
+	out := gen.AppHealth{Gone: st.Gone}
+	if st.Gone {
+		why := st.Reason
+		out.Reason = &why
+	}
+	if !st.CheckedAt.IsZero() {
+		at := st.CheckedAt
+		out.CheckedAt = &at
+	}
+	return gen.GetAppHealth200JSONResponse(out), nil
 }
 
 // GetAppInstallUrl implements GET /api/v1/github/install-url.

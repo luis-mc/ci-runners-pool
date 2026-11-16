@@ -1128,6 +1128,21 @@ func (e RegistryLoginInputKind) Valid() bool {
 	}
 }
 
+// Defines values for RepositoryPoolOffReason.
+const (
+	LeftInstallation RepositoryPoolOffReason = "left_installation"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryPoolOffReason enum.
+func (e RepositoryPoolOffReason) Valid() bool {
+	switch e {
+	case LeftInstallation:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RepositoryVisibility.
 const (
 	Internal RepositoryVisibility = "internal"
@@ -1847,6 +1862,18 @@ type AddUserRequest struct {
 
 // AddUserRequestRole defines model for AddUserRequest.Role.
 type AddUserRequestRole string
+
+// AppHealth defines model for AppHealth.
+type AppHealth struct {
+	// CheckedAt When GitHub last answered. Absent before the first answer.
+	CheckedAt *time.Time `json:"checked_at,omitempty"`
+
+	// Gone True when GitHub says the App or its key is gone (R5.6).
+	Gone bool `json:"gone"`
+
+	// Reason Why, in words for the page. Only when gone.
+	Reason *string `json:"reason,omitempty"`
+}
 
 // AppInstallUrl defines model for AppInstallUrl.
 type AppInstallUrl struct {
@@ -2976,7 +3003,10 @@ type Repository struct {
 	Name           string           `json:"name"`
 	Owner          string           `json:"owner"`
 	Policy         RepositoryPolicy `json:"policy"`
-	PoolOn         bool             `json:"pool_on"`
+
+	// PoolOffReason Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
+	PoolOffReason *RepositoryPoolOffReason `json:"pool_off_reason,omitempty"`
+	PoolOn        bool                     `json:"pool_on"`
 
 	// Routing Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
 	Routing *RepositoryRouting `json:"routing,omitempty"`
@@ -2989,6 +3019,9 @@ type Repository struct {
 	// Webhook The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.50).
 	Webhook *WebhookHealth `json:"webhook,omitempty"`
 }
+
+// RepositoryPoolOffReason Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
+type RepositoryPoolOffReason string
 
 // RepositoryVisibility defines model for Repository.Visibility.
 type RepositoryVisibility string
@@ -4014,6 +4047,9 @@ type ServerInterface interface {
 	// ExportJobs Export the job history as a file
 	// (GET /api/v1/exports/jobs)
 	ExportJobs(w http.ResponseWriter, r *http.Request, params ExportJobsParams)
+	// GetAppHealth Whether the GitHub App and its key still exist
+	// (GET /api/v1/github/app-health)
+	GetAppHealth(w http.ResponseWriter, r *http.Request)
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	// (GET /api/v1/github/install-url)
 	GetAppInstallUrl(w http.ResponseWriter, r *http.Request)
@@ -5171,6 +5207,20 @@ func (siw *ServerInterfaceWrapper) ExportJobs(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ExportJobs(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAppHealth operation middleware
+func (siw *ServerInterfaceWrapper) GetAppHealth(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAppHealth(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -7718,6 +7768,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/users/{userId}", wrapper.RemoveUser)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/users/{userId}", wrapper.UpdateUserRole)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/installations", wrapper.ListInstallations)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/app-health", wrapper.GetAppHealth)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/install-url", wrapper.GetAppInstallUrl)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/repositories", wrapper.ListRepositories)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repository-plans", wrapper.PlanRepositoryChanges)
@@ -8934,6 +8985,44 @@ type ExportJobsdefaultJSONResponse struct {
 }
 
 func (response ExportJobsdefaultJSONResponse) VisitExportJobsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAppHealthRequestObject struct {
+}
+
+type GetAppHealthResponseObject interface {
+	VisitGetAppHealthResponse(w http.ResponseWriter) error
+}
+
+type GetAppHealth200JSONResponse AppHealth
+
+func (response GetAppHealth200JSONResponse) VisitGetAppHealthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAppHealthdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetAppHealthdefaultJSONResponse) VisitGetAppHealthResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -12383,6 +12472,9 @@ type StrictServerInterface interface {
 	// ExportJobs Export the job history as a file
 	// (GET /api/v1/exports/jobs)
 	ExportJobs(ctx context.Context, request ExportJobsRequestObject) (ExportJobsResponseObject, error)
+	// GetAppHealth Whether the GitHub App and its key still exist
+	// (GET /api/v1/github/app-health)
+	GetAppHealth(ctx context.Context, request GetAppHealthRequestObject) (GetAppHealthResponseObject, error)
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	// (GET /api/v1/github/install-url)
 	GetAppInstallUrl(ctx context.Context, request GetAppInstallUrlRequestObject) (GetAppInstallUrlResponseObject, error)
@@ -13330,6 +13422,30 @@ func (sh *strictHandler) ExportJobs(w http.ResponseWriter, r *http.Request, para
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ExportJobsResponseObject); ok {
 		if err := validResponse.VisitExportJobsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetAppHealth operation middleware
+func (sh *strictHandler) GetAppHealth(w http.ResponseWriter, r *http.Request) {
+	var request GetAppHealthRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAppHealth(ctx, request.(GetAppHealthRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAppHealth")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAppHealthResponseObject); ok {
+		if err := validResponse.VisitGetAppHealthResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

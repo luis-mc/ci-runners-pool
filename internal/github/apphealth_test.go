@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"testing"
 	"time"
-
 )
 
 func healthOf(e *env) *AppHealth {

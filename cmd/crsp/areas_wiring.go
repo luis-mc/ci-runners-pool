@@ -123,6 +123,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Sizes: machineCapacity{svc: d.Machines, pool: pool}, Up: machineUp{svc: d.Machines},
 		FallbackGrace: fallbackGrace(d), Now: d.Now})
 	health := webhookhealth.New()
+	appHealth := &github.AppHealth{Client: gh, AppID: gh.AppID, Now: d.Now}
 	hook := &github.WebhookHandler{
 		Verifier: func() (github.WebhookVerifier, error) {
 			app := gh.AppID()
@@ -136,7 +137,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 			return github.NewWebhookVerifier(b), nil
 		},
 		FirstDelivery: newDeliveryLog(4096).first,
-		Events:        webhookEvents{ctx: ctx, logger: logger, repos: rsvc},
+		Events:        webhookEvents{ctx: ctx, logger: logger, repos: rsvc, appGone: appHealth.Gone},
 		OnDelivery: func(repo string, jobID int64, used bool) {
 			if used {
 				health.Delivered(repo, jobID)
@@ -145,7 +146,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 			}
 		},
 	}
-	c.Options.GitHub = &api.GitHubArea{Auth: asvc, Repos: rsvc, Webhook: hook, Logger: logger, Health: health}
+	c.Options.GitHub = &api.GitHubArea{Auth: asvc, Repos: rsvc, Webhook: hook, Logger: logger, Health: health, AppHealth: appHealth}
 	c.Auth, c.Repos = asvc, rsvc
 	if cmp, err := newCompareService(gh, repoStore); err == nil {
 		c.Options.Compare = cmp
@@ -153,12 +154,30 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		logger.Warn("speed comparison is off", "err", err)
 	}
 
+	// App health: GET /app at start and every hour; while the App or its key
+	// is gone, GitHub work stops and the console says so (R5.6).
+	healthCtx, stopHealth := context.WithCancel(ctx)
+	healthDone := make(chan struct{})
+	go func() {
+		defer close(healthDone)
+		appHealth.Run(healthCtx, nil,
+			func(st github.AppState) {
+				if st.Gone {
+					logger.Error("the GitHub App or its key is gone; GitHub work is stopped", "reason", st.Reason)
+				} else {
+					logger.Info("the GitHub App answers again; GitHub work resumes")
+				}
+			},
+			func(err error) { logger.Warn("check the GitHub App", "err", err) })
+	}()
+	c.closers = append(c.closers, func() { stopHealth(); <-healthDone })
+
 	// RUNS_ON variables: put back to the policy every 10 minutes, and once now.
 	loopCtx, stopLoop := context.WithCancel(ctx)
 	loopDone := make(chan struct{})
 	go func() {
 		defer close(loopDone)
-		runsOnLoop(loopCtx, logger, realClock{}, githubLoopTasks(gh, rsvc))
+		runsOnLoop(loopCtx, logger, realClock{}, githubLoopTasks(gh, rsvc, appHealth.Gone))
 	}()
 	c.closers = append(c.closers, func() { stopLoop(); <-loopDone })
 
@@ -210,7 +229,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// Demand: poll queued jobs of the repositories with the pool on and start one
 	// ephemeral container runner per job on a machine whose allow list names
 	// the container backend (github-integration R5.37, runners R5.27, R5.31).
-	stopDemand, quietDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines}, runnerSvc, pool, d.Cfg.DemandQuiet, d.Cfg.ScaleSetDemand, health.PollSawQueued)
+	stopDemand, quietDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines, appGone: appHealth.Gone}, runnerSvc, pool, d.Cfg.DemandQuiet, d.Cfg.ScaleSetDemand, health.PollSawQueued)
 	startSweep(ctx, logger, runnerSvc, d.Cfg.RunnerSweepDays)
 	c.closers = append(c.closers, stopDemand)
 
@@ -367,9 +386,9 @@ func fallbackGrace(d controllerDeps) func() time.Duration {
 }
 
 // githubLoopTasks wires the loops to the repository service.
-func githubLoopTasks(gh *github.REST, rsvc *repos.Service) runsOnTasks {
+func githubLoopTasks(gh *github.REST, rsvc *repos.Service, appGone func() bool) runsOnTasks {
 	return runsOnTasks{
-		Ready: func() bool { return gh.AppID() != 0 },
+		Ready: func() bool { return gh.AppID() != 0 && !appGone() },
 		Reconcile: []func(context.Context) (string, error){
 			func(ctx context.Context) (string, error) {
 				return "reconcile installations", rsvc.ReconcileInstallations(ctx)
@@ -414,6 +433,8 @@ type webhookEvents struct {
 	ctx    context.Context
 	logger *slog.Logger
 	repos  *repos.Service
+	// appGone stops the reconcile while the App or its key is gone (R5.6).
+	appGone func() bool
 }
 
 func (w webhookEvents) Job(j github.Job) {
@@ -436,6 +457,9 @@ func (w webhookEvents) Repository(action, fullName string) {
 
 func (w webhookEvents) Installation(event string, _ []byte) {
 	w.logger.Info("installation event", "event", event)
+	if w.appGone != nil && w.appGone() {
+		return
+	}
 	go func() {
 		if err := w.repos.ReconcileInstallations(w.ctx); err != nil && w.ctx.Err() == nil {
 			w.logger.Warn("reconcile installations", "err", err)

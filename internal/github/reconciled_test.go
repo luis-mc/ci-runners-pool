@@ -97,7 +97,10 @@ func TestReconciledListFailureClosesNothing(t *testing.T) { // R5.38
 	h.pf.mu.Unlock()
 	h.ticks <- time.Now()
 	select {
-	case <-h.errs:
+	case err := <-h.errs:
+		if err == nil {
+			t.Fatal("an error is reported")
+		}
 	case <-time.After(3 * time.Second):
 		t.Fatal("the failed round is reported")
 	}

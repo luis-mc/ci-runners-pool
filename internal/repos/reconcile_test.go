@@ -80,3 +80,39 @@ func TestReconcileKeepsStateWhenGitHubFails(t *testing.T) { // section 8
 		t.Fatal("a failed listing must not turn repositories off")
 	}
 }
+
+func TestLeftRepositoryCarriesTheReasonUntilItIsBack(t *testing.T) { // R5.22
+	e := newEnv(t)
+	e.world()
+	e.turnOn(101)
+	ctx := context.Background()
+	repo := e.fake.Repos[101]
+	e.fake.Lock(func() { delete(e.fake.Repos, 101) })
+	if err := e.svc.ReconcileInstallations(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if r, _ := e.store.GetRepository(ctx, 101); !r.LeftInstallation() {
+		t.Fatalf("the console can say the repository left: %+v", r)
+	}
+	e.fake.Lock(func() { e.fake.Repos[101] = repo })
+	if err := e.svc.ReconcileInstallations(ctx); err != nil {
+		t.Fatal(err)
+	}
+	r, _ := e.store.GetRepository(ctx, 101)
+	if r.LeftInstallation() || r.PoolOn {
+		t.Fatalf("back in the installation: still off, no longer said to have left: %+v", r)
+	}
+}
+
+func TestRepositoryTurnedOffByAnOwnerHasNoLeftReason(t *testing.T) { // R5.22
+	e := newEnv(t)
+	e.world()
+	e.turnOn(101)
+	ctx := context.Background()
+	if err := e.store.SetRepositoryPool(ctx, 101, false, "alice", e.svc.cfg.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if r, _ := e.store.GetRepository(ctx, 101); r.LeftInstallation() {
+		t.Fatal("only the reconcile's turn-off is a leaver")
+	}
+}

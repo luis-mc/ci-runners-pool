@@ -30,6 +30,9 @@ type machineSource interface {
 type demandEnv struct {
 	repos    repos.Store
 	machines machineSource
+	// appGone is true while the App or its key is gone: GitHub work stops
+	// (github-integration R5.6). Nil means never.
+	appGone func() bool
 }
 
 var _ demand.Env = demandEnv{}
@@ -119,7 +122,7 @@ type demandRunner struct {
 // can start a container runner, so a controller whose allow list is empty
 // spends no GitHub quota on it.
 func (d *demandRunner) targets(ctx context.Context) ([]github.PollTarget, error) {
-	if d.gh.AppID() == 0 {
+	if d.gh.AppID() == 0 || (d.env.appGone != nil && d.env.appGone()) {
 		return nil, nil
 	}
 	hosts, err := d.env.Hosts(ctx)
@@ -168,8 +171,19 @@ func (d *demandRunner) start() {
 		d.loop.ScaleJIT = func(j github.Job, name string) func(context.Context) (github.JITConfig, error) {
 			return func(ctx context.Context) (github.JITConfig, error) { return scale.JIT(ctx, j, name) }
 		}
-		src = &demand.Failover{Primary: scale, Fallback: poller, Logger: d.logger, Why: scale.Err,
+		failover := &demand.Failover{Primary: scale, Fallback: poller, Logger: d.logger, Why: scale.Err,
 			OnState: func(source, why string) { d.logger.Info("demand source", "source", source, "why", why) }}
+		// The poller alone never waits longer than 5 minutes; the scale set
+		// has no such bound, so REST reconciles its job view (R5.38).
+		src = &github.Reconciled{Source: failover, Client: d.gh, Targets: d.targets,
+			OnFound: func(j github.Job) {
+				d.logger.Info("reconcile found a job the demand source had not shown", "repository", j.Repository, "job", j.ID, "status", j.Status)
+			},
+			OnError: func(err error) {
+				if ctx.Err() == nil {
+					d.logger.Warn("reconcile jobs", "err", err)
+				}
+			}}
 		d.logger.Info("scale-set demand is on; polling is the fallback", "scale_set", d.loop.PoolName)
 	}
 	jobs, err := src.Jobs(ctx)

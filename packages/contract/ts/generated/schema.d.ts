@@ -390,6 +390,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/github/app-health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether the GitHub App and its key still exist
+         * @description github-integration R5.6. The controller reads GET /app with an App JWT at start and every hour. While the App or its key is gone, GitHub work is stopped and the console offers the setup wizard again.
+         */
+        get: operations["getAppHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/github/install-url": {
         parameters: {
             query?: never;
@@ -2283,6 +2303,17 @@ export interface components {
             /** Format: date-time */
             as_of?: string;
         };
+        AppHealth: {
+            /** @description True when GitHub says the App or its key is gone (R5.6). */
+            gone: boolean;
+            /** @description Why, in words for the page. Only when gone. */
+            reason?: string;
+            /**
+             * Format: date-time
+             * @description When GitHub last answered. Absent before the first answer.
+             */
+            checked_at?: string;
+        };
         AppInstallUrl: {
             /** @example https://github.com/apps/crsp-home/installations/new */
             url: string;
@@ -2374,6 +2405,11 @@ export interface components {
             visibility: "public" | "private" | "internal";
             default_branch?: string;
             pool_on: boolean;
+            /**
+             * @description Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
+             * @enum {string}
+             */
+            pool_off_reason?: "left_installation";
             /** @description github-integration R5.19; without it the switch is disabled with this reason. */
             user_is_github_admin: boolean;
             variables: components["schemas"]["RepositoryVariable"][];
@@ -4324,6 +4360,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InstallationList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAppHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The last answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppHealth"];
                 };
             };
             default: components["responses"]["Error"];

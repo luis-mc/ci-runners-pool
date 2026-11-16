@@ -28,6 +28,17 @@ type Repository struct {
 	PoolChangedBy  string
 }
 
+// ChangedByInstallation is the PoolChangedBy of a repository the reconcile
+// turned off because it left the App's installation. The console reads it as
+// the reason (github-integration R5.22).
+const ChangedByInstallation = "installation"
+
+// LeftInstallation is true when the pool of the repository is off because it
+// left the App's installation.
+func (r Repository) LeftInstallation() bool {
+	return !r.PoolOn && r.PoolChangedBy == ChangedByInstallation
+}
+
 // Policy is a repository's policy (R5.25).
 type Policy struct {
 	Priority        int

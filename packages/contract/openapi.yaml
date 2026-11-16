@@ -536,6 +536,28 @@ paths:
                 $ref: '#/components/schemas/InstallationList'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/github/app-health:
+    get:
+      operationId: getAppHealth
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [repositories]
+      summary: Whether the GitHub App and its key still exist
+      description: >-
+        github-integration R5.6. The controller reads GET /app with an App JWT
+        at start and every hour. While the App or its key is gone, GitHub work
+        is stopped and the console offers the setup wizard again.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      responses:
+        '200':
+          description: The last answer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppHealth'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/github/install-url:
     get:
       operationId: getAppInstallUrl
@@ -3530,6 +3552,20 @@ components:
         as_of:
           type: string
           format: date-time
+    AppHealth:
+      type: object
+      required: [gone]
+      properties:
+        gone:
+          type: boolean
+          description: True when GitHub says the App or its key is gone (R5.6).
+        reason:
+          type: string
+          description: Why, in words for the page. Only when gone.
+        checked_at:
+          type: string
+          format: date-time
+          description: When GitHub last answered. Absent before the first answer.
     AppInstallUrl:
       type: object
       required: [url]
@@ -3641,6 +3677,12 @@ components:
           type: string
         pool_on:
           type: boolean
+        pool_off_reason:
+          type: string
+          enum: [left_installation]
+          description: >-
+            Why the pool is off when the controller turned it off
+            (github-integration R5.22). Absent otherwise.
         user_is_github_admin:
           type: boolean
           description: github-integration R5.19; without it the switch is disabled with this reason.

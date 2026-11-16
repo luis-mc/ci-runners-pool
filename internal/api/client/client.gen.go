@@ -1129,6 +1129,21 @@ func (e RegistryLoginInputKind) Valid() bool {
 	}
 }
 
+// Defines values for RepositoryPoolOffReason.
+const (
+	LeftInstallation RepositoryPoolOffReason = "left_installation"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryPoolOffReason enum.
+func (e RepositoryPoolOffReason) Valid() bool {
+	switch e {
+	case LeftInstallation:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RepositoryVisibility.
 const (
 	Internal RepositoryVisibility = "internal"
@@ -1848,6 +1863,18 @@ type AddUserRequest struct {
 
 // AddUserRequestRole defines model for AddUserRequest.Role.
 type AddUserRequestRole string
+
+// AppHealth defines model for AppHealth.
+type AppHealth struct {
+	// CheckedAt When GitHub last answered. Absent before the first answer.
+	CheckedAt *time.Time `json:"checked_at,omitempty"`
+
+	// Gone True when GitHub says the App or its key is gone (R5.6).
+	Gone bool `json:"gone"`
+
+	// Reason Why, in words for the page. Only when gone.
+	Reason *string `json:"reason,omitempty"`
+}
 
 // AppInstallUrl defines model for AppInstallUrl.
 type AppInstallUrl struct {
@@ -2977,7 +3004,10 @@ type Repository struct {
 	Name           string           `json:"name"`
 	Owner          string           `json:"owner"`
 	Policy         RepositoryPolicy `json:"policy"`
-	PoolOn         bool             `json:"pool_on"`
+
+	// PoolOffReason Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
+	PoolOffReason *RepositoryPoolOffReason `json:"pool_off_reason,omitempty"`
+	PoolOn        bool                     `json:"pool_on"`
 
 	// Routing Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
 	Routing *RepositoryRouting `json:"routing,omitempty"`
@@ -2990,6 +3020,9 @@ type Repository struct {
 	// Webhook The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.50).
 	Webhook *WebhookHealth `json:"webhook,omitempty"`
 }
+
+// RepositoryPoolOffReason Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
+type RepositoryPoolOffReason string
 
 // RepositoryVisibility defines model for Repository.Visibility.
 type RepositoryVisibility string
@@ -4211,6 +4244,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/exports/jobs (the `ExportJobs` operationId).
 	ExportJobs(ctx context.Context, params *ExportJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetAppHealth Whether the GitHub App and its key still exist
+	//
+	// github-integration R5.6. The controller reads GET /app with an App JWT at start and every hour. While the App or its key is gone, GitHub work is stopped and the console offers the setup wizard again.
+	//
+	// Corresponds with GET /api/v1/github/app-health (the `GetAppHealth` operationId).
+	GetAppHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	//
@@ -5594,6 +5634,23 @@ func (c *Client) ExportConfig(ctx context.Context, reqEditors ...RequestEditorFn
 // Corresponds with GET /api/v1/exports/jobs (the `ExportJobs` operationId).
 func (c *Client) ExportJobs(ctx context.Context, params *ExportJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewExportJobsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetAppHealth Whether the GitHub App and its key still exist
+//
+// github-integration R5.6. The controller reads GET /app with an App JWT at start and every hour. While the App or its key is gone, GitHub work is stopped and the console offers the setup wizard again.
+//
+// Corresponds with GET /api/v1/github/app-health (the `GetAppHealth` operationId).
+func (c *Client) GetAppHealth(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetAppHealthRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -8938,6 +8995,33 @@ func NewExportJobsRequest(server string, params *ExportJobsParams) (*http.Reques
 			rawQueryFragments = append(rawQueryFragments, encoded)
 		}
 		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetAppHealthRequest constructs an http.Request for the GetAppHealth method
+func NewGetAppHealthRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/github/app-health")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
@@ -12987,6 +13071,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/exports/jobs (the `ExportJobs` operationId).
 	ExportJobsWithResponse(ctx context.Context, params *ExportJobsParams, reqEditors ...RequestEditorFn) (*ExportJobsResponse, error)
 
+	// GetAppHealthWithResponse Whether the GitHub App and its key still exist
+	//
+	// github-integration R5.6. The controller reads GET /app with an App JWT at start and every hour. While the App or its key is gone, GitHub work is stopped and the console offers the setup wizard again.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/github/app-health (the `GetAppHealth` operationId).
+	GetAppHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAppHealthResponse, error)
+
 	// GetAppInstallUrlWithResponse GitHub's page to install the App on more repositories
 	//
 	// web-console 4.3.
@@ -15214,6 +15307,54 @@ func (r ExportJobsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ExportJobsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetAppHealthResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *AppHealth
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetAppHealthResponse) GetJSON200() *AppHealth {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetAppHealthResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetAppHealthResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetAppHealthResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetAppHealthResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetAppHealthResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -19770,6 +19911,21 @@ func (c *ClientWithResponses) ExportJobsWithResponse(ctx context.Context, params
 	return ParseExportJobsResponse(rsp)
 }
 
+// GetAppHealthWithResponse Whether the GitHub App and its key still exist
+//
+// github-integration R5.6. The controller reads GET /app with an App JWT at start and every hour. While the App or its key is gone, GitHub work is stopped and the console offers the setup wizard again.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/github/app-health (the `GetAppHealth` operationId).
+func (c *ClientWithResponses) GetAppHealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAppHealthResponse, error) {
+	rsp, err := c.GetAppHealth(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetAppHealthResponse(rsp)
+}
+
 // GetAppInstallUrlWithResponse GitHub's page to install the App on more repositories
 //
 // web-console 4.3.
@@ -22360,6 +22516,39 @@ func ParseExportJobsResponse(rsp *http.Response) (*ExportJobsResponse, error) {
 			headers.ContentDisposition = value
 		}
 		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseGetAppHealthResponse parses an HTTP response from a GetAppHealthWithResponse call
+func ParseGetAppHealthResponse(rsp *http.Response) (*GetAppHealthResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetAppHealthResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest AppHealth
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
 	}
 
 	return response, nil

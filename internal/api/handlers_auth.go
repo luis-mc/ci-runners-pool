@@ -33,6 +33,14 @@ type GitHubArea struct {
 	Logger  *slog.Logger
 	// Health is the webhook health of each repository (RES14); nil hides it.
 	Health WebhookHealth
+	// AppHealth is the last answer of the hourly GET /app (R5.6); nil means
+	// the App is never reported gone.
+	AppHealth AppHealthSource
+}
+
+// AppHealthSource is what the console reads about the App (R5.6).
+type AppHealthSource interface {
+	State() github.AppState
 }
 
 // Role needed by each operation of this area, from x-auth in openapi.yaml.
@@ -52,7 +60,7 @@ var githubAreaAuth = map[string]string{
 	"listCliTokens": authUser, "revokeCliToken": authUser, "signOut": authUser, "getSession": authUser,
 	"getPreferences": authUser, "updatePreferences": authUser,
 	"listUsers": authOwner, "addUser": authOwner, "updateUserRole": authOwner, "removeUser": authOwner,
-	"listInstallations": authUser, "getAppInstallUrl": authAdmin, "listRepositories": authUser,
+	"listInstallations": authUser, "getAppInstallUrl": authAdmin, "getAppHealth": authUser, "listRepositories": authUser,
 	"planRepositoryChanges": authAdmin, "stopRepositoryPlan": authAdmin, "getRepositoryPlan": authUser, "applyRepositoryChanges": authAdmin,
 	"getRepository": authUser, "updateRepositoryPolicy": authAdmin, "getRepositoryRunsOn": authUser,
 	"getRepositoryExtraPackages": authUser, "setRepositoryExtraPackages": authAdmin,
