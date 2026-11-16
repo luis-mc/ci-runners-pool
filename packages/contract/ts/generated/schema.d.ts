@@ -3105,6 +3105,7 @@ export interface components {
             running_jobs?: components["schemas"]["Job"][];
             pending_change?: components["schemas"]["MachineChange"];
             recovery?: components["schemas"]["MachineRecovery"];
+            docker_compact_status?: components["schemas"]["DockerCompactStatus"];
             /** Format: date-time */
             last_seen_at: string;
             /** Format: date-time */
@@ -3187,6 +3188,42 @@ export interface components {
             pause_until?: string;
             /** @description A pause from the tray holds until Resume. */
             pause_until_resumed?: boolean;
+            docker_compact?: components["schemas"]["DockerCompactMode"];
+            /** @description How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.50). */
+            docker_compact_threshold_gib?: number;
+            /** @description How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.50). */
+            docker_compact_idle_minutes?: number;
+            /** @description Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.50). */
+            docker_compact_quiet_start?: string;
+            /** @description End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00. */
+            docker_compact_quiet_end?: string;
+        };
+        /**
+         * @description The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.50).
+         * @enum {string}
+         */
+        DockerCompactMode: "auto" | "on" | "off";
+        /** @description The Docker disk compact policy of one machine and what the agent reported about the disk file (caches R5.50). Read only. */
+        DockerCompactStatus: {
+            /** @description The policy is on for this machine. */
+            enabled: boolean;
+            /** @description Why the last look did not compact, or `run`. One of off, offline, not_active, no_report, no_admin, below_threshold, outside_quiet_hours, busy, not_idle_long_enough, done_today, already_running, change_open. */
+            reason?: string;
+            running: boolean;
+            /** @description The agent found a Docker Desktop disk file. */
+            disk_present: boolean;
+            /** @description The agent has the administrator rights the compact needs. */
+            can_compact: boolean;
+            /** Format: int64 */
+            file_bytes?: number;
+            /** Format: int64 */
+            used_bytes?: number;
+            /** Format: int64 */
+            reclaimable_bytes?: number;
+            /** Format: date-time */
+            last_at?: string;
+            /** @description Sizes of the last compact, or why it failed. */
+            last_result?: string;
         };
         /**
          * @description Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.61).
@@ -3307,6 +3344,15 @@ export interface components {
             mode?: components["schemas"]["MachineMode"];
             pause_on_battery?: boolean;
             cpu_cap_pct?: components["schemas"]["CpuCapPct"];
+            docker_compact?: components["schemas"]["DockerCompactMode"];
+            /** @description How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.50). */
+            docker_compact_threshold_gib?: number;
+            /** @description How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.50). */
+            docker_compact_idle_minutes?: number;
+            /** @description Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.50). */
+            docker_compact_quiet_start?: string;
+            /** @description End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00. */
+            docker_compact_quiet_end?: string;
             /**
              * @description A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.61).
              * @enum {string}
