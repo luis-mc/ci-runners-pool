@@ -72,7 +72,7 @@ type apiGroup struct {
 }
 
 func (g apiGroup) group() RunnerGroup {
-	return RunnerGroup{ID: g.ID, Name: g.Name, Visibility: g.Visibility, Default: g.Default}
+	return RunnerGroup(g)
 }
 
 // ListRunnerGroups lists the runner groups of an organization, all pages.
