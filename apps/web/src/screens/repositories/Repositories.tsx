@@ -30,14 +30,15 @@ import {
   type Column,
   type StatusKind,
 } from '@crsp/ui';
-import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ApiError, unwrap, useClient } from '../../api/api';
 import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
 import { HostedFallback, WhereJobsGo, routingWhy } from './fallback';
+import { InstallAppButton } from './InstallApp';
 import { OrgPools } from './OrgPools';
 import { allRepositories, applyChanges, type Repository } from './plans';
 import { DeliveryStatus, DeliveryWhen, PollingNotice } from './webhookHealth';
@@ -76,6 +77,18 @@ export function RepositoriesList() {
   const [page, setPage] = useState(1);
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const admin = session.can('admin');
+  // GitHub's return from the App's install page carries setup_action (install, update or request).
+  const [params, setParams] = useSearchParams();
+  const [returned] = useState(() => params.get('setup_action') ?? undefined);
+  useEffect(() => {
+    if (!params.has('setup_action') && !params.has('installation_id')) return;
+    const next = new URLSearchParams(params);
+    next.delete('setup_action');
+    next.delete('installation_id');
+    setParams(next, { replace: true });
+    reload();
+    // Read once on arrival: the address is cleaned and the list is read again.
+  }, []);
 
   const offQ = useQuestion(
     async () => {
@@ -173,6 +186,20 @@ export function RepositoriesList() {
           )
         }
       />
+      {returned ? (
+        <Message
+          tone={returned === 'request' ? 'needs-you' : 'done'}
+          action={
+            returned === 'request' ? undefined : (
+              <LinkButton to="/repositories/turn-on">Turn on the pool</LinkButton>
+            )
+          }
+        >
+          {returned === 'request'
+            ? 'GitHub sent the install request to an owner of the account. The repositories show here when they approve it.'
+            : 'GitHub saved the App installation. The list below is read again. Turn the pool on for the repositories you want.'}
+        </Message>
+      ) : null}
       <Load result={result} what="repositories" reload={reload}>
         {(data) => {
           const filtered = data.items.filter(
@@ -189,7 +216,7 @@ export function RepositoriesList() {
             return (
               <Empty
                 title="No repositories yet. Install the App on a repository to start."
-                action={<InstallAppButton />}
+                action={<InstallAppButton label="Add a repository" onReturn={reload} />}
               />
             );
           return (
@@ -231,7 +258,7 @@ export function RepositoriesList() {
                 >
                   Clear
                 </Button>
-                <InstallAppButton />
+                <InstallAppButton label="Add a repository" onReturn={reload} />
               </Cluster>
               {picked.size > 0 ? (
                 <Cluster>
@@ -316,32 +343,6 @@ export function RepositoriesList() {
         onConfirm={() => void offQ.confirm()}
       />
     </Page>
-  );
-}
-
-/** Adding a repository that is not listed opens GitHub's App install page (getAppInstallUrl). */
-function InstallAppButton() {
-  const client = useClient();
-  const session = useSession();
-  const open = useCommand(async () => {
-    const r = await unwrap(client.GET('/api/v1/github/install-url'));
-    window.open(r.url, '_blank', 'noopener');
-  });
-  return (
-    <span>
-      <Button
-        onPress={() => void open.run()}
-        busy={open.busy}
-        busyLabel="Opening"
-        disabled={!session.can('admin')}
-        reason={session.whyNot('admin')}
-      >
-        Add a repository
-      </Button>
-      {open.error ? (
-        <Message tone="problem">Could not open GitHub. {open.error}</Message>
-      ) : null}
-    </span>
   );
 }
 

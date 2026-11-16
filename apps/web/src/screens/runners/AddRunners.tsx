@@ -6,6 +6,7 @@ import {
   Breadcrumbs,
   ChoiceField,
   Facts,
+  LinkButton,
   Message,
   NumberField,
   Page,
@@ -21,6 +22,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { TIMING } from '../../timing';
 import { ApiError, errorText, unwrap, useClient, type Schemas } from '../../api/api';
 import { useMounted } from '../../api/mounted';
+import { InstallAppButton } from '../repositories/InstallApp';
 import {
   allRepositories,
   needsYes,
@@ -48,6 +50,36 @@ export function runnerKind(
   return m && m.os !== os ? 'ephemeral' : 'persistent';
 }
 
+const RUNS_ON: Record<OS, string> = {
+  linux: 'RUNS_ON_LINUX',
+  windows: 'RUNS_ON_WINDOWS',
+  macos: 'RUNS_ON_MACOS',
+};
+
+/**
+ * The labels a repository's workflows ask for on this system: the RUNS_ON_* variable the pool wrote (it holds
+ * the pool label too, such as crsp-home), else the labels of its policy, else the plain self-hosted label.
+ */
+export function defaultLabels(
+  repo: Pick<Repository, 'variables' | 'policy'> | undefined,
+  os: OS,
+): string {
+  const v = repo?.variables.find((x) => x.name === RUNS_ON[os] && x.value);
+  if (v?.value) {
+    try {
+      const list: unknown = JSON.parse(v.value);
+      if (Array.isArray(list)) {
+        const labels = list.filter((x): x is string => typeof x === 'string');
+        if (labels.length > 0) return labels.join(', ');
+      }
+    } catch {
+      // A value that is not a list falls through to the policy.
+    }
+  }
+  const policy = repo?.policy.labels ?? [];
+  return policy.length > 0 ? policy.join(', ') : 'self-hosted';
+}
+
 export function AddRunnersWizard() {
   const client = useClient();
   const navigate = useNavigate();
@@ -61,7 +93,15 @@ export function AddRunnersWizard() {
   const [os, setOs] = useState<OS>('linux');
   const [machineId, setMachineId] = useState('');
   const [count, setCount] = useState(1);
-  const [labels, setLabels] = useState('self-hosted');
+  const [labels, setLabelsText] = useState('self-hosted');
+  // Labels follow the repository's own variables until the user writes their own (finding 12).
+  const [labelsEdited, setLabelsEdited] = useState(false);
+  const setLabels = (v: string) => {
+    setLabelsEdited(true);
+    setLabelsText(v);
+  };
+  const [orgs, setOrgs] = useState<string[]>([]);
+  const [again, setAgain] = useState(0);
   const [scope, setScope] = useState<'repository' | 'organization'>('repository');
   const [repoId, setRepoId] = useState('');
   const [org, setOrg] = useState('');
@@ -87,13 +127,22 @@ export function AddRunnersWizard() {
     let on = true;
     void (async () => {
       try {
-        const [m, r] = await Promise.all([
+        const [m, r, ins] = await Promise.all([
           unwrap(client.GET('/api/v1/machines')),
           allRepositories(client, { pool: 'on' }),
+          unwrap(client.GET('/api/v1/github/installations')),
         ]);
         if (!on) return;
         setMachines(m.items);
         setRepos(r.items);
+        // Only an organization the App is installed on can own organization runners (finding 10).
+        setOrgs(
+          ins.items
+            .filter((i) => i.account_type === 'Organization' && !i.suspended)
+            .map((i) => i.account_login),
+        );
+        // One repository is the only choice: it is chosen (finding 11).
+        if (r.items.length === 1) setRepoId(String(r.items[0]!.id));
         const first = m.items.find((x) => machineSupports(x, 'linux')) ?? m.items[0];
         if (first) {
           setOs(machineSupports(first, 'linux') ? 'linux' : first.os);
@@ -125,8 +174,16 @@ export function AddRunnersWizard() {
     return () => {
       on = false;
     };
-  }, [client, storedPlan]);
+  }, [client, storedPlan, again]);
 
+  const labelsRepo =
+    scope === 'repository'
+      ? repos.find((r) => String(r.id) === repoId)
+      : repos.find((r) => r.owner === org && r.variables.length > 0);
+  const wanted = defaultLabels(labelsRepo, os);
+  useEffect(() => {
+    if (!labelsEdited) setLabelsText(wanted);
+  }, [wanted, labelsEdited]);
   const supports = (m: Schemas['Machine']) => machineSupports(m, os);
   const labelList = labels
     .split(',')
@@ -250,7 +307,10 @@ export function AddRunnersWizard() {
     body = (
       <Stack>
         {machines.length === 0 ? (
-          <Message tone="needs-you">
+          <Message
+            tone="needs-you"
+            action={<LinkButton to="/machines/add">Add a machine</LinkButton>}
+          >
             Add a machine first. Runners live on a machine.
           </Message>
         ) : null}
@@ -302,29 +362,53 @@ export function AddRunnersWizard() {
           onChange={setLabels}
           width="full"
         />
-        <ChoiceField
-          label="Scope"
-          value={scope}
-          onChange={(v) => setScope(v as 'repository' | 'organization')}
-          choices={[
-            { value: 'repository', label: 'One repository' },
-            { value: 'organization', label: 'An organization' },
-          ]}
-        />
-        {scope === 'repository' ? (
+        {orgs.length > 0 ? (
+          <ChoiceField
+            label="Scope"
+            value={scope}
+            onChange={(v) => {
+              setScope(v as 'repository' | 'organization');
+              if (v === 'organization' && !org) setOrg(orgs[0] ?? '');
+            }}
+            choices={[
+              { value: 'repository', label: 'One repository' },
+              { value: 'organization', label: 'An organization' },
+            ]}
+          />
+        ) : (
+          <Message
+            tone="note"
+            action={
+              <InstallAppButton
+                label="Install the App on an organization"
+                onReturn={() => setAgain((n) => n + 1)}
+              />
+            }
+          >
+            Runners are added to one repository. An organization appears here when the App
+            is installed on one.
+          </Message>
+        )}
+        {scope === 'repository' || orgs.length === 0 ? (
           <ChoiceField
             label="Repository"
+            help={
+              repos.length === 0
+                ? 'No repository uses the pool yet. Turn the pool on first.'
+                : undefined
+            }
             value={repoId}
             error={errors.repo}
             onChange={setRepoId}
             choices={repos.map((r) => ({ value: String(r.id), label: r.full_name }))}
           />
         ) : (
-          <TextField
+          <ChoiceField
             label="Organization"
             value={org}
             error={errors.org}
             onChange={setOrg}
+            choices={orgs.map((o) => ({ value: o, label: o }))}
           />
         )}
       </Stack>
@@ -449,7 +533,7 @@ export function AddRunnersWizard() {
 
 export function AddRunnersPage() {
   return (
-    <Page frame="narrow">
+    <Page>
       <Breadcrumbs
         trail={[{ to: '/runners', label: 'Runners' }, { label: 'Add runners' }]}
       />

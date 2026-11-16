@@ -546,7 +546,7 @@ export function AddMachineWizard({ onDone }: Props) {
 
 export function AddMachinePage() {
   return (
-    <Page frame="narrow">
+    <Page>
       <Breadcrumbs
         trail={[{ to: '/machines', label: 'Machines' }, { label: 'Add a machine' }]}
       />
