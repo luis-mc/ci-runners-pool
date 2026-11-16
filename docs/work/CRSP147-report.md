@@ -41,3 +41,17 @@ Branch `CRSP147-update-asks-first`, from `main` at 058456b. Draft PR to main.
 ## Status
 
 Updated as steps land; see git log.
+
+### Done
+
+- `Manager.Check` only checks; `AutoCheck` is the scheduled look (R5.87). Tests in `internal/update`.
+- Tray: update dialog (Windows PowerShell form, zenity/kdialog, osascript), channel call `install`, `Offered` once per version (tray R5.43).
+- Relaunch: `AfterInstall` hook runs `tray.StartForSignedInUsers` (WTS + CreateProcessAsUser, linked limited token) at the first start after a successful MSI update (R5.88).
+- MSI: hand-made `Uninstall\crsp` key and `ARPSYSTEMCOMPONENT` removed; `installer/wxs_test.go`, `windows-msi-check` step, smoke and upgrade tests count entries (R5.89).
+- Spec, change notes (hand-written: `docs_fold.py` / `docs_check.py` are not on this machine), design-system `next-version` content words + C45.
+
+### Not verified here
+
+- No Windows: the PowerShell dialog, `launch_windows.go` and the MSI were compiled/authored but not run. The Windows installer workflow (`installer.yml`) runs smoke and upgrade tests on the PR.
+- The cause of the double entry is deduced from the authoring (two entries, one hidden by a flag), not reproduced.
+- `apps/web` tests were not run (no node_modules); the one string changed is in `Updates.tsx` and its test.

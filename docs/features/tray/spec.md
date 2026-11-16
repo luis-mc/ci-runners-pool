@@ -97,7 +97,7 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 | Pause for 1 hour, Pause until I resume | Action | Pause new jobs on this machine; the running jobs finish. Hidden while a pause or the Paused mode holds. |
 | Resume | Action | Ends the pause, and returns the Paused mode to Automatic. Shown only while a pause or the Paused mode holds. |
 | Open CI Runners Shared Pool | Action. It is not bold: the owner accepted a plain entry, and the menu has no default-entry code path. | Opens the console, signed in, through a one-time link. |
-| Look for updates | Action | Asks the service to look for a newer stable release now and says the result in one notice. |
+| Look for updates | Action | Asks the service to look for a newer stable release now. It only looks (R5.43). Up to date: one notice, `CI Runners Shared Pool <version> is the newest stable release.` A newer release: the update dialog. |
 | Update to `<version>` | Action | Shown only when a newer release waits for a yes, that is, Automatic updates is off. Opens the console Review step. |
 | Restart the service | Action | Opens the console Review step. Never restarts without that yes. |
 | Open log folder | Action | Opens the service's log folder in the file manager. |
@@ -172,11 +172,13 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 **R5.17** — After a yes (or, for an update, with Automatic updates on), the service MUST drain: start no new job here, wait for running jobs to end or for the drain timeout, then restart or install. It MUST check once more that no job runs right before the install, and MUST never stop a running job before the timeout (product learning 1). (M1, CRSP19)
 
-**R5.18** — The tray MUST show Update to `<version>` only when the controller reports a newer stable release and Automatic updates is off. With it off, the update MUST install only after a yes on the Review step. With it on, the update installs by itself after the drain. After the install the tray MUST come back on the new version within 30 seconds: when the service reports a newer version than the tray's own, the tray starts the new binary and quits. (M1, CRSP19)
+**R5.18** — The tray MUST show Update to `<version>` only when the controller reports a newer stable release and Automatic updates is off. With it off, the update MUST install only after a yes on the Review step. With it on, the regular check installs by itself after the drain; the owner's own look never does (R5.43). After the install the tray MUST come back on the new version within 30 seconds: when the service reports a newer version than the tray's own, the tray starts the new binary and quits. (M1, CRSP19)
 
 **R5.28** — Automatic updates MUST be on by default on every OS, and the user MUST be able to turn it off and on in the console (Settings, Updates) and with `crsp update auto on|off`. The choice is the controller setting `auto_update`, and the version line of the menu MUST say `· auto-update off` when it is off. (M1, CRSP19)
 
-**R5.29** — The tray MUST ask the service to look for updates only through the local channel call `check`; it never talks to GitHub itself. Update, restart and Look for updates MUST NOT need a network port in the tray (R6.3). (M1, CRSP19)
+**R5.43** (built, CRSP147) — **Look for updates asks first.** A newer stable release MUST open a dialog that stays until answered: the version that runs, the new version, a `What changed` link to the release page, `Later` on the left and `Install now` (the main button) on the right. When jobs run it MUST say that Install now waits for them to finish (the drain) and how many run; it stops none. Install now sends the local channel call `install` (the service drains, then installs); Later changes nothing. Closing the dialog is Later. The tray MUST NOT install anything on a look alone, whatever Automatic updates says. With Automatic updates off, a newer release found by the regular check opens the same dialog once per version. Without a dialog program (a Linux desktop with neither zenity nor kdialog) the tray shows a notice that points to Settings, Updates, and installs nothing. After a successful update the tray shows `Updated to vX` once (operations R5.88).
+
+**R5.29** — The tray MUST ask the service to look for updates only through the local channel calls `check` and `install`; it never talks to GitHub itself. Update, restart and Look for updates MUST NOT need a network port in the tray (R6.3). (M1, CRSP19)
 
 **R5.30** — Open on GitHub MUST open `https://github.com/luis-mc/ci-runners-shared-pool` in the default browser. (M1, CRSP19)
 
@@ -275,6 +277,7 @@ Rows marked built have tests that exist and run in CI. Rows marked planned are n
 |---|---|
 | R5.1 | built: internal/tray/menu_test.go, TestMenuOrder, TestUpdateItemOnlyWhenNewerAndAutoOff |
 | R5.42 | built (CRSP75): internal/tray/policy_test.go, TestModeSubmenuIsThreeRadioItemsWithOneTick, TestPauseAndResumeItems, TestNoPolicyHidesTheModeItems, TestHeaderNamesWhyTheMachineTakesNoJobs, TestClientSetsModePauseAndResume, TestOpenerChangesPolicyAndNoticesAFailure; internal/trayserver/server_unix_test.go, TestChannelModePauseAndResume; internal/machines/policy_test.go, TestPauseFromTheTray |
+| R5.43 | built (CRSP147): internal/tray/update_prompt_test.go, TestLookForUpdatesAsksAndNeverInstallsByItself, TestLookForUpdatesWithoutDialogNeverInstalls, TestInstallNowFailureIsSaid, TestUpToDateAndAlreadyUpdatingAskNothing, TestPromptBodyNamesVersionsAndJobCount, TestOfferedOncePerVersion. The OS dialogs (PowerShell form, zenity, kdialog, osascript) are not driven in CI |
 | R5.2 | built: internal/tray/menu_test.go, TestServiceLinePerState, TestHeaderPerUpdateState; internal/tray/tray_test.go, TestStatusTextPerState (tooltip) |
 | R5.3 | built: internal/tray/tray_test.go, TestPollerUpdatesWithin10s (injected clock) |
 | R5.4 | built: internal/tray/tray_test.go, TestIconIsAlwaysTheDiscDifferingOnlyInColour, TestCommittedAppIconMatches |

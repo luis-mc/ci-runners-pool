@@ -38,10 +38,13 @@ Each action has one word. The Never use column lists words that must not stand i
 | Turn on | Let a repository use the pool. | Enable, Activate |
 | Turn off | Stop a repository using the pool. | Disable, Deactivate |
 | Copy | Copy a command or a value. It changes nothing. | Clipboard |
-| Look for updates | Ask GitHub for a newer stable release now. It downloads nothing. | Check for updates, Refresh |
+| Look for updates | Ask GitHub for a newer stable release now. It only looks: it downloads and installs nothing. A newer release is shown in a dialog that stays until answered. | Check for updates, Refresh |
+| Install now | The main button of the update dialog: install the newer release after the running jobs end. | Update, Yes, OK |
+| Later | The other button of the update dialog: change nothing. It sits left of Install now. | No, Cancel, Skip |
+| What changed | The link in the update dialog to the release page. | Release notes, Changelog |
 | Update to N | Install release N after the running jobs end. N is the version. | Upgrade, Install |
 | Restart the service | Stop and start the service after the running jobs end. | Reboot, Reset |
-| Automatic updates | The switch that lets a newer stable release install by itself after the running jobs end. | Auto-upgrade |
+| Automatic updates | The switch that lets the regular check install a newer stable release by itself after the running jobs end. Looking for updates yourself never installs. | Auto-upgrade |
 | Quit tray | Close the tray icon only. The service keeps running. | Exit, Close |
 | Export | Save every row of a table or list as a file, in the order shown (component 29). It changes nothing. | Download, Save as |
 | Run the doctor | Start the doctor now. While it runs the button says Running the doctor. | Scan, Check, Run checks |
