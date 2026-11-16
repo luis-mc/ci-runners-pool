@@ -349,6 +349,60 @@ describe('Export (component 29, UX-39)', () => {
   });
 });
 
+describe('Jobs panes and states (UX-4, UX-6, UX-10, UX-17)', () => {
+  const paneNames = () =>
+    Array.from(document.querySelectorAll('section.ds-pane')).map((e) =>
+      e.getAttribute('aria-label'),
+    );
+
+  it('puts the queue, the filters and the history each in a pane, with the filters outside the list pane', async () => {
+    renderApp(jobsApi({ queue: [queued], history: [job()] }), '/jobs');
+    await screen.findByText('ci.yml / test');
+    expect(paneNames()).toEqual(['Queue', 'Filters', 'History']);
+    const filters = screen.getByRole('region', { name: 'Filters' });
+    expect(within(filters).getByRole('group', { name: 'Result' })).toBeTruthy();
+    expect(within(filters).getByText('Repository')).toBeTruthy();
+    const history = screen.getByRole('region', { name: 'History' });
+    expect(within(history).getByRole('button', { name: /Export/ })).toBeTruthy();
+  });
+
+  it('offers Add runners once, as the one primary, when there are no jobs', async () => {
+    renderApp(jobsApi(), '/jobs');
+    const add = await screen.findByRole('button', { name: 'Add runners' });
+    expect(add.getAttribute('href')).toBe('/runners/add');
+    expect(screen.getAllByRole('button', { name: 'Add runners' })).toHaveLength(1);
+    expect(
+      screen
+        .getAllByRole('button')
+        .filter((b) => b.getAttribute('data-kind') === 'primary'),
+    ).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 1, name: 'Jobs' })).toBeTruthy();
+    expect(paneNames()).toEqual(['Jobs']);
+  });
+
+  it('keeps the h1 when the history could not load', async () => {
+    const api = jobsApi({}).on('GET', '/api/v1/jobs', (call) =>
+      call.query.get('state') === 'queued'
+        ? { items: [queued], stale: { stale: false } }
+        : apiError(500, 'internal', 'internal error'),
+    );
+    renderApp(api, '/jobs');
+    await screen.findByText('Could not load the job history.');
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
+  it('draws the queue rows as list rows the cursor reaches (reverse video row)', async () => {
+    renderApp(jobsApi({ queue: [queued] }), '/jobs');
+    await screen.findByText('e2e');
+    const queue = screen.getByRole('region', { name: 'Queue' });
+    const rows = within(queue).getAllByRole('row').slice(1);
+    expect(rows.length).toBe(1);
+    expect(rows.every((r) => r.hasAttribute('data-list-row') && r.tabIndex === 0)).toBe(
+      true,
+    );
+  });
+});
+
 describe('Job detail', () => {
   it('shows the placement and times with a link to the run on GitHub', async () => {
     const api = jobsApi().on('GET', '/api/v1/jobs/:id', job());
@@ -372,5 +426,6 @@ describe('Job detail', () => {
     );
     renderApp(api, '/jobs/99');
     expect(await screen.findByText('Could not load the job.')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Job' })).toBeTruthy();
   });
 });

@@ -261,7 +261,16 @@ export function JobsList() {
         lead="The queue and the job history, and why a job waits."
       />
       {noJobs ? (
-        <Empty title="No jobs yet. Jobs show here when a workflow runs on the pool." />
+        <Section title="Jobs">
+          <Empty
+            title="No jobs yet. Jobs show here when a workflow runs on the pool."
+            action={
+              <LinkButton to="/runners/add" kind="primary">
+                Add runners
+              </LinkButton>
+            }
+          />
+        </Section>
       ) : (
         <>
           <Section title="Queue">
@@ -281,7 +290,7 @@ export function JobsList() {
               }
             </Load>
           </Section>
-          <Section title="History">
+          <Section title="Filters">
             <Stack>
               <ListToolbar
                 label="Job history"
@@ -305,7 +314,6 @@ export function JobsList() {
                     />
                   </>
                 }
-                actions={<ExportButton what="jobs" run={exportAll} />}
               />
               <Cluster>
                 <ChoiceField
@@ -337,6 +345,10 @@ export function JobsList() {
                   onChange={(machine) => setF({ machine })}
                 />
               </Cluster>
+            </Stack>
+          </Section>
+          <Section title="History" actions={<ExportButton what="jobs" run={exportAll} />}>
+            <Stack>
               <Load
                 result={history.result}
                 what="the job history"
@@ -433,6 +445,9 @@ export function JobDetail() {
           { label: result.state === 'ready' ? result.data.job_name : 'Job' },
         ]}
       />
+      {result.state === 'ready' || (result.state === 'failed' && result.data) ? null : (
+        <PageHeader title="Job" lead="One job: where it ran and when." />
+      )}
       <Load result={result} what="the job" reload={reload}>
         {(j) => <JobBody j={j} />}
       </Load>
