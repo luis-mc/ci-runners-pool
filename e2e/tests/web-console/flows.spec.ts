@@ -66,7 +66,7 @@ test('Add a machine: Review, Joining with a one-time code, then Done with the ma
     timeout: 10_000,
   });
   await expect(page.getByText('build-1')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Start again' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open Machines' })).toBeVisible();
 });
 
 test('Add a machine: Stop withdraws the code and the wizard still ends at Done', async ({
@@ -137,9 +137,13 @@ test('Turn on the pool: choose, Review, Turning on, Done with what was really do
     page.getByRole('heading', { level: 1, name: 'Turn on the pool' }),
   ).toBeVisible();
   const next = page.getByRole('button', { name: 'Next' });
+  // The only repository is chosen already (CRSP124); clearing it shows the reason the primary is locked.
+  const box = page.getByRole('checkbox', { name: 'Select octo/app' });
+  await expect(box).toBeChecked();
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
   await expect(next).toBeDisabled();
   await expect(page.getByText('Tick the repositories to turn on.')).toBeVisible();
-  await page.getByRole('checkbox', { name: 'Select octo/app' }).check();
+  await box.check();
   await next.click();
   await expect(page.getByText('Nothing has changed yet.')).toBeVisible();
   await page.getByRole('button', { name: 'Turn on 1 repository' }).click();

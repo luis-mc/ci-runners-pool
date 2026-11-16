@@ -56,6 +56,8 @@ type Options struct {
 	Machines MachinesService
 	// CA serves GET /api/v1/ca.pem.
 	CA CAProvider
+	// Packages serves GET /api/v1/packages/{name} (machines R5.65). Nil answers 501.
+	Packages PackageServer
 	// Jobs and Slots serve the jobs and slot routes (handlers_jobs.go).
 	Jobs  slots.Jobs
 	Slots scheduler.SlotQueue

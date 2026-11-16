@@ -276,7 +276,9 @@ export function CheckRow({
       />
       <span className="ds-choice__text">
         {label}
-        {help ? <span className="ds-choice__reason"> {help}</span> : null}
+        {help && help !== disabledReason ? (
+          <span className="ds-choice__reason"> {help}</span>
+        ) : null}
         {disabledReason ? (
           <span className="ds-choice__reason"> {disabledReason}</span>
         ) : null}

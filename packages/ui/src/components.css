@@ -883,6 +883,17 @@ body {
   padding: 0;
   list-style: none;
 }
+/* UX-15: from a tablet up the step bar is one row, each step the same width. */
+@media (min-width: 601px) {
+  .ds-steps {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+  }
+  .ds-steps__button {
+    inline-size: 100%;
+  }
+}
 .ds-steps__button {
   min-block-size: var(--ds-target-min);
   padding-inline: var(--ds-space-3);
@@ -1016,5 +1027,18 @@ body {
 .ds-export {
   display: inline-grid;
   gap: var(--ds-space-2);
+  min-inline-size: 0;
+}
+
+/* a form's short fields in equal columns (component 43) */
+.ds-field-grid {
+  display: grid;
+  /* Each column is as wide as a short field, so the gap between two fields is the grid gap. */
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--ds-width-field-short)), var(--ds-width-field-short))
+  );
+  justify-content: start;
+  gap: var(--ds-space-4);
   min-inline-size: 0;
 }

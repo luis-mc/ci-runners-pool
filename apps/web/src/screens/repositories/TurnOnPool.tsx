@@ -6,6 +6,7 @@ import {
   Breadcrumbs,
   Cluster,
   Button,
+  LinkButton,
   Facts,
   Message,
   Page,
@@ -23,6 +24,7 @@ import { TIMING } from '../../timing';
 import { ApiError, errorText, unwrap, useClient } from '../../api/api';
 import { useMounted } from '../../api/mounted';
 import { useLiveState } from '../../live/LiveProvider';
+import { InstallAppButton } from './InstallApp';
 import {
   allRepositories,
   needsYes,
@@ -30,6 +32,12 @@ import {
   type Plan,
   type Repository,
 } from './plans';
+
+/** Why light runners appear when the pool is turned on (scheduling R5.65). */
+export const LIGHT_RUNNER_WHY =
+  'Turning the pool on also makes one light runner per system, on a machine that is up. Jobs that last seconds use it, so they do not wait behind a long build. Turn it off for a repository on its page.';
+export const LIGHT_RUNNER_DONE =
+  'The pool made light runners for short jobs. They show in Runners.';
 
 const STEPS = [
   'Reading repositories',
@@ -79,6 +87,10 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
         const all = await allRepositories(client, { pool: 'off' });
         if (!on) return;
         setRepos(all.items);
+        // One repository that can be turned on is already chosen (nothing else could be).
+        const open = all.items.filter((r) => r.user_is_github_admin);
+        if (preselected.length === 0 && open.length === 1 && !storedPlan)
+          setPicked(new Set(open.map((r) => r.id)));
         if (storedPlan) {
           const p = await unwrap(
             client.GET('/api/v1/repository-plans/{planId}', {
@@ -106,6 +118,18 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
       on = false;
     };
   }, [client, storedPlan, settle]);
+
+  // Back from GitHub's install page: read the repositories again and keep what is ticked.
+  const readAgain = useCallback(async () => {
+    try {
+      const all = await allRepositories(client, { pool: 'off' });
+      setRepos(all.items);
+      const open = all.items.filter((r) => r.user_is_github_admin);
+      setPicked((p) => (p.size === 0 && open.length === 1 ? new Set([open[0]!.id]) : p));
+    } catch {
+      // The old list stays; the user can press the button again.
+    }
+  }, [client]);
 
   const eligible = repos.filter((r) => r.user_is_github_admin);
   const blocked = repos.filter((r) => !r.user_is_github_admin);
@@ -228,9 +252,21 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
       <Stack>
         <Text>Choose the repositories that should use the pool.</Text>
         {eligible.length === 0 ? (
-          <Message tone="note">
-            No repository is free to turn on. Install the App on a repository, or turn the
-            pool off on one first.
+          <Message
+            tone="needs-you"
+            action={
+              <Cluster>
+                <InstallAppButton
+                  label="Install the App on a repository"
+                  onReturn={() => void readAgain()}
+                />
+                <LinkButton to="/repositories">Open Repositories</LinkButton>
+              </Cluster>
+            }
+          >
+            {blocked.length > 0
+              ? 'No repository is free for you to turn on. Install the App on a repository you own, or ask an owner of the others to turn them on.'
+              : 'No repository is waiting. Install the App on a repository to turn the pool on for it, or open Repositories to see the ones that already use it.'}
           </Message>
         ) : (
           <>
@@ -269,7 +305,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
           <Message tone="note">
             {blocked.length} {blocked.length === 1 ? 'repository is' : 'repositories are'}{' '}
             not listed: you need admin rights on {blocked.length === 1 ? 'it' : 'them'} in
-            GitHub.
+            GitHub. Ask an owner to give you admin rights, then open this page again.
           </Message>
         ) : null}
       </Stack>
@@ -286,6 +322,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
             (s) => `${s.text}${s.needs_yes ? ' (needs your yes)' : ''}`,
           )}
         />
+        <Message tone="note">{LIGHT_RUNNER_WHY}</Message>
       </Stack>
     );
   } else if (step === 3) {
@@ -331,7 +368,8 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
         ) : null}
         {phase === 'done' || phase === 'done-after-reload' ? (
           <Message tone="done">
-            The pool is on. {done.length} {done.length === 1 ? 'step' : 'steps'} done.
+            The pool is on. {done.length} {done.length === 1 ? 'step' : 'steps'} done.{' '}
+            {LIGHT_RUNNER_DONE}
           </Message>
         ) : null}
         <Facts
@@ -414,7 +452,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
 
 export function TurnOnPoolPage() {
   return (
-    <Page frame="narrow">
+    <Page>
       <Breadcrumbs
         trail={[
           { to: '/repositories', label: 'Repositories' },

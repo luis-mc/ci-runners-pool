@@ -92,7 +92,7 @@ describe('the shell (R5.3)', () => {
     renderApp(signedIn(), '/');
     await screen.findByRole('heading', { name: 'Overview' });
     await screen.findByText('1 of 1 online');
-    expect(screen.queryByText('First run is not finished.')).toBeNull();
+    expect(screen.queryByText(/First run is not finished\./)).toBeNull();
   });
 
   it('shows the first-run banner while a step is todo', async () => {
@@ -103,7 +103,9 @@ describe('the shell (R5.3)', () => {
       steps: { connect_github: 'done', first_machine: 'todo', first_repository: 'done' },
     });
     renderApp(api, '/');
-    expect(await screen.findByText('First run is not finished.')).toBeTruthy();
+    expect(
+      await screen.findByText('First run is not finished. Next: add the first machine.'),
+    ).toBeTruthy();
   });
 
   it('says Live updates paused and keeps the last data (R5.7)', async () => {

@@ -62,7 +62,7 @@ func TestSSHJoinRunsTheInstallCommandOnceWithoutPassword(t *testing.T) { // RES3
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(f.runs) != 1 || !strings.HasPrefix(f.runs[0], "sudo -n crsp agent install --controller pool.lan:8461 ") || !strings.Contains(f.runs[0], "--join-code ") {
+	if len(f.runs) != 1 || !strings.HasPrefix(f.runs[0], "sudo -n crsp agent install --controller pool.lan:8461 ") || !strings.HasSuffix(f.runs[0], " --yes") || !strings.Contains(f.runs[0], "--join-code ") {
 		t.Fatalf("command = %v", f.runs)
 	}
 	if c.Code != "" || c.JoinCode.ID == "" {
@@ -78,12 +78,12 @@ func TestSSHJoinRunsTheInstallCommandOnceWithoutPassword(t *testing.T) { // RES3
 	}
 }
 
-func TestSSHJoinRefusesWindowsBadInputAndNoRunner(t *testing.T) { // RES3
+func TestSSHJoinRefusesAnUnknownSystemBadInputAndNoRunner(t *testing.T) { // RES3
 	f := &fakeSSH{}
 	e := newEnv(t, func(o *machines.Options) { o.SSH = f })
 	ctx := context.Background()
-	if _, err := e.Svc.JoinOverSSH(ctx, "o", sshIn("windows", "SHA256:abc")); !errors.Is(err, machines.ErrInvalid) {
-		t.Fatalf("windows: %v", err)
+	if _, err := e.Svc.JoinOverSSH(ctx, "o", sshIn("freebsd", "SHA256:abc")); !errors.Is(err, machines.ErrInvalid) {
+		t.Fatalf("unknown system: %v", err)
 	}
 	bad := sshIn("linux", "SHA256:abc")
 	bad.Host = "a b; rm -rf /"

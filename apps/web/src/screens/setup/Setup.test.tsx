@@ -23,7 +23,9 @@ describe('Setup page', () => {
     const api = signedIn().on('GET', '/api/v1/setup', state());
     renderApp(api, '/setup');
     expect(
-      await screen.findByText(/use Open in the tray, or run `crsp open`/),
+      await screen.findByText(
+        /choose Open in the tray menu of the controller's machine, or run `crsp open`/,
+      ),
     ).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Next' })).toBeNull();
   });
@@ -185,9 +187,9 @@ describe('First run banner (R5.15)', () => {
       }),
     );
     renderApp(api, '/');
-    expect(await screen.findByText('First run is not finished.')).toBeTruthy();
+    expect(await screen.findByText(/First run is not finished\./)).toBeTruthy();
     expect(
-      screen.getByRole('link', { name: 'Open the setup page' }).getAttribute('href'),
+      screen.getByRole('button', { name: 'Open the setup page' }).getAttribute('href'),
     ).toBe('/setup');
   });
 
@@ -195,7 +197,7 @@ describe('First run banner (R5.15)', () => {
     renderApp(signedIn(), '/');
     await screen.findByRole('heading', { name: 'Overview' });
     await waitFor(() =>
-      expect(screen.queryByText('First run is not finished.')).toBeNull(),
+      expect(screen.queryByText(/First run is not finished\./)).toBeNull(),
     );
   });
 

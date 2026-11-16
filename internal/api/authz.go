@@ -24,7 +24,7 @@ type Authenticator interface {
 // R6.5). An operation that is in neither table is refused: the check fails
 // closed.
 var otherAreaAuth = map[string]string{
-	"getCaCertificate": authPublic, "getHealth": authPublic,
+	"getCaCertificate": authPublic, "getPackage": authPublic, "getHealth": authPublic,
 
 	"createConsoleLink": authUser, "exportAuditEvents": authUser, "exportJobs": authUser, "getImage": authUser, "getSpeedComparison": authUser,
 	"getUpdateStatus": authUser, "listCaches": authUser, "listImages": authUser, "getDoctorRun": authUser, "getJob": authUser, "getMachine": authUser,
@@ -35,7 +35,7 @@ var otherAreaAuth = map[string]string{
 
 	"applyUpdate": authAdmin, "checkForUpdate": authAdmin, "exportConfig": authAdmin, "rebuildImage": authAdmin,
 	"restartService": authAdmin, "stopRunnerPlan": authAdmin, "updateImageLayers": authAdmin, "wipeCache": authAdmin,
-	"createJoinCode": authAdmin, "joinMachineOverSsh": authAdmin, "createRunners": authAdmin, "decideMachineChange": authAdmin, "deleteRunner": authAdmin, "deleteRunnerRegistration": authAdmin,
+	"createJoinCode": authAdmin, "createJoinFile": authAdmin, "joinMachineOverSsh": authAdmin, "createRunners": authAdmin, "decideMachineChange": authAdmin, "deleteRunner": authAdmin, "deleteRunnerRegistration": authAdmin,
 	"drainMachine": authAdmin, "freeStaleSlots": authAdmin, "getInstallCommand": authAdmin, "getJoinCode": authAdmin,
 	"listBackups": authAdmin, "planRunnerReplacement": authAdmin, "planRunners": authAdmin, "redetectMachine": authAdmin, "recoverMachine": authAdmin, "checkMachinePoolSize": authAdmin,
 	"removeMachine": authAdmin, "resumeMachine": authAdmin, "revokeJoinCode": authAdmin, "runBackup": authAdmin,

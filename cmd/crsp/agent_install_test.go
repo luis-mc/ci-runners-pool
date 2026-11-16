@@ -63,3 +63,20 @@ func TestInstallElevatedUsesTheMachineFolder(t *testing.T) {
 		}
 	}
 }
+
+// CRSP123: --yes answers the plan without stdin (an SSH join has none).
+func TestInstallYesNeedsNoStdin(t *testing.T) {
+	ex := &recAgentExec{}
+	var out strings.Builder
+	args := append(append([]string{}, installArgs...), "--yes")
+	if err := installWith(args, &out, strings.NewReader(""), "windows", true, ex); err != nil {
+		t.Fatal(err)
+	}
+	if len(ex.cmds) == 0 {
+		t.Fatal("the plan did not run")
+	}
+	ex2 := &recAgentExec{}
+	if err := installWith(installArgs, io.Discard, strings.NewReader(""), "windows", true, ex2); err == nil || len(ex2.cmds) != 0 {
+		t.Fatalf("without --yes and without an answer nothing runs: %v", err)
+	}
+}

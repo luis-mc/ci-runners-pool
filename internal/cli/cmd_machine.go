@@ -3,6 +3,9 @@ package cli
 import (
 	"flag"
 	"fmt"
+	"mime"
+	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -129,6 +132,52 @@ func cmdMachine() *command {
 					for _, it := range r.JSON201.Commands.Items {
 						_, _ = fmt.Fprintf(c.env.Stdout, "%s: %s\n", it.Os, it.Command)
 					}
+					return nil
+				}},
+			{name: "join-file", summary: "download an installer file with a one-time join code built in", args: "--os windows|linux|macos [--out FILE] [--expires 15m]",
+				flags: func(c *call, fs *flag.FlagSet) {
+					fs.String("os", "", "the machine's system: windows, linux or macos")
+					fs.String("out", "", "where to save the file (default: its own name in this folder)")
+					fs.Duration("expires", 15*time.Minute, "how long the code is valid")
+				},
+				run: func(c *call, _ []string) error {
+					osName := c.fs.Lookup("os").Value.String()
+					if osName != "windows" && osName != "linux" && osName != "macos" {
+						return fail(ExitUsage, "Usage: crsp machine join-file --os windows|linux|macos [--out FILE] [--expires 15m]")
+					}
+					d, _ := time.ParseDuration(c.fs.Lookup("expires").Value.String())
+					mins := int((d + time.Minute - 1) / time.Minute)
+					if mins < 1 || mins > 1440 {
+						return fail(ExitUsage, "--expires must be between 1m and 24h.")
+					}
+					s, err := c.open()
+					if err != nil {
+						return err
+					}
+					r, err := s.client.CreateJoinFileWithResponse(c.env.Context, client.CreateJoinFileRequest{Os: client.CreateJoinFileRequestOs(osName), TtlMinutes: &mins})
+					if err != nil {
+						return s.transport(err)
+					}
+					if err := apiError(r.StatusCode(), r.Body); err != nil {
+						return err
+					}
+					path := c.fs.Lookup("out").Value.String()
+					if path == "" {
+						path = joinFileName(r.HTTPResponse.Header.Get("Content-Disposition"), osName)
+					}
+					// Owner only: the file holds a one-time code. The shell files may run.
+					mode := os.FileMode(0o600)
+					if osName != "windows" {
+						mode = 0o700
+					}
+					if err := os.WriteFile(path, r.Body, mode); err != nil { //nolint:gosec // the caller's own --out
+						return fail(ExitFailed, "Could not save the file: %v", err)
+					}
+					if c.g.json {
+						return output.JSON(c.env.Stdout, map[string]string{"file": path, "join_code_id": r.HTTPResponse.Header.Get("X-Join-Code-Id")})
+					}
+					_, _ = fmt.Fprintf(c.env.Stderr, "Copy this file to the new machine and open it there. Its code works once and expires in %d minutes.\n", mins)
+					_, _ = fmt.Fprintln(c.env.Stdout, path)
 					return nil
 				}},
 			{name: "drain", summary: "stop giving a machine new jobs; wait for running jobs", args: "NAME [--yes]",
@@ -288,3 +337,18 @@ func (c *call) waitChange(s *session, m client.Machine, change *client.MachineCh
 	}
 	return nil
 }
+
+// joinFileName reads the file name the controller chose (it says the OS and the
+// expiry). Anything that is not a plain name falls back to a fixed one, so the
+// answer never decides a folder.
+func joinFileName(contentDisposition, osName string) string {
+	if _, params, err := mime.ParseMediaType(contentDisposition); err == nil {
+		if n := params["filename"]; joinFileNameRe.MatchString(n) {
+			return n
+		}
+	}
+	ext := map[string]string{"windows": "cmd", "linux": "sh", "macos": "command"}[osName]
+	return "crsp-join-" + osName + "." + ext
+}
+
+var joinFileNameRe = regexp.MustCompile(`^crsp-join-[a-z]+-until-[0-9TZ]+\.(cmd|sh|command)$`)

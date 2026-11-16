@@ -31,7 +31,7 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 4. Wizard
 
 - **Used for:** a guided flow with a step bar on top, only the current step, and Back and the primary action at the bottom. A wizard that changes something ends with three steps, in order: Review, then the work (its own verb in the "-ing" form), then Done (UX-30). Review shows what will happen in numbers and words, and the line "Nothing has changed yet." Earlier steps stay reachable, and Review counts again after a change. Its one primary is named by the work and its count. The work step shows live progress and has no Back. Done shows what really happened, never the plan, and its one primary is the next action. A job under about a second opens Done at once. A stopped or failed job still ends at Done and says what was done and what is left. A step that only reads before Review is named by what it reads ("Reading files"), never "Checking".
-- **Looks:** a step bar on top, one step in the middle, and Back and the primary action at the bottom.
+- **Looks:** a step bar on top, one step in the middle, and Back and the primary action at the bottom. From 601 px up the step bar is one row with every step the same width (UX-15); on a phone the steps wrap.
 - **Source:** `src/ui/wizard`
 - **Rules:** UX-5, UX-4, UX-24, UX-30, UX-35.
 - **Guard:** none yet.
@@ -478,6 +478,14 @@ The body scrolls when the content is taller than the space. The overlay never gr
 - **Source:** `packages/ui/src/components/Fields.tsx` (`Choice.swatch`), `packages/ui/src/themes.ts`
 - **Rules:** UX-22, UX-55, UX-60.
 - **Guard:** `scripts/design/themes.test.ts` (tokens and contrast); `apps/web/src/screens/settings/Settings.test.tsx` (picking and keeping a theme).
+
+## 43. Field grid
+
+- **Used for:** a form's short fields (numbers, short text) that belong together, such as the budget and slots of a machine.
+- **Looks:** the fields sit in equal columns, as many as fit the width, and fold to one column on a phone. Each field keeps its name above its box (UX-20). Fields never touch (UX-10).
+- **Source:** `packages/ui/src/components/layout.tsx` (`FieldGrid`), `packages/ui/src/components.css`
+- **Rules:** UX-10, UX-15, UX-16, UX-20.
+- **Guard:** `e2e/tests/design-layout.spec.ts` (layout at 360, 393 and 1300 px).
 
 ## How to add a component
 

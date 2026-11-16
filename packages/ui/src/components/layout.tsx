@@ -41,6 +41,15 @@ export function Cluster({
   );
 }
 
+/** Component 43: a form's short fields in equal columns, as many as fit (UX-10, UX-15, UX-16). */
+export function FieldGrid({ children }: { children: ReactNode }) {
+  return (
+    <div className="ds-field-grid" data-layout-group>
+      {children}
+    </div>
+  );
+}
+
 export function Text({
   children,
   tone,

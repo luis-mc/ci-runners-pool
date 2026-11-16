@@ -273,6 +273,27 @@ func (e CpuCapState) Valid() bool {
 	}
 }
 
+// Defines values for CreateJoinFileRequestOs.
+const (
+	CreateJoinFileRequestOsLinux   CreateJoinFileRequestOs = "linux"
+	CreateJoinFileRequestOsMacos   CreateJoinFileRequestOs = "macos"
+	CreateJoinFileRequestOsWindows CreateJoinFileRequestOs = "windows"
+)
+
+// Valid indicates whether the value is a known member of the CreateJoinFileRequestOs enum.
+func (e CreateJoinFileRequestOs) Valid() bool {
+	switch e {
+	case CreateJoinFileRequestOsLinux:
+		return true
+	case CreateJoinFileRequestOsMacos:
+		return true
+	case CreateJoinFileRequestOsWindows:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DoctorRunState.
 const (
 	DoctorRunStateDone    DoctorRunState = "done"
@@ -1490,8 +1511,9 @@ func (e SlotKind) Valid() bool {
 
 // Defines values for SshJoinRequestOs.
 const (
-	SshJoinRequestOsLinux SshJoinRequestOs = "linux"
-	SshJoinRequestOsMacos SshJoinRequestOs = "macos"
+	SshJoinRequestOsLinux   SshJoinRequestOs = "linux"
+	SshJoinRequestOsMacos   SshJoinRequestOs = "macos"
+	SshJoinRequestOsWindows SshJoinRequestOs = "windows"
 )
 
 // Valid indicates whether the value is a known member of the SshJoinRequestOs enum.
@@ -1500,6 +1522,8 @@ func (e SshJoinRequestOs) Valid() bool {
 	case SshJoinRequestOsLinux:
 		return true
 	case SshJoinRequestOsMacos:
+		return true
+	case SshJoinRequestOsWindows:
 		return true
 	default:
 		return false
@@ -2085,6 +2109,17 @@ type CreateJoinCodeRequest struct {
 	// TtlMinutes Default 15, ceiling 1440 (machines R5.4).
 	TtlMinutes *int `json:"ttl_minutes,omitempty"`
 }
+
+// CreateJoinFileRequest defines model for CreateJoinFileRequest.
+type CreateJoinFileRequest struct {
+	Os CreateJoinFileRequestOs `json:"os"`
+
+	// TtlMinutes Default 15, ceiling 1440 (machines R5.4).
+	TtlMinutes *int `json:"ttl_minutes,omitempty"`
+}
+
+// CreateJoinFileRequestOs defines model for CreateJoinFileRequest.Os.
+type CreateJoinFileRequestOs string
 
 // DoctorFinding defines model for DoctorFinding.
 type DoctorFinding struct {
@@ -3967,6 +4002,9 @@ type CreateJoinCodeJSONRequestBody = CreateJoinCodeRequest
 // JoinMachineOverSshJSONRequestBody defines body for JoinMachineOverSsh for application/json ContentType.
 type JoinMachineOverSshJSONRequestBody = SshJoinRequest
 
+// CreateJoinFileJSONRequestBody defines body for CreateJoinFile for application/json ContentType.
+type CreateJoinFileJSONRequestBody = CreateJoinFileRequest
+
 // UpdateMachineJSONRequestBody defines body for UpdateMachine for application/json ContentType.
 type UpdateMachineJSONRequestBody = MachineSettingsUpdate
 
@@ -4170,7 +4208,7 @@ type ServerInterface interface {
 	// CreateJoinCode Make a one-time join code and the install commands
 	// (POST /api/v1/join-codes)
 	CreateJoinCode(w http.ResponseWriter, r *http.Request)
-	// JoinMachineOverSsh Join a Linux or macOS machine over SSH
+	// JoinMachineOverSsh Join a Linux, macOS or Windows machine over SSH
 	// (POST /api/v1/join-codes/ssh)
 	JoinMachineOverSsh(w http.ResponseWriter, r *http.Request)
 	// RevokeJoinCode Withdraw an unused join code
@@ -4179,6 +4217,9 @@ type ServerInterface interface {
 	// GetJoinCode A join code's state (never its value)
 	// (GET /api/v1/join-codes/{joinCodeId})
 	GetJoinCode(w http.ResponseWriter, r *http.Request, joinCodeId JoinCodeId)
+	// CreateJoinFile Download an installer file with a one-time join code built in
+	// (POST /api/v1/join-files)
+	CreateJoinFile(w http.ResponseWriter, r *http.Request)
 	// ListMachines Every machine with state, backends, load and slots
 	// (GET /api/v1/machines)
 	ListMachines(w http.ResponseWriter, r *http.Request)
@@ -4251,6 +4292,9 @@ type ServerInterface interface {
 	// GetOverview The overview snapshot
 	// (GET /api/v1/overview)
 	GetOverview(w http.ResponseWriter, r *http.Request)
+	// GetPackage A release package, or SHA256SUMS
+	// (GET /api/v1/packages/{name})
+	GetPackage(w http.ResponseWriter, r *http.Request, name string)
 	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
 	// (GET /api/v1/registry)
 	GetRegistrySettings(w http.ResponseWriter, r *http.Request)
@@ -5884,6 +5928,20 @@ func (siw *ServerInterfaceWrapper) GetJoinCode(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// CreateJoinFile operation middleware
+func (siw *ServerInterfaceWrapper) CreateJoinFile(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateJoinFile(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListMachines operation middleware
 func (siw *ServerInterfaceWrapper) ListMachines(w http.ResponseWriter, r *http.Request) {
 
@@ -6510,6 +6568,32 @@ func (siw *ServerInterfaceWrapper) GetOverview(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetOverview(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPackage operation middleware
+func (siw *ServerInterfaceWrapper) GetPackage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", r.PathValue("name"), &name, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPackage(w, r, name)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -7989,6 +8073,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/machines/{machineId}/changes/{changeId}", wrapper.GetMachineChange)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/changes/{changeId}", wrapper.DecideMachineChange)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/join-codes", wrapper.CreateJoinCode)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/join-files", wrapper.CreateJoinFile)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/packages/{name}", wrapper.GetPackage)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/join-codes/ssh", wrapper.JoinMachineOverSsh)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/join-codes/{joinCodeId}", wrapper.RevokeJoinCode)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/join-codes/{joinCodeId}", wrapper.GetJoinCode)
@@ -9874,6 +9960,59 @@ func (response GetJoinCodedefaultJSONResponse) VisitGetJoinCodeResponse(w http.R
 	return err
 }
 
+type CreateJoinFileRequestObject struct {
+	Body *CreateJoinFileJSONRequestBody
+}
+
+type CreateJoinFileResponseObject interface {
+	VisitCreateJoinFileResponse(w http.ResponseWriter) error
+}
+
+type CreateJoinFile201ResponseHeaders struct {
+	ContentDisposition string
+	XJoinCodeId        string
+}
+
+type CreateJoinFile201ApplicationoctetStreamResponse struct {
+	Body          io.Reader
+	Headers       CreateJoinFile201ResponseHeaders
+	ContentLength int64
+}
+
+func (response CreateJoinFile201ApplicationoctetStreamResponse) VisitCreateJoinFileResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.Header().Set("X-Join-Code-Id", fmt.Sprint(response.Headers.XJoinCodeId))
+	w.WriteHeader(201)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type CreateJoinFiledefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CreateJoinFiledefaultJSONResponse) VisitCreateJoinFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListMachinesRequestObject struct {
 }
 
@@ -10803,6 +10942,51 @@ type GetOverviewdefaultJSONResponse struct {
 }
 
 func (response GetOverviewdefaultJSONResponse) VisitGetOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPackageRequestObject struct {
+	Name string `json:"name"`
+}
+
+type GetPackageResponseObject interface {
+	VisitGetPackageResponse(w http.ResponseWriter) error
+}
+
+type GetPackage200ApplicationoctetStreamResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response GetPackage200ApplicationoctetStreamResponse) VisitGetPackageResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetPackagedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetPackagedefaultJSONResponse) VisitGetPackageResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -12858,7 +13042,7 @@ type StrictServerInterface interface {
 	// CreateJoinCode Make a one-time join code and the install commands
 	// (POST /api/v1/join-codes)
 	CreateJoinCode(ctx context.Context, request CreateJoinCodeRequestObject) (CreateJoinCodeResponseObject, error)
-	// JoinMachineOverSsh Join a Linux or macOS machine over SSH
+	// JoinMachineOverSsh Join a Linux, macOS or Windows machine over SSH
 	// (POST /api/v1/join-codes/ssh)
 	JoinMachineOverSsh(ctx context.Context, request JoinMachineOverSshRequestObject) (JoinMachineOverSshResponseObject, error)
 	// RevokeJoinCode Withdraw an unused join code
@@ -12867,6 +13051,9 @@ type StrictServerInterface interface {
 	// GetJoinCode A join code's state (never its value)
 	// (GET /api/v1/join-codes/{joinCodeId})
 	GetJoinCode(ctx context.Context, request GetJoinCodeRequestObject) (GetJoinCodeResponseObject, error)
+	// CreateJoinFile Download an installer file with a one-time join code built in
+	// (POST /api/v1/join-files)
+	CreateJoinFile(ctx context.Context, request CreateJoinFileRequestObject) (CreateJoinFileResponseObject, error)
 	// ListMachines Every machine with state, backends, load and slots
 	// (GET /api/v1/machines)
 	ListMachines(ctx context.Context, request ListMachinesRequestObject) (ListMachinesResponseObject, error)
@@ -12939,6 +13126,9 @@ type StrictServerInterface interface {
 	// GetOverview The overview snapshot
 	// (GET /api/v1/overview)
 	GetOverview(ctx context.Context, request GetOverviewRequestObject) (GetOverviewResponseObject, error)
+	// GetPackage A release package, or SHA256SUMS
+	// (GET /api/v1/packages/{name})
+	GetPackage(ctx context.Context, request GetPackageRequestObject) (GetPackageResponseObject, error)
 	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
 	// (GET /api/v1/registry)
 	GetRegistrySettings(ctx context.Context, request GetRegistrySettingsRequestObject) (GetRegistrySettingsResponseObject, error)
@@ -14273,6 +14463,37 @@ func (sh *strictHandler) GetJoinCode(w http.ResponseWriter, r *http.Request, joi
 	}
 }
 
+// CreateJoinFile operation middleware
+func (sh *strictHandler) CreateJoinFile(w http.ResponseWriter, r *http.Request) {
+	var request CreateJoinFileRequestObject
+
+	var body CreateJoinFileJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateJoinFile(ctx, request.(CreateJoinFileRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateJoinFile")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateJoinFileResponseObject); ok {
+		if err := validResponse.VisitCreateJoinFileResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListMachines operation middleware
 func (sh *strictHandler) ListMachines(w http.ResponseWriter, r *http.Request) {
 	var request ListMachinesRequestObject
@@ -14951,6 +15172,32 @@ func (sh *strictHandler) GetOverview(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetOverviewResponseObject); ok {
 		if err := validResponse.VisitGetOverviewResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPackage operation middleware
+func (sh *strictHandler) GetPackage(w http.ResponseWriter, r *http.Request, name string) {
+	var request GetPackageRequestObject
+
+	request.Name = name
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPackage(ctx, request.(GetPackageRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPackage")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPackageResponseObject); ok {
+		if err := validResponse.VisitGetPackageResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
