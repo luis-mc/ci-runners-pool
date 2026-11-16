@@ -15,4 +15,6 @@ Branch: CRSP119-agent-install-windows (base 68d30b3).
 - Tests, spec text, change notes.
 
 ## Status
-- [ ] code  - [ ] tests  - [ ] docs  - [ ] draft PR
+- [x] code  - [x] tests  - [x] docs (notes written by hand in the folder format: luismc-docs scripts not in the sandbox, so docs_check not run)  - [ ] draft PR
+- Checks: gofmt, golangci-lint 0 issues, go test -race internal/agent and cmd/crsp ok, GOOS=windows go vet ok, GOOS=darwin go vet internal/agent ok (cmd/crsp darwin fails on fyne systray cgo, also on main).
+- Not checked: a real Windows run.

@@ -236,7 +236,7 @@ Ported from runner-pool R5.10 (no rebuild under a running job) and learning 1 of
 
 **R5.44** (M1, changed by CRSP42, D41) — The agent runs as LocalSystem on Windows and as root on Linux and macOS, like the controller (owner decision, 14 Nov). It needs the right to install its own update after the drain (operations R5.39 to R5.41), which a non-admin account cannot do. There is no `crsp-agent` or `_crsp_agent` account. Runner jobs do not run as the agent: each runner runs under its own non-admin per-runner account (runners R5.14, RN-4), which the agent makes. An agent installed before D41 under a non-admin account says `unsupported` to an update ask (operations R5.41) until the install command is run again.
 
-**R5.45** (M1) — Admin rights are needed in one install step only. Before it runs, it lists each admin action (create the data folder, install the service that runs as LocalSystem or root, join the controller, start the service) and asks for a yes. It never runs without that yes.
+**R5.45** (M1, changed by CRSP119) — Admin rights are needed in one install step only. Before it runs, it lists each admin action (create the data folder, install the service that runs as LocalSystem or root, join the controller, start the service) and asks for a yes. It never runs without that yes. Without admin rights (a Windows PowerShell that is not elevated, or a Unix user that is not root) it stops first with one plain line, "open PowerShell as Administrator and run this command again" or "run this command again with sudo", before the list is shown, and changes nothing. The data folder is the machine-wide one of the OS unless `--data-dir` is given: `C:\ProgramData\crsp-agent`, `/Library/Application Support/crsp-agent` or `/var/lib/crsp-agent`; `agent run` and `agent join` use the same default, and the service and the join step get the same folder as `--data-dir`. PowerShell steps run with `-NoProfile -NonInteractive -OutputFormat Text`; a failed step is reported as one plain line with the exception message ("step 2 (register the Windows service ...): Access is denied"), never as raw CLIXML. When a step fails after earlier ones worked, the line also names what was left (the data folder, the service or unit) and how to remove it.
 
 **R5.46** (M1) — The agent is installed as a service that starts at boot and restarts after a crash: a Windows service, a systemd unit, a launchd LaunchDaemon (decision 0005).
 
@@ -417,7 +417,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.42 | internal/machines/remove_offline_test.go | planned |
 | R5.43 | internal/machines/join_test.go | planned |
 | R5.44 | internal/agent/plan_test.go TestServiceAccounts (built, CRSP42) |
-| R5.45 | internal/agent/install_plan_test.go | planned |
+| R5.45 | internal/agent/plan_test.go TestInstallWithoutAdminRightsStopsFirst, TestFailedStepNamesWhatWasLeftBehind, TestCLIXMLErrorIsDecodedToOneLine; cmd/crsp/agent_install_test.go (built, CRSP119) |
 | R5.46 | internal/agent/service_install_test.go | planned; plus a CI start of the built agent per OS |
 | R5.47 | internal/agent/service_windows_test.go | planned |
 | R5.48 | internal/agent/install_plan_test.go | planned |
