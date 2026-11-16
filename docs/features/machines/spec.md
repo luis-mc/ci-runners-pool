@@ -153,7 +153,7 @@ Ported from dev-standards `claude/plugins/delivery/scripts/load.py` and `load_gu
 
 **R5.17** (M1) — On Windows with WSL2, the WSL VM's memory is the larger of the `vmmem` or `vmmemWSL` working set and its private bytes, and at least the memory its containers use (DL177). Windows trims the working set, so it alone reads too low.
 
-**R5.18** (M1) — On Windows, Docker figures are read through the Windows `docker` CLI first, then through WSL, then reported as unknown. On Linux and macOS the agent never calls `wsl`.
+**R5.18** (M1) — On Windows, Docker figures are read through the Windows `docker` CLI first, then through WSL, then reported as unknown. On Linux and macOS the agent never calls `wsl`. Built by CRSP127: the agent's machine report also says which OS the container engine runs containers for (`container_os`, from `docker info`); the machines service records it per machine and the machine API shows it as `container_os`, so the machine list says "Windows, runs Linux containers" for a Windows machine with Docker Desktop on WSL2. The `wsl2` backend is reported usable when `wsl --status` fails but the docker engine runs on the WSL2 kernel, and the console writes the reason a backend cannot be used once.
 
 **R5.19** (M1) — An agent that runs inside a container also reads the cgroup v2 figures (`memory.current`, `memory.max`, `cpu.stat`) and decides on the worse of host and container.
 
@@ -389,7 +389,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.15 | internal/load/sample_test.go | planned; ports `test_load.py` |
 | R5.16 | internal/load/median_test.go | Built: `internal/load/median_test.go` TestMedianIgnoresASpike, TestSamplerDecidesOnMedianOfLastFive |
 | R5.17 | internal/load/wslvm_test.go | planned; ports `test_dl177_pool_measure.py` VmReadTests |
-| R5.18 | internal/load/docker_test.go | planned; ports `test_dl177_pool_measure.py` DockerReadTests |
+| R5.18 | internal/load/docker_test.go; internal/machines/engine_test.go TestMachineReportRecordsTheEngine; internal/agent/backends_test.go TestBackendsWSL2NotReadyFalseReportWhenDockerDesktopRunsOnWSL2; apps/web/src/screens/machines/Machines.test.tsx | planned; ports `test_dl177_pool_measure.py` DockerReadTests |
 | R5.19 | internal/load/cgroup_test.go | Built: `internal/load/cgroup_test.go` TestCgroupWorseOfHostAndContainer |
 | R5.20 | internal/load/unknown_test.go | planned |
 | R5.21 | internal/load/measure_only_test.go | planned |

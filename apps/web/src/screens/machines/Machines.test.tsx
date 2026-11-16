@@ -35,6 +35,15 @@ describe('Machines list', () => {
     expect(within(table).getAllByText(/memory 40%, CPU 20%/).length).toBe(2);
   });
 
+  it('says "Windows, runs Linux containers" for a Windows machine with Linux containers', async () => {
+    const api = signedIn().on('GET', '/api/v1/machines', {
+      items: [machine({ id: 'm2', name: 'win-1', os: 'windows', container_os: 'linux' })],
+    });
+    renderApp(api, '/machines');
+    const table = await screen.findByRole('table', { name: 'Machines' });
+    expect(within(table).getByText('Windows, runs Linux containers')).toBeTruthy();
+  });
+
   it('searches and filters, and says how many are hidden', async () => {
     const api = signedIn().on('GET', '/api/v1/machines', {
       items: [machine(), machine({ id: 'm2', name: 'win-1', state: 'drained' })],
@@ -104,6 +113,22 @@ describe('Machine detail', () => {
     expect(screen.getByRole('button', { name: /Memory budget/ }).textContent).toContain(
       '80%',
     );
+  });
+
+  it('writes the reason a backend cannot be used once, not twice', async () => {
+    const why = 'WSL is installed but not ready; run wsl --install';
+    const api = signedIn().on(
+      'GET',
+      '/api/v1/machines/:id',
+      machine({
+        backends: [
+          { name: 'wsl2', present: true, usable: false, allowed: false, reason: why },
+        ],
+      }),
+    );
+    renderApp(api, '/machines/m1');
+    await screen.findByRole('heading', { level: 1, name: 'build-1' });
+    expect(await screen.findAllByText(why)).toHaveLength(1);
   });
 
   it('asks before a drain, names the running jobs, and drains on yes (UX-62)', async () => {

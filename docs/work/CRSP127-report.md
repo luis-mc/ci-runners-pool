@@ -19,4 +19,18 @@ Branch `CRSP127-linux-on-windows`, base main 68d30b3.
 7. docs, change notes, design-system content + CHANGES.
 
 ## Progress
-(see commits)
+All steps built.
+- proto `EngineReport.container_os` (field 5), regen, codegen-drift none.
+- agent: `DetectEngine` reads `docker info {{.OSType}}`; `wsl2` backend usable when docker runs on the WSL2 kernel even if `wsl --status` fails (read only).
+- machines: `HandleMachineReport` records the engine in memory (like policy); `View.Engine`; API `container_os`.
+- runners: Linux ephemeral container runner on a Windows machine with Linux containers; pool label added; persistent Linux refused on Windows; Windows registry now holds the container backend.
+- cmd: demand hosts and `RUNS_ON_LINUX` serving include such a Windows machine (container backend allowed).
+- web: AddRunners eligibility and kind, System column text, backend reason once; words in next-version content.md, CHANGES C24.
+- specs: runners R5.47 text, machines R5.18 text, change notes CRSP127.
+- Tests: Go (agent, machines incl. over the link, runners, container args on Windows, cmd, api), Vitest (runners, machines). golangci-lint 0 issues, GOOS=windows vet clean. GOOS=darwin vet of cmd fails on the fyne systray cgo dependency, same as base; internal packages vet clean.
+
+## Not built / owner check
+- crsp binary mount (R5.48) on a Windows host: agent's own file is a Windows binary, so no mount (existing behaviour).
+- docs_fold.py / docs_check.py not available in this sandbox; change notes written by hand in the same format.
+- No Docker here: nothing run against a real Docker Desktop.
+

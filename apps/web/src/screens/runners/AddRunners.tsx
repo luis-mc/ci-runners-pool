@@ -32,6 +32,22 @@ import {
 const STEPS = ['Reading machines', 'Runners', 'Review', 'Registering', 'Done'] as const;
 type OS = Schemas['OS'];
 
+/** A machine takes runners of its own system, and Linux runners too when its
+ * container engine runs Linux containers (Docker Desktop on WSL2; runners R5.47). */
+export function machineSupports(m: Schemas['Machine'], os: OS): boolean {
+  return (
+    m.os === os || (os === 'linux' && m.os === 'windows' && m.container_os === 'linux')
+  );
+}
+
+/** The Linux runner of a Windows machine is a container runner, so it is ephemeral. */
+export function runnerKind(
+  m: Schemas['Machine'] | undefined,
+  os: OS,
+): 'persistent' | 'ephemeral' {
+  return m && m.os !== os ? 'ephemeral' : 'persistent';
+}
+
 export function AddRunnersWizard() {
   const client = useClient();
   const navigate = useNavigate();
@@ -78,9 +94,9 @@ export function AddRunnersWizard() {
         if (!on) return;
         setMachines(m.items);
         setRepos(r.items);
-        const first = m.items.find((x) => x.os === 'linux') ?? m.items[0];
+        const first = m.items.find((x) => machineSupports(x, 'linux')) ?? m.items[0];
         if (first) {
-          setOs(first.os);
+          setOs(machineSupports(first, 'linux') ? 'linux' : first.os);
           setMachineId(first.id);
         }
         if (storedPlan) {
@@ -111,7 +127,7 @@ export function AddRunnersWizard() {
     };
   }, [client, storedPlan]);
 
-  const supports = (m: Schemas['Machine']) => m.os === os;
+  const supports = (m: Schemas['Machine']) => machineSupports(m, os);
   const labelList = labels
     .split(',')
     .map((x) => x.trim())
@@ -133,7 +149,10 @@ export function AddRunnersWizard() {
         client.POST('/api/v1/runner-plans', {
           body: {
             os,
-            kind: 'persistent',
+            kind: runnerKind(
+              machines.find((m) => m.id === machineId),
+              os,
+            ),
             machine_id: machineId,
             count,
             labels: labelList,
@@ -220,6 +239,10 @@ export function AddRunnersWizard() {
     setPhase('first-run');
   };
 
+  const picked = machines.find((m) => m.id === machineId);
+  const containerRunner =
+    picked !== undefined && picked.os !== os && machineSupports(picked, os);
+
   const prog = plan ? planProgress(plan) : { done: 0, total: 0 };
 
   let body;
@@ -236,7 +259,7 @@ export function AddRunnersWizard() {
           value={os}
           onChange={(v) => {
             setOs(v as OS);
-            const m = machines.find((x) => x.os === v);
+            const m = machines.find((x) => machineSupports(x, v as OS));
             setMachineId(m?.id ?? '');
           }}
           choices={[
@@ -258,6 +281,12 @@ export function AddRunnersWizard() {
               : { disabledReason: `This machine runs ${m.os}, not ${os}.` }),
           }))}
         />
+        {containerRunner ? (
+          <Message tone="note">
+            Linux runners on this Windows machine run in containers, through Docker. The
+            container backend must be allowed on the machine.
+          </Message>
+        ) : null}
         <NumberField
           label="Number of runners"
           value={count}

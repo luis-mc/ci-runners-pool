@@ -435,3 +435,14 @@ The words of the Recovery section and the State word of a machine whose agent ne
 | Recover | The one action. Admin only (busy word: Recovering). Locked after it worked. |
 | Recovery is ready. The agent gets the update on its next call. | Done message after the call, and for a machine that is already armed. |
 | Could not start recovery. {why} | Problem message when the call is refused or fails. |
+
+## Linux on a Windows machine words
+
+The words of Add runners and the machine list for a Windows machine whose container engine runs Linux containers (runners R5.47, machines R5.18).
+
+| Word | Where and meaning |
+|---|---|
+| Windows, runs Linux containers | The System column of the machine list for a Windows machine with Docker Desktop on WSL2. |
+| Linux runners on this Windows machine run in containers, through Docker. The container backend must be allowed on the machine. | Note in Add runners when the chosen machine runs Windows and the system is Linux. |
+| This machine runs windows, not linux. | The reason a machine is greyed for a system it cannot run (also for a Windows machine without Linux containers). |
+| WSL is installed but not ready; run wsl --install | Backend reason, shown only when WSL2 does not work and Docker does not run on it. It is written once. |

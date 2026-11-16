@@ -11,6 +11,7 @@ import {
   viewer,
 } from '../../testing/mock';
 import { currentJobText, isolationText, runnerStatus, stateCounts } from './Runners';
+import { machineSupports, runnerKind } from './AddRunners';
 
 afterEach(cleanup);
 
@@ -189,6 +190,40 @@ describe('Add runners', () => {
     const win = await screen.findByRole('radio', { name: /win-1/ });
     expect((win as HTMLInputElement).disabled).toBe(true);
     expect(screen.getByText('This machine runs windows, not linux.')).toBeTruthy();
+  });
+
+  it('offers Linux on a Windows machine whose engine runs Linux containers (R5.47)', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/machines', {
+        items: [
+          machine({ id: 'm2', name: 'win-1', os: 'windows', container_os: 'linux' }),
+          machine({ id: 'm3', name: 'win-2', os: 'windows' }),
+        ],
+      })
+      .on('GET', '/api/v1/github/repositories', { items: [], stale: { stale: false } });
+    renderApp(api, '/runners/add');
+    await screen.findByRole('group', { name: 'Add runners' });
+    const ok = await screen.findByRole('radio', { name: /win-1/ });
+    expect((ok as HTMLInputElement).disabled).toBe(false);
+    const no = await screen.findByRole<HTMLInputElement>('radio', { name: /win-2/ });
+    expect(no.disabled).toBe(true);
+    expect(screen.getByText('This machine runs windows, not linux.')).toBeTruthy();
+    expect(
+      screen.getByText(/Linux runners on this Windows machine run in containers/),
+    ).toBeTruthy();
+  });
+
+  it('asks for an ephemeral container runner only across systems', () => {
+    const win = machine({ os: 'windows', container_os: 'linux' });
+    expect(machineSupports(win, 'linux')).toBe(true);
+    expect(machineSupports(win, 'windows')).toBe(true);
+    expect(machineSupports(machine({ os: 'windows' }), 'linux')).toBe(false);
+    expect(
+      machineSupports(machine({ os: 'windows', container_os: 'windows' }), 'linux'),
+    ).toBe(false);
+    expect(runnerKind(win, 'linux')).toBe('ephemeral');
+    expect(runnerKind(win, 'windows')).toBe('persistent');
+    expect(runnerKind(machine(), 'linux')).toBe('persistent');
   });
 });
 
