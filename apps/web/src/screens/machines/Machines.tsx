@@ -32,6 +32,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand, useLoad, useQuestion } from '../../api/hooks';
+import { useMachines } from '../../api/machines';
 import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
@@ -49,11 +50,9 @@ const STATES = [
 ] as const;
 
 export function MachinesList() {
-  const client = useClient();
   const session = useSession();
   const now = useNow();
-  const v = useVersion('machines');
-  const { result, reload } = useLoad(() => unwrap(client.GET('/api/v1/machines')), [v]);
+  const { result, reload } = useMachines();
   const [q, setQ] = useState('');
   const [state, setState] = useState<'' | 'active' | 'draining' | 'drained'>('');
 
@@ -154,7 +153,19 @@ export function MachinesList() {
               <SearchBar value={q} onChange={setQ} label="Search machines" />
               <Chips label="State" options={STATES} value={state} onChange={setState} />
               {rows.length === 0 ? (
-                <Message tone="note">
+                <Message
+                  tone="note"
+                  action={
+                    <Button
+                      onPress={() => {
+                        setQ('');
+                        setState('');
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  }
+                >
                   {data.items.length} machines are hidden by the search and the filter.
                   Clear them to see all.
                 </Message>
