@@ -241,6 +241,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/access-credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List access credentials for CI
+         * @description github-integration R5.82. Without their values.
+         */
+        get: operations["listAccessCredentials"];
+        put?: never;
+        /**
+         * Make an access credential for CI
+         * @description github-integration R5.82. The value is in the answer once; only its hash is kept and the audit row never holds it. A credential has one scope; `parity` allows only what `crsp parity check` calls.
+         */
+        post: operations["createAccessCredential"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/access-credentials/{credentialId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke an access credential
+         * @description github-integration R5.82. The next request with its value is refused.
+         */
+        delete: operations["revokeAccessCredential"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repositories/{repositoryId}/parity-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set up parity for this repository
+         * @description github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+         */
+        post: operations["setupRepositoryParity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/logout": {
         parameters: {
             query?: never;
@@ -1126,6 +1190,30 @@ export interface paths {
         get: operations["getPoolSettings"];
         /** Change the defaults for new machines */
         put: operations["updatePoolSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/public-repositories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether crsp serves public repositories
+         * @description github-integration R5.54. Off by default: crsp offers private repositories only. `public_on_pool` counts the public repositories whose pool is on now, so the console can name the number before the setting is switched off.
+         */
+        get: operations["getPublicRepositories"];
+        /**
+         * Turn public repositories on or off
+         * @description github-integration R5.54 and R5.55. Switching off turns the pool off for every public repository that has it on (its settings stay), sets its RUNS_ON variables to the hosted labels, drains and removes its runners, and audits each. `stopped` is how many repositories that was. Switching on stops nothing and turns nothing on by itself.
+         */
+        put: operations["setPublicRepositories"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2306,6 +2394,53 @@ export interface components {
              */
             name: string;
         };
+        AccessCredential: {
+            id: string;
+            name: string;
+            scope: components["schemas"]["AccessScope"];
+            created_by: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            last_used_at?: string;
+            /** Format: date-time */
+            revoked_at?: string;
+        };
+        /**
+         * @description `parity` is read only: the runner list and a doctor run.
+         * @enum {string}
+         */
+        AccessScope: "parity";
+        AccessCredentialList: {
+            items: components["schemas"]["AccessCredential"][];
+        };
+        AccessCredentialCreate: {
+            name: string;
+            scope: components["schemas"]["AccessScope"];
+        };
+        AccessCredentialCreated: {
+            /** @description The credential. Shown once. */
+            value: string;
+            info: components["schemas"]["AccessCredential"];
+        };
+        ParitySetupRequest: {
+            /** @description The address the runner reaches the controller at. Empty uses the address of this console. */
+            controller_url?: string;
+        };
+        ParitySetup: {
+            /** @enum {string} */
+            status: "done" | "needs_permission";
+            missing_permissions?: string[];
+            /** @description The GitHub page where the App's owner asks for the permission. */
+            app_permissions_url?: string;
+            /** @description The GitHub page where the installation's owner accepts it. */
+            installation_url?: string;
+            /** @description The name of the repository Actions value that holds the access, CRSP_ACCESS. */
+            access_name?: string;
+            variable_names?: string[];
+            /** @description The id of the access credential that was made. */
+            access_id?: string;
+        };
         CliToken: {
             id: string;
             name: string;
@@ -2592,6 +2727,45 @@ export interface components {
             policy: components["schemas"]["RepositoryPolicy"];
             routing?: components["schemas"]["RepositoryRouting"];
             webhook?: components["schemas"]["WebhookHealth"];
+            problem?: components["schemas"]["RepositoryProblem"];
+        };
+        /**
+         * @example {
+         *       "enabled": false,
+         *       "public_on_pool": 0
+         *     }
+         */
+        PublicRepositories: {
+            /** @description False by default. */
+            enabled: boolean;
+            /**
+             * Format: date-time
+             * @description Absent when the setting was never changed.
+             */
+            changed_at?: string;
+            /** @description Login of who changed it last. Absent when never changed. */
+            changed_by?: string;
+            /** @description Public repositories whose pool is on now. */
+            public_on_pool: number;
+        };
+        PublicRepositoriesSet: {
+            enabled: boolean;
+        };
+        PublicRepositoriesResult: components["schemas"]["PublicRepositories"] & {
+            /** @description Repositories whose pool this change switched off (0 when switching on). */
+            stopped: number;
+        };
+        /** @description A fault the owner can fix on a repository (github-integration R5.56). Absent when there is none. */
+        RepositoryProblem: {
+            /** @enum {string} */
+            code: "public_pool_on_while_off";
+            text: string;
+            actions: components["schemas"]["RepositoryProblemAction"][];
+        };
+        RepositoryProblemAction: {
+            /** @enum {string} */
+            id: "turn_on_public_repositories" | "turn_off_pool";
+            label: string;
         };
         /** @description The last webhook delivery of a repository and how the controller learns about its jobs (github-integration R5.50). */
         WebhookHealth: {
@@ -4336,6 +4510,101 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    listAccessCredentials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The credentials. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessCredentialList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createAccessCredential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessCredentialCreate"];
+            };
+        };
+        responses: {
+            /** @description The credential and its value. Shown once. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessCredentialCreated"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    revokeAccessCredential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                credentialId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setupRepositoryParity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The numeric GitHub repository id. */
+                repositoryId: components["parameters"]["RepositoryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ParitySetupRequest"];
+            };
+        };
+        responses: {
+            /** @description Done, or the permission the App lacks. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParitySetup"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     signOut: {
         parameters: {
             query?: never;
@@ -5643,6 +5912,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PoolSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPublicRepositories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The setting. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRepositories"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setPublicRepositories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicRepositoriesSet"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRepositoriesResult"];
                 };
             };
             default: components["responses"]["Error"];

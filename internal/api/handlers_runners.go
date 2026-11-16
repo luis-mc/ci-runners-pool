@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/repos"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
@@ -46,7 +47,10 @@ func actorFrom(ctx context.Context) string {
 func runnerFail(err error) (int, gen.ErrorEnvelope) {
 	var re *runners.RefusalError
 	var nc *runners.NeedsConfirmation
+	var pub *repos.PublicOffError
 	switch {
+	case errors.As(err, &pub):
+		return http.StatusConflict, gen.ErrorEnvelope{Error: gen.ErrorBody{Code: CodePublicRepositoriesOff, Message: pub.Error()}}
 	case errors.As(err, &nc):
 		details := make([]gen.ErrorDetail, 0, len(nc.Items))
 		for _, it := range nc.Items {

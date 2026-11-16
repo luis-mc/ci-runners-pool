@@ -232,6 +232,10 @@ export function signedIn(user: Schemas['User'] = owner): MockApi {
   return new MockApi()
     .on('GET', '/api/v1/me', { user, csrf: 'tok' })
     .on('GET', '/api/v1/me/preferences', { theme: 'dark' })
+    .on('GET', '/api/v1/settings/public-repositories', {
+      enabled: false,
+      public_on_pool: 0,
+    })
     .on('GET', '/api/v1/overview', overview())
     .on('GET', '/api/v1/machines', { items: [machine()] })
     .on('GET', '/api/v1/github/installations', {

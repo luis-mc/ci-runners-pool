@@ -50,4 +50,6 @@ var operationCommands = map[string]string{
 	"checkForUpdate":             "update check",
 	"applyUpdate":                "update apply",
 	"restartService":             "restart",
+	"getPublicRepositories":      "settings public-repositories",
+	"setPublicRepositories":      "settings public-repositories --on|--off",
 }

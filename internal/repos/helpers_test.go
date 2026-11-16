@@ -80,6 +80,10 @@ type env struct {
 	cap    *capacity
 	mu     sync.Mutex
 	now    time.Time
+	// public is the setting Public repositories. It starts on because most
+	// tests predate the setting and use repository 100, which is public; the
+	// tests of the setting turn it off.
+	public bool
 }
 
 func newEnv(t *testing.T) *env {
@@ -92,11 +96,12 @@ func newEnv(t *testing.T) *env {
 	_ = sec.Put(context.Background(), github.SecretKey(f.AppID, github.SecretPrivateKey),
 		pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k)}))
 	e := &env{t: t, store: NewMemStore(), fake: f, audit: &fakeAudit{}, tokens: &tokens{m: map[int64]github.UserToken{}},
-		cap: &capacity{m: map[string][]string{"Linux": {"X64", "docker", "crsp-home"}}}, now: time.Date(2026, 11, 14, 10, 0, 0, 0, time.UTC)}
+		cap: &capacity{m: map[string][]string{"Linux": {"X64", "docker", "crsp-home"}}}, now: time.Date(2026, 11, 14, 10, 0, 0, 0, time.UTC), public: true}
 	f.Now = e.clock
 	e.gh = github.New(github.Config{APIBase: f.URL, WebBase: f.URL, Secrets: sec, Now: e.clock})
 	e.gh.UseApp(f.AppID, "Iv23liFAKECLIENTID00")
-	e.svc = New(Config{Store: e.store, GitHub: e.gh, Tokens: e.tokens, Audit: e.audit, Capacity: e.cap, Now: e.clock})
+	e.svc = New(Config{Store: e.store, GitHub: e.gh, Tokens: e.tokens, Audit: e.audit, Capacity: e.cap, Now: e.clock,
+		PublicRepositories: func(context.Context) (bool, error) { return e.publicOn(), nil }})
 	return e
 }
 
@@ -149,4 +154,16 @@ func (e *env) turnOn(ids ...int64) Plan {
 		e.t.Fatalf("apply: %v %+v", err, plan)
 	}
 	return plan
+}
+
+func (e *env) publicOn() bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.public
+}
+
+func (e *env) setPublic(on bool) {
+	e.mu.Lock()
+	e.public = on
+	e.mu.Unlock()
 }

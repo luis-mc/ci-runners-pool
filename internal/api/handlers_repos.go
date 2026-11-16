@@ -110,6 +110,14 @@ func toRepository(v repos.RepositoryView) gen.Repository {
 		}
 		out.Routing = &rt
 	}
+	if v.Problem != nil {
+		pr := gen.RepositoryProblem{Code: gen.RepositoryProblemCode(v.Problem.Code), Text: v.Problem.Text,
+			Actions: make([]gen.RepositoryProblemAction, 0, len(v.Problem.Actions))}
+		for _, a := range v.Problem.Actions {
+			pr.Actions = append(pr.Actions, gen.RepositoryProblemAction{Id: gen.RepositoryProblemActionId(a.ID), Label: a.Label})
+		}
+		out.Problem = &pr
+	}
 	if v.LeftInstallation() {
 		why := gen.LeftInstallation
 		out.PoolOffReason = &why

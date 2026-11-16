@@ -13,6 +13,19 @@ Rules that hold the whole time:
 - Move one repository, then wait for a full CI run of a pull request and one run on the default branch before the next one.
 - The way back is one variable. Do not remove the old runner until the 7 days are over.
 
+## Set up the parity workflow once (from the web console)
+
+The workflow Parity runs `crsp parity check` on a pool runner. A pool container has no `crsp login`, and you do not log in by hand. You copy nothing either: the console writes the access to the repository for you.
+
+1. Open the crsp web console, Settings, **Access for CI**.
+2. Under "Set up parity for a repository", choose the repository that holds `parity.yml` and press **Set up parity for this repository**.
+3. If the page says the App needs a permission (Secrets, Variables), nothing was made. Press the two buttons it shows, one after the other: on the App page set the permission to read and write, then on the installation page press **Accept new permissions**. Come back and press the button again.
+4. Done means GitHub now holds the secret `CRSP_ACCESS` and the variables `CRSP_URL` and `CRSP_CA_FINGERPRINT` for the repository. Run the workflow Parity by hand once to see it pass.
+
+The access can only read the runner list and run the doctor. It cannot change anything. To end it, revoke it in Settings, Access for CI; the next run then fails first with a message that names this action. Pressing the button again makes a new access and replaces the secret; revoke the old one.
+
+If the workflow fails at its first step with "Parity access is not set up", one of the three is missing: do the steps above. On a machine where you work by hand, `crsp login URL` still works, and wins over the three environment variables.
+
 ## Before you start
 
 1. `crsp doctor` shows no `warn` and no `fail`.

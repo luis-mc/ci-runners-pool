@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -36,9 +35,10 @@ func TestMachineJoinFileSavesTheFile(t *testing.T) {
 	if err != nil || string(b) != "#!/bin/sh\necho hi\n" {
 		t.Fatalf("file %q %v", b, err)
 	}
-	// Windows has no POSIX modes; the file lives in the owner's folder there.
-	if st, _ := os.Stat(filepath.Join(dir, name)); runtime.GOOS != "windows" && st.Mode().Perm()&0o077 != 0 {
-		t.Errorf("the file with a one-time code must be owner only, is %v", st.Mode())
+	// Owner only on every system (POSIX mode 0600/0700, a protected DACL on Windows).
+	assertOwnerOnly(t, filepath.Join(dir, name))
+	if !strings.Contains(errOut, "Delete the file") {
+		t.Errorf("the CLI must say to delete the file: %q", errOut)
 	}
 	// --out names the place; a hostile name in the answer never decides a folder.
 	f.handle("POST /api/v1/join-files", func(w http.ResponseWriter, _ *http.Request) {

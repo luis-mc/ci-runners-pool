@@ -17,6 +17,8 @@ import {
   Section,
   Stack,
   Status,
+  ListToolbar,
+  SearchBar,
   Tabs,
   Text,
   formatDateTime,
@@ -123,22 +125,34 @@ function ImagesTab({ nameOf }: { nameOf: (id: string) => string }) {
   const client = useClient();
   const v = useVersion('images');
   const { result, reload } = useLoad(() => unwrap(client.GET('/api/v1/images')), [v]);
+  const [q, setQ] = useState('');
+  const shownImages = (items: Image[]) =>
+    items.filter((i) =>
+      nameOf(i.machine_id).toLowerCase().includes(q.trim().toLowerCase()),
+    );
   return (
     <Load result={result} what="images" reload={reload}>
       {(data) =>
         data.items.length === 0 ? (
           <Empty title="No images yet. Images are built when a runner first needs one." />
         ) : (
-          <CardGrid>
-            {data.items.map((img) => (
-              <ImageCard
-                key={img.id}
-                image={img}
-                machine={nameOf(img.machine_id)}
-                onChanged={reload}
-              />
-            ))}
-          </CardGrid>
+          <Stack>
+            <ListToolbar
+              label="Images"
+              search={<SearchBar value={q} onChange={setQ} label="Search images" />}
+              count={`${shownImages(data.items).length} ${shownImages(data.items).length === 1 ? 'image' : 'images'}`}
+            />
+            <CardGrid>
+              {shownImages(data.items).map((img) => (
+                <ImageCard
+                  key={img.id}
+                  image={img}
+                  machine={nameOf(img.machine_id)}
+                  onChanged={reload}
+                />
+              ))}
+            </CardGrid>
+          </Stack>
         )
       }
     </Load>
@@ -300,6 +314,7 @@ function CachesTab({ nameOf }: { nameOf: (id: string) => string }) {
   const { result, reload } = useLoad(() => unwrap(client.GET('/api/v1/caches')), [v]);
   const items = result.state === 'ready' ? result.data.items : undefined;
   const anyWiping = items?.some((c) => c.state === 'wiping') ?? false;
+  const [q, setQ] = useState('');
 
   // The strip and the list read the server's state (UX-19); a wipe in progress is asked again until it ends.
   useEffect(() => {
@@ -326,10 +341,20 @@ function CachesTab({ nameOf }: { nameOf: (id: string) => string }) {
             />
           );
         const byMachine = new Map<string, Cache[]>();
-        for (const c of data.items)
+        const found = data.items.filter((c) =>
+          `${cacheName(c)} ${nameOf(c.machine_id)}`
+            .toLowerCase()
+            .includes(q.trim().toLowerCase()),
+        );
+        for (const c of found)
           byMachine.set(c.machine_id, [...(byMachine.get(c.machine_id) ?? []), c]);
         return (
           <Stack>
+            <ListToolbar
+              label="Caches"
+              search={<SearchBar value={q} onChange={setQ} label="Search caches" />}
+              count={`${found.length} ${found.length === 1 ? 'cache' : 'caches'}`}
+            />
             {[...byMachine.entries()].map(([machineId, rows]) => (
               <Section key={machineId} title={nameOf(machineId)}>
                 <CardGrid>

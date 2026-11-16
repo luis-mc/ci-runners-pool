@@ -126,6 +126,8 @@ type Server struct {
 	Installs      map[int64]*Install
 	Repos         map[int64]*Repo
 	Variables     map[string]map[string]string // full repo name -> name -> value
+	secrets       map[string]map[string]string // full repo name -> name -> opened value (CRSP134)
+	secretKeys    map[string]*[2][32]byte      // full repo name -> public, private key
 	Runners       map[string][]*Runner         // scope ("owner/repo" or "org") -> runners
 	WorkflowFiles map[string]map[string]string // full repo name -> path -> content
 	Jobs          []*Job
@@ -252,7 +254,7 @@ func (s *Server) AddInstall(id int64, account, typ string, users ...int64) *Inst
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	in := &Install{ID: id, Account: account, Type: typ, Selection: "selected", Users: map[int64]bool{},
-		Perms: map[string]string{"administration": "write", "actions": "read", "actions_variables": "write",
+		Perms: map[string]string{"administration": "write", "actions": "read", "actions_variables": "write", "secrets": "write",
 			"contents": "read", "metadata": "read", "organization_self_hosted_runners": "write"}}
 	for _, u := range users {
 		in.Users[u] = true
@@ -315,6 +317,27 @@ func (s *Server) VariableNames(fullName string) []string {
 	defer s.mu.Unlock()
 	out := make([]string, 0, len(s.Variables[fullName]))
 	for n := range s.Variables[fullName] {
+		out = append(out, n)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// Secret reads a repository secret as the fake opened it with the repository's
+// private key: it proves the value was sealed to the right key.
+func (s *Server) Secret(fullName, name string) (string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	v, ok := s.secrets[fullName][name]
+	return v, ok
+}
+
+// SecretNames lists the secret names of a repository, sorted.
+func (s *Server) SecretNames(fullName string) []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]string, 0, len(s.secrets[fullName]))
+	for n := range s.secrets[fullName] {
 		out = append(out, n)
 	}
 	sort.Strings(out)

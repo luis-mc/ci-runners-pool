@@ -8,6 +8,7 @@ import {
   Message,
   Page,
   PageHeader,
+  ListToolbar,
   SearchBar,
   Stack,
   Status,
@@ -345,47 +346,62 @@ export function RunnersList() {
                   {failedWords(data.items.filter((r) => r.state === 'failed').length)}
                 </Message>
               ) : null}
-              <SearchBar value={q} onChange={setQ} label="Search runners" />
-              <Chips
-                label="System"
-                options={[
-                  { value: 'linux', label: 'Linux' },
-                  { value: 'windows', label: 'Windows' },
-                  { value: 'macos', label: 'macOS' },
-                ]}
-                value={os}
-                onChange={setOs}
+              <ListToolbar
+                label="Runners"
+                search={<SearchBar value={q} onChange={setQ} label="Search runners" />}
+                filters={
+                  <>
+                    <Chips
+                      label="System"
+                      options={[
+                        { value: 'linux', label: 'Linux' },
+                        { value: 'windows', label: 'Windows' },
+                        { value: 'macos', label: 'macOS' },
+                      ]}
+                      value={os}
+                      onChange={setOs}
+                    />
+                    <Chips
+                      label="Isolation"
+                      options={[
+                        { value: 'microVM', label: 'microVM' },
+                        { value: 'VM', label: 'VM' },
+                        { value: 'container', label: 'container' },
+                        { value: 'persistent', label: 'persistent' },
+                      ]}
+                      value={iso}
+                      onChange={setIso}
+                    />
+                  </>
+                }
+                selection={
+                  picked.size > 0 ? (
+                    <>
+                      <span>{`${picked.size} selected`}</span>
+                      <Button
+                        kind="danger"
+                        disabled={!admin}
+                        reason={why}
+                        onPress={() =>
+                          del.ask(
+                            chosen.map((r) => `Runner ${r.name}`),
+                            chosen.flatMap((r) =>
+                              r.current_job
+                                ? [
+                                    `${r.current_job.repository} ${r.current_job.job_name}`,
+                                  ]
+                                : [],
+                            ),
+                          )
+                        }
+                      >
+                        {`Delete ${chosen.length} ${chosen.length === 1 ? 'runner' : 'runners'}`}
+                      </Button>
+                    </>
+                  ) : null
+                }
+                count={`${rows.length} ${rows.length === 1 ? 'runner' : 'runners'}`}
               />
-              <Chips
-                label="Isolation"
-                options={[
-                  { value: 'microVM', label: 'microVM' },
-                  { value: 'VM', label: 'VM' },
-                  { value: 'container', label: 'container' },
-                  { value: 'persistent', label: 'persistent' },
-                ]}
-                value={iso}
-                onChange={setIso}
-              />
-              {picked.size > 0 ? (
-                <Button
-                  kind="danger"
-                  disabled={!admin}
-                  reason={why}
-                  onPress={() =>
-                    del.ask(
-                      chosen.map((r) => `Runner ${r.name}`),
-                      chosen.flatMap((r) =>
-                        r.current_job
-                          ? [`${r.current_job.repository} ${r.current_job.job_name}`]
-                          : [],
-                      ),
-                    )
-                  }
-                >
-                  {`Delete ${chosen.length} ${chosen.length === 1 ? 'runner' : 'runners'}`}
-                </Button>
-              ) : null}
               {rows.length === 0 ? (
                 <Message
                   tone="note"

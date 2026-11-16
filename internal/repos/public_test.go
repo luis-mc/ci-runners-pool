@@ -2,9 +2,12 @@ package repos
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 )
 
 type fakeFleet struct {
@@ -35,58 +38,194 @@ func (e *env) variable(name string) string {
 	return v
 }
 
-// CRSP82: a served repository that turns public stops at once: pool off,
-// RUNS_ON hosted, runners removed, the reason in the audit log.
-func TestPublicizedStopsServing(t *testing.T) {
+// CRSP131: a served repository that turns public is NOT stopped any more
+// (R5.41): it keeps working, the visibility is stored, and while the setting is
+// off the repository carries the problem public_pool_on_while_off.
+func TestPublicizedKeepsServingAndShowsProblem(t *testing.T) {
 	e, light, fleet := publicEnv(t)
 	ctx := context.Background()
-	if v := e.variable("RUNS_ON_LINUX"); !strings.Contains(v, "crsp-home") {
-		t.Fatalf("setup: the variable is %q", v)
-	}
+	e.setPublic(false)
+	before := e.variable("RUNS_ON_LINUX")
 	e.fake.Lock(func() { e.fake.Repos[101].Private = false })
 	if err := e.svc.Publicized(ctx, "Alice/Secret"); err != nil {
 		t.Fatal(err)
 	}
 	r, _ := e.store.GetRepository(ctx, 101)
-	if r.PoolOn || r.Visibility != "public" {
+	if !r.PoolOn || r.Visibility != "public" {
 		t.Errorf("pool on %v, visibility %q", r.PoolOn, r.Visibility)
 	}
-	if v := e.variable("RUNS_ON_LINUX"); v != `["ubuntu-latest"]` {
-		t.Errorf("RUNS_ON_LINUX = %s, want the hosted label", v)
+	if v := e.variable("RUNS_ON_LINUX"); v != before {
+		t.Errorf("RUNS_ON_LINUX changed to %s", v)
 	}
-	if len(light.removed) != 1 || len(fleet.removed) != 1 || fleet.removed[0] != 101 {
-		t.Errorf("light %v fleet %v", light.removed, fleet.removed)
+	if len(light.removed) != 0 || len(fleet.removed) != 0 {
+		t.Errorf("nothing may be removed: light %v fleet %v", light.removed, fleet.removed)
 	}
-	if !e.audit.has("pool.off|controller|alice/secret|the repository is public") || !e.audit.has("runners.removed") {
-		t.Errorf("the log does not say why: %v", e.audit.events)
+	if !e.audit.has("repository.publicized|controller|alice/secret") || e.audit.has("pool.off") {
+		t.Errorf("audit: %v", e.audit.events)
 	}
-	// A second event changes nothing and does not fail.
+	v, err := e.svc.Get(ctx, adminP, 101)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.Problem == nil || v.Problem.Code != ProblemPublicPoolOnWhileOff || len(v.Problem.Actions) != 2 ||
+		v.Problem.Actions[0].ID != ActionTurnOnPublic || v.Problem.Actions[1].ID != ActionTurnOffPool ||
+		!strings.Contains(v.Problem.Text, "alice/secret") {
+		t.Fatalf("problem: %+v", v.Problem)
+	}
+	// With the setting on there is no problem and nothing stops it.
+	e.setPublic(true)
+	if v, _ = e.svc.Get(ctx, adminP, 101); v.Problem != nil {
+		t.Errorf("the setting is on, yet: %+v", v.Problem)
+	}
+	// A repeat event and an unknown repository change nothing and do not fail.
 	if err := e.svc.Publicized(ctx, "alice/secret"); err != nil {
 		t.Fatal(err)
 	}
-	if len(fleet.removed) != 1 {
-		t.Errorf("a repeat removed runners again: %v", fleet.removed)
-	}
-	// An unknown repository is ignored.
 	if err := e.svc.Publicized(ctx, "nobody/nothing"); err != nil {
 		t.Fatal(err)
 	}
 }
 
-// CRSP82: the periodic visibility check (reconcile) finds a repository that
-// turned public while the webhook was missed.
-func TestReconcileStopsAPublicRepository(t *testing.T) {
+// CRSP131: the periodic visibility check only stores what it reads; a public
+// repository already on the pool stays on.
+func TestReconcileKeepsPublicRepositoryServed(t *testing.T) {
 	e, _, fleet := publicEnv(t)
 	ctx := context.Background()
+	e.setPublic(false)
 	e.fake.Lock(func() { e.fake.Repos[101].Private = false })
 	if err := e.svc.ReconcileInstallations(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if r, _ := e.store.GetRepository(ctx, 101); r.PoolOn {
-		t.Fatal("a public repository is still served")
+	r, _ := e.store.GetRepository(ctx, 101)
+	if !r.PoolOn || r.Visibility != "public" || len(fleet.removed) != 0 {
+		t.Fatalf("pool on %v, visibility %q, fleet %v", r.PoolOn, r.Visibility, fleet.removed)
 	}
-	if v := e.variable("RUNS_ON_LINUX"); v != `["ubuntu-latest"]` || len(fleet.removed) != 1 {
-		t.Errorf("variable %s, fleet %v", v, fleet.removed)
+	if v := e.variable("RUNS_ON_LINUX"); !strings.Contains(v, "crsp-home") {
+		t.Errorf("the variable was rewritten: %s", v)
+	}
+	if v, _ := e.svc.Get(ctx, adminP, 101); v.Problem == nil {
+		t.Error("the problem is missing while the setting is off")
+	}
+}
+
+// The problem is only for a public repository whose pool is on.
+func TestNoProblemForPrivateOrPoolOff(t *testing.T) {
+	e := newEnv(t)
+	e.world()
+	e.setPublic(false)
+	ctx := context.Background()
+	for _, id := range []int64{100, 101} { // 100 public, pool off; 101 private, pool off
+		if v, err := e.svc.Get(ctx, adminP, id); err != nil || v.Problem != nil {
+			t.Errorf("repository %d: %+v %v", id, v.Problem, err)
+		}
+	}
+	e.turnOn(101)
+	if v, _ := e.svc.Get(ctx, adminP, 101); v.Problem != nil {
+		t.Errorf("a private repository on the pool: %+v", v.Problem)
+	}
+}
+
+// CRSP131: while the setting is off a public repository cannot be turned on,
+// by plan or by a plan made earlier; a private one can; with the setting on a
+// public one can.
+func TestTurnOnPublicRefusedWhileOff(t *testing.T) {
+	e := newEnv(t)
+	e.world()
+	ctx := context.Background()
+	e.setPublic(false)
+	_, err := e.svc.PlanChanges(ctx, adminP, []Change{{RepositoryID: 100, Pool: true}})
+	var po *PublicOffError
+	if !errors.As(err, &po) || po.Repo != "alice/web" || !strings.Contains(err.Error(), "Public repositories") {
+		t.Fatalf("plan: %v", err)
+	}
+	if r, _ := e.store.GetRepository(ctx, 100); r.PoolOn {
+		t.Fatal("the pool was turned on")
+	}
+	// A plan made while the setting was on is refused when it applies.
+	e.setPublic(true)
+	plan, err := e.svc.PlanChanges(ctx, adminP, []Change{{RepositoryID: 100, Pool: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.setPublic(false)
+	if _, err := e.svc.ApplyPlan(ctx, adminP, plan.ID, nil); !errors.As(err, &po) {
+		t.Fatalf("apply: %v", err)
+	}
+	if r, _ := e.store.GetRepository(ctx, 100); r.PoolOn {
+		t.Fatal("the stale plan turned the pool on")
+	}
+	// A private repository is not affected.
+	e.turnOn(101)
+	// With the setting on a public repository can be turned on (R5.26 fork guard still runs).
+	e.setPublic(true)
+	e.turnOn(100)
+	if r, _ := e.store.GetRepository(ctx, 100); !r.PoolOn {
+		t.Fatal("the setting is on, yet the pool stayed off")
+	}
+	// A setting that cannot be read refuses a public repository.
+	e.svc.cfg.PublicRepositories = func(context.Context) (bool, error) { return false, errors.New("db down") }
+	if err := e.svc.RequirePublicAllowed(ctx, Repository{FullName: "a/b", Visibility: "public"}); err == nil {
+		t.Error("an unreadable setting must refuse")
+	}
+	if err := e.svc.RequirePublicAllowed(ctx, Repository{FullName: "a/b", Visibility: "private"}); err != nil {
+		t.Errorf("a private repository needs no setting: %v", err)
+	}
+	// Nothing wired means off.
+	e.svc.cfg.PublicRepositories = nil
+	if err := e.svc.RequirePublicAllowedByID(ctx, 100); !errors.As(err, &po) {
+		t.Errorf("no setting source must mean off: %v", err)
+	}
+	if err := e.svc.RequirePublicAllowedByID(ctx, 99999); err != nil {
+		t.Errorf("an unknown id is not this check's business: %v", err)
+	}
+}
+
+// CRSP131: switching the setting off stops every public repository on the
+// pool, keeps its policy, and leaves private ones alone. It reports how many.
+func TestStopPublicOnPoolKeepsPolicyAndCounts(t *testing.T) {
+	e := newEnv(t)
+	l, f := &fakeLight{}, &fakeFleet{}
+	e.svc.cfg.Light, e.svc.cfg.Fleet = l, f
+	e.world()
+	ctx := context.Background()
+	e.turnOn(100, 101)
+	three := 3
+	if _, err := e.svc.UpdatePolicy(ctx, adminP, 100, PolicyUpdate{Priority: &three}); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := e.svc.PublicOnPool(ctx); err != nil || n != 1 {
+		t.Fatalf("public on pool: %d %v", n, err)
+	}
+	owner := auth.Principal{UserID: 1, Login: "owner1", Role: auth.RoleOwner, Source: "web"}
+	n, err := e.svc.StopPublicOnPool(ctx, owner, "the owner turned public repositories off")
+	if err != nil || n != 1 {
+		t.Fatalf("stopped %d, %v", n, err)
+	}
+	pub, _ := e.store.GetRepository(ctx, 100)
+	priv, _ := e.store.GetRepository(ctx, 101)
+	if pub.PoolOn || !priv.PoolOn {
+		t.Fatalf("public on %v, private on %v", pub.PoolOn, priv.PoolOn)
+	}
+	if pol, _ := e.store.GetPolicy(ctx, 100); pol.Priority != 3 {
+		t.Errorf("the policy was not kept: %+v", pol)
+	}
+	if v := e.variable("RUNS_ON_LINUX"); !strings.Contains(v, "crsp-home") { // private repository 101 untouched
+		t.Errorf("private variable: %s", v)
+	}
+	e.fake.Lock(func() {
+		if v := e.fake.Variables["alice/web"]["RUNS_ON_LINUX"]; v != `["ubuntu-latest"]` {
+			t.Errorf("public variable %s, want the hosted label", v)
+		}
+	})
+	if len(f.removed) != 1 || f.removed[0] != 100 || len(l.removed) != 1 {
+		t.Errorf("fleet %v light %v", f.removed, l.removed)
+	}
+	if !e.audit.has("pool.off|owner1|alice/web|the repository is public") || !e.audit.has("runners.removed|owner1|alice/web") {
+		t.Errorf("audit: %v", e.audit.events)
+	}
+	// Again: nothing left to stop.
+	if n, err := e.svc.StopPublicOnPool(ctx, owner, "again"); err != nil || n != 0 {
+		t.Errorf("repeat: %d %v", n, err)
 	}
 }
 
@@ -99,5 +238,38 @@ func TestPrivateRepositoryStaysServed(t *testing.T) {
 	}
 	if r, _ := e.store.GetRepository(ctx, 101); !r.PoolOn || len(fleet.removed) != 0 {
 		t.Fatalf("pool on %v, fleet %v", r.PoolOn, fleet.removed)
+	}
+}
+
+// CRSP131: every sync stores the visibility GitHub reports, so the Visibility
+// column and the refusals read a fresh value; a change on GitHub in either
+// direction shows after the next sync and after the periodic reconcile.
+func TestSyncStoresVisibilityEverySync(t *testing.T) {
+	e := newEnv(t)
+	e.world()
+	ctx := context.Background()
+	vis := func(id int64) string {
+		r, err := e.store.GetRepository(ctx, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r.Visibility
+	}
+	if vis(100) != "public" || vis(101) != "private" {
+		t.Fatalf("first sync: 100 %q, 101 %q", vis(100), vis(101))
+	}
+	e.fake.Lock(func() { e.fake.Repos[100].Private = true; e.fake.Repos[101].Private = false })
+	if err := e.svc.Sync(ctx, adminP); err != nil {
+		t.Fatal(err)
+	}
+	if vis(100) != "private" || vis(101) != "public" {
+		t.Fatalf("second sync: 100 %q, 101 %q", vis(100), vis(101))
+	}
+	e.fake.Lock(func() { e.fake.Repos[100].Private = false })
+	if err := e.svc.ReconcileInstallations(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if vis(100) != "public" {
+		t.Fatalf("reconcile: 100 %q", vis(100))
 	}
 }

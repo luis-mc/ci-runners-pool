@@ -3,7 +3,6 @@
 import {
   Button,
   CheckRow,
-  Chips,
   Cluster,
   Breadcrumbs,
   Empty,
@@ -16,7 +15,10 @@ import {
   Page,
   PageHeader,
   Pager,
+  ListToolbar,
+  Segmented,
   SearchBar,
+  Text,
   Section,
   Stack,
   Status,
@@ -41,6 +43,15 @@ import { HostedFallback, WhereJobsGo, routingWhy } from './fallback';
 import { InstallAppButton } from './InstallApp';
 import { OrgPools } from './OrgPools';
 import { allRepositories, applyChanges, type Repository } from './plans';
+import {
+  PUBLIC_OFF_REASON,
+  PUBLIC_SETTING_PATH,
+  activeTypes,
+  publicWhileOff,
+  usePublicRepositories,
+  usePublicSwitch,
+  visibilityWord,
+} from './publicRepositories';
 import { DeliveryStatus, DeliveryWhen, PollingNotice } from './webhookHealth';
 
 const PAGE = 25;
@@ -72,6 +83,7 @@ export function RepositoriesList() {
   const now = useNow();
   const v = useVersion('plans');
   const { result, reload } = useLoad(() => allRepositories(client), [v]);
+  const { setting, enabled } = usePublicRepositories();
   const [q, setQ] = useState('');
   const [pool, setPool] = useState<'' | 'on' | 'off'>('');
   const [page, setPage] = useState(1);
@@ -114,6 +126,12 @@ export function RepositoriesList() {
       sort: (r) => r.name,
     },
     { id: 'owner', header: 'Owner', cell: (r) => r.owner, sort: (r) => r.owner },
+    {
+      id: 'visibility',
+      header: 'Visibility',
+      cell: (r) => <VisibilityCell r={r} enabled={enabled} />,
+      sort: (r) => r.visibility,
+    },
     {
       id: 'pool',
       header: 'Pool',
@@ -186,6 +204,12 @@ export function RepositoriesList() {
           )
         }
       />
+      {setting ? (
+        <Text tone="muted">
+          Active types:{' '}
+          <TextLink to={PUBLIC_SETTING_PATH}>{activeTypes(setting.enabled)}</TextLink>
+        </Text>
+      ) : null}
       {returned ? (
         <Message
           tone={returned === 'request' ? 'needs-you' : 'done'}
@@ -212,6 +236,7 @@ export function RepositoriesList() {
           const selected = new Set([...picked].map(String));
           const chosen = data.items.filter((r) => picked.has(r.id));
           const noAdmin = chosen.filter((r) => !r.user_is_github_admin);
+          const publicOff = chosen.filter((r) => publicWhileOff(r, enabled));
           if (data.items.length === 0)
             return (
               <Empty
@@ -227,76 +252,85 @@ export function RepositoriesList() {
                   {data.stale.as_of ? `, from ${formatPast(data.stale.as_of, now)}` : ''}.
                 </Message>
               ) : null}
-              <SearchBar
-                value={q}
-                onChange={(x) => {
-                  setQ(x);
-                  setPage(1);
-                }}
-                label="Search repositories"
+              <ListToolbar
+                label="Repositories"
+                search={
+                  <SearchBar
+                    value={q}
+                    onChange={(x) => {
+                      setQ(x);
+                      setPage(1);
+                    }}
+                    label="Search repositories"
+                  />
+                }
+                filters={
+                  <Segmented
+                    label="Pool"
+                    options={[
+                      { value: 'on', label: 'Pool on' },
+                      { value: 'off', label: 'Pool off' },
+                    ]}
+                    value={pool}
+                    onChange={(x) => {
+                      setPool(x);
+                      setPage(1);
+                    }}
+                  />
+                }
+                selection={
+                  <>
+                    <Button onPress={() => setPicked(new Set(filtered.map((r) => r.id)))}>
+                      {`Select all ${filtered.length}`}
+                    </Button>
+                    {picked.size > 0 ? (
+                      <>
+                        <span>{`${picked.size} selected`}</span>
+                        <Button onPress={() => setPicked(new Set())}>Clear</Button>
+                        <Button
+                          kind="primary"
+                          disabled={!admin || noAdmin.length > 0 || publicOff.length > 0}
+                          reason={
+                            !admin
+                              ? session.whyNot('admin')
+                              : noAdmin.length > 0
+                                ? `You need admin rights on ${noAdmin.map((r) => r.full_name).join(', ')} in GitHub.`
+                                : publicOff.length > 0
+                                  ? `Public repositories are off: ${publicOff.map((r) => r.full_name).join(', ')}. Turn them on in Settings first.`
+                                  : undefined
+                          }
+                          onPress={() =>
+                            void navigate(
+                              `/repositories/turn-on?${chosen.map((r) => `repo=${r.id}`).join('&')}`,
+                            )
+                          }
+                        >
+                          {`Turn on ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
+                        </Button>
+                        <Button
+                          kind="danger"
+                          disabled={!admin}
+                          reason={session.whyNot('admin')}
+                          onPress={() =>
+                            offQ.ask(
+                              chosen.flatMap((r) => [
+                                `${r.full_name}: pool off`,
+                                ...r.variables.map(
+                                  (x) => `${r.full_name}: variable ${x.name}`,
+                                ),
+                              ]),
+                            )
+                          }
+                        >
+                          {`Turn off ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
+                        </Button>
+                      </>
+                    ) : null}
+                  </>
+                }
+                count={`${filtered.length} ${filtered.length === 1 ? 'repository' : 'repositories'}`}
+                actions={<InstallAppButton label="Add a repository" onReturn={reload} />}
               />
-              <Chips
-                label="Pool"
-                options={[
-                  { value: 'on', label: 'Pool on' },
-                  { value: 'off', label: 'Pool off' },
-                ]}
-                value={pool}
-                onChange={(x) => {
-                  setPool(x);
-                  setPage(1);
-                }}
-              />
-              <Cluster>
-                <Button onPress={() => setPicked(new Set(filtered.map((r) => r.id)))}>
-                  {`Select all ${filtered.length}`}
-                </Button>
-                <Button
-                  onPress={() => setPicked(new Set())}
-                  disabled={picked.size === 0}
-                  reason="Nothing is selected."
-                >
-                  Clear
-                </Button>
-                <InstallAppButton label="Add a repository" onReturn={reload} />
-              </Cluster>
-              {picked.size > 0 ? (
-                <Cluster>
-                  <Button
-                    kind="primary"
-                    disabled={!admin || noAdmin.length > 0}
-                    reason={
-                      !admin
-                        ? session.whyNot('admin')
-                        : noAdmin.length > 0
-                          ? `You need admin rights on ${noAdmin.map((r) => r.full_name).join(', ')} in GitHub.`
-                          : undefined
-                    }
-                    onPress={() =>
-                      void navigate(
-                        `/repositories/turn-on?${chosen.map((r) => `repo=${r.id}`).join('&')}`,
-                      )
-                    }
-                  >
-                    {`Turn on ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
-                  </Button>
-                  <Button
-                    kind="danger"
-                    disabled={!admin}
-                    reason={session.whyNot('admin')}
-                    onPress={() =>
-                      offQ.ask(
-                        chosen.flatMap((r) => [
-                          `${r.full_name}: pool off`,
-                          ...r.variables.map((x) => `${r.full_name}: variable ${x.name}`),
-                        ]),
-                      )
-                    }
-                  >
-                    {`Turn off ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
-                  </Button>
-                </Cluster>
-              ) : null}
               {filtered.length === 0 ? (
                 <Message tone="note">
                   {data.items.length} repositories are hidden by the search and the
@@ -319,6 +353,7 @@ export function RepositoriesList() {
                     })
                   }
                   toggleLabel={(r) => `Select ${r.full_name}`}
+                  muted={(r) => publicWhileOff(r, enabled)}
                 />
               )}
               <Pager
@@ -458,6 +493,12 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
     if (plan.state !== 'done') throw new Error('The pool was not turned off.');
   }, onChanged);
 
+  const { setting, enabled, reload: reloadSetting } = usePublicRepositories();
+  const sw = usePublicSwitch(setting, () => {
+    reloadSetting();
+    onChanged();
+  });
+  const publicOff = publicWhileOff(r, enabled);
   const vs = variableStatus(r);
   return (
     <>
@@ -482,13 +523,15 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
           ) : (
             <Button
               kind="primary"
-              disabled={!admin || !r.user_is_github_admin}
+              disabled={!admin || !r.user_is_github_admin || publicOff}
               reason={
                 !admin
                   ? session.whyNot('admin')
                   : !r.user_is_github_admin
                     ? 'You need admin rights on this repository in GitHub.'
-                    : undefined
+                    : publicOff
+                      ? 'Public repositories are off. Turn them on in Settings first.'
+                      : undefined
               }
               onPress={() => void navigate(`/repositories/turn-on?repo=${r.id}`)}
             >
@@ -497,6 +540,56 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
           )
         }
       />
+      {r.problem ? (
+        <Message
+          tone="problem"
+          action={
+            <Cluster>
+              {r.problem.actions.map((a) =>
+                a.id === 'turn_on_public_repositories' ? (
+                  <Button
+                    key={a.id}
+                    onPress={() => sw.ask(true)}
+                    disabled={!session.can('owner')}
+                    reason={session.whyNot('owner')}
+                  >
+                    {a.label}
+                  </Button>
+                ) : (
+                  <Button
+                    key={a.id}
+                    kind="danger"
+                    disabled={!admin}
+                    reason={session.whyNot('admin')}
+                    onPress={() =>
+                      offQ.ask([
+                        `${r.full_name}: pool off`,
+                        ...r.variables.map((x) => `Variable ${x.name}`),
+                      ])
+                    }
+                  >
+                    {a.label}
+                  </Button>
+                ),
+              )}
+            </Cluster>
+          }
+        >
+          {r.problem.text}
+        </Message>
+      ) : null}
+      {sw.error ? (
+        <Message tone="problem">
+          Could not save Enable for public repositories. {sw.error}
+        </Message>
+      ) : null}
+      {sw.dialog}
+      {publicOff && !r.problem ? (
+        <Message tone="note">
+          {PUBLIC_OFF_REASON}{' '}
+          <TextLink to={PUBLIC_SETTING_PATH}>Turn on public repositories</TextLink>
+        </Message>
+      ) : null}
       <Section title="State">
         <Facts
           items={[
@@ -741,5 +834,27 @@ function ExtraPackages({ r, onChanged }: { r: Repository; onChanged: () => void 
         </FormActions>
       </Stack>
     </form>
+  );
+}
+
+/** The Visibility cell: the word, and for a public repository while the setting is off, the reason and the link. */
+function VisibilityCell({ r, enabled }: { r: Repository; enabled: boolean | undefined }) {
+  const off = publicWhileOff(r, enabled);
+  if (!off && !r.problem) return <>{visibilityWord(r)}</>;
+  return (
+    <Stack gap="tight">
+      <Text>{visibilityWord(r)}</Text>
+      {r.problem ? (
+        <Text>
+          {r.problem.text}{' '}
+          <TextLink to={`/repositories/${r.owner}/${r.name}`}>Fix it</TextLink>
+        </Text>
+      ) : (
+        <Text>
+          {PUBLIC_OFF_REASON}{' '}
+          <TextLink to={PUBLIC_SETTING_PATH}>Turn on public repositories</TextLink>
+        </Text>
+      )}
+    </Stack>
   );
 }

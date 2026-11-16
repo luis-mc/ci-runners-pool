@@ -6,6 +6,7 @@ import {
   Empty,
   ExportButton,
   Section,
+  ListToolbar,
   SearchBar,
   Stack,
   Status,
@@ -102,9 +103,16 @@ export function AuditLogSettings() {
     <Section title="Audit log">
       <Stack>
         <Text>Who changed what, and when. The newest change is first.</Text>
-        <SearchBar label="Search who" value={actor} onChange={setActor} />
-        <SearchBar label="Search what" value={action} onChange={setAction} />
-        <ExportButton what="the audit log" onExport={exportAll} />
+        <ListToolbar
+          label="Audit log"
+          search={
+            <>
+              <SearchBar label="Search who" value={actor} onChange={setActor} />
+              <SearchBar label="Search what" value={action} onChange={setAction} />
+            </>
+          }
+          actions={<ExportButton what="the audit log" onExport={exportAll} />}
+        />
         <Load
           result={result.state === 'ready' ? { ...result, data: rows } : result}
           what="the audit log"
