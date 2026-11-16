@@ -626,3 +626,42 @@ The words of the Settings section Access for CI and of the action that sets up p
 | 1. Ask for it / On the App page, under Repository permissions, set the access. | First step of the permission help. |
 | 2. Accept it / On the installation page, press Accept new permissions. | Second step of the permission help. |
 | Open the App permissions, Open the installation | The two external buttons. |
+
+## Docker disk words
+
+The words of the Docker disk section on the machine page (caches R5.50, machines R5.65). The section shows only for a machine whose agent found a Docker Desktop disk file, or whose choice is On or Off.
+
+| Word | Where and meaning |
+|---|---|
+| Docker disk | The section title on the machine page. |
+| Make Docker's disk smaller | The name of the one-choice list. Values: Automatic, On, Off. Saved at once. |
+| On for a Windows machine with a Docker Desktop disk file. Off for the others. | Help under Automatic. |
+| Makes the disk smaller when the numbers below say so. | Help under On. |
+| Never makes the disk smaller by itself. | Help under Off. |
+| Start when this much can be reclaimed | The name of the number field, in GiB. The default is 30. |
+| Wait until the machine has been idle for | The name of the number field, in minutes. The default is 30. |
+| No job runs or waits for its runners. | Help under the idle field. |
+| Quiet hours start, Quiet hours end | The names of the two hour lists. Defaults 01:00 and 06:00. |
+| In the machine's own time. | Help under Quiet hours start. |
+| At most once a day. New jobs wait in the queue while the disk is made smaller. No job is stopped. | The note at the end of the section. |
+| Now | The facts line with the state word. |
+| Disk file, Docker uses, Can be reclaimed, Last time | The other facts lines. Sizes as in Dates, times and numbers. Last time is a date, a time and the sizes, or the failure. |
+| Making the disk smaller | State word while the compact runs. |
+| Off | State word: the policy is off for this machine. |
+| Done today | State word: it ran in the last 24 hours. |
+| Waiting for quiet hours | State word: outside the quiet hours. |
+| Waiting: the machine is offline | State word. |
+| Waiting: the machine is paused or drained | State word. |
+| Waiting for the agent to look at the disk | State word before the first report. |
+| Waiting: less than the limit can be reclaimed | State word. |
+| Waiting: jobs run or wait here | State word. |
+| Waiting: not idle long enough | State word. |
+| Waiting: another change is running | State word. |
+| Cannot: the agent has no administrator rights | State word, shown as a failure. |
+| Not looked at yet | State word when no look was made. |
+| The agent on this machine does not run as administrator, so it cannot make Docker's disk smaller. Install the agent again from an administrator window, or turn this off. | Problem message under the facts. |
+| Turn off | The action beside that message. Saves Off. |
+| Could not save. {why} | Problem message when a change was not saved. |
+| {machine} is making Docker's disk smaller ({size} on disk, {size} used). New jobs wait in the queue and start again when it is done; no job is stopped. | Notice to the projects, before. |
+| {machine} made Docker's disk smaller: {size} to {size}. Jobs take the machine again. | Notice to the projects, after. |
+| {machine} could not make Docker's disk smaller: {why}. Jobs take the machine again. | Notice to the projects, on a failure. |
