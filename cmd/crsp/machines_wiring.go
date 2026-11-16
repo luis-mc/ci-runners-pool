@@ -36,6 +36,9 @@ const (
 	defaultAgent  = "0.0.0.0:8461"
 )
 
+// compactEvery is how often the Docker disk compact policy is looked at.
+const compactEvery = 5 * time.Minute
+
 // machinesRuntime is the machines area of a running controller.
 type machinesRuntime struct {
 	Service *machines.Service
