@@ -1,0 +1,2214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feature: Install, update and operations</title>
+<meta name="artifact-kind" content="feature-artifact">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap">
+<style id="design-tokens">/*
+  Default design for project artifacts.
+
+  Layout concept: Spec sheet: a contents rail on the left, numbered sections, the status checklist first.
+
+  Fonts (load with a link element in the head):
+  https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap
+
+  This file holds tokens only. Structure lives in templates/project-artifact.css.
+*/
+:root {
+  --font-display: 'Archivo', 'Arial Narrow', system-ui, sans-serif;
+  --font-display-stretch: 87.5%;
+  --font-body: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Consolas, Menlo, monospace;
+
+  --paper: #F5F6F8;
+  --surface: #FFFFFF;
+  --surface-2: #ECEEF2;
+  --ink: #141A23;
+  --ink-muted: #556070;
+  --rule: #D5DAE1;
+  --rule-strong: #9AA4B2;
+  --signal: #2D46C8;
+  --on-signal: #FFFFFF;
+  --live: #17784A;
+  --on-live: #FFFFFF;
+  --done-bg: #DCEFE4;
+  --running-bg: #FBEBC8;
+  --running-mark: #B26A00;
+  --waiting-bg: #DDE6FA;
+  --failed: #C0352B;
+  --on-failed: #FFFFFF;
+  --focus: #2D46C8;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F141B;
+    --surface: #161D27;
+    --surface-2: #1E2733;
+    --ink: #E7EBF0;
+    --ink-muted: #9AA5B4;
+    --rule: #2A3442;
+    --rule-strong: #4A5668;
+    --signal: #8EA2FF;
+    --on-signal: #0F141B;
+    --live: #4CC38A;
+    --on-live: #0F141B;
+    --done-bg: #173326;
+    --running-bg: #3A2C0E;
+    --running-mark: #F0B54A;
+    --waiting-bg: #1B2A4A;
+    --failed: #F07167;
+    --on-failed: #0F141B;
+    --focus: #8EA2FF;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #0F141B;
+  --surface: #161D27;
+  --surface-2: #1E2733;
+  --ink: #E7EBF0;
+  --ink-muted: #9AA5B4;
+  --rule: #2A3442;
+  --rule-strong: #4A5668;
+  --signal: #8EA2FF;
+  --on-signal: #0F141B;
+  --live: #4CC38A;
+  --on-live: #0F141B;
+  --done-bg: #173326;
+  --running-bg: #3A2C0E;
+  --running-mark: #F0B54A;
+  --waiting-bg: #1B2A4A;
+  --failed: #F07167;
+  --on-failed: #0F141B;
+  --focus: #8EA2FF;
+  color-scheme: dark;
+}
+</style>
+<style id="structure-css">/*
+  Structure stylesheet for project artifacts.
+  Fixed for every project. It uses design tokens only and never holds a colour.
+  Tokens come from the project's design file, or design/default-design.css.
+*/
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; scroll-padding-top: 4rem; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14.4px;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: 0 2.5rem;
+  max-width: 76rem;
+  margin: 0 auto;
+  padding-inline: 1.25rem;
+}
+
+/* Contents rail */
+nav.contents {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding-block: 1.5rem;
+}
+.contents-title {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-muted);
+  margin-bottom: .6rem;
+}
+nav.contents a {
+  display: block;
+  text-decoration: none;
+  color: var(--ink);
+  padding: .3em .6em;
+  border-left: 2px solid transparent;
+}
+nav.contents a b {
+  display: inline-block;
+  min-width: 2em;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+nav.contents a.current {
+  border-left-color: var(--signal);
+  background: var(--surface-2);
+}
+.theme-toggle {
+  margin-top: 1rem;
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  padding: .35em .7em;
+  cursor: pointer;
+}
+
+main { min-width: 0; padding-bottom: 5rem; }
+
+/* Header */
+header.artifact-header {
+  padding-block: 2rem 1.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+.artifact-kind {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: .78rem;
+  letter-spacing: .08em;
+  color: var(--ink-muted);
+}
+h1 {
+  font-family: var(--font-display);
+  font-stretch: var(--font-display-stretch);
+  font-weight: 800;
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  line-height: 1.05;
+  text-wrap: balance;
+  margin: .2em 0 .4em;
+}
+header.artifact-header { position: relative; }
+.gen-badge { position: absolute; top: .7rem; right: 0; display: inline-flex; align-items: center; gap: .4em; font-family: var(--font-mono); font-size: .72rem; white-space: nowrap; color: var(--ink-muted); }
+.gen-flag { display: inline-block; padding: 0 .5em; border: 1px solid currentColor; line-height: 1.5; }
+.gen-latest { color: var(--live); }
+.gen-update { color: var(--running-mark); }
+.gen-unknown { color: var(--ink-muted); }
+header.artifact-header p { max-width: 46em; font-size: 1.08rem; }
+.artifact-meta {
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  color: var(--ink-muted);
+}
+
+/* Sections */
+section { padding-top: 2.5rem; }
+h2 {
+  display: flex;
+  gap: .6em;
+  align-items: baseline;
+  font-family: var(--font-display);
+  font-stretch: var(--font-display-stretch);
+  font-weight: 700;
+  font-size: 1.65rem;
+  text-wrap: balance;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: .3em;
+  margin: 0 0 .8em;
+}
+.section-number {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: .95rem;
+  color: var(--signal);
+}
+h3 {
+  font-family: var(--font-display);
+  font-stretch: var(--font-display-stretch);
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-top: 1.8em;
+}
+
+p.last-update {
+  font-family: var(--font-mono);
+  font-size: .85rem;
+  color: var(--ink-muted);
+}
+p.last-update time { color: var(--ink); font-weight: 600; }
+p.lede { font-size: 1.12rem; font-weight: 500; max-width: 48em; }
+
+/* Status count tiles */
+.status-count-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+  gap: .75rem;
+  margin: 1.2em 0;
+}
+.status-count-tile {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--rule-strong);
+  padding: .7em .9em;
+}
+.status-count-tile .count {
+  font-family: var(--font-display);
+  font-stretch: var(--font-display-stretch);
+  font-weight: 800;
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.status-count-tile .label { font-size: .82rem; color: var(--ink-muted); }
+.status-count-tile.status-live { border-top-color: var(--live); }
+.status-count-tile.status-built { border-top-color: var(--live); }
+.status-count-tile.status-running { border-top-color: var(--running-mark); }
+.status-count-tile.status-needs-you { border-top-color: var(--signal); }
+.status-count-tile.status-waiting { border-top-color: var(--rule-strong); }
+.status-count-tile.status-to-do { border-top-color: var(--rule-strong); }
+.status-count-tile.status-on-hold { border-top-color: var(--rule-strong); border-top-style: dashed; }
+.status-count-tile.status-failed { border-top-color: var(--failed); }
+.status-count-tile.status-dropped { border-top-color: var(--rule-strong); border-top-style: dotted; }
+
+/* At a glance (section 0): one labelled row per kind, items one per line */
+.at-a-glance {
+  margin: 1.2em 0;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  max-width: 60em;
+}
+.glance-group {
+  display: block;
+  padding: 0 0 .5em;
+  border-top: 1px solid var(--rule);
+  border-left: 4px solid var(--rule-strong);
+}
+.glance-group:first-child { border-top: 0; }
+.glance-label {
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+/* the summary is the shared fold header of R6.12; inside the bordered block it drops its own box */
+details.glance-group > summary { border: 0; background: transparent; }
+details.glance-group > summary:hover { background: var(--surface-2); }
+.glance-group ul { list-style: none; margin: 0; padding: .1em .9em .2em 2.2rem; min-width: 0; }
+.glance-group li { padding: .1em 0; overflow-wrap: anywhere; }
+.glance-group p { margin: 0; padding: .1em .9em .2em 2.2rem; color: var(--ink-muted); }
+.glance-expected { font-size: .85rem; color: var(--ink-muted); margin-left: .5em; }
+.glance-more { color: var(--ink-muted); font-size: .88rem; }
+.glance-dep { font-size: .85rem; color: var(--ink-muted); margin: 0 .5em; }
+.glance-dep::after { content: ' \2192'; }
+.glance-basis { display: block; font-size: .72rem; line-height: 1.3; color: var(--ink-muted); }
+.glance-you { border-left-color: var(--signal); }
+.glance-you .glance-label { color: var(--ink); }
+.glance-you:has(li) { background: var(--waiting-bg); border-left-width: 6px; }
+.glance-you:has(li) .glance-label { color: var(--signal); }
+.glance-running { border-left-color: var(--running-mark); }
+.glance-running li { background: var(--running-bg); padding-inline: .4em; margin-block: .15em; }
+.glance-built { border-left-color: var(--live); }
+.glance-waiting { border-left-color: var(--rule-strong); border-left-style: dashed; }
+.glance-live { border-left-color: var(--live); }
+
+/* Status chips */
+.status-chip {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: .12em .5em;
+  border: 1px solid var(--rule-strong);
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--surface);
+}
+.status-chip.status-live { background: var(--live); color: var(--on-live); border-color: var(--live); }
+.status-chip.status-built { background: var(--done-bg); }
+.status-chip.status-running { background: var(--running-bg); border-left: 3px solid var(--running-mark); }
+.status-chip.status-needs-you { background: var(--signal); color: var(--on-signal); border-color: var(--signal); }
+.status-chip.status-waiting { background: var(--waiting-bg); }
+.status-chip.status-to-do { background: var(--surface-2); }
+.status-chip.status-on-hold { background: var(--surface-2); border-style: dashed; }
+.status-chip.status-dropped { background: var(--surface-2); color: var(--ink-muted); border-style: dotted; text-decoration: line-through; }
+.status-chip.status-failed { background: var(--failed); color: var(--on-failed); border-color: var(--failed); }
+
+/* Tables */
+.table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  margin: .9em 0;
+}
+.table-scroll table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 34rem;
+  font-size: .9rem;
+  font-variant-numeric: tabular-nums;
+}
+.table-scroll th {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-muted);
+  background: var(--surface-2);
+  text-align: left;
+  padding: .55em .7em;
+  border-bottom: 1px solid var(--rule);
+}
+.table-scroll td {
+  padding: .55em .7em;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+  line-height: 1.4;
+}
+table.status-checklist td:first-child { white-space: nowrap; }
+table.status-checklist td code { white-space: nowrap; overflow-wrap: normal; }
+/* Collapsible checklist groups (R6.12): native <details>, no script; the heading sits in the <summary> */
+details.status-fold { margin: 1.1em 0 0; }
+details.glance-group > summary,
+details.status-fold > summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .3em .7em;
+  min-height: 2.75rem;
+  padding: .6em .7em;
+  cursor: pointer;
+  list-style: none;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: .74rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-muted);
+}
+details.glance-group > summary::-webkit-details-marker,
+details.status-fold > summary::-webkit-details-marker { display: none; }
+details.glance-group > summary::before,
+details.status-fold > summary::before {
+  content: "";
+  flex: none;
+  width: .5rem;
+  height: .5rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+details.glance-group[open] > summary::before,
+details.status-fold[open] > summary::before { transform: rotate(45deg); }
+details.glance-group > summary:hover,
+details.status-fold > summary:hover { background: var(--surface-2); }
+details.glance-group > summary:focus-visible,
+details.status-fold > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+details.glance-group > summary .fold-count,
+details.status-fold > summary .fold-count { margin-left: auto; text-transform: none; letter-spacing: 0; font-size: .72rem; }
+details.status-fold > .table-scroll { margin-top: 0; border-top: 0; }
+details.status-fold > details.earlier { margin: .6em .7em; }
+table.status-checklist { table-layout: fixed; }
+table.status-checklist col.col-status { width: 7.5rem; }
+table.status-checklist col.col-item { width: 30%; }
+table.status-checklist col.col-app { width: 8.5rem; }
+table.status-checklist col.col-expected { width: 9.5rem; }
+table.status-checklist td { overflow-wrap: anywhere; }
+@media print {
+  details.status-fold > summary::before, details.glance-group > summary::before { display: none; }
+  details.glance-group::details-content, details.status-fold::details-content, details.earlier::details-content { content-visibility: visible; display: block; }
+}
+table.history-table td:first-child { font-family: var(--font-mono); white-space: nowrap; }
+
+/* Earlier fold: Live rows older than the fold age, closed by default */
+details.earlier { margin: .9em 0; }
+p.earlier-note { margin: .6em .8em; color: var(--ink-muted); font-size: .9em; }
+details.earlier > summary {
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-muted);
+  padding: .5em 0;
+}
+details.earlier > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+details.earlier[open] > summary { margin-bottom: .2em; }
+
+.task-id {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: .82em;
+  margin-right: .4em;
+  color: var(--ink-muted);
+}
+a .task-id { color: inherit; }
+
+/* What sets the Expected estimate (R6.10): a small muted line under the value */
+.expected-basis {
+  display: block;
+  font-size: .72rem;
+  line-height: 1.3;
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+
+/* The publish copy's button that copies a feature file's file:/// address (R5.31) */
+.copy-link {
+  margin-left: .5rem;
+  padding: .1rem .5rem;
+  font: inherit;
+  font-size: .72rem;
+  line-height: 1.4;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.copy-link:hover, .copy-link:focus-visible { color: var(--signal); border-color: var(--signal); }
+
+/* Section 1 sort headers (R5.39) */
+.sort-header {
+  padding: 0;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  text-align: inherit;
+  cursor: pointer;
+}
+.sort-header:hover, .sort-header:focus-visible { color: var(--signal); }
+.sort-arrow { display: inline-block; min-width: 1ch; }
+
+/* A feature page's line under its stamp (R5.38) */
+.full-progress-published { margin: .2rem 0 0; font-size: .85rem; color: var(--ink-muted); }
+
+/* The address itself, shown only when the clipboard refuses, to copy by hand */
+.local-path {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  line-height: 1.3;
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* Links and focus */
+a { color: var(--signal); text-underline-offset: .15em; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Code */
+code, kbd {
+  font-family: var(--font-mono);
+  font-size: .86em;
+  background: var(--surface-2);
+  padding: .05em .3em;
+  border: 1px solid var(--rule);
+  overflow-wrap: anywhere;
+}
+pre {
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  line-height: 1.4;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: .9em 1em;
+  overflow-x: auto;
+  white-space: pre;
+}
+pre code { background: none; border: 0; padding: 0; overflow-wrap: normal; }
+
+.note { font-size: .85rem; color: var(--ink-muted); }
+ul, ol { padding-left: 1.3em; }
+li { margin: .25em 0; }
+
+/* Flow of steps */
+.flow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: stretch;
+  margin: 1em 0;
+}
+.flow-step {
+  flex: 1 1 9rem;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: .6em .75em;
+  font-size: .88rem;
+}
+.flow-step b {
+  display: block;
+  font-family: var(--font-display);
+  font-stretch: var(--font-display-stretch);
+  font-weight: 700;
+  font-size: 1rem;
+}
+.flow-step small {
+  display: block;
+  color: var(--ink-muted);
+  line-height: 1.3;
+  margin-top: .2em;
+}
+.flow-step.key-step { border-color: var(--signal); border-width: 2px; }
+.flow-arrow {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+}
+
+/* Decisions: the options the owner was shown, side by side, the chosen one marked */
+.decision-list { margin: 1em 0; }
+.decision {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 1rem;
+  margin: 0 0 1.2rem;
+}
+.decision-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem .7rem;
+  align-items: baseline;
+  margin: 0;
+  font-size: 1.12rem;
+}
+.decision-id {
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+.decision-question { flex: 1 1 14rem; min-width: 0; overflow-wrap: anywhere; }
+.decision-meta {
+  font-family: var(--font-mono);
+  font-size: .76rem;
+  color: var(--ink-muted);
+  margin: .4em 0 .8em;
+}
+.decision-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: .75rem;
+}
+.decision-option {
+  min-width: 0;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  padding: .8rem .9rem;
+}
+.decision-option.decision-chosen {
+  background: var(--surface);
+  border: 3px solid var(--signal);
+  padding: calc(.8rem - 2px) calc(.9rem - 2px);
+}
+.decision-option.decision-muted { background: var(--surface-2); color: var(--ink-muted); }
+.decision-option-head { display: flex; flex-wrap: wrap; gap: .35rem .5rem; align-items: baseline; }
+.decision-label {
+  font-family: var(--font-display);
+  font-stretch: var(--font-display-stretch);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.decision-chip, .decision-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: .1em .45em;
+  border: 1px solid var(--rule-strong);
+  color: var(--ink);
+  background: var(--surface);
+}
+.decision-chip-chosen { background: var(--signal); color: var(--on-signal); border-color: var(--signal); }
+.decision-chip-muted { background: var(--surface-2); border-style: dashed; color: var(--ink-muted); }
+.decision-tag { border-color: var(--signal); }
+.decision-summary { margin: .5em 0 0; }
+.decision-preview { margin-top: .7em; max-width: 100%; overflow-x: auto; }
+.decision-image { display: block; max-width: 100%; height: auto; border: 1px solid var(--rule); }
+.decision-words {
+  margin: .8em 0 0;
+  padding-left: .8em;
+  border-left: 3px solid var(--signal);
+  font-style: italic;
+  color: var(--ink);
+}
+details.decision-replaced { padding: .6rem 1rem; }
+details.decision-replaced > summary { cursor: pointer; color: var(--ink-muted); }
+details.decision-replaced > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+details.decision-replaced[open] > summary { margin-bottom: .6em; }
+.decision-replaced-by {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+/* Phone width */
+@media (max-width: 40rem) {
+  .decision-options { grid-template-columns: 1fr; }
+  .decision { padding: .8rem; }
+}
+@media (max-width: 56rem) {
+  .layout, .layout[data-contents="collapsed"] { display: block; padding-inline: 1rem; }
+  nav.contents {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: .5rem 0;
+    margin-bottom: .5rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .contents-title, nav.contents .contents-toggle { display: none; }
+  nav.contents .contents-links, .layout[data-contents="collapsed"] nav.contents .contents-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+  }
+  nav.contents a {
+    display: inline-block;
+    min-width: 0;
+    border: 1px solid var(--rule);
+    border-left-width: 1px;
+  }
+  nav.contents a.current { border-color: var(--signal); }
+  .theme-toggle, .layout[data-contents="collapsed"] .theme-toggle { display: inline-block; margin-top: .5rem; }
+}
+
+/* Contents rail toggle (wide screens): folds the rail to a thin strip and gives the page the full width */
+.contents-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .4em;
+  margin-bottom: .8rem;
+  min-height: 2rem;
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  cursor: pointer;
+}
+.contents-toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.contents-toggle-icon { font-size: 1.1rem; line-height: 1; }
+@media (min-width: 56.01rem) {
+  .layout[data-contents="collapsed"] { grid-template-columns: 2.75rem minmax(0, 1fr); gap: 0 1rem; max-width: none; }
+  .layout[data-contents="collapsed"] .contents-title,
+  .layout[data-contents="collapsed"] .contents-links,
+  .layout[data-contents="collapsed"] .theme-toggle { display: none; }
+  .layout[data-contents="collapsed"] .contents-toggle { padding-inline: .5em; }
+  .layout[data-contents="collapsed"] .contents-toggle-label {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+}
+
+/* Narrow boxes: a task row is a card. The box is measured, not the screen, so the open rail at 900 px stacks too. */
+.table-scroll { container-type: inline-size; }
+@container (max-width: 46rem) {
+  .table-scroll table { min-width: 0; display: block; }
+  table.status-checklist colgroup, table.status-checklist thead { display: none; }
+  table.status-checklist tbody, table.feature-list tbody { display: block; }
+  table.status-checklist tr, table.feature-list tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: .3rem .7rem;
+    padding: .7rem .8rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  table.status-checklist td, table.feature-list td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    grid-column: 1 / -1;
+  }
+  table.status-checklist td:empty, table.feature-list td:empty { display: none; }
+  table.status-checklist td:nth-child(1) { grid-column: 1; white-space: nowrap; }
+  table.status-checklist td:nth-child(2) { grid-column: 2; font-weight: 600; }
+  table.status-checklist td code { white-space: normal; overflow-wrap: anywhere; }
+  table.status-checklist td:nth-child(n+3)::before, table.feature-list td:nth-child(n+2)::before {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--ink-muted);
+  }
+  /* AR69: the cell labels come from the column, not from an attribute on every cell */
+  table.status-checklist.with-app td:nth-child(3)::before { content: "App / service"; }
+  table.status-checklist.with-app td:nth-child(4)::before, table.status-checklist:not(.with-app) td:nth-child(3)::before { content: "Detail"; }
+  table.status-checklist.with-app td:nth-child(5)::before, table.status-checklist:not(.with-app) td:nth-child(4)::before { content: "Expected"; }
+  table.feature-list td:nth-child(2)::before { content: "Last updated"; }
+  table.feature-list td:nth-child(3)::before { content: "Tasks"; }
+  table.feature-list td:nth-child(4)::before { content: "State"; }
+  table.feature-list td:nth-child(5)::before { content: "Where it stands"; }
+  table.status-checklist .release-line::before { content: "Rides "; }
+  table.feature-list td:nth-child(1) { font-weight: 600; }
+  table.feature-list thead { display: block; background: var(--surface-2); border-bottom: 1px solid var(--rule); }
+  table.feature-list thead tr { display: flex; flex-wrap: wrap; gap: .2rem .8rem; padding: .3rem .8rem; border: 0; }
+  table.feature-list thead th { display: block; padding: 0; border: 0; }
+  table.feature-list thead th:nth-child(n+3) { display: none; }
+}
+/* CI runs section (R5.51): tokens only, light and dark come from the page's own tokens */
+details.ci-runs > .ci-body { border: 1px solid var(--rule); border-top: 0; background: var(--surface); padding: .4rem .9rem 1rem; }
+.ci-h { font-family: var(--font-mono); font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); margin: 1.2em 0 .4em; }
+.ci-figures { display: flex; flex-wrap: wrap; gap: .6rem 1.6rem; margin: .6rem 0 0; }
+.ci-figures > div { min-width: 6.5rem; }
+.ci-figures dt { font-family: var(--font-mono); font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); }
+.ci-figures dd { margin: 0; font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ci-table { min-width: 38rem; }
+.ci-num, .ci-total, .ci-done, .ci-step-time { font-variant-numeric: tabular-nums; }
+.ci-tag { display: inline-block; padding: .05em .55em; border: 1px solid var(--rule-strong); font-family: var(--font-mono); font-size: .7rem; line-height: 1.5; white-space: nowrap; }
+details.ci-runs { --ci-teal: color-mix(in srgb, var(--live) 70%, var(--signal)); --ci-purple: color-mix(in srgb, var(--signal) 55%, var(--failed)); }
+.ci-tag-pool { background: var(--ci-teal); color: var(--on-live); border-color: var(--ci-teal); }
+.ci-tag-windows { background: var(--signal); color: var(--on-signal); border-color: var(--signal); }
+.ci-tag-hosted { background: var(--surface-2); color: var(--ink); }
+.ci-tag-cloud { background: var(--ci-purple); color: var(--on-signal); border-color: var(--ci-purple); }
+.ci-chip { display: inline-block; padding: .05em .55em; border: 1px solid var(--rule-strong); background: var(--surface-2); font-family: var(--font-mono); font-size: .75rem; line-height: 1.5; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.ci-chip-run { background: var(--ci-teal); color: var(--on-live); border-color: var(--ci-teal); }
+.ci-chip-wait { background: var(--running-bg); color: var(--ink); border-color: var(--running-mark); }
+.ci-line { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-run-name { font-weight: 700; }
+.ci-why { color: var(--ink-muted); }
+.ci-runs-list { border: 1px solid var(--rule); }
+details.ci-run + details.ci-run { border-top: 1px solid var(--rule); }
+details.ci-run > summary {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr) auto 5rem 7.5rem;
+  gap: .3rem .8rem;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: .45rem .7rem;
+  cursor: pointer;
+  list-style: none;
+}
+details.ci-run > summary::-webkit-details-marker { display: none; }
+details.ci-run > summary:hover { background: var(--surface-2); }
+details.ci-run > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.ci-total, .ci-done { text-align: right; }
+.ci-mark { font-weight: 700; text-align: center; }
+.ci-pass .ci-mark { color: var(--live); }
+.ci-fail .ci-mark { color: var(--failed); }
+.ci-cancel .ci-mark { color: var(--ink-muted); }
+.ci-waterfall { list-style: none; margin: 0; padding: .3rem .8rem .8rem 2.4rem; }
+.ci-step { display: grid; grid-template-columns: minmax(7rem, 14rem) minmax(0, 1fr) 4.5rem; gap: .6rem; align-items: center; min-height: 1.5rem; font-size: .82rem; }
+.ci-step-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-job-fold > summary { cursor: pointer; list-style: none; }
+.ci-job-fold > summary::-webkit-details-marker { display: none; }
+.ci-job-fold > summary .ci-step-name::before { content: "\25B8"; display: inline-block; width: 1em; color: var(--ink-muted); }
+.ci-job-fold[open] > summary .ci-step-name::before { content: "\25BE"; }
+.ci-job-fold > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.ci-steps { list-style: none; margin: 0; padding: 0 0 .3rem 1.2rem; }
+.ci-step-time { text-align: right; color: var(--ink-muted); }
+.ci-track { position: relative; height: .7rem; background: var(--surface-2); border: 1px solid var(--rule); }
+.ci-bar { position: absolute; top: 0; bottom: 0; }
+.ci-bar-queue, .ci-swatch.ci-bar-queue { background: var(--rule-strong); }
+.ci-bar-slot, .ci-swatch.ci-bar-slot { background: var(--running-mark); }
+.ci-bar-step, .ci-swatch.ci-bar-step { background: var(--ci-teal); }
+.ci-bar-fail, .ci-swatch.ci-bar-fail { background: var(--failed); }
+.ci-legend { display: flex; flex-wrap: wrap; gap: .3rem 1.1rem; margin: .7rem 0 0; font-size: .8rem; color: var(--ink-muted); }
+.ci-swatch { display: inline-block; width: .9rem; height: .6rem; margin-right: .4em; vertical-align: baseline; }
+@media (max-width: 40rem) {
+  details.ci-run > summary { grid-template-columns: 1.6rem minmax(0, 1fr) auto; }
+  details.ci-run > summary .ci-line { grid-column: 2 / -1; white-space: normal; }
+  details.ci-run > summary .ci-where { grid-column: 2 / -1; }
+  details.ci-run > summary .ci-total { grid-column: 2; text-align: left; }
+  details.ci-run > summary .ci-done { grid-column: 3; }
+  .ci-waterfall { padding-left: .8rem; }
+  .ci-step { grid-template-columns: minmax(0, 1fr) 4rem; }
+  .ci-step .ci-track { grid-column: 1 / -1; grid-row: 2; }
+  .ci-table td { display: block; padding: .2rem .7rem; border: 0; }
+  .ci-table td::before { content: attr(data-label); display: block; font-family: var(--font-mono); font-size: .68rem; text-transform: uppercase; color: var(--ink-muted); }
+  .ci-table thead { display: none; }
+  .ci-table { min-width: 0; }
+  .ci-table tr { display: block; border-bottom: 1px solid var(--rule); padding: .3rem 0; }
+}
+/* Release header and the timeline never push the page sideways */
+details.status-fold > summary { min-width: 0; overflow-wrap: anywhere; }
+details.status-fold > summary strong { min-width: 0; }
+.release-timeline { max-width: 100%; }
+.timeline-scroll { max-width: 100%; }
+
+/* Release timeline (R5.40 to R5.43) and the State column (R5.44) */
+.release-timeline { margin: 0 0 1rem; padding: .75rem 1rem; background: var(--surface); border: 1px solid var(--rule); }
+.release-timeline figcaption {
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: .4rem;
+}
+.timeline-scroll { overflow-x: auto; }
+.release-timeline svg { width: 100%; height: auto; display: block; font-family: var(--font-body); }
+.release-timeline .rt-axis { font-size: 9.9px; fill: var(--ink-muted); text-anchor: middle; }
+.release-timeline .rt-grid { stroke: var(--rule); }
+.release-timeline .rt-break { stroke: var(--ink-muted); stroke-width: 1.5; fill: none; }
+.release-timeline .rt-name { font-size: 11.7px; font-weight: 600; fill: var(--ink); }
+.release-timeline .rt-sub { font-size: 9.9px; fill: var(--ink-muted); }
+.release-timeline .rt-bar.agents { fill: var(--running-mark); }
+.release-timeline .rt-bar.join { fill: var(--signal); }
+.release-timeline .rt-bar.ci { fill: var(--live); }
+.release-timeline .rt-bar.fix { fill: var(--failed); }
+.release-timeline .rt-bar.merge { fill: var(--ink); }
+.release-timeline .rt-risk { fill: var(--rule-strong); opacity: .55; }
+.release-timeline .rt-worst { fill: var(--paper); stroke: var(--ink-muted); stroke-width: 1.5; }
+.release-timeline .rt-expected { fill: var(--ink); }
+.release-timeline .rt-day { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.release-timeline .rt-day-label { font-size: 10.8px; fill: var(--ink); }
+.release-timeline .rt-live-label { font-size: 10.8px; font-weight: 600; text-anchor: middle; fill: var(--ink); }
+.release-timeline .rt-risk-label { font-size: 9.45px; fill: var(--ink-muted); }
+.release-timeline .rt-now { stroke: var(--failed); stroke-width: 2; }
+.release-timeline .rt-now-label { font-size: 9.9px; font-weight: 600; text-anchor: middle; fill: var(--failed); }
+.release-timeline .rt-strip-title { font-size: 10.8px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; fill: var(--ink-muted); }
+.release-timeline .rt-other-label { font-size: 9.9px; fill: var(--ink-muted); }
+.release-timeline .rt-other.status-running { fill: var(--running-mark); }
+.release-timeline .rt-other.status-waiting { fill: var(--rule-strong); }
+.release-timeline .rt-other.status-needs-you { fill: var(--signal); }
+.release-timeline .rt-other.status-to-do { fill: var(--ink-muted); }
+.release-timeline .rt-other.overdue, .release-timeline .rt-day.overdue { stroke: var(--failed); stroke-width: 2; }
+.timeline-legend { font-size: .85rem; color: var(--ink-muted); margin: .5rem 0 0; }
+.rt-swatch { display: inline-block; width: 10px; height: 10px; vertical-align: middle; margin: 0 4px 0 2px; }
+.rt-swatch.agents { background: var(--running-mark); }
+.rt-swatch.join { background: var(--signal); }
+.rt-swatch.ci { background: var(--live); }
+.rt-swatch.fix { background: var(--failed); }
+.rt-swatch.merge { background: var(--ink); }
+.state-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* Release names and the checklist grouped by release (R5.45, R5.46) */
+.release-name { font-family: var(--font-mono); font-weight: 600; font-size: .82em; margin-right: .4em; color: var(--signal); }
+a .release-name { color: var(--signal); }
+.release-line { display: block; font-size: .72rem; letter-spacing: .05em; color: var(--ink-muted); padding-top: .15em; }
+.release-line .release-name { margin-right: 0; }
+.dropped-line, .no-release-line { display: block; font-size: .72rem; letter-spacing: .05em; color: var(--ink-muted); padding-top: .15em; }
+details.status-fold.release-group > summary { color: var(--ink); }
+</style>
+<style id="extra-css"></style>
+</head>
+<body>
+<div class="layout"><nav aria-label="Contents" class="contents"><button class="contents-toggle" id="contents-toggle" type="button" aria-expanded="true" aria-controls="contents-links"><span class="contents-toggle-icon" aria-hidden="true">&lsaquo;</span><span class="contents-toggle-label">Hide contents</span></button><div class="contents-title">Contents</div><div class="contents-links" id="contents-links"><a href="#s0"><b>0</b>Status and checklist</a><a href="#s1"><b>1</b>What and why</a><a href="#s2"><b>2</b>Decisions</a><a href="#s3"><b>3</b>History</a></div><button class="theme-toggle" id="theme-toggle" type="button">Light / dark</button></nav><main>
+<header class="artifact-header"><span class="gen-badge" data-gen-state="update">luismc-docs 2.6.1 <span class="gen-flag gen-update">update: 2.6.2</span></span><div class="artifact-kind">Feature artifact &middot; CI Runners Shared Pool</div><h1>Feature: Install, update and operations</h1><p>Where Install, update and operations stands.</p><div class="artifact-meta">CI Runners Shared Pool &middot; feature artifact</div></header>
+<section id="s0"><h2><span class="section-number">&sect; 0</span>Status and checklist</h2>
+<p class="last-update">Last update: <time datetime="2026-11-16T00:37+00:00">16 Nov 00:37</time> (Lisbon)</p>
+<p class="full-progress-published">Full Progress published: <a href="https://claude.ai/artifact/XQbWU86Mtt6zmDpHaHVeC7">16 Nov 00:32</a> (Lisbon)</p>
+<p class="lede">Planned. Work has not started.</p>
+<div class="at-a-glance">
+<details class="glance-group glance-you" data-glance="you" open><summary><span class="glance-label">Needs you</span><span class="fold-count">0 tasks</span></summary>
+<p class="glance-none">Nothing needs you.</p>
+</details>
+<details class="glance-group glance-live" data-glance="live"><summary><span class="glance-label">Live in the last 24 hours</span><span class="fold-count">10 tasks</span></summary>
+<ul>
+<li data-glance-task="OPS1"><span class="task-id">OPS1</span>Native installers: macOS .pkg, Linux .deb and .rpm</li>
+<li data-glance-task="OPS11"><span class="task-id">OPS11</span>Lesson 27 recorded in the handover notes (DL367)</li>
+<li data-glance-task="OPS12"><span class="task-id">OPS12</span>Lesson 28 recorded in the handover notes (DL369)</li>
+<li data-glance-task="OPS10"><span class="task-id">OPS10</span><span class="release-name">RELEASE-11</span>v0.1.1: App setup fails on Windows (empty webhook secret); setup shows errors</li>
+<li data-glance-task="OPS8"><span class="task-id">OPS8</span>Handover lessons 24-25: Rust cache disk cap; KVM loader after WSL/Docker restart</li>
+<li data-glance-task="OPS9"><span class="task-id">OPS9</span>Handover lesson 26: stop the whole process group on drain</li>
+<li data-glance-task="OPS5"><span class="task-id">OPS5</span>v0.1.0 test finding: Start Menu entry is &#x27;crsp&#x27; with a blank icon</li>
+<li data-glance-task="OPS6"><span class="task-id">OPS6</span>v0.1.0 test finding: the tray does not start after install</li>
+<li class="glance-more">and 2 more</li>
+</ul>
+</details>
+</div>
+<div class="status-count-tiles"><div class="status-count-tile status-live"><div class="count">11</div><div class="label">tasks live</div></div><div class="status-count-tile status-dropped"><div class="count">1</div><div class="label">task dropped</div></div></div>
+<p class="note">Key: <span class="status-chip status-live">Live</span> · <span class="status-chip status-built">Built</span> · <span class="status-chip status-running">Running</span> · <span class="status-chip status-needs-you">Needs you</span> · <span class="status-chip status-waiting">Waiting</span> · <span class="status-chip status-to-do">To do</span> · <span class="status-chip status-on-hold">On hold</span> · <span class="status-chip status-failed">Failed</span> · <span class="status-chip status-dropped">Dropped</span>. Times are Lisbon time; each estimate names what sets it.</p>
+<details class="status-fold" data-group="built"><summary><strong>Live or built</strong><span class="fold-count">12 tasks</span></summary>
+<div class="table-scroll"><table class="status-checklist"><colgroup><col class="col-status"><col class="col-item"><col class="col-detail"><col class="col-expected"></colgroup><thead><tr><th>Status</th><th>Item</th><th>Detail</th><th>Expected (Lisbon)</th></tr></thead><tbody>
+<tr data-task="OPS1"><td><span class="status-chip status-live">Live</span></td><td><span class="task-id">OPS1</span>Native installers: macOS .pkg, Linux .deb and .rpm<span class="release-line"><span class="release-name">RELEASE-1</span></span></td><td>Installer files written (WIP). Cloud routine from 12:00: root service, nfpm pin, PR CI smoke for deb/rpm/pkg, release.yml, spec, draft PR.</td><td>16 Nov</td></tr>
+<tr data-task="OPS11"><td><span class="status-chip status-live">Live</span></td><td><span class="task-id">OPS11</span>Lesson 27 recorded in the handover notes (DL367)<span class="release-line"><span class="release-name">RELEASE-11</span></span></td><td>dev-standards draft PR #78, branch handover-lesson-27</td><td>15 Nov</td></tr>
+<tr data-task="OPS12"><td><span class="status-chip status-live">Live</span></td><td><span class="task-id">OPS12</span>Lesson 28 recorded in the handover notes (DL369)<span class="release-line"><span class="release-name">RELEASE-11</span></span></td><td>dev-standards draft PR #79, branch handover-lesson-28; affects OPS8 KVM loader</td><td>15 Nov</td></tr>
+<tr data-task="OPS10"><td><span class="status-chip status-live">Live</span></td><td><span class="task-id">OPS10</span><span class="release-name">RELEASE-11</span>v0.1.1: App setup fails on Windows (empty webhook secret); setup shows errors</td><td>DPAPI refuses the empty webhook secret of a no-hook App; setup ignores ?error</td><td>15 Nov</td></tr>
+<tr data-task="OPS8"><td><span class="status-chip status-live">Live</span></td><td><span class="task-id">OPS8</span>Handover lessons 24-25: Rust cache disk cap; KVM loader after WSL/Docker restart</td><td>dev-standards draft #47 (branch handover-lessons-24-25): 24 Rust build cache filled the disk in a day, needs a cap per cache key, a pool-wide disk budget on a timer and a size alert; 25 no kvm_intel after a WSL/Docker restart, needs a privileged loader in compose and a bounded /dev/kvm wait, then start without KVM</td><td>15 Nov</td></tr>
+<tr data-task="OPS9"><td><span class="status-chip status-live">Live</span></td><td><span class="task-id">OPS9</span>Handover lesson 26: stop the whole process group on drain<span class="release-line"><span class="release-name">RELEASE-7</span></span></td><td>dev-standards draft #54 (stacked on #47): a refused refresh drain stopped run.sh but Runner.Listener survived (reparented to init); the supervisor then spawned duplicate listeners looping on &#x27;session already exists&#x27;. Fix: stop the whole process group; never spawn while that runner&#x27;s listener still runs. Build into crsp with the pool container work (CRSP52).</td><td>15 Nov</td></tr>
+<tr data-task="OPS5"><td><span class="status-chip status-live">Live</span></td><td><span class="task-id">OPS5</span>v0.1.0 test finding: Start Menu entry is &#x27;crsp&#x27; with a blank icon<span class="release-line"><span class="release-name">RELEASE-6</span></span></td><td>Owner test step 1: the Start Menu shows &#x27;crsp&#x27; with a generic icon; expected &#x27;CI Runners Shared Pool&#x27; with the crsp icon. installer/crsp.wxs Shortcut Name=crsp, and crsp.exe embeds no icon resource. Fix: shortcut name, an Icon element, and an icon resource in the Windows build.</td><td>15 Nov</td></tr>
+<tr data-task="OPS6"><td><span class="status-chip status-live">Live</span></td><td><span class="task-id">OPS6</span>v0.1.0 test finding: the tray does not start after install<span class="release-line"><span class="release-name">RELEASE-6</span></span></td><td>Owner test step 1: after the MSI finished no tray process runs (only the service, session 0); the Run key crsp-tray is set, so it starts only at the next sign-in. Fix: start crsp.exe tray as the installing user at the end of the install. Also the Apps list names the product &#x27;crsp&#x27; (fold into OPS5).</td><td>15 Nov</td></tr>
+<tr data-task="OPS3"><td><span class="status-chip status-live">Live</span></td><td><span class="task-id">OPS3</span>Lesson 23: reset runner file owners on account switch<span class="release-line"><span class="release-name">RELEASE-4</span></span></td><td>Handover lesson 23 from dev-standards: when a runner&#x27;s service account changes, take ownership of the runner folder and reset ACLs to inherit (takeown /R, icacls /reset /T); doctor checks the runner account can read its tool cache. Lesson text arrives as a dev-standards branch after v0.2.0 lands lessons 17-22.</td><td>15 Nov</td></tr>
+<tr data-task="OPS7"><td><span class="status-chip status-live">Live</span></td><td><span class="task-id">OPS7</span>v0.1.0 test blocker: GitHub refuses the App manifest (loopback hook URL)<span class="release-line"><span class="release-name">RELEASE-4</span></span></td><td>Owner test step 2: GitHub says &#x27;Hook url is not supported because it isn&#x27;t reachable over the public Internet (127.0.0.1)&#x27;. Fix: a local-only manifest sends no hook_attributes and no default_events (polling finds jobs).</td><td>15 Nov</td></tr>
+<tr data-task="OPS4"><td><span class="status-chip status-live">Live</span></td><td><span class="task-id">OPS4</span><span class="release-name">RELEASE-3</span>OPS3 train: handover lesson 23 docs</td><td>Docs-only train for draft #42 (lesson 23); ready PR #43</td><td>14 Nov</td></tr>
+<tr data-task="OPS2"><td><span class="status-chip status-dropped">Dropped</span></td><td><span class="task-id">OPS2</span>Native installers: macOS .pkg, Linux .deb and .rpm<span class="release-line"><span class="release-name">RELEASE-1</span></span><span class="dropped-line">dropped: duplicate of OPS1, added twice by mistake</span></td><td>pkg (pkgbuild on macos-latest), deb+rpm (nfpm); service via launchd/systemd, PATH, tray autostart; install-kind marker; release.yml publishes them; unsigned.</td><td>14 Nov</td></tr>
+</tbody></table></div>
+</details>
+</section>
+<section id="s1"><h2><span class="section-number">&sect; 1</span>What and why</h2>
+<p>Describe what this feature is and why it exists.</p>
+</section>
+<section id="s2"><h2><span class="section-number">&sect; 2</span>Decisions</h2>
+<div class="decision-list">
+<article class="decision decision-decided" data-decision="D70">
+<h3 class="decision-head"><span class="decision-id">D70</span> <span class="decision-question">How the console adds other machines without typing a command</span></h3>
+<p class="decision-meta">Asked 16 Nov · Decided 16 Nov</p>
+<div class="decision-options">
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Download a join installer</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Installer per OS with address, fingerprint and a one-time code built in; double-click, accept admin prompt.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">SSH for Windows too</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Extend &#x27;I have SSH&#x27; to Windows with the OpenSSH server.</p>
+</div>
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Both</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 16 Nov</span></div>
+<p class="decision-summary">Download installer for all OSes, plus SSH for Windows.</p>
+<blockquote class="decision-words">&ldquo;Both&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Command only</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Keep copy-and-run for other machines.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D69">
+<h3 class="decision-head"><span class="decision-id">D69</span> <span class="decision-question">When to tag the next stable version v0.1.2</span></h3>
+<p class="decision-meta">Asked 16 Nov · Decided 16 Nov</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">After RELEASE-22</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 16 Nov</span></div>
+<p class="decision-summary">Tag when RELEASE-22 is green and merged, ~02:55 Lisbon; includes the join-command fix.</p>
+<blockquote class="decision-words">&ldquo;After RELEASE-22 (Recommended)&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Now, from main 68d30b3</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Tag now with RELEASE-15 to 21; no join-command fix.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Now and after RELEASE-22</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">v0.1.2 now, v0.1.3 after RELEASE-22.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Wait for my test</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">No tag until the CRSP2 test on v0.1.1 is done.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D68">
+<h3 class="decision-head"><span class="decision-id">D68</span> <span class="decision-question">Which open requirement groups the next wave starts</span></h3>
+<p class="decision-meta">Asked 16 Nov · Decided 16 Nov</p>
+<div class="decision-options">
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">A: M1 gaps</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Secrets, redaction, data kept, limits, accessibility, app health, reconcile, fork guard, offline cleanup, symlink probe.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">B: drift + flaky tests</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Correct spec status lines; fix Windows test timeouts CRSP105.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">C: later milestones</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Pool per organization, macOS VMs, key rotation.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">D: nothing now</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Hold until review.</p>
+</div>
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">A, B and C</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 16 Nov</span></div>
+<p class="decision-summary">Start groups A, B and C together.</p>
+<blockquote class="decision-words">&ldquo;A: M1 gaps, B: drift + flaky tests, C: later milestones&rdquo;</blockquote>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D67">
+<h3 class="decision-head"><span class="decision-id">D67</span> <span class="decision-question">Start a UI task for the agent recovery screen (web-console R5.33)</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Start UI task (Recommended)</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">One cloud agent builds the needs-recovery state and action after RELEASE-17 merges.</p>
+<blockquote class="decision-words">&ldquo;Start UI task (Recommended)&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Later</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Record as To do only.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D66">
+<h3 class="decision-head"><span class="decision-id">D66</span> <span class="decision-question">Start parity.yml by hand before the nightly run</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Wait for 02:17 (Recommended)</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">No manual run; drafts after the nightly run if green.</p>
+<blockquote class="decision-words">&ldquo;Wait for 02:17 (Recommended)&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Run now, soak=none</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Manual run with pool checks only.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Run now, dry-run</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Pool checks plus a fake soak judgement.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D65">
+<h3 class="decision-head"><span class="decision-id">D65</span> <span class="decision-question">Where the v0.1.1 owner test (CRSP2) stands</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Not started</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Stays Needs you.</p>
+<blockquote class="decision-words">&ldquo;Not started&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">In progress</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Owner reports each section.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Done, all fine</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Mark CRSP2 Live.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Done, found issues</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Owner describes issues; fix tasks filed.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D64">
+<h3 class="decision-head"><span class="decision-id">D64</span> <span class="decision-question">Remove the Co-authored-by: Claude trailers from three merged commits on main</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Leave history (Recommended)</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Keep the commits; fix future merges only.</p>
+<blockquote class="decision-words">&ldquo;Leave history (Recommended)&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Rewrite main</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Rewrite three messages and force-push main.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Revert-free note</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Leave history and add a note in docs/project.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D63">
+<h3 class="decision-head"><span class="decision-id">D63</span> <span class="decision-question">Which groups the next wave starts</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP95</p>
+<div class="decision-options">
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Parity HND15-21</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Unblocks go messages.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Handover rules HND6-12</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Lessons.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Research quick wins</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">RES items.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">M2 safety CRSP79-83</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Safety.</p>
+</div>
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">All four groups</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Parity, handover rules, research quick wins and M2 safety together.</p>
+<blockquote class="decision-words">&ldquo;Parity HND15-21, Handover rules HND6-12, Research quick wins, M2 safety CRSP79-83&rdquo;</blockquote>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D62">
+<h3 class="decision-head"><span class="decision-id">D62</span> <span class="decision-question">When to draft the dev-standards go messages (HND13, HND14)</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task HND13</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Draft when parity is green</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">After HND21.</p>
+<blockquote class="decision-words">&ldquo;Draft when parity is green (Recommended)&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Draft now</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Marked do not send.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D61">
+<h3 class="decision-head"><span class="decision-id">D61</span> <span class="decision-question">Start the later-milestone research items now (CRSP84-89, 91, 92)</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP73</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Start them too</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">In parallel now.</p>
+<blockquote class="decision-words">&ldquo;Start them too&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">M3 ones only</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">88, 89, 91, 92.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Not yet</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Later.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D60">
+<h3 class="decision-head"><span class="decision-id">D60</span> <span class="decision-question">Ask before taking a job while the PC is in use (RES8)</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task RES8</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Never ask; follow machine policy</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">CRSP75 policy decides.</p>
+<blockquote class="decision-words">&ldquo;Never ask; follow machine policy (Recommended)&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Ask, default No after 30 s</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Popup.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Ask, default Yes after 30 s</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Popup.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D59">
+<h3 class="decision-head"><span class="decision-id">D59</span> <span class="decision-question">How the add-machine wizard joins a machine (RES3)</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task RES3</p>
+<div class="decision-options">
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Copy-and-wait only</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">One-line command, short-lived code, live progress.</p>
+</div>
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Copy-and-wait + optional SSH</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Plus an SSH path for Linux/macOS.</p>
+<blockquote class="decision-words">&ldquo;Copy-and-wait + optional SSH&rdquo;</blockquote>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D58">
+<h3 class="decision-head"><span class="decision-id">D58</span> <span class="decision-question">Signed installers and SBOM without a signing certificate (CRSP90)</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP90</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">No cert, ship unsigned + SBOM</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">SBOM and checksums now.</p>
+<blockquote class="decision-words">&ldquo;No cert, ship unsigned + SBOM&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">I have a cert</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">CI signing step.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Will get one later</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Signing step off by a setting.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Skip CRSP90</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">No work yet.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D57">
+<h3 class="decision-head"><span class="decision-id">D57</span> <span class="decision-question">How many cloud agents run at once</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP95</p>
+<div class="decision-options">
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Keep 6</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Small trains.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Up to 10</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Bigger trains.</p>
+</div>
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Up to 20</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Fastest throughput.</p>
+<blockquote class="decision-words">&ldquo;Up to 20&rdquo;</blockquote>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D56">
+<h3 class="decision-head"><span class="decision-id">D56</span> <span class="decision-question">Close RES11 as a duplicate of RES13 (fallback edge tests)</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task RES11</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Close as duplicate</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">RES13 covers it.</p>
+<blockquote class="decision-words">&ldquo;Close as duplicate (Recommended)&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Keep it open</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">More edge cases.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D55">
+<h3 class="decision-head"><span class="decision-id">D55</span> <span class="decision-question">Widen scope: metrics endpoint, Gitea/Forgejo, GitHub Enterprise Server</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP73</p>
+<div class="decision-options">
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Prometheus /metrics</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Read-only metrics endpoint.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Gitea / Forgejo</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Serve self-hosted forges.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">GitHub Enterprise Server</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Serve GHES.</p>
+</div>
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">None for now</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Stay GitHub.com only; safe default while open.</p>
+<blockquote class="decision-words">&ldquo;None for now&rdquo;</blockquote>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D54">
+<h3 class="decision-head"><span class="decision-id">D54</span> <span class="decision-question">How crsp runs macOS VMs (runners R5.29, M5)</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP73</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Own code on Apple&#x27;s API</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Virtualization.framework directly; no Tart licence tie.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Keep Tart</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Accept FSL-1.1-ALv2 for the Tart tool.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Decide at M5</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Open decision.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D53">
+<h3 class="decision-head"><span class="decision-id">D53</span> <span class="decision-question">Admission when a machine&#x27;s load cannot be measured</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP73</p>
+<div class="decision-options">
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Keep running the job</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Today&#x27;s rule R5.22: CI never stalls because crsp broke.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Hold, then run</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Hold a short time for a reading, then run and warn.</p>
+</div>
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Hold until measured</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Fail closed: protect the PC; CI waits until crsp can measure.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D52">
+<h3 class="decision-head"><span class="decision-id">D52</span> <span class="decision-question">Hosted fallback default</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP73</p>
+<div class="decision-options">
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">On by default</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Jobs move to GitHub-hosted runners automatically when the pool is down.</p>
+</div>
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Off by default, opt-in per repository</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Jobs wait for a crsp machine (free); a user turns fallback on only where paying for hosted minutes is acceptable.</p>
+<blockquote class="decision-words">&ldquo;costing money to user need to be a opt-in feature&rdquo;</blockquote>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D51">
+<h3 class="decision-head"><span class="decision-id">D51</span> <span class="decision-question">Which research proposals start now</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP73</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">1 Hosted fallback</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Switch RUNS_ON_* to a GitHub-hosted label when no machine of that OS is up.</p>
+<blockquote class="decision-words">&ldquo;1 Hosted fallback, 2 Laptop/desk policy, 3 Why is this job waiting, 4 Watchdog + install check; Hosted fallback but never costing money to user; costing money to user need to be a opt-in feature; goal of this project is exactly to save money to users&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">2 Laptop/desk policy</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Tray Automatic/Always/Paused, pause on battery, CPU cap.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">3 Why is this job waiting</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Console shows the first blocking reason per queued job.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">4 Watchdog + install check</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Doctor warns on quiet demand; install script verifies the attestation.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D50">
+<h3 class="decision-head"><span class="decision-id">D50</span> <span class="decision-question">Overnight decisions only the owner can make</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP39</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Pick the safe default, record it</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Conservative option, recorded as an open decision with alternatives</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Park that piece</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Stop that piece</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D49">
+<h3 class="decision-head"><span class="decision-id">D49</span> <span class="decision-question">Scale-set API tonight</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP39</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Later, after parity</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Persistent runners already start jobs instantly</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Tonight too</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">One more agent</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D48">
+<h3 class="decision-head"><span class="decision-id">D48</span> <span class="decision-question">Tag v0.1.0 without the owner&#x27;s re-check</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP1</p>
+<div class="decision-options">
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Wait for my test</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Tag after the owner&#x27;s checklist</p>
+</div>
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Tag if CI install tests pass</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Tag when CI installer smoke tests pass; owner tests after; fixes ship as v0.1.1</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D47">
+<h3 class="decision-head"><span class="decision-id">D47</span> <span class="decision-question">Cloud agents at once overnight</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP39</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Up to 6</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Two waves of 3-6</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Up to 12</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Faster, more conflicts</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Up to 3</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Slow</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D46">
+<h3 class="decision-head"><span class="decision-id">D46</span> <span class="decision-question">Build lessons 24-25 tonight</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task OPS8</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Yes, with the parity work</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Cache cap/disk budget with caches; KVM loader with containers</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Doc only for now</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Merge the doc only</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D45">
+<h3 class="decision-head"><span class="decision-id">D45</span> <span class="decision-question">Merge green trains overnight (replaces Edge)</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP45</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Yes, merge green trains</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Morning Edge has all green work</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Hold everything after OPS5/OPS6</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Keep the rest in ready PRs</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D44">
+<h3 class="decision-head"><span class="decision-id">D44</span> <span class="decision-question">Overnight scope (owner asleep ~10 h)</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP39</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Parity, in waves</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">Close the parity-plan gaps in dependency order</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Linux runners only</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Container runners and base image only</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Fixes only, then stop</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">OPS5/OPS6 then wait</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D43">
+<h3 class="decision-head"><span class="decision-id">D43</span> <span class="decision-question">When the Start Menu name/icon (OPS5) and tray-after-install (OPS6) bugs are fixed</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task OPS5</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Before the stable tag</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">One cloud agent now; owner re-checks those two steps.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">After the stable tag</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Ship them in the next release.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D42">
+<h3 class="decision-head"><span class="decision-id">D42</span> <span class="decision-question">Which version the first stable tag gets, now that the tested build comes from main with v0.2.0 and RELEASE-4</span></h3>
+<p class="decision-meta">Asked 15 Nov · Decided 15 Nov · Task CRSP1</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">v0.1.0</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 15 Nov</span></div>
+<p class="decision-summary">First build that passes the owner test is v0.1.0; no separate v0.2.0 tag; next stable is v0.2.0.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">v0.2.0</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Tag by content; v0.1.0 never tagged.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">v0.1.0, then v0.2.0</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Same commit tagged twice.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D41">
+<h3 class="decision-head"><span class="decision-id">D41</span> <span class="decision-question">How agents on other machines update</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP42</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Agents run as LocalSystem/root</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Agents install their own updates after the drain; jobs keep their non-admin accounts.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Small admin update helper only</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Separate privileged update service.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Manual agent updates</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Console lists machines to update by hand.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D40">
+<h3 class="decision-head"><span class="decision-id">D40</span> <span class="decision-question">Console performance budgets (Q14)</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP34</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Confirm these budgets</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">2 s first screen, 300 KB JS, 2 s live event.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Tighter: 1 s / 200 KB / 1 s</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Stricter gate.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Looser: 3 s / 500 KB / 3 s</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Looser gate.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D39">
+<h3 class="decision-head"><span class="decision-id">D39</span> <span class="decision-question">Console session lifetime (Q12)</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP42</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Never expire by time</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Ends at sign-out, user removal or role change.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">12 h idle, 7 days total</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Time-based sign-out.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">30 days total</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Monthly sign-in.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D38">
+<h3 class="decision-head"><span class="decision-id">D38</span> <span class="decision-question">Console transport on loopback</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP42</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">HTTP on loopback only</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">127.0.0.1 and ::1 serve plain HTTP; every other address HTTPS-only; GitHub callback stays http://127.0.0.1.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">HTTPS everywhere</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Loopback HTTPS with crsp&#x27;s CA; browser warns unless the installer trusts the CA.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D37">
+<h3 class="decision-head"><span class="decision-id">D37</span> <span class="decision-question">What must the old pool switch-off wait for? Private repos run only on the old self-hosted pool, never on GitHub-hosted runners.</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP2 · Replaces D34</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Wait until crsp covers every job</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Old pool stays until crsp runs every private-repo job (Linux containers M2, KVM, Wine); hosted runners are never a fallback.</p>
+<blockquote class="decision-words">&ldquo;None of my private repo projects use github runners&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Move repos one by one</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Move repos crsp v0.1.0 can run; old pool keeps the rest until M2.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Delete after v0.1.0 test anyway</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Linux container and KVM/Wine jobs stop until M2.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D36">
+<h3 class="decision-head"><span class="decision-id">D36</span> <span class="decision-question">Hourly check-in in this session?</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP30</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Yes, hourly</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Local cron checks ledger, agents, Full Progress.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">No</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Report on finish or when asked.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D35">
+<h3 class="decision-head"><span class="decision-id">D35</span> <span class="decision-question">Which repositories does crsp serve first?</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP2</p>
+<div class="decision-options">
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">ci-runners-shared-pool only</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Dogfood first.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Both repos</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">This repo and comics-organizer.</p>
+</div>
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Decide after the test</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Ask after CRSP2.</p>
+<blockquote class="decision-words">&ldquo;option 3, but offer all my private repos in my github account for testing; public repos keep using github cloud runners;&rdquo;</blockquote>
+</div>
+</div>
+</article>
+<details class="decision decision-replaced" data-decision="D34"><summary><span class="decision-id">D34</span> <span class="decision-question">When is the old dev-standards runner pool switched off?</span> <span class="decision-replaced-by">Replaced by D37</span></summary>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP2</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">After my v0.1.0 test passes</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Then the go-ahead is drafted for dev-standards.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">After a week on v0.1.x</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Run both for a while.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Not decided yet</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Keep both.</p>
+</div>
+</div>
+</details>
+<article class="decision decision-decided" data-decision="D33">
+<h3 class="decision-head"><span class="decision-id">D33</span> <span class="decision-question">Fix the Windows-only lint errors and add a Windows lint pass in v0.1.0?</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP29</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">In v0.1.0</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Cloud task rides the RELEASE-1 train.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Next release</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Leave for v0.1.1.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D32">
+<h3 class="decision-head"><span class="decision-id">D32</span> <span class="decision-question">Where does the owner test v0.1.0?</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP2</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">This PC, by me</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Owner runs the MSI here with a checklist.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">A spare PC/VM</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Same checklist elsewhere.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Skip manual test</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Rely on CI install tests.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D31">
+<h3 class="decision-head"><span class="decision-id">D31</span> <span class="decision-question">How is v0.1.0 published?</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP1</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Stable release</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Listed as Latest; machines auto-update to later stables.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Pre-release first</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Promote to stable after the owner test.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D30">
+<h3 class="decision-head"><span class="decision-id">D30</span> <span class="decision-question">May the orchestrator close superseded draft PRs?</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP30</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Yes, always for superseded drafts</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Close a draft once its work merged via a train.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Only #22 and #23 now</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">One-time permission.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">No, I close them</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Orchestrator lists them.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D29">
+<h3 class="decision-head"><span class="decision-id">D29</span> <span class="decision-question">Runner parity gaps</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP28</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Spec them now, build after v0.1.0</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Requirements now, builds later.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Later, no date</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">One backlog task.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D28">
+<h3 class="decision-head"><span class="decision-id">D28</span> <span class="decision-question">Handover docs and tooling in v0.1.0</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP27</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Spec contradictions and vm_check + cache caps</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Both in v0.1.0.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Spec contradictions only</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Docs only.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Neither in v0.1.0</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Both later.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D27">
+<h3 class="decision-head"><span class="decision-id">D27</span> <span class="decision-question">Runner label variable names</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP25</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Yes, use RUNS_ON_&lt;OS&gt;</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">RUNS_ON_LINUX/WINDOWS/MACOS as dev-standards D300.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Keep CRSP_RUNS_ON_*</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Templates would not see crsp runners.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D26">
+<h3 class="decision-head"><span class="decision-id">D26</span> <span class="decision-question">Do the handover must-fix items ride v0.1.0</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP21</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Yes, all four in v0.1.0</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Cache quota + disk guard, hook visibility, one drain timeout, non-zero refusals.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Only 1 and 2 in v0.1.0</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Disk and hook now.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">None, next release</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Fix after v0.1.0.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D25">
+<h3 class="decision-head"><span class="decision-id">D25</span> <span class="decision-question">Account the controller service runs as</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">LocalSystem / root</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Can manage runner services and accounts and apply updates.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Low-privilege + helper</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">A privileged helper does runner management and updates.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D24">
+<h3 class="decision-head"><span class="decision-id">D24</span> <span class="decision-question">How auto-update checks build provenance</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP19</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Embed the check in crsp</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">sigstore-go inside the binary; no gh needed.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Require gh on the machine</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Auto-update only where gh is installed.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Checksums only for now</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">SHA256SUMS only.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D23">
+<h3 class="decision-head"><span class="decision-id">D23</span> <span class="decision-question">Where the MSI install, upgrade and uninstall tests run</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">CI only, not this PC</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">No msiexec on the owner&#x27;s PC; tests on a windows-latest CI runner.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Keep testing here</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Install and clean up on the owner&#x27;s PC.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Stop the agent now</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Stop CRSP18 and report changes.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D22">
+<h3 class="decision-head"><span class="decision-id">D22</span> <span class="decision-question">When code signing comes</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Next release (v0.2.0)</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Planned as the next task.</p>
+</div>
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Later, no date</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Backlog.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D21">
+<h3 class="decision-head"><span class="decision-id">D21</span> <span class="decision-question">Make the Package and Windows MSI checks required on main?</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP17</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Yes, once green on main</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Added to branch protection.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">No, advisory</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">They do not block merges.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D20">
+<h3 class="decision-head"><span class="decision-id">D20</span> <span class="decision-question">When a Windows MSI auto-update fails</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP19</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Keep old version, notify, retry next check</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">MSI rollback; tray shows the log; at most 3 attempts per version.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Keep old version, stop retrying</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Waits for Look for updates.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D19">
+<h3 class="decision-head"><span class="decision-id">D19</span> <span class="decision-question">Default of the uninstall &#x27;also delete data&#x27; checkbox</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Unchecked</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Data kept unless ticked.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Checked</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Data deleted unless unticked.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D18">
+<h3 class="decision-head"><span class="decision-id">D18</span> <span class="decision-question">Native installers for macOS and Linux now</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task OPS1</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">macOS .pkg, Linux .deb and .rpm</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">All three native installers.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">None now</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Keep tar.gz plus the install script.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D17">
+<h3 class="decision-head"><span class="decision-id">D17</span> <span class="decision-question">Tell the user after an automatic update?</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP19</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Desktop notice + tray header</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">One notice and the version in the tray menu.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Tray header only</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Silent.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D16">
+<h3 class="decision-head"><span class="decision-id">D16</span> <span class="decision-question">How agent-only machines update</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP19</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Follow the controller</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Agents update to the controller&#x27;s version after it updates.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Each machine on its own</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Every machine checks GitHub itself.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D15">
+<h3 class="decision-head"><span class="decision-id">D15</span> <span class="decision-question">Update channel</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP19</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Stable only</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Only tagged releases.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Stable, edge opt-in</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">A setting follows edge builds.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D14">
+<h3 class="decision-head"><span class="decision-id">D14</span> <span class="decision-question">When to check for and install updates</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP19</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Check every 6 h, install any time</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Install as soon as the drain allows.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Check daily, install at night</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Quiet window only.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">User sets a window</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Allowed install hours in the console.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D13">
+<h3 class="decision-head"><span class="decision-id">D13</span> <span class="decision-question">Drain limit before an update or restart</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP19</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">60 min, then postpone</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Wait up to 60 min; if jobs still run, resume and retry at the next check.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">30 min, then postpone</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Shorter wait, same no-cut rule.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">60 min, then install anyway</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Cuts jobs still running at the limit.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D12">
+<h3 class="decision-head"><span class="decision-id">D12</span> <span class="decision-question">With auto-update on, install with no question after the drain?</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP19</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Yes, install after drain</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Fully automatic; never cuts a running job.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Ask first even when ON</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Downloads and notifies; confirm on the Review step.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D11">
+<h3 class="decision-head"><span class="decision-id">D11</span> <span class="decision-question">Auto-update on all OSes, on by default, user can turn it off?</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP19</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Yes</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Every OS updates itself; on by default; a setting turns it off.</p>
+<blockquote class="decision-words">&ldquo;all OSes version must handle auto-updating itself; user can opt-in and opt-out of auto-updates; auto-updates are on by default&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">No</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">No automatic updates.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D10">
+<h3 class="decision-head"><span class="decision-id">D10</span> <span class="decision-question">Where updates come from</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">GitHub Releases of this repo</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Checks the latest release; Windows downloads the MSI and upgrades in place.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Only notify, user installs</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Shows the new version and opens the release page.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D9">
+<h3 class="decision-head"><span class="decision-id">D9</span> <span class="decision-question">Does v0.1.0 wait for the MSI and the new tray menu</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">v0.1.0 waits for both</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">First release ships the MSI and the new tray menu.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">MSI only; tray menu next release</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">MSI now, menu in v0.2.0.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Ship v0.1.0, both in next release</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Tag after the machine test; both later.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D8">
+<h3 class="decision-head"><span class="decision-id">D8</span> <span class="decision-question">MSI architectures</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">x64 and arm64</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Two MSIs, one per Windows CPU target.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">x64 only</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">One MSI.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D7">
+<h3 class="decision-head"><span class="decision-id">D7</span> <span class="decision-question">MSI upgrades</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Major upgrade in place</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Fixed UpgradeCode; newer replaces older, keeps data, blocks downgrades.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Side by side</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Each version separate.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D6">
+<h3 class="decision-head"><span class="decision-id">D6</span> <span class="decision-question">MSI signing</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Unsigned for v0.1.0</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Ship unsigned; SmartScreen warning; sign later.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">I have a certificate</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Owner adds a CI secret; signing wired into the build.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Use Azure Trusted Signing</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Hosted signing service, paid.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D5">
+<h3 class="decision-head"><span class="decision-id">D5</span> <span class="decision-question">What uninstall removes</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Program only, keep data</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Removes program, keeps ProgramData.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Remove everything</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Also deletes data, audit log, backups and CA.</p>
+</div>
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Ask during uninstall</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Checkbox in the uninstall UI; silent uninstalls keep data.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D4">
+<h3 class="decision-head"><span class="decision-id">D4</span> <span class="decision-question">Firewall rule</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Rule on Private networks only</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Inbound rule for crsp&#x27;s port on the Private profile only; removed on uninstall.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">No rule; add when a machine joins</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">crsp adds the rule with an admin prompt when a machine joins.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">No rule at all</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">User opens the port; doctor reports a block.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D3">
+<h3 class="decision-head"><span class="decision-id">D3</span> <span class="decision-question">What the MSI sets up</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Service, PATH, Start Menu + tray autostart, firewall rule</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Everything offered: service, PATH, shortcuts and tray at sign-in, inbound rule.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Copy crsp.exe only</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Binary only.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D2">
+<h3 class="decision-head"><span class="decision-id">D2</span> <span class="decision-question">MSI install scope</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">Per-machine</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Program Files, admin once; can register a Windows service.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">Per-user</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">No admin; cannot register a system service.</p>
+</div>
+</div>
+</article>
+<article class="decision decision-decided" data-decision="D1">
+<h3 class="decision-head"><span class="decision-id">D1</span> <span class="decision-question">Windows install form</span></h3>
+<p class="decision-meta">Asked 14 Nov · Decided 14 Nov · Task CRSP18</p>
+<div class="decision-options">
+<div class="decision-option decision-chosen">
+<div class="decision-option-head"><span class="decision-label">WiX v5 on Windows</span> <span class="decision-chip decision-chip-chosen">Chosen by the owner &middot; 14 Nov</span></div>
+<p class="decision-summary">Standard MSI toolset, builds on a windows-latest runner.</p>
+<blockquote class="decision-words">&ldquo;the windows version must be installed via a clean standard MSI&rdquo;</blockquote>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">wixl (msitools) on Linux</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Builds on Linux; limited service and custom-action support.</p>
+</div>
+<div class="decision-option decision-muted">
+<div class="decision-option-head"><span class="decision-label">go-msi wrapper</span> <span class="decision-chip decision-chip-muted">Not chosen</span></div>
+<p class="decision-summary">Go-focused wrapper around WiX; less control.</p>
+</div>
+</div>
+</article>
+</div>
+</section>
+<section id="s3"><h2><span class="section-number">&sect; 3</span>History</h2>
+<div class="table-scroll"><table class="history-table"><thead><tr><th>Date</th><th>Change</th></tr></thead><tbody>
+<tr><td>15 Nov 11:33</td><td>OPS12 item changed from &quot;Pool lesson 28: /dev/kvm via device_cgroup_rules and supervisor mknod (DL369)&quot; to &quot;Lesson 28 recorded in the handover notes (DL369)&quot;</td></tr>
+<tr><td>15 Nov 11:33</td><td>OPS11 item changed from &quot;Pool lesson 27: stopped pool container counts as drained (DL367)&quot; to &quot;Lesson 27 recorded in the handover notes (DL367)&quot;</td></tr>
+<tr><td>15 Nov 11:27</td><td>RELEASE-11 merged as PR #80 (8706dae); v0.1.1 released</td></tr>
+<tr><td>14 Nov 11:08</td><td>dropped: duplicate of OPS1, added twice by mistake</td></tr>
+<tr><td>14 Nov 10:47</td><td>Feature artifact created.</td></tr>
+</tbody></table></div>
+</section>
+</main></div>
+<script>
+(function () {
+  try {
+    var root = document.documentElement;
+    var toggle = document.getElementById('theme-toggle');
+    if (toggle) {
+      toggle.addEventListener('click', function () {
+        var dark = root.getAttribute('data-theme') === 'dark' ||
+          (!root.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        root.setAttribute('data-theme', dark ? 'light' : 'dark');
+      });
+    }
+    // The contents rail folds to a thin rail on wide screens; the choice is kept per viewer and storage may be refused.
+    var layout = document.querySelector('.layout');
+    var railButton = document.getElementById('contents-toggle');
+    if (layout && railButton) {
+      var setRail = function (collapsed, save) {
+        if (collapsed) layout.setAttribute('data-contents', 'collapsed');
+        else layout.removeAttribute('data-contents');
+        railButton.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        railButton.querySelector('.contents-toggle-label').textContent = collapsed ? 'Show contents' : 'Hide contents';
+        railButton.querySelector('.contents-toggle-icon').innerHTML = collapsed ? '&rsaquo;' : '&lsaquo;';
+        if (save) {
+          try { window.localStorage.setItem('contents-rail', collapsed ? 'collapsed' : 'open'); } catch (error) {}
+        }
+      };
+      var remembered = null;
+      try { remembered = window.localStorage.getItem('contents-rail'); } catch (error) {}
+      if (remembered === 'collapsed') setRail(true, false);
+      railButton.addEventListener('click', function () {
+        setRail(railButton.getAttribute('aria-expanded') === 'true', true);
+      });
+    }
+    var links = Array.prototype.slice.call(document.querySelectorAll('nav.contents a'));
+    var sections = links.map(function (link) {
+      return document.getElementById(link.getAttribute('href').slice(1));
+    });
+    function markCurrent() {
+      var index = 0;
+      for (var i = 0; i < sections.length; i++) {
+        if (sections[i] && sections[i].getBoundingClientRect().top <= 120) index = i;
+      }
+      links.forEach(function (link, i) {
+        var isCurrent = i === index;
+        link.classList.toggle('current', isCurrent);
+        if (isCurrent) link.setAttribute('aria-current', 'location');
+        else link.removeAttribute('aria-current');
+      });
+      var row = document.querySelector('nav.contents .contents-links');
+      var current = links[index];
+      if (row && current && row.scrollWidth > row.clientWidth && getComputedStyle(row).display === 'flex') {
+        row.scrollLeft = current.offsetLeft - row.clientWidth / 2 + current.offsetWidth / 2;
+      }
+    }
+    window.addEventListener('scroll', markCurrent, { passive: true });
+    window.addEventListener('resize', markCurrent);
+    markCurrent();
+  } catch (error) {}
+})();
+</script>
+</body>
+</html>

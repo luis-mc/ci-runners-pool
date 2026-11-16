@@ -1,0 +1,6 @@
+<!-- title: What and why -->
+<p>dev-standards is handing its self-hosted runner pool to crsp. Its handover page (decisions D299-D311) sets the contract between the two projects, five fixes needed before v0.1.0, thirteen design rules, twelve contradictions in crsp's own docs, the parity list and 28 lessons. This page answers every one of them with the crsp task that covers it. It was checked against crsp's code on main (RELEASE-11, 8706dae) on 15 Nov 2026.</p>
+<p><b>Now:</b> 39 of 78 items done; every other item has a task. Items that had no task got one on this page (HND1 to HND21).</p>
+<p><b>Urgent:</b> HND1. The shipped KVM overlay still maps /dev/kvm as a device, the form lesson 28 says fails to start after a WSL or Docker restart.</p>
+<p><b>How to read it.</b> <i>Verdict</i>: Done (built and tested on main), Partly (built in part; the rest has a task), Task added (nothing covered it; a task now does), Open (still contradictory). <i>Status</i> uses the Full Progress words of the task that finishes the item. Full Progress holds the live status of each task.</p>
+<p>The rule that decides the end: dev-standards removes its pool only when crsp runs every job of the private repositories (crsp D37, dev-standards D311). The parity gate (HND21) proves it; then crsp sends the two messages (HND13, HND14).</p>

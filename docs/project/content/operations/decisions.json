@@ -1,0 +1,1858 @@
+{
+  "decisions": [
+    {
+      "id": "D1",
+      "question": "Windows install form",
+      "options": [
+        {
+          "label": "WiX v5 on Windows",
+          "summary": "Standard MSI toolset, builds on a windows-latest runner."
+        },
+        {
+          "label": "wixl (msitools) on Linux",
+          "summary": "Builds on Linux; limited service and custom-action support."
+        },
+        {
+          "label": "go-msi wrapper",
+          "summary": "Go-focused wrapper around WiX; less control."
+        }
+      ],
+      "chosen": "WiX v5 on Windows",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "owner_words": "the windows version must be installed via a clean standard MSI",
+      "asked": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D2",
+      "question": "MSI install scope",
+      "options": [
+        {
+          "label": "Per-machine",
+          "summary": "Program Files, admin once; can register a Windows service."
+        },
+        {
+          "label": "Per-user",
+          "summary": "No admin; cannot register a system service."
+        }
+      ],
+      "chosen": "Per-machine",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "asked": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D3",
+      "question": "What the MSI sets up",
+      "options": [
+        {
+          "label": "Service, PATH, Start Menu + tray autostart, firewall rule",
+          "summary": "Everything offered: service, PATH, shortcuts and tray at sign-in, inbound rule."
+        },
+        {
+          "label": "Copy crsp.exe only",
+          "summary": "Binary only."
+        }
+      ],
+      "chosen": "Service, PATH, Start Menu + tray autostart, firewall rule",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "asked": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D4",
+      "question": "Firewall rule",
+      "options": [
+        {
+          "label": "Rule on Private networks only",
+          "summary": "Inbound rule for crsp's port on the Private profile only; removed on uninstall."
+        },
+        {
+          "label": "No rule; add when a machine joins",
+          "summary": "crsp adds the rule with an admin prompt when a machine joins."
+        },
+        {
+          "label": "No rule at all",
+          "summary": "User opens the port; doctor reports a block."
+        }
+      ],
+      "chosen": "Rule on Private networks only",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "asked": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D5",
+      "question": "What uninstall removes",
+      "options": [
+        {
+          "label": "Program only, keep data",
+          "summary": "Removes program, keeps ProgramData."
+        },
+        {
+          "label": "Remove everything",
+          "summary": "Also deletes data, audit log, backups and CA."
+        },
+        {
+          "label": "Ask during uninstall",
+          "summary": "Checkbox in the uninstall UI; silent uninstalls keep data."
+        }
+      ],
+      "chosen": "Ask during uninstall",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "asked": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D6",
+      "question": "MSI signing",
+      "options": [
+        {
+          "label": "Unsigned for v0.1.0",
+          "summary": "Ship unsigned; SmartScreen warning; sign later."
+        },
+        {
+          "label": "I have a certificate",
+          "summary": "Owner adds a CI secret; signing wired into the build."
+        },
+        {
+          "label": "Use Azure Trusted Signing",
+          "summary": "Hosted signing service, paid."
+        }
+      ],
+      "chosen": "Unsigned for v0.1.0",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "asked": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D7",
+      "question": "MSI upgrades",
+      "options": [
+        {
+          "label": "Major upgrade in place",
+          "summary": "Fixed UpgradeCode; newer replaces older, keeps data, blocks downgrades."
+        },
+        {
+          "label": "Side by side",
+          "summary": "Each version separate."
+        }
+      ],
+      "chosen": "Major upgrade in place",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "asked": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D8",
+      "question": "MSI architectures",
+      "options": [
+        {
+          "label": "x64 and arm64",
+          "summary": "Two MSIs, one per Windows CPU target."
+        },
+        {
+          "label": "x64 only",
+          "summary": "One MSI."
+        }
+      ],
+      "chosen": "x64 and arm64",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "asked": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D9",
+      "question": "Does v0.1.0 wait for the MSI and the new tray menu",
+      "options": [
+        {
+          "label": "v0.1.0 waits for both",
+          "summary": "First release ships the MSI and the new tray menu."
+        },
+        {
+          "label": "MSI only; tray menu next release",
+          "summary": "MSI now, menu in v0.2.0."
+        },
+        {
+          "label": "Ship v0.1.0, both in next release",
+          "summary": "Tag after the machine test; both later."
+        }
+      ],
+      "chosen": "v0.1.0 waits for both",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "asked": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D10",
+      "question": "Where updates come from",
+      "options": [
+        {
+          "label": "GitHub Releases of this repo",
+          "summary": "Checks the latest release; Windows downloads the MSI and upgrades in place."
+        },
+        {
+          "label": "Only notify, user installs",
+          "summary": "Shows the new version and opens the release page."
+        }
+      ],
+      "chosen": "GitHub Releases of this repo",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "asked": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D11",
+      "question": "Auto-update on all OSes, on by default, user can turn it off?",
+      "options": [
+        {
+          "label": "Yes",
+          "summary": "Every OS updates itself; on by default; a setting turns it off."
+        },
+        {
+          "label": "No",
+          "summary": "No automatic updates."
+        }
+      ],
+      "chosen": "Yes",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "owner_words": "all OSes version must handle auto-updating itself; user can opt-in and opt-out of auto-updates; auto-updates are on by default",
+      "asked": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D12",
+      "question": "With auto-update on, install with no question after the drain?",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Yes, install after drain",
+          "summary": "Fully automatic; never cuts a running job."
+        },
+        {
+          "label": "Ask first even when ON",
+          "summary": "Downloads and notifies; confirm on the Review step."
+        }
+      ],
+      "chosen": "Yes, install after drain",
+      "decided": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D13",
+      "question": "Drain limit before an update or restart",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "60 min, then postpone",
+          "summary": "Wait up to 60 min; if jobs still run, resume and retry at the next check."
+        },
+        {
+          "label": "30 min, then postpone",
+          "summary": "Shorter wait, same no-cut rule."
+        },
+        {
+          "label": "60 min, then install anyway",
+          "summary": "Cuts jobs still running at the limit."
+        }
+      ],
+      "chosen": "60 min, then postpone",
+      "decided": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D14",
+      "question": "When to check for and install updates",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Check every 6 h, install any time",
+          "summary": "Install as soon as the drain allows."
+        },
+        {
+          "label": "Check daily, install at night",
+          "summary": "Quiet window only."
+        },
+        {
+          "label": "User sets a window",
+          "summary": "Allowed install hours in the console."
+        }
+      ],
+      "chosen": "Check every 6 h, install any time",
+      "decided": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D15",
+      "question": "Update channel",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Stable only",
+          "summary": "Only tagged releases."
+        },
+        {
+          "label": "Stable, edge opt-in",
+          "summary": "A setting follows edge builds."
+        }
+      ],
+      "chosen": "Stable only",
+      "decided": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D16",
+      "question": "How agent-only machines update",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Follow the controller",
+          "summary": "Agents update to the controller's version after it updates."
+        },
+        {
+          "label": "Each machine on its own",
+          "summary": "Every machine checks GitHub itself."
+        }
+      ],
+      "chosen": "Follow the controller",
+      "decided": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D17",
+      "question": "Tell the user after an automatic update?",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Desktop notice + tray header",
+          "summary": "One notice and the version in the tray menu."
+        },
+        {
+          "label": "Tray header only",
+          "summary": "Silent."
+        }
+      ],
+      "chosen": "Desktop notice + tray header",
+      "decided": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D18",
+      "question": "Native installers for macOS and Linux now",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "macOS .pkg, Linux .deb and .rpm",
+          "summary": "All three native installers."
+        },
+        {
+          "label": "None now",
+          "summary": "Keep tar.gz plus the install script."
+        }
+      ],
+      "chosen": "macOS .pkg, Linux .deb and .rpm",
+      "decided": "2026-11-14",
+      "task": "OPS1"
+    },
+    {
+      "id": "D19",
+      "question": "Default of the uninstall 'also delete data' checkbox",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Unchecked",
+          "summary": "Data kept unless ticked."
+        },
+        {
+          "label": "Checked",
+          "summary": "Data deleted unless unticked."
+        }
+      ],
+      "chosen": "Unchecked",
+      "decided": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D20",
+      "question": "When a Windows MSI auto-update fails",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Keep old version, notify, retry next check",
+          "summary": "MSI rollback; tray shows the log; at most 3 attempts per version."
+        },
+        {
+          "label": "Keep old version, stop retrying",
+          "summary": "Waits for Look for updates."
+        }
+      ],
+      "chosen": "Keep old version, notify, retry next check",
+      "decided": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D21",
+      "question": "Make the Package and Windows MSI checks required on main?",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Yes, once green on main",
+          "summary": "Added to branch protection."
+        },
+        {
+          "label": "No, advisory",
+          "summary": "They do not block merges."
+        }
+      ],
+      "chosen": "Yes, once green on main",
+      "decided": "2026-11-14",
+      "task": "CRSP17"
+    },
+    {
+      "id": "D22",
+      "question": "When code signing comes",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Next release (v0.2.0)",
+          "summary": "Planned as the next task."
+        },
+        {
+          "label": "Later, no date",
+          "summary": "Backlog."
+        }
+      ],
+      "chosen": "Later, no date",
+      "decided": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D23",
+      "question": "Where the MSI install, upgrade and uninstall tests run",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "CI only, not this PC",
+          "summary": "No msiexec on the owner's PC; tests on a windows-latest CI runner."
+        },
+        {
+          "label": "Keep testing here",
+          "summary": "Install and clean up on the owner's PC."
+        },
+        {
+          "label": "Stop the agent now",
+          "summary": "Stop CRSP18 and report changes."
+        }
+      ],
+      "chosen": "CI only, not this PC",
+      "decided": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D24",
+      "question": "How auto-update checks build provenance",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Embed the check in crsp",
+          "summary": "sigstore-go inside the binary; no gh needed."
+        },
+        {
+          "label": "Require gh on the machine",
+          "summary": "Auto-update only where gh is installed."
+        },
+        {
+          "label": "Checksums only for now",
+          "summary": "SHA256SUMS only."
+        }
+      ],
+      "chosen": "Embed the check in crsp",
+      "decided": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D25",
+      "question": "Account the controller service runs as",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "LocalSystem / root",
+          "summary": "Can manage runner services and accounts and apply updates."
+        },
+        {
+          "label": "Low-privilege + helper",
+          "summary": "A privileged helper does runner management and updates."
+        }
+      ],
+      "chosen": "LocalSystem / root",
+      "decided": "2026-11-14",
+      "task": "CRSP18"
+    },
+    {
+      "id": "D26",
+      "question": "Do the handover must-fix items ride v0.1.0",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Yes, all four in v0.1.0",
+          "summary": "Cache quota + disk guard, hook visibility, one drain timeout, non-zero refusals."
+        },
+        {
+          "label": "Only 1 and 2 in v0.1.0",
+          "summary": "Disk and hook now."
+        },
+        {
+          "label": "None, next release",
+          "summary": "Fix after v0.1.0."
+        }
+      ],
+      "chosen": "Yes, all four in v0.1.0",
+      "decided": "2026-11-14",
+      "task": "CRSP21"
+    },
+    {
+      "id": "D27",
+      "question": "Runner label variable names",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Yes, use RUNS_ON_<OS>",
+          "summary": "RUNS_ON_LINUX/WINDOWS/MACOS as dev-standards D300."
+        },
+        {
+          "label": "Keep CRSP_RUNS_ON_*",
+          "summary": "Templates would not see crsp runners."
+        }
+      ],
+      "chosen": "Yes, use RUNS_ON_<OS>",
+      "decided": "2026-11-14",
+      "task": "CRSP25"
+    },
+    {
+      "id": "D28",
+      "question": "Handover docs and tooling in v0.1.0",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Spec contradictions and vm_check + cache caps",
+          "summary": "Both in v0.1.0."
+        },
+        {
+          "label": "Spec contradictions only",
+          "summary": "Docs only."
+        },
+        {
+          "label": "Neither in v0.1.0",
+          "summary": "Both later."
+        }
+      ],
+      "chosen": "Spec contradictions and vm_check + cache caps",
+      "decided": "2026-11-14",
+      "task": "CRSP27"
+    },
+    {
+      "id": "D29",
+      "question": "Runner parity gaps",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Spec them now, build after v0.1.0",
+          "summary": "Requirements now, builds later."
+        },
+        {
+          "label": "Later, no date",
+          "summary": "One backlog task."
+        }
+      ],
+      "chosen": "Spec them now, build after v0.1.0",
+      "decided": "2026-11-14",
+      "task": "CRSP28"
+    },
+    {
+      "id": "D30",
+      "question": "May the orchestrator close superseded draft PRs?",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Yes, always for superseded drafts",
+          "summary": "Close a draft once its work merged via a train."
+        },
+        {
+          "label": "Only #22 and #23 now",
+          "summary": "One-time permission."
+        },
+        {
+          "label": "No, I close them",
+          "summary": "Orchestrator lists them."
+        }
+      ],
+      "chosen": "Yes, always for superseded drafts",
+      "decided": "2026-11-14",
+      "task": "CRSP30"
+    },
+    {
+      "id": "D31",
+      "question": "How is v0.1.0 published?",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Stable release",
+          "summary": "Listed as Latest; machines auto-update to later stables."
+        },
+        {
+          "label": "Pre-release first",
+          "summary": "Promote to stable after the owner test."
+        }
+      ],
+      "chosen": "Stable release",
+      "decided": "2026-11-14",
+      "task": "CRSP1"
+    },
+    {
+      "id": "D32",
+      "question": "Where does the owner test v0.1.0?",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "This PC, by me",
+          "summary": "Owner runs the MSI here with a checklist."
+        },
+        {
+          "label": "A spare PC/VM",
+          "summary": "Same checklist elsewhere."
+        },
+        {
+          "label": "Skip manual test",
+          "summary": "Rely on CI install tests."
+        }
+      ],
+      "chosen": "This PC, by me",
+      "decided": "2026-11-14",
+      "task": "CRSP2"
+    },
+    {
+      "id": "D33",
+      "question": "Fix the Windows-only lint errors and add a Windows lint pass in v0.1.0?",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "In v0.1.0",
+          "summary": "Cloud task rides the RELEASE-1 train."
+        },
+        {
+          "label": "Next release",
+          "summary": "Leave for v0.1.1."
+        }
+      ],
+      "chosen": "In v0.1.0",
+      "decided": "2026-11-14",
+      "task": "CRSP29"
+    },
+    {
+      "id": "D34",
+      "question": "When is the old dev-standards runner pool switched off?",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "After my v0.1.0 test passes",
+          "summary": "Then the go-ahead is drafted for dev-standards."
+        },
+        {
+          "label": "After a week on v0.1.x",
+          "summary": "Run both for a while."
+        },
+        {
+          "label": "Not decided yet",
+          "summary": "Keep both."
+        }
+      ],
+      "chosen": "After my v0.1.0 test passes",
+      "decided": "2026-11-14",
+      "task": "CRSP2"
+    },
+    {
+      "id": "D35",
+      "question": "Which repositories does crsp serve first?",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "ci-runners-shared-pool only",
+          "summary": "Dogfood first."
+        },
+        {
+          "label": "Both repos",
+          "summary": "This repo and comics-organizer."
+        },
+        {
+          "label": "Decide after the test",
+          "summary": "Ask after CRSP2."
+        }
+      ],
+      "chosen": "Decide after the test",
+      "decided": "2026-11-14",
+      "task": "CRSP2",
+      "owner_words": "option 3, but offer all my private repos in my github account for testing; public repos keep using github cloud runners;"
+    },
+    {
+      "id": "D36",
+      "question": "Hourly check-in in this session?",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Yes, hourly",
+          "summary": "Local cron checks ledger, agents, Full Progress."
+        },
+        {
+          "label": "No",
+          "summary": "Report on finish or when asked."
+        }
+      ],
+      "chosen": "Yes, hourly",
+      "decided": "2026-11-14",
+      "task": "CRSP30"
+    },
+    {
+      "id": "D37",
+      "question": "What must the old pool switch-off wait for? Private repos run only on the old self-hosted pool, never on GitHub-hosted runners.",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Wait until crsp covers every job",
+          "summary": "Old pool stays until crsp runs every private-repo job (Linux containers M2, KVM, Wine); hosted runners are never a fallback."
+        },
+        {
+          "label": "Move repos one by one",
+          "summary": "Move repos crsp v0.1.0 can run; old pool keeps the rest until M2."
+        },
+        {
+          "label": "Delete after v0.1.0 test anyway",
+          "summary": "Linux container and KVM/Wine jobs stop until M2."
+        }
+      ],
+      "chosen": "Wait until crsp covers every job",
+      "decided": "2026-11-14",
+      "task": "CRSP2",
+      "replaces": "D34",
+      "owner_words": "None of my private repo projects use github runners"
+    },
+    {
+      "id": "D38",
+      "question": "Console transport on loopback",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "HTTP on loopback only",
+          "summary": "127.0.0.1 and ::1 serve plain HTTP; every other address HTTPS-only; GitHub callback stays http://127.0.0.1."
+        },
+        {
+          "label": "HTTPS everywhere",
+          "summary": "Loopback HTTPS with crsp's CA; browser warns unless the installer trusts the CA."
+        }
+      ],
+      "chosen": "HTTP on loopback only",
+      "decided": "2026-11-14",
+      "task": "CRSP42"
+    },
+    {
+      "id": "D39",
+      "question": "Console session lifetime (Q12)",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Never expire by time",
+          "summary": "Ends at sign-out, user removal or role change."
+        },
+        {
+          "label": "12 h idle, 7 days total",
+          "summary": "Time-based sign-out."
+        },
+        {
+          "label": "30 days total",
+          "summary": "Monthly sign-in."
+        }
+      ],
+      "chosen": "Never expire by time",
+      "decided": "2026-11-14",
+      "task": "CRSP42"
+    },
+    {
+      "id": "D40",
+      "question": "Console performance budgets (Q14)",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Confirm these budgets",
+          "summary": "2 s first screen, 300 KB JS, 2 s live event."
+        },
+        {
+          "label": "Tighter: 1 s / 200 KB / 1 s",
+          "summary": "Stricter gate."
+        },
+        {
+          "label": "Looser: 3 s / 500 KB / 3 s",
+          "summary": "Looser gate."
+        }
+      ],
+      "chosen": "Confirm these budgets",
+      "decided": "2026-11-14",
+      "task": "CRSP34"
+    },
+    {
+      "id": "D41",
+      "question": "How agents on other machines update",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Agents run as LocalSystem/root",
+          "summary": "Agents install their own updates after the drain; jobs keep their non-admin accounts."
+        },
+        {
+          "label": "Small admin update helper only",
+          "summary": "Separate privileged update service."
+        },
+        {
+          "label": "Manual agent updates",
+          "summary": "Console lists machines to update by hand."
+        }
+      ],
+      "chosen": "Agents run as LocalSystem/root",
+      "decided": "2026-11-14",
+      "task": "CRSP42"
+    },
+    {
+      "id": "D42",
+      "question": "Which version the first stable tag gets, now that the tested build comes from main with v0.2.0 and RELEASE-4",
+      "asked": "2026-11-15",
+      "status": "decided",
+      "options": [
+        {
+          "label": "v0.1.0",
+          "summary": "First build that passes the owner test is v0.1.0; no separate v0.2.0 tag; next stable is v0.2.0."
+        },
+        {
+          "label": "v0.2.0",
+          "summary": "Tag by content; v0.1.0 never tagged."
+        },
+        {
+          "label": "v0.1.0, then v0.2.0",
+          "summary": "Same commit tagged twice."
+        }
+      ],
+      "chosen": "v0.1.0",
+      "decided": "2026-11-15",
+      "task": "CRSP1"
+    },
+    {
+      "id": "D43",
+      "question": "When the Start Menu name/icon (OPS5) and tray-after-install (OPS6) bugs are fixed",
+      "asked": "2026-11-15",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Before the stable tag",
+          "summary": "One cloud agent now; owner re-checks those two steps."
+        },
+        {
+          "label": "After the stable tag",
+          "summary": "Ship them in the next release."
+        }
+      ],
+      "chosen": "Before the stable tag",
+      "decided": "2026-11-15",
+      "task": "OPS5"
+    },
+    {
+      "id": "D44",
+      "question": "Overnight scope (owner asleep ~10 h)",
+      "asked": "2026-11-15",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Parity, in waves",
+          "summary": "Close the parity-plan gaps in dependency order"
+        },
+        {
+          "label": "Linux runners only",
+          "summary": "Container runners and base image only"
+        },
+        {
+          "label": "Fixes only, then stop",
+          "summary": "OPS5/OPS6 then wait"
+        }
+      ],
+      "chosen": "Parity, in waves",
+      "decided": "2026-11-15",
+      "task": "CRSP39"
+    },
+    {
+      "id": "D45",
+      "question": "Merge green trains overnight (replaces Edge)",
+      "asked": "2026-11-15",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Yes, merge green trains",
+          "summary": "Morning Edge has all green work"
+        },
+        {
+          "label": "Hold everything after OPS5/OPS6",
+          "summary": "Keep the rest in ready PRs"
+        }
+      ],
+      "chosen": "Yes, merge green trains",
+      "decided": "2026-11-15",
+      "task": "CRSP45"
+    },
+    {
+      "id": "D46",
+      "question": "Build lessons 24-25 tonight",
+      "asked": "2026-11-15",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Yes, with the parity work",
+          "summary": "Cache cap/disk budget with caches; KVM loader with containers"
+        },
+        {
+          "label": "Doc only for now",
+          "summary": "Merge the doc only"
+        }
+      ],
+      "chosen": "Yes, with the parity work",
+      "decided": "2026-11-15",
+      "task": "OPS8"
+    },
+    {
+      "id": "D47",
+      "question": "Cloud agents at once overnight",
+      "asked": "2026-11-15",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Up to 6",
+          "summary": "Two waves of 3-6"
+        },
+        {
+          "label": "Up to 12",
+          "summary": "Faster, more conflicts"
+        },
+        {
+          "label": "Up to 3",
+          "summary": "Slow"
+        }
+      ],
+      "chosen": "Up to 6",
+      "decided": "2026-11-15",
+      "task": "CRSP39"
+    },
+    {
+      "id": "D48",
+      "question": "Tag v0.1.0 without the owner's re-check",
+      "asked": "2026-11-15",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Wait for my test",
+          "summary": "Tag after the owner's checklist"
+        },
+        {
+          "label": "Tag if CI install tests pass",
+          "summary": "Tag when CI installer smoke tests pass; owner tests after; fixes ship as v0.1.1"
+        }
+      ],
+      "chosen": "Tag if CI install tests pass",
+      "decided": "2026-11-15",
+      "task": "CRSP1"
+    },
+    {
+      "id": "D49",
+      "question": "Scale-set API tonight",
+      "asked": "2026-11-15",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Later, after parity",
+          "summary": "Persistent runners already start jobs instantly"
+        },
+        {
+          "label": "Tonight too",
+          "summary": "One more agent"
+        }
+      ],
+      "chosen": "Later, after parity",
+      "decided": "2026-11-15",
+      "task": "CRSP39"
+    },
+    {
+      "id": "D50",
+      "question": "Overnight decisions only the owner can make",
+      "asked": "2026-11-15",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Pick the safe default, record it",
+          "summary": "Conservative option, recorded as an open decision with alternatives"
+        },
+        {
+          "label": "Park that piece",
+          "summary": "Stop that piece"
+        }
+      ],
+      "chosen": "Pick the safe default, record it",
+      "decided": "2026-11-15",
+      "task": "CRSP39"
+    },
+    {
+      "id": "D51",
+      "question": "Which research proposals start now",
+      "options": [
+        {
+          "label": "1 Hosted fallback",
+          "summary": "Switch RUNS_ON_* to a GitHub-hosted label when no machine of that OS is up."
+        },
+        {
+          "label": "2 Laptop/desk policy",
+          "summary": "Tray Automatic/Always/Paused, pause on battery, CPU cap."
+        },
+        {
+          "label": "3 Why is this job waiting",
+          "summary": "Console shows the first blocking reason per queued job."
+        },
+        {
+          "label": "4 Watchdog + install check",
+          "summary": "Doctor warns on quiet demand; install script verifies the attestation."
+        }
+      ],
+      "chosen": "1 Hosted fallback",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "1 Hosted fallback, 2 Laptop/desk policy, 3 Why is this job waiting, 4 Watchdog + install check; Hosted fallback but never costing money to user; costing money to user need to be a opt-in feature; goal of this project is exactly to save money to users",
+      "task": "CRSP73"
+    },
+    {
+      "id": "D52",
+      "question": "Hosted fallback default",
+      "options": [
+        {
+          "label": "On by default",
+          "summary": "Jobs move to GitHub-hosted runners automatically when the pool is down."
+        },
+        {
+          "label": "Off by default, opt-in per repository",
+          "summary": "Jobs wait for a crsp machine (free); a user turns fallback on only where paying for hosted minutes is acceptable."
+        }
+      ],
+      "chosen": "Off by default, opt-in per repository",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "costing money to user need to be a opt-in feature",
+      "task": "CRSP73"
+    },
+    {
+      "id": "D53",
+      "question": "Admission when a machine's load cannot be measured",
+      "options": [
+        {
+          "label": "Keep running the job",
+          "summary": "Today's rule R5.22: CI never stalls because crsp broke."
+        },
+        {
+          "label": "Hold, then run",
+          "summary": "Hold a short time for a reading, then run and warn."
+        },
+        {
+          "label": "Hold until measured",
+          "summary": "Fail closed: protect the PC; CI waits until crsp can measure."
+        }
+      ],
+      "chosen": "Hold until measured",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "task": "CRSP73"
+    },
+    {
+      "id": "D54",
+      "question": "How crsp runs macOS VMs (runners R5.29, M5)",
+      "options": [
+        {
+          "label": "Own code on Apple's API",
+          "summary": "Virtualization.framework directly; no Tart licence tie."
+        },
+        {
+          "label": "Keep Tart",
+          "summary": "Accept FSL-1.1-ALv2 for the Tart tool."
+        },
+        {
+          "label": "Decide at M5",
+          "summary": "Open decision."
+        }
+      ],
+      "chosen": "Own code on Apple's API",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "task": "CRSP73"
+    },
+    {
+      "id": "D55",
+      "question": "Widen scope: metrics endpoint, Gitea/Forgejo, GitHub Enterprise Server",
+      "options": [
+        {
+          "label": "Prometheus /metrics",
+          "summary": "Read-only metrics endpoint."
+        },
+        {
+          "label": "Gitea / Forgejo",
+          "summary": "Serve self-hosted forges."
+        },
+        {
+          "label": "GitHub Enterprise Server",
+          "summary": "Serve GHES."
+        },
+        {
+          "label": "None for now",
+          "summary": "Stay GitHub.com only; safe default while open."
+        }
+      ],
+      "status": "decided",
+      "asked": "2026-11-15",
+      "task": "CRSP73",
+      "chosen": "None for now",
+      "decided": "2026-11-15",
+      "owner_words": "None for now"
+    },
+    {
+      "id": "D56",
+      "question": "Close RES11 as a duplicate of RES13 (fallback edge tests)",
+      "options": [
+        {
+          "label": "Close as duplicate",
+          "summary": "RES13 covers it."
+        },
+        {
+          "label": "Keep it open",
+          "summary": "More edge cases."
+        }
+      ],
+      "chosen": "Close as duplicate",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "Close as duplicate (Recommended)",
+      "task": "RES11"
+    },
+    {
+      "id": "D57",
+      "question": "How many cloud agents run at once",
+      "options": [
+        {
+          "label": "Keep 6",
+          "summary": "Small trains."
+        },
+        {
+          "label": "Up to 10",
+          "summary": "Bigger trains."
+        },
+        {
+          "label": "Up to 20",
+          "summary": "Fastest throughput."
+        }
+      ],
+      "chosen": "Up to 20",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "Up to 20",
+      "task": "CRSP95"
+    },
+    {
+      "id": "D58",
+      "question": "Signed installers and SBOM without a signing certificate (CRSP90)",
+      "options": [
+        {
+          "label": "No cert, ship unsigned + SBOM",
+          "summary": "SBOM and checksums now."
+        },
+        {
+          "label": "I have a cert",
+          "summary": "CI signing step."
+        },
+        {
+          "label": "Will get one later",
+          "summary": "Signing step off by a setting."
+        },
+        {
+          "label": "Skip CRSP90",
+          "summary": "No work yet."
+        }
+      ],
+      "chosen": "No cert, ship unsigned + SBOM",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "No cert, ship unsigned + SBOM",
+      "task": "CRSP90"
+    },
+    {
+      "id": "D59",
+      "question": "How the add-machine wizard joins a machine (RES3)",
+      "options": [
+        {
+          "label": "Copy-and-wait only",
+          "summary": "One-line command, short-lived code, live progress."
+        },
+        {
+          "label": "Copy-and-wait + optional SSH",
+          "summary": "Plus an SSH path for Linux/macOS."
+        }
+      ],
+      "chosen": "Copy-and-wait + optional SSH",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "Copy-and-wait + optional SSH",
+      "task": "RES3"
+    },
+    {
+      "id": "D60",
+      "question": "Ask before taking a job while the PC is in use (RES8)",
+      "options": [
+        {
+          "label": "Never ask; follow machine policy",
+          "summary": "CRSP75 policy decides."
+        },
+        {
+          "label": "Ask, default No after 30 s",
+          "summary": "Popup."
+        },
+        {
+          "label": "Ask, default Yes after 30 s",
+          "summary": "Popup."
+        }
+      ],
+      "chosen": "Never ask; follow machine policy",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "Never ask; follow machine policy (Recommended)",
+      "task": "RES8"
+    },
+    {
+      "id": "D61",
+      "question": "Start the later-milestone research items now (CRSP84-89, 91, 92)",
+      "options": [
+        {
+          "label": "Start them too",
+          "summary": "In parallel now."
+        },
+        {
+          "label": "M3 ones only",
+          "summary": "88, 89, 91, 92."
+        },
+        {
+          "label": "Not yet",
+          "summary": "Later."
+        }
+      ],
+      "chosen": "Start them too",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "Start them too",
+      "task": "CRSP73"
+    },
+    {
+      "id": "D62",
+      "question": "When to draft the dev-standards go messages (HND13, HND14)",
+      "options": [
+        {
+          "label": "Draft when parity is green",
+          "summary": "After HND21."
+        },
+        {
+          "label": "Draft now",
+          "summary": "Marked do not send."
+        }
+      ],
+      "chosen": "Draft when parity is green",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "Draft when parity is green (Recommended)",
+      "task": "HND13"
+    },
+    {
+      "id": "D63",
+      "question": "Which groups the next wave starts",
+      "options": [
+        {
+          "label": "Parity HND15-21",
+          "summary": "Unblocks go messages."
+        },
+        {
+          "label": "Handover rules HND6-12",
+          "summary": "Lessons."
+        },
+        {
+          "label": "Research quick wins",
+          "summary": "RES items."
+        },
+        {
+          "label": "M2 safety CRSP79-83",
+          "summary": "Safety."
+        },
+        {
+          "label": "All four groups",
+          "summary": "Parity, handover rules, research quick wins and M2 safety together."
+        }
+      ],
+      "chosen": "All four groups",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "Parity HND15-21, Handover rules HND6-12, Research quick wins, M2 safety CRSP79-83",
+      "task": "CRSP95"
+    },
+    {
+      "id": "D64",
+      "question": "Remove the Co-authored-by: Claude trailers from three merged commits on main",
+      "options": [
+        {
+          "label": "Leave history (Recommended)",
+          "summary": "Keep the commits; fix future merges only."
+        },
+        {
+          "label": "Rewrite main",
+          "summary": "Rewrite three messages and force-push main."
+        },
+        {
+          "label": "Revert-free note",
+          "summary": "Leave history and add a note in docs/project."
+        }
+      ],
+      "chosen": "Leave history (Recommended)",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "Leave history (Recommended)"
+    },
+    {
+      "id": "D65",
+      "question": "Where the v0.1.1 owner test (CRSP2) stands",
+      "options": [
+        {
+          "label": "Not started",
+          "summary": "Stays Needs you."
+        },
+        {
+          "label": "In progress",
+          "summary": "Owner reports each section."
+        },
+        {
+          "label": "Done, all fine",
+          "summary": "Mark CRSP2 Live."
+        },
+        {
+          "label": "Done, found issues",
+          "summary": "Owner describes issues; fix tasks filed."
+        }
+      ],
+      "chosen": "Not started",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "Not started"
+    },
+    {
+      "id": "D66",
+      "question": "Start parity.yml by hand before the nightly run",
+      "options": [
+        {
+          "label": "Wait for 02:17 (Recommended)",
+          "summary": "No manual run; drafts after the nightly run if green."
+        },
+        {
+          "label": "Run now, soak=none",
+          "summary": "Manual run with pool checks only."
+        },
+        {
+          "label": "Run now, dry-run",
+          "summary": "Pool checks plus a fake soak judgement."
+        }
+      ],
+      "chosen": "Wait for 02:17 (Recommended)",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "Wait for 02:17 (Recommended)"
+    },
+    {
+      "id": "D67",
+      "question": "Start a UI task for the agent recovery screen (web-console R5.33)",
+      "options": [
+        {
+          "label": "Start UI task (Recommended)",
+          "summary": "One cloud agent builds the needs-recovery state and action after RELEASE-17 merges."
+        },
+        {
+          "label": "Later",
+          "summary": "Record as To do only."
+        }
+      ],
+      "chosen": "Start UI task (Recommended)",
+      "status": "decided",
+      "decided": "2026-11-15",
+      "asked": "2026-11-15",
+      "owner_words": "Start UI task (Recommended)"
+    },
+    {
+      "id": "D68",
+      "question": "Which open requirement groups the next wave starts",
+      "options": [
+        {
+          "label": "A: M1 gaps",
+          "summary": "Secrets, redaction, data kept, limits, accessibility, app health, reconcile, fork guard, offline cleanup, symlink probe."
+        },
+        {
+          "label": "B: drift + flaky tests",
+          "summary": "Correct spec status lines; fix Windows test timeouts CRSP105."
+        },
+        {
+          "label": "C: later milestones",
+          "summary": "Pool per organization, macOS VMs, key rotation."
+        },
+        {
+          "label": "D: nothing now",
+          "summary": "Hold until review."
+        },
+        {
+          "label": "A, B and C",
+          "summary": "Start groups A, B and C together."
+        }
+      ],
+      "chosen": "A, B and C",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "A: M1 gaps, B: drift + flaky tests, C: later milestones"
+    },
+    {
+      "id": "D69",
+      "question": "When to tag the next stable version v0.1.2",
+      "options": [
+        {
+          "label": "After RELEASE-22",
+          "summary": "Tag when RELEASE-22 is green and merged, ~02:55 Lisbon; includes the join-command fix."
+        },
+        {
+          "label": "Now, from main 68d30b3",
+          "summary": "Tag now with RELEASE-15 to 21; no join-command fix."
+        },
+        {
+          "label": "Now and after RELEASE-22",
+          "summary": "v0.1.2 now, v0.1.3 after RELEASE-22."
+        },
+        {
+          "label": "Wait for my test",
+          "summary": "No tag until the CRSP2 test on v0.1.1 is done."
+        }
+      ],
+      "chosen": "After RELEASE-22",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "After RELEASE-22 (Recommended)"
+    },
+    {
+      "id": "D70",
+      "question": "How the console adds other machines without typing a command",
+      "options": [
+        {
+          "label": "Download a join installer",
+          "summary": "Installer per OS with address, fingerprint and a one-time code built in; double-click, accept admin prompt."
+        },
+        {
+          "label": "SSH for Windows too",
+          "summary": "Extend 'I have SSH' to Windows with the OpenSSH server."
+        },
+        {
+          "label": "Both",
+          "summary": "Download installer for all OSes, plus SSH for Windows."
+        },
+        {
+          "label": "Command only",
+          "summary": "Keep copy-and-run for other machines."
+        }
+      ],
+      "chosen": "Both, and keep the copy-and-run command",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "offer ssh, download agent, and keep the current option of user copying the command and running it"
+    },
+    {
+      "id": "D71",
+      "question": "Should stable v0.1.2 wait for the first-run UX rework (CRSP124)",
+      "options": [
+        {
+          "label": "Ship v0.1.2 at ~03:00, UX in v0.1.3",
+          "summary": "Fixes sooner; reworked first run ~06:00 as v0.1.3."
+        },
+        {
+          "label": "Hold v0.1.2 for the UX rework",
+          "summary": "One stable release ~06:00 with fixes and the reworked first run."
+        }
+      ],
+      "chosen": "Hold v0.1.2 for the UX rework",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "Hold v0.1.2 for the UX rework"
+    },
+    {
+      "id": "D72",
+      "question": "If tonight's v0.1.2 work is not all green by ~06:00",
+      "options": [
+        {
+          "label": "Tag what is green, rest in v0.1.3",
+          "summary": "Ship merged fixes at ~06:00."
+        },
+        {
+          "label": "Hold v0.1.2 until all is green",
+          "summary": "No stable tag until every item of tonight's plan is merged."
+        }
+      ],
+      "chosen": "Hold v0.1.2 until all is green",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "Hold v0.1.2 until all is green"
+    },
+    {
+      "id": "D73",
+      "question": "Start CRSP122 (download installer) and CRSP123 (SSH for Windows) tonight",
+      "options": [
+        {
+          "label": "Yes, start tonight",
+          "summary": "After RELEASE-22 merges, alongside CRSP124."
+        },
+        {
+          "label": "Wait for my review",
+          "summary": "Leave To do."
+        }
+      ],
+      "chosen": "Yes, start tonight",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "Yes, start tonight"
+    },
+    {
+      "id": "D74",
+      "question": "Overnight: launch fix agents for newly found bugs",
+      "options": [
+        {
+          "label": "Yes, fix and ride",
+          "summary": "Log, launch cloud fix, merge on green, list in the morning."
+        },
+        {
+          "label": "Log only",
+          "summary": "To do tasks only."
+        }
+      ],
+      "chosen": "Yes, fix and ride",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "Yes, fix and ride"
+    },
+    {
+      "id": "D75",
+      "question": "How should crsp parity get a self-hosted Linux runner?",
+      "options": [
+        {
+          "label": "Set PARITY_RUNS_ON to pool-main labels",
+          "summary": "Point parity at the dev-standards pool labels."
+        },
+        {
+          "label": "Register a runner myself",
+          "summary": "Owner registers a self-hosted Linux runner."
+        },
+        {
+          "label": "Skip parity for now",
+          "summary": "Hold HND13/14 and cancel the queued run."
+        }
+      ],
+      "chosen": "Set PARITY_RUNS_ON to pool-main labels",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "Set PARITY_RUNS_ON (Recommended)"
+    },
+    {
+      "id": "D76",
+      "question": "What to do with the agent-posted comment on closed PR #155?",
+      "options": [
+        {
+          "label": "Leave it",
+          "summary": "Keep it; remind briefs that agents never comment."
+        },
+        {
+          "label": "Delete it",
+          "summary": "Delete the one comment on #155."
+        }
+      ],
+      "chosen": "Leave it",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "Leave it (Recommended)"
+    },
+    {
+      "id": "D77",
+      "question": "v0.1.1 release page has no What's Changed list: who fixes it?",
+      "options": [
+        {
+          "label": "Owner pastes the draft",
+          "summary": "Owner edits the release page with the draft."
+        },
+        {
+          "label": "Orchestrator edits it",
+          "summary": "Orchestrator runs gh release edit with the draft."
+        },
+        {
+          "label": "Leave it",
+          "summary": "Keep it; remind briefs that agents never comment."
+        }
+      ],
+      "chosen": "Orchestrator edits it",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "You edit it"
+    },
+    {
+      "id": "D78",
+      "question": "Which release does CRSP130 (release guard) ride?",
+      "options": [
+        {
+          "label": "Next release",
+          "summary": "Ride the release after RELEASE-23."
+        },
+        {
+          "label": "RELEASE-23",
+          "summary": "One more agent now, joins RELEASE-23 if ready."
+        }
+      ],
+      "chosen": "Next release",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "Next release (Recommended)"
+    },
+    {
+      "id": "D79",
+      "question": "Which repositories should crsp offer?",
+      "options": [
+        {
+          "label": "Private first, public behind a confirmed toggle",
+          "summary": "Private repositories by default; an Enable for public repositories toggle asks Are you sure? and explains the impact."
+        },
+        {
+          "label": "All repositories as today",
+          "summary": "Public and private both offered; fork jobs refused per R5.26."
+        }
+      ],
+      "chosen": "Private first, public behind a confirmed toggle",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "CRSP should offer Private Repos primarely; User should have an option to make it available for Public Repos and when user sets the toggle it ask the user Are you sure? and explains the potential impacts"
+    },
+    {
+      "id": "D80",
+      "question": "Where does the public-repositories setting live, and how is it shown?",
+      "options": [
+        {
+          "label": "Settings page toggle; Repositories shows the active types",
+          "summary": "Toggle on Settings with the other product settings; Repositories shows Private (default) or Private & Public."
+        },
+        {
+          "label": "Toggle on the Repositories page",
+          "summary": "The toggle sits on the Repositories page itself."
+        }
+      ],
+      "chosen": "Settings page toggle; Repositories shows the active types",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "Enable for Public Repositories option should in the Settings page, together with other settings for the product, and in the Repositories section should highlight the types of repositories are active be used Private (default) or both Private & Public"
+    },
+    {
+      "id": "D81",
+      "question": "Should the Repositories table show each repository's visibility?",
+      "options": [
+        {
+          "label": "Visibility column per repository",
+          "summary": "Each row says Private or Public."
+        },
+        {
+          "label": "No column",
+          "summary": "Only the page-level active types line."
+        }
+      ],
+      "chosen": "Visibility column per repository",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "in the repositories tables should also for each repo say if its public or private"
+    },
+    {
+      "id": "D82",
+      "question": "How should list filters and actions be laid out?",
+      "options": [
+        {
+          "label": "One row, shared part, toggle for two-state filters",
+          "summary": "Search, filters, selection actions and Add on one line when it fits; one reusable toolbar part; Pool on/off uses the toggle."
+        },
+        {
+          "label": "Keep stacked rows",
+          "summary": "Search, filter pills and actions on separate rows as today."
+        }
+      ],
+      "chosen": "One row, shared part, toggle for two-state filters",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "improve list filtering to use only line when possible; use reusable components as much as possible to ensure UX consistent; toogle option should use the toggle component"
+    },
+    {
+      "id": "D83",
+      "question": "Approval policy for outside contributors' workflow runs on the public crsp repository (now that a pool runner serves parity)?",
+      "options": [
+        {
+          "label": "Raise to all outside collaborators",
+          "summary": "Every run from someone without write access waits for the owner."
+        },
+        {
+          "label": "Leave as first-time only",
+          "summary": "GitHub default; parity has no pull-request trigger."
+        }
+      ],
+      "chosen": "Leave as first-time only",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "Leave as first-time only"
+    },
+    {
+      "id": "D84",
+      "question": "How should a missing GitHub App permission be handled in the console?",
+      "options": [
+        {
+          "label": "One guided action with live step states",
+          "summary": "One action leads the grant; each step shows done or missing from GitHub; re-check on return; fresh token after accept."
+        },
+        {
+          "label": "Two buttons and a static note",
+          "summary": "As built in v0.1.2."
+        }
+      ],
+      "chosen": "One guided action with live step states",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "UX is not intuitive at all; multiple buttons needed to run actions, not guiding the user on what is needed; even if action is done button still shows action is needed, and UX says nothing about what is missing"
+    },
+    {
+      "id": "D85",
+      "question": "Add the five missing points of the owner's seven core rules to crsp's design system?",
+      "options": [
+        {
+          "label": "Add all five (Recommended)",
+          "summary": "New UX rules from UX-63 in next-version with CHANGES entries; v2 on owner approval."
+        },
+        {
+          "label": "Add some",
+          "summary": "Owner names which."
+        },
+        {
+          "label": "Leave v1 as is",
+          "summary": "No change to crsp's rules."
+        }
+      ],
+      "chosen": "Add all five (Recommended)",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "Add all five (Recommended)"
+    },
+    {
+      "id": "D86",
+      "question": "How should crsp follow luismc-docs 2.7.0 CORE-1..7?",
+      "options": [
+        {
+          "label": "Switch to CORE-1..7 (Recommended)",
+          "summary": "Follow-up after RELEASE-26 replaces UX-63..67 with CORE rules, keeps UX-57..62, bumps CI pin."
+        },
+        {
+          "label": "Keep UX-63..67",
+          "summary": "Own IDs; docs check warns."
+        },
+        {
+          "label": "Pull CRSP144 from RELEASE-26",
+          "summary": "Redo with CORE ids before merge."
+        }
+      ],
+      "chosen": "Switch to CORE-1..7 (Recommended)",
+      "status": "decided",
+      "decided": "2026-11-16",
+      "asked": "2026-11-16",
+      "owner_words": "Switch to CORE-1..7 (Recommended)"
+    }
+  ]
+}

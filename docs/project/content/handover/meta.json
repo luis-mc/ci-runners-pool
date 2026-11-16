@@ -1,0 +1,6 @@
+{
+  "title": "Feature: Runner Pool Handover",
+  "hero": "Every requirement of the dev-standards handover, with the crsp task that answers it.",
+  "lede": "39 of 78 done; every other item has a task. Urgent: HND1 (lesson 28).",
+  "extra_css": ".hv-wrap{overflow-x:auto}.hv{width:100%;border-collapse:collapse;margin:8px 0 20px}.hv th,.hv td{border:1px solid var(--color-border,#8886);padding:6px 8px;text-align:left;vertical-align:top}.hv td:first-child,.hv td:nth-last-child(-n+2){white-space:nowrap}"
+}

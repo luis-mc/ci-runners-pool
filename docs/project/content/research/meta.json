@@ -1,0 +1,6 @@
+{
+  "title": "Feature: CRSP Features Research",
+  "hero": "What other runner pools do, checked, and what crsp takes from it.",
+  "lede": "52 findings. Several are being built now; the rest are written into the specs for their milestone.",
+  "extra_css": ".rs-wrap{overflow-x:auto}.rs{width:100%;border-collapse:collapse;margin:8px 0 20px}.rs th,.rs td{border:1px solid var(--color-border,#8886);padding:6px 8px;text-align:left;vertical-align:top}.rs td:nth-child(n+2){white-space:nowrap}.rs td:first-child{min-width:260px}"
+}

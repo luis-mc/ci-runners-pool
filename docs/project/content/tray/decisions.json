@@ -1,0 +1,174 @@
+{
+  "decisions": [
+    {
+      "id": "D1",
+      "question": "Tray menu layout",
+      "options": [
+        {
+          "label": "Comics-organizer style menu",
+          "summary": "Version header, status, Open, Look for updates, Restart, Open log folder, Start at login, Quit."
+        },
+        {
+          "label": "Same plus Open on GitHub",
+          "summary": "The same menu plus an item that opens the GitHub repository."
+        }
+      ],
+      "chosen": "Same plus Open on GitHub",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "owner_words": "it must have a system tray, with menus showing current installed version, status, open the product's web app, check for plugins, etc",
+      "asked": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D2",
+      "question": "What 'check for plugins' means",
+      "options": [
+        {
+          "label": "Check for updates",
+          "summary": "Same as Look for updates."
+        },
+        {
+          "label": "Runner/tool add-ons",
+          "summary": "A new add-on feature with its own spec."
+        },
+        {
+          "label": "Drop it",
+          "summary": "No plugin item."
+        }
+      ],
+      "chosen": "Check for updates",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "asked": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D3",
+      "question": "Where the yes for restart and update is asked",
+      "options": [
+        {
+          "label": "Console Review step",
+          "summary": "Tray opens the console at a Review step listing running jobs."
+        },
+        {
+          "label": "Tray notification",
+          "summary": "Desktop prompt from the tray."
+        }
+      ],
+      "chosen": "Console Review step",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "asked": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D4",
+      "question": "Tray menu platforms",
+      "options": [
+        {
+          "label": "Same menu on all three",
+          "summary": "Windows, macOS and Linux get the menu."
+        },
+        {
+          "label": "Windows first",
+          "summary": "Windows now, others later."
+        }
+      ],
+      "chosen": "Same menu on all three",
+      "status": "decided",
+      "decided": "2026-11-14",
+      "asked": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D5",
+      "question": "Product name in the tray header",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "CI Runners Shared Pool",
+          "summary": "Full name."
+        },
+        {
+          "label": "crsp",
+          "summary": "Binary name."
+        }
+      ],
+      "chosen": "CI Runners Shared Pool",
+      "decided": "2026-11-14",
+      "task": "CRSP19"
+    },
+    {
+      "id": "D6",
+      "question": "Bold Open item in the tray menu",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Native menus on Windows + macOS",
+          "summary": "Native Win32 and Cocoa menus; Linux plain."
+        },
+        {
+          "label": "Accept no bold",
+          "summary": "Keep the cross-platform library."
+        },
+        {
+          "label": "Windows native only",
+          "summary": "Bold on Windows only."
+        }
+      ],
+      "chosen": "Accept no bold",
+      "decided": "2026-11-14",
+      "task": "CRSP19",
+      "owner_words": "why cant it, if comics-organizer does it?"
+    },
+    {
+      "id": "D7",
+      "question": "When is the tray's one-time sign-in link built?",
+      "asked": "2026-11-14",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Build it in v0.2.0",
+          "summary": "Tray Open signs in directly on this PC."
+        },
+        {
+          "label": "Later (milestone 3)",
+          "summary": "GitHub sign-in for every Open until then."
+        }
+      ],
+      "chosen": "Build it in v0.2.0",
+      "decided": "2026-11-14",
+      "task": "TRAY1"
+    },
+    {
+      "id": "D8",
+      "question": "The app icon, and the tray icon shapes",
+      "asked": "2026-11-15",
+      "status": "decided",
+      "options": [
+        {
+          "label": "Green disc, as the tray",
+          "summary": "Reuse the tray's healthy disc as the app icon."
+        },
+        {
+          "label": "A new simple mark",
+          "summary": "Agent draws a crsp mark."
+        },
+        {
+          "label": "I'll supply one",
+          "summary": "Owner provides an .ico later."
+        },
+        {
+          "label": "Disc with CRSP letters, everywhere",
+          "summary": "Owner's answer: the app icon is the disc with the letters CRSP inside; the tray always uses that disc, dropping the diamond and cross shapes, and only the disc colour changes with the state."
+        }
+      ],
+      "chosen": "Disc with CRSP letters, everywhere",
+      "decided": "2026-11-15",
+      "task": "OPS5"
+    }
+  ]
+}
