@@ -32,35 +32,55 @@ import {
   savedThemeName,
   type Column,
 } from '@crsp/ui';
-import { useEffect, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { Ask, Load } from '../common';
+import { SECTIONS, settingsPath } from './sections';
+import { AccessForCiSettings } from './AccessForCi';
+import { AuditLogSettings, ConfigExportSettings } from './AuditLog';
+import { BudgetsSettings } from './Budgets';
+import { NotificationsSettings } from './Notifications';
+import { PublicRepositoriesSettings } from './PublicRepositoriesSettings';
+import { UpdatesSettings } from './Updates';
 
 type User = Schemas['User'];
 
+// Five tabs (owner decision D8). Each old section is a pane inside its tab, in this order; `SECTIONS` says where
+// an old address now lives, so a link or bookmark to /settings/<old> lands on the right tab and section.
 const TABS = [
-  { id: 'users', label: 'Users and roles' },
-  { id: 'app', label: 'GitHub App' },
+  { id: 'access', label: 'Access' },
   { id: 'repositories', label: 'Repositories' },
-  { id: 'appearance', label: 'Appearance' },
-  { id: 'retention', label: 'Retention' },
-  { id: 'backups', label: 'Backups' },
-  { id: 'budgets', label: 'Budgets' },
-  { id: 'notifications', label: 'Notifications' },
-  { id: 'access', label: 'Access for CI' },
-  { id: 'updates', label: 'Updates' },
+  { id: 'console', label: 'Console' },
+  { id: 'data', label: 'Data' },
   { id: 'audit', label: 'Audit log' },
-  { id: 'export', label: 'Config export' },
 ];
+
+/** An old Settings address: goes to its tab and scrolls to its section. */
+export function OldSettingsAddress({ old }: { old: string }) {
+  return <Navigate to={settingsPath(old)} replace />;
+}
+
+/** The anchor of one section inside its tab (no look of its own). */
+function At({ id, children }: { id: string; children: ReactNode }) {
+  return <div id={id}>{children}</div>;
+}
 
 export function SettingsLayout() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const current =
-    TABS.find((t) => pathname.startsWith(`/settings/${t.id}`))?.id ?? 'users';
+  const { pathname, hash } = useLocation();
+  // An old address shows its new tab at once, before the redirect has run.
+  const segment = pathname.split('/')[2] ?? '';
+  const current = TABS.some((t) => t.id === segment)
+    ? segment
+    : (SECTIONS[segment]?.tab ?? 'access');
+  // Scroll to the section named by the address, once its tab is on screen.
+  useEffect(() => {
+    if (!hash) return;
+    document.getElementById(hash.slice(1))?.scrollIntoView?.();
+  }, [pathname, hash]);
   return (
     <Page>
       <PageHeader title="Settings" lead="Configuration only." />
@@ -73,6 +93,71 @@ export function SettingsLayout() {
       <Outlet />
     </Page>
   );
+}
+
+export function AccessTab() {
+  return (
+    <Stack>
+      <At id="users">
+        <UsersSettings />
+      </At>
+      <At id="github-app">
+        <AppKeySettings />
+      </At>
+      <At id="access-for-ci">
+        <AccessForCiSettings />
+      </At>
+    </Stack>
+  );
+}
+
+export function RepositoriesTab() {
+  return (
+    <Stack>
+      <At id="public-repositories">
+        <PublicRepositoriesSettings />
+      </At>
+      <At id="budgets">
+        <BudgetsSettings />
+      </At>
+    </Stack>
+  );
+}
+
+export function ConsoleTab() {
+  return (
+    <Stack>
+      <At id="appearance">
+        <AppearanceSettings />
+      </At>
+      <At id="notifications">
+        <NotificationsSettings />
+      </At>
+      <At id="updates">
+        <UpdatesSettings />
+      </At>
+    </Stack>
+  );
+}
+
+export function DataTab() {
+  return (
+    <Stack>
+      <At id="retention">
+        <RetentionSettings />
+      </At>
+      <At id="backups">
+        <BackupsSettings />
+      </At>
+      <At id="config-export">
+        <ConfigExportSettings />
+      </At>
+    </Stack>
+  );
+}
+
+export function AuditTab() {
+  return <AuditLogSettings />;
 }
 
 export function UsersSettings() {
@@ -600,7 +685,12 @@ export function BackupsSettings() {
           }}
         >
           <Stack>
-            <TimePicker label="Backup time" value={shownTime} onChange={setTime} />
+            <TimePicker
+              label="Backup time"
+              value={shownTime}
+              onChange={setTime}
+              hourCycle="h23"
+            />
             <NumberField
               label="Keep backups"
               value={shownKeep}

@@ -150,7 +150,7 @@ const focusScreens = [
   { name: 'sign-in', url: '/sign-in', signedOut: true },
   { name: 'first-run wizard', url: '/setup', signedOut: false },
   { name: 'repositories', url: '/repositories', signedOut: false },
-  { name: 'users', url: '/settings/users', signedOut: false },
+  { name: 'users', url: '/settings/access', signedOut: false },
 ];
 
 for (const screen of focusScreens) {

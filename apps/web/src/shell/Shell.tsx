@@ -4,6 +4,7 @@ import {
   ActivityStrip,
   BannerSlot,
   Dialog,
+  Button,
   Frame,
   Header,
   Message,
@@ -49,6 +50,41 @@ export function withFirstRepository(
   return { ...setup, steps: { ...setup.steps, first_repository: 'done' } };
 }
 
+/** True on a phone-width screen (below 601 px, the design system's phone break). No matchMedia: wide. */
+export function useNarrow(): boolean {
+  const query = '(max-width: 600px)';
+  const [narrow, setNarrow] = useState(
+    () => typeof window.matchMedia === 'function' && window.matchMedia(query).matches,
+  );
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const m = window.matchMedia(query);
+    const on = () => setNarrow(m.matches);
+    on();
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, []);
+  return narrow;
+}
+
+/** The areas: a row on a wide screen; on a phone one Menu button that opens the list (UX-15, UX-16). */
+function AreaMenu() {
+  const narrow = useNarrow();
+  const { pathname } = useLocation();
+  const [open, setOpen] = useState(false);
+  useEffect(() => setOpen(false), [pathname]);
+  if (!narrow) return <TopMenu items={AREAS} />;
+  const here = AREAS.find((a) => (a.end ? pathname === a.to : pathname.startsWith(a.to)));
+  return (
+    <>
+      <Button onPress={() => setOpen((o) => !o)}>
+        {open ? 'Close the menu' : `Menu: ${here?.label ?? 'Areas'}`}
+      </Button>
+      {open ? <TopMenu items={AREAS} /> : null}
+    </>
+  );
+}
+
 export const AREAS: readonly NavItem[] = [
   { to: '/', label: 'Overview', end: true },
   { to: '/repositories', label: 'Repositories' },
@@ -57,7 +93,7 @@ export const AREAS: readonly NavItem[] = [
   { to: '/jobs', label: 'Jobs' },
   { to: '/images', label: 'Images and caches' },
   { to: '/doctor', label: 'Doctor' },
-  { to: '/settings/users', label: 'Settings' },
+  { to: '/settings', label: 'Settings' },
 ];
 
 interface Command {
@@ -177,7 +213,7 @@ function Palette({ onClose }: { onClose: () => void }) {
         id: 'cmd:users',
         label: 'Add a user',
         hint: 'command',
-        to: '/settings/users',
+        to: '/settings/access#users',
       });
     return items;
   }, [live.overview, found, session]);
@@ -383,7 +419,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
             }
           />
         }
-        menu={<TopMenu items={AREAS} />}
+        menu={<AreaMenu />}
         banner={<BannerSlot>{banners.length ? banners : undefined}</BannerSlot>}
         strip={<ActivityStrip jobs={jobs} />}
         hints={<KeyHints items={KEY_HINTS} />}

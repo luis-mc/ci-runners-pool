@@ -331,3 +331,27 @@ describe('sessions (R5.8 to R5.12)', () => {
     expect(await screen.findByRole('link', { name: 'build-1' })).toBeTruthy();
   });
 });
+
+describe('the menu on a phone (UX-15, UX-16)', () => {
+  it('is one Menu button that opens the areas', async () => {
+    const query = (q: string) =>
+      ({
+        matches: q.includes('max-width'),
+        media: q,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      }) as unknown as MediaQueryList;
+    vi.stubGlobal('matchMedia', query);
+    try {
+      renderApp(signedIn(), '/');
+      const button = await screen.findByRole('button', { name: 'Menu: Overview' });
+      expect(screen.queryByRole('navigation', { name: 'Areas' })).toBeNull();
+      fireEvent.click(button);
+      const nav = screen.getByRole('navigation', { name: 'Areas' });
+      expect(within(nav).getAllByRole('link')).toHaveLength(8);
+      expect(screen.getByRole('button', { name: 'Close the menu' })).toBeTruthy();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});

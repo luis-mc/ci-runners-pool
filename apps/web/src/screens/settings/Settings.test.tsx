@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { owner, renderApp, signedIn, viewer } from '../../testing/mock';
+import { section } from './testSection';
 
 afterEach(cleanup);
 
@@ -149,7 +150,8 @@ describe('Retention and backups', () => {
       .on('PATCH', '/api/v1/settings', (c) => c.body);
     renderApp(a, '/settings/retention');
     await screen.findByRole('heading', { name: 'Retention' });
-    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+    await screen.findByText('Job history');
+    fireEvent.click(section('retention').getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(a.count('PATCH', '/api/v1/settings')).toBe(1));
     expect(
       (

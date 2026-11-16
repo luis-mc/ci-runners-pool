@@ -97,14 +97,14 @@ The states named for every list follow the design system: loading (component 16,
 
 - **Purpose:** the frame around every signed-in screen.
 - **Header:** the product name, the pool status as a word, glyph and colour (UX-58), the live-update state, a button that opens the command palette (it shows `Ctrl+K`, or `Cmd+K` on macOS), and the user menu (GitHub login, role, sign out).
-- **Top menu (component 2):** Overview, Repositories, Machines, Runners, Jobs, Images and caches, Doctor, Settings. The current area is marked. Detail pages show breadcrumbs (component 2).
+- **Top menu (component 2):** Overview, Repositories, Machines, Runners, Jobs, Images and caches, Doctor, Settings. The current area is marked. Below 601 px the areas are one Menu button that opens the list, so the menu never takes more than one row (UX-15, UX-16; CRSP159). Detail pages show breadcrumbs (component 2).
 - **Page header (component 1):** one headline per screen (UX-3), with the screen's one primary action (UX-4).
 - **Banner slot (component 18):** the one app-wide slot (UX-27). It carries "Live updates paused", "First run is not finished" and "A new version is ready".
 - **Activity strip (component 27):** running work that the console started, such as a drain, an image rebuild or an update (UX-34).
 - **Command palette:** opens with `Ctrl+K` or `Cmd+K` (UX-57). It lists the areas, the detail pages found by name (a machine, a repository, a runner), and the commands the user's role allows. A command opens the one place where it lives (UX-52). It uses the overlay of component 9 and the search bar of component 21. It is not a component of v1 yet (owner question Q1).
 - **Shortcut list:** `?` opens the list of every shortcut (UX-57), in the overlay of component 9.
 - **Shortcuts:** `/` moves to the page's search bar (UX-31). `j` and `k` move down and up a list. `Enter` opens the row. None fires while typing in a field (UX-57).
-- **Theme:** the look is TUI panes. Six colour themes (Phosphor, Tokyo Night, Catppuccin, Gruvbox, Solarized, Nord), Tokyo Night by default, and a mode (system, dark or light, dark by default) are set in Settings, Appearance (UX-60, UX-55). The theme is kept in the browser and applied before the first paint; the mode is saved by the server.
+- **Theme:** the look is TUI panes. Six colour themes (Phosphor, Tokyo Night, Catppuccin, Gruvbox, Solarized, Nord), Tokyo Night by default, and a mode (system, dark or light; a new install is dark, owner decision D4, set in the server default and in the first-paint script) are set in Settings, Appearance (UX-60, UX-55). The theme is kept in the browser and applied before the first paint; the mode is saved by the server.
 - **States:** loading the session (an unknown-total bar, component 16); live; live updates paused (a Note message in the banner slot, UX-26, while the last data stays on screen with its age, UX-53); not found (component 19, with a link to the overview); page fault ("This page hit a fault.", UX-28).
 - **Milestone:** M1.
 
@@ -241,7 +241,7 @@ The states named for every list follow the design system: loading (component 16,
 
 ### 4.9 Settings
 
-Settings hold configuration only (UX-52). Sub-pages sit under one Settings area, each a form that ends with Cancel and Save (UX-24), or switches saved at once (UX-22).
+Settings hold configuration only (UX-52). Settings has five tabs (CRSP159, owner decision D8): Access (Users and roles, GitHub App, Access for CI), Repositories (Repositories with the public toggle, Budgets), Console (Appearance, Notifications, Updates), Data (Retention, Backups, Config export) and Audit log. Each old sub-page below is a pane inside its tab, in that order, with an anchor (`#users`, `#github-app`, `#access-for-ci`, `#public-repositories`, `#budgets`, `#appearance`, `#notifications`, `#updates`, `#retention`, `#backups`, `#config-export`). The old addresses (`/settings/users`, `/app`, `/budgets`, `/appearance`, `/notifications`, `/updates`, `/retention`, `/backups`, `/export`) go to the right tab and scroll to the section. Sub-pages sit under one Settings area, each a form that ends with Cancel and Save (UX-24), or switches saved at once (UX-22).
 
 | Sub-page | Purpose | Data | Actions and confirmations | Milestone |
 |---|---|---|---|---|
@@ -452,7 +452,7 @@ flowchart LR
 | `/jobs`, `/jobs/:id` | Jobs |
 | `/images`, `/caches` | Images and caches |
 | `/doctor` | Doctor |
-| `/settings/users`, `/settings/app`, `/settings/appearance`, `/settings/budgets`, `/settings/notifications`, `/settings/access`, `/settings/updates`, `/settings/audit`, `/settings/export` | Settings |
+| `/settings/access`, `/settings/repositories`, `/settings/console`, `/settings/data`, `/settings/audit` (and the old one-page addresses, which redirect) | Settings |
 
 **API operations to add** (all under `/api/v1`, each with `x-auth` and `x-rate-limit`). The owning spec fixes each one's shape.
 

@@ -42,20 +42,17 @@ const SCREENS: {
   { name: 'add runners', path: '/runners/add', ready: 'Add runners' },
   { name: 'images', path: '/images', ready: 'Images and caches' },
   { name: 'caches', path: '/images?tab=caches', ready: 'Images and caches' },
-  { name: 'settings users', path: '/settings/users', ready: 'Settings' },
-  { name: 'settings repositories', path: '/settings/repositories', ready: 'Settings' },
-  { name: 'settings app key', path: '/settings/app', ready: 'Settings' },
-  { name: 'settings appearance', path: '/settings/appearance', ready: 'Settings' },
-  { name: 'settings retention', path: '/settings/retention', ready: 'Settings' },
+  { name: 'settings access', path: '/settings/access', ready: 'Settings' },
   {
-    name: 'settings budgets',
-    path: '/settings/budgets',
+    name: 'settings repositories',
+    path: '/settings/repositories',
     ready: 'Settings',
     loads: ['/api/v1/settings/pool', '/api/v1/settings/queue'],
   },
-  { name: 'settings access for CI', path: '/settings/access', ready: 'Settings' },
+  { name: 'settings console', path: '/settings/console', ready: 'Settings' },
+  { name: 'settings data', path: '/settings/data', ready: 'Settings' },
   { name: 'settings audit log', path: '/settings/audit', ready: 'Settings' },
-  { name: 'settings config export', path: '/settings/export', ready: 'Settings' },
+  { name: 'settings old address', path: '/settings/backups', ready: 'Settings' },
 ];
 
 for (const screen of SCREENS) {
@@ -179,3 +176,22 @@ test('settings access for CI shows panes and the form only on demand', async ({
   await page.getByRole('button', { name: 'Make an access' }).click();
   await expect(page.getByRole('region', { name: 'Make an access' })).toBeVisible();
 });
+
+// CRSP159, UX-15, UX-16: on a phone the areas are one Menu button, not four rows of links; every area is
+// reachable by opening it.
+for (const width of [360, 393]) {
+  test(`the areas are one Menu button at ${width} px`, async ({ page }) => {
+    const mock = jobsAndDoctor(signedIn());
+    await mock.install(page);
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto('/');
+    const button = page.getByRole('button', { name: /^Menu:/ });
+    await expect(button).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Areas' })).toHaveCount(0);
+    expect((await button.boundingBox())?.height ?? 99).toBeLessThanOrEqual(60);
+    await button.click();
+    await expect(
+      page.getByRole('navigation', { name: 'Areas' }).getByRole('link'),
+    ).toHaveCount(8);
+  });
+}
