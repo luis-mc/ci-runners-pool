@@ -14,8 +14,8 @@ import (
 // reads the rights of a built-in account; nothing is changed.
 func TestLSASourceCompilesAndReads(t *testing.T) {
 	script := scriptHeader + lsaSource + logonSource + `
-if (-not [CrspLsa]::Has('NT AUTHORITY\SYSTEM', 'SeServiceLogonRight')) { throw 'SYSTEM should hold SeServiceLogonRight' }
-if ([CrspLsa]::Has('NT AUTHORITY\SYSTEM', 'SeDenyInteractiveLogonRight')) { throw 'SYSTEM must not be denied' }
+if (-not [CrspLsa]::Has('BUILTIN\Administrators', 'SeBackupPrivilege')) { throw 'Administrators should hold SeBackupPrivilege' }
+if ([CrspLsa]::Has('BUILTIN\Administrators', 'SeDenyInteractiveLogonRight')) { throw 'Administrators must not be denied' }
 if (-not [CrspLogon]::Check('crsp-no-such-account', 'x')) { throw 'a missing account must be refused' }
 [Console]::Out.WriteLine('ok')
 `
