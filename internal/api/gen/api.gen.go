@@ -1185,6 +1185,39 @@ func (e RepositoryVisibility) Valid() bool {
 	}
 }
 
+// Defines values for RepositoryProblemCode.
+const (
+	PublicPoolOnWhileOff RepositoryProblemCode = "public_pool_on_while_off"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryProblemCode enum.
+func (e RepositoryProblemCode) Valid() bool {
+	switch e {
+	case PublicPoolOnWhileOff:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RepositoryProblemActionId.
+const (
+	TurnOffPool              RepositoryProblemActionId = "turn_off_pool"
+	TurnOnPublicRepositories RepositoryProblemActionId = "turn_on_public_repositories"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryProblemActionId enum.
+func (e RepositoryProblemActionId) Valid() bool {
+	switch e {
+	case TurnOffPool:
+		return true
+	case TurnOnPublicRepositories:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RepositoryRoutingOses.
 const (
 	RepositoryRoutingOsesLinux   RepositoryRoutingOses = "linux"
@@ -3035,6 +3068,44 @@ type Preferences struct {
 	Theme Theme `json:"theme"`
 }
 
+// PublicRepositories defines model for PublicRepositories.
+type PublicRepositories struct {
+	// ChangedAt Absent when the setting was never changed.
+	ChangedAt *time.Time `json:"changed_at,omitempty"`
+
+	// ChangedBy Login of who changed it last. Absent when never changed.
+	ChangedBy *string `json:"changed_by,omitempty"`
+
+	// Enabled False by default.
+	Enabled bool `json:"enabled"`
+
+	// PublicOnPool Public repositories whose pool is on now.
+	PublicOnPool int `json:"public_on_pool"`
+}
+
+// PublicRepositoriesResult defines model for PublicRepositoriesResult.
+type PublicRepositoriesResult struct {
+	// ChangedAt Absent when the setting was never changed.
+	ChangedAt *time.Time `json:"changed_at,omitempty"`
+
+	// ChangedBy Login of who changed it last. Absent when never changed.
+	ChangedBy *string `json:"changed_by,omitempty"`
+
+	// Enabled False by default.
+	Enabled bool `json:"enabled"`
+
+	// PublicOnPool Public repositories whose pool is on now.
+	PublicOnPool int `json:"public_on_pool"`
+
+	// Stopped Repositories whose pool this change switched off (0 when switching on).
+	Stopped int `json:"stopped"`
+}
+
+// PublicRepositoriesSet defines model for PublicRepositoriesSet.
+type PublicRepositoriesSet struct {
+	Enabled bool `json:"enabled"`
+}
+
 // QueueSettings defines model for QueueSettings.
 type QueueSettings struct {
 	// FairShare Round-robin by repository within a priority (scheduling R5.9).
@@ -3097,6 +3168,9 @@ type Repository struct {
 	// PoolOffReason Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
 	PoolOffReason *RepositoryPoolOffReason `json:"pool_off_reason,omitempty"`
 	PoolOn        bool                     `json:"pool_on"`
+
+	// Problem A fault the owner can fix on a repository (github-integration R5.58). Absent when there is none.
+	Problem *RepositoryProblem `json:"problem,omitempty"`
 
 	// Routing Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
 	Routing *RepositoryRouting `json:"routing,omitempty"`
@@ -3193,6 +3267,25 @@ type RepositoryPolicyUpdate struct {
 	Priority        *int      `json:"priority,omitempty"`
 	RunnerGroups    *[]string `json:"runner_groups,omitempty"`
 }
+
+// RepositoryProblem A fault the owner can fix on a repository (github-integration R5.58). Absent when there is none.
+type RepositoryProblem struct {
+	Actions []RepositoryProblemAction `json:"actions"`
+	Code    RepositoryProblemCode     `json:"code"`
+	Text    string                    `json:"text"`
+}
+
+// RepositoryProblemCode defines model for RepositoryProblem.Code.
+type RepositoryProblemCode string
+
+// RepositoryProblemAction defines model for RepositoryProblemAction.
+type RepositoryProblemAction struct {
+	Id    RepositoryProblemActionId `json:"id"`
+	Label string                    `json:"label"`
+}
+
+// RepositoryProblemActionId defines model for RepositoryProblemAction.Id.
+type RepositoryProblemActionId string
 
 // RepositoryRouting Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
 type RepositoryRouting struct {
@@ -4068,6 +4161,9 @@ type UpdateSettingsJSONRequestBody = Settings
 // UpdatePoolSettingsJSONRequestBody defines body for UpdatePoolSettings for application/json ContentType.
 type UpdatePoolSettingsJSONRequestBody = PoolSettings
 
+// SetPublicRepositoriesJSONRequestBody defines body for SetPublicRepositories for application/json ContentType.
+type SetPublicRepositoriesJSONRequestBody = PublicRepositoriesSet
+
 // UpdateQueueSettingsJSONRequestBody defines body for UpdateQueueSettings for application/json ContentType.
 type UpdateQueueSettingsJSONRequestBody = QueueSettings
 
@@ -4391,6 +4487,12 @@ type ServerInterface interface {
 	// UpdatePoolSettings Change the defaults for new machines
 	// (PUT /api/v1/settings/pool)
 	UpdatePoolSettings(w http.ResponseWriter, r *http.Request)
+	// GetPublicRepositories Whether crsp serves public repositories
+	// (GET /api/v1/settings/public-repositories)
+	GetPublicRepositories(w http.ResponseWriter, r *http.Request)
+	// SetPublicRepositories Turn public repositories on or off
+	// (PUT /api/v1/settings/public-repositories)
+	SetPublicRepositories(w http.ResponseWriter, r *http.Request)
 	// GetQueueSettings The order of service of the slot queue
 	// (GET /api/v1/settings/queue)
 	GetQueueSettings(w http.ResponseWriter, r *http.Request)
@@ -7409,6 +7511,34 @@ func (siw *ServerInterfaceWrapper) UpdatePoolSettings(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// GetPublicRepositories operation middleware
+func (siw *ServerInterfaceWrapper) GetPublicRepositories(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPublicRepositories(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetPublicRepositories operation middleware
+func (siw *ServerInterfaceWrapper) SetPublicRepositories(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetPublicRepositories(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetQueueSettings operation middleware
 func (siw *ServerInterfaceWrapper) GetQueueSettings(w http.ResponseWriter, r *http.Request) {
 
@@ -8082,6 +8212,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/ca.pem", wrapper.GetCaCertificate)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings/pool", wrapper.GetPoolSettings)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/settings/pool", wrapper.UpdatePoolSettings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings/public-repositories", wrapper.GetPublicRepositories)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/settings/public-repositories", wrapper.SetPublicRepositories)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners", wrapper.ListRunners)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/runner-plans", wrapper.PlanRunners)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runner-plans/{planId}", wrapper.GetRunnerPlan)
@@ -12239,6 +12371,83 @@ func (response UpdatePoolSettingsdefaultJSONResponse) VisitUpdatePoolSettingsRes
 	return err
 }
 
+type GetPublicRepositoriesRequestObject struct {
+}
+
+type GetPublicRepositoriesResponseObject interface {
+	VisitGetPublicRepositoriesResponse(w http.ResponseWriter) error
+}
+
+type GetPublicRepositories200JSONResponse PublicRepositories
+
+func (response GetPublicRepositories200JSONResponse) VisitGetPublicRepositoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPublicRepositoriesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetPublicRepositoriesdefaultJSONResponse) VisitGetPublicRepositoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPublicRepositoriesRequestObject struct {
+	Body *SetPublicRepositoriesJSONRequestBody
+}
+
+type SetPublicRepositoriesResponseObject interface {
+	VisitSetPublicRepositoriesResponse(w http.ResponseWriter) error
+}
+
+type SetPublicRepositories200JSONResponse PublicRepositoriesResult
+
+func (response SetPublicRepositories200JSONResponse) VisitSetPublicRepositoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPublicRepositoriesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response SetPublicRepositoriesdefaultJSONResponse) VisitSetPublicRepositoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetQueueSettingsRequestObject struct {
 }
 
@@ -13225,6 +13434,12 @@ type StrictServerInterface interface {
 	// UpdatePoolSettings Change the defaults for new machines
 	// (PUT /api/v1/settings/pool)
 	UpdatePoolSettings(ctx context.Context, request UpdatePoolSettingsRequestObject) (UpdatePoolSettingsResponseObject, error)
+	// GetPublicRepositories Whether crsp serves public repositories
+	// (GET /api/v1/settings/public-repositories)
+	GetPublicRepositories(ctx context.Context, request GetPublicRepositoriesRequestObject) (GetPublicRepositoriesResponseObject, error)
+	// SetPublicRepositories Turn public repositories on or off
+	// (PUT /api/v1/settings/public-repositories)
+	SetPublicRepositories(ctx context.Context, request SetPublicRepositoriesRequestObject) (SetPublicRepositoriesResponseObject, error)
 	// GetQueueSettings The order of service of the slot queue
 	// (GET /api/v1/settings/queue)
 	GetQueueSettings(ctx context.Context, request GetQueueSettingsRequestObject) (GetQueueSettingsResponseObject, error)
@@ -16097,6 +16312,61 @@ func (sh *strictHandler) UpdatePoolSettings(w http.ResponseWriter, r *http.Reque
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdatePoolSettingsResponseObject); ok {
 		if err := validResponse.VisitUpdatePoolSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPublicRepositories operation middleware
+func (sh *strictHandler) GetPublicRepositories(w http.ResponseWriter, r *http.Request) {
+	var request GetPublicRepositoriesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPublicRepositories(ctx, request.(GetPublicRepositoriesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPublicRepositories")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPublicRepositoriesResponseObject); ok {
+		if err := validResponse.VisitGetPublicRepositoriesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetPublicRepositories operation middleware
+func (sh *strictHandler) SetPublicRepositories(w http.ResponseWriter, r *http.Request) {
+	var request SetPublicRepositoriesRequestObject
+
+	var body SetPublicRepositoriesJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetPublicRepositories(ctx, request.(SetPublicRepositoriesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetPublicRepositories")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetPublicRepositoriesResponseObject); ok {
+		if err := validResponse.VisitSetPublicRepositoriesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

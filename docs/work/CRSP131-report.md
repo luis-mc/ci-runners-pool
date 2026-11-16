@@ -22,3 +22,4 @@ Web (CRSP131 b/c, CRSP132)
 - New words in docs/design-system/next-version/content.md; CHANGES entries C35+.
 
 ## Log
+- Step 1 (openapi + codegen): GET/PUT /api/v1/settings/public-repositories (getPublicRepositories, setPublicRepositories), schemas PublicRepositories, PublicRepositoriesSet, PublicRepositoriesResult, RepositoryProblem(+Action); Repository.problem. Handlers are stubs (501) until step 2.
