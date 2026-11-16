@@ -97,3 +97,21 @@ for (const screen of SCREENS) {
     await expectDomLayout(page, screen.name, { spaceVar: '--ds-space-' });
   });
 }
+
+// UX-15: on a wide screen the step bar of a wizard is one row, not a wrapped narrow column (CRSP124).
+for (const path of ['/repositories/turn-on', '/runners/add', '/machines/add']) {
+  test(`step bar is one row at 1300 px: ${path}`, async ({ page }) => {
+    const mock = jobsAndDoctor(signedIn());
+    await mock.install(page);
+    await page.setViewportSize({ width: 1300, height: 900 });
+    await page.goto(path);
+    await expect(page.getByRole('list', { name: 'Steps' })).toBeVisible();
+    const tops = await page
+      .getByRole('list', { name: 'Steps' })
+      .locator('li')
+      .evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+    expect(new Set(tops).size).toBe(1);
+    const frame = await page.locator('.ds-page').first().boundingBox();
+    expect(frame?.width ?? 0).toBeGreaterThan(900);
+  });
+}

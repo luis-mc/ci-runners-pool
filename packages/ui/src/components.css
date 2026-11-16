@@ -1033,7 +1033,12 @@ body {
 /* a form's short fields in equal columns (component 43) */
 .ds-field-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  /* Each column is as wide as a short field, so the gap between two fields is the grid gap. */
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--ds-width-field-short)), var(--ds-width-field-short))
+  );
+  justify-content: start;
   gap: var(--ds-space-4);
   min-inline-size: 0;
 }
