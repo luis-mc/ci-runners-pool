@@ -416,8 +416,8 @@ The words of the Add a machine wizard (machines R5.3a, R5.4a), the runner states
 | Where | Word |
 |---|---|
 | Join choice | How the machine joins (help: Copy one command and run it on the machine, or let crsp sign in over SSH once.): Copy a command, I have SSH |
-| Windows note | A Windows machine joins by copying a command. Run it in an administrator terminal. |
-| SSH fields | Host, User, SSH port, SSH key file (help: Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user needs sudo without a password.) |
+| Windows note | Copied command: Run the copied command in an administrator terminal. / Over SSH: A Windows machine needs the OpenSSH server, and the user must be an administrator. |
+| SSH fields | Host, User, SSH port, SSH key file (help: Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user needs sudo without a password. On Windows: the user must be an administrator.) |
 | SSH errors | Enter the host name or address. / Enter the user name. / Paste the SSH key file. |
 | Review facts | System, How it joins (A copied command / Over SSH as {user} on {host}), Join code (Lasts 15 minutes and works once) |
 | Review lines | crsp signs in once with your key, runs the install command and signs out. The key is not stored. / Next you get one command with the join code in it. Run it on the machine. |

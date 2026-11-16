@@ -33,3 +33,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C28: first-machine step words added: "This PC, {host name}, is in the pool." and the action Add another machine (content.md; machines R5.1, CRSP120)
 - C29: runner state words not registered, stopped and unknown, their reasons, and the action Remove on a failed runner added (content.md; web-console R5.23, runners R5.79, CRSP128)
 - C30: Linux-on-Windows words added: the System column text for a Windows machine with Linux containers, the Add runners note and the one-time backend reason (content.md; runners R5.47, machines R5.18, CRSP127)
+- C31: Windows note words changed for the SSH option: one note for a copied command, one for SSH, and the SSH key help for Windows (content.md; machines R5.3a, web-console R5.17, CRSP123)
