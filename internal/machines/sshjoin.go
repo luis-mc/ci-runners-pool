@@ -2,6 +2,7 @@ package machines
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"regexp"
@@ -37,7 +38,8 @@ type SSHRunner interface {
 	Run(ctx context.Context, t SSHTarget, command string) (string, error)
 }
 
-// SSHJoinInput is a join over SSH request. OS is the remote system ("linux" or "macos").
+// SSHJoinInput is a join over SSH request. OS is the remote system ("linux",
+// "macos" or "windows").
 type SSHJoinInput struct {
 	OS string
 	SSHTarget
@@ -61,8 +63,8 @@ func (s *Service) JoinOverSSH(ctx context.Context, actor string, in SSHJoinInput
 	if s.o.SSH == nil {
 		return CreatedCode{}, fmt.Errorf("%w: joining over SSH is not available here", ErrNotSupported)
 	}
-	if in.OS != "linux" && in.OS != "macos" {
-		return CreatedCode{}, fmt.Errorf("%w: SSH join is for Linux and macOS; on Windows copy the command", ErrInvalid)
+	if in.OS != "linux" && in.OS != "macos" && in.OS != "windows" {
+		return CreatedCode{}, fmt.Errorf("%w: SSH join is for Linux, macOS and Windows", ErrInvalid)
 	}
 	in.Host, in.User = strings.TrimSpace(in.Host), strings.TrimSpace(in.User)
 	if in.Host == "" || !hostRe.MatchString(in.Host) {
@@ -102,10 +104,21 @@ func (s *Service) JoinOverSSH(ctx context.Context, actor string, in SSHJoinInput
 			cmd = strings.Replace(c.Command, "sudo ", "sudo -n ", 1) // no password: sudo must not ask
 		}
 	}
-	out, err := s.o.SSH.Run(ctx, in.SSHTarget, cmd)
+	cmd += " --yes" // nobody can type the yes over SSH
+	var out string
+	if in.OS == "windows" {
+		out, err = s.joinWindows(ctx, in, strings.TrimPrefix(cmd, "crsp.exe "), func(step string) {
+			_ = s.o.Repo.Audit(ctx, actor, "join_code.ssh_step", created.JoinCode.ID, step)
+		})
+	} else {
+		out, err = s.o.SSH.Run(ctx, in.SSHTarget, cmd)
+	}
 	if err != nil {
 		_ = s.o.Repo.Audit(ctx, actor, "join_code.ssh_failed", created.JoinCode.ID, in.User+"@"+in.Host)
 		_, _ = s.o.Repo.RevokeJoinCode(ctx, created.JoinCode.ID, s.now())
+		if errors.Is(err, ErrNotAdmin) {
+			return CreatedCode{}, fmt.Errorf("%w: %s", ErrInvalid, err)
+		}
 		return CreatedCode{}, fmt.Errorf("%w: the install command did not finish on %s: %s", ErrInvalid, in.Host, strings.ReplaceAll(tail(err.Error()+" "+out), created.Code, "<join code>"))
 	}
 	_ = s.o.Repo.Audit(ctx, actor, "join_code.ssh", created.JoinCode.ID, in.User+"@"+in.Host)

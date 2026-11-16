@@ -22,7 +22,9 @@ import { useEffect, useState } from 'react';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useLiveState, useLiveStore } from '../../live/LiveProvider';
 import { useLoad } from '../../api/hooks';
+import { useMachines } from '../../api/machines';
 import { waitWords } from '../jobs/Jobs';
+import { Load } from '../common';
 
 type Machine = Schemas['Machine'];
 type Job = Schemas['Job'];
@@ -38,6 +40,12 @@ export function machineStatus(m: Machine): {
   if (m.state === 'drained') return { kind: 'off', word: 'drained' };
   if (m.state === 'removing') return { kind: 'waiting', word: 'removing' };
   return { kind: 'ok', word: 'online' };
+}
+
+/** The list says which machines exist; a live load event, when the stream has one, says how loaded they are now. */
+export function withLiveLoad(m: Machine, live: Schemas['Overview'] | undefined): Machine {
+  const l = live?.machines.find((x) => x.id === m.id);
+  return l ? { ...m, ...(l.load ? { load: l.load } : {}), slots_used: l.slots_used } : m;
 }
 
 export function MachineCard({ m }: { m: Machine }) {
@@ -168,6 +176,8 @@ export function Overview() {
   }, [client, store, liveStore]);
 
   const o = store;
+  // The machines come from the one machine list the header and the Machines page read (UX-19).
+  const machines = useMachines();
   return (
     <Page>
       <PageHeader title="Overview" lead="The pool at a glance." />
@@ -181,18 +191,22 @@ export function Overview() {
       {o ? (
         <>
           <Section title="Machines">
-            {o.machines.length === 0 ? (
-              <Empty
-                title="No machines yet. Add a machine to start."
-                action={<TextLink to="/machines">Open Machines</TextLink>}
-              />
-            ) : (
-              <CardGrid>
-                {o.machines.map((m) => (
-                  <MachineCard key={m.id} m={m} />
-                ))}
-              </CardGrid>
-            )}
+            <Load result={machines.result} what="machines" reload={machines.reload}>
+              {(data) =>
+                data.items.length === 0 ? (
+                  <Empty
+                    title="No machine is in the pool yet. Add a machine so jobs have somewhere to run."
+                    action={<TextLink to="/machines/add">Add a machine</TextLink>}
+                  />
+                ) : (
+                  <CardGrid>
+                    {data.items.map((m) => (
+                      <MachineCard key={m.id} m={withLiveLoad(m, store)} />
+                    ))}
+                  </CardGrid>
+                )
+              }
+            </Load>
           </Section>
           <Section title="Queue and running jobs">
             <Facts

@@ -59,7 +59,7 @@ describe('Machines list', () => {
       target: { value: 'zzz' },
     });
     expect(screen.getByText(/2 machines are hidden/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search and filter' }));
     expect(
       screen.getByRole<HTMLInputElement>('textbox', { name: 'Search machines' }).value,
     ).toBe('');

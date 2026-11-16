@@ -23,6 +23,7 @@ var operationCommands = map[string]string{
 	"setRepositoryTrial":         "trial OWNER/NAME observe|shadow|canary|off",
 	"listMachines":               "machine list",
 	"createJoinCode":             "machine add",
+	"createJoinFile":             "machine join-file",
 	"drainMachine":               "machine drain",
 	"getMachineChange":           "machine drain|remove",
 	"decideMachineChange":        "machine drain|remove (a stop-jobs decision does not exist; crsp never cuts a job)",

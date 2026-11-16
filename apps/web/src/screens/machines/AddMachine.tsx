@@ -8,6 +8,7 @@ import {
   PageHeader,
   ErrorSummary,
   Facts,
+  LinkButton,
   Message,
   ChoiceField,
   NumberField,
@@ -24,8 +25,9 @@ import {
   type WizardPhase,
 } from '@crsp/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, unwrap, useClient, type Schemas } from '../../api/api';
+import { fileNameOf, saveBlob } from '../../api/download';
 import { Ask } from '../common';
 import { TIMING } from '../../timing';
 
@@ -33,7 +35,7 @@ type JoinCode = Schemas['JoinCode'];
 type Machine = Schemas['Machine'];
 type OS = Schemas['OS'];
 type Progress = NonNullable<JoinCode['progress']>;
-type Method = 'copy' | 'ssh';
+type Method = 'copy' | 'ssh' | 'download';
 
 const STEPS = ['Machine', 'Review', 'Joining', 'Done'] as const;
 const TTL_MINUTES = 15;
@@ -70,6 +72,16 @@ function ProgressSteps({ at }: { at: Progress }) {
   );
 }
 
+/** What to do with the downloaded file on the machine, per system (machines R5.65). */
+export function downloadWords(os: OS, name: string): string {
+  const saved = `The installer is saved as ${name}. It works once and holds the join code.`;
+  if (os === 'windows')
+    return `${saved} On the machine, double-click it and accept the administrator prompt. Waiting for the agent.`;
+  if (os === 'macos')
+    return `${saved} On the machine, open it. If it does not open, run it with sh in Terminal. Waiting for the agent.`;
+  return `${saved} On the machine, run it with sh. It asks for sudo. Waiting for the agent.`;
+}
+
 interface Props {
   /** The next action on Done, when the page has one (the first-run checklist goes on). */
   onDone?: (machine: Machine | undefined) => void;
@@ -77,6 +89,7 @@ interface Props {
 
 export function AddMachineWizard({ onDone }: Props) {
   const client = useClient();
+  const navigate = useNavigate();
   const now = useNow();
   const [params, setParams] = useSearchParams();
   const storedJoin = useRef(params.get('join')).current;
@@ -99,6 +112,8 @@ export function AddMachineWizard({ onDone }: Props) {
   const [progress, setProgress] = useState<Progress>('waiting');
   const [hostKey, setHostKey] = useState<string | undefined>(undefined);
   const [sshError, setSshError] = useState<string | undefined>(undefined);
+  const [downloadError, setDownloadError] = useState<string | undefined>(undefined);
+  const [fileName, setFileName] = useState<string | undefined>(undefined);
   const [errors, setErrors] = useState<string[]>([]);
   const known = useRef<Set<string>>(new Set());
   const live = useRef(false);
@@ -186,13 +201,48 @@ export function AddMachineWizard({ onDone }: Props) {
     setPhase('running');
     setProgress('waiting');
     setSshError(undefined);
+    setDownloadError(undefined);
     live.current = true;
     try {
+      if (method === 'download') {
+        // The file is made only now, by this press: it mints the one-time code (machines R5.65).
+        const res = await client.POST('/api/v1/join-files', {
+          body: { os, ttl_minutes: TTL_MINUTES },
+          parseAs: 'blob',
+        });
+        if (!res.response.ok) {
+          const e = (
+            res.error as { error?: { code?: string; message?: string } } | undefined
+          )?.error;
+          throw new ApiError(
+            e?.code ?? 'internal',
+            e?.message ?? `The controller answered ${res.response.status}.`,
+            res.response.status,
+          );
+        }
+        const id = res.response.headers.get('X-Join-Code-Id') ?? '';
+        const name = fileNameOf(
+          res.response.headers.get('Content-Disposition'),
+          'crsp-join',
+        );
+        const join = await unwrap(
+          client.GET('/api/v1/join-codes/{joinCodeId}', {
+            params: { path: { joinCodeId: id } },
+          }),
+        );
+        saveBlob(res.data instanceof Blob ? res.data : new Blob([]), name);
+        setFileName(name);
+        setCreated({ code: '', join, command: '' });
+        const next = new URLSearchParams(params);
+        next.set('join', join.id);
+        setParams(next, { replace: true });
+        return;
+      }
       if (method === 'ssh') {
         const join = await unwrap(
           client.POST('/api/v1/join-codes/ssh', {
             body: {
-              os: os === 'macos' ? 'macos' : 'linux',
+              os,
               host: host.trim(),
               port,
               user: user.trim(),
@@ -223,6 +273,16 @@ export function AddMachineWizard({ onDone }: Props) {
       if (e instanceof ApiError && e.code === 'needs_confirmation') {
         // The host key is asked once; nothing ran yet (UX-9).
         setHostKey(e.details[0]?.text ?? '');
+        setStep(1);
+        setPhase('ready-to-review');
+        return;
+      }
+      if (
+        method === 'download' &&
+        e instanceof ApiError &&
+        (e.status < 500 || e.status === 501)
+      ) {
+        setDownloadError(e.message);
         setStep(1);
         setPhase('ready-to-review');
         return;
@@ -300,14 +360,15 @@ export function AddMachineWizard({ onDone }: Props) {
     setProgress('waiting');
     setHostKey(undefined);
     setSshError(undefined);
+    setDownloadError(undefined);
+    setFileName(undefined);
     setIdentity('');
     setStep(0);
     setPhase('first-run');
   };
 
-  const canSsh = os !== 'windows';
   const next = async () => {
-    if (method === 'ssh' && os !== 'windows') {
+    if (method === 'ssh') {
       const problems: string[] = [];
       if (!host.trim()) problems.push('Enter the host name or address.');
       if (!user.trim()) problems.push('Enter the user name.');
@@ -317,7 +378,7 @@ export function AddMachineWizard({ onDone }: Props) {
     }
     await toReview();
   };
-  const usingSsh = method === 'ssh' && canSsh;
+  const usingSsh = method === 'ssh';
   let body;
   if (step === 0) {
     body = (
@@ -328,7 +389,6 @@ export function AddMachineWizard({ onDone }: Props) {
           value={os}
           onChange={(v) => {
             setOs(v as OS);
-            if (v === 'windows') setMethod('copy');
           }}
           choices={[
             { value: 'linux', label: 'Linux' },
@@ -336,23 +396,24 @@ export function AddMachineWizard({ onDone }: Props) {
             { value: 'macos', label: 'macOS' },
           ]}
         />
-        {canSsh ? (
-          <ChoiceField
-            label="How the machine joins"
-            help="Copy one command and run it on the machine, or let crsp sign in over SSH once."
-            value={method}
-            onChange={(v) => setMethod(v as Method)}
-            choices={[
-              { value: 'copy', label: 'Copy a command' },
-              { value: 'ssh', label: 'I have SSH' },
-            ]}
-          />
-        ) : (
+        <ChoiceField
+          label="How the machine joins"
+          help="Copy one command and run it on the machine, let crsp sign in over SSH once, or download a file to open on the machine."
+          value={method}
+          onChange={(v) => setMethod(v as Method)}
+          choices={[
+            { value: 'copy', label: 'Copy a command' },
+            { value: 'ssh', label: 'I have SSH' },
+            { value: 'download', label: 'Download an installer' },
+          ]}
+        />
+        {os === 'windows' && method !== 'download' ? (
           <Message tone="note">
-            A Windows machine joins by copying a command. Run it in an administrator
-            terminal.
+            {method === 'ssh'
+              ? 'A Windows machine needs the OpenSSH server, and the user must be an administrator.'
+              : 'Run the command in an administrator terminal.'}
           </Message>
-        )}
+        ) : null}
         {usingSsh ? (
           <Stack>
             <ErrorSummary errors={errors} />
@@ -367,7 +428,11 @@ export function AddMachineWizard({ onDone }: Props) {
             />
             <TextAreaField
               label="SSH key file"
-              help="Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user needs sudo without a password."
+              help={
+                os === 'windows'
+                  ? 'Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user must be an administrator.'
+                  : 'Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user needs sudo without a password.'
+              }
               value={identity}
               onChange={setIdentity}
               rows={6}
@@ -386,7 +451,11 @@ export function AddMachineWizard({ onDone }: Props) {
             { name: 'System', value: os },
             {
               name: 'How it joins',
-              value: usingSsh ? `Over SSH as ${user} on ${host}` : 'A copied command',
+              value: usingSsh
+                ? `Over SSH as ${user} on ${host}`
+                : method === 'download'
+                  ? 'A downloaded installer'
+                  : 'A copied command',
             },
             { name: 'Join code', value: `Lasts ${TTL_MINUTES} minutes and works once` },
           ]}
@@ -394,10 +463,15 @@ export function AddMachineWizard({ onDone }: Props) {
         <Text>
           {usingSsh
             ? 'crsp signs in once with your key, runs the install command and signs out. The key is not stored.'
-            : 'Next you get one command with the join code in it. Run it on the machine.'}
+            : method === 'download'
+              ? 'Next you get an installer file for this system with the join code in it. Open it on the machine.'
+              : 'Next you get one command with the join code in it. Run it on the machine.'}
         </Text>
         {sshError ? (
           <Message tone="problem">Could not join over SSH. {sshError}</Message>
+        ) : null}
+        {downloadError ? (
+          <Message tone="problem">Could not make the installer. {downloadError}</Message>
         ) : null}
       </Stack>
     );
@@ -418,6 +492,8 @@ export function AddMachineWizard({ onDone }: Props) {
                 <Text>Run this command on the machine now. The code shows once.</Text>
                 <CodeBlock label="Join command" text={created.command} />
               </>
+            ) : fileName ? (
+              <Text>{downloadWords(os, fileName)}</Text>
             ) : (
               <Text>crsp ran the install command over SSH. Waiting for the agent.</Text>
             )}
@@ -450,6 +526,21 @@ export function AddMachineWizard({ onDone }: Props) {
       ) : (
         <Stack>
           <Message tone="done">The machine joined the pool.</Message>
+          {machine && machine.backends.some((b) => b.usable && !b.allowed) ? (
+            <Message
+              tone="needs-you"
+              action={
+                <LinkButton to={`/machines/${machine.id}`}>Open the machine</LinkButton>
+              }
+            >
+              {`${machine.backends
+                .filter((b) => b.usable && !b.allowed)
+                .map((b) => b.name)
+                .join(
+                  ', ',
+                )} is installed on this machine but not turned on. Open the machine, tick it and press Save to let it run runners.`}
+            </Message>
+          ) : null}
           {machine ? (
             <Facts
               items={[
@@ -493,7 +584,9 @@ export function AddMachineWizard({ onDone }: Props) {
                 ? `${PROGRESS_STEPS.find((p) => p.id === progress)?.name ?? 'Waiting for the agent'}, ${formatTimeLeft(Date.parse(created.join.expires_at) - now)}`
                 : usingSsh
                   ? 'Signing in over SSH'
-                  : 'Making the join code',
+                  : method === 'download'
+                    ? 'Making the installer'
+                    : 'Making the join code',
             }
           : undefined
       }
@@ -521,6 +614,14 @@ export function AddMachineWizard({ onDone }: Props) {
       review={step === 1}
       onStartAgain={startAgain}
       onTryAgain={startAgain}
+      {...(onDone
+        ? {}
+        : {
+            donePrimary: {
+              label: 'Open Machines',
+              onPress: () => void navigate('/machines'),
+            },
+          })}
     >
       {body}
       <Ask
@@ -546,7 +647,7 @@ export function AddMachineWizard({ onDone }: Props) {
 
 export function AddMachinePage() {
   return (
-    <Page frame="narrow">
+    <Page>
       <Breadcrumbs
         trail={[{ to: '/machines', label: 'Machines' }, { label: 'Add a machine' }]}
       />

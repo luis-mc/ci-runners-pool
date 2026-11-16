@@ -415,13 +415,16 @@ The words of the Add a machine wizard (machines R5.3a, R5.4a), the runner states
 
 | Where | Word |
 |---|---|
-| Join choice | How the machine joins (help: Copy one command and run it on the machine, or let crsp sign in over SSH once.): Copy a command, I have SSH |
-| Windows note | A Windows machine joins by copying a command. Run it in an administrator terminal. |
-| SSH fields | Host, User, SSH port, SSH key file (help: Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user needs sudo without a password.) |
+| Join choice | How the machine joins (help: Copy one command and run it on the machine, let crsp sign in over SSH once, or download a file to open on the machine.): Copy a command, I have SSH, Download an installer |
+| Windows note | Copied command: Run the command in an administrator terminal. / Over SSH: A Windows machine needs the OpenSSH server, and the user must be an administrator. |
+| SSH fields | Host, User, SSH port, SSH key file (help: Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user needs sudo without a password. On Windows: the user must be an administrator.) |
 | SSH errors | Enter the host name or address. / Enter the user name. / Paste the SSH key file. |
-| Review facts | System, How it joins (A copied command / Over SSH as {user} on {host}), Join code (Lasts 15 minutes and works once) |
-| Review lines | crsp signs in once with your key, runs the install command and signs out. The key is not stored. / Next you get one command with the join code in it. Run it on the machine. |
+| Review facts | System, How it joins (A copied command / Over SSH as {user} on {host} / A downloaded installer), Join code (Lasts 15 minutes and works once) |
+| Review lines | crsp signs in once with your key, runs the install command and signs out. The key is not stored. / Next you get one command with the join code in it. Run it on the machine. / Next you get an installer file for this system with the join code in it. Open it on the machine. |
 | Join command | Run this command on the machine now. The code shows once. / crsp ran the install command over SSH. Waiting for the agent. |
+| Installer saved | The installer is saved as {file name}. It works once and holds the join code. Then, per system: Windows: On the machine, double-click it and accept the administrator prompt. Waiting for the agent. / macOS: On the machine, open it. If it does not open, run it with sh in Terminal. Waiting for the agent. / Linux: On the machine, run it with sh. It asks for sudo. Waiting for the agent. |
+| Installer wait | Making the installer (the wait text while the file is made) |
+| Installer failure | Could not make the installer. {reason} |
 | Join steps | Waiting for the agent, Agent connected, Machine ready; each says done, in progress or not yet |
 | SSH question card | Title: Is this the host key? Line: Host {host} shows the key {fingerprint}. Action: Yes, sign in (busy word: Signing in) |
 | SSH failure | Could not join over SSH. {reason} |
@@ -524,3 +527,29 @@ The words of Add runners and the machine list for a Windows machine whose contai
 | Linux runners on this Windows machine run in containers, through Docker. The container backend must be allowed on the machine. | Note in Add runners when the chosen machine runs Windows and the system is Linux. |
 | This machine runs windows, not linux. | The reason a machine is greyed for a system it cannot run (also for a Windows machine without Linux containers). |
 | WSL is installed but not ready; run wsl --install | Backend reason, shown only when WSL2 does not work and Docker does not run on it. It is written once. |
+
+
+## First run in the console words
+
+The words of the first-run fixes (web-console 4.1 and 4.3, CRSP124). The console does everything; no step sends the user to a terminal or to GitHub's settings.
+
+| Word | Where and meaning |
+|---|---|
+| First run is not finished. Next: {step}. | The banner. {step} is connect GitHub, add the first machine or turn on the first repository. The action is Open the setup page. |
+| Install the App on a repository | The button that opens GitHub's install page for the App in a new tab. Busy word: Opening GitHub. |
+| Install the App on an organization | The same button in Add runners, when the App is on no organization. |
+| GitHub is open in a new tab. Pick the account and the repositories there, then come back to this tab. The list refreshes by itself. | Note under the install button after it opened GitHub. |
+| GitHub saved the App installation. The list below is read again. Turn the pool on for the repositories you want. | Done message on Repositories after GitHub's return with setup_action install or update. Action: Turn on the pool. |
+| GitHub sent the install request to an owner of the account. The repositories show here when they approve it. | Needs-you message after the return with setup_action request. |
+| No repository is waiting. Install the App on a repository to turn the pool on for it, or open Repositories to see the ones that already use it. | Needs-you message in Turn on the pool when no repository is free. |
+| Turning the pool on also makes one light runner per system, on a machine that is up. Jobs that last seconds use it, so they do not wait behind a long build. Turn it off for a repository on its page. | Note on the Review step of Turn on the pool. |
+| The pool made light runners for short jobs. They show in Runners. | Part of the Done message of Turn on the pool. |
+| {n} of these are light runners. The pool made them when you turned it on, one per system, so jobs that last seconds do not wait behind a long build. Turn them off for a repository on its page. | Note in Runners. Action: Open Repositories. |
+| {n} runners failed. The State column says why. Remove a failed runner with Remove, then add runners again. | Needs-you message in Runners. |
+| Clear search and filter, Clear search and filters | The action of the "hidden by the search" note in Machines and Runners. |
+| Tick {backend} | The action that ticks an installed backend that is not turned on (machine page). |
+| {backend} is installed and works on this machine, but is not turned on. Tick it and press Save so this machine can run its runners. | Needs-you message on the machine page. |
+| {backend} is installed on this machine but not turned on. Open the machine, tick it and press Save to let it run runners. | Needs-you message on Done of Add a machine. Action: Open the machine. |
+| Remove this machine | The section of the Remove button, with: "Removing takes the machine and its runners out of the pool. Jobs that run there finish first. The agent stays installed on the machine." |
+| Open Machines | The one primary on Done of Add a machine when it is not part of the first-run checklist. |
+| Runners are added to one repository. An organization appears here when the App is installed on one. | Note in Add runners when the App is on no organization. |

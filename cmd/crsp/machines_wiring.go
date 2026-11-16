@@ -15,14 +15,18 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agentlink"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/caches"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/packages"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/settings"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tlsca"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
 )
 
 // Environment names of the agent link, beside the CRSP_* configuration.
@@ -39,6 +43,8 @@ type machinesRuntime struct {
 	// Link carries runner commands to remote agents and holds their machine reports.
 	Link *agentlink.Link
 	CA   *tlsca.Authority
+	// Packages holds the release packages that downloaded installers fetch; nil for a development build.
+	Packages *packages.Store
 	// Secrets is the secret store of the controller, read by the config export.
 	Secrets secrets.Store
 	stop    func()
@@ -78,11 +84,33 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 		return nil, err
 	}
 
+	// The release packages a downloaded installer fetches (machines R5.65): only
+	// for a stable release build, and only when the console is reachable from
+	// another machine.
+	var pkgs *packages.Store
+	var pkgSource machines.PackageSource
+	consoleURL := ""
+	if _, ok := update.ParseVersion(version); ok {
+		pkgs = &packages.Store{Source: update.GitHubSource{Version: version}, Dir: filepath.Join(cfg.DataDir, "packages")}
+		pkgSource = pkgs
+		if lh, lp, err := net.SplitHostPort(cfg.ListenAddr); err == nil && !webui.IsLoopback(lh) {
+			consoleURL = "https://" + net.JoinHostPort(public, lp)
+		}
+	}
+
+	// An SSH join to Windows downloads from the controller's own package
+	// endpoint when there is one, else from the GitHub release (CRSP123).
+	var winPackages machines.WindowsPackageSource = releasePackages{version: version}
+	if pkgSource != nil && consoleURL != "" {
+		winPackages = controllerPackages{sums: pkgSource, console: consoleURL}
+	}
+
 	// The SQLite adapter of machines.Repository belongs to internal/store; until it
 	// lands the repository is in memory, so machines and keys last until restart.
 	svc := machines.New(machines.Options{
 		Repo: machines.NewMemRepo(), ControllerAddress: public, AgentPort: port, Fingerprint: ca.Fingerprint(),
 		OnIdle: idle.call, PoolDefaults: pool, SSH: machines.NewSSHRunner(), MinProtocol: minAgentProtocol,
+		Packages: pkgSource, ConsoleURL: consoleURL, WindowsPackages: winPackages,
 	})
 	cs := caches.New(caches.Options{Machines: svc, Audit: rec})
 	lk := agentlink.New(svc)
@@ -153,7 +181,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 			}
 		}()
 	}
-	return &machinesRuntime{Service: svc, Caches: cs, Link: lk, CA: ca, Secrets: store, stop: func() {
+	return &machinesRuntime{Service: svc, Caches: cs, Link: lk, CA: ca, Packages: pkgs, Secrets: store, stop: func() {
 		cancel()
 		_ = link.Close()
 		<-done
@@ -212,4 +240,12 @@ func refreshLocalCredential(ctx context.Context, logger *slog.Logger, svc *machi
 			}
 		}
 	}
+}
+
+// packageServer is the API's view of the package store; a nil store stays a nil interface.
+func packageServer(mr *machinesRuntime) api.PackageServer {
+	if mr == nil || mr.Packages == nil {
+		return nil
+	}
+	return mr.Packages
 }

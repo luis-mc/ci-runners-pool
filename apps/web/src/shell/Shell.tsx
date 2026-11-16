@@ -10,6 +10,7 @@ import {
   ResultList,
   SearchBar,
   KeyHints,
+  LinkButton,
   ShortcutTable,
   Status,
   Text,
@@ -25,11 +26,19 @@ import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'r
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { unwrap, useClient, type Schemas } from '../api/api';
 import { signInUrl, useSession } from '../auth/session';
-import { useLoad } from '../api/hooks';
+import { useMachines, useRefreshTick } from '../api/machines';
 import { useLiveState, useVersion } from '../live/LiveProvider';
 import { wipingLabel } from '../screens/images/labels';
 import { allRepositories } from '../screens/repositories/plans';
 import { KEY_HINTS, SHORTCUTS, handleKey, isMac } from './shortcuts';
+
+/** The first first-run step that is still to do, in the words of the setup page; none when all are done. */
+export function firstOpenStep(setup: Schemas['SetupState']): string | undefined {
+  if (setup.steps.connect_github === 'todo') return 'connect GitHub';
+  if (setup.steps.first_machine === 'todo') return 'add the first machine';
+  if (setup.steps.first_repository === 'todo') return 'turn on the first repository';
+  return undefined;
+}
 
 export const AREAS: readonly NavItem[] = [
   { to: '/', label: 'Overview', end: true },
@@ -52,9 +61,7 @@ interface Command {
 /** Pool status as a word, a glyph and a colour (UX-58). */
 function PoolStatus() {
   // The same list the Machines page reads (UX-19): one source of truth.
-  const client = useClient();
-  const v = useVersion('machines');
-  const { result } = useLoad(() => unwrap(client.GET('/api/v1/machines')), [v]);
+  const { result } = useMachines();
   const machines =
     result.state === 'loading' ? undefined : (result.data?.items ?? undefined);
   if (!machines) return <Status kind="waiting" word="reading" />;
@@ -224,6 +231,8 @@ export function AppShell({ children }: { children?: ReactNode }) {
   // The first-run steps change when a machine joins or a repository's pool turns on.
   const machinesVersion = useVersion('machines');
   const repositoriesVersion = useVersion('repositories');
+  // The banner is read again on a timer and when the tab is shown, so it clears itself after the last step.
+  const refresh = useRefreshTick();
   // The Overview says in one line while a repository runs on GitHub-hosted runners (github-integration R5.44).
   const [hosted, setHosted] = useState(0);
   const onOverview = location.pathname === '/';
@@ -252,7 +261,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
     return () => {
       on = false;
     };
-  }, [client, machinesVersion, repositoriesVersion, location.pathname]);
+  }, [client, machinesVersion, repositoriesVersion, location.pathname, refresh]);
 
   // Layout effect: the listener is on before the first paint, so a key pressed
   // the moment the page shows is never lost to a deferred passive effect.
@@ -296,14 +305,15 @@ export function AppShell({ children }: { children?: ReactNode }) {
     .filter((j): j is ActivityJob => j !== undefined);
 
   const banners: ReactNode[] = [];
-  if (setup && Object.values(setup.steps).some((v) => v === 'todo'))
+  const open = setup ? firstOpenStep(setup) : undefined;
+  if (open)
     banners.push(
       <Message
         key="first-run"
         tone="needs-you"
-        action={<TextLink to="/setup">Open the setup page</TextLink>}
+        action={<LinkButton to="/setup">Open the setup page</LinkButton>}
       >
-        First run is not finished.
+        {`First run is not finished. Next: ${open}.`}
       </Message>,
     );
   if (onOverview && hosted > 0)

@@ -360,7 +360,7 @@ export function SetupPage() {
 
   return (
     <main>
-      <Page frame="narrow">
+      <Page>
         <PageHeader
           title="Set up the pool"
           lead="From a fresh controller to a first green job."
@@ -405,10 +405,11 @@ function Checklist({
   if (!state.has_app && !link)
     return (
       <Section title="Get a setup link">
-        <Text>
+        <Message tone="needs-you" action={<Button onPress={reload}>Try again</Button>}>
           This controller has no GitHub App yet. Open the setup page through a setup link:
-          use Open in the tray, or run `crsp open` on the controller's machine.
-        </Text>
+          choose Open in the tray menu of the controller's machine, or run `crsp open`
+          there. When this page opens from that link, press Try again.
+        </Message>
       </Section>
     );
   const s = state.steps;
