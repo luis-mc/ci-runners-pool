@@ -232,6 +232,7 @@ export function signedIn(user: Schemas['User'] = owner): MockApi {
     .on('GET', '/api/v1/me', { user, csrf: 'tok' })
     .on('GET', '/api/v1/me/preferences', { theme: 'dark' })
     .on('GET', '/api/v1/overview', overview())
+    .on('GET', '/api/v1/machines', { items: [machine()] })
     .on('GET', '/api/v1/setup', {
       has_app: true,
       has_owner: true,

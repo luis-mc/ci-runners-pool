@@ -25,7 +25,8 @@ import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'r
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { unwrap, useClient, type Schemas } from '../api/api';
 import { signInUrl, useSession } from '../auth/session';
-import { useLiveState } from '../live/LiveProvider';
+import { useLoad } from '../api/hooks';
+import { useLiveState, useVersion } from '../live/LiveProvider';
 import { wipingLabel } from '../screens/images/labels';
 import { allRepositories } from '../screens/repositories/plans';
 import { KEY_HINTS, SHORTCUTS, handleKey, isMac } from './shortcuts';
@@ -50,8 +51,12 @@ interface Command {
 
 /** Pool status as a word, a glyph and a colour (UX-58). */
 function PoolStatus() {
-  const live = useLiveState();
-  const machines = live.overview?.machines;
+  // The same list the Machines page reads (UX-19): one source of truth.
+  const client = useClient();
+  const v = useVersion('machines');
+  const { result } = useLoad(() => unwrap(client.GET('/api/v1/machines')), [v]);
+  const machines =
+    result.state === 'loading' ? undefined : (result.data?.items ?? undefined);
   if (!machines) return <Status kind="waiting" word="reading" />;
   if (machines.length === 0) return <Status kind="waiting" word="no machines" />;
   const online = machines.filter((m) => m.online && m.state === 'active').length;
@@ -216,6 +221,9 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const [signingOut, setSigningOut] = useState(false);
   const [setup, setSetup] = useState<Schemas['SetupState'] | undefined>(undefined);
   const client = useClient();
+  // The first-run steps change when a machine joins or a repository's pool turns on.
+  const machinesVersion = useVersion('machines');
+  const repositoriesVersion = useVersion('repositories');
   // The Overview says in one line while a repository runs on GitHub-hosted runners (github-integration R5.44).
   const [hosted, setHosted] = useState(0);
   const onOverview = location.pathname === '/';
@@ -244,7 +252,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
     return () => {
       on = false;
     };
-  }, [client]);
+  }, [client, machinesVersion, repositoriesVersion, location.pathname]);
 
   // Layout effect: the listener is on before the first paint, so a key pressed
   // the moment the page shows is never lost to a deferred passive effect.
