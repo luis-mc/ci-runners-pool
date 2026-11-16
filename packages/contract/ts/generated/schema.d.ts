@@ -2704,6 +2704,8 @@ export interface components {
             policy?: components["schemas"]["MachinePolicy"];
             /** @description The controller's own machine (machines R5.1); it has no special path. */
             is_controller: boolean;
+            /** @description The operating system the machine's container engine runs containers for (machines R5.18, runners R5.47), when the engine answers. A Windows machine with Docker Desktop on WSL2 says `linux`. Absent when the engine does not answer or the agent has not reported. */
+            container_os?: components["schemas"]["OS"];
             facts?: components["schemas"]["MachineFacts"];
             backends: components["schemas"]["BackendSupport"][];
             settings: components["schemas"]["MachineSettings"];

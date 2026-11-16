@@ -186,3 +186,31 @@ func TestRedetectPeriodicallyAndOnDemandAndChangesAreAudited(t *testing.T) {
 	}
 	waitFor(t, "check again detected", func() bool { p.mu.Lock(); defer p.mu.Unlock(); return len(p.calls) > calls })
 }
+
+// CRSP127: Docker Desktop runs on WSL2 in its own distro; `wsl --status` can
+// exit non-zero while the engine works. That is not "not ready".
+func TestBackendsWSL2NotReadyFalseReportWhenDockerDesktopRunsOnWSL2(t *testing.T) {
+	cmds := func(kernel string) []cmdRule {
+		return []cmdRule{
+			{[]string{"docker", "version"}, load.Result{Out: "29.9.3\n"}, true},
+			{[]string{"docker", "info", "--format", "{{.KernelVersion}}"}, load.Result{Out: kernel}, true},
+			{[]string{"wsl", "--status"}, load.Result{Code: 1}, true},
+			{[]string{"wsl", "--version"}, load.Result{Out: "WSL version: 2.3.26.0\n"}, true},
+		}
+	}
+	b := linuxBox()
+	b.goos, b.files = "windows", map[string]string{}
+	b.cmds = cmds("5.15.167.4-microsoft-standard-WSL2\r\n")
+	w := byName(agent.DetectBackends(context.Background(), &fakeSys{b}))["wsl2"]
+	if !w.Usable || w.Reason != "" || w.Version != "2.3.26.0" {
+		t.Fatalf("wsl2 = %+v", w)
+	}
+	// Without a WSL2 kernel behind the engine the old report stays.
+	b2 := linuxBox()
+	b2.goos, b2.files = "windows", map[string]string{}
+	b2.cmds = cmds("6.1.0\n")
+	w2 := byName(agent.DetectBackends(context.Background(), &fakeSys{b2}))["wsl2"]
+	if w2.Usable || w2.Reason == "" {
+		t.Fatalf("wsl2 = %+v", w2)
+	}
+}

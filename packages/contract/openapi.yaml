@@ -4128,6 +4128,9 @@ components:
         is_controller:
           type: boolean
           description: The controller's own machine (machines R5.1); it has no special path.
+        container_os:
+          $ref: '#/components/schemas/OS'
+          description: The operating system the machine's container engine runs containers for (machines R5.18, runners R5.47), when the engine answers. A Windows machine with Docker Desktop on WSL2 says `linux`. Absent when the engine does not answer or the agent has not reported.
         facts:
           $ref: '#/components/schemas/MachineFacts'
         backends:

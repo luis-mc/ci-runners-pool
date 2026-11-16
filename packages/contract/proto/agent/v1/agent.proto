@@ -832,6 +832,10 @@ message EngineReport {
   bool usable = 2;
   string version = 3;
   string reason = 4;
+  // The operating system the engine's containers run: linux, windows, or empty
+  // when the engine does not answer or the agent is older. Docker Desktop on
+  // WSL2 answers linux on Windows (runners R5.47).
+  string container_os = 5;
 }
 
 // ImageReport is one job image on the machine (runners R5.32).

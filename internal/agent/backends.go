@@ -110,7 +110,11 @@ func detectWSL2(sys Sys) *agentv1.BackendSupport {
 		return b
 	}
 	b.Present = true
-	if res.Code != 0 {
+	// `wsl --status` can exit non-zero when no distro of the user's own is
+	// installed, although Docker Desktop runs on WSL2 in its own distro. A
+	// docker engine whose kernel is the WSL2 kernel proves WSL2 works, so that
+	// is not reported as "not ready". Nothing is changed to find out.
+	if res.Code != 0 && !engineOnWSL2(sys) {
 		b.Reason = "WSL is installed but not ready; run wsl --install"
 		return b
 	}
@@ -124,6 +128,13 @@ func detectWSL2(sys Sys) *agentv1.BackendSupport {
 		}
 	}
 	return b
+}
+
+// engineOnWSL2 is true when the docker engine answers and runs on the WSL2
+// kernel (Docker Desktop's WSL2 engine, or docker inside a WSL2 distro).
+func engineOnWSL2(sys Sys) bool {
+	res, ok := sys.Run([]string{"docker", "info", "--format", "{{.KernelVersion}}"})
+	return ok && res.Code == 0 && strings.Contains(strings.ToLower(trim(res.Out)), "wsl2")
 }
 
 func detectHyperV(sys Sys) *agentv1.BackendSupport {

@@ -2446,6 +2446,9 @@ type Machine struct {
 	Arch      Arch             `json:"arch"`
 	Backends  []BackendSupport `json:"backends"`
 
+	// ContainerOs The operating system the machine's container engine runs containers for (machines R5.18, runners R5.47), when the engine answers. A Windows machine with Docker Desktop on WSL2 says `linux`. Absent when the engine does not answer or the agent has not reported.
+	ContainerOs *OS `json:"container_os,omitempty"`
+
 	// Facts machines R5.10.
 	Facts *MachineFacts `json:"facts,omitempty"`
 	Id    string        `json:"id"`

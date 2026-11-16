@@ -31,7 +31,7 @@ func buildMachineReport(ctx context.Context, sys Sys, facts *agentv1.Facts, imgs
 		k.DeviceKnown, k.DevicePresent = true, sys.ReadWritable("/dev/kvm")
 	}
 	e := DetectEngine(sys)
-	rep.Engine = &agentv1.EngineReport{Kind: string(e.Kind), Usable: e.Usable, Version: e.Version, Reason: e.Reason}
+	rep.Engine = &agentv1.EngineReport{Kind: string(e.Kind), Usable: e.Usable, Version: e.Version, Reason: e.Reason, ContainerOs: e.ContainerOS}
 	if imgs != nil {
 		list, ok, err := imgs(ctx)
 		if ok && err == nil {

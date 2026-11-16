@@ -5482,10 +5482,14 @@ func (x *KvmReport) GetModule() string {
 type EngineReport struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// docker-wsl2-windows-cli, docker-wsl2-wsl, docker-desktop, docker-native or none.
-	Kind          string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
-	Usable        bool   `protobuf:"varint,2,opt,name=usable,proto3" json:"usable,omitempty"`
-	Version       string `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
-	Reason        string `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
+	Kind    string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	Usable  bool   `protobuf:"varint,2,opt,name=usable,proto3" json:"usable,omitempty"`
+	Version string `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	Reason  string `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
+	// The operating system the engine's containers run: linux, windows, or empty
+	// when the engine does not answer or the agent is older. Docker Desktop on
+	// WSL2 answers linux on Windows (runners R5.47).
+	ContainerOs   string `protobuf:"bytes,5,opt,name=container_os,json=containerOs,proto3" json:"container_os,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5544,6 +5548,13 @@ func (x *EngineReport) GetVersion() string {
 func (x *EngineReport) GetReason() string {
 	if x != nil {
 		return x.Reason
+	}
+	return ""
+}
+
+func (x *EngineReport) GetContainerOs() string {
+	if x != nil {
+		return x.ContainerOs
 	}
 	return ""
 }
@@ -6391,12 +6402,13 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x15nested_virtualization\x18\x04 \x01(\bR\x14nestedVirtualization\x12!\n" +
 	"\fmodule_known\x18\x05 \x01(\bR\vmoduleKnown\x12#\n" +
 	"\rmodule_loaded\x18\x06 \x01(\bR\fmoduleLoaded\x12\x16\n" +
-	"\x06module\x18\a \x01(\tR\x06module\"l\n" +
+	"\x06module\x18\a \x01(\tR\x06module\"\x8f\x01\n" +
 	"\fEngineReport\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x16\n" +
 	"\x06usable\x18\x02 \x01(\bR\x06usable\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12\x16\n" +
-	"\x06reason\x18\x04 \x01(\tR\x06reason\"\x9a\x01\n" +
+	"\x06reason\x18\x04 \x01(\tR\x06reason\x12!\n" +
+	"\fcontainer_os\x18\x05 \x01(\tR\vcontainerOs\"\x9a\x01\n" +
 	"\vImageReport\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x10\n" +
 	"\x03tag\x18\x02 \x01(\tR\x03tag\x12\x0e\n" +
