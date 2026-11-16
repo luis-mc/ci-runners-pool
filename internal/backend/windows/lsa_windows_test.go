@@ -3,7 +3,9 @@
 package windows
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -15,10 +17,15 @@ func TestLSASourceCompilesAndReads(t *testing.T) {
 if (-not [CrspLsa]::Has('NT AUTHORITY\SYSTEM', 'SeServiceLogonRight')) { throw 'SYSTEM should hold SeServiceLogonRight' }
 if ([CrspLsa]::Has('NT AUTHORITY\SYSTEM', 'SeDenyInteractiveLogonRight')) { throw 'SYSTEM must not be denied' }
 if (-not [CrspLogon]::Check('crsp-no-such-account', 'x')) { throw 'a missing account must be refused' }
-Write-Output 'ok'
+[Console]::Out.WriteLine('ok')
 `
-	cmd := exec.CommandContext(t.Context(), "powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", "-")
-	cmd.Stdin = strings.NewReader(wrapScript(script))
+	// A file, not stdin: PowerShell reading a multi-line script from stdin
+	// can end without running it and exit 0 with no output on a runner.
+	file := filepath.Join(t.TempDir(), "lsa.ps1")
+	if err := os.WriteFile(file, []byte("\xef\xbb\xbf"+wrapScript(script)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.CommandContext(t.Context(), "powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", file)
 	out, err := cmd.CombinedOutput()
 	if err != nil || !strings.Contains(string(out), "ok") {
 		t.Fatalf("err = %v, output = %s", err, out)

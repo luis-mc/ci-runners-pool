@@ -115,6 +115,9 @@ type Service struct {
 	updates   map[string]AgentUpdate
 	recov     map[string]recState
 	typical   TypicalFunc
+	// stuckSent holds the changes whose stuck alert went out, so the tick and a
+	// status report that read the same change cannot both raise it.
+	stuckSent map[string]bool
 }
 
 // New returns a Service.
