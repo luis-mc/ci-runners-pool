@@ -23,8 +23,8 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 3. Tabs
 
 - **Used for:** switching between views of the same thing. A tab never starts work. Tabs keep their panels mounted, so a tab keeps its state when the user comes back.
-- **Looks:** a row of labels over one panel. The chosen tab is underlined and bold, so colour is not the only sign.
-- **Source:** `src/ui/tabs`
+- **Looks:** one row of labels over one panel, never two rows (UX-15). The chosen tab is underlined and bold, so colour is not the only sign. When the labels do not fit the width, the row scrolls sideways inside its frame and the chosen tab is kept in view; the page never scrolls sideways (UX-49). The row is a tab list with arrow-key movement.
+- **Source:** `packages/ui/src/components/Controls.tsx` (`Tabs`)
 - **Rules:** UX-1, UX-8, UX-17.
 - **Guard:** none yet.
 
@@ -62,9 +62,9 @@ One numbered section per shared component. A part that nearly fits is extended w
 
 ## 8. Card, card grid and facts list
 
-- **Used for:** a pane: a boxed section; the grid that lays panes out; and a short list of name and value pairs inside a pane. A pane may carry a count after its title.
-- **Looks:** a box border (`--ds-color-border`, corners from `--ds-radius-2`) with the title cut into the top border: `┤ Machines 3 ├`. The title and count are drawn in `--ds-color-primary` over `--ds-color-page`; the `┤ ├` marks are the border colour. Panes sit in an even grid. The facts list has the name above its value.
-- **Source:** `packages/ui/src/components/Card.tsx`
+- **Used for:** a pane: a boxed section; the grid that lays panes out; and a short list of name and value pairs inside a pane. Every titled part of a page is a pane (`Pane`; `Section` and `Card` are panes). A pane may carry a count after its title and, at the right end of its top border, actions that belong to the pane as a whole (a Refresh or Add button). A note stays a note (component 5) inside the pane.
+- **Looks:** a box border (`--ds-color-border`, corners from `--ds-radius-2`) with the title cut into the top border: `┤ Machines 3 ├`. The title and count are drawn in `--ds-color-primary` over `--ds-color-page`; the `┤ ├` marks are the border colour. The actions sit in the same border line, right aligned, over `--ds-color-page`. When focus is inside a pane, its border takes the focus ring colour (`--ds-color-focus`), so the user sees which pane has focus (UX-17). Panes sit in an even grid. The facts list has the name above its value. On a small screen the actions drop under the title.
+- **Source:** `packages/ui/src/components/Pane.tsx` (`Pane`), `Card.tsx`, `layout.tsx` (`Section`)
 - **Rules:** UX-10, UX-1, UX-15, UX-37.
 - **Guard:** none yet.
 
@@ -466,7 +466,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 41. Selected row and key-hint bar
 
 - **Used for:** showing which list row is selected, and which keys work (UX-57).
-- **Looks:** a selected row of a table or a result list is in reverse video: `--ds-color-primary` fill with `--ds-color-on-primary` text. The row under the cursor (`j` and `k`) takes the `--ds-color-selection` fill and keeps its text colour. The key-hint bar is a footer at the end of the page with a thin top border, listing `/ search`, `j k move`, `Enter open`, `? keys`, each key in the key style of component 38. The hints are text, never buttons (UX-8). The bar is drawn at every width and wraps on a small screen (UX-50).
+- **Looks:** the selected row of a table or a result list, the row under the cursor (`j` and `k`, or a click or Tab), is in reverse video: `--ds-color-primary` fill with `--ds-color-on-primary` text. A row the user has ticked (a choice list) takes the `--ds-color-selection` fill and keeps its text colour. The key-hint bar is a footer at the end of the page with a thin top border, listing `/ search`, `j k move`, `Enter open`, `? keys`, each key in the key style of component 38. The hints are text, never buttons (UX-8). The bar is drawn at every width and wraps on a small screen (UX-50).
 - **Source:** `packages/ui/src/components/Table.tsx`, `packages/ui/src/components/Shell.tsx` (`KeyHints`, the `hints` slot of `Frame`), `packages/ui/src/components.css`
 - **Rules:** UX-8, UX-50, UX-57, UX-60.
 - **Guard:** none yet.
