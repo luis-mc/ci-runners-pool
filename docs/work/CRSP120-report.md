@@ -13,4 +13,4 @@
 3. Docs: spec text, test table, change notes, design-system next-version content and CHANGES.
 
 ## Status
-(updated as steps land)
+Go (duplicate rule, credential renewal, first_machine setup state, tests) and web (FirstMachineDone, Vitest) pushed. Docs: spec text, test table, change notes, design-system C24. Not run: docs_check.py (luismc-docs plugin not in this sandbox). darwin vet fails on fyne systray (cgo, not touched).

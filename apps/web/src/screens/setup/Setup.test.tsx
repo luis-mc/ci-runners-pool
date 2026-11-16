@@ -5,7 +5,7 @@ import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { apiError, renderApp, signedIn } from '../../testing/mock';
+import { apiError, machine, renderApp, signedIn } from '../../testing/mock';
 import { messageFor } from './Setup';
 
 afterEach(cleanup);
@@ -197,5 +197,48 @@ describe('First run banner (R5.15)', () => {
     await waitFor(() =>
       expect(screen.queryByText('First run is not finished.')).toBeNull(),
     );
+  });
+
+  describe('the first machine step when this PC is in the pool (machines R5.1)', () => {
+    const done = () =>
+      state({
+        has_app: true,
+        has_owner: true,
+        setup_link_redeemed: true,
+        steps: {
+          connect_github: 'done',
+          first_machine: 'done',
+          first_repository: 'todo',
+        },
+      });
+
+    it('shows the controller PC as done and keeps the command path behind Add another machine', async () => {
+      const api = signedIn()
+        .on('GET', '/api/v1/setup', done())
+        .on('GET', '/api/v1/machines', {
+          items: [
+            machine({
+              id: 'own',
+              name: 'office-pc',
+              is_controller: true,
+              facts: { host_name: 'OFFICE-PC' },
+            }),
+          ],
+        });
+      renderApp(api, '/setup');
+      expect(await screen.findByText('This PC, OFFICE-PC, is in the pool.')).toBeTruthy();
+      expect(screen.queryByRole('group', { name: 'Add a machine' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Add another machine' }));
+      expect(await screen.findByRole('group', { name: 'Add a machine' })).toBeTruthy();
+    });
+
+    it('says the step is done when the machine in the pool is not this PC', async () => {
+      const api = signedIn()
+        .on('GET', '/api/v1/setup', done())
+        .on('GET', '/api/v1/machines', { items: [machine()] });
+      renderApp(api, '/setup');
+      expect(await screen.findByText('Add the first machine is done.')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Add another machine' })).toBeTruthy();
+    });
   });
 });

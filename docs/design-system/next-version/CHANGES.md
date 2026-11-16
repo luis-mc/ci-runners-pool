@@ -26,3 +26,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C21: machine policy words added: the mode, the battery pause, the CPU cap, the state words and the tray menu words; actions Pause for 1 hour, Pause until I resume and Resume (content.md; machines R5.61 to R5.64, tray R5.42, web-console R5.65, CRSP75)
 - C22: join and delivery words added: copy or SSH join choice, SSH fields and key help, host key question, join steps, idle and busy words, last delivery words and the polling notice with its switch back (content.md; machines R5.3a, R5.4a, web-console R5.23, github-integration R5.50, RES3, RES7, RES14)
 - C23: agent recovery words added: the state word, the Recovery section, its messages and the action Recover (content.md; web-console R5.33, operations R5.44, CRSP102)
+- C24: first-machine step words added: "This PC, {host name}, is in the pool." and the action Add another machine (content.md; machines R5.1, CRSP120)

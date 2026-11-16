@@ -107,9 +107,9 @@ The overview shows machines and load and only links here (UX-52). Busy buttons f
 
 ### 5.1 The controller's own machine
 
-**R5.1** (M1) — The controller runs its own agent on the same machine. At first run it joins that agent without a join code, over the same link and port as any other agent (loopback). The machine then appears in the console like any other.
+**R5.1** (M1, built, CRSP120) — The controller runs its own agent on the same machine. At first run it joins that agent without a join code, over the same link and port as any other agent (loopback). The machine then appears in the console like any other. The agent keeps its machine id and key in the controller's data directory (`agent/secrets`), so a restart reuses the machine and makes no second one. If a separately installed agent on the same host (same host name) has already joined, the controller does not make a second machine: it keeps that one, skips its own agent and says so in the log. The setup step "Add the first machine" shows this PC as done.
 
-**R5.2** (M1) — The controller's own machine follows every rule below (load, settings, drain, privilege). It has no special path.
+**R5.2** (M1, built, CRSP120) — The controller's own machine follows every rule below (load, settings, drain, privilege). It has no special path.
 
 ### 5.2 Join
 
@@ -370,8 +370,8 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 
 | Requirement | Test | Status |
 |---|---|---|
-| R5.1 | internal/machines/local_agent_test.go | planned |
-| R5.2 | internal/machines/local_agent_test.go | planned |
+| R5.1 | internal/machines/local_agent_test.go | built (CRSP120) |
+| R5.2 | internal/machines/local_agent_test.go | built (CRSP120) |
 | R5.3 | internal/machines/joincode_test.go | planned |
 | R5.4 | internal/machines/joincode_test.go | planned |
 | R5.3a | internal/machines/sshjoin_test.go (fake and real SSH exchange); internal/api/machines_ssh_join_test.go; apps/web/src/screens/machines/AddMachine.test.tsx (RES3) |

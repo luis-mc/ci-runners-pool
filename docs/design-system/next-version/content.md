@@ -435,3 +435,13 @@ The words of the Recovery section and the State word of a machine whose agent ne
 | Recover | The one action. Admin only (busy word: Recovering). Locked after it worked. |
 | Recovery is ready. The agent gets the update on its next call. | Done message after the call, and for a machine that is already armed. |
 | Could not start recovery. {why} | Problem message when the call is refused or fails. |
+
+## First machine words
+
+The words of the setup step "Add the first machine" when a machine is already in the pool (machines R5.1, web-console 4.1).
+
+| Word | Where and meaning |
+|---|---|
+| This PC, {host name}, is in the pool. | Done message when the controller's own machine is in the pool. |
+| Add the first machine is done. | Done message when a machine is in the pool and it is not the controller's own. |
+| Add another machine | The one action. It opens the Add a machine wizard for other computers. |
