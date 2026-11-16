@@ -147,7 +147,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 **R5.6** (M1, NOT YET IMPLEMENTED) — **App health.** The controller reads `GET /app` with an App JWT at start and every hour. When GitHub says the App or its key is gone, GitHub work stops, the console says so, and it offers to run the wizard again. Running jobs are not touched.
 
-**R5.7** (M8, NOT YET IMPLEMENTED) — **Key rotation.** The owner can upload a new private key from Settings. The controller checks it against `GET /app` before it replaces the old one in the secret store.
+**R5.7** (M8, built) — **Key rotation.** The owner can upload a new private key from Settings (`PUT /api/v1/app/private-key`, owner only, and `crsp app rotate-key --file PATH`). The controller signs an App JWT with the new key and reads `GET /app`; the answer must be for the same App id. Only then does it replace the old key in the secret store. When the file is not a PEM RSA key, GitHub refuses the key, or the store fails, the old key stays and keeps working. The key is sent once and is never returned, logged or written to the audit log; the audit log records who rotated it, and a refused try, without the key.
 
 ### 5.2 Sign-in and users
 

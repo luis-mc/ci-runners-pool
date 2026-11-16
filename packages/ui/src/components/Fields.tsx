@@ -87,6 +87,37 @@ export function TextField(
   );
 }
 
+/** A file box: the person chooses one file; the screen reads it and never shows its content (components 14). */
+export function FileField(
+  props: FieldShellProps & {
+    /** Called with the chosen file, or null when the choice is cleared. */
+    onChange: (file: File | null) => void;
+    accept?: string | undefined;
+    disabled?: boolean | undefined;
+  },
+) {
+  const id = useId();
+  const helpId = `${id}-h`;
+  const errorId = `${id}-e`;
+  return (
+    <Shell {...props} htmlFor={id} helpId={helpId} errorId={errorId}>
+      <input
+        id={id}
+        className="ds-input"
+        type="file"
+        accept={props.accept}
+        disabled={props.disabled}
+        aria-invalid={props.error ? true : undefined}
+        aria-describedby={
+          [props.help ? helpId : '', props.error ? errorId : ''].join(' ').trim() ||
+          undefined
+        }
+        onChange={(e) => props.onChange(e.target.files?.[0] ?? null)}
+      />
+    </Shell>
+  );
+}
+
 /** A text box of several lines, one item per line (components 14, UX-20, UX-21, UX-23). */
 export function TextAreaField(
   props: FieldShellProps & {

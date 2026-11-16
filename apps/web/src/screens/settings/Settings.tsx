@@ -9,6 +9,7 @@ import {
   Empty,
   ErrorSummary,
   Facts,
+  FileField,
   FormActions,
   Message,
   NumberField,
@@ -40,6 +41,7 @@ type User = Schemas['User'];
 
 const TABS = [
   { id: 'users', label: 'Users and roles' },
+  { id: 'app', label: 'GitHub App' },
   { id: 'appearance', label: 'Appearance' },
   { id: 'retention', label: 'Retention' },
   { id: 'backups', label: 'Backups' },
@@ -624,5 +626,74 @@ export function BackupsSettings() {
         </form>
       </Section>
     </Stack>
+  );
+}
+
+// GitHub App key (github-integration R5.7): the owner chooses the new private key file; the controller checks it
+// with GitHub and keeps the old key when GitHub refuses it. The file is read here and sent once; the screen never
+// shows it and never keeps it after the answer.
+const MAX_KEY_FILE = 16384;
+
+export function AppKeySettings() {
+  const client = useClient();
+  const session = useSession();
+  const [file, setFile] = useState<File | null>(null);
+  const [mistake, setMistake] = useState<string | undefined>(undefined);
+  const [done, setDone] = useState(false);
+  const [picked, setPicked] = useState(0);
+  const replace = useCommand(async () => {
+    setDone(false);
+    if (!file || file.size === 0 || file.size > MAX_KEY_FILE) {
+      setMistake('Choose the private key file from GitHub.');
+      return;
+    }
+    setMistake(undefined);
+    const pem = await file.text();
+    await unwrap(client.PUT('/api/v1/app/private-key', { body: { pem } }));
+    setFile(null);
+    setPicked((n) => n + 1);
+    setDone(true);
+  });
+  return (
+    <Section title="GitHub App key">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void replace.run();
+        }}
+      >
+        <Stack>
+          <FileField
+            key={picked}
+            label="New private key file"
+            help="The file you download from the App's page at GitHub. crsp checks it with GitHub first and keeps the old key if GitHub refuses it."
+            accept=".pem"
+            error={mistake}
+            disabled={!session.can('owner')}
+            onChange={(f) => {
+              setFile(f);
+              setDone(false);
+              setMistake(undefined);
+            }}
+          />
+          {done ? <Message tone="done">The new key is in use.</Message> : null}
+          {replace.error ? (
+            <Message tone="problem">Could not replace the key. {replace.error}</Message>
+          ) : null}
+          <FormActions>
+            <Button
+              kind="primary"
+              submit
+              busy={replace.busy}
+              busyLabel="Replacing"
+              disabled={!session.can('owner')}
+              reason={session.whyNot('owner')}
+            >
+              Replace key
+            </Button>
+          </FormActions>
+        </Stack>
+      </form>
+    </Section>
   );
 }

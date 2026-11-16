@@ -33,6 +33,7 @@ const SCREENS: {
   { name: 'images', path: '/images', ready: 'Images and caches' },
   { name: 'caches', path: '/images?tab=caches', ready: 'Images and caches' },
   { name: 'settings users', path: '/settings/users', ready: 'Settings' },
+  { name: 'settings app key', path: '/settings/app', ready: 'Settings' },
   { name: 'settings appearance', path: '/settings/appearance', ready: 'Settings' },
   { name: 'settings retention', path: '/settings/retention', ready: 'Settings' },
   {

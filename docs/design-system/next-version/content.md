@@ -435,3 +435,17 @@ The words of the Recovery section and the State word of a machine whose agent ne
 | Recover | The one action. Admin only (busy word: Recovering). Locked after it worked. |
 | Recovery is ready. The agent gets the update on its next call. | Done message after the call, and for a machine that is already armed. |
 | Could not start recovery. {why} | Problem message when the call is refused or fails. |
+
+## GitHub App key words
+
+The words of Settings, GitHub App, where the owner replaces the App private key (github-integration R5.7).
+
+| Word | Where and meaning |
+|---|---|
+| GitHub App | The tab. |
+| GitHub App key | The section title. |
+| New private key file | The file field. Help: The file you download from the App's page at GitHub. crsp checks it with GitHub first and keeps the old key if GitHub refuses it. |
+| Replace key | The one action. Owner only (busy word: Replacing). |
+| Choose the private key file from GitHub. | Mistake when no file, an empty file or a file over 16 KiB is chosen. |
+| The new key is in use. | Done message after the controller stored the key. |
+| Could not replace the key. {reason} | Problem message when the call is refused or fails. The reason never holds the key. |
