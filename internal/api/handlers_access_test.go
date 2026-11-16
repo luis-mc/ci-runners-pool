@@ -222,17 +222,31 @@ func TestSetupParityWithoutThePermissionMakesNothingAndNamesThePages(t *testing.
 		t.Fatalf("%d %s", res.StatusCode, b)
 	}
 	var out struct {
-		Status            string
-		Missing           []string `json:"missing_permissions"`
-		AppPermissionsURL string   `json:"app_permissions_url"`
-		InstallationURL   string   `json:"installation_url"`
+		Status  string
+		Missing []string `json:"missing_permissions"`
+		Grant   struct {
+			Ready bool
+			Next  string
+			Steps []struct {
+				ID          string
+				Done        bool
+				Permissions []string
+				URL         string
+			}
+		}
 	}
 	_ = json.Unmarshal(b, &out)
 	if out.Status != "needs_permission" || len(out.Missing) != 1 || out.Missing[0] != "secrets" {
 		t.Fatalf("%s", b)
 	}
-	if !strings.HasPrefix(out.AppPermissionsURL, "https://github.com/settings/apps/") || !strings.HasSuffix(out.AppPermissionsURL, "/permissions") ||
-		out.InstallationURL != "https://github.com/settings/installations/10" {
+	// One step list: installed (done), ask (waiting, next), accept (waiting).
+	if out.Grant.Ready || out.Grant.Next != "ask" || len(out.Grant.Steps) != 3 {
+		t.Fatalf("grant: %s", b)
+	}
+	ask, accept := out.Grant.Steps[1], out.Grant.Steps[2]
+	if ask.ID != "ask" || ask.Done || !strings.HasPrefix(ask.URL, "https://github.com/settings/apps/") || !strings.HasSuffix(ask.URL, "/permissions") ||
+		accept.ID != "accept" || accept.Done || accept.URL != "https://github.com/settings/installations/10" ||
+		strings.Join(accept.Permissions, ",") != "secrets" {
 		t.Fatalf("pages: %s", b)
 	}
 	// Nothing was made or written.
@@ -277,5 +291,95 @@ func TestSetupParityNeedsGitHubAdminOfTheRepository(t *testing.T) { // R5.84
 	}
 	if len(h.fake.SecretNames("alice/theirs")) != 0 {
 		t.Fatal("a secret was written")
+	}
+}
+
+type grantOut struct {
+	Ready bool
+	Next  string
+	Steps []struct {
+		ID          string
+		Done        bool
+		Permissions []string
+		URL         string
+	}
+	Missing []string
+}
+
+func getGrant(t *testing.T, h *harness, owner cookies, query string) grantOut {
+	t.Helper()
+	res, b := h.do("GET", "/api/v1/github/grant?"+query, nil, owner, nil)
+	if res.StatusCode != 200 {
+		t.Fatalf("%d %s", res.StatusCode, b)
+	}
+	var g grantOut
+	if err := json.Unmarshal(b, &g); err != nil {
+		t.Fatal(err)
+	}
+	return g
+}
+
+func TestGrantReadsBothSidesOfGitHub(t *testing.T) { // R5.89
+	h, owner, _ := parityRepo(t)
+	h.fake.Installs[10].Perms["secrets"] = "read"
+	// The App does not ask for it yet: step ask is next.
+	h.fake.SetAppPermissions(map[string]string{"actions_variables": "write"})
+	g := getGrant(t, h, owner, "permissions=secrets,actions_variables&repository_id=100")
+	if g.Ready || g.Next != "ask" || strings.Join(g.Missing, ",") != "secrets" {
+		t.Fatalf("not asked: %+v", g)
+	}
+	// The App asks, the installation has not accepted: step accept is next.
+	h.fake.SetAppPermissions(map[string]string{"actions_variables": "write", "secrets": "write"})
+	g = getGrant(t, h, owner, "permissions=secrets,actions_variables&repository_id=100")
+	if g.Ready || g.Next != "accept" || !g.Steps[1].Done || g.Steps[2].Done || g.Steps[2].URL != "https://github.com/settings/installations/10" {
+		t.Fatalf("asked, not accepted: %+v", g)
+	}
+	// The installation accepts: everything is granted.
+	h.fake.Installs[10].Perms["secrets"] = "write"
+	g = getGrant(t, h, owner, "permissions=secrets,actions_variables&installation_id=10")
+	if !g.Ready || g.Next != "" || len(g.Missing) != 0 || !g.Steps[1].Done || !g.Steps[2].Done {
+		t.Fatalf("all done: %+v", g)
+	}
+}
+
+func TestGrantWithoutAnInstallationStartsWithInstall(t *testing.T) { // R5.89
+	h := newHarness(t)
+	owner, _ := h.setup(1, "alice")
+	g := getGrant(t, h, owner, "permissions=secrets")
+	if g.Ready || g.Next != "install" || len(g.Steps) != 3 || g.Steps[0].ID != "install" ||
+		!strings.HasPrefix(g.Steps[0].URL, "https://github.com/apps/") || !strings.HasSuffix(g.Steps[0].URL, "/installations/new") {
+		t.Fatalf("%+v", g)
+	}
+}
+
+func TestGrantNeedsAPermissionNameAndAnAdmin(t *testing.T) { // R5.89
+	h, owner, _ := parityRepo(t)
+	if res, _ := h.do("GET", "/api/v1/github/grant", nil, owner, nil); res.StatusCode != 400 {
+		t.Fatalf("no permission named: %d", res.StatusCode)
+	}
+	if res, _ := h.do("GET", "/api/v1/github/grant?permissions=secrets", nil, nil, nil); res.StatusCode != 401 {
+		t.Fatalf("signed out: %d", res.StatusCode)
+	}
+}
+
+func TestAcceptedPermissionsRefreshTheInstallationToken(t *testing.T) { // R5.90
+	h, owner, csrf := parityRepo(t)
+	h.fake.Installs[10].Perms["secrets"] = "read"
+	h.do("POST", "/api/v1/repositories/100/parity-setup", map[string]any{}, owner, map[string]string{"X-CSRF-Token": csrf}) //nolint:errcheck // the answer is needs_permission, checked elsewhere
+	// The owner accepts on GitHub; the next read sees it and the token is new.
+	before := h.fake.TokensMade()
+	h.fake.Installs[10].Perms["secrets"] = "write"
+	g := getGrant(t, h, owner, "permissions=secrets&installation_id=10")
+	if !g.Ready {
+		t.Fatalf("%+v", g)
+	}
+	if err := h.repos.PermissionsAccepted(context.Background(), 10); err != nil {
+		t.Fatal(err)
+	}
+	if res, b := h.do("POST", "/api/v1/repositories/100/parity-setup", map[string]any{}, owner, map[string]string{"X-CSRF-Token": csrf}); res.StatusCode != 200 || !strings.Contains(string(b), `"done"`) {
+		t.Fatalf("%d %s", res.StatusCode, b)
+	}
+	if h.fake.TokensMade() <= before {
+		t.Fatalf("no new installation token after the permissions were accepted: %d <= %d", h.fake.TokensMade(), before)
 	}
 }

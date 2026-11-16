@@ -169,6 +169,15 @@ func (c *REST) installationToken(ctx context.Context, id int64) (string, error) 
 	return out.Token, nil
 }
 
+// ForgetInstallationToken drops the cached token of an installation, so the
+// next call asks GitHub for a new one that carries the permissions accepted
+// since (CRSP139, R5.90). A token keeps the permissions it was made with.
+func (c *REST) ForgetInstallationToken(id int64) {
+	c.mu.Lock()
+	delete(c.tokens, id)
+	c.mu.Unlock()
+}
+
 type req struct {
 	method  string
 	path    string // under APIBase, or a full URL when abs is set

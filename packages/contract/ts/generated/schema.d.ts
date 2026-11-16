@@ -534,6 +534,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/github/grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What a task still needs from GitHub, step by step
+         * @description github-integration R5.89. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
+         */
+        get: operations["getGithubGrant"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/github/install-url": {
         parameters: {
             query?: never;
@@ -2423,6 +2443,30 @@ export interface components {
             value: string;
             info: components["schemas"]["AccessCredential"];
         };
+        /** @description github-integration R5.89. */
+        GithubGrant: {
+            /** @description Every needed permission is accepted by the installation. */
+            ready: boolean;
+            /**
+             * @description The first step that is not done. Absent when ready.
+             * @enum {string}
+             */
+            next?: "install" | "ask" | "accept";
+            /** @description The needed permissions that are not accepted yet, by GitHub's name. */
+            missing: string[];
+            /** Format: int64 */
+            installation_id?: number;
+            steps: components["schemas"]["GithubGrantStep"][];
+        };
+        GithubGrantStep: {
+            /** @enum {string} */
+            id: "install" | "ask" | "accept";
+            done: boolean;
+            /** @description The permissions still waiting at this step. */
+            permissions: string[];
+            /** @description The GitHub page of the step. Absent when the step has none. */
+            url?: string;
+        };
         ParitySetupRequest: {
             /** @description The address the runner reaches the controller at. Empty uses the address of this console. */
             controller_url?: string;
@@ -2431,10 +2475,7 @@ export interface components {
             /** @enum {string} */
             status: "done" | "needs_permission";
             missing_permissions?: string[];
-            /** @description The GitHub page where the App's owner asks for the permission. */
-            app_permissions_url?: string;
-            /** @description The GitHub page where the installation's owner accepts it. */
-            installation_url?: string;
+            grant?: components["schemas"]["GithubGrant"];
             /** @description The name of the repository Actions value that holds the access, CRSP_ACCESS. */
             access_name?: string;
             variable_names?: string[];
@@ -4917,6 +4958,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrgPool"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getGithubGrant: {
+        parameters: {
+            query?: {
+                /** @description GitHub permission names, comma separated, such as `secrets,actions_variables`. */
+                permissions?: string;
+                installation_id?: number;
+                repository_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The grant state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GithubGrant"];
                 };
             };
             default: components["responses"]["Error"];

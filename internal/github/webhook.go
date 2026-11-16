@@ -142,6 +142,31 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// InstallationEvent is the part of an installation webhook the grant reads.
+type InstallationEvent struct {
+	Action         string
+	InstallationID int64
+}
+
+// NewPermissionsAccepted is the action GitHub sends when an installation's
+// owner accepts the permissions the App asked for since (CRSP139, R5.90).
+const NewPermissionsAccepted = "new_permissions_accepted"
+
+// ParseInstallationEvent reads the action and installation id of an
+// installation or installation_repositories body.
+func ParseInstallationEvent(body []byte) (InstallationEvent, error) {
+	var ev struct {
+		Action       string `json:"action"`
+		Installation struct {
+			ID int64 `json:"id"`
+		} `json:"installation"`
+	}
+	if err := json.Unmarshal(body, &ev); err != nil {
+		return InstallationEvent{}, err
+	}
+	return InstallationEvent{Action: ev.Action, InstallationID: ev.Installation.ID}, nil
+}
+
 // bodyRepository reads repository.full_name from a delivery body, "" when absent.
 func bodyRepository(body []byte) string {
 	var ev struct {

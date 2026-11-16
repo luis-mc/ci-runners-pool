@@ -467,12 +467,24 @@ func (w webhookEvents) Repository(action, fullName string) {
 	}()
 }
 
-func (w webhookEvents) Installation(event string, _ []byte) {
+func (w webhookEvents) Installation(event string, body []byte) {
 	w.logger.Info("installation event", "event", event)
 	if w.appGone != nil && w.appGone() {
 		return
 	}
+	// new_permissions_accepted: the cached installation token is dropped, so
+	// the next call carries the permissions just accepted (CRSP139, R5.90).
+	accepted := int64(0)
+	if ev, err := github.ParseInstallationEvent(body); err == nil && ev.Action == github.NewPermissionsAccepted {
+		accepted = ev.InstallationID
+	}
 	go func() {
+		if accepted != 0 {
+			if err := w.repos.PermissionsAccepted(w.ctx, accepted); err != nil && w.ctx.Err() == nil {
+				w.logger.Warn("new permissions accepted", "err", err)
+			}
+			return
+		}
 		if err := w.repos.ReconcileInstallations(w.ctx); err != nil && w.ctx.Err() == nil {
 			w.logger.Warn("reconcile installations", "err", err)
 		}

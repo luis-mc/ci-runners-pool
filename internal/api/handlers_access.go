@@ -112,7 +112,6 @@ func (s *server) SetupRepositoryParity(ctx context.Context, req gen.SetupReposit
 	}
 	res, err := a.Repos.SetupParity(ctx, p, req.RepositoryId, repos.ParityInput{
 		ControllerURL: addr, CAFingerprint: caFingerprint(s.opts.CA),
-		AppSlug: st.App.Slug, AppOwnerLogin: st.App.OwnerLogin, AppOwnerType: st.App.OwnerType,
 		Issue: func(ctx context.Context) (string, string, error) {
 			v, c, err := a.Auth.CreateAccessCredential(ctx, p, "parity: "+repo.FullName, auth.ScopeParity)
 			return v, c.ID, err
@@ -127,9 +126,73 @@ func (s *server) SetupRepositoryParity(ctx context.Context, req gen.SetupReposit
 	}
 	if !res.Done {
 		m := res.MissingPermissions
-		return gen.SetupRepositoryParity200JSONResponse{Status: gen.ParitySetupStatusNeedsPermission, MissingPermissions: &m,
-			AppPermissionsUrl: &res.AppPermissionsURL, InstallationUrl: &res.InstallationURL}, nil
+		g := grantBody(res.Grant)
+		return gen.SetupRepositoryParity200JSONResponse{Status: gen.ParitySetupStatusNeedsPermission, MissingPermissions: &m, Grant: &g}, nil
 	}
 	return gen.SetupRepositoryParity200JSONResponse{Status: gen.ParitySetupStatusDone, AccessName: &res.SecretName,
 		VariableNames: &res.VariableNames, AccessId: &res.CredentialID}, nil
+}
+
+// grantBody maps the service's grant view to the API shape.
+func grantBody(v repos.GrantView) gen.GithubGrant {
+	steps := make([]gen.GithubGrantStep, 0, len(v.Steps))
+	for _, st := range v.Steps {
+		perms := st.Permissions
+		if perms == nil {
+			perms = []string{}
+		}
+		step := gen.GithubGrantStep{Id: gen.GithubGrantStepId(st.ID), Done: st.Done, Permissions: perms}
+		if st.URL != "" {
+			u := st.URL
+			step.Url = &u
+		}
+		steps = append(steps, step)
+	}
+	missing := v.Missing
+	if missing == nil {
+		missing = []string{}
+	}
+	out := gen.GithubGrant{Ready: v.Ready, Steps: steps, Missing: missing}
+	if v.Next != "" {
+		n := gen.GithubGrantNext(v.Next)
+		out.Next = &n
+	}
+	if v.InstallationID != 0 {
+		id := v.InstallationID
+		out.InstallationId = &id
+	}
+	return out
+}
+
+// GetGithubGrant implements GET /api/v1/github/grant (R5.89).
+func (s *server) GetGithubGrant(ctx context.Context, req gen.GetGithubGrantRequestObject) (gen.GetGithubGrantResponseObject, error) {
+	fail := func(err error) (gen.GetGithubGrantResponseObject, error) {
+		code, body := failure(err)
+		return gen.GetGithubGrantdefaultJSONResponse{StatusCode: code, Body: body}, nil
+	}
+	var needs []string
+	list := ""
+	if req.Params.Permissions != nil {
+		list = *req.Params.Permissions
+	}
+	for _, n := range strings.Split(list, ",") {
+		if n = strings.TrimSpace(n); n != "" {
+			needs = append(needs, n)
+		}
+	}
+	if len(needs) == 0 {
+		return fail(auth.Invalid("name at least one permission"))
+	}
+	in := repos.GrantInput{Needs: needs}
+	if req.Params.InstallationId != nil {
+		in.InstallationID = *req.Params.InstallationId
+	}
+	if req.Params.RepositoryId != nil {
+		in.RepositoryID = *req.Params.RepositoryId
+	}
+	v, err := s.ghArea().Repos.Grant(ctx, s.principal(ctx), in)
+	if err != nil {
+		return fail(err)
+	}
+	return gen.GetGithubGrant200JSONResponse(grantBody(v)), nil
 }

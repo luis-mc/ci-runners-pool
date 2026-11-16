@@ -375,6 +375,48 @@ func (e FreeSlotsRequestSlotsKind) Valid() bool {
 	}
 }
 
+// Defines values for GithubGrantNext.
+const (
+	GithubGrantNextAccept  GithubGrantNext = "accept"
+	GithubGrantNextAsk     GithubGrantNext = "ask"
+	GithubGrantNextInstall GithubGrantNext = "install"
+)
+
+// Valid indicates whether the value is a known member of the GithubGrantNext enum.
+func (e GithubGrantNext) Valid() bool {
+	switch e {
+	case GithubGrantNextAccept:
+		return true
+	case GithubGrantNextAsk:
+		return true
+	case GithubGrantNextInstall:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GithubGrantStepId.
+const (
+	GithubGrantStepIdAccept  GithubGrantStepId = "accept"
+	GithubGrantStepIdAsk     GithubGrantStepId = "ask"
+	GithubGrantStepIdInstall GithubGrantStepId = "install"
+)
+
+// Valid indicates whether the value is a known member of the GithubGrantStepId enum.
+func (e GithubGrantStepId) Valid() bool {
+	switch e {
+	case GithubGrantStepIdAccept:
+		return true
+	case GithubGrantStepIdAsk:
+		return true
+	case GithubGrantStepIdInstall:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for HealthStatus.
 const (
 	HealthStatusOk HealthStatus = "ok"
@@ -2407,6 +2449,39 @@ type GitHubApp struct {
 	WebhookActive bool               `json:"webhook_active"`
 }
 
+// GithubGrant github-integration R5.89.
+type GithubGrant struct {
+	InstallationId *int64 `json:"installation_id,omitempty"`
+
+	// Missing The needed permissions that are not accepted yet, by GitHub's name.
+	Missing []string `json:"missing"`
+
+	// Next The first step that is not done. Absent when ready.
+	Next *GithubGrantNext `json:"next,omitempty"`
+
+	// Ready Every needed permission is accepted by the installation.
+	Ready bool              `json:"ready"`
+	Steps []GithubGrantStep `json:"steps"`
+}
+
+// GithubGrantNext The first step that is not done. Absent when ready.
+type GithubGrantNext string
+
+// GithubGrantStep defines model for GithubGrantStep.
+type GithubGrantStep struct {
+	Done bool              `json:"done"`
+	Id   GithubGrantStepId `json:"id"`
+
+	// Permissions The permissions still waiting at this step.
+	Permissions []string `json:"permissions"`
+
+	// Url The GitHub page of the step. Absent when the step has none.
+	Url *string `json:"url,omitempty"`
+}
+
+// GithubGrantStepId defines model for GithubGrantStep.Id.
+type GithubGrantStepId string
+
 // Health defines model for Health.
 type Health struct {
 	Status  HealthStatus `json:"status"`
@@ -3029,11 +3104,8 @@ type ParitySetup struct {
 	// AccessName The name of the repository Actions value that holds the access, CRSP_ACCESS.
 	AccessName *string `json:"access_name,omitempty"`
 
-	// AppPermissionsUrl The GitHub page where the App's owner asks for the permission.
-	AppPermissionsUrl *string `json:"app_permissions_url,omitempty"`
-
-	// InstallationUrl The GitHub page where the installation's owner accepts it.
-	InstallationUrl    *string           `json:"installation_url,omitempty"`
+	// Grant github-integration R5.89.
+	Grant              *GithubGrant      `json:"grant,omitempty"`
 	MissingPermissions *[]string         `json:"missing_permissions,omitempty"`
 	Status             ParitySetupStatus `json:"status"`
 	VariableNames      *[]string         `json:"variable_names,omitempty"`
@@ -4028,6 +4100,14 @@ type ExportJobsParamsFormat string
 // ExportJobsParamsState defines parameters for ExportJobs.
 type ExportJobsParamsState string
 
+// GetGithubGrantParams defines parameters for GetGithubGrant.
+type GetGithubGrantParams struct {
+	// Permissions GitHub permission names, comma separated, such as `secrets,actions_variables`.
+	Permissions    *string `form:"permissions,omitempty" json:"permissions,omitempty"`
+	InstallationId *int64  `form:"installation_id,omitempty" json:"installation_id,omitempty"`
+	RepositoryId   *int64  `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+}
+
 // ListRepositoriesParams defines parameters for ListRepositories.
 type ListRepositoriesParams struct {
 	InstallationId *int64                      `form:"installation_id,omitempty" json:"installation_id,omitempty"`
@@ -4377,6 +4457,9 @@ type ServerInterface interface {
 	// GetAppHealth Whether the GitHub App and its key still exist
 	// (GET /api/v1/github/app-health)
 	GetAppHealth(w http.ResponseWriter, r *http.Request)
+	// GetGithubGrant What a task still needs from GitHub, step by step
+	// (GET /api/v1/github/grant)
+	GetGithubGrant(w http.ResponseWriter, r *http.Request, params GetGithubGrantParams)
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	// (GET /api/v1/github/install-url)
 	GetAppInstallUrl(w http.ResponseWriter, r *http.Request)
@@ -5640,6 +5723,65 @@ func (siw *ServerInterfaceWrapper) GetAppHealth(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetAppHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGithubGrant operation middleware
+func (siw *ServerInterfaceWrapper) GetGithubGrant(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetGithubGrantParams
+
+	// ------------- Optional query parameter "permissions" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "permissions", r.URL.Query(), &params.Permissions, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "permissions"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "permissions", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "installation_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "installation_id", r.URL.Query(), &params.InstallationId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "installation_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "installation_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "repository_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "repository_id", r.URL.Query(), &params.RepositoryId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "repository_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repository_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGithubGrant(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -8371,6 +8513,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/app-health", wrapper.GetAppHealth)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/org-pools", wrapper.ListOrgPools)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/github/installations/{installationId}/org-pool", wrapper.SetOrgPool)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/grant", wrapper.GetGithubGrant)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/install-url", wrapper.GetAppInstallUrl)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/github/repositories", wrapper.ListRepositories)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repository-plans", wrapper.PlanRepositoryChanges)
@@ -9773,6 +9916,45 @@ type GetAppHealthdefaultJSONResponse struct {
 }
 
 func (response GetAppHealthdefaultJSONResponse) VisitGetAppHealthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetGithubGrantRequestObject struct {
+	Params GetGithubGrantParams
+}
+
+type GetGithubGrantResponseObject interface {
+	VisitGetGithubGrantResponse(w http.ResponseWriter) error
+}
+
+type GetGithubGrant200JSONResponse GithubGrant
+
+func (response GetGithubGrant200JSONResponse) VisitGetGithubGrantResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetGithubGrantdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetGithubGrantdefaultJSONResponse) VisitGetGithubGrantResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -13570,6 +13752,9 @@ type StrictServerInterface interface {
 	// GetAppHealth Whether the GitHub App and its key still exist
 	// (GET /api/v1/github/app-health)
 	GetAppHealth(ctx context.Context, request GetAppHealthRequestObject) (GetAppHealthResponseObject, error)
+	// GetGithubGrant What a task still needs from GitHub, step by step
+	// (GET /api/v1/github/grant)
+	GetGithubGrant(ctx context.Context, request GetGithubGrantRequestObject) (GetGithubGrantResponseObject, error)
 	// GetAppInstallUrl GitHub's page to install the App on more repositories
 	// (GET /api/v1/github/install-url)
 	GetAppInstallUrl(ctx context.Context, request GetAppInstallUrlRequestObject) (GetAppInstallUrlResponseObject, error)
@@ -14677,6 +14862,32 @@ func (sh *strictHandler) GetAppHealth(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetAppHealthResponseObject); ok {
 		if err := validResponse.VisitGetAppHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetGithubGrant operation middleware
+func (sh *strictHandler) GetGithubGrant(w http.ResponseWriter, r *http.Request, params GetGithubGrantParams) {
+	var request GetGithubGrantRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetGithubGrant(ctx, request.(GetGithubGrantRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetGithubGrant")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetGithubGrantResponseObject); ok {
+		if err := validResponse.VisitGetGithubGrantResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

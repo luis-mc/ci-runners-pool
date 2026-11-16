@@ -627,17 +627,17 @@ func TestDeviceFlowDenied(t *testing.T) {
 
 func TestMissingPermissions(t *testing.T) { // R5.24
 	full := map[string]string{"administration": "write", "actions": "read", "actions_variables": "write",
-		"contents": "read", "metadata": "read", "organization_self_hosted_runners": "write"}
+		"contents": "read", "metadata": "read", "organization_self_hosted_runners": "write", "secrets": "write"}
 	if m := MissingPermissions(full); len(m) != 0 {
 		t.Fatalf("%v", m)
 	}
 	weak := map[string]string{"administration": "read", "actions": "write", "contents": "read", "metadata": "read"}
 	got := MissingPermissions(weak)
-	want := []string{"actions_variables", "administration", "organization_self_hosted_runners"}
+	want := []string{"actions_variables", "administration", "organization_self_hosted_runners", "secrets"}
 	if fmt.Sprint(got) != fmt.Sprint(want) {
 		t.Fatalf("got %v want %v (a stronger grant counts, a weaker one is missing)", got, want)
 	}
-	if len(RequiredPermissions) != 6 {
+	if len(RequiredPermissions) != 7 {
 		t.Fatal("the set is exactly the R5.23 table")
 	}
 }
