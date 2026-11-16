@@ -29,4 +29,9 @@ register with GitHub, `scriptAccount`, `rights.Grant` (secedit), hooks/.env, ACL
 5. Runner record keeps `failed_reason`; API `Runner.failed_reason`; minimal text in the existing row.
 
 ## Status
-See commits on the branch.
+Done. Backend: `internal/backend/windows` (scripts.go LSA + logon check, errtext.go, cleanup.go). Controller: `runners.Service.withRegistrationCleanup`, `Record.FailedReason`. API: `Runner.failed_reason` (openapi, codegen drift clean). Console: reason text after the state word. Spec R5.87, note CRSP126.
+
+Checks: gofmt, golangci-lint 0 issues, go test -race (backend, runners, api, cmd), GOOS=windows/darwin go vet, GOOS=windows test compile, vitest + typecheck of web. Not run: `lsa_windows_test.go` (needs Windows), `docs_check.py` (luismc-docs plugin not in sandbox).
+
+Not verified on a real host: which suspect hit the owner. Best evidence is the secedit `-notmatch` bug plus no read-back; the new logon check will name the real reason on the next try.
+Machines/agent notes: none, agent plan untouched.
