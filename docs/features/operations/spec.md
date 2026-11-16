@@ -289,6 +289,10 @@ Not built: a copyable reinstall command with a one-time token in the console, an
 
 **Checking a download** (documented in `docs/guides/install.md`): download the asset and `SHA256SUMS` from the same release; `sha256sum --check --ignore-missing SHA256SUMS` (Linux), `shasum -a 256 --check --ignore-missing SHA256SUMS` (macOS) or `Get-FileHash -Algorithm SHA256` compared by eye (Windows); then `gh attestation verify <file> --repo luis-mc/ci-runners-shared-pool`. The attestation of `SHA256SUMS` itself is checked the same way.
 
+### Parity access from a pool container (CRSP134)
+
+**R5.85** (built, CRSP134) — The parity workflow (`.github/workflows/parity.yml`, parity plan section 6) MUST run `crsp parity check` on a pool runner with no `crsp login`: it passes `CRSP_URL` and `CRSP_CA_FINGERPRINT` (repository variables) and `CRSP_ACCESS` (a repository secret) to the check step as environment (cli R5.60). The secret goes only to the steps that need it, never to the whole job. Its first step, before the build, fails with a message that names what is missing and the console action: "open Settings, Access for CI, pick this repository and press 'Set up parity for this repository'" (web-console R5.91, github-integration R5.84). The report and the artifact `parity-report` are still written and uploaded; a run whose access is missing never reports a pass. The names end in none of `_KEY`, `_TOKEN`, `_SECRET`, `_PASS`. The workflow keeps `permissions: contents: read` and actions pinned to a commit. The runbook ([move to crsp](../../guides/runbooks/move-to-crsp.md)) has the owner's steps. Source: `.github/workflows/parity.yml`.
+
 ## 6. Non-functional requirements
 
 **R6.1** (M3) — An update never stops a running job. A controller restart never stops a job on any machine; agents reconnect with backoff.
@@ -420,6 +424,7 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R6.8 | planned: internal/backup/secrets_scan_test.go TestNoSecretInBackupExportConfigLogs |
 | R6.9 | planned: internal/install/rerun_test.go, internal/update/swap_test.go TestInterruptedStepsRerun |
 | R6.10 | planned: internal/configio/roundtrip_test.go TestExportImportExportSame |
+| R5.85 | built: internal/parity/workflow_test.go TestParityWorkflowPassesTheAccessToTheCheck, TestParityWorkflowFailsFirstAndNamesTheConsoleAction, TestParityWorkflowNamesAvoidSecretEndings, TestParityWorkflowActionsArePinnedToACommit, TestParityWorkflowHasTheTriggersAndNoWritePermission |
 
 ## 10. Decisions
 

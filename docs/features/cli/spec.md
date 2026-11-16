@@ -232,6 +232,8 @@ With `--json`, a refusal prints the contract's `ErrorEnvelope` to stderr and use
 
 A command that Ctrl-C cut off may still run on the machine until its own timeout; the message says so.
 
+**R5.60** (built, CRSP134) — With no login context, the CLI MUST sign in from the environment, for every command that talks to the controller: `CRSP_URL` (the controller address), `CRSP_ACCESS` (an access credential, github-integration R5.82) and `CRSP_CA_FINGERPRINT` (the SHA-256 of the controller's CA certificate, 64 hex characters, colons allowed). The names end in none of `_KEY`, `_TOKEN`, `_SECRET`, `_PASS`. A login context always wins: the environment is the way in only when no context exists. The fingerprint MUST be pinned for an `https` address, by the same rule as the agents (the chain holds the CA with that fingerprint, or the server certificate is that certificate); there is no flag or variable that turns the check off, and a missing or wrong fingerprint sends no request. `http` is allowed for `127.0.0.1` and `[::1]` only, as in R6.3. A partial set names the missing variables and says where to make them (the console, Settings, Access for CI). With none set the answer is the old "Not signed in", now naming the three variables. The access value is never printed, written to the config file or put in an error, and the redactor masks `crsp_acc_` values. The environment sign-in has no stored token: `logout` has nothing to forget. Source: `internal/cli/session.go`.
+
 ## 6. Non-functional requirements
 
 **R6.1** — The CLI MUST NOT print, log or write to its config file any secret: controller tokens, GitHub tokens, the App private key, the webhook secret, registration or remove tokens. The one-time join code (`machine add`) and the one-time console link (`open`) are the only short-lived codes it prints, and only on those commands.
@@ -326,6 +328,7 @@ Tests are planned unless marked built. Planned paths are written in plain text u
 | R6.6 | built: internal/cli/resources_test.go TestViewerChangeExits3 |
 | R6.7 | built: internal/cli/output/output_test.go TestFits80Columns |
 | R6.8 | built: internal/cli/output/output_test.go TestJSONGolden |
+| R5.60 | built: internal/cli/envlogin_test.go TestEnvSignInWorksWithoutAContext, TestEnvSignInWorksForOtherCommands, TestEnvSignInPinsTheFingerprint, TestEnvSignInNeedsTheFingerprintForHTTPS, TestEnvSignInPartialSetNamesWhatIsMissing, TestNoContextNoEnvKeepsNotSignedIn, TestLoginContextWinsOverEnv |
 
 ## 10. Decisions
 

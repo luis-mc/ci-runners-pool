@@ -250,6 +250,7 @@ Settings hold configuration only (UX-52). Sub-pages sit under one Settings area,
 | Appearance | The user's theme (six named themes, kept in this browser) and mode (system, dark or light, saved by the server) (UX-60) | `getPreferences`, `updatePreferences` (the mode) | Two one-choice lists saved at once (component 13); the theme list shows a swatch row per theme | M1 |
 | Budgets | The pool's default load budget, slots and drain timeout for new machines, and the order of the queue | `getPoolSettings`, `updatePoolSettings`, `getQueueSettings`, `updateQueueSettings` | Save (admin); a change that restarts runners names the jobs it waits for (UX-62). A pool default only reaches machines that join later, so the page says no runner restarts and no job is waited for | M1 (built, CRSP37) |
 | Notifications | Channels (email, webhook, desktop) and the events each one gets | `listNotificationChannels`, `createNotificationChannel`, `updateNotificationChannel`, `deleteNotificationChannel`, `testNotificationChannel` | Add, edit, delete (question card), Send test | M1 for channels and Send test (built, CRSP37); event delivery later (milestone 8) |
+| Access for CI | Access credentials for automation and the action that sets up parity for a repository (R5.90, R5.91) | `listAccessCredentials`, `createAccessCredential`, `revokeAccessCredential`, `setupRepositoryParity` | Make (admin); Revoke asks first (UX-62); the value is shown once; Set up parity for this repository is busy and disabled with its reason while it runs (UX-13, UX-38); a missing App permission shows the GitHub pages that grant it (UX-26) | built, CRSP134 |
 | Updates | The runner version and the agent version, and when they update | `getUpdateStatus`, `checkForUpdate`, `applyUpdate`, `updateSettings` (auto_update) | Update now: a question card that names the machines and the jobs the drain waits for (UX-62) | later (milestone 3) |
 | Audit log | Who changed what, and when | `listAuditEvents`, `exportAuditEvents` | Export (component 29, UX-39) | built (CRSP37) |
 | Config export | The configuration as a file, without secrets | `exportConfig` | Export, named for what it holds then the file stamp (UX-39) | built (CRSP37) |
@@ -354,6 +355,10 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.66** (CRSP122, owner decision D70; machines R5.65) — **Download an installer in Add a machine.** The join choice has a third entry, *Download an installer*, for every system (Windows too). Pressing Join a machine on it (not earlier) calls `createJoinFile`, saves the file the controller names and waits on the code's progress exactly as for a copied command (R5.17). The Joining step names the saved file and says what to do with it on the machine, per system; the Review step says the file holds the join code, which works once and lasts 15 minutes. A controller without packages answers 501 and the wizard says why on the Review step, so the owner can copy the command instead. The option uses shared parts only (UX-54); its words are in `docs/design-system/next-version/content.md` (C32).
 
+**R5.90** (built, CRSP134) — Settings has a tab **Access for CI** (admin and owner; a viewer sees why it is closed). It lists the access credentials in a table (name, what it can do, who made it, when, last used, live or revoked) with Revoke on a live row, which asks first and names what stops (UX-62). A form (name, scope) makes one; the value comes up once in a dialog with a Copy block and the words that it is shown only once, and is gone when the dialog closes (it is held in no store, not in the browser). The list never holds a value (R6.4). The action of R5.91 sends the value from the controller to GitHub only. Built only from `@crsp/ui` parts; the page passes data. Source: `apps/web/src/screens/settings/AccessForCi.tsx`.
+
+**R5.91** (built, CRSP134) — The same tab has the action **Set up parity for this repository**: choose a repository, press the button (busy and disabled with its reason while it runs or when no repository is chosen, UX-13, UX-38). It writes through the GitHub App (github-integration R5.84); the owner copies nothing. Done says the workflow can run. When the App lacks a permission, the page makes nothing, says which permission (Secrets, Variables), and offers two buttons to the exact GitHub pages that grant it (the App's permissions page, then the installation page); an address that is not on `https://github.com/` is not offered. A failure says nothing was left behind. Source: `apps/web/src/screens/settings/AccessForCi.tsx`.
+
 ## 6. Non-functional requirements
 
 Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are **NOT YET IMPLEMENTED**.
@@ -364,7 +369,7 @@ Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are
 
 **R6.3** (built, CRSP33) — The console loads nothing from outside the controller: no CDN, font host, analytics or avatar image. The controller sends a Content Security Policy with `default-src 'self'`, no inline script, and `frame-ancestors 'none'`. The browser half (no outside request while the console runs) is the Playwright check in section 9, not built.
 
-**R6.4** (built, CRSP33) — No secret reaches the browser: not the App private key, the webhook secret, a GitHub token or an agent key. A join code shows only in its wizard, once, and never in a URL, log or audit entry.
+**R6.4** (built, CRSP33) — No secret reaches the browser: not the App private key, the webhook secret, a GitHub token or an agent key. A join code shows only in its wizard, once, and never in a URL, log or audit entry. An access credential for CI (R5.90) shows the same way: once, in the dialog that makes it, never in a list, URL, log or audit entry; the action of R5.91 never sends it to the browser at all.
 
 **R6.5** (built, CRSP33) — The API checks the role on every operation (its `x-auth`), whatever the console shows. A viewer's change request gets 403. An operation with no role rule is refused, not opened.
 
@@ -432,7 +437,7 @@ flowchart LR
 | `/jobs`, `/jobs/:id` | Jobs |
 | `/images`, `/caches` | Images and caches |
 | `/doctor` | Doctor |
-| `/settings/users`, `/settings/app`, `/settings/appearance`, `/settings/budgets`, `/settings/notifications`, `/settings/updates`, `/settings/audit`, `/settings/export` | Settings |
+| `/settings/users`, `/settings/app`, `/settings/appearance`, `/settings/budgets`, `/settings/notifications`, `/settings/access`, `/settings/updates`, `/settings/audit`, `/settings/export` | Settings |
 
 **API operations to add** (all under `/api/v1`, each with `x-auth` and `x-rate-limit`). The owning spec fixes each one's shape.
 
@@ -538,6 +543,8 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R6.11 | design kit guard | `packages/ui/src/components.css` (a `prefers-reduced-motion` rule); no automated check yet |
 | R6.12 | Playwright e2e, Vitest | `e2e/tests/web-console/perf.spec.ts`, `apps/web/src/bundle-size.test.ts` (budgets in `apps/web/perf-budgets.json`) |
 | R6.13 | Playwright e2e | `e2e/tests/web-console/offline-internet.spec.ts` (every screen of the route table, every non-controller request blocked) |
+| R5.90 | Vitest | `apps/web/src/screens/settings/AccessForCi.test.tsx` (Access for CI list: each access with its state and never a value, the empty state, admins only; Make an access: the value shown once, a name is asked for; Revoke asks first) |
+| R5.91 | Vitest | `apps/web/src/screens/settings/AccessForCi.test.tsx` (Set up parity for this repository: disabled until a repository is chosen, writes and says done, names the GitHub pages when the permission is missing, drops an address that is not github.com, shows a failure) |
 
 ## 10. Decisions
 
