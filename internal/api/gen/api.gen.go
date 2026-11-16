@@ -1490,8 +1490,9 @@ func (e SlotKind) Valid() bool {
 
 // Defines values for SshJoinRequestOs.
 const (
-	SshJoinRequestOsLinux SshJoinRequestOs = "linux"
-	SshJoinRequestOsMacos SshJoinRequestOs = "macos"
+	SshJoinRequestOsLinux   SshJoinRequestOs = "linux"
+	SshJoinRequestOsMacos   SshJoinRequestOs = "macos"
+	SshJoinRequestOsWindows SshJoinRequestOs = "windows"
 )
 
 // Valid indicates whether the value is a known member of the SshJoinRequestOs enum.
@@ -1500,6 +1501,8 @@ func (e SshJoinRequestOs) Valid() bool {
 	case SshJoinRequestOsLinux:
 		return true
 	case SshJoinRequestOsMacos:
+		return true
+	case SshJoinRequestOsWindows:
 		return true
 	default:
 		return false
@@ -4170,7 +4173,7 @@ type ServerInterface interface {
 	// CreateJoinCode Make a one-time join code and the install commands
 	// (POST /api/v1/join-codes)
 	CreateJoinCode(w http.ResponseWriter, r *http.Request)
-	// JoinMachineOverSsh Join a Linux or macOS machine over SSH
+	// JoinMachineOverSsh Join a Linux, macOS or Windows machine over SSH
 	// (POST /api/v1/join-codes/ssh)
 	JoinMachineOverSsh(w http.ResponseWriter, r *http.Request)
 	// RevokeJoinCode Withdraw an unused join code
@@ -12858,7 +12861,7 @@ type StrictServerInterface interface {
 	// CreateJoinCode Make a one-time join code and the install commands
 	// (POST /api/v1/join-codes)
 	CreateJoinCode(ctx context.Context, request CreateJoinCodeRequestObject) (CreateJoinCodeResponseObject, error)
-	// JoinMachineOverSsh Join a Linux or macOS machine over SSH
+	// JoinMachineOverSsh Join a Linux, macOS or Windows machine over SSH
 	// (POST /api/v1/join-codes/ssh)
 	JoinMachineOverSsh(ctx context.Context, request JoinMachineOverSshRequestObject) (JoinMachineOverSshResponseObject, error)
 	// RevokeJoinCode Withdraw an unused join code

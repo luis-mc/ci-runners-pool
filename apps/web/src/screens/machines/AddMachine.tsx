@@ -192,7 +192,7 @@ export function AddMachineWizard({ onDone }: Props) {
         const join = await unwrap(
           client.POST('/api/v1/join-codes/ssh', {
             body: {
-              os: os === 'macos' ? 'macos' : 'linux',
+              os,
               host: host.trim(),
               port,
               user: user.trim(),
@@ -305,9 +305,8 @@ export function AddMachineWizard({ onDone }: Props) {
     setPhase('first-run');
   };
 
-  const canSsh = os !== 'windows';
   const next = async () => {
-    if (method === 'ssh' && os !== 'windows') {
+    if (method === 'ssh') {
       const problems: string[] = [];
       if (!host.trim()) problems.push('Enter the host name or address.');
       if (!user.trim()) problems.push('Enter the user name.');
@@ -317,7 +316,7 @@ export function AddMachineWizard({ onDone }: Props) {
     }
     await toReview();
   };
-  const usingSsh = method === 'ssh' && canSsh;
+  const usingSsh = method === 'ssh';
   let body;
   if (step === 0) {
     body = (
@@ -328,7 +327,6 @@ export function AddMachineWizard({ onDone }: Props) {
           value={os}
           onChange={(v) => {
             setOs(v as OS);
-            if (v === 'windows') setMethod('copy');
           }}
           choices={[
             { value: 'linux', label: 'Linux' },
@@ -336,23 +334,23 @@ export function AddMachineWizard({ onDone }: Props) {
             { value: 'macos', label: 'macOS' },
           ]}
         />
-        {canSsh ? (
-          <ChoiceField
-            label="How the machine joins"
-            help="Copy one command and run it on the machine, or let crsp sign in over SSH once."
-            value={method}
-            onChange={(v) => setMethod(v as Method)}
-            choices={[
-              { value: 'copy', label: 'Copy a command' },
-              { value: 'ssh', label: 'I have SSH' },
-            ]}
-          />
-        ) : (
+        <ChoiceField
+          label="How the machine joins"
+          help="Copy one command and run it on the machine, or let crsp sign in over SSH once."
+          value={method}
+          onChange={(v) => setMethod(v as Method)}
+          choices={[
+            { value: 'copy', label: 'Copy a command' },
+            { value: 'ssh', label: 'I have SSH' },
+          ]}
+        />
+        {os === 'windows' ? (
           <Message tone="note">
-            A Windows machine joins by copying a command. Run it in an administrator
-            terminal.
+            {method === 'ssh'
+              ? 'A Windows machine needs the OpenSSH server, and the user must be an administrator.'
+              : 'Run the copied command in an administrator terminal.'}
           </Message>
-        )}
+        ) : null}
         {usingSsh ? (
           <Stack>
             <ErrorSummary errors={errors} />
@@ -367,7 +365,11 @@ export function AddMachineWizard({ onDone }: Props) {
             />
             <TextAreaField
               label="SSH key file"
-              help="Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user needs sudo without a password."
+              help={
+                os === 'windows'
+                  ? 'Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user must be an administrator.'
+                  : 'Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user needs sudo without a password.'
+              }
               value={identity}
               onChange={setIdentity}
               rows={6}

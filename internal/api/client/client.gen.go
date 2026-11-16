@@ -1491,8 +1491,9 @@ func (e SlotKind) Valid() bool {
 
 // Defines values for SshJoinRequestOs.
 const (
-	SshJoinRequestOsLinux SshJoinRequestOs = "linux"
-	SshJoinRequestOsMacos SshJoinRequestOs = "macos"
+	SshJoinRequestOsLinux   SshJoinRequestOs = "linux"
+	SshJoinRequestOsMacos   SshJoinRequestOs = "macos"
+	SshJoinRequestOsWindows SshJoinRequestOs = "windows"
 )
 
 // Valid indicates whether the value is a known member of the SshJoinRequestOs enum.
@@ -1501,6 +1502,8 @@ func (e SshJoinRequestOs) Valid() bool {
 	case SshJoinRequestOsLinux:
 		return true
 	case SshJoinRequestOsMacos:
+		return true
+	case SshJoinRequestOsWindows:
 		return true
 	default:
 		return false
@@ -4468,18 +4471,18 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/join-codes (the `CreateJoinCode` operationId).
 	CreateJoinCode(ctx context.Context, body CreateJoinCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// JoinMachineOverSshWithBody Join a Linux or macOS machine over SSH
+	// JoinMachineOverSshWithBody Join a Linux, macOS or Windows machine over SSH
 	//
-	// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+	// machines R5.3a (RES3, owner decision D59; Windows with OpenSSH server, CRSP123, D70: the SSH user must be an administrator). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
 	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
 	JoinMachineOverSshWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// JoinMachineOverSsh Join a Linux or macOS machine over SSH
+	// JoinMachineOverSsh Join a Linux, macOS or Windows machine over SSH
 	//
-	// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+	// machines R5.3a (RES3, owner decision D59; Windows with OpenSSH server, CRSP123, D70: the SSH user must be an administrator). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -6107,9 +6110,9 @@ func (c *Client) CreateJoinCode(ctx context.Context, body CreateJoinCodeJSONRequ
 	return c.Client.Do(req)
 }
 
-// JoinMachineOverSshWithBody Join a Linux or macOS machine over SSH
+// JoinMachineOverSshWithBody Join a Linux, macOS or Windows machine over SSH
 //
-// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+// machines R5.3a (RES3, owner decision D59; Windows with OpenSSH server, CRSP123, D70: the SSH user must be an administrator). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
 //
 // Takes any type of body and a specified content type.
 //
@@ -6126,9 +6129,9 @@ func (c *Client) JoinMachineOverSshWithBody(ctx context.Context, contentType str
 	return c.Client.Do(req)
 }
 
-// JoinMachineOverSsh Join a Linux or macOS machine over SSH
+// JoinMachineOverSsh Join a Linux, macOS or Windows machine over SSH
 //
-// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+// machines R5.3a (RES3, owner decision D59; Windows with OpenSSH server, CRSP123, D70: the SSH user must be an administrator). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -13651,18 +13654,18 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/join-codes (the `CreateJoinCode` operationId).
 	CreateJoinCodeWithResponse(ctx context.Context, body CreateJoinCodeJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateJoinCodeResponse, error)
 
-	// JoinMachineOverSshWithBodyWithResponse Join a Linux or macOS machine over SSH
+	// JoinMachineOverSshWithBodyWithResponse Join a Linux, macOS or Windows machine over SSH
 	//
-	// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+	// machines R5.3a (RES3, owner decision D59; Windows with OpenSSH server, CRSP123, D70: the SSH user must be an administrator). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /api/v1/join-codes/ssh (the `JoinMachineOverSsh` operationId).
 	JoinMachineOverSshWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*JoinMachineOverSshResponse, error)
 
-	// JoinMachineOverSshWithResponse Join a Linux or macOS machine over SSH
+	// JoinMachineOverSshWithResponse Join a Linux, macOS or Windows machine over SSH
 	//
-	// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+	// machines R5.3a (RES3, owner decision D59; Windows with OpenSSH server, CRSP123, D70: the SSH user must be an administrator). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -20844,9 +20847,9 @@ func (c *ClientWithResponses) CreateJoinCodeWithResponse(ctx context.Context, bo
 	return ParseCreateJoinCodeResponse(rsp)
 }
 
-// JoinMachineOverSshWithBodyWithResponse Join a Linux or macOS machine over SSH
+// JoinMachineOverSshWithBodyWithResponse Join a Linux, macOS or Windows machine over SSH
 //
-// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+// machines R5.3a (RES3, owner decision D59; Windows with OpenSSH server, CRSP123, D70: the SSH user must be an administrator). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -20859,9 +20862,9 @@ func (c *ClientWithResponses) JoinMachineOverSshWithBodyWithResponse(ctx context
 	return ParseJoinMachineOverSshResponse(rsp)
 }
 
-// JoinMachineOverSshWithResponse Join a Linux or macOS machine over SSH
+// JoinMachineOverSshWithResponse Join a Linux, macOS or Windows machine over SSH
 //
-// machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+// machines R5.3a (RES3, owner decision D59; Windows with OpenSSH server, CRSP123, D70: the SSH user must be an administrator). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //

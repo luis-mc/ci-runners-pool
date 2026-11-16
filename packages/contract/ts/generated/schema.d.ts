@@ -1001,8 +1001,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Join a Linux or macOS machine over SSH
-         * @description machines R5.3a (RES3, owner decision D59). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
+         * Join a Linux, macOS or Windows machine over SSH
+         * @description machines R5.3a (RES3, owner decision D59; Windows with OpenSSH server, CRSP123, D70: the SSH user must be an administrator). The optional path beside copy-and-wait. The key file in `identity` is used for this one join and is never stored or logged; there is no password option. Without `host_fingerprint` nothing runs: the answer is 409 `needs_confirmation` whose detail is the host key fingerprint to confirm; send the call again with it. The answer is the join code record (never its value); poll it like a copied command.
          */
         post: operations["joinMachineOverSsh"];
         delete?: never;
@@ -3180,7 +3180,7 @@ export interface components {
         };
         SshJoinRequest: {
             /** @enum {string} */
-            os: "linux" | "macos";
+            os: "linux" | "macos" | "windows";
             host: string;
             /** @description Default 22. */
             port?: number;

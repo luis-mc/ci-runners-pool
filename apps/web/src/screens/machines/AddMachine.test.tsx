@@ -102,15 +102,19 @@ describe('Copy and wait', () => {
     expect(within(group).getAllByText('in progress')).toHaveLength(1);
   });
 
-  it('has no SSH choice for Windows', async () => {
+  it('offers the SSH choice for Windows with its note', async () => {
     renderApp(
       api(() => code()),
       '/machines/add',
     );
     await screen.findByRole('radio', { name: 'Windows' });
     fireEvent.click(screen.getByRole('radio', { name: 'Windows' }));
-    expect(screen.queryByRole('radio', { name: 'I have SSH' })).toBeNull();
-    expect(screen.getByText(/joins by copying a command/)).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'I have SSH' })).toBeTruthy();
+    expect(
+      screen.getByText(/Run the copied command in an administrator terminal/),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio', { name: 'I have SSH' }));
+    expect(screen.getByText(/needs the OpenSSH server/)).toBeTruthy();
   });
 });
 
@@ -194,5 +198,35 @@ describe('I have SSH', () => {
     await press('Join a machine');
     expect(await screen.findByText(/Could not join over SSH/)).toBeTruthy();
     expect(screen.getByText(/did not finish on build1.lan/)).toBeTruthy();
+  });
+
+  it('sends os windows over SSH and shows the reason when the user is not an administrator', async () => {
+    const a = api(() => code()).on('POST', '/api/v1/join-codes/ssh', (c) => {
+      const body = c.body as { host_fingerprint?: string };
+      if (!body.host_fingerprint)
+        return apiError(409, 'needs_confirmation', 'Confirm the host key.', [
+          { kind: 'item', text: 'SHA256:hostkey' },
+        ]);
+      return apiError(
+        400,
+        'bad_request',
+        'the SSH user is not an administrator on this machine',
+      );
+    });
+    renderApp(a, '/machines/add');
+    await screen.findByRole('radio', { name: 'Windows' });
+    fireEvent.click(screen.getByRole('radio', { name: 'Windows' }));
+    fill();
+    expect(screen.getByText(/needs the OpenSSH server/)).toBeTruthy();
+    await press('Next');
+    await press('Join a machine');
+    const dialog = await screen.findByRole('dialog', { name: 'Is this the host key?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Yes, sign in' }));
+    expect(await screen.findByText(/not an administrator on this machine/)).toBeTruthy();
+    const sent = a.calls.filter((c) => c.path === '/api/v1/join-codes/ssh');
+    expect(sent[1]?.body).toMatchObject({
+      os: 'windows',
+      host_fingerprint: 'SHA256:hostkey',
+    });
   });
 });
