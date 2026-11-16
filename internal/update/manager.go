@@ -130,6 +130,9 @@ type Options struct {
 	// StartMSI starts msiexec detached (Windows update); MSILog is its log path (default %ProgramData%\crsp\logs).
 	StartMSI func(ctx context.Context, msi, log string) (int, error)
 	MSILog   string
+	// AfterInstall runs once at the first start after an update that succeeded, with the new
+	// version. On Windows it starts the tray for each signed-in user (CRSP147).
+	AfterInstall func(version string)
 	// Privileged says whether this process may install (default: root or an elevated token).
 	Privileged func() bool
 	Pid        func() int
@@ -203,7 +206,10 @@ func New(o Options) *Manager {
 		o.AutoUpdate = func(context.Context) bool { return true }
 	}
 	m := &Manager{o: o, state: StateIdle}
-	RecoverMSI(o.Dir, o.Current, o.Now())
+	if settled, res := recoverMSI(o.Dir, o.Current, o.Now()); settled && res.OK && o.AfterInstall != nil {
+		// The new build runs: the old tray was ended by the MSI, so start the tray again (CRSP147).
+		go o.AfterInstall(res.To)
+	}
 	if r, ok := ReadResult(o.Dir); ok && !r.OK && r.To != o.Current {
 		m.state, m.errText = StateFailed, "The last update to "+r.To+" failed: "+r.Error
 	}

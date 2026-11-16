@@ -11,6 +11,8 @@ import (
 type fileState struct {
 	// NoTrayNoticeVersion is the version for which the GNOME notice was shown (R5.24).
 	NoTrayNoticeVersion string `json:"no_tray_notice_version,omitempty"`
+	// UpdatedNoticeVersion is the version for which "Updated to vX" was shown (CRSP147): once per version.
+	UpdatedNoticeVersion string `json:"updated_notice_version,omitempty"`
 }
 
 func statePath() (string, error) {
@@ -44,6 +46,18 @@ func noticeDue(path, version string) bool {
 		return false
 	}
 	s.NoTrayNoticeVersion = version
+	_ = saveState(path, s)
+	return true
+}
+
+// updatedDue reports whether "Updated to <version>" should show, and records it, so
+// two trays started after one install (the updater's and the old tray's) say it once.
+func updatedDue(path, version string) bool {
+	s := loadState(path)
+	if s.UpdatedNoticeVersion == version {
+		return false
+	}
+	s.UpdatedNoticeVersion = version
 	_ = saveState(path, s)
 	return true
 }

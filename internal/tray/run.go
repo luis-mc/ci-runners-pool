@@ -87,7 +87,7 @@ func Run(args []string, o Options) int {
 		return ExitNoTrayHost
 	}
 
-	if *updated && o.Version != "" {
+	if *updated && o.Version != "" && updatedOnce(o.Version) {
 		DesktopNotice("Updated to "+o.Version, ProductName+" now runs version "+o.Version+".")
 	}
 	return loop(o, *smoke, *hold)
@@ -289,4 +289,13 @@ func runQuit(o Options) int {
 		return 1
 	}
 	return ExitOK
+}
+
+// updatedOnce is true the first time this version's "Updated to" notice is due for this user.
+func updatedOnce(version string) bool {
+	p, err := statePath()
+	if err != nil {
+		return true // no state file: say it rather than stay silent
+	}
+	return updatedDue(p, version)
 }

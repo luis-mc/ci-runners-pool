@@ -107,16 +107,22 @@ func (m *Manager) startMSI(ctx context.Context, p *pending) (int, error) {
 // still running is left alone. It writes the Result and the failure count, and
 // returns true when it settled something.
 func RecoverMSI(dir, current string, now time.Time) bool {
+	settled, _ := recoverMSI(dir, current, now)
+	return settled
+}
+
+// recoverMSI is RecoverMSI that also hands back the Result it wrote.
+func recoverMSI(dir, current string, now time.Time) (bool, Result) {
 	var rec PendingMSI
 	b, err := os.ReadFile(filepath.Join(dir, PendingMSIFile)) //nolint:gosec // work folder
 	if err != nil || json.Unmarshal(b, &rec) != nil {
-		return false
+		return false, Result{}
 	}
-	done := func(r Result) bool {
+	done := func(r Result) (bool, Result) {
 		r.Kind, r.From, r.To, r.At = "update", rec.From, rec.To, now
 		_ = WriteResult(dir, r)
 		_ = os.Remove(filepath.Join(dir, PendingMSIFile))
-		return true
+		return true, r
 	}
 	if current == rec.To {
 		_ = clearFailures(dir, rec.To)
@@ -136,7 +142,7 @@ func RecoverMSI(dir, current string, now time.Time) bool {
 		_ = RecordFailure(dir, rec.To, now, false)
 		return done(Result{Error: "the installer left no result in its log. The log is " + rec.Log})
 	}
-	return false
+	return false, Result{}
 }
 
 func clearFailures(dir, version string) error {

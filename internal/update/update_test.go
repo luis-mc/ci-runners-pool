@@ -871,3 +871,31 @@ func TestInstallNowInstallsAndLaterDoesNot(t *testing.T) {
 		t.Fatalf("Install now must start the update: %+v begun=%v", st, h.d.begun)
 	}
 }
+
+// CRSP147: after an update the service started under, AfterInstall runs once with the new version; a
+// failed update, or no update, does not call it.
+func TestAfterInstallRunsOnlyAfterASuccessfulMSIUpdate(t *testing.T) {
+	now := time.Now()
+	run := func(current, exit string) (got chan string) {
+		dir := t.TempDir()
+		log := filepath.Join(dir, "msi-update.log")
+		_ = os.WriteFile(log, []byte("MainEngineThread is returning "+exit+"\n"), 0o600)
+		pendingFor(t, dir, log, now)
+		got = make(chan string, 2)
+		New(Options{Current: current, Dir: dir, Now: func() time.Time { return now }, AfterInstall: func(v string) { got <- v }})
+		return got
+	}
+	select {
+	case v := <-run("1.5.0", "0"):
+		if v != "1.5.0" {
+			t.Fatalf("%q", v)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("the tray must be started after a successful update")
+	}
+	select {
+	case v := <-run("1.4.0", "1603"):
+		t.Fatalf("a failed update must not start a tray: %q", v)
+	case <-time.After(150 * time.Millisecond):
+	}
+}
