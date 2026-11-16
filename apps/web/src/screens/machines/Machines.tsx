@@ -14,6 +14,7 @@ import {
   NumberField,
   Page,
   PageHeader,
+  Pane,
   ListToolbar,
   SearchBar,
   Section,
@@ -140,18 +141,9 @@ export function MachinesList() {
               m.name.toLowerCase().includes(q.trim().toLowerCase()),
           );
           if (data.items.length === 0)
-            return (
-              <Empty
-                title="No machines yet. Add a machine to start."
-                action={
-                  session.can('admin') ? (
-                    <LinkButton to="/machines/add">Add a machine</LinkButton>
-                  ) : undefined
-                }
-              />
-            );
+            return <Empty title="No machines yet. Use Add a machine above to start." />;
           return (
-            <Stack>
+            <Pane title="Machines" count={data.items.length}>
               <ListToolbar
                 label="Machines"
                 search={<SearchBar value={q} onChange={setQ} label="Search machines" />}
@@ -190,7 +182,7 @@ export function MachinesList() {
                   rowKey={(m) => m.id}
                 />
               )}
-            </Stack>
+            </Pane>
           );
         }}
       </Load>
@@ -219,6 +211,10 @@ export function MachineDetail() {
           { label: result.state === 'ready' ? result.data.name : 'Machine' },
         ]}
       />
+      {result.state === 'ready' ||
+      (result.state === 'failed' && result.data !== undefined) ? null : (
+        <PageHeader title="Machine" />
+      )}
       <Load result={result} what="the machine" reload={reload}>
         {(m) => <MachineBody m={m} onChanged={reload} />}
       </Load>
@@ -463,44 +459,56 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
               />
             </FieldGrid>
           </Section>
-          {saved ? <Message tone="done">Settings saved.</Message> : null}
-          {save.error ? (
-            <Message tone="problem">Could not save. {save.error} Try again.</Message>
-          ) : null}
-          <FormActions>
-            <Button onPress={() => void navigate('/machines')}>Cancel</Button>
-            <Button
-              kind="primary"
-              submit
-              busy={save.busy}
-              busyLabel="Saving"
-              disabled={!admin}
-              reason={why}
-            >
-              Save
-            </Button>
-          </FormActions>
         </Stack>
       </form>
       <Section title="Pool size">
         <PoolSizeWizard m={m} onChanged={onChanged} />
       </Section>
-      <Section title="Remove this machine">
+      <Pane
+        title="Remove this machine"
+        footer={
+          <Button
+            kind="danger"
+            onPress={() =>
+              removeQ.ask(
+                [
+                  `Machine ${m.name}`,
+                  `Its runners (${m.slots_used} in use)`,
+                  'Its settings and its place in the pool',
+                ],
+                jobs,
+              )
+            }
+            disabled={!admin}
+          >
+            Remove
+          </Button>
+        }
+      >
         <Text tone="muted">
           Removing takes the machine and its runners out of the pool. Jobs that run there
           finish first. The agent stays installed on the machine.
         </Text>
-        <Cluster>
+      </Pane>
+      <Stack gap="tight">
+        {saved ? <Message tone="done">Settings saved.</Message> : null}
+        {save.error ? (
+          <Message tone="problem">Could not save. {save.error} Try again.</Message>
+        ) : null}
+        <FormActions>
+          <Button onPress={() => void navigate('/machines')}>Cancel</Button>
           <Button
-            kind="danger"
-            onPress={() => removeQ.ask([`Machine ${m.name}`, `Its runners`], jobs)}
+            submit={false}
+            onPress={() => void save.run()}
+            busy={save.busy}
+            busyLabel="Saving"
             disabled={!admin}
             reason={why}
           >
-            Remove
+            Save
           </Button>
-        </Cluster>
-      </Section>
+        </FormActions>
+      </Stack>
       <Ask
         title={`Drain ${m.name}?`}
         action="Drain"

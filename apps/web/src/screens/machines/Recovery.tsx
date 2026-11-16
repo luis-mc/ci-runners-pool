@@ -49,7 +49,6 @@ export function RecoverySection({ m, onChanged }: { m: Machine; onChanged: () =>
           <Message tone="problem">Could not start recovery. {recover.error}</Message>
         ) : null}
         <Button
-          kind="primary"
           onPress={() => void recover.run()}
           busy={recover.busy}
           busyLabel="Recovering"
