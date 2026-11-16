@@ -108,7 +108,7 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 | Command | What it does | Milestone | Owner spec of the behaviour |
 |---|---|---|---|
 | `controller` | Run the controller (built today) | built | `web-console`, `github-integration` |
-| `agent` | Run the agent; `agent join` uses a join command | M1 | `machines` |
+| `agent` | Run the agent; `agent join` uses a join command; `agent install` needs admin rights (it stops first with one plain line otherwise) and the agent commands default `--data-dir` to the machine-wide folder of the OS (CRSP119) | M1 | `machines` |
 | `tray` | Run the tray in the user's session | M8 | `tray` |
 | `version` | Print the version (built today) | built | this spec |
 | `login` | Sign in with the device flow | M1 | `github-integration` |
