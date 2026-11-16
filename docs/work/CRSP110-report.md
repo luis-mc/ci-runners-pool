@@ -15,3 +15,9 @@ Task: github-integration R6.10 (data kept) and R6.11 (limits). Branch CRSP110-da
 
 ## Status
 (updated below as steps finish)
+
+- Done: tests (internal/github/client_test.go, internal/api/handlers_github_test.go, internal/store/retention_test.go), inventory rows (stack profile section 7), spec R6.10 and R6.11 built, change note CRSP110.
+- No migration or sqlc change: schema already holds only the listed fields, so codegen-drift not needed.
+- gofmt, golangci-lint (0 issues), go test -race on github, store, api; GOOS=windows and darwin go vet clean.
+- `docs_check.py` not run: the luismc-docs plugin is not in this sandbox.
+- Console pager (apps/web) not touched. Its on-screen behaviour with 1,000+ repositories and the 3 s first page are covered only by the planned e2e/github-repositories.spec.ts; not verified here.

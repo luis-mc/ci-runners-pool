@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -516,6 +517,57 @@ func TestPreferences(t *testing.T) {
 	}
 	if _, b := h.do("GET", "/api/v1/me/preferences", nil, c, nil); !strings.Contains(string(b), `"dark"`) {
 		t.Fatalf("%s", b)
+	}
+}
+
+func TestRepositoryListPagesThrough1000Repositories(t *testing.T) { // R6.11
+	h := newHarness(t)
+	owner, _ := h.setup(1, "alice")
+	h.fake.AddInstall(10, "alice", "User", 1)
+	const n = 1001
+	for i := 1; i <= n; i++ {
+		h.fake.AddRepo(int64(i), 10, "alice", fmt.Sprintf("r%04d", i), true, 1)
+	}
+	seen := map[string]bool{}
+	cursor, pages := "", 0
+	for {
+		path := "/api/v1/github/repositories?limit=100"
+		if cursor != "" {
+			path += "&cursor=" + url.QueryEscape(cursor)
+		}
+		res, b := h.do("GET", path, nil, owner, nil)
+		if res.StatusCode != 200 {
+			t.Fatalf("page %d: %d %s", pages+1, res.StatusCode, b)
+		}
+		var page struct {
+			Items []struct {
+				FullName string `json:"full_name"`
+			}
+			NextCursor string `json:"next_cursor"`
+		}
+		if err := json.Unmarshal(b, &page); err != nil {
+			t.Fatal(err)
+		}
+		if len(page.Items) > 100 {
+			t.Fatalf("page %d holds %d items", pages+1, len(page.Items))
+		}
+		for _, it := range page.Items {
+			if seen[it.FullName] {
+				t.Fatalf("%s listed twice", it.FullName)
+			}
+			seen[it.FullName] = true
+		}
+		pages++
+		if page.NextCursor == "" {
+			break
+		}
+		cursor = page.NextCursor
+		if pages > 20 {
+			t.Fatal("the cursor does not end")
+		}
+	}
+	if len(seen) != n || pages != 11 {
+		t.Fatalf("%d repositories over %d pages, want %d over 11", len(seen), pages, n)
 	}
 }
 
