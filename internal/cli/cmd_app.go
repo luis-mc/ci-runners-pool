@@ -32,7 +32,7 @@ func (c *call) rotateKey() error {
 	if path == "" {
 		return fail(ExitUsage, "Usage: crsp app rotate-key --file PATH|- [--yes]")
 	}
-	var r io.Reader = c.env.Stdin
+	r := c.env.Stdin
 	if path != "-" {
 		f, err := os.Open(path)
 		if err != nil {
