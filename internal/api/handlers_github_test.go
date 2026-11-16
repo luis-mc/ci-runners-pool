@@ -113,7 +113,7 @@ func newHarnessWith(t *testing.T, wrap func(*secrets.Memory) secrets.Store) *har
 		Events: noEvents{},
 	}
 	mux := http.NewServeMux()
-	Register(mux, Options{Version: "test", DB: okPinger{}, GitHub: &GitHubArea{Auth: asvc, Repos: rsvc, Webhook: h.hook, WebBase: f.URL, Health: h.health}})
+	Register(mux, Options{Version: "test", DB: okPinger{}, CA: fakeCA{}, GitHub: &GitHubArea{Auth: asvc, Repos: rsvc, Webhook: h.hook, WebBase: f.URL, Health: h.health}})
 	h.srv = httptest.NewServer(Recover(slog.New(slog.NewTextHandler(io.Discard, nil)), mux))
 	t.Cleanup(h.srv.Close)
 	h.client = &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
