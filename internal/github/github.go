@@ -40,6 +40,18 @@ var (
 	ErrKeyRefused = errors.New("github: the key is not for this App")
 )
 
+// APIError is an error answer of GitHub with its real status and message, so a
+// page can show what GitHub said (UX-28). It unwraps to the package error of
+// its status (ErrNotFound, ErrForbidden, ErrUnavailable) when there is one.
+type APIError struct {
+	Status  int
+	Message string
+	Err     error
+}
+
+func (e *APIError) Error() string { return e.Err.Error() }
+func (e *APIError) Unwrap() error { return e.Err }
+
 // RateLimitError carries when a limit resets.
 type RateLimitError struct {
 	ResetAt time.Time

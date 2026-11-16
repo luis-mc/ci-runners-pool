@@ -16,10 +16,11 @@ import (
 )
 
 type fakeBackend struct {
-	checks  int
-	caller  Caller
-	target  string
-	linkErr error
+	checks   int
+	installs int
+	caller   Caller
+	target   string
+	linkErr  error
 	// The policy calls (CRSP75): the last mode and pause the tray sent.
 	mode, pause string
 	resumed     int
@@ -55,6 +56,11 @@ func (f *fakeBackend) Status(context.Context) (tray.Response, error) {
 func (f *fakeBackend) Check(ctx context.Context) (tray.Response, error) {
 	f.checks++
 	return f.Status(ctx)
+}
+func (f *fakeBackend) Install(_ context.Context, c Caller) (tray.Response, error) {
+	f.caller = c
+	f.installs++
+	return f.Status(context.Background())
 }
 func (f *fakeBackend) Link(_ context.Context, c Caller, target string) (string, error) {
 	f.caller, f.target = c, target
@@ -93,7 +99,7 @@ func TestChannelStatusCheckAndLink(t *testing.T) {
 	if st.State != tray.StateHealthy || st.Running != 2 || st.Version != "1.4.0" || !st.Update.Available || st.Update.Latest != "1.5.0" || st.Update.AutoOff {
 		t.Fatalf("%+v", st)
 	}
-	if _, err := c.Check(ctx); err != nil || fb.checks != 1 {
+	if _, err := c.Check(ctx); err != nil || fb.checks != 1 || fb.installs != 0 {
 		t.Fatalf("check: %v %d", err, fb.checks)
 	}
 	u, err := c.LinkTo(ctx, "/settings/updates/review")
@@ -195,5 +201,17 @@ func TestChannelModePauseAndResume(t *testing.T) {
 	}
 	if st, err = c.Resume(ctx); err != nil || fb.resumed != 1 || st.Policy.Mode != "automatic" {
 		t.Fatalf("resume: %v %+v", err, st.Policy)
+	}
+}
+
+// CRSP147: Install now is its own call; check never reaches it.
+func TestChannelInstallIsItsOwnCall(t *testing.T) {
+	fb := &fakeBackend{}
+	c, _ := start(t, fb)
+	if _, err := c.Check(context.Background()); err != nil || fb.installs != 0 {
+		t.Fatalf("check must not install: %v installs=%d", err, fb.installs)
+	}
+	if _, err := c.Install(context.Background()); err != nil || fb.installs != 1 {
+		t.Fatalf("%v installs=%d", err, fb.installs)
 	}
 }

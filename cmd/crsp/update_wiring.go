@@ -13,6 +13,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/settings"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/tray"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 )
 
@@ -142,6 +143,15 @@ func startUpdates(ctx context.Context, cfg config.Config, logger *slog.Logger, m
 		HealthURL: fmt.Sprintf("%s://%s/healthz", consoleScheme(host), net.JoinHostPort(host, port)),
 		Exe:       exe,
 		Logger:    logger.With("component", "update"),
+		// The MSI ends every tray; after it the service starts the tray again for the signed-in user (CRSP147).
+		AfterInstall: func(v string) {
+			n, err := tray.StartForSignedInUsers(exe)
+			if err != nil {
+				logger.Warn("could not start the tray after the update", "version", v, "started", n, "err", err)
+				return
+			}
+			logger.Info("tray started after the update", "version", v, "started", n)
+		},
 	})
 	fn := func(ctx context.Context, c machines.Change) error {
 		switch c.Kind {

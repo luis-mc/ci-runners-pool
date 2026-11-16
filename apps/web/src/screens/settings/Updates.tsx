@@ -90,7 +90,7 @@ export function UpdatesSettings() {
             />
             <Text>
               {u.auto_update
-                ? 'On: a newer stable release installs by itself once the running jobs have ended.'
+                ? 'On: the regular check installs a newer stable release by itself once the running jobs have ended. Looking for updates yourself only looks.'
                 : 'Off: a newer stable release waits for your yes on the Review step.'}
             </Text>
             {u.state === 'failed' && u.error ? (

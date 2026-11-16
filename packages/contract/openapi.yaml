@@ -4177,6 +4177,16 @@ components:
         as_of:
           type: string
           format: date-time
+        reason:
+          type: string
+          enum: [session_expired, permission_missing, unreachable, github_error]
+          description: Why the list is the last copy (CRSP148, UX-28).
+        status:
+          type: integer
+          description: The HTTP status GitHub answered with, when it answered.
+        message:
+          type: string
+          description: What GitHub said, word for word, when it answered.
     AppHealth:
       type: object
       required: [gone]

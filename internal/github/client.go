@@ -333,13 +333,13 @@ func (c *REST) classify(res *http.Response, data []byte) error {
 		// GitHub refuses to delete a runner that has a job (R5.32, runners R5.62).
 		return fmt.Errorf("%w: %s", ErrRunnerBusy, res.Request.URL.Path)
 	case res.StatusCode == http.StatusNotFound:
-		return fmt.Errorf("%w: %s", ErrNotFound, res.Request.URL.Path)
+		return &APIError{Status: res.StatusCode, Message: msg.Message, Err: fmt.Errorf("%w: %s", ErrNotFound, res.Request.URL.Path)}
 	case res.StatusCode == http.StatusForbidden || res.StatusCode == http.StatusUnauthorized:
-		return fmt.Errorf("%w: %s", ErrForbidden, msg.Message)
+		return &APIError{Status: res.StatusCode, Message: msg.Message, Err: fmt.Errorf("%w: %s", ErrForbidden, msg.Message)}
 	case res.StatusCode >= 500:
-		return fmt.Errorf("%w: status %d", ErrUnavailable, res.StatusCode)
+		return &APIError{Status: res.StatusCode, Message: msg.Message, Err: fmt.Errorf("%w: status %d", ErrUnavailable, res.StatusCode)}
 	}
-	return fmt.Errorf("github: status %d: %s", res.StatusCode, msg.Message)
+	return &APIError{Status: res.StatusCode, Message: msg.Message, Err: fmt.Errorf("github: status %d: %s", res.StatusCode, msg.Message)}
 }
 
 func retryAfter(h http.Header, now time.Time) time.Duration {

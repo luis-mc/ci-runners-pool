@@ -355,3 +355,15 @@ func TestOpenCommandPrintsLink(t *testing.T) {
 		t.Fatalf("code %d %q", code, errb.String())
 	}
 }
+
+// CRSP147: "Updated to vX" shows once per version, however many trays start after the install.
+func TestUpdatedNoticeOncePerVersion(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "tray.json")
+	if !updatedDue(p, "1.5.0") || updatedDue(p, "1.5.0") || !updatedDue(p, "1.6.0") {
+		t.Fatal("once per version")
+	}
+	// The no-tray-area notice keeps its own record.
+	if !noticeDue(p, "1.6.0") {
+		t.Fatal("the two notices are independent")
+	}
+}

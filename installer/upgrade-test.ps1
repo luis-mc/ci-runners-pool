@@ -68,6 +68,11 @@ Check 'the old tray is gone' (@($oldIds | Where-Object { Get-Process -Id $_ -Err
 Start-Sleep 3
 Check 'the service runs after the upgrade' ((Get-Service crsp -ErrorAction SilentlyContinue).Status -eq 'Running')
 
+# CRSP147: the upgrade replaces the old Apps-list entry; the old build's hand-made key is gone too.
+$arp = @(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
+  Where-Object { $_.DisplayName -eq 'CI Runners Shared Pool' -and $_.SystemComponent -ne 1 })
+Check 'one crsp entry in Apps after the upgrade' ($arp.Count -eq 1) ("$($arp.Count): " + (($arp | ForEach-Object { $_.DisplayVersion }) -join ', '))
+
 Write-Host '== uninstall'
 $rc = Msiexec @('/x', "`"$NewMsi`"") (Join-Path $LogDir 'upgrade-uninstall.log')
 Check 'uninstall exits 0' ($rc -eq 0) "exit $rc"

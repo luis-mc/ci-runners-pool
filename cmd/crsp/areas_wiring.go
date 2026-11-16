@@ -113,7 +113,18 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 
 	// GitHub: client, sign-in, repositories, webhook.
 	gh := github.New(github.Config{Secrets: d.Secrets, Logger: logger})
-	authStore, repoStore := d.DB.Auth(), repos.NewMemStore()
+	// The repository state is kept in the database: the pool switch of a
+	// repository must survive a restart, such as an upgrade (CRSP148).
+	repoStore, err := repos.NewPersistentStore(ctx, d.DB.ReposState())
+	if err != nil {
+		return nil, err
+	}
+	c.closers = append(c.closers, func() {
+		if err := repoStore.Flush(); err != nil {
+			logger.Warn("save the repositories", "err", err)
+		}
+	})
+	authStore := d.DB.Auth()
 	asvc := auth.New(authStore, auth.Config{
 		GitHub: gh, Secrets: d.Secrets, Now: d.Now,
 		ConsoleURLs: func() []string { return []string{console} },

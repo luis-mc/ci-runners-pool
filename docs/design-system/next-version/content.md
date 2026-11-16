@@ -38,10 +38,13 @@ Each action has one word. The Never use column lists words that must not stand i
 | Turn on | Let a repository use the pool. | Enable, Activate |
 | Turn off | Stop a repository using the pool. | Disable, Deactivate |
 | Copy | Copy a command or a value. It changes nothing. | Clipboard |
-| Look for updates | Ask GitHub for a newer stable release now. It downloads nothing. | Check for updates, Refresh |
+| Look for updates | Ask GitHub for a newer stable release now. It only looks: it never installs by itself, with Automatic updates on or off. A newer release opens the update dialog, which asks first. | Check for updates, Refresh |
 | Update to N | Install release N after the running jobs end. N is the version. | Upgrade, Install |
 | Restart the service | Stop and start the service after the running jobs end. | Reboot, Reset |
-| Automatic updates | The switch that lets a newer stable release install by itself after the running jobs end. | Auto-upgrade |
+| Automatic updates | The switch that lets the regular check install a newer stable release by itself after the running jobs end. A look a person asks for never installs by itself. | Auto-upgrade |
+| Install now | The main button of the update dialog, on the right. Installs the newer release after the running jobs end; it stops none. | Update now, Upgrade, Yes |
+| Later | The other button of the update dialog, on the left. Changes nothing. Closing the dialog is Later. | Not now, Skip, No |
+| What changed | The link of the update dialog to the release page of the new version. It changes nothing. | Release notes, Changelog |
 | Quit tray | Close the tray icon only. The service keeps running. | Exit, Close |
 | Export | Save every row of a table or list as a file, in the order shown (component 29). It changes nothing. | Download, Save as |
 | Run the doctor | Start the doctor now. While it runs the button says Running the doctor. | Scan, Check, Run checks |
@@ -679,3 +682,26 @@ The words of the shared part that guides a missing App permission or repository 
 | Checking GitHub. | Note while it reads GitHub. |
 | Could not check GitHub. {reason} | Problem when the check fails; the next check tries again. |
 | Ready. {permissions} granted. | Done message when everything is granted. |
+
+## Update dialog words
+
+The dialog the tray opens when a newer stable release is found (tray R5.43, operations R5.87, CRSP147). It stays until answered. The buttons are Later and Install now, and the link is What changed (action vocabulary).
+
+| Word | Where and meaning |
+|---|---|
+| Updated to {version} | Tray notice, once per version, after a successful update. |
+| CI Runners Shared Pool {version} is the newest stable release. | Tray notice when Look for updates finds nothing newer. |
+| Install now waits for the {n} running jobs to finish. It stops none. | Line of the dialog when jobs run; names how many. |
+
+## GitHub error words
+
+The words of the repositories page when the list is the last copy because the read from GitHub failed (github-integration R5.88 and R5.89, web-console, CRSP148). Say what GitHub really said (UX-28).
+
+| Word | Where and meaning |
+|---|---|
+| Your GitHub sign-in ended. Sign in with GitHub again to refresh the list. | Needs-you message; the sign-in is memory-only and ended, GitHub itself is fine. |
+| GitHub could not be reached. | Needs-you message when no answer came. |
+| GitHub refused ({status}): {message}. Grant the permission in the guide below. | Needs-you message when a permission is missing. |
+| GitHub answered {status}: {message}. | Needs-you message for any other GitHub error, with GitHub's own status and words. |
+| The list could not be refreshed. | Needs-you message when no reason is known. |
+| The list is the last copy, from {when}. | Second sentence of each message above; without a time: The list is the last copy. |

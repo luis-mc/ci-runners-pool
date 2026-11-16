@@ -130,26 +130,6 @@
                        Value="&quot;[#CrspExe]&quot; tray"
                        KeyPath="yes" />
       </Component>
-
-      <!--
-        The program's entry in Settings > Apps, in place of the MSI's own
-        (hidden, ARPSYSTEMCOMPONENT). Settings runs an MSI's own uninstall with
-        basic UI, where the remove-data question cannot show; this entry runs
-        msiexec /x with the full dialogs. The quiet one keeps the data.
-      -->
-      <Component Id="UninstallEntry">
-        <RegistryKey Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\crsp">
-          <RegistryValue Name="DisplayName" Type="string" Value="[ProductName]" KeyPath="yes" />
-          <RegistryValue Name="DisplayVersion" Type="string" Value="[ProductVersion]" />
-          <RegistryValue Name="Publisher" Type="string" Value="[Manufacturer]" />
-          <RegistryValue Name="DisplayIcon" Type="string" Value="[#CrspExe]" />
-          <RegistryValue Name="InstallLocation" Type="string" Value="[INSTALLFOLDER]" />
-          <RegistryValue Name="UninstallString" Type="string" Value="MsiExec.exe /x [ProductCode]" />
-          <RegistryValue Name="QuietUninstallString" Type="string" Value="MsiExec.exe /x [ProductCode] /qn /norestart" />
-          <RegistryValue Name="NoModify" Type="integer" Value="1" />
-          <RegistryValue Name="NoRepair" Type="integer" Value="1" />
-        </RegistryKey>
-      </Component>
     </ComponentGroup>
 
     <!--
@@ -168,7 +148,13 @@
       </Component>
     </ComponentGroup>
 
-    <Property Id="ARPSYSTEMCOMPONENT" Value="1" />
+    <!--
+      One entry in Settings > Apps: the package's own (ProductCode, written by Windows
+      Installer). Every major upgrade replaces it. An earlier build also wrote a second,
+      hand-made key (Uninstall\crsp) and hid its own with ARPSYSTEMCOMPONENT; a machine
+      could then show the program twice (CRSP147), so neither is authored any more. A
+      Settings uninstall keeps the data; REMOVEDATA=1 on msiexec removes it.
+    -->
 
     <!--
       Uninstall asks whether to remove the data folder, default no. Silently,

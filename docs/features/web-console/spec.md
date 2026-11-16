@@ -496,7 +496,7 @@ flowchart LR
 | Controller API | Could not load, with what, why and Try again (UX-28) | closed | Nothing to show without it |
 | Live stream | Last data stays with its age; banner says paused; reconnect (R5.7) | open, read-only data | Old data with its age beats a blank screen |
 | GitHub, at sign-in | Sign-in failed message; no session | closed | No identity without GitHub |
-| GitHub, while signed in | Local screens work; repository lists show their last copy and age | open for reads | Machines and runners do not need GitHub to be seen |
+| GitHub, while signed in | Local screens work; repository lists show their last copy, its age and why it could not be refreshed (the sign-in ended, a permission, or GitHub's own status and words) | open for reads | Machines and runners do not need GitHub to be seen |
 | Session | Session-ended dialog; input kept (R5.11) | closed | No action without a valid session |
 | Role changed mid-session | Next call gets 403; the console reloads the session and hides what the new role cannot do | closed | The server decides, not the page |
 | A page fault | "This page hit a fault." with Details (UX-28) | closed | A code fault is not a lost connection |

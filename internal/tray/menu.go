@@ -72,6 +72,9 @@ type UpdateInfo struct {
 	Available bool
 	State     string // idle, checking, waiting_for_jobs, downloading, installing, restarting, failed
 	AutoOff   bool   // auto-update is turned off (it is on by default)
+	// ReleaseURL is the release page of Latest; Jobs is how many jobs run now (a drain waits for them).
+	ReleaseURL string
+	Jobs       int
 }
 
 // Updating says whether an update is in progress (drain, download, install).

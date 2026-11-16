@@ -30,7 +30,9 @@ describe('Updates settings', () => {
     expect(screen.getByText('1.4.0')).toBeTruthy();
     expect(screen.getByText('1.5.0')).toBeTruthy();
     expect(
-      screen.getByText(/installs by itself once the running jobs have ended/),
+      screen.getByText(
+        /installs a newer stable release by itself once the running jobs have ended/,
+      ),
     ).toBeTruthy();
   });
 
