@@ -276,7 +276,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
         {notes.unknown ? (
           <Message
             tone="needs-you"
-            action={<Button onPress={checkAgain}>Check again</Button>}
+            action={<Button onPress={checkAgain}>Try again</Button>}
           >
             {notes.unknown}
           </Message>

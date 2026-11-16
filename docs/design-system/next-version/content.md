@@ -444,5 +444,5 @@ The words of the Turn on the pool wizard when it asks GitHub whether the user ha
 |---|---|
 | Asking GitHub which repositories you can turn on | The waiting label of the first wizard step while GitHub is asked. |
 | {n} repository is not listed yet: GitHub has not said whether you have admin rights on it. | Needs-you message when the answer is not known; plural: {n} repositories are not listed yet ... on them. Never says the user lacks rights. |
-| Check again | The action of that message: asks GitHub again. |
+| Try again | The action of that message: asks GitHub again. |
 | {n} repository is not listed: you need admin rights on it in GitHub. | Note when GitHub said no; plural: {n} repositories are ... on them. |

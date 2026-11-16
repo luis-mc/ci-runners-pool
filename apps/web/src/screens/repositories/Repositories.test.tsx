@@ -523,7 +523,7 @@ describe('Turn on the pool: admin notes (CRSP125)', () => {
         /1 repository is not listed: you need admin rights on it in GitHub/,
       ),
     ).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Check again' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
     expect(
       api.calls
         .find((c) => c.path === '/api/v1/github/repositories')
