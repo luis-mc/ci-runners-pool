@@ -48,9 +48,10 @@ func (e demandEnv) Repo(ctx context.Context, fullName string) (demand.Repo, bool
 		if !strings.EqualFold(r.FullName, fullName) {
 			continue
 		}
-		if r.Visibility == "public" {
-			return demand.Repo{}, false, nil // crsp never serves a public repository (CRSP82)
-		}
+		// A public repository is served when its pool is on. Turning a pool on
+		// is refused for a public repository while the setting Public
+		// repositories is off, and turning the setting off switches those pools
+		// off (github-integration R5.55); one that stayed on is kept working (R5.41).
 		pol, err := e.repos.GetPolicy(ctx, r.ID)
 		if err != nil {
 			return demand.Repo{}, false, err

@@ -123,7 +123,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	}
 	rsvc := repos.New(repos.Config{Store: repoStore, GitHub: gh, Tokens: asvc, Audit: asvc, PoolName: pool,
 		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Sizes: machineCapacity{svc: d.Machines, pool: pool}, Up: machineUp{svc: d.Machines},
-		FallbackGrace: fallbackGrace(d), Now: d.Now})
+		FallbackGrace: fallbackGrace(d), PublicRepositories: publicRepositories(d), Now: d.Now})
 	health := webhookhealth.New()
 	appHealth := &github.AppHealth{Client: gh, AppID: gh.AppID, Now: d.Now}
 	hook := &github.WebhookHandler{
@@ -201,6 +201,13 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		Store: rstore, Machines: machineLookup{svc: d.Machines}, Resolver: scopeResolver{repos: repoStore, auth: asvc},
 		GitHub: gh, Agent: agent, Audit: runnerAudit{auth: asvc},
 		PoolName: pool, CacheQuota: d.Cfg.Cache, Now: d.Now, Services: agent.Services,
+		// A public repository gets no new runner while the setting is off (github-integration R5.55).
+		Gate: func(ctx context.Context, sc runners.Scope) error {
+			if sc.RepositoryID == 0 {
+				return nil
+			}
+			return rsvc.RequirePublicAllowedByID(ctx, sc.RepositoryID)
+		},
 	}
 
 	// Automatic runner updates follow the product's automatic-update setting
@@ -499,4 +506,13 @@ func (s setupOrConsole) LinkFor(ctx context.Context, osUser string, target strin
 		u.Path = target
 	}
 	return u.String(), nil
+}
+
+// publicRepositories reads the setting Public repositories (github-integration
+// R5.54). Without the operations area it is off.
+func publicRepositories(d controllerDeps) func(context.Context) (bool, error) {
+	if d.Ops == nil || d.Ops.Settings == nil {
+		return nil
+	}
+	return d.Ops.Settings.PublicRepositoriesOn
 }

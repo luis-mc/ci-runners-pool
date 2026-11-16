@@ -35,6 +35,11 @@ type Service struct {
 	// and the database it declares (runners R5.50, R5.54). Nil means the base
 	// image and no database.
 	PoolSettings func(ctx context.Context, scope Scope) (backend.PoolSetup, error)
+	// Gate refuses adding a runner for a scope before anything is planned or
+	// started: a public repository while the setting Public repositories is
+	// off (github-integration R5.55). The error it returns reaches the caller
+	// as it is. Nil allows every scope.
+	Gate func(ctx context.Context, scope Scope) error
 	// Drain settings; the idle check and clock are replaceable for tests.
 	Poll, WarnAfter, DrainTimeout time.Duration
 	Sleep                         func(ctx context.Context, d time.Duration) error
@@ -182,6 +187,11 @@ func (s *Service) PlanAdd(ctx context.Context, req AddRequest, actor string) (Pl
 	if req.Count < 1 || req.Count > 64 {
 		return Plan{}, refuse("count must be from 1 to 64")
 	}
+	if s.Gate != nil {
+		if err := s.Gate(ctx, req.Scope); err != nil {
+			return Plan{}, err
+		}
+	}
 	m, err := s.Machines.GetMachine(ctx, req.MachineID)
 	if err != nil {
 		return Plan{}, err
@@ -326,6 +336,13 @@ func (s *Service) StartApply(ctx context.Context, planID string, approved []stri
 		}
 		if !found {
 			return p, refuse("step %s is not in plan %s", id, p.ID)
+		}
+	}
+	if s.Gate != nil { // the setting may have been switched off since the plan was made
+		for _, a := range p.Adds {
+			if err := s.Gate(ctx, a.Scope); err != nil {
+				return p, err
+			}
 		}
 	}
 	p.State = PlanApplying

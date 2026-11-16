@@ -287,7 +287,13 @@ Not built: a copyable reinstall command with a one-time token in the console, an
 
 **R5.45** (M8, CRSP90) — **Signing is switched off by a repository variable.** `release.yml` has a step that signs the Windows MSI with Authenticode (`signtool`) and one that signs the macOS pkg with a Developer ID Installer identity (`productsign`). Both run only when the repository variable `SIGNING_ENABLED` is `true`; unset or any other value, they are skipped and the release is unsigned (R5.43). The certificates are read only from repository secrets by name: `SIGNING_WINDOWS_CERT_PFX_B64`, `SIGNING_WINDOWS_CERT_PASSWORD`, `SIGNING_MACOS_CERT_P12_B64`, `SIGNING_MACOS_CERT_PASSWORD`, and the variable `SIGNING_MACOS_IDENTITY`. No value is in the repository. With `SIGNING_ENABLED` true and a certificate missing, the job fails. Signing happens before `SHA256SUMS` and the attestations, so both cover the signed file. Notarization of the pkg, and a check of the signature by the updater and the install script, are NOT YET IMPLEMENTED: they come with the first certificate.
 
+**R5.46** (M1, CRSP130) — **A stable release comes only from main.** For a tag `v*`, the first job of `release.yml` (`guard`) fetches `main` and refuses, with a clear error, unless the tagged commit is reachable from `origin/main` (`git merge-base --is-ancestor`, `scripts/ci/release-guard.sh`). Every other job needs `guard`, so a refusal happens before any build or upload; the automatic `edge` build of main is not checked. After the release is created, if GitHub's generated notes have no "What's Changed" list (no merged pull request between the previous stable tag and this one), the `publish` job writes notes from the commit subjects between the two tags (`git log --format='- %s' prev..tag`, `scripts/ci/release-notes-fallback.sh`) with `gh release edit`. Cause: v0.1.1 was tagged on a branch that never merged (OPS10, PR #77).
+
 **Checking a download** (documented in `docs/guides/install.md`): download the asset and `SHA256SUMS` from the same release; `sha256sum --check --ignore-missing SHA256SUMS` (Linux), `shasum -a 256 --check --ignore-missing SHA256SUMS` (macOS) or `Get-FileHash -Algorithm SHA256` compared by eye (Windows); then `gh attestation verify <file> --repo luis-mc/ci-runners-shared-pool`. The attestation of `SHA256SUMS` itself is checked the same way.
+
+### Parity access from a pool container (CRSP134)
+
+**R5.85** (built, CRSP134) — The parity workflow (`.github/workflows/parity.yml`, parity plan section 6) MUST run `crsp parity check` on a pool runner with no `crsp login`: it passes `CRSP_URL` and `CRSP_CA_FINGERPRINT` (repository variables) and `CRSP_ACCESS` (a repository secret) to the check step as environment (cli R5.60). The secret goes only to the steps that need it, never to the whole job. Its first step, before the build, fails with a message that names what is missing and the console action: "open Settings, Access for CI, pick this repository and press 'Set up parity for this repository'" (web-console R5.91, github-integration R5.84). The report and the artifact `parity-report` are still written and uploaded; a run whose access is missing never reports a pass. The names end in none of `_KEY`, `_TOKEN`, `_SECRET`, `_PASS`. The workflow keeps `permissions: contents: read` and actions pinned to a commit. The runbook ([move to crsp](../../guides/runbooks/move-to-crsp.md)) has the owner's steps. Source: `.github/workflows/parity.yml`.
 
 ## 6. Non-functional requirements
 
@@ -410,6 +416,7 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R5.42 | planned: internal/repos/rollout_test.go TestObserveStartsNothingAndLogsTheDecision, TestShadowLeavesRealJobsOnGitHub, TestNoSkippingSteps (CRSP88) |
 | R5.43 | planned: .github/workflows/release_test.go TestReleaseFailsWithoutSignatures, TestSbomPublishedPerAsset; internal/update/signature_test.go TestRefusesUnsignedInstaller (CRSP90) |
 | R5.44 | internal/machines/recovery_test.go TestOldAgentIsRefusedAndNeedsRecovery, TestStuckAfterAnHour, TestRecoveryCallNeedsActionAndValidSignature, TestHealthyMachineCannotBeArmed; internal/recovery/recovery_test.go TestCheckAnswer; internal/api/machines_recovery_test.go TestMachineRecoveryStateAndAction; internal/agent/recover_test.go TestClassifyTooOldIsNeedsRecovery (CRSP91). Planned: `crsp agent reinstall` |
+| R5.46 | scripts/ci/test_release_scripts.py: Guard.test_commit_on_unmerged_branch_refused, Guard.test_commit_on_main_passes, Notes.test_writes_subjects_between_tags, Notes.test_keeps_generated_list, Workflow.test_every_job_waits_for_guard |
 | R6.1 | planned: internal/update/rollout_test.go TestControllerRestartKeepsJobs (two-machine integration) |
 | R6.2 | planned: internal/update/checker_test.go TestOnlyReleaseRequests (HTTP recorder) |
 | R6.3 | planned: internal/update/verify_test.go TestNoNetworkFailsClosed |
@@ -420,6 +427,7 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R6.8 | planned: internal/backup/secrets_scan_test.go TestNoSecretInBackupExportConfigLogs |
 | R6.9 | planned: internal/install/rerun_test.go, internal/update/swap_test.go TestInterruptedStepsRerun |
 | R6.10 | planned: internal/configio/roundtrip_test.go TestExportImportExportSame |
+| R5.85 | built: internal/parity/workflow_test.go TestParityWorkflowPassesTheAccessToTheCheck, TestParityWorkflowFailsFirstAndNamesTheConsoleAction, TestParityWorkflowNamesAvoidSecretEndings, TestParityWorkflowActionsArePinnedToACommit, TestParityWorkflowHasTheTriggersAndNoWritePermission |
 
 ## 10. Decisions
 

@@ -322,6 +322,9 @@ describe('Download an installer', () => {
 
   it('words the steps per system', () => {
     expect(downloadWords('macos', 'f.command')).toMatch(/run it with sh in Terminal/);
+    expect(downloadWords('windows', 'f.cmd')).toMatch(
+      /one-time join code, valid 15 minutes\. Delete the file after you use it/,
+    );
     expect(downloadWords('linux', 'f.sh')).toMatch(/run it with sh\. It asks for sudo/);
   });
 });

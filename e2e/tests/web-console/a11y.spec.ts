@@ -3,7 +3,7 @@
 // without editing this file. No known-issues list: a violation is fixed.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { failure, needingRecovery, signedIn } from './fixtures';
+import { failure, needingRecovery, publicRows, signedIn } from './fixtures';
 import { jobsAndDoctor } from './jobs-doctor-fixtures';
 import { consoleRoutes, NOT_FOUND_URL } from './routes';
 
@@ -23,6 +23,13 @@ const screens = [
     recovery: true,
   },
   {
+    name: 'repositories with public rows while the setting is off',
+    url: '/repositories',
+    signedOut: false,
+    recovery: false,
+    publicRows: true,
+  },
+  {
     name: 'machines needing recovery',
     url: '/machines',
     signedOut: false,
@@ -39,6 +46,8 @@ for (const theme of ['dark', 'light'] as const) {
         mock
           .on('GET', '/api/v1/machines/:id', needingRecovery())
           .on('GET', '/api/v1/machines', { items: [needingRecovery()] });
+      if ('publicRows' in screen)
+        mock.on('GET', '/api/v1/github/repositories', publicRows());
       if (screen.signedOut)
         mock.on('GET', '/api/v1/me', failure(401, 'unauthenticated', 'Sign in.'));
       await mock.install(page);

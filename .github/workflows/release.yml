@@ -32,8 +32,28 @@ permissions:
   contents: read
 
 jobs:
+  # CRSP130: a stable release comes only from a commit that is on main. Every
+  # other job needs this one, so a refusal happens before any build or upload.
+  guard:
+    name: guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: ${{ github.ref_type == 'tag' }}
+        with:
+          fetch-depth: 0
+      - name: Tagged commit must be on main
+        if: ${{ github.ref_type == 'tag' }}
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          bash scripts/ci/release-guard.sh "$SHA" origin/main
+
   version:
     name: version
+    needs: guard
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -194,7 +214,7 @@ jobs:
 
   publish:
     name: publish
-    needs: [build, msi, installers-unix]
+    needs: [guard, build, msi, installers-unix]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -206,6 +226,8 @@ jobs:
       GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: release-*
@@ -304,3 +326,19 @@ jobs:
           case "$TAG" in *-*) flags="--prerelease" ;; esac
           # shellcheck disable=SC2086
           gh release create "$TAG" dist/* --verify-tag --generate-notes $flags
+
+      # CRSP130: when GitHub found no merged PR between the previous stable tag
+      # and this one, the generated notes have no "What's Changed" list; write
+      # one from the commit subjects between the two tags.
+      - name: Notes fallback (no What's Changed list)
+        if: ${{ github.ref_type == 'tag' }}
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" --json body --jq .body > "$RUNNER_TEMP/notes.md"
+          bash scripts/ci/release-notes-fallback.sh "$TAG" "$RUNNER_TEMP/notes.md" > "$RUNNER_TEMP/fallback.md"
+          if [ -s "$RUNNER_TEMP/fallback.md" ]; then
+            gh release edit "$TAG" --notes-file "$RUNNER_TEMP/fallback.md"
+            echo "notes written from commit subjects"
+          fi

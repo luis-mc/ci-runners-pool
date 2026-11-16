@@ -39,6 +39,9 @@ type Config struct {
 	// opted-in repository falls back; 0 means DefaultFallbackGrace.
 	FallbackGrace func() time.Duration
 	Now           func() time.Time
+	// PublicRepositories reads the setting Public repositories (R5.54); nil
+	// means off. A read error refuses a public repository.
+	PublicRepositories func(ctx context.Context) (bool, error)
 	// OnProgress, when set, is called with the plan after each step and when
 	// the plan ends or is stopped (the plan.progress event).
 	OnProgress func(Plan)
@@ -174,6 +177,8 @@ type RepositoryView struct {
 	VariablesDrift bool
 	// Routing is where the repository's jobs go now and why (R5.44).
 	Routing Routing
+	// Problem is a fault the owner can fix, or nil (R5.56).
+	Problem *Problem
 }
 
 func (s *Service) view(ctx context.Context, p auth.Principal, r Repository) (RepositoryView, error) {
@@ -207,6 +212,7 @@ func (s *Service) view(ctx context.Context, p auth.Principal, r Repository) (Rep
 	if rt, err := s.routing(ctx, r, v.Policy); err == nil {
 		v.Routing = rt
 	}
+	v.Problem = s.problemOf(ctx, r)
 	s.mu.Lock()
 	v.UserIsAdmin = s.admin[p.UserID][r.ID]
 	s.mu.Unlock()
@@ -309,7 +315,7 @@ func (s *Service) UpdatePolicy(ctx context.Context, p auth.Principal, id int64, 
 		return Policy{}, err
 	}
 	if np.HostedFallback && r.Visibility == "public" {
-		return Policy{}, auth.Invalid("%s is a public repository; crsp serves private repositories only, so it never runs on GitHub-hosted runners", r.FullName)
+		return Policy{}, auth.Invalid("%s is a public repository; the hosted fallback is for private repositories only, so a public one never runs on GitHub-hosted runners", r.FullName)
 	}
 	np.UpdatedAt, np.UpdatedBy = s.cfg.Now(), p.Login
 	if r.PoolOn && !np.AllowForkPRs {

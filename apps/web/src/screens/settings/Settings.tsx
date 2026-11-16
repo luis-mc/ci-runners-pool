@@ -15,6 +15,8 @@ import {
   NumberField,
   Page,
   PageHeader,
+  ListToolbar,
+  SearchBar,
   Section,
   Stack,
   Status,
@@ -42,11 +44,13 @@ type User = Schemas['User'];
 const TABS = [
   { id: 'users', label: 'Users and roles' },
   { id: 'app', label: 'GitHub App' },
+  { id: 'repositories', label: 'Repositories' },
   { id: 'appearance', label: 'Appearance' },
   { id: 'retention', label: 'Retention' },
   { id: 'backups', label: 'Backups' },
   { id: 'budgets', label: 'Budgets' },
   { id: 'notifications', label: 'Notifications' },
+  { id: 'access', label: 'Access for CI' },
   { id: 'updates', label: 'Updates' },
   { id: 'audit', label: 'Audit log' },
   { id: 'export', label: 'Config export' },
@@ -85,6 +89,7 @@ export function UsersSettings() {
   const [login, setLogin] = useState('');
   const [role, setRole] = useState<'admin' | 'viewer'>('viewer');
   const [errors, setErrors] = useState<string[]>([]);
+  const [find, setFind] = useState('');
   const [editing, setEditing] = useState<User | undefined>(undefined);
   const [newRole, setNewRole] = useState<Schemas['Role']>('viewer');
   const [target, setTarget] = useState<User | undefined>(undefined);
@@ -180,26 +185,31 @@ export function UsersSettings() {
     <Stack>
       <Section title="Users and roles">
         <Load result={result} what="users" reload={reload}>
-          {(data) =>
-            data.items.length <= 1 ? (
-              <>
+          {(data) => {
+            const rows = data.items.filter((u) =>
+              u.login.toLowerCase().includes(find.trim().toLowerCase()),
+            );
+            return (
+              <Stack>
+                <ListToolbar
+                  label="Users"
+                  search={
+                    <SearchBar value={find} onChange={setFind} label="Search users" />
+                  }
+                  count={`${rows.length} ${rows.length === 1 ? 'user' : 'users'}`}
+                />
                 <Table
                   caption="Users"
                   columns={columns}
-                  rows={data.items}
+                  rows={rows}
                   rowKey={(u) => String(u.id)}
                 />
-                <Empty title="No other users yet. Add a GitHub login to let someone in." />
-              </>
-            ) : (
-              <Table
-                caption="Users"
-                columns={columns}
-                rows={data.items}
-                rowKey={(u) => String(u.id)}
-              />
-            )
-          }
+                {data.items.length <= 1 ? (
+                  <Empty title="No other users yet. Add a GitHub login to let someone in." />
+                ) : null}
+              </Stack>
+            );
+          }}
         </Load>
       </Section>
       <Section title="Add a user">

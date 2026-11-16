@@ -75,7 +75,7 @@ type harness struct {
 func newHarness(t *testing.T) *harness { return newHarnessWith(t, nil) }
 
 // newHarnessWith lets a test wrap the secret store the auth service uses.
-func newHarnessWith(t *testing.T, wrap func(*secrets.Memory) secrets.Store) *harness {
+func newHarnessWith(t *testing.T, wrap func(*secrets.Memory) secrets.Store, tweak ...func(*repos.Config, *Options)) *harness {
 	t.Helper()
 	f := fake.New()
 	t.Cleanup(f.Close)
@@ -91,7 +91,12 @@ func newHarnessWith(t *testing.T, wrap func(*secrets.Memory) secrets.Store) *har
 	astore, rstore := auth.NewMemStore(), repos.NewMemStore()
 	asvc := auth.New(astore, auth.Config{GitHub: gh, Secrets: store, WebBase: f.URL,
 		OnApp: func(a auth.AppRecord) { gh.UseApp(a.ID, a.ClientID) }})
-	rsvc := repos.New(repos.Config{Store: rstore, GitHub: gh, Tokens: asvc, Audit: asvc, Capacity: linuxOnly{}})
+	rcfg := repos.Config{Store: rstore, GitHub: gh, Tokens: asvc, Audit: asvc, Capacity: linuxOnly{}}
+	opts := Options{Version: "test", DB: okPinger{}, CA: fakeCA{}}
+	for _, tw := range tweak {
+		tw(&rcfg, &opts)
+	}
+	rsvc := repos.New(rcfg)
 	h := &harness{t: t, fake: f, auth: asvc, repos: rsvc, astore: astore, rstore: rstore, secrets: sec, health: webhookhealth.New()}
 
 	seen := map[string]bool{}
@@ -113,7 +118,8 @@ func newHarnessWith(t *testing.T, wrap func(*secrets.Memory) secrets.Store) *har
 		Events: noEvents{},
 	}
 	mux := http.NewServeMux()
-	Register(mux, Options{Version: "test", DB: okPinger{}, GitHub: &GitHubArea{Auth: asvc, Repos: rsvc, Webhook: h.hook, WebBase: f.URL, Health: h.health}})
+	opts.GitHub = &GitHubArea{Auth: asvc, Repos: rsvc, Webhook: h.hook, WebBase: f.URL, Health: h.health}
+	Register(mux, opts)
 	h.srv = httptest.NewServer(Recover(slog.New(slog.NewTextHandler(io.Discard, nil)), mux))
 	t.Cleanup(h.srv.Close)
 	h.client = &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}

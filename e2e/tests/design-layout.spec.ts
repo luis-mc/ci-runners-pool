@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { expectDomLayout } from '../../scripts/design/dom-layout';
-import { failure, needingRecovery, signedIn } from './web-console/fixtures';
+import { failure, needingRecovery, publicRows, signedIn } from './web-console/fixtures';
 import { jobsAndDoctor } from './web-console/jobs-doctor-fixtures';
 
 // The DOM layout checker (design system, Enforcement kit) on the console's M1 screens, at 360, 393 and 1300 px.
@@ -11,12 +11,19 @@ const SCREENS: {
   ready: string;
   loads?: string[];
   recovery?: boolean;
+  publicRows?: boolean;
   signedOut?: boolean;
 }[] = [
   { name: 'sign-in', path: '/sign-in', ready: 'Sign in', signedOut: true },
   { name: 'first-run wizard', path: '/setup', ready: 'Set up the pool' },
   { name: 'overview', path: '/', ready: 'Overview' },
   { name: 'repositories', path: '/repositories', ready: 'Repositories' },
+  {
+    name: 'repositories with a public row while the setting is off',
+    path: '/repositories',
+    ready: 'Repositories',
+    publicRows: true,
+  },
   { name: 'repository detail', path: '/repositories/octo/app', ready: 'octo/app' },
   { name: 'turn on the pool', path: '/repositories/turn-on', ready: 'Turn on the pool' },
   { name: 'machines', path: '/machines', ready: 'Machines' },
@@ -36,6 +43,7 @@ const SCREENS: {
   { name: 'images', path: '/images', ready: 'Images and caches' },
   { name: 'caches', path: '/images?tab=caches', ready: 'Images and caches' },
   { name: 'settings users', path: '/settings/users', ready: 'Settings' },
+  { name: 'settings repositories', path: '/settings/repositories', ready: 'Settings' },
   { name: 'settings app key', path: '/settings/app', ready: 'Settings' },
   { name: 'settings appearance', path: '/settings/appearance', ready: 'Settings' },
   { name: 'settings retention', path: '/settings/retention', ready: 'Settings' },
@@ -53,6 +61,7 @@ for (const screen of SCREENS) {
   test(`layout: ${screen.name}`, async ({ page }) => {
     const mock = jobsAndDoctor(signedIn());
     if (screen.recovery) mock.on('GET', '/api/v1/machines/:id', needingRecovery());
+    if (screen.publicRows) mock.on('GET', '/api/v1/github/repositories', publicRows());
     if (screen.loads) {
       mock
         .on('GET', '/api/v1/settings/pool', {
@@ -113,5 +122,25 @@ for (const path of ['/repositories/turn-on', '/runners/add', '/machines/add']) {
     expect(new Set(tops).size).toBe(1);
     const frame = await page.locator('.ds-page').first().boundingBox();
     expect(frame?.width ?? 0).toBeGreaterThan(900);
+  });
+}
+
+// CRSP132, UX-11: on a wide screen the toolbar above a list is one row (search, filters, selection, count, actions).
+for (const path of ['/repositories', '/machines', '/runners', '/jobs']) {
+  test(`list toolbar is one row at 1300 px: ${path}`, async ({ page }) => {
+    const mock = jobsAndDoctor(signedIn());
+    await mock.install(page);
+    await page.setViewportSize({ width: 1300, height: 900 });
+    await page.goto(path);
+    const bar = page.locator('.ds-list-toolbar').first();
+    await expect(bar).toBeVisible();
+    const tops = await bar.locator(':scope > *').evaluateAll((els) =>
+      els.map((e) => {
+        const r = e.getBoundingClientRect();
+        return Math.round(r.top + r.height / 2);
+      }),
+    );
+    expect(tops.length).toBeGreaterThan(1);
+    expect(Math.max(...tops) - Math.min(...tops)).toBeLessThan(8);
   });
 }

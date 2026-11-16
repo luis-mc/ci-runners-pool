@@ -74,7 +74,7 @@ function ProgressSteps({ at }: { at: Progress }) {
 
 /** What to do with the downloaded file on the machine, per system (machines R5.65). */
 export function downloadWords(os: OS, name: string): string {
-  const saved = `The installer is saved as ${name}. It works once and holds the join code.`;
+  const saved = `The installer is saved as ${name}. It holds a one-time join code, valid ${TTL_MINUTES} minutes. Delete the file after you use it.`;
   if (os === 'windows')
     return `${saved} On the machine, double-click it and accept the administrator prompt. Waiting for the agent.`;
   if (os === 'macos')
@@ -464,7 +464,7 @@ export function AddMachineWizard({ onDone }: Props) {
           {usingSsh
             ? 'crsp signs in once with your key, runs the install command and signs out. The key is not stored.'
             : method === 'download'
-              ? 'Next you get an installer file for this system with the join code in it. Open it on the machine.'
+              ? 'Next you get an installer file for this system with the join code in it. Open it on the machine, then delete the file.'
               : 'Next you get one command with the join code in it. Run it on the machine.'}
         </Text>
         {sshError ? (

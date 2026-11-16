@@ -234,6 +234,10 @@ export function signedIn(user: unknown = owner): Mock {
       setup_link_redeemed: true,
       steps: { connect_github: 'done', first_machine: 'done', first_repository: 'done' },
     })
+    .on('GET', '/api/v1/settings/public-repositories', {
+      enabled: false,
+      public_on_pool: 0,
+    })
     .on('GET', '/api/v1/machines', { items: [machine()] })
     .on('GET', '/api/v1/machines/:id', machine())
     .on('GET', '/api/v1/repositories/:id', repository())
@@ -269,4 +273,61 @@ export function signedIn(user: unknown = owner): Mock {
         },
       ],
     });
+}
+
+/** Repositories while "Enable for public repositories" is off: private, public, and a public one still on the pool (a Problem). */
+export function publicRows() {
+  const base = {
+    installation_id: 1,
+    user_is_github_admin: true,
+    variables: [],
+    policy: {
+      priority: 10,
+      max_parallel_jobs: 2,
+      allow_fork_pull_requests: false,
+      light_runner: true,
+      labels: ['self-hosted'],
+      runner_groups: [],
+    },
+  };
+  return {
+    items: [
+      {
+        ...base,
+        id: 1,
+        full_name: 'octo/app',
+        owner: 'octo',
+        name: 'app',
+        visibility: 'private',
+        pool_on: true,
+      },
+      {
+        ...base,
+        id: 2,
+        full_name: 'octo/site',
+        owner: 'octo',
+        name: 'site',
+        visibility: 'public',
+        pool_on: false,
+      },
+      {
+        ...base,
+        id: 3,
+        full_name: 'octo/docs',
+        owner: 'octo',
+        name: 'docs',
+        visibility: 'public',
+        pool_on: true,
+        problem: {
+          code: 'public_pool_on_while_off',
+          text: 'This public repository uses the pool while public repositories are off.',
+          actions: [
+            { id: 'turn_on_public_repositories', label: 'Turn on public repositories' },
+            { id: 'turn_off_pool', label: 'Turn off the pool' },
+          ],
+        },
+      },
+    ],
+    stale: { stale: false },
+  };
 }

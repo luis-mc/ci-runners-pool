@@ -420,9 +420,9 @@ The words of the Add a machine wizard (machines R5.3a, R5.4a), the runner states
 | SSH fields | Host, User, SSH port, SSH key file (help: Paste the content of the private key file. crsp uses it once for this join and never keeps it. There is no password option; the user needs sudo without a password. On Windows: the user must be an administrator.) |
 | SSH errors | Enter the host name or address. / Enter the user name. / Paste the SSH key file. |
 | Review facts | System, How it joins (A copied command / Over SSH as {user} on {host} / A downloaded installer), Join code (Lasts 15 minutes and works once) |
-| Review lines | crsp signs in once with your key, runs the install command and signs out. The key is not stored. / Next you get one command with the join code in it. Run it on the machine. / Next you get an installer file for this system with the join code in it. Open it on the machine. |
+| Review lines | crsp signs in once with your key, runs the install command and signs out. The key is not stored. / Next you get one command with the join code in it. Run it on the machine. / Next you get an installer file for this system with the join code in it. Open it on the machine, then delete the file. |
 | Join command | Run this command on the machine now. The code shows once. / crsp ran the install command over SSH. Waiting for the agent. |
-| Installer saved | The installer is saved as {file name}. It works once and holds the join code. Then, per system: Windows: On the machine, double-click it and accept the administrator prompt. Waiting for the agent. / macOS: On the machine, open it. If it does not open, run it with sh in Terminal. Waiting for the agent. / Linux: On the machine, run it with sh. It asks for sudo. Waiting for the agent. |
+| Installer saved | The installer is saved as {file name}. It holds a one-time join code, valid 15 minutes. Delete the file after you use it. Then, per system: Windows: On the machine, double-click it and accept the administrator prompt. Waiting for the agent. / macOS: On the machine, open it. If it does not open, run it with sh in Terminal. Waiting for the agent. / Linux: On the machine, run it with sh. It asks for sudo. Waiting for the agent. |
 | Installer wait | Making the installer (the wait text while the file is made) |
 | Installer failure | Could not make the installer. {reason} |
 | Join steps | Waiting for the agent, Agent connected, Machine ready; each says done, in progress or not yet |
@@ -529,6 +529,43 @@ The words of Add runners and the machine list for a Windows machine whose contai
 | WSL is installed but not ready; run wsl --install | Backend reason, shown only when WSL2 does not work and Docker does not run on it. It is written once. |
 
 
+## List toolbar words
+
+The words of the shared list toolbar (components 11 and 12, CRSP132).
+
+| Word | Where and meaning |
+|---|---|
+| All | The first choice of a segmented filter. It shows every item. |
+| {n} selected | In the toolbar, after Select all N and Clear, when something is selected. |
+| {n} repository, {n} repositories | The count in the Repositories toolbar. The same pattern for machine, runner, image, cache and user. |
+| Search images, Search caches, Search users | The labels of the search fields of Images, Caches and Users and roles. |
+| Pool on, Pool off | The two choices of the Pool filter (with All). |
+
+## Public repositories words
+
+The words of the setting that lets the pool serve public repositories, and of the screens that show it (web-console R5.68 to R5.70, CRSP131).
+
+| Word | Where and meaning |
+|---|---|
+| Enable for public repositories | The switch in Settings, Repositories. Off by default. |
+| Off: the pool serves private repositories only. Keeping repositories private is safer. | Line under the switch while it is off. |
+| On: the pool can serve public repositories you turn it on for. Jobs from forks stay refused. | Line under the switch while it is on. |
+| Are you sure? | Title of the question card for both directions. |
+| Turning this on lets the pool serve public repositories. | Intro of the question card when turning on. |
+| Anyone can open a pull request on a public repository. / A self-hosted runner runs that code on your machines. / Jobs from forks stay refused. / Secrets, caches and files on the machine could be reached. / Keeping your repositories private is safer. | The five lines of the question card when turning on. Primary: Turn on. Busy word: Turning on. |
+| Turning this off stops the pool for public repositories. | Intro of the question card when turning off. |
+| {n} public repositories use the pool now. Their runners are drained and removed, and their pool is switched off. The settings are kept. | The line of the question card when turning off ({n} is public_on_pool; the singular uses repository, uses, Its and its). Primary: Turn off. Busy word: Turning off. |
+| No public repository uses the pool now. Nothing is stopped. | The line of the question card when turning off and none is on the pool. |
+| The pool was switched off for {n} public repositories. Their settings are kept. | Done message after turning off. |
+| Active types: Private (default) / Active types: Private & Public | The line near the title of Repositories. The value links to the setting. |
+| Visibility, Private, Public, Internal | The column and its values. |
+| Public repositories are off, so the pool does not serve this one. | The reason in a greyed public row. Link: Turn on public repositories. |
+| Public repositories are off. Turn them on in Settings first. | The reason of a disabled Turn on the pool, and of a repository that Add runners cannot choose. |
+| Public repositories are off: {names}. Turn them on in Settings first. | The reason of the disabled Turn on N repositories when the selection holds a public one. |
+| {n} public repositories are not listed: public repositories are off. Turn them on in Settings to use the pool there. | Note in Turn on the pool. Action: Open the setting. |
+| Fix it | The link in the list from a repository with a Problem to its page. |
+| Turn on public repositories, Turn off the pool | The two actions of the Problem of a public repository that uses the pool while the setting is off. |
+
 ## First run in the console words
 
 The words of the first-run fixes (web-console 4.1 and 4.3, CRSP124). The console does everything; no step sends the user to a terminal or to GitHub's settings.
@@ -553,3 +590,39 @@ The words of the first-run fixes (web-console 4.1 and 4.3, CRSP124). The console
 | Remove this machine | The section of the Remove button, with: "Removing takes the machine and its runners out of the pool. Jobs that run there finish first. The agent stays installed on the machine." |
 | Open Machines | The one primary on Done of Add a machine when it is not part of the first-run checklist. |
 | Runners are added to one repository. An organization appears here when the App is installed on one. | Note in Add runners when the App is on no organization. |
+
+## Access for CI words
+
+The words of the Settings section Access for CI and of the action that sets up parity for a repository (web-console R5.90 and R5.91, github-integration R5.82 to R5.84, CRSP134).
+
+| Word | Where and meaning |
+|---|---|
+| Access for CI | The Settings section, and the title of its table. |
+| Only an admin can make, see or revoke access for CI. Ask an admin to do it. | Needs-you message for a person who is not an admin. |
+| An access for CI is a value a CI job uses to read the pool. It can read the runners and run the doctor, which is all that the parity check needs. It cannot change a machine, a runner, a setting or a user. | Note above the table. |
+| No access yet. Set up parity for a repository below, or make one here. | Empty table. |
+| Name, Can do, Made by, Made, Last used, State, Actions | The columns. |
+| Read only: the checks of parity | The Can do cell. |
+| never, live, revoked, Revoked | Last used and State values, and the Actions cell of a revoked access. |
+| Revoke | The danger button of a row and of its question card. Busy: Revoking. |
+| Revoke {name}? / Access {name} stops working at once. A CI job that uses it is refused. | Title and line of the question card. |
+| Make an access | The section of the form. |
+| Write a name for the access, such as "parity CI". | Error when the name is empty. |
+| What it can do / Parity: read the runners and run the doctor, nothing else | The field and its one choice. |
+| Make | The primary button of the form. Busy: Making. |
+| Could not make the access. {reason} | Problem message when making fails. |
+| Access {name} is made / I have it | Title and close button of the card that shows the value once. |
+| This is the only time the value is shown. crsp keeps no copy of it. Copy it now, or revoke this access and make another. | Needs-you message on that card. |
+| Access value | Label of the code block that holds the value. |
+| Set up parity for a repository | The section of the action. |
+| No repository yet. Install the App on a repository first (Repositories). | Empty state of the section. |
+| crsp writes the access as the secret CRSP_ACCESS, and its address and certificate fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, to the repository through the GitHub App. You copy nothing. The parity workflow reads them. | Note of the section. |
+| Repository | The field that chooses the repository. |
+| Set up parity for this repository | The primary button. Busy: Setting up. Reason when none is chosen: Choose a repository first. |
+| Could not set up parity. Nothing was left behind. {reason} | Problem message when the setup fails. |
+| Parity is set up for {repository}. The workflow can run now. | Done message. |
+| The GitHub App cannot write to {repository} yet. It needs: {permissions}. Nothing was made. Grant it on GitHub, then press the button again. | Needs-you message when a permission is missing. |
+| Secrets (write), Variables (write) | The words for the missing permissions. |
+| 1. Ask for it / On the App page, under Repository permissions, set the access. | First step of the permission help. |
+| 2. Accept it / On the installation page, press Accept new permissions. | Second step of the permission help. |
+| Open the App permissions, Open the installation | The two external buttons. |

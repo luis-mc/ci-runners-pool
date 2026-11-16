@@ -709,3 +709,30 @@ func TestOpenJobsUsesETag(t *testing.T) {
 		t.Fatalf("a new run must be seen: %+v %v", jobs, err)
 	}
 }
+
+func TestSetSecretSealsTheValueToTheRepositoryKey(t *testing.T) { // CRSP134
+	e := newEnv(t)
+	ctx := context.Background()
+	e.fake.AddInstall(10, "alice", "User")
+	e.fake.AddRepo(100, 10, "alice", "demo", true)
+	if err := e.client.SetSecret(ctx, 10, "alice", "demo", "CRSP_ACCESS", "crsp_acc_value"); err != nil {
+		t.Fatal(err)
+	}
+	// The fake opens the sealed box with the repository's private key: the plain
+	// value only comes out if it was sealed to that key.
+	if v, ok := e.fake.Secret("alice/demo", "CRSP_ACCESS"); !ok || v != "crsp_acc_value" {
+		t.Fatalf("secret = %q %v", v, ok)
+	}
+	if err := e.client.SetSecret(ctx, 10, "alice", "demo", "CRSP_ACCESS", "second"); err != nil {
+		t.Fatalf("replacing a secret: %v", err)
+	}
+	if v, _ := e.fake.Secret("alice/demo", "CRSP_ACCESS"); v != "second" {
+		t.Fatalf("replace: %q", v)
+	}
+	// A failure never carries the value.
+	e.fake.FailMatching("/repos/alice/demo/actions/secrets", 500, 10)
+	err := e.client.SetSecret(ctx, 10, "alice", "demo", "CRSP_ACCESS", "never-in-an-error")
+	if err == nil || strings.Contains(err.Error(), "never-in-an-error") {
+		t.Fatalf("err = %v", err)
+	}
+}

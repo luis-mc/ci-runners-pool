@@ -99,6 +99,7 @@ func (w *winMachine) Run(_ context.Context, _ machines.SSHTarget, cmd string) (s
 type fakeWinPackages struct {
 	arch string
 	err  error
+	self bool // the controller's own endpoint, not the GitHub release
 }
 
 func (f *fakeWinPackages) WindowsPackage(_ context.Context, arch string) (machines.PackageRef, error) {
@@ -106,7 +107,7 @@ func (f *fakeWinPackages) WindowsPackage(_ context.Context, arch string) (machin
 	if f.err != nil {
 		return machines.PackageRef{}, f.err
 	}
-	return machines.PackageRef{Name: "crsp-windows-" + arch + ".msi", URL: "https://example.test/dl/crsp-windows-" + arch + ".msi", SHA256: goodSum}, nil
+	return machines.PackageRef{Name: "crsp-windows-" + arch + ".msi", URL: "https://example.test/dl/crsp-windows-" + arch + ".msi", SHA256: goodSum, SelfSigned: f.self}, nil
 }
 
 func winEnv(t *testing.T, w *winMachine, p machines.WindowsPackageSource) *env {
@@ -317,5 +318,32 @@ func serveWin(conn net.Conn, cfg *ssh.ServerConfig, w *winMachine) {
 				return
 			}
 		}()
+	}
+}
+
+// CRSP133: from the controller's own address the machine accepts only the
+// certificate chain with the pinned fingerprint; from GitHub it keeps normal TLS.
+func TestSSHJoinWindowsPinsTheControllerCertificate(t *testing.T) {
+	for _, self := range []bool{true, false} {
+		w := &winMachine{shell: "powershell", admin: true, arch: "AMD64"}
+		e := winEnv(t, w, &fakeWinPackages{self: self})
+		if _, err := e.Svc.JoinOverSSH(context.Background(), "owner", sshIn("windows", "SHA256:abc")); err != nil {
+			t.Fatal(err)
+		}
+		dl := w.scripts[1]
+		if !self {
+			if strings.Contains(dl, "ServerCertificateValidationCallback") || strings.Contains(dl, "CrspPin") {
+				t.Fatalf("the GitHub download keeps normal TLS:\n%s", dl)
+			}
+			continue
+		}
+		pin := "[CrspPin]::Enable('" + e.CA.Fingerprint() + "')"
+		i, j := strings.Index(dl, pin), strings.Index(dl, "Invoke-WebRequest")
+		if i < 0 || j < i {
+			t.Fatalf("the pin is set before the download:\n%s", dl)
+		}
+		if strings.Contains(dl, "delegate {") || !strings.Contains(dl, "ComputeHash(el.Certificate.RawData)") {
+			t.Fatalf("the callback must compare the SHA-256 of the certificate, never accept all:\n%s", dl)
+		}
 	}
 }
