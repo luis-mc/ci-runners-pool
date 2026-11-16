@@ -8,7 +8,7 @@ import (
 
 // QueuedFor counts the jobs that wait for a machine's runners and names
 // the repositories they belong to: the slot tickets of the machine and the
-// queued jobs placed on it (caches R5.50). A job not yet placed waits for any
+// queued jobs placed on it (caches R5.51 to R5.54). A job not yet placed waits for any
 // machine, so it is not counted here.
 func (s *Store) QueuedFor(ctx context.Context, machineID string) (int, []string, error) {
 	ctx, cancel := withDeadline(ctx)

@@ -17,7 +17,7 @@ func compactMachine(mode string) map[string]any {
 	return m
 }
 
-// caches R5.50: `machine settings` shows the policy with its defaults.
+// caches R5.51 to R5.54: `machine settings` shows the policy with its defaults.
 func TestMachineSettingsShowsThePolicy(t *testing.T) {
 	f := newFixture(t)
 	f.machines(compactMachine("auto"))

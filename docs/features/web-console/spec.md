@@ -368,6 +368,8 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.70** (built, CRSP131, owner decisions D81 and D82; github-integration R5.55, R5.58) — **Visibility and public rows.** The Repositories table has a Visibility column (Private, Public, Internal). While the setting is off, a public row is greyed, and its Visibility cell says why and links to the setting. *Turn on the pool* is disabled with the reason for a public repository (the repository page, and the selection bar when the selection holds one); the Turn on the pool wizard does not list a public repository and says so with a link; Add runners shows a public repository as not choosable with the reason. A refusal the controller still sends (HTTP 409, `public_repositories_off`) is shown in the screen's own words. A repository whose API `problem` is `public_pool_on_while_off` shows a Problem on its page with the two actions the API names: *Turn on public repositories* (opens the question card of R5.68) and *Turn off the pool* (the question card of the pool off); the list links to it.
 
+**R5.92** (built, CRSP136) — **The Docker disk section on the Machine page.** For a machine whose agent found a Docker Desktop disk file, or whose compact choice is On or Off, the Machine page shows a Docker disk section after "When it works": the state (the reason of the last look), the disk file, what Docker uses, what can be reclaimed and the last compact; the choice Automatic, On or Off; the threshold and the idle time (shared number fields); the quiet-hours start and end (shared lists). Each control saves at once (UX-22). When the policy is on and the agent has no administrator rights, a problem message says so and the action Turn off saves Off. The part is built from shared `@crsp/ui` parts only; the words are in the Docker disk words of content.md (design-system next-version C39).
+
 ## 6. Non-functional requirements
 
 Requirements marked (built, CRSP24) or (built, CRSP33) are built. The others are **NOT YET IMPLEMENTED**.
@@ -558,6 +560,7 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R6.13 | Playwright e2e | `e2e/tests/web-console/offline-internet.spec.ts` (every screen of the route table, every non-controller request blocked) |
 | R5.90 | Vitest | `apps/web/src/screens/settings/AccessForCi.test.tsx` (Access for CI list: each access with its state and never a value, the empty state, admins only; Make an access: the value shown once, a name is asked for; Revoke asks first) |
 | R5.91 | Vitest | `apps/web/src/screens/settings/AccessForCi.test.tsx` (Set up parity for this repository: disabled until a repository is chosen, writes and says done, names the GitHub pages when the permission is missing, drops an address that is not github.com, shows a failure) |
+| R5.92 | Vitest | `apps/web/src/screens/machines/MachineDockerDisk.test.tsx` (the numbers and the state, each control saves at once, a quiet hour off the hour is kept, the administrator message and Turn off, nothing for a machine without a disk file) |
 
 ## 10. Decisions
 

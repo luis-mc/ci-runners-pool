@@ -3189,21 +3189,21 @@ export interface components {
             /** @description A pause from the tray holds until Resume. */
             pause_until_resumed?: boolean;
             docker_compact?: components["schemas"]["DockerCompactMode"];
-            /** @description How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.50). */
+            /** @description How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54). */
             docker_compact_threshold_gib?: number;
-            /** @description How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.50). */
+            /** @description How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54). */
             docker_compact_idle_minutes?: number;
-            /** @description Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.50). */
+            /** @description Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54). */
             docker_compact_quiet_start?: string;
             /** @description End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00. */
             docker_compact_quiet_end?: string;
         };
         /**
-         * @description The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.50).
+         * @description The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
          * @enum {string}
          */
         DockerCompactMode: "auto" | "on" | "off";
-        /** @description The Docker disk compact policy of one machine and what the agent reported about the disk file (caches R5.50). Read only. */
+        /** @description The Docker disk compact policy of one machine and what the agent reported about the disk file (caches R5.51 to R5.54). Read only. */
         DockerCompactStatus: {
             /** @description The policy is on for this machine. */
             enabled: boolean;
@@ -3345,11 +3345,11 @@ export interface components {
             pause_on_battery?: boolean;
             cpu_cap_pct?: components["schemas"]["CpuCapPct"];
             docker_compact?: components["schemas"]["DockerCompactMode"];
-            /** @description How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.50). */
+            /** @description How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54). */
             docker_compact_threshold_gib?: number;
-            /** @description How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.50). */
+            /** @description How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54). */
             docker_compact_idle_minutes?: number;
-            /** @description Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.50). */
+            /** @description Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54). */
             docker_compact_quiet_start?: string;
             /** @description End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00. */
             docker_compact_quiet_end?: string;

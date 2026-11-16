@@ -158,7 +158,7 @@ func runController() error {
 	// duration, from job history (machines R5.55, R5.56).
 	mr.Service.SetTypical(usualDuration(db))
 	// The Docker disk compact looks at the queue before it holds a machine, and
-	// checks its policy every 5 minutes (caches R5.50).
+	// checks its policy every 5 minutes (caches R5.51 to R5.54).
 	mr.Service.SetQueueSource(db)
 	go mr.Service.RunCompactLoop(ctx, compactEvery, func(err error) { logger.Warn("docker disk compact pass", "err", err) })
 

@@ -146,7 +146,7 @@ type Machine struct {
 	DockerCompact *DockerCompact
 }
 
-// DockerCompact is what the machine.docker.compact check reads (caches R5.50).
+// DockerCompact is what the machine.docker.compact check reads (caches R5.51 to R5.54).
 type DockerCompact struct {
 	// Enabled is the policy: on, or automatic with a disk file.
 	Enabled bool

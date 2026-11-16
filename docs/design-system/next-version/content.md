@@ -629,7 +629,7 @@ The words of the Settings section Access for CI and of the action that sets up p
 
 ## Docker disk words
 
-The words of the Docker disk section on the machine page (caches R5.50, machines R5.65). The section shows only for a machine whose agent found a Docker Desktop disk file, or whose choice is On or Off.
+The words of the Docker disk section on the machine page (caches R5.51 to R5.54, machines R5.66). The section shows only for a machine whose agent found a Docker Desktop disk file, or whose choice is On or Off.
 
 | Word | Where and meaning |
 |---|---|

@@ -77,7 +77,7 @@ func TestMachineStatusShowsTheAgentsReport(t *testing.T) {
 	}
 }
 
-// caches R5.50 over the API: the compact policy is saved with its defaults
+// caches R5.51 to R5.54 over the API: the compact policy is saved with its defaults
 // shown, wrong values give 400, and the agent's disk report shows as a status.
 func TestMachineDockerCompactSettingsAndStatus(t *testing.T) {
 	svc, mux, id := poolSvcMux(t)

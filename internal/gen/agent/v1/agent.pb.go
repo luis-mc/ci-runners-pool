@@ -5216,7 +5216,7 @@ type MachineReport struct {
 	Symlink *SymlinkReport `protobuf:"bytes,10,opt,name=symlink,proto3" json:"symlink,omitempty"`
 	// How many macOS VMs run on this Mac (machines R5.14). Unset on other OSes.
 	MacosVms *MacVmReport `protobuf:"bytes,11,opt,name=macos_vms,json=macosVms,proto3" json:"macos_vms,omitempty"`
-	// The Docker disk file of this machine (caches R5.50). Unset by an older agent.
+	// The Docker disk file of this machine (caches R5.51 to R5.54). Unset by an older agent.
 	DockerDisk    *DockerDiskReport `protobuf:"bytes,12,opt,name=docker_disk,json=dockerDisk,proto3" json:"docker_disk,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

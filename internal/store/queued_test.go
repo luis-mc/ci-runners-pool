@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// caches R5.50: the queue of a machine is its slot tickets and the queued jobs
+// caches R5.51 to R5.54: the queue of a machine is its slot tickets and the queued jobs
 // placed on it; nothing from another machine and no finished job counts.
 func TestIntegrationQueuedFor(t *testing.T) {
 	s := openTemp(t)

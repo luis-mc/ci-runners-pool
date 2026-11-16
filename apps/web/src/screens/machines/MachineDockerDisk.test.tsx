@@ -1,4 +1,4 @@
-// caches R5.50: the Machine page shows the Docker disk compact policy, saves each control at once, and says when the agent cannot compact.
+// caches R5.51 to R5.54: the Machine page shows the Docker disk compact policy, saves each control at once, and says when the agent cannot compact.
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Schemas } from '../../api/api';

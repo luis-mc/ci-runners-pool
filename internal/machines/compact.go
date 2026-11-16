@@ -13,7 +13,7 @@ import (
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 )
 
-// The Docker disk compact policy (caches R5.50, machines R5.65). On Windows,
+// The Docker disk compact policy (caches R5.51 to R5.54, machines R5.66). On Windows,
 // Docker Desktop keeps its data in a WSL2 disk file that grows and never
 // shrinks. The controller compacts it by itself, through the maintain path:
 // hold the machine, drain it, run `docker-compact`, release it.
@@ -149,7 +149,7 @@ func parseClock(s string) (int, bool) {
 	return hh*60 + mm, true
 }
 
-// validateCompact checks the ranges of the compact settings (caches R5.50).
+// validateCompact checks the ranges of the compact settings (caches R5.51 to R5.54).
 func validateCompact(set Settings) error {
 	bad := func(format string, a ...any) error {
 		return fmt.Errorf("%w: %s", ErrInvalid, fmt.Sprintf(format, a...))
@@ -218,7 +218,7 @@ type CompactDecision struct {
 	Reason string
 }
 
-// DecideCompact says whether to compact now (caches R5.50). The order of the
+// DecideCompact says whether to compact now (caches R5.51 to R5.54). The order of the
 // checks is the order of the reasons the console shows.
 func DecideCompact(in CompactInput) CompactDecision {
 	no := func(reason string) CompactDecision { return CompactDecision{Reason: reason} }

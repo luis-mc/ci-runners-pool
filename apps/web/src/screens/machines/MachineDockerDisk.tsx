@@ -1,4 +1,4 @@
-// The Docker disk compact of one machine (caches R5.50, machines R5.65): the policy, its numbers and its quiet hours.
+// The Docker disk compact of one machine (caches R5.51 to R5.54, machines R5.66): the policy, its numbers and its quiet hours.
 // Every control is saved at once (UX-22). Shared parts only; the words are in content.md ("Docker disk words").
 import {
   Button,

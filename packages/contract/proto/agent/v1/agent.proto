@@ -801,7 +801,7 @@ message MachineReport {
   SymlinkReport symlink = 10;
   // How many macOS VMs run on this Mac (machines R5.14). Unset on other OSes.
   MacVmReport macos_vms = 11;
-  // The Docker disk file of this machine (caches R5.50). Unset by an older agent.
+  // The Docker disk file of this machine (caches R5.51 to R5.54). Unset by an older agent.
   DockerDiskReport docker_disk = 12;
 }
 

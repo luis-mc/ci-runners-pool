@@ -162,7 +162,7 @@ type Settings struct {
 	PauseUntil         time.Time
 	PausedUntilResumed bool
 	CPUCapPct          int
-	// The Docker disk compact policy (caches R5.50, machines R5.65). An empty
+	// The Docker disk compact policy (caches R5.51 to R5.54, machines R5.66). An empty
 	// mode is automatic; 0 and "" take the defaults of EffectiveCompact.
 	CompactMode         string
 	CompactThresholdGiB int
@@ -258,7 +258,7 @@ type SettingsUpdate struct {
 	PauseOnBattery *bool
 	// CPUCapPct is 25, 50, 75 or 100 (R5.64).
 	CPUCapPct *int
-	// The Docker disk compact policy (caches R5.50): on, off or empty for
+	// The Docker disk compact policy (caches R5.51 to R5.54): on, off or empty for
 	// automatic; the threshold in GiB; idle minutes; quiet hours as HH:MM.
 	CompactMode         *string
 	CompactThresholdGiB *int

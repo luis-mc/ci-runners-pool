@@ -10,7 +10,7 @@ import (
 
 // prune is the Linux and macOS step: remove build cache and dangling images
 // that nothing uses. It never removes a volume, a running container's data or
-// an image a container uses, and has no disk-file step (caches R5.50).
+// an image a container uses, and has no disk-file step (caches R5.51 to R5.54).
 func (c *run) prune(ctx context.Context) error {
 	c.step("df")
 	if used, ok := c.dockerUsed(ctx); ok {

@@ -25,7 +25,7 @@ type View struct {
 	Engine Engine
 	// Recovery is set when the machine needs recovery (operations R5.44).
 	Recovery *Recovery
-	// Compact is the Docker disk compact policy state (caches R5.50).
+	// Compact is the Docker disk compact policy state (caches R5.51 to R5.54).
 	Compact CompactStatus
 }
 

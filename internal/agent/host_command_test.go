@@ -228,7 +228,7 @@ func (h *scriptHost) has(prefix string) bool {
 	return false
 }
 
-// caches R5.50: the docker-compact command runs the helper, not a program of
+// caches R5.51 to R5.54: the docker-compact command runs the helper, not a program of
 // that name; the answer carries the RESULT line; the machine report names the
 // disk file and the admin right.
 func TestHostCommandDockerCompactRunsTheHelper(t *testing.T) {

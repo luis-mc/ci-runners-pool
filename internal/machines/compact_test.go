@@ -25,7 +25,7 @@ func okInput() machines.CompactInput {
 	}
 }
 
-// caches R5.50: the decision, one reason at a time.
+// caches R5.51 to R5.54: the decision, one reason at a time.
 func TestDecideCompact(t *testing.T) {
 	cases := []struct {
 		name   string

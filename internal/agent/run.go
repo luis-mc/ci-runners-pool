@@ -88,7 +88,7 @@ type Config struct {
 	// the OS applier.
 	CPUCap cpucap.Applier
 
-	// DockerHost is the OS access of the docker-compact helper (caches R5.50); nil
+	// DockerHost is the OS access of the docker-compact helper (caches R5.51 to R5.54); nil
 	// is the real one. Tests give a fake: the real compact never runs in tests.
 	DockerHost dockercompact.Host
 

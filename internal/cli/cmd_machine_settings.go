@@ -12,7 +12,7 @@ import (
 
 var quietHoursRE = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$`)
 
-// machineSettingsCommand is `machine settings NAME [flags]` (caches R5.50): the
+// machineSettingsCommand is `machine settings NAME [flags]` (caches R5.51 to R5.54): the
 // Docker disk compact policy of one machine, readable and settable from the CLI
 // with the same rights as the Machine page.
 func machineSettingsCommand() *command {

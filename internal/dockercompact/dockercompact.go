@@ -1,5 +1,5 @@
-// Package dockercompact is the `docker-compact` host helper (caches R5.50,
-// machines R5.65). On Windows, Docker Desktop keeps its data in a WSL2 disk
+// Package dockercompact is the `docker-compact` host helper (caches R5.51 to R5.54,
+// machines R5.66). On Windows, Docker Desktop keeps its data in a WSL2 disk
 // file (a .vhdx) that grows and never shrinks. The helper trims it, stops
 // Docker Desktop, shuts WSL down, compacts the file and starts Docker Desktop
 // again. On Linux and macOS it prunes only what Docker no longer uses.
@@ -168,7 +168,7 @@ func Do(ctx context.Context, h Host) (Report, error) {
 }
 
 // Inspect reads the disk files and what Docker uses, with no change. It is the
-// report the agent sends so the controller can decide (machines R5.65).
+// report the agent sends so the controller can decide (machines R5.66).
 type Inspection struct {
 	Files     []DiskFile
 	UsedBytes int64

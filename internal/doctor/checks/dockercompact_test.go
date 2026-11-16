@@ -7,7 +7,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
 )
 
-// caches R5.50: a Windows machine whose compact policy is on and whose agent
+// caches R5.51 to R5.54: a Windows machine whose compact policy is on and whose agent
 // has no administrator rights gets a warning with the console action; with the
 // rights it is ok; with the policy off or no disk file, no finding.
 func TestDockerCompactNeedsAdminRights(t *testing.T) {

@@ -2246,10 +2246,10 @@ type CreateJoinFileRequest struct {
 // CreateJoinFileRequestOs defines model for CreateJoinFileRequest.Os.
 type CreateJoinFileRequestOs string
 
-// DockerCompactMode The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.50).
+// DockerCompactMode The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
 type DockerCompactMode string
 
-// DockerCompactStatus The Docker disk compact policy of one machine and what the agent reported about the disk file (caches R5.50). Read only.
+// DockerCompactStatus The Docker disk compact policy of one machine and what the agent reported about the disk file (caches R5.51 to R5.54). Read only.
 type DockerCompactStatus struct {
 	// CanCompact The agent has the administrator rights the compact needs.
 	CanCompact bool `json:"can_compact"`
@@ -2676,7 +2676,7 @@ type Machine struct {
 	// ContainerOs The operating system the machine's container engine runs containers for (machines R5.18, runners R5.47), when the engine answers. A Windows machine with Docker Desktop on WSL2 says `linux`. Absent when the engine does not answer or the agent has not reported.
 	ContainerOs *OS `json:"container_os,omitempty"`
 
-	// DockerCompactStatus The Docker disk compact policy of one machine and what the agent reported about the disk file (caches R5.50). Read only.
+	// DockerCompactStatus The Docker disk compact policy of one machine and what the agent reported about the disk file (caches R5.51 to R5.54). Read only.
 	DockerCompactStatus *DockerCompactStatus `json:"docker_compact_status,omitempty"`
 
 	// Facts machines R5.10.
@@ -2828,19 +2828,19 @@ type MachineSettings struct {
 	// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.64). Separate from the load budget. 100 is no cap.
 	CpuCapPct *CpuCapPct `json:"cpu_cap_pct,omitempty"`
 
-	// DockerCompact The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.50).
+	// DockerCompact The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
 	DockerCompact *DockerCompactMode `json:"docker_compact,omitempty"`
 
-	// DockerCompactIdleMinutes How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.50).
+	// DockerCompactIdleMinutes How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
 	DockerCompactIdleMinutes *int `json:"docker_compact_idle_minutes,omitempty"`
 
 	// DockerCompactQuietEnd End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
 	DockerCompactQuietEnd *string `json:"docker_compact_quiet_end,omitempty"`
 
-	// DockerCompactQuietStart Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.50).
+	// DockerCompactQuietStart Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
 	DockerCompactQuietStart *string `json:"docker_compact_quiet_start,omitempty"`
 
-	// DockerCompactThresholdGib How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.50).
+	// DockerCompactThresholdGib How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54).
 	DockerCompactThresholdGib *int                          `json:"docker_compact_threshold_gib,omitempty"`
 	DrainTimeoutMinutes       int                           `json:"drain_timeout_minutes"`
 	GateMaxWaitMinutes        *int                          `json:"gate_max_wait_minutes,omitempty"`
@@ -2894,19 +2894,19 @@ type MachineSettingsUpdate struct {
 	// CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.64). Separate from the load budget. 100 is no cap.
 	CpuCapPct *CpuCapPct `json:"cpu_cap_pct,omitempty"`
 
-	// DockerCompact The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.50).
+	// DockerCompact The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
 	DockerCompact *DockerCompactMode `json:"docker_compact,omitempty"`
 
-	// DockerCompactIdleMinutes How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.50).
+	// DockerCompactIdleMinutes How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
 	DockerCompactIdleMinutes *int `json:"docker_compact_idle_minutes,omitempty"`
 
 	// DockerCompactQuietEnd End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
 	DockerCompactQuietEnd *string `json:"docker_compact_quiet_end,omitempty"`
 
-	// DockerCompactQuietStart Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.50).
+	// DockerCompactQuietStart Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
 	DockerCompactQuietStart *string `json:"docker_compact_quiet_start,omitempty"`
 
-	// DockerCompactThresholdGib How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.50).
+	// DockerCompactThresholdGib How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54).
 	DockerCompactThresholdGib *int                                `json:"docker_compact_threshold_gib,omitempty"`
 	DrainTimeoutMinutes       *int                                `json:"drain_timeout_minutes,omitempty"`
 	GateOnTimeout             *MachineSettingsUpdateGateOnTimeout `json:"gate_on_timeout,omitempty"`

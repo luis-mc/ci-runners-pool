@@ -11,7 +11,7 @@ import (
 // agent to run with administrator rights (diskpart and Optimize-VHD refuse
 // otherwise). A machine whose policy is on and whose agent has no such rights
 // would skip the compact every night, so the finding says so and offers the
-// console action (caches R5.50). New check.
+// console action (caches R5.51 to R5.54). New check.
 func machineDockerCompact(ctx context.Context, env doctor.Env) []doctor.Finding {
 	ms, out := scopedMachines(ctx, env, "machine.docker.compact")
 	for _, m := range ms {
