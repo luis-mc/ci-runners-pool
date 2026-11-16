@@ -529,6 +529,18 @@ The words of Add runners and the machine list for a Windows machine whose contai
 | WSL is installed but not ready; run wsl --install | Backend reason, shown only when WSL2 does not work and Docker does not run on it. It is written once. |
 
 
+## List toolbar words
+
+The words of the shared list toolbar (components 11 and 12, CRSP132).
+
+| Word | Where and meaning |
+|---|---|
+| All | The first choice of a segmented filter. It shows every item. |
+| {n} selected | In the toolbar, after Select all N and Clear, when something is selected. |
+| {n} repository, {n} repositories | The count in the Repositories toolbar. The same pattern for machine, runner, image, cache and user. |
+| Search images, Search caches, Search users | The labels of the search fields of Images, Caches and Users and roles. |
+| Pool on, Pool off | The two choices of the Pool filter (with All). |
+
 ## First run in the console words
 
 The words of the first-run fixes (web-console 4.1 and 4.3, CRSP124). The console does everything; no step sends the user to a terminal or to GitHub's settings.

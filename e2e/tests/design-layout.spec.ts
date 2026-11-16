@@ -115,3 +115,23 @@ for (const path of ['/repositories/turn-on', '/runners/add', '/machines/add']) {
     expect(frame?.width ?? 0).toBeGreaterThan(900);
   });
 }
+
+// CRSP132, UX-11: on a wide screen the toolbar above a list is one row (search, filters, selection, count, actions).
+for (const path of ['/repositories', '/machines', '/runners', '/jobs']) {
+  test(`list toolbar is one row at 1300 px: ${path}`, async ({ page }) => {
+    const mock = jobsAndDoctor(signedIn());
+    await mock.install(page);
+    await page.setViewportSize({ width: 1300, height: 900 });
+    await page.goto(path);
+    const bar = page.locator('.ds-list-toolbar').first();
+    await expect(bar).toBeVisible();
+    const tops = await bar.locator(':scope > *').evaluateAll((els) =>
+      els.map((e) => {
+        const r = e.getBoundingClientRect();
+        return Math.round(r.top + r.height / 2);
+      }),
+    );
+    expect(tops.length).toBeGreaterThan(1);
+    expect(Math.max(...tops) - Math.min(...tops)).toBeLessThan(8);
+  });
+}

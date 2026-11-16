@@ -150,16 +150,16 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 11. List toolbar
 
 - **Used for:** search, filters, the count, and the grid or list toggle above a list. The filter bar extends it: the search field, a Filter button that shows its active count, and a labelled Sort that is always visible. Active filters show as chips, with Clear all after them. The filters themselves open in a sheet (component 9) that ends with a primary "Show N items". The bar is not sticky.
-- **Looks:** one row above a list with a search field, the filter button, the count and the view toggle.
-- **Source:** `src/ui/list-toolbar`
+- **Looks:** one row above a list with a search field, the filter button, the count and the view toggle. Every list screen (Repositories, Machines, Runners, Jobs, Images and caches, Users, Audit log) uses this one part and passes the parts in its slots: search, filters, selection (Select all N, Clear, "N selected" and the buttons that act on the selection), count, and the list's own actions (Add). The row is one line on a wide screen and wraps only when it does not fit (360 and 393 px). A screen never lays the toolbar out itself.
+- **Source:** `packages/ui` `ListToolbar` (`src/ui/list-toolbar`)
 - **Rules:** UX-7, UX-11, UX-16.
 - **Guard:** none yet.
 
 ## 12. Segmented choices and filter chips
 
 - **Used for:** picking one of a few views (segmented), or turning filters on and off (chips).
-- **Looks:** a row of joined buttons with one chosen (segmented), or small round-ended chips that show on or off.
-- **Source:** `src/ui/segmented`
+- **Looks:** a row of joined buttons with one chosen (segmented), or small round-ended chips that show on or off. A filter with two states, such as Pool on and Pool off, is segmented with a first choice All, never two loose chips. Chips stay for filters with more than two answers.
+- **Source:** `packages/ui` `Segmented` (`src/ui/segmented`), `Chips`
 - **Rules:** UX-8, UX-17, UX-22.
 - **Guard:** none yet.
 

@@ -14,6 +14,7 @@ import {
   NumberField,
   Page,
   PageHeader,
+  ListToolbar,
   SearchBar,
   Section,
   Stack,
@@ -150,8 +151,19 @@ export function MachinesList() {
             );
           return (
             <Stack>
-              <SearchBar value={q} onChange={setQ} label="Search machines" />
-              <Chips label="State" options={STATES} value={state} onChange={setState} />
+              <ListToolbar
+                label="Machines"
+                search={<SearchBar value={q} onChange={setQ} label="Search machines" />}
+                filters={
+                  <Chips
+                    label="State"
+                    options={STATES}
+                    value={state}
+                    onChange={setState}
+                  />
+                }
+                count={`${rows.length} ${rows.length === 1 ? 'machine' : 'machines'}`}
+              />
               {rows.length === 0 ? (
                 <Message
                   tone="note"

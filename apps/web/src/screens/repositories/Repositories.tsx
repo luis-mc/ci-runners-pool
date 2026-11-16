@@ -3,7 +3,6 @@
 import {
   Button,
   CheckRow,
-  Chips,
   Cluster,
   Breadcrumbs,
   Empty,
@@ -16,6 +15,8 @@ import {
   Page,
   PageHeader,
   Pager,
+  ListToolbar,
+  Segmented,
   SearchBar,
   Section,
   Stack,
@@ -227,76 +228,83 @@ export function RepositoriesList() {
                   {data.stale.as_of ? `, from ${formatPast(data.stale.as_of, now)}` : ''}.
                 </Message>
               ) : null}
-              <SearchBar
-                value={q}
-                onChange={(x) => {
-                  setQ(x);
-                  setPage(1);
-                }}
-                label="Search repositories"
+              <ListToolbar
+                label="Repositories"
+                search={
+                  <SearchBar
+                    value={q}
+                    onChange={(x) => {
+                      setQ(x);
+                      setPage(1);
+                    }}
+                    label="Search repositories"
+                  />
+                }
+                filters={
+                  <Segmented
+                    label="Pool"
+                    options={[
+                      { value: 'on', label: 'Pool on' },
+                      { value: 'off', label: 'Pool off' },
+                    ]}
+                    value={pool}
+                    onChange={(x) => {
+                      setPool(x);
+                      setPage(1);
+                    }}
+                  />
+                }
+                selection={
+                  <>
+                    <Button onPress={() => setPicked(new Set(filtered.map((r) => r.id)))}>
+                      {`Select all ${filtered.length}`}
+                    </Button>
+                    {picked.size > 0 ? (
+                      <>
+                        <span>{`${picked.size} selected`}</span>
+                        <Button onPress={() => setPicked(new Set())}>Clear</Button>
+                        <Button
+                          kind="primary"
+                          disabled={!admin || noAdmin.length > 0}
+                          reason={
+                            !admin
+                              ? session.whyNot('admin')
+                              : noAdmin.length > 0
+                                ? `You need admin rights on ${noAdmin.map((r) => r.full_name).join(', ')} in GitHub.`
+                                : undefined
+                          }
+                          onPress={() =>
+                            void navigate(
+                              `/repositories/turn-on?${chosen.map((r) => `repo=${r.id}`).join('&')}`,
+                            )
+                          }
+                        >
+                          {`Turn on ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
+                        </Button>
+                        <Button
+                          kind="danger"
+                          disabled={!admin}
+                          reason={session.whyNot('admin')}
+                          onPress={() =>
+                            offQ.ask(
+                              chosen.flatMap((r) => [
+                                `${r.full_name}: pool off`,
+                                ...r.variables.map(
+                                  (x) => `${r.full_name}: variable ${x.name}`,
+                                ),
+                              ]),
+                            )
+                          }
+                        >
+                          {`Turn off ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
+                        </Button>
+                      </>
+                    ) : null}
+                  </>
+                }
+                count={`${filtered.length} ${filtered.length === 1 ? 'repository' : 'repositories'}`}
+                actions={<InstallAppButton label="Add a repository" onReturn={reload} />}
               />
-              <Chips
-                label="Pool"
-                options={[
-                  { value: 'on', label: 'Pool on' },
-                  { value: 'off', label: 'Pool off' },
-                ]}
-                value={pool}
-                onChange={(x) => {
-                  setPool(x);
-                  setPage(1);
-                }}
-              />
-              <Cluster>
-                <Button onPress={() => setPicked(new Set(filtered.map((r) => r.id)))}>
-                  {`Select all ${filtered.length}`}
-                </Button>
-                <Button
-                  onPress={() => setPicked(new Set())}
-                  disabled={picked.size === 0}
-                  reason="Nothing is selected."
-                >
-                  Clear
-                </Button>
-                <InstallAppButton label="Add a repository" onReturn={reload} />
-              </Cluster>
-              {picked.size > 0 ? (
-                <Cluster>
-                  <Button
-                    kind="primary"
-                    disabled={!admin || noAdmin.length > 0}
-                    reason={
-                      !admin
-                        ? session.whyNot('admin')
-                        : noAdmin.length > 0
-                          ? `You need admin rights on ${noAdmin.map((r) => r.full_name).join(', ')} in GitHub.`
-                          : undefined
-                    }
-                    onPress={() =>
-                      void navigate(
-                        `/repositories/turn-on?${chosen.map((r) => `repo=${r.id}`).join('&')}`,
-                      )
-                    }
-                  >
-                    {`Turn on ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
-                  </Button>
-                  <Button
-                    kind="danger"
-                    disabled={!admin}
-                    reason={session.whyNot('admin')}
-                    onPress={() =>
-                      offQ.ask(
-                        chosen.flatMap((r) => [
-                          `${r.full_name}: pool off`,
-                          ...r.variables.map((x) => `${r.full_name}: variable ${x.name}`),
-                        ]),
-                      )
-                    }
-                  >
-                    {`Turn off ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
-                  </Button>
-                </Cluster>
-              ) : null}
               {filtered.length === 0 ? (
                 <Message tone="note">
                   {data.items.length} repositories are hidden by the search and the

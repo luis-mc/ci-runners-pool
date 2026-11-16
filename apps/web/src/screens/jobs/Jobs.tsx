@@ -5,7 +5,8 @@ import {
   Badge,
   Breadcrumbs,
   Button,
-  Chips,
+  ListToolbar,
+  Segmented,
   ChoiceField,
   Cluster,
   Empty,
@@ -282,21 +283,29 @@ export function JobsList() {
           </Section>
           <Section title="History">
             <Stack>
-              <Chips
-                label="Result"
-                options={RESULTS}
-                value={filter.result}
-                onChange={(result) => setF({ result })}
-              />
-              <Chips
-                label="Time range"
-                options={[
-                  { value: '1', label: 'Last day' },
-                  { value: '7', label: 'Last 7 days' },
-                  { value: '30', label: 'Last 30 days' },
-                ]}
-                value={filter.days ? (String(filter.days) as '1' | '7' | '30') : ''}
-                onChange={(d) => setF({ days: Number(d) as Days })}
+              <ListToolbar
+                label="Job history"
+                filters={
+                  <>
+                    <Segmented
+                      label="Result"
+                      options={RESULTS}
+                      value={filter.result}
+                      onChange={(result) => setF({ result })}
+                    />
+                    <Segmented
+                      label="Time range"
+                      options={[
+                        { value: '1', label: 'Last day' },
+                        { value: '7', label: 'Last 7 days' },
+                        { value: '30', label: 'Last 30 days' },
+                      ]}
+                      value={filter.days ? (String(filter.days) as '1' | '7' | '30') : ''}
+                      onChange={(d) => setF({ days: Number(d) as Days })}
+                    />
+                  </>
+                }
+                actions={<ExportButton what="jobs" run={exportAll} />}
               />
               <Cluster>
                 <ChoiceField
@@ -327,9 +336,6 @@ export function JobsList() {
                   ]}
                   onChange={(machine) => setF({ machine })}
                 />
-              </Cluster>
-              <Cluster end>
-                <ExportButton what="jobs" run={exportAll} />
               </Cluster>
               <Load
                 result={history.result}
