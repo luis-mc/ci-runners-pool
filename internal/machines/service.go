@@ -74,6 +74,9 @@ type Options struct {
 	// SSH runs the install command over SSH for the optional SSH join
 	// (RES3). Nil means the SSH join is not available.
 	SSH SSHRunner
+	// Packages says where the Windows installer is, for an SSH join to a
+	// Windows machine that has no crsp.exe yet (CRSP123). Nil means it cannot send one.
+	Packages PackageSource
 	// MinProtocol is the lowest agent link protocol version a Session accepts
 	// (operations R5.44); an older agent keeps only the recovery call. 0 accepts all.
 	MinProtocol int32

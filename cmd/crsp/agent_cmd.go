@@ -40,6 +40,7 @@ func runAgentCmd(args []string, stdout, stderr io.Writer) error {
 type agentFlags struct {
 	controller, fingerprint, joinCode, dataDir string
 	diskFloorGiB                               int
+	yes                                        bool
 }
 
 func parseAgentFlags(name string, args []string) (*flag.FlagSet, *agentFlags, error) {
@@ -58,6 +59,7 @@ func parseAgentFlagsFor(goos, name string, args []string) (*flag.FlagSet, *agent
 	fs.StringVar(&f.joinCode, "join-code", "", "the one-time join code")
 	fs.StringVar(&f.dataDir, "data-dir", "", "the agent's data folder")
 	fs.IntVar(&f.diskFloorGiB, "disk-floor-gib", 0, "free GiB needed before a job or VM starts; 0 takes 10, a negative value turns the floor off")
+	fs.BoolVar(&f.yes, "yes", false, "install: answer yes to the plan (for a join over SSH, where nobody can type)")
 	if err := fs.Parse(args); err != nil {
 		return nil, nil, err
 	}
@@ -169,6 +171,10 @@ func installWith(args []string, stdout io.Writer, stdin io.Reader, goos string, 
 	}
 	in := bufio.NewReader(stdin)
 	confirm := func(text string) bool {
+		if f.yes {
+			_, _ = fmt.Fprint(stdout, text, "Continue? --yes was given.\n")
+			return true
+		}
 		_, _ = fmt.Fprint(stdout, text, "Continue? Type yes: ")
 		line, _ := in.ReadString('\n')
 		return strings.EqualFold(strings.TrimSpace(line), "yes")
