@@ -35,7 +35,7 @@ func (b trayBackend) response(ctx context.Context, st update.Status) tray.Respon
 	on := st.AutoUpdate
 	return tray.Response{
 		State: tray.StateHealthy, Running: len(st.RunningJobs), Version: st.Current, AutoUpdate: &on,
-		LatestVersion: st.Latest, UpdateAvailable: st.Available, UpdateState: string(st.State),
+		LatestVersion: st.Latest, ReleaseURL: st.ReleaseURL, UpdateAvailable: st.Available, UpdateState: string(st.State),
 		LogDir: tray.LogDir(),
 		Policy: b.policy(ctx),
 	}
@@ -99,6 +99,16 @@ func (b trayBackend) Status(ctx context.Context) (tray.Response, error) {
 
 func (b trayBackend) Check(ctx context.Context) (tray.Response, error) {
 	st, err := b.Updates.Check(ctx)
+	if err != nil {
+		return tray.Response{}, err
+	}
+	return b.response(ctx, st), nil
+}
+
+// Install is the tray's Install now: the person said yes in the tray dialog, which named
+// the running jobs, so the update is confirmed. It drains first and cuts no job.
+func (b trayBackend) Install(ctx context.Context, c trayserver.Caller) (tray.Response, error) {
+	st, err := b.Updates.Apply(ctx, update.KindUpdate, true, trayActor(c))
 	if err != nil {
 		return tray.Response{}, err
 	}

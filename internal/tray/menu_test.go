@@ -183,12 +183,6 @@ func TestLookForUpdatesSaysTheResult(t *testing.T) {
 	if title, _ := run(fakeChecker{st: Status{Update: UpdateInfo{}}}); title != "Up to date" {
 		t.Errorf("%q", title)
 	}
-	if title, body := run(fakeChecker{st: Status{Update: UpdateInfo{Latest: "1.5.0", Available: true}}}); title != "Update 1.5.0 available" || !strings.Contains(body, "by itself") {
-		t.Errorf("%q %q", title, body)
-	}
-	if _, body := run(fakeChecker{st: Status{Update: UpdateInfo{Latest: "1.5.0", Available: true, AutoOff: true}}}); !strings.Contains(body, "Update to 1.5.0") {
-		t.Errorf("%q", body)
-	}
 	if title, _ := run(fakeChecker{err: errors.New("no answer")}); title != "Could not look for updates" {
 		t.Errorf("%q", title)
 	}

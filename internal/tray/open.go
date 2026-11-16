@@ -49,10 +49,13 @@ type Opener struct {
 	Links   LinkSource
 	Targets TargetLinkSource // for the Review steps; nil when the service cannot
 	Checker UpdateChecker
-	Version string // this tray's own version, for the "up to date" notice
-	Browser Launcher
-	Files   Launcher
-	Notify  Notifier
+	// Ask shows the update dialog and Installer starts the install after Install now (CRSP147); nil: a notice only.
+	Ask       Asker
+	Installer UpdateInstaller
+	Version   string // this tray's own version, for the "up to date" notice
+	Browser   Launcher
+	Files     Launcher
+	Notify    Notifier
 	// Current returns the last known status; Open refuses a dead link while stopped (R5.14).
 	Current func() Status
 	LogDir  func() string
@@ -93,10 +96,11 @@ func (o *Opener) LookForUpdates(ctx context.Context) error {
 		return err
 	}
 	switch {
-	case st.Update.Available && st.Update.AutoOff:
-		o.notify("Update "+st.Update.Latest+" available", "Pick Update to "+st.Update.Latest+" in this menu. Running jobs finish first.")
-	case st.Update.Available:
-		o.notify("Update "+st.Update.Latest+" available", "It installs by itself once running jobs have finished.")
+	case st.Update.Updating():
+		o.notify("Already updating", "Version "+st.Update.Latest+" is on its way. Running jobs finish first.")
+	case st.Update.Available && st.Update.Latest != "":
+		// A look only looks: the person is asked, and nothing installs before the yes (CRSP147).
+		return o.Offer(ctx, st)
 	default:
 		o.notify("Up to date", ProductName+" "+o.Version+" is the newest stable release.")
 	}

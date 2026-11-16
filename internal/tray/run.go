@@ -113,7 +113,7 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 
 	auto, _ := DefaultAutostart(o.Exe)
 	opener := &Opener{
-		Links: client, Targets: client, Checker: client, Policy: client, Version: o.Version,
+		Links: client, Targets: client, Checker: client, Policy: client, Version: o.Version, Ask: AskUpdate, Installer: client,
 		Browser: OSLauncher, Files: OSLauncher,
 		Notify: DesktopNotice, Current: current, LogDir: LogDir,
 	}
@@ -155,6 +155,7 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 		pauseHour, pauseTill, resume := sys[IDPauseHour], sys[IDPauseTill], sys[IDResume]
 
 		var relaunchOnce sync.Once
+		offers := &Offered{}
 		p := &Poller{Source: client, Manager: ServiceState}
 		p.OnStatus = func(s Status) {
 			select {
@@ -189,6 +190,10 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 			}
 			systray.SetTooltip(s.Tooltip())
 			systray.SetIcon(Icon(s.State))
+			// A found update the owner has not been asked about yet: the same Install now / Later dialog.
+			if offers.Due(s) {
+				go func() { _ = opener.Offer(ctx, s) }()
+			}
 			// The service runs a newer version than this tray: the update installed.
 			// Start the tray of the new version and quit this one (R5.18, within 30 s).
 			if NeedsRelaunch(o.Version, s.Version) {
