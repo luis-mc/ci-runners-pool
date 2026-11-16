@@ -24,6 +24,11 @@ import { TIMING } from '../../timing';
 import { ApiError, errorText, unwrap, useClient } from '../../api/api';
 import { useMounted } from '../../api/mounted';
 import { useLiveState } from '../../live/LiveProvider';
+import {
+  PUBLIC_SETTING_PATH,
+  publicWhileOff,
+  usePublicRepositories,
+} from './publicRepositories';
 import { InstallAppButton } from './InstallApp';
 import {
   allRepositories,
@@ -131,7 +136,14 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
     }
   }, [client]);
 
-  const eligible = repos.filter((r) => r.user_is_github_admin);
+  const { enabled } = usePublicRepositories();
+  // A public repository cannot take the pool while the setting is off (github-integration R5.55).
+  const publicOff = repos.filter(
+    (r) => r.user_is_github_admin && publicWhileOff(r, enabled),
+  );
+  const eligible = repos.filter(
+    (r) => r.user_is_github_admin && !publicWhileOff(r, enabled),
+  );
   const blocked = repos.filter((r) => !r.user_is_github_admin);
   const chosen = eligible.filter((r) => picked.has(r.id));
 
@@ -301,6 +313,16 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
             />
           </>
         )}
+        {publicOff.length > 0 ? (
+          <Message
+            tone="note"
+            action={<LinkButton to={PUBLIC_SETTING_PATH}>Open the setting</LinkButton>}
+          >
+            {publicOff.length} public{' '}
+            {publicOff.length === 1 ? 'repository is' : 'repositories are'} not listed:
+            public repositories are off. Turn them on in Settings to use the pool there.
+          </Message>
+        ) : null}
         {blocked.length > 0 ? (
           <Message tone="note">
             {blocked.length} {blocked.length === 1 ? 'repository is' : 'repositories are'}{' '}

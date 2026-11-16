@@ -575,6 +575,9 @@ body {
 .ds-table tr[data-selected] button {
   color: inherit;
 }
+.ds-table tr[data-muted] td {
+  color: var(--ds-color-text-muted);
+}
 .ds-table__pick {
   inline-size: var(--ds-target-min);
 }
@@ -771,6 +774,54 @@ body {
   border: 0;
   font: inherit;
   cursor: pointer;
+}
+.ds-list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-3);
+}
+.ds-list-toolbar .ds-search {
+  flex: 1 1 var(--ds-width-field-short);
+  min-inline-size: var(--ds-width-field-short);
+}
+.ds-list-toolbar__count {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--ds-target-min);
+  color: var(--ds-color-text-muted);
+  white-space: nowrap;
+}
+.ds-segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  max-inline-size: 100%;
+}
+.ds-segmented__option {
+  min-block-size: var(--ds-target-min);
+  padding-inline: var(--ds-space-4);
+  font: inherit;
+  color: var(--ds-color-text);
+  background: var(--ds-color-surface);
+  border: var(--ds-border-thin) solid var(--ds-color-border);
+  cursor: pointer;
+}
+.ds-segmented__option:first-child {
+  border-start-start-radius: var(--ds-radius-3);
+  border-end-start-radius: var(--ds-radius-3);
+}
+.ds-segmented__option:last-child {
+  border-start-end-radius: var(--ds-radius-3);
+  border-end-end-radius: var(--ds-radius-3);
+}
+.ds-segmented__option:not(:first-child) {
+  border-inline-start-width: 0;
+}
+.ds-segmented__option[aria-pressed='true'] {
+  font-weight: var(--ds-weight-bold);
+  color: var(--ds-color-on-primary);
+  background: var(--ds-color-primary);
+  border-color: var(--ds-color-primary);
 }
 .ds-chips,
 .ds-tabs {

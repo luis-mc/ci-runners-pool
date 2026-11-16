@@ -45,6 +45,81 @@ export function SearchBar({
   );
 }
 
+/**
+ * Component 11: the toolbar above a list. One row: search, filters, the selection words and buttons, the count,
+ * the actions. It wraps only when the screen is too narrow for one row (UX-7, UX-11, UX-16). A screen passes the
+ * parts in their slots and never lays them out itself.
+ */
+export function ListToolbar({
+  label,
+  search,
+  filters,
+  selection,
+  count,
+  actions,
+}: {
+  /** The name of the list, for screen readers. */
+  label: string;
+  search?: ReactNode;
+  filters?: ReactNode;
+  /** Select all N, Clear, "N selected" and the buttons that act on the selection. */
+  selection?: ReactNode;
+  /** A short count such as "12 repositories". */
+  count?: string | undefined;
+  /** The list's own primary action, such as Add. */
+  actions?: ReactNode;
+}) {
+  return (
+    <div
+      className="ds-list-toolbar"
+      role="group"
+      aria-label={`${label} toolbar`}
+      data-layout-group
+    >
+      {search}
+      {filters}
+      {selection}
+      {count ? <span className="ds-list-toolbar__count">{count}</span> : null}
+      {actions}
+    </div>
+  );
+}
+
+/** Component 12: a few-state filter as joined buttons, one chosen. The empty value shows every item. */
+export function Segmented<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+  allLabel = 'All',
+}: {
+  label: string;
+  options: readonly { value: T; label: string }[];
+  value: T | '';
+  onChange: (value: T | '') => void;
+  allLabel?: string | undefined;
+}) {
+  const all: readonly { value: T | ''; label: string }[] = [
+    { value: '', label: allLabel },
+    ...options,
+  ];
+  return (
+    <div className="ds-segmented" role="group" aria-label={label} data-layout-group>
+      {all.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          className="ds-segmented__option"
+          aria-pressed={value === o.value}
+          onClick={() => onChange(o.value)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /** Filter chips: a few named answers, one chosen or none. */
 export function Chips<T extends string>({
   label,
