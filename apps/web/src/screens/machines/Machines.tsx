@@ -162,7 +162,7 @@ export function MachinesList() {
                         setState('');
                       }}
                     >
-                      Clear
+                      Clear search and filter
                     </Button>
                   }
                 >

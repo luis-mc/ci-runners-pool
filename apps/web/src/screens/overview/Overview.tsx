@@ -42,6 +42,12 @@ export function machineStatus(m: Machine): {
   return { kind: 'ok', word: 'online' };
 }
 
+/** The list says which machines exist; a live load event, when the stream has one, says how loaded they are now. */
+export function withLiveLoad(m: Machine, live: Schemas['Overview'] | undefined): Machine {
+  const l = live?.machines.find((x) => x.id === m.id);
+  return l ? { ...m, ...(l.load ? { load: l.load } : {}), slots_used: l.slots_used } : m;
+}
+
 export function MachineCard({ m }: { m: Machine }) {
   const s = machineStatus(m);
   const mem = m.load?.memory_pct;
@@ -195,7 +201,7 @@ export function Overview() {
                 ) : (
                   <CardGrid>
                     {data.items.map((m) => (
-                      <MachineCard key={m.id} m={m} />
+                      <MachineCard key={m.id} m={withLiveLoad(m, store)} />
                     ))}
                   </CardGrid>
                 )

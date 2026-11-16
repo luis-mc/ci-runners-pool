@@ -367,10 +367,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
           </Message>
         ) : null}
         {phase === 'done' || phase === 'done-after-reload' ? (
-          <Message
-            tone="done"
-            action={<LinkButton to="/runners">Open Runners</LinkButton>}
-          >
+          <Message tone="done">
             The pool is on. {done.length} {done.length === 1 ? 'step' : 'steps'} done.{' '}
             {LIGHT_RUNNER_DONE}
           </Message>

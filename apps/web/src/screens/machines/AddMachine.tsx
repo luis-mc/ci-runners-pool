@@ -8,6 +8,7 @@ import {
   PageHeader,
   ErrorSummary,
   Facts,
+  LinkButton,
   Message,
   ChoiceField,
   NumberField,
@@ -24,7 +25,7 @@ import {
   type WizardPhase,
 } from '@crsp/ui';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, unwrap, useClient, type Schemas } from '../../api/api';
 import { Ask } from '../common';
 import { TIMING } from '../../timing';
@@ -77,6 +78,7 @@ interface Props {
 
 export function AddMachineWizard({ onDone }: Props) {
   const client = useClient();
+  const navigate = useNavigate();
   const now = useNow();
   const [params, setParams] = useSearchParams();
   const storedJoin = useRef(params.get('join')).current;
@@ -450,6 +452,21 @@ export function AddMachineWizard({ onDone }: Props) {
       ) : (
         <Stack>
           <Message tone="done">The machine joined the pool.</Message>
+          {machine && machine.backends.some((b) => b.usable && !b.allowed) ? (
+            <Message
+              tone="needs-you"
+              action={
+                <LinkButton to={`/machines/${machine.id}`}>Open the machine</LinkButton>
+              }
+            >
+              {`${machine.backends
+                .filter((b) => b.usable && !b.allowed)
+                .map((b) => b.name)
+                .join(
+                  ', ',
+                )} is installed on this machine but not turned on. Open the machine, tick it and press Save to let it run runners.`}
+            </Message>
+          ) : null}
           {machine ? (
             <Facts
               items={[
@@ -521,6 +538,14 @@ export function AddMachineWizard({ onDone }: Props) {
       review={step === 1}
       onStartAgain={startAgain}
       onTryAgain={startAgain}
+      {...(onDone
+        ? {}
+        : {
+            donePrimary: {
+              label: 'Open Machines',
+              onPress: () => void navigate('/machines'),
+            },
+          })}
     >
       {body}
       <Ask

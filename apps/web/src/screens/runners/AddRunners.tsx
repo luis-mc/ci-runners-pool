@@ -130,7 +130,7 @@ export function AddRunnersWizard() {
         const [m, r, ins] = await Promise.all([
           unwrap(client.GET('/api/v1/machines')),
           allRepositories(client, { pool: 'on' }),
-          unwrap(client.GET('/api/v1/github/installations')),
+          unwrap(client.GET('/api/v1/github/installations')).catch(() => ({ items: [] })),
         ]);
         if (!on) return;
         setMachines(m.items);

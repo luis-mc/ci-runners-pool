@@ -119,7 +119,14 @@ function machineApi(): MockApi {
     .on('DELETE', '/api/v1/join-codes/:id', undefined);
 }
 
-const STORED = /Start again|Try again|Open Runners|Open Repositories|Sign in with GitHub/;
+/** A lone repository is ticked already (finding 11): tick it only if it is not. */
+async function tickOnce(name: string): Promise<void> {
+  const box = await screen.findByRole<HTMLInputElement>('checkbox', { name });
+  if (!box.checked) fireEvent.click(box);
+}
+
+const STORED =
+  /Start again|Try again|Open Runners|Open Repositories|Open Machines|Sign in with GitHub/;
 
 const machineDriver: WizardDriver = {
   id: 'add-machine',
@@ -247,7 +254,7 @@ const poolDriver: WizardDriver = {
       await screen.findByRole('button', { name: STORED });
       return snap();
     }
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select octo/app' }));
+    await tickOnce('Select octo/app');
     if (state === 'first-run') return snap();
     await press('Next');
     if (state === 'planning') return snap();
@@ -671,8 +678,7 @@ describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
           return mk('applying');
         });
       renderApp(api, repo ? '/repositories/turn-on' : '/runners/add');
-      if (repo)
-        fireEvent.click(await screen.findByRole('checkbox', { name: 'Select octo/app' }));
+      if (repo) await tickOnce('Select octo/app');
       else fireEvent.click(await screen.findByRole('radio', { name: 'octo/app' }));
       await press('Next');
       await screen.findByText(/Nothing has changed yet/);

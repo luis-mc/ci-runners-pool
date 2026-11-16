@@ -30,11 +30,9 @@ describe('Overview (R5.20)', () => {
   });
 
   it('names an offline machine with a word, not only a colour (UX-58)', async () => {
-    const api = signedIn().on(
-      'GET',
-      '/api/v1/overview',
-      overview({ machines: [machine({ online: false })] }),
-    );
+    const api = signedIn()
+      .on('GET', '/api/v1/overview', overview({ machines: [machine({ online: false })] }))
+      .on('GET', '/api/v1/machines', { items: [machine({ online: false })] });
     renderApp(api, '/');
     const card = await screen.findByRole('region', { name: 'build-1' });
     expect(within(card).getByText('offline')).toBeTruthy();
@@ -142,12 +140,23 @@ describe('Overview (R5.20)', () => {
   });
 
   it('says what to do when there is no machine yet', async () => {
-    const api = signedIn().on('GET', '/api/v1/overview', overview({ machines: [] }));
+    const api = signedIn()
+      .on('GET', '/api/v1/overview', overview({ machines: [] }))
+      .on('GET', '/api/v1/machines', { items: [] });
     renderApp(api, '/');
     expect(
-      await screen.findByText('No machines yet. Add a machine to start.'),
+      await screen.findByText(
+        'No machine is in the pool yet. Add a machine so jobs have somewhere to run.',
+      ),
     ).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Open Machines' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Add a machine' })).toBeTruthy();
+  });
+
+  it('shows the machines of the machine list even when the live overview has none (finding 2)', async () => {
+    const api = signedIn().on('GET', '/api/v1/overview', overview({ machines: [] }));
+    renderApp(api, '/');
+    expect(await screen.findByRole('region', { name: 'build-1' })).toBeTruthy();
+    expect(screen.queryByText(/No machine is in the pool yet/)).toBeNull();
   });
 
   it('has no command button (UX-52)', async () => {

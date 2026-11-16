@@ -397,7 +397,7 @@ export function RunnersList() {
                         setIso('');
                       }}
                     >
-                      Clear
+                      Clear search and filters
                     </Button>
                   }
                 >
