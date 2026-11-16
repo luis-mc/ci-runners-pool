@@ -7,6 +7,7 @@ import {
   Empty,
   ErrorSummary,
   Facts,
+  FieldGrid,
   FormActions,
   LinkButton,
   Message,
@@ -19,6 +20,7 @@ import {
   Status,
   Table,
   Breadcrumbs,
+  Text,
   TextLink,
   formatPast,
   formatPercent,
@@ -303,6 +305,7 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
     () => void navigate('/machines'),
   );
 
+  const untickedUsable = m.backends.filter((b) => b.usable && !allowed.includes(b.name));
   const f = m.facts;
   return (
     <>
@@ -353,40 +356,55 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
           ]}
         />
       </Section>
-      <Section title="Backends">
-        <Stack gap="tight">
-          {m.backends.map((b) => (
-            <CheckRow
-              key={b.name}
-              label={b.name}
-              checked={allowed.includes(b.name)}
-              onChange={(c) =>
-                setAllowed((a) => (c ? [...a, b.name] : a.filter((x) => x !== b.name)))
-              }
-              // The reason is written once: as the lock text for an admin, as the help for
-              // a viewer (whose lock text is the admin-only one).
-              help={
-                b.usable ? (b.version ?? '') : admin ? '' : (b.reason ?? 'not usable')
-              }
-              {...(!admin || !b.usable
-                ? { disabledReason: !admin ? why : (b.reason ?? 'Not usable here.') }
-                : {})}
-            />
-          ))}
-        </Stack>
-      </Section>
       <RecoverySection m={m} onChanged={onChanged} />
       <MachinePolicySection m={m} onChanged={onChanged} />
-      <Section title="Budget and slots">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void save.run();
-          }}
-        >
-          <Stack>
-            <ErrorSummary errors={errors} />
-            <Cluster>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void save.run();
+        }}
+      >
+        <Stack gap="loose">
+          <ErrorSummary errors={errors} />
+          <Section title="Backends">
+            <Stack gap="tight">
+              {untickedUsable.length > 0 ? (
+                <Message
+                  tone="needs-you"
+                  action={
+                    <Button
+                      onPress={() =>
+                        setAllowed((a) => [...a, ...untickedUsable.map((b) => b.name)])
+                      }
+                    >
+                      {`Tick ${untickedUsable.map((b) => b.name).join(', ')}`}
+                    </Button>
+                  }
+                >
+                  {`${untickedUsable.map((b) => b.name).join(', ')} ${untickedUsable.length === 1 ? 'is' : 'are'} installed and works on this machine, but is not turned on. Tick it and press Save so this machine can run its runners.`}
+                </Message>
+              ) : null}
+              {m.backends.map((b) => (
+                <CheckRow
+                  key={b.name}
+                  label={b.name}
+                  checked={allowed.includes(b.name)}
+                  onChange={(c) =>
+                    setAllowed((a) =>
+                      c ? [...a, b.name] : a.filter((x) => x !== b.name),
+                    )
+                  }
+                  // The reason is written once (UX-1): the lock text, or for a viewer the admin-only one.
+                  help={b.usable ? (b.version ?? '') : ''}
+                  {...(!admin || !b.usable
+                    ? { disabledReason: !admin ? why : (b.reason ?? 'Not usable here.') }
+                    : {})}
+                />
+              ))}
+            </Stack>
+          </Section>
+          <Section title="Budget and slots">
+            <FieldGrid>
               <NumberField
                 label="Memory budget"
                 value={mem}
@@ -418,31 +436,35 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
                 max={1440}
                 onChange={setDrain}
               />
-            </Cluster>
-            {saved ? <Message tone="done">Settings saved.</Message> : null}
-            {save.error ? (
-              <Message tone="problem">Could not save. {save.error}</Message>
-            ) : null}
-            <FormActions>
-              <Button onPress={() => void navigate('/machines')}>Cancel</Button>
-              <Button
-                kind="primary"
-                submit
-                busy={save.busy}
-                busyLabel="Saving"
-                disabled={!admin}
-                reason={why}
-              >
-                Save
-              </Button>
-            </FormActions>
-          </Stack>
-        </form>
-      </Section>
+            </FieldGrid>
+          </Section>
+          {saved ? <Message tone="done">Settings saved.</Message> : null}
+          {save.error ? (
+            <Message tone="problem">Could not save. {save.error} Try again.</Message>
+          ) : null}
+          <FormActions>
+            <Button onPress={() => void navigate('/machines')}>Cancel</Button>
+            <Button
+              kind="primary"
+              submit
+              busy={save.busy}
+              busyLabel="Saving"
+              disabled={!admin}
+              reason={why}
+            >
+              Save
+            </Button>
+          </FormActions>
+        </Stack>
+      </form>
       <Section title="Pool size">
         <PoolSizeWizard m={m} onChanged={onChanged} />
       </Section>
-      <Section title="Remove">
+      <Section title="Remove this machine">
+        <Text tone="muted">
+          Removing takes the machine and its runners out of the pool. Jobs that run there
+          finish first. The agent stays installed on the machine.
+        </Text>
         <Cluster>
           <Button
             kind="danger"
