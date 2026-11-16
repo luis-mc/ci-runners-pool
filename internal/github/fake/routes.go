@@ -279,7 +279,8 @@ func (s *Server) appInstallations(w http.ResponseWriter, r *http.Request) {
 		}
 		if len(raw) > 0 && json.Unmarshal(raw, &ask) == nil {
 			for name, level := range ask.Permissions {
-				if s.Installs[id].Perms[name] != level && !(level == "read" && s.Installs[id].Perms[name] == "write") {
+				have := s.Installs[id].Perms[name]
+				if have != level && (level != "read" || have != "write") {
 					writeJSON(w, 422, map[string]any{"message": "The permissions requested are not granted to this installation."})
 					return
 				}
