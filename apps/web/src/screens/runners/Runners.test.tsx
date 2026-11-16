@@ -11,6 +11,7 @@ import {
   viewer,
 } from '../../testing/mock';
 import { currentJobText, isolationText, runnerStatus, stateCounts } from './Runners';
+import { machineSupports, runnerKind } from './AddRunners';
 
 afterEach(cleanup);
 
@@ -60,6 +61,23 @@ describe('Runners list', () => {
     expect(within(table).getByText('busy')).toBeTruthy();
     expect(within(table).getByText('octo/app e2e')).toBeTruthy();
     expect(within(table).getByText('idle')).toBeTruthy();
+  });
+
+  it('shows why a runner failed', async () => {
+    const api = signedIn().on('GET', '/api/v1/runners', {
+      items: [
+        runner({
+          state: 'failed',
+          failed_reason:
+            'register service: the account has no right to log on as a service',
+        }),
+      ],
+    });
+    renderApp(api, '/runners');
+    const table = await screen.findByRole('table', { name: 'Runners' });
+    expect(
+      within(table).getByText(/the account has no right to log on as a service/),
+    ).toBeTruthy();
   });
 
   it('reloads when a runner event arrives (live)', async () => {
@@ -165,6 +183,25 @@ describe('Runners list', () => {
     );
   });
 
+  it('deletes the registration of an offline runner after a yes that names it (R5.33)', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/runners', {
+        items: [
+          runner({ id: 'r9', name: 'crsp-gone-1', state: 'offline', managed: true }),
+        ],
+      })
+      .on('DELETE', '/api/v1/runners/:id/registration', runner({ id: 'r9' }));
+    renderApp(api, '/runners');
+    await screen.findByRole('table', { name: 'Runners' });
+    fireEvent.click(screen.getByRole('button', { name: 'Delete registration' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete crsp-gone-1?' });
+    expect(api.count('DELETE', '/api/v1/runners/r9/registration')).toBe(0);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete registration' }));
+    await waitFor(() =>
+      expect(api.count('DELETE', '/api/v1/runners/r9/registration')).toBe(1),
+    );
+  });
+
   it('keeps a viewer from adding or deleting, and says why', async () => {
     renderApp(
       signedIn(viewer).on('GET', '/api/v1/runners', { items: [runner()] }),
@@ -189,6 +226,40 @@ describe('Add runners', () => {
     const win = await screen.findByRole('radio', { name: /win-1/ });
     expect((win as HTMLInputElement).disabled).toBe(true);
     expect(screen.getByText('This machine runs windows, not linux.')).toBeTruthy();
+  });
+
+  it('offers Linux on a Windows machine whose engine runs Linux containers (R5.47)', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/machines', {
+        items: [
+          machine({ id: 'm2', name: 'win-1', os: 'windows', container_os: 'linux' }),
+          machine({ id: 'm3', name: 'win-2', os: 'windows' }),
+        ],
+      })
+      .on('GET', '/api/v1/github/repositories', { items: [], stale: { stale: false } });
+    renderApp(api, '/runners/add');
+    await screen.findByRole('group', { name: 'Add runners' });
+    const ok = await screen.findByRole('radio', { name: /win-1/ });
+    expect((ok as HTMLInputElement).disabled).toBe(false);
+    const no = await screen.findByRole<HTMLInputElement>('radio', { name: /win-2/ });
+    expect(no.disabled).toBe(true);
+    expect(screen.getByText('This machine runs windows, not linux.')).toBeTruthy();
+    expect(
+      screen.getByText(/Linux runners on this Windows machine run in containers/),
+    ).toBeTruthy();
+  });
+
+  it('asks for an ephemeral container runner only across systems', () => {
+    const win = machine({ os: 'windows', container_os: 'linux' });
+    expect(machineSupports(win, 'linux')).toBe(true);
+    expect(machineSupports(win, 'windows')).toBe(true);
+    expect(machineSupports(machine({ os: 'windows' }), 'linux')).toBe(false);
+    expect(
+      machineSupports(machine({ os: 'windows', container_os: 'windows' }), 'linux'),
+    ).toBe(false);
+    expect(runnerKind(win, 'linux')).toBe('ephemeral');
+    expect(runnerKind(win, 'windows')).toBe('persistent');
+    expect(runnerKind(machine(), 'linux')).toBe('persistent');
   });
 });
 
@@ -233,5 +304,64 @@ describe('Idle and busy at a glance (RES7)', () => {
     await screen.findByRole('table', { name: 'Runners' });
     expect(screen.getByText('Idle')).toBeTruthy();
     expect(screen.getByText('Busy')).toBeTruthy();
+  });
+});
+
+describe('Runners list truth (UX-1, UX-6, UX-19)', () => {
+  it('links the machine name to the machine page', async () => {
+    const api = signedIn().on('GET', '/api/v1/runners', {
+      items: [runner({ machine_id: 'm9', machine_name: 'GameRoomPC' })],
+    });
+    renderApp(api, '/runners');
+    const table = await screen.findByRole('table', { name: 'Runners' });
+    const link = within(table).getByRole('link', { name: 'GameRoomPC' });
+    expect(link.getAttribute('href')).toBe('/machines/m9');
+    expect(within(table).queryByText('m9')).toBeNull();
+  });
+
+  it('shows the real state word with its reason', async () => {
+    const api = signedIn().on('GET', '/api/v1/runners', {
+      items: [
+        runner({
+          state: 'not_registered',
+          reason: 'GitHub does not list a runner with this name',
+        }),
+        runner({
+          id: 'r2',
+          name: 'b',
+          state: 'stopped',
+          reason: 'its service is stopped',
+        }),
+      ],
+    });
+    renderApp(api, '/runners');
+    const table = await screen.findByRole('table', { name: 'Runners' });
+    expect(within(table).getByText('not registered')).toBeTruthy();
+    expect(
+      within(table).getByText('GitHub does not list a runner with this name'),
+    ).toBeTruthy();
+    expect(within(table).getByText('stopped')).toBeTruthy();
+    expect(within(table).queryByText('idle')).toBeNull();
+    expect(runnerStatus(runner({ state: 'unknown' })).word).toBe('unknown');
+  });
+
+  it('offers Remove on a failed runner and asks first', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/runners', {
+        items: [
+          runner({ state: 'failed', reason: 'the service did not start' }),
+          runner({ id: 'r2', name: 'fine' }),
+        ],
+      })
+      .on('DELETE', '/api/v1/runners/:id', runner({ state: 'draining' }));
+    renderApp(api, '/runners');
+    const table = await screen.findByRole('table', { name: 'Runners' });
+    expect(within(table).getByText('the service did not start')).toBeTruthy();
+    expect(within(table).getAllByRole('button', { name: 'Remove' })).toHaveLength(1);
+    fireEvent.click(within(table).getByRole('button', { name: 'Remove' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete these runners?' });
+    expect(within(dialog).getByText('Runner crsp-linux-1')).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(api.count('DELETE', '/api/v1/runners/r1')).toBe(1));
   });
 });

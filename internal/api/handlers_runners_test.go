@@ -24,21 +24,27 @@ type fakeRunners struct {
 	lastActor string
 }
 
-func (f *fakeRunners) List(_ context.Context, fl runners.Filter) ([]runners.Record, error) {
-	var out []runners.Record
+func (f *fakeRunners) ListView(_ context.Context, fl runners.Filter) ([]runners.View, error) {
+	var out []runners.View
 	for _, r := range f.recs {
 		if fl.Managed != nil && *fl.Managed != r.Managed {
 			continue
 		}
-		out = append(out, r)
+		out = append(out, f.view(r))
 	}
 	return out, nil
 }
-func (f *fakeRunners) Get(_ context.Context, id string) (runners.Record, error) {
+
+// view is the record with the machine's name, as the service gives it. A
+// stored failure carries its reason.
+func (f *fakeRunners) view(r runners.Record) runners.View {
+	return runners.View{Record: r, State: r.State, Reason: r.Reason, MachineName: "GameRoomPC"}
+}
+func (f *fakeRunners) GetView(_ context.Context, id string) (runners.View, error) {
 	if r, ok := f.recs[id]; ok {
-		return r, nil
+		return f.view(r), nil
 	}
-	return runners.Record{}, runners.ErrNotFound
+	return runners.View{}, runners.ErrNotFound
 }
 func (f *fakeRunners) PlanAdd(_ context.Context, req runners.AddRequest, actor string) (runners.Plan, error) {
 	f.lastActor = actor
@@ -75,6 +81,18 @@ func (f *fakeRunners) BeginRemove(_ context.Context, id string, confirm bool, _ 
 	}
 	r.State = runners.Draining
 	return r, func(context.Context) error { f.removed = true; return nil }, nil
+}
+func (f *fakeRunners) DeleteOfflineRegistration(_ context.Context, id string, confirm bool, actor string) (runners.Record, error) {
+	r, ok := f.recs[id]
+	if !ok {
+		return r, runners.ErrNotFound
+	}
+	if !confirm {
+		return r, &runners.NeedsConfirmation{Items: []runners.ConfirmItem{{Kind: "registration", Text: "The registration of offline runner " + r.Name + " on GitHub"}}}
+	}
+	f.removed = true
+	f.lastActor = actor
+	return r, nil
 }
 func (f *fakeRunners) StartRemove(ctx context.Context, finish func(context.Context) error) {
 	_ = finish(ctx)
@@ -140,6 +158,22 @@ func TestIsolationInResponse(t *testing.T) {
 	}
 	if rec = do(runnersMux(sample()), http.MethodGet, "/api/v1/runners/nope", ""); rec.Code != 404 {
 		t.Errorf("%d", rec.Code)
+	}
+}
+
+// A failed runner carries its whole reason; any other state has none.
+func TestFailedReasonInResponse(t *testing.T) {
+	st := sample()
+	r := st.recs["r1"]
+	r.State, r.FailedReason = runners.Failed, "register service: the account has no right to log on as a service"
+	st.recs["r1"] = r
+	rec := do(runnersMux(st), http.MethodGet, "/api/v1/runners/r1", "")
+	if !strings.Contains(rec.Body.String(), `"failed_reason":"register service: the account has no right to log on as a service"`) {
+		t.Errorf("%s", rec.Body)
+	}
+	rec = do(runnersMux(sample()), http.MethodGet, "/api/v1/runners/r1", "")
+	if strings.Contains(rec.Body.String(), "failed_reason") {
+		t.Errorf("an idle runner has no reason: %s", rec.Body)
 	}
 }
 
@@ -213,5 +247,48 @@ func TestStopRunnerPlan(t *testing.T) {
 	rec := do(mux, "POST", "/api/v1/runner-plans/p-done/stop", "")
 	if rec.Code != 409 || !strings.Contains(rec.Body.String(), "nothing to stop") {
 		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+}
+
+// R5.33: deleting an offline registration asks first and names the runner; a yes deletes it.
+func TestDeleteRunnerRegistrationNeedsAYesThatNamesTheRunner(t *testing.T) {
+	f := sample()
+	rec := do(runnersMux(f), http.MethodDelete, "/api/v1/runners/r1/registration", "")
+	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), CodeNeedsConfirmation) || !strings.Contains(rec.Body.String(), "offline runner") || f.removed {
+		t.Fatalf("%d %s removed=%v", rec.Code, rec.Body, f.removed)
+	}
+	rec = do(runnersMux(f), http.MethodDelete, "/api/v1/runners/r1/registration?confirm=true", "")
+	if rec.Code != http.StatusOK || !f.removed {
+		t.Fatalf("%d %s removed=%v", rec.Code, rec.Body, f.removed)
+	}
+	if rec = do(runnersMux(f), http.MethodDelete, "/api/v1/runners/nope/registration?confirm=true", ""); rec.Code != http.StatusNotFound {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+}
+
+// UX-1, UX-19: a runner carries its machine's name, and a failed runner its reason.
+func TestRunnerCarriesMachineNameAndReason(t *testing.T) {
+	f := sample()
+	r := f.recs["r1"]
+	r.State, r.Reason = runners.Failed, "the service did not start"
+	f.recs["r1"] = r
+	rec := do(runnersMux(f), http.MethodGet, "/api/v1/runners/r1", "")
+	if rec.Code != 200 {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+	var out struct {
+		MachineID   string `json:"machine_id"`
+		MachineName string `json:"machine_name"`
+		State       string
+		Reason      string
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatal(err)
+	}
+	if out.MachineName != "GameRoomPC" || out.MachineID != "m1" || out.State != "failed" || out.Reason != "the service did not start" {
+		t.Errorf("%+v", out)
+	}
+	if rec = do(runnersMux(sample()), http.MethodGet, "/api/v1/runners/r1", ""); strings.Contains(rec.Body.String(), `"reason"`) {
+		t.Errorf("no reason when there is nothing to say: %s", rec.Body)
 	}
 }

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
+	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 )
 
@@ -24,6 +25,11 @@ func (fakeCA) CAPEM() []byte {
 }
 
 func machinesMux(t *testing.T) (*http.ServeMux, *machines.MemRepo, string) {
+	mux, repo, id, _ := machinesMuxSvc(t)
+	return mux, repo, id
+}
+
+func machinesMuxSvc(t *testing.T) (*http.ServeMux, *machines.MemRepo, string, *machines.Service) {
 	t.Helper()
 	repo := machines.NewMemRepo()
 	svc := machines.New(machines.Options{Repo: repo, ControllerAddress: "pool.lan", AgentPort: 8461, Fingerprint: strings.Repeat("ab", 32)})
@@ -38,7 +44,7 @@ func machinesMux(t *testing.T) (*http.ServeMux, *machines.MemRepo, string) {
 	}
 	mux := http.NewServeMux()
 	Register(mux, Options{Version: "test", DB: fakeDB{}, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Machines: svc, CA: fakeCA{}, Authn: asRole(auth.RoleOwner)})
-	return mux, repo, res.MachineID
+	return mux, repo, res.MachineID, svc
 }
 
 func doM(t *testing.T, mux *http.ServeMux, method, path string, body any) *httptest.ResponseRecorder {
@@ -242,5 +248,30 @@ func TestLoadHistoryRoute(t *testing.T) {
 	}
 	if rec := doM(t, mux, "GET", "/api/v1/machines/m_none/load", nil); rec.Code != 404 {
 		t.Fatalf("%d", rec.Code)
+	}
+}
+
+// CRSP127: the machine says which OS its containers run once the agent reported
+// a usable engine; before that, and when the engine is down, the field is absent.
+func TestMachineShowsContainerOS(t *testing.T) {
+	mux, _, id, svc := machinesMuxSvc(t)
+	get := func() gen.Machine {
+		rec := doM(t, mux, "GET", "/api/v1/machines/"+id, nil)
+		var m gen.Machine
+		if err := json.Unmarshal(rec.Body.Bytes(), &m); err != nil {
+			t.Fatal(err)
+		}
+		return m
+	}
+	if get().ContainerOs != nil {
+		t.Fatal("container_os before any report")
+	}
+	svc.HandleMachineReport(id, &agentv1.MachineReport{Engine: &agentv1.EngineReport{Kind: "docker-desktop", Usable: true, ContainerOs: "linux"}})
+	if m := get(); m.ContainerOs == nil || *m.ContainerOs != gen.OS("linux") {
+		t.Fatalf("container_os = %v", m.ContainerOs)
+	}
+	svc.HandleMachineReport(id, &agentv1.MachineReport{Engine: &agentv1.EngineReport{Kind: "docker-desktop"}})
+	if get().ContainerOs != nil {
+		t.Fatal("container_os with the engine down")
 	}
 }

@@ -15,7 +15,7 @@ import (
 func retention(t *testing.T) (*Retention, *audit.Log, string) {
 	t.Helper()
 	dir := t.TempDir()
-	db, err := store.Open(context.Background(), dir)
+	db, err := store.OpenForTests(context.Background(), dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,24 +115,59 @@ func TestLogSizeCapPerMachineOldestFirst(t *testing.T) {
 
 func TestRunRepeats(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	r, _, dir := retention(t)
-	r.Interval = 20 * time.Millisecond
-	go r.Run(ctx)
-	// A file that turns old after the first run is deleted by a later run.
-	time.Sleep(100 * time.Millisecond)
-	logs := filepath.Join(dir, LogsDir)
-	_ = os.MkdirAll(logs, 0o755)
-	old := filepath.Join(logs, "late.log")
-	_ = os.WriteFile(old, []byte("x"), 0o600)
-	past := time.Now().Add(-30 * 24 * time.Hour)
-	_ = os.Chtimes(old, past, past)
-	deadline := time.Now().Add(3 * time.Second)
-	for time.Now().Before(deadline) {
-		if _, err := os.Stat(old); err != nil {
-			return
+	r.Interval = time.Millisecond
+	// Each run reads the clock once, at its start, so the clock counts the runs
+	// without any sleeping or polling in the test.
+	started := make(chan struct{}, 1024)
+	r.Now = func() time.Time {
+		select {
+		case started <- struct{}{}:
+		default:
 		}
-		time.Sleep(20 * time.Millisecond)
+		return time.Now()
 	}
-	t.Fatal("retention did not run again")
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		r.Run(ctx)
+	}()
+	// The goroutine must end before the database and the folder are removed:
+	// on Windows a run still holding the file blocks the folder's removal.
+	defer func() {
+		cancel()
+		<-done
+	}()
+	await := func(n int) {
+		t.Helper()
+		for range n {
+			select {
+			case <-started:
+			case <-time.After(time.Minute):
+				t.Fatal("retention did not run again")
+			}
+		}
+	}
+	// The first run is over once the second starts.
+	await(2)
+	// A file that turns old after the first run is deleted by a later run. Run
+	// number three starts after the file exists only if it is the one that
+	// follows the run that was started when the file was made, so wait for two
+	// more starts: the second of them begins after a whole run saw the file.
+	logs := filepath.Join(dir, LogsDir)
+	if err := os.MkdirAll(logs, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	old := filepath.Join(logs, "late.log")
+	if err := os.WriteFile(old, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	past := time.Now().Add(-30 * 24 * time.Hour)
+	if err := os.Chtimes(old, past, past); err != nil {
+		t.Fatal(err)
+	}
+	await(3)
+	if _, err := os.Stat(old); !os.IsNotExist(err) {
+		t.Fatalf("retention did not delete the old file: %v", err)
+	}
 }

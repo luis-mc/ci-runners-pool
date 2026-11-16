@@ -33,25 +33,42 @@ func (c machineCapacity) OSLabels(ctx context.Context) (map[string][]string, err
 		if !m.RemovedAt.IsZero() || m.State == "removed" {
 			continue
 		}
-		os := runners.OSName(m.OS)
-		if os == "" {
-			continue
-		}
-		have := map[string]bool{}
-		for _, l := range out[os] {
-			have[strings.ToLower(l)] = true
-		}
-		for _, l := range []string{archLabel(m.Arch), c.pool} {
-			if l != "" && !have[strings.ToLower(l)] {
-				out[os] = append(out[os], l)
+		for _, os := range servedOSes(v) {
+			have := map[string]bool{}
+			for _, l := range out[os] {
 				have[strings.ToLower(l)] = true
 			}
-		}
-		if _, ok := out[os]; !ok {
-			out[os] = nil
+			for _, l := range []string{archLabel(m.Arch), c.pool} {
+				if l != "" && !have[strings.ToLower(l)] {
+					out[os] = append(out[os], l)
+					have[strings.ToLower(l)] = true
+				}
+			}
+			if _, ok := out[os]; !ok {
+				out[os] = nil
+			}
 		}
 	}
 	return out, nil
+}
+
+// servedOSes is the OS of a machine and, for a Windows machine whose engine runs
+// Linux containers with the container backend allowed and usable, linux too:
+// its pool runners are Linux container runners (runners R5.47).
+func servedOSes(v machines.View) []string {
+	os := runners.OSName(v.Machine.OS)
+	if os == "" {
+		return nil
+	}
+	out := []string{os}
+	if v.Machine.OS == "windows" && v.Engine.RunsLinuxContainers() {
+		for _, b := range v.Backends {
+			if b.Name == string(backend.Docker) && b.Present && b.Usable && b.Allowed {
+				return append(out, runners.OSName("linux"))
+			}
+		}
+	}
+	return out
 }
 
 // MachineSizes gives each active machine's OS, labels and pool size for the
@@ -111,12 +128,10 @@ func upByOS(views []machines.View) map[string]bool {
 		if !m.RemovedAt.IsZero() || m.State == "removed" {
 			continue
 		}
-		os := runners.OSName(m.OS)
-		if os == "" {
-			continue
-		}
 		up := m.Online && m.Accepting && m.State == machines.StateActive
-		out[os] = out[os] || up
+		for _, os := range servedOSes(v) {
+			out[os] = out[os] || up
+		}
 	}
 	return out
 }
@@ -144,15 +159,23 @@ func (l machineLookup) GetMachine(ctx context.Context, id string) (runners.Machi
 	}
 	m := runners.Machine{ID: v.Machine.ID, Name: v.Machine.Name, OS: v.Machine.OS, Arch: v.Machine.Arch,
 		PoolCPUs: v.Settings.PoolCPUs, PoolMemoryGiB: v.Settings.PoolMemoryGiB, JobSlots: v.Settings.JobSlots}
+	if v.Engine.RunsLinuxContainers() {
+		m.ContainerOS = "linux"
+	}
 	for _, b := range v.Backends {
 		kinds := []string{"ephemeral"}
 		if b.Name == string(backend.Persistent) {
 			kinds = []string{"persistent"}
 		}
-		m.Backends = append(m.Backends, runners.BackendOption{
+		opt := runners.BackendOption{
 			Name: backend.Name(b.Name), Usable: b.Present && b.Usable, Allowed: b.Allowed,
 			Reason: b.Reason, Kinds: kinds, OS: []string{v.Machine.OS},
-		})
+		}
+		if b.Name == string(backend.Docker) && m.ContainerOS != "" && v.Machine.OS != m.ContainerOS {
+			// The container backend runs the containers' OS, not the host's.
+			opt.OS = []string{m.ContainerOS}
+		}
+		m.Backends = append(m.Backends, opt)
 	}
 	return m, nil
 }
@@ -181,15 +204,33 @@ func (r scopeResolver) Resolve(ctx context.Context, s runners.Scope) (runners.Ta
 		}
 		for _, i := range ins {
 			if strings.EqualFold(i.AccountLogin, s.Organization) && !i.Removed {
-				return runners.Target{
-					Scope:          github.RunnerScope{Owner: i.AccountLogin, Organization: i.AccountLogin},
-					InstallationID: i.ID, URL: "https://github.com/" + i.AccountLogin, Group: s.Group,
-				}, nil
+				rs := github.RunnerScope{Owner: i.AccountLogin, Organization: i.AccountLogin}
+				// The group id comes from the pool per organization (R5.21); a
+				// scope with no group uses GitHub's default group.
+				if op, ok, err := repos.OrgPoolByLogin(ctx, r.repos, i.AccountLogin); err != nil {
+					return runners.Target{}, err
+				} else if ok && s.Group != "" && strings.EqualFold(op.GroupName, s.Group) {
+					rs.GroupID = op.GroupID
+				}
+				return runners.Target{Scope: rs, InstallationID: i.ID, URL: "https://github.com/" + i.AccountLogin, Group: s.Group}, nil
 			}
 		}
 		return runners.Target{}, fmt.Errorf("the GitHub App is not installed on %s", s.Organization)
 	}
 	return runners.Target{}, fmt.Errorf("unknown runner scope %q", s.Kind)
+}
+
+// OrgScope implements runners.OrgScoper: a repository of an organization whose
+// pool mode is on registers its runners at organization level (R5.21).
+func (r scopeResolver) OrgScope(ctx context.Context, s runners.Scope) (runners.Scope, bool, error) {
+	if s.Kind != "repository" || s.RepositoryID == 0 {
+		return s, false, nil
+	}
+	op, ok, err := repos.OrgRunnerScope(ctx, r.repos, s.RepositoryID)
+	if err != nil || !ok {
+		return s, false, err
+	}
+	return runners.Scope{Kind: "organization", RepositoryID: s.RepositoryID, Organization: op.Organization, Group: op.GroupName}, true, nil
 }
 
 // linkAgent reaches a machine's agent. The controller's own machine runs the
@@ -215,6 +256,21 @@ func (a linkAgent) forMachine(ctx context.Context, id string) (runners.Agent, er
 		return nil, errRemoteRunners
 	}
 	return a.remote, nil
+}
+
+// Services lists the OS services of a machine. Only the controller's own
+// machine can answer until the agent link carries the service list; for any
+// other machine it errors, and the runner state does not claim a service fact
+// it does not have (UX-19).
+func (a linkAgent) Services(ctx context.Context, id string) ([]backend.Found, error) {
+	v, err := a.svc.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if !v.Machine.IsController {
+		return nil, errRemoteRunners
+	}
+	return a.local.Found(ctx)
 }
 
 func (a linkAgent) AddRunner(ctx context.Context, id string, spec backend.RunnerSpec, cfg backend.StartConfig) (backend.Handle, error) {
@@ -313,13 +369,16 @@ func (f doctorFleet) Runners(ctx context.Context) ([]doctor.Runner, error) {
 			ID: r.ID, Name: r.Name, MachineID: r.MachineID, MachineName: names[r.MachineID], OS: r.OS, Kind: r.Kind,
 			Labels: r.Labels, GitHubRunnerID: r.GitHubRunnerID, ServiceName: r.ServiceName, FolderReadable: true,
 		}
-		if r.Scope.Kind == "repository" {
+		if r.Scope.Organization != "" {
+			dr.Scope = github.RunnerScope{Owner: r.Scope.Organization, Organization: r.Scope.Organization}
+			if repo, err := f.repos.GetRepository(ctx, r.Scope.RepositoryID); err == nil {
+				dr.InstallationID = repo.InstallationID
+			}
+		} else if r.Scope.Kind == "repository" {
 			if repo, err := f.repos.GetRepository(ctx, r.Scope.RepositoryID); err == nil {
 				dr.InstallationID = repo.InstallationID
 				dr.Scope = github.RunnerScope{Owner: repo.Owner, Repo: repo.Name}
 			}
-		} else if r.Scope.Organization != "" {
-			dr.Scope = github.RunnerScope{Owner: r.Scope.Organization, Organization: r.Scope.Organization}
 		}
 		out = append(out, dr)
 	}

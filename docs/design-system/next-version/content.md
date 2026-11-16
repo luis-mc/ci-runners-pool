@@ -104,6 +104,18 @@ Each word is used for one thing in a wizard (UX-30).
 | Start again | The wizard has ended (Done or Stopped) and the user begins a new run. |
 | Put back | Undo what the run changed, when that can be undone. |
 
+## App health and left-installation words
+
+The words of the App-gone banner on the Overview (github-integration R5.6) and the reason a repository left the installation (R5.22).
+
+| Where | Word |
+|---|---|
+| Banner (problem) | The GitHub App is gone. {reason} crsp has stopped its GitHub work. Jobs that are running keep running. |
+| Banner action | Run the setup wizard again |
+| Reasons | GitHub does not know this App any more. / GitHub refused the App's key. / The App's key is not in this machine's secret store. |
+| List word | left the installation (in the Last delivery column of a repository the controller turned off) |
+| Repository fact | Why it is off: This repository left the GitHub App's installation, so its pool was turned off. |
+
 ## Message wording
 
 A message is one or two short sentences in plain words. It names the thing, never a code or a path.
@@ -435,3 +447,80 @@ The words of the Recovery section and the State word of a machine whose agent ne
 | Recover | The one action. Admin only (busy word: Recovering). Locked after it worked. |
 | Recovery is ready. The agent gets the update on its next call. | Done message after the call, and for a machine that is already armed. |
 | Could not start recovery. {why} | Problem message when the call is refused or fails. |
+
+## Offline runner cleanup words
+
+The words of the action that deletes the registration of an offline runner whose machine cannot remove it (github-integration R5.33, web-console 4.5).
+
+| Word | Where and meaning |
+|---|---|
+| Delete registration | The button in the Managed column of a managed runner whose state is offline, and the action of its question card. Admin only (busy word: Deleting). |
+| Delete {runner}? | The title of the question card. |
+| The registration of offline runner {runner} on GitHub. | First line of the card: what goes. |
+| Its record here, and its folder if its machine answers. | Second line of the card. |
+
+## GitHub App key words
+
+The words of Settings, GitHub App, where the owner replaces the App private key (github-integration R5.7).
+
+| Word | Where and meaning |
+|---|---|
+| GitHub App | The tab. |
+| GitHub App key | The section title. |
+| New private key file | The file field. Help: The file you download from the App's page at GitHub. crsp checks it with GitHub first and keeps the old key if GitHub refuses it. |
+| Replace key | The one action. Owner only (busy word: Replacing). |
+| Choose the private key file from GitHub. | Mistake when no file, an empty file or a file over 16 KiB is chosen. |
+| The new key is in use. | Done message after the controller stored the key. |
+| Could not replace the key. {reason} | Problem message when the call is refused or fails. The reason never holds the key. |
+
+## Pool per organization words
+
+The words of the section on the repositories screen (github-integration R5.21).
+
+| Where | Word |
+|---|---|
+| Section | Pool per organization |
+| Lead | Organization runners work in one runner group that only the repositories with the pool on can use. Only an owner of the organization on GitHub can turn this on. Personal accounts keep repository runners. |
+| Columns | Organization, Runners, Runner group, Repositories in the group, Use organization runners |
+| Switch | Organization runners for {organization} (the switch saves at once; words On and Off) |
+| Status | organization runners, repository runners |
+| Reason, not available | The pool per organization is not available here. / the reason the controller names, for example that the App lacks the organization runner permission |
+| Failure | Could not change the pool. {reason} |
+| Refusal | you are not an owner of the {organization} organization in GitHub. |
+
+## First machine words
+
+The words of the setup step "Add the first machine" when a machine is already in the pool (machines R5.1, web-console 4.1).
+
+| Word | Where and meaning |
+|---|---|
+| This PC, {host name}, is in the pool. | Done message when the controller's own machine is in the pool. |
+| Add the first machine is done. | Done message when a machine is in the pool and it is not the controller's own. |
+| Add another machine | The one action. It opens the Add a machine wizard for other computers. |
+
+## Runner state words
+
+The state word of a runner on the Runners screen (web-console R5.23, runners R5.79; UX-19). A word other than idle or busy shows its reason in a muted line under it.
+
+| Word | Meaning and reason line |
+|---|---|
+| idle | GitHub lists the runner online and not busy, and its service runs. No reason line. |
+| busy | GitHub says the runner has a job. No reason line. |
+| not registered | GitHub does not list a runner with this name. Reason: "GitHub does not list a runner with this name". |
+| stopped | The service of the runner is stopped or missing. Reason: "its service is stopped" or "its service is not on the machine". |
+| offline | GitHub lists the runner offline. Reason: "GitHub reports it offline". |
+| unknown | GitHub could not be read. Reason: "GitHub could not be read, so the state is not known". |
+| failed | The runner did not start. The reason line is the reason of the failure. |
+| Remove | The action on the row of a failed runner (busy word: Removing). Asks first in the question card, which names the runner (UX-9, UX-62). |
+
+
+## Linux on a Windows machine words
+
+The words of Add runners and the machine list for a Windows machine whose container engine runs Linux containers (runners R5.47, machines R5.18).
+
+| Word | Where and meaning |
+|---|---|
+| Windows, runs Linux containers | The System column of the machine list for a Windows machine with Docker Desktop on WSL2. |
+| Linux runners on this Windows machine run in containers, through Docker. The container backend must be allowed on the machine. | Note in Add runners when the chosen machine runs Windows and the system is Linux. |
+| This machine runs windows, not linux. | The reason a machine is greyed for a system it cannot run (also for a Windows machine without Linux containers). |
+| WSL is installed but not ready; run wsl --install | Backend reason, shown only when WSL2 does not work and Docker does not run on it. It is written once. |

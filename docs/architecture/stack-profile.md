@@ -133,6 +133,21 @@ Statuses only. Never record a credential value here.
 
 Location: `docs/reference/data-inventory.md`, created in milestone 1 with the first stored personal data (the GitHub OAuth login). The skeleton stores no personal data.
 
+Personal data the controller database keeps (github-integration R6.10). Guard: `internal/store/retention_test.go` fails when either table gains a column.
+
+| Table | Field | What it is | Why | Ends |
+|---|---|---|---|---|
+| `users` | `github_user_id` | GitHub numeric id | Identity (R5.9) | With the user's removal |
+| `users` | `login` | GitHub login name | Shown in the console and audit | With the user's removal |
+| `users` | `role` | owner, admin or viewer | Access (R5.10) | With the user's removal |
+| `users` | `added_by` | Who added the user | Audit | With the user's removal |
+| `users` | `added_at`, `last_sign_in_at` | Dates | Audit | With the user's removal |
+| `sessions` | `id_hash` | Hash of the random cookie id; the id itself is never stored | Sign-in (R5.13) | At sign-out, user removal or role change |
+| `sessions` | `csrf_hash` | Hash of the CSRF token | Request check | With the session |
+| `sessions` | `github_user_id`, `source`, `created_at`, `last_seen_at`, `ended_at` | Owner of the session, web or tray, dates | Sign-in | With the session |
+
+No email address, name, avatar or GitHub token is kept in these two tables. Rows that hang off a user and go with them: `user_preferences` (theme), `cli_tokens` (hash and name), `link_codes` (hash), `tray_bindings` (OS user id of a machine).
+
 ## 8. Data residency
 
 | Vendor | Processing region | Transfer basis |

@@ -46,6 +46,9 @@ func (s *Service) StopServingPublic(ctx context.Context, r Repository, why strin
 	s.cfg.Audit.Audit(ctx, System, "pool.off", "repository", r.FullName,
 		"the repository is public; crsp serves private repositories only ("+why+")")
 	var errs []error
+	if err := s.SyncOrgGroup(ctx, r.InstallationID); err != nil {
+		errs = append(errs, err)
+	}
 	if err := s.hostedVariables(ctx, r); err != nil {
 		errs = append(errs, err)
 	}

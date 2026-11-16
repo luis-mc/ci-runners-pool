@@ -30,6 +30,9 @@ type machineSource interface {
 type demandEnv struct {
 	repos    repos.Store
 	machines machineSource
+	// appGone is true while the App or its key is gone: GitHub work stops
+	// (github-integration R5.6). Nil means never.
+	appGone func() bool
 }
 
 var _ demand.Env = demandEnv{}
@@ -59,7 +62,8 @@ func (e demandEnv) Repo(ctx context.Context, fullName string) (demand.Repo, bool
 
 // Hosts lists the machines that may start container runners (runners R5.9,
 // R5.27): the controller's own machine, or another machine whose agent is
-// connected over the agent link (CRSP63); online, active, Linux; the container backend present,
+// connected over the agent link (CRSP63); online, active, Linux (or Windows
+// whose engine runs Linux containers, R5.47); the container backend present,
 // usable and in the machine's allow list, which is off by default; and a job
 // slot budget above zero (the pool size of CRSP50).
 func (e demandEnv) Hosts(ctx context.Context) ([]demand.Host, error) {
@@ -74,7 +78,7 @@ func (e demandEnv) Hosts(ctx context.Context) ([]demand.Host, error) {
 		if state == "" {
 			state = m.State
 		}
-		if !m.RemovedAt.IsZero() || !m.Online || m.OS != "linux" ||
+		if !m.RemovedAt.IsZero() || !m.Online || !runsLinuxContainers(v) ||
 			(state != "" && state != machines.StateActive) || v.Settings.JobSlots < 1 {
 			continue
 		}
@@ -119,7 +123,7 @@ type demandRunner struct {
 // can start a container runner, so a controller whose allow list is empty
 // spends no GitHub quota on it.
 func (d *demandRunner) targets(ctx context.Context) ([]github.PollTarget, error) {
-	if d.gh.AppID() == 0 {
+	if d.gh.AppID() == 0 || (d.env.appGone != nil && d.env.appGone()) {
 		return nil, nil
 	}
 	hosts, err := d.env.Hosts(ctx)
@@ -168,8 +172,19 @@ func (d *demandRunner) start() {
 		d.loop.ScaleJIT = func(j github.Job, name string) func(context.Context) (github.JITConfig, error) {
 			return func(ctx context.Context) (github.JITConfig, error) { return scale.JIT(ctx, j, name) }
 		}
-		src = &demand.Failover{Primary: scale, Fallback: poller, Logger: d.logger, Why: scale.Err,
+		failover := &demand.Failover{Primary: scale, Fallback: poller, Logger: d.logger, Why: scale.Err,
 			OnState: func(source, why string) { d.logger.Info("demand source", "source", source, "why", why) }}
+		// The poller alone never waits longer than 5 minutes; the scale set
+		// has no such bound, so REST reconciles its job view (R5.38).
+		src = &github.Reconciled{Source: failover, Client: d.gh, Targets: d.targets,
+			OnFound: func(j github.Job) {
+				d.logger.Info("reconcile found a job the demand source had not shown", "repository", j.Repository, "job", j.ID, "status", j.Status)
+			},
+			OnError: func(err error) {
+				if ctx.Err() == nil {
+					d.logger.Warn("reconcile jobs", "err", err)
+				}
+			}}
 		d.logger.Info("scale-set demand is on; polling is the fallback", "scale_set", d.loop.PoolName)
 	}
 	jobs, err := src.Jobs(ctx)
@@ -262,4 +277,10 @@ func (q quietSource) QuietDemand(context.Context) ([]doctor.QuietDemand, error) 
 			Restarted: r.Restarted, RestartedAt: r.RestartedAt})
 	}
 	return out, nil
+}
+
+// runsLinuxContainers is true for a Linux machine and for a Windows machine whose
+// container engine runs Linux containers (Docker Desktop on WSL2, runners R5.47).
+func runsLinuxContainers(v machines.View) bool {
+	return v.Machine.OS == "linux" || (v.Machine.OS == "windows" && v.Engine.RunsLinuxContainers())
 }

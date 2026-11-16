@@ -43,7 +43,12 @@ type Record struct {
 	Folder         string
 	GitHubRunnerID int64
 	CurrentJob     string // empty when none
-	CreatedAt      time.Time
+	// FailedReason is the whole plain reason a runner is in the failed state,
+	// including what the clean-up left behind. Empty in every other state.
+	FailedReason string
+	// Reason is why the runner is in its state; set with a failure (UX-19).
+	Reason    string
+	CreatedAt time.Time
 }
 
 // KeepsState is true for a persistent runner (runners R5.7).
@@ -76,7 +81,11 @@ type Machine struct {
 	OS       string
 	Arch     string
 	Backends []BackendOption
-	Symlink  bool // a machine or label setting asks for the symlink right (R5.14)
+	// ContainerOS is the OS the machine's container engine runs containers for
+	// when the engine answers (machines R5.18, runners R5.47); a Windows machine
+	// with Docker Desktop on WSL2 says "linux". Empty when not known.
+	ContainerOS string
+	Symlink     bool // a machine or label setting asks for the symlink right (R5.14)
 	// PoolCPUs and JobSlots are the owner's pool size and the runners that run
 	// at once; a runner's CPU count is their split (machines R5.54, R5.58).
 	// PoolCPUs 0 means no pool size is set and no CPU count is exported.
@@ -179,6 +188,14 @@ type Machines interface {
 // Resolver turns a scope into what GitHub calls need.
 type Resolver interface {
 	Resolve(ctx context.Context, s Scope) (Target, error)
+}
+
+// OrgScoper is implemented by a Resolver that knows the pool per organization
+// (github-integration R5.21). OrgScope turns the scope of a repository of an
+// organization whose pool is on into the organization scope with the runner
+// group name; for any other scope it returns false.
+type OrgScoper interface {
+	OrgScope(ctx context.Context, s Scope) (Scope, bool, error)
 }
 
 // Target is a resolved scope.

@@ -243,3 +243,18 @@ func machinesHooks(onHello func(*agentv1.Hello)) machines.Hooks {
 }
 
 func machinesUpdateSlots(n int) machines.SettingsUpdate { return machines.SettingsUpdate{JobSlots: &n} }
+
+// restartedEnv is the controller after a restart: a new service and link server
+// on the same repository and certificate authority, at a new address.
+func restartedEnv(t *testing.T, e *env) *env {
+	t.Helper()
+	svc := machines.New(machines.Options{Repo: e.Repo, Now: e.Clk.Now, ControllerAddress: "pool.lan", AgentPort: 8461, Fingerprint: e.CA.Fingerprint(), Notify: e.Note})
+	ln, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := machines.NewLinkServer(ln.Addr().String(), e.CA, svc)
+	go func() { _ = srv.Serve(tls.NewListener(ln, e.CA.ServerTLS())) }()
+	t.Cleanup(func() { _ = srv.Close() })
+	return &env{T: t, Svc: svc, Repo: e.Repo, CA: e.CA, Clk: e.Clk, Addr: ln.Addr().String(), Note: e.Note}
+}

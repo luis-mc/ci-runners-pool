@@ -1,6 +1,10 @@
 package agent_test
 
 import (
+	"context"
+	"time"
+
+	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"testing"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
@@ -106,5 +110,43 @@ func TestReadWSLKVMOnlyOnWindowsAndOnlyReads(t *testing.T) {
 	}
 	if k := agent.ReadWSLKVM(winBox()); k.Known {
 		t.Fatal("no wsl.exe: not known")
+	}
+}
+
+// CRSP127: the engine says which OS its containers run.
+func TestEngineReportsContainerOS(t *testing.T) {
+	r := agent.DetectEngine(winBox(
+		cmdRule{[]string{"docker", "version"}, load.Result{Out: "29.9.3\r\n"}, true},
+		cmdRule{[]string{"docker", "info", "--format", "{{.OSType}}"}, load.Result{Out: "linux\r\n"}, true},
+		cmdRule{[]string{"docker", "info"}, load.Result{Out: "Docker Desktop\n"}, true}))
+	if r.Kind != agent.EngineDesktop || !r.Usable || r.ContainerOS != "linux" || r.Version != "29.9.3" {
+		t.Fatalf("%+v", r)
+	}
+	win := agent.DetectEngine(winBox(
+		cmdRule{[]string{"docker", "version"}, load.Result{Out: "29.9.3\n"}, true},
+		cmdRule{[]string{"docker", "info", "--format", "{{.OSType}}"}, load.Result{Out: "windows\n"}, true}))
+	if win.ContainerOS != "windows" {
+		t.Fatalf("windows containers mode: %+v", win)
+	}
+	if wsl := agent.DetectEngine(winBox(cmdRule{[]string{"wsl", "docker", "version"}, load.Result{Out: "26.1.4\n"}, true})); wsl.ContainerOS != "linux" {
+		t.Fatalf("wsl docker: %+v", wsl)
+	}
+	if none := agent.DetectEngine(winBox()); none.ContainerOS != "" {
+		t.Fatalf("no engine must report no container OS: %+v", none)
+	}
+	if down := agent.DetectEngine(winBox(cmdRule{[]string{"docker", "version"}, load.Result{Code: 1}, true})); down.ContainerOS != "" {
+		t.Fatalf("engine down: %+v", down)
+	}
+}
+
+func TestMachineReportCarriesContainerOS(t *testing.T) {
+	s := winBox(
+		cmdRule{[]string{"docker", "version"}, load.Result{Out: "29.9.3\n"}, true},
+		cmdRule{[]string{"docker", "info", "--format", "{{.OSType}}"}, load.Result{Out: "linux\n"}, true},
+		cmdRule{[]string{"docker", "info"}, load.Result{Out: "Docker Desktop\n"}, true})
+	rep := agent.BuildMachineReport(context.Background(), s, &agentv1.Facts{}, nil, time.Now())
+	e := rep.GetEngine()
+	if e.GetKind() != "docker-desktop" || !e.GetUsable() || e.GetContainerOs() != "linux" {
+		t.Fatalf("%+v", e)
 	}
 }

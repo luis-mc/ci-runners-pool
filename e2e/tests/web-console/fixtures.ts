@@ -109,6 +109,7 @@ export const runner = (over: Record<string, unknown> = {}) => ({
   id: 'r1',
   name: 'crsp-linux-1',
   machine_id: 'm1',
+  machine_name: 'build-1',
   os: 'linux',
   arch: 'x64',
   kind: 'persistent',
@@ -239,6 +240,19 @@ export function signedIn(user: unknown = owner): Mock {
     .on('GET', '/api/v1/runners', { items: [runner()] })
     .on('GET', '/api/v1/images', { items: [] })
     .on('GET', '/api/v1/caches', { items: [cache()] })
+    .on('GET', '/api/v1/github/org-pools', {
+      items: [
+        {
+          installation_id: 20,
+          organization: 'acme',
+          is_organization: true,
+          eligible: true,
+          enabled: false,
+          group_name: 'crsp-home',
+          repositories: [],
+        },
+      ],
+    })
     .on('GET', '/api/v1/github/repositories', {
       items: [repository()],
       stale: { stale: false },

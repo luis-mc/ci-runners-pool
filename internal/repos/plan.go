@@ -326,6 +326,9 @@ func (s *Service) runStep(ctx context.Context, p auth.Principal, r Repository, s
 			return err
 		}
 		s.cfg.Audit.Audit(ctx, p, "pool.on", "repository", r.FullName, "")
+		if err := s.SyncOrgGroup(ctx, r.InstallationID); err != nil { // R5.21: the group follows the pool switch
+			return err
+		}
 		if err := s.migrateLegacy(ctx, p, r); err != nil { // CRSP25: old CRSP_RUNS_ON_* names
 			return err
 		}
@@ -340,6 +343,9 @@ func (s *Service) runStep(ctx context.Context, p auth.Principal, r Repository, s
 			return err
 		}
 		s.cfg.Audit.Audit(ctx, p, "pool.off", "repository", r.FullName, "no new runner is registered; running jobs finish")
+		if err := s.SyncOrgGroup(ctx, r.InstallationID); err != nil {
+			s.cfg.Audit.Audit(ctx, p, "org_pool.sync_failed", "repository", r.FullName, err.Error())
+		}
 		if s.cfg.Light != nil {
 			if err := s.cfg.Light.RemoveLight(ctx, r, p.Login); err != nil {
 				s.cfg.Audit.Audit(ctx, p, "light.failed", "repository", r.FullName, err.Error())

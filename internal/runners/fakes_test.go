@@ -61,6 +61,11 @@ func (m *memStore) SetRunnerState(_ context.Context, id string, to State, detail
 	}
 	m.events = append(m.events, fmt.Sprintf("%s %s->%s %s", id, r.State, to, detail))
 	r.State = to
+	r.FailedReason = ""
+	if to == Failed {
+		r.FailedReason = detail
+	}
+	r.Reason = detail
 	m.runners[id] = r
 	return nil
 }
@@ -168,13 +173,14 @@ type fakeAgent struct {
 	stopped []string
 	folders []string
 	addErr  error
+	errRef  string // service ref returned with addErr: the service exists but did not start
 	rmErr   error
 }
 
 func (a *fakeAgent) AddRunner(_ context.Context, _ string, spec backend.RunnerSpec, cfg backend.StartConfig) (backend.Handle, error) {
 	a.added, a.cfgs = append(a.added, spec), append(a.cfgs, cfg)
 	if a.addErr != nil {
-		return backend.Handle{}, a.addErr
+		return backend.Handle{Ref: a.errRef}, a.addErr
 	}
 	return backend.Handle{RunnerID: spec.ID, Ref: "actions.runner.luis-mc-demo." + spec.Name}, nil
 }

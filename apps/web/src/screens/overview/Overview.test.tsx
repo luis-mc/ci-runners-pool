@@ -1,6 +1,6 @@
 // R5.20: the overview shows machines with load bars, the queue, the running jobs, live; it has no command.
 import { act, cleanup, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   FakeEventSource,
   apiError,
@@ -163,5 +163,39 @@ describe('Overview (R5.20)', () => {
     );
     renderApp(api, '/', { stream: false });
     expect(await screen.findByText(/Could not load the overview/)).toBeTruthy();
+  });
+});
+
+describe('App health banner (github-integration R5.6)', () => {
+  it('says the App is gone, that running jobs keep running, and offers the wizard', async () => {
+    const api = signedIn().on('GET', '/api/v1/github/app-health', {
+      gone: true,
+      reason: 'GitHub does not know this App any more.',
+      checked_at: '2026-11-16T08:00:00Z',
+    });
+    renderApp(api, '/');
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('The GitHub App is gone.');
+    expect(alert.textContent).toContain('GitHub does not know this App any more.');
+    expect(alert.textContent).toContain('Jobs that are running keep running.');
+    expect(
+      within(alert)
+        .getByRole('link', { name: 'Run the setup wizard again' })
+        .getAttribute('href'),
+    ).toBe('/setup');
+  });
+
+  it('draws nothing while the App answers', async () => {
+    const api = signedIn().on('GET', '/api/v1/github/app-health', { gone: false });
+    renderApp(api, '/');
+    await screen.findByRole('region', { name: 'build-1' });
+    await vi.waitFor(() => expect(api.count('GET', '/api/v1/github/app-health')).toBe(1));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('draws nothing when the answer is not known', async () => {
+    renderApp(signedIn(), '/');
+    await screen.findByRole('region', { name: 'build-1' });
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

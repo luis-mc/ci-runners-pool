@@ -21,6 +21,7 @@ import { TurnOnPoolPage } from './screens/repositories/TurnOnPool';
 import { AddRunnersPage } from './screens/runners/AddRunners';
 import { RunnersList } from './screens/runners/Runners';
 import {
+  AppKeySettings,
   AppearanceSettings,
   BackupsSettings,
   RetentionSettings,
@@ -120,6 +121,7 @@ export function App({
               <Route path="settings" element={<SettingsLayout />}>
                 <Route index element={<Navigate to="users" replace />} />
                 <Route path="users" element={<UsersSettings />} />
+                <Route path="app" element={<AppKeySettings />} />
                 <Route path="appearance" element={<AppearanceSettings />} />
                 <Route path="retention" element={<RetentionSettings />} />
                 <Route path="backups" element={<BackupsSettings />} />

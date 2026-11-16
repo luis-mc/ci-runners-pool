@@ -38,10 +38,18 @@ import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
 import { HostedFallback, WhereJobsGo, routingWhy } from './fallback';
+import { OrgPools } from './OrgPools';
 import { allRepositories, applyChanges, type Repository } from './plans';
 import { DeliveryStatus, DeliveryWhen, PollingNotice } from './webhookHealth';
 
 const PAGE = 25;
+
+/** Why the pool is off, when the controller turned it off (github-integration R5.22). */
+export function poolOffWhy(r: Repository): string | undefined {
+  return r.pool_off_reason === 'left_installation'
+    ? "This repository left the GitHub App's installation, so its pool was turned off."
+    : undefined;
+}
 
 export function variableStatus(r: Repository): { kind: StatusKind; word: string } {
   if (!r.pool_on) return { kind: 'off', word: 'not used' };
@@ -124,7 +132,18 @@ export function RepositoriesList() {
       id: 'delivery',
       header: 'Last delivery',
       cell: (r) =>
-        r.pool_on ? <DeliveryStatus r={r} /> : <Status kind="off" word="pool off" />,
+        r.pool_on ? (
+          <DeliveryStatus r={r} />
+        ) : (
+          <Status
+            kind="off"
+            word={
+              r.pool_off_reason === 'left_installation'
+                ? 'left the installation'
+                : 'pool off'
+            }
+          />
+        ),
       sort: (r) => r.webhook?.last_delivery_at ?? '',
     },
     {
@@ -285,6 +304,7 @@ export function RepositoriesList() {
           );
         }}
       </Load>
+      <OrgPools version={v} />
       <Ask
         title="Turn off these repositories?"
         action="Turn off"
@@ -485,6 +505,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
                 <Status kind={r.pool_on ? 'ok' : 'off'} word={r.pool_on ? 'on' : 'off'} />
               ),
             },
+            ...(poolOffWhy(r) ? [{ name: 'Why it is off', value: poolOffWhy(r) }] : []),
             { name: 'Variables', value: <Status kind={vs.kind} word={vs.word} /> },
             { name: 'Jobs go to', value: <WhereJobsGo r={r} /> },
             { name: 'Why', value: routingWhy(r) },

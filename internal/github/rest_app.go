@@ -273,3 +273,28 @@ func (c *REST) ListHookDeliveries(ctx context.Context) ([]HookDelivery, error) {
 	}
 	return out, nil
 }
+
+// CheckAppKey proves that a candidate private key belongs to the App: it signs
+// an App JWT with the key, reads GET /app and requires the same App id
+// (R5.7). The key is held only for this call; nothing is stored or logged.
+func (c *REST) CheckAppKey(ctx context.Context, appID int64, pemBytes []byte) error {
+	key, err := ParsePrivateKey(pemBytes)
+	if err != nil {
+		return ErrBadKey
+	}
+	jwt, err := SignAppJWT(key, appID, c.cfg.Now())
+	if err != nil {
+		return ErrBadKey
+	}
+	var out apiApp
+	if _, err := c.do(ctx, req{method: "GET", path: "/app", bearer: jwt}, &out); err != nil {
+		if errors.Is(err, ErrForbidden) || errors.Is(err, ErrNotFound) {
+			return ErrKeyRefused
+		}
+		return err
+	}
+	if out.ID != appID {
+		return ErrKeyRefused
+	}
+	return nil
+}

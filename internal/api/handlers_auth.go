@@ -33,6 +33,18 @@ type GitHubArea struct {
 	Logger  *slog.Logger
 	// Health is the webhook health of each repository (RES14); nil hides it.
 	Health WebhookHealth
+	// AppHealth is the last answer of the hourly GET /app (R5.6); nil means
+	// the App is never reported gone.
+	AppHealth AppHealthSource
+	// HasMachine reports whether any machine is in the pool, the controller's own
+	// included; it makes the first-machine step of the setup done (machines R5.1).
+	// Nil leaves the step to do.
+	HasMachine func(ctx context.Context) bool
+}
+
+// AppHealthSource is what the console reads about the App (R5.6).
+type AppHealthSource interface {
+	State() github.AppState
 }
 
 // Role needed by each operation of this area, from x-auth in openapi.yaml.
@@ -52,11 +64,12 @@ var githubAreaAuth = map[string]string{
 	"listCliTokens": authUser, "revokeCliToken": authUser, "signOut": authUser, "getSession": authUser,
 	"getPreferences": authUser, "updatePreferences": authUser,
 	"listUsers": authOwner, "addUser": authOwner, "updateUserRole": authOwner, "removeUser": authOwner,
-	"listInstallations": authUser, "getAppInstallUrl": authAdmin, "listRepositories": authUser,
+	"listInstallations": authUser, "listOrgPools": authUser, "setOrgPool": authAdmin, "getAppInstallUrl": authAdmin, "getAppHealth": authUser, "listRepositories": authUser,
 	"planRepositoryChanges": authAdmin, "stopRepositoryPlan": authAdmin, "getRepositoryPlan": authUser, "applyRepositoryChanges": authAdmin,
 	"getRepository": authUser, "updateRepositoryPolicy": authAdmin, "getRepositoryRunsOn": authUser,
 	"getRepositoryExtraPackages": authUser, "setRepositoryExtraPackages": authAdmin,
 	"getRepositoryTrial": authUser, "setRepositoryTrial": authAdmin, "setRepositoryWebhookMode": authAdmin,
+	"replaceAppPrivateKey": authOwner,
 	"receiveGithubWebhook": authPublic,
 	// CRSP37 notification channels: any signed-in user; a webhook needs an admin (checked in the service).
 	"listNotificationChannels": authUser, "createNotificationChannel": authUser, "updateNotificationChannel": authUser,
@@ -139,6 +152,7 @@ func errorFor(err error) (int, string, string) {
 		inv *auth.InvalidError
 		na  *auth.NotAllowedError
 		rl  *github.RateLimitError
+		not *repos.ErrNotOrganization
 	)
 	switch {
 	case errors.Is(err, auth.ErrUnauthenticated):
@@ -152,6 +166,10 @@ func errorFor(err error) (int, string, string) {
 		if errors.As(err, &nad) {
 			return http.StatusForbidden, CodeForbidden, nad.Error()
 		}
+		var noo *repos.ErrNotOrgOwner
+		if errors.As(err, &noo) {
+			return http.StatusForbidden, CodeForbidden, noo.Error()
+		}
 		return http.StatusForbidden, CodeForbidden, "your role does not allow this"
 	case errors.Is(err, auth.ErrNotFound):
 		return http.StatusNotFound, CodeNotFound, "not found"
@@ -162,6 +180,8 @@ func errorFor(err error) (int, string, string) {
 		return http.StatusConflict, CodeConflict, err.Error()
 	case errors.Is(err, auth.ErrBadState), errors.Is(err, auth.ErrBadCode), errors.Is(err, auth.ErrInsecure), errors.As(err, &inv):
 		return http.StatusBadRequest, CodeBadRequest, err.Error()
+	case errors.As(err, &not):
+		return http.StatusConflict, CodeConflict, not.Error()
 	case errors.Is(err, auth.ErrNoApp):
 		return http.StatusConflict, CodeConflict, "the GitHub App is not set up yet"
 	case errors.As(err, &rl):
@@ -221,10 +241,25 @@ func (s *server) GetSetupState(ctx context.Context, _ gen.GetSetupStateRequestOb
 		code, body := failure(err)
 		return gen.GetSetupStatedefaultJSONResponse{StatusCode: code, Body: body}, nil
 	}
-	return gen.GetSetupState200JSONResponse(a.setupState(ctx, requestFrom(ctx), st)), nil
+	return gen.GetSetupState200JSONResponse(a.setupState(ctx, requestFrom(ctx), st, s.machineJoined(ctx, a))), nil
 }
 
-func (a *GitHubArea) setupState(ctx context.Context, r *http.Request, st auth.SetupState) gen.SetupState {
+// machineJoined is true when at least one machine has joined, in any state.
+// It reads the same store as GET /api/v1/machines. A failed read is logged and
+// counts as not yet joined.
+func (s *server) machineJoined(ctx context.Context, a *GitHubArea) bool {
+	if s.machinesOff() {
+		return false
+	}
+	vs, err := s.opts.Machines.List(ctx)
+	if err != nil {
+		a.log().Warn("setup state: listing machines failed", "err", err)
+		return false
+	}
+	return len(vs) > 0
+}
+
+func (a *GitHubArea) setupState(ctx context.Context, r *http.Request, st auth.SetupState, machineJoined bool) gen.SetupState {
 	out := gen.SetupState{HasApp: st.HasApp, HasOwner: st.HasOwner,
 		SetupLinkRedeemed: a.Auth.CheckSetupCookie(ctx, cookieValue(r, auth.SetupCookieName))}
 	if st.HasApp {
@@ -236,9 +271,15 @@ func (a *GitHubArea) setupState(ctx context.Context, r *http.Request, st auth.Se
 	if st.HasApp && st.HasOwner {
 		out.Steps.ConnectGithub = "done"
 	}
+	if machineJoined || (a.HasMachine != nil && a.HasMachine(ctx)) {
+		out.Steps.FirstMachine = "done"
+	}
 	if a.Repos != nil {
-		on := true
-		if rows, err := a.Repos.List(ctx, repos.System, repos.ListFilter{Pool: &on, Limit: 1}); err == nil && len(rows) > 0 {
+		hasPool, err := a.Repos.AnyPoolOn(ctx)
+		if err != nil {
+			a.log().Warn("setup state: listing pool-on repositories failed", "err", err)
+		}
+		if hasPool {
 			out.Steps.FirstRepository = "done"
 		}
 	}
@@ -261,7 +302,7 @@ func (s *server) RedeemSetupLink(ctx context.Context, req gen.RedeemSetupLinkReq
 	c := &http.Cookie{Name: auth.SetupCookieName, Value: cookie, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode,
 		Secure: auth.CookieSecure(r), MaxAge: int(auth.SetupCookieTTL / time.Second)}
 	st, _ := a.Auth.State(ctx)
-	state := a.setupState(ctx, r, st)
+	state := a.setupState(ctx, r, st, s.machineJoined(ctx, a))
 	state.SetupLinkRedeemed = true
 	sc := c.String()
 	return gen.RedeemSetupLink200JSONResponse{Body: state, Headers: gen.RedeemSetupLink200ResponseHeaders{SetCookie: &sc}}, nil

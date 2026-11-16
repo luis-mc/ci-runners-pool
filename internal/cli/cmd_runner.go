@@ -84,6 +84,9 @@ func cmdRunner() *command {
 			{name: "remove", summary: "remove a runner after its job ends", args: "NAME [--yes]",
 				flags: drainFlags,
 				run:   func(c *call, args []string) error { return c.runnerRemove(args) }},
+			{name: "delete-offline", summary: "delete the registration of an offline runner whose machine cannot remove it", args: "NAME [--yes]",
+				flags: func(_ *call, fs *flag.FlagSet) { yesFlag(fs) },
+				run:   func(c *call, args []string) error { return c.runnerDeleteOffline(args) }},
 		},
 	}
 }
@@ -302,6 +305,49 @@ func (c *call) runnerRemove(args []string) error {
 		return output.JSON(c.env.Stdout, map[string]string{"removed": run.Name})
 	}
 	_, _ = fmt.Fprintf(c.env.Stderr, "Runner %s removed.\n", run.Name)
+	return nil
+}
+
+// runnerDeleteOffline is the yes path of the offline runner cleanup
+// (github-integration R5.33): it names the runner, asks, then deletes the
+// registration at GitHub. The controller refuses an online or busy runner.
+func (c *call) runnerDeleteOffline(args []string) error {
+	if len(args) != 1 {
+		return fail(ExitUsage, "Usage: crsp runner delete-offline NAME [--yes]")
+	}
+	s, err := c.open()
+	if err != nil {
+		return err
+	}
+	rs, err := c.runners(s, client.ListRunnersParams{})
+	if err != nil {
+		return err
+	}
+	var run *client.Runner
+	for i := range rs {
+		if strings.EqualFold(rs[i].Name, args[0]) || rs[i].Id == args[0] {
+			run = &rs[i]
+		}
+	}
+	if run == nil {
+		return fail(ExitNotFound, "No runner %q. Run crsp runner list.", args[0])
+	}
+	items := []string{"the registration of offline runner " + run.Name + " on GitHub", "its record in crsp", "its folder, if its machine answers"}
+	if err := c.confirm("This deletes offline runner "+run.Name+" without asking its machine.", items, c.yesFlag()); err != nil {
+		return err
+	}
+	yes := true
+	d, err := s.client.DeleteRunnerRegistrationWithResponse(c.env.Context, run.Id, &client.DeleteRunnerRegistrationParams{Confirm: &yes})
+	if err != nil {
+		return s.transport(err)
+	}
+	if err := apiError(d.StatusCode(), d.Body); err != nil {
+		return err
+	}
+	if c.g.json {
+		return output.JSON(c.env.Stdout, map[string]string{"deleted": run.Name})
+	}
+	_, _ = fmt.Fprintf(c.env.Stderr, "Runner %s deleted.\n", run.Name)
 	return nil
 }
 

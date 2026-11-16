@@ -28,6 +28,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/hooks"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/jobcmd"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/logging"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
@@ -112,7 +113,8 @@ func runController() error {
 	if err != nil {
 		return err
 	}
-	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: cfg.LogLevel}))
+	logger := logging.New(os.Stderr, cfg.LogLevel, secretRedactor)
+	slog.SetDefault(logger)
 
 	ctx, stop := signal.NotifyContext(baseContext, os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -180,6 +182,7 @@ func runController() error {
 	if err != nil {
 		return fmt.Errorf("open the secret store: %w", err)
 	}
+	sec = secrets.Learn(sec, secretRedactor.Add)
 	ctl, err := buildController(ctx, controllerDeps{
 		Cfg: cfg, Logger: logger, DB: db, Secrets: sec, Ops: ops,
 		Machines: mr.Service, CA: mr.CA, Updates: um, Queue: queue, Caches: mr.Caches, Link: mr.Link, MachineSecrets: mr.Secrets,

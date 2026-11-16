@@ -87,7 +87,7 @@ func (s *Service) SweepOffline(ctx context.Context, grace time.Duration, actor s
 				continue
 			}
 			age := now.Sub(r.CreatedAt).Round(time.Hour)
-			err := s.sweepOne(ctx, r, t, g.ID, actor, age)
+			err := s.sweepOne(ctx, r, t, g.ID, actor, "runner.swept", fmt.Sprintf("%s, offline, record age %s", r.Name, age))
 			switch {
 			case errors.Is(err, ErrRunnerBusy):
 				res.LeftBusy = append(res.LeftBusy, r.Name)
@@ -117,7 +117,7 @@ func sweepable(r Record, now time.Time, grace time.Duration) bool {
 // sweepOne deregisters one offline registration, then cleans up what is left
 // on the machine. The machine may be gone: then the clean-up error is noted
 // and the record still goes, because the registration it stood for is gone.
-func (s *Service) sweepOne(ctx context.Context, r Record, t Target, githubID int64, actor string, age time.Duration) error {
+func (s *Service) sweepOne(ctx context.Context, r Record, t Target, githubID int64, actor, action, detail string) error {
 	err := s.GitHub.DeleteRunner(ctx, t.InstallationID, t.Scope, githubID)
 	switch {
 	case errors.Is(err, github.ErrRunnerBusy):
@@ -128,7 +128,6 @@ func (s *Service) sweepOne(ctx context.Context, r Record, t Target, githubID int
 	case err != nil:
 		return fmt.Errorf("deregister at GitHub: %w", err)
 	}
-	detail := fmt.Sprintf("%s, offline, record age %s", r.Name, age)
 	if err := s.Agent.StopService(ctx, r.MachineID, r.ServiceName); err != nil {
 		detail += " (stop: " + err.Error() + ")"
 	}
@@ -138,6 +137,6 @@ func (s *Service) sweepOne(ctx context.Context, r Record, t Target, githubID int
 	if err := s.Store.DeleteRunner(ctx, r.ID); err != nil {
 		return err
 	}
-	s.audit(ctx, actor, "runner.swept", r.MachineID, r.ID, detail)
+	s.audit(ctx, actor, action, r.MachineID, r.ID, detail)
 	return nil
 }

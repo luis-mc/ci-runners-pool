@@ -190,8 +190,8 @@ func TestNoPasswordInPlanOrLog(t *testing.T) {
 			t.Error("token in the command text")
 		}
 	}
-	if withPassword != 2 { // account, service registration
-		t.Errorf("password reached %d processes, want 2", withPassword)
+	if withPassword != 3 { // account, logon check, service registration
+		t.Errorf("password reached %d processes, want 3", withPassword)
 	}
 	for name, d := range r.fs.Files {
 		if strings.Contains(string(d), testPassword) || strings.Contains(string(d), "REGTOKEN") {

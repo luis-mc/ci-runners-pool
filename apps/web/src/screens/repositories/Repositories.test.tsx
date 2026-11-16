@@ -477,3 +477,38 @@ describe('Webhook health (RES14)', () => {
     expect(screen.getByText('Last webhook delivery')).toBeTruthy();
   });
 });
+
+describe('A repository that left the installation (github-integration R5.22)', () => {
+  const left = repository({
+    id: 12,
+    full_name: 'octo/gone',
+    name: 'gone',
+    pool_on: false,
+    pool_off_reason: 'left_installation',
+  });
+  const reason =
+    "This repository left the GitHub App's installation, so its pool was turned off.";
+
+  it('says in the list that it left the installation', async () => {
+    renderApp(withRepos(signedIn(), [left, repository()]), '/repositories');
+    const table = await screen.findByRole('table', { name: 'Repositories' });
+    expect(within(table).getByText('left the installation')).toBeTruthy();
+  });
+
+  it('gives the reason on the repository page', async () => {
+    const a = withRepos(signedIn(), [left]).on('GET', '/api/v1/repositories/:id', left);
+    renderApp(a, '/repositories/octo/gone');
+    expect(await screen.findByText(reason)).toBeTruthy();
+  });
+
+  it('gives no reason for a pool an admin turned off', async () => {
+    const a = withRepos(signedIn(), [repository()]).on(
+      'GET',
+      '/api/v1/repositories/:id',
+      repository(),
+    );
+    renderApp(a, '/repositories/octo/app');
+    await screen.findByRole('heading', { level: 1, name: 'octo/app' });
+    expect(screen.queryByText(reason)).toBeNull();
+  });
+});

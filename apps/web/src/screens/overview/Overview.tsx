@@ -21,6 +21,7 @@ import {
 import { useEffect, useState } from 'react';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useLiveState, useLiveStore } from '../../live/LiveProvider';
+import { useLoad } from '../../api/hooks';
 import { waitWords } from '../jobs/Jobs';
 
 type Machine = Schemas['Machine'];
@@ -117,6 +118,27 @@ const waitingColumns: Column<WaitingRow>[] = [
   { id: 'why', header: 'Why it waits', cell: (r) => r.words },
 ];
 
+/** The App-gone banner (github-integration R5.6): GitHub work is stopped, jobs that run keep running, and the
+ * setup wizard is offered again. Nothing is drawn while the App answers or while the answer is not known. */
+export function AppGoneBanner() {
+  const client = useClient();
+  const { result } = useLoad(
+    () => unwrap(client.GET('/api/v1/github/app-health')),
+    [client],
+  );
+  const health = result.state === 'ready' ? result.data : undefined;
+  if (!health?.gone) return null;
+  return (
+    <Message
+      tone="problem"
+      action={<TextLink to="/setup">Run the setup wizard again</TextLink>}
+    >
+      The GitHub App is gone. {health.reason ?? ''} crsp has stopped its GitHub work. Jobs
+      that are running keep running.
+    </Message>
+  );
+}
+
 export function Overview() {
   const client = useClient();
   const live = useLiveState();
@@ -149,6 +171,7 @@ export function Overview() {
   return (
     <Page>
       <PageHeader title="Overview" lead="The pool at a glance." />
+      <AppGoneBanner />
       {!o && firstPaint !== 'failed' ? <Loading what="Loading the overview" /> : null}
       {!o && firstPaint === 'failed' ? (
         <Message tone="problem">

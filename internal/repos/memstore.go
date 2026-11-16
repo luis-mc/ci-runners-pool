@@ -22,12 +22,13 @@ type MemStore struct {
 	checked  map[int64]time.Time
 	plans    map[string]Plan
 	fallback map[string]int64
+	orgPools map[int64]OrgPool
 }
 
 // NewMemStore returns an empty store.
 func NewMemStore() *MemStore {
 	return &MemStore{installs: map[int64]Installation{}, repos: map[int64]Repository{}, policies: map[int64]Policy{},
-		vars: map[[2]any]ManagedVariable{}, findings: map[int64][]Finding{}, checked: map[int64]time.Time{}, plans: map[string]Plan{}, fallback: map[string]int64{}}
+		vars: map[[2]any]ManagedVariable{}, findings: map[int64][]Finding{}, checked: map[int64]time.Time{}, plans: map[string]Plan{}, fallback: map[string]int64{}, orgPools: map[int64]OrgPool{}}
 }
 
 var _ Store = (*MemStore)(nil)
@@ -226,5 +227,22 @@ func (m *MemStore) AddFallbackSeconds(_ context.Context, id int64, month string,
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.fallback[fallbackKey(id, month)] += seconds
+	return nil
+}
+
+func (m *MemStore) GetOrgPool(_ context.Context, installationID int64) (OrgPool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	o, ok := m.orgPools[installationID]
+	if !ok {
+		return OrgPool{}, auth.ErrNotFound
+	}
+	return o, nil
+}
+
+func (m *MemStore) SetOrgPool(_ context.Context, o OrgPool) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.orgPools[o.InstallationID] = o
 	return nil
 }

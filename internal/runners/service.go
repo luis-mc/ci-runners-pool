@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
@@ -62,6 +63,11 @@ type Service struct {
 	// Light places the light runners of a repository (scheduling R5.65). Nil
 	// turns light runners off.
 	Light LightPlacer
+	// Services lists the OS services of a machine, from its agent. Nil means
+	// the service state is not known, so no runner shows `stopped` (UX-19).
+	Services func(ctx context.Context, machineID string) ([]backend.Found, error)
+
+	lightTry map[string]lightTry // repository and OS -> tries of the failed light runner
 
 	mu      sync.Mutex // one plan apply at a time
 	lightMu sync.Mutex // one light-runner change at a time
@@ -108,6 +114,9 @@ type AddRequest struct {
 var nonSlug = strings.NewReplacer(" ", "-", "_", "-", ".", "-")
 
 // chooseBackend finds an allowed, usable backend for the OS and kind (R5.1).
+// A Windows machine whose container engine runs Linux containers (Docker
+// Desktop on WSL2) also takes Linux runners, in the container backend and
+// ephemeral only (R5.47).
 func chooseBackend(m Machine, os, kind string) (BackendOption, error) {
 	if m.OS == os {
 		for _, b := range m.Backends {
@@ -116,7 +125,24 @@ func chooseBackend(m Machine, os, kind string) (BackendOption, error) {
 			}
 		}
 	}
+	if crossesToLinuxContainers(m, os) {
+		if kind != "ephemeral" {
+			return BackendOption{}, refuse("machine %s: Linux runners on a Windows machine run in containers, so they are ephemeral, not persistent", m.Name)
+		}
+		for _, b := range m.Backends {
+			if b.Name == backend.Docker && b.Usable && b.Allowed && contains(b.Kinds, kind) && contains(b.OS, os) {
+				return b, nil
+			}
+		}
+		return BackendOption{}, refuse("machine %s: Linux containers run here, but the container backend is not allowed on this machine (it is off by default)", m.Name)
+	}
 	return BackendOption{}, refuse("machine %s: no allowed backend for %s", m.Name, OSName(os))
+}
+
+// crossesToLinuxContainers says a Linux runner is asked of a Windows machine
+// whose engine runs Linux containers.
+func crossesToLinuxContainers(m Machine, os string) bool {
+	return os == "linux" && m.OS == "windows" && m.ContainerOS == "linux"
 }
 
 func contains(l []string, s string) bool {
@@ -203,6 +229,11 @@ func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]Ad
 		verified[v] = true
 	}
 	want := append([]string{"self-hosted", req.OS, m.Arch}, req.Labels...)
+	if crossesToLinuxContainers(m, req.OS) && s.PoolName != "" {
+		// A container runner on a Windows machine takes the pool's jobs
+		// (R5.47), so it carries the pool label.
+		want = append(want, s.PoolName)
+	}
 	labels, err := ValidateLabels(want, s.PoolName, verified)
 	if err != nil {
 		return nil, refuse("%v", err)
@@ -505,6 +536,9 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 	if err != nil {
 		return err
 	}
+	if a.Scope, err = s.registrationScope(ctx, a.Scope); err != nil {
+		return fmt.Errorf("resolve scope: %w", err)
+	}
 	t, err := s.Resolver.Resolve(ctx, a.Scope)
 	if err != nil {
 		return fmt.Errorf("resolve scope: %w", err)
@@ -532,9 +566,17 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 	}
 	spec := backend.RunnerSpec{ID: id, Name: a.Name, OS: a.OS, Arch: a.Arch, Labels: a.Labels, GitHubURL: t.URL, Group: t.Group,
 		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, WindowsSymlinkRight: a.OS == "windows" && a.Symlink, CacheQuota: s.CacheQuota, MaxParallel: a.MaxParallel}
+	// Names GitHub already knows before the add: only a registration that the
+	// add itself made is removed when it fails.
+	before, listErr := s.GitHub.ListRunners(ctx, t.InstallationID, t.Scope)
 	h, err := s.Agent.AddRunner(ctx, a.MachineID, spec, backend.StartConfig{Registration: token})
 	if err != nil {
-		return fail(err)
+		if h.Ref != "" {
+			// The service exists though it did not start; keep its name so a
+			// removal cleans it up.
+			_ = s.Store.SetRunnerService(ctx, id, h.Ref, AccountName(a.Name, nil))
+		}
+		return fail(s.withRegistrationCleanup(ctx, t, a.Name, before, listErr, err))
 	}
 	if err := s.Store.SetRunnerService(ctx, id, h.Ref, AccountName(a.Name, nil)); err != nil {
 		return err
@@ -544,6 +586,39 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 	}
 	s.audit(ctx, actor, "runner.add", a.MachineID, id, a.Name)
 	return nil
+}
+
+// withRegistrationCleanup removes the GitHub registration a failed add left
+// (the agent has already removed its service, account and folder) and says in
+// the error what it did or what is left. A runner of the same name that GitHub
+// knew before the add is never touched.
+func (s *Service) withRegistrationCleanup(ctx context.Context, t Target, name string, before []github.Runner, listErr, cause error) error {
+	ctx = context.WithoutCancel(ctx)
+	left := func(why string) error {
+		return fmt.Errorf("%w. Left behind: GitHub registration %s (%s); remove it in the repository's runner settings", cause, name, why)
+	}
+	if listErr != nil {
+		return left("could not read the runners on GitHub: " + listErr.Error())
+	}
+	for _, r := range before {
+		if r.Name == name {
+			return cause // an older runner of that name; not ours to remove
+		}
+	}
+	after, err := s.GitHub.ListRunners(ctx, t.InstallationID, t.Scope)
+	if err != nil {
+		return left("could not read the runners on GitHub: " + err.Error())
+	}
+	for _, r := range after {
+		if r.Name != name {
+			continue
+		}
+		if err := s.GitHub.DeleteRunner(ctx, t.InstallationID, t.Scope, r.ID); err != nil {
+			return left(err.Error())
+		}
+		return fmt.Errorf("%w. Cleaned up: GitHub registration %s", cause, name)
+	}
+	return cause
 }
 
 // removeRegistration removes a runner from GitHub with a remove token, never a
@@ -612,6 +687,11 @@ func (s *Service) BeginRemove(ctx context.Context, id string, confirm bool, acto
 func (s *Service) finishRemove(ctx context.Context, r Record, prev State, actor string) error {
 	d := s.drainFor(r)
 	err := d.Act(ctx, func(ctx context.Context) error {
+		if prev == Failed {
+			// A runner that never started has nothing to deregister with a
+			// token: take away what it left (UX-6).
+			return s.discardFailed(ctx, r, actor, "runner.remove")
+		}
 		_ = s.Store.SetRunnerState(ctx, r.ID, Removing, "idle; removing")
 		return s.removeRegistration(ctx, r, actor, "runner.remove", false)
 	})
