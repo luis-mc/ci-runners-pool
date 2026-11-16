@@ -1,6 +1,6 @@
 // Component 8: card (a pane: the title is cut into the top border), card grid and facts list (UX-10, UX-51).
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Pane } from './Pane';
 
 export function CardGrid({ children }: { children: ReactNode }) {
   return (
@@ -10,6 +10,7 @@ export function CardGrid({ children }: { children: ReactNode }) {
   );
 }
 
+/** A pane inside a card grid: its title is a level-3 heading and may open a screen. */
 export function Card({
   title,
   count,
@@ -18,27 +19,15 @@ export function Card({
   footer,
 }: {
   title: string;
-  /** A number shown after the title, as in ┤ Machines 3 ├. */
   count?: number | undefined;
   to?: string | undefined;
   children: ReactNode;
   footer?: ReactNode | undefined;
 }) {
   return (
-    <section className="ds-card" aria-label={title}>
-      <h3 className="ds-card__title">
-        {to ? (
-          <Link to={to} className="ds-link">
-            {title}
-          </Link>
-        ) : (
-          title
-        )}
-        {count === undefined ? null : <span className="ds-card__count">{count}</span>}
-      </h3>
-      <div className="ds-card__body">{children}</div>
-      {footer ? <div className="ds-card__footer">{footer}</div> : null}
-    </section>
+    <Pane title={title} count={count} to={to} level={3} footer={footer}>
+      {children}
+    </Pane>
   );
 }
 

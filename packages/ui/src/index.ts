@@ -11,6 +11,7 @@ export * from './components/Button';
 export * from './components/Status';
 export * from './components/Message';
 export * from './components/Card';
+export * from './components/Pane';
 export * from './components/Progress';
 export * from './components/State';
 export * from './components/Table';

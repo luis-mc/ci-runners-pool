@@ -49,20 +49,27 @@ export function AccessForCiSettings() {
         Only an admin can make, see or revoke access for CI. Ask an admin to do it.
       </Message>
     );
+  return <AccessForCiPage />;
+}
+
+function AccessForCiPage() {
+  // The list is read again when parity is set up, because that makes an access.
+  const [made, setMade] = useState(0);
   return (
     <Stack>
-      <AccessCredentials />
-      <ParitySetupAction />
+      <AccessCredentials version={made} />
+      <ParitySetupAction onMade={() => setMade((n) => n + 1)} />
     </Stack>
   );
 }
 
-function AccessCredentials() {
+function AccessCredentials({ version }: { version: number }) {
   const client = useClient();
   const { result, reload } = useLoad(
     () => unwrap(client.GET('/api/v1/access-credentials')),
-    [],
+    [version],
   );
+  const [making, setMaking] = useState(false);
   const [name, setName] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
   const [shown, setShown] = useState<{ value: string; name: string } | undefined>(
@@ -82,6 +89,7 @@ function AccessCredentials() {
     );
     setShown({ value: made.value, name: made.info.name });
     setName('');
+    setMaking(false);
     reload();
   });
   const revoke = useQuestion(
@@ -148,7 +156,14 @@ function AccessCredentials() {
 
   return (
     <Stack>
-      <Section title="Access for CI">
+      <Section
+        title="Access for CI"
+        actions={
+          making ? undefined : (
+            <Button onPress={() => setMaking(true)}>Make an access</Button>
+          )
+        }
+      >
         <Message tone="note">
           An access for CI is a value a CI job uses to read the pool. It can read the
           runners and run the doctor, which is all that the parity check needs. It cannot
@@ -169,46 +184,49 @@ function AccessCredentials() {
           }
         </Load>
       </Section>
-      <Section title="Make an access">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void make.run();
-          }}
-        >
-          <Stack>
-            <ErrorSummary errors={errors} />
-            <TextField label="Name" value={name} onChange={setName} />
-            <ChoiceField
-              label="What it can do"
-              value="parity"
-              onChange={() => undefined}
-              choices={[
-                {
-                  value: 'parity',
-                  label: 'Parity: read the runners and run the doctor, nothing else',
-                },
-              ]}
-            />
-            {make.error ? (
-              <Message tone="problem">Could not make the access. {make.error}</Message>
-            ) : null}
-            <FormActions>
-              <Button
-                onPress={() => {
-                  setName('');
-                  setErrors([]);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button kind="primary" submit busy={make.busy} busyLabel="Making">
-                Make
-              </Button>
-            </FormActions>
-          </Stack>
-        </form>
-      </Section>
+      {making ? (
+        <Section title="Make an access">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void make.run();
+            }}
+          >
+            <Stack>
+              <ErrorSummary errors={errors} />
+              <TextField label="Name" value={name} onChange={setName} />
+              <ChoiceField
+                label="What it can do"
+                value="parity"
+                onChange={() => undefined}
+                choices={[
+                  {
+                    value: 'parity',
+                    label: 'Parity: read the runners and run the doctor, nothing else',
+                  },
+                ]}
+              />
+              {make.error ? (
+                <Message tone="problem">Could not make the access. {make.error}</Message>
+              ) : null}
+              <FormActions>
+                <Button
+                  onPress={() => {
+                    setName('');
+                    setErrors([]);
+                    setMaking(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button kind="primary" submit busy={make.busy} busyLabel="Making">
+                  Make
+                </Button>
+              </FormActions>
+            </Stack>
+          </form>
+        </Section>
+      ) : null}
       {shown ? (
         <Dialog
           title={`Access ${shown.name} is made`}
@@ -241,7 +259,7 @@ function AccessCredentials() {
   );
 }
 
-function ParitySetupAction() {
+function ParitySetupAction({ onMade }: { onMade: () => void }) {
   const client = useClient();
   const session = useSession();
   const { result, reload } = useLoad(
@@ -265,6 +283,7 @@ function ParitySetupAction() {
       }),
     );
     setOutcome({ repo: full, setup, names: full });
+    if (setup.status === 'done') onMade();
     reload();
   });
 

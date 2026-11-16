@@ -190,11 +190,6 @@ body {
 .ds-page[data-frame='narrow'] {
   max-inline-size: var(--ds-frame-narrow);
 }
-.ds-section {
-  display: grid;
-  gap: var(--ds-space-3);
-  min-inline-size: 0;
-}
 .ds-h1 {
   margin: 0;
   font-size: var(--ds-size-6);
@@ -387,7 +382,7 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--ds-card-min)), 1fr));
   gap: var(--ds-space-4);
 }
-.ds-card {
+.ds-pane {
   position: relative;
   display: grid;
   align-content: start;
@@ -400,7 +395,7 @@ body {
   border-radius: var(--ds-radius-2);
 }
 /* A pane: the title is cut into the top border, ┤ Title ├, in the primary colour over the page colour. */
-.ds-card__title {
+.ds-pane__title {
   position: absolute;
   inset-block-start: 0;
   inset-inline-start: var(--ds-space-3);
@@ -414,22 +409,61 @@ body {
   background: var(--ds-color-page);
   overflow-wrap: anywhere;
 }
-.ds-card__title::before {
+.ds-pane__title::before {
   content: '┤ ' / '';
   color: var(--ds-color-border);
 }
-.ds-card__title::after {
+.ds-pane__title::after {
   content: ' ├' / '';
   color: var(--ds-color-border);
 }
-.ds-card__title .ds-link {
+.ds-pane__title .ds-link {
   color: inherit;
 }
-.ds-card__count {
+.ds-pane__count {
   margin-inline-start: var(--ds-space-2);
   color: var(--ds-color-text-muted);
 }
-.ds-card__body {
+.ds-pane:focus-within {
+  border-color: var(--ds-color-focus);
+}
+.ds-pane[data-actions] {
+  margin-block-start: var(--ds-space-5);
+}
+/* The actions of a pane sit in the top border line at the right end, over the page colour. */
+.ds-pane__actions {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: var(--ds-space-3);
+  max-inline-size: calc(100% - var(--ds-space-5));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--ds-space-2);
+  padding-inline: var(--ds-space-1);
+  transform: translateY(-50%);
+  background: var(--ds-color-page);
+}
+@media (max-width: 600px) {
+  .ds-pane__actions {
+    position: static;
+    max-inline-size: none;
+    padding-inline: 0;
+    transform: none;
+    justify-content: flex-start;
+    background: none;
+  }
+}
+/* A pane inside a pane sits on the surface colour, so its title and actions are cut out in that colour. */
+.ds-pane .ds-pane .ds-pane__title,
+.ds-pane .ds-pane .ds-pane__actions {
+  background: var(--ds-color-surface);
+}
+.ds-pane__footer {
+  display: grid;
+  gap: var(--ds-space-2);
+}
+.ds-pane__body {
   display: grid;
   gap: var(--ds-space-2);
 }
@@ -562,17 +596,24 @@ body {
   min-block-size: var(--ds-target-min);
   cursor: pointer;
 }
-/* A selected row is drawn in reverse video: the primary fill with its own text colour. The row under the
-   cursor (j and k) only takes the selection fill. */
-.ds-table tr[data-active] {
+/* The selected row is the row under the cursor (j and k, a click or Tab): reverse video, the primary fill with its
+   own text colour. A row the user has ticked takes the selection fill and keeps its text colour. */
+.ds-table tr[data-selected] {
   background: var(--ds-color-selection);
 }
-.ds-table tr[data-selected] {
+.ds-table tr[data-list-row]:focus,
+.ds-table tr[data-list-row]:focus-within,
+.ds-table tr[data-active] {
   background: var(--ds-color-primary);
   color: var(--ds-color-on-primary);
 }
-.ds-table tr[data-selected] a,
-.ds-table tr[data-selected] button {
+.ds-table tr[data-list-row]:focus a,
+.ds-table tr[data-list-row]:focus-within a,
+.ds-table tr[data-active] a,
+.ds-table tr[data-list-row]:focus .ds-table__sort,
+.ds-table tr[data-list-row]:focus td,
+.ds-table tr[data-list-row]:focus-within td,
+.ds-table tr[data-active] td {
   color: inherit;
 }
 .ds-table tr[data-muted] td {
@@ -823,11 +864,19 @@ body {
   background: var(--ds-color-primary);
   border-color: var(--ds-color-primary);
 }
-.ds-chips,
-.ds-tabs {
+.ds-chips {
   display: flex;
   flex-wrap: wrap;
   gap: var(--ds-space-2);
+}
+/* Tabs are one row at every width (UX-15). A row that does not fit scrolls sideways inside its own frame. */
+.ds-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--ds-space-2);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
 }
 .ds-chip {
   min-block-size: var(--ds-target-min);
@@ -844,6 +893,8 @@ body {
   border: var(--ds-border-medium) solid var(--ds-color-primary);
 }
 .ds-tab {
+  flex: none;
+  white-space: nowrap;
   min-block-size: var(--ds-target-min);
   padding-inline: var(--ds-space-4);
   font: inherit;

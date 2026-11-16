@@ -1,5 +1,12 @@
 // Tabs (3), filter chips (12), search bar (21), code block with Copy, number field with the keypad (37).
-import { useId, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react';
 import { NumberKeypad } from '../pickers/NumberKeypad';
 import { Button } from './Button';
 import { Dialog } from './Dialog';
@@ -160,8 +167,34 @@ export function Tabs({
   current: string;
   onChange: (id: string) => void;
 }) {
+  const list = useRef<HTMLDivElement>(null);
+  // The row never wraps (UX-15), so a row wider than its frame scrolls; keep the chosen tab in view.
+  useEffect(() => {
+    const el = list.current?.querySelector<HTMLElement>('[aria-selected="true"]');
+    el?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [current]);
+  const move = (e: KeyboardEvent<HTMLDivElement>) => {
+    const at = tabs.findIndex((t) => t.id === current);
+    let to = -1;
+    if (e.key === 'ArrowRight') to = (at + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') to = (at - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') to = 0;
+    else if (e.key === 'End') to = tabs.length - 1;
+    const next = tabs[to];
+    if (!next) return;
+    e.preventDefault();
+    onChange(next.id);
+    list.current?.querySelectorAll<HTMLElement>('[role="tab"]')[to]?.focus();
+  };
   return (
-    <div className="ds-tabs" role="tablist" aria-label={label} data-layout-group>
+    <div
+      ref={list}
+      className="ds-tabs"
+      role="tablist"
+      aria-label={label}
+      data-layout-group
+      onKeyDown={move}
+    >
       {tabs.map((t) => (
         <button
           key={t.id}
@@ -169,6 +202,7 @@ export function Tabs({
           type="button"
           className="ds-tab"
           aria-selected={current === t.id}
+          tabIndex={current === t.id ? 0 : -1}
           onClick={() => onChange(t.id)}
         >
           {t.label}

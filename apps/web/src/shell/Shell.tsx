@@ -40,6 +40,15 @@ export function firstOpenStep(setup: Schemas['SetupState']): string | undefined 
   return undefined;
 }
 
+/** The first repository counts as done when any repository has the pool on, whatever the setup answer says. */
+export function withFirstRepository(
+  setup: Schemas['SetupState'],
+  anyPoolOn: boolean,
+): Schemas['SetupState'] {
+  if (!anyPoolOn || setup.steps.first_repository === 'done') return setup;
+  return { ...setup, steps: { ...setup.steps, first_repository: 'done' } };
+}
+
 export const AREAS: readonly NavItem[] = [
   { to: '/', label: 'Overview', end: true },
   { to: '/repositories', label: 'Repositories' },
@@ -256,6 +265,18 @@ export function AppShell({ children }: { children?: ReactNode }) {
   useEffect(() => {
     let on = true;
     unwrap(client.GET('/api/v1/setup'))
+      .then(async (s) => {
+        if (s.steps.first_repository !== 'todo') return s;
+        // Ask the repository list too: a repository with the pool on is the first repository.
+        const on = await unwrap(
+          client.GET('/api/v1/github/repositories', {
+            params: { query: { pool: 'on', limit: 1 } },
+          }),
+        )
+          .then((r) => r.items.length > 0)
+          .catch(() => false);
+        return withFirstRepository(s, on);
+      })
       .then((s) => on && setSetup(s))
       .catch(() => undefined);
     return () => {
