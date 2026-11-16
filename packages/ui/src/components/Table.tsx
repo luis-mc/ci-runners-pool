@@ -20,6 +20,7 @@ export function Table<T>({
   selected,
   onToggle,
   toggleLabel,
+  muted,
 }: {
   caption: string;
   columns: readonly Column<T>[];
@@ -30,6 +31,8 @@ export function Table<T>({
   selected?: ReadonlySet<string> | undefined;
   onToggle?: ((key: string) => void) | undefined;
   toggleLabel?: ((row: T) => string) | undefined;
+  /** A row the screen shows greyed because it cannot be used now; its reason sits in the row. */
+  muted?: ((row: T) => boolean) | undefined;
 }) {
   const [sortBy, setSortBy] = useState<{ id: string; dir: 1 | -1 } | null>(null);
   const sorted = useMemo(() => {
@@ -91,6 +94,7 @@ export function Table<T>({
                 key={key}
                 data-list-row
                 data-selected={selected?.has(key) || undefined}
+                data-muted={muted?.(row) || undefined}
                 tabIndex={0}
                 onDoubleClick={onOpen ? () => onOpen(row) : undefined}
                 onKeyDown={

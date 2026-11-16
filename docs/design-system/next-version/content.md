@@ -541,6 +541,31 @@ The words of the shared list toolbar (components 11 and 12, CRSP132).
 | Search images, Search caches, Search users | The labels of the search fields of Images, Caches and Users and roles. |
 | Pool on, Pool off | The two choices of the Pool filter (with All). |
 
+## Public repositories words
+
+The words of the setting that lets the pool serve public repositories, and of the screens that show it (web-console R5.68 to R5.70, CRSP131).
+
+| Word | Where and meaning |
+|---|---|
+| Enable for public repositories | The switch in Settings, Repositories. Off by default. |
+| Off: the pool serves private repositories only. Keeping repositories private is safer. | Line under the switch while it is off. |
+| On: the pool can serve public repositories you turn it on for. Jobs from forks stay refused. | Line under the switch while it is on. |
+| Are you sure? | Title of the question card for both directions. |
+| Turning this on lets the pool serve public repositories. | Intro of the question card when turning on. |
+| Anyone can open a pull request on a public repository. / A self-hosted runner runs that code on your machines. / Jobs from forks stay refused. / Secrets, caches and files on the machine could be reached. / Keeping your repositories private is safer. | The five lines of the question card when turning on. Primary: Turn on. Busy word: Turning on. |
+| Turning this off stops the pool for public repositories. | Intro of the question card when turning off. |
+| {n} public repositories use the pool now. Their runners are drained and removed, and their pool is switched off. The settings are kept. | The line of the question card when turning off ({n} is public_on_pool; the singular uses repository, uses, Its and its). Primary: Turn off. Busy word: Turning off. |
+| No public repository uses the pool now. Nothing is stopped. | The line of the question card when turning off and none is on the pool. |
+| The pool was switched off for {n} public repositories. Their settings are kept. | Done message after turning off. |
+| Active types: Private (default) / Active types: Private & Public | The line near the title of Repositories. The value links to the setting. |
+| Visibility, Private, Public, Internal | The column and its values. |
+| Public repositories are off, so the pool does not serve this one. | The reason in a greyed public row. Link: Turn on public repositories. |
+| Public repositories are off. Turn them on in Settings first. | The reason of a disabled Turn on the pool, and of a repository that Add runners cannot choose. |
+| Public repositories are off: {names}. Turn them on in Settings first. | The reason of the disabled Turn on N repositories when the selection holds a public one. |
+| {n} public repositories are not listed: public repositories are off. Turn them on in Settings to use the pool there. | Note in Turn on the pool. Action: Open the setting. |
+| Fix it | The link in the list from a repository with a Problem to its page. |
+| Turn on public repositories, Turn off the pool | The two actions of the Problem of a public repository that uses the pool while the setting is off. |
+
 ## First run in the console words
 
 The words of the first-run fixes (web-console 4.1 and 4.3, CRSP124). The console does everything; no step sends the user to a terminal or to GitHub's settings.

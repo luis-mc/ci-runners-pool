@@ -29,6 +29,7 @@ import {
   ThemeApplier,
   UsersSettings,
 } from './screens/settings/Settings';
+import { PublicRepositoriesSettings } from './screens/settings/PublicRepositoriesSettings';
 import { BudgetsSettings } from './screens/settings/Budgets';
 import { AuditLogSettings, ConfigExportSettings } from './screens/settings/AuditLog';
 import { NotificationsSettings } from './screens/settings/Notifications';
@@ -122,6 +123,7 @@ export function App({
                 <Route index element={<Navigate to="users" replace />} />
                 <Route path="users" element={<UsersSettings />} />
                 <Route path="app" element={<AppKeySettings />} />
+                <Route path="repositories" element={<PublicRepositoriesSettings />} />
                 <Route path="appearance" element={<AppearanceSettings />} />
                 <Route path="retention" element={<RetentionSettings />} />
                 <Route path="backups" element={<BackupsSettings />} />

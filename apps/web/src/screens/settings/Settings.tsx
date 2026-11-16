@@ -44,6 +44,7 @@ type User = Schemas['User'];
 const TABS = [
   { id: 'users', label: 'Users and roles' },
   { id: 'app', label: 'GitHub App' },
+  { id: 'repositories', label: 'Repositories' },
   { id: 'appearance', label: 'Appearance' },
   { id: 'retention', label: 'Retention' },
   { id: 'backups', label: 'Backups' },

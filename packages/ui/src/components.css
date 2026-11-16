@@ -575,6 +575,9 @@ body {
 .ds-table tr[data-selected] button {
   color: inherit;
 }
+.ds-table tr[data-muted] td {
+  color: var(--ds-color-text-muted);
+}
 .ds-table__pick {
   inline-size: var(--ds-target-min);
 }

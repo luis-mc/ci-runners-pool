@@ -25,3 +25,5 @@ Web (CRSP131 b/c, CRSP132)
 
 - CRSP131-web step 1 (CRSP132): shared ListToolbar and Segmented in packages/ui (C35); all seven list screens use it; Vitest, typecheck, eslint, prettier, Playwright design-layout and a11y green on Node 24. Jobs keeps Repository and Machine pickers in a cluster under the toolbar (radio-list fields cannot sit in one row). Clear shows only with a selection.
 - Step 1 (openapi + codegen): GET/PUT /api/v1/settings/public-repositories (getPublicRepositories, setPublicRepositories), schemas PublicRepositories, PublicRepositoriesSet, PublicRepositoriesResult, RepositoryProblem(+Action); Repository.problem. Handlers are stubs (501) until step 2.
+
+- Step 2 (CRSP131 web): contract merged in; setting page (Settings, Repositories), usePublicRepositories and usePublicSwitch, active types line, Visibility column, muted rows (Table muted prop), Problem on the repository page, Turn on the pool and Add runners reasons; Vitest, Playwright layout and axe green; docs R5.68 to R5.70, C36, content words, change note CRSP131. docs_check.py is not installed here (not run).

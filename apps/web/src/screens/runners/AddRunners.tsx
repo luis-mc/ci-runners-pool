@@ -24,6 +24,10 @@ import { ApiError, errorText, unwrap, useClient, type Schemas } from '../../api/
 import { useMounted } from '../../api/mounted';
 import { InstallAppButton } from '../repositories/InstallApp';
 import {
+  publicWhileOff,
+  usePublicRepositories,
+} from '../repositories/publicRepositories';
+import {
   allRepositories,
   needsYes,
   planProgress,
@@ -176,6 +180,7 @@ export function AddRunnersWizard() {
     };
   }, [client, storedPlan, again]);
 
+  const { enabled: publicEnabled } = usePublicRepositories();
   const labelsRepo =
     scope === 'repository'
       ? repos.find((r) => String(r.id) === repoId)
@@ -400,7 +405,16 @@ export function AddRunnersWizard() {
             value={repoId}
             error={errors.repo}
             onChange={setRepoId}
-            choices={repos.map((r) => ({ value: String(r.id), label: r.full_name }))}
+            choices={repos.map((r) => ({
+              value: String(r.id),
+              label: r.full_name,
+              ...(publicWhileOff(r, publicEnabled)
+                ? {
+                    disabledReason:
+                      'Public repositories are off. Turn them on in Settings first.',
+                  }
+                : {}),
+            }))}
           />
         ) : (
           <ChoiceField

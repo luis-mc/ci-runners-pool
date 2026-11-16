@@ -182,7 +182,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 15. Tables and list rows
 
 - **Used for:** a table to compare three or more facts; rows for everything else. Rows fold to two lines on a phone. Column heads sort.
-- **Looks:** a plain grid with light lines and a bold head row. On a phone each row folds to two lines.
+- **Looks:** a plain grid with light lines and a bold head row. On a phone each row folds to two lines. A row that cannot be used now is greyed (`muted`); the reason and the link that fixes it sit in the row itself, never only in the grey.
 - **Source:** `src/ui/table`
 - **Rules:** UX-25, UX-16, UX-17, UX-18, UX-39.
 - **Guard:** none yet.
