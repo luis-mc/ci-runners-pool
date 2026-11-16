@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
@@ -116,11 +117,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 		return nil, err
 	}
 	credFile := filepath.Join(agentDir, "local-join")
-	cred, err := svc.LocalCredential(ctx)
-	if err == nil {
-		err = os.WriteFile(credFile, []byte(cred), 0o600)
-	}
-	if err != nil {
+	if err := writeLocalCredential(ctx, svc, credFile); err != nil {
 		cancel()
 		_ = link.Close()
 		return nil, err
@@ -133,17 +130,29 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 	}
 	loop := net.JoinHostPort("127.0.0.1", portStr)
 	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		acfg := agent.Config{
-			Controller: loop, Pin: ca.Fingerprint(), LocalCredentialFile: credFile, Secrets: agentStore, DataDir: agentDir,
-			Version: version, Logger: logger.With("component", "local-agent"), Caches: agentCacheSource(), DiskFloorGiB: diskFloorFor(cfg),
-			Images: agentImageSource(), Redactor: secretRedactor,
-		}
-		if err := agent.Run(runCtx, acfg); err != nil {
-			logger.Error("the controller's own agent stopped", "err", err)
-		}
-	}()
+	// A separately installed crsp-agent on this host that already joined wins:
+	// the built-in agent is skipped, so the PC is one machine (R5.1).
+	if name, dup, derr := svc.SeparateAgentOnHost(ctx, host); derr == nil && dup {
+		logger.Info("the controller's own agent is skipped: this computer is already in the pool through a separately installed agent", "machine", name)
+		close(done)
+	} else {
+		go refreshLocalCredential(runCtx, logger, svc, credFile)
+		go func() {
+			defer close(done)
+			acfg := agent.Config{
+				Controller: loop, Pin: ca.Fingerprint(), LocalCredentialFile: credFile, Secrets: agentStore, DataDir: agentDir,
+				Version: version, Logger: logger.With("component", "local-agent"), Caches: agentCacheSource(), DiskFloorGiB: diskFloorFor(cfg),
+				Images: agentImageSource(), Redactor: secretRedactor,
+			}
+			if err := agent.Run(runCtx, acfg); err != nil {
+				if strings.Contains(err.Error(), machines.LocalDuplicateMarker) {
+					logger.Info("the controller's own agent is skipped: this computer is already in the pool through a separately installed agent", "reason", err.Error())
+					return
+				}
+				logger.Error("the controller's own agent stopped", "err", err)
+			}
+		}()
+	}
 	return &machinesRuntime{Service: svc, Caches: cs, Link: lk, CA: ca, Secrets: store, stop: func() {
 		cancel()
 		_ = link.Close()
@@ -173,4 +182,34 @@ func diskFloorFor(cfg config.Config) int {
 		return -1
 	}
 	return cfg.DiskFloorGiB
+}
+
+// localCredentialEvery is how often the one-time credential file is renewed. The
+// credential lives ten minutes; the agent reads the file again whenever the
+// controller refuses its key, so the file never holds an expired one (R5.1).
+const localCredentialEvery = 5 * time.Minute
+
+// writeLocalCredential makes a one-time local credential and writes it, mode
+// 0600, where the controller's own agent reads it.
+func writeLocalCredential(ctx context.Context, svc *machines.Service, path string) error {
+	cred, err := svc.LocalCredential(ctx)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(cred), 0o600)
+}
+
+func refreshLocalCredential(ctx context.Context, logger *slog.Logger, svc *machines.Service, path string) {
+	t := time.NewTicker(localCredentialEvery)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			if err := writeLocalCredential(ctx, svc, path); err != nil && ctx.Err() == nil {
+				logger.Warn("could not renew the local credential", "err", err)
+			}
+		}
+	}
 }

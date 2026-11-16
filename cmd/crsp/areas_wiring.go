@@ -145,7 +145,8 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 			}
 		},
 	}
-	c.Options.GitHub = &api.GitHubArea{Auth: asvc, Repos: rsvc, Webhook: hook, Logger: logger, Health: health}
+	c.Options.GitHub = &api.GitHubArea{Auth: asvc, Repos: rsvc, Webhook: hook, Logger: logger, Health: health,
+		HasMachine: func(ctx context.Context) bool { vs, err := d.Machines.List(ctx); return err == nil && len(vs) > 0 }}
 	c.Auth, c.Repos = asvc, rsvc
 	if cmp, err := newCompareService(gh, repoStore); err == nil {
 		c.Options.Compare = cmp

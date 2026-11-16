@@ -366,6 +366,16 @@ func (s *Service) Join(ctx context.Context, in JoinInput) (JoinResult, error) {
 	if f.OS == "" || f.Arch == "" {
 		return JoinResult{}, fmt.Errorf("%w: the agent sent no OS or architecture", ErrInvalid)
 	}
+	if in.Local {
+		// A crsp-agent service on this host that already joined wins; the
+		// built-in agent does not make a second machine (R5.1). The credential
+		// is not used up, so a later start can still join.
+		if name, dup, err := s.separateAgentOnHost(ctx, f.HostName); err != nil {
+			return JoinResult{}, err
+		} else if dup {
+			return JoinResult{}, &JoinError{Reason: LocalDuplicateMarker + " " + name + " (a separately installed agent)"}
+		}
+	}
 	id := newID("m_")
 	used, err := s.o.Repo.UseJoinCode(ctx, hash, id, now)
 	if err != nil {
@@ -412,6 +422,34 @@ func (s *Service) Join(ctx context.Context, in JoinInput) (JoinResult, error) {
 	_ = s.o.Repo.Audit(ctx, "agent", "machine.join", m.ID, "name "+m.Name)
 	s.notifyMachine(m.ID)
 	return JoinResult{MachineID: id, Key: key, Fingerprint: s.o.Fingerprint, Settings: set, Machine: m}, nil
+}
+
+// LocalDuplicateMarker starts the reason of a refused local join when a separately
+// installed agent of this host already joined.
+const LocalDuplicateMarker = "this computer is already in the pool as"
+
+// SeparateAgentOnHost reports the name of a machine that is not the
+// controller's own and carries the host name given: a crsp-agent service
+// installed on the controller's PC (R5.1). Host names compare without case.
+func (s *Service) SeparateAgentOnHost(ctx context.Context, host string) (name string, found bool, err error) {
+	return s.separateAgentOnHost(ctx, host)
+}
+
+func (s *Service) separateAgentOnHost(ctx context.Context, host string) (string, bool, error) {
+	host = strings.TrimSpace(host)
+	if host == "" {
+		return "", false, nil
+	}
+	ms, err := s.o.Repo.ListMachines(ctx)
+	if err != nil {
+		return "", false, err
+	}
+	for _, m := range ms {
+		if !m.IsController && m.RemovedAt.IsZero() && strings.EqualFold(strings.TrimSpace(m.Facts.HostName), host) {
+			return m.Name, true, nil
+		}
+	}
+	return "", false, nil
 }
 
 // defaultSlots sizes slots from the budget like dev-standards (DL79, DL176)

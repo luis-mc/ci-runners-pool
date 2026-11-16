@@ -33,6 +33,10 @@ type GitHubArea struct {
 	Logger  *slog.Logger
 	// Health is the webhook health of each repository (RES14); nil hides it.
 	Health WebhookHealth
+	// HasMachine reports whether any machine is in the pool, the controller's own
+	// included; it makes the first-machine step of the setup done (machines R5.1).
+	// Nil leaves the step to do.
+	HasMachine func(ctx context.Context) bool
 }
 
 // Role needed by each operation of this area, from x-auth in openapi.yaml.
@@ -235,6 +239,9 @@ func (a *GitHubArea) setupState(ctx context.Context, r *http.Request, st auth.Se
 	out.Steps.ConnectGithub, out.Steps.FirstMachine, out.Steps.FirstRepository = "todo", "todo", "todo"
 	if st.HasApp && st.HasOwner {
 		out.Steps.ConnectGithub = "done"
+	}
+	if a.HasMachine != nil && a.HasMachine(ctx) {
+		out.Steps.FirstMachine = "done"
 	}
 	if a.Repos != nil {
 		on := true
