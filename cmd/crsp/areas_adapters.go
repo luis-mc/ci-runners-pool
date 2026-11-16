@@ -343,6 +343,10 @@ func (f doctorFleet) Machines(ctx context.Context) ([]doctor.Machine, error) {
 			m.Load = &doctor.Load{MemoryPct: v.Load.MemoryPct, CPUPct: v.Load.CPUPct,
 				MemoryKnown: v.Load.MemoryKnown, CPUKnown: v.Load.CPUKnown, SampledAt: v.Load.SampledAt}
 		}
+		if d := v.Compact.Disk; d.Present {
+			m.DockerCompact = &doctor.DockerCompact{Enabled: v.Compact.Enabled, CanCompact: d.CanCompact,
+				FileBytes: d.FileBytes, UsedBytes: d.UsedBytes, UsedKnown: d.UsedKnown}
+		}
 		if free, total := v.Machine.Facts.DiskFreeBytes, v.Machine.Facts.DiskTotalBytes; total > 0 {
 			m.DiskFreeBytes, m.DiskTotalBytes = &free, &total
 		}

@@ -205,6 +205,7 @@ func cmdMachine() *command {
 					return nil
 				}},
 			maintainCommand(),
+			machineSettingsCommand(),
 			{name: "remove", summary: "drain and remove a machine", args: "NAME [--yes]",
 				flags: drainFlags,
 				run:   func(c *call, args []string) error { return c.drainOrRemove(args, true) }},

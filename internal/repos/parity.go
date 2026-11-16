@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"sort"
 	"strings"
 
@@ -36,10 +35,6 @@ type ParityInput struct {
 	// ControllerURL and CAFingerprint go to the repository variables.
 	ControllerURL string
 	CAFingerprint string
-	// App describes the GitHub App, for the pages that grant a permission.
-	AppSlug       string
-	AppOwnerLogin string
-	AppOwnerType  string
 	// Issue makes the parity credential; it returns the value once and the id.
 	Issue func(ctx context.Context) (value, id string, err error)
 	// Revoke undoes Issue when the writes fail, so no credential is left that
@@ -47,14 +42,13 @@ type ParityInput struct {
 	Revoke func(ctx context.Context, id string) error
 }
 
-// ParityResult is the outcome. When MissingPermissions is not empty nothing
-// was made and nothing was written: the owner grants the permission on the
-// named GitHub pages and runs the action again.
+// ParityResult is the outcome. When Grant is not Ready nothing was made and
+// nothing was written: the owner grants the permission by the steps of Grant
+// and runs the action again (or the console runs it when the grant is ready).
 type ParityResult struct {
 	Done               bool
 	MissingPermissions []string
-	AppPermissionsURL  string
-	InstallationURL    string
+	Grant              GrantView
 	SecretName         string
 	VariableNames      []string
 	CredentialID       string
@@ -62,44 +56,6 @@ type ParityResult struct {
 
 // ErrParityUnavailable: the GitHub adapter cannot write secrets in this build.
 var ErrParityUnavailable = errors.New("the GitHub adapter of this build cannot write repository secrets")
-
-// grantPages names the two GitHub pages that grant an App permission: the
-// App's permissions page (the App's owner changes the request), then the
-// installation page (the installation's owner accepts it).
-func grantPages(in ParityInput, ins Installation) (appURL, installURL string) {
-	slug := url.PathEscape(in.AppSlug)
-	if strings.EqualFold(in.AppOwnerType, "Organization") && in.AppOwnerLogin != "" {
-		appURL = "https://github.com/organizations/" + url.PathEscape(in.AppOwnerLogin) + "/settings/apps/" + slug + "/permissions"
-	} else {
-		appURL = "https://github.com/settings/apps/" + slug + "/permissions"
-	}
-	if strings.EqualFold(ins.AccountType, "Organization") && ins.AccountLogin != "" {
-		installURL = fmt.Sprintf("https://github.com/organizations/%s/settings/installations/%d", url.PathEscape(ins.AccountLogin), ins.ID)
-	} else {
-		installURL = fmt.Sprintf("https://github.com/settings/installations/%d", ins.ID)
-	}
-	return appURL, installURL
-}
-
-// freshInstallation reads the installation's permissions from GitHub, so a
-// permission the owner just granted counts at once; when GitHub cannot be
-// reached it uses the stored copy.
-func (s *Service) freshInstallation(ctx context.Context, id int64) (Installation, error) {
-	stored, err := s.installation(ctx, id)
-	if err != nil {
-		return Installation{}, err
-	}
-	live, err := s.cfg.GitHub.ListAppInstallations(ctx)
-	if err != nil {
-		return stored, nil
-	}
-	for _, i := range live {
-		if i.ID == id {
-			return toInstallation(i), nil
-		}
-	}
-	return stored, nil
-}
 
 // SetupParity writes what `crsp parity check` needs into a repository: the
 // access credential as the Actions secret CRSP_ACCESS, and the controller
@@ -130,7 +86,13 @@ func (s *Service) SetupParity(ctx context.Context, p auth.Principal, repoID int6
 	}
 	if missing := missingParity(ins.Permissions); len(missing) > 0 {
 		res := ParityResult{MissingPermissions: missing}
-		res.AppPermissionsURL, res.InstallationURL = grantPages(in, ins)
+		var app github.App
+		if ar, ok := s.cfg.GitHub.(AppReader); ok {
+			if a, err := ar.GetApp(ctx); err == nil {
+				app = a
+			}
+		}
+		res.Grant = s.grantFor(app, ins, parityPermissions)
 		s.cfg.Audit.Audit(ctx, p, "parity.needs_permission", "repository", r.FullName, "missing: "+strings.Join(missing, ", "))
 		return res, nil
 	}
@@ -168,11 +130,5 @@ func (s *Service) SetupParity(ctx context.Context, p auth.Principal, repoID int6
 // write. The shared table (R5.23) does not list `secrets`, because every other
 // feature works without it.
 func missingParity(granted map[string]string) []string {
-	var missing []string
-	for _, n := range parityPermissions {
-		if g := granted[n]; g != "write" && g != "admin" {
-			missing = append(missing, n)
-		}
-	}
-	return missing
+	return github.DiffGrant(parityPermissions, nil, granted).Missing
 }

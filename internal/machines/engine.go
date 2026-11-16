@@ -29,6 +29,7 @@ func (e Engine) RunsLinuxContainers() bool {
 // report (KVM, images) stays with the agent link and the doctor. A change
 // reaches the console through the usual notification.
 func (s *Service) HandleMachineReport(machineID string, r *agentv1.MachineReport) {
+	s.HandleDockerDisk(machineID, r.GetDockerDisk())
 	e := r.GetEngine()
 	if e == nil {
 		return

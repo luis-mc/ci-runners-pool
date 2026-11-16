@@ -129,7 +129,7 @@ func only(t *testing.T, fs []doctor.Finding, check string) doctor.Finding {
 func TestEveryRegisteredCheckIsM1AndHasAnID(t *testing.T) {
 	reg := doctor.NewRegistry()
 	Register(reg)
-	if len(reg.All()) != 33 {
+	if len(reg.All()) != 34 {
 		t.Fatalf("checks: %v", reg.SortedIDs())
 	}
 	for _, c := range reg.All() {
@@ -422,7 +422,7 @@ func repo(id int64, full string, expected map[string]string) doctor.Repository {
 
 func TestAppInstallationAndPermissions(t *testing.T) {
 	g := newGH()
-	full := map[string]string{"administration": "write", "actions": "read", "actions_variables": "write", "contents": "read", "metadata": "read"}
+	full := map[string]string{"administration": "write", "actions": "read", "actions_variables": "write", "contents": "read", "metadata": "read", "secrets": "write"}
 	g.inst[7] = github.Installation{ID: 7, AccountLogin: "o", AccountType: "User", Permissions: full}
 	g.inst[8] = github.Installation{ID: 8, AccountLogin: "susp", Suspended: true, Permissions: full}
 	g.instErr[9] = github.ErrNotFound

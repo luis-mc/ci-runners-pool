@@ -11,17 +11,6 @@ import (
 // SecretWriter, or the setup answers "not available" in production (R5.84).
 var _ SecretWriter = github.Client(nil)
 
-func TestGrantPagesForAUserAndAnOrganization(t *testing.T) { // R5.84
-	app, inst := grantPages(ParityInput{AppSlug: "crsp", AppOwnerType: "User", AppOwnerLogin: "alice"}, Installation{ID: 10, AccountType: "User", AccountLogin: "alice"})
-	if app != "https://github.com/settings/apps/crsp/permissions" || inst != "https://github.com/settings/installations/10" {
-		t.Fatalf("%s %s", app, inst)
-	}
-	app, inst = grantPages(ParityInput{AppSlug: "crsp", AppOwnerType: "Organization", AppOwnerLogin: "acme"}, Installation{ID: 7, AccountType: "Organization", AccountLogin: "acme"})
-	if app != "https://github.com/organizations/acme/settings/apps/crsp/permissions" || inst != "https://github.com/organizations/acme/settings/installations/7" {
-		t.Fatalf("%s %s", app, inst)
-	}
-}
-
 func TestMissingParityJudgesWrite(t *testing.T) { // R5.84
 	for _, c := range []struct {
 		granted map[string]string
@@ -32,7 +21,7 @@ func TestMissingParityJudgesWrite(t *testing.T) { // R5.84
 		{map[string]string{"secrets": "read", "actions_variables": "write"}, "secrets"},
 		{map[string]string{"actions_variables": "write"}, "secrets"},
 		{map[string]string{"secrets": "write", "actions_variables": "read"}, "actions_variables"},
-		{nil, "secrets,actions_variables"},
+		{nil, "actions_variables,secrets"},
 	} {
 		if got := strings.Join(missingParity(c.granted), ","); got != c.want {
 			t.Errorf("%v: got %q, want %q", c.granted, got, c.want)

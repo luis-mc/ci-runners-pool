@@ -13,6 +13,7 @@ code:
   - internal/load/**
   - internal/power/**
   - internal/cpucap/**
+  - internal/dockercompact/**
 design_system: [UX-4, UX-5, UX-6, UX-9, UX-13, UX-16, UX-17, UX-18, UX-19, UX-22, UX-26, UX-29, UX-30, UX-38, UX-41, UX-52, UX-53, UX-58, UX-62]
 last_verified: 2026-11-15
 artifact:
@@ -294,6 +295,8 @@ On the machine the file does the install and the join. Windows: the `.cmd` start
 
 The controller serves the packages of the release it was built from at `GET /api/v1/packages/{name}` (`getPackage`, public like the GitHub release, and `SHA256SUMS` at the same path). It reads the release of its own version from GitHub, keeps `SHA256SUMS` and each package in its data folder (`packages/<version>/`), and serves a package only after its SHA-256 matches `SHA256SUMS`; a name that `SHA256SUMS` does not list as an installer answers 404 and a mismatching download is deleted and not served. The SHA-256 the file checks was taken from that `SHA256SUMS` when the file was made in the owner's session, so the download needs no trust in the controller's self-signed certificate; the join still pins the certificate fingerprint (R5.5). A development build, or a controller whose console is only on the loopback address, has no packages: `createJoinFile` answers 501 and says to copy the command. Not verified on a real Windows or macOS machine in CRSP122; a downloaded `.command` may need `chmod +x` or `sh <file>` because a browser does not set the execute bit.
 
+**R5.66** (M1, CRSP136) — **The Docker disk compact policy is a machine setting.** Each machine's settings carry the policy of caches R5.52: `docker_compact` (`auto`, `on` or `off`; `auto` is the default and means on for a Windows machine with a Docker Desktop disk file), `docker_compact_threshold_gib` (1 to 100000, default 30), `docker_compact_idle_minutes` (1 to 1440, default 30), `docker_compact_quiet_start` and `docker_compact_quiet_end` (`HH:MM`, default `01:00` and `06:00`). The API refuses anything else with 400. A change is saved at once and needs no drain, and the audit entry `machine.settings` names the change. The agent's machine report carries the Docker disk (`DockerDiskReport`: present, files, file bytes, used bytes, administrator right, time zone offset) and the machine shows it as `docker_compact_status` (enabled, the reason of the last look, file, used and reclaimable bytes, the last time and result, running). The Machine page has a Docker disk section with these settings, built from shared parts only (design-system content.md, Docker disk words), and `crsp machine settings NAME` shows and sets them from the CLI (cli R5.61).
+
 ## 6. Non-functional requirements
 
 **R6.1** (M1) — The agent link uses TLS 1.3 only. A connection without a valid pinned certificate and a valid machine key is refused.
@@ -456,6 +459,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R6.8 | internal/machines/load_retention_test.go | planned |
 | R6.9 | internal/machines/scale_test.go | planned |
 | R6.10 | e2e/tests/machines.spec.ts | planned |
+| R5.66 | internal/machines/compact_test.go TestSettingsValidateCompact; internal/api/machines_policy_test.go TestMachineDockerCompactSettingsAndStatus; internal/cli/cmd_machine_settings_test.go; apps/web/src/screens/machines/MachineDockerDisk.test.tsx | built (CRSP136) |
 
 ## 10. Decisions
 

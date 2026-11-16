@@ -141,6 +141,20 @@ type Machine struct {
 	Admin bool
 	// LightSlots is the machine's light slot setting (scheduling R5.1).
 	LightSlots int
+	// DockerCompact is the Docker disk compact policy and what the agent
+	// reported; nil when the machine has no Docker disk file to compact.
+	DockerCompact *DockerCompact
+}
+
+// DockerCompact is what the machine.docker.compact check reads (caches R5.51 to R5.54).
+type DockerCompact struct {
+	// Enabled is the policy: on, or automatic with a disk file.
+	Enabled bool
+	// CanCompact is true when the agent has the administrator rights.
+	CanCompact bool
+	// FileBytes and UsedBytes are the sizes the agent reported.
+	FileBytes, UsedBytes int64
+	UsedKnown            bool
 }
 
 // Load is the newest load sample.

@@ -64,6 +64,10 @@
     "internal/cpucap/**": [
       "docs/features/machines/spec.md"
     ],
+    "internal/dockercompact/**": [
+      "docs/features/caches/spec.md",
+      "docs/features/machines/spec.md"
+    ],
     "internal/doctor/**": [
       "docs/features/doctor/spec.md"
     ],

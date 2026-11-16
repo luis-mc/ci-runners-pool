@@ -621,8 +621,61 @@ The words of the Settings section Access for CI and of the action that sets up p
 | Set up parity for this repository | The primary button. Busy: Setting up. Reason when none is chosen: Choose a repository first. |
 | Could not set up parity. Nothing was left behind. {reason} | Problem message when the setup fails. |
 | Parity is set up for {repository}. The workflow can run now. | Done message. |
-| The GitHub App cannot write to {repository} yet. It needs: {permissions}. Nothing was made. Grant it on GitHub, then press the button again. | Needs-you message when a permission is missing. |
-| Secrets (write), Variables (write) | The words for the missing permissions. |
-| 1. Ask for it / On the App page, under Repository permissions, set the access. | First step of the permission help. |
-| 2. Accept it / On the installation page, press Accept new permissions. | Second step of the permission help. |
-| Open the App permissions, Open the installation | The two external buttons. |
+| The GitHub grant | See GitHub grant words: a missing App permission is shown by the shared part, not by words of this screen. |
+
+## Docker disk words
+
+The words of the Docker disk section on the machine page (caches R5.51 to R5.54, machines R5.66). The section shows only for a machine whose agent found a Docker Desktop disk file, or whose choice is On or Off.
+
+| Word | Where and meaning |
+|---|---|
+| Docker disk | The section title on the machine page. |
+| Make Docker's disk smaller | The name of the one-choice list. Values: Automatic, On, Off. Saved at once. |
+| On for a Windows machine with a Docker Desktop disk file. Off for the others. | Help under Automatic. |
+| Makes the disk smaller when the numbers below say so. | Help under On. |
+| Never makes the disk smaller by itself. | Help under Off. |
+| Start when this much can be reclaimed | The name of the number field, in GiB. The default is 30. |
+| Wait until the machine has been idle for | The name of the number field, in minutes. The default is 30. |
+| No job runs or waits for its runners. | Help under the idle field. |
+| Quiet hours start, Quiet hours end | The names of the two hour lists. Defaults 01:00 and 06:00. |
+| In the machine's own time. | Help under Quiet hours start. |
+| At most once a day. New jobs wait in the queue while the disk is made smaller. No job is stopped. | The note at the end of the section. |
+| Now | The facts line with the state word. |
+| Disk file, Docker uses, Can be reclaimed, Last time | The other facts lines. Sizes as in Dates, times and numbers. Last time is a date, a time and the sizes, or the failure. |
+| Making the disk smaller | State word while the compact runs. |
+| Off | State word: the policy is off for this machine. |
+| Done today | State word: it ran in the last 24 hours. |
+| Waiting for quiet hours | State word: outside the quiet hours. |
+| Waiting: the machine is offline | State word. |
+| Waiting: the machine is paused or drained | State word. |
+| Waiting for the agent to look at the disk | State word before the first report. |
+| Waiting: less than the limit can be reclaimed | State word. |
+| Waiting: jobs run or wait here | State word. |
+| Waiting: not idle long enough | State word. |
+| Waiting: another change is running | State word. |
+| Cannot: the agent has no administrator rights | State word, shown as a failure. |
+| Not looked at yet | State word when no look was made. |
+| The agent on this machine does not run as administrator, so it cannot make Docker's disk smaller. Install the agent again from an administrator window, or turn this off. | Problem message under the facts. |
+| Turn off | The action beside that message. Saves Off. |
+| Could not save. {why} | Problem message when a change was not saved. |
+| {machine} is making Docker's disk smaller ({size} on disk, {size} used). New jobs wait in the queue and start again when it is done; no job is stopped. | Notice to the projects, before. |
+| {machine} made Docker's disk smaller: {size} to {size}. Jobs take the machine again. | Notice to the projects, after. |
+| {machine} could not make Docker's disk smaller: {why}. Jobs take the machine again. | Notice to the projects, on a failure. |
+
+## GitHub grant words
+
+The words of the shared part that guides a missing App permission or repository access (github-integration R5.86, web-console R5.93, CRSP139). Permission words: Secrets (write), Variables (write), Administration (write), Actions (read), Contents (read), Metadata (read), Organization runners (write).
+
+| Word | Where and meaning |
+|---|---|
+| The GitHub App needs {permissions}. Nothing is lost: do the steps below, one at a time. | Needs-you message above the step list. |
+| Install the App on the account | Label of the install step. Text: Pick the account and the repositories on GitHub. Done: The App is installed. |
+| Ask for {permissions} on the App page | Label of the ask step. Text: On the App page, under Repository permissions, set the access to Read and write. Done: The App asks for it. |
+| Accept the new permissions on the installation: {permissions} | Label of the accept step. Text: On the installation page, press Accept new permissions. Done: The installation accepted it. |
+| done, missing | The state word of a step. |
+| Do this after the step above. | Text of a missing step that is not next. |
+| Install the App on GitHub, Ask for it on GitHub, Accept it on GitHub | The one primary action; it opens the page of the next missing step in a new tab. |
+| GitHub is open in a new tab. Do the step there, then come back to this tab. It checks again by itself. | Note after the action is pressed. |
+| Checking GitHub. | Note while it reads GitHub. |
+| Could not check GitHub. {reason} | Problem when the check fails; the next check tries again. |
+| Ready. {permissions} granted. | Done message when everything is granted. |

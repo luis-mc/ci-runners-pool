@@ -157,6 +157,10 @@ func runController() error {
 	// A drain names the job that holds it and flags one far past its usual
 	// duration, from job history (machines R5.55, R5.56).
 	mr.Service.SetTypical(usualDuration(db))
+	// The Docker disk compact looks at the queue before it holds a machine, and
+	// checks its policy every 5 minutes (caches R5.51 to R5.54).
+	mr.Service.SetQueueSource(db)
+	go mr.Service.RunCompactLoop(ctx, compactEvery, func(err error) { logger.Warn("docker disk compact pass", "err", err) })
 
 	um := startUpdates(ctx, cfg, logger, mr, ops.Settings, idle)
 	// A machine that is paused, on battery or in quiet hours holds new jobs with
@@ -185,7 +189,7 @@ func runController() error {
 	sec = secrets.Learn(sec, secretRedactor.Add)
 	ctl, err := buildController(ctx, controllerDeps{
 		Cfg: cfg, Logger: logger, DB: db, Secrets: sec, Ops: ops,
-		Machines: mr.Service, CA: mr.CA, Packages: packageServer(mr), Updates: um, Queue: queue, Caches: mr.Caches, Link: mr.Link, MachineSecrets: mr.Secrets,
+		Machines: mr.Service, CA: mr.CA, PublicHost: mr.PublicHost, Packages: packageServer(mr), Updates: um, Queue: queue, Caches: mr.Caches, Link: mr.Link, MachineSecrets: mr.Secrets,
 	})
 	if err != nil {
 		return err

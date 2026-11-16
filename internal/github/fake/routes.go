@@ -44,6 +44,9 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request) {
 		delete(app, "client_secret")
 		delete(app, "webhook_secret")
 		delete(app, "pem")
+		if s.appPerms != nil {
+			app["permissions"] = s.appPerms
+		}
 		writeJSON(w, 200, app)
 	case r.Method == "GET" && p == "/app/hook/deliveries":
 		if !s.checkJWT(bearer(r)) {
@@ -269,6 +272,7 @@ func (s *Server) appInstallations(w http.ResponseWriter, r *http.Request) {
 		s.nextID++
 		tok := "ghs_" + "FAKE" + strconv.FormatInt(s.nextID, 10) + strings.Repeat("z", 20)
 		s.instTokens[tok] = id
+		s.tokensMade++
 		writeJSON(w, 201, map[string]any{"token": tok, "expires_at": s.Now().Add(time.Hour).UTC().Format(time.RFC3339)})
 		return
 	}

@@ -60,6 +60,8 @@ type controllerDeps struct {
 	// Machines is the machines service; CA the controller's certificate authority.
 	Machines *machines.Service
 	CA       api.CAProvider
+	// PublicHost is the name runners reach the controller at; the parity setup writes it (CRSP141).
+	PublicHost string
 	// Packages serves the release packages to new machines (machines R5.65); nil for a development build.
 	Packages api.PackageServer
 	Updates  api.UpdateService
@@ -264,6 +266,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	c.Options.Settings, c.Options.Audit, c.Options.Backup = d.Ops.Settings, d.Ops.Audit, d.Ops.Backup
 	c.Options.Machines, c.Options.CA, c.Options.Update = d.Machines, d.CA, d.Updates
 	c.Options.Packages = d.Packages
+	c.Options.PublicHost, c.Options.ListenAddr = d.PublicHost, d.Cfg.ListenAddr
 	c.Options.Jobs, c.Options.Slots, c.Options.Live = d.DB, d.Queue, live
 	c.Options.Runners, c.Options.Doctor = runnerSvc, docSvc
 	c.Options.Caches, c.Options.Events = d.Caches, hub
@@ -467,12 +470,24 @@ func (w webhookEvents) Repository(action, fullName string) {
 	}()
 }
 
-func (w webhookEvents) Installation(event string, _ []byte) {
+func (w webhookEvents) Installation(event string, body []byte) {
 	w.logger.Info("installation event", "event", event)
 	if w.appGone != nil && w.appGone() {
 		return
 	}
+	// new_permissions_accepted: the cached installation token is dropped, so
+	// the next call carries the permissions just accepted (CRSP139, R5.90).
+	accepted := int64(0)
+	if ev, err := github.ParseInstallationEvent(body); err == nil && ev.Action == github.NewPermissionsAccepted {
+		accepted = ev.InstallationID
+	}
 	go func() {
+		if accepted != 0 {
+			if err := w.repos.PermissionsAccepted(w.ctx, accepted); err != nil && w.ctx.Err() == nil {
+				w.logger.Warn("new permissions accepted", "err", err)
+			}
+			return
+		}
 		if err := w.repos.ReconcileInstallations(w.ctx); err != nil && w.ctx.Err() == nil {
 			w.logger.Warn("reconcile installations", "err", err)
 		}

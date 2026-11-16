@@ -10,7 +10,7 @@ type: reference
 code:
   - internal/tray/**
 design_system: [UX-1, UX-6, UX-9, UX-17, UX-18, UX-26, UX-29, UX-30, UX-58, UX-62]
-last_verified: 2026-11-14
+last_verified: 2026-11-16
 artifact:
 generator: luismc-docs 2.6.1
 ---

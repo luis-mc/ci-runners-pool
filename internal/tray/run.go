@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -48,12 +49,17 @@ func Run(args []string, o Options) int {
 	smoke := fs.Bool("smoke", false, "start the tray loop, exit 0 once the icon is ready (CI)")
 	hold := fs.Duration("smoke-hold", 0, "with --smoke: keep running this long after the icon is ready")
 	updated := fs.Bool("updated", false, "this tray was started by the old tray after an update: say so in one notice")
+	quit := fs.Bool("quit", false, "ask every running tray of this install to quit, wait for them, and exit (the MSI upgrade)")
 	wait := fs.Duration("wait", 0, "wait up to this long for the tray of the old version to quit (used after an update)")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
 	if o.Exe == "" {
 		o.Exe, _ = os.Executable()
+	}
+
+	if *quit {
+		return runQuit(o)
 	}
 
 	lock, ok, err := AcquireLock()
@@ -90,6 +96,8 @@ func Run(args []string, o Options) int {
 func loop(o Options, smoke bool, hold time.Duration) int {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	// A quit request (operations R5.86) ends the loop, so the process leaves and frees its exe.
+	WatchQuit(ctx, systray.Quit)
 
 	client := NewClient()
 	cur := Status{State: StateStarting}
@@ -256,5 +264,24 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 		}()
 	}
 	systray.Run(onReady, cancel)
+	return ExitOK
+}
+
+// runQuit is `crsp tray --quit`: it signals every other tray of this install,
+// waits for them, and ends the ones that did not leave (operations R5.86).
+func runQuit(o Options) int {
+	dir := filepath.Dir(o.Exe)
+	found, forced, err := QuitAll(context.Background(), newProcs(), dir, QuitGrace)
+	if o.Stdout == nil {
+		o.Stdout = io.Discard
+	}
+	if o.Stderr == nil {
+		o.Stderr = io.Discard
+	}
+	_, _ = fmt.Fprintf(o.Stdout, "tray quit: %d found, %d ended by force\n", found, forced)
+	if err != nil {
+		_, _ = fmt.Fprintln(o.Stderr, "error:", err)
+		return 1
+	}
 	return ExitOK
 }

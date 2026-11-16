@@ -285,6 +285,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/parity-address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The address the parity setup will write, and whether it answers
+         * @description github-integration R5.84 (CRSP141). The address a runner uses to reach the controller: https, the public host and the console port, the same address machines join at. The controller calls it from the server side with its own CA and says whether it answers. A controller with no such address answers `needs_address` with the setting to fix.
+         */
+        get: operations["getParityAddress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/repositories/{repositoryId}/parity-setup": {
         parameters: {
             query?: never;
@@ -296,7 +316,7 @@ export interface paths {
         put?: never;
         /**
          * Set up parity for this repository
-         * @description github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
+         * @description github-integration R5.84. Makes a `parity` access credential and writes it as the repository Actions secret CRSP_ACCESS, and the controller address and CA fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, through the GitHub App. The address is the one machines use to join (https, the controller CA), never the address of the browser, never loopback or http (CRSP141); when the controller has none the answer is `needs_address` and nothing is made. When the App lacks the `secrets` or `actions_variables` write permission nothing is made: the answer is `needs_permission` with the GitHub pages that grant it.
          */
         post: operations["setupRepositoryParity"];
         delete?: never;
@@ -527,6 +547,26 @@ export interface paths {
          * @description github-integration R5.21. Needs the product role admin or owner and that the user is an owner of the organization on GitHub, read fresh. On means runners register at organization level in a runner group named for the pool, visible to the repositories whose pool is on and no others. A personal account is refused: its runners stay at repository level.
          */
         put: operations["setOrgPool"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/github/grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What a task still needs from GitHub, step by step
+         * @description github-integration R5.86. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
+         */
+        get: operations["getGithubGrant"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -2423,23 +2463,56 @@ export interface components {
             value: string;
             info: components["schemas"]["AccessCredential"];
         };
-        ParitySetupRequest: {
-            /** @description The address the runner reaches the controller at. Empty uses the address of this console. */
-            controller_url?: string;
+        /** @description github-integration R5.86. */
+        GithubGrant: {
+            /** @description Every needed permission is accepted by the installation. */
+            ready: boolean;
+            /**
+             * @description The first step that is not done. Absent when ready.
+             * @enum {string}
+             */
+            next?: "install" | "ask" | "accept";
+            /** @description The needed permissions that are not accepted yet, by GitHub's name. */
+            missing: string[];
+            /** Format: int64 */
+            installation_id?: number;
+            steps: components["schemas"]["GithubGrantStep"][];
+        };
+        GithubGrantStep: {
+            /** @enum {string} */
+            id: "install" | "ask" | "accept";
+            done: boolean;
+            /** @description The permissions still waiting at this step. */
+            permissions: string[];
+            /** @description The GitHub page of the step. Absent when the step has none. */
+            url?: string;
+        };
+        /** @description No fields. The address is the controller's own, never one the browser sends (CRSP141). */
+        ParitySetupRequest: Record<string, never>;
+        ParityAddress: {
+            /** @enum {string} */
+            status: "ok" | "unreachable" | "needs_address";
+            /** @description The address that will be written as CRSP_URL. Empty with needs_address. */
+            url?: string;
+            /** @description Why the address does not answer, or why the controller has none. */
+            problem?: string;
+            /** @description The setting to fix when the controller has no address a runner can reach. */
+            setting?: string;
         };
         ParitySetup: {
             /** @enum {string} */
-            status: "done" | "needs_permission";
+            status: "done" | "needs_permission" | "needs_address";
             missing_permissions?: string[];
-            /** @description The GitHub page where the App's owner asks for the permission. */
-            app_permissions_url?: string;
-            /** @description The GitHub page where the installation's owner accepts it. */
-            installation_url?: string;
+            grant?: components["schemas"]["GithubGrant"];
             /** @description The name of the repository Actions value that holds the access, CRSP_ACCESS. */
             access_name?: string;
             variable_names?: string[];
             /** @description The id of the access credential that was made. */
             access_id?: string;
+            /** @description With needs_address, why the controller has no address a runner can reach. */
+            address_problem?: string;
+            /** @description With needs_address, the setting to fix. */
+            address_setting?: string;
         };
         CliToken: {
             id: string;
@@ -3105,6 +3178,7 @@ export interface components {
             running_jobs?: components["schemas"]["Job"][];
             pending_change?: components["schemas"]["MachineChange"];
             recovery?: components["schemas"]["MachineRecovery"];
+            docker_compact_status?: components["schemas"]["DockerCompactStatus"];
             /** Format: date-time */
             last_seen_at: string;
             /** Format: date-time */
@@ -3187,6 +3261,42 @@ export interface components {
             pause_until?: string;
             /** @description A pause from the tray holds until Resume. */
             pause_until_resumed?: boolean;
+            docker_compact?: components["schemas"]["DockerCompactMode"];
+            /** @description How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54). */
+            docker_compact_threshold_gib?: number;
+            /** @description How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54). */
+            docker_compact_idle_minutes?: number;
+            /** @description Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54). */
+            docker_compact_quiet_start?: string;
+            /** @description End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00. */
+            docker_compact_quiet_end?: string;
+        };
+        /**
+         * @description The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
+         * @enum {string}
+         */
+        DockerCompactMode: "auto" | "on" | "off";
+        /** @description The Docker disk compact policy of one machine and what the agent reported about the disk file (caches R5.51 to R5.54). Read only. */
+        DockerCompactStatus: {
+            /** @description The policy is on for this machine. */
+            enabled: boolean;
+            /** @description Why the last look did not compact, or `run`. One of off, offline, not_active, no_report, no_admin, below_threshold, outside_quiet_hours, busy, not_idle_long_enough, done_today, already_running, change_open. */
+            reason?: string;
+            running: boolean;
+            /** @description The agent found a Docker Desktop disk file. */
+            disk_present: boolean;
+            /** @description The agent has the administrator rights the compact needs. */
+            can_compact: boolean;
+            /** Format: int64 */
+            file_bytes?: number;
+            /** Format: int64 */
+            used_bytes?: number;
+            /** Format: int64 */
+            reclaimable_bytes?: number;
+            /** Format: date-time */
+            last_at?: string;
+            /** @description Sizes of the last compact, or why it failed. */
+            last_result?: string;
         };
         /**
          * @description Automatic (default) takes jobs and pauses on battery and on a pause from the tray; Always ignores the battery; Paused takes no new job and finishes the running ones (machines R5.61).
@@ -3307,6 +3417,15 @@ export interface components {
             mode?: components["schemas"]["MachineMode"];
             pause_on_battery?: boolean;
             cpu_cap_pct?: components["schemas"]["CpuCapPct"];
+            docker_compact?: components["schemas"]["DockerCompactMode"];
+            /** @description How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54). */
+            docker_compact_threshold_gib?: number;
+            /** @description How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54). */
+            docker_compact_idle_minutes?: number;
+            /** @description Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54). */
+            docker_compact_quiet_start?: string;
+            /** @description End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00. */
+            docker_compact_quiet_end?: string;
             /**
              * @description A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.61).
              * @enum {string}
@@ -4577,6 +4696,27 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    getParityAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The address and the result of calling it. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParityAddress"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     setupRepositoryParity: {
         parameters: {
             query?: never;
@@ -4917,6 +5057,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrgPool"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getGithubGrant: {
+        parameters: {
+            query?: {
+                /** @description GitHub permission names, comma separated, such as `secrets,actions_variables`. */
+                permissions?: string;
+                installation_id?: number;
+                repository_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The grant state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GithubGrant"];
                 };
             };
             default: components["responses"]["Error"];

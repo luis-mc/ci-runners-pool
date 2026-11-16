@@ -41,6 +41,7 @@ import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
 import { HostedFallback, WhereJobsGo, routingWhy } from './fallback';
 import { InstallAppButton } from './InstallApp';
+import { MissingPermissionsGuide } from '../GrantGuide';
 import { OrgPools } from './OrgPools';
 import { allRepositories, applyChanges, type Repository } from './plans';
 import {
@@ -366,6 +367,7 @@ export function RepositoriesList() {
           );
         }}
       </Load>
+      <MissingPermissionsGuide onReady={reload} />
       <OrgPools version={v} />
       <Ask
         title="Turn off these repositories?"
