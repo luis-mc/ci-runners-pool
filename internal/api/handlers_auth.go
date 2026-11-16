@@ -69,7 +69,7 @@ var githubAreaAuth = map[string]string{
 	"getRepository": authUser, "updateRepositoryPolicy": authAdmin, "getRepositoryRunsOn": authUser,
 	"getRepositoryExtraPackages": authUser, "setRepositoryExtraPackages": authAdmin,
 	"getRepositoryTrial": authUser, "setRepositoryTrial": authAdmin, "setRepositoryWebhookMode": authAdmin,
-	"replaceAppPrivateKey": authOwner,
+	"replaceAppPrivateKey": authOwner, "getPublicRepositories": authUser, "setPublicRepositories": authOwner,
 	"receiveGithubWebhook": authPublic,
 	// CRSP37 notification channels: any signed-in user; a webhook needs an admin (checked in the service).
 	"listNotificationChannels": authUser, "createNotificationChannel": authUser, "updateNotificationChannel": authUser,
