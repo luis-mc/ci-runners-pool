@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestDiffGrantStates(t *testing.T) { // R5.89
+func TestDiffGrantStates(t *testing.T) { // R5.86
 	need := []string{"secrets", "actions_variables"}
 	cases := []struct {
 		name            string
@@ -46,7 +46,7 @@ func TestDiffGrantStates(t *testing.T) { // R5.89
 	}
 }
 
-func TestGrantPagesForAUserAndAnOrganization(t *testing.T) { // R5.89
+func TestGrantPagesForAUserAndAnOrganization(t *testing.T) { // R5.86
 	app, ins := GrantPages(App{Slug: "crsp", OwnerType: "User", OwnerLogin: "alice"}, Installation{ID: 10, AccountType: "User", AccountLogin: "alice"})
 	if app != "https://github.com/settings/apps/crsp/permissions" || ins != "https://github.com/settings/installations/10" {
 		t.Fatalf("%s %s", app, ins)
@@ -57,13 +57,13 @@ func TestGrantPagesForAUserAndAnOrganization(t *testing.T) { // R5.89
 	}
 }
 
-func TestSecretsIsInTheManifestSet(t *testing.T) { // R5.88
+func TestSecretsIsInTheManifestSet(t *testing.T) { // R5.85
 	if RequiredPermissions["secrets"] != "write" || RequiredPermissions["actions_variables"] != "write" {
 		t.Fatalf("parity writes a secret and variables, so the App asks for both: %v", RequiredPermissions)
 	}
 }
 
-func TestParseInstallationEvent(t *testing.T) { // R5.90
+func TestParseInstallationEvent(t *testing.T) { // R5.87
 	ev, err := ParseInstallationEvent([]byte(`{"action":"new_permissions_accepted","installation":{"id":42}}`))
 	if err != nil || ev.Action != NewPermissionsAccepted || ev.InstallationID != 42 {
 		t.Fatalf("%+v %v", ev, err)
@@ -73,7 +73,7 @@ func TestParseInstallationEvent(t *testing.T) { // R5.90
 	}
 }
 
-func TestForgetInstallationTokenMakesANewToken(t *testing.T) { // R5.90
+func TestForgetInstallationTokenMakesANewToken(t *testing.T) { // R5.87
 	e := newEnv(t)
 	ctx := context.Background()
 	e.fake.AddInstall(10, "alice", "User")

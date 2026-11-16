@@ -10,8 +10,6 @@ import {
   Dialog,
   Empty,
   ErrorSummary,
-  ExternalButton,
-  Facts,
   FormActions,
   Message,
   Section,
@@ -27,18 +25,10 @@ import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { Ask, Load } from '../common';
+import { GrantGuide } from '../GrantGuide';
 
 type Credential = Schemas['AccessCredential'];
 type Setup = Schemas['ParitySetup'];
-
-const PERMISSION_WORDS: Record<string, string> = {
-  secrets: 'Secrets (write)',
-  actions_variables: 'Variables (write)',
-};
-
-function httpsOnly(url: string | undefined): string | undefined {
-  return url?.startsWith('https://github.com/') ? url : undefined;
-}
 
 export function AccessForCiSettings() {
   const session = useSession();
@@ -253,7 +243,7 @@ function ParitySetupAction() {
   );
   const [repo, setRepo] = useState('');
   const [outcome, setOutcome] = useState<
-    { repo: string; setup: Setup; names: string } | undefined
+    { repo: string; id: number; setup: Setup } | undefined
   >(undefined);
 
   const run = useCommand(async (id: number, full: string) => {
@@ -264,7 +254,7 @@ function ParitySetupAction() {
         body: {},
       }),
     );
-    setOutcome({ repo: full, setup, names: full });
+    setOutcome({ repo: full, id, setup });
     reload();
   });
 
@@ -330,45 +320,14 @@ function ParitySetupAction() {
           </Message>
         ) : null}
         {outcome?.setup.status === 'needs_permission' ? (
-          <NeedsPermission repo={outcome.repo} setup={outcome.setup} />
+          <GrantGuide
+            permissions={['secrets', 'actions_variables']}
+            repositoryId={outcome.id}
+            {...(outcome.setup.grant ? { initial: outcome.setup.grant } : {})}
+            onReady={() => void run.run(outcome.id, outcome.repo)}
+          />
         ) : null}
       </Stack>
     </Section>
-  );
-}
-
-function NeedsPermission({ repo, setup }: { repo: string; setup: Setup }) {
-  const missing = (setup.missing_permissions ?? []).map((p) => PERMISSION_WORDS[p] ?? p);
-  const appUrl = httpsOnly(setup.app_permissions_url);
-  const installUrl = httpsOnly(setup.installation_url);
-  return (
-    <Message tone="needs-you">
-      <Stack>
-        <span>
-          The GitHub App cannot write to {repo} yet. It needs: {missing.join(', ')}.
-          Nothing was made. Grant it on GitHub, then press the button again.
-        </span>
-        <Facts
-          items={[
-            {
-              name: '1. Ask for it',
-              value: 'On the App page, under Repository permissions, set the access.',
-            },
-            {
-              name: '2. Accept it',
-              value: 'On the installation page, press Accept new permissions.',
-            },
-          ]}
-        />
-        <Cluster>
-          {appUrl ? (
-            <ExternalButton href={appUrl}>Open the App permissions</ExternalButton>
-          ) : null}
-          {installUrl ? (
-            <ExternalButton href={installUrl}>Open the installation</ExternalButton>
-          ) : null}
-        </Cluster>
-      </Stack>
-    </Message>
   );
 }

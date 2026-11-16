@@ -487,6 +487,15 @@ The body scrolls when the content is taller than the space. The overlay never gr
 - **Rules:** UX-10, UX-15, UX-16, UX-20.
 - **Guard:** `e2e/tests/design-layout.spec.ts` (layout at 360, 393 and 1300 px).
 
+## 44. GitHub grant
+
+- **Used for:** every place that needs an App permission or repository access it lacks (Set up parity, Turn on the pool, Repositories, the pool per organization).
+- **Looks:** a needs-you message with one step list: each step has its label on the left and, next to it, its state word (done, missing) and its text (UX-15). One primary external button opens the page of the next missing step in a new tab; a later step is plain text. When everything is granted it is a done message that says Ready.
+- **Behaviour:** it checks again when the tab regains focus and every 15 seconds while it waits, and calls the page once when everything is granted. Only addresses on `https://github.com/` are opened.
+- **Source:** `packages/ui/src/components/Grant.tsx` (`GithubGrant`).
+- **Rules:** UX-15, UX-26, UX-38, UX-58.
+- **Guard:** `packages/ui/src/components/Grant.test.tsx`, `e2e/tests/web-console/a11y.spec.ts`.
+
 ## How to add a component
 
 - Give it the next number.

@@ -20,5 +20,6 @@ export * from './components/Fields';
 export * from './components/Dialog';
 export * from './components/Controls';
 export * from './components/Wizard';
+export * from './components/Grant';
 export * from './components/Shell';
 export * from './themes';

@@ -621,8 +621,22 @@ The words of the Settings section Access for CI and of the action that sets up p
 | Set up parity for this repository | The primary button. Busy: Setting up. Reason when none is chosen: Choose a repository first. |
 | Could not set up parity. Nothing was left behind. {reason} | Problem message when the setup fails. |
 | Parity is set up for {repository}. The workflow can run now. | Done message. |
-| The GitHub App cannot write to {repository} yet. It needs: {permissions}. Nothing was made. Grant it on GitHub, then press the button again. | Needs-you message when a permission is missing. |
-| Secrets (write), Variables (write) | The words for the missing permissions. |
-| 1. Ask for it / On the App page, under Repository permissions, set the access. | First step of the permission help. |
-| 2. Accept it / On the installation page, press Accept new permissions. | Second step of the permission help. |
-| Open the App permissions, Open the installation | The two external buttons. |
+| The GitHub grant | See GitHub grant words: a missing App permission is shown by the shared part, not by words of this screen. |
+
+## GitHub grant words
+
+The words of the shared part that guides a missing App permission or repository access (github-integration R5.86, web-console R5.92, CRSP139). Permission words: Secrets (write), Variables (write), Administration (write), Actions (read), Contents (read), Metadata (read), Organization runners (write).
+
+| Word | Where and meaning |
+|---|---|
+| The GitHub App needs {permissions}. Nothing is lost: do the steps below, one at a time. | Needs-you message above the step list. |
+| Install the App on the account | Label of the install step. Text: Pick the account and the repositories on GitHub. Done: The App is installed. |
+| Ask for {permissions} on the App page | Label of the ask step. Text: On the App page, under Repository permissions, set the access to Read and write. Done: The App asks for it. |
+| Accept the new permissions on the installation: {permissions} | Label of the accept step. Text: On the installation page, press Accept new permissions. Done: The installation accepted it. |
+| done, missing | The state word of a step. |
+| Do this after the step above. | Text of a missing step that is not next. |
+| Install the App on GitHub, Ask for it on GitHub, Accept it on GitHub | The one primary action; it opens the page of the next missing step in a new tab. |
+| GitHub is open in a new tab. Do the step there, then come back to this tab. It checks again by itself. | Note after the action is pressed. |
+| Checking GitHub. | Note while it reads GitHub. |
+| Could not check GitHub. {reason} | Problem when the check fails; the next check tries again. |
+| Ready. {permissions} granted. | Done message when everything is granted. |

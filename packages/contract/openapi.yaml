@@ -746,7 +746,7 @@ paths:
       tags: [repositories]
       summary: What a task still needs from GitHub, step by step
       description: >-
-        github-integration R5.89. Reads both sides of GitHub: what the App asks
+        github-integration R5.86. Reads both sides of GitHub: what the App asks
         for (GET /app) and what the installation accepted (GET
         /app/installations/{id}). Says for each step (install, ask, accept)
         whether it is done, names the permissions still waiting, and gives the
@@ -3811,7 +3811,7 @@ components:
     GithubGrant:
       type: object
       required: [ready, steps, missing]
-      description: github-integration R5.89.
+      description: github-integration R5.86.
       properties:
         ready:
           type: boolean

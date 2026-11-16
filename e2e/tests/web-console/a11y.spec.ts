@@ -29,6 +29,14 @@ const screens = [
     recovery: false,
     publicRows: true,
   },
+  // The GitHub grant part (github-integration R5.86, web-console R5.92): one step list and one primary action.
+  {
+    name: 'repositories with a missing App permission (the GitHub grant)',
+    url: '/repositories',
+    signedOut: false,
+    recovery: false,
+    grant: true,
+  },
   {
     name: 'machines needing recovery',
     url: '/machines',
@@ -48,6 +56,37 @@ for (const theme of ['dark', 'light'] as const) {
           .on('GET', '/api/v1/machines', { items: [needingRecovery()] });
       if ('publicRows' in screen)
         mock.on('GET', '/api/v1/github/repositories', publicRows());
+      if ('grant' in screen)
+        mock
+          .on('GET', '/api/v1/github/installations', {
+            items: [
+              {
+                id: 10,
+                account_login: 'octo',
+                account_type: 'User',
+                suspended: false,
+                repository_selection: 'selected',
+                missing_permissions: ['secrets'],
+              },
+            ],
+            stale: { stale: false },
+          })
+          .on('GET', '/api/v1/github/grant', {
+            ready: false,
+            next: 'accept',
+            missing: ['secrets'],
+            installation_id: 10,
+            steps: [
+              { id: 'install', done: true, permissions: [] },
+              { id: 'ask', done: true, permissions: [] },
+              {
+                id: 'accept',
+                done: false,
+                permissions: ['secrets'],
+                url: 'https://github.com/settings/installations/10',
+              },
+            ],
+          });
       if (screen.signedOut)
         mock.on('GET', '/api/v1/me', failure(401, 'unauthenticated', 'Sign in.'));
       await mock.install(page);

@@ -2450,7 +2450,7 @@ type GitHubApp struct {
 	WebhookActive bool               `json:"webhook_active"`
 }
 
-// GithubGrant github-integration R5.89.
+// GithubGrant github-integration R5.86.
 type GithubGrant struct {
 	InstallationId *int64 `json:"installation_id,omitempty"`
 
@@ -3105,7 +3105,7 @@ type ParitySetup struct {
 	// AccessName The name of the repository Actions value that holds the access, CRSP_ACCESS.
 	AccessName *string `json:"access_name,omitempty"`
 
-	// Grant github-integration R5.89.
+	// Grant github-integration R5.86.
 	Grant              *GithubGrant      `json:"grant,omitempty"`
 	MissingPermissions *[]string         `json:"missing_permissions,omitempty"`
 	Status             ParitySetupStatus `json:"status"`
@@ -4699,7 +4699,7 @@ type ClientInterface interface {
 
 	// GetGithubGrant What a task still needs from GitHub, step by step
 	//
-	// github-integration R5.89. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
+	// github-integration R5.86. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
 	//
 	// Corresponds with GET /api/v1/github/grant (the `GetGithubGrant` operationId).
 	GetGithubGrant(ctx context.Context, params *GetGithubGrantParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -6325,7 +6325,7 @@ func (c *Client) GetAppHealth(ctx context.Context, reqEditors ...RequestEditorFn
 
 // GetGithubGrant What a task still needs from GitHub, step by step
 //
-// github-integration R5.89. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
+// github-integration R5.86. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
 //
 // Corresponds with GET /api/v1/github/grant (the `GetGithubGrant` operationId).
 func (c *Client) GetGithubGrant(ctx context.Context, params *GetGithubGrantParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -14577,7 +14577,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetGithubGrantWithResponse What a task still needs from GitHub, step by step
 	//
-	// github-integration R5.89. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
+	// github-integration R5.86. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -22234,7 +22234,7 @@ func (c *ClientWithResponses) GetAppHealthWithResponse(ctx context.Context, reqE
 
 // GetGithubGrantWithResponse What a task still needs from GitHub, step by step
 //
-// github-integration R5.89. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
+// github-integration R5.86. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
 //
 // Returns a wrapper object for the known response body format(s).
 //

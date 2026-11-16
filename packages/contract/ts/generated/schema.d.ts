@@ -543,7 +543,7 @@ export interface paths {
         };
         /**
          * What a task still needs from GitHub, step by step
-         * @description github-integration R5.89. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
+         * @description github-integration R5.86. Reads both sides of GitHub: what the App asks for (GET /app) and what the installation accepted (GET /app/installations/{id}). Says for each step (install, ask, accept) whether it is done, names the permissions still waiting, and gives the GitHub page of each step and the id of the next one.
          */
         get: operations["getGithubGrant"];
         put?: never;
@@ -2443,7 +2443,7 @@ export interface components {
             value: string;
             info: components["schemas"]["AccessCredential"];
         };
-        /** @description github-integration R5.89. */
+        /** @description github-integration R5.86. */
         GithubGrant: {
             /** @description Every needed permission is accepted by the installation. */
             ready: boolean;

@@ -2449,7 +2449,7 @@ type GitHubApp struct {
 	WebhookActive bool               `json:"webhook_active"`
 }
 
-// GithubGrant github-integration R5.89.
+// GithubGrant github-integration R5.86.
 type GithubGrant struct {
 	InstallationId *int64 `json:"installation_id,omitempty"`
 
@@ -3104,7 +3104,7 @@ type ParitySetup struct {
 	// AccessName The name of the repository Actions value that holds the access, CRSP_ACCESS.
 	AccessName *string `json:"access_name,omitempty"`
 
-	// Grant github-integration R5.89.
+	// Grant github-integration R5.86.
 	Grant              *GithubGrant      `json:"grant,omitempty"`
 	MissingPermissions *[]string         `json:"missing_permissions,omitempty"`
 	Status             ParitySetupStatus `json:"status"`

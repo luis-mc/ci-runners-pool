@@ -142,6 +142,20 @@ func toRepository(r github.Repository, installationID int64) Repository {
 		Visibility: r.Visibility, DefaultBranch: r.DefaultBranch, Archived: r.Archived}
 }
 
+// missingFor names what an installation lacks. The organization runner
+// permission only exists on an organization account, so a personal account is
+// never asked for it (R5.24, R5.86).
+func missingFor(i Installation) []string {
+	var out []string
+	for _, n := range github.MissingPermissions(i.Permissions) {
+		if n == orgPermission && i.AccountType != "Organization" {
+			continue
+		}
+		out = append(out, n)
+	}
+	return out
+}
+
 // Installations lists the stored installations with the permissions they lack
 // (R5.17, R5.24).
 type InstallationView struct {
@@ -160,7 +174,7 @@ func (s *Service) Installations(ctx context.Context, p auth.Principal) ([]Instal
 	}
 	out := make([]InstallationView, 0, len(ins))
 	for _, i := range ins {
-		out = append(out, InstallationView{Installation: i, MissingPermissions: github.MissingPermissions(i.Permissions)})
+		out = append(out, InstallationView{Installation: i, MissingPermissions: missingFor(i)})
 	}
 	return out, nil
 }

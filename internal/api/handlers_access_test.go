@@ -319,7 +319,7 @@ func getGrant(t *testing.T, h *harness, owner cookies, query string) grantOut {
 	return g
 }
 
-func TestGrantReadsBothSidesOfGitHub(t *testing.T) { // R5.89
+func TestGrantReadsBothSidesOfGitHub(t *testing.T) { // R5.86
 	h, owner, _ := parityRepo(t)
 	h.fake.Installs[10].Perms["secrets"] = "read"
 	// The App does not ask for it yet: step ask is next.
@@ -342,7 +342,7 @@ func TestGrantReadsBothSidesOfGitHub(t *testing.T) { // R5.89
 	}
 }
 
-func TestGrantWithoutAnInstallationStartsWithInstall(t *testing.T) { // R5.89
+func TestGrantWithoutAnInstallationStartsWithInstall(t *testing.T) { // R5.86
 	h := newHarness(t)
 	owner, _ := h.setup(1, "alice")
 	g := getGrant(t, h, owner, "permissions=secrets")
@@ -352,7 +352,7 @@ func TestGrantWithoutAnInstallationStartsWithInstall(t *testing.T) { // R5.89
 	}
 }
 
-func TestGrantNeedsAPermissionNameAndAnAdmin(t *testing.T) { // R5.89
+func TestGrantNeedsAPermissionNameAndAnAdmin(t *testing.T) { // R5.86
 	h, owner, _ := parityRepo(t)
 	if res, _ := h.do("GET", "/api/v1/github/grant", nil, owner, nil); res.StatusCode != 400 {
 		t.Fatalf("no permission named: %d", res.StatusCode)
@@ -362,7 +362,7 @@ func TestGrantNeedsAPermissionNameAndAnAdmin(t *testing.T) { // R5.89
 	}
 }
 
-func TestAcceptedPermissionsRefreshTheInstallationToken(t *testing.T) { // R5.90
+func TestAcceptedPermissionsRefreshTheInstallationToken(t *testing.T) { // R5.87
 	h, owner, csrf := parityRepo(t)
 	h.fake.Installs[10].Perms["secrets"] = "read"
 	h.do("POST", "/api/v1/repositories/100/parity-setup", map[string]any{}, owner, map[string]string{"X-CSRF-Token": csrf}) //nolint:errcheck // the answer is needs_permission, checked elsewhere

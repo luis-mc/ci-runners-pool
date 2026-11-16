@@ -164,7 +164,7 @@ func grantBody(v repos.GrantView) gen.GithubGrant {
 	return out
 }
 
-// GetGithubGrant implements GET /api/v1/github/grant (R5.89).
+// GetGithubGrant implements GET /api/v1/github/grant (R5.86).
 func (s *server) GetGithubGrant(ctx context.Context, req gen.GetGithubGrantRequestObject) (gen.GetGithubGrantResponseObject, error) {
 	fail := func(err error) (gen.GetGithubGrantResponseObject, error) {
 		code, body := failure(err)

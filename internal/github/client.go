@@ -171,7 +171,7 @@ func (c *REST) installationToken(ctx context.Context, id int64) (string, error) 
 
 // ForgetInstallationToken drops the cached token of an installation, so the
 // next call asks GitHub for a new one that carries the permissions accepted
-// since (CRSP139, R5.90). A token keeps the permissions it was made with.
+// since (CRSP139, R5.87). A token keeps the permissions it was made with.
 func (c *REST) ForgetInstallationToken(id int64) {
 	c.mu.Lock()
 	delete(c.tokens, id)

@@ -10,7 +10,7 @@ import (
 )
 
 // GrantStepInstall is the step before the other two when the App is not
-// installed where the task needs it (CRSP139, R5.89).
+// installed where the task needs it (CRSP139, R5.86).
 const GrantStepInstall = "install"
 
 // AppReader reads the App as GitHub has it (GET /app with the App JWT): what
@@ -53,7 +53,7 @@ func installURL(app github.App) string {
 // freshInstallation reads the installation's permissions from GitHub, so a
 // permission the owner just accepted counts at once; when GitHub cannot be
 // reached it uses the stored copy. A change in what is accepted refreshes the
-// stored copy and drops the cached installation token (R5.90).
+// stored copy and drops the cached installation token (R5.87).
 func (s *Service) freshInstallation(ctx context.Context, id int64) (Installation, error) {
 	stored, err := s.installation(ctx, id)
 	if err != nil {
@@ -98,7 +98,7 @@ func (s *Service) forgetToken(id int64) {
 }
 
 // PermissionsAccepted is the installation webhook with action
-// new_permissions_accepted (R5.90): the cached token is dropped so the next
+// new_permissions_accepted (R5.87): the cached token is dropped so the next
 // call carries the new permissions, and the stored copy is read again.
 func (s *Service) PermissionsAccepted(ctx context.Context, installationID int64) error {
 	s.forgetToken(installationID)
@@ -106,7 +106,7 @@ func (s *Service) PermissionsAccepted(ctx context.Context, installationID int64)
 }
 
 // Grant reads both sides of GitHub and says which steps are done for the
-// permissions a task needs (R5.89).
+// permissions a task needs (R5.86).
 func (s *Service) Grant(ctx context.Context, p auth.Principal, in GrantInput) (GrantView, error) {
 	if err := auth.Require(p, auth.RoleAdmin); err != nil {
 		return GrantView{}, err

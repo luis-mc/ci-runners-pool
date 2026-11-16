@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// The ids of the steps a missing App permission goes through (CRSP139, R5.89).
+// The ids of the steps a missing App permission goes through (CRSP139, R5.86).
 const (
 	GrantStepAsk    = "ask"    // the App's owner asks for it on the App page
 	GrantStepAccept = "accept" // the installation's owner accepts it on the installation page

@@ -139,45 +139,138 @@ describe('Set up parity for this repository (R5.91)', () => {
     expect(document.body.textContent).not.toContain('crsp_acc_');
   });
 
-  it('names the GitHub pages when the App lacks the permission, and made nothing', async () => {
-    const a = api().on('POST', '/api/v1/repositories/:id/parity-setup', {
-      status: 'needs_permission',
-      missing_permissions: ['secrets'],
-      app_permissions_url: 'https://github.com/settings/apps/crsp/permissions',
-      installation_url: 'https://github.com/settings/installations/10',
-    });
+  const step = (id: string, done: boolean, permissions: string[], url?: string) => ({
+    id,
+    done,
+    permissions,
+    ...(url ? { url } : {}),
+  });
+  const notAsked = {
+    ready: false,
+    next: 'ask',
+    missing: ['secrets'],
+    installation_id: 10,
+    steps: [
+      step('install', true, []),
+      step(
+        'ask',
+        false,
+        ['secrets'],
+        'https://github.com/settings/apps/crsp/permissions',
+      ),
+      step('accept', false, ['secrets'], 'https://github.com/settings/installations/10'),
+    ],
+  };
+  const askedNotAccepted = {
+    ...notAsked,
+    next: 'accept',
+    steps: [
+      step('install', true, []),
+      step('ask', true, [], 'https://github.com/settings/apps/crsp/permissions'),
+      step('accept', false, ['secrets'], 'https://github.com/settings/installations/10'),
+    ],
+  };
+  const allDone = {
+    ready: true,
+    missing: [],
+    installation_id: 10,
+    steps: [step('install', true, []), step('ask', true, []), step('accept', true, [])],
+  };
+  const needs = (grant: unknown) => ({
+    status: 'needs_permission',
+    missing_permissions: ['secrets'],
+    grant,
+  });
+
+  it('guides the grant: one step list, one primary action to the next missing step, and made nothing', async () => {
+    const a = api()
+      .on('POST', '/api/v1/repositories/:id/parity-setup', needs(notAsked))
+      .on('GET', '/api/v1/github/grant', notAsked);
     renderApp(a, '/settings/access');
     await pick();
     fireEvent.click(
       screen.getByRole('button', { name: 'Set up parity for this repository' }),
     );
-    expect(await screen.findByText(/cannot write to octo\/app yet/)).toBeTruthy();
-    expect(screen.getByText(/Secrets \(write\)/)).toBeTruthy();
-    const app = screen.getByRole('button', { name: /Open the App permissions/ });
-    expect(app.getAttribute('href')).toBe(
+    expect(
+      await screen.findByText('Ask for Secrets (write) on the App page'),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        /Accept the new permissions on the installation: Secrets \(write\)/,
+      ),
+    ).toBeTruthy();
+    // Exactly one action, and it opens the App page: the other step is plain text.
+    const open = screen.getAllByRole('button', { name: /on GitHub$/ });
+    expect(open).toHaveLength(1);
+    expect(open[0]?.getAttribute('href')).toBe(
       'https://github.com/settings/apps/crsp/permissions',
     );
-    const inst = screen.getByRole('button', { name: /Open the installation/ });
-    expect(inst.getAttribute('href')).toBe(
-      'https://github.com/settings/installations/10',
-    );
+    expect(screen.queryByRole('button', { name: /Open the installation/ })).toBeNull();
     expect(screen.queryByText(/Parity is set up/)).toBeNull();
   });
 
-  it('shows a link that is not on github.com as no link at all', async () => {
-    const a = api().on('POST', '/api/v1/repositories/:id/parity-setup', {
-      status: 'needs_permission',
-      missing_permissions: ['secrets'],
-      app_permissions_url: 'javascript:alert(1)',
-      installation_url: 'https://evil.example/x',
-    });
+  it('moves the one action to the installation once the App asks, and names what is missing', async () => {
+    const a = api()
+      .on('POST', '/api/v1/repositories/:id/parity-setup', needs(askedNotAccepted))
+      .on('GET', '/api/v1/github/grant', askedNotAccepted);
     renderApp(a, '/settings/access');
     await pick();
     fireEvent.click(
       screen.getByRole('button', { name: 'Set up parity for this repository' }),
     );
-    await screen.findByText(/cannot write to octo\/app yet/);
-    expect(screen.queryByRole('button', { name: /Open the/ })).toBeNull();
+    const open = await screen.findByRole('button', { name: 'Accept it on GitHub' });
+    expect(open.getAttribute('href')).toBe(
+      'https://github.com/settings/installations/10',
+    );
+    expect(screen.getAllByRole('button', { name: /on GitHub$/ })).toHaveLength(1);
+    expect(screen.getByText(/needs Secrets \(write\)/)).toBeTruthy();
+  });
+
+  it('checks again when the tab regains focus and runs the setup by itself once everything is granted', async () => {
+    let reads = 0;
+    const a = api()
+      .on('POST', '/api/v1/repositories/:id/parity-setup', (call) => {
+        void call;
+        return reads === 0
+          ? needs(askedNotAccepted)
+          : { status: 'done', access_name: 'CRSP_ACCESS' };
+      })
+      .on('GET', '/api/v1/github/grant', () => {
+        reads += 1;
+        return reads === 1 ? askedNotAccepted : allDone;
+      });
+    renderApp(a, '/settings/access');
+    await pick();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Set up parity for this repository' }),
+    );
+    await screen.findByRole('button', { name: 'Accept it on GitHub' });
+    // The person accepts on GitHub in the other tab and comes back.
+    fireEvent.focus(window);
+    expect(await screen.findByText(/Parity is set up for octo\/app/)).toBeTruthy();
+    expect(a.count('POST', '/api/v1/repositories/100/parity-setup')).toBe(2);
+    expect(screen.queryByRole('button', { name: /on GitHub$/ })).toBeNull();
+  });
+
+  it('shows a link that is not on github.com as no link at all', async () => {
+    const bad = {
+      ...notAsked,
+      steps: [
+        step('install', true, []),
+        step('ask', false, ['secrets'], 'javascript:alert(1)'),
+        step('accept', false, ['secrets'], 'https://evil.example/x'),
+      ],
+    };
+    const a = api()
+      .on('POST', '/api/v1/repositories/:id/parity-setup', needs(bad))
+      .on('GET', '/api/v1/github/grant', bad);
+    renderApp(a, '/settings/access');
+    await pick();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Set up parity for this repository' }),
+    );
+    await screen.findByText('Ask for Secrets (write) on the App page');
+    expect(screen.queryByRole('button', { name: /on GitHub$/ })).toBeNull();
   });
 
   it('shows the failure and says nothing was left behind', async () => {

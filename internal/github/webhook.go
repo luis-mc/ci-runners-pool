@@ -149,7 +149,7 @@ type InstallationEvent struct {
 }
 
 // NewPermissionsAccepted is the action GitHub sends when an installation's
-// owner accepts the permissions the App asked for since (CRSP139, R5.90).
+// owner accepts the permissions the App asked for since (CRSP139, R5.87).
 const NewPermissionsAccepted = "new_permissions_accepted"
 
 // ParseInstallationEvent reads the action and installation id of an

@@ -512,3 +512,72 @@ describe('A repository that left the installation (github-integration R5.22)', (
     expect(screen.queryByText(reason)).toBeNull();
   });
 });
+
+describe('Missing App permission on Repositories (R5.86)', () => {
+  const grant = {
+    ready: false,
+    next: 'accept',
+    missing: ['secrets'],
+    installation_id: 10,
+    steps: [
+      { id: 'install', done: true, permissions: [] },
+      { id: 'ask', done: true, permissions: [] },
+      {
+        id: 'accept',
+        done: false,
+        permissions: ['secrets'],
+        url: 'https://github.com/settings/installations/10',
+      },
+    ],
+  };
+
+  it('shows the guided grant for an installation that lacks a permission, with one action', async () => {
+    const api = withRepos(signedIn())
+      .on('GET', '/api/v1/github/installations', {
+        items: [
+          {
+            id: 10,
+            account_login: 'octo',
+            account_type: 'User',
+            suspended: false,
+            repository_selection: 'selected',
+            missing_permissions: ['secrets'],
+          },
+        ],
+        stale: { stale: false },
+      })
+      .on('GET', '/api/v1/github/grant', grant);
+    renderApp(api, '/repositories');
+    const open = await screen.findByRole('button', { name: 'Accept it on GitHub' });
+    expect(open.getAttribute('href')).toBe(
+      'https://github.com/settings/installations/10',
+    );
+    expect(
+      api.calls
+        .find((c) => c.path === '/api/v1/github/grant')
+        ?.query.get('installation_id'),
+    ).toBe('10');
+  });
+
+  it('shows nothing when every installation has what the App asks for', async () => {
+    const api = withRepos(signedIn()).on('GET', '/api/v1/github/installations', {
+      items: [
+        {
+          id: 10,
+          account_login: 'octo',
+          account_type: 'User',
+          suspended: false,
+          repository_selection: 'selected',
+        },
+      ],
+      stale: { stale: false },
+    });
+    renderApp(api, '/repositories');
+    await screen.findByRole('table', { name: 'Repositories' });
+    await waitFor(() =>
+      expect(api.count('GET', '/api/v1/github/installations')).toBeGreaterThan(0),
+    );
+    expect(screen.queryByRole('button', { name: /on GitHub$/ })).toBeNull();
+    expect(api.count('GET', '/api/v1/github/grant')).toBe(0);
+  });
+});
