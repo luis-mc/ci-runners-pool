@@ -252,6 +252,7 @@ func runController() error {
 
 	handler := api.Recover(logger, mux)
 	srv := webui.NewServer(listenAt, mr.CA.ServerTLS(), handler)
+	srv.ErrorLog = webui.ServerErrorLog(logger)
 	servers := []*http.Server{srv}
 	errc := make(chan error, 2)
 	go func() {
@@ -260,6 +261,7 @@ func runController() error {
 	}()
 	if localLn != nil {
 		local := webui.NewServer(localAddr, nil, handler)
+		local.ErrorLog = webui.ServerErrorLog(logger)
 		servers = append(servers, local)
 		go func() {
 			logger.Info("controller listening locally", "addr", localAddr)

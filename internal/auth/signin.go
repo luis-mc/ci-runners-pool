@@ -124,6 +124,34 @@ func (s *Service) StartSignIn(ctx context.Context, o SignInOptions) (SignInStart
 	return SignInStart{RedirectURL: s.cfg.GitHub.AuthorizeURL(state, challenge, redirect), HandoffBind: bindCookie}, nil
 }
 
+// Sign-in failure codes. The sign-in page shows a plain message for each; the
+// controller logs the code and the cause at WARN (OPS17).
+const (
+	SignInStateMissing   = "state_missing"   // no sign-in state: used, expired or never made
+	SignInStateMismatch  = "state_mismatch"  // the state was made for another callback address
+	SignInAddressRefused = "address_refused" // the address cannot sign in (plain http off loopback)
+	SignInExchangeFailed = "exchange_failed" // GitHub did not accept the sign-in code
+	SignInUserFailed     = "user_failed"     // GitHub did not tell who signed in
+	SignInSessionFailed  = "session_failed"  // the controller could not make the session
+)
+
+// SignInError is a sign-in failure with a stable code and the cause behind it.
+type SignInError struct {
+	Code  string
+	Cause error
+}
+
+func (e *SignInError) Error() string {
+	if e.Cause == nil {
+		return "sign-in failed: " + e.Code
+	}
+	return "sign-in failed: " + e.Code + ": " + e.Cause.Error()
+}
+
+func (e *SignInError) Unwrap() error { return e.Cause }
+
+func signInFail(code string, cause error) error { return &SignInError{Code: code, Cause: cause} }
+
 // SignedIn is the result of a good callback.
 type SignedIn struct {
 	Principal Principal
@@ -153,25 +181,37 @@ func (s *Service) CompleteSignIn(ctx context.Context, code, state, origin string
 	redirect, err := s.redirectURI(ctx, origin)
 	if err != nil {
 		s.audit(ctx, "anonymous", "auth.signin_failed", "session", "", "address refused", "failed")
-		return SignedIn{}, err
+		var nr *NotRegisteredError
+		if errors.As(err, &nr) {
+			return SignedIn{}, err
+		}
+		return SignedIn{}, signInFail(SignInAddressRefused, err)
 	}
 	data, ok := s.states.take("signin", state)
-	if !ok || data["redirect"] != redirect {
+	if !ok {
 		s.audit(ctx, "anonymous", "auth.signin_failed", "session", "", "bad or old state", "failed")
-		return SignedIn{}, ErrBadState
+		return SignedIn{}, signInFail(SignInStateMissing, ErrBadState)
+	}
+	if data["redirect"] != redirect {
+		s.audit(ctx, "anonymous", "auth.signin_failed", "session", "", "state for another address", "failed")
+		return SignedIn{}, signInFail(SignInStateMismatch, ErrBadState)
 	}
 	tok, err := s.cfg.GitHub.ExchangeCode(ctx, code, data["verifier"], redirect)
 	if err != nil {
 		s.audit(ctx, "anonymous", "auth.signin_failed", "session", "", "code refused", "failed")
-		return SignedIn{}, err
+		return SignedIn{}, signInFail(SignInExchangeFailed, err)
 	}
 	gu, err := s.cfg.GitHub.CurrentUser(ctx, tok)
 	if err != nil {
-		return SignedIn{}, err
+		return SignedIn{}, signInFail(SignInUserFailed, err)
 	}
 	si, err := s.finishSignIn(ctx, gu, data)
 	if err != nil {
-		return si, err
+		var na *NotAllowedError
+		if errors.As(err, &na) {
+			return si, err
+		}
+		return si, signInFail(SignInSessionFailed, err)
 	}
 	s.holdToken(gu.ID, tok)
 	if ho := data["handoff_origin"]; ho != "" {

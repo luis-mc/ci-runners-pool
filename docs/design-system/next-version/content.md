@@ -742,6 +742,17 @@ The words of Settings > Console > Network and of the dialog that chooses the con
 | GitHub does not know this address yet. Pressing Try again before you added it changes nothing. | Note in the guided step. |
 | Could not check the address. {reason} | Problem when GitHub could not be asked. |
 | Sign-in does not work on {address} yet. Open the console on the PC that runs it at http://127.0.0.1:8460, or add this address to the GitHub App. | Needs-you message on the sign-in page; the guided step follows and the action is Try again. |
+| {login} is not on the list. Ask the owner to add you. | Problem message on the sign-in page, code not_allowed (github-integration R5.11, OPS17). |
+| The sign-in took too long or was already used. Try again. | Problem message on the sign-in page, code state_missing (github-integration R5.8, OPS17). |
+| The sign-in started on another address. Try again from this address. | Problem message on the sign-in page, code state_mismatch (github-integration R5.8, OPS17). |
+| Sign-in does not work on this address. Use https, or http://127.0.0.1 on the PC that runs the controller. | Problem message on the sign-in page, code address_refused (github-integration R5.8, OPS17). |
+| GitHub did not accept the sign-in. Try again. | Problem message on the sign-in page, code exchange_failed (github-integration R5.8, OPS17). |
+| GitHub did not say who you are. Try again. | Problem message on the sign-in page, code user_failed (github-integration R5.8, OPS17). |
+| The controller could not start your session. Try again. | Problem message on the sign-in page, code session_failed (github-integration R5.8, OPS17). |
+| The sign-in could not return to the address you started on. Try again. | Problem message on the sign-in page, code handoff_failed (github-integration R5.8, OPS17). |
+| This controller has no GitHub App yet. Open the setup page to create it. | Problem message on the sign-in page, code no_app (github-integration R5.8, OPS17). |
+| The OS secret store is not available. See the doctor. | Problem message on the sign-in page, code secret_store_unavailable (github-integration R5.8, OPS17). |
+| Sign-in failed. Try again. | Problem message on the sign-in page, code sign_in_failed (github-integration R5.8, OPS17). |
 
 ## Repositories list: groups and inactive types
 
