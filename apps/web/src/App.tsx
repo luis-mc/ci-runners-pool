@@ -39,7 +39,7 @@ import {
   SettingsLayout,
   ThemeApplier,
 } from './screens/settings/Settings';
-import { UpdateReviewPage } from './screens/settings/Updates';
+import { UpdateCompactPage, UpdateReviewPage } from './screens/settings/Updates';
 import { SetupPage } from './screens/setup/Setup';
 
 /** No valid session: every path but /sign-in and /setup goes to /sign-in and keeps the path (R5.8). */
@@ -91,6 +91,53 @@ function Gate({ factory }: { factory: EventSourceFactory | undefined }) {
   );
 }
 
+/** The compact pages the tray opens in a small window: a session, the theme, and no shell (TRAY4). */
+function CompactGate() {
+  const session = useSession();
+  const location = useLocation();
+  const s = session.state;
+  if (s.status === 'loading')
+    return (
+      <main>
+        <Page frame="narrow">
+          <PageHeader title="CI Runners Shared Pool" />
+          <Loading what="Loading your session" />
+        </Page>
+      </main>
+    );
+  if (s.status === 'signed-out')
+    return (
+      <Navigate
+        to="/sign-in"
+        replace
+        state={{ from: location.pathname + location.search }}
+      />
+    );
+  if (s.status === 'no-access')
+    return <NoAccess login={s.login} onSignOut={() => void session.signOut()} />;
+  if (s.status === 'failed')
+    return (
+      <main>
+        <Page frame="narrow">
+          <PageHeader title="CI Runners Shared Pool" />
+          <Failed
+            what="Could not load your session."
+            why={`${s.message} Try again.`}
+            action={<Button onPress={session.refresh}>Try again</Button>}
+          />
+        </Page>
+      </main>
+    );
+  return (
+    <>
+      <ThemeApplier />
+      <FaultBoundary key={location.pathname}>
+        <Outlet />
+      </FaultBoundary>
+    </>
+  );
+}
+
 export function App({
   client,
   eventSource,
@@ -107,6 +154,9 @@ export function App({
             <Routes>
               <Route path="/sign-in" element={<SignInPage />} />
               <Route path="/setup" element={<SetupPage />} />
+              <Route element={<CompactGate />}>
+                <Route path="update" element={<UpdateCompactPage />} />
+              </Route>
               <Route element={<Gate factory={eventSource} />}>
                 <Route index element={<Overview />} />
                 <Route path="repositories" element={<RepositoriesList />} />

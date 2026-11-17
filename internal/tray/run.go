@@ -115,6 +115,7 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 	opener := &Opener{
 		Links: client, Targets: client, Checker: client, Policy: client, Version: o.Version, Ask: AskUpdate, Installer: client,
 		Browser: OSLauncher, Files: OSLauncher,
+		Window: AppWindowOpener{Lookup: OSBrowserLookup(), Fallback: OSLauncher}.Open,
 		Notify: DesktopNotice, Current: current, LogDir: LogDir,
 	}
 

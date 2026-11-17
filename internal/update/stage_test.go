@@ -63,7 +63,7 @@ func TestMSIPercentFromTheVerboseLog(t *testing.T) {
 	early := MSIPercent(msiLog("INSTALL", "CostInitialize"))
 	mid := MSIPercent(msiLog("INSTALL", "CostInitialize", "StopServices", "InstallFiles"))
 	late := MSIPercent(msiLog("INSTALL", "InstallFiles", "StartServices", "PublishProduct"))
-	if !(0 < early && early < mid && mid < late && late < 100) {
+	if early <= 0 || early >= mid || mid >= late || late >= 100 {
 		t.Fatalf("percent must grow and stay below 100 until the end line: %d %d %d", early, mid, late)
 	}
 	// An action that is not in the sequence does not move the bar back.

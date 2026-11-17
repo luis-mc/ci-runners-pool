@@ -87,18 +87,14 @@ func TestUpToDateAndAlreadyUpdatingAskNothing(t *testing.T) {
 	}
 }
 
-func TestPromptBodyNamesVersionsAndJobCount(t *testing.T) {
-	for _, c := range []struct {
-		jobs int
-		want string
-	}{{0, "installs at once"}, {1, "1 job is running"}, {3, "3 jobs are running"}} {
-		b := UpdatePrompt{Current: "1.4.0", Latest: "1.5.0", Jobs: c.jobs}.Body()
-		if !strings.Contains(b, "1.4.0") || !strings.Contains(b, "1.5.0") || !strings.Contains(b, c.want) {
-			t.Errorf("%d: %q", c.jobs, b)
-		}
-		if c.jobs > 0 && !strings.Contains(b, "waits") {
-			t.Errorf("a drain must be mentioned: %q", b)
-		}
+// The box says the owner's sentence, with the version, and the two choices are Update now and Not now.
+func TestPromptBodyAndChoicesAreTheOwnersWords(t *testing.T) {
+	b := UpdatePrompt{Current: "1.4.0", Latest: "1.5.0", Jobs: 3}.Body()
+	if b != "Version 1.5.0 is ready. Running jobs finish first; the service restarts (about 1 min)." {
+		t.Fatalf("%q", b)
+	}
+	if PromptInstallNow != "Update now" || PromptLater != "Not now" {
+		t.Fatalf("%q %q", PromptInstallNow, PromptLater)
 	}
 }
 

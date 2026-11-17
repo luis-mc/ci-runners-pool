@@ -648,11 +648,7 @@ func httpFetch(ctx context.Context, url, dst string) error {
 		return err
 	}
 	const max = 300 << 20
-	var body io.Reader = io.LimitReader(resp.Body, max+1)
-	if _, ok := ctx.Value(progressKey{}).(func(done, total int64)); ok {
-		body = &progressReader{r: body, ctx: ctx, total: resp.ContentLength}
-	}
-	n, err := io.Copy(f, body)
+	n, err := io.Copy(f, withProgressReader(ctx, io.LimitReader(resp.Body, max+1), resp.ContentLength))
 	if cerr := f.Close(); err == nil {
 		err = cerr
 	}
@@ -679,4 +675,12 @@ func (p *progressReader) Read(b []byte) (int, error) {
 	p.done += int64(n)
 	reportProgress(p.ctx, p.done, p.total)
 	return n, err
+}
+
+// withProgressReader wraps r when the context asks for download progress.
+func withProgressReader(ctx context.Context, r io.Reader, total int64) io.Reader {
+	if _, ok := ctx.Value(progressKey{}).(func(done, total int64)); !ok {
+		return r
+	}
+	return &progressReader{r: r, ctx: ctx, total: total}
 }

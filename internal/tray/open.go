@@ -55,8 +55,10 @@ type Opener struct {
 	Installer UpdateInstaller
 	Version   string // this tray's own version, for the "up to date" notice
 	Browser   Launcher
-	Files     Launcher
-	Notify    Notifier
+	// Window opens a URL in a small app-style window (TRAY4); nil: the update is asked with Ask.
+	Window Launcher
+	Files  Launcher
+	Notify Notifier
 	// Current returns the last known status; Open refuses a dead link while stopped (R5.14).
 	Current func() Status
 	LogDir  func() string
@@ -88,6 +90,27 @@ func (o *Opener) OpenPage(ctx context.Context, path string) error {
 	return o.open(ctx, "Could not open the console", func() (string, error) { return o.Targets.LinkTo(ctx, path) })
 }
 
+// OpenUpdate opens the console's update page in a small window: it asks for the yes and
+// then shows the progress (TRAY4). It returns an error when no window could be opened,
+// so the caller can fall back to the native box.
+func (o *Opener) OpenUpdate(ctx context.Context) error {
+	if o.Window == nil || o.Targets == nil {
+		return errNoWindow
+	}
+	if o.Current != nil {
+		if st := o.Current(); st.State == StateStopped {
+			return errNoWindow
+		}
+	}
+	url, err := o.Targets.LinkTo(ctx, UpdatePath)
+	if err != nil {
+		return err
+	}
+	return o.Window(url)
+}
+
+var errNoWindow = fmt.Errorf("no update window")
+
 // OpenGitHub opens the repository page.
 func (o *Opener) OpenGitHub() error {
 	if err := o.Browser(RepoURL); err != nil {
@@ -109,6 +132,10 @@ func (o *Opener) LookForUpdates(ctx context.Context) error {
 	}
 	switch {
 	case st.Update.Updating():
+		// Show the progress when a window can open; say it in a notice when not.
+		if o.OpenUpdate(ctx) == nil {
+			return nil
+		}
 		o.notify("Already updating", "Version "+st.Update.Latest+" is on its way. Running jobs finish first.")
 	case st.Update.Available && st.Update.Latest != "":
 		// A look only looks: the person is asked, and nothing installs before the yes (CRSP147).
