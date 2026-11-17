@@ -209,7 +209,7 @@ The states named for every list follow the design system: loading (component 16,
 - **Queue:** a table (component 15) of queued jobs with repository, labels, wait time and the reason it waits ("waits for a free slot on any Linux machine"; UX-29).
 - **History:** a time axis list (component 24, UX-33): repository, workflow and job name, result (UX-58), machine, backend, wait time, run time. Each row opens the detail, with a link to the run on GitHub.
 - **Panes:** Queue, Filters (result, time range, repository, machine) and History (the time axis, with Export in its border line), each a pane (UX-10). The row under the cursor is drawn in reverse video (UX-51).
-- **Actions:** export the history (component 29, UX-39). No command changes a job.
+- **Actions:** export the history (component 29, UX-39); it is the one primary of the list (UX-4), and on the detail the one primary is "Open the run on GitHub". No command changes a job.
 - **States:** loading; empty ("No jobs yet. Jobs show here when a workflow runs on the pool." with the one primary "Add runners", UX-4, UX-6); the detail keeps its h1 "Job" when it could not load (UX-17); could not load; live; an empty period offers to widen the range (component 24).
 - **Detail:** placement and waits are in `scheduling`; history and minutes saved are in `observability`.
 - **Components:** 1, 11, 12, 15, 17, 19, 21, 24, 29.
@@ -220,6 +220,7 @@ The states named for every list follow the design system: loading (component 16,
 - **Purpose:** see what each machine keeps, and rebuild or wipe it.
 - **Data:** `listImages`, `getImage`, `updateImageLayers`, `rebuildImage`, `listCaches`, `wipeCache`.
 - **Tabs (component 3):** Images, Caches.
+- **Primary (UX-4):** the page header carries one primary, "Add runners", for an admin; Save, Rebuild and Wipe on the cards are default buttons.
 - **Images:** per machine and OS, the base image, its tool layers (check box rows, component 22, saved with Save), size, built at, and the newest kept.
 - **Caches:** the Actions cache, git mirrors, the tool cache and the registry mirror, each with its size against its cap (component 31 for sizes over time).
 - **Actions and confirmations:**

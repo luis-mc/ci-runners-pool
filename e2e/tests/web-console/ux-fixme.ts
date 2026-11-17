@@ -7,16 +7,12 @@ export const FIXME: Record<string, string> = {
     'CRSP157 shared UI hit area (link, checkbox, sort button, breadcrumb)',
   'primary|/repositories|data': 'CRSP162 one primary button',
   'selectAll|/repositories|data': 'CRSP162 Select all N and Clear',
-  'primary|/machines|data': 'CRSP161 one primary button',
-  'primary|/machines/:id|data': 'CRSP161 one primary button',
+  'primary|/machines/:id|data':
+    'CRSP166 Pool size wizard (packages/ui part) adds a second primary, Review; the page primary is Drain or Resume',
   'primary|/runners|data': 'CRSP163 one primary button',
   'selectAll|/runners|data': 'CRSP163 Select all N and Clear',
-  'primary|/jobs|data': 'CRSP160 one primary button',
   'touch|/jobs/:id|data':
     'CRSP157 shared UI hit area (link, checkbox, sort button, breadcrumb)',
-  'primary|/jobs/:id|data': 'CRSP160 one primary button',
-  'primary|/images|data': 'CRSP163 one primary button',
-  'primary|/caches|data': 'CRSP163 one primary button',
   'primary|/settings/repositories|data': 'CRSP159 one primary button',
   'primary|/settings/retention|data': 'CRSP159 one primary button',
   'primary|/settings/backups|data': 'CRSP159 one primary button',
