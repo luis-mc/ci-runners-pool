@@ -143,6 +143,7 @@ test('Add runners: Stop ends the plan stopped and Done says what is left', async
           visibility: 'private',
           pool_on: true,
           user_is_github_admin: true,
+          user_admin_known: true,
           variables: [],
           policy: {
             priority: 0,

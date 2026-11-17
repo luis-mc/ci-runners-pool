@@ -23,6 +23,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useLoad } from '../../api/hooks';
+import { safeAppUrl } from '../../auth/CallbackGuide';
 import { signInUrl, useSession } from '../../auth/session';
 import { withFirstRepository } from '../../shell/Shell';
 import { AddMachineWizard } from '../machines/AddMachine';
@@ -81,19 +82,6 @@ export function allDone(s: SetupState): boolean {
     s.steps.first_machine === 'done' &&
     s.steps.first_repository === 'done'
   );
-}
-
-// Only a GitHub page is offered as a link; the controller checks it too.
-function safeAppUrl(v: string | null): string | undefined {
-  if (!v) return undefined;
-  try {
-    const u = new URL(v);
-    return u.protocol === 'https:' && u.host === 'github.com' && !u.username
-      ? u.toString()
-      : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 export function ConnectGithubWizard({

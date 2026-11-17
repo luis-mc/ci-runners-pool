@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 )
@@ -20,10 +21,20 @@ const SessionCookieName = "crsp_session"
 // SetupCookieName is the first-run cookie.
 const SetupCookieName = "crsp_setup"
 
+// HandoffTTL is how long the one-time code of a sign-in handoff lives (OPS16).
+const HandoffTTL = time.Minute
+
 // SignInStart is what the browser is sent to (R5.8).
 type SignInStart struct {
 	RedirectURL string
+	// HandoffBind, when set, is a value for the HandoffCookieName cookie on
+	// the address the browser used. It ties the later handoff to this browser.
+	HandoffBind string
 }
+
+// HandoffCookieName is the cookie that ties a sign-in handoff to the browser
+// that started it (OPS16). Host-only, HttpOnly, short lived.
+const HandoffCookieName = "crsp_handoff"
 
 // SignInOptions are the inputs of StartSignIn.
 type SignInOptions struct {
@@ -37,6 +48,10 @@ type SignInOptions struct {
 	SetupCookie string
 	// BindTray is a ticket from CreateBindTicket (owner decision for M1).
 	BindTray string
+	// SameMachine is true when the browser runs on the PC of the controller
+	// (the request came from a loopback or an own address), so the loopback
+	// callback works for it (OPS16).
+	SameMachine bool
 }
 
 // SafeReturnTo keeps only a same-origin path (web-console R5.9).
@@ -51,30 +66,38 @@ func SafeReturnTo(p string) string {
 	return p
 }
 
-// redirectURI is the callback URL of the address the browser used. The
-// address must be one the App has a callback URL for, and plain http works
-// on loopback only (R5.8, R6.4).
-func (s *Service) redirectURI(origin string) (string, error) {
+// redirectURI is the callback URL of an address the App has a callback URL
+// for. Plain http works on loopback only (R5.8, R6.4).
+func (s *Service) redirectURI(ctx context.Context, origin string) (string, error) {
 	o, err := NormalizeConsoleURL(origin)
 	if err != nil {
 		return "", ErrInsecure
 	}
-	allowed := s.consoleURLs()
-	for _, a := range allowed {
-		if n, err := NormalizeConsoleURL(a); err == nil && n == o {
-			return o + CallbackPath, nil
-		}
+	if s.isRegistered(ctx, o) {
+		return o + CallbackPath, nil
 	}
-	return "", errors.New("this address is not one of the console addresses the App was made for")
+	return "", s.notRegistered(ctx, o)
 }
 
 // StartSignIn makes the state and the PKCE challenge, and returns GitHub's
 // authorize URL (R5.8). Both are single use and live 10 minutes.
+//
+// The redirect_uri is always one GitHub knows (OPS16): the address the
+// browser used when the App has a callback URL for it; else, for a browser on
+// this PC, the registered loopback callback, and the browser is handed back to
+// the address it started from with a one-time code (RedeemHandoff); else a
+// dry sign-in asks GitHub whether the address was added since, and when it
+// was not, the sign-in stops with a NotRegisteredError that carries the exact
+// callback URL to add.
 func (s *Service) StartSignIn(ctx context.Context, o SignInOptions) (SignInStart, error) {
 	if _, err := s.store.GetApp(ctx); err != nil {
 		return SignInStart{}, ErrNoApp
 	}
-	redirect, err := s.redirectURI(o.Origin)
+	origin, err := NormalizeConsoleURL(o.Origin)
+	if err != nil {
+		return SignInStart{}, ErrInsecure
+	}
+	redirect, handoff, err := s.chooseRedirect(ctx, origin, o.SameMachine)
 	if err != nil {
 		return SignInStart{}, err
 	}
@@ -83,6 +106,12 @@ func (s *Service) StartSignIn(ctx context.Context, o SignInOptions) (SignInStart
 	challenge := base64.RawURLEncoding.EncodeToString(sum[:])
 
 	data := map[string]string{"verifier": verifier, "redirect": redirect, "return_to": SafeReturnTo(o.ReturnTo)}
+	var bindCookie string
+	if handoff {
+		bindCookie = RandomToken(24)
+		data["handoff_origin"] = origin
+		data["handoff_bind"] = Hash(bindCookie)
+	}
 	if s.CheckSetupCookie(ctx, o.SetupCookie) {
 		data["claim_owner"] = "1"
 	}
@@ -92,8 +121,36 @@ func (s *Service) StartSignIn(ctx context.Context, o SignInOptions) (SignInStart
 		}
 	}
 	state := s.states.put("signin", StateTTL, data)
-	return SignInStart{RedirectURL: s.cfg.GitHub.AuthorizeURL(state, challenge, redirect)}, nil
+	return SignInStart{RedirectURL: s.cfg.GitHub.AuthorizeURL(state, challenge, redirect), HandoffBind: bindCookie}, nil
 }
+
+// Sign-in failure codes. The sign-in page shows a plain message for each; the
+// controller logs the code and the cause at WARN (OPS17).
+const (
+	SignInStateMissing   = "state_missing"   // no sign-in state: used, expired or never made
+	SignInStateMismatch  = "state_mismatch"  // the state was made for another callback address
+	SignInAddressRefused = "address_refused" // the address cannot sign in (plain http off loopback)
+	SignInExchangeFailed = "exchange_failed" // GitHub did not accept the sign-in code
+	SignInUserFailed     = "user_failed"     // GitHub did not tell who signed in
+	SignInSessionFailed  = "session_failed"  // the controller could not make the session
+)
+
+// SignInError is a sign-in failure with a stable code and the cause behind it.
+type SignInError struct {
+	Code  string
+	Cause error
+}
+
+func (e *SignInError) Error() string {
+	if e.Cause == nil {
+		return "sign-in failed: " + e.Code
+	}
+	return "sign-in failed: " + e.Code + ": " + e.Cause.Error()
+}
+
+func (e *SignInError) Unwrap() error { return e.Cause }
+
+func signInFail(code string, cause error) error { return &SignInError{Code: code, Cause: cause} }
 
 // SignedIn is the result of a good callback.
 type SignedIn struct {
@@ -103,6 +160,17 @@ type SignedIn struct {
 	ReturnTo string
 	// Owner is true when this sign-in made the owner.
 	Owner bool
+	// Handoff is set when the sign-in came back on a registered loopback
+	// address but started on another one: the browser goes on to that address
+	// with the code, and no cookie is set here (OPS16).
+	Handoff *Handoff
+}
+
+// Handoff sends the browser back to the address it started the sign-in on.
+type Handoff struct {
+	Origin string
+	Code   string
+	State  string
 }
 
 // CompleteSignIn finishes the callback: state and PKCE, the GitHub user, the
@@ -110,30 +178,72 @@ type SignedIn struct {
 // address the browser used; an HTTP callback on a non-loopback address is
 // refused (R6.4).
 func (s *Service) CompleteSignIn(ctx context.Context, code, state, origin string) (SignedIn, error) {
-	redirect, err := s.redirectURI(origin)
+	redirect, err := s.redirectURI(ctx, origin)
 	if err != nil {
 		s.audit(ctx, "anonymous", "auth.signin_failed", "session", "", "address refused", "failed")
-		return SignedIn{}, err
+		var nr *NotRegisteredError
+		if errors.As(err, &nr) {
+			return SignedIn{}, err
+		}
+		return SignedIn{}, signInFail(SignInAddressRefused, err)
 	}
 	data, ok := s.states.take("signin", state)
-	if !ok || data["redirect"] != redirect {
+	if !ok {
 		s.audit(ctx, "anonymous", "auth.signin_failed", "session", "", "bad or old state", "failed")
-		return SignedIn{}, ErrBadState
+		return SignedIn{}, signInFail(SignInStateMissing, ErrBadState)
+	}
+	if data["redirect"] != redirect {
+		s.audit(ctx, "anonymous", "auth.signin_failed", "session", "", "state for another address", "failed")
+		return SignedIn{}, signInFail(SignInStateMismatch, ErrBadState)
 	}
 	tok, err := s.cfg.GitHub.ExchangeCode(ctx, code, data["verifier"], redirect)
 	if err != nil {
 		s.audit(ctx, "anonymous", "auth.signin_failed", "session", "", "code refused", "failed")
-		return SignedIn{}, err
+		return SignedIn{}, signInFail(SignInExchangeFailed, err)
 	}
 	gu, err := s.cfg.GitHub.CurrentUser(ctx, tok)
 	if err != nil {
-		return SignedIn{}, err
+		return SignedIn{}, signInFail(SignInUserFailed, err)
 	}
 	si, err := s.finishSignIn(ctx, gu, data)
-	if err == nil {
-		s.holdToken(gu.ID, tok)
+	if err != nil {
+		var na *NotAllowedError
+		if errors.As(err, &na) {
+			return si, err
+		}
+		return si, signInFail(SignInSessionFailed, err)
 	}
-	return si, err
+	s.holdToken(gu.ID, tok)
+	if ho := data["handoff_origin"]; ho != "" {
+		// The session cookie belongs to the address the sign-in started on,
+		// not to this loopback address: keep it behind a one-time code.
+		code := s.states.put("handoff", HandoffTTL, map[string]string{"cookie": si.Cookie, "origin": ho,
+			"state": state, "bind": data["handoff_bind"], "return_to": si.ReturnTo})
+		si.Handoff = &Handoff{Origin: ho, Code: code, State: state}
+		si.Cookie = ""
+	}
+	return si, nil
+}
+
+// RedeemHandoff trades the one-time code for the session cookie on the
+// address the sign-in started on (OPS16). The code is single use and lives
+// HandoffTTL; it must come with the sign-in state it was made for, on the
+// address it was made for, from the browser that started the sign-in (the
+// bind cookie). Any mismatch burns the code and ends the session it held.
+func (s *Service) RedeemHandoff(ctx context.Context, code, state, origin, bindCookie string) (SignedIn, error) {
+	data, ok := s.states.take("handoff", code)
+	if !ok {
+		s.audit(ctx, "anonymous", "auth.handoff_failed", "session", "", "bad, used or old code", "failed")
+		return SignedIn{}, ErrBadCode
+	}
+	o, err := NormalizeConsoleURL(origin)
+	if err != nil || o != data["origin"] || !equal(state, data["state"]) ||
+		bindCookie == "" || !equal(Hash(bindCookie), data["bind"]) {
+		_ = s.store.EndSession(ctx, Hash(data["cookie"]))
+		s.audit(ctx, "anonymous", "auth.handoff_failed", "session", "", "wrong address, state or browser", "failed")
+		return SignedIn{}, ErrBadCode
+	}
+	return SignedIn{Cookie: data["cookie"], ReturnTo: data["return_to"]}, nil
 }
 
 func (s *Service) finishSignIn(ctx context.Context, gu github.User, data map[string]string) (SignedIn, error) {

@@ -228,6 +228,30 @@ paths:
           $ref: '#/components/responses/Redirect'
         default:
           $ref: '#/components/responses/Error'
+  /auth/github/handoff:
+    get:
+      operationId: redeemSignInHandoff
+      x-cli: none
+      x-cli-reason: 'Browser entry point; the CLI signs in with the device flow instead.'
+      tags: [auth]
+      summary: Finish a sign-in on the address it started on
+      description: >-
+        github-integration R5.8 (OPS16). A sign-in that started on an address
+        GitHub has no callback URL for goes through the registered loopback
+        address and comes back here, on the address it started on, with a
+        one-time code. The code is single use, valid 60 seconds, bound to the
+        sign-in state, to this address and to the browser that started the
+        sign-in. Sets the session cookie and redirects to the kept path.
+      x-auth: public
+      x-rate-limit: 20/minute/ip
+      parameters:
+        - $ref: '#/components/parameters/OAuthCode'
+        - $ref: '#/components/parameters/OAuthState'
+      responses:
+        '302':
+          $ref: '#/components/responses/Redirect'
+        default:
+          $ref: '#/components/responses/Error'
   /auth/link:
     get:
       operationId: redeemTrayLink
@@ -1829,6 +1853,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListenAddressChosen'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /api/v1/settings/signin-address:
+    post:
+      operationId: checkSignInAddress
+      x-cli: none
+      x-cli-reason: 'A console step: the owner adds a sign-in address to the GitHub App in the console (owner rule: everything from the web console).'
+      tags: [settings]
+      summary: Can GitHub sign in on this controller address?
+      description: >-
+        github-integration R5.8 (OPS16). Says whether the GitHub App has a
+        callback URL for the address (`registered`), and gives the exact URL to
+        add and the App's settings page. Does a dry sign-in against GitHub when
+        the controller does not know the address yet, and keeps an address GitHub
+        accepted. Never signs anyone in.
+      x-auth: admin
+      x-rate-limit: 20/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListenAddressChoice'
+      responses:
+        '200':
+          description: The sign-in address and whether GitHub knows it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInAddress'
         default:
           $ref: '#/components/responses/Error'
 
@@ -3980,6 +4035,22 @@ components:
         address:
           type: string
           description: host:port of this PC.
+    SignInAddress:
+      type: object
+      required: [address, callback_url, registered]
+      properties:
+        address:
+          type: string
+          description: The console origin, such as https://192.168.1.162:8460.
+        callback_url:
+          type: string
+          description: The exact callback URL to add to the GitHub App.
+        app_url:
+          type: string
+          description: The App's settings page on GitHub, when the App is known.
+        registered:
+          type: boolean
+          description: GitHub accepts the callback URL, so sign-in works on this address.
     ListenAddressChosen:
       type: object
       required: [address, restarting]
@@ -4087,13 +4158,15 @@ components:
           format: date-time
     Session:
       type: object
-      required: [user, csrf]
+      required: [user, csrf, github_signin]
       properties:
         user:
           $ref: '#/components/schemas/User'
         csrf:
           type: string
           description: Send as X-CSRF-Token on every change.
+        github_signin:
+          $ref: '#/components/schemas/GitHubSignIn'
       example:
         user:
           id: 583231
@@ -4101,6 +4174,24 @@ components:
           role: owner
           added_at: '2026-11-14T10:00:00Z'
         csrf: 5d1c0e
+        github_signin:
+          state: active
+          expires_at: '2026-11-17T18:30:00Z'
+    GitHubSignIn:
+      type: object
+      description: >-
+        The user's GitHub sign-in. The GitHub token is held in memory only and
+        lasts 8 hours; a controller restart or the 8 hours end it. The web session
+        itself carries on (github-integration R6.2).
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [active, ended]
+        expires_at:
+          type: string
+          format: date-time
+          description: When the sign-in ends. Present when state is active and GitHub gave a limit.
     Preferences:
       type: object
       required: [theme]
@@ -4398,6 +4489,7 @@ components:
           visibility,
           pool_on,
           user_is_github_admin,
+          user_admin_known,
           variables,
           policy,
         ]
@@ -4429,7 +4521,14 @@ components:
             (github-integration R5.22). Absent otherwise.
         user_is_github_admin:
           type: boolean
-          description: github-integration R5.19; without it the switch is disabled with this reason.
+          description: github-integration R5.19; without it the switch is disabled with this reason. Only a claim when user_admin_known is true.
+        user_admin_known:
+          type: boolean
+          description: >-
+            False when the controller could not read the user's admin rights (no
+            GitHub sign-in in memory and the App could not say). Then
+            user_is_github_admin means "not checked", not "not admin"
+            (github-integration R5.19).
         variables:
           type: array
           items:
@@ -4452,6 +4551,7 @@ components:
         default_branch: main
         pool_on: true
         user_is_github_admin: true
+        user_admin_known: true
         variables:
           - name: RUNS_ON_LINUX
             status: ok
@@ -6596,10 +6696,55 @@ components:
           type: string
 
     # ---------- images and caches (CRSP32)
+    ImageTool:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: node
+        version:
+          type: string
+          example: '26'
+    LayerNeededBy:
+      type: object
+      description: The repositories on the machine that ask for a layer (LOOK12).
+      required: [count, repositories, failing]
+      properties:
+        count:
+          type: integer
+        repositories:
+          type: array
+          items:
+            type: string
+          description: Full names of the repositories.
+        failing:
+          type: integer
+          description: Repositories whose recent job failed for lack of the layer.
+    ImageExtraPackages:
+      type: object
+      required: [repository, packages]
+      properties:
+        repository:
+          type: string
+        packages:
+          type: array
+          items:
+            type: string
     ImageLayer:
       type: object
-      required: [id, name, enabled, size_bytes]
+      required: [id, name, enabled, size_bytes, adds, purpose, needed_by]
       properties:
+        adds:
+          type: array
+          description: The tools the layer adds to the base.
+          items:
+            $ref: '#/components/schemas/ImageTool'
+        purpose:
+          type: string
+          description: One line, completes "Pick it when".
+        needed_by:
+          $ref: '#/components/schemas/LayerNeededBy'
         id:
           type: string
           example: browsers
@@ -6614,8 +6759,18 @@ components:
     Image:
       type: object
       description: One image on one machine (runners R5.32 and R5.33).
-      required: [id, machine_id, os, base, layers, size_bytes, state, newest]
+      required: [id, machine_id, os, base, base_tools, extra_packages, layers, size_bytes, state, newest]
       properties:
+        base_tools:
+          type: array
+          description: What every image on the machine holds, always.
+          items:
+            $ref: '#/components/schemas/ImageTool'
+        extra_packages:
+          type: array
+          description: Extra packages per repository on the machine.
+          items:
+            $ref: '#/components/schemas/ImageExtraPackages'
         id:
           type: string
         machine_id:
@@ -6644,7 +6799,7 @@ components:
           description: The saved layers differ from the built ones.
         state:
           type: string
-          enum: [ready, rebuilding, failed]
+          enum: [ready, rebuilding, failed, not_built]
         error:
           type: string
           description: Why the last build failed; the old image keeps serving.
@@ -6653,11 +6808,25 @@ components:
         machine_id: m_01JCRSP0001
         os: linux
         base: ubuntu-24.04
+        base_tools:
+          - name: Ubuntu
+            version: '24.04'
+          - name: git
+        extra_packages:
+          - repository: luis-mc/app
+            packages: [libssl-dev]
         layers:
-          - id: build-tools
-            name: Build tools
+          - id: kvm
+            name: KVM virtual machines
             enabled: true
             size_bytes: 612368384
+            adds:
+              - name: qemu-system-x86_64
+            purpose: your jobs boot a virtual machine with qemu
+            needed_by:
+              count: 1
+              repositories: [luis-mc/app]
+              failing: 0
         size_bytes: 2147483648
         built_at: '2026-11-13T22:00:00Z'
         newest: true

@@ -141,6 +141,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/github/handoff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Finish a sign-in on the address it started on
+         * @description github-integration R5.8 (OPS16). A sign-in that started on an address GitHub has no callback URL for goes through the registered loopback address and comes back here, on the address it started on, with a one-time code. The code is single use, valid 60 seconds, bound to the sign-in state, to this address and to the browser that started the sign-in. Sets the session cookie and redirects to the kept path.
+         */
+        get: operations["redeemSignInHandoff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/link": {
         parameters: {
             query?: never;
@@ -1255,6 +1275,26 @@ export interface paths {
          */
         put: operations["putListenAddress"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/signin-address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Can GitHub sign in on this controller address?
+         * @description github-integration R5.8 (OPS16). Says whether the GitHub App has a callback URL for the address (`registered`), and gives the exact URL to add and the App's settings page. Does a dry sign-in against GitHub when the controller does not know the address yet, and keeps an address GitHub accepted. Never signs anyone in.
+         */
+        post: operations["checkSignInAddress"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2539,6 +2579,16 @@ export interface components {
             /** @description host:port of this PC. */
             address: string;
         };
+        SignInAddress: {
+            /** @description The console origin, such as https://192.168.1.162:8460. */
+            address: string;
+            /** @description The exact callback URL to add to the GitHub App. */
+            callback_url: string;
+            /** @description The App's settings page on GitHub, when the App is known. */
+            app_url?: string;
+            /** @description GitHub accepts the callback URL, so sign-in works on this address. */
+            registered: boolean;
+        };
         ListenAddressChosen: {
             address: string;
             restarting: boolean;
@@ -2605,13 +2655,28 @@ export interface components {
          *         "role": "owner",
          *         "added_at": "2026-11-14T10:00:00Z"
          *       },
-         *       "csrf": "5d1c0e"
+         *       "csrf": "5d1c0e",
+         *       "github_signin": {
+         *         "state": "active",
+         *         "expires_at": "2026-11-17T18:30:00Z"
+         *       }
          *     }
          */
         Session: {
             user: components["schemas"]["User"];
             /** @description Send as X-CSRF-Token on every change. */
             csrf: string;
+            github_signin: components["schemas"]["GitHubSignIn"];
+        };
+        /** @description The user's GitHub sign-in. The GitHub token is held in memory only and lasts 8 hours; a controller restart or the 8 hours end it. The web session itself carries on (github-integration R6.2). */
+        GitHubSignIn: {
+            /** @enum {string} */
+            state: "active" | "ended";
+            /**
+             * Format: date-time
+             * @description When the sign-in ends. Present when state is active and GitHub gave a limit.
+             */
+            expires_at?: string;
         };
         /**
          * @example {
@@ -2819,6 +2884,7 @@ export interface components {
          *       "default_branch": "main",
          *       "pool_on": true,
          *       "user_is_github_admin": true,
+         *       "user_admin_known": true,
          *       "variables": [
          *         {
          *           "name": "RUNS_ON_LINUX",
@@ -2857,8 +2923,10 @@ export interface components {
              * @enum {string}
              */
             pool_off_reason?: "left_installation";
-            /** @description github-integration R5.19; without it the switch is disabled with this reason. */
+            /** @description github-integration R5.19; without it the switch is disabled with this reason. Only a claim when user_admin_known is true. */
             user_is_github_admin: boolean;
+            /** @description False when the controller could not read the user's admin rights (no GitHub sign-in in memory and the App could not say). Then user_is_github_admin means "not checked", not "not admin" (github-integration R5.19). */
+            user_admin_known: boolean;
             variables: components["schemas"]["RepositoryVariable"][];
             policy: components["schemas"]["RepositoryPolicy"];
             routing?: components["schemas"]["RepositoryRouting"];
@@ -4134,7 +4202,30 @@ export interface components {
             state: "running" | "passed" | "failed";
             detail?: string;
         };
+        ImageTool: {
+            /** @example node */
+            name: string;
+            /** @example 26 */
+            version?: string;
+        };
+        /** @description The repositories on the machine that ask for a layer (LOOK12). */
+        LayerNeededBy: {
+            count: number;
+            /** @description Full names of the repositories. */
+            repositories: string[];
+            /** @description Repositories whose recent job failed for lack of the layer. */
+            failing: number;
+        };
+        ImageExtraPackages: {
+            repository: string;
+            packages: string[];
+        };
         ImageLayer: {
+            /** @description The tools the layer adds to the base. */
+            adds: components["schemas"]["ImageTool"][];
+            /** @description One line, completes "Pick it when". */
+            purpose: string;
+            needed_by: components["schemas"]["LayerNeededBy"];
             /** @example browsers */
             id: string;
             /** @example Browsers for Playwright */
@@ -4150,12 +4241,42 @@ export interface components {
          *       "machine_id": "m_01JCRSP0001",
          *       "os": "linux",
          *       "base": "ubuntu-24.04",
+         *       "base_tools": [
+         *         {
+         *           "name": "Ubuntu",
+         *           "version": "24.04"
+         *         },
+         *         {
+         *           "name": "git"
+         *         }
+         *       ],
+         *       "extra_packages": [
+         *         {
+         *           "repository": "luis-mc/app",
+         *           "packages": [
+         *             "libssl-dev"
+         *           ]
+         *         }
+         *       ],
          *       "layers": [
          *         {
-         *           "id": "build-tools",
-         *           "name": "Build tools",
+         *           "id": "kvm",
+         *           "name": "KVM virtual machines",
          *           "enabled": true,
-         *           "size_bytes": 612368384
+         *           "size_bytes": 612368384,
+         *           "adds": [
+         *             {
+         *               "name": "qemu-system-x86_64"
+         *             }
+         *           ],
+         *           "purpose": "your jobs boot a virtual machine with qemu",
+         *           "needed_by": {
+         *             "count": 1,
+         *             "repositories": [
+         *               "luis-mc/app"
+         *             ],
+         *             "failing": 0
+         *           }
          *         }
          *       ],
          *       "size_bytes": 2147483648,
@@ -4166,6 +4287,10 @@ export interface components {
          *     }
          */
         Image: {
+            /** @description What every image on the machine holds, always. */
+            base_tools: components["schemas"]["ImageTool"][];
+            /** @description Extra packages per repository on the machine. */
+            extra_packages: components["schemas"]["ImageExtraPackages"][];
             id: string;
             machine_id: string;
             os: components["schemas"]["OS"];
@@ -4184,7 +4309,7 @@ export interface components {
             /** @description The saved layers differ from the built ones. */
             needs_rebuild?: boolean;
             /** @enum {string} */
-            state: "ready" | "rebuilding" | "failed";
+            state: "ready" | "rebuilding" | "failed" | "not_built";
             /** @description Why the last build failed; the old image keeps serving. */
             error?: string;
         };
@@ -4574,6 +4699,22 @@ export interface operations {
         };
     };
     completeSignIn: {
+        parameters: {
+            query: {
+                code: components["parameters"]["OAuthCode"];
+                state: components["parameters"]["OAuthState"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            302: components["responses"]["Redirect"];
+            default: components["responses"]["Error"];
+        };
+    };
+    redeemSignInHandoff: {
         parameters: {
             query: {
                 code: components["parameters"]["OAuthCode"];
@@ -6187,6 +6328,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListenAddressChosen"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    checkSignInAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListenAddressChoice"];
+            };
+        };
+        responses: {
+            /** @description The sign-in address and whether GitHub knows it. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInAddress"];
                 };
             };
             default: components["responses"]["Error"];

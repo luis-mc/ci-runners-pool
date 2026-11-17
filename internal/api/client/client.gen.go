@@ -397,6 +397,24 @@ func (e FreeSlotsRequestSlotsKind) Valid() bool {
 	}
 }
 
+// Defines values for GitHubSignInState.
+const (
+	GitHubSignInStateActive GitHubSignInState = "active"
+	GitHubSignInStateEnded  GitHubSignInState = "ended"
+)
+
+// Valid indicates whether the value is a known member of the GitHubSignInState enum.
+func (e GitHubSignInState) Valid() bool {
+	switch e {
+	case GitHubSignInStateActive:
+		return true
+	case GitHubSignInStateEnded:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GithubGrantNext.
 const (
 	GithubGrantNextAccept  GithubGrantNext = "accept"
@@ -457,6 +475,7 @@ func (e HealthStatus) Valid() bool {
 // Defines values for ImageState.
 const (
 	ImageStateFailed     ImageState = "failed"
+	ImageStateNotBuilt   ImageState = "not_built"
 	ImageStateReady      ImageState = "ready"
 	ImageStateRebuilding ImageState = "rebuilding"
 )
@@ -465,6 +484,8 @@ const (
 func (e ImageState) Valid() bool {
 	switch e {
 	case ImageStateFailed:
+		return true
+	case ImageStateNotBuilt:
 		return true
 	case ImageStateReady:
 		return true
@@ -2566,6 +2587,16 @@ type GitHubApp struct {
 	WebhookActive bool               `json:"webhook_active"`
 }
 
+// GitHubSignIn The user's GitHub sign-in. The GitHub token is held in memory only and lasts 8 hours; a controller restart or the 8 hours end it. The web session itself carries on (github-integration R6.2).
+type GitHubSignIn struct {
+	// ExpiresAt When the sign-in ends. Present when state is active and GitHub gave a limit.
+	ExpiresAt *time.Time        `json:"expires_at,omitempty"`
+	State     GitHubSignInState `json:"state"`
+}
+
+// GitHubSignInState defines model for GitHubSignIn.State.
+type GitHubSignInState string
+
 // GithubGrant github-integration R5.86.
 type GithubGrant struct {
 	InstallationId *int64 `json:"installation_id,omitempty"`
@@ -2631,14 +2662,20 @@ type HostCommandResult struct {
 // Image One image on one machine (runners R5.32 and R5.33).
 type Image struct {
 	// Base The base image.
-	Base    string     `json:"base"`
-	BuiltAt *time.Time `json:"built_at,omitempty"`
+	Base string `json:"base"`
+
+	// BaseTools What every image on the machine holds, always.
+	BaseTools []ImageTool `json:"base_tools"`
+	BuiltAt   *time.Time  `json:"built_at,omitempty"`
 
 	// Error Why the last build failed; the old image keeps serving.
-	Error     *string      `json:"error,omitempty"`
-	Id        string       `json:"id"`
-	Layers    []ImageLayer `json:"layers"`
-	MachineId string       `json:"machine_id"`
+	Error *string `json:"error,omitempty"`
+
+	// ExtraPackages Extra packages per repository on the machine.
+	ExtraPackages []ImageExtraPackages `json:"extra_packages"`
+	Id            string               `json:"id"`
+	Layers        []ImageLayer         `json:"layers"`
+	MachineId     string               `json:"machine_id"`
 
 	// NeedsRebuild The saved layers differ from the built ones.
 	NeedsRebuild *bool `json:"needs_rebuild,omitempty"`
@@ -2653,17 +2690,37 @@ type Image struct {
 // ImageState defines model for Image.State.
 type ImageState string
 
+// ImageExtraPackages defines model for ImageExtraPackages.
+type ImageExtraPackages struct {
+	Packages   []string `json:"packages"`
+	Repository string   `json:"repository"`
+}
+
 // ImageLayer defines model for ImageLayer.
 type ImageLayer struct {
-	Enabled   bool   `json:"enabled"`
-	Id        string `json:"id"`
-	Name      string `json:"name"`
+	// Adds The tools the layer adds to the base.
+	Adds    []ImageTool `json:"adds"`
+	Enabled bool        `json:"enabled"`
+	Id      string      `json:"id"`
+	Name    string      `json:"name"`
+
+	// NeededBy The repositories on the machine that ask for a layer (LOOK12).
+	NeededBy LayerNeededBy `json:"needed_by"`
+
+	// Purpose One line, completes "Pick it when".
+	Purpose   string `json:"purpose"`
 	SizeBytes int64  `json:"size_bytes"`
 }
 
 // ImageList defines model for ImageList.
 type ImageList struct {
 	Items []Image `json:"items"`
+}
+
+// ImageTool defines model for ImageTool.
+type ImageTool struct {
+	Name    string  `json:"name"`
+	Version *string `json:"version,omitempty"`
 }
 
 // InstallCommands defines model for InstallCommands.
@@ -2786,6 +2843,17 @@ type JoinCodeCreated struct {
 	Code     string          `json:"code"`
 	Commands InstallCommands `json:"commands"`
 	JoinCode JoinCode        `json:"join_code"`
+}
+
+// LayerNeededBy The repositories on the machine that ask for a layer (LOOK12).
+type LayerNeededBy struct {
+	Count int `json:"count"`
+
+	// Failing Repositories whose recent job failed for lack of the layer.
+	Failing int `json:"failing"`
+
+	// Repositories Full names of the repositories.
+	Repositories []string `json:"repositories"`
 }
 
 // ListenAddress defines model for ListenAddress.
@@ -3558,7 +3626,10 @@ type Repository struct {
 	// Routing Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
 	Routing *RepositoryRouting `json:"routing,omitempty"`
 
-	// UserIsGithubAdmin github-integration R5.19; without it the switch is disabled with this reason.
+	// UserAdminKnown False when the controller could not read the user's admin rights (no GitHub sign-in in memory and the App could not say). Then user_is_github_admin means "not checked", not "not admin" (github-integration R5.19).
+	UserAdminKnown bool `json:"user_admin_known"`
+
+	// UserIsGithubAdmin github-integration R5.19; without it the switch is disabled with this reason. Only a claim when user_admin_known is true.
 	UserIsGithubAdmin bool                 `json:"user_is_github_admin"`
 	Variables         []RepositoryVariable `json:"variables"`
 	Visibility        RepositoryVisibility `json:"visibility"`
@@ -3808,7 +3879,10 @@ type RunsOnFindingList struct {
 type Session struct {
 	// Csrf Send as X-CSRF-Token on every change.
 	Csrf string `json:"csrf"`
-	User User   `json:"user"`
+
+	// GithubSignin The user's GitHub sign-in. The GitHub token is held in memory only and lasts 8 hours; a controller restart or the 8 hours end it. The web session itself carries on (github-integration R6.2).
+	GithubSignin GitHubSignIn `json:"github_signin"`
+	User         User         `json:"user"`
 }
 
 // Settings observability R6.8 retention (days unless named), operations R5.21 backup time.
@@ -3856,6 +3930,21 @@ type SetupStateStepsFirstRepository string
 
 // Severity defines model for Severity.
 type Severity string
+
+// SignInAddress defines model for SignInAddress.
+type SignInAddress struct {
+	// Address The console origin, such as https://192.168.1.162:8460.
+	Address string `json:"address"`
+
+	// AppUrl The App's settings page on GitHub, when the App is known.
+	AppUrl *string `json:"app_url,omitempty"`
+
+	// CallbackUrl The exact callback URL to add to the GitHub App.
+	CallbackUrl string `json:"callback_url"`
+
+	// Registered GitHub accepts the callback URL, so sign-in works on this address.
+	Registered bool `json:"registered"`
+}
 
 // Slot defines model for Slot.
 type Slot struct {
@@ -4451,6 +4540,12 @@ type CompleteSignInParams struct {
 	State OAuthState `form:"state" json:"state"`
 }
 
+// RedeemSignInHandoffParams defines parameters for RedeemSignInHandoff.
+type RedeemSignInHandoffParams struct {
+	Code  OAuthCode  `form:"code" json:"code"`
+	State OAuthState `form:"state" json:"state"`
+}
+
 // StartSignInParams defines parameters for StartSignIn.
 type StartSignInParams struct {
 	ReturnTo *string `form:"return_to,omitempty" json:"return_to,omitempty"`
@@ -4578,6 +4673,9 @@ type SetPublicRepositoriesJSONRequestBody = PublicRepositoriesSet
 
 // UpdateQueueSettingsJSONRequestBody defines body for UpdateQueueSettings for application/json ContentType.
 type UpdateQueueSettingsJSONRequestBody = QueueSettings
+
+// CheckSignInAddressJSONRequestBody defines body for CheckSignInAddress for application/json ContentType.
+type CheckSignInAddressJSONRequestBody = ListenAddressChoice
 
 // StartAppManifestJSONRequestBody defines body for StartAppManifest for application/json ContentType.
 type StartAppManifestJSONRequestBody = StartAppManifestRequest
@@ -5810,6 +5908,24 @@ type ClientInterface interface {
 	// Corresponds with PUT /api/v1/settings/queue (the `UpdateQueueSettings` operationId).
 	UpdateQueueSettings(ctx context.Context, body UpdateQueueSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CheckSignInAddressWithBody Can GitHub sign in on this controller address?
+	//
+	// github-integration R5.8 (OPS16). Says whether the GitHub App has a callback URL for the address (`registered`), and gives the exact URL to add and the App's settings page. Does a dry sign-in against GitHub when the controller does not know the address yet, and keeps an address GitHub accepted. Never signs anyone in.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/settings/signin-address (the `CheckSignInAddress` operationId).
+	CheckSignInAddressWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CheckSignInAddress Can GitHub sign in on this controller address?
+	//
+	// github-integration R5.8 (OPS16). Says whether the GitHub App has a callback URL for the address (`registered`), and gives the exact URL to add and the App's settings page. Does a dry sign-in against GitHub when the controller does not know the address yet, and keeps an address GitHub accepted. Never signs anyone in.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/settings/signin-address (the `CheckSignInAddress` operationId).
+	CheckSignInAddress(ctx context.Context, body CheckSignInAddressJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetSetupState First-run state; what the setup page shows
 	//
 	// github-integration R5.1, web-console R5.14 and R5.15.
@@ -5937,6 +6053,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /auth/github/callback (the `CompleteSignIn` operationId).
 	CompleteSignIn(ctx context.Context, params *CompleteSignInParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RedeemSignInHandoff Finish a sign-in on the address it started on
+	//
+	// github-integration R5.8 (OPS16). A sign-in that started on an address GitHub has no callback URL for goes through the registered loopback address and comes back here, on the address it started on, with a one-time code. The code is single use, valid 60 seconds, bound to the sign-in state, to this address and to the browser that started the sign-in. Sets the session cookie and redirects to the kept path.
+	//
+	// Corresponds with GET /auth/github/handoff (the `RedeemSignInHandoff` operationId).
+	RedeemSignInHandoff(ctx context.Context, params *RedeemSignInHandoffParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// StartSignIn Start web sign-in with the App's user OAuth flow
 	//
@@ -8598,6 +8721,44 @@ func (c *Client) UpdateQueueSettings(ctx context.Context, body UpdateQueueSettin
 	return c.Client.Do(req)
 }
 
+// CheckSignInAddressWithBody Can GitHub sign in on this controller address?
+//
+// github-integration R5.8 (OPS16). Says whether the GitHub App has a callback URL for the address (`registered`), and gives the exact URL to add and the App's settings page. Does a dry sign-in against GitHub when the controller does not know the address yet, and keeps an address GitHub accepted. Never signs anyone in.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/settings/signin-address (the `CheckSignInAddress` operationId).
+func (c *Client) CheckSignInAddressWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCheckSignInAddressRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CheckSignInAddress Can GitHub sign in on this controller address?
+//
+// github-integration R5.8 (OPS16). Says whether the GitHub App has a callback URL for the address (`registered`), and gives the exact URL to add and the App's settings page. Does a dry sign-in against GitHub when the controller does not know the address yet, and keeps an address GitHub accepted. Never signs anyone in.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/settings/signin-address (the `CheckSignInAddress` operationId).
+func (c *Client) CheckSignInAddress(ctx context.Context, body CheckSignInAddressJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCheckSignInAddressRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetSetupState First-run state; what the setup page shows
 //
 // github-integration R5.1, web-console R5.14 and R5.15.
@@ -8876,6 +9037,23 @@ func (c *Client) CompleteAppManifest(ctx context.Context, params *CompleteAppMan
 // Corresponds with GET /auth/github/callback (the `CompleteSignIn` operationId).
 func (c *Client) CompleteSignIn(ctx context.Context, params *CompleteSignInParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCompleteSignInRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RedeemSignInHandoff Finish a sign-in on the address it started on
+//
+// github-integration R5.8 (OPS16). A sign-in that started on an address GitHub has no callback URL for goes through the registered loopback address and comes back here, on the address it started on, with a one-time code. The code is single use, valid 60 seconds, bound to the sign-in state, to this address and to the browser that started the sign-in. Sets the session cookie and redirects to the kept path.
+//
+// Corresponds with GET /auth/github/handoff (the `RedeemSignInHandoff` operationId).
+func (c *Client) RedeemSignInHandoff(ctx context.Context, params *RedeemSignInHandoffParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRedeemSignInHandoffRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -13957,6 +14135,46 @@ func NewUpdateQueueSettingsRequestWithBody(server string, contentType string, bo
 	return req, nil
 }
 
+// NewCheckSignInAddressRequest calls the generic CheckSignInAddress builder with application/json body
+func NewCheckSignInAddressRequest(server string, body CheckSignInAddressJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCheckSignInAddressRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCheckSignInAddressRequestWithBody constructs an http.Request for the CheckSignInAddress method, with any body, and a specified content type
+func NewCheckSignInAddressRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/settings/signin-address")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetSetupStateRequest constructs an http.Request for the GetSetupState method
 func NewGetSetupStateRequest(server string) (*http.Request, error) {
 	var err error
@@ -14388,6 +14606,64 @@ func NewCompleteSignInRequest(server string, params *CompleteSignInParams) (*htt
 	}
 
 	operationPath := fmt.Sprintf("/auth/github/callback")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "code", params.Code, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "state", params.State, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRedeemSignInHandoffRequest constructs an http.Request for the RedeemSignInHandoff method
+func NewRedeemSignInHandoffRequest(server string, params *RedeemSignInHandoffParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/auth/github/handoff")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -15992,6 +16268,24 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with PUT /api/v1/settings/queue (the `UpdateQueueSettings` operationId).
 	UpdateQueueSettingsWithResponse(ctx context.Context, body UpdateQueueSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateQueueSettingsResponse, error)
 
+	// CheckSignInAddressWithBodyWithResponse Can GitHub sign in on this controller address?
+	//
+	// github-integration R5.8 (OPS16). Says whether the GitHub App has a callback URL for the address (`registered`), and gives the exact URL to add and the App's settings page. Does a dry sign-in against GitHub when the controller does not know the address yet, and keeps an address GitHub accepted. Never signs anyone in.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/settings/signin-address (the `CheckSignInAddress` operationId).
+	CheckSignInAddressWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CheckSignInAddressResponse, error)
+
+	// CheckSignInAddressWithResponse Can GitHub sign in on this controller address?
+	//
+	// github-integration R5.8 (OPS16). Says whether the GitHub App has a callback URL for the address (`registered`), and gives the exact URL to add and the App's settings page. Does a dry sign-in against GitHub when the controller does not know the address yet, and keeps an address GitHub accepted. Never signs anyone in.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/settings/signin-address (the `CheckSignInAddress` operationId).
+	CheckSignInAddressWithResponse(ctx context.Context, body CheckSignInAddressJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckSignInAddressResponse, error)
+
 	// GetSetupStateWithResponse First-run state; what the setup page shows
 	//
 	// github-integration R5.1, web-console R5.14 and R5.15.
@@ -16135,6 +16429,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /auth/github/callback (the `CompleteSignIn` operationId).
 	CompleteSignInWithResponse(ctx context.Context, params *CompleteSignInParams, reqEditors ...RequestEditorFn) (*CompleteSignInResponse, error)
+
+	// RedeemSignInHandoffWithResponse Finish a sign-in on the address it started on
+	//
+	// github-integration R5.8 (OPS16). A sign-in that started on an address GitHub has no callback URL for goes through the registered loopback address and comes back here, on the address it started on, with a one-time code. The code is single use, valid 60 seconds, bound to the sign-in state, to this address and to the browser that started the sign-in. Sets the session cookie and redirects to the kept path.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /auth/github/handoff (the `RedeemSignInHandoff` operationId).
+	RedeemSignInHandoffWithResponse(ctx context.Context, params *RedeemSignInHandoffParams, reqEditors ...RequestEditorFn) (*RedeemSignInHandoffResponse, error)
 
 	// StartSignInWithResponse Start web sign-in with the App's user OAuth flow
 	//
@@ -21556,6 +21859,54 @@ func (r UpdateQueueSettingsResponse) ContentType() string {
 	return ""
 }
 
+type CheckSignInAddressResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SignInAddress
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CheckSignInAddressResponse) GetJSON200() *SignInAddress {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r CheckSignInAddressResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CheckSignInAddressResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CheckSignInAddressResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CheckSignInAddressResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CheckSignInAddressResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetSetupStateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -22128,6 +22479,55 @@ func (r CompleteSignInResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r CompleteSignInResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// RedeemSignInHandoffResponse302Headers the declared response headers of an HTTP 302 response for RedeemSignInHandoff
+type RedeemSignInHandoffResponse302Headers struct {
+	Location  string
+	SetCookie *string
+}
+
+type RedeemSignInHandoffResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+	// Headers302 the parsed response headers for an HTTP 302 response
+	Headers302 *RedeemSignInHandoffResponse302Headers
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r RedeemSignInHandoffResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RedeemSignInHandoffResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RedeemSignInHandoffResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RedeemSignInHandoffResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RedeemSignInHandoffResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -24507,6 +24907,36 @@ func (c *ClientWithResponses) UpdateQueueSettingsWithResponse(ctx context.Contex
 	return ParseUpdateQueueSettingsResponse(rsp)
 }
 
+// CheckSignInAddressWithBodyWithResponse Can GitHub sign in on this controller address?
+//
+// github-integration R5.8 (OPS16). Says whether the GitHub App has a callback URL for the address (`registered`), and gives the exact URL to add and the App's settings page. Does a dry sign-in against GitHub when the controller does not know the address yet, and keeps an address GitHub accepted. Never signs anyone in.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/settings/signin-address (the `CheckSignInAddress` operationId).
+func (c *ClientWithResponses) CheckSignInAddressWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CheckSignInAddressResponse, error) {
+	rsp, err := c.CheckSignInAddressWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCheckSignInAddressResponse(rsp)
+}
+
+// CheckSignInAddressWithResponse Can GitHub sign in on this controller address?
+//
+// github-integration R5.8 (OPS16). Says whether the GitHub App has a callback URL for the address (`registered`), and gives the exact URL to add and the App's settings page. Does a dry sign-in against GitHub when the controller does not know the address yet, and keeps an address GitHub accepted. Never signs anyone in.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/settings/signin-address (the `CheckSignInAddress` operationId).
+func (c *ClientWithResponses) CheckSignInAddressWithResponse(ctx context.Context, body CheckSignInAddressJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckSignInAddressResponse, error) {
+	rsp, err := c.CheckSignInAddress(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCheckSignInAddressResponse(rsp)
+}
+
 // GetSetupStateWithResponse First-run state; what the setup page shows
 //
 // github-integration R5.1, web-console R5.14 and R5.15.
@@ -24745,6 +25175,21 @@ func (c *ClientWithResponses) CompleteSignInWithResponse(ctx context.Context, pa
 		return nil, err
 	}
 	return ParseCompleteSignInResponse(rsp)
+}
+
+// RedeemSignInHandoffWithResponse Finish a sign-in on the address it started on
+//
+// github-integration R5.8 (OPS16). A sign-in that started on an address GitHub has no callback URL for goes through the registered loopback address and comes back here, on the address it started on, with a one-time code. The code is single use, valid 60 seconds, bound to the sign-in state, to this address and to the browser that started the sign-in. Sets the session cookie and redirects to the kept path.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /auth/github/handoff (the `RedeemSignInHandoff` operationId).
+func (c *ClientWithResponses) RedeemSignInHandoffWithResponse(ctx context.Context, params *RedeemSignInHandoffParams, reqEditors ...RequestEditorFn) (*RedeemSignInHandoffResponse, error) {
+	rsp, err := c.RedeemSignInHandoff(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRedeemSignInHandoffResponse(rsp)
 }
 
 // StartSignInWithResponse Start web sign-in with the App's user OAuth flow
@@ -28573,6 +29018,39 @@ func ParseUpdateQueueSettingsResponse(rsp *http.Response) (*UpdateQueueSettingsR
 	return response, nil
 }
 
+// ParseCheckSignInAddressResponse parses an HTTP response from a CheckSignInAddressWithResponse call
+func ParseCheckSignInAddressResponse(rsp *http.Response) (*CheckSignInAddressResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CheckSignInAddressResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SignInAddress
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetSetupStateResponse parses an HTTP response from a GetSetupStateWithResponse call
 func ParseGetSetupStateResponse(rsp *http.Response) (*GetSetupStateResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -28990,6 +29468,55 @@ func ParseCompleteSignInResponse(rsp *http.Response) (*CompleteSignInResponse, e
 	switch {
 	case rsp.StatusCode == 302:
 		var headers CompleteSignInResponse302Headers
+		if values := rsp.Header.Values("Location"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Location", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.Location = value
+		}
+		if values := rsp.Header.Values("Set-Cookie"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Set-Cookie", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.SetCookie = &value
+		}
+		response.Headers302 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseRedeemSignInHandoffResponse parses an HTTP response from a RedeemSignInHandoffWithResponse call
+func ParseRedeemSignInHandoffResponse(rsp *http.Response) (*RedeemSignInHandoffResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RedeemSignInHandoffResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 302:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 302:
+		var headers RedeemSignInHandoffResponse302Headers
 		if values := rsp.Header.Values("Location"); len(values) > 0 {
 			var value string
 			if err := runtime.BindStyledParameterWithOptions("simple", "Location", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""}); err != nil {

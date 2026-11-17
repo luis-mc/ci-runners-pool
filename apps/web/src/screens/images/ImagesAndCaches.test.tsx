@@ -38,9 +38,36 @@ const image = (over: Partial<Schemas['Image']> = {}): Schemas['Image'] => ({
   machine_id: 'm1',
   os: 'linux',
   base: 'ubuntu-24.04',
+  base_tools: [
+    { name: 'Ubuntu', version: '24.04' },
+    { name: 'git' },
+    { name: 'curl' },
+    { name: 'python3' },
+    { name: 'jq' },
+    { name: 'zip' },
+    { name: 'node', version: '26' },
+    { name: 'pnpm' },
+  ],
+  extra_packages: [{ repository: 'octo/app', packages: ['libssl-dev', 'ffmpeg'] }],
   layers: [
-    { id: 'build-tools', name: 'Build tools', enabled: true, size_bytes: 900_000_000 },
-    { id: 'browsers', name: 'Browsers', enabled: false, size_bytes: 1_500_000_000 },
+    {
+      id: 'build-tools',
+      name: 'Build tools',
+      enabled: true,
+      size_bytes: 900_000_000,
+      adds: [{ name: 'gcc' }],
+      purpose: 'your jobs compile C',
+      needed_by: { count: 0, repositories: [], failing: 0 },
+    },
+    {
+      id: 'browsers',
+      name: 'Browsers',
+      enabled: false,
+      size_bytes: 1_500_000_000,
+      adds: [{ name: 'chromium' }, { name: 'firefox' }],
+      purpose: 'your tests drive a browser',
+      needed_by: { count: 2, repositories: ['octo/app', 'octo/web'], failing: 1 },
+    },
   ],
   size_bytes: 4_000_000_000,
   built_at: '2026-11-14T09:00:00Z',
@@ -49,13 +76,18 @@ const image = (over: Partial<Schemas['Image']> = {}): Schemas['Image'] => ({
   ...over,
 });
 
+const notBuilt = (): Schemas['Image'] => {
+  const { built_at: _built, ...rest } = image();
+  return { ...rest, state: 'not_built', size_bytes: 0 };
+};
+
 describe('Images', () => {
   it('shows loading, then the empty state in the words of the design system', async () => {
     renderApp(base(), '/images');
     expect(await screen.findByText('Loading images')).toBeTruthy();
     expect(
       await screen.findByText(
-        'No images yet. Images are built when a runner first needs one.',
+        'No images yet. A machine shows one here once it can run container jobs.',
       ),
     ).toBeTruthy();
     expect(screen.getByRole('region', { name: 'Images' })).toBeTruthy();
@@ -77,18 +109,88 @@ describe('Images', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
   });
 
-  it('lists an image with its layers and saves a changed layer', async () => {
-    const api = base()
-      .on('GET', '/api/v1/images', { items: [image()] })
-      .on('PUT', '/api/v1/images/:id/layers', image());
-    renderApp(api, '/images');
-    const card = await screen.findByRole('region', { name: 'build-1, linux' });
-    expect(within(card).getByText('ubuntu-24.04')).toBeTruthy();
-    expect(within(card).getByText('4.0 GB')).toBeTruthy();
-    const save = within(card).getByRole<HTMLButtonElement>('button', { name: 'Save' });
+  const needy = (): Schemas['Image'] => {
+    const i = image();
+    return {
+      ...i,
+      layers: [
+        ...i.layers.map((l) => ({
+          ...l,
+          needed_by: { count: 0, repositories: [], failing: 0 },
+        })),
+        {
+          id: 'llvm',
+          name: 'LLVM',
+          enabled: false,
+          size_bytes: 0,
+          adds: [{ name: 'clang-cl' }],
+          purpose: 'for Windows builds from Linux',
+          needed_by: { count: 1, repositories: ['octo/app'], failing: 0 },
+        },
+      ],
+    };
+  };
+  const detailApi = (img: Schemas['Image']) =>
+    base()
+      .on('GET', '/api/v1/images', { items: [img] })
+      .on('GET', '/api/v1/images/:id', img)
+      .on('PUT', '/api/v1/images/:id/layers', img);
+
+  it('lists one row per image with one status line and no tables', async () => {
+    const ok = {
+      ...image(),
+      id: 'i2',
+      machine_id: 'm2',
+      layers: image().layers.map((l) => ({
+        ...l,
+        needed_by: { count: 0, repositories: [], failing: 0 },
+      })),
+    };
+    const nb = { ...notBuilt(), id: 'i3', machine_id: 'm3', layers: ok.layers };
+    renderApp(
+      base()
+        .on('GET', '/api/v1/machines', {
+          items: [
+            machine(),
+            machine({ id: 'm2', name: 'BuildBox' }),
+            machine({ id: 'm3', name: 'OldLaptop' }),
+          ],
+        })
+        .on('GET', '/api/v1/images', { items: [needy(), ok, nb] }),
+      '/images',
+    );
+    expect(await screen.findByText(/Each machine has one Linux image\./)).toBeTruthy();
+    expect(screen.getByText('Missing LLVM · needed by octo/app')).toBeTruthy();
+    expect(screen.getAllByText('1 extra layer ›').length).toBe(3);
+    expect(screen.getByText('Has what its repositories need')).toBeTruthy();
+    expect(screen.getByText('Not built yet')).toBeTruthy();
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.getByText('build-1, Linux')).toBeTruthy();
+  });
+
+  it('opens the detail from a row', async () => {
+    renderApp(detailApi(image()), '/images');
+    fireEvent.click(await screen.findByRole('button', { name: /build-1, Linux/ }));
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'build-1' }),
+    ).toBeTruthy();
+    expect(screen.getByRole('link', { name: '‹ Images' })).toBeTruthy();
+    expect(screen.getByText(/used by octo\/app, octo\/web/)).toBeTruthy();
+  });
+
+  it('ticks a layer, saves and rebuilds', async () => {
+    const api = detailApi(image());
+    renderApp(api, '/images/i1');
+    const save = await screen.findByRole<HTMLButtonElement>('button', {
+      name: 'Save and rebuild',
+    });
+    const cancel = screen.getByRole<HTMLButtonElement>('button', { name: 'Cancel' });
     expect(save.disabled).toBe(true);
-    fireEvent.click(within(card).getByRole('checkbox', { name: /Browsers/ }));
+    expect(cancel.disabled).toBe(true);
+    expect(screen.queryByText(/Rebuilds after running jobs finish/)).toBeNull();
+    fireEvent.click(screen.getByRole('checkbox', { name: /Browsers/ }));
     expect(save.disabled).toBe(false);
+    expect(screen.getByText(/Rebuilds after running jobs finish\./)).toBeTruthy();
     fireEvent.click(save);
     await waitFor(() => expect(api.count('PUT', '/api/v1/images/i1/layers')).toBe(1));
     expect(
@@ -97,25 +199,71 @@ describe('Images', () => {
     ).toEqual(['build-tools', 'browsers']);
   });
 
+  it('Cancel drops the change', async () => {
+    renderApp(detailApi(image()), '/images/i1');
+    const box = await screen.findByRole<HTMLInputElement>('checkbox', {
+      name: /Browsers/,
+    });
+    fireEvent.click(box);
+    expect(box.checked).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(box.checked).toBe(false);
+  });
+
+  it('says what is missing and Add it ticks it without saving', async () => {
+    const api = detailApi(needy());
+    renderApp(api, '/images/i1');
+    expect(await screen.findByText('octo/app needs LLVM')).toBeTruthy();
+    const llvm = screen.getByRole<HTMLInputElement>('checkbox', { name: /LLVM/ });
+    expect(llvm.checked).toBe(false);
+    expect(screen.getByText('needed by 1').getAttribute('data-tone')).toBe('needs-you');
+    fireEvent.click(screen.getByRole('button', { name: 'Add it' }));
+    expect(llvm.checked).toBe(true);
+    expect(screen.queryByText('octo/app needs LLVM')).toBeNull();
+    expect(api.count('PUT', '/api/v1/images/i1/layers')).toBe(0);
+    expect(
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Save and rebuild' })
+        .disabled,
+    ).toBe(false);
+  });
+
+  it('shows a not built image with Save, and saves the layers', async () => {
+    const api = detailApi(notBuilt());
+    renderApp(api, '/images/i1');
+    expect(
+      await screen.findByText(
+        'Not built yet. Choose layers now; it is built when its first runner starts.',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Save and rebuild' })).toBeNull();
+    fireEvent.click(screen.getByRole('checkbox', { name: /Browsers/ }));
+    expect(screen.queryByText(/Rebuilds after running jobs finish/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(api.count('PUT', '/api/v1/images/i1/layers')).toBe(1));
+  });
+
+  it('folds what is inside: base tools and extra packages per repository', async () => {
+    renderApp(detailApi(image()), '/images/i1');
+    expect(await screen.findByText('What is inside this image')).toBeTruthy();
+    expect(screen.getByText(/Always included: Ubuntu 24\.04 · git/)).toBeTruthy();
+    expect(screen.getByText('octo/app: libssl-dev, ffmpeg')).toBeTruthy();
+  });
+
   it('asks before a rebuild and names the machine and the jobs it waits for (UX-62)', async () => {
-    const api = base()
-      .on('GET', '/api/v1/images', { items: [image()] })
-      .on('POST', '/api/v1/images/:id/rebuild', (call) =>
-        call.query.get('confirm')
-          ? { id: 'c9', machine_id: 'm1', kind: 'image_rebuild', state: 'waiting' }
-          : apiError(409, 'needs_confirmation', 'Needs a yes.', [
-              { kind: 'machine', id: 'm1', text: 'Machine build-1 drains' },
-              { kind: 'runner', id: 'r1', text: 'Runner crsp-linux-1' },
-              { kind: 'job', id: '9', text: 'octo/app e2e' },
-            ]),
-      );
-    renderApp(api, '/images');
+    const api = detailApi(image()).on('POST', '/api/v1/images/:id/rebuild', (call) =>
+      call.query.get('confirm')
+        ? { id: 'c9', machine_id: 'm1', kind: 'image_rebuild', state: 'waiting' }
+        : apiError(409, 'needs_confirmation', 'Needs a yes.', [
+            { kind: 'machine', id: 'm1', text: 'Machine build-1 drains' },
+            { kind: 'job', id: '9', text: 'octo/app e2e' },
+          ]),
+    );
+    renderApp(api, '/images/i1');
     fireEvent.click(await screen.findByRole('button', { name: 'Rebuild' }));
     const dialog = await screen.findByRole('dialog', {
-      name: 'Rebuild the image of build-1, linux?',
+      name: 'Rebuild the image of build-1, Linux?',
     });
     expect(within(dialog).getByText('Machine build-1 drains')).toBeTruthy();
-    expect(within(dialog).getByText('Runner crsp-linux-1')).toBeTruthy();
     expect(within(dialog).getByText('octo/app e2e')).toBeTruthy();
     expect(api.calls.filter((c) => c.query.get('confirm')).length).toBe(0);
     fireEvent.click(within(dialog).getByRole('button', { name: 'Rebuild' }));
@@ -125,15 +273,13 @@ describe('Images', () => {
   });
 
   it('shows a rebuilding image as busy', async () => {
-    renderApp(
-      base().on('GET', '/api/v1/images', { items: [image({ state: 'rebuilding' })] }),
-      '/images',
-    );
-    const button = await screen.findByRole<HTMLButtonElement>('button', {
-      name: 'Rebuilding',
-    });
-    expect(button.disabled).toBe(true);
-    expect(screen.getByRole('progressbar', { name: /Rebuilding build-1/ })).toBeTruthy();
+    renderApp(detailApi(image({ state: 'rebuilding' })), '/images/i1');
+    expect(
+      await screen.findByRole('progressbar', { name: /Rebuilding build-1/ }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Rebuilding' }).disabled,
+    ).toBe(true);
   });
 });
 

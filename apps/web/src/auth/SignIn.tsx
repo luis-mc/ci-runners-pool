@@ -4,7 +4,27 @@ import { useState } from 'react';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { unwrap, useClient } from '../api/api';
 import { useLoad } from '../api/hooks';
+import { CallbackGuide } from './CallbackGuide';
 import { signInUrl, safeReturnPath, useSession } from './session';
+
+const SIGN_IN_FAILURES: Record<string, string> = {
+  state_missing: 'The sign-in took too long or was already used. Try again.',
+  state_mismatch: 'The sign-in started on another address. Try again from this address.',
+  address_refused:
+    'Sign-in does not work on this address. Use https, or http://127.0.0.1 on the PC that runs the controller.',
+  exchange_failed: 'GitHub did not accept the sign-in. Try again.',
+  user_failed: 'GitHub did not say who you are. Try again.',
+  session_failed: 'The controller could not start your session. Try again.',
+  handoff_failed:
+    'The sign-in could not return to the address you started on. Try again.',
+  no_app: 'This controller has no GitHub App yet. Open the setup page to create it.',
+  secret_store_unavailable: 'The OS secret store is not available. See the doctor.',
+  sign_in_failed: 'Sign-in failed. Try again.',
+};
+
+function failureText(code: string): string {
+  return SIGN_IN_FAILURES[code] ?? 'Sign-in failed. Try again.';
+}
 
 export function SignInPage() {
   const session = useSession();
@@ -36,9 +56,23 @@ export function SignInPage() {
               ? 'The sign-in link from the tray expired or was already used. Choose Open in the tray again, or sign in with GitHub.'
               : 'The sign-in link from the tray works on the computer that made it only. Sign in with GitHub here.'}
           </Message>
+        ) : failed === 'callback_not_registered' ? (
+          <Stack>
+            <Message tone="needs-you">
+              {`Sign-in does not work on ${params.get('address') ?? 'this address'} yet. Open the console on the PC that runs it at http://127.0.0.1:8460, or add this address to the GitHub App.`}
+            </Message>
+            {params.get('callback') ? (
+              <CallbackGuide
+                callbackUrl={params.get('callback') ?? ''}
+                appUrl={params.get('app_url') ?? undefined}
+              />
+            ) : null}
+          </Stack>
         ) : failed ? (
           <Message tone="problem">
-            Sign-in failed. GitHub did not let you in ({failed}). Try again.
+            {failed === 'not_allowed'
+              ? `${params.get('login') ?? 'This GitHub account'} is not on the list. Ask the owner to add you.`
+              : failureText(failed)}
           </Message>
         ) : null}
         {noApp ? (
@@ -59,7 +93,7 @@ export function SignInPage() {
               window.location.assign(signInUrl(returnTo));
             }}
           >
-            Sign in with GitHub
+            {failed === 'callback_not_registered' ? 'Try again' : 'Sign in with GitHub'}
           </Button>
           {noApp ? <TextLink to="/setup">Open the setup page</TextLink> : null}
         </Stack>

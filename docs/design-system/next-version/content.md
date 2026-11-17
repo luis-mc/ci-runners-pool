@@ -168,7 +168,7 @@ The words of the images and caches screen (web-console 4.7).
 |---|---|
 | Tabs | Images, Caches |
 | Cache kinds | Tool cache, Rust build cache, Actions cache, Git mirror, Registry mirror |
-| Empty images | No images yet. Images are built when a runner first needs one. |
+| Empty images | No images yet. A machine shows one here once it can run container jobs. |
 | Empty caches | No caches yet. Caches show here when a runner has been added. |
 | Question title | Wipe {cache}? Rebuild the image of {machine}, {OS}? |
 | Wiping | Wiping {cache}, waiting for {jobs} |
@@ -177,6 +177,18 @@ The words of the images and caches screen (web-console 4.7).
 | Over the cap | {size} of {cap} ({percent}), over the cap |
 | Wipe failed | Could not wipe {cache}. {why} |
 | Rebuild failed | Could not rebuild. {why} The old image keeps serving. |
+| Image state, before the first build | not built yet |
+| Images list title and line | Images; Each machine has one Linux image. Its repositories' jobs run from it. |
+| Image row status | Missing {layers} · needed by {repositories} (amber); Not built yet (quiet); Has what its repositories need |
+| Image row note | {n} extra layer, {n} extra layers, base only |
+| Image facts line | Built {time} · {size} · used by {repositories}; Not built yet. Choose layers now; it is built when its first runner starts. |
+| Missing layers banner | {repository} needs {layer}; {repositories} need {layers}; Add it, Add them |
+| Layers pane | Layers; Add what your repositories' jobs need. The basics are always included. |
+| Layer purposes | for browser tests, for Windows builds from Linux, for MSI installers, for .deb and .rpm packages, for tests that boot a VM |
+| Layer needed by | needed by {n} (amber when needed and not ticked) |
+| Layers footer | Cancel, Save and rebuild (Save before the first build); Rebuilds after running jobs finish. The old image keeps working until then. |
+| Folded part | What is inside this image; Always included: {tools}; Extra packages set by repositories: {repository}: {packages}; None; Rebuild |
+| Layer line, read only | {layer} · on |
 | Layers differ | The saved layers differ from the built image. Rebuild to use them. |
 
 ## Labels
@@ -638,7 +650,7 @@ The words of the Settings section Access for CI and of the action that sets up p
 | Revoke {name}? / Access {name} stops working at once. A CI job that uses it is refused. | Title and line of the question card. |
 | Make an access | The section of the form. |
 | Write a name for the access, such as "parity CI". | Error when the name is empty. |
-| What it can do / Parity: read the runners and run the doctor, nothing else | The field and its one choice. |
+| What it can do / Parity | The field and its one choice; description: Read the runners and run the doctor, nothing else. |
 | Make | The primary button of the form. Busy: Making. |
 | Could not make the access. {reason} | Problem message when making fails. |
 | Access {name} is made / I have it | Title and close button of the card that shows the value once. |
@@ -744,7 +756,7 @@ The words of Settings > Console > Network and of the dialog that chooses the con
 | Use this address | Primary action of the dialog; busy word Saving, then Restarting. |
 | Listening on | Fact: the address the controller listens on now. |
 | Chosen, after the next restart | Fact: the stored choice is not yet the running address. |
-| This PC's network address | Choice (recommended): who can reach it is runners and machines on the network and containers on this PC. |
+| This PC's network address | Choice (recommended), with its address on line 2; description: Runners and machines on your network, and containers on this PC. |
 | Docker and WSL on this PC only | Choice: containers and WSL on this PC, no other machine. |
 | Another address | Choice: opens the box Address as host:port. |
 | Address as host:port | Box label; help: an address of this PC, port 8460 unless written. |
@@ -754,6 +766,25 @@ The words of Settings > Console > Network and of the dialog that chooses the con
 | This address is set by CRSP_LISTEN_ADDR on this PC, so it cannot be changed here. | Note when the environment decides. |
 | Could not use this address. {reason} | Problem when the address is refused. |
 | The controller did not listen on the new address. {reason} | Problem when it restarted but could not bind. |
+| Add this sign-in address to your GitHub App | Title of the guided step, in the dialog before the switch (github-integration R5.8, OPS16). |
+| GitHub only signs people in on addresses the GitHub App knows. It does not know this one yet. Add this callback URL to the App: copy it, open the App's settings on GitHub, and under Callback URL choose Add Callback URL. | Text of the guided step, with the box Callback URL (Copy) and the action Open the App on GitHub. |
+| Callback URL | Label of the copyable box. |
+| Open the App on GitHub | Link button to the App's settings page, github.com only. |
+| When you have added it, press Try again. The controller then tries a sign-in for {address} and switches to it. Until then it stays on {address}. | Line in the guided step; Try again is the primary action, busy word Asking GitHub. |
+| GitHub does not know this address yet. Pressing Try again before you added it changes nothing. | Note in the guided step. |
+| Could not check the address. {reason} | Problem when GitHub could not be asked. |
+| Sign-in does not work on {address} yet. Open the console on the PC that runs it at http://127.0.0.1:8460, or add this address to the GitHub App. | Needs-you message on the sign-in page; the guided step follows and the action is Try again. |
+| {login} is not on the list. Ask the owner to add you. | Problem message on the sign-in page, code not_allowed (github-integration R5.11, OPS17). |
+| The sign-in took too long or was already used. Try again. | Problem message on the sign-in page, code state_missing (github-integration R5.8, OPS17). |
+| The sign-in started on another address. Try again from this address. | Problem message on the sign-in page, code state_mismatch (github-integration R5.8, OPS17). |
+| Sign-in does not work on this address. Use https, or http://127.0.0.1 on the PC that runs the controller. | Problem message on the sign-in page, code address_refused (github-integration R5.8, OPS17). |
+| GitHub did not accept the sign-in. Try again. | Problem message on the sign-in page, code exchange_failed (github-integration R5.8, OPS17). |
+| GitHub did not say who you are. Try again. | Problem message on the sign-in page, code user_failed (github-integration R5.8, OPS17). |
+| The controller could not start your session. Try again. | Problem message on the sign-in page, code session_failed (github-integration R5.8, OPS17). |
+| The sign-in could not return to the address you started on. Try again. | Problem message on the sign-in page, code handoff_failed (github-integration R5.8, OPS17). |
+| This controller has no GitHub App yet. Open the setup page to create it. | Problem message on the sign-in page, code no_app (github-integration R5.8, OPS17). |
+| The OS secret store is not available. See the doctor. | Problem message on the sign-in page, code secret_store_unavailable (github-integration R5.8, OPS17). |
+| Sign-in failed. Try again. | Problem message on the sign-in page, code sign_in_failed (github-integration R5.8, OPS17). |
 
 ## Repositories list: groups and inactive types
 
@@ -764,9 +795,10 @@ The words of the Repositories screen when the list is grouped by owner and hides
 | {owner} | Group heading row, with a tick box that selects the whole group. |
 | {n} repositories · {m} use the pool | Under the owner; `1 repository` when n is 1. |
 | {n} public repositories are not listed: the pool serves private repositories only. | Note line above the list while public repositories are not an active type. |
-| List them too | Link in the note: shows them, muted, in their groups. |
+| List them too | Link in the note: shows them, in grey, in their groups. |
 | Change active types | Link in the note: opens the active-types setting. |
-| {n} public repositories are listed, muted: the pool serves private repositories only. | The note line while they are listed. |
+| {n} public repositories are listed in grey: the pool serves private repositories only. | The note line while they are listed. |
+| inactive type | Tag after Public on a listed public repository that is not an active type (UX-70). |
 | Hide them | Link in that line: lists private repositories only again. |
 | {n} private repositories | Count beside the toolbar; `{n} private & public repositories` when public is active or listed. |
 
@@ -777,3 +809,17 @@ The words of the Repositories screen when the list is grouped by owner and hides
 | Move {item} up | Name of the icon button ↑ on a row. |
 | Move {item} down | Name of the icon button ↓ on a row. |
 | {item} moved to place {n} of {total}. | Live line after a move. |
+
+## Account menu words
+
+The words of the account menu at the top right and of the Users and roles intro (web-console R5.95, LOOK15).
+
+| Word | Where and meaning |
+|---|---|
+| GitHub sign-in: active until {HH:MM} | Menu line while the GitHub sign-in holds; the time is local. |
+| GitHub sign-in: active | The same line when no end time is known. |
+| GitHub sign-in: ended | The same line, amber status, after a restart or the 8 hours. |
+| Sign in with GitHub again | Action in the menu when ended: signs out, then asks GitHub, then returns to this page. |
+| Opening GitHub | Busy word of that action. |
+| GitHub sign-in ended | Accessible label of the amber dot on the account button. |
+| Who may use this console. Your own GitHub sign-in is in the {login} menu at the top right. | Intro line of Users and roles. |

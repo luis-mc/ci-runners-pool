@@ -5,11 +5,11 @@ import {
   Button,
   Card,
   CardGrid,
-  CheckRow,
   Empty,
   Facts,
   LevelBar,
   Message,
+  OpenRow,
   Page,
   PageHeader,
   Pane,
@@ -21,7 +21,6 @@ import {
   SearchBar,
   Tabs,
   Text,
-  formatDateTime,
   formatNumber,
   formatPast,
   formatPercent,
@@ -36,10 +35,9 @@ import { useSession } from '../../auth/session';
 import { useLiveStore, useVersion } from '../../live/LiveProvider';
 import { TIMING } from '../../timing';
 import { Ask, Load } from '../common';
-import { cacheName, wipingLabel } from './labels';
+import { cacheName, imageTitle, missingOf, wipingLabel } from './labels';
 
 type Cache = Schemas['Cache'];
-type Image = Schemas['Image'];
 
 const TABS = [
   { id: 'images', label: 'Images' },
@@ -105,7 +103,7 @@ function split(e: ApiError): { goes: string[]; waits: string[] } {
 }
 
 /** Ask the server what a step touches (it answers 409 without `confirm`), then open the question card. */
-function useAskFirst(opts: {
+export function useAskFirst(opts: {
   probe: () => Promise<unknown>;
   commit: () => Promise<unknown>;
   fallback: () => string[];
@@ -132,188 +130,53 @@ function useAskFirst(opts: {
 
 function ImagesTab({ nameOf }: { nameOf: (id: string) => string }) {
   const client = useClient();
+  const navigate = useNavigate();
   const v = useVersion('images');
   const { result, reload } = useLoad(() => unwrap(client.GET('/api/v1/images')), [v]);
-  const [q, setQ] = useState('');
-  const shownImages = (items: Image[]) =>
-    items.filter((i) =>
-      nameOf(i.machine_id).toLowerCase().includes(q.trim().toLowerCase()),
-    );
   return (
     <Load result={result} what="images" reload={reload}>
       {(data) =>
         data.items.length === 0 ? (
           <Section title="Images" count={0}>
-            <Empty title="No images yet. Images are built when a runner first needs one." />
+            <Empty title="No images yet. A machine shows one here once it can run container jobs." />
           </Section>
         ) : (
-          <Section title="Images" count={shownImages(data.items).length}>
-            <Stack>
-              <ListToolbar
-                label="Images"
-                search={<SearchBar value={q} onChange={setQ} label="Search images" />}
-                count={`${shownImages(data.items).length} ${shownImages(data.items).length === 1 ? 'image' : 'images'}`}
-              />
-              <CardGrid>
-                {shownImages(data.items).map((img) => (
-                  <ImageCard
-                    key={img.id}
-                    image={img}
-                    machine={nameOf(img.machine_id)}
-                    onChanged={reload}
-                  />
-                ))}
-              </CardGrid>
-            </Stack>
+          <Section
+            title="Images"
+            hint="Each machine has one Linux image. Its repositories' jobs run from it."
+          >
+            {data.items.map((img) => {
+              const miss = missingOf(img);
+              const extra = img.layers.filter((l) => l.enabled).length;
+              return (
+                <OpenRow
+                  key={img.id}
+                  title={imageTitle(nameOf(img.machine_id), img)}
+                  line={
+                    miss.layers.length > 0 ? (
+                      <Status
+                        kind="waiting"
+                        word={`Missing ${miss.layers.map((l) => l.name).join(', ')} · needed by ${miss.repos.join(', ')}`}
+                      />
+                    ) : img.state === 'not_built' ? (
+                      <Text tone="muted">Not built yet</Text>
+                    ) : (
+                      <Status kind="ok" word="Has what its repositories need" />
+                    )
+                  }
+                  aside={
+                    extra > 0
+                      ? `${extra} extra ${extra === 1 ? 'layer' : 'layers'}`
+                      : 'base only'
+                  }
+                  onOpen={() => void navigate(`/images/${encodeURIComponent(img.id)}`)}
+                />
+              );
+            })}
           </Section>
         )
       }
     </Load>
-  );
-}
-
-function ImageCard({
-  image,
-  machine,
-  onChanged,
-}: {
-  image: Image;
-  machine: string;
-  onChanged: () => void;
-}) {
-  const client = useClient();
-  const session = useSession();
-  const admin = session.can('admin');
-  const why = session.whyNot('admin');
-  const saved = useMemo(
-    () => image.layers.filter((l) => l.enabled).map((l) => l.id),
-    [image.layers],
-  );
-  const [draft, setDraft] = useState<string[] | undefined>(undefined);
-  const enabled = draft ?? saved;
-  const dirty =
-    draft !== undefined && [...draft].sort().join() !== [...saved].sort().join();
-  const rebuilding = image.state === 'rebuilding';
-
-  const save = useCommand(async () => {
-    await unwrap(
-      client.PUT('/api/v1/images/{imageId}/layers', {
-        params: { path: { imageId: image.id } },
-        body: { enabled_layers: enabled },
-      }),
-    );
-    setDraft(undefined);
-    onChanged();
-  });
-  const { ask, probe } = useAskFirst({
-    probe: () =>
-      unwrap(
-        client.POST('/api/v1/images/{imageId}/rebuild', {
-          params: { path: { imageId: image.id } },
-        }),
-      ),
-    commit: () =>
-      unwrap(
-        client.POST('/api/v1/images/{imageId}/rebuild', {
-          params: { path: { imageId: image.id }, query: { confirm: true } },
-        }),
-      ),
-    fallback: () => [`Image of ${machine}, ${image.os}`],
-    onDone: onChanged,
-  });
-
-  const title = `${machine}, ${image.os}`;
-  return (
-    <Card
-      title={title}
-      footer={
-        <Stack gap="tight">
-          <Button
-            onPress={() => void save.run()}
-            busy={save.busy}
-            busyLabel="Saving"
-            disabled={!admin || !dirty}
-            reason={!admin ? why : 'Change a layer to save.'}
-          >
-            Save
-          </Button>
-          <Button
-            onPress={() => void probe.run()}
-            busy={probe.busy || rebuilding}
-            busyLabel={rebuilding ? 'Rebuilding' : 'Working'}
-            disabled={!admin}
-            reason={why}
-          >
-            Rebuild
-          </Button>
-        </Stack>
-      }
-    >
-      <Stack gap="tight">
-        <Status
-          kind={
-            image.state === 'ready'
-              ? 'ok'
-              : image.state === 'failed'
-                ? 'failed'
-                : 'running'
-          }
-          word={image.state}
-        />
-        <Facts
-          items={[
-            { name: 'Base', value: image.base },
-            { name: 'Size', value: formatSize(image.size_bytes) },
-            {
-              name: 'Built at',
-              value: image.built_at ? formatDateTime(image.built_at) : 'not built yet',
-            },
-            { name: 'Newest', value: image.newest ? 'yes' : 'no' },
-          ]}
-        />
-        {image.layers.map((l) => (
-          <CheckRow
-            key={l.id}
-            label={l.name}
-            help={formatSize(l.size_bytes)}
-            checked={enabled.includes(l.id)}
-            onChange={(c) =>
-              setDraft(c ? [...enabled, l.id] : enabled.filter((x) => x !== l.id))
-            }
-            {...(!admin || rebuilding
-              ? { disabledReason: !admin ? why : 'The image is being rebuilt.' }
-              : {})}
-          />
-        ))}
-        {rebuilding ? <Progress label={`Rebuilding ${title}`} /> : null}
-        {image.needs_rebuild && !rebuilding ? (
-          <Message tone="note">
-            The saved layers differ from the built image. Rebuild to use them.
-          </Message>
-        ) : null}
-        {image.state === 'failed' && image.error ? (
-          <Message tone="problem">
-            Could not rebuild. {image.error} The old image keeps serving.
-          </Message>
-        ) : null}
-        {save.error ? (
-          <Message tone="problem">Could not save the layers. {save.error}</Message>
-        ) : null}
-        {probe.error ? (
-          <Message tone="problem">Could not rebuild. {probe.error}</Message>
-        ) : null}
-      </Stack>
-      <Ask
-        title={`Rebuild the image of ${title}?`}
-        action="Rebuild"
-        busyLabel="Rebuilding"
-        q={ask.question}
-        busy={ask.busy}
-        error={ask.error}
-        onCancel={ask.cancel}
-        onConfirm={() => void ask.confirm()}
-      />
-    </Card>
   );
 }
 

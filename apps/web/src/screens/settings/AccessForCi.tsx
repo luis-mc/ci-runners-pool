@@ -195,7 +195,8 @@ function AccessCredentials({ version }: { version: number }) {
                 choices={[
                   {
                     value: 'parity',
-                    label: 'Parity: read the runners and run the doctor, nothing else',
+                    label: 'Parity',
+                    description: 'Read the runners and run the doctor, nothing else.',
                   },
                 ]}
               />

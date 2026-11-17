@@ -204,6 +204,7 @@ export function repository(
     visibility: 'private',
     pool_on: false,
     user_is_github_admin: true,
+    user_admin_known: true,
     variables: [],
     policy: {
       priority: 10,
@@ -230,7 +231,11 @@ export function overview(over: Partial<Schemas['Overview']> = {}): Schemas['Over
 /** A signed-in mock with the routes every screen needs. */
 export function signedIn(user: Schemas['User'] = owner): MockApi {
   return new MockApi()
-    .on('GET', '/api/v1/me', { user, csrf: 'tok' })
+    .on('GET', '/api/v1/me', {
+      user,
+      csrf: 'tok',
+      github_signin: { state: 'active', expires_at: '2026-11-17T18:30:00Z' },
+    })
     .on('GET', '/api/v1/me/preferences', { theme: 'dark' })
     .on('GET', '/api/v1/settings/public-repositories', {
       enabled: false,

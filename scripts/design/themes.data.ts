@@ -8,6 +8,8 @@ export interface Palette {
   readonly surface: string;
   readonly text: string;
   readonly muted: string;
+  /** Text of a row the console dims as inactive: grey, apart from the green or blue muted text (UX-70). */
+  readonly inactive: string;
   readonly border: string;
   readonly primary: string;
   readonly onprimary: string;
@@ -39,6 +41,7 @@ export const THEME_DATA: readonly ThemeData[] = [
       surface: '#08130a',
       text: '#b9f7b4',
       muted: '#78b874',
+      inactive: '#8a948a',
       border: '#4a8a47',
       primary: '#4dff88',
       onprimary: '#021207',
@@ -53,6 +56,7 @@ export const THEME_DATA: readonly ThemeData[] = [
       surface: '#f9fcf7',
       text: '#0e2a12',
       muted: '#3f5e41',
+      inactive: '#5c635c',
       border: '#5f7d61',
       primary: '#0f6b2c',
       onprimary: '#ffffff',
@@ -72,6 +76,7 @@ export const THEME_DATA: readonly ThemeData[] = [
       surface: '#1a1b26',
       text: '#c0caf5',
       muted: '#9aa5ce',
+      inactive: '#8a948a',
       border: '#6b74a3',
       primary: '#7aa2f7',
       onprimary: '#11121a',
@@ -86,6 +91,7 @@ export const THEME_DATA: readonly ThemeData[] = [
       surface: '#f4f5f8',
       text: '#343b58',
       muted: '#4f5574',
+      inactive: '#5c635c',
       border: '#6b7194',
       primary: '#2350b5',
       onprimary: '#ffffff',
@@ -105,6 +111,7 @@ export const THEME_DATA: readonly ThemeData[] = [
       surface: '#1e1e2e',
       text: '#cdd6f4',
       muted: '#a6adc8',
+      inactive: '#8a948a',
       border: '#7f849c',
       primary: '#cba6f7',
       onprimary: '#1e1e2e',
@@ -119,6 +126,7 @@ export const THEME_DATA: readonly ThemeData[] = [
       surface: '#eff1f5',
       text: '#4c4f69',
       muted: '#5c5f77',
+      inactive: '#5c635c',
       border: '#7c7f93',
       primary: '#7a2ee0',
       onprimary: '#ffffff',
@@ -138,6 +146,7 @@ export const THEME_DATA: readonly ThemeData[] = [
       surface: '#282828',
       text: '#ebdbb2',
       muted: '#bdae93',
+      inactive: '#8a948a',
       border: '#7c6f64',
       primary: '#fabd2f',
       onprimary: '#1d2021',
@@ -152,6 +161,7 @@ export const THEME_DATA: readonly ThemeData[] = [
       surface: '#fbf1c7',
       text: '#3c3836',
       muted: '#5a514a',
+      inactive: '#5c635c',
       border: '#7c6f64',
       primary: '#076678',
       onprimary: '#ffffff',
@@ -171,6 +181,7 @@ export const THEME_DATA: readonly ThemeData[] = [
       surface: '#073642',
       text: '#d2dbd9',
       muted: '#a5b4b5',
+      inactive: '#9aa29a',
       border: '#7a9497',
       primary: '#6cbcf5',
       onprimary: '#002b36',
@@ -185,6 +196,7 @@ export const THEME_DATA: readonly ThemeData[] = [
       surface: '#fffbf0',
       text: '#073642',
       muted: '#4c6168',
+      inactive: '#5c635c',
       border: '#6d7f83',
       primary: '#1a5f96',
       onprimary: '#ffffff',
@@ -204,6 +216,7 @@ export const THEME_DATA: readonly ThemeData[] = [
       surface: '#2e3440',
       text: '#eceff4',
       muted: '#b4bccb',
+      inactive: '#9aa29a',
       border: '#76829b',
       primary: '#88c0d0',
       onprimary: '#1b2029',
@@ -218,6 +231,7 @@ export const THEME_DATA: readonly ThemeData[] = [
       surface: '#f6f8fb',
       text: '#2e3440',
       muted: '#4c566a',
+      inactive: '#5c635c',
       border: '#6b768c',
       primary: '#2f6585',
       onprimary: '#ffffff',

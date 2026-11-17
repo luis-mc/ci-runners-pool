@@ -7,9 +7,9 @@ import (
 
 // R5.33: one key per base, layers and pins.
 func TestBuildOnceKeepNewest(t *testing.T) {
-	in := ImageKeyInput{Base: "ubuntu-24.04", Layers: []string{"node", "playwright"}, Pins: map[string]string{"runner": "2.330.0"}}
+	in := ImageKeyInput{Base: "ubuntu-24.04", Layers: []string{"node", "playwright"}, Pins: map[string]string{"runner": "2.338.2"}}
 	k := ImageKey(in)
-	same := ImageKeyInput{Base: "ubuntu-24.04", Layers: []string{"playwright", "node", "node", " "}, Pins: map[string]string{"runner": "2.330.0"}}
+	same := ImageKeyInput{Base: "ubuntu-24.04", Layers: []string{"playwright", "node", "node", " "}, Pins: map[string]string{"runner": "2.338.2"}}
 	if ImageKey(same) != k {
 		t.Fatal("the key must not depend on the layer order or repeats")
 	}

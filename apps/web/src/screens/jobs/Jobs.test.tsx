@@ -72,6 +72,7 @@ function jobsApi(items: { queue?: Job[]; history?: Job[]; next?: string } = {}) 
           visibility: 'private',
           pool_on: true,
           user_is_github_admin: true,
+          user_admin_known: true,
           variables: [],
           policy: {
             priority: 10,

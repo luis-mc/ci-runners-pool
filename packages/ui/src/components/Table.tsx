@@ -24,7 +24,7 @@ export function Table<T>({
   selected,
   onToggle,
   toggleLabel,
-  muted,
+  inactive,
   title,
 }: {
   caption: string;
@@ -38,8 +38,8 @@ export function Table<T>({
   selected?: ReadonlySet<string> | undefined;
   onToggle?: ((key: string) => void) | undefined;
   toggleLabel?: ((row: T) => string) | undefined;
-  /** A row the screen shows greyed because it cannot be used now; its reason sits in the row. */
-  muted?: ((row: T) => boolean) | undefined;
+  /** A row the screen shows in grey because it cannot be used now (UX-70): text and links grey, links underlined; its reason sits in the row. */
+  inactive?: ((row: T) => boolean) | undefined;
 }) {
   useKeyHints(
     rows.length > 0
@@ -109,7 +109,7 @@ export function Table<T>({
                 key={key}
                 data-list-row
                 data-selected={selected?.has(key) || undefined}
-                data-muted={muted?.(row) || undefined}
+                data-inactive={inactive?.(row) || undefined}
                 tabIndex={0}
                 onDoubleClick={onOpen ? () => onOpen(row) : undefined}
                 onKeyDown={

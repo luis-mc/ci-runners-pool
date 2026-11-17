@@ -139,7 +139,7 @@ func nonNil(s []string) []string {
 
 func toRepository(v repos.RepositoryView) gen.Repository {
 	out := gen.Repository{Id: v.ID, InstallationId: v.InstallationID, FullName: v.FullName, Name: v.Name, Owner: v.Owner,
-		Visibility: gen.RepositoryVisibility(v.Visibility), PoolOn: v.PoolOn, UserIsGithubAdmin: v.UserIsAdmin,
+		Visibility: gen.RepositoryVisibility(v.Visibility), PoolOn: v.PoolOn, UserIsGithubAdmin: v.UserIsAdmin, UserAdminKnown: v.AdminKnown,
 		Policy: toPolicy(v.Policy), Variables: []gen.RepositoryVariable{}}
 	if v.Routing.Where != "" {
 		rt := gen.RepositoryRouting{Where: gen.RepositoryRoutingWhere(v.Routing.Where), Why: gen.RepositoryRoutingWhy(v.Routing.Why), UsedMinutes: v.Routing.UsedMinutes}

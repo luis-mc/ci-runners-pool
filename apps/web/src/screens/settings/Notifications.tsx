@@ -52,7 +52,7 @@ const KIND_WORDS: Record<Kind, string> = {
   webhook: 'Webhook',
   desktop: 'Desktop',
 };
-const MIN_SECRET = 16;
+const MIN_SIGNING_LENGTH = 16;
 
 interface Draft {
   id: string | undefined;
@@ -140,10 +140,10 @@ export function problemsOf(d: Draft): string[] {
   if (d.kind === 'webhook') {
     if (!/^https:\/\/[^\s/]+/i.test(d.url.trim()))
       out.push('Write the webhook address as an https URL.');
-    if (!editing && d.secret.length < MIN_SECRET)
-      out.push(`Write a signing secret of at least ${MIN_SECRET} characters.`);
-    if (editing && d.secret && d.secret.length < MIN_SECRET)
-      out.push(`A new signing secret needs at least ${MIN_SECRET} characters.`);
+    if (!editing && d.secret.length < MIN_SIGNING_LENGTH)
+      out.push(`Write a signing secret of at least ${MIN_SIGNING_LENGTH} characters.`);
+    if (editing && d.secret && d.secret.length < MIN_SIGNING_LENGTH)
+      out.push(`A new signing secret needs at least ${MIN_SIGNING_LENGTH} characters.`);
   }
   return out;
 }
@@ -377,13 +377,22 @@ export function NotificationsSettings() {
   ];
 
   const kindChoices = [
-    { value: 'email', label: 'Email: sent through a mail server you name' },
+    {
+      value: 'email',
+      label: 'Email',
+      description: 'Sent through a mail server you name.',
+    },
     {
       value: 'webhook',
-      label: 'Webhook: a signed message to a link, for the whole pool',
+      label: 'Webhook',
+      description: 'A signed message to a link, for the whole pool.',
       ...(cannotWebhook ? { disabledReason: cannotWebhook } : {}),
     },
-    { value: 'desktop', label: 'Desktop: a notice from the tray on your computer' },
+    {
+      value: 'desktop',
+      label: 'Desktop',
+      description: 'A notice from the tray on your computer.',
+    },
   ];
 
   return (
@@ -522,7 +531,7 @@ export function NotificationsSettings() {
                     help={
                       draft.id
                         ? 'A secret is set. Leave this empty to keep it, or write a new one.'
-                        : `At least ${MIN_SECRET} characters. It is shown here once, then kept only in the secret store.`
+                        : `At least ${MIN_SIGNING_LENGTH} characters. It is shown here once, then kept only in the secret store.`
                     }
                     value={draft.secret}
                     onChange={(secret) => set({ secret })}

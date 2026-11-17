@@ -18,18 +18,14 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand, useLoad } from '../../api/hooks';
+import { CallbackGuide } from '../../auth/CallbackGuide';
 import { useSession } from '../../auth/session';
 import { TIMING } from '../../timing';
 import { Load } from '../common';
 
 type Listen = Schemas['ListenAddress'];
-type Candidate = Schemas['ListenAddressCandidate'];
 
 const OTHER = 'other';
-
-export function choiceLabel(c: Candidate): string {
-  return c.address ? `${c.label}: ${c.address}. ${c.who}` : `${c.label}. ${c.who}`;
-}
 
 /** Settings > Console > Network. */
 export function NetworkSettings() {
@@ -89,7 +85,8 @@ export function NetworkSettings() {
   );
 }
 
-type Phase = 'choosing' | 'applying' | 'done';
+type Phase = 'choosing' | 'guide' | 'applying' | 'done';
+type SignInAddress = Schemas['SignInAddress'];
 
 /** The dialog: three choices as a radio group, Cancel left, Use this address right (UX-44). */
 export function ChooseAddressDialog({
@@ -109,6 +106,7 @@ export function ChooseAddressDialog({
   const [phase, setPhase] = useState<Phase>('choosing');
   const [chosen, setChosen] = useState('');
   const [failure, setFailure] = useState<string | undefined>(undefined);
+  const [guide, setGuide] = useState<SignInAddress | undefined>(undefined);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -148,14 +146,28 @@ export function ChooseAddressDialog({
     }
   };
 
-  const apply = useCommand(async () => {
-    setFailure(undefined);
+  const put = async () => {
     const out = await unwrap(
       client.PUT('/api/v1/settings/listen-address', { body: { address } }),
     );
     setChosen(out.address);
     setPhase('applying');
     void follow(out.address);
+  };
+
+  // Before switching, GitHub must know the sign-in address of the new console address (OPS16): a dry sign-in
+  // asks it. When it does not, the guided step gives the callback URL to add; Try again asks once more.
+  const apply = useCommand(async () => {
+    setFailure(undefined);
+    const info = await unwrap(
+      client.POST('/api/v1/settings/signin-address', { body: { address } }),
+    );
+    if (!info.registered) {
+      setGuide(info);
+      setPhase('guide');
+      return;
+    }
+    await put();
   });
 
   const title = 'Choose an address';
@@ -166,6 +178,34 @@ export function ChooseAddressDialog({
           The controller answers on {chosen}. It also keeps 127.0.0.1 for this console and
           the tray.
         </Message>
+      </Dialog>
+    );
+  if (phase === 'guide' && guide)
+    return (
+      <Dialog
+        title="Add this sign-in address to your GitHub App"
+        onClose={onClose}
+        primary={{
+          label: 'Try again',
+          onPress: () => void apply.run(),
+          busy: apply.busy,
+          busyLabel: 'Asking GitHub',
+        }}
+      >
+        <Stack>
+          <CallbackGuide callbackUrl={guide.callback_url} appUrl={guide.app_url} />
+          <Text>
+            {`When you have added it, press Try again. The controller then tries a sign-in for ${guide.address} and switches to it. Until then it stays on ${data?.running ?? 'the old address'}.`}
+          </Text>
+          {apply.error ? (
+            <Message tone="problem">Could not check the address. {apply.error}</Message>
+          ) : (
+            <Message tone="note">
+              GitHub does not know this address yet. Pressing Try again before you added
+              it changes nothing.
+            </Message>
+          )}
+        </Stack>
       </Dialog>
     );
   if (phase === 'applying')
@@ -219,18 +259,24 @@ export function ChooseAddressDialog({
               onChange={setChoice}
               choices={l.candidates.map((c) => ({
                 value: c.id,
-                label: choiceLabel(c),
+                label: c.label,
+                ...(c.address ? { detail: c.address } : {}),
+                description: c.who,
+                ...(c.id === OTHER
+                  ? {
+                      extra: (
+                        <TextField
+                          label="Address as host:port"
+                          value={typed}
+                          onChange={setTyped}
+                          help="An address of this PC, such as 192.168.1.20:8460. The port is 8460 unless you write another."
+                        />
+                      ),
+                    }
+                  : {}),
                 ...(l.from_env ? { disabledReason: 'Set by the environment.' } : {}),
               }))}
             />
-            {selected === OTHER ? (
-              <TextField
-                label="Address as host:port"
-                value={typed}
-                onChange={setTyped}
-                help="An address of this PC, such as 192.168.1.20:8460. The port is 8460 unless you write another."
-              />
-            ) : null}
             <Text>
               The controller restarts once when you press Use this address. Running jobs
               finish first.

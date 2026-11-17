@@ -93,6 +93,7 @@ export const repository = (over: Record<string, unknown> = {}) => ({
   visibility: 'private',
   pool_on: false,
   user_is_github_admin: true,
+  user_admin_known: true,
   variables: [],
   policy: {
     priority: 10,
@@ -222,10 +223,56 @@ export const failure = (
   error: { code, message, details },
 });
 
+/** The one image the console fixtures show: not built yet, a repository needs a layer it lacks. */
+export const image = () => ({
+  id: 'img_m1_linux',
+  machine_id: 'm1',
+  os: 'linux',
+  base: 'ubuntu-24.04',
+  base_tools: [
+    { name: 'Ubuntu', version: '24.04' },
+    { name: 'git' },
+    { name: 'curl' },
+    { name: 'python3' },
+    { name: 'jq' },
+    { name: 'zip' },
+    { name: 'node', version: '26' },
+    { name: 'pnpm' },
+  ],
+  extra_packages: [{ repository: 'octo/app', packages: ['libssl-dev'] }],
+  layers: [
+    {
+      id: 'playwright',
+      name: 'Browsers for Playwright',
+      enabled: false,
+      size_bytes: 0,
+      adds: [{ name: 'chromium' }, { name: 'firefox' }, { name: 'webkit' }],
+      purpose: 'your tests drive a browser',
+      needed_by: { count: 1, repositories: ['octo/app'], failing: 1 },
+    },
+    {
+      id: 'kvm',
+      name: 'KVM virtual machines',
+      enabled: true,
+      size_bytes: 0,
+      adds: [{ name: 'qemu-system-x86_64' }, { name: 'qemu-img' }],
+      purpose: 'your jobs boot a virtual machine with qemu',
+      needed_by: { count: 0, repositories: [], failing: 0 },
+    },
+  ],
+  size_bytes: 0,
+  newest: true,
+  state: 'not_built',
+});
+
 /** The routes every signed-in screen needs. */
 export function signedIn(user: unknown = owner): Mock {
   return new Mock()
-    .on('GET', '/api/v1/me', { user, csrf: 'tok' })
+    .on('GET', '/api/v1/me', {
+      user,
+      csrf: 'tok',
+      github_signin: { state: 'active', expires_at: '2026-11-17T18:30:00Z' },
+    })
     .on('GET', '/api/v1/me/preferences', { theme: 'dark' })
     .on('GET', '/api/v1/overview', overview())
     .on('GET', '/api/v1/setup', {
@@ -254,7 +301,8 @@ export function signedIn(user: unknown = owner): Mock {
     .on('GET', '/api/v1/machines/:id', machine())
     .on('GET', '/api/v1/repositories/:id', repository())
     .on('GET', '/api/v1/runners', { items: [runner()] })
-    .on('GET', '/api/v1/images', { items: [] })
+    .on('GET', '/api/v1/images', { items: [image()] })
+    .on('GET', '/api/v1/images/:id', image())
     .on('GET', '/api/v1/caches', { items: [cache()] })
     .on('GET', '/api/v1/github/org-pools', {
       items: [
@@ -292,6 +340,7 @@ export function publicRows() {
   const base = {
     installation_id: 1,
     user_is_github_admin: true,
+    user_admin_known: true,
     variables: [],
     policy: {
       priority: 10,

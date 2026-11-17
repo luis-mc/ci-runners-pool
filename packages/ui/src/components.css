@@ -185,6 +185,14 @@ body {
 .ds-usermenu {
   position: relative;
 }
+.ds-usermenu__dot {
+  display: inline-block;
+  inline-size: var(--ds-space-2);
+  block-size: var(--ds-space-2);
+  margin-inline-start: var(--ds-space-2);
+  border-radius: 50%;
+  background: var(--ds-color-needs-you);
+}
 .ds-popover {
   position: absolute;
   inset-inline-end: 0;
@@ -423,6 +431,13 @@ body {
   padding: 0 var(--ds-space-2);
   border: var(--ds-border-thin) solid var(--ds-color-border);
   border-radius: var(--ds-radius-round);
+  font-size: var(--ds-size-1);
+}
+.ds-tag {
+  display: inline-block;
+  padding: 0 var(--ds-space-2);
+  border: var(--ds-border-thin) solid currentColor;
+  border-radius: var(--ds-radius-1);
   font-size: var(--ds-size-1);
 }
 .ds-message {
@@ -727,8 +742,12 @@ body {
 .ds-table tr[data-active] td {
   color: inherit;
 }
-.ds-table tr[data-muted] td {
-  color: var(--ds-color-text-muted);
+.ds-table tr[data-inactive] td,
+.ds-table tr[data-inactive] a {
+  color: var(--ds-color-text-inactive);
+}
+.ds-table tr[data-inactive] a {
+  text-decoration: underline;
 }
 .ds-table__pick {
   inline-size: var(--ds-target-min);
@@ -950,6 +969,50 @@ body {
   .ds-choice[data-cards] {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+/* option with a name, a value and a description: radio on the first line, a divider between options,
+   the whole option is the target, a hover and a selected bar (LOOK14) */
+.ds-choice__option {
+  display: grid;
+  gap: var(--ds-space-2);
+  padding-block: var(--ds-space-2);
+  border-block-start: var(--ds-border-thin) solid var(--ds-color-border);
+}
+.ds-choice__option:first-of-type {
+  border-block-start: 0;
+}
+.ds-choice__row[data-structured] {
+  align-items: flex-start;
+  padding-inline-end: var(--ds-space-3);
+  border-inline-start: var(--ds-border-thick, 4px) solid transparent;
+  cursor: pointer;
+}
+.ds-choice__row[data-structured]:hover {
+  background: var(--ds-color-surface-hover, var(--ds-color-surface));
+}
+.ds-choice__row[data-structured][data-selected] {
+  border-inline-start-color: var(--ds-color-primary);
+}
+.ds-choice__row[data-structured][data-disabled] {
+  cursor: not-allowed;
+}
+.ds-choice__row[data-structured] .ds-choice__text {
+  display: grid;
+  gap: var(--ds-space-1);
+  min-inline-size: 0;
+  padding-block: calc((var(--ds-target-min) - 1lh) / 2);
+  overflow-wrap: anywhere;
+}
+.ds-choice__name {
+  font-weight: var(--ds-weight-bold);
+}
+.ds-choice__description {
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-size-2);
+}
+.ds-choice__extra {
+  padding-inline-start: calc(var(--ds-target-min) + var(--ds-space-3));
+  padding-block-end: var(--ds-space-2);
 }
 .ds-choice__reason {
   color: var(--ds-color-text-muted);
@@ -1535,4 +1598,71 @@ body {
   min-inline-size: var(--ds-target-min);
   min-block-size: var(--ds-target-min);
   padding-inline: 0;
+}
+
+/* open row and folded section (components 46, 47) */
+.ds-open-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-3);
+  inline-size: 100%;
+  min-block-size: var(--ds-target-min);
+  padding: var(--ds-space-2) var(--ds-space-3);
+  font: inherit;
+  text-align: start;
+  color: var(--ds-color-text);
+  background: none;
+  border: 0;
+  border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
+  cursor: pointer;
+}
+.ds-open-row:hover,
+.ds-open-row[data-active] {
+  background: var(--ds-color-selection);
+}
+.ds-open-row__text {
+  display: grid;
+  gap: var(--ds-space-1);
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.ds-open-row__text .ds-status {
+  white-space: normal;
+}
+.ds-open-row__title {
+  font-weight: var(--ds-weight-bold);
+}
+.ds-open-row__aside {
+  color: var(--ds-color-text-muted);
+  white-space: nowrap;
+}
+@media (max-width: 599px) {
+  .ds-open-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+.ds-disclosure__body {
+  display: grid;
+  gap: var(--ds-space-3);
+  padding-block-start: var(--ds-space-2);
+}
+.ds-choice__row[data-aside] {
+  justify-content: space-between;
+}
+.ds-choice__aside {
+  margin-inline-start: auto;
+  color: var(--ds-color-text-muted);
+  white-space: nowrap;
+}
+.ds-choice__aside[data-tone='needs-you'] {
+  color: var(--ds-color-needs-you);
+}
+.ds-choice__name {
+  display: block;
+  font-weight: var(--ds-weight-bold);
+}
+.ds-choice__row[data-stack] .ds-choice__text {
+  display: grid;
 }
