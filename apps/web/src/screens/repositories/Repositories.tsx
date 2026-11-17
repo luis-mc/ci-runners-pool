@@ -885,7 +885,8 @@ function VisibilityCell({ r }: { r: Repository }) {
     <Stack gap="tight">
       <Text>{visibilityWord(r)}</Text>
       <Text>
-        {r.problem.text} <TextLink to={`/repositories/${r.owner}/${r.name}`}>Fix it</TextLink>
+        {r.problem.text}{' '}
+        <TextLink to={`/repositories/${r.owner}/${r.name}`}>Fix it</TextLink>
       </Text>
     </Stack>
   );

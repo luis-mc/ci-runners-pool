@@ -148,7 +148,9 @@ describe('Repositories: active types, Visibility and greyed public rows', () => 
     expect(within(siteRow as HTMLElement).getByText('Public')).toBeTruthy();
     expect(within(appRow as HTMLElement).getByText('Private')).toBeTruthy();
     expect(within(table).queryByText(/Public repositories are off/)).toBeNull();
-    expect(within(table).queryByRole('link', { name: 'Turn on public repositories' })).toBeNull();
+    expect(
+      within(table).queryByRole('link', { name: 'Turn on public repositories' }),
+    ).toBeNull();
   });
 
   it('does not grey public rows while the setting is on', async () => {
