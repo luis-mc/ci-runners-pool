@@ -85,6 +85,8 @@ type Options struct {
 	// it refuses (CRSP141).
 	PublicHost string
 	ListenAddr string
+	// Listen serves the listen address routes (handlers_listen.go). Nil answers 501.
+	Listen ListenService
 	// ParityProbe calls the address the parity setup will write from the
 	// server side. Nil uses a call over https that trusts only the controller CA.
 	ParityProbe func(ctx context.Context, addr string) error

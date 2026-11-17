@@ -37,7 +37,7 @@ func ParityAddress(publicHost, listenAddr string) (string, error) {
 			port = p
 		}
 		if isLoopbackHost(h) {
-			return "", &AddressError{Setting: SettingListenAddr, Reason: "the console listens on a loopback address (" + listenAddr + "), which only this machine can reach; set " + SettingListenAddr + " to an address of this machine that the runners can reach"}
+			return "", &AddressError{Setting: SettingListenAddr, Reason: "the console listens on a loopback address (" + listenAddr + "), which only this machine can reach; choose an address of this PC that the runners can reach (Settings, Console, Network)"}
 		}
 	}
 	host := strings.TrimSpace(publicHost)

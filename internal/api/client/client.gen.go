@@ -628,6 +628,27 @@ func (e JoinCodeState) Valid() bool {
 	}
 }
 
+// Defines values for ListenAddressCandidateId.
+const (
+	ListenAddressCandidateIdDocker ListenAddressCandidateId = "docker"
+	ListenAddressCandidateIdOther  ListenAddressCandidateId = "other"
+	ListenAddressCandidateIdPc     ListenAddressCandidateId = "pc"
+)
+
+// Valid indicates whether the value is a known member of the ListenAddressCandidateId enum.
+func (e ListenAddressCandidateId) Valid() bool {
+	switch e {
+	case ListenAddressCandidateIdDocker:
+		return true
+	case ListenAddressCandidateIdOther:
+		return true
+	case ListenAddressCandidateIdPc:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MachineChangeChoices.
 const (
 	MachineChangeChoicesCancel     MachineChangeChoices = "cancel"
@@ -2767,6 +2788,51 @@ type JoinCodeCreated struct {
 	JoinCode JoinCode        `json:"join_code"`
 }
 
+// ListenAddress defines model for ListenAddress.
+type ListenAddress struct {
+	Candidates []ListenAddressCandidate `json:"candidates"`
+	EnvName    *string                  `json:"env_name,omitempty"`
+
+	// FromEnv CRSP_LISTEN_ADDR is set and wins; the console cannot change it.
+	FromEnv bool `json:"from_env"`
+
+	// Problem Why the controller did not listen on the stored address at start.
+	Problem *string `json:"problem,omitempty"`
+
+	// Running The address the controller listens on now (host:port).
+	Running string `json:"running"`
+
+	// Stored The address chosen in the console, when there is one.
+	Stored *string `json:"stored,omitempty"`
+}
+
+// ListenAddressCandidate defines model for ListenAddressCandidate.
+type ListenAddressCandidate struct {
+	// Address host:port. Empty for the typed choice.
+	Address     *string                  `json:"address,omitempty"`
+	Id          ListenAddressCandidateId `json:"id"`
+	Label       string                   `json:"label"`
+	Recommended *bool                    `json:"recommended,omitempty"`
+
+	// Who One line on who can reach it.
+	Who string `json:"who"`
+}
+
+// ListenAddressCandidateId defines model for ListenAddressCandidate.Id.
+type ListenAddressCandidateId string
+
+// ListenAddressChoice defines model for ListenAddressChoice.
+type ListenAddressChoice struct {
+	// Address host:port of this PC.
+	Address string `json:"address"`
+}
+
+// ListenAddressChosen defines model for ListenAddressChosen.
+type ListenAddressChosen struct {
+	Address    string `json:"address"`
+	Restarting bool   `json:"restarting"`
+}
+
 // Load defines model for Load.
 type Load struct {
 	CpuKnown    bool      `json:"cpu_known"`
@@ -4501,6 +4567,9 @@ type CreateRunnersJSONRequestBody = ApplyPlanRequest
 // UpdateSettingsJSONRequestBody defines body for UpdateSettings for application/json ContentType.
 type UpdateSettingsJSONRequestBody = Settings
 
+// PutListenAddressJSONRequestBody defines body for PutListenAddress for application/json ContentType.
+type PutListenAddressJSONRequestBody = ListenAddressChoice
+
 // UpdatePoolSettingsJSONRequestBody defines body for UpdatePoolSettings for application/json ContentType.
 type UpdatePoolSettingsJSONRequestBody = PoolSettings
 
@@ -5648,6 +5717,31 @@ type ClientInterface interface {
 	//
 	// Corresponds with PATCH /api/v1/settings (the `UpdateSettings` operationId).
 	UpdateSettings(ctx context.Context, body UpdateSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetListenAddress The controller address, and the addresses of this PC to choose from
+	//
+	// operations R5.90. `running` is the address the controller listens on now; `stored` is the choice kept in the settings. CRSP_LISTEN_ADDR, when set, wins (`from_env`), and the console shows it read-only. `candidates` are found on this PC: its network address, the host address of Docker and WSL, and a typed address.
+	//
+	// Corresponds with GET /api/v1/settings/listen-address (the `GetListenAddress` operationId).
+	GetListenAddress(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutListenAddressWithBody Choose the controller address
+	//
+	// operations R5.90. Checks the address (host:port, an address of this PC, not loopback), keeps it in the settings, writes one audit row, and restarts the controller once through the drain path: running jobs finish first. The controller then listens on the address over https with its own certificate, and on 127.0.0.1 too. Refused with 409 when CRSP_LISTEN_ADDR is set.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/settings/listen-address (the `PutListenAddress` operationId).
+	PutListenAddressWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutListenAddress Choose the controller address
+	//
+	// operations R5.90. Checks the address (host:port, an address of this PC, not loopback), keeps it in the settings, writes one audit row, and restarts the controller once through the drain path: running jobs finish first. The controller then listens on the address over https with its own certificate, and on 127.0.0.1 too. Refused with 409 when CRSP_LISTEN_ADDR is set.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/settings/listen-address (the `PutListenAddress` operationId).
+	PutListenAddress(ctx context.Context, body PutListenAddressJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetPoolSettings Defaults for new machines
 	//
@@ -8282,6 +8376,61 @@ func (c *Client) UpdateSettingsWithBody(ctx context.Context, contentType string,
 // Corresponds with PATCH /api/v1/settings (the `UpdateSettings` operationId).
 func (c *Client) UpdateSettings(ctx context.Context, body UpdateSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateSettingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetListenAddress The controller address, and the addresses of this PC to choose from
+//
+// operations R5.90. `running` is the address the controller listens on now; `stored` is the choice kept in the settings. CRSP_LISTEN_ADDR, when set, wins (`from_env`), and the console shows it read-only. `candidates` are found on this PC: its network address, the host address of Docker and WSL, and a typed address.
+//
+// Corresponds with GET /api/v1/settings/listen-address (the `GetListenAddress` operationId).
+func (c *Client) GetListenAddress(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetListenAddressRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutListenAddressWithBody Choose the controller address
+//
+// operations R5.90. Checks the address (host:port, an address of this PC, not loopback), keeps it in the settings, writes one audit row, and restarts the controller once through the drain path: running jobs finish first. The controller then listens on the address over https with its own certificate, and on 127.0.0.1 too. Refused with 409 when CRSP_LISTEN_ADDR is set.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/settings/listen-address (the `PutListenAddress` operationId).
+func (c *Client) PutListenAddressWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutListenAddressRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutListenAddress Choose the controller address
+//
+// operations R5.90. Checks the address (host:port, an address of this PC, not loopback), keeps it in the settings, writes one audit row, and restarts the controller once through the drain path: running jobs finish first. The controller then listens on the address over https with its own certificate, and on 127.0.0.1 too. Refused with 409 when CRSP_LISTEN_ADDR is set.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/settings/listen-address (the `PutListenAddress` operationId).
+func (c *Client) PutListenAddress(ctx context.Context, body PutListenAddressJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutListenAddressRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -13540,6 +13689,73 @@ func NewUpdateSettingsRequestWithBody(server string, contentType string, body io
 	return req, nil
 }
 
+// NewGetListenAddressRequest constructs an http.Request for the GetListenAddress method
+func NewGetListenAddressRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/settings/listen-address")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutListenAddressRequest calls the generic PutListenAddress builder with application/json body
+func NewPutListenAddressRequest(server string, body PutListenAddressJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutListenAddressRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPutListenAddressRequestWithBody constructs an http.Request for the PutListenAddress method, with any body, and a specified content type
+func NewPutListenAddressRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/settings/listen-address")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetPoolSettingsRequest constructs an http.Request for the GetPoolSettings method
 func NewGetPoolSettingsRequest(server string) (*http.Request, error) {
 	var err error
@@ -15675,6 +15891,33 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with PATCH /api/v1/settings (the `UpdateSettings` operationId).
 	UpdateSettingsWithResponse(ctx context.Context, body UpdateSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSettingsResponse, error)
+
+	// GetListenAddressWithResponse The controller address, and the addresses of this PC to choose from
+	//
+	// operations R5.90. `running` is the address the controller listens on now; `stored` is the choice kept in the settings. CRSP_LISTEN_ADDR, when set, wins (`from_env`), and the console shows it read-only. `candidates` are found on this PC: its network address, the host address of Docker and WSL, and a typed address.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/settings/listen-address (the `GetListenAddress` operationId).
+	GetListenAddressWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetListenAddressResponse, error)
+
+	// PutListenAddressWithBodyWithResponse Choose the controller address
+	//
+	// operations R5.90. Checks the address (host:port, an address of this PC, not loopback), keeps it in the settings, writes one audit row, and restarts the controller once through the drain path: running jobs finish first. The controller then listens on the address over https with its own certificate, and on 127.0.0.1 too. Refused with 409 when CRSP_LISTEN_ADDR is set.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/settings/listen-address (the `PutListenAddress` operationId).
+	PutListenAddressWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutListenAddressResponse, error)
+
+	// PutListenAddressWithResponse Choose the controller address
+	//
+	// operations R5.90. Checks the address (host:port, an address of this PC, not loopback), keeps it in the settings, writes one audit row, and restarts the controller once through the drain path: running jobs finish first. The controller then listens on the address over https with its own certificate, and on 127.0.0.1 too. Refused with 409 when CRSP_LISTEN_ADDR is set.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/settings/listen-address (the `PutListenAddress` operationId).
+	PutListenAddressWithResponse(ctx context.Context, body PutListenAddressJSONRequestBody, reqEditors ...RequestEditorFn) (*PutListenAddressResponse, error)
 
 	// GetPoolSettingsWithResponse Defaults for new machines
 	//
@@ -20929,6 +21172,102 @@ func (r UpdateSettingsResponse) ContentType() string {
 	return ""
 }
 
+type GetListenAddressResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ListenAddress
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetListenAddressResponse) GetJSON200() *ListenAddress {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetListenAddressResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetListenAddressResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetListenAddressResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetListenAddressResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetListenAddressResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PutListenAddressResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *ListenAddressChosen
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r PutListenAddressResponse) GetJSON202() *ListenAddressChosen {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r PutListenAddressResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r PutListenAddressResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PutListenAddressResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutListenAddressResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutListenAddressResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetPoolSettingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -23994,6 +24333,51 @@ func (c *ClientWithResponses) UpdateSettingsWithResponse(ctx context.Context, bo
 		return nil, err
 	}
 	return ParseUpdateSettingsResponse(rsp)
+}
+
+// GetListenAddressWithResponse The controller address, and the addresses of this PC to choose from
+//
+// operations R5.90. `running` is the address the controller listens on now; `stored` is the choice kept in the settings. CRSP_LISTEN_ADDR, when set, wins (`from_env`), and the console shows it read-only. `candidates` are found on this PC: its network address, the host address of Docker and WSL, and a typed address.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/settings/listen-address (the `GetListenAddress` operationId).
+func (c *ClientWithResponses) GetListenAddressWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetListenAddressResponse, error) {
+	rsp, err := c.GetListenAddress(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetListenAddressResponse(rsp)
+}
+
+// PutListenAddressWithBodyWithResponse Choose the controller address
+//
+// operations R5.90. Checks the address (host:port, an address of this PC, not loopback), keeps it in the settings, writes one audit row, and restarts the controller once through the drain path: running jobs finish first. The controller then listens on the address over https with its own certificate, and on 127.0.0.1 too. Refused with 409 when CRSP_LISTEN_ADDR is set.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/settings/listen-address (the `PutListenAddress` operationId).
+func (c *ClientWithResponses) PutListenAddressWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutListenAddressResponse, error) {
+	rsp, err := c.PutListenAddressWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutListenAddressResponse(rsp)
+}
+
+// PutListenAddressWithResponse Choose the controller address
+//
+// operations R5.90. Checks the address (host:port, an address of this PC, not loopback), keeps it in the settings, writes one audit row, and restarts the controller once through the drain path: running jobs finish first. The controller then listens on the address over https with its own certificate, and on 127.0.0.1 too. Refused with 409 when CRSP_LISTEN_ADDR is set.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/settings/listen-address (the `PutListenAddress` operationId).
+func (c *ClientWithResponses) PutListenAddressWithResponse(ctx context.Context, body PutListenAddressJSONRequestBody, reqEditors ...RequestEditorFn) (*PutListenAddressResponse, error) {
+	rsp, err := c.PutListenAddress(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutListenAddressResponse(rsp)
 }
 
 // GetPoolSettingsWithResponse Defaults for new machines
@@ -27912,6 +28296,72 @@ func ParseUpdateSettingsResponse(rsp *http.Response) (*UpdateSettingsResponse, e
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetListenAddressResponse parses an HTTP response from a GetListenAddressWithResponse call
+func ParseGetListenAddressResponse(rsp *http.Response) (*GetListenAddressResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetListenAddressResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListenAddress
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutListenAddressResponse parses an HTTP response from a PutListenAddressWithResponse call
+func ParsePutListenAddressResponse(rsp *http.Response) (*PutListenAddressResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutListenAddressResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest ListenAddressChosen
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error

@@ -142,3 +142,27 @@ func get(c *http.Client, url string) (*http.Response, error) {
 	}
 	return c.Do(req)
 }
+
+// operations R5.90: a listen address chosen in the console is in the server
+// certificate (a certificate that lacks it is made again), and the CA, so the
+// fingerprint CRSP_CA_FINGERPRINT carries, does not change.
+func TestServerCertificateCoversTheChosenListenAddress(t *testing.T) {
+	sec, dir := secretstest.New(), t.TempDir()
+	a1 := newAuth(t, sec, dir, "pc.lan")
+	a2 := newAuth(t, sec, dir, "pc.lan", "192.168.1.20")
+	if a1.Fingerprint() != a2.Fingerprint() {
+		t.Fatal("the CA fingerprint changed")
+	}
+	pool := x509.NewCertPool()
+	pool.AppendCertsFromPEM(a2.CAPEM())
+	if _, err := a1.ServerCertificate().Verify(x509.VerifyOptions{Roots: pool, DNSName: "192.168.1.20"}); err == nil {
+		t.Fatal("the first certificate must not cover the address")
+	}
+	if _, err := a2.ServerCertificate().Verify(x509.VerifyOptions{Roots: pool, DNSName: "192.168.1.20"}); err != nil {
+		t.Fatalf("the address is not covered: %v", err)
+	}
+	a3 := newAuth(t, sec, dir, "pc.lan", "192.168.1.20")
+	if string(a3.ServerCertificate().Raw) != string(a2.ServerCertificate().Raw) {
+		t.Fatal("a certificate that already covers the address must be kept")
+	}
+}

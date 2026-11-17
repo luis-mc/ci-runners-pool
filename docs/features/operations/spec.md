@@ -113,6 +113,7 @@ flowchart LR
 No mocks yet. They are made with the screens in milestone 8. The web console parts live under Settings (product screen 9). Rules are cited by design-system ID, never written here.
 
 - **Settings > Updates.** Channel (stable or edge), policy per machine (ask or auto in a maintenance window), drain timeout, current and offered version per part. An offered update shows what it waits for and asks in the page (UX-9, UX-62). A running update shows in the activity strip (UX-34) with a progress bar (components 16, UX-29). A refused update shows a Problem message that says why (UX-26, components 18). A blocked update says why beside the disabled action (UX-38).
+- **Settings > Console > Network.** The address the controller listens on, with Choose an address (admin). The same dialog opens from the Needs-you box of Settings > Access for CI (web-console R5.91). The dialog shows loading, the three choices as a radio group (each with its address and who can reach it), the wait while the controller restarts (running jobs finish first), Done and a failure with its reason. Set by the environment, it is shown read-only (R5.90; UX-44, UX-38).
 - **Settings > Backups.** The list of backups with date, size and check result; Back up now (busy while it runs, UX-13); the last drill and its result. No backup yet is an empty state with the next step (UX-6, components 19).
 - **Settings > Config.** Export downloads the file. Import is a wizard (components 4, UX-5) that ends with Review, then the work, then Done (UX-30). Review uses the change review list (components 34). A removal lists what goes and asks for a yes (UX-62).
 - **Tray.** "Update to <version>?" with the jobs it waits for, as a dialog (components 9). Restart and update ask first (decision 0005).
@@ -303,6 +304,10 @@ Not built: a copyable reinstall command with a one-time token in the console, an
 
 **R5.89** (built, CRSP147) — **One entry in the programs list.** The package authors no entry of its own besides the MSI's: no hand-made `Uninstall\crsp` key and no `ARPSYSTEMCOMPONENT`. The owner saw "CI Runners Shared Pool 0.1.3.0" twice after 0.1.2 to 0.1.3: the MSI's own entry plus the hand-made one, hidden only by a flag. The major upgrade (R5.38) removes the old product with the old hand-made key and registers one new entry. Settings > Apps then uses the MSI's basic uninstall, which keeps the data (R5.37); `msiexec /x <msi> REMOVEDATA=1` removes it. `installer/wxs_test.go` and the `windows-msi-check` workflow check the authoring; `installer/smoke.ps1` and `installer/upgrade-test.ps1` count the entries in both registry views after install, upgrade and rollback.
 
+### The controller address, chosen in the console (OPS14)
+
+**R5.90** (built, OPS14) — **The owner chooses the controller address in the console, never in a terminal.** The address the controller listens on is a stored setting (settings row `listen_address`, audit `listen_address.set`), read with `getListenAddress` (`GET /api/v1/settings/listen-address`) and changed with `putListenAddress` (`PUT`), both `x-auth: admin` and, for the write, with the CSRF check of every console write. The answer lists the address the controller listens on (`running`), the stored choice, and the candidates found on this PC: **(a)** this PC's network address (the first non-loopback, non-link-local IPv4 of an interface that is up and not virtual by name), recommended; **(b)** the host address that Docker and WSL containers on this PC reach (the `vEthernet (WSL)` or `docker` interface), offered only when there is one; **(c)** another address typed as `host:port`, which must be an IP address of this PC (a wildcard is allowed), never loopback, and not on the agent link port. The port is 8460 unless typed. `CRSP_LISTEN_ADDR`, when set, still wins: the answer says `from_env`, the console shows the address read-only, and `PUT` answers 409. A valid choice is kept, audited, and the controller restarts once through the drain path of R5.11 (running jobs finish first; the same `confirmed` restart as `POST /api/v1/service/restart`). At start the controller binds the chosen address over https with the certificate of its own CA and also `127.0.0.1` over plain http, so the local console and the tray keep working. The server certificate lists the chosen address and the host name; a certificate that lacks one is made again from the same CA, so `CRSP_CA_FINGERPRINT` (the CA's) does not change. When the chosen address was chosen in the console and no `CRSP_PUBLIC_HOST` is set, runners and machines are told that address. If the chosen address cannot be bound the controller listens on `127.0.0.1` and says why in `problem` (the console shows it). Source: `internal/listenaddr/`, `internal/settings/listen.go`, `internal/api/handlers_listen.go`, `internal/tlsca/tlsca.go`, `cmd/crsp/main.go`, `cmd/crsp/machines_wiring.go`.
+
 ## 6. Non-functional requirements
 
 **R6.1** (M3) — An update never stops a running job. A controller restart never stops a job on any machine; agents reconnect with backoff.
@@ -480,6 +485,10 @@ Built in CRSP18: see the status line at the top. The seams:
 ## 12. Code map
 
 Source: internal/config/config.go
+Source: internal/listenaddr/listenaddr.go
+Source: internal/settings/listen.go
+Source: internal/api/handlers_listen.go
+Source: apps/web/src/screens/settings/ListenAddress.tsx
 Source: installer/crsp.wxs
 Source: cmd/crsp/service_windows.go
 Source: internal/backup/service.go

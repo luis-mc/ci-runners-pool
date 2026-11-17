@@ -705,3 +705,26 @@ The words of the repositories page when the list is the last copy because the re
 | GitHub answered {status}: {message}. | Needs-you message for any other GitHub error, with GitHub's own status and words. |
 | The list could not be refreshed. | Needs-you message when no reason is known. |
 | The list is the last copy, from {when}. | Second sentence of each message above; without a time: The list is the last copy. |
+
+## Network words
+
+The words of Settings > Console > Network and of the dialog that chooses the controller address (operations R5.90, OPS14). Also opened from the Needs-you box of Access for CI.
+
+| Word | Where and meaning |
+|---|---|
+| Network | Section title. |
+| Choose an address | Primary action in the section and in the Needs-you box; opens the dialog, and is its title. |
+| Use this address | Primary action of the dialog; busy word Saving, then Restarting. |
+| Listening on | Fact: the address the controller listens on now. |
+| Chosen, after the next restart | Fact: the stored choice is not yet the running address. |
+| This PC's network address | Choice (recommended): who can reach it is runners and machines on the network and containers on this PC. |
+| Docker and WSL on this PC only | Choice: containers and WSL on this PC, no other machine. |
+| Another address | Choice: opens the box Address as host:port. |
+| Address as host:port | Box label; help: an address of this PC, port 8460 unless written. |
+| The controller restarts once when you press Use this address. Running jobs finish first. | Line in the dialog. |
+| Waiting for running jobs to finish, then the controller restarts on {address}. No job is stopped. This page reopens here when the controller answers. | Note while it waits. |
+| The controller answers on {address}. It also keeps 127.0.0.1 for this console and the tray. | Done. |
+| This address is set by CRSP_LISTEN_ADDR on this PC, so it cannot be changed here. | Note when the environment decides. |
+| Could not use this address. {reason} | Problem when the address is refused. |
+| The controller did not listen on the new address. {reason} | Problem when it restarted but could not bind. |
+

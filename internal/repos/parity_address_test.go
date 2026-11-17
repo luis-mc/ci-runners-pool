@@ -41,8 +41,14 @@ func TestParityAddress(t *testing.T) { // github-integration R5.84, CRSP141
 			if !errors.As(err, &ae) || ae.Setting != c.setting || got != "" {
 				t.Fatalf("got %q, %v; want a refusal naming %s", got, err, c.setting)
 			}
-			if !strings.Contains(ae.Reason, c.setting) {
-				t.Fatalf("the reason does not name the setting: %q", ae.Reason)
+			// The listen address is chosen in the console (operations R5.90), so its
+			// reason names the place; the public host is still a setting.
+			want := c.setting
+			if c.setting == SettingListenAddr {
+				want = "Settings, Console, Network"
+			}
+			if !strings.Contains(ae.Reason, want) {
+				t.Fatalf("the reason does not name %q: %q", want, ae.Reason)
 			}
 		})
 	}

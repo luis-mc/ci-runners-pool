@@ -27,6 +27,7 @@ import { useCommand, useLoad, useQuestion, type Loaded } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { Ask, Load } from '../common';
 import { GrantGuide } from '../GrantGuide';
+import { ChooseAddressDialog } from './ListenAddress';
 
 type Credential = Schemas['AccessCredential'];
 type Setup = Schemas['ParitySetup'];
@@ -351,6 +352,7 @@ function ParitySetupAction({ onMade }: { onMade: () => void }) {
           <NeedsAddress
             problem={outcome.setup.address_problem}
             setting={outcome.setup.address_setting}
+            onChosen={address.reload}
           />
         ) : null}
         {outcome?.setup.status === 'needs_permission' ? (
@@ -369,10 +371,15 @@ function ParitySetupAction({ onMade }: { onMade: () => void }) {
 function NeedsAddress({
   problem,
   setting,
+  onChosen,
 }: {
   problem?: string | undefined;
   setting?: string | undefined;
+  onChosen: () => void;
 }) {
+  const [choosing, setChoosing] = useState(false);
+  // The listen address is chosen here, in the console; the public host is still a setting of the service.
+  const chooseHere = setting === undefined || setting === 'CRSP_LISTEN_ADDR';
   return (
     <Message tone="needs-you">
       <Stack>
@@ -380,7 +387,18 @@ function NeedsAddress({
           Nothing was made. A runner on another machine or in a container cannot reach
           this controller yet. {problem ?? ''}
         </span>
-        {setting ? <Facts items={[{ name: 'Setting to fix', value: setting }]} /> : null}
+        {chooseHere ? (
+          <Cluster>
+            <Button kind="primary" onPress={() => setChoosing(true)}>
+              Choose an address
+            </Button>
+          </Cluster>
+        ) : (
+          <Facts items={[{ name: 'Setting to fix', value: setting }]} />
+        )}
+        {choosing ? (
+          <ChooseAddressDialog onClose={() => setChoosing(false)} onChosen={onChosen} />
+        ) : null}
       </Stack>
     </Message>
   );
@@ -395,7 +413,7 @@ function AddressCheck({
     <Load result={load.result} what="the address of the controller" reload={load.reload}>
       {(a) =>
         a.status === 'needs_address' ? (
-          <NeedsAddress problem={a.problem} setting={a.setting} />
+          <NeedsAddress problem={a.problem} setting={a.setting} onChosen={load.reload} />
         ) : (
           <Stack>
             <Facts
