@@ -24,6 +24,7 @@ import {
   type StatusKind,
 } from '@crsp/ui';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
@@ -93,6 +94,7 @@ export function isLight(r: Pick<Runner, 'name' | 'labels'>): boolean {
 
 export function RunnersList() {
   const client = useClient();
+  const navigate = useNavigate();
   const session = useSession();
   const now = useNow();
   const v = useVersion('runners');
@@ -284,9 +286,9 @@ export function RunnersList() {
         lead="Every runner, with where it runs and how it is isolated."
         action={
           admin ? (
-            <LinkButton kind="primary" to="/runners/add">
+            <Button kind="primary" onPress={() => void navigate('/runners/add')}>
               Add runners
-            </LinkButton>
+            </Button>
           ) : (
             <Button kind="primary" disabled reason={why}>
               Add runners
@@ -379,10 +381,16 @@ export function RunnersList() {
                         <Button onPress={() => setPicked(new Set(rows.map((r) => r.id)))}>
                           {`Select all ${rows.length}`}
                         </Button>
+                        <Button
+                          onPress={() => setPicked(new Set())}
+                          disabled={picked.size === 0}
+                          reason="Nothing is selected."
+                        >
+                          Clear
+                        </Button>
                         {picked.size > 0 ? (
                           <>
                             <span>{`${picked.size} selected`}</span>
-                            <Button onPress={() => setPicked(new Set())}>Clear</Button>
                             <Button
                               kind="danger"
                               disabled={!admin}

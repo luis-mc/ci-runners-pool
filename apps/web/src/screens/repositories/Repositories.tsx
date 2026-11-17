@@ -227,9 +227,9 @@ export function RepositoriesList() {
         lead="Choose which repositories use the pool, and with which limits."
         action={
           admin ? (
-            <LinkButton kind="primary" to="/repositories/turn-on">
+            <Button kind="primary" onPress={() => void navigate('/repositories/turn-on')}>
               Turn on the pool
-            </LinkButton>
+            </Button>
           ) : (
             <Button kind="primary" disabled reason={session.whyNot('admin')}>
               Turn on the pool
@@ -336,10 +336,16 @@ export function RepositoriesList() {
                       >
                         {`Select all ${filtered.length}`}
                       </Button>
+                      <Button
+                        onPress={() => setPicked(new Set())}
+                        disabled={picked.size === 0}
+                        reason="Nothing is selected."
+                      >
+                        Clear
+                      </Button>
                       {picked.size > 0 ? (
                         <>
                           <span>{`${picked.size} selected`}</span>
-                          <Button onPress={() => setPicked(new Set())}>Clear</Button>
                           <Button
                             disabled={
                               !admin || noAdmin.length > 0 || publicOff.length > 0

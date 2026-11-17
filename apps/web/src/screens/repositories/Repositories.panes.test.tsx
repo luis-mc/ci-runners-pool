@@ -46,10 +46,12 @@ describe('Repositories list in a pane', () => {
     expect(primaries()).toEqual(['Turn on the pool']);
   });
 
-  it('shows Select all N, and Clear once rows are ticked, in one toolbar line (UX-12)', async () => {
+  it('shows Select all N, and Clear that waits for a ticked row, in one toolbar line (UX-12)', async () => {
     renderApp(list(signedIn()), '/repositories');
     await screen.findByRole('table', { name: 'Repositories' });
-    expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull();
+    expect(
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Clear' }).disabled,
+    ).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Select all 1' }));
     expect(screen.getByText('1 selected')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
