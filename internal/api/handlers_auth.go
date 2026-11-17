@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -59,7 +60,7 @@ const (
 
 var githubAreaAuth = map[string]string{
 	"getSetupState": authPublic, "redeemSetupLink": authPublic, "startAppManifest": authPublic,
-	"completeAppManifest": authPublic, "startSignIn": authPublic, "completeSignIn": authPublic,
+	"completeAppManifest": authPublic, "startSignIn": authPublic, "completeSignIn": authPublic, "redeemSignInHandoff": authPublic, "checkSignInAddress": authAdmin,
 	"redeemTrayLink": authPublic, "getCliLoginConfig": authPublic, "exchangeCliToken": authPublic,
 	"listCliTokens": authUser, "revokeCliToken": authUser, "signOut": authUser, "getSession": authUser,
 	"getPreferences": authUser, "updatePreferences": authUser,
@@ -366,11 +367,47 @@ func (s *server) CompleteAppManifest(ctx context.Context, req gen.CompleteAppMan
 	return gen.RedirectResponse{Headers: gen.RedirectResponseHeaders{Location: "/setup?step=app-created"}}, nil
 }
 
+// signInFailure logs a failed sign-in at WARN with its code and cause (never a
+// token or a code) and sends the browser to the sign-in page with that code
+// (OPS17). stage is the step that failed.
+func (a *GitHubArea) signInFailure(stage string, err error, extra url.Values) gen.RedirectResponse {
+	code := signInCode(err)
+	cause := err.Error()
+	if len(cause) > 300 {
+		cause = cause[:300]
+	}
+	a.log().Warn("sign-in failed", "stage", stage, "code", code, "cause", cause)
+	return a.redirectWithError("/sign-in", code, extra)
+}
+
+// signInCode is the stable code of a sign-in failure. None maps to "internal".
+func signInCode(err error) string {
+	var se *auth.SignInError
+	var na *auth.NotAllowedError
+	switch {
+	case errors.As(err, &se):
+		return se.Code
+	case errors.As(err, &na):
+		return "not_allowed"
+	case errors.Is(err, auth.ErrNoApp):
+		return "no_app"
+	case errors.Is(err, auth.ErrInsecure):
+		return auth.SignInAddressRefused
+	case errors.Is(err, auth.ErrBadCode):
+		return "handoff_failed"
+	case errors.Is(err, auth.ErrBadState):
+		return auth.SignInStateMissing
+	case errors.Is(err, secrets.ErrUnavailable):
+		return "secret_store_unavailable"
+	}
+	return "sign_in_failed"
+}
+
 // StartSignIn implements GET /auth/github/login (R5.8).
 func (s *server) StartSignIn(ctx context.Context, req gen.StartSignInRequestObject) (gen.StartSignInResponseObject, error) {
 	a := s.ghArea()
 	r := requestFrom(ctx)
-	o := auth.SignInOptions{Origin: origin(r), SetupCookie: cookieValue(r, auth.SetupCookieName)}
+	o := auth.SignInOptions{Origin: origin(r), SetupCookie: cookieValue(r, auth.SetupCookieName), SameMachine: sameMachine(r.RemoteAddr)}
 	if req.Params.ReturnTo != nil {
 		o.ReturnTo = *req.Params.ReturnTo
 	}
@@ -379,10 +416,25 @@ func (s *server) StartSignIn(ctx context.Context, req gen.StartSignInRequestObje
 	}
 	start, err := a.Auth.StartSignIn(ctx, o)
 	if err != nil {
-		_, code, _ := errorFor(err)
-		return a.redirectWithError("/sign-in", code, nil), nil
+		var nr *auth.NotRegisteredError
+		if errors.As(err, &nr) {
+			// Never send the browser to a callback GitHub does not know:
+			// the sign-in page shows the guided step instead (OPS16).
+			q := url.Values{"address": {nr.Address}, "callback": {nr.CallbackURL}}
+			if nr.AppURL != "" {
+				q.Set("app_url", nr.AppURL)
+			}
+			return a.redirectWithError("/sign-in", "callback_not_registered", q), nil
+		}
+		return a.signInFailure("start", err, nil), nil
 	}
-	return gen.RedirectResponse{Headers: gen.RedirectResponseHeaders{Location: start.RedirectURL}}, nil
+	resp := gen.RedirectResponse{Headers: gen.RedirectResponseHeaders{Location: start.RedirectURL}}
+	if start.HandoffBind != "" {
+		c := (&http.Cookie{Name: auth.HandoffCookieName, Value: start.HandoffBind, Path: "/auth/github", HttpOnly: true,
+			Secure: auth.CookieSecure(r), SameSite: http.SameSiteLaxMode, MaxAge: 600}).String()
+		resp.Headers.SetCookie = &c
+	}
+	return resp, nil
 }
 
 // CompleteSignIn implements GET /auth/github/callback (R5.8 to R5.13).
@@ -393,13 +445,89 @@ func (s *server) CompleteSignIn(ctx context.Context, req gen.CompleteSignInReque
 	if err != nil {
 		var na *auth.NotAllowedError
 		if errors.As(err, &na) {
-			return a.redirectWithError("/sign-in", "not_allowed", url.Values{"login": {na.Login}}), nil
+			return a.signInFailure("callback", err, url.Values{"login": {na.Login}}), nil
 		}
-		_, code, _ := errorFor(err)
-		return a.redirectWithError("/sign-in", code, nil), nil
+		var nr *auth.NotRegisteredError
+		if errors.As(err, &nr) {
+			q := url.Values{"address": {nr.Address}, "callback": {nr.CallbackURL}}
+			if nr.AppURL != "" {
+				q.Set("app_url", nr.AppURL)
+			}
+			a.log().Warn("sign-in failed", "stage", "callback", "code", "callback_not_registered", "cause", nr.Error())
+			return a.redirectWithError("/sign-in", "callback_not_registered", q), nil
+		}
+		return a.signInFailure("callback", err, nil), nil
+	}
+	if si.Handoff != nil {
+		// The session belongs to the address the sign-in started on.
+		to := si.Handoff.Origin + "/auth/github/handoff?" + url.Values{"code": {si.Handoff.Code}, "state": {si.Handoff.State}}.Encode()
+		return gen.RedirectResponse{Headers: gen.RedirectResponseHeaders{Location: to}}, nil
 	}
 	c := auth.SessionCookie(si.Cookie, auth.CookieSecure(r)).String()
 	return gen.RedirectResponse{Headers: gen.RedirectResponseHeaders{Location: si.ReturnTo, SetCookie: &c}}, nil
+}
+
+// RedeemSignInHandoff implements GET /auth/github/handoff (OPS16).
+func (s *server) RedeemSignInHandoff(ctx context.Context, req gen.RedeemSignInHandoffRequestObject) (gen.RedeemSignInHandoffResponseObject, error) {
+	a := s.ghArea()
+	r := requestFrom(ctx)
+	si, err := a.Auth.RedeemHandoff(ctx, req.Params.Code, req.Params.State, origin(r), cookieValue(r, auth.HandoffCookieName))
+	if err != nil {
+		return a.signInFailure("handoff", err, nil), nil
+	}
+	c := auth.SessionCookie(si.Cookie, auth.CookieSecure(r)).String()
+	return gen.RedirectResponse{Headers: gen.RedirectResponseHeaders{Location: si.ReturnTo, SetCookie: &c}}, nil
+}
+
+// CheckSignInAddress implements POST /api/v1/settings/signin-address (OPS16).
+func (s *server) CheckSignInAddress(ctx context.Context, req gen.CheckSignInAddressRequestObject) (gen.CheckSignInAddressResponseObject, error) {
+	fail := func(err error) (gen.CheckSignInAddressResponseObject, error) {
+		code, body := failure(err)
+		return gen.CheckSignInAddressdefaultJSONResponse{StatusCode: code, Body: body}, nil
+	}
+	if req.Body == nil {
+		return fail(auth.Invalid("the request is empty"))
+	}
+	addr := strings.TrimSpace(req.Body.Address)
+	if !strings.Contains(addr, "://") {
+		addr = "https://" + addr // a console address off this PC is https (R5.4)
+	}
+	got, err := s.ghArea().Auth.CheckSignInAddress(ctx, addr, true)
+	if err != nil {
+		return fail(err)
+	}
+	out := gen.CheckSignInAddress200JSONResponse{Address: got.Address, CallbackUrl: got.CallbackURL, Registered: got.Registered}
+	if got.AppURL != "" {
+		out.AppUrl = &got.AppURL
+	}
+	return out, nil
+}
+
+// sameMachine reports whether a request came from this PC: from a loopback
+// address or from one of its own addresses. Such a browser can use the
+// registered loopback callback (OPS16).
+func sameMachine(remoteAddr string) bool {
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr
+	}
+	ip := net.ParseIP(strings.Trim(host, "[]"))
+	if ip == nil {
+		return false
+	}
+	if ip.IsLoopback() {
+		return true
+	}
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return false
+	}
+	for _, a := range addrs {
+		if n, ok := a.(*net.IPNet); ok && n.IP.Equal(ip) {
+			return true
+		}
+	}
+	return false
 }
 
 // RedeemTrayLink implements GET /auth/link (tray R5.7). Loopback only.
@@ -523,7 +651,16 @@ func (s *server) GetSession(ctx context.Context, _ gen.GetSessionRequestObject) 
 		code, body := failure(err)
 		return gen.GetSessiondefaultJSONResponse{StatusCode: code, Body: body}, nil
 	}
-	return gen.GetSession200JSONResponse{User: toUser(u), Csrf: p.CSRF}, nil
+	gs := s.ghArea().Auth.GitHubSignInState(p.UserID)
+	signin := gen.GitHubSignIn{State: gen.GitHubSignInStateEnded}
+	if gs.Active {
+		signin.State = gen.GitHubSignInStateActive
+		if !gs.Expires.IsZero() {
+			e := gs.Expires
+			signin.ExpiresAt = &e
+		}
+	}
+	return gen.GetSession200JSONResponse{User: toUser(u), Csrf: p.CSRF, GithubSignin: signin}, nil
 }
 
 // GetPreferences implements GET /api/v1/me/preferences.

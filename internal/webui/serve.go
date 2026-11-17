@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -59,4 +61,23 @@ func Serve(srv *http.Server, ln net.Listener) error {
 // Listen opens the console's TCP listener.
 func Listen(ctx context.Context, addr string) (net.Listener, error) {
 	return (&net.ListenConfig{}).Listen(ctx, "tcp", addr)
+}
+
+// ServerErrorLog routes the server's own error lines to logger. A browser that
+// refuses the self-signed certificate ("TLS handshake error ... unknown
+// certificate") is routine and logs at DEBUG; every other line is a WARN (OPS17).
+func ServerErrorLog(logger *slog.Logger) *log.Logger {
+	return log.New(errorLogWriter{logger}, "", 0)
+}
+
+type errorLogWriter struct{ l *slog.Logger }
+
+func (w errorLogWriter) Write(p []byte) (int, error) {
+	msg := strings.TrimSpace(string(p))
+	if strings.Contains(msg, "TLS handshake error") {
+		w.l.Debug("console TLS handshake refused", "detail", msg)
+	} else {
+		w.l.Warn("console server", "detail", msg)
+	}
+	return len(p), nil
 }

@@ -33,6 +33,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/settings"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tlsca"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/webhookhealth"
@@ -128,12 +129,16 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		}
 	})
 	authStore := d.DB.Auth()
+	cbSettings := settings.New(d.DB)
 	asvc := auth.New(authStore, auth.Config{
 		GitHub: gh, Secrets: d.Secrets, Now: d.Now,
-		ConsoleURLs: func() []string { return []string{console} },
-		OnApp:       func(a auth.AppRecord) { gh.UseApp(a.ID, a.ClientID) },
+		// An App made before the list was kept has the loopback callback
+		// of this port only (OPS16): never the address chosen later.
+		ConsoleURLs:    func() []string { return []string{loopbackConsoleURL(console)} },
+		LoadRegistered: cbSettings.GetCallbackOrigins,
+		SaveRegistered: cbSettings.SetCallbackOrigins,
+		OnApp:          func(a auth.AppRecord) { gh.UseApp(a.ID, a.ClientID) },
 	})
-	asvc.SetConsoleURLs([]string{console})
 	if st, err := asvc.State(ctx); err == nil && st.HasApp {
 		gh.UseApp(st.App.ID, st.App.ClientID)
 	}

@@ -27,6 +27,7 @@ import { useMounted } from '../../api/mounted';
 import { useLiveState } from '../../live/LiveProvider';
 import {
   PUBLIC_SETTING_PATH,
+  mayTry,
   publicWhileOff,
   usePublicRepositories,
 } from './publicRepositories';
@@ -95,7 +96,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
         if (!on) return;
         setRepos(all.items);
         // One repository that can be turned on is already chosen (nothing else could be).
-        const open = all.items.filter((r) => r.user_is_github_admin);
+        const open = all.items.filter(mayTry);
         if (preselected.length === 0 && open.length === 1 && !storedPlan)
           setPicked(new Set(open.map((r) => r.id)));
         if (storedPlan) {
@@ -131,7 +132,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
     try {
       const all = await allRepositories(client, { pool: 'off' });
       setRepos(all.items);
-      const open = all.items.filter((r) => r.user_is_github_admin);
+      const open = all.items.filter(mayTry);
       setPicked((p) => (p.size === 0 && open.length === 1 ? new Set([open[0]!.id]) : p));
     } catch {
       // The old list stays; the user can press the button again.
@@ -140,13 +141,9 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
 
   const { enabled } = usePublicRepositories();
   // A public repository cannot take the pool while the setting is off (github-integration R5.55).
-  const publicOff = repos.filter(
-    (r) => r.user_is_github_admin && publicWhileOff(r, enabled),
-  );
-  const eligible = repos.filter(
-    (r) => r.user_is_github_admin && !publicWhileOff(r, enabled),
-  );
-  const blocked = repos.filter((r) => !r.user_is_github_admin);
+  const publicOff = repos.filter((r) => mayTry(r) && publicWhileOff(r, enabled));
+  const eligible = repos.filter((r) => mayTry(r) && !publicWhileOff(r, enabled));
+  const blocked = repos.filter((r) => !mayTry(r));
   const chosen = eligible.filter((r) => picked.has(r.id));
 
   const toReview = async () => {

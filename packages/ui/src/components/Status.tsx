@@ -26,3 +26,8 @@ export function Status({ kind, word }: { kind: StatusKind; word: string }) {
 export function Badge({ children }: { children: string }) {
   return <span className="ds-badge">{children}</span>;
 }
+
+/** A small outlined label that names a kind next to a word, such as `inactive type` after Public (UX-70). */
+export function Tag({ children }: { children: string }) {
+  return <span className="ds-tag">{children}</span>;
+}

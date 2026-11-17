@@ -88,16 +88,16 @@ describe('Repositories: inactive types are not listed', () => {
     expect(screen.getByText('3 selected')).toBeTruthy();
   });
 
-  it('List them too shows them muted in their groups and the line offers to hide them', async () => {
+  it('List them too shows them in grey in their groups and the line offers to hide them', async () => {
     renderApp(app(), '/repositories');
     fireEvent.click(await screen.findByRole('link', { name: 'List them too' }));
     const octo = await screen.findByRole('table', { name: 'octo repositories' });
     const row = within(octo)
       .getAllByRole('row')
       .find((r) => within(r).queryByRole('link', { name: 'site' }));
-    expect(row?.getAttribute('data-muted')).toBe('true');
+    expect(row?.getAttribute('data-inactive')).toBe('true');
     expect(screen.getByRole('table', { name: 'pub repositories' })).toBeTruthy();
-    expect(screen.getByText(/2 public repositories are listed, muted/)).toBeTruthy();
+    expect(screen.getByText(/2 public repositories are listed in grey/)).toBeTruthy();
     fireEvent.click(screen.getByRole('link', { name: 'Hide them' }));
     expect(await screen.findByRole('link', { name: 'List them too' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'site' })).toBeNull();

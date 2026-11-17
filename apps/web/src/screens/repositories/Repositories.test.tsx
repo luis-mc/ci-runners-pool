@@ -76,6 +76,22 @@ describe('Repositories list', () => {
     expect(screen.getByText(/You need admin rights on octo\/app in GitHub/)).toBeTruthy();
   });
 
+  it('does not say "you need admin rights" when the flag was not read (OPS15)', async () => {
+    renderApp(
+      withRepos(signedIn(), [
+        repository({ user_is_github_admin: false, user_admin_known: false }),
+      ]),
+      '/repositories',
+    );
+    await screen.findByRole('table', { name: 'octo repositories' });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select octo/app' }));
+    const button = screen.getByRole<HTMLButtonElement>('button', {
+      name: 'Turn on 1 repository',
+    });
+    expect(button.disabled).toBe(false);
+    expect(screen.queryByText(/You need admin rights/)).toBeNull();
+  });
+
   it('turns the pool off only after a question that names each repository and variable (UX-62)', async () => {
     const api = withRepos(signedIn())
       .on('POST', '/api/v1/repository-plans', {

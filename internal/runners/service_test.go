@@ -117,12 +117,12 @@ func TestRunnerRecordFields(t *testing.T) {
 	rec := r.add(t)
 	if rec.Name != "box-1" || rec.MachineID != "m1" || rec.OS != "linux" || rec.Arch != "x64" || rec.Kind != "persistent" ||
 		rec.Backend != "persistent" || rec.Isolation != "persistent" || rec.State != Idle || !rec.Managed || !rec.KeepsState() ||
-		strings.Join(rec.Labels, ",") != "linux,self-hosted,x64" || rec.RunnerVersion != "2.330.0" ||
+		strings.Join(rec.Labels, ",") != "linux,self-hosted,x64" || rec.RunnerVersion != "2.338.2" ||
 		rec.ServiceName != "actions.runner.luis-mc-demo.box-1" || rec.Account != "crsp-box-1" || rec.Scope.RepositoryID != 1 {
 		t.Errorf("%+v", rec)
 	}
 	spec := r.ag.added[0]
-	if spec.RunnerSHA256 == "" || !ValidSHA256(spec.RunnerSHA256) || spec.RunnerVersion != "2.330.0" || spec.GitHubURL != "https://github.com/luis-mc/demo" {
+	if spec.RunnerSHA256 == "" || !ValidSHA256(spec.RunnerSHA256) || spec.RunnerVersion != "2.338.2" || spec.GitHubURL != "https://github.com/luis-mc/demo" {
 		t.Errorf("%+v", spec)
 	}
 	if r.ag.cfgs[0].Registration != "REG-TOKEN-1" || r.ag.cfgs[0].JITConfig != "" {

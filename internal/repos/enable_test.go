@@ -440,3 +440,64 @@ func TestPoolOffGitHubDownFailsClosed(t *testing.T) { // section 8
 	}
 	_ = fake.Job{}
 }
+
+// OPS15: after a restart the user's token is gone; the flags are read with the
+// App, the way requireGitHubAdmin does, so the owner is not told "not admin".
+func TestSyncWithoutTokenReadsAdminWithTheApp(t *testing.T) {
+	e := newEnv(t)
+	e.world()
+	delete(e.tokens.m, 1)
+	e.svc.admin = map[int64]map[int64]bool{} // a fresh process knows nothing
+	ctx := context.Background()
+	if err := e.svc.Sync(ctx, adminP); err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := e.svc.List(ctx, adminP, ListFilter{})
+	for _, r := range rows {
+		if !r.AdminKnown {
+			t.Fatalf("%s: flag unknown, the App could say", r.Name)
+		}
+		// alice owns the account installation: admin on every repository in it.
+		if !r.UserIsAdmin {
+			t.Fatalf("%s: owner shown as not admin", r.Name)
+		}
+	}
+}
+
+// A user who does not own the account is asked with CollaboratorPermission.
+func TestSyncWithoutTokenAsksPermissionForOthers(t *testing.T) {
+	e := newEnv(t)
+	e.world()
+	bob := auth.Principal{UserID: 2, Login: "bob", Role: auth.RoleAdmin, Source: "web"}
+	ctx := context.Background()
+	if err := e.svc.Sync(ctx, bob); err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := e.svc.List(ctx, bob, ListFilter{})
+	if len(rows) != 3 {
+		t.Fatalf("%d rows", len(rows))
+	}
+	for _, r := range rows {
+		if !r.AdminKnown || r.UserIsAdmin {
+			t.Fatalf("%s: known=%v admin=%v, want a known non-admin", r.Name, r.AdminKnown, r.UserIsAdmin)
+		}
+	}
+}
+
+// A GitHub error is "not checked", never "not admin".
+func TestSyncWithoutTokenAppErrorLeavesFlagUnknown(t *testing.T) {
+	e := newEnv(t)
+	e.world()
+	bob := auth.Principal{UserID: 2, Login: "bob", Role: auth.RoleAdmin, Source: "web"}
+	e.fake.FailMatching("/collaborators/", 500, 100)
+	ctx := context.Background()
+	if err := e.svc.Sync(ctx, bob); err != nil {
+		t.Fatalf("the list does not depend on the flags: %v", err)
+	}
+	rows, _ := e.svc.List(ctx, bob, ListFilter{})
+	for _, r := range rows {
+		if r.AdminKnown || r.UserIsAdmin {
+			t.Fatalf("%s: known=%v admin=%v, want unknown", r.Name, r.AdminKnown, r.UserIsAdmin)
+		}
+	}
+}

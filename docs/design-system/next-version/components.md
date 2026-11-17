@@ -167,7 +167,8 @@ The body scrolls when the content is taller than the space. The overlay never gr
 
 - **Used for:** picking one answer from rows (up to 6) or a drop-down (7 or more). A multi-choice list starts with Select all N and Clear.
 - **Looks:** rows with a round mark where one is chosen, or a drop-down when there are many.
-- **Source:** `src/ui/choice-list`
+- **Option with detail (LOOK14):** an option may carry a name, a value and a description. The radio sits on the first line. Line 1 is the name in bold. Line 2 is the value in the normal colour, when the option has one. Line 3 is the description in the muted colour. Options are set apart by a space token and a divider line. The whole option is the click target, with a hover and a selected state (a bar on the start edge). An option's own field (such as Another address) shows under its description only while the option is chosen. A page passes the three parts as data (`Choice.label`, `Choice.detail`, `Choice.description`, `Choice.extra`) and never joins them into one label.
+- **Source:** `src/ui/choice-list`, `packages/ui/src/components/Fields.tsx`
 - **Rules:** UX-12, UX-22, UX-7.
 - **Guard:** none yet.
 
@@ -182,7 +183,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 15. Tables and list rows
 
 - **Used for:** a table to compare three or more facts; rows for everything else. Rows become a stack of name and value lines on a phone. Column heads sort.
-- **Looks:** a plain grid with light lines and a bold head row. Heads stay on one line and are bottom-aligned; inside a pane the first column starts on the pane's inner edge, with no extra inset (UX-69). On a phone (under 600 px) each row is a stack of `name  value` lines, the first column as the bold title line; a column marked `secondary` is left out of the stack. Given a `title` the table is drawn inside a pane with the title and the row count. The head of a sortable column is a button at least 44 px wide and high (UX-16); the row under the cursor stays in reverse video (component 41). A row that cannot be used now is greyed (`muted`); the reason and the link that fixes it sit in the row itself, never only in the grey.
+- **Looks:** a plain grid with light lines and a bold head row. Heads stay on one line and are bottom-aligned; inside a pane the first column starts on the pane's inner edge, with no extra inset (UX-69). On a phone (under 600 px) each row is a stack of `name  value` lines, the first column as the bold title line; a column marked `secondary` is left out of the stack. Given a `title` the table is drawn inside a pane with the title and the row count. The head of a sortable column is a button at least 44 px wide and high (UX-16); the row under the cursor stays in reverse video (component 41). A row that cannot be used now is shown in grey (`inactive`, UX-70): its text and links use `--ds-color-text-inactive` and links stay underlined; the reason and the link that fixes it sit in the row itself, with a `Tag`, never only in the grey.
 - **Source:** `packages/ui/src/components/Table.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-25, UX-16, UX-17, UX-18, UX-39.
 - **Guard:** none yet.
@@ -202,6 +203,8 @@ The body scrolls when the content is taller than the space. The overlay never gr
 - **Source:** `src/ui/badge`
 - **Rules:** UX-8, UX-26, UX-17.
 - **Guard:** none yet.
+
+A `Tag` is the small outlined label that names a kind next to a word, such as `inactive type` after Public on an inactive row (UX-70). It is flat, like a badge, and has the radius of an input. Source: `Tag` in the shared UI package. Guard: `packages/ui/src/components/look13.test.tsx`.
 
 ## 18. Messages and banner
 
@@ -238,7 +241,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 22. Check box row
 
 - **Used for:** one check box beside its label, with the explanation on its own line below. A choice that waits for Save uses it. A row tick and a filter chip use the same part with a hidden or styled label. It has a partial state (announced as mixed), an invalid state and a disabled state.
-- **Looks:** a square box beside its label, with a quiet explanation on the line below.
+- **Looks:** a square box beside its label, with a quiet explanation on the line below. A row may show its label in bold over the explanation and a quiet note at the end (amber when it needs the person's attention).
 - **Source:** `src/ui/check-row`
 - **Rules:** UX-22, UX-16, UX-17.
 - **Guard:** none yet.
@@ -508,6 +511,22 @@ A field's width caps its box, never its name and help: a lone field's name and h
 - **Rules:** UX-16, UX-20.
 - **Guard:** `packages/ui/src/components/OrderList.test.tsx`, `apps/web/src/screens/settings/Budgets.test.tsx`.
 - **Words:** see content.md, Ordered list words.
+
+## 46. Open row
+
+- **Used for:** a list where each row is one item that opens its own screen: a bold name, one status line (a Status or quiet text) and a quiet note at the end. The whole row is the button; Enter opens it. No table, no tool lists in the row.
+- **Looks:** a plain row with a hairline below, the name above the status line, the note at the end followed by a chevron. On a phone the note drops under the line.
+- **Source:** `packages/ui/src/components/Rows.tsx`
+- **Rules:** UX-16, UX-25, UX-57, UX-58.
+- **Guard:** `e2e/tests/web-console/ux-routes.spec.ts` (touch, layout).
+
+## 47. Folded section
+
+- **Used for:** detail a person rarely needs: one line that opens it in place.
+- **Looks:** a triangle and one line; the opened part sits under it with the same spacing as a pane body.
+- **Source:** `packages/ui/src/components/Rows.tsx`
+- **Rules:** UX-16, UX-10.
+- **Guard:** none yet.
 
 ## How to add a component
 

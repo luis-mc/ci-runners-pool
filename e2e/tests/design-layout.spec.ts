@@ -65,6 +65,7 @@ const SCREENS: {
   { name: 'doctor', path: '/doctor', ready: 'Doctor' },
   { name: 'add runners', path: '/runners/add', ready: 'Add runners' },
   { name: 'images', path: '/images', ready: 'Images and caches' },
+  { name: 'image detail', path: '/images/img_m1_linux', ready: 'build-1' },
   { name: 'caches', path: '/images?tab=caches', ready: 'Images and caches' },
   { name: 'settings access', path: '/settings/access', ready: 'Settings' },
   {

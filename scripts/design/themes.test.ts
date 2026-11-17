@@ -96,6 +96,7 @@ const REQUIRED_COLOURS = [
   'surface',
   'text',
   'text-muted',
+  'text-inactive',
   'border',
   'divider',
   'primary',
@@ -185,6 +186,7 @@ describe('contrast in every theme (UX-17)', () => {
         const text: [string, string][] = [];
         for (const bg of ['page', 'surface', 'selection'])
           text.push(['text', bg], ['text-muted', bg]);
+        for (const bg of ['page', 'surface']) text.push(['text-inactive', bg]);
         for (const bg of ['page', 'surface']) text.push(['primary', bg]);
         text.push(['on-primary', 'primary']);
         for (const n of ['done', 'note', 'needs-you', 'problem']) {

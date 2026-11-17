@@ -355,6 +355,38 @@ describe('sessions (R5.8 to R5.12)', () => {
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy();
   });
 
+  it('shows the GitHub sign-in as active with its time in the account menu (LOOK15)', async () => {
+    const api = signedIn();
+    renderApp(api, '/');
+    await screen.findByRole('heading', { name: 'Overview' });
+    expect(screen.queryByRole('img', { name: 'GitHub sign-in ended' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'octo' }));
+    expect(screen.getByText(/GitHub sign-in: active until \d\d:\d\d/)).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: 'Sign in with GitHub again' }),
+    ).toBeNull();
+  });
+
+  it('shows an ended GitHub sign-in with a dot and signs out then in again (LOOK15)', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/me', {
+        user: { id: 1, login: 'octo', role: 'owner', added_at: '2026-11-14T10:00:00Z' },
+        csrf: 'tok',
+        github_signin: { state: 'ended' },
+      })
+      .on('POST', '/api/v1/auth/logout', undefined);
+    renderApp(api, '/machines');
+    await screen.findByRole('heading', { name: 'Machines' });
+    expect(screen.getByRole('img', { name: 'GitHub sign-in ended' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /octo/ }));
+    expect(screen.getByText('GitHub sign-in: ended')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in with GitHub again' }));
+    await waitFor(() =>
+      expect(assign).toHaveBeenCalledWith('/auth/github/login?return_to=%2Fmachines'),
+    );
+    expect(api.count('POST', '/api/v1/auth/logout')).toBe(1);
+  });
+
   it('sends the CSRF token on changes (R6.2)', async () => {
     const api = signedIn().on('POST', '/api/v1/auth/logout', undefined);
     let header: string | null = null;

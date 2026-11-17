@@ -115,7 +115,14 @@ func (s *Service) StartManifest(ctx context.Context, o ManifestOptions) (Manifes
 	if err != nil {
 		return ManifestForm{}, err
 	}
-	state := s.states.put("manifest", StateTTL, map[string]string{"webhook": fmt.Sprint(m.HookAttributes != nil && m.HookAttributes.Active)})
+	origins := make([]string, 0, len(m.CallbackURLs))
+	for _, cb := range m.CallbackURLs {
+		origins = append(origins, strings.TrimSuffix(cb, CallbackPath))
+	}
+	state := s.states.put("manifest", StateTTL, map[string]string{
+		"webhook":  fmt.Sprint(m.HookAttributes != nil && m.HookAttributes.Active),
+		"consoles": strings.Join(origins, ","),
+	})
 	post := s.cfg.WebBase + "/settings/apps/new"
 	if o.Organization != "" {
 		post = s.cfg.WebBase + "/organizations/" + url.PathEscape(o.Organization) + "/settings/apps/new"
@@ -173,6 +180,9 @@ func (s *Service) CompleteManifest(ctx context.Context, code, state string) (App
 		Permissions: creds.App.Permissions}
 	if err := s.store.SaveApp(ctx, rec); err != nil {
 		return AppRecord{}, s.halfMade(ctx, creds.App, err)
+	}
+	if l := data["consoles"]; l != "" && s.cfg.SaveRegistered != nil {
+		_ = s.cfg.SaveRegistered(ctx, strings.Split(l, ","))
 	}
 	if s.cfg.OnApp != nil {
 		s.cfg.OnApp(rec)

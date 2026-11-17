@@ -195,6 +195,18 @@ describe('Turn on the pool in panes', () => {
     expect(primaries()).toEqual(['Next']);
   });
 
+  it('never says admin rights are missing when the flag was not read (OPS15)', async () => {
+    renderApp(
+      wizard([repository({ user_is_github_admin: false, user_admin_known: false })]),
+      '/repositories/turn-on',
+    );
+    expect(
+      await screen.findByRole('table', { name: 'Repositories to turn on' }),
+    ).toBeTruthy();
+    expect(screen.queryByText(/admin rights/)).toBeNull();
+    expect(screen.queryByText(/No repository is free for you/)).toBeNull();
+  });
+
   it('names the setting as the next action when only public repositories are left and they are off', async () => {
     renderApp(
       wizard([repository({ visibility: 'public' })]).on(

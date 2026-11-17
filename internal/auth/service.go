@@ -19,6 +19,9 @@ type GitHub interface {
 	// CheckUserToken asks GitHub whether a user token was made for this App
 	// (R5.14).
 	CheckUserToken(ctx context.Context, tok github.UserToken) (github.User, error)
+	// CheckRedirectURI is a dry sign-in: does GitHub know this callback URL
+	// for the App (OPS16)?
+	CheckRedirectURI(ctx context.Context, redirectURI string) (bool, error)
 }
 
 // Config builds a Service.
@@ -27,8 +30,16 @@ type Config struct {
 	Secrets secrets.Store
 	// WebBase is GitHub's web address (default https://github.com).
 	WebBase string
-	// ConsoleURLs lists the console origins the App has callback URLs for.
+	// ConsoleURLs lists the console origins the App has callback URLs for
+	// when none is stored yet (an App made before the list was kept: its
+	// callback is the loopback address).
 	ConsoleURLs func() []string
+	// LoadRegistered and SaveRegistered keep the console origins GitHub knows
+	// as callback URLs of the App. GitHub has no API to read or change them,
+	// so the controller keeps the list it made the manifest with, plus every
+	// address a dry sign-in confirmed (OPS16).
+	LoadRegistered func(ctx context.Context) ([]string, error)
+	SaveRegistered func(ctx context.Context, origins []string) error
 	// OnApp is called after the App is made, so the GitHub client can use it.
 	OnApp func(AppRecord)
 	Now   func() time.Time
@@ -105,6 +116,23 @@ func (s *Service) GitHubToken(userID int64) (github.UserToken, error) {
 	return t, nil
 }
 
+// GitHubSignIn is the state of a user's GitHub sign-in.
+type GitHubSignIn struct {
+	Active bool
+	// Expires is when the held token ends (zero when GitHub gave no limit).
+	Expires time.Time
+}
+
+// GitHubSignInState says whether the user's memory-only GitHub token is held
+// and still valid, and until when. It never returns the token.
+func (s *Service) GitHubSignInState(userID int64) GitHubSignIn {
+	t, err := s.GitHubToken(userID)
+	if err != nil {
+		return GitHubSignIn{}
+	}
+	return GitHubSignIn{Active: true, Expires: t.ExpiresAt}
+}
+
 func (s *Service) holdToken(userID int64, t github.UserToken) {
 	s.mu.Lock()
 	s.userTokens[userID] = t
@@ -126,7 +154,14 @@ func (s *Service) SetConsoleURLs(urls []string) {
 	s.mu.Unlock()
 }
 
-func (s *Service) consoleURLs() []string {
+// consoleURLs is the list of console origins the App has callback URLs for:
+// the stored list, else the one of this run's manifest, else the configured one.
+func (s *Service) consoleURLs(ctx context.Context) []string {
+	if s.cfg.LoadRegistered != nil {
+		if l, err := s.cfg.LoadRegistered(ctx); err == nil && len(l) > 0 {
+			return l
+		}
+	}
 	s.mu.Lock()
 	c := s.consoles
 	s.mu.Unlock()

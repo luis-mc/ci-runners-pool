@@ -134,6 +134,12 @@ export interface Choice {
   preview?: string | undefined;
   /** Why the choice cannot be taken (UX-38). */
   disabledReason?: string | undefined;
+  /** Line 2, in the normal colour: the value of the option, such as an address (LOOK14). */
+  detail?: string | undefined;
+  /** Line 3, muted: what the option means (LOOK14). With `detail` or `description` the label is the bold name. */
+  description?: string | undefined;
+  /** Shown under the description only while this option is chosen, such as a text field (LOOK14). */
+  extra?: ReactNode | undefined;
 }
 
 /** A row of a theme's colours. The theme id scopes the tokens, so the colours are the theme's own. */
@@ -197,37 +203,59 @@ export function ChoiceField(
           </p>
         ) : null}
         {props.error ? <p className="ds-field__error">{props.error}</p> : null}
-        {props.choices.map((c) => (
-          <label
-            className="ds-choice__row"
-            key={c.value}
-            data-card={c.preview ? true : undefined}
-            data-disabled={Boolean(c.disabledReason) || undefined}
-          >
-            <input
-              type="radio"
-              className="ds-radio"
-              name={id}
-              value={c.value}
-              checked={props.value === c.value}
-              disabled={Boolean(c.disabledReason)}
-              onChange={() => props.onChange(c.value)}
-            />
-            <span className="ds-choice__text">
-              {c.label}
-              {c.swatch ? <Swatches theme={c.swatch} /> : null}
-              {c.preview ? (
-                <span className="ds-choice__previews">
-                  <ThemePreview theme={c.preview} mode="dark" />
-                  <ThemePreview theme={c.preview} mode="light" />
-                </span>
+        {props.choices.map((c) => {
+          const structured = Boolean(c.detail || c.description);
+          const row = (
+            <label
+              className="ds-choice__row"
+              key={structured ? undefined : c.value}
+              data-card={c.preview ? true : undefined}
+              data-structured={structured || undefined}
+              data-selected={props.value === c.value || undefined}
+              data-disabled={Boolean(c.disabledReason) || undefined}
+            >
+              <input
+                type="radio"
+                className="ds-radio"
+                name={id}
+                value={c.value}
+                checked={props.value === c.value}
+                disabled={Boolean(c.disabledReason)}
+                onChange={() => props.onChange(c.value)}
+              />
+              <span className="ds-choice__text">
+                {structured ? (
+                  <span className="ds-choice__name">{c.label}</span>
+                ) : (
+                  c.label
+                )}
+                {c.detail ? <span className="ds-choice__detail">{c.detail}</span> : null}
+                {c.description ? (
+                  <span className="ds-choice__description">{c.description}</span>
+                ) : null}
+                {c.swatch ? <Swatches theme={c.swatch} /> : null}
+                {c.preview ? (
+                  <span className="ds-choice__previews">
+                    <ThemePreview theme={c.preview} mode="dark" />
+                    <ThemePreview theme={c.preview} mode="light" />
+                  </span>
+                ) : null}
+                {c.disabledReason ? (
+                  <span className="ds-choice__reason"> {c.disabledReason}</span>
+                ) : null}
+              </span>
+            </label>
+          );
+          if (!structured) return row;
+          return (
+            <div className="ds-choice__option" key={c.value}>
+              {row}
+              {c.extra && props.value === c.value ? (
+                <div className="ds-choice__extra">{c.extra}</div>
               ) : null}
-              {c.disabledReason ? (
-                <span className="ds-choice__reason"> {c.disabledReason}</span>
-              ) : null}
-            </span>
-          </label>
-        ))}
+            </div>
+          );
+        })}
       </fieldset>
     </div>
   );
@@ -240,17 +268,27 @@ export function CheckRow({
   onChange,
   help,
   disabledReason,
+  aside,
+  asideTone,
+  stacked = false,
 }: {
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
   help?: string | undefined;
   disabledReason?: string | undefined;
+  /** A quiet note at the end of the row; `needs-you` draws it amber. */
+  aside?: string | undefined;
+  asideTone?: 'needs-you' | undefined;
+  /** The label in bold with the help on its own line below. */
+  stacked?: boolean | undefined;
 }) {
   return (
     <label
       className="ds-choice__row"
       data-disabled={Boolean(disabledReason) || undefined}
+      data-aside={aside ? true : undefined}
+      data-stack={stacked || undefined}
     >
       <input
         type="checkbox"
@@ -260,7 +298,7 @@ export function CheckRow({
         onChange={(e) => onChange(e.target.checked)}
       />
       <span className="ds-choice__text">
-        {label}
+        {stacked ? <span className="ds-choice__name">{label}</span> : label}
         {help && help !== disabledReason ? (
           <span className="ds-choice__reason"> {help}</span>
         ) : null}
@@ -268,6 +306,11 @@ export function CheckRow({
           <span className="ds-choice__reason"> {disabledReason}</span>
         ) : null}
       </span>
+      {aside ? (
+        <span className="ds-choice__aside" data-tone={asideTone}>
+          {aside}
+        </span>
+      ) : null}
     </label>
   );
 }

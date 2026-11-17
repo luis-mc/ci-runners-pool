@@ -1,5 +1,10 @@
 name: Parity
 
+# Note (HND26, owner decision): the canonical parity run is in the private
+# comics-organizer repository (.github/workflows/crsp-parity.yml), so this
+# public repository keeps no self-hosted runners. This workflow stays as the
+# reference of the check and is not the run that counts.
+
 # Parity gate against the old runner pool (docs/architecture/parity-plan.md,
 # section 6, release v0.7.0). It checks the crsp pool on a self-hosted runner,
 # writes the parity report and uploads it as the artifact `parity-report`

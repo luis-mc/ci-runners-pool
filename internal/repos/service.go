@@ -52,7 +52,7 @@ type Service struct {
 	cfg Config
 
 	mu     sync.Mutex
-	admin  map[int64]map[int64]bool // user id -> repository id -> GitHub admin, from the last sync
+	admin  map[int64]map[int64]bool // user id -> repository id -> GitHub admin, from the last sync; a missing repository is unknown
 	synced map[int64]time.Time
 	etags  map[int64]map[string]string // repository id -> workflow path -> etag
 	cache  map[int64]map[string][]byte // repository id -> workflow path -> content
@@ -120,7 +120,10 @@ func (s *Service) Sync(ctx context.Context, p auth.Principal) error {
 			}
 		}
 	}
-	flags := s.userAdminFlags(ctx, p)
+	flags, ok := s.userAdminFlags(ctx, p)
+	if !ok {
+		flags = s.appAdminFlags(ctx, p, ins)
+	}
 	s.mu.Lock()
 	if flags != nil {
 		s.admin[p.UserID] = flags
@@ -131,25 +134,61 @@ func (s *Service) Sync(ctx context.Context, p auth.Principal) error {
 }
 
 // userAdminFlags reads which repositories the user administers, with the
-// user's own token. It returns nil when the token is gone or GitHub refuses:
-// the list does not depend on it.
-func (s *Service) userAdminFlags(ctx context.Context, p auth.Principal) map[int64]bool {
+// user's own token. ok is false when the token is gone or GitHub refuses: the
+// list does not depend on it, and the caller asks the App instead.
+func (s *Service) userAdminFlags(ctx context.Context, p auth.Principal) (flags map[int64]bool, ok bool) {
 	tok, err := s.cfg.Tokens.GitHubToken(p.UserID)
 	if err != nil {
-		return nil
+		return nil, false
 	}
 	ins, err := s.cfg.GitHub.ListUserInstallations(ctx, tok)
 	if err != nil {
+		return nil, false
+	}
+	flags = map[int64]bool{}
+	for _, in := range ins {
+		repos, err := s.cfg.GitHub.ListInstallationRepositories(ctx, tok, in.ID)
+		if err != nil {
+			return nil, false
+		}
+		for _, r := range repos {
+			flags[r.ID] = r.Admin
+		}
+	}
+	return flags, true
+}
+
+// appAdminFlags reads the user's admin rights with the App, the way
+// requireGitHubAdmin does when the user's token is gone (OPS15): the owner of
+// a user-account installation is admin, any other repository is asked with
+// CollaboratorPermission. A repository whose answer is not a clear yes or no
+// (a GitHub error) is left out of the map: its flag is unknown, never false.
+func (s *Service) appAdminFlags(ctx context.Context, p auth.Principal, ins []github.Installation) map[int64]bool {
+	if p.Login == "" {
 		return nil
 	}
 	flags := map[int64]bool{}
 	for _, in := range ins {
-		repos, err := s.cfg.GitHub.ListInstallationRepositories(ctx, tok, in.ID)
-		if err != nil {
-			return nil
+		if in.Suspended {
+			continue
 		}
+		repos, err := s.cfg.Store.ListRepositories(ctx, ListFilter{InstallationID: in.ID})
+		if err != nil {
+			continue
+		}
+		ownsAccount := in.AccountType != "Organization" && strings.EqualFold(in.AccountLogin, p.Login)
 		for _, r := range repos {
-			flags[r.ID] = r.Admin
+			if ownsAccount {
+				flags[r.ID] = true
+				continue
+			}
+			perm, err := s.cfg.GitHub.CollaboratorPermission(ctx, in.ID, r.Owner, r.Name, p.Login)
+			switch {
+			case err == nil:
+				flags[r.ID] = strings.EqualFold(perm, "admin")
+			case errors.Is(err, github.ErrNotFound):
+				flags[r.ID] = false
+			}
 		}
 	}
 	return flags
@@ -213,9 +252,12 @@ func (s *Service) Installations(ctx context.Context, p auth.Principal) ([]Instal
 // GitHub admin flag.
 type RepositoryView struct {
 	Repository
-	Policy         Policy
-	Variables      []ManagedVariable
-	UserIsAdmin    bool
+	Policy      Policy
+	Variables   []ManagedVariable
+	UserIsAdmin bool
+	// AdminKnown is false when the flag was not read (no token and the App
+	// could not say): the page must not claim the user lacks admin rights (OPS15).
+	AdminKnown     bool
 	FindingsFail   int
 	FindingsWarn   int
 	VariablesDrift bool
@@ -258,7 +300,7 @@ func (s *Service) view(ctx context.Context, p auth.Principal, r Repository) (Rep
 	}
 	v.Problem = s.problemOf(ctx, r)
 	s.mu.Lock()
-	v.UserIsAdmin = s.admin[p.UserID][r.ID]
+	v.UserIsAdmin, v.AdminKnown = s.admin[p.UserID][r.ID]
 	s.mu.Unlock()
 	return v, nil
 }

@@ -70,6 +70,25 @@ type harness struct {
 	secrets *secrets.Memory
 	client  *http.Client
 	health  *webhookhealth.Tracker
+	logs    *lockedBuf
+}
+
+// lockedBuf is a log sink safe for the server goroutines.
+type lockedBuf struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (l *lockedBuf) Write(p []byte) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.b.Write(p)
+}
+
+func (l *lockedBuf) String() string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.b.String()
 }
 
 func newHarness(t *testing.T) *harness { return newHarnessWith(t, nil) }
@@ -97,7 +116,7 @@ func newHarnessWith(t *testing.T, wrap func(*secrets.Memory) secrets.Store, twea
 		tw(&rcfg, &opts)
 	}
 	rsvc := repos.New(rcfg)
-	h := &harness{t: t, fake: f, auth: asvc, repos: rsvc, astore: astore, rstore: rstore, secrets: sec, health: webhookhealth.New()}
+	h := &harness{t: t, fake: f, auth: asvc, repos: rsvc, astore: astore, rstore: rstore, secrets: sec, health: webhookhealth.New(), logs: &lockedBuf{}}
 
 	seen := map[string]bool{}
 	h.hook = &github.WebhookHandler{
@@ -118,7 +137,8 @@ func newHarnessWith(t *testing.T, wrap func(*secrets.Memory) secrets.Store, twea
 		Events: noEvents{},
 	}
 	mux := http.NewServeMux()
-	opts.GitHub = &GitHubArea{Auth: asvc, Repos: rsvc, Webhook: h.hook, WebBase: f.URL, Health: h.health}
+	opts.GitHub = &GitHubArea{Auth: asvc, Repos: rsvc, Webhook: h.hook, WebBase: f.URL, Health: h.health,
+		Logger: slog.New(slog.NewTextHandler(h.logs, nil))}
 	Register(mux, opts)
 	h.srv = httptest.NewServer(Recover(slog.New(slog.NewTextHandler(io.Discard, nil)), mux))
 	t.Cleanup(h.srv.Close)
@@ -476,7 +496,7 @@ func TestCallbackRefusesForgedState(t *testing.T) { // R5.8
 	h := newHarness(t)
 	h.setup(1, "alice")
 	res, _ := h.do("GET", "/auth/github/callback?code=x&state=forged", nil, nil, nil)
-	if res.StatusCode != 302 || !strings.Contains(res.Header.Get("Location"), "error=bad_request") || len(res.Cookies()) != 0 {
+	if res.StatusCode != 302 || !strings.Contains(res.Header.Get("Location"), "error=state_missing") || len(res.Cookies()) != 0 {
 		t.Fatalf("%d %s", res.StatusCode, res.Header.Get("Location"))
 	}
 }

@@ -58,6 +58,13 @@ const STATES: {
     primaries: 1,
   },
   {
+    name: 'image detail',
+    path: '/images/img_m1_linux',
+    h1: 'build-1',
+    pane: 'Layers',
+    primaries: 1,
+  },
+  {
     name: 'images failed',
     path: '/images',
     h1: 'Images and caches',
