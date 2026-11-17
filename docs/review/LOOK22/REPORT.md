@@ -2,7 +2,7 @@
 
 Owner (2026-11-17): the 4-step "Pool size" wizard inside the machine's settings page is not intuitive. Wants a plain section with the Review check run live while editing, and a "Recommended" option. This is a REVIEW: three options shown, none chosen. Committed app code is unchanged.
 
-Open `docs/review/LOOK22/index.html` (side by side, desktop 1300 and phone 393, Phosphor dark). PNGs sit next to it: `<option>-<state>-<desktop|phone>.png`.
+Open `docs/review/LOOK22/index.html` (this report is `docs/review/LOOK22/REPORT.md`; `docs/work/` is not used because a report there may not reach the default branch, docs_check W1) (side by side, desktop 1300 and phone 393, Phosphor dark). PNGs sit next to it: `<option>-<state>-<desktop|phone>.png`.
 
 ## How the shots were made
 Real console (`apps/web`) in Chromium, API mocked with the existing `MockApi` of `apps/web/src/testing/mock.tsx`. The harness is in `docs/review/LOOK22/harness/`: a vite config that swaps the `./PoolSize` import of `Machines.tsx` for the option file (`OPTION=A|B|C`; none = today's wizard), `mock.ts` (a JS copy of `internal/poolsize/budget.go`: floor, CPU budget, memory room, 1.5 GiB per CPU, shrink needs a yes), `shoot.cjs`, `make-index.py`. Figures as the owner gave: machine 31.7 GiB, used outside 16.4, budget 26.9, room 10.5, CPU budget 19; now 4 GiB and 2 CPUs. Nothing in `apps/web` or `packages/ui` is edited.

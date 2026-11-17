@@ -25,5 +25,5 @@ body{{background:#0b120c;color:#cfe;font:14px/1.4 ui-monospace,monospace;margin:
 .grid{{display:grid;grid-template-columns:repeat(4,minmax(320px,1fr));gap:16px;overflow-x:auto}}
 img{{max-width:100%;border:1px solid #365}}figcaption{{color:#8a9;margin:8px 0 2px}}h3{{border-bottom:1px solid #365}}
 a{{color:#7f9}}</style></head><body><h1>LOOK22: pool size as a settings section (options, no decision)</h1>
-<p>Real console (apps/web) with a mocked API. Report: <a href="../../work/LOOK22.md">docs/work/LOOK22.md</a>. Click an image for full size.</p>
+<p>Real console (apps/web) with a mocked API. Report: <a href="REPORT.md">docs/review/LOOK22/REPORT.md</a>. Click an image for full size.</p>
 {sec('desktop')}{sec('phone')}</body></html>""")
