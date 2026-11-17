@@ -24,6 +24,8 @@ export interface NumberKeypadLabels {
   below: string;
   above: string;
   short: string;
+  /** The range under the value. */
+  range: string;
 }
 
 export const DEFAULT_NUMBER_KEYPAD_LABELS: NumberKeypadLabels = {
@@ -35,6 +37,7 @@ export const DEFAULT_NUMBER_KEYPAD_LABELS: NumberKeypadLabels = {
   below: 'The lowest is {min}.',
   above: 'The highest is {max}.',
   short: 'Type all {n} digits.',
+  range: 'From {min} to {max}.',
 };
 
 export interface NumberKeypadProps {
@@ -53,6 +56,8 @@ export interface NumberKeypadProps {
   maxLength?: number;
   /** A unit after the value, such as "kg". */
   unit?: string;
+  /** Inside the one overlay: no title and no Cancel/Done of its own; the overlay's footer has them (UX-44). */
+  embedded?: boolean;
   labels?: Partial<NumberKeypadLabels>;
 }
 
@@ -68,6 +73,7 @@ export function NumberKeypad({
   max,
   maxLength,
   unit,
+  embedded = false,
   labels,
 }: NumberKeypadProps) {
   const words = { ...DEFAULT_NUMBER_KEYPAD_LABELS, ...labels };
@@ -128,6 +134,10 @@ export function NumberKeypad({
       .replace('{max}', String(max ?? ''))
       .replace('{n}', String(maxLength ?? ''));
   }
+  const hint =
+    kind === 'number' && min !== undefined && max !== undefined
+      ? words.range.replace('{min}', String(min)).replace('{max}', String(max))
+      : '';
   const labelId = `${id}-label`;
   const reasonId = `${id}-reason`;
 
@@ -138,7 +148,7 @@ export function NumberKeypad({
       aria-labelledby={labelId}
       onKeyDown={onRootKey}
     >
-      <span id={labelId} className="ds-keypad__label">
+      <span id={labelId} className={embedded ? 'ds-visually-hidden' : 'ds-keypad__label'}>
         {label}
       </span>
       <output
@@ -166,7 +176,7 @@ export function NumberKeypad({
               type="button"
               data-keypad-key={key}
               className={
-                key === 'Backspace'
+                key === 'Backspace' || key === 'Clear'
                   ? 'ds-keypad__key ds-keypad__key--action'
                   : 'ds-keypad__key'
               }
@@ -175,43 +185,45 @@ export function NumberKeypad({
               onFocus={() => setFocusIndex(i)}
               onClick={() => press(key)}
             >
-              {key === 'Backspace' ? <span aria-hidden="true">⌫</span> : key}
+              {key === 'Backspace' ? (
+                <span aria-hidden="true">⌫</span>
+              ) : key === 'Clear' ? (
+                words.clear
+              ) : (
+                key
+              )}
             </button>
           ),
         )}
       </div>
 
+      {hint ? <p className="ds-keypad__hint">{hint}</p> : null}
       <p id={reasonId} className="ds-keypad__reason" aria-live="polite">
         {reason}
       </p>
 
-      <div className="ds-keypad__actions">
-        <button
-          type="button"
-          className="ds-keypad__action ds-keypad__action--quiet"
-          onClick={() => press('Clear')}
-        >
-          {words.clear}
-        </button>
-        {onCancel && (
+      {embedded ? null : (
+        <div className="ds-keypad__actions">
+          {onCancel && (
+            <button
+              type="button"
+              className="ds-keypad__action ds-keypad__action--secondary"
+              onClick={onCancel}
+            >
+              {words.cancel}
+            </button>
+          )}
           <button
             type="button"
-            className="ds-keypad__action ds-keypad__action--secondary"
-            onClick={onCancel}
+            className="ds-keypad__action ds-keypad__action--primary"
+            disabled={!result.ok}
+            aria-describedby={reason ? reasonId : undefined}
+            onClick={done}
           >
-            {words.cancel}
+            {words.done}
           </button>
-        )}
-        <button
-          type="button"
-          className="ds-keypad__action ds-keypad__action--primary"
-          disabled={!result.ok}
-          aria-describedby={reason ? reasonId : undefined}
-          onClick={done}
-        >
-          {words.done}
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

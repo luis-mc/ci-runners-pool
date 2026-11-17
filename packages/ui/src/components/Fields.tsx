@@ -4,6 +4,8 @@
 import { useId, type ReactNode } from 'react';
 import { ThemePreview } from './ThemePreview';
 
+export { FileField } from './FileField';
+
 export interface FieldShellProps {
   label: string;
   help?: string | undefined;
@@ -34,7 +36,7 @@ function Shell({
       data-width={width}
       data-invalid={Boolean(error) || undefined}
     >
-      <label className="ds-field__label" htmlFor={htmlFor}>
+      <label className="ds-field__label" htmlFor={htmlFor} title={label}>
         {label}
         {optional ? ' (optional)' : ''}
       </label>
@@ -83,37 +85,6 @@ export function TextField(
           undefined
         }
         onChange={(e) => props.onChange(e.target.value)}
-      />
-    </Shell>
-  );
-}
-
-/** A file box: the person chooses one file; the screen reads it and never shows its content (components 14). */
-export function FileField(
-  props: FieldShellProps & {
-    /** Called with the chosen file, or null when the choice is cleared. */
-    onChange: (file: File | null) => void;
-    accept?: string | undefined;
-    disabled?: boolean | undefined;
-  },
-) {
-  const id = useId();
-  const helpId = `${id}-h`;
-  const errorId = `${id}-e`;
-  return (
-    <Shell {...props} htmlFor={id} helpId={helpId} errorId={errorId}>
-      <input
-        id={id}
-        className="ds-input"
-        type="file"
-        accept={props.accept}
-        disabled={props.disabled}
-        aria-invalid={props.error ? true : undefined}
-        aria-describedby={
-          [props.help ? helpId : '', props.error ? errorId : ''].join(' ').trim() ||
-          undefined
-        }
-        onChange={(e) => props.onChange(e.target.files?.[0] ?? null)}
       />
     </Shell>
   );
@@ -211,7 +182,11 @@ export function ChoiceField(
       data-width="full"
       data-invalid={Boolean(props.error) || undefined}
     >
-      <fieldset className="ds-choice" aria-describedby={props.help ? helpId : undefined}>
+      <fieldset
+        className="ds-choice"
+        data-cards={props.choices.some((c) => c.preview) || undefined}
+        aria-describedby={props.help ? helpId : undefined}
+      >
         <legend className="ds-field__label">
           {props.label}
           {props.optional ? ' (optional)' : ''}
@@ -226,6 +201,7 @@ export function ChoiceField(
           <label
             className="ds-choice__row"
             key={c.value}
+            data-card={c.preview ? true : undefined}
             data-disabled={Boolean(c.disabledReason) || undefined}
           >
             <input
