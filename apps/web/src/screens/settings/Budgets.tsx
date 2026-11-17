@@ -43,7 +43,7 @@ export function budgetProblems(pool: Pool, queue: Queue): string[] {
   within('Memory budget', pool.budget_memory_pct, 10, 95, '%');
   within('CPU budget', pool.budget_cpu_pct, 10, 95, '%');
   within('Job slots', pool.default_job_slots, 0, 64, '');
-  within('Drain timeout', pool.drain_timeout_minutes, 5, 1440, ' min');
+  within('Time to finish running jobs', pool.drain_timeout_minutes, 5, 1440, ' min');
   within('Wait before "no runner"', queue.no_runner_wait_minutes, 1, 60, ' min');
   if (new Set(queue.order).size !== KEYS.length)
     out.push('Each of the four order keys must be used once.');
@@ -146,7 +146,8 @@ function BudgetsForm({
                 onChange={(v) => setP({ ...p, default_job_slots: v })}
               />
               <NumberField
-                label="Drain timeout"
+                label="Time to finish running jobs"
+                help="How long running jobs may take to finish when a machine stops new jobs."
                 value={p.drain_timeout_minutes}
                 unit=" min"
                 min={5}

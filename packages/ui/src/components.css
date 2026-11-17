@@ -300,6 +300,15 @@ body {
 .ds-page-header__action {
   flex: 0 0 auto;
 }
+@media (max-width: 599px) {
+  .ds-page-header__action {
+    flex: 1 1 100%;
+  }
+  .ds-page-header__action .ds-button-wrap,
+  .ds-page-header__action .ds-button {
+    inline-size: 100%;
+  }
+}
 .ds-breadcrumbs__list {
   display: flex;
   flex-wrap: wrap;

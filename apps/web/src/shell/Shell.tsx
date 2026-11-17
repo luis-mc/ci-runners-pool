@@ -316,7 +316,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
         const waiting = ev.change.waiting_for.length;
         return {
           id: `change:${ev.change.id}`,
-          label: `${ev.change.kind === 'drain' ? 'Draining' : 'Working on'} a machine, waiting for ${waiting} ${waiting === 1 ? 'job' : 'jobs'}`,
+          label: `${ev.change.kind === 'drain' ? 'Stopping new jobs on' : 'Working on'} a machine, waiting for ${waiting} ${waiting === 1 ? 'job' : 'jobs'}`,
         };
       }
       if (ev.cache && ev.cache.state === 'wiping') {

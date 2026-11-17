@@ -34,8 +34,8 @@ Each action has one word. The Never use column lists words that must not stand i
 | Sign in with GitHub | Start the GitHub sign-in. | Log in, Login |
 | Sign in with GitHub again | The action of the needs-you message when the GitHub sign-in ended; starts the GitHub sign-in and returns to the same screen. | Log in again, Reconnect |
 | Sign out | End the session. | Log out, Logout |
-| Drain | Stop a machine taking new jobs and wait for the running ones. | Pause, Disable |
-| Resume | Let a drained machine take jobs again. | Enable, Undrain |
+| Stop new jobs | Stop a machine taking new jobs; the running ones finish. A secondary button, with the hint line "Running jobs finish first. Resume takes jobs again." Question card title "Stop new jobs on {machine}?"; busy word Stopping new jobs. The API and CLI keep the name drain. | Drain, Pause, Disable |
+| Resume | Let a machine that stopped new jobs take jobs again. | Enable, Undrain |
 | Turn on | Let a repository use the pool. | Enable, Activate |
 | Turn off | Stop a repository using the pool. | Disable, Deactivate |
 | Copy | Copy a command or a value. It changes nothing. | Clipboard |
@@ -209,6 +209,11 @@ The words of the machine mode, the battery pause and the CPU cap (machines R5.61
 | Always | A mode. Takes jobs on battery too. A pause from the tray still holds. |
 | Paused | A mode, and a state word. Takes no new job. The jobs that run finish. |
 | Takes jobs | The column of the machines list. |
+| Finishing {n} jobs (up to {m} min) | State word of a machine that stopped new jobs and still runs jobs ({n} running jobs it waits for, {m} the time to finish running jobs; one job: "Finishing 1 job"). The list and the filter say "Finishing jobs"; the Overview says "finishing jobs". |
+| Not taking jobs | State word of a machine that stopped new jobs and has no running job. The filter says the same. |
+| Time to finish running jobs | The setting field (machine and pool defaults), in minutes. Help: "How long running jobs may take to finish when new jobs are stopped. crsp never cuts a job." (pool: "...when a machine stops new jobs.") |
+| Waiting for jobs to finish | Section title of the job that holds a machine that stopped new jobs. |
+| Stop new jobs on {machine}? | Question card title. Lines: "Running jobs finish first, for up to {m} min." and "Nothing is removed. Resume undoes it." Primary: Stop new jobs. |
 | Taking jobs | State word: the machine takes new jobs. |
 | Paused, On battery, Quiet hours | State words: why the machine takes no new job. |
 | Busy | State word: the load is over the budget, so a new job waits. The tray header does not say it. |
@@ -279,7 +284,7 @@ The words of the list "Why jobs wait" (scheduling R5.48). The gate's own line wi
 | Over the budget | Over the load budget: {numbers}. (Over the memory or CPU budget.) |
 | No free slot | No free slot: {n} ahead in the queue. |
 | Parallel limit | The repository is at its parallel limit. |
-| Machine drained | The machine is drained. |
+| Machine drained | The machine is not taking jobs. |
 | Load not measured | Load not measured yet. The machine cannot read its load, so the job waits. Run the doctor to see why. |
 | Reason not known | Waiting. The reason is not known yet. |
 
@@ -651,7 +656,7 @@ The words of the Docker disk section on the machine page (caches R5.51 to R5.54,
 | Done today | State word: it ran in the last 24 hours. |
 | Waiting for quiet hours | State word: outside the quiet hours. |
 | Waiting: the machine is offline | State word. |
-| Waiting: the machine is paused or drained | State word. |
+| Waiting: the machine is paused or not taking jobs | State word. |
 | Waiting for the agent to look at the disk | State word before the first report. |
 | Waiting: less than the limit can be reclaimed | State word. |
 | Waiting: jobs run or wait here | State word. |

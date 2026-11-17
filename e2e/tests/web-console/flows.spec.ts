@@ -153,7 +153,7 @@ test('Turn on the pool: choose, Review, Turning on, Done with what was really do
   await expect(page.getByRole('button', { name: 'Open Repositories' })).toBeVisible();
 });
 
-test('Drain asks first, names the running jobs, and drains on yes', async ({ page }) => {
+test('Stop new jobs asks first, names the running jobs, and stops new jobs on yes', async ({ page }) => {
   const mock = signedIn().on('POST', '/api/v1/machines/:id/drain', {
     id: 'c1',
     machine_id: 'm1',
@@ -164,11 +164,11 @@ test('Drain asks first, names the running jobs, and drains on yes', async ({ pag
   });
   await mock.install(page);
   await page.goto('/machines/m1');
-  await page.getByRole('button', { name: 'Drain', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: 'Drain build-1?' });
+  await page.getByRole('button', { name: 'Stop new jobs', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Stop new jobs on build-1?' });
   await expect(dialog).toContainText('octo/app e2e');
   expect(mock.count('POST', '/api/v1/machines/m1/drain')).toBe(0);
-  await dialog.getByRole('button', { name: 'Drain' }).click();
+  await dialog.getByRole('button', { name: 'Stop new jobs' }).click();
   await expect.poll(() => mock.count('POST', '/api/v1/machines/m1/drain')).toBe(1);
 });
 
@@ -378,7 +378,7 @@ test('The admin saves the Budgets with Save and the page says no job is waited f
   await mock.install(page);
   await page.goto('/settings/budgets');
   await expect(page.getByText(/no running job is waited for/)).toBeVisible();
-  await expect(page.getByRole('button', { name: /Drain timeout/ })).toContainText('60');
+  await expect(page.getByRole('button', { name: /Time to finish running jobs/ })).toContainText('60');
   await page.getByRole('checkbox', { name: /Size the slots/ }).uncheck();
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect.poll(() => mock.count('PUT', '/api/v1/settings/pool')).toBe(1);

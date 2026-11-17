@@ -89,14 +89,14 @@ The Machines screen and the Add machine wizard follow design system v1 ([ux-rule
 
 | Screen or state | What it shows | Rules |
 |---|---|---|
-| Machines, list | One card per machine: name, OS, state word (online, offline, drained, draining), backends, load bars for memory and CPU against the budget, slots used of total, last seen | UX-10, UX-41, UX-51, UX-53, UX-58 |
+| Machines, list | One card per machine: name, OS, state word (online, offline, not taking jobs, finishing N jobs), backends, load bars for memory and CPU against the budget, slots used of total, last seen | UX-10, UX-41, UX-51, UX-53, UX-58 |
 | Machines, empty | "No machines yet." and the **Add machine** action | UX-6, UX-4 |
 | Machine detail | Facts, backends with their reason when not usable, settings, running jobs, the install command again | UX-25, UX-22, UX-61 |
 | Machine detail, When it works | The mode (Automatic, Always, Paused), the Pause on battery switch, the CPU cap (25, 50, 75, 100%), the power source, and the reason when the machine takes no new job. Each control saves at once. A pause from the tray shows with its end and a Resume | UX-13, UX-22, UX-38, UX-58 |
 | Machines, list column Takes jobs | The word Taking jobs, Paused, On battery, Quiet hours or Busy | UX-58 |
 | Add machine | Wizard: pick the OS, copy the command, wait for the machine to join, Done | UX-5, UX-29, UX-30, UX-54 |
 | Waiting for join | Names what it waits for and when the code expires | UX-29, UX-6 |
-| Draining | Names each job it waits for and the time left before the drain timeout | UX-29, UX-34 |
+| Finishing jobs | Names each job it waits for and the time left before the drain timeout | UX-29, UX-34 |
 | Drain past its timeout | Still draining: a Needs you message that says "still draining, N jobs running, waited X", names the jobs, and offers wait longer or cancel. No choice stops a job | UX-26, UX-38 |
 | Remove machine | Question card that lists every item that goes | UX-9, UX-62 |
 | Offline | Offline state word, last seen, what the agent was doing | UX-58, UX-6 |
@@ -176,7 +176,7 @@ Ported from dev-standards `claude/plugins/delivery/scripts/load.py` and `load_gu
 | Job slots | 2 | 0 to 64 |
 | Allowed backends | persistent runner only | any usable backend (R5.11) |
 | Cache size cap | 20 GiB | 1 GiB to the free disk |
-| Drain timeout (one per machine) | 60 minutes | 5 minutes to 24 hours |
+| Time to finish running jobs, `drain_timeout_minutes` (one per machine) | 60 minutes | 5 minutes to 24 hours |
 | Maintenance windows | none | weekly windows, local time |
 | Quiet hours | none | weekly windows, local time, with their own budget and slots |
 | Mode | automatic | automatic, always, paused (R5.61) |

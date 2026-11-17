@@ -36,8 +36,8 @@ export function machineStatus(m: Machine): {
   if (m.recovery?.state === 'needs_recovery')
     return { kind: 'failed', word: 'needs recovery' };
   if (!m.online) return { kind: 'failed', word: 'offline' };
-  if (m.state === 'draining') return { kind: 'waiting', word: 'draining' };
-  if (m.state === 'drained') return { kind: 'off', word: 'drained' };
+  if (m.state === 'draining') return { kind: 'waiting', word: 'finishing jobs' };
+  if (m.state === 'drained') return { kind: 'off', word: 'not taking jobs' };
   if (m.state === 'removing') return { kind: 'waiting', word: 'removing' };
   return { kind: 'ok', word: 'online' };
 }

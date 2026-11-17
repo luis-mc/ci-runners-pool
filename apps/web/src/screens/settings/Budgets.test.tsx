@@ -30,7 +30,7 @@ describe('Budgets (R5.27)', () => {
     renderApp(api(), '/settings/budgets');
     expect(await screen.findByRole('tab', { name: 'Repositories' })).toBeTruthy();
     expect(await screen.findByRole('button', { name: /Memory budget/ })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Drain timeout/ }).textContent).toContain(
+    expect(screen.getByRole('button', { name: /Time to finish running jobs/ }).textContent).toContain(
       '60',
     );
     expect(

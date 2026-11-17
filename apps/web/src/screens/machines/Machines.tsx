@@ -47,8 +47,8 @@ type Machine = Schemas['Machine'];
 
 const STATES = [
   { value: 'active', label: 'Online' },
-  { value: 'draining', label: 'Draining' },
-  { value: 'drained', label: 'Drained' },
+  { value: 'draining', label: 'Finishing jobs' },
+  { value: 'drained', label: 'Not taking jobs' },
 ] as const;
 
 export function MachinesList() {
@@ -229,6 +229,11 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
   const admin = session.can('admin');
   const why = session.whyNot('admin');
   const s = machineStatus(m);
+  const finishing = m.pending_change?.waiting_for?.length ?? m.running_jobs?.length ?? 0;
+  const stateWord =
+    m.online && m.state === 'draining'
+      ? `Finishing ${finishing} ${finishing === 1 ? 'job' : 'jobs'} (up to ${m.settings.drain_timeout_minutes} min)`
+      : s.word;
   const jobs = (m.running_jobs ?? []).map((j) => `${j.repository} ${j.job_name}`);
 
   const [mem, setMem] = useState(m.settings.budget_memory_pct);
@@ -345,14 +350,25 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
               Resume
             </Button>
           ) : (
-            <Button
-              kind="primary"
-              onPress={() => drainQ.ask([`${m.name} stops taking new jobs.`], jobs)}
-              disabled={!admin}
-              reason={why}
-            >
-              Drain
-            </Button>
+            <Stack gap="tight">
+              <Button
+                onPress={() =>
+                  drainQ.ask(
+                    [
+                      'Running jobs finish first, for up to ' +
+                        `${m.settings.drain_timeout_minutes} min.`,
+                      'Nothing is removed. Resume undoes it.',
+                    ],
+                    jobs,
+                  )
+                }
+                disabled={!admin}
+                reason={why}
+              >
+                Stop new jobs
+              </Button>
+              <Text tone="muted">Running jobs finish first. Resume takes jobs again.</Text>
+            </Stack>
           )
         }
       />
@@ -363,7 +379,7 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
       <Section title="Facts">
         <Facts
           items={[
-            { name: 'State', value: <Status kind={s.kind} word={s.word} /> },
+            { name: 'State', value: <Status kind={s.kind} word={stateWord} /> },
             { name: 'Last seen', value: formatPast(m.last_seen_at) },
             { name: 'Slots in use', value: `${m.slots_used} of ${m.settings.job_slots}` },
             ...(f?.cpu_model
@@ -450,7 +466,8 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
                 onChange={setSlots}
               />
               <NumberField
-                label="Drain timeout"
+                label="Time to finish running jobs"
+                help="How long running jobs may take to finish when new jobs are stopped. crsp never cuts a job."
                 value={drain}
                 unit=" min"
                 min={1}
@@ -510,9 +527,9 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
         </FormActions>
       </Stack>
       <Ask
-        title={`Drain ${m.name}?`}
-        action="Drain"
-        busyLabel="Draining"
+        title={`Stop new jobs on ${m.name}?`}
+        action="Stop new jobs"
+        busyLabel="Stopping new jobs"
         q={drainQ.question}
         busy={drainQ.busy}
         error={drainQ.error}
@@ -555,7 +572,7 @@ function DrainHolder({ change }: { change: Schemas['MachineChange'] }) {
   const j = h?.job ?? waiting[0]!;
   const runner = j.runner_name ? ` on ${j.runner_name}` : '';
   return (
-    <Section title="Waiting for a drain">
+    <Section title="Waiting for jobs to finish">
       <Stack gap="tight">
         <Facts
           items={[
@@ -575,7 +592,7 @@ function DrainHolder({ change }: { change: Schemas['MachineChange'] }) {
         ) : null}
         {change.choices?.length && !h?.over_usual ? (
           <Message tone="note">
-            The drain timeout passed. crsp never stops a job. Wait longer, or cancel the
+            The time to finish running jobs passed. crsp never stops a job. Wait longer, or cancel the
             change with Resume.
           </Message>
         ) : null}
