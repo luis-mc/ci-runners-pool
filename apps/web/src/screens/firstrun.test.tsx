@@ -159,7 +159,7 @@ describe('Repositories after GitHub installed the App (finding 14)', () => {
     const api = signedIn().on('GET', '/api/v1/github/repositories', page([repository()]));
     renderApp(api, '/repositories?installation_id=1&setup_action=install');
     expect(await screen.findByText(/GitHub saved the App installation/)).toBeTruthy();
-    expect(await screen.findByRole('table', { name: 'Repositories' })).toBeTruthy();
+    expect(await screen.findByRole('table', { name: 'octo repositories' })).toBeTruthy();
   });
 });
 

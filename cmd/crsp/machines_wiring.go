@@ -69,10 +69,21 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 	}
 	host, _ := os.Hostname()
 	public := os.Getenv(envPublicHost)
+	listenHost := concreteListenHost(cfg.ListenAddr)
 	if public == "" {
 		public = host
+		// The address chosen in the console is the one runners reach.
+		if cfg.ListenFromSetting && listenHost != "" {
+			public = listenHost
+		}
 	}
-	ca, err := tlsca.LoadOrCreate(ctx, tlsca.Options{Dir: filepath.Join(cfg.DataDir, "tls"), Secrets: store, Hosts: []string{public, host}})
+	// The certificate covers every name and address the controller is reached at,
+	// the chosen listen address too; a certificate that lacks one is made again.
+	hosts := []string{public, host}
+	if listenHost != "" {
+		hosts = append(hosts, listenHost)
+	}
+	ca, err := tlsca.LoadOrCreate(ctx, tlsca.Options{Dir: filepath.Join(cfg.DataDir, "tls"), Secrets: store, Hosts: hosts})
 	if err != nil {
 		return nil, err
 	}
@@ -253,4 +264,18 @@ func packageServer(mr *machinesRuntime) api.PackageServer {
 		return nil
 	}
 	return mr.Packages
+}
+
+// concreteListenHost is the host of a listen address that names one address of
+// this machine: not loopback, not a wildcard, not empty.
+func concreteListenHost(listen string) string {
+	h, _, err := net.SplitHostPort(listen)
+	if err != nil {
+		return ""
+	}
+	h = strings.Trim(h, "[]")
+	if ip := net.ParseIP(h); ip == nil || ip.IsLoopback() || ip.IsUnspecified() {
+		return ""
+	}
+	return h
 }

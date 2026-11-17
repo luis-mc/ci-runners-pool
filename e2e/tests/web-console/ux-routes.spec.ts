@@ -26,6 +26,11 @@ const CHECKS: { id: Measure; states: ScreenState[] }[] = [
   { id: 'selectAll', states: ['data'] },
   { id: 'navScroll', states: ['data'] },
   { id: 'pane', states: ['data'] },
+  { id: 'frameEdges', states: ['data'] },
+  { id: 'navBox', states: ['data'] },
+  { id: 'tableHead', states: ['data'] },
+  { id: 'paneButtons', states: ['data'] },
+  { id: 'hintKeys', states: ['data'] },
 ];
 
 for (const route of routes) {

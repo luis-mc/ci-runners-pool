@@ -1777,6 +1777,61 @@ paths:
         default:
           $ref: '#/components/responses/Error'
 
+  /api/v1/settings/listen-address:
+    get:
+      operationId: getListenAddress
+      x-cli: none
+      x-cli-reason: 'A console setting: the owner chooses the controller address in the console (owner rule: everything from the web console).'
+      tags: [settings]
+      summary: The controller address, and the addresses of this PC to choose from
+      description: >-
+        operations R5.90. `running` is the address the controller listens on now;
+        `stored` is the choice kept in the settings. CRSP_LISTEN_ADDR, when set,
+        wins (`from_env`), and the console shows it read-only. `candidates` are
+        found on this PC: its network address, the host address of Docker and
+        WSL, and a typed address.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      responses:
+        '200':
+          description: The address and the choices.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListenAddress'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: putListenAddress
+      x-cli: none
+      x-cli-reason: 'A console setting: the owner chooses the controller address in the console (owner rule: everything from the web console).'
+      tags: [settings]
+      summary: Choose the controller address
+      description: >-
+        operations R5.90. Checks the address (host:port, an address of this PC,
+        not loopback), keeps it in the settings, writes one audit row, and
+        restarts the controller once through the drain path: running jobs finish
+        first. The controller then listens on the address over https with its
+        own certificate, and on 127.0.0.1 too. Refused with 409 when
+        CRSP_LISTEN_ADDR is set.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListenAddressChoice'
+      responses:
+        '202':
+          description: Kept; the controller restarts when running jobs have finished.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListenAddressChosen'
+        default:
+          $ref: '#/components/responses/Error'
+
   /api/v1/settings/public-repositories:
     get:
       operationId: getPublicRepositories
@@ -3879,6 +3934,60 @@ components:
     ParitySetupRequest:
       type: object
       description: No fields. The address is the controller's own, never one the browser sends (CRSP141).
+    ListenAddressCandidate:
+      type: object
+      required: [id, label, who]
+      properties:
+        id:
+          type: string
+          enum: [pc, docker, other]
+        label:
+          type: string
+        address:
+          type: string
+          description: host:port. Empty for the typed choice.
+        who:
+          type: string
+          description: One line on who can reach it.
+        recommended:
+          type: boolean
+    ListenAddress:
+      type: object
+      required: [running, from_env, candidates]
+      properties:
+        running:
+          type: string
+          description: The address the controller listens on now (host:port).
+        stored:
+          type: string
+          description: The address chosen in the console, when there is one.
+        from_env:
+          type: boolean
+          description: CRSP_LISTEN_ADDR is set and wins; the console cannot change it.
+        env_name:
+          type: string
+        problem:
+          type: string
+          description: Why the controller did not listen on the stored address at start.
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/ListenAddressCandidate'
+    ListenAddressChoice:
+      type: object
+      required: [address]
+      properties:
+        address:
+          type: string
+          description: host:port of this PC.
+    ListenAddressChosen:
+      type: object
+      required: [address, restarting]
+      properties:
+        address:
+          type: string
+        restarting:
+          type: boolean
     ParityAddress:
       type: object
       required: [status]

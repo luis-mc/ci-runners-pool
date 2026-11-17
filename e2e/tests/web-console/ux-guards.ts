@@ -147,6 +147,63 @@ const MEASURES = {
       }
     }
     return bad;`,
+  /** UX-69 (A1): header, menu, main, banner and key-hint frames share one left and right edge, within 1 px. */
+  frameEdges: `${VISIBLE}
+    const bands = Array.from(document.querySelectorAll('[data-frame-band]')).filter(visible);
+    if (bands.length === 0) return document.querySelector('header.ds-header') ? ['no frame band found'] : []; // a signed-out page has no frame
+    const edge = (e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return [r.left + parseFloat(s.paddingLeft), r.right - parseFloat(s.paddingRight)]; };
+    const [l0, r0] = edge(bands[0]);
+    const bad = [];
+    for (const b of bands.slice(1)) {
+      const [l, r] = edge(b);
+      if (Math.abs(l - l0) > 1 || Math.abs(r - r0) > 1) bad.push(label(b) + ' edges ' + Math.round(l) + '-' + Math.round(r) + ' differ from ' + Math.round(l0) + '-' + Math.round(r0));
+    }
+    return bad;`,
+  /** UX-69 (A3): the open menu item has no box: no side border, no outline, no fill. */
+  navBox: `${VISIBLE}
+    const bad = [];
+    for (const e of document.querySelectorAll('.ds-topmenu [aria-current=page]')) {
+      const s = getComputedStyle(e);
+      for (const side of ['Left', 'Right', 'Top']) if (parseFloat(s['border' + side + 'Width']) > 0 && s['border' + side + 'Style'] !== 'none') bad.push(label(e) + ' has a ' + side.toLowerCase() + ' border');
+      if (s.backgroundColor !== 'rgba(0, 0, 0, 0)') bad.push(label(e) + ' has a fill ' + s.backgroundColor);
+      if (parseFloat(s.borderBottomWidth) < 3) bad.push(label(e) + ' underline is under 3 px');
+    }
+    return bad;`,
+  /** UX-69 (A6): no table header cell wraps. Phone width hides the header row, so it is judged where it shows. */
+  tableHead: `${VISIBLE}
+    const bad = [];
+    for (const th of document.querySelectorAll('main th')) {
+      if (!visible(th)) continue;
+      const tops = [];
+      const walk = document.createTreeWalker(th, NodeFilter.SHOW_TEXT);
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+        if (!(n.textContent || '').trim()) continue;
+        const r = document.createRange(); r.selectNodeContents(n);
+        for (const x of r.getClientRects()) tops.push(Math.round(x.top));
+      }
+      const lines = new Set(tops);
+      if (lines.size > 1) bad.push(label(th) + ' wraps onto ' + lines.size + ' lines');
+    }
+    return bad;`,
+  /** UX-69 (A7): no button sits on a pane border. */
+  paneButtons: `${VISIBLE}
+    const bad = [];
+    for (const pane of document.querySelectorAll('.ds-pane')) {
+      const p = pane.getBoundingClientRect();
+      for (const b of pane.querySelectorAll('button, a[data-button]')) {
+        if (!visible(b)) continue;
+        const head = b.closest('thead');
+        if (head && head.getBoundingClientRect().width <= 2) continue; // a table head folded away at phone width
+        const r = b.getBoundingClientRect();
+        const cross = (edge, lo, hi) => lo < edge - 0.5 && hi > edge + 0.5;
+        if (cross(p.top, r.top, r.bottom) || cross(p.bottom, r.top, r.bottom)) bad.push(label(b) + ' overlaps the border of pane ' + (pane.getAttribute('aria-label') || ''));
+      }
+    }
+    return bad;`,
+  /** UX-69 (A8): each footer hint key appears once. */
+  hintKeys: `${VISIBLE}
+    const keys = Array.from(document.querySelectorAll('.ds-keyhints kbd')).map((k) => (k.textContent || '').toLowerCase().replace(/[\\s\\/,]+/g, ''));
+    return keys.filter((k, i) => keys.indexOf(k) !== i).map((k) => 'key hint ' + k + ' is listed twice');`,
   /** Look Option B: every page section, list and table of the main area sits inside a Pane. */
   pane: `${VISIBLE}
     const main = document.querySelector('main');

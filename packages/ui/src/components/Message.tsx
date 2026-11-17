@@ -44,7 +44,7 @@ export function Message({
 /** The one app-wide banner slot (UX-27). */
 export function BannerSlot({ children }: { children?: ReactNode }) {
   return (
-    <div className="ds-banner-slot" data-empty={!children || undefined}>
+    <div className="ds-banner-slot ds-band" data-empty={!children || undefined}>
       {children}
     </div>
   );

@@ -44,6 +44,7 @@ import { AuditLogSettings, ConfigExportSettings } from './AuditLog';
 import { BudgetsSettings } from './Budgets';
 import { NotificationsSettings } from './Notifications';
 import { PublicRepositoriesSettings } from './PublicRepositoriesSettings';
+import { NetworkSettings } from './ListenAddress';
 import { UpdatesSettings } from './Updates';
 
 type User = Schemas['User'];
@@ -132,6 +133,9 @@ export function ConsoleTab() {
       </At>
       <At id="notifications">
         <NotificationsSettings />
+      </At>
+      <At id="network">
+        <NetworkSettings />
       </At>
       <At id="updates">
         <UpdatesSettings />
