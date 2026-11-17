@@ -173,11 +173,11 @@ The body scrolls when the content is taller than the space. The overlay never gr
 
 ## 14. Form field family
 
-- **Used for:** a field (name, help, box, error), a toggle (saved at once) and a check box (waits for Save). Boxes come in three widths. A text area is the same field with several lines, for a list with one item per line; it keeps the same name, help and error places and takes the full width. The number field of the number keypad (37) takes `decimals` for a measure such as 16.5 GiB. A field for a secret (a password) hides what is typed; the screen never fills it in again and says beside it whether one is set. A file field lets the person choose one file; it has the same name, help and error places, the screen reads the file and never shows what is in it, and it is locked with the rest of the form when the person may not use it.
+- **Used for:** a field (name, help, box, error), a toggle (saved at once) and a check box (waits for Save). Boxes come in three widths. A text area is the same field with several lines, for a list with one item per line; it keeps the same name, help and error places and takes the full width. The number field of the number keypad (37) takes `decimals` for a measure such as 16.5 GiB. A field for a secret (a password) hides what is typed; the screen never fills it in again and says beside it whether one is set. A file field lets the person choose one file in place of the browser's own file box: empty (a dashed drop zone with "Drop the file here, or" and a Choose a file button), chosen (file icon, name, size, Change and a remove button) and refused (a Problem border and the reason the caller's `validate` gave). It keeps a real hidden input for the picker, drag and drop, the `accept` filter, and the same name, help and error places; the screen reads the file and never shows what is in it, and it is locked with the rest of the form when the person may not use it. Fields that sit in a row (component 43) share one height and one baseline, and a name that is too long ends in an ellipsis with the full name in its title.
 - **Looks:** a name above a box, a help line below it and an error line in the Problem tone when needed. A switch is a button with On or Off and its name always beside it; pressing the name works the switch. A check box and a radio are drawn 16 px inside a 44 px hit area (UX-16).
-- **Source:** `src/ui/field`; `packages/ui/src/components/Fields.tsx` (`FileField`)
-- **Rules:** UX-20, UX-21, UX-22, UX-23, UX-24.
-- **Guard:** none yet.
+- **Source:** `src/ui/field`; `packages/ui/src/components/FileField.tsx`, `packages/ui/src/components/Fields.tsx`
+- **Rules:** UX-20, UX-21, UX-22, UX-23, UX-24, UX-10, UX-16.
+- **Guard:** `packages/ui/src/components/look6-8.test.tsx` (file field states, drop and accept).
 
 ## 15. Tables and list rows
 
@@ -416,9 +416,9 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 37. Number keypad
 
 - **Used for:** counts, measures and codes only: a number of repetitions, a weight, a distance, a quantity, a one-time code. Many quick entries in a row. Never for a date, a time or a duration: those use the date picker and the time picker. It replaces a native number input.
-- **Looks:** the field name; the value in a large tabular figure in a box, with its unit after it; a 3 by 4 grid of keys (1 to 9, then ".", 0 and Delete last digit); a quiet reason line; then Clear, Cancel and Done in one row, Done the primary.
-- **Source:** `packages/ui/src/pickers/NumberKeypad.tsx` (logic in `number-keypad-logic.ts`, styles in `number-keypad.css` and `picker-base.css`)
-- **Rules:** UX-56, UX-16, UX-17, UX-20, UX-22, UX-43.
+- **Looks:** the field name; the value in a large tabular figure in a box, with its unit after it; a range line under the value ("From {min} to {max}."); a 3 by 4 grid of keys filling the width (1 to 9, then Clear in the bottom-left key, or "." when there are decimals, then 0 and Delete last digit in the bottom-right key); a quiet reason line. Inside the one overlay (`embedded`) the keypad shows no title and no buttons of its own: the overlay has the one title, and its footer has one Cancel on the left and Done as the primary on the right (UX-44). The overlay is about 420 px wide (`Dialog size="keypad"`) and a full-width sheet on a phone. Stand-alone, the keypad keeps its own title, Cancel and Done.
+- **Source:** `packages/ui/src/pickers/NumberKeypad.tsx` (logic in `number-keypad-logic.ts`, styles in `number-keypad.css` and `picker-base.css`); the overlay use is `NumberField` in `packages/ui/src/components/Controls.tsx`
+- **Rules:** UX-56, UX-16, UX-17, UX-20, UX-22, UX-43, UX-44.
 - **Guard:** the template's unit tests (`NumberKeypad.test.tsx`): keyboard, value and limits for a number and a code. With the enforcement kit, `scripts/design/raw-inputs.test.ts` bans a native number input (UX-56).
 
 ### Behaviour
@@ -437,7 +437,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 
 ### Words (content.md)
 
-"Delete last digit", "Clear", "Cancel", "Done", "Type a number.", "The lowest is {min}.", "The highest is {max}.", "Type all {n} digits." `design_system.py components` adds each word that is not there yet to the Component words table of content.md. A project changes them there and passes them through the `labels` prop.
+"Delete last digit", "Clear", "Cancel", "Done", "Type a number.", "The lowest is {min}.", "The highest is {max}.", "Type all {n} digits.", "From {min} to {max}." `design_system.py components` adds each word that is not there yet to the Component words table of content.md. A project changes them there and passes them through the `labels` prop.
 
 ## 38. Command palette and shortcut list
 
@@ -475,7 +475,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 42. Theme choice
 
 - **Used for:** the Theme choice in Settings, Appearance (UX-60): a one-choice list (component 13) of the six themes.
-- **Looks:** each row shows the theme name and, under it, a small row of that theme's colours (surface, primary, Done, Note, Needs you, Problem) in a box in the theme's page colour. The swatches are drawn from the theme's own tokens; the row is decoration and the name carries the meaning. The theme row may show a `ThemePreview` of that theme in dark and one in light (`Choice.preview`) instead of the swatch row; Settings, Appearance does. The mode (system, dark, light) is a second one-choice list beside it. `ThemePreview` is a small live sample of a theme in dark or light: a pane with its title in the border, a selected row in reverse video and a primary button, all from that theme's tokens. It is a picture with one label, not a control.
+- **Looks:** each row shows the theme name and, under it, a small row of that theme's colours (surface, primary, Done, Note, Needs you, Problem) in a box in the theme's page colour. The swatches are drawn from the theme's own tokens; the row is decoration and the name carries the meaning. The theme row may show a `ThemePreview` of that theme in dark and one in light (`Choice.preview`) instead of the swatch row; Settings, Appearance does. A choice with previews is drawn as cards in a grid, 3 per row on a desktop, 2 on a tablet and 1 on a phone; each card holds the radio, the theme name and the dark and light previews side by side, the whole card is the choice, and the selected card has a 2 px primary border. The mode (system, dark, light) is a second one-choice list beside it. `ThemePreview` is a small live sample of a theme in dark or light: a pane with its title in the border, a selected row in reverse video and a primary button, all from that theme's tokens. It is a picture with one label, not a control.
 - **Source:** `packages/ui/src/components/Fields.tsx` (`Choice.swatch`), `packages/ui/src/components/ThemePreview.tsx`, `packages/ui/src/themes.ts`
 - **Rules:** UX-22, UX-55, UX-60.
 - **Guard:** `scripts/design/themes.test.ts` (tokens and contrast); `apps/web/src/screens/settings/Settings.test.tsx` (picking and keeping a theme).
@@ -483,7 +483,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 43. Field grid
 
 - **Used for:** a form's short fields (numbers, short text) that belong together, such as the budget and slots of a machine.
-- **Looks:** the fields sit in equal columns, as many as fit the width, and fold to one column on a phone. Each field keeps its name above its box (UX-20). Fields never touch (UX-10).
+- **Looks:** the fields sit in equal-width columns (auto-fill, at least 200 px), as many as fit the width, and fold to one column on a phone. Each name sits on one line above its box (an ellipsis and a title when it is too long, UX-20), every box has the same height and the boxes sit on one baseline. Fields never touch (UX-10). Settings, Retention uses it.
 - **Source:** `packages/ui/src/components/layout.tsx` (`FieldGrid`), `packages/ui/src/components.css`
 - **Rules:** UX-10, UX-15, UX-16, UX-20.
 - **Guard:** `e2e/tests/design-layout.spec.ts` (layout at 360, 393 and 1300 px).

@@ -310,6 +310,12 @@ The words of the shared components (`design_system.py components`). A project ch
 | The lowest is {min}. | Number keypad |
 | The highest is {max}. | Number keypad |
 | Type all {n} digits. | Number keypad |
+| From {min} to {max}. | Number keypad |
+| Drop the file here, or | File field |
+| Choose a file | File field |
+| Change | File field |
+| Remove {name} | File field |
+| Choose a {pattern} file. | File field |
 
 ## Pool size words
 

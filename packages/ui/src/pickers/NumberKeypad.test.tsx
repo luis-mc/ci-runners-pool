@@ -41,13 +41,14 @@ describe('keypad logic', () => {
       value: '004211',
     });
   });
-  it('arrows move in the 3 x 4 grid and skip the empty cell', () => {
+  it('arrows move in the 3 x 4 grid', () => {
     const layout = keyLayout({});
-    expect(layout[9]).toBeNull();
+    expect(layout[9]).toBe('Clear'); // Clear fills the empty bottom-left key
+    expect(keyLayout({ decimals: 1 })[9]).toBe('.');
     expect(moveInGrid(0, 'ArrowRight', layout)).toBe(1);
     expect(moveInGrid(2, 'ArrowRight', layout)).toBe(2); // the row ends
-    expect(moveInGrid(6, 'ArrowDown', layout)).toBe(6); // the cell below is empty and the grid ends
-    expect(moveInGrid(10, 'ArrowLeft', layout)).toBe(10);
+    expect(moveInGrid(6, 'ArrowDown', layout)).toBe(9);
+    expect(moveInGrid(10, 'ArrowLeft', layout)).toBe(9);
     expect(moveInGrid(4, 'ArrowUp', layout)).toBe(1);
     expect(moveInGrid(4, 'End', layout)).toBe(11);
     expect(moveInGrid(4, 'x', layout)).toBeNull();

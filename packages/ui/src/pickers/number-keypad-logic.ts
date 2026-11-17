@@ -6,7 +6,7 @@ export type KeypadKind = 'number' | 'code';
 export interface KeypadOptions {
   kind?: KeypadKind;
   /** Digits after the decimal point; 0 (default) has no "." key. Ignored for a code. */
-  decimals?: number;
+  decimals?: number | undefined;
   /** Lowest and highest number (kind "number"). */
   min?: number | undefined;
   max?: number | undefined;
@@ -17,7 +17,7 @@ export interface KeypadOptions {
 export type KeypadKey =
   '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '.' | 'Backspace' | 'Clear';
 
-/** The keys in grid order, 3 across and 4 down. The "." cell is empty when there are no decimals. */
+/** The keys in grid order, 3 across and 4 down. The bottom-left cell is "." with decimals, else Clear. */
 export function keyLayout(opts: KeypadOptions): (KeypadKey | null)[] {
   const dot = (opts.kind ?? 'number') === 'number' && (opts.decimals ?? 0) > 0;
   return [
@@ -30,7 +30,7 @@ export function keyLayout(opts: KeypadOptions): (KeypadKey | null)[] {
     '7',
     '8',
     '9',
-    dot ? '.' : null,
+    dot ? '.' : 'Clear',
     '0',
     'Backspace',
   ];

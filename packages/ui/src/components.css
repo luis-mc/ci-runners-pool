@@ -835,6 +835,51 @@ body {
 .ds-swatch[data-swatch='problem'] {
   background: var(--ds-color-problem);
 }
+/* theme cards: 3 per row on desktop, 2 on tablet, 1 on phone; the whole card is the choice (LOOK6) */
+.ds-choice[data-cards] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ds-space-3);
+}
+.ds-choice[data-cards] > :not(.ds-choice__row) {
+  grid-column: 1 / -1;
+}
+.ds-choice__row[data-card] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  align-content: start;
+  padding: var(--ds-space-3);
+  background: var(--ds-color-surface);
+  border: var(--ds-border-thin) solid var(--ds-color-border);
+  border-radius: var(--ds-radius-2);
+  cursor: pointer;
+}
+.ds-choice__row[data-card]:has(input:checked) {
+  border: 2px solid var(--ds-color-primary);
+  padding: calc(var(--ds-space-3) - 1px);
+}
+.ds-choice__row[data-card]:has(input:focus-visible) {
+  outline: var(--ds-border-medium) solid var(--ds-color-focus);
+  outline-offset: 2px;
+}
+.ds-choice__row[data-card] .ds-choice__previews {
+  flex-wrap: nowrap;
+  gap: var(--ds-space-2);
+}
+.ds-choice__row[data-card] .ds-choice__previews > * {
+  flex: 1 1 0;
+  min-inline-size: 0;
+}
+@media (max-width: 62rem) {
+  .ds-choice[data-cards] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 40rem) {
+  .ds-choice[data-cards] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .ds-choice__reason {
   color: var(--ds-color-text-muted);
   font-size: var(--ds-size-2);
@@ -1247,17 +1292,28 @@ body {
   min-inline-size: 0;
 }
 
-/* a form's short fields in equal columns (component 43) */
+/* a form's fields in a row: equal columns, labels on one line, inputs on one baseline (component 43, LOOK6) */
 .ds-field-grid {
   display: grid;
-  /* Each column is as wide as a short field, so the gap between two fields is the grid gap. */
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(min(100%, var(--ds-width-field-short)), var(--ds-width-field-short))
-  );
-  justify-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12.5rem), 1fr));
+  align-items: end;
   gap: var(--ds-space-4);
   min-inline-size: 0;
+}
+.ds-field-grid > .ds-field {
+  max-inline-size: none;
+  align-content: end;
+}
+.ds-field-grid .ds-field__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-field-grid .ds-input,
+.ds-field-grid .ds-number {
+  inline-size: 100%;
+  min-block-size: var(--ds-control-height);
+  box-sizing: border-box;
 }
 
 /* theme preview: a sample drawn from the tokens of its own theme and mode (data-theme-name and data-theme sit on it) */
@@ -1311,4 +1367,67 @@ body {
   background: var(--ds-color-primary);
   border-radius: var(--ds-radius-1);
   font-weight: var(--ds-weight-bold);
+}
+
+/* file field (component 14b, LOOK8) */
+.ds-file__input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.ds-file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-3);
+  min-block-size: var(--ds-control-height-large);
+  padding: var(--ds-space-3);
+  background: var(--ds-color-surface);
+  border: var(--ds-border-medium) dashed var(--ds-color-border);
+  border-radius: var(--ds-radius-2);
+}
+.ds-file[data-state='chosen'] {
+  justify-content: space-between;
+  border-style: solid;
+}
+.ds-file[data-state='refused'],
+.ds-field[data-invalid] .ds-file {
+  border-color: var(--ds-color-problem);
+}
+.ds-file[data-over] {
+  border-color: var(--ds-color-primary);
+  background: color-mix(in srgb, var(--ds-color-primary) 8%, var(--ds-color-surface));
+}
+.ds-file[data-disabled] {
+  color: var(--ds-color-text-muted);
+}
+.ds-file__prompt {
+  color: var(--ds-color-text-muted);
+}
+.ds-file__icon {
+  display: inline-flex;
+  color: var(--ds-color-text-muted);
+}
+.ds-file__meta {
+  display: grid;
+  flex: 1 1 8rem;
+  min-inline-size: 0;
+}
+.ds-file__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--ds-weight-semibold);
+}
+.ds-file__size {
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-size-2);
+}
+.ds-file__actions {
+  display: flex;
+  gap: var(--ds-space-2);
 }
