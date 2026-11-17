@@ -246,6 +246,11 @@ body {
   gap: var(--ds-space-5);
   min-inline-size: 0;
 }
+/* The default frame is the full wide frame. Only a sign-in page is narrow (UX-69). */
+.ds-page[data-frame='narrow'] {
+  max-inline-size: var(--ds-frame-narrow);
+  margin-inline: auto;
+}
 .ds-h1 {
   margin: 0;
   font-size: var(--ds-size-6);

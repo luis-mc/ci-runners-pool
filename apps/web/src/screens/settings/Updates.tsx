@@ -443,7 +443,7 @@ export function UpdateReviewPage() {
   const [params] = useSearchParams();
   const restart = params.get('kind') === 'restart';
   return (
-    <Page frame="narrow">
+    <Page>
       <Breadcrumbs
         trail={[{ to: settingsPath('updates'), label: 'Updates' }, { label: 'Review' }]}
       />
