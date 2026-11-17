@@ -21,7 +21,7 @@ export function TopMenu({
 }) {
   return (
     <nav className="ds-topmenu" aria-label={label}>
-      <ul className="ds-topmenu__list">
+      <ul className="ds-topmenu__list ds-band" data-frame-band>
         {items.map((i) => (
           <li key={i.to}>
             <NavLink
@@ -123,21 +123,25 @@ export function Header({
 }) {
   return (
     <header className="ds-header">
-      <div className="ds-header__group" data-layout-group>
-        <span className="ds-header__product">{product}</span>
-        <span className="ds-header__status">{status}</span>
-        <span className="ds-header__live">{live}</span>
-      </div>
-      <div className="ds-header__group" data-layout-group>
-        <button
-          type="button"
-          className="ds-button"
-          onClick={onPalette}
-          aria-keyshortcuts="Control+K Meta+K"
-        >
-          Commands <kbd className="ds-kbd">{paletteHint}</kbd>
-        </button>
-        {menu}
+      <div className="ds-header__frame ds-band" data-frame-band>
+        <div className="ds-header__group" data-layout-group>
+          <span className="ds-header__product">{product}</span>
+          <span className="ds-header__state">
+            <span className="ds-header__status">{status}</span>
+            <span className="ds-header__live">{live}</span>
+          </span>
+        </div>
+        <div className="ds-header__group" data-layout-group>
+          <button
+            type="button"
+            className="ds-button ds-header__commands"
+            onClick={onPalette}
+            aria-keyshortcuts="Control+K Meta+K"
+          >
+            Commands <kbd className="ds-kbd">{paletteHint}</kbd>
+          </button>
+          <span className="ds-header__login">{menu}</span>
+        </div>
       </div>
     </header>
   );
@@ -205,7 +209,7 @@ export function Frame({
         {menu}
         {banner}
         {strip}
-        <main className="ds-main" id="main">
+        <main className="ds-main ds-band" id="main" data-frame-band>
           {children}
         </main>
         {hints}

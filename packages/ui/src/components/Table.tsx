@@ -139,7 +139,7 @@ export function Table<T>({
                     data-lead={i === 0 || undefined}
                     data-secondary={(i > 0 && c.secondary) || undefined}
                   >
-                    {c.cell(row)}
+                    <span className="ds-table__value">{c.cell(row)}</span>
                   </td>
                 ))}
               </tr>

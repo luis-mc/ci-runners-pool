@@ -41,7 +41,7 @@ describe('Table', () => {
     { id: 'os', header: 'System', cell: (r: Row) => r.os, secondary: true },
     { id: 'n', header: 'Runners', cell: (r: Row) => r.n, sort: (r: Row) => r.n },
   ];
-  it('marks the lead cell and the secondary cells for the two-line fold', () => {
+  it('marks the lead cell and the secondary cells for the name-and-value stack', () => {
     render(
       <Table caption="Machines" columns={columns} rows={rows} rowKey={(r) => r.id} />,
     );
@@ -49,9 +49,9 @@ describe('Table', () => {
     expect(cells[0]?.hasAttribute('data-lead')).toBe(true);
     expect(cells[1]?.hasAttribute('data-secondary')).toBe(true);
     expect(cells[2]?.hasAttribute('data-secondary')).toBe(false);
-    const fold = css.slice(css.indexOf('@media (max-width: 600px) {\n  .ds-table thead'));
-    expect(fold).toContain('flex: 0 0 100%');
-    expect(fold).toContain('white-space: nowrap');
+    const fold = css.slice(css.indexOf('@media (max-width: 599px) {\n  .ds-table thead'));
+    expect(fold).toContain('content: attr(data-label)');
+    expect(fold).toContain('grid-template-columns');
     expect(fold).toContain('td[data-secondary]');
   });
   it('sorts by a head', () => {

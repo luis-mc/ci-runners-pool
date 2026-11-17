@@ -22,6 +22,11 @@ interface Registry {
   all: readonly KeyHint[];
 }
 
+/** One key is one entry: `j / k`, `j k` and `J/K` are the same key. */
+function keyId(keys: string): string {
+  return keys.toLowerCase().replace(/[\s/,]+/g, '');
+}
+
 const Ctx = createContext<Registry | null>(null);
 
 /** Holds the keys the mounted parts registered. `Frame` provides one; a test may wrap its own. */
@@ -34,8 +39,8 @@ export function KeyHintsProvider({ children }: { children: ReactNode }) {
     const seen = new Set<string>();
     for (const items of owners.values())
       for (const h of items)
-        if (!seen.has(h.keys)) {
-          seen.add(h.keys);
+        if (!seen.has(keyId(h.keys))) {
+          seen.add(keyId(h.keys));
           merged.push(h);
         }
     return {
@@ -83,16 +88,16 @@ export function KeyHints({ items = [] }: { items?: readonly KeyHint[] | undefine
   const merged: KeyHint[] = [];
   const seen = new Set<string>();
   for (const h of [...items, ...(registry?.all ?? [])])
-    if (!seen.has(h.keys)) {
-      seen.add(h.keys);
+    if (!seen.has(keyId(h.keys))) {
+      seen.add(keyId(h.keys));
       merged.push(h);
     }
   if (merged.length === 0) return null;
   return (
     <footer className="ds-keyhints" aria-label="Keys">
-      <ul className="ds-keyhints__list">
+      <ul className="ds-keyhints__list ds-band" data-frame-band>
         {merged.map((h) => (
-          <li key={h.keys}>
+          <li key={keyId(h.keys)}>
             <kbd className="ds-kbd">{h.keys}</kbd> {h.does}
           </li>
         ))}

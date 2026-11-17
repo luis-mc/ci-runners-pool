@@ -40,6 +40,7 @@
   --ds-width-field-full: 100%;
   --ds-page-gutter: 16px;
   --ds-page-padding: 16px;
+  --ds-pane-inner: 12px;
   --ds-frame-narrow: 40rem;
   --ds-frame-wide: 76rem;
   --ds-control-height: 44px;
@@ -1716,13 +1717,7 @@
   :root {
     --ds-page-gutter: 24px;
     --ds-page-padding: 24px;
-  }
-}
-
-@media (min-width: 1200px) {
-  :root {
-    --ds-page-gutter: 48px;
-    --ds-page-padding: 32px;
+    --ds-pane-inner: 16px;
   }
 }
 
