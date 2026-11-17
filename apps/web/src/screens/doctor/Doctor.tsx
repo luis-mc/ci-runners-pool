@@ -22,6 +22,7 @@ import {
   useNow,
   type Column,
   type StatusKind,
+  ActionBar,
 } from '@crsp/ui';
 import { useEffect, useState } from 'react';
 import { unwrap, useClient, type Schemas } from '../../api/api';
@@ -176,22 +177,7 @@ export function DoctorScreen() {
 
   return (
     <Page>
-      <PageHeader
-        title="Doctor"
-        lead="Every problem the pool has, with its fix."
-        action={
-          <Button
-            kind="primary"
-            busy={running || start.busy}
-            busyLabel="Running the doctor"
-            disabled={!admin}
-            reason={why}
-            onPress={() => void start.run()}
-          >
-            Run the doctor
-          </Button>
-        }
-      />
+      <PageHeader title="Doctor" lead="Every problem the pool has, with its fix." />
       {start.error ? (
         <Message tone="problem">
           Could not run the doctor. {start.error} Try again.
@@ -253,6 +239,20 @@ export function DoctorScreen() {
           );
         }}
       </Load>
+      <ActionBar
+        primary={
+          <Button
+            kind="primary"
+            busy={running || start.busy}
+            busyLabel="Running the doctor"
+            disabled={!admin}
+            reason={why}
+            onPress={() => void start.run()}
+          >
+            Run the doctor
+          </Button>
+        }
+      />
     </Page>
   );
 }

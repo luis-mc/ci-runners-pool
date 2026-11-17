@@ -25,6 +25,7 @@ export * from './components/Wizard';
 export * from './components/Grant';
 export * from './components/KeyHints';
 export * from './components/Shell';
+export * from './components/ActionBar';
 export * from './components/ThemePreview';
 export * from './components/Navigation';
 export * from './components/SearchList';

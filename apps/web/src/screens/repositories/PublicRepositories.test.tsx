@@ -167,9 +167,7 @@ describe('Repositories: active types, Visibility and greyed public rows', () => 
     renderApp(list(setting(signedIn(), false)), '/repositories?public=1');
     await screen.findByRole('button', { name: 'Active types: Private (default)' });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select octo/site' }));
-    const button = screen.getByRole<HTMLButtonElement>('button', {
-      name: 'Turn on 1 repository',
-    });
+    const button = screen.getByRole<HTMLButtonElement>('button', { name: 'Use pool' });
     expect(button.disabled).toBe(true);
     expect(screen.getByText(/Public repositories are off: octo\/site/)).toBeTruthy();
   });

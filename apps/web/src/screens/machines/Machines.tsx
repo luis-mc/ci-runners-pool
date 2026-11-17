@@ -1,14 +1,12 @@
 // Machines (web-console 4.4, R5.22): list, detail, budget, slots, drain, resume, remove.
 import {
   Button,
-  Cluster,
   Chips,
   CheckRow,
   Empty,
   ErrorSummary,
   Facts,
   FieldGrid,
-  FormActions,
   Message,
   NumberField,
   Page,
@@ -28,6 +26,8 @@ import {
   formatSize,
   useNow,
   type Column,
+  ActionBar,
+  unsavedStatus,
 } from '@crsp/ui';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -112,27 +112,9 @@ export function MachinesList() {
     },
   ];
 
-  const addAction = (
-    <Cluster>
-      {session.can('admin') ? (
-        <Button kind="primary" onPress={() => void navigate('/machines/add')}>
-          Add a machine
-        </Button>
-      ) : (
-        <Button kind="primary" disabled reason={session.whyNot('admin')}>
-          Add a machine
-        </Button>
-      )}
-    </Cluster>
-  );
-
   return (
     <Page>
-      <PageHeader
-        title="Machines"
-        lead="What each machine gives the pool."
-        action={addAction}
-      />
+      <PageHeader title="Machines" lead="What each machine gives the pool." />
       <Load result={result} what="machines" reload={reload}>
         {(data) => {
           const rows = data.items.filter(
@@ -186,6 +168,18 @@ export function MachinesList() {
           );
         }}
       </Load>
+      <ActionBar
+        primary={
+          <Button
+            kind="primary"
+            disabled={!session.can('admin')}
+            reason={session.can('admin') ? undefined : session.whyNot('admin')}
+            onPress={() => void navigate('/machines/add')}
+          >
+            Add a machine
+          </Button>
+        }
+      />
     </Page>
   );
 }
@@ -244,6 +238,14 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
   const [errors, setErrors] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
 
+  const changeCount =
+    (mem !== m.settings.budget_memory_pct ? 1 : 0) +
+    (cpu !== m.settings.budget_cpu_pct ? 1 : 0) +
+    (slots !== m.settings.job_slots ? 1 : 0) +
+    (drain !== m.settings.drain_timeout_minutes ? 1 : 0) +
+    (allowed.slice().sort().join() !== m.settings.allowed_backends.slice().sort().join()
+      ? 1
+      : 0);
   const body = useMemo(
     () => ({
       budget_memory_pct: mem,
@@ -340,7 +342,6 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
         action={
           m.state === 'drained' || m.state === 'draining' ? (
             <Button
-              kind="primary"
               onPress={() => void resume.run()}
               busy={resume.busy}
               busyLabel="Resuming"
@@ -514,20 +515,23 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
         {save.error ? (
           <Message tone="problem">Could not save. {save.error} Try again.</Message>
         ) : null}
-        <FormActions>
-          <Button onPress={() => void navigate('/machines')}>Cancel</Button>
-          <Button
-            kind={m.state === 'drained' || m.state === 'draining' ? undefined : 'primary'}
-            submit={false}
-            onPress={() => void save.run()}
-            busy={save.busy}
-            busyLabel="Saving"
-            disabled={!admin}
-            reason={why}
-          >
-            Save
-          </Button>
-        </FormActions>
+        <ActionBar
+          status={unsavedStatus(changeCount)}
+          secondary={<Button onPress={() => void navigate('/machines')}>Cancel</Button>}
+          primary={
+            <Button
+              kind="primary"
+              submit={false}
+              onPress={() => void save.run()}
+              busy={save.busy}
+              busyLabel="Saving"
+              disabled={!admin || changeCount === 0}
+              reason={!admin ? why : 'Change a setting to save.'}
+            >
+              Save
+            </Button>
+          }
+        />
       </Stack>
       <Ask
         title={`Stop new jobs on ${m.name}?`}

@@ -5,7 +5,6 @@ import {
   Button,
   CheckRow,
   Disclosure,
-  FormActions,
   Message,
   Page,
   PageHeader,
@@ -15,6 +14,8 @@ import {
   Text,
   formatDateTime,
   formatSize,
+  ActionBar,
+  unsavedStatus,
 } from '@crsp/ui';
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -92,6 +93,10 @@ function ImageBody({
   const enabled = draft ?? saved;
   const dirty =
     draft !== undefined && [...draft].sort().join() !== [...saved].sort().join();
+  const layerChanges = draft
+    ? draft.filter((x) => !saved.includes(x)).length +
+      saved.filter((x) => !draft.includes(x)).length
+    : 0;
   const rebuilding = image.state === 'rebuilding';
   const notBuilt = image.state === 'not_built';
   const editable = admin && !rebuilding;
@@ -156,38 +161,7 @@ function ImageBody({
           {`${miss.repos.join(', ')} ${miss.repos.length === 1 ? 'needs' : 'need'} ${miss.layers.map((l) => l.name).join(', ')}`}
         </Message>
       ) : null}
-      <Pane
-        title="Layers"
-        footer={
-          <Stack gap="tight">
-            <FormActions>
-              <Button
-                onPress={() => setDraft(undefined)}
-                disabled={!dirty}
-                title="Nothing has changed."
-              >
-                Cancel
-              </Button>
-              <Button
-                kind="primary"
-                onPress={() => void save.run()}
-                busy={save.busy}
-                busyLabel="Saving"
-                disabled={!admin || !dirty || rebuilding}
-                reason={!admin ? why : 'Change a layer to save.'}
-              >
-                {notBuilt ? 'Save' : 'Save and rebuild'}
-              </Button>
-            </FormActions>
-            {dirty && !notBuilt ? (
-              <Text tone="muted">
-                Rebuilds after running jobs finish. The old image keeps working until
-                then.
-              </Text>
-            ) : null}
-          </Stack>
-        }
-      >
+      <Pane title="Layers">
         <Text tone="muted">
           Add what your repositories' jobs need. The basics are always included.
         </Text>
@@ -256,6 +230,35 @@ function ImageBody({
         error={ask.error}
         onCancel={ask.cancel}
         onConfirm={() => void ask.confirm()}
+      />
+      {dirty && !notBuilt ? (
+        <Text tone="muted">
+          Rebuilds after running jobs finish. The old image keeps working until then.
+        </Text>
+      ) : null}
+      <ActionBar
+        status={unsavedStatus(layerChanges)}
+        secondary={
+          <Button
+            onPress={() => setDraft(undefined)}
+            disabled={!dirty}
+            reason="Nothing has changed."
+          >
+            Cancel
+          </Button>
+        }
+        primary={
+          <Button
+            kind="primary"
+            onPress={() => void save.run()}
+            busy={save.busy}
+            busyLabel="Saving"
+            disabled={!admin || !dirty || rebuilding}
+            reason={!admin ? why : 'Change a layer to save.'}
+          >
+            {notBuilt ? 'Save' : 'Save and rebuild'}
+          </Button>
+        }
       />
     </Stack>
   );

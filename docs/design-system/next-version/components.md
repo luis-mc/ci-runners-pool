@@ -528,6 +528,14 @@ A field's width caps its box, never its name and help: a lone field's name and h
 - **Rules:** UX-16, UX-10.
 - **Guard:** none yet.
 
+## 48. Action bar
+
+- **Used for:** the main action of a screen, always in the same place and the same order (UX-71, UX-4). Selection screens, edit screens, list screens with one main action, and every wizard.
+- **Looks:** one bar, sticky at the foot of the main content, above the key-hint bar (component 41), with a thin top border and the page fill. It never scrolls away. Left to right: the status line in muted text ("2 selected", "Unsaved changes (3)"; none when there is nothing to say), the secondary actions (Cancel, Back, Stop), the one primary action. A disabled primary says why next to it (UX-38). From 600 px down the bar is full width and the buttons stack at equal width, the primary on top, the secondary actions under it. A wizard draws its Back, Stop and primary through this part; a wizard inside a screen that has its own bar sits in the flow (not sticky) and draws default buttons.
+- **Source:** `packages/ui/src/components/ActionBar.tsx` (`ActionBar`, `selectedStatus`, `unsavedStatus`), `packages/ui/src/components/Wizard.tsx`, `packages/ui/src/components.css`
+- **Rules:** UX-4, UX-13, UX-38, UX-71.
+- **Guard:** `scripts/design/action-bar.test.ts` (a primary button outside the bar, or two in it, fails; `action-bar.known.json` only shrinks).
+
 ## How to add a component
 
 - Give it the next number.

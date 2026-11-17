@@ -2,6 +2,7 @@
 // A page passes data only: the phase it reads from the server, the steps, the primary and the step content.
 // The ten phases are the ten states of the wizard harness (scripts/design/wizard-behaviour.ts).
 import { useId, type ReactNode } from 'react';
+import { ActionBar } from './ActionBar';
 import { Button } from './Button';
 import { Progress } from './Progress';
 
@@ -208,33 +209,37 @@ export function Wizard(p: WizardProps) {
           <p className="ds-text">Nothing has changed yet.</p>
         ) : null}
       </div>
-      <div className="ds-action-bar">
-        <div className="ds-action-bar__side" data-layout-group>
-          {showBack ? (
-            <Button
-              part="back"
-              onPress={p.onBack}
-              disabled={p.phase !== 'loading' && current <= (p.firstStep ?? 0)}
-            >
-              Back
-            </Button>
-          ) : null}
-          {canStopNow ? (
-            <Button
-              part="stop"
-              kind="stop"
-              onPress={p.onStop}
-              busy={p.stopping}
-              busyLabel="Stopping"
-            >
-              Stop
-            </Button>
-          ) : null}
-        </div>
-        <div className="ds-action-bar__main" data-layout-group>
-          {primary}
-        </div>
-      </div>
+      <ActionBar
+        label={`${p.name} actions`}
+        sticky={!p.embedded}
+        secondary={
+          showBack || canStopNow ? (
+            <>
+              {showBack ? (
+                <Button
+                  part="back"
+                  onPress={p.onBack}
+                  disabled={p.phase !== 'loading' && current <= (p.firstStep ?? 0)}
+                >
+                  Back
+                </Button>
+              ) : null}
+              {canStopNow ? (
+                <Button
+                  part="stop"
+                  kind="stop"
+                  onPress={p.onStop}
+                  busy={p.stopping}
+                  busyLabel="Stopping"
+                >
+                  Stop
+                </Button>
+              ) : null}
+            </>
+          ) : undefined
+        }
+        primary={primary}
+      />
     </div>
   );
 }

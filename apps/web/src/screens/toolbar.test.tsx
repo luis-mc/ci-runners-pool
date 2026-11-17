@@ -26,7 +26,9 @@ describe('List toolbar (CRSP132)', () => {
     expect(within(bar).getByText('2 private repositories')).toBeTruthy();
     expect(within(bar).getByRole('button', { name: 'Add a repository' })).toBeTruthy();
     fireEvent.click(within(bar).getByRole('button', { name: 'Select all 2' }));
-    expect(within(bar).getByText('2 selected')).toBeTruthy();
+    expect(
+      within(screen.getByRole('region', { name: 'Actions' })).getByText('2 selected'),
+    ).toBeTruthy();
     expect(within(bar).getByRole('button', { name: 'Clear' })).toBeTruthy();
   });
 

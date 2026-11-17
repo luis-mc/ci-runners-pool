@@ -26,6 +26,7 @@ import {
   formatPercent,
   formatSize,
   useNow,
+  ActionBar,
 } from '@crsp/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -68,13 +69,6 @@ export function ImagesAndCaches() {
       <PageHeader
         title="Images and caches"
         lead="What each machine keeps, and what you can rebuild or wipe."
-        action={
-          session.can('admin') ? (
-            <Button kind="primary" onPress={() => void navigate('/runners/add')}>
-              Add runners
-            </Button>
-          ) : undefined
-        }
       />
       <Tabs
         label="Images and caches"
@@ -83,6 +77,15 @@ export function ImagesAndCaches() {
         onChange={(id) => setParams(id === 'caches' ? { tab: 'caches' } : {})}
       />
       {tab === 'images' ? <ImagesTab nameOf={nameOf} /> : <CachesTab nameOf={nameOf} />}
+      {session.can('admin') ? (
+        <ActionBar
+          primary={
+            <Button kind="primary" onPress={() => void navigate('/runners/add')}>
+              Add runners
+            </Button>
+          }
+        />
+      ) : null}
     </Page>
   );
 }
