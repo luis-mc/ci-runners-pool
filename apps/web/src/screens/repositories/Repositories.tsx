@@ -162,7 +162,7 @@ export function RepositoriesList() {
     {
       id: 'visibility',
       header: 'Visibility',
-      cell: (r) => <VisibilityCell r={r} enabled={enabled} />,
+      cell: (r) => <VisibilityCell r={r} />,
       sort: (r) => r.visibility,
     },
     {
@@ -878,24 +878,15 @@ export function packageMistakes(text: string): string[] {
   return out;
 }
 
-/** The Visibility cell: the word, and for a public repository while the setting is off, the reason and the link. */
-function VisibilityCell({ r, enabled }: { r: Repository; enabled: boolean | undefined }) {
-  const off = publicWhileOff(r, enabled);
-  if (!off && !r.problem) return <>{visibilityWord(r)}</>;
+/** The Visibility cell: the word, and for a repository with a Problem, the Problem and its link. The public-off reason is not repeated per row (LOOK4). */
+function VisibilityCell({ r }: { r: Repository }) {
+  if (!r.problem) return <>{visibilityWord(r)}</>;
   return (
     <Stack gap="tight">
       <Text>{visibilityWord(r)}</Text>
-      {r.problem ? (
-        <Text>
-          {r.problem.text}{' '}
-          <TextLink to={`/repositories/${r.owner}/${r.name}`}>Fix it</TextLink>
-        </Text>
-      ) : (
-        <Text>
-          {PUBLIC_OFF_REASON}{' '}
-          <TextLink to={PUBLIC_SETTING_PATH}>Turn on public repositories</TextLink>
-        </Text>
-      )}
+      <Text>
+        {r.problem.text} <TextLink to={`/repositories/${r.owner}/${r.name}`}>Fix it</TextLink>
+      </Text>
     </Stack>
   );
 }

@@ -135,15 +135,11 @@ describe('Repositories: active types, Visibility and greyed public rows', () => 
     ).toBeTruthy();
   });
 
-  it('has a Visibility column; public rows are greyed with the reason and a link while it is off', async () => {
+  it('has a Visibility column; public rows are greyed without a repeated note while it is off', async () => {
     renderApp(list(setting(signedIn(), false)), '/repositories');
     const table = await screen.findByRole('table', { name: 'Repositories' });
     expect(within(table).getByRole('columnheader', { name: 'Visibility' })).toBeTruthy();
-    await waitFor(() =>
-      expect(
-        within(table).getByRole('link', { name: 'Turn on public repositories' }),
-      ).toBeTruthy(),
-    );
+    await screen.findByRole('button', { name: 'Active types: Private (default)' });
     const rows = within(table).getAllByRole('row');
     const siteRow = rows.find((r) => within(r).queryByRole('link', { name: 'site' }));
     const appRow = rows.find((r) => within(r).queryByRole('link', { name: 'app' }));
@@ -151,9 +147,8 @@ describe('Repositories: active types, Visibility and greyed public rows', () => 
     expect(appRow?.getAttribute('data-muted')).toBeNull();
     expect(within(siteRow as HTMLElement).getByText('Public')).toBeTruthy();
     expect(within(appRow as HTMLElement).getByText('Private')).toBeTruthy();
-    expect(
-      within(siteRow as HTMLElement).getByText(/Public repositories are off/),
-    ).toBeTruthy();
+    expect(within(table).queryByText(/Public repositories are off/)).toBeNull();
+    expect(within(table).queryByRole('link', { name: 'Turn on public repositories' })).toBeNull();
   });
 
   it('does not grey public rows while the setting is on', async () => {
