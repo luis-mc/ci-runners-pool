@@ -1,5 +1,5 @@
 // Tabs (3), filter chips (12), search bar (21), code block with Copy, number field with the keypad (37).
-import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { NumberKeypad } from '../pickers/NumberKeypad';
 import { commitValue } from '../pickers/number-keypad-logic';
 import { Button } from './Button';
@@ -161,28 +161,12 @@ export function Tabs({
   current: string;
   onChange: (id: string) => void;
 }) {
-  const list = useRef<HTMLDivElement>(null);
-  const move = (e: KeyboardEvent<HTMLDivElement>) => {
-    const at = tabs.findIndex((t) => t.id === current);
-    let to = -1;
-    if (e.key === 'ArrowRight') to = (at + 1) % tabs.length;
-    else if (e.key === 'ArrowLeft') to = (at - 1 + tabs.length) % tabs.length;
-    else if (e.key === 'Home') to = 0;
-    else if (e.key === 'End') to = tabs.length - 1;
-    const next = tabs[to];
-    if (!next) return;
-    e.preventDefault();
-    onChange(next.id);
-    list.current?.querySelectorAll<HTMLElement>('[role="tab"]')[to]?.focus();
-  };
   return (
     <div
-      ref={list}
       className="ds-tabs"
       role="tablist"
       aria-label={label}
       data-layout-group
-      onKeyDown={move}
     >
       {tabs.map((t) => (
         <button

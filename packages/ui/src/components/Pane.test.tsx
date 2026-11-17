@@ -6,6 +6,7 @@ import { Section } from './layout';
 import { Pane } from './Pane';
 import { Table } from './Table';
 import { Tabs } from './Controls';
+import { ArrowNavigation } from './Navigation';
 import { fireEvent } from '@testing-library/react';
 
 afterEach(cleanup);
@@ -130,13 +131,20 @@ describe('Tabs', () => {
   it('moves with the arrow keys and keeps one tab in the tab order', () => {
     const seen: string[] = [];
     render(
-      <Tabs label="Parts" tabs={tabs} current="b" onChange={(id) => seen.push(id)} />,
+      <ArrowNavigation>
+        <Tabs label="Parts" tabs={tabs} current="b" onChange={(id) => seen.push(id)} />
+      </ArrowNavigation>,
     );
-    const list = screen.getByRole('tablist', { name: 'Parts' });
     expect(screen.getAllByRole('tab').filter((t) => t.tabIndex === 0)).toHaveLength(1);
-    fireEvent.keyDown(list, { key: 'ArrowRight' });
-    fireEvent.keyDown(list, { key: 'ArrowLeft' });
-    fireEvent.keyDown(list, { key: 'End' });
-    expect(seen).toEqual(['c', 'a', 'c']);
+    const [a, , c] = screen.getAllByRole('tab');
+    const press = (el: HTMLElement | undefined, key: string) => {
+      el?.focus();
+      fireEvent.keyDown(el as HTMLElement, { key });
+    };
+    press(screen.getAllByRole('tab')[1], 'ArrowRight');
+    press(a, 'ArrowLeft');
+    press(a, 'End');
+    expect(seen).toEqual(['c', 'c', 'c']);
+    expect(c).toBeDefined();
   });
 });

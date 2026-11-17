@@ -1,8 +1,9 @@
 // Part of component 38: page-level arrow navigation (UX-57). Down and Up move focus through every button, link, input
 // and list item of the page in page order. `j` and `k` do the same unless the user is typing. Inside a group of
-// radios Up and Down still leave the group; Left, Right and Space change the choice. In a multi-line text box
+// radios Up and Down still leave the group; Left and Right move along any horizontal row (RowKeys.ts). In a multi-line text box
 // Up and Down move the text cursor. Focus moves only when the user presses a key (UX-35).
 import { useEffect, type ReactNode } from 'react';
+import { handleRowKey } from './RowKeys';
 
 const STOPS =
   'a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"]), [data-list-row], [contenteditable=""], [contenteditable="true"]';
@@ -152,7 +153,7 @@ export function handleNavigationKey(
 export function ArrowNavigation({ children }: { children?: ReactNode }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      handleNavigationKey(e);
+      if (!handleRowKey(e)) handleNavigationKey(e);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
