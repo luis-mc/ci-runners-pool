@@ -172,3 +172,28 @@ func TestGitHubTokenInMemoryOnly(t *testing.T) { // R6.2
 		t.Fatal("sign-out drops the token")
 	}
 }
+
+func TestGitHubSignInState(t *testing.T) {
+	e := newEnv(t)
+	if st := e.svc.GitHubSignInState(1); st.Active {
+		t.Fatal("no token yet: ended")
+	}
+	si := e.ownerSignIn(1, "alice")
+	st := e.svc.GitHubSignInState(1)
+	if !st.Active || st.Expires.IsZero() {
+		t.Fatalf("active with expiry: %+v", st)
+	}
+	e.advance(9 * time.Hour)
+	if st := e.svc.GitHubSignInState(1); st.Active {
+		t.Fatal("expired token: ended")
+	}
+	e.signIn(1, "")
+	if !e.svc.GitHubSignInState(1).Active {
+		t.Fatal("new sign-in: active")
+	}
+	p, _ := e.svc.Authenticate(context.Background(), si.Cookie)
+	_ = e.svc.SignOut(context.Background(), p)
+	if e.svc.GitHubSignInState(1).Active {
+		t.Fatal("sign-out: ended")
+	}
+}

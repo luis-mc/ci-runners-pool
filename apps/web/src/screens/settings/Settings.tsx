@@ -169,6 +169,8 @@ export function UsersSettings() {
   const client = useClient();
   const session = useSession();
   const owner = session.can('owner');
+  const me =
+    session.state.status === 'ready' ? session.state.session.user.login : 'account';
   const { result, reload } = useLoad(
     () =>
       owner
@@ -273,7 +275,10 @@ export function UsersSettings() {
 
   return (
     <Stack>
-      <Section title="Users and roles">
+      <Section
+        title="Users and roles"
+        hint={`Who may use this console. Your own GitHub sign-in is in the ${me} menu at the top right.`}
+      >
         <Load result={result} what="users" reload={reload}>
           {(data) => {
             const rows = data.items.filter((u) =>

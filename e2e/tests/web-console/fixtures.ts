@@ -225,7 +225,11 @@ export const failure = (
 /** The routes every signed-in screen needs. */
 export function signedIn(user: unknown = owner): Mock {
   return new Mock()
-    .on('GET', '/api/v1/me', { user, csrf: 'tok' })
+    .on('GET', '/api/v1/me', {
+      user,
+      csrf: 'tok',
+      github_signin: { state: 'active', expires_at: '2026-11-17T18:30:00Z' },
+    })
     .on('GET', '/api/v1/me/preferences', { theme: 'dark' })
     .on('GET', '/api/v1/overview', overview())
     .on('GET', '/api/v1/setup', {

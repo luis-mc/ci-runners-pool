@@ -749,3 +749,17 @@ The words of the Repositories screen when the list is grouped by owner and hides
 | {n} public repositories are listed, muted: the pool serves private repositories only. | The note line while they are listed. |
 | Hide them | Link in that line: lists private repositories only again. |
 | {n} private repositories | Count beside the toolbar; `{n} private & public repositories` when public is active or listed. |
+
+## Account menu words
+
+The words of the account menu at the top right and of the Users and roles intro (web-console R5.95, LOOK15).
+
+| Word | Where and meaning |
+|---|---|
+| GitHub sign-in: active until {HH:MM} | Menu line while the GitHub sign-in holds; the time is local. |
+| GitHub sign-in: active | The same line when no end time is known. |
+| GitHub sign-in: ended | The same line, amber status, after a restart or the 8 hours. |
+| Sign in with GitHub again | Action in the menu when ended: signs out, then asks GitHub, then returns to this page. |
+| Opening GitHub | Busy word of that action. |
+| GitHub sign-in ended | Accessible label of the amber dot on the account button. |
+| Who may use this console. Your own GitHub sign-in is in the {login} menu at the top right. | Intro line of Users and roles. |

@@ -523,7 +523,16 @@ func (s *server) GetSession(ctx context.Context, _ gen.GetSessionRequestObject) 
 		code, body := failure(err)
 		return gen.GetSessiondefaultJSONResponse{StatusCode: code, Body: body}, nil
 	}
-	return gen.GetSession200JSONResponse{User: toUser(u), Csrf: p.CSRF}, nil
+	gs := s.ghArea().Auth.GitHubSignInState(p.UserID)
+	signin := gen.GitHubSignIn{State: gen.GitHubSignInStateEnded}
+	if gs.Active {
+		signin.State = gen.GitHubSignInStateActive
+		if !gs.Expires.IsZero() {
+			e := gs.Expires
+			signin.ExpiresAt = &e
+		}
+	}
+	return gen.GetSession200JSONResponse{User: toUser(u), Csrf: p.CSRF, GithubSignin: signin}, nil
 }
 
 // GetPreferences implements GET /api/v1/me/preferences.

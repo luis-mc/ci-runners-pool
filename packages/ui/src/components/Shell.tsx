@@ -4,7 +4,9 @@ import { useState, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { Button } from './Button';
 import { KeyHintsProvider } from './KeyHints';
+import { formatTime } from './format';
 import { Progress } from './Progress';
+import { Status } from './Status';
 
 export interface NavItem {
   to: string;
@@ -64,18 +66,32 @@ export function Breadcrumbs({
   );
 }
 
+export interface GitHubSignInState {
+  state: 'active' | 'ended';
+  /** When an active sign-in ends (an ISO time), if known. */
+  expiresAt?: string | undefined;
+}
+
+/** The account button and its menu: who you are, your GitHub sign-in, sign-in again, sign out (LOOK15). */
 export function UserMenu({
   login,
   role,
   onSignOut,
   busy,
+  githubSignIn,
+  onSignInAgain,
+  signInAgainBusy = false,
 }: {
   login: string;
   role: string;
   onSignOut: () => void;
   busy: boolean;
+  githubSignIn?: GitHubSignInState | undefined;
+  onSignInAgain?: (() => void) | undefined;
+  signInAgainBusy?: boolean | undefined;
 }) {
   const [open, setOpen] = useState(false);
+  const ended = githubSignIn?.state === 'ended';
   return (
     <div className="ds-usermenu">
       <button
@@ -86,6 +102,13 @@ export function UserMenu({
         onClick={() => setOpen((o) => !o)}
       >
         {login}
+        {ended ? (
+          <span
+            className="ds-usermenu__dot"
+            role="img"
+            aria-label="GitHub sign-in ended"
+          />
+        ) : null}
       </button>
       {open ? (
         <div
@@ -97,6 +120,26 @@ export function UserMenu({
           <p className="ds-text">
             Signed in as <strong className="ds-strong">{login}</strong>, role {role}.
           </p>
+          {githubSignIn ? (
+            ended ? (
+              <Status kind="waiting" word="GitHub sign-in: ended" />
+            ) : (
+              <p className="ds-text">
+                {githubSignIn.expiresAt
+                  ? `GitHub sign-in: active until ${formatTime(githubSignIn.expiresAt)}`
+                  : 'GitHub sign-in: active'}
+              </p>
+            )
+          ) : null}
+          {ended && onSignInAgain ? (
+            <Button
+              onPress={onSignInAgain}
+              busy={signInAgainBusy}
+              busyLabel="Opening GitHub"
+            >
+              Sign in with GitHub again
+            </Button>
+          ) : null}
           <Button onPress={onSignOut} busy={busy} busyLabel="Signing out">
             Sign out
           </Button>

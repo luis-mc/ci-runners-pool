@@ -2605,13 +2605,28 @@ export interface components {
          *         "role": "owner",
          *         "added_at": "2026-11-14T10:00:00Z"
          *       },
-         *       "csrf": "5d1c0e"
+         *       "csrf": "5d1c0e",
+         *       "github_signin": {
+         *         "state": "active",
+         *         "expires_at": "2026-11-17T18:30:00Z"
+         *       }
          *     }
          */
         Session: {
             user: components["schemas"]["User"];
             /** @description Send as X-CSRF-Token on every change. */
             csrf: string;
+            github_signin: components["schemas"]["GitHubSignIn"];
+        };
+        /** @description The user's GitHub sign-in. The GitHub token is held in memory only and lasts 8 hours; a controller restart or the 8 hours end it. The web session itself carries on (github-integration R6.2). */
+        GitHubSignIn: {
+            /** @enum {string} */
+            state: "active" | "ended";
+            /**
+             * Format: date-time
+             * @description When the sign-in ends. Present when state is active and GitHub gave a limit.
+             */
+            expires_at?: string;
         };
         /**
          * @example {

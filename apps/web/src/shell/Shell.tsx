@@ -245,6 +245,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const [palette, setPalette] = useState(false);
   const [help, setHelp] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [signingInAgain, setSigningInAgain] = useState(false);
   const [setup, setSetup] = useState<Schemas['SetupState'] | undefined>(undefined);
   const client = useClient();
   // The first-run steps change when a machine joins or a repository's pool turns on.
@@ -383,6 +384,23 @@ export function AppShell({ children }: { children?: ReactNode }) {
                   login={user.login}
                   role={user.role}
                   busy={signingOut}
+                  githubSignIn={
+                    session.state.session.github_signin.state === 'active'
+                      ? {
+                          state: 'active',
+                          expiresAt: session.state.session.github_signin.expires_at,
+                        }
+                      : { state: 'ended' }
+                  }
+                  signInAgainBusy={signingInAgain}
+                  onSignInAgain={() => {
+                    // Sign out first so GitHub is really asked, then come back to this page.
+                    setSigningInAgain(true);
+                    const back = location.pathname + location.search;
+                    void session.signOut().finally(() => {
+                      window.location.assign(signInUrl(back));
+                    });
+                  }}
                   onSignOut={() => {
                     setSigningOut(true);
                     void session.signOut().finally(() => {

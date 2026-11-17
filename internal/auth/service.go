@@ -105,6 +105,23 @@ func (s *Service) GitHubToken(userID int64) (github.UserToken, error) {
 	return t, nil
 }
 
+// GitHubSignIn is the state of a user's GitHub sign-in.
+type GitHubSignIn struct {
+	Active bool
+	// Expires is when the held token ends (zero when GitHub gave no limit).
+	Expires time.Time
+}
+
+// GitHubSignInState says whether the user's memory-only GitHub token is held
+// and still valid, and until when. It never returns the token.
+func (s *Service) GitHubSignInState(userID int64) GitHubSignIn {
+	t, err := s.GitHubToken(userID)
+	if err != nil {
+		return GitHubSignIn{}
+	}
+	return GitHubSignIn{Active: true, Expires: t.ExpiresAt}
+}
+
 func (s *Service) holdToken(userID int64, t github.UserToken) {
 	s.mu.Lock()
 	s.userTokens[userID] = t

@@ -396,6 +396,24 @@ func (e FreeSlotsRequestSlotsKind) Valid() bool {
 	}
 }
 
+// Defines values for GitHubSignInState.
+const (
+	GitHubSignInStateActive GitHubSignInState = "active"
+	GitHubSignInStateEnded  GitHubSignInState = "ended"
+)
+
+// Valid indicates whether the value is a known member of the GitHubSignInState enum.
+func (e GitHubSignInState) Valid() bool {
+	switch e {
+	case GitHubSignInStateActive:
+		return true
+	case GitHubSignInStateEnded:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GithubGrantNext.
 const (
 	GithubGrantNextAccept  GithubGrantNext = "accept"
@@ -2565,6 +2583,16 @@ type GitHubApp struct {
 	WebhookActive bool               `json:"webhook_active"`
 }
 
+// GitHubSignIn The user's GitHub sign-in. The GitHub token is held in memory only and lasts 8 hours; a controller restart or the 8 hours end it. The web session itself carries on (github-integration R6.2).
+type GitHubSignIn struct {
+	// ExpiresAt When the sign-in ends. Present when state is active and GitHub gave a limit.
+	ExpiresAt *time.Time        `json:"expires_at,omitempty"`
+	State     GitHubSignInState `json:"state"`
+}
+
+// GitHubSignInState defines model for GitHubSignIn.State.
+type GitHubSignInState string
+
 // GithubGrant github-integration R5.86.
 type GithubGrant struct {
 	InstallationId *int64 `json:"installation_id,omitempty"`
@@ -3807,7 +3835,10 @@ type RunsOnFindingList struct {
 type Session struct {
 	// Csrf Send as X-CSRF-Token on every change.
 	Csrf string `json:"csrf"`
-	User User   `json:"user"`
+
+	// GithubSignin The user's GitHub sign-in. The GitHub token is held in memory only and lasts 8 hours; a controller restart or the 8 hours end it. The web session itself carries on (github-integration R6.2).
+	GithubSignin GitHubSignIn `json:"github_signin"`
+	User         User         `json:"user"`
 }
 
 // Settings observability R6.8 retention (days unless named), operations R5.21 backup time.

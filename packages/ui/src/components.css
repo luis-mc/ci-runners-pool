@@ -185,6 +185,14 @@ body {
 .ds-usermenu {
   position: relative;
 }
+.ds-usermenu__dot {
+  display: inline-block;
+  inline-size: var(--ds-space-2);
+  block-size: var(--ds-space-2);
+  margin-inline-start: var(--ds-space-2);
+  border-radius: 50%;
+  background: var(--ds-color-needs-you);
+}
 .ds-popover {
   position: absolute;
   inset-inline-end: 0;
