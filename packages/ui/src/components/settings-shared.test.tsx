@@ -82,7 +82,8 @@ describe('hit areas and pane footer', () => {
     it(`${sel} is 44 px wide as well as high`, () => {
       expect(block(sel)).toContain('min-inline-size: var(--ds-target-min)');
     });
-  it('a button in a pane footer takes the full width (UX-37)', () => {
-    expect(css).toMatch(/\.ds-pane__footer \.ds-button\s*\{[^}]*inline-size: 100%/);
+  it('a button in a pane footer takes the full width at phone width, primary first (UX-37)', () => {
+    expect(css).toMatch(/\.ds-pane__footer \.ds-button,[^{]*\{[^}]*inline-size: 100%/);
+    expect(css).toMatch(/flex-direction: column-reverse/);
   });
 });

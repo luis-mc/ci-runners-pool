@@ -42,17 +42,27 @@ body {
   gap: var(--ds-space-4);
   padding-block-end: var(--ds-space-6);
 }
+/* One frame (UX-69): the header, menu, banner, main and key-hint bar each hold a `.ds-band`: one wide frame
+   centred, one gutter. Their left and right edges are the same line. */
+.ds-band {
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: var(--ds-frame-wide);
+  margin-inline: auto;
+  padding-inline: var(--ds-page-gutter);
+  min-inline-size: 0;
+}
 .ds-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--ds-space-3);
-  padding: var(--ds-space-3) var(--ds-page-gutter);
+  padding-block: var(--ds-space-3);
   background: var(--ds-color-surface);
   border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
 }
-.ds-header {
+.ds-header__frame {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
+  gap: var(--ds-space-3);
 }
 .ds-header__group {
   display: flex;
@@ -63,38 +73,70 @@ body {
 .ds-header__product {
   font-weight: var(--ds-weight-bold);
 }
-.ds-topmenu {
-  padding-inline: var(--ds-page-gutter);
-  overflow: visible;
+.ds-header__state {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-3);
+}
+/* Phone: two lines. Name and login, then status and Commands. */
+@media (max-width: 599px) {
+  .ds-header__frame {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'product login'
+      'state commands';
+    align-items: center;
+  }
+  .ds-header__group {
+    display: contents;
+  }
+  .ds-header__product {
+    grid-area: product;
+  }
+  .ds-header__state {
+    grid-area: state;
+  }
+  .ds-header__commands {
+    grid-area: commands;
+    justify-self: end;
+  }
+  .ds-header__login {
+    grid-area: login;
+    justify-self: end;
+  }
 }
 .ds-topmenu__list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ds-space-2);
-  margin: 0;
-  padding: 0;
+  gap: 0 var(--ds-space-5);
+  margin-block: 0;
+  padding-block: 0;
   list-style: none;
 }
 .ds-topmenu__link {
   display: inline-flex;
   align-items: center;
   min-block-size: var(--ds-target-min);
-  padding-inline: var(--ds-space-3);
+  min-inline-size: var(--ds-target-min);
+  justify-content: center;
+  padding-inline: 0;
   color: var(--ds-color-text);
   text-decoration: none;
-  border-block-end: var(--ds-border-medium) solid transparent;
+  border-block-end: var(--ds-border-thick) solid transparent;
 }
+/* The open screen is marked as a selected tab is: bold primary text and a 3 px underline. Never a box (UX-69). */
 .ds-topmenu__link[aria-current='page'] {
   font-weight: var(--ds-weight-bold);
+  color: var(--ds-color-primary);
   border-block-end-color: var(--ds-color-primary);
+  background: none;
 }
 .ds-main {
   display: block;
-  padding-inline: var(--ds-page-gutter);
-  min-inline-size: 0;
 }
 .ds-banner-slot {
-  padding-inline: var(--ds-page-gutter);
   display: grid;
   gap: var(--ds-space-2);
 }
@@ -115,7 +157,6 @@ body {
   inset-inline: 0;
   inset-block-end: 0;
   z-index: var(--ds-z-sticky);
-  padding-inline: var(--ds-page-gutter);
   padding-block: var(--ds-space-2);
   color: var(--ds-color-text-muted);
   background: var(--ds-color-page);
@@ -137,8 +178,8 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: var(--ds-space-2) var(--ds-space-4);
-  margin: 0;
-  padding: 0;
+  margin-block: 0;
+  padding-block: 0;
   list-style: none;
 }
 .ds-usermenu {
@@ -161,7 +202,10 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--ds-space-3);
-  margin-inline: var(--ds-page-gutter);
+  box-sizing: border-box;
+  inline-size: calc(100% - 2 * var(--ds-page-gutter));
+  max-inline-size: calc(var(--ds-frame-wide) - 2 * var(--ds-page-gutter));
+  margin-inline: auto;
   padding: var(--ds-space-3);
   border: var(--ds-border-thin) solid var(--ds-color-divider);
   border-radius: var(--ds-radius-3);
@@ -200,12 +244,7 @@ body {
 .ds-page {
   display: grid;
   gap: var(--ds-space-5);
-  margin-inline: auto;
-  max-inline-size: var(--ds-frame-wide);
   min-inline-size: 0;
-}
-.ds-page[data-frame='narrow'] {
-  max-inline-size: var(--ds-frame-narrow);
 }
 .ds-h1 {
   margin: 0;
@@ -421,7 +460,7 @@ body {
   align-content: start;
   gap: var(--ds-space-3);
   min-inline-size: 0;
-  padding: var(--ds-space-4);
+  padding: var(--ds-pane-inner);
   background: var(--ds-color-surface);
   border: var(--ds-border-thin) solid var(--ds-color-border);
   border-radius: var(--ds-radius-2);
@@ -459,44 +498,33 @@ body {
 .ds-pane:focus-within {
   border-color: var(--ds-color-focus);
 }
-/* The actions of a pane sit in the top border line at the right end, over the page colour. */
-.ds-pane__actions {
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline-end: var(--ds-space-3);
-  max-inline-size: calc(100% - var(--ds-space-5));
+/* One row of pane actions at the pane bottom, right-aligned, Cancel then the one primary (UX-44, UX-69). A button
+   never sits on the border. At phone width the buttons stack full width, primary first (UX-37). */
+.ds-pane__actions,
+.ds-pane__footer,
+.ds-form-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
-  gap: var(--ds-space-2);
-  padding-inline: var(--ds-space-1);
-  transform: translateY(-50%);
-  background: var(--ds-color-page);
+  gap: var(--ds-space-3);
 }
-@media (max-width: 600px) {
-  .ds-pane__actions {
-    position: static;
-    max-inline-size: none;
-    padding-inline: 0;
-    transform: none;
-    justify-content: flex-start;
-    background: none;
+@media (max-width: 599px) {
+  .ds-pane__actions,
+  .ds-pane__footer,
+  .ds-form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
   }
-}
-/* A pane inside a pane sits on the surface colour, so its title and actions are cut out in that colour. */
-.ds-pane .ds-pane .ds-pane__title,
-.ds-pane .ds-pane .ds-pane__actions {
-  background: var(--ds-color-surface);
-}
-.ds-pane__footer {
-  display: grid;
-  gap: var(--ds-space-2);
-}
-/* UX-37: a button in a pane footer shares the pane's width, one per line. */
-.ds-pane__footer .ds-button-wrap,
-.ds-pane__footer .ds-button {
-  inline-size: 100%;
-  justify-content: center;
+  .ds-pane__actions .ds-button-wrap,
+  .ds-pane__actions .ds-button,
+  .ds-pane__footer .ds-button-wrap,
+  .ds-pane__footer .ds-button,
+  .ds-form-actions .ds-button-wrap,
+  .ds-form-actions .ds-button {
+    inline-size: 100%;
+    justify-content: center;
+  }
 }
 .ds-choice__previews {
   display: flex;
@@ -619,10 +647,30 @@ body {
   border: var(--ds-border-thin) solid var(--ds-color-divider);
   border-radius: var(--ds-radius-3);
 }
+/* Inside a pane the table is on the pane's inner edge: no frame, no extra inset on the first column (UX-69). */
+.ds-pane .ds-table-frame {
+  border: 0;
+  border-radius: 0;
+}
+.ds-pane .ds-table th:first-child,
+.ds-pane .ds-table td:first-child {
+  padding-inline-start: 0;
+}
+.ds-pane .ds-table th:first-child button {
+  padding-inline-start: 0;
+}
+.ds-pane .ds-table th:last-child,
+.ds-pane .ds-table td:last-child {
+  padding-inline-end: 0;
+}
 .ds-table {
   inline-size: 100%;
   border-collapse: collapse;
   font-size: var(--ds-size-2);
+}
+.ds-table th {
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 .ds-table th,
 .ds-table td {
@@ -630,6 +678,9 @@ body {
   text-align: start;
   vertical-align: top;
   border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
+}
+.ds-table th {
+  vertical-align: bottom;
 }
 .ds-table__sort {
   font: inherit;
@@ -668,9 +719,9 @@ body {
 .ds-table__pick {
   inline-size: var(--ds-target-min);
 }
-/* At phone width every row folds to two lines (UX-25): the lead cell on the first line, the other cells on the
-   second, each cut with an ellipsis rather than wrapping. A column marked secondary is left out of the fold. */
-@media (max-width: 600px) {
+/* At phone width every row is a stack of "name  value" lines (UX-25, UX-69). The lead cell is the title line. A
+   column marked secondary is left out. */
+@media (max-width: 599px) {
   .ds-table thead {
     position: absolute;
     inline-size: 1px;
@@ -682,41 +733,38 @@ body {
     display: block;
   }
   .ds-table tr {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--ds-space-1) var(--ds-space-3);
-    padding: var(--ds-space-2) var(--ds-space-3);
+    display: grid;
+    gap: var(--ds-space-1);
+    padding: var(--ds-space-2) 0;
     border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
   }
   .ds-table td {
+    display: grid;
+    grid-template-columns: minmax(5rem, 35%) minmax(0, 1fr);
+    gap: var(--ds-space-3);
+    align-items: center;
     border: 0;
     padding: 0;
-    flex: 1 1 0;
     min-inline-size: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   .ds-table td::before {
-    content: attr(data-label) ': ';
+    content: attr(data-label);
     font-size: var(--ds-size-1);
     color: var(--ds-color-text-muted);
   }
+  .ds-table__value {
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+  }
   .ds-table td.ds-table__pick {
-    flex: 0 0 var(--ds-target-min);
-    overflow: visible;
+    display: block;
   }
   .ds-table td.ds-table__pick::before {
     content: none;
   }
   .ds-table td[data-lead] {
-    flex: 0 0 100%;
+    display: block;
     font-weight: var(--ds-weight-bold);
-  }
-  .ds-table tr:has(.ds-table__pick) td[data-lead] {
-    flex: 1 1 0;
-    min-inline-size: calc(100% - var(--ds-target-min) - var(--ds-space-3));
   }
   .ds-table td[data-lead]::before {
     content: none;
@@ -754,6 +802,7 @@ body {
 }
 .ds-field__help {
   margin: 0;
+  max-inline-size: 100%;
   color: var(--ds-color-text-muted);
   font-size: var(--ds-size-2);
 }
@@ -909,13 +958,6 @@ body {
   opacity: 0.6;
   cursor: not-allowed;
 }
-.ds-form-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ds-space-3);
-}
 .ds-search {
   position: relative;
   max-inline-size: var(--ds-width-field-medium);
@@ -1021,6 +1063,8 @@ body {
 }
 .ds-tab[aria-selected='true'] {
   font-weight: var(--ds-weight-bold);
+  color: var(--ds-color-primary);
+  border-block-end-width: var(--ds-border-thick);
   border-block-end-color: var(--ds-color-primary);
 }
 

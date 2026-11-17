@@ -318,15 +318,16 @@ These tokens take a different value at each width. The gutter is the space at th
 
 | Token | Below `--ds-bp-sm` | `--ds-bp-sm` and up | `--ds-bp-lg` and up | Use |
 |---|---|---|---|---|
-| `--ds-page-gutter` | `16px` | `24px` | `48px` | space at the side of the page |
+| `--ds-page-gutter` | `16px` | `24px` | `24px` | space at the side of the page: the one gutter of the header, menu, page and key-hint bar (UX-69) |
+| `--ds-pane-inner` | `12px` | `16px` | `16px` | the one inner edge of a pane: title, fields, help text, notes and table (UX-69) |
 | `--ds-page-padding` | `16px` | `24px` | `32px` | space above and below the page content |
 
 ### Frame widths
 
 | Token | Value | Use |
 |---|---|---|
-| `--ds-frame-narrow` | `40rem` | a page of one form or one column of text |
-| `--ds-frame-wide` | `76rem` | a page of panes, tables or lists (a pane takes 2rem of its width for border and padding) |
+| `--ds-frame-narrow` | `40rem` | not used by the console frame any more (UX-69); kept for a part that must hold one column of text |
+| `--ds-frame-wide` | `76rem` | the one page frame: header, menu, page and key-hint bar share its left and right edge (UX-69) |
 
 ### Control heights
 

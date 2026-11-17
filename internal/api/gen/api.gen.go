@@ -627,6 +627,27 @@ func (e JoinCodeState) Valid() bool {
 	}
 }
 
+// Defines values for ListenAddressCandidateId.
+const (
+	ListenAddressCandidateIdDocker ListenAddressCandidateId = "docker"
+	ListenAddressCandidateIdOther  ListenAddressCandidateId = "other"
+	ListenAddressCandidateIdPc     ListenAddressCandidateId = "pc"
+)
+
+// Valid indicates whether the value is a known member of the ListenAddressCandidateId enum.
+func (e ListenAddressCandidateId) Valid() bool {
+	switch e {
+	case ListenAddressCandidateIdDocker:
+		return true
+	case ListenAddressCandidateIdOther:
+		return true
+	case ListenAddressCandidateIdPc:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MachineChangeChoices.
 const (
 	MachineChangeChoicesCancel     MachineChangeChoices = "cancel"
@@ -2766,6 +2787,51 @@ type JoinCodeCreated struct {
 	JoinCode JoinCode        `json:"join_code"`
 }
 
+// ListenAddress defines model for ListenAddress.
+type ListenAddress struct {
+	Candidates []ListenAddressCandidate `json:"candidates"`
+	EnvName    *string                  `json:"env_name,omitempty"`
+
+	// FromEnv CRSP_LISTEN_ADDR is set and wins; the console cannot change it.
+	FromEnv bool `json:"from_env"`
+
+	// Problem Why the controller did not listen on the stored address at start.
+	Problem *string `json:"problem,omitempty"`
+
+	// Running The address the controller listens on now (host:port).
+	Running string `json:"running"`
+
+	// Stored The address chosen in the console, when there is one.
+	Stored *string `json:"stored,omitempty"`
+}
+
+// ListenAddressCandidate defines model for ListenAddressCandidate.
+type ListenAddressCandidate struct {
+	// Address host:port. Empty for the typed choice.
+	Address     *string                  `json:"address,omitempty"`
+	Id          ListenAddressCandidateId `json:"id"`
+	Label       string                   `json:"label"`
+	Recommended *bool                    `json:"recommended,omitempty"`
+
+	// Who One line on who can reach it.
+	Who string `json:"who"`
+}
+
+// ListenAddressCandidateId defines model for ListenAddressCandidate.Id.
+type ListenAddressCandidateId string
+
+// ListenAddressChoice defines model for ListenAddressChoice.
+type ListenAddressChoice struct {
+	// Address host:port of this PC.
+	Address string `json:"address"`
+}
+
+// ListenAddressChosen defines model for ListenAddressChosen.
+type ListenAddressChosen struct {
+	Address    string `json:"address"`
+	Restarting bool   `json:"restarting"`
+}
+
 // Load defines model for Load.
 type Load struct {
 	CpuKnown    bool      `json:"cpu_known"`
@@ -4500,6 +4566,9 @@ type CreateRunnersJSONRequestBody = ApplyPlanRequest
 // UpdateSettingsJSONRequestBody defines body for UpdateSettings for application/json ContentType.
 type UpdateSettingsJSONRequestBody = Settings
 
+// PutListenAddressJSONRequestBody defines body for PutListenAddress for application/json ContentType.
+type PutListenAddressJSONRequestBody = ListenAddressChoice
+
 // UpdatePoolSettingsJSONRequestBody defines body for UpdatePoolSettings for application/json ContentType.
 type UpdatePoolSettingsJSONRequestBody = PoolSettings
 
@@ -4841,6 +4910,12 @@ type ServerInterface interface {
 	// UpdateSettings Change controller settings
 	// (PATCH /api/v1/settings)
 	UpdateSettings(w http.ResponseWriter, r *http.Request)
+	// GetListenAddress The controller address, and the addresses of this PC to choose from
+	// (GET /api/v1/settings/listen-address)
+	GetListenAddress(w http.ResponseWriter, r *http.Request)
+	// PutListenAddress Choose the controller address
+	// (PUT /api/v1/settings/listen-address)
+	PutListenAddress(w http.ResponseWriter, r *http.Request)
 	// GetPoolSettings Defaults for new machines
 	// (GET /api/v1/settings/pool)
 	GetPoolSettings(w http.ResponseWriter, r *http.Request)
@@ -7996,6 +8071,34 @@ func (siw *ServerInterfaceWrapper) UpdateSettings(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// GetListenAddress operation middleware
+func (siw *ServerInterfaceWrapper) GetListenAddress(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetListenAddress(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutListenAddress operation middleware
+func (siw *ServerInterfaceWrapper) PutListenAddress(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutListenAddress(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetPoolSettings operation middleware
 func (siw *ServerInterfaceWrapper) GetPoolSettings(w http.ResponseWriter, r *http.Request) {
 
@@ -8731,6 +8834,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/ca.pem", wrapper.GetCaCertificate)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings/pool", wrapper.GetPoolSettings)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/settings/pool", wrapper.UpdatePoolSettings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings/listen-address", wrapper.GetListenAddress)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/settings/listen-address", wrapper.PutListenAddress)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings/public-repositories", wrapper.GetPublicRepositories)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/settings/public-repositories", wrapper.SetPublicRepositories)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners", wrapper.ListRunners)
@@ -13040,6 +13145,83 @@ func (response UpdateSettingsdefaultJSONResponse) VisitUpdateSettingsResponse(w 
 	return err
 }
 
+type GetListenAddressRequestObject struct {
+}
+
+type GetListenAddressResponseObject interface {
+	VisitGetListenAddressResponse(w http.ResponseWriter) error
+}
+
+type GetListenAddress200JSONResponse ListenAddress
+
+func (response GetListenAddress200JSONResponse) VisitGetListenAddressResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetListenAddressdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetListenAddressdefaultJSONResponse) VisitGetListenAddressResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutListenAddressRequestObject struct {
+	Body *PutListenAddressJSONRequestBody
+}
+
+type PutListenAddressResponseObject interface {
+	VisitPutListenAddressResponse(w http.ResponseWriter) error
+}
+
+type PutListenAddress202JSONResponse ListenAddressChosen
+
+func (response PutListenAddress202JSONResponse) VisitPutListenAddressResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutListenAddressdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response PutListenAddressdefaultJSONResponse) VisitPutListenAddressResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetPoolSettingsRequestObject struct {
 }
 
@@ -14192,6 +14374,12 @@ type StrictServerInterface interface {
 	// UpdateSettings Change controller settings
 	// (PATCH /api/v1/settings)
 	UpdateSettings(ctx context.Context, request UpdateSettingsRequestObject) (UpdateSettingsResponseObject, error)
+	// GetListenAddress The controller address, and the addresses of this PC to choose from
+	// (GET /api/v1/settings/listen-address)
+	GetListenAddress(ctx context.Context, request GetListenAddressRequestObject) (GetListenAddressResponseObject, error)
+	// PutListenAddress Choose the controller address
+	// (PUT /api/v1/settings/listen-address)
+	PutListenAddress(ctx context.Context, request PutListenAddressRequestObject) (PutListenAddressResponseObject, error)
 	// GetPoolSettings Defaults for new machines
 	// (GET /api/v1/settings/pool)
 	GetPoolSettings(ctx context.Context, request GetPoolSettingsRequestObject) (GetPoolSettingsResponseObject, error)
@@ -17188,6 +17376,61 @@ func (sh *strictHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateSettingsResponseObject); ok {
 		if err := validResponse.VisitUpdateSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetListenAddress operation middleware
+func (sh *strictHandler) GetListenAddress(w http.ResponseWriter, r *http.Request) {
+	var request GetListenAddressRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetListenAddress(ctx, request.(GetListenAddressRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetListenAddress")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetListenAddressResponseObject); ok {
+		if err := validResponse.VisitGetListenAddressResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PutListenAddress operation middleware
+func (sh *strictHandler) PutListenAddress(w http.ResponseWriter, r *http.Request) {
+	var request PutListenAddressRequestObject
+
+	var body PutListenAddressJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PutListenAddress(ctx, request.(PutListenAddressRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PutListenAddress")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PutListenAddressResponseObject); ok {
+		if err := validResponse.VisitPutListenAddressResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

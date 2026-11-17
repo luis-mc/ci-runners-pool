@@ -32,6 +32,7 @@ Each action has one word. The Never use column lists words that must not stand i
 | Search | Look for text in a list. | Find, Look up |
 | Sort | Order a list by a column. | Order, Arrange |
 | Sign in with GitHub | Start the GitHub sign-in. | Log in, Login |
+| Sign in with GitHub again | The action of the needs-you message when the GitHub sign-in ended; starts the GitHub sign-in and returns to the same screen. | Log in again, Reconnect |
 | Sign out | End the session. | Log out, Logout |
 | Drain | Stop a machine taking new jobs and wait for the running ones. | Pause, Disable |
 | Resume | Let a drained machine take jobs again. | Enable, Undrain |
@@ -705,3 +706,40 @@ The words of the repositories page when the list is the last copy because the re
 | GitHub answered {status}: {message}. | Needs-you message for any other GitHub error, with GitHub's own status and words. |
 | The list could not be refreshed. | Needs-you message when no reason is known. |
 | The list is the last copy, from {when}. | Second sentence of each message above; without a time: The list is the last copy. |
+
+## Network words
+
+The words of Settings > Console > Network and of the dialog that chooses the controller address (operations R5.90, OPS14). Also opened from the Needs-you box of Access for CI.
+
+| Word | Where and meaning |
+|---|---|
+| Network | Section title. |
+| Choose an address | Primary action in the section and in the Needs-you box; opens the dialog, and is its title. |
+| Use this address | Primary action of the dialog; busy word Saving, then Restarting. |
+| Listening on | Fact: the address the controller listens on now. |
+| Chosen, after the next restart | Fact: the stored choice is not yet the running address. |
+| This PC's network address | Choice (recommended): who can reach it is runners and machines on the network and containers on this PC. |
+| Docker and WSL on this PC only | Choice: containers and WSL on this PC, no other machine. |
+| Another address | Choice: opens the box Address as host:port. |
+| Address as host:port | Box label; help: an address of this PC, port 8460 unless written. |
+| The controller restarts once when you press Use this address. Running jobs finish first. | Line in the dialog. |
+| Waiting for running jobs to finish, then the controller restarts on {address}. No job is stopped. This page reopens here when the controller answers. | Note while it waits. |
+| The controller answers on {address}. It also keeps 127.0.0.1 for this console and the tray. | Done. |
+| This address is set by CRSP_LISTEN_ADDR on this PC, so it cannot be changed here. | Note when the environment decides. |
+| Could not use this address. {reason} | Problem when the address is refused. |
+| The controller did not listen on the new address. {reason} | Problem when it restarted but could not bind. |
+
+## Repositories list: groups and inactive types
+
+The words of the Repositories screen when the list is grouped by owner and hides repositories of an inactive type (web-console, LOOK5; owner decisions LOOK D15 and D16). Active types today: Private.
+
+| Word | Where and meaning |
+|---|---|
+| {owner} | Group heading row, with a tick box that selects the whole group. |
+| {n} repositories · {m} use the pool | Under the owner; `1 repository` when n is 1. |
+| {n} public repositories are not listed: the pool serves private repositories only. | Note line above the list while public repositories are not an active type. |
+| List them too | Link in the note: shows them, muted, in their groups. |
+| Change active types | Link in the note: opens the active-types setting. |
+| {n} public repositories are listed, muted: the pool serves private repositories only. | The note line while they are listed. |
+| Hide them | Link in that line: lists private repositories only again. |
+| {n} private repositories | Count beside the toolbar; `{n} private & public repositories` when public is active or listed. |

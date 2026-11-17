@@ -12,11 +12,13 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -28,6 +30,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/hooks"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/jobcmd"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/listenaddr"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/logging"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
@@ -148,6 +151,15 @@ func runController() error {
 		},
 	})
 
+	// The address chosen in the console, unless the environment sets one
+	// (operations R5.90).
+	if stored, err := ops.Settings.GetListenAddress(ctx); err != nil {
+		logger.Warn("read the stored listen address", "err", err)
+	} else {
+		cfg.ListenAddr, cfg.ListenFromSetting = listenaddr.Effective(os.Getenv(config.EnvListenAddr), stored.Address, cfg.ListenAddr)
+	}
+	listen := &listenaddr.Service{Settings: ops.Settings, Source: listenaddr.SystemSource{}, Getenv: os.Getenv, Agent: cfg.AgentAddr}
+
 	idle := &idleHook{}
 	mr, err := startMachines(ctx, cfg, logger, idle, audit.New(db), poolDefaults(ops.Settings))
 	if err != nil {
@@ -189,15 +201,46 @@ func runController() error {
 	sec = secrets.Learn(sec, secretRedactor.Add)
 	ctl, err := buildController(ctx, controllerDeps{
 		Cfg: cfg, Logger: logger, DB: db, Secrets: sec, Ops: ops,
-		Machines: mr.Service, CA: mr.CA, PublicHost: mr.PublicHost, Packages: packageServer(mr), Updates: um, Queue: queue, Caches: mr.Caches, Link: mr.Link, MachineSecrets: mr.Secrets,
+		Machines: mr.Service, CA: mr.CA, PublicHost: mr.PublicHost, Packages: packageServer(mr), Updates: um, Listen: listen, Queue: queue, Caches: mr.Caches, Link: mr.Link, MachineSecrets: mr.Secrets,
 	})
 	if err != nil {
 		return err
 	}
 	defer ctl.Close()
 
+	// The console and its API are plain HTTP on 127.0.0.1 and ::1 only, and
+	// HTTPS only on every other address (web-console R5.1), with the
+	// certificate of the controller's own CA, the same one the agent link uses.
+	// A chosen address that cannot be bound falls back to loopback, and the
+	// console says why. A non-loopback address keeps 127.0.0.1 too, so the local
+	// console and the tray keep working.
+	listenAt, fallback := cfg.ListenAddr, ""
+	ln, err := webui.Listen(ctx, listenAt)
+	if err != nil && cfg.ListenFromSetting {
+		_, port, _ := net.SplitHostPort(listenAt)
+		fallback = "the controller could not listen on " + listenAt + " (" + err.Error() + "), so it listens on 127.0.0.1 only; choose another address"
+		logger.Warn("listen address not bound", "addr", listenAt, "err", err)
+		listenAt = net.JoinHostPort("127.0.0.1", port)
+		ln, err = webui.Listen(ctx, listenAt)
+	}
+	if err != nil {
+		return err
+	}
+	listen.Running, listen.Fallback = listenAt, fallback
+	var localLn net.Listener
+	if lh, lp, _ := net.SplitHostPort(listenAt); !webui.IsLoopback(lh) && !isWildcard(lh) {
+		if localLn, err = webui.Listen(ctx, net.JoinHostPort("127.0.0.1", lp)); err != nil {
+			logger.Warn("the local console address is not open", "err", err)
+			localLn = nil
+		}
+	}
+	localAddr := listenAt
+	if localLn != nil {
+		localAddr = localLn.Addr().String()
+	}
+
 	// The one-time link the tray's Open asks for over the local channel (tray R5.6 to R5.9, R6.1).
-	console := consoleURL(cfg.ListenAddr)
+	console := consoleURL(localAddr)
 	startTrayChannel(ctx, logger, trayBackend{
 		Updates: um, Drain: machineDrainer{svc: mr.Service}, Console: console,
 		Links: setupOrConsole{auth: ctl.Auth, console: console, next: authLinks{svc: ctl.Auth, console: console}},
@@ -207,20 +250,22 @@ func runController() error {
 	api.Register(mux, ctl.Options)
 	mux.Handle("/", webui.Handler())
 
-	// The console and its API are plain HTTP on 127.0.0.1 and ::1 only, and
-	// HTTPS only on every other address (web-console R5.1), with the
-	// certificate of the controller's own CA, the same one the agent link uses.
-	srv := webui.NewServer(cfg.ListenAddr, mr.CA.ServerTLS(), api.Recover(logger, mux))
-	ln, err := webui.Listen(ctx, cfg.ListenAddr)
-	if err != nil {
-		return err
-	}
-
-	errc := make(chan error, 1)
+	handler := api.Recover(logger, mux)
+	srv := webui.NewServer(listenAt, mr.CA.ServerTLS(), handler)
+	servers := []*http.Server{srv}
+	errc := make(chan error, 2)
 	go func() {
-		logger.Info("controller listening", "addr", cfg.ListenAddr, "version", version, "tls", !webui.IsLoopback(cfg.ListenAddr))
+		logger.Info("controller listening", "addr", listenAt, "version", version, "tls", !webui.IsLoopback(listenAt))
 		errc <- webui.Serve(srv, ln)
 	}()
+	if localLn != nil {
+		local := webui.NewServer(localAddr, nil, handler)
+		servers = append(servers, local)
+		go func() {
+			logger.Info("controller listening locally", "addr", localAddr)
+			errc <- webui.Serve(local, localLn)
+		}()
+	}
 
 	select {
 	case err := <-errc:
@@ -229,12 +274,20 @@ func runController() error {
 		logger.Info("shutting down")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		if err := srv.Shutdown(shutdownCtx); err != nil {
-			return err
+		for _, sv := range servers {
+			if err := sv.Shutdown(shutdownCtx); err != nil {
+				return err
+			}
 		}
 		if restarting.Load() {
 			return errors.New("restarting to apply a restore")
 		}
 		return nil
 	}
+}
+
+// isWildcard reports an unspecified listen host, which already covers 127.0.0.1.
+func isWildcard(h string) bool {
+	ip := net.ParseIP(strings.Trim(h, "[]"))
+	return h == "" || ip != nil && ip.IsUnspecified()
 }

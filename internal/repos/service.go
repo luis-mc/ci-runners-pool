@@ -87,28 +87,30 @@ func (e *ErrNotAdmin) Error() string {
 // Is lets errors.Is(err, auth.ErrForbidden) match.
 func (e *ErrNotAdmin) Is(target error) bool { return target == auth.ErrForbidden }
 
-// Sync lists the installations and repositories the user can see through the
-// App and keeps them in the store, with the user's admin flag (R5.17, R5.18).
-// It needs the user's GitHub token from memory; without it the caller gets
-// auth.ErrGitHubSessionExpired and the console asks for a new sign-in.
+// Sync lists the installations and repositories the App can reach and keeps
+// them in the store. It reads them with the App's own key (an installation
+// token), so it needs no personal sign-in and survives a restart (R5.17,
+// R5.18). When the user's GitHub token is still in memory it also refreshes
+// the user's admin flags; without it the flags stay as they were and the
+// admin check (requireGitHubAdmin) still reads the permission fresh. A failed
+// App call is returned as it is, so the page shows the real reason.
 func (s *Service) Sync(ctx context.Context, p auth.Principal) error {
 	if err := auth.Require(p, auth.RoleViewer); err != nil {
 		return err
 	}
-	tok, err := s.cfg.Tokens.GitHubToken(p.UserID)
+	bg := github.Background(ctx)
+	ins, err := s.cfg.GitHub.ListAppInstallations(bg)
 	if err != nil {
 		return err
 	}
-	ins, err := s.cfg.GitHub.ListUserInstallations(ctx, tok)
-	if err != nil {
-		return err
-	}
-	flags := map[int64]bool{}
 	for _, in := range ins {
 		if err := s.cfg.Store.UpsertInstallation(ctx, toInstallation(in)); err != nil {
 			return err
 		}
-		repos, err := s.cfg.GitHub.ListInstallationRepositories(ctx, tok, in.ID)
+		if in.Suspended {
+			continue
+		}
+		repos, err := s.cfg.GitHub.ListAppRepositories(bg, in.ID)
 		if err != nil {
 			return err
 		}
@@ -116,13 +118,41 @@ func (s *Service) Sync(ctx context.Context, p auth.Principal) error {
 			if err := s.cfg.Store.UpsertRepository(ctx, toRepository(r, in.ID)); err != nil {
 				return err
 			}
+		}
+	}
+	flags := s.userAdminFlags(ctx, p)
+	s.mu.Lock()
+	if flags != nil {
+		s.admin[p.UserID] = flags
+	}
+	s.synced[p.UserID] = s.cfg.Now()
+	s.mu.Unlock()
+	return nil
+}
+
+// userAdminFlags reads which repositories the user administers, with the
+// user's own token. It returns nil when the token is gone or GitHub refuses:
+// the list does not depend on it.
+func (s *Service) userAdminFlags(ctx context.Context, p auth.Principal) map[int64]bool {
+	tok, err := s.cfg.Tokens.GitHubToken(p.UserID)
+	if err != nil {
+		return nil
+	}
+	ins, err := s.cfg.GitHub.ListUserInstallations(ctx, tok)
+	if err != nil {
+		return nil
+	}
+	flags := map[int64]bool{}
+	for _, in := range ins {
+		repos, err := s.cfg.GitHub.ListInstallationRepositories(ctx, tok, in.ID)
+		if err != nil {
+			return nil
+		}
+		for _, r := range repos {
 			flags[r.ID] = r.Admin
 		}
 	}
-	s.mu.Lock()
-	s.admin[p.UserID], s.synced[p.UserID] = flags, s.cfg.Now()
-	s.mu.Unlock()
-	return nil
+	return flags
 }
 
 // LastSync is when the user's listing was last refreshed from GitHub.

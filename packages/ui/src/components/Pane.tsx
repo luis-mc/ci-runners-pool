@@ -1,5 +1,5 @@
-// Component 8: the pane. A box border with the title cut into the top border, ┤ Title 3 ├, optional actions in the
-// same border line, and a focus ring on the border while focus is inside. Every titled part of a page is a pane
+// Component 8: the pane. A box border with the title cut into the top border, ┤ Title 3 ├, optional actions in one
+// row at the bottom, and a focus ring on the border while focus is inside. Every titled part of a page is a pane
 // (UX-10, UX-51). Apps pass data and children; they never write a class or a style (UX-2, R6.8).
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
@@ -18,7 +18,7 @@ export function Pane({
   count?: number | undefined;
   /** Makes the title a link (a card that opens a screen). */
   to?: string | undefined;
-  /** Buttons for the pane as a whole, drawn in the top border line at the right end. */
+  /** Buttons for the pane as a whole: one row at the pane bottom, right-aligned (UX-69). */
   actions?: ReactNode | undefined;
   /** The heading level of the title: 2 for a section of a page, 3 inside a card grid. */
   level?: 2 | 3 | undefined;
@@ -42,8 +42,8 @@ export function Pane({
         )}
         {count === undefined ? null : <span className="ds-pane__count">{count}</span>}
       </Heading>
-      {actions ? <div className="ds-pane__actions">{actions}</div> : null}
       <div className="ds-pane__body">{children}</div>
+      {actions ? <div className="ds-pane__actions">{actions}</div> : null}
       {footer ? <div className="ds-pane__footer">{footer}</div> : null}
     </section>
   );

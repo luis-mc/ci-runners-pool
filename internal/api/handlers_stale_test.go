@@ -30,7 +30,7 @@ func TestStaleListCarriesTheRealGitHubError(t *testing.T) {
 	owner, _ := h.setup(1, "alice")
 	h.fake.AddInstall(10, "alice", "User", 1)
 	h.fake.AddRepo(100, 10, "alice", "app", true, 1)
-	h.fake.FailMatching("/user/installations", 422, 10)
+	h.fake.FailMatching("/app/installations", 422, 10)
 	var page stalePage
 	res, b := h.do("GET", "/api/v1/github/repositories", nil, owner, nil)
 	if err := json.Unmarshal(b, &page); err != nil || res.StatusCode != 200 {
@@ -45,7 +45,7 @@ func TestStaleListWhenGitHubIsDown(t *testing.T) {
 	h := newHarness(t)
 	owner, _ := h.setup(1, "alice")
 	h.fake.AddInstall(10, "alice", "User", 1)
-	h.fake.FailMatching("/user/installations", 503, 10)
+	h.fake.FailMatching("/app/installations", 503, 10)
 	var page stalePage
 	_, b := h.do("GET", "/api/v1/github/repositories", nil, owner, nil)
 	if err := json.Unmarshal(b, &page); err != nil {
@@ -78,5 +78,39 @@ func TestStaleCauseNamesEachReason(t *testing.T) {
 		if reason != c.reason || status != c.status || (c.msg != "" && msg != c.msg) {
 			t.Errorf("%s: got %s %d %q", c.name, reason, status, msg)
 		}
+	}
+}
+
+// With no GitHub user token in memory (after a restart) the list still
+// refreshes through the App and is not stale (OPS13).
+func TestListRefreshesThroughTheAppWithoutAUserToken(t *testing.T) {
+	h := newHarness(t)
+	owner, _ := h.setup(1, "alice")
+	h.fake.AddInstall(10, "alice", "User", 1)
+	h.fake.AddRepo(100, 10, "alice", "app", true, 1)
+	var page stalePage
+	res, b := h.do("GET", "/api/v1/github/repositories", nil, owner, nil)
+	if err := json.Unmarshal(b, &page); err != nil || res.StatusCode != 200 {
+		t.Fatalf("%d %s %v", res.StatusCode, b, err)
+	}
+	if page.Stale.Stale || len(page.Items) != 1 || page.Items[0].FullName != "alice/app" {
+		t.Fatalf("page %+v", page)
+	}
+}
+
+// When the App call fails the reason is the App's error, never
+// session_expired (OPS13).
+func TestStaleReasonIsTheAppErrorNotTheSignIn(t *testing.T) {
+	h := newHarness(t)
+	owner, _ := h.setup(1, "alice")
+	h.fake.AddInstall(10, "alice", "User", 1)
+	h.fake.FailMatching("/installation/repositories", 403, 10)
+	var page stalePage
+	_, b := h.do("GET", "/api/v1/github/repositories", nil, owner, nil)
+	if err := json.Unmarshal(b, &page); err != nil {
+		t.Fatal(err)
+	}
+	if !page.Stale.Stale || page.Stale.Reason == "session_expired" || page.Stale.Reason == "" {
+		t.Fatalf("stale %+v", page.Stale)
 	}
 }

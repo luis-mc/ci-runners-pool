@@ -23,7 +23,7 @@ const primaries = () =>
 describe('Repositories list in a pane', () => {
   it('draws the toolbar, table and pager inside the Repositories pane (CORE-1)', async () => {
     renderApp(list(signedIn()), '/repositories');
-    const table = await screen.findByRole('table', { name: 'Repositories' });
+    const table = await screen.findByRole('table', { name: 'octo repositories' });
     const pane = table.closest('.ds-pane') as HTMLElement;
     expect(pane).toBeTruthy();
     expect(
@@ -39,7 +39,7 @@ describe('Repositories list in a pane', () => {
 
   it('has one primary, also while rows are ticked (UX-4)', async () => {
     renderApp(list(signedIn()), '/repositories');
-    await screen.findByRole('table', { name: 'Repositories' });
+    await screen.findByRole('table', { name: 'octo repositories' });
     expect(primaries()).toEqual(['Turn on the pool']);
     fireEvent.click(screen.getByRole('button', { name: 'Select all 1' }));
     expect(screen.getByRole('button', { name: 'Turn on 1 repository' })).toBeTruthy();
@@ -48,7 +48,7 @@ describe('Repositories list in a pane', () => {
 
   it('shows Select all N, and Clear that waits for a ticked row, in one toolbar line (UX-12)', async () => {
     renderApp(list(signedIn()), '/repositories');
-    await screen.findByRole('table', { name: 'Repositories' });
+    await screen.findByRole('table', { name: 'octo repositories' });
     expect(
       screen.getByRole<HTMLButtonElement>('button', { name: 'Clear' }).disabled,
     ).toBe(true);
@@ -66,7 +66,7 @@ describe('Repositories list in a pane', () => {
       ]),
       '/repositories',
     );
-    await screen.findByRole('table', { name: 'Repositories' });
+    await screen.findByRole('table', { name: 'octo repositories' });
     fireEvent.click(screen.getByRole('button', { name: 'Pool on' }));
     expect(screen.getByRole('button', { name: 'Select all 1' })).toBeTruthy();
   });

@@ -15,15 +15,15 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 2. Top menu and breadcrumbs
 
 - **Used for:** moving between the main areas, and showing the path back up.
-- **Looks:** a row of the main areas, with the current one marked. A quiet trail of links shows the path back up.
-- **Source:** `src/ui/top-menu`
-- **Rules:** UX-1, UX-3, UX-16, UX-17.
+- **Looks:** a row of the main areas, starting on the frame edge, with the current one marked as a tab is marked: bold primary text and a 3 px underline, never a box (UX-69). A quiet trail of links shows the path back up. The top bar above it holds the product name and status on the left and Commands and the login on the right inside the same frame; at phone width it is two lines, name and login, then status and Commands.
+- **Source:** `packages/ui/src/components/Shell.tsx` (`Header`, `TopMenu`)
+- **Rules:** UX-1, UX-3, UX-16, UX-17, UX-69.
 - **Guard:** none yet.
 
 ## 3. Tabs
 
 - **Used for:** switching between views of the same thing. A tab never starts work. Tabs keep their panels mounted, so a tab keeps its state when the user comes back.
-- **Looks:** labels over one panel. When the labels do not fit the width the row wraps onto as many rows as it needs; it never scrolls sideways (UX-68, owner decision LOOK D6). The chosen tab is underlined and bold, so colour is not the only sign. The row is a tab list with arrow-key movement. The top menu wraps the same way.
+- **Looks:** labels over one panel. When the labels do not fit the width the row wraps onto as many rows as it needs; it never scrolls sideways (UX-68, owner decision LOOK D6). The chosen tab is bold, in the primary colour, with a 3 px underline, so colour is not the only sign. The row is a tab list with arrow-key movement. The top menu wraps the same way.
 - **Source:** `packages/ui/src/components/Controls.tsx` (`Tabs`)
 - **Rules:** UX-1, UX-8, UX-17, UX-68.
 - **Guard:** `packages/ui/src/components/Pane.test.tsx` (Tabs).
@@ -62,8 +62,8 @@ One numbered section per shared component. A part that nearly fits is extended w
 
 ## 8. Card, card grid and facts list
 
-- **Used for:** a pane: a boxed section; the grid that lays panes out; and a short list of name and value pairs inside a pane. Every titled part of a page is a pane (`Pane`; `Section` and `Card` are panes). A pane may carry a count after its title and, at the right end of its top border, actions that belong to the pane as a whole (a Refresh or Add button). A note stays a note (component 5) inside the pane.
-- **Looks:** a box border (`--ds-color-border`, corners from `--ds-radius-2`) with the title cut into the top border: `┤ Machines 3 ├`. The title and count are drawn in `--ds-color-primary` over `--ds-color-page`; the `┤ ├` marks are the border colour. The actions sit in the same border line, right aligned, over `--ds-color-page`. When focus is inside a pane, its border takes the focus ring colour (`--ds-color-focus`), so the user sees which pane has focus (UX-17). Panes sit in an even grid. The facts list has the name above its value. On a small screen the actions drop under the title.
+- **Used for:** a pane: a boxed section; the grid that lays panes out; and a short list of name and value pairs inside a pane. Every titled part of a page is a pane (`Pane`; `Section` and `Card` are panes). A pane may carry a count after its title and actions that belong to the pane as a whole (a Make or Add button); they sit in the pane's one action row at the bottom, never on the border (UX-69). A note stays a note (component 5) inside the pane.
+- **Looks:** a box border (`--ds-color-border`, corners from `--ds-radius-2`) with the title cut into the top border: `┤ Machines 3 ├`. The title and count are drawn in `--ds-color-primary` over `--ds-color-page`; the `┤ ├` marks are the border colour. A pane has one inner edge (`--ds-pane-inner`: 16 px, 12 px at phone width) for its title, fields, help text, notes and table. The action row is at the pane bottom, right aligned, Cancel then the one primary; at phone width the buttons stack full width, primary first (UX-37). Help text is as wide as its field. When focus is inside a pane, its border takes the focus ring colour (`--ds-color-focus`), so the user sees which pane has focus (UX-17). Panes sit in an even grid. The facts list has the name above its value. 
 - **Source:** `packages/ui/src/components/Pane.tsx` (`Pane`), `Card.tsx`, `layout.tsx` (`Section`)
 - **Rules:** UX-10, UX-1, UX-15, UX-37.
 - **Guard:** none yet.
@@ -181,8 +181,8 @@ The body scrolls when the content is taller than the space. The overlay never gr
 
 ## 15. Tables and list rows
 
-- **Used for:** a table to compare three or more facts; rows for everything else. Rows fold to two lines on a phone. Column heads sort.
-- **Looks:** a plain grid with light lines and a bold head row. On a phone (up to 600 px) each row folds to two lines: the first column on the first line, the other columns on the second, each cut with an ellipsis; a column marked `secondary` is left out of the fold. Given a `title` the table is drawn inside a pane with the title and the row count. The head of a sortable column is a button at least 44 px wide and high (UX-16); the row under the cursor stays in reverse video (component 41). A row that cannot be used now is greyed (`muted`); the reason and the link that fixes it sit in the row itself, never only in the grey.
+- **Used for:** a table to compare three or more facts; rows for everything else. Rows become a stack of name and value lines on a phone. Column heads sort.
+- **Looks:** a plain grid with light lines and a bold head row. Heads stay on one line and are bottom-aligned; inside a pane the first column starts on the pane's inner edge, with no extra inset (UX-69). On a phone (under 600 px) each row is a stack of `name  value` lines, the first column as the bold title line; a column marked `secondary` is left out of the stack. Given a `title` the table is drawn inside a pane with the title and the row count. The head of a sortable column is a button at least 44 px wide and high (UX-16); the row under the cursor stays in reverse video (component 41). A row that cannot be used now is greyed (`muted`); the reason and the link that fixes it sit in the row itself, never only in the grey.
 - **Source:** `packages/ui/src/components/Table.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-25, UX-16, UX-17, UX-18, UX-39.
 - **Guard:** none yet.
@@ -467,7 +467,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 41. Selected row and key-hint bar
 
 - **Used for:** showing which list row is selected, and which keys work (UX-57).
-- **Looks:** the selected row of a table or a result list, the row under the cursor (`j` and `k`, or a click or Tab), is in reverse video: `--ds-color-primary` fill with `--ds-color-on-primary` text. A row the user has ticked (a choice list) takes the `--ds-color-selection` fill and keeps its text colour. The key-hint bar is fixed at the window foot, as on the look page, with a thin top border. It lists only the keys that work on the page: a page registers its keys (`useKeyHints`) and a part that adds keys registers them too, so `j / k` and `Enter` show only where a list exists. Each key is in the key style of component 38. The hints are text, never buttons (UX-8). The bar is not drawn on a touch or coarse pointer, where there are no keys.
+- **Looks:** the selected row of a table or a result list, the row under the cursor (`j` and `k`, or a click or Tab), is in reverse video: `--ds-color-primary` fill with `--ds-color-on-primary` text. A row the user has ticked (a choice list) takes the `--ds-color-selection` fill and keeps its text colour. The key-hint bar is fixed at the window foot, with a thin top border; its keys sit inside the page frame (UX-69). Each key is listed once, whatever the spelling (`j / k` and `j k` are one key). It lists only the keys that work on the page: a page registers its keys (`useKeyHints`) and a part that adds keys registers them too, so `j / k` and `Enter` show only where a list exists. Each key is in the key style of component 38. The hints are text, never buttons (UX-8). The bar is not drawn on a touch or coarse pointer, where there are no keys.
 - **Source:** `packages/ui/src/components/Table.tsx`, `packages/ui/src/components/KeyHints.tsx` (`KeyHints`, `useKeyHints`), the `hints` slot of `Frame`, `packages/ui/src/components.css`
 - **Rules:** UX-8, UX-50, UX-57, UX-60.
 - **Guard:** none yet.

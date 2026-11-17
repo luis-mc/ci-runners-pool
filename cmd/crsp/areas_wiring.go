@@ -25,6 +25,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor/wire"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/events"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/listenaddr"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/notify"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/overview"
@@ -65,7 +66,9 @@ type controllerDeps struct {
 	// Packages serves the release packages to new machines (machines R5.65); nil for a development build.
 	Packages api.PackageServer
 	Updates  api.UpdateService
-	Queue    scheduler.SlotQueue
+	// Listen is the listen address service of the console (operations R5.90).
+	Listen *listenaddr.Service
+	Queue  scheduler.SlotQueue
 	// Caches is the caches service of the machines runtime (web-console R5.25).
 	Caches *caches.Service
 	// Link carries runner commands to remote machines and reports (CRSP63); nil keeps remote machines unreachable.
@@ -278,6 +281,9 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	c.Options.Machines, c.Options.CA, c.Options.Update = d.Machines, d.CA, d.Updates
 	c.Options.Packages = d.Packages
 	c.Options.PublicHost, c.Options.ListenAddr = d.PublicHost, d.Cfg.ListenAddr
+	if d.Listen != nil {
+		c.Options.Listen = d.Listen
+	}
 	c.Options.Jobs, c.Options.Slots, c.Options.Live = d.DB, d.Queue, live
 	c.Options.Runners, c.Options.Doctor = runnerSvc, docSvc
 	c.Options.Caches, c.Options.Events = d.Caches, hub

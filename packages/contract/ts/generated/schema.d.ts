@@ -1237,6 +1237,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/listen-address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The controller address, and the addresses of this PC to choose from
+         * @description operations R5.90. `running` is the address the controller listens on now; `stored` is the choice kept in the settings. CRSP_LISTEN_ADDR, when set, wins (`from_env`), and the console shows it read-only. `candidates` are found on this PC: its network address, the host address of Docker and WSL, and a typed address.
+         */
+        get: operations["getListenAddress"];
+        /**
+         * Choose the controller address
+         * @description operations R5.90. Checks the address (host:port, an address of this PC, not loopback), keeps it in the settings, writes one audit row, and restarts the controller once through the drain path: running jobs finish first. The controller then listens on the address over https with its own certificate, and on 127.0.0.1 too. Refused with 409 when CRSP_LISTEN_ADDR is set.
+         */
+        put: operations["putListenAddress"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings/public-repositories": {
         parameters: {
             query?: never;
@@ -2489,6 +2513,36 @@ export interface components {
         };
         /** @description No fields. The address is the controller's own, never one the browser sends (CRSP141). */
         ParitySetupRequest: Record<string, never>;
+        ListenAddressCandidate: {
+            /** @enum {string} */
+            id: "pc" | "docker" | "other";
+            label: string;
+            /** @description host:port. Empty for the typed choice. */
+            address?: string;
+            /** @description One line on who can reach it. */
+            who: string;
+            recommended?: boolean;
+        };
+        ListenAddress: {
+            /** @description The address the controller listens on now (host:port). */
+            running: string;
+            /** @description The address chosen in the console, when there is one. */
+            stored?: string;
+            /** @description CRSP_LISTEN_ADDR is set and wins; the console cannot change it. */
+            from_env: boolean;
+            env_name?: string;
+            /** @description Why the controller did not listen on the stored address at start. */
+            problem?: string;
+            candidates: components["schemas"]["ListenAddressCandidate"][];
+        };
+        ListenAddressChoice: {
+            /** @description host:port of this PC. */
+            address: string;
+        };
+        ListenAddressChosen: {
+            address: string;
+            restarting: boolean;
+        };
         ParityAddress: {
             /** @enum {string} */
             status: "ok" | "unreachable" | "needs_address";
@@ -6087,6 +6141,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PoolSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getListenAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The address and the choices. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListenAddress"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    putListenAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListenAddressChoice"];
+            };
+        };
+        responses: {
+            /** @description Kept; the controller restarts when running jobs have finished. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListenAddressChosen"];
                 };
             };
             default: components["responses"]["Error"];

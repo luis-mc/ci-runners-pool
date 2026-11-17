@@ -34,7 +34,8 @@ import {
   type StatusKind,
 } from '@crsp/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { signInUrl } from '../../auth/session';
 import { ApiError, unwrap, useClient } from '../../api/api';
 import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
@@ -109,7 +110,28 @@ export function variableStatus(r: Repository): { kind: StatusKind; word: string 
   return { kind: 'ok', word: 'variables ok' };
 }
 
+/** The listed repositories of the page, grouped by owner; totals count the whole group, search aside. */
+function groupByOwner(shown: Repository[], listed: Repository[]) {
+  const owners = [...new Set(shown.map((r) => r.owner))];
+  return owners.map((owner) => {
+    const all = listed.filter((r) => r.owner === owner);
+    return {
+      owner,
+      rows: shown.filter((r) => r.owner === owner),
+      total: all.length,
+      on: all.filter((r) => r.pool_on).length,
+    };
+  });
+}
+
+/** The active types' words for the count: "private " (with the trailing space), empty while unknown. */
+function typeWords(enabled: boolean | undefined, showPublic: boolean): string {
+  if (enabled === undefined) return '';
+  return enabled || showPublic ? 'private & public ' : 'private ';
+}
+
 export function RepositoriesList() {
+  const location = useLocation();
   const client = useClient();
   const session = useSession();
   const navigate = useNavigate();
@@ -118,6 +140,7 @@ export function RepositoriesList() {
   const { result, reload } = useLoad(() => allRepositories(client), [v]);
   const { setting, enabled } = usePublicRepositories();
   const [q, setQ] = useState('');
+  const showPublic = new URLSearchParams(useLocation().search).get('public') === '1';
   const [pool, setPool] = useState<'' | 'on' | 'off'>('');
   const [page, setPage] = useState(1);
   const [picked, setPicked] = useState<Set<number>>(new Set());
@@ -158,11 +181,10 @@ export function RepositoriesList() {
       ),
       sort: (r) => r.name,
     },
-    { id: 'owner', header: 'Owner', cell: (r) => r.owner, sort: (r) => r.owner },
     {
       id: 'visibility',
       header: 'Visibility',
-      cell: (r) => <VisibilityCell r={r} enabled={enabled} />,
+      cell: (r) => <VisibilityCell r={r} />,
       sort: (r) => r.visibility,
     },
     {
@@ -254,13 +276,21 @@ export function RepositoriesList() {
       <Pane title="Repositories">
         <Load result={result} what="repositories" reload={reload}>
           {(data) => {
-            const filtered = data.items.filter(
-              (r) =>
-                (!pool || (pool === 'on') === r.pool_on) &&
-                r.full_name.toLowerCase().includes(q.trim().toLowerCase()),
-            );
+            // Only repositories of an active type are listed (LOOK D16); the rest are counted in a note.
+            const unlisted = data.items.filter((r) => publicWhileOff(r, enabled));
+            const listed = showPublic
+              ? data.items
+              : data.items.filter((r) => !publicWhileOff(r, enabled));
+            const filtered = listed
+              .filter(
+                (r) =>
+                  (!pool || (pool === 'on') === r.pool_on) &&
+                  r.full_name.toLowerCase().includes(q.trim().toLowerCase()),
+              )
+              .sort((a, b) => a.owner.localeCompare(b.owner));
             const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
             const shown = paginate(filtered, Math.min(page, pages), PAGE);
+            const groups = groupByOwner(shown, listed);
             const selected = new Set([...picked].map(String));
             const chosen = data.items.filter((r) => picked.has(r.id));
             // While the list is the last copy the admin flag is unknown, not "no": the
@@ -279,11 +309,45 @@ export function RepositoriesList() {
             return (
               <Stack>
                 {data.stale.stale ? (
-                  <Message tone="needs-you">
+                  <Message
+                    tone="needs-you"
+                    action={
+                      data.stale.reason === 'session_expired' ? (
+                        <Button
+                          onPress={() =>
+                            window.location.assign(
+                              signInUrl(`${location.pathname}${location.search}`),
+                            )
+                          }
+                        >
+                          Sign in with GitHub again
+                        </Button>
+                      ) : undefined
+                    }
+                  >
                     {staleWhy(data.stale)}
                     {data.stale.as_of
                       ? ` The list is the last copy, from ${formatPast(data.stale.as_of, now)}.`
                       : ' The list is the last copy.'}
+                  </Message>
+                ) : null}
+                {unlisted.length > 0 ? (
+                  <Message tone="note">
+                    {showPublic ? (
+                      <>
+                        {`${unlisted.length} public ${unlisted.length === 1 ? 'repository is' : 'repositories are'} listed, muted: the pool serves private repositories only. `}
+                        <TextLink to="/repositories">Hide them</TextLink>
+                        {' · '}
+                        <TextLink to={PUBLIC_SETTING_PATH}>Change active types</TextLink>
+                      </>
+                    ) : (
+                      <>
+                        {`${unlisted.length} public ${unlisted.length === 1 ? 'repository is' : 'repositories are'} not listed: the pool serves private repositories only. `}
+                        <TextLink to="/repositories?public=1">List them too</TextLink>
+                        {' · '}
+                        <TextLink to={PUBLIC_SETTING_PATH}>Change active types</TextLink>
+                      </>
+                    )}
                   </Message>
                 ) : null}
                 <ListToolbar
@@ -388,35 +452,59 @@ export function RepositoriesList() {
                       ) : null}
                     </>
                   }
-                  count={`${filtered.length} ${filtered.length === 1 ? 'repository' : 'repositories'}`}
+                  count={`${filtered.length} ${typeWords(enabled, showPublic)}${filtered.length === 1 ? 'repository' : 'repositories'}`}
                   actions={
                     <InstallAppButton label="Add a repository" onReturn={reload} />
                   }
                 />
                 {filtered.length === 0 ? (
-                  <Message tone="note">
-                    {data.items.length} repositories are hidden by the search and the
-                    filter. Clear them to see all.
-                  </Message>
+                  listed.length > 0 ? (
+                    <Message tone="note">
+                      {listed.length} repositories are hidden by the search and the
+                      filter. Clear them to see all.
+                    </Message>
+                  ) : null
                 ) : (
-                  <Table
-                    caption="Repositories"
-                    columns={columns}
-                    rows={shown}
-                    rowKey={(r) => String(r.id)}
-                    selected={selected}
-                    onToggle={(key) =>
-                      setPicked((p) => {
-                        const n = new Set(p);
-                        const id = Number(key);
-                        if (n.has(id)) n.delete(id);
-                        else n.add(id);
-                        return n;
-                      })
-                    }
-                    toggleLabel={(r) => `Select ${r.full_name}`}
-                    muted={(r) => publicWhileOff(r, enabled)}
-                  />
+                  groups.map((g) => {
+                    const rows = filtered.filter((r) => r.owner === g.owner);
+                    return (
+                      <Stack key={g.owner} as="section" gap="tight">
+                        <CheckRow
+                          label={g.owner}
+                          help={`${g.total} ${g.total === 1 ? 'repository' : 'repositories'} · ${g.on} use the pool`}
+                          checked={rows.every((r) => picked.has(r.id))}
+                          onChange={(on) =>
+                            setPicked((p) => {
+                              const n = new Set(p);
+                              for (const r of rows) {
+                                if (on) n.add(r.id);
+                                else n.delete(r.id);
+                              }
+                              return n;
+                            })
+                          }
+                        />
+                        <Table
+                          caption={`${g.owner} repositories`}
+                          columns={columns}
+                          rows={g.rows}
+                          rowKey={(r) => String(r.id)}
+                          selected={selected}
+                          onToggle={(key) =>
+                            setPicked((p) => {
+                              const n = new Set(p);
+                              const id = Number(key);
+                              if (n.has(id)) n.delete(id);
+                              else n.add(id);
+                              return n;
+                            })
+                          }
+                          toggleLabel={(r) => `Select ${r.full_name}`}
+                          muted={(r) => publicWhileOff(r, enabled)}
+                        />
+                      </Stack>
+                    );
+                  })
                 )}
                 <Pager
                   page={Math.min(page, pages)}
@@ -878,24 +966,16 @@ export function packageMistakes(text: string): string[] {
   return out;
 }
 
-/** The Visibility cell: the word, and for a public repository while the setting is off, the reason and the link. */
-function VisibilityCell({ r, enabled }: { r: Repository; enabled: boolean | undefined }) {
-  const off = publicWhileOff(r, enabled);
-  if (!off && !r.problem) return <>{visibilityWord(r)}</>;
+/** The Visibility cell: the word, and for a repository with a Problem, the Problem and its link. The public-off reason is not repeated per row (LOOK4). */
+function VisibilityCell({ r }: { r: Repository }) {
+  if (!r.problem) return <>{visibilityWord(r)}</>;
   return (
     <Stack gap="tight">
       <Text>{visibilityWord(r)}</Text>
-      {r.problem ? (
-        <Text>
-          {r.problem.text}{' '}
-          <TextLink to={`/repositories/${r.owner}/${r.name}`}>Fix it</TextLink>
-        </Text>
-      ) : (
-        <Text>
-          {PUBLIC_OFF_REASON}{' '}
-          <TextLink to={PUBLIC_SETTING_PATH}>Turn on public repositories</TextLink>
-        </Text>
-      )}
+      <Text>
+        {r.problem.text}{' '}
+        <TextLink to={`/repositories/${r.owner}/${r.name}`}>Fix it</TextLink>
+      </Text>
     </Stack>
   );
 }

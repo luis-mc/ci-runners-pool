@@ -244,7 +244,7 @@ func TestSetupParityRefusesWhenTheControllerHasNoReachableAddress(t *testing.T) 
 				Setting string `json:"address_setting"`
 			}
 			_ = json.Unmarshal(b, &out)
-			if res.StatusCode != 200 || out.Status != "needs_address" || out.Setting != c.setting || !strings.Contains(out.Problem, c.setting) {
+			if res.StatusCode != 200 || out.Status != "needs_address" || out.Setting != c.setting || !strings.Contains(out.Problem, strings.Replace(c.setting, "CRSP_LISTEN_ADDR", "Settings, Console, Network", 1)) {
 				t.Fatalf("%d %s", res.StatusCode, b)
 			}
 			cs, _ := h.astore.ListAccessCredentials(context.Background())

@@ -14,7 +14,6 @@ export const SHORTCUTS: readonly { keys: string; does: string }[] = [
 /** The key-hint bar at the page foot (UX-57). */
 export const KEY_HINTS: readonly { keys: string; does: string }[] = [
   { keys: '/', does: 'search' },
-  { keys: 'j k', does: 'move' },
   { keys: 'Enter', does: 'open' },
   { keys: '?', does: 'keys' },
 ];

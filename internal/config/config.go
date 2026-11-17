@@ -54,6 +54,9 @@ type Config struct {
 	DataDir string
 	// ListenAddr is the console and API address (HTTPS only), host:port.
 	ListenAddr string
+	// ListenFromSetting says ListenAddr is the address chosen in the console
+	// (operations R5.90), not the environment, the file or the default.
+	ListenFromSetting bool
 	// AgentAddr is the agent link address (gRPC over TLS), host:port.
 	AgentAddr string
 	// LogLevel is the minimum level written to the structured log.
