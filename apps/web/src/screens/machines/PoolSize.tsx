@@ -317,6 +317,7 @@ export function PoolSizeWizard({ m, onChanged }: { m: Machine; onChanged: () => 
   return (
     <Wizard
       name="Pool size"
+      embedded
       steps={STEPS}
       current={step}
       firstStep={0}

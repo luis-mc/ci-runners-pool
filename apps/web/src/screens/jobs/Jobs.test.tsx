@@ -408,11 +408,14 @@ describe('Job detail', () => {
     const api = jobsApi().on('GET', '/api/v1/jobs/:id', job());
     renderApp(api, '/jobs/1');
     expect(await screen.findByRole('heading', { level: 1, name: 'test' })).toBeTruthy();
-    const link = screen.getByRole('button', { name: 'Open the run on GitHub' });
-    expect(link.getAttribute('href')).toBe(
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    fireEvent.click(screen.getByRole('button', { name: 'Open the run on GitHub' }));
+    expect(open).toHaveBeenCalledWith(
       'https://github.com/octo/app/actions/runs/100/job/1',
+      '_blank',
+      'noopener,noreferrer',
     );
-    expect(link.getAttribute('rel')).toContain('noopener');
+    open.mockRestore();
     expect(screen.getByText('2026-11-13 09:05')).toBeTruthy();
     expect(screen.getByText('4 min 30 s')).toBeTruthy();
     expect(screen.getByText('docker')).toBeTruthy();

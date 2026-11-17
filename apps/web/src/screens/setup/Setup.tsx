@@ -8,7 +8,6 @@ import {
   Facts,
   Loading,
   Failed,
-  LinkButton,
   Message,
   Page,
   PageHeader,
@@ -21,7 +20,7 @@ import {
   type WizardPhase,
 } from '@crsp/ui';
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useLoad } from '../../api/hooks';
 import { signInUrl, useSession } from '../../auth/session';
@@ -365,6 +364,7 @@ export function ConnectGithubWizard({
 export function SetupPage() {
   const client = useClient();
   const session = useSession();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const code = params.get('code');
   const redeemed = useRef(false);
@@ -395,9 +395,9 @@ export function SetupPage() {
             result.state === 'ready' &&
             allDone(result.data) &&
             session.state.status === 'ready' ? (
-              <LinkButton to="/" kind="primary">
+              <Button kind="primary" onPress={() => void navigate('/')}>
                 Open the overview
-              </LinkButton>
+              </Button>
             ) : undefined
           }
         />

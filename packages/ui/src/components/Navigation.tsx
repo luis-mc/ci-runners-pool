@@ -61,7 +61,22 @@ function hidden(el: HTMLElement): boolean {
   if (el.closest('[inert], [hidden], [aria-hidden="true"]')) return true;
   if (el instanceof HTMLInputElement && inputType(el) === 'hidden') return true;
   if ((el as HTMLButtonElement).disabled) return true;
+  if (el.matches(':disabled')) return true;
+  // Not drawn: no box, or hidden by style.
+  if (typeof el.getClientRects === 'function' && !isJsdom()) {
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return true;
+    if (getComputedStyle(el).visibility === 'hidden') return true;
+  }
+  // A member of a roving group (an inactive tab, a stepper button) is reached with the group's own keys.
+  if (el.getAttribute('tabindex') === '-1' && !el.hasAttribute('data-list-row'))
+    return true;
   return false;
+}
+
+/** jsdom lays nothing out, so every box is empty there. */
+function isJsdom(): boolean {
+  return typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent);
 }
 
 /** The stops of the page in page order. A group of radios is one stop: its chosen radio, else its first. */

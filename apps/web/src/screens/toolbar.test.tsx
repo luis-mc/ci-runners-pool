@@ -20,7 +20,9 @@ describe('List toolbar (CRSP132)', () => {
     ).toBeTruthy();
     expect(within(bar).getByRole('group', { name: 'Pool' })).toBeTruthy();
     expect(within(bar).getByRole('button', { name: 'Select all 2' })).toBeTruthy();
-    expect(within(bar).queryByRole('button', { name: 'Clear' })).toBeNull();
+    expect(
+      within(bar).getByRole<HTMLButtonElement>('button', { name: 'Clear' }).disabled,
+    ).toBe(true);
     expect(within(bar).getByText('2 repositories')).toBeTruthy();
     expect(within(bar).getByRole('button', { name: 'Add a repository' })).toBeTruthy();
     fireEvent.click(within(bar).getByRole('button', { name: 'Select all 2' }));

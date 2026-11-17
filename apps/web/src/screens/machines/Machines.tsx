@@ -9,7 +9,6 @@ import {
   Facts,
   FieldGrid,
   FormActions,
-  LinkButton,
   Message,
   NumberField,
   Page,
@@ -54,6 +53,7 @@ const STATES = [
 
 export function MachinesList() {
   const session = useSession();
+  const navigate = useNavigate();
   const now = useNow();
   const { result, reload } = useMachines();
   const [q, setQ] = useState('');
@@ -115,9 +115,9 @@ export function MachinesList() {
   const addAction = (
     <Cluster>
       {session.can('admin') ? (
-        <LinkButton to="/machines/add" kind="primary">
+        <Button kind="primary" onPress={() => void navigate('/machines/add')}>
           Add a machine
-        </LinkButton>
+        </Button>
       ) : (
         <Button kind="primary" disabled reason={session.whyNot('admin')}>
           Add a machine

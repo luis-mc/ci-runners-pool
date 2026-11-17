@@ -57,15 +57,27 @@ test('Jobs: a row opens the detail with a link to the run on GitHub', async ({
   await jobsAndDoctor(signedIn())
     .on('GET', '/api/v1/machines', { items: [] })
     .install(page);
+  await page.addInitScript(() => {
+    (window as unknown as { opened: unknown[] }).opened = [];
+    window.open = (...a: unknown[]) => {
+      (window as unknown as { opened: unknown[] }).opened.push(a);
+      return null;
+    };
+  });
   await page.goto('/jobs');
   await page
     .locator('li', { hasText: 'ci.yml / test-2' })
     .getByRole('button', { name: 'Open' })
     .click();
   await expect(page.getByRole('heading', { level: 1, name: 'test-2' })).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: 'Open the run on GitHub' }),
-  ).toHaveAttribute('href', 'https://github.com/octo/app/actions/runs/102/job/2');
+  await page.getByRole('button', { name: 'Open the run on GitHub' }).click();
+  expect(
+    await page.evaluate(() => (window as unknown as { opened: unknown[][] }).opened[0]),
+  ).toEqual([
+    'https://github.com/octo/app/actions/runs/102/job/2',
+    '_blank',
+    'noopener,noreferrer',
+  ]);
 });
 
 test('Jobs: an empty pool says so', async ({ page }) => {

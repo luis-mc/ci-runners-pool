@@ -59,7 +59,8 @@ function read(state: WizardState, name: string, canStop: boolean): WizardSnapsho
       part === 'stop' || part === 'pause' || part === 'back' ? part : 'other';
     return {
       label: (b.textContent ?? '').trim(),
-      primary: b.hasAttribute('data-primary'),
+      primary:
+        b.hasAttribute('data-primary') || b.getAttribute('data-part') === 'primary',
       disabled: b.disabled,
       ...(reason ? { reason } : {}),
       requestOpen: b.getAttribute('aria-busy') === 'true',

@@ -187,3 +187,23 @@ describe('arrow navigation (UX-57)', () => {
     expect(at()).toBe(screen.getByRole('button', { name: 'D' }));
   });
 });
+
+describe('roving members and zero-size controls', () => {
+  it('skips tabindex -1 buttons (inactive tabs, stepper buttons) and keeps list rows', async () => {
+    const user = userEvent.setup();
+    render(
+      <ArrowNavigation>
+        <button type="button">A</button>
+        <button type="button" tabIndex={-1}>
+          Inactive tab
+        </button>
+        <button type="button">B</button>
+      </ArrowNavigation>,
+    );
+    screen.getByRole('button', { name: 'A' }).focus();
+    await user.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'B' }));
+    await user.keyboard('{ArrowUp}');
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'A' }));
+  });
+});

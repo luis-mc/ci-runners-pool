@@ -9,7 +9,6 @@ import {
   Empty,
   Facts,
   LevelBar,
-  LinkButton,
   Message,
   Page,
   PageHeader,
@@ -30,7 +29,7 @@ import {
   useNow,
 } from '@crsp/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
@@ -49,6 +48,8 @@ const TABS = [
 
 export function ImagesAndCaches() {
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const session = useSession();
   const tab = params.get('tab') === 'caches' ? 'caches' : 'images';
   const client = useClient();
   const mv = useVersion('machines');
@@ -69,6 +70,13 @@ export function ImagesAndCaches() {
       <PageHeader
         title="Images and caches"
         lead="What each machine keeps, and what you can rebuild or wipe."
+        action={
+          session.can('admin') ? (
+            <Button kind="primary" onPress={() => void navigate('/runners/add')}>
+              Add runners
+            </Button>
+          ) : undefined
+        }
       />
       <Tabs
         label="Images and caches"
@@ -124,7 +132,6 @@ function useAskFirst(opts: {
 
 function ImagesTab({ nameOf }: { nameOf: (id: string) => string }) {
   const client = useClient();
-  const session = useSession();
   const v = useVersion('images');
   const { result, reload } = useLoad(() => unwrap(client.GET('/api/v1/images')), [v]);
   const [q, setQ] = useState('');
@@ -137,14 +144,7 @@ function ImagesTab({ nameOf }: { nameOf: (id: string) => string }) {
       {(data) =>
         data.items.length === 0 ? (
           <Section title="Images" count={0}>
-            <Empty
-              title="No images yet. Images are built when a runner first needs one."
-              action={
-                session.can('admin') ? (
-                  <LinkButton to="/runners/add">Add runners</LinkButton>
-                ) : undefined
-              }
-            />
+            <Empty title="No images yet. Images are built when a runner first needs one." />
           </Section>
         ) : (
           <Section title="Images" count={shownImages(data.items).length}>
@@ -321,7 +321,6 @@ function ImageCard({
 
 function CachesTab({ nameOf }: { nameOf: (id: string) => string }) {
   const client = useClient();
-  const session = useSession();
   const live = useLiveStore();
   const v = useVersion('caches');
   const { result, reload } = useLoad(() => unwrap(client.GET('/api/v1/caches')), [v]);
@@ -345,14 +344,7 @@ function CachesTab({ nameOf }: { nameOf: (id: string) => string }) {
         if (data.items.length === 0)
           return (
             <Section title="Caches" count={0}>
-              <Empty
-                title="No caches yet. Caches show here when a runner has been added."
-                action={
-                  session.can('admin') ? (
-                    <LinkButton to="/runners/add">Add runners</LinkButton>
-                  ) : undefined
-                }
-              />
+              <Empty title="No caches yet. Caches show here when a runner has been added." />
             </Section>
           );
         const byMachine = new Map<string, Cache[]>();

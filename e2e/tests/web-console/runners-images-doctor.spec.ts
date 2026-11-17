@@ -47,7 +47,7 @@ const STATES: {
     h1: 'Images and caches',
     pane: 'Images',
     empty: ['/api/v1/images', { items: [] }],
-    primaries: 0,
+    primaries: 1,
   },
   {
     name: 'caches empty',
@@ -55,14 +55,14 @@ const STATES: {
     h1: 'Images and caches',
     pane: 'Caches',
     empty: ['/api/v1/caches', { items: [] }],
-    primaries: 0,
+    primaries: 1,
   },
   {
     name: 'images failed',
     path: '/images',
     h1: 'Images and caches',
     failed: '/api/v1/images',
-    primaries: 0,
+    primaries: 1,
   },
   {
     name: 'doctor empty',
@@ -125,5 +125,5 @@ test('runners: Select all N and Clear sit in the toolbar inside the pane (UX-12)
   await expect(pane.getByRole('columnheader', { name: 'Isolation' })).toBeVisible();
   await pane.getByRole('button', { name: /^Select all \d+$/ }).click();
   await pane.getByRole('button', { name: 'Clear' }).click();
-  await expect(pane.getByRole('button', { name: 'Clear' })).toHaveCount(0);
+  await expect(pane.getByRole('button', { name: 'Clear' })).toBeDisabled();
 });

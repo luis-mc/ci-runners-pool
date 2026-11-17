@@ -1,5 +1,13 @@
 // The route table of the console (web-console section 7). Every signed-in screen sits in the shell (R5.3).
-import { Button, ClockProvider, Failed, Loading, Page, PageHeader } from '@crsp/ui';
+import {
+  ArrowNavigation,
+  Button,
+  ClockProvider,
+  Failed,
+  Loading,
+  Page,
+  PageHeader,
+} from '@crsp/ui';
 import type { ApiClient } from '@crsp/contract';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { ApiProvider } from './api/api';
@@ -94,57 +102,59 @@ export function App({
     <ApiProvider {...(client ? { client } : {})}>
       <ClockProvider>
         <SessionProvider>
-          <Routes>
-            <Route path="/sign-in" element={<SignInPage />} />
-            <Route path="/setup" element={<SetupPage />} />
-            <Route element={<Gate factory={eventSource} />}>
-              <Route index element={<Overview />} />
-              <Route path="repositories" element={<RepositoriesList />} />
-              <Route path="repositories/turn-on" element={<TurnOnPoolPage />} />
-              <Route path="repositories/:owner/:name" element={<RepositoryDetail />} />
-              <Route path="machines" element={<MachinesList />} />
-              <Route path="machines/add" element={<AddMachinePage />} />
-              <Route path="machines/:id" element={<MachineDetail />} />
-              <Route path="runners" element={<RunnersList />} />
-              <Route path="runners/add" element={<AddRunnersPage />} />
-              <Route path="jobs" element={<JobsList />} />
-              <Route path="jobs/:id" element={<JobDetail />} />
-              <Route path="images" element={<ImagesAndCaches />} />
-              <Route
-                path="caches"
-                element={<Navigate to="/images?tab=caches" replace />}
-              />
-              <Route path="doctor" element={<DoctorScreen />} />
-              <Route path="settings/updates/review" element={<UpdateReviewPage />} />
-              <Route path="settings" element={<SettingsLayout />}>
-                <Route index element={<Navigate to="access" replace />} />
-                <Route path="access" element={<AccessTab />} />
-                <Route path="repositories" element={<RepositoriesTab />} />
-                <Route path="console" element={<ConsoleTab />} />
-                <Route path="data" element={<DataTab />} />
-                <Route path="audit" element={<AuditTab />} />
-                <Route path="users" element={<OldSettingsAddress old="users" />} />
-                <Route path="app" element={<OldSettingsAddress old="app" />} />
-                <Route path="budgets" element={<OldSettingsAddress old="budgets" />} />
+          <ArrowNavigation>
+            <Routes>
+              <Route path="/sign-in" element={<SignInPage />} />
+              <Route path="/setup" element={<SetupPage />} />
+              <Route element={<Gate factory={eventSource} />}>
+                <Route index element={<Overview />} />
+                <Route path="repositories" element={<RepositoriesList />} />
+                <Route path="repositories/turn-on" element={<TurnOnPoolPage />} />
+                <Route path="repositories/:owner/:name" element={<RepositoryDetail />} />
+                <Route path="machines" element={<MachinesList />} />
+                <Route path="machines/add" element={<AddMachinePage />} />
+                <Route path="machines/:id" element={<MachineDetail />} />
+                <Route path="runners" element={<RunnersList />} />
+                <Route path="runners/add" element={<AddRunnersPage />} />
+                <Route path="jobs" element={<JobsList />} />
+                <Route path="jobs/:id" element={<JobDetail />} />
+                <Route path="images" element={<ImagesAndCaches />} />
                 <Route
-                  path="appearance"
-                  element={<OldSettingsAddress old="appearance" />}
+                  path="caches"
+                  element={<Navigate to="/images?tab=caches" replace />}
                 />
-                <Route
-                  path="notifications"
-                  element={<OldSettingsAddress old="notifications" />}
-                />
-                <Route path="updates" element={<OldSettingsAddress old="updates" />} />
-                <Route
-                  path="retention"
-                  element={<OldSettingsAddress old="retention" />}
-                />
-                <Route path="backups" element={<OldSettingsAddress old="backups" />} />
-                <Route path="export" element={<OldSettingsAddress old="export" />} />
+                <Route path="doctor" element={<DoctorScreen />} />
+                <Route path="settings/updates/review" element={<UpdateReviewPage />} />
+                <Route path="settings" element={<SettingsLayout />}>
+                  <Route index element={<Navigate to="access" replace />} />
+                  <Route path="access" element={<AccessTab />} />
+                  <Route path="repositories" element={<RepositoriesTab />} />
+                  <Route path="console" element={<ConsoleTab />} />
+                  <Route path="data" element={<DataTab />} />
+                  <Route path="audit" element={<AuditTab />} />
+                  <Route path="users" element={<OldSettingsAddress old="users" />} />
+                  <Route path="app" element={<OldSettingsAddress old="app" />} />
+                  <Route path="budgets" element={<OldSettingsAddress old="budgets" />} />
+                  <Route
+                    path="appearance"
+                    element={<OldSettingsAddress old="appearance" />}
+                  />
+                  <Route
+                    path="notifications"
+                    element={<OldSettingsAddress old="notifications" />}
+                  />
+                  <Route path="updates" element={<OldSettingsAddress old="updates" />} />
+                  <Route
+                    path="retention"
+                    element={<OldSettingsAddress old="retention" />}
+                  />
+                  <Route path="backups" element={<OldSettingsAddress old="backups" />} />
+                  <Route path="export" element={<OldSettingsAddress old="export" />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
               </Route>
-              <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
+            </Routes>
+          </ArrowNavigation>
         </SessionProvider>
       </ClockProvider>
     </ApiProvider>

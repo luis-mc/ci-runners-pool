@@ -241,7 +241,9 @@ body {
 .ds-link {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-block-size: var(--ds-target-min);
+  min-inline-size: var(--ds-target-min);
   color: var(--ds-color-primary);
   text-underline-offset: var(--ds-space-1);
 }
@@ -275,7 +277,9 @@ body {
 .ds-breadcrumbs__list a {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-block-size: var(--ds-target-min);
+  min-inline-size: var(--ds-target-min);
 }
 .ds-breadcrumbs__list li + li::before {
   content: '/';
@@ -487,6 +491,18 @@ body {
 .ds-pane__footer {
   display: grid;
   gap: var(--ds-space-2);
+}
+/* UX-37: a button in a pane footer shares the pane's width, one per line. */
+.ds-pane__footer .ds-button-wrap,
+.ds-pane__footer .ds-button {
+  inline-size: 100%;
+  justify-content: center;
+}
+.ds-choice__previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-3);
+  margin-block-start: var(--ds-space-1);
 }
 .ds-pane__body {
   display: grid;
