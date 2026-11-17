@@ -58,6 +58,10 @@ func (o *Opener) Offer(ctx context.Context, st Status) error {
 		o.notify("Update "+st.Update.Latest+" available", "Open the console, Settings, Updates, to install it. Running jobs finish first.")
 		return nil
 	}
+	if !o.asking.CompareAndSwap(false, true) {
+		return nil // a dialog is already open: bring nothing new (TRAY2)
+	}
+	defer o.asking.Store(false)
 	p := UpdatePrompt{Current: o.Version, Latest: st.Update.Latest, ReleaseURL: st.Update.ReleaseURL, Jobs: st.Update.Jobs}
 	now, err := o.Ask(p, o.Browser)
 	if err != nil {
