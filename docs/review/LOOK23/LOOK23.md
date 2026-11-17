@@ -5,7 +5,7 @@ Repositories only turn the pool on or off. Today Runners > Add runners asks Syst
 and Repository. Constraint: on a personal GitHub account a self-hosted runner registers to ONE repository;
 organizations can share through runner groups. That is crsp's internal problem, not the user's.
 
-Screens: `docs/review/LOOK23/index.html` (PNGs beside it; `prototype.patch` is the throwaway code that drew
+Screens: `index.html` (PNGs beside it; `prototype.patch` is the throwaway code that drew
 A, B, C and the strip; app code on this branch is unchanged).
 
 ## 1. How runners register today
