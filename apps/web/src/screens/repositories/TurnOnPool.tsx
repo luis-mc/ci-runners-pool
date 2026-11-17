@@ -47,13 +47,7 @@ export const LIGHT_RUNNER_WHY =
 export const LIGHT_RUNNER_DONE =
   'The pool made light runners for short jobs. They show in Runners.';
 
-const STEPS = [
-  'Reading repositories',
-  'Repositories',
-  'Review',
-  'Turning on',
-  'Done',
-] as const;
+const STEPS = ['Repositories', 'Review', 'Turning on', 'Done'] as const;
 
 export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
   const client = useClient();
@@ -434,8 +428,8 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
     <Wizard
       name="Turn on the pool"
       steps={STEPS}
-      current={phase === 'loading' ? 0 : step}
-      firstStep={1}
+      current={step - 1}
+      firstStep={0}
       phase={phase}
       reading="Reading repositories"
       progress={
@@ -455,7 +449,8 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
         setStep(i);
         setPhase(i === 1 ? 'first-run' : 'ready-to-review');
       }}
-      onStep={(i) => {
+      onStep={(n) => {
+        const i = n + 1;
         if (i >= 1 && i <= 2) {
           setStep(i);
           setPhase(i === 1 ? 'first-run' : 'ready-to-review');

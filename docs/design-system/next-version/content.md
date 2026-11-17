@@ -93,7 +93,7 @@ A wizard that changes something ends with three steps (UX-30).
 | Second | The work, in the "-ing" form | Live progress: "Moving 3 of 12". |
 | Third | Done | What really happened, what was left, and what failed. |
 
-A step that only reads before Review is named by what it reads ("Reading files", "Reading folders"). It changes nothing. It is never called "Checking".
+A step that only reads before Review is named by what it reads ("Reading files", "Reading folders"). It changes nothing. It is never called "Checking". The wait for the data of the current step is one line of the same words ("Reading machines"), shown in that step and beside its locked primary; it is not a step in the step row.
 
 ## Wizard state words
 

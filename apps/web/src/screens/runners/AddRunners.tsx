@@ -1,4 +1,4 @@
-// The "Add runners" wizard (web-console 4.5, R5.23, R5.19): Reading machines, Runners, Review, Registering,
+// The "Add runners" wizard (web-console 4.5, R5.23, R5.19): Runners, Review, Registering,
 // Done. Only machines whose system matches the chosen one can be picked; the others are greyed with the reason
 // (UX-38). The stored plan id is in the address (?plan=).
 import {
@@ -36,7 +36,7 @@ import {
   type Repository,
 } from '../repositories/plans';
 
-const STEPS = ['Reading machines', 'Runners', 'Review', 'Registering', 'Done'] as const;
+const STEPS = ['Runners', 'Review', 'Registering', 'Done'] as const;
 type OS = Schemas['OS'];
 
 /** A machine takes runners of its own system, and Linux runners too when its
@@ -496,8 +496,8 @@ export function AddRunnersWizard() {
     <Wizard
       name="Add runners"
       steps={STEPS}
-      current={phase === 'loading' ? 0 : step}
-      firstStep={1}
+      current={step - 1}
+      firstStep={0}
       phase={phase}
       reading="Reading machines"
       progress={
@@ -517,7 +517,7 @@ export function AddRunnersWizard() {
         setPhase('first-run');
       }}
       onStep={(i) => {
-        if (i === 1) {
+        if (i === 0) {
           setStep(1);
           setPhase('first-run');
         }

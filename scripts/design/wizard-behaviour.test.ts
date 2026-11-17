@@ -131,6 +131,45 @@ describe('wizard behaviour', () => {
     });
   });
 
+  describe('loading is not a step (LOOK20)', () => {
+    const rules = (s: WizardSnapshot): string[] => checkWizard(s).map((p) => p.rule);
+    const loadingNow: WizardSnapshot = {
+      state: 'loading',
+      steps: [
+        { name: 'Runners', standing: 'now', pressable: true },
+        { name: 'Review', standing: 'later', pressable: false },
+      ],
+      buttons: [
+        { label: 'Next', primary: true, disabled: true, reason: 'Reading machines' },
+        { label: 'Back', primary: false, disabled: false, role: 'back' },
+      ],
+      job: { canStop: false, canPause: false },
+      waitLines: 1,
+    };
+    it('passes the wait as a state of step 1', () =>
+      expect(rules(loadingNow)).toEqual([]));
+    it('fails a "Reading" step drawn in the step row', () => {
+      const s = {
+        ...loadingNow,
+        steps: [
+          { name: 'Reading machines', standing: 'done' as const, pressable: false },
+          { name: 'Runners', standing: 'now' as const, pressable: true },
+        ],
+      };
+      expect(rules(s)).toEqual(Array(3).fill('loading-is-a-step'));
+    });
+    it('fails a checked step while loading', () => {
+      const s = {
+        ...loadingNow,
+        steps: [
+          { name: 'Runners', standing: 'done' as const, pressable: false },
+          { name: 'Review', standing: 'now' as const, pressable: true },
+        ],
+      };
+      expect(rules(s)).toContain('loading-is-a-step');
+    });
+  });
+
   describe('the ten required states', () => {
     const clean = (state: string): WizardSnapshot =>
       state === 'loading'

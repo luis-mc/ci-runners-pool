@@ -44,7 +44,8 @@ export type WizardRule =
   | 'loading-action-live'
   | 'loading-wait-not-once'
   | 'loading-back-missing'
-  | 'loading-done-shown';
+  | 'loading-done-shown'
+  | 'loading-is-a-step';
 
 export interface WizardStep {
   readonly name: string;
@@ -140,6 +141,18 @@ export function checkWizard(s: WizardSnapshot): WizardProblem[] {
       );
     if (!s.buttons.some((b) => b.role === 'back' && !b.disabled))
       add('loading-back-missing', 'Back is missing or locked while loading');
+    // Loading is a state of the current step, never a step of its own: nothing is checked yet, the first step is
+    // the current one, and no step is named for the reading (LOOK20).
+    if (s.steps.some((st) => st.standing === 'done'))
+      add('loading-is-a-step', 'a step is checked while the wizard is still loading');
+    if (s.steps.length > 0 && s.steps[0]?.standing !== 'now')
+      add('loading-is-a-step', 'the first step is not the current one while loading');
+    const reading = s.steps.find((st) => /^reading\b/i.test(st.name));
+    if (reading)
+      add(
+        'loading-is-a-step',
+        `loading is drawn as its own step "${reading.name}" (it is a state of the current step)`,
+      );
     if (s.done?.text.trim())
       add('loading-done-shown', 'Done text shows while the step is still loading');
   }

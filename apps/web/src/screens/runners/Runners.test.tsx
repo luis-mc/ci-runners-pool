@@ -3,6 +3,7 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  apiError,
   FakeEventSource,
   machine,
   renderApp,
@@ -165,6 +166,54 @@ describe('Runners list', () => {
     expect(api.calls.find((c) => c.method === 'DELETE')?.query.get('confirm')).toBe(
       'true',
     );
+  });
+
+  it('shows no problem for a runner that is already gone, and the row leaves live (OPS19)', async () => {
+    let list = [runner({ id: 'r1', name: 'crsp-light-home-automation-windows' })];
+    const api = signedIn()
+      .on('GET', '/api/v1/runners', () => ({ items: list }))
+      .on('DELETE', '/api/v1/runners/:id', () => {
+        list = [{ ...list[0]!, state: 'draining', reason: 'remove asked' }];
+        return runner({ state: 'draining' });
+      });
+    renderApp(api, '/runners');
+    await screen.findByRole('table', { name: 'Runners' });
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Select crsp-light-home-automation-windows' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Delete 1 runner' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete these runners?' });
+    expect(within(dialog).queryByText(/Problem/)).toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    expect(await screen.findByText('draining')).toBeTruthy();
+    // the controller removes the record and tells the live stream; no reload by hand
+    list = [];
+    act(() =>
+      FakeEventSource.latest().emit({
+        id: '9',
+        type: 'runner.state',
+        at: 'x',
+        runner: runner({ id: 'r1', state: 'removing' }),
+      }),
+    );
+    expect(await screen.findByText(/No runners yet/)).toBeTruthy();
+    expect(screen.queryByText('draining')).toBeNull();
+  });
+
+  it('does not list "no such runner" as a problem when the runner is already gone (OPS19)', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/runners', { items: [runner()] })
+      .on('DELETE', '/api/v1/runners/:id', () =>
+        apiError(404, 'not_found', 'no such runner or plan'),
+      );
+    renderApp(api, '/runners');
+    await screen.findByRole('table', { name: 'Runners' });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select crsp-linux-1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete 1 runner' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Delete these runners?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.queryByText(/no such runner/)).toBeNull();
   });
 
   it('replaces a runner the pool does not manage, after a question', async () => {

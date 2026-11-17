@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -308,4 +309,19 @@ func (s *server) StopRunnerPlan(ctx context.Context, req gen.StopRunnerPlanReque
 	out := toGenPlan(p)
 	s.publishPlan(out)
 	return gen.StopRunnerPlan202JSONResponse(out), nil
+}
+
+// RunnerEventJSON is the `runner` field of a runner.state live event: the
+// record as the console reads it. A removed record is sent in state removing,
+// and the console reads the list again (OPS19).
+func RunnerEventJSON(r runners.Record, gone bool) []byte {
+	st := r.State
+	if gone {
+		st = runners.Removing
+	}
+	b, err := json.Marshal(toGenRunner(runners.View{Record: r, State: st, Reason: r.Reason, MachineName: r.MachineID}))
+	if err != nil {
+		return nil
+	}
+	return b
 }
