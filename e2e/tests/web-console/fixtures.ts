@@ -277,8 +277,8 @@ export function signedIn(user: unknown = owner): Mock {
     .on('GET', '/api/v1/overview', overview())
     .on('GET', '/api/v1/update', {
       current_version: '1.4.0',
-      latest_version: '1.5.0',
-      update_available: true,
+      latest_version: '1.4.0',
+      update_available: false,
       state: 'idle',
       auto_update: false,
       running_jobs: [],
