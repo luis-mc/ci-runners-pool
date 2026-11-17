@@ -9,6 +9,7 @@ import {
   Empty,
   ErrorSummary,
   Facts,
+  FieldGrid,
   FileField,
   FormActions,
   Message,
@@ -525,7 +526,7 @@ function RetentionForm({
     >
       <Stack>
         <ErrorSummary errors={errors} />
-        <Cluster>
+        <FieldGrid>
           <NumberField
             label="Job history"
             value={jobs}
@@ -566,7 +567,7 @@ function RetentionForm({
             max={720}
             onChange={setRaw}
           />
-        </Cluster>
+        </FieldGrid>
         {saved ? <Message tone="done">Retention saved.</Message> : null}
         {save.error ? (
           <Message tone="problem">Could not save. {save.error}</Message>

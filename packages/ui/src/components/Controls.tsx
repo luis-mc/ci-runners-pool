@@ -1,6 +1,7 @@
 // Tabs (3), filter chips (12), search bar (21), code block with Copy, number field with the keypad (37).
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { NumberKeypad } from '../pickers/NumberKeypad';
+import { commitValue } from '../pickers/number-keypad-logic';
 import { Button } from './Button';
 import { Dialog } from './Dialog';
 
@@ -246,7 +247,12 @@ export function NumberField({
   error?: string | undefined;
 }) {
   const [open, setOpen] = useState(false);
+  const [buffer, setBuffer] = useState(String(value));
   const id = useId();
+  const commit = (v: string) => {
+    onChange(Number(v));
+    setOpen(false);
+  };
   return (
     <div
       className="ds-field"
@@ -262,7 +268,10 @@ export function NumberField({
         type="button"
         className="ds-button ds-number"
         aria-labelledby={`${id}-l ${id}-v`}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setBuffer(String(value));
+          setOpen(true);
+        }}
       >
         <span id={`${id}-v`}>
           {value}
@@ -270,18 +279,30 @@ export function NumberField({
         </span>
       </button>
       {open ? (
-        <Dialog title={label} onClose={() => setOpen(false)} initialFocus="first">
+        <Dialog
+          title={label}
+          size="keypad"
+          onClose={() => setOpen(false)}
+          initialFocus="first"
+          primary={{
+            label: 'Done',
+            onPress: () => {
+              const r = commitValue(buffer, { min, max, decimals });
+              if (r.ok) commit(r.value);
+            },
+            disabled: !commitValue(buffer, { min, max, decimals }).ok,
+          }}
+        >
           <NumberKeypad
+            embedded
             label={label}
+            onChange={setBuffer}
             value={String(value)}
             {...(unit ? { unit } : {})}
             {...(min !== undefined ? { min } : {})}
             {...(max !== undefined ? { max } : {})}
             {...(decimals ? { decimals } : {})}
-            onDone={(v) => {
-              onChange(Number(v));
-              setOpen(false);
-            }}
+            onDone={commit}
             onCancel={() => setOpen(false)}
           />
         </Dialog>

@@ -14,6 +14,7 @@ export function Dialog({
   cancelLabel = 'Cancel',
   primary,
   modal = true,
+  size,
   initialFocus = 'safe',
 }: {
   title: string;
@@ -30,6 +31,8 @@ export function Dialog({
     kind?: 'primary' | 'danger' | undefined;
   };
   modal?: boolean | undefined;
+  /** 'keypad': as wide as a number keypad, a full-width sheet on a phone. */
+  size?: 'keypad' | undefined;
   /** Focus lands on the safe choice (Cancel) first (UX-35). */
   initialFocus?: 'safe' | 'first' | undefined;
 }) {
@@ -80,6 +83,7 @@ export function Dialog({
       <div
         ref={box}
         className="ds-dialog"
+        data-size={size}
         role="dialog"
         aria-modal={modal || undefined}
         aria-labelledby={titleId}
