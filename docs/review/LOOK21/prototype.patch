@@ -1,0 +1,799 @@
+diff --git a/apps/web/src/screens/lookProto.tsx b/apps/web/src/screens/lookProto.tsx
+new file mode 100644
+index 0000000..281c237
+--- /dev/null
++++ b/apps/web/src/screens/lookProto.tsx
+@@ -0,0 +1,262 @@
++// LOOK21 review prototype. NOT committed to the app: it lives in docs/review/LOOK21/prototype.patch.
++// ?v=a sticky bar, ?v=b save at once, ?v=c top and bottom bar with a leave guard. No ?v is today's page.
++import { Button, FormActions, QuestionCard } from '@crsp/ui';
++import { useEffect, useRef, useState, type ReactNode } from 'react';
++import { useNavigate } from 'react-router-dom';
++
++export type Variant = 'base' | 'a' | 'b' | 'c';
++export const variant = (): Variant => {
++  const v = new URLSearchParams(window.location.search).get('v');
++  return v === 'a' || v === 'b' || v === 'c' ? v : 'base';
++};
++
++const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
++
++const recent = new Map<string, { at: number; before: unknown }>();
++const SHOWN = 7000;
++
++/** A: a bar on the left of a changed field. B: a short "Saved" with Undo after the field changes. */
++export function Mark({
++  id,
++  value,
++  base,
++  onUndo,
++  children,
++}: {
++  id: string;
++  value: unknown;
++  base: unknown;
++  onUndo: (previous: never) => void;
++  children: ReactNode;
++}) {
++  const v = variant();
++  const prev = useRef(value);
++  const [, tick] = useState(0);
++  useEffect(() => {
++    if (v !== 'b' || same(prev.current, value)) return;
++    recent.set(id, { at: Date.now(), before: prev.current });
++    prev.current = value;
++    tick((n) => n + 1);
++    const a = setTimeout(() => tick((n) => n + 1), 900);
++    const b = setTimeout(() => tick((n) => n + 1), SHOWN);
++    return () => {
++      clearTimeout(a);
++      clearTimeout(b);
++    };
++  }, [value, v, id]);
++  const r = recent.get(id);
++  const age = r ? Date.now() - r.at : Infinity;
++  const chip = age < 900 ? 'saving' : age < SHOWN ? 'saved' : undefined;
++  if (v === 'a' && !same(value, base))
++    return (
++      <div
++        data-changed
++        style={{
++          borderLeft: '4px solid var(--ds-color-needs-you)',
++          paddingLeft: 'var(--ds-space-3)',
++        }}
++      >
++        {children}
++      </div>
++    );
++  if (v === 'b')
++    return (
++      <div>
++        {children}
++        {chip ? (
++          <div style={{ marginTop: 4, color: 'var(--ds-color-done)' }} role="status">
++            {chip === 'saving' ? 'Saving…' : '✓ Saved'}{' '}
++            {chip === 'saved' ? (
++              <Button
++                onPress={() => {
++                  prev.current = r?.before;
++                  recent.delete(id);
++                  onUndo(r?.before as never);
++                  tick((n) => n + 1);
++                }}
++              >
++                Undo
++              </Button>
++            ) : null}
++          </div>
++        ) : null}
++      </div>
++    );
++  return <>{children}</>;
++}
++
++/** B: send the form once the value rests for a moment. Risky changes still reach the page's own question. */
++export function useAutosave(dirty: boolean, key: string, send: () => void) {
++  const sendRef = useRef(send);
++  sendRef.current = send;
++  useEffect(() => {
++    if (variant() !== 'b' || !dirty) return;
++    const t = setTimeout(() => sendRef.current(), 600);
++    return () => clearTimeout(t);
++  }, [dirty, key]);
++}
++
++/** C: ask before leaving a form with changes. */
++export function useLeaveGuard(dirty: boolean): ReactNode {
++  const navigate = useNavigate();
++  const [href, setHref] = useState<string | undefined>(undefined);
++  useEffect(() => {
++    if (variant() !== 'c' || !dirty) return;
++    const click = (e: MouseEvent) => {
++      const a = (e.target as HTMLElement).closest('a');
++      const to = a?.getAttribute('href');
++      if (!a || !to || !to.startsWith('/') || to === window.location.pathname) return;
++      e.preventDefault();
++      e.stopPropagation();
++      setHref(to);
++    };
++    const unload = (e: BeforeUnloadEvent) => e.preventDefault();
++    document.addEventListener('click', click, true);
++    window.addEventListener('beforeunload', unload);
++    return () => {
++      document.removeEventListener('click', click, true);
++      window.removeEventListener('beforeunload', unload);
++    };
++  }, [dirty]);
++  if (href === undefined) return null;
++  return (
++    <QuestionCard
++      title="Discard changes?"
++      items={['Your changes on this page are not saved.']}
++      action="Discard"
++      busyLabel="Leaving"
++      busy={false}
++      onCancel={() => setHref(undefined)}
++      onConfirm={() => {
++        setHref(undefined);
++        void navigate(href);
++      }}
++    />
++  );
++}
++
++export interface SaveProps {
++  busy: boolean;
++  disabled?: boolean | undefined;
++  reason?: string | undefined;
++  kind?: 'primary' | 'default';
++}
++
++/** C only: Save and Cancel at the top of the form, disabled until something changes. */
++export function TopBar({
++  count,
++  onRevert,
++  save,
++}: {
++  count: number;
++  onRevert: () => void;
++  save: SaveProps;
++}) {
++  if (variant() !== 'c') return null;
++  return (
++    <FormActions>
++      <Button disabled={count === 0} onPress={onRevert}>
++        Cancel
++      </Button>
++      <Button
++        kind="primary"
++        submit
++        busy={save.busy}
++        busyLabel="Saving"
++        disabled={count === 0 || save.disabled}
++        reason={count === 0 ? 'Nothing changed yet.' : save.reason}
++      >
++        Save
++      </Button>
++    </FormActions>
++  );
++}
++
++/** The bottom of the form: today's pair, the sticky bar (A), nothing (B), or the pair disabled until a change (C). */
++export function BottomBar({
++  count,
++  onRevert,
++  save,
++  today,
++}: {
++  count: number;
++  onRevert: () => void;
++  save: SaveProps;
++  today: ReactNode;
++}) {
++  const v = variant();
++  if (v === 'base') return <>{today}</>;
++  if (v === 'b') return null;
++  if (v === 'c')
++    return (
++      <FormActions>
++        <Button disabled={count === 0} onPress={onRevert}>
++          Cancel
++        </Button>
++        <Button
++          kind="primary"
++          submit
++          busy={save.busy}
++          busyLabel="Saving"
++          disabled={count === 0 || save.disabled}
++          reason={count === 0 ? 'Nothing changed yet.' : save.reason}
++        >
++          Save
++        </Button>
++      </FormActions>
++    );
++  return <StickyBar count={count} onRevert={onRevert} save={save} />;
++}
++
++function StickyBar({
++  count,
++  onRevert,
++  save,
++}: {
++  count: number;
++  onRevert: () => void;
++  save: SaveProps;
++}) {
++  // The key-hint bar is fixed at the window foot on a mouse screen: sit just above it.
++  const [lift, setLift] = useState(0);
++  useEffect(() => {
++    const k = document.querySelector('.ds-keyhints');
++    setLift(k && getComputedStyle(k).display !== 'none' ? k.getBoundingClientRect().height : 0);
++  }, []);
++  if (count === 0) return null;
++  return (
++    <div
++      data-sticky-bar
++      role="region"
++      aria-label="Unsaved changes"
++      style={{
++        position: 'sticky',
++        bottom: lift,
++        zIndex: 5,
++        background: 'var(--ds-color-surface)',
++        borderTop: '2px solid var(--ds-color-needs-you)',
++        padding: 'var(--ds-space-3)',
++        display: 'flex',
++        flexWrap: 'wrap',
++        alignItems: 'center',
++        justifyContent: 'space-between',
++        gap: 'var(--ds-space-3)',
++      }}
++    >
++      <strong>{`Unsaved changes (${count})`}</strong>
++      <FormActions>
++        <Button onPress={onRevert}>Cancel</Button>
++        <Button
++          kind="primary"
++          submit
++          busy={save.busy}
++          busyLabel="Saving"
++          disabled={save.disabled}
++          reason={save.reason}
++        >
++          Save
++        </Button>
++      </FormActions>
++    </div>
++  );
++}
+diff --git a/apps/web/src/screens/repositories/Repositories.tsx b/apps/web/src/screens/repositories/Repositories.tsx
+index 9a09bf1..73ff3bf 100644
+--- a/apps/web/src/screens/repositories/Repositories.tsx
++++ b/apps/web/src/screens/repositories/Repositories.tsx
+@@ -42,6 +42,7 @@ import { useCommand, useLoad, useQuestion } from '../../api/hooks';
+ import { useSession } from '../../auth/session';
+ import { useVersion } from '../../live/LiveProvider';
+ import { Ask, Load } from '../common';
++import { BottomBar, Mark, TopBar, useAutosave, useLeaveGuard } from '../lookProto';
+ import {
+   FALLBACK_COST_ITEMS,
+   HostedFields,
+@@ -646,6 +647,29 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
+     setSaved(policyChanged || packagesChanged ? 'Saved.' : 'Nothing changed.');
+     onChanged();
+   };
++  const startHosted = hostedStart(r);
++  const changedList = [
++    labels !== p.labels.join(', '),
++    groups !== p.runner_groups.join(', '),
++    max !== p.max_parallel_jobs,
++    priority !== p.priority,
++    forks !== p.allow_fork_pull_requests,
++    light !== p.light_runner,
++    hostedChanged(hosted, startHosted),
++    packagesChanged,
++  ];
++  const changeCount = changedList.filter(Boolean).length;
++  const revert = () => {
++    setLabels(p.labels.join(', '));
++    setGroups(p.runner_groups.join(', '));
++    setMax(p.max_parallel_jobs);
++    setPriority(p.priority);
++    setForks(p.allow_fork_pull_requests);
++    setLight(p.light_runner);
++    setHosted(startHosted);
++    setPackages(startPackages);
++    setErrors([]);
++  };
+   const riskQ = useQuestion(
+     () => send({ fork: forkRisk, cost: costRisk }),
+     () => undefined,
+@@ -671,6 +695,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
+     }
+     await send({});
+   });
++  const guard = useLeaveGuard(changeCount > 0);
+   const riskTitle =
+     forkRisk && costRisk
+       ? 'Save these changes?'
+@@ -692,6 +717,11 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
+   });
+   const publicOff = publicWhileOff(r, enabled);
+   const vs = variableStatus(r);
++  useAutosave(
++    changeCount > 0,
++    JSON.stringify([labels, groups, max, priority, forks, light, hosted, packages]),
++    () => void save.run(),
++  );
+   return (
+     <>
+       <PageHeader
+@@ -827,49 +857,66 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
+         }}
+       >
+         <Stack>
++          <TopBar
++            count={changeCount}
++            onRevert={revert}
++            save={{ busy: save.busy, disabled: !admin, reason: session.whyNot('admin') }}
++          />
+           <ErrorSummary errors={errors} />
+           <Pane title="Policy">
+             <Stack>
+-              <TextField
+-                label="Labels"
+-                help="Separate labels with commas."
+-                value={labels}
+-                onChange={setLabels}
+-                width="full"
+-              />
+-              <TextField
+-                label="Runner groups"
+-                optional
+-                value={groups}
+-                onChange={setGroups}
+-                width="full"
+-              />
+-              <Cluster>
+-                <NumberField
+-                  label="Maximum parallel jobs"
+-                  value={max}
+-                  min={1}
+-                  max={64}
+-                  onChange={setMax}
++              <Mark id="labels" value={labels} base={p.labels.join(', ')} onUndo={setLabels}>
++                <TextField
++                  label="Labels"
++                  help="Separate labels with commas."
++                  value={labels}
++                  onChange={setLabels}
++                  width="full"
+                 />
+-                <NumberField
+-                  label="Priority"
+-                  value={priority}
+-                  min={0}
+-                  max={100}
+-                  onChange={setPriority}
++              </Mark>
++              <Mark id="groups" value={groups} base={p.runner_groups.join(', ')} onUndo={setGroups}>
++                <TextField
++                  label="Runner groups"
++                  optional
++                  value={groups}
++                  onChange={setGroups}
++                  width="full"
+                 />
++              </Mark>
++              <Cluster>
++                <Mark id="max" value={max} base={p.max_parallel_jobs} onUndo={setMax}>
++                  <NumberField
++                    label="Maximum parallel jobs"
++                    value={max}
++                    min={1}
++                    max={64}
++                    onChange={setMax}
++                  />
++                </Mark>
++                <Mark id="priority" value={priority} base={p.priority} onUndo={setPriority}>
++                  <NumberField
++                    label="Priority"
++                    value={priority}
++                    min={0}
++                    max={100}
++                    onChange={setPriority}
++                  />
++                </Mark>
+               </Cluster>
+-              <CheckRow
+-                label="Run jobs from public forks"
+-                checked={forks}
+-                onChange={setForks}
+-              />
+-              <CheckRow
+-                label="Keep a light runner for short jobs"
+-                checked={light}
+-                onChange={setLight}
+-              />
++              <Mark id="forks" value={forks} base={p.allow_fork_pull_requests} onUndo={setForks}>
++                <CheckRow
++                  label="Run jobs from public forks"
++                  checked={forks}
++                  onChange={setForks}
++                />
++              </Mark>
++              <Mark id="light" value={light} base={p.light_runner} onUndo={setLight}>
++                <CheckRow
++                  label="Keep a light runner for short jobs"
++                  checked={light}
++                  onChange={setLight}
++                />
++              </Mark>
+               <Message tone="note">
+                 A light runner is kept free for jobs that last seconds, so they do not
+                 wait behind a long build. A workflow uses it with runs-on:{' '}
+@@ -884,21 +931,25 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
+             </Stack>
+           </Pane>
+           <Pane title="Hosted fallback">
+-            <HostedFields r={r} value={hosted} onChange={setHosted} />
++            <Mark id="hosted" value={hosted} base={startHosted} onUndo={setHosted}>
++              <HostedFields r={r} value={hosted} onChange={setHosted} />
++            </Mark>
+           </Pane>
+           <Pane title="Extra packages">
+             <Stack>
+-              <TextAreaField
+-                label="Extra packages"
+-                help="Distribution packages added to the pool image, one name per line."
+-                value={packages}
+-                onChange={setPackages}
+-                rows={6}
+-                width="full"
+-                mono
+-                optional
+-                error={packageMistakes(packages)[0]}
+-              />
++              <Mark id="packages" value={packages} base={startPackages} onUndo={setPackages}>
++                <TextAreaField
++                  label="Extra packages"
++                  help="Distribution packages added to the pool image, one name per line."
++                  value={packages}
++                  onChange={setPackages}
++                  rows={6}
++                  width="full"
++                  mono
++                  optional
++                  error={packageMistakes(packages)[0]}
++                />
++              </Mark>
+               <Message tone="note">
+                 A changed list builds a new image aside. Running jobs keep the old image
+                 until they end.
+@@ -909,21 +960,29 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
+           {save.error ? (
+             <Message tone="problem">Could not save. {save.error}</Message>
+           ) : null}
+-          <FormActions>
+-            <Button onPress={() => void navigate('/repositories')}>Cancel</Button>
+-            <Button
+-              kind={r.pool_on ? 'primary' : 'default'}
+-              submit
+-              busy={save.busy}
+-              busyLabel="Saving"
+-              disabled={!admin}
+-              reason={session.whyNot('admin')}
+-            >
+-              Save
+-            </Button>
+-          </FormActions>
++          <BottomBar
++            count={changeCount}
++            onRevert={revert}
++            save={{ busy: save.busy, disabled: !admin, reason: session.whyNot('admin') }}
++            today={
++              <FormActions>
++                <Button onPress={() => void navigate('/repositories')}>Cancel</Button>
++                <Button
++                  kind={r.pool_on ? 'primary' : 'default'}
++                  submit
++                  busy={save.busy}
++                  busyLabel="Saving"
++                  disabled={!admin}
++                  reason={session.whyNot('admin')}
++                >
++                  Save
++                </Button>
++              </FormActions>
++            }
++          />
+         </Stack>
+       </form>
++      {guard}
+       <Ask
+         title={riskTitle}
+         action={forkRisk && costRisk ? 'Save' : costRisk ? 'Turn on' : 'Allow'}
+diff --git a/apps/web/src/screens/settings/Budgets.tsx b/apps/web/src/screens/settings/Budgets.tsx
+index 5f075c4..8881119 100644
+--- a/apps/web/src/screens/settings/Budgets.tsx
++++ b/apps/web/src/screens/settings/Budgets.tsx
+@@ -21,6 +21,7 @@ import { unwrap, useClient, type Schemas } from '../../api/api';
+ import { useCommand, useLoad } from '../../api/hooks';
+ import { useSession } from '../../auth/session';
+ import { Load } from '../common';
++import { BottomBar, Mark, TopBar, useAutosave, useLeaveGuard } from '../lookProto';
+ 
+ type Pool = Schemas['PoolSettings'];
+ type Queue = Schemas['QueueSettings'];
+@@ -108,6 +109,30 @@ function BudgetsForm({
+     setSaved(true);
+     onSaved();
+   });
++  const qBase = normaliseQueue(queue);
++  const changedList = [
++    p.budget_memory_pct !== pool.budget_memory_pct,
++    p.budget_cpu_pct !== pool.budget_cpu_pct,
++    p.default_job_slots !== pool.default_job_slots,
++    p.drain_timeout_minutes !== pool.drain_timeout_minutes,
++    p.size_slots_from_machine !== pool.size_slots_from_machine,
++    JSON.stringify(q.order) !== JSON.stringify(qBase.order),
++    q.fair_share !== qBase.fair_share,
++    q.no_runner_wait_minutes !== qBase.no_runner_wait_minutes,
++  ];
++  const changeCount = changedList.filter(Boolean).length;
++  const revert = () => {
++    setP(pool);
++    setQ(qBase);
++    setErrors([]);
++  };
++  const guard = useLeaveGuard(changeCount > 0);
++  useAutosave(changeCount > 0, JSON.stringify([p, q]), () => void save.run());
++  const saveProps = {
++    busy: save.busy,
++    disabled: !session.can('admin'),
++    reason: session.whyNot('admin'),
++  };
+   return (
+     <form
+       onSubmit={(e) => {
+@@ -115,7 +140,9 @@ function BudgetsForm({
+         void save.run();
+       }}
+     >
++      {guard}
+       <Stack>
++        <TopBar count={changeCount} onRevert={revert} save={saveProps} />
+         <Section title="New machines">
+           <Stack>
+             <Text>
+@@ -124,71 +151,111 @@ function BudgetsForm({
+               for.
+             </Text>
+             <FieldGrid>
+-              <NumberField
+-                label="Memory budget"
+-                value={p.budget_memory_pct}
+-                unit="%"
+-                min={10}
+-                max={95}
+-                onChange={(v) => setP({ ...p, budget_memory_pct: v })}
+-              />
+-              <NumberField
+-                label="CPU budget"
+-                value={p.budget_cpu_pct}
+-                unit="%"
+-                min={10}
+-                max={95}
+-                onChange={(v) => setP({ ...p, budget_cpu_pct: v })}
+-              />
+-              <NumberField
+-                label="Job slots"
+-                value={p.default_job_slots}
+-                min={0}
+-                max={64}
+-                onChange={(v) => setP({ ...p, default_job_slots: v })}
+-              />
+-              <NumberField
+-                label="Time to finish running jobs"
+-                help="How long running jobs may take to finish when a machine stops new jobs."
+-                value={p.drain_timeout_minutes}
+-                unit=" min"
+-                min={5}
+-                max={1440}
+-                onChange={(v) => setP({ ...p, drain_timeout_minutes: v })}
+-              />
++              <Mark id="p.budget_memory_pct" value={p.budget_memory_pct}
++                base={pool.budget_memory_pct}
++                onUndo={(v: number) => setP({ ...p, budget_memory_pct: v })}
++              >
++                <NumberField
++                  label="Memory budget"
++                  value={p.budget_memory_pct}
++                  unit="%"
++                  min={10}
++                  max={95}
++                  onChange={(v) => setP({ ...p, budget_memory_pct: v })}
++                />
++              </Mark>
++              <Mark id="p.budget_cpu_pct" value={p.budget_cpu_pct}
++                base={pool.budget_cpu_pct}
++                onUndo={(v: number) => setP({ ...p, budget_cpu_pct: v })}
++              >
++                <NumberField
++                  label="CPU budget"
++                  value={p.budget_cpu_pct}
++                  unit="%"
++                  min={10}
++                  max={95}
++                  onChange={(v) => setP({ ...p, budget_cpu_pct: v })}
++                />
++              </Mark>
++              <Mark id="p.default_job_slots" value={p.default_job_slots}
++                base={pool.default_job_slots}
++                onUndo={(v: number) => setP({ ...p, default_job_slots: v })}
++              >
++                <NumberField
++                  label="Job slots"
++                  value={p.default_job_slots}
++                  min={0}
++                  max={64}
++                  onChange={(v) => setP({ ...p, default_job_slots: v })}
++                />
++              </Mark>
++              <Mark id="p.drain_timeout_minutes" value={p.drain_timeout_minutes}
++                base={pool.drain_timeout_minutes}
++                onUndo={(v: number) => setP({ ...p, drain_timeout_minutes: v })}
++              >
++                <NumberField
++                  label="Time to finish running jobs"
++                  help="How long running jobs may take to finish when a machine stops new jobs."
++                  value={p.drain_timeout_minutes}
++                  unit=" min"
++                  min={5}
++                  max={1440}
++                  onChange={(v) => setP({ ...p, drain_timeout_minutes: v })}
++                />
++              </Mark>
+             </FieldGrid>
+-            <CheckRow
+-              label="Size the slots from the machine"
+-              help="Uses its cores and memory within the budget. Job slots is used when the machine does not say how big it is."
+-              checked={p.size_slots_from_machine}
+-              onChange={(v) => setP({ ...p, size_slots_from_machine: v })}
+-            />
++            <Mark id="p.size_slots_from_machine" value={p.size_slots_from_machine}
++              base={pool.size_slots_from_machine}
++              onUndo={(v: boolean) => setP({ ...p, size_slots_from_machine: v })}
++            >
++              <CheckRow
++                label="Size the slots from the machine"
++                help="Uses its cores and memory within the budget. Job slots is used when the machine does not say how big it is."
++                checked={p.size_slots_from_machine}
++                onChange={(v) => setP({ ...p, size_slots_from_machine: v })}
++              />
++            </Mark>
+           </Stack>
+         </Section>
+         <Section title="Queue order">
+           <Stack>
+             <Text>The first key decides first. A later key breaks the ties.</Text>
+-            <OrderList
+-              label="Queue order"
+-              items={KEY_ORDER}
+-              value={q.order}
+-              onChange={(order) => setQ({ ...q, order: order as Queue['order'] })}
+-            />
+-            <CheckRow
+-              label="Fair share"
+-              help="Repositories take turns inside one priority."
+-              checked={q.fair_share}
+-              onChange={(v) => setQ({ ...q, fair_share: v })}
+-            />
+-            <NumberField
+-              label='Wait before "no runner"'
+-              help="Minutes a job waits before the console says no online runner has its labels."
+-              value={q.no_runner_wait_minutes}
+-              unit=" min"
+-              min={1}
+-              max={60}
+-              onChange={(v) => setQ({ ...q, no_runner_wait_minutes: v })}
+-            />
++            <Mark id="q.order" value={q.order}
++              base={qBase.order}
++              onUndo={(v: Queue['order']) => setQ({ ...q, order: v })}
++            >
++              <OrderList
++                label="Queue order"
++                items={KEY_ORDER}
++                value={q.order}
++                onChange={(order) => setQ({ ...q, order: order as Queue['order'] })}
++              />
++            </Mark>
++            <Mark id="q.fair_share" value={q.fair_share}
++              base={qBase.fair_share}
++              onUndo={(v: boolean) => setQ({ ...q, fair_share: v })}
++            >
++              <CheckRow
++                label="Fair share"
++                help="Repositories take turns inside one priority."
++                checked={q.fair_share}
++                onChange={(v) => setQ({ ...q, fair_share: v })}
++              />
++            </Mark>
++            <Mark id="q.no_runner_wait_minutes" value={q.no_runner_wait_minutes}
++              base={qBase.no_runner_wait_minutes}
++              onUndo={(v: number) => setQ({ ...q, no_runner_wait_minutes: v })}
++            >
++              <NumberField
++                label='Wait before "no runner"'
++                help="Minutes a job waits before the console says no online runner has its labels."
++                value={q.no_runner_wait_minutes}
++                unit=" min"
++                min={1}
++                max={60}
++                onChange={(v) => setQ({ ...q, no_runner_wait_minutes: v })}
++              />
++            </Mark>
+           </Stack>
+         </Section>
+         <ErrorSummary errors={errors} />
+@@ -196,29 +263,36 @@ function BudgetsForm({
+         {save.error ? (
+           <Message tone="problem">Could not save. {save.error}</Message>
+         ) : null}
+-        <FormActions>
+-          <Button
+-            onPress={() => {
+-              setP(pool);
+-              setQ(normaliseQueue(queue));
+-              setErrors([]);
+-              setSaved(false);
+-              save.clear();
+-            }}
+-          >
+-            Cancel
+-          </Button>
+-          <Button
+-            kind="primary"
+-            submit
+-            busy={save.busy}
+-            busyLabel="Saving"
+-            disabled={!session.can('admin')}
+-            reason={session.whyNot('admin')}
+-          >
+-            Save
+-          </Button>
+-        </FormActions>
++        <BottomBar
++          count={changeCount}
++          onRevert={revert}
++          save={saveProps}
++          today={
++            <FormActions>
++              <Button
++                onPress={() => {
++                  setP(pool);
++                  setQ(normaliseQueue(queue));
++                  setErrors([]);
++                  setSaved(false);
++                  save.clear();
++                }}
++              >
++                Cancel
++              </Button>
++              <Button
++                kind="primary"
++                submit
++                busy={save.busy}
++                busyLabel="Saving"
++                disabled={!session.can('admin')}
++                reason={session.whyNot('admin')}
++              >
++                Save
++              </Button>
++            </FormActions>
++          }
++        />
+       </Stack>
+     </form>
+   );
