@@ -32,6 +32,7 @@ Each action has one word. The Never use column lists words that must not stand i
 | Search | Look for text in a list. | Find, Look up |
 | Sort | Order a list by a column. | Order, Arrange |
 | Sign in with GitHub | Start the GitHub sign-in. | Log in, Login |
+| Sign in with GitHub again | The action of the needs-you message when the GitHub sign-in ended; starts the GitHub sign-in and returns to the same screen. | Log in again, Reconnect |
 | Sign out | End the session. | Log out, Logout |
 | Drain | Stop a machine taking new jobs and wait for the running ones. | Pause, Disable |
 | Resume | Let a drained machine take jobs again. | Enable, Undrain |

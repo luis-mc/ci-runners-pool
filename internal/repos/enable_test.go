@@ -39,17 +39,54 @@ func TestSyncListsInstallationsAndAdminFlag(t *testing.T) { // R5.17, R5.18
 	}
 }
 
-func TestSyncNeedsGitHubToken(t *testing.T) {
+// OPS13: the list is read with the App's key, so it needs no user token.
+func TestSyncNeedsNoGitHubToken(t *testing.T) {
 	e := newEnv(t)
 	e.world()
 	delete(e.tokens.m, 1)
-	if err := e.svc.Sync(context.Background(), adminP); !errors.Is(err, auth.ErrGitHubSessionExpired) {
+	if err := e.svc.Sync(context.Background(), adminP); err != nil {
 		t.Fatalf("%v", err)
 	}
-	// The store still serves the last known list.
+	if e.svc.LastSync(1).IsZero() {
+		t.Fatal("the sync made the page fresh")
+	}
 	rows, _ := e.svc.List(context.Background(), adminP, ListFilter{})
 	if len(rows) != 3 {
-		t.Fatal("reads show the last known state")
+		t.Fatalf("%d rows, want 3", len(rows))
+	}
+}
+
+// When the App call fails the error is the App's, not a sign-in problem.
+func TestSyncAppFailureIsNotSessionExpired(t *testing.T) {
+	e := newEnv(t)
+	e.world()
+	delete(e.tokens.m, 1)
+	e.fake.FailMatching("/installation/repositories", 403, 1)
+	err := e.svc.Sync(context.Background(), adminP)
+	if err == nil || errors.Is(err, auth.ErrGitHubSessionExpired) {
+		t.Fatalf("sync error %v, want the App's error", err)
+	}
+	if !errors.Is(err, github.ErrForbidden) {
+		t.Fatalf("sync error %v, want forbidden", err)
+	}
+}
+
+// The admin flags still come from the user's own token when it is there.
+func TestSyncKeepsAdminFlagsWithAToken(t *testing.T) {
+	e := newEnv(t)
+	e.world()
+	if err := e.svc.Sync(context.Background(), adminP); err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := e.svc.List(context.Background(), adminP, ListFilter{})
+	admins := 0
+	for _, r := range rows {
+		if r.UserIsAdmin {
+			admins++
+		}
+	}
+	if admins != 2 {
+		t.Fatalf("%d admin flags, want 2", admins)
 	}
 }
 

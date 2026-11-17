@@ -1,7 +1,7 @@
 // R5.21: the repositories screen lists repositories with pool state, labels, limits and variable status; it
 // turns the pool on and off and edits the policy.
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TIMING } from '../../timing';
 import {
   MockApi,
@@ -156,6 +156,37 @@ describe('Repositories list', () => {
     renderApp(api, '/repositories');
     expect(await screen.findByText(/Your GitHub sign-in ended/)).toBeTruthy();
     expect(screen.queryByText(/not answering/)).toBeNull();
+  });
+
+  it('offers Sign in with GitHub again and returns to the same screen (OPS13, UX-6)', async () => {
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+    try {
+      const api = signedIn().on('GET', '/api/v1/github/repositories', {
+        items: [repository()],
+        stale: { stale: true, reason: 'session_expired' },
+      });
+      renderApp(api, '/repositories?q=web');
+      await screen.findByText(/Your GitHub sign-in ended/);
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Sign in with GitHub again' }),
+      );
+      expect(assign).toHaveBeenCalledWith(
+        '/auth/github/login?return_to=' + encodeURIComponent('/repositories?q=web'),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('has no sign-in button when the reason is not the sign-in (OPS13)', async () => {
+    const api = signedIn().on('GET', '/api/v1/github/repositories', {
+      items: [repository()],
+      stale: { stale: true, reason: 'unreachable' },
+    });
+    renderApp(api, '/repositories');
+    await screen.findByText(/GitHub could not be reached/);
+    expect(screen.queryByRole('button', { name: 'Sign in with GitHub again' })).toBeNull();
   });
 
   it('shows the real GitHub status and message (UX-28, CRSP148)', async () => {

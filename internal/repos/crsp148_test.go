@@ -8,7 +8,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 )
 
@@ -88,9 +87,9 @@ func TestPoolOnSurvivesARestart(t *testing.T) {
 	if got, err := e.store.GetPolicy(ctx, 100); err != nil || !reflect.DeepEqual(got, pol) {
 		t.Fatalf("policy %+v %v, want %+v", got, err, pol)
 	}
-	// Signed out (token gone): the sync fails as a sign-in problem, and the
-	// listing still says the pool is on.
-	if err := e.svc.Sync(ctx, adminP); !errors.Is(err, auth.ErrGitHubSessionExpired) {
+	// Signed out (token gone): the sync reads through the App and succeeds,
+	// and the listing still says the pool is on (OPS13).
+	if err := e.svc.Sync(ctx, adminP); err != nil {
 		t.Fatalf("sync without a token: %v", err)
 	}
 	rows, err := e.svc.List(ctx, adminP, ListFilter{})
@@ -213,7 +212,7 @@ func TestInstallationTokenAsksForNoPermissions(t *testing.T) {
 func TestGitHubErrorKeepsStatusAndMessage(t *testing.T) {
 	e := newEnv(t)
 	e.world()
-	e.fake.FailMatching("/user/installations", 422, 1)
+	e.fake.FailMatching("/app/installations", 422, 1)
 	err := e.svc.Sync(context.Background(), adminP)
 	var api *github.APIError
 	if !errors.As(err, &api) || api.Status != 422 {

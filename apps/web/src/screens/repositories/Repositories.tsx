@@ -34,7 +34,8 @@ import {
   type StatusKind,
 } from '@crsp/ui';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { signInUrl } from '../../auth/session';
 import { ApiError, unwrap, useClient } from '../../api/api';
 import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
@@ -110,6 +111,7 @@ export function variableStatus(r: Repository): { kind: StatusKind; word: string 
 }
 
 export function RepositoriesList() {
+  const location = useLocation();
   const client = useClient();
   const session = useSession();
   const navigate = useNavigate();
@@ -279,7 +281,22 @@ export function RepositoriesList() {
             return (
               <Stack>
                 {data.stale.stale ? (
-                  <Message tone="needs-you">
+                  <Message
+                    tone="needs-you"
+                    action={
+                      data.stale.reason === 'session_expired' ? (
+                        <Button
+                          onPress={() =>
+                            window.location.assign(
+                              signInUrl(`${location.pathname}${location.search}`),
+                            )
+                          }
+                        >
+                          Sign in with GitHub again
+                        </Button>
+                      ) : undefined
+                    }
+                  >
                     {staleWhy(data.stale)}
                     {data.stale.as_of
                       ? ` The list is the last copy, from ${formatPast(data.stale.as_of, now)}.`
