@@ -52,7 +52,7 @@ export function handleRowKey(e: KeyboardEvent): boolean {
   const at = row.items.indexOf(target);
   if (at < 0) return false;
   const n = row.items.length;
-  let to = at;
+  let to: number;
   if (k === 'ArrowRight') to = (at + 1) % n;
   else if (k === 'ArrowLeft') to = (at - 1 + n) % n;
   else if (k === 'Home') to = 0;

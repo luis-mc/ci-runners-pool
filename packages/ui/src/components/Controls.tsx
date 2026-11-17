@@ -162,12 +162,7 @@ export function Tabs({
   onChange: (id: string) => void;
 }) {
   return (
-    <div
-      className="ds-tabs"
-      role="tablist"
-      aria-label={label}
-      data-layout-group
-    >
+    <div className="ds-tabs" role="tablist" aria-label={label} data-layout-group>
       {tabs.map((t) => (
         <button
           key={t.id}
