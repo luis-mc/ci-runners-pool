@@ -234,6 +234,21 @@ The words of the machine mode, the battery pause and the CPU cap (machines R5.61
 | This service cannot change the mode. Open the console and go to Machines. | Tray notice for a service that does not report a policy. |
 | waits because its machine is paused, waits because its machine runs on battery | Job wait reasons on the jobs screen. |
 
+## Tray menu words
+
+The words of the tray menu (tray R5.1, R5.42; owner decision D10, TRAY3). No entry is bold.
+
+| Word | Where and meaning |
+|---|---|
+| Open console | The tray entry that opens the console, signed in. |
+| Open Doctor | The tray entry that opens the console Doctor page. |
+| Pause | The tray submenu. Its items are "for 1 hour" and "until I resume". |
+| Paused until {time} - Resume now | The tray entry in place of Pause while a timed pause holds. {time} is hours and minutes. Pressing it resumes. |
+| Paused - Resume now | The same entry for a pause with no end. |
+| Mode: {mode} | The tray submenu; {mode} is Automatic or Always. It holds those two modes only. |
+| Running - {n} jobs - {m} runners | The tray status line. Pressing it opens the console Jobs page. Reads "Running - no runners yet" before the first runner. |
+| ↑ Update to {version} | The tray entry for a newer release. It opens the update dialog, which asks first. |
+
 ## Connect GitHub words
 
 The words the Connect GitHub step shows when GitHub sends the person back with an error (github-integration R5.3, web-console setup screens). The page picks the message by the error code in the address and then clears the code from the address.
