@@ -25,3 +25,32 @@ export function wipingLabel(c: Schemas['Cache']): string {
     ? `Wiping ${cacheName(c)}, waiting for ${waits.join(', ')}`
     : `Wiping ${cacheName(c)}`;
 }
+
+const OS_NAME: Record<Schemas['OS'], string> = {
+  linux: 'Linux',
+  windows: 'Windows',
+  macos: 'macOS',
+};
+
+/** The heading of an image: its machine and the name of its OS. */
+export const imageTitle = (machine: string, i: Pick<Schemas['Image'], 'os'>): string =>
+  `${machine}, ${OS_NAME[i.os]}`;
+
+/** The layers a repository needs that the given choice lacks, and the repositories that need them. */
+export function missingOf(
+  i: Schemas['Image'],
+  chosen?: readonly string[],
+): { layers: Schemas['ImageLayer'][]; repos: string[] } {
+  const on = new Set(chosen ?? i.layers.filter((l) => l.enabled).map((l) => l.id));
+  const layers = i.layers.filter((l) => l.needed_by.count > 0 && !on.has(l.id));
+  const repos = [...new Set(layers.flatMap((l) => l.needed_by.repositories))];
+  return { layers, repos };
+}
+
+/** The repositories that use an image: those that need a layer or set extra packages. */
+export const usedBy = (i: Schemas['Image']): string[] => [
+  ...new Set([
+    ...i.layers.flatMap((l) => l.needed_by.repositories),
+    ...i.extra_packages.map((e) => e.repository),
+  ]),
+];

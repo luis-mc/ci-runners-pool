@@ -311,9 +311,7 @@ test('Images and caches opens from the menu and says that there are no images ye
   await expect(
     page.getByRole('heading', { level: 1, name: 'Images and caches' }),
   ).toBeVisible();
-  await expect(
-    page.getByText('No images yet. Images are built when a runner first needs one.'),
-  ).toBeVisible();
+  await expect(page.getByText(/Each machine has one Linux image\./)).toBeVisible();
   await page.getByRole('tab', { name: 'Caches' }).click();
   const card = page.getByRole('region', { name: 'Tool cache of crsp-linux-1' });
   await expect(card).toContainText('3.2 GB of 10.0 GB (32%)');

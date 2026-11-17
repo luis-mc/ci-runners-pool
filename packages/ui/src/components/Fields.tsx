@@ -240,17 +240,27 @@ export function CheckRow({
   onChange,
   help,
   disabledReason,
+  aside,
+  asideTone,
+  stacked = false,
 }: {
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
   help?: string | undefined;
   disabledReason?: string | undefined;
+  /** A quiet note at the end of the row; `needs-you` draws it amber. */
+  aside?: string | undefined;
+  asideTone?: 'needs-you' | undefined;
+  /** The label in bold with the help on its own line below. */
+  stacked?: boolean | undefined;
 }) {
   return (
     <label
       className="ds-choice__row"
       data-disabled={Boolean(disabledReason) || undefined}
+      data-aside={aside ? true : undefined}
+      data-stack={stacked || undefined}
     >
       <input
         type="checkbox"
@@ -260,7 +270,7 @@ export function CheckRow({
         onChange={(e) => onChange(e.target.checked)}
       />
       <span className="ds-choice__text">
-        {label}
+        {stacked ? <span className="ds-choice__name">{label}</span> : label}
         {help && help !== disabledReason ? (
           <span className="ds-choice__reason"> {help}</span>
         ) : null}
@@ -268,6 +278,11 @@ export function CheckRow({
           <span className="ds-choice__reason"> {disabledReason}</span>
         ) : null}
       </span>
+      {aside ? (
+        <span className="ds-choice__aside" data-tone={asideTone}>
+          {aside}
+        </span>
+      ) : null}
     </label>
   );
 }

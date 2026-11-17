@@ -178,13 +178,17 @@ The words of the images and caches screen (web-console 4.7).
 | Wipe failed | Could not wipe {cache}. {why} |
 | Rebuild failed | Could not rebuild. {why} The old image keeps serving. |
 | Image state, before the first build | not built yet |
-| Not built message | Not built yet. Choose layers now; it is built when the first runner starts. |
-| Rebuild, not built | Not built yet. It is built when the first runner starts. |
-| Image parts | Base (always included), Extra packages, per repository, Optional layers, None, Change in Repositories, Show all, Show fewer |
-| Layer hint | Tick, Save, then Rebuild. Running jobs finish first. |
-| Layer table heads | Layer, Adds, Pick it when, Needed by, Size |
-| Needed by | {n} repository, {n} repositories; with failing jobs: {n} repositories · jobs fail without it; none or unknown size: — |
-| Layer line, on, read only | {layer} · on |
+| Images list title and line | Images; Each machine has one Linux image. Its repositories' jobs run from it. |
+| Image row status | Missing {layers} · needed by {repositories} (amber); Not built yet (quiet); Has what its repositories need |
+| Image row note | {n} extra layer, {n} extra layers, base only |
+| Image facts line | Built {time} · {size} · used by {repositories}; Not built yet. Choose layers now; it is built when its first runner starts. |
+| Missing layers banner | {repository} needs {layer}; {repositories} need {layers}; Add it, Add them |
+| Layers pane | Layers; Add what your repositories' jobs need. The basics are always included. |
+| Layer purposes | for browser tests, for Windows builds from Linux, for MSI installers, for .deb and .rpm packages, for tests that boot a VM |
+| Layer needed by | needed by {n} (amber when needed and not ticked) |
+| Layers footer | Cancel, Save and rebuild (Save before the first build); Rebuilds after running jobs finish. The old image keeps working until then. |
+| Folded part | What is inside this image; Always included: {tools}; Extra packages set by repositories: {repository}: {packages}; None; Rebuild |
+| Layer line, read only | {layer} · on |
 | Layers differ | The saved layers differ from the built image. Rebuild to use them. |
 
 ## Labels

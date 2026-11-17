@@ -28,3 +28,4 @@ export * from './components/ThemePreview';
 export * from './components/Navigation';
 export * from './components/SearchList';
 export * from './themes';
+export * from './components/Rows';

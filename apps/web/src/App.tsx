@@ -20,6 +20,7 @@ import { FaultBoundary } from './screens/common';
 import { DoctorScreen } from './screens/doctor/Doctor';
 import { JobDetail, JobsList } from './screens/jobs/Jobs';
 import { NotFound } from './screens/Later';
+import { ImageDetail } from './screens/images/ImageDetail';
 import { ImagesAndCaches } from './screens/images/ImagesAndCaches';
 import { MachineDetail, MachinesList } from './screens/machines/Machines';
 import { AddMachinePage } from './screens/machines/AddMachine';
@@ -119,6 +120,7 @@ export function App({
                 <Route path="jobs" element={<JobsList />} />
                 <Route path="jobs/:id" element={<JobDetail />} />
                 <Route path="images" element={<ImagesAndCaches />} />
+                <Route path="images/:imageId" element={<ImageDetail />} />
                 <Route
                   path="caches"
                   element={<Navigate to="/images?tab=caches" replace />}

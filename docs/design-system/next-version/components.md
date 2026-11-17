@@ -238,7 +238,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 22. Check box row
 
 - **Used for:** one check box beside its label, with the explanation on its own line below. A choice that waits for Save uses it. A row tick and a filter chip use the same part with a hidden or styled label. It has a partial state (announced as mixed), an invalid state and a disabled state.
-- **Looks:** a square box beside its label, with a quiet explanation on the line below.
+- **Looks:** a square box beside its label, with a quiet explanation on the line below. A row may show its label in bold over the explanation and a quiet note at the end (amber when it needs the person's attention).
 - **Source:** `src/ui/check-row`
 - **Rules:** UX-22, UX-16, UX-17.
 - **Guard:** none yet.
@@ -496,6 +496,22 @@ The body scrolls when the content is taller than the space. The overlay never gr
 - **Source:** `packages/ui/src/components/Grant.tsx` (`GithubGrant`).
 - **Rules:** UX-15, UX-26, UX-38, UX-58.
 - **Guard:** `packages/ui/src/components/Grant.test.tsx`, `e2e/tests/web-console/a11y.spec.ts`.
+
+## 45. Open row
+
+- **Used for:** a list where each row is one item that opens its own screen: a bold name, one status line (a Status or quiet text) and a quiet note at the end. The whole row is the button; Enter opens it. No table, no tool lists in the row.
+- **Looks:** a plain row with a hairline below, the name above the status line, the note at the end followed by a chevron. On a phone the note drops under the line.
+- **Source:** `packages/ui/src/components/Rows.tsx`
+- **Rules:** UX-16, UX-25, UX-57, UX-58.
+- **Guard:** `e2e/tests/web-console/ux-routes.spec.ts` (touch, layout).
+
+## 46. Folded section
+
+- **Used for:** detail a person rarely needs: one line that opens it in place.
+- **Looks:** a triangle and one line; the opened part sits under it with the same spacing as a pane body.
+- **Source:** `packages/ui/src/components/Rows.tsx`
+- **Rules:** UX-16, UX-10.
+- **Guard:** none yet.
 
 ## How to add a component
 
