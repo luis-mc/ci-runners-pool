@@ -23,6 +23,7 @@ import {
   Text,
   Stack,
   Status,
+  Tag,
   Table,
   TextAreaField,
   TextField,
@@ -184,7 +185,7 @@ export function RepositoriesList() {
     {
       id: 'visibility',
       header: 'Visibility',
-      cell: (r) => <VisibilityCell r={r} />,
+      cell: (r) => <VisibilityCell r={r} inactive={publicWhileOff(r, enabled)} />,
       sort: (r) => r.visibility,
     },
     {
@@ -335,7 +336,7 @@ export function RepositoriesList() {
                   <Message tone="note">
                     {showPublic ? (
                       <>
-                        {`${unlisted.length} public ${unlisted.length === 1 ? 'repository is' : 'repositories are'} listed, muted: the pool serves private repositories only. `}
+                        {`${unlisted.length} public ${unlisted.length === 1 ? 'repository is' : 'repositories are'} listed in grey: the pool serves private repositories only. `}
                         <TextLink to="/repositories">Hide them</TextLink>
                         {' · '}
                         <TextLink to={PUBLIC_SETTING_PATH}>Change active types</TextLink>
@@ -500,7 +501,7 @@ export function RepositoriesList() {
                             })
                           }
                           toggleLabel={(r) => `Select ${r.full_name}`}
-                          muted={(r) => publicWhileOff(r, enabled)}
+                          inactive={(r) => publicWhileOff(r, enabled)}
                         />
                       </Stack>
                     );
@@ -967,11 +968,22 @@ export function packageMistakes(text: string): string[] {
 }
 
 /** The Visibility cell: the word, and for a repository with a Problem, the Problem and its link. The public-off reason is not repeated per row (LOOK4). */
-function VisibilityCell({ r }: { r: Repository }) {
-  if (!r.problem) return <>{visibilityWord(r)}</>;
+function VisibilityCell({ r, inactive }: { r: Repository; inactive: boolean }) {
+  const word = (
+    <>
+      {visibilityWord(r)}
+      {inactive ? (
+        <>
+          {' '}
+          <Tag>inactive type</Tag>
+        </>
+      ) : null}
+    </>
+  );
+  if (!r.problem) return word;
   return (
     <Stack gap="tight">
-      <Text>{visibilityWord(r)}</Text>
+      <Text>{word}</Text>
       <Text>
         {r.problem.text}{' '}
         <TextLink to={`/repositories/${r.owner}/${r.name}`}>Fix it</TextLink>

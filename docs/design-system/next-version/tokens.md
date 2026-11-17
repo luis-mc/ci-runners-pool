@@ -30,6 +30,7 @@ Use tokens and nothing else: no raw colour, size or font in a screen. The values
 | `--ds-color-surface` | `#ffffff` | `#111816` | cards, dialogs, inputs |
 | `--ds-color-text` | `#0d1a14` | `#d7e2dc` | body text |
 | `--ds-color-text-muted` | `#45574e` | `#93a79e` | secondary text, hints |
+| `--ds-color-text-inactive` | `#5c635c` | `#8a948a` | a row shown as inactive (UX-70) |
 | `--ds-color-border` | `#6b7b73` | `#62766d` | borders of controls |
 | `--ds-color-divider` | `#d2dcd7` | `#22302b` | lines between sections |
 | `--ds-color-primary` | `#006a77` | `#5ee6f0` | the primary action, links in text |
@@ -84,7 +85,7 @@ Owner decisions LOOK D1 and D2 (2026-11-15): the console looks like TUI panes, a
 - **Radius:** `--ds-radius-1`, `--ds-radius-2` and `--ds-radius-3` come from the theme: `0` for Phosphor, Tokyo Night, Gruvbox and Solarized, `8px` for Catppuccin, `6px` for Nord. `--ds-radius-round` does not change.
 - **Focus effects:** `--ds-glow-focus` and `--ds-scanline-focus` follow each theme's primary colour (dark: ring plus glow, scanline at 6%; light: ring only, no scanline).
 - **Derived values** (the same rule for every theme, so nothing is hand-picked): `--ds-color-divider` is the border mixed 30% into the surface. Each tone's tint (`--ds-color-X-tint`, and `-bg` with the same value) is the tone mixed 14% (dark) or 12% (light) into the surface, thinner when the tone would not read 4.5:1 on it. `--ds-color-on-X` (text on a solid tone) is on-primary, else white, else black, the first that reads 4.5:1. `--ds-color-on-X-tint` is the tone itself. `--ds-color-focus` is the primary.
-- **Contrast:** in every theme and mode, text pairs are at least 4.5:1 (text, muted text and every tone on the page, the surface and the selection fill; on-primary on primary; every `on-` pair) and borders at least 3:1 on the page and the surface (UX-17). `scripts/design/themes.test.ts` proves it, and proves that every theme defines every token. The values live in `scripts/design/themes.data.ts`; `scripts/design/gen-themes.ts` writes `packages/ui/src/tokens.css` from them.
+- **Contrast:** in every theme and mode, text pairs are at least 4.5:1 (text, muted text, inactive text and every tone on the page, the surface and the selection fill; on-primary on primary; every `on-` pair) and borders at least 3:1 on the page and the surface (UX-17). `scripts/design/themes.test.ts` proves it, and proves that every theme defines every token. The values live in `scripts/design/themes.data.ts`; `scripts/design/gen-themes.ts` writes `packages/ui/src/tokens.css` from them.
 
 The tables list the values the CSS holds. The keys are the tokens without the prefix `--ds-color-`.
 
@@ -98,6 +99,7 @@ Radius: `--ds-radius-1` 0, `--ds-radius-2` 0, `--ds-radius-3` 0.
 | `--ds-color-surface` | `#08130a` | `#f9fcf7` |
 | `--ds-color-text` | `#b9f7b4` | `#0e2a12` |
 | `--ds-color-text-muted` | `#78b874` | `#3f5e41` |
+| `--ds-color-text-inactive` | `#8a948a` | `#5c635c` |
 | `--ds-color-border` | `#4a8a47` | `#5f7d61` |
 | `--ds-color-primary` | `#4dff88` | `#0f6b2c` |
 | `--ds-color-on-primary` | `#021207` | `#ffffff` |
@@ -117,6 +119,7 @@ Radius: `--ds-radius-1` 0, `--ds-radius-2` 0, `--ds-radius-3` 0.
 | `--ds-color-surface` | `#1a1b26` | `#f4f5f8` |
 | `--ds-color-text` | `#c0caf5` | `#343b58` |
 | `--ds-color-text-muted` | `#9aa5ce` | `#4f5574` |
+| `--ds-color-text-inactive` | `#8a948a` | `#5c635c` |
 | `--ds-color-border` | `#6b74a3` | `#6b7194` |
 | `--ds-color-primary` | `#7aa2f7` | `#2350b5` |
 | `--ds-color-on-primary` | `#11121a` | `#ffffff` |
@@ -136,6 +139,7 @@ Radius: `--ds-radius-1` 8px, `--ds-radius-2` 8px, `--ds-radius-3` 8px.
 | `--ds-color-surface` | `#1e1e2e` | `#eff1f5` |
 | `--ds-color-text` | `#cdd6f4` | `#4c4f69` |
 | `--ds-color-text-muted` | `#a6adc8` | `#5c5f77` |
+| `--ds-color-text-inactive` | `#8a948a` | `#5c635c` |
 | `--ds-color-border` | `#7f849c` | `#7c7f93` |
 | `--ds-color-primary` | `#cba6f7` | `#7a2ee0` |
 | `--ds-color-on-primary` | `#1e1e2e` | `#ffffff` |
@@ -155,6 +159,7 @@ Radius: `--ds-radius-1` 0, `--ds-radius-2` 0, `--ds-radius-3` 0.
 | `--ds-color-surface` | `#282828` | `#fbf1c7` |
 | `--ds-color-text` | `#ebdbb2` | `#3c3836` |
 | `--ds-color-text-muted` | `#bdae93` | `#5a514a` |
+| `--ds-color-text-inactive` | `#8a948a` | `#5c635c` |
 | `--ds-color-border` | `#7c6f64` | `#7c6f64` |
 | `--ds-color-primary` | `#fabd2f` | `#076678` |
 | `--ds-color-on-primary` | `#1d2021` | `#ffffff` |
@@ -174,6 +179,7 @@ Radius: `--ds-radius-1` 0, `--ds-radius-2` 0, `--ds-radius-3` 0.
 | `--ds-color-surface` | `#073642` | `#fffbf0` |
 | `--ds-color-text` | `#d2dbd9` | `#073642` |
 | `--ds-color-text-muted` | `#a5b4b5` | `#4c6168` |
+| `--ds-color-text-inactive` | `#9aa29a` | `#5c635c` |
 | `--ds-color-border` | `#7a9497` | `#6d7f83` |
 | `--ds-color-primary` | `#6cbcf5` | `#1a5f96` |
 | `--ds-color-on-primary` | `#002b36` | `#ffffff` |
@@ -193,6 +199,7 @@ Radius: `--ds-radius-1` 6px, `--ds-radius-2` 6px, `--ds-radius-3` 6px.
 | `--ds-color-surface` | `#2e3440` | `#f6f8fb` |
 | `--ds-color-text` | `#eceff4` | `#2e3440` |
 | `--ds-color-text-muted` | `#b4bccb` | `#4c566a` |
+| `--ds-color-text-inactive` | `#9aa29a` | `#5c635c` |
 | `--ds-color-border` | `#76829b` | `#6b768c` |
 | `--ds-color-primary` | `#88c0d0` | `#2f6585` |
 | `--ds-color-on-primary` | `#1b2029` | `#ffffff` |

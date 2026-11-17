@@ -182,7 +182,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 15. Tables and list rows
 
 - **Used for:** a table to compare three or more facts; rows for everything else. Rows become a stack of name and value lines on a phone. Column heads sort.
-- **Looks:** a plain grid with light lines and a bold head row. Heads stay on one line and are bottom-aligned; inside a pane the first column starts on the pane's inner edge, with no extra inset (UX-69). On a phone (under 600 px) each row is a stack of `name  value` lines, the first column as the bold title line; a column marked `secondary` is left out of the stack. Given a `title` the table is drawn inside a pane with the title and the row count. The head of a sortable column is a button at least 44 px wide and high (UX-16); the row under the cursor stays in reverse video (component 41). A row that cannot be used now is greyed (`muted`); the reason and the link that fixes it sit in the row itself, never only in the grey.
+- **Looks:** a plain grid with light lines and a bold head row. Heads stay on one line and are bottom-aligned; inside a pane the first column starts on the pane's inner edge, with no extra inset (UX-69). On a phone (under 600 px) each row is a stack of `name  value` lines, the first column as the bold title line; a column marked `secondary` is left out of the stack. Given a `title` the table is drawn inside a pane with the title and the row count. The head of a sortable column is a button at least 44 px wide and high (UX-16); the row under the cursor stays in reverse video (component 41). A row that cannot be used now is shown in grey (`inactive`, UX-70): its text and links use `--ds-color-text-inactive` and links stay underlined; the reason and the link that fixes it sit in the row itself, with a `Tag`, never only in the grey.
 - **Source:** `packages/ui/src/components/Table.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-25, UX-16, UX-17, UX-18, UX-39.
 - **Guard:** none yet.
@@ -202,6 +202,8 @@ The body scrolls when the content is taller than the space. The overlay never gr
 - **Source:** `src/ui/badge`
 - **Rules:** UX-8, UX-26, UX-17.
 - **Guard:** none yet.
+
+A `Tag` is the small outlined label that names a kind next to a word, such as `inactive type` after Public on an inactive row (UX-70). It is flat, like a badge, and has the radius of an input. Source: `Tag` in the shared UI package. Guard: `packages/ui/src/components/look13.test.tsx`.
 
 ## 18. Messages and banner
 

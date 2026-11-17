@@ -425,6 +425,13 @@ body {
   border-radius: var(--ds-radius-round);
   font-size: var(--ds-size-1);
 }
+.ds-tag {
+  display: inline-block;
+  padding: 0 var(--ds-space-2);
+  border: var(--ds-border-thin) solid currentColor;
+  border-radius: var(--ds-radius-1);
+  font-size: var(--ds-size-1);
+}
 .ds-message {
   display: flex;
   flex-wrap: wrap;
@@ -727,8 +734,12 @@ body {
 .ds-table tr[data-active] td {
   color: inherit;
 }
-.ds-table tr[data-muted] td {
-  color: var(--ds-color-text-muted);
+.ds-table tr[data-inactive] td,
+.ds-table tr[data-inactive] a {
+  color: var(--ds-color-text-inactive);
+}
+.ds-table tr[data-inactive] a {
+  text-decoration: underline;
 }
 .ds-table__pick {
   inline-size: var(--ds-target-min);

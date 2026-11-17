@@ -764,9 +764,10 @@ The words of the Repositories screen when the list is grouped by owner and hides
 | {owner} | Group heading row, with a tick box that selects the whole group. |
 | {n} repositories · {m} use the pool | Under the owner; `1 repository` when n is 1. |
 | {n} public repositories are not listed: the pool serves private repositories only. | Note line above the list while public repositories are not an active type. |
-| List them too | Link in the note: shows them, muted, in their groups. |
+| List them too | Link in the note: shows them, in grey, in their groups. |
 | Change active types | Link in the note: opens the active-types setting. |
-| {n} public repositories are listed, muted: the pool serves private repositories only. | The note line while they are listed. |
+| {n} public repositories are listed in grey: the pool serves private repositories only. | The note line while they are listed. |
+| inactive type | Tag after Public on a listed public repository that is not an active type (UX-70). |
 | Hide them | Link in that line: lists private repositories only again. |
 | {n} private repositories | Count beside the toolbar; `{n} private & public repositories` when public is active or listed. |
 
