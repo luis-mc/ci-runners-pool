@@ -4,6 +4,7 @@
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderApp, signedIn, viewer } from '../../testing/mock';
+import { section } from './testSection';
 
 afterEach(cleanup);
 
@@ -69,7 +70,7 @@ describe('Make an access (R5.90)', () => {
     expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Make an access' }));
     expect(screen.getByRole('textbox', { name: 'Name' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(section('access-for-ci').getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Make an access' })).toBeTruthy();
   });

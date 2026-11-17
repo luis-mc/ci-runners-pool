@@ -131,7 +131,7 @@ func (s *Service) Me(ctx context.Context, p Principal) (User, error) {
 // Themes the console offers (web-console 4.9).
 var Themes = []string{"system", "dark", "light"}
 
-// Theme reads the user's theme; "system" when never set.
+// Theme reads the user's theme; "dark" when never set (owner decision D4: a new install is dark).
 func (s *Service) Theme(ctx context.Context, p Principal) (string, error) {
 	if err := Require(p, RoleViewer); err != nil {
 		return "", err
@@ -141,7 +141,7 @@ func (s *Service) Theme(ctx context.Context, p Principal) (string, error) {
 		return "", err
 	}
 	if t == "" {
-		t = "system"
+		t = "dark"
 	}
 	return t, nil
 }

@@ -1,4 +1,4 @@
-// R5.4, R5.5, UX-57: the palette, /, j and k, Enter and ?.
+// R5.4, R5.5, UX-57: the palette, /, Down, Up, j and k, Enter and ?.
 import { expect, test } from '@playwright/test';
 import { signedIn } from './fixtures';
 
@@ -52,12 +52,41 @@ test('/ goes to the search bar, and nothing fires while typing in it', async ({
   await expect(page.getByRole('textbox', { name: 'Search machines' })).toHaveValue('?j');
 });
 
-test('j moves down the list and Enter opens the row', async ({ page }) => {
+test('Down and j move through the page to a row, Up and k come back, Enter opens the row', async ({
+  page,
+}) => {
   await signedIn().install(page);
   await page.goto('/machines');
   await expect(page.getByRole('table', { name: 'Machines' })).toBeVisible();
+  await page.keyboard.press('/');
+  const search = page.getByRole('textbox', { name: 'Search machines' });
+  await expect(search).toBeFocused();
+  // Down goes through the controls in page order until it reaches the first row.
+  const row = page.locator('[data-list-row]').first();
+  for (
+    let i = 0;
+    i < 40 && !(await row.evaluate((el) => el === document.activeElement));
+    i++
+  )
+    await page.keyboard.press('ArrowDown');
+  await expect(row).toBeFocused();
+  await page.keyboard.press('k');
+  await expect(row).not.toBeFocused();
   await page.keyboard.press('j');
-  await expect(page.locator('[data-list-row]').first()).toBeFocused();
+  await expect(row).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { level: 1, name: 'build-1' })).toBeVisible();
+});
+
+test('the palette opens with focus in its search box and Down moves into the results', async ({
+  page,
+}) => {
+  await signedIn().install(page);
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible();
+  await page.keyboard.press('Control+K');
+  const dialog = page.getByRole('dialog', { name: 'Commands' });
+  await expect(dialog.getByRole('textbox')).toBeFocused();
+  await page.keyboard.type('j');
+  await expect(dialog.getByRole('textbox')).toHaveValue('j');
 });

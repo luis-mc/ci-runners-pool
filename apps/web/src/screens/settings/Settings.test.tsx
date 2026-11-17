@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { owner, renderApp, signedIn, viewer } from '../../testing/mock';
+import { section } from './testSection';
 
 afterEach(cleanup);
 
@@ -99,7 +100,7 @@ describe('Appearance (UX-60)', () => {
 });
 
 describe('Colour themes (UX-60)', () => {
-  it('offers the six themes with a swatch row each and Tokyo Night by default', async () => {
+  it('offers the six themes with a swatch row each and Phosphor by default', async () => {
     window.localStorage.clear();
     document.documentElement.removeAttribute('data-theme-name');
     renderApp(signedIn(), '/settings/appearance');
@@ -117,7 +118,7 @@ describe('Colour themes (UX-60)', () => {
     ]);
     expect(group.querySelectorAll('.ds-swatches')).toHaveLength(6);
     expect(
-      within(group).getByRole<HTMLInputElement>('radio', { name: 'Tokyo Night' }).checked,
+      within(group).getByRole<HTMLInputElement>('radio', { name: 'Phosphor' }).checked,
     ).toBe(true);
   });
 
@@ -149,7 +150,8 @@ describe('Retention and backups', () => {
       .on('PATCH', '/api/v1/settings', (c) => c.body);
     renderApp(a, '/settings/retention');
     await screen.findByRole('heading', { name: 'Retention' });
-    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+    await screen.findByText('Job history');
+    fireEvent.click(section('retention').getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(a.count('PATCH', '/api/v1/settings')).toBe(1));
     expect(
       (

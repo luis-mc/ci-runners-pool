@@ -146,6 +146,12 @@ export function renderThemeCss(): string {
     out.push(
       `[data-theme='dark'] ${name},\n[data-theme='dark']${name} {\n${themeDeclarations(t, 'dark', '  ')}\n}`,
     );
+    // A sample of a theme (ThemePreview) sits inside a page in any theme and mode, so it pins its own mode with
+    // more weight than the page's rules above: the light and the dark sample both win over the page's mode.
+    for (const mode of ['light', 'dark'] as const)
+      out.push(
+        `:root [data-theme='${mode}']${name} {\n${themeDeclarations(t, mode, '  ')}\n}`,
+      );
   }
   out.push(END);
   return out.join('\n');

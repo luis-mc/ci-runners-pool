@@ -21,20 +21,16 @@ import { TurnOnPoolPage } from './screens/repositories/TurnOnPool';
 import { AddRunnersPage } from './screens/runners/AddRunners';
 import { RunnersList } from './screens/runners/Runners';
 import {
-  AppKeySettings,
-  AppearanceSettings,
-  BackupsSettings,
-  RetentionSettings,
+  AccessTab,
+  AuditTab,
+  ConsoleTab,
+  DataTab,
+  RepositoriesTab,
+  OldSettingsAddress,
   SettingsLayout,
   ThemeApplier,
-  UsersSettings,
 } from './screens/settings/Settings';
-import { PublicRepositoriesSettings } from './screens/settings/PublicRepositoriesSettings';
-import { BudgetsSettings } from './screens/settings/Budgets';
-import { AuditLogSettings, ConfigExportSettings } from './screens/settings/AuditLog';
-import { NotificationsSettings } from './screens/settings/Notifications';
-import { AccessForCiSettings } from './screens/settings/AccessForCi';
-import { UpdateReviewPage, UpdatesSettings } from './screens/settings/Updates';
+import { UpdateReviewPage } from './screens/settings/Updates';
 import { SetupPage } from './screens/setup/Setup';
 
 /** No valid session: every path but /sign-in and /setup goes to /sign-in and keeps the path (R5.8). */
@@ -121,19 +117,30 @@ export function App({
               <Route path="doctor" element={<DoctorScreen />} />
               <Route path="settings/updates/review" element={<UpdateReviewPage />} />
               <Route path="settings" element={<SettingsLayout />}>
-                <Route index element={<Navigate to="users" replace />} />
-                <Route path="users" element={<UsersSettings />} />
-                <Route path="app" element={<AppKeySettings />} />
-                <Route path="repositories" element={<PublicRepositoriesSettings />} />
-                <Route path="appearance" element={<AppearanceSettings />} />
-                <Route path="retention" element={<RetentionSettings />} />
-                <Route path="backups" element={<BackupsSettings />} />
-                <Route path="budgets" element={<BudgetsSettings />} />
-                <Route path="notifications" element={<NotificationsSettings />} />
-                <Route path="access" element={<AccessForCiSettings />} />
-                <Route path="updates" element={<UpdatesSettings />} />
-                <Route path="audit" element={<AuditLogSettings />} />
-                <Route path="export" element={<ConfigExportSettings />} />
+                <Route index element={<Navigate to="access" replace />} />
+                <Route path="access" element={<AccessTab />} />
+                <Route path="repositories" element={<RepositoriesTab />} />
+                <Route path="console" element={<ConsoleTab />} />
+                <Route path="data" element={<DataTab />} />
+                <Route path="audit" element={<AuditTab />} />
+                <Route path="users" element={<OldSettingsAddress old="users" />} />
+                <Route path="app" element={<OldSettingsAddress old="app" />} />
+                <Route path="budgets" element={<OldSettingsAddress old="budgets" />} />
+                <Route
+                  path="appearance"
+                  element={<OldSettingsAddress old="appearance" />}
+                />
+                <Route
+                  path="notifications"
+                  element={<OldSettingsAddress old="notifications" />}
+                />
+                <Route path="updates" element={<OldSettingsAddress old="updates" />} />
+                <Route
+                  path="retention"
+                  element={<OldSettingsAddress old="retention" />}
+                />
+                <Route path="backups" element={<OldSettingsAddress old="backups" />} />
+                <Route path="export" element={<OldSettingsAddress old="export" />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Route>

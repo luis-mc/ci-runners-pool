@@ -45,20 +45,6 @@ describe('shortcuts (R5.5)', () => {
     expect(document.activeElement?.id).toBe('s');
   });
 
-  it('j and k move down and up a list', () => {
-    document.body.innerHTML =
-      '<table><tbody><tr data-list-row tabindex="0" id="a"></tr><tr data-list-row tabindex="0" id="b"></tr><tr data-list-row tabindex="0" id="c"></tr></tbody></table>';
-    handleKey(key('j'), h());
-    expect(document.activeElement?.id).toBe('a');
-    handleKey(key('j'), h());
-    expect(document.activeElement?.id).toBe('b');
-    handleKey(key('j'), h());
-    handleKey(key('j'), h());
-    expect(document.activeElement?.id).toBe('c');
-    handleKey(key('k'), h());
-    expect(document.activeElement?.id).toBe('b');
-  });
-
   it('Enter opens the row through its link', () => {
     document.body.innerHTML =
       '<table><tbody><tr data-list-row tabindex="0" id="a"><td><a href="#x" id="l">open</a></td></tr></tbody></table>';

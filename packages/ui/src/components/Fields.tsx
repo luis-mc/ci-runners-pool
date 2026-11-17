@@ -302,13 +302,16 @@ export function Switch({
   disabledReason?: string | undefined;
 }) {
   const reasonId = useId();
+  const nameId = useId();
+  const buttonId = useId();
   return (
     <span className="ds-switch-wrap">
       <button
         type="button"
+        id={buttonId}
         role="switch"
         aria-checked={on}
-        aria-label={label}
+        aria-labelledby={nameId}
         aria-describedby={disabledReason ? reasonId : undefined}
         className="ds-switch"
         data-on={on || undefined}
@@ -318,6 +321,10 @@ export function Switch({
       >
         <span className="ds-switch__word">{on ? 'On' : 'Off'}</span>
       </button>
+      {/* The name is always drawn next to the switch; pressing it works the switch. */}
+      <label id={nameId} htmlFor={buttonId} className="ds-switch__name">
+        {label}
+      </label>
       {disabledReason ? (
         <span id={reasonId} className="ds-button-reason">
           {disabledReason}

@@ -6,6 +6,7 @@ import {
   CodeBlock,
   Page,
   PageHeader,
+  Pane,
   ErrorSummary,
   Facts,
   LinkButton,
@@ -652,7 +653,9 @@ export function AddMachinePage() {
         trail={[{ to: '/machines', label: 'Machines' }, { label: 'Add a machine' }]}
       />
       <PageHeader title="Add a machine" />
-      <AddMachineWizard />
+      <Pane title="New machine">
+        <AddMachineWizard />
+      </Pane>
     </Page>
   );
 }

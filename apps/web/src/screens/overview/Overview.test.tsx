@@ -166,6 +166,26 @@ describe('Overview (R5.20)', () => {
     expect(within(main).queryAllByRole('button')).toHaveLength(0);
   });
 
+  it('puts every section in a pane (UX-10)', async () => {
+    renderApp(signedIn(), '/');
+    await screen.findByRole('region', { name: 'build-1' });
+    const main = screen.getByRole('main');
+    const h2 = Array.from(main.querySelectorAll('h2'));
+    expect(h2.length).toBeGreaterThanOrEqual(3);
+    expect(h2.every((h) => h.closest('section.ds-pane') !== null)).toBe(true);
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
+  it('keeps the h1 and a pane around the failed state (UX-17)', async () => {
+    const api = signedIn().on('GET', '/api/v1/overview', () =>
+      apiError(503, 'unavailable', 'The controller is starting.'),
+    );
+    renderApp(api, '/', { stream: false });
+    await screen.findByText(/Could not load the overview/);
+    expect(screen.getByRole('heading', { level: 1, name: 'Overview' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'The pool' })).toBeTruthy();
+  });
+
   it('says it could not load when the controller does not answer', async () => {
     const api = signedIn().on('GET', '/api/v1/overview', () =>
       apiError(503, 'unavailable', 'The controller is starting.'),

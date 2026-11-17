@@ -11,6 +11,7 @@ import {
   NumberField,
   Page,
   PageHeader,
+  Section,
   Stack,
   Text,
   TextField,
@@ -540,7 +541,19 @@ export function AddRunnersWizard() {
       onTryAgain={startAgain}
       donePrimary={{ label: 'Open Runners', onPress: () => void navigate('/runners') }}
     >
-      {body}
+      <Section
+        title={
+          step <= 1
+            ? 'Runners to add'
+            : step === 2
+              ? 'Review'
+              : step === 3
+                ? 'Registering'
+                : 'Result'
+        }
+      >
+        {body}
+      </Section>
     </Wizard>
   );
 }

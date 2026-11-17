@@ -110,15 +110,29 @@ describe('Enable for public repositories (settings)', () => {
 });
 
 describe('Repositories: active types, Visibility and greyed public rows', () => {
-  it('shows Private (default) near the title and links to the setting', async () => {
+  it('shows the active types as a chip in the toolbar, not a link, and the chip opens the setting (UX-8)', async () => {
     renderApp(list(setting(signedIn(), false)), '/repositories');
-    const link = await screen.findByRole('link', { name: 'Private (default)' });
-    expect(link.getAttribute('href')).toBe('/settings/repositories');
+    const chip = await screen.findByRole('button', {
+      name: 'Active types: Private (default)',
+    });
+    expect(screen.queryByRole('link', { name: /Private \(default\)/ })).toBeNull();
+    expect(
+      within(screen.getByRole('group', { name: 'Repositories toolbar' })).getByRole(
+        'button',
+        { name: /Active types/ },
+      ),
+    ).toBe(chip);
+    fireEvent.click(chip);
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Settings' }),
+    ).toBeTruthy();
   });
 
   it('shows Private & Public when the setting is on', async () => {
     renderApp(list(setting(signedIn(), true)), '/repositories');
-    expect(await screen.findByRole('link', { name: 'Private & Public' })).toBeTruthy();
+    expect(
+      await screen.findByRole('button', { name: 'Active types: Private & Public' }),
+    ).toBeTruthy();
   });
 
   it('has a Visibility column; public rows are greyed with the reason and a link while it is off', async () => {
@@ -145,14 +159,14 @@ describe('Repositories: active types, Visibility and greyed public rows', () => 
   it('does not grey public rows while the setting is on', async () => {
     renderApp(list(setting(signedIn(), true)), '/repositories');
     const table = await screen.findByRole('table', { name: 'Repositories' });
-    await screen.findByRole('link', { name: 'Private & Public' });
+    await screen.findByRole('button', { name: 'Active types: Private & Public' });
     for (const row of within(table).getAllByRole('row'))
       expect(row.getAttribute('data-muted')).toBeNull();
   });
 
   it('disables Turn on for a selection that holds a public repository while off, with the reason', async () => {
     renderApp(list(setting(signedIn(), false)), '/repositories');
-    await screen.findByRole('link', { name: 'Private (default)' });
+    await screen.findByRole('button', { name: 'Active types: Private (default)' });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select octo/site' }));
     const button = screen.getByRole<HTMLButtonElement>('button', {
       name: 'Turn on 1 repository',

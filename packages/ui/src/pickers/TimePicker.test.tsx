@@ -145,9 +145,27 @@ describe('TimePicker', () => {
     expect(spy).toHaveBeenLastCalledWith('00:00:45');
   });
 
+  it('is 24-hour by default, even in a 12-hour locale (UX-18)', () => {
+    m = mount(<Harness label="Time" start="15:00" units="hm" locale="en-US" />);
+    expect(spins()[0]!.getAttribute('aria-valuemax')).toBe('23');
+    expect(spins()[0]!.getAttribute('aria-valuenow')).toBe('15');
+    expect(
+      [...m.container.querySelectorAll('[aria-pressed]')].map((b) => b.textContent),
+    ).not.toContain('PM');
+  });
+
   it('a 12-hour clock spins 1 to 12 and switches AM and PM', () => {
     const spy = vi.fn();
-    m = mount(<Harness label="Time" start="11:00" units="hm" locale="en-US" spy={spy} />);
+    m = mount(
+      <Harness
+        label="Time"
+        start="11:00"
+        units="hm"
+        hourCycle="h12"
+        locale="en-US"
+        spy={spy}
+      />,
+    );
     const h = spins()[0]!;
     expect(h.getAttribute('aria-valuemin')).toBe('1');
     expect(h.getAttribute('aria-valuemax')).toBe('12');

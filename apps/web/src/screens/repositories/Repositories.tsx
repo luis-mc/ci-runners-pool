@@ -3,6 +3,7 @@
 import {
   Button,
   CheckRow,
+  Chips,
   Cluster,
   Breadcrumbs,
   Empty,
@@ -15,11 +16,11 @@ import {
   Page,
   PageHeader,
   Pager,
+  Pane,
   ListToolbar,
   Segmented,
   SearchBar,
   Text,
-  Section,
   Stack,
   Status,
   Table,
@@ -39,7 +40,18 @@ import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
-import { HostedFallback, WhereJobsGo, routingWhy } from './fallback';
+import {
+  FALLBACK_COST_ITEMS,
+  HostedFields,
+  WhereJobsGo,
+  hostedBody,
+  hostedChanged,
+  hostedMistakes,
+  hostedStart,
+  routingWhy,
+  turnsFallbackOn,
+  type HostedState,
+} from './fallback';
 import { InstallAppButton } from './InstallApp';
 import { MissingPermissionsGuide } from '../GrantGuide';
 import { OrgPools } from './OrgPools';
@@ -225,12 +237,6 @@ export function RepositoriesList() {
           )
         }
       />
-      {setting ? (
-        <Text tone="muted">
-          Active types:{' '}
-          <TextLink to={PUBLIC_SETTING_PATH}>{activeTypes(setting.enabled)}</TextLink>
-        </Text>
-      ) : null}
       {returned ? (
         <Message
           tone={returned === 'request' ? 'needs-you' : 'done'}
@@ -245,154 +251,178 @@ export function RepositoriesList() {
             : 'GitHub saved the App installation. The list below is read again. Turn the pool on for the repositories you want.'}
         </Message>
       ) : null}
-      <Load result={result} what="repositories" reload={reload}>
-        {(data) => {
-          const filtered = data.items.filter(
-            (r) =>
-              (!pool || (pool === 'on') === r.pool_on) &&
-              r.full_name.toLowerCase().includes(q.trim().toLowerCase()),
-          );
-          const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
-          const shown = paginate(filtered, Math.min(page, pages), PAGE);
-          const selected = new Set([...picked].map(String));
-          const chosen = data.items.filter((r) => picked.has(r.id));
-          // While the list is the last copy the admin flag is unknown, not "no": the
-          // plan checks it again at the change (CRSP148, R5.19).
-          const noAdmin = data.stale.stale
-            ? []
-            : chosen.filter((r) => !r.user_is_github_admin);
-          const publicOff = chosen.filter((r) => publicWhileOff(r, enabled));
-          if (data.items.length === 0)
-            return (
-              <Empty
-                title="No repositories yet. Install the App on a repository to start."
-                action={<InstallAppButton label="Add a repository" onReturn={reload} />}
-              />
+      <Pane title="Repositories">
+        <Load result={result} what="repositories" reload={reload}>
+          {(data) => {
+            const filtered = data.items.filter(
+              (r) =>
+                (!pool || (pool === 'on') === r.pool_on) &&
+                r.full_name.toLowerCase().includes(q.trim().toLowerCase()),
             );
-          return (
-            <Stack>
-              {data.stale.stale ? (
-                <Message tone="needs-you">
-                  {staleWhy(data.stale)}
-                  {data.stale.as_of
-                    ? ` The list is the last copy, from ${formatPast(data.stale.as_of, now)}.`
-                    : ' The list is the last copy.'}
-                </Message>
-              ) : null}
-              <ListToolbar
-                label="Repositories"
-                search={
-                  <SearchBar
-                    value={q}
-                    onChange={(x) => {
-                      setQ(x);
-                      setPage(1);
-                    }}
-                    label="Search repositories"
-                  />
-                }
-                filters={
-                  <Segmented
-                    label="Pool"
-                    options={[
-                      { value: 'on', label: 'Pool on' },
-                      { value: 'off', label: 'Pool off' },
-                    ]}
-                    value={pool}
-                    onChange={(x) => {
-                      setPool(x);
-                      setPage(1);
-                    }}
-                  />
-                }
-                selection={
-                  <>
-                    <Button onPress={() => setPicked(new Set(filtered.map((r) => r.id)))}>
-                      {`Select all ${filtered.length}`}
-                    </Button>
-                    {picked.size > 0 ? (
-                      <>
-                        <span>{`${picked.size} selected`}</span>
-                        <Button onPress={() => setPicked(new Set())}>Clear</Button>
-                        <Button
-                          kind="primary"
-                          disabled={!admin || noAdmin.length > 0 || publicOff.length > 0}
-                          reason={
-                            !admin
-                              ? session.whyNot('admin')
-                              : noAdmin.length > 0
-                                ? `You need admin rights on ${noAdmin.map((r) => r.full_name).join(', ')} in GitHub.`
-                                : publicOff.length > 0
-                                  ? `Public repositories are off: ${publicOff.map((r) => r.full_name).join(', ')}. Turn them on in Settings first.`
-                                  : undefined
-                          }
-                          onPress={() =>
-                            void navigate(
-                              `/repositories/turn-on?${chosen.map((r) => `repo=${r.id}`).join('&')}`,
-                            )
-                          }
-                        >
-                          {`Turn on ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
-                        </Button>
-                        <Button
-                          kind="danger"
-                          disabled={!admin}
-                          reason={session.whyNot('admin')}
-                          onPress={() =>
-                            offQ.ask(
-                              chosen.flatMap((r) => [
-                                `${r.full_name}: pool off`,
-                                ...r.variables.map(
-                                  (x) => `${r.full_name}: variable ${x.name}`,
-                                ),
-                              ]),
-                            )
-                          }
-                        >
-                          {`Turn off ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
-                        </Button>
-                      </>
-                    ) : null}
-                  </>
-                }
-                count={`${filtered.length} ${filtered.length === 1 ? 'repository' : 'repositories'}`}
-                actions={<InstallAppButton label="Add a repository" onReturn={reload} />}
-              />
-              {filtered.length === 0 ? (
-                <Message tone="note">
-                  {data.items.length} repositories are hidden by the search and the
-                  filter. Clear them to see all.
-                </Message>
-              ) : (
-                <Table
-                  caption="Repositories"
-                  columns={columns}
-                  rows={shown}
-                  rowKey={(r) => String(r.id)}
-                  selected={selected}
-                  onToggle={(key) =>
-                    setPicked((p) => {
-                      const n = new Set(p);
-                      const id = Number(key);
-                      if (n.has(id)) n.delete(id);
-                      else n.add(id);
-                      return n;
-                    })
-                  }
-                  toggleLabel={(r) => `Select ${r.full_name}`}
-                  muted={(r) => publicWhileOff(r, enabled)}
+            const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
+            const shown = paginate(filtered, Math.min(page, pages), PAGE);
+            const selected = new Set([...picked].map(String));
+            const chosen = data.items.filter((r) => picked.has(r.id));
+            // While the list is the last copy the admin flag is unknown, not "no": the
+            // plan checks it again at the change (CRSP148, R5.19).
+            const noAdmin = data.stale.stale
+              ? []
+              : chosen.filter((r) => !r.user_is_github_admin);
+            const publicOff = chosen.filter((r) => publicWhileOff(r, enabled));
+            if (data.items.length === 0)
+              return (
+                <Empty
+                  title="No repositories yet. Install the App on a repository to start."
+                  action={<InstallAppButton label="Add a repository" onReturn={reload} />}
                 />
-              )}
-              <Pager
-                page={Math.min(page, pages)}
-                pages={pages}
-                onPage={setPage}
-                label="Repository pages"
-              />
-            </Stack>
-          );
-        }}
-      </Load>
+              );
+            return (
+              <Stack>
+                {data.stale.stale ? (
+                  <Message tone="needs-you">
+                    {staleWhy(data.stale)}
+                    {data.stale.as_of
+                      ? ` The list is the last copy, from ${formatPast(data.stale.as_of, now)}.`
+                      : ' The list is the last copy.'}
+                  </Message>
+                ) : null}
+                <ListToolbar
+                  label="Repositories"
+                  search={
+                    <SearchBar
+                      value={q}
+                      onChange={(x) => {
+                        setQ(x);
+                        setPage(1);
+                      }}
+                      label="Search repositories"
+                    />
+                  }
+                  filters={
+                    <>
+                      <Segmented
+                        label="Pool"
+                        options={[
+                          { value: 'on', label: 'Pool on' },
+                          { value: 'off', label: 'Pool off' },
+                        ]}
+                        value={pool}
+                        onChange={(x) => {
+                          setPool(x);
+                          setPage(1);
+                        }}
+                      />
+                      {setting ? (
+                        <Chips
+                          label="Repository types"
+                          options={[
+                            {
+                              value: 'types',
+                              label: `Active types: ${activeTypes(setting.enabled)}`,
+                            },
+                          ]}
+                          value=""
+                          onChange={() => void navigate(PUBLIC_SETTING_PATH)}
+                        />
+                      ) : null}
+                    </>
+                  }
+                  selection={
+                    <>
+                      <Button
+                        onPress={() => setPicked(new Set(filtered.map((r) => r.id)))}
+                        disabled={filtered.length === 0}
+                        reason="No repository is shown."
+                      >
+                        {`Select all ${filtered.length}`}
+                      </Button>
+                      {picked.size > 0 ? (
+                        <>
+                          <span>{`${picked.size} selected`}</span>
+                          <Button onPress={() => setPicked(new Set())}>Clear</Button>
+                          <Button
+                            disabled={
+                              !admin || noAdmin.length > 0 || publicOff.length > 0
+                            }
+                            reason={
+                              !admin
+                                ? session.whyNot('admin')
+                                : noAdmin.length > 0
+                                  ? `You need admin rights on ${noAdmin.map((r) => r.full_name).join(', ')} in GitHub.`
+                                  : publicOff.length > 0
+                                    ? `Public repositories are off: ${publicOff.map((r) => r.full_name).join(', ')}. Turn them on in Settings first.`
+                                    : undefined
+                            }
+                            onPress={() =>
+                              void navigate(
+                                `/repositories/turn-on?${chosen.map((r) => `repo=${r.id}`).join('&')}`,
+                              )
+                            }
+                          >
+                            {`Turn on ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
+                          </Button>
+                          <Button
+                            kind="danger"
+                            disabled={!admin}
+                            reason={session.whyNot('admin')}
+                            onPress={() =>
+                              offQ.ask(
+                                chosen.flatMap((r) => [
+                                  `${r.full_name}: pool off`,
+                                  ...r.variables.map(
+                                    (x) => `${r.full_name}: variable ${x.name}`,
+                                  ),
+                                ]),
+                              )
+                            }
+                          >
+                            {`Turn off ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
+                          </Button>
+                        </>
+                      ) : null}
+                    </>
+                  }
+                  count={`${filtered.length} ${filtered.length === 1 ? 'repository' : 'repositories'}`}
+                  actions={
+                    <InstallAppButton label="Add a repository" onReturn={reload} />
+                  }
+                />
+                {filtered.length === 0 ? (
+                  <Message tone="note">
+                    {data.items.length} repositories are hidden by the search and the
+                    filter. Clear them to see all.
+                  </Message>
+                ) : (
+                  <Table
+                    caption="Repositories"
+                    columns={columns}
+                    rows={shown}
+                    rowKey={(r) => String(r.id)}
+                    selected={selected}
+                    onToggle={(key) =>
+                      setPicked((p) => {
+                        const n = new Set(p);
+                        const id = Number(key);
+                        if (n.has(id)) n.delete(id);
+                        else n.add(id);
+                        return n;
+                      })
+                    }
+                    toggleLabel={(r) => `Select ${r.full_name}`}
+                    muted={(r) => publicWhileOff(r, enabled)}
+                  />
+                )}
+                <Pager
+                  page={Math.min(page, pages)}
+                  pages={pages}
+                  onPage={setPage}
+                  label="Repository pages"
+                />
+              </Stack>
+            );
+          }}
+        </Load>
+      </Pane>
       <MissingPermissionsGuide onReady={reload} />
       <OrgPools version={v} />
       <Ask
@@ -440,6 +470,9 @@ export function RepositoryDetail() {
           { label: `${owner}/${name}` },
         ]}
       />
+      {result.state === 'failed' && result.data === undefined ? (
+        <PageHeader title={`${owner}/${name}`} />
+      ) : null}
       <Load result={result} what="the repository" reload={reload}>
         {(r) => <RepositoryBody r={r} onChanged={reload} />}
       </Load>
@@ -459,8 +492,11 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
   const [priority, setPriority] = useState(p.priority);
   const [forks, setForks] = useState(p.allow_fork_pull_requests);
   const [light, setLight] = useState(p.light_runner);
+  const [hosted, setHosted] = useState<HostedState>(() => hostedStart(r));
+  const startPackages = (p.extra_packages ?? []).join('\n');
+  const [packages, setPackages] = useState(startPackages);
   const [errors, setErrors] = useState<string[]>([]);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState<string | undefined>(undefined);
 
   const split = (s: string) =>
     s
@@ -478,41 +514,75 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
     }),
     [labels, groups, max, priority, forks, light],
   );
+  const policyChanged =
+    labels !== p.labels.join(', ') ||
+    groups !== p.runner_groups.join(', ') ||
+    max !== p.max_parallel_jobs ||
+    priority !== p.priority ||
+    forks !== p.allow_fork_pull_requests ||
+    light !== p.light_runner ||
+    hostedChanged(hosted, hostedStart(r));
+  const packagesChanged = packages !== startPackages;
+  const forkRisk = forks && !p.allow_fork_pull_requests;
+  const costRisk = turnsFallbackOn(r, hosted);
 
-  const forkQ = useQuestion(
-    () =>
-      unwrap(
+  /** One request for the policy and the hosted fallback, one for the packages: only what changed. */
+  const send = async (confirm: { fork?: boolean; cost?: boolean }) => {
+    if (policyChanged)
+      await unwrap(
         client.PATCH('/api/v1/repositories/{repositoryId}/policy', {
           params: { path: { repositoryId: r.id } },
-          body: { ...body, confirm_fork_risk: true },
+          body: {
+            ...body,
+            ...hostedBody(hosted),
+            ...(confirm.fork ? { confirm_fork_risk: true } : {}),
+            ...(confirm.cost ? { confirm_fallback_cost: true } : {}),
+          },
         }),
-      ),
-    () => {
-      setSaved(true);
-      onChanged();
-    },
+      );
+    if (packagesChanged) {
+      const list = await unwrap(
+        client.PUT('/api/v1/repositories/{repositoryId}/extra-packages', {
+          params: { path: { repositoryId: r.id } },
+          body: { text: packages },
+        }),
+      );
+      setPackages(list.text);
+    }
+    setSaved(policyChanged || packagesChanged ? 'Saved.' : 'Nothing changed.');
+    onChanged();
+  };
+  const riskQ = useQuestion(
+    () => send({ fork: forkRisk, cost: costRisk }),
+    () => undefined,
   );
   const save = useCommand(async () => {
+    setSaved(undefined);
     const problems: string[] = [];
     if (max < 1) problems.push('Maximum parallel jobs must be at least 1.');
     if (split(labels).length === 0) problems.push('Add at least one label.');
+    problems.push(...hostedMistakes(hosted), ...packageMistakes(packages));
     setErrors(problems);
     if (problems.length) return;
-    if (forks && !p.allow_fork_pull_requests) {
-      forkQ.ask([
-        'Jobs from public forks run on your machines with your repository variables in reach.',
+    if (forkRisk || costRisk) {
+      riskQ.ask([
+        ...(forkRisk
+          ? [
+              'Jobs from public forks run on your machines with your repository variables in reach.',
+            ]
+          : []),
+        ...(costRisk ? FALLBACK_COST_ITEMS(r.full_name) : []),
       ]);
       return;
     }
-    await unwrap(
-      client.PATCH('/api/v1/repositories/{repositoryId}/policy', {
-        params: { path: { repositoryId: r.id } },
-        body,
-      }),
-    );
-    setSaved(true);
-    onChanged();
+    await send({});
   });
+  const riskTitle =
+    forkRisk && costRisk
+      ? 'Save these changes?'
+      : costRisk
+        ? 'Run on GitHub-hosted runners?'
+        : 'Allow jobs from public forks?';
 
   const offQ = useQuestion(async () => {
     const plan = await applyChanges(client, [
@@ -618,7 +688,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
           <TextLink to={PUBLIC_SETTING_PATH}>Turn on public repositories</TextLink>
         </Message>
       ) : null}
-      <Section title="State">
+      <Pane title="State">
         <Facts
           items={[
             {
@@ -654,103 +724,121 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
             })),
           ]}
         />
-      </Section>
+      </Pane>
       {r.pool_on ? <PollingNotice r={r} onChanged={onChanged} /> : null}
-      <Section title="Policy">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void save.run();
-          }}
-        >
-          <Stack>
-            <ErrorSummary errors={errors} />
-            <TextField
-              label="Labels"
-              help="Separate labels with commas."
-              value={labels}
-              onChange={setLabels}
-              width="full"
-            />
-            <TextField
-              label="Runner groups"
-              optional
-              value={groups}
-              onChange={setGroups}
-              width="full"
-            />
-            <Cluster>
-              <NumberField
-                label="Maximum parallel jobs"
-                value={max}
-                min={1}
-                max={64}
-                onChange={setMax}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void save.run();
+        }}
+      >
+        <Stack>
+          <ErrorSummary errors={errors} />
+          <Pane title="Policy">
+            <Stack>
+              <TextField
+                label="Labels"
+                help="Separate labels with commas."
+                value={labels}
+                onChange={setLabels}
+                width="full"
               />
-              <NumberField
-                label="Priority"
-                value={priority}
-                min={0}
-                max={100}
-                onChange={setPriority}
+              <TextField
+                label="Runner groups"
+                optional
+                value={groups}
+                onChange={setGroups}
+                width="full"
               />
-            </Cluster>
-            <CheckRow
-              label="Run jobs from public forks"
-              checked={forks}
-              onChange={setForks}
-            />
-            <CheckRow
-              label="Keep a light runner for short jobs"
-              checked={light}
-              onChange={setLight}
-            />
-            <Message tone="note">
-              A light runner is kept free for jobs that last seconds, so they do not wait
-              behind a long build. A workflow uses it with runs-on:{' '}
-              {'${{ vars.RUNS_ON_LIGHT }}'}.
-            </Message>
-            {forks ? (
-              <Message tone="needs-you">
-                Jobs from public forks run code you did not write. Save asks once more
-                before this takes effect.
+              <Cluster>
+                <NumberField
+                  label="Maximum parallel jobs"
+                  value={max}
+                  min={1}
+                  max={64}
+                  onChange={setMax}
+                />
+                <NumberField
+                  label="Priority"
+                  value={priority}
+                  min={0}
+                  max={100}
+                  onChange={setPriority}
+                />
+              </Cluster>
+              <CheckRow
+                label="Run jobs from public forks"
+                checked={forks}
+                onChange={setForks}
+              />
+              <CheckRow
+                label="Keep a light runner for short jobs"
+                checked={light}
+                onChange={setLight}
+              />
+              <Message tone="note">
+                A light runner is kept free for jobs that last seconds, so they do not
+                wait behind a long build. A workflow uses it with runs-on:{' '}
+                {'${{ vars.RUNS_ON_LIGHT }}'}.
               </Message>
-            ) : null}
-            {saved ? <Message tone="done">Policy saved.</Message> : null}
-            {save.error ? (
-              <Message tone="problem">Could not save. {save.error}</Message>
-            ) : null}
-            <FormActions>
-              <Button onPress={() => void navigate('/repositories')}>Cancel</Button>
-              <Button
-                kind="primary"
-                submit
-                busy={save.busy}
-                busyLabel="Saving"
-                disabled={!admin}
-                reason={session.whyNot('admin')}
-              >
-                Save
-              </Button>
-            </FormActions>
-          </Stack>
-        </form>
-      </Section>
-      <Section title="Hosted fallback">
-        <HostedFallback r={r} onChanged={onChanged} />
-      </Section>
-      <Section title="Extra packages">
-        <ExtraPackages r={r} onChanged={onChanged} />
-      </Section>
+              {forks ? (
+                <Message tone="needs-you">
+                  Jobs from public forks run code you did not write. Save asks once more
+                  before this takes effect.
+                </Message>
+              ) : null}
+            </Stack>
+          </Pane>
+          <Pane title="Hosted fallback">
+            <HostedFields r={r} value={hosted} onChange={setHosted} />
+          </Pane>
+          <Pane title="Extra packages">
+            <Stack>
+              <TextAreaField
+                label="Extra packages"
+                help="Distribution packages added to the pool image, one name per line."
+                value={packages}
+                onChange={setPackages}
+                rows={6}
+                width="full"
+                mono
+                optional
+                error={packageMistakes(packages)[0]}
+              />
+              <Message tone="note">
+                A changed list builds a new image aside. Running jobs keep the old image
+                until they end.
+              </Message>
+            </Stack>
+          </Pane>
+          {saved ? <Message tone="done">{saved}</Message> : null}
+          {save.error ? (
+            <Message tone="problem">Could not save. {save.error}</Message>
+          ) : null}
+          <FormActions>
+            <Button onPress={() => void navigate('/repositories')}>Cancel</Button>
+            <Button
+              kind={r.pool_on ? 'primary' : 'default'}
+              submit
+              busy={save.busy}
+              busyLabel="Saving"
+              disabled={!admin}
+              reason={session.whyNot('admin')}
+            >
+              Save
+            </Button>
+          </FormActions>
+        </Stack>
+      </form>
       <Ask
-        title="Allow jobs from public forks?"
-        action="Allow"
+        title={riskTitle}
+        action={forkRisk && costRisk ? 'Save' : costRisk ? 'Turn on' : 'Allow'}
         busyLabel="Saving"
-        q={forkQ.question}
-        busy={forkQ.busy}
-        error={forkQ.error}
-        onCancel={forkQ.cancel}
-        onConfirm={() => void forkQ.confirm()}
+        q={riskQ.question}
+        busy={riskQ.busy}
+        error={riskQ.error}
+        onCancel={riskQ.cancel}
+        onConfirm={() => void riskQ.confirm()}
       />
       <Ask
         title={`Turn off ${r.full_name}?`}
@@ -782,87 +870,6 @@ export function packageMistakes(text: string): string[] {
       );
     });
   return out;
-}
-
-/** The extra distribution packages of the repository's pool image, one per line (runners R5.51). */
-function ExtraPackages({ r, onChanged }: { r: Repository; onChanged: () => void }) {
-  const client = useClient();
-  const session = useSession();
-  const admin = session.can('admin');
-  const start = (r.policy.extra_packages ?? []).join('\n');
-  const [text, setText] = useState(start);
-  const [errors, setErrors] = useState<string[]>([]);
-  const [saved, setSaved] = useState(false);
-  const save = useCommand(async () => {
-    setSaved(false);
-    const problems = packageMistakes(text);
-    setErrors(problems);
-    if (problems.length) return;
-    const list = await unwrap(
-      client.PUT('/api/v1/repositories/{repositoryId}/extra-packages', {
-        params: { path: { repositoryId: r.id } },
-        body: { text },
-      }),
-    );
-    setText(list.text);
-    setSaved(true);
-    onChanged();
-  });
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        void save.run();
-      }}
-    >
-      <Stack>
-        <ErrorSummary errors={errors} />
-        <TextAreaField
-          label="Extra packages"
-          help="Distribution packages added to the pool image, one name per line."
-          value={text}
-          onChange={(x) => {
-            setText(x);
-            setSaved(false);
-          }}
-          rows={6}
-          width="full"
-          mono
-          optional
-          error={errors[0]}
-        />
-        <Message tone="note">
-          A changed list builds a new image aside. Running jobs keep the old image until
-          they end.
-        </Message>
-        {saved ? <Message tone="done">Extra packages saved.</Message> : null}
-        {save.error ? (
-          <Message tone="problem">Could not save the packages. {save.error}</Message>
-        ) : null}
-        <FormActions>
-          <Button
-            onPress={() => {
-              setText(start);
-              setErrors([]);
-              setSaved(false);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            kind="primary"
-            submit
-            busy={save.busy}
-            busyLabel="Saving"
-            disabled={!admin}
-            reason={session.whyNot('admin')}
-          >
-            Save packages
-          </Button>
-        </FormActions>
-      </Stack>
-    </form>
-  );
 }
 
 /** The Visibility cell: the word, and for a public repository while the setting is off, the reason and the link. */

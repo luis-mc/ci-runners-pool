@@ -77,7 +77,8 @@ Text on a fill comes in pairs. Every fill role has its own `on-` text token. A f
 Owner decisions LOOK D1 and D2 (2026-11-15): the console looks like TUI panes, and all six palettes are themes the user picks in Settings (UX-60). A theme is a set of token values and nothing else (UX-55).
 
 - **Six themes:** `phosphor`, `tokyo-night`, `catppuccin`, `gruvbox`, `solarized`, `nord`. Each has a dark and a light value set.
-- **Default for a new install:** `tokyo-night` (open decision, safe default). A page with no theme set is Tokyo Night; the tables of the first colour section above describe the starter values and are replaced by the Tokyo Night values below.
+- **Default for a new install:** `phosphor`, in dark mode (owner decision LOOK D11). A page with no theme set is Phosphor; the tables of the first colour section above describe the starter values and are replaced by the Phosphor values below. The light themes keep exactly the look page values (D12).
+- **A sample of a theme:** an element that carries both `data-theme-name` and `data-theme` (the theme preview) keeps its own mode inside a page in any theme or mode.
 - **How a theme is applied:** the attribute `data-theme-name=<id>` on the page root picks the theme. The mode stays as written under "How themes work": `[data-theme=light|dark]` or the system setting. The two attributes are independent. The attribute may also sit on one element (the swatch row in Settings); the tokens then apply to that element and what is inside it.
 - **New token:** `--ds-color-selection`, the fill of the row under the cursor. A selected row is drawn in reverse video: `--ds-color-primary` fill with `--ds-color-on-primary` text.
 - **Radius:** `--ds-radius-1`, `--ds-radius-2` and `--ds-radius-3` come from the theme: `0` for Phosphor, Tokyo Night, Gruvbox and Solarized, `8px` for Catppuccin, `6px` for Nord. `--ds-radius-round` does not change.

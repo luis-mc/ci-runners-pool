@@ -182,11 +182,17 @@ export function Overview() {
     <Page>
       <PageHeader title="Overview" lead="The pool at a glance." />
       <AppGoneBanner />
-      {!o && firstPaint !== 'failed' ? <Loading what="Loading the overview" /> : null}
+      {!o && firstPaint !== 'failed' ? (
+        <Section title="The pool">
+          <Loading what="Loading the overview" />
+        </Section>
+      ) : null}
       {!o && firstPaint === 'failed' ? (
-        <Message tone="problem">
-          Could not load the overview. {why} The console keeps trying.
-        </Message>
+        <Section title="The pool">
+          <Message tone="problem">
+            Could not load the overview. {why} The console keeps trying.
+          </Message>
+        </Section>
       ) : null}
       {o ? (
         <>

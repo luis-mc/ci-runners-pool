@@ -1,5 +1,6 @@
 // R5.3 (shell), R5.4 (palette), R5.8..R5.12 (sessions), R5.7 (paused banner).
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   FakeEventSource,
@@ -235,12 +236,57 @@ describe('the command palette (R5.4)', () => {
     expect(within(d2).queryByText('Add a user')).toBeNull();
   });
 
+  it('opens with focus in the search box, filters as you type, moves with Down, Up, j and k, opens with Enter (UX-57)', async () => {
+    const user = userEvent.setup();
+    renderApp(signedIn(), '/');
+    await screen.findByRole('heading', { name: 'Overview' });
+    await user.keyboard('{Control>}k{/Control}');
+    const dialog = await screen.findByRole('dialog', { name: 'Commands' });
+    const box = within(dialog).getByRole('textbox', {
+      name: 'Search areas, items and commands',
+    });
+    await waitFor(() => expect(document.activeElement).toBe(box));
+    // j types in the box; it does not move.
+    await user.keyboard('j');
+    expect((box as HTMLInputElement).value).toBe('j');
+    await user.clear(box);
+    await user.keyboard('ru');
+    const options = () => within(dialog).getAllByRole('option');
+    expect(options().map((o) => o.textContent)).toEqual(
+      expect.arrayContaining([expect.stringContaining('Runners')]),
+    );
+    expect(within(dialog).queryByRole('option', { name: /Doctor/ })).toBeNull();
+    await user.clear(box);
+    await user.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(within(options()[0]!).getByRole('button'));
+    await user.keyboard('j');
+    expect(document.activeElement).toBe(within(options()[1]!).getByRole('button'));
+    await user.keyboard('k');
+    expect(document.activeElement).toBe(within(options()[0]!).getByRole('button'));
+    await user.keyboard('{ArrowUp}');
+    expect(document.activeElement).toBe(box);
+    await user.type(box, 'Runners');
+    await user.keyboard('{Enter}');
+    expect(await screen.findByRole('heading', { name: 'Runners' })).toBeTruthy();
+    expect(screen.queryByRole('dialog', { name: 'Commands' })).toBeNull();
+  });
+
+  it('Escape closes the palette', async () => {
+    const user = userEvent.setup();
+    renderApp(signedIn(), '/');
+    await screen.findByRole('heading', { name: 'Overview' });
+    await user.keyboard('{Control>}k{/Control}');
+    await screen.findByRole('dialog', { name: 'Commands' });
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
   it('opens the shortcut list with ?', async () => {
     renderApp(signedIn(), '/');
     await screen.findByRole('heading', { name: 'Overview' });
     fireEvent.keyDown(document, { key: '?' });
     const d = await screen.findByRole('dialog', { name: 'Shortcuts' });
-    expect(within(d).getByText('Move down a list')).toBeTruthy();
+    expect(within(d).getByText('Move to the next control or list item')).toBeTruthy();
   });
 });
 
@@ -329,5 +375,29 @@ describe('sessions (R5.8 to R5.12)', () => {
     const api = signedIn().on('GET', '/api/v1/machines', { items: [machine()] });
     renderApp(api, '/machines');
     expect(await screen.findByRole('link', { name: 'build-1' })).toBeTruthy();
+  });
+});
+
+describe('the menu on a phone (UX-15, UX-16)', () => {
+  it('is one Menu button that opens the areas', async () => {
+    const query = (q: string) =>
+      ({
+        matches: q.includes('max-width'),
+        media: q,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      }) as unknown as MediaQueryList;
+    vi.stubGlobal('matchMedia', query);
+    try {
+      renderApp(signedIn(), '/');
+      const button = await screen.findByRole('button', { name: 'Menu: Overview' });
+      expect(screen.queryByRole('navigation', { name: 'Areas' })).toBeNull();
+      fireEvent.click(button);
+      const nav = screen.getByRole('navigation', { name: 'Areas' });
+      expect(within(nav).getAllByRole('link')).toHaveLength(8);
+      expect(screen.getByRole('button', { name: 'Close the menu' })).toBeTruthy();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

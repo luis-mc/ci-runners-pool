@@ -25,6 +25,7 @@ import { useCommand, useLoad } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { TIMING } from '../../timing';
 import { Load } from '../common';
+import { settingsPath } from './sections';
 
 type UpdateStatus = Schemas['UpdateStatus'];
 type UpdateJob = Schemas['UpdateJob'];
@@ -40,8 +41,14 @@ export function jobLine(j: UpdateJob): string {
   return `${j.repository}${j.workflow ? ` ${j.workflow}` : ''}, run ${j.run_id}, job ${j.job}`;
 }
 
-const STATE_WORDS: Record<UpdateStatus['state'], string> = {
-  idle: 'Up to date or waiting for your yes',
+// The idle state is two real cases; say the one that is true (a newer release waits, or nothing is newer).
+function idleWord(s: UpdateStatus): string {
+  if (s.update_available)
+    return `Version ${s.latest_version ?? ''} is waiting for your yes`.replace('  ', ' ');
+  return s.latest_version ? 'Up to date' : 'Not looked for yet';
+}
+
+const STATE_WORDS: Record<Exclude<UpdateStatus['state'], 'idle'>, string> = {
   checking: 'Looking for updates',
   waiting_for_jobs: 'Waiting for running jobs to end',
   downloading: 'Downloading and checking the release',
@@ -49,6 +56,10 @@ const STATE_WORDS: Record<UpdateStatus['state'], string> = {
   restarting: 'Restarting the service',
   failed: 'Failed',
 };
+
+function stateWord(s: UpdateStatus): string {
+  return s.state === 'idle' ? idleWord(s) : STATE_WORDS[s.state];
+}
 
 export function UpdatesSettings() {
   const client = useClient();
@@ -75,7 +86,7 @@ export function UpdatesSettings() {
                   name: 'Newest stable release',
                   value: u.latest_version ?? 'Not looked for yet',
                 },
-                { name: 'State', value: STATE_WORDS[u.state] },
+                { name: 'State', value: stateWord(u) },
                 ...(u.checked_at
                   ? [{ name: 'Last look', value: formatDateTime(u.checked_at) }]
                   : []),
@@ -341,7 +352,7 @@ export function UpdateWizard() {
         ) : null}
         <Facts
           items={[
-            { name: 'State', value: status ? STATE_WORDS[status.state] : 'Starting' },
+            { name: 'State', value: status ? stateWord(status) : 'Starting' },
             { name: 'Jobs still running', value: String(jobs.length) },
             ...jobs.map((j) => ({ name: jobLine(j), value: 'running' })),
           ]}
@@ -408,19 +419,19 @@ export function UpdateWizard() {
         phase === 'running'
           ? {
               text: status
-                ? `${STATE_WORDS[status.state]}${jobs.length ? `: ${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'} left` : ''}`
+                ? `${stateWord(status)}${jobs.length ? `: ${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'} left` : ''}`
                 : 'Starting',
             }
           : undefined
       }
-      onBack={() => void navigate('/settings/updates')}
+      onBack={() => void navigate(settingsPath('updates'))}
       primary={primary}
       review={phase === 'ready-to-review'}
       onStartAgain={startAgain}
       onTryAgain={startAgain}
       donePrimary={{
         label: 'Open Updates',
-        onPress: () => void navigate('/settings/updates'),
+        onPress: () => void navigate(settingsPath('updates')),
       }}
     >
       {body}
@@ -434,7 +445,7 @@ export function UpdateReviewPage() {
   return (
     <Page frame="narrow">
       <Breadcrumbs
-        trail={[{ to: '/settings/updates', label: 'Updates' }, { label: 'Review' }]}
+        trail={[{ to: settingsPath('updates'), label: 'Updates' }, { label: 'Review' }]}
       />
       <PageHeader title={restart ? 'Restart the service' : 'Update'} />
       <UpdateWizard />

@@ -516,7 +516,7 @@ func TestPreferences(t *testing.T) {
 	h := newHarness(t)
 	c, csrf := h.setup(1, "alice")
 	res, b := h.do("GET", "/api/v1/me/preferences", nil, c, nil)
-	if !strings.Contains(string(b), `"theme":"system"`) {
+	if !strings.Contains(string(b), `"theme":"dark"`) {
 		t.Fatalf("%d %s", res.StatusCode, b)
 	}
 	if res, _ := h.do("PUT", "/api/v1/me/preferences", map[string]string{"theme": "dark"}, c, map[string]string{"X-CSRF-Token": csrf}); res.StatusCode != 200 {

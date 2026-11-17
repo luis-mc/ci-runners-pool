@@ -1,12 +1,5 @@
 // Tabs (3), filter chips (12), search bar (21), code block with Copy, number field with the keypad (37).
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type ReactNode,
-} from 'react';
+import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { NumberKeypad } from '../pickers/NumberKeypad';
 import { Button } from './Button';
 import { Dialog } from './Dialog';
@@ -168,16 +161,6 @@ export function Tabs({
   onChange: (id: string) => void;
 }) {
   const list = useRef<HTMLDivElement>(null);
-  // The row never wraps (UX-15), so a row wider than its frame scrolls; keep the chosen tab in view.
-  useEffect(() => {
-    // Only the row scrolls (scrollIntoView would also move the page and the focus start point).
-    const row = list.current;
-    const el = row?.querySelector<HTMLElement>('[aria-selected="true"]');
-    if (!row || !el) return;
-    if (el.offsetLeft < row.scrollLeft) row.scrollLeft = el.offsetLeft;
-    else if (el.offsetLeft + el.offsetWidth > row.scrollLeft + row.clientWidth)
-      row.scrollLeft = el.offsetLeft + el.offsetWidth - row.clientWidth;
-  }, [current]);
   const move = (e: KeyboardEvent<HTMLDivElement>) => {
     const at = tabs.findIndex((t) => t.id === current);
     let to = -1;

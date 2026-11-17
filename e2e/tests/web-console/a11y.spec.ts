@@ -23,6 +23,13 @@ const screens = [
     recovery: true,
   },
   {
+    name: 'jobs empty',
+    url: '/jobs',
+    signedOut: false,
+    recovery: false,
+    emptyJobs: true,
+  },
+  {
     name: 'repositories with public rows while the setting is off',
     url: '/repositories',
     signedOut: false,
@@ -87,6 +94,8 @@ for (const theme of ['dark', 'light'] as const) {
               },
             ],
           });
+      if ('emptyJobs' in screen)
+        mock.on('GET', '/api/v1/jobs', { items: [], stale: { stale: false } });
       if (screen.signedOut)
         mock.on('GET', '/api/v1/me', failure(401, 'unauthenticated', 'Sign in.'));
       await mock.install(page);
@@ -150,7 +159,7 @@ const focusScreens = [
   { name: 'sign-in', url: '/sign-in', signedOut: true },
   { name: 'first-run wizard', url: '/setup', signedOut: false },
   { name: 'repositories', url: '/repositories', signedOut: false },
-  { name: 'users', url: '/settings/users', signedOut: false },
+  { name: 'users', url: '/settings/access', signedOut: false },
 ];
 
 for (const screen of focusScreens) {
