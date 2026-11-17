@@ -146,6 +146,16 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Sizes: machineCapacity{svc: d.Machines, pool: pool}, Up: machineUp{svc: d.Machines},
 		FallbackGrace: fallbackGrace(d), PublicRepositories: publicRepositories(d), Now: d.Now})
 	health := webhookhealth.New()
+	// An App made without a webhook has no webhook secret in the store (R5.3):
+	// no delivery can arrive, so polling finding a job is not a missed delivery.
+	health.HooksOn = func() bool {
+		app := gh.AppID()
+		if app == 0 {
+			return false
+		}
+		b, err := d.Secrets.Get(context.Background(), github.SecretKey(app, github.SecretWebhookSecret))
+		return err == nil && len(b) > 0
+	}
 	appHealth := &github.AppHealth{Client: gh, AppID: gh.AppID, Now: d.Now}
 	hook := &github.WebhookHandler{
 		Verifier: func() (github.WebhookVerifier, error) {

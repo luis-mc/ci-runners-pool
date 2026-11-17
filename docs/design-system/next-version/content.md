@@ -473,7 +473,8 @@ The words of the Add a machine wizard (machines R5.3a, R5.4a), the runner states
 | Runner state | idle, busy |
 | Runner counts | Idle, Busy, Not ready |
 | Runner job | {repository} {job}, running {duration} |
-| Repository column and fact | Last delivery: no delivery yet, delivered, delivery failed, delivery missed, pool off; Last webhook delivery; Jobs are learned by: webhooks, polling |
+| Repository column and fact | Last delivery: no delivery yet, delivered, delivery failed, delivery missed, no webhook, pool off; Last webhook delivery; Jobs are learned by: webhooks, polling |
+| Webhook notes | The GitHub App of this controller has no webhook, so GitHub tells crsp nothing. crsp finds jobs by polling GitHub every 15 seconds, and jobs still run. Nothing needs fixing unless you want jobs to start at once. / GitHub did not tell crsp about a job; crsp found it by polling, so it ran a little late. The webhook of the GitHub App cannot reach this controller. In the GitHub App settings, check that the webhook address is public and starts with https, and look at Recent Deliveries for the red mark. |
 | Polling notice | GitHub deliveries to this repository failed {n} times in a row, so crsp now polls GitHub for its jobs. Jobs still run, but they start a little later. |
 | Polling button | Switch back to webhooks (busy word: Switching) |
 | Polling failure | Could not switch back. {reason} |

@@ -42,3 +42,16 @@ func TestRepositoryShowsWebhookHealthAndSwitchesBack(t *testing.T) { // RES14
 		t.Fatalf("a change needs the CSRF token: %d", res.StatusCode)
 	}
 }
+
+func TestRepositoryTellsWhenTheAppHasNoWebhook(t *testing.T) { // OPS22
+	h := newHarness(t)
+	owner, _ := h.setup(1, "alice")
+	h.fake.AddInstall(10, "alice", "User", 1)
+	h.fake.AddRepo(100, 10, "alice", "app", true, 1)
+	_, _ = h.do("GET", "/api/v1/github/repositories", nil, owner, nil)
+	h.health.HooksOn = func() bool { return false }
+	_, b := h.do("GET", "/api/v1/repositories/100", nil, owner, nil)
+	if !strings.Contains(string(b), `"webhooks_off":true`) {
+		t.Fatalf("no webhooks_off: %s", b)
+	}
+}

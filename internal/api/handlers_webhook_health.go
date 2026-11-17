@@ -13,6 +13,7 @@ import (
 type WebhookHealth interface {
 	Get(fullName string) webhookhealth.State
 	SwitchBack(fullName string) webhookhealth.State
+	WebhooksOff() bool
 }
 
 var _ WebhookHealth = (*webhookhealth.Tracker)(nil)
@@ -38,6 +39,10 @@ func (s *server) withHealth(r gen.Repository) gen.Repository {
 		return r
 	}
 	h := toWebhookHealth(a.Health.Get(r.FullName))
+	if a.Health.WebhooksOff() {
+		off := true
+		h.WebhooksOff = &off
+	}
 	r.Webhook = &h
 	return r
 }

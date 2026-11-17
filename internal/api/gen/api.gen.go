@@ -4239,6 +4239,9 @@ type WebhookHealth struct {
 
 	// PollingSince Set in polling mode.
 	PollingSince *time.Time `json:"polling_since,omitempty"`
+
+	// WebhooksOff True when the GitHub App has no webhook, so jobs are learned by polling only and no delivery can be missed (OPS22). Absent when webhooks are on.
+	WebhooksOff *bool `json:"webhooks_off,omitempty"`
 }
 
 // WebhookHealthLastResult defines model for WebhookHealth.LastResult.

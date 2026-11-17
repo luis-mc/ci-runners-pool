@@ -529,6 +529,52 @@ describe('Webhook health (RES14)', () => {
     expect(within(table).getByText('delivered')).toBeTruthy();
   });
 
+  it('says plainly when the App has no webhook (OPS22)', async () => {
+    const none = repository({
+      id: 11,
+      full_name: 'octo/nohook',
+      owner: 'octo',
+      name: 'nohook',
+      pool_on: true,
+      webhook: {
+        mode: 'webhook',
+        failures_in_a_row: 0,
+        last_result: 'missed',
+        last_delivery_at: new Date().toISOString(),
+        webhooks_off: true,
+      },
+    });
+    const a = withRepos(signedIn(), [none]).on('GET', '/api/v1/repositories/:id', none);
+    renderApp(a, '/repositories/octo/nohook');
+    expect(
+      await screen.findByText(/has no webhook, so GitHub tells crsp nothing/),
+    ).toBeTruthy();
+    expect(screen.queryByText('delivery missed')).toBeNull();
+  });
+
+  it('says what a missed delivery means and what to check (OPS22)', async () => {
+    const missed = repository({
+      id: 12,
+      full_name: 'octo/late',
+      owner: 'octo',
+      name: 'late',
+      pool_on: true,
+      webhook: {
+        mode: 'webhook',
+        failures_in_a_row: 1,
+        last_result: 'missed',
+        last_delivery_at: new Date().toISOString(),
+      },
+    });
+    const a = withRepos(signedIn(), [missed]).on(
+      'GET',
+      '/api/v1/repositories/:id',
+      missed,
+    );
+    renderApp(a, '/repositories/octo/late');
+    expect(await screen.findByText(/did not tell crsp about a job/)).toBeTruthy();
+  });
+
   it('says crsp polls and switches back on a press', async () => {
     const a = withRepos(signedIn(), [polling])
       .on('GET', '/api/v1/repositories/:id', polling)

@@ -17,6 +17,7 @@ import type { Repository } from './plans';
 /** The last delivery as a status word. */
 export function deliveryStatus(r: Repository): { kind: StatusKind; word: string } {
   const w = r.webhook;
+  if (w?.webhooks_off) return { kind: 'off', word: 'no webhook' };
   if (!w || !w.last_delivery_at || !w.last_result)
     return { kind: 'off', word: 'no delivery yet' };
   if (w.last_result === 'ok') return { kind: 'ok', word: 'delivered' };
@@ -38,9 +39,29 @@ export function DeliveryWhen({ r }: { r: Repository }) {
   return (
     <span>
       <Status kind={s.kind} word={s.word} />
-      {w?.last_delivery_at ? ` ${formatPast(w.last_delivery_at, now)}` : ''}
+      {w?.last_delivery_at && !w.webhooks_off
+        ? ` ${formatPast(w.last_delivery_at, now)}`
+        : ''}
     </span>
   );
+}
+
+/** What the learning source is, in the repository facts. */
+export function learnedBy(r: Repository): string {
+  return r.webhook?.mode === 'polling' || r.webhook?.webhooks_off
+    ? 'polling'
+    : 'webhooks';
+}
+
+/** Words for a missed delivery, or for an App that has no webhook. Empty when all is well. */
+export function deliveryNotice(r: Repository): string | null {
+  const w = r.webhook;
+  if (!w) return null;
+  if (w.webhooks_off)
+    return 'The GitHub App of this controller has no webhook, so GitHub tells crsp nothing. crsp finds jobs by polling GitHub every 15 seconds, and jobs still run. Nothing needs fixing unless you want jobs to start at once.';
+  if (w.last_result === 'missed' && w.mode !== 'polling')
+    return 'GitHub did not tell crsp about a job; crsp found it by polling, so it ran a little late. The webhook of the GitHub App cannot reach this controller. In the GitHub App settings, check that the webhook address is public and starts with https, and look at Recent Deliveries for the red mark.';
+  return null;
 }
 
 /** The polling notice with the switch back. Nothing is drawn while deliveries work. */
@@ -62,7 +83,9 @@ export function PollingNotice({
     );
     onChanged();
   });
-  if (r.webhook?.mode !== 'polling') return null;
+  const notice = deliveryNotice(r);
+  if (r.webhook?.mode !== 'polling')
+    return notice ? <Message tone="note">{notice}</Message> : null;
   return (
     <Stack>
       <Message tone="needs-you">

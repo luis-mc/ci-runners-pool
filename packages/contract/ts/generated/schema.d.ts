@@ -2988,6 +2988,8 @@ export interface components {
              * @description Set in polling mode.
              */
             polling_since?: string;
+            /** @description True when the GitHub App has no webhook, so jobs are learned by polling only and no delivery can be missed (OPS22). Absent when webhooks are on. */
+            webhooks_off?: boolean;
         };
         /** @description A new App private key, sent once and never returned (github-integration R5.7). */
         AppKeyUpload: {

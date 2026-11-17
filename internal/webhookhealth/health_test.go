@@ -94,3 +94,27 @@ func TestDeliveredSettlesPendingJob(t *testing.T) {
 		t.Fatalf("got %+v", s)
 	}
 }
+
+// OPS22: an App with no webhook never announces a job, so polling finding
+// every job first is not a missed delivery.
+func TestNoWebhookNeverCountsAsMissed(t *testing.T) {
+	now := time.Unix(1000, 0)
+	tr := newAt(&now)
+	tr.HooksOn = func() bool { return false }
+	if !tr.WebhooksOff() {
+		t.Fatal("webhooks should read as off")
+	}
+	tr.PollSawQueued("a/b", 1)
+	now = now.Add(MissedGrace + time.Second)
+	tr.PollSawQueued("a/b", 1)
+	if s := tr.Get("a/b"); s.Last != "" || s.Failures != 0 {
+		t.Fatalf("got %+v", s)
+	}
+	tr.HooksOn = func() bool { return true }
+	tr.PollSawQueued("a/b", 2)
+	now = now.Add(MissedGrace + time.Second)
+	tr.PollSawQueued("a/b", 2)
+	if s := tr.Get("a/b"); s.Last != ResultMissed {
+		t.Fatalf("with a webhook the miss counts: %+v", s)
+	}
+}
