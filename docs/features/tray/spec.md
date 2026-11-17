@@ -10,7 +10,7 @@ type: reference
 code:
   - internal/tray/**
 design_system: [UX-1, UX-6, UX-9, UX-17, UX-18, UX-26, UX-29, UX-30, UX-58, UX-62]
-last_verified: 2026-11-16
+last_verified: 2026-11-17
 artifact:
 generator: luismc-docs 2.6.1
 ---
@@ -176,7 +176,7 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 **R5.28** — Automatic updates MUST be on by default on every OS, and the user MUST be able to turn it off and on in the console (Settings, Updates) and with `crsp update auto on|off`. The choice is the controller setting `auto_update`, and the version line of the menu MUST say `· auto-update off` when it is off. (M1, CRSP19)
 
-**R5.43** (built, CRSP147) — **Look for updates asks first.** A newer stable release MUST open a dialog that stays until answered: the version that runs, the new version, a `What changed` link to the release page, `Later` on the left and `Install now` (the main button) on the right. When jobs run it MUST say that Install now waits for them to finish (the drain) and how many run; it stops none. Install now sends the local channel call `install` (the service drains, then installs); Later changes nothing. Closing the dialog is Later. The tray MUST NOT install anything on a look alone, whatever Automatic updates says. With Automatic updates off, a newer release found by the regular check opens the same dialog once per version. Without a dialog program (a Linux desktop with neither zenity nor kdialog) the tray shows a notice that points to Settings, Updates, and installs nothing. After a successful update the tray shows `Updated to vX` once (operations R5.88).
+**R5.43** (built, CRSP147) — **Look for updates asks first.** A newer stable release MUST open a dialog that stays until answered: the version that runs, the new version, a `What changed` link to the release page, `Later` on the left and `Install now` (the main button) on the right. When jobs run it MUST say that Install now waits for them to finish (the drain) and how many run; it stops none. Install now sends the local channel call `install` (the service drains, then installs); Later changes nothing. Closing the dialog is Later. The dialog MUST be visible and in front on Windows. While one dialog is open, another press of Look for updates opens no second one, and a dialog nobody answers closes after 30 minutes (TRAY2). The tray MUST NOT install anything on a look alone, whatever Automatic updates says. With Automatic updates off, a newer release found by the regular check opens the same dialog once per version. Without a dialog program (a Linux desktop with neither zenity nor kdialog) the tray shows a notice that points to Settings, Updates, and installs nothing. After a successful update the tray shows `Updated to vX` once (operations R5.88).
 
 **R5.29** — The tray MUST ask the service to look for updates only through the local channel calls `check` and `install`; it never talks to GitHub itself. Update, restart and Look for updates MUST NOT need a network port in the tray (R6.3). (M1, CRSP19)
 
