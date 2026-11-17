@@ -8,42 +8,93 @@ import (
 	"time"
 )
 
-func ids(items []MenuItem) []string {
+// labels lists the visible menu as text: a separator is "---", a submenu item is indented.
+func labels(items []MenuItem) []string {
 	var out []string
-	for _, it := range items {
-		out = append(out, it.ID)
+	for _, it := range Visible(items) {
+		switch {
+		case it.Separator:
+			out = append(out, "---")
+		case it.Parent != "":
+			out = append(out, "  "+it.Label)
+		default:
+			out = append(out, it.Label)
+		}
 	}
 	return out
 }
 
-// R5.1: the same menu on every OS, in this order.
-func TestMenuOrder(t *testing.T) {
-	st := Status{State: StateHealthy, Running: 2, Waiting: 1, Runners: 1, Version: "1.4.0", Update: UpdateInfo{State: "idle"}}
-	m := BuildMenu("1.4.0", st, true)
-	wantIDs := []string{IDHeader, IDService, IDSep1, IDMode, IDModeAuto, IDModeAlw, IDModePause, IDPauseHour, IDPauseTill, IDResume, IDOpen, IDCheck, IDUpdate, IDRestart, IDLogs, IDGitHub, IDLogin, IDSep2, IDQuit}
-	if got := ids(m); strings.Join(got, ",") != strings.Join(wantIDs, ",") {
-		t.Fatalf("order %v", got)
+// TRAY3: the same menu on every OS, in this order, for each state.
+func TestMenuOrderPerState(t *testing.T) {
+	healthy := Status{State: StateHealthy, Running: 2, Waiting: 1, Runners: 3, Version: "1.4.0", Update: UpdateInfo{State: "idle"},
+		Policy: MachinePolicy{Known: true, Mode: ModeAutomatic, Accepting: true}}
+	tail := []string{
+		"---", "Restart the service", "Open log folder", "Open Doctor",
+		"---", "Start at login", "Quit tray",
 	}
-	vis := Visible(m)
-	want := []string{
-		"CI Runners Shared Pool 1.4.0 - up to date",
-		"Service: Running · 2 jobs running · 1 waiting",
-		"", "Open CI Runners Shared Pool", "Look for updates", "Restart the service",
-		"Open log folder", "Open on GitHub", "Start at login", "", "Quit tray",
+	build := func(head []string, pause ...string) []string {
+		out := append([]string{}, head...)
+		out = append(out, "---", "Open console", "Open on GitHub", "Look for updates", "---")
+		out = append(out, pause...)
+		return append(out, tail...)
 	}
-	if len(vis) != len(want) {
-		t.Fatalf("visible %d: %v", len(vis), ids(vis))
+	runPause := []string{"Pause", "  for 1 hour", "  until I resume", "Mode: Automatic", "  Automatic", "  Always"}
+	cases := []struct {
+		name string
+		st   func() Status
+		want []string
+	}{
+		{"up to date", func() Status { return healthy },
+			build([]string{"CI Runners Shared Pool 1.4.0 - up to date", "Running - 2 jobs - 3 runners"}, runPause...)},
+		{"update available", func() Status {
+			s := healthy
+			s.Update = UpdateInfo{State: "idle", Available: true, Latest: "1.5.0"}
+			return s
+		}, build([]string{"CI Runners Shared Pool 1.4.0", "\u2191 Update to 1.5.0", "Running - 2 jobs - 3 runners"}, runPause...)},
+		{"paused 1 hour", func() Status {
+			s := healthy
+			s.Policy.PauseUntil = time.Date(2026, 11, 14, 15, 30, 0, 0, time.Local)
+			s.Policy.PauseReason = "paused"
+			s.Policy.Accepting = false
+			return s
+		}, build([]string{"CI Runners Shared Pool 1.4.0 - up to date · Paused", "Running - 2 jobs - 3 runners"},
+			"Paused until 15:30 - Resume now", "Mode: Automatic", "  Automatic", "  Always")},
+		{"paused until resume", func() Status {
+			s := healthy
+			s.Policy.UntilResumed = true
+			s.Policy.PauseReason = "paused"
+			s.Policy.Accepting = false
+			return s
+		}, build([]string{"CI Runners Shared Pool 1.4.0 - up to date · Paused", "Running - 2 jobs - 3 runners"},
+			"Paused - Resume now", "Mode: Automatic", "  Automatic", "  Always")},
+		{"no runners", func() Status {
+			s := healthy
+			s.Running, s.Waiting, s.Runners = 0, 0, 0
+			return s
+		}, build([]string{"CI Runners Shared Pool 1.4.0 - up to date", "Running - no runners yet"}, runPause...)},
 	}
-	for i, w := range want {
-		if vis[i].Label != w {
-			t.Errorf("item %d = %q want %q", i, vis[i].Label, w)
+	for _, c := range cases {
+		got := labels(BuildMenu("1.4.0", c.st(), true))
+		if strings.Join(got, "|") != strings.Join(c.want, "|") {
+			t.Errorf("%s:\n got  %q\n want %q", c.name, got, c.want)
 		}
 	}
-	if vis[0].Action || vis[1].Action || !vis[3].Action {
-		t.Error("the two top lines are text; Open is the default entry")
+}
+
+func TestMenuKinds(t *testing.T) {
+	st := Status{State: StateHealthy, Runners: 1, Update: UpdateInfo{State: "idle", Available: true, Latest: "1.5.0"}, Policy: MachinePolicy{Known: true, Accepting: true}}
+	by := map[string]MenuItem{}
+	for _, it := range BuildMenu("1.4.0", st, true) {
+		by[it.ID] = it
 	}
-	if !vis[8].Switch || !vis[8].Checked || !vis[2].Separator || !vis[9].Separator {
-		t.Error("Start at login is a ticked switch; two separators")
+	if by[IDHeader].Action || !by[IDUpdate].Action || !by[IDStatus].Action {
+		t.Error("the header is grey text; Update and the status line press")
+	}
+	if !by[IDLogin].Switch || !by[IDLogin].Checked {
+		t.Error("Start at login is a ticked switch")
+	}
+	if by[IDPauseHour].Parent != IDPause || by[IDModeAuto].Parent != IDMode || !by[IDModeAuto].Checked || by[IDModeAlw].Checked {
+		t.Error("submenu parents and the ticked mode")
 	}
 }
 
@@ -55,11 +106,11 @@ func TestHeaderPerUpdateState(t *testing.T) {
 		want string
 	}{
 		{"up to date", ok(UpdateInfo{State: "idle"}), "CI Runners Shared Pool 1.4.0 - up to date"},
-		{"available", ok(UpdateInfo{Latest: "1.5.0", Available: true, State: "idle"}), "CI Runners Shared Pool 1.4.0 - update 1.5.0 available"},
+		{"available", ok(UpdateInfo{Latest: "1.5.0", Available: true, State: "idle"}), "CI Runners Shared Pool 1.4.0"},
 		{"draining", ok(UpdateInfo{Latest: "1.5.0", Available: true, State: "waiting_for_jobs"}), "CI Runners Shared Pool 1.4.0 - updating…"},
 		{"installing", ok(UpdateInfo{Latest: "1.5.0", Available: true, State: "installing"}), "CI Runners Shared Pool 1.4.0 - updating…"},
 		{"auto off, up to date", ok(UpdateInfo{State: "idle", AutoOff: true}), "CI Runners Shared Pool 1.4.0 - up to date · auto-update off"},
-		{"auto off, available", ok(UpdateInfo{Latest: "1.5.0", Available: true, AutoOff: true}), "CI Runners Shared Pool 1.4.0 - update 1.5.0 available · auto-update off"},
+		{"auto off, available", ok(UpdateInfo{Latest: "1.5.0", Available: true, AutoOff: true}), "CI Runners Shared Pool 1.4.0 · auto-update off"},
 		{"failed", ok(UpdateInfo{State: "failed"}), "CI Runners Shared Pool 1.4.0 - update failed"},
 		{"service stopped: no claim", Status{State: StateStopped}, "CI Runners Shared Pool 1.4.0"},
 		{"service starting: no claim", Status{State: StateStarting}, "CI Runners Shared Pool 1.4.0"},
@@ -71,30 +122,30 @@ func TestHeaderPerUpdateState(t *testing.T) {
 	}
 }
 
-func TestServiceLinePerState(t *testing.T) {
+func TestStatusLinePerState(t *testing.T) {
 	at := time.Date(2026, 11, 14, 14, 30, 0, 0, time.UTC)
 	cases := map[string]Status{
-		"Service: Running · 2 jobs running · 1 waiting": {State: StateHealthy, Running: 2, Waiting: 1, Runners: 1},
-		"Service: Running · 1 job running · 0 waiting":  {State: StateHealthy, Running: 1, Runners: 1},
-		"Service: Waiting · 0 jobs running · 4 waiting": {State: StateWaiting, Waiting: 4, Runners: 1},
-		"Service: Failed · GitHub not reachable":        {State: StateFailed, Fault: "GitHub not reachable"},
-		"Service: Stopped at 14:30 · exit code 3":       {State: StateStopped, StoppedAt: at, ExitCode: 3},
-		"Service: Starting":                             {State: StateStarting},
-		"Service: Running · no runners yet":             {State: StateHealthy},
+		"Running - 2 jobs - 3 runners":   {State: StateHealthy, Running: 2, Waiting: 1, Runners: 3},
+		"Running - 1 job - 1 runner":     {State: StateHealthy, Running: 1, Runners: 1},
+		"Waiting - 0 jobs - 1 runner":    {State: StateWaiting, Waiting: 4, Runners: 1},
+		"Failed - GitHub not reachable":  {State: StateFailed, Fault: "GitHub not reachable"},
+		"Stopped at 14:30 - exit code 3": {State: StateStopped, StoppedAt: at, ExitCode: 3},
+		"Starting":                       {State: StateStarting},
+		"Running - no runners yet":       {State: StateHealthy},
 	}
 	for want, s := range cases {
-		if got := s.ServiceLine(); got != want {
+		if got := s.StatusLine(); got != want {
 			t.Errorf("got %q want %q", got, want)
 		}
 	}
 }
 
-// The Update item shows only when the owner's yes is needed: a newer release and auto-update off (R5.18).
-func TestUpdateItemOnlyWhenNewerAndAutoOff(t *testing.T) {
+// The Update line shows when a newer release exists and no update runs.
+func TestUpdateItemOnlyWhenNewer(t *testing.T) {
 	has := func(st Status) bool {
 		for _, it := range Visible(BuildMenu("1.4.0", st, false)) {
 			if it.ID == IDUpdate {
-				return it.Label == "Update to 1.5.0"
+				return it.Label == "\u2191 Update to 1.5.0"
 			}
 		}
 		return false
@@ -104,10 +155,10 @@ func TestUpdateItemOnlyWhenNewerAndAutoOff(t *testing.T) {
 		u    UpdateInfo
 		show bool
 	}{
-		"newer, auto off":    {UpdateInfo{Latest: "1.5.0", Available: true, AutoOff: true, State: "idle"}, true},
-		"newer, auto on":     {UpdateInfo{Latest: "1.5.0", Available: true, State: "idle"}, false},
-		"none, auto off":     {UpdateInfo{AutoOff: true, State: "idle"}, false},
-		"updating, auto off": {UpdateInfo{Latest: "1.5.0", Available: true, AutoOff: true, State: "waiting_for_jobs"}, false},
+		"newer":           {UpdateInfo{Latest: "1.5.0", Available: true, State: "idle"}, true},
+		"newer, auto off": {UpdateInfo{Latest: "1.5.0", Available: true, AutoOff: true, State: "idle"}, true},
+		"none":            {UpdateInfo{State: "idle"}, false},
+		"updating":        {UpdateInfo{Latest: "1.5.0", Available: true, State: "waiting_for_jobs"}, false},
 	} {
 		st := base
 		st.Update = tc.u
@@ -211,5 +262,17 @@ func TestOpenOnGitHubOpensTheRepository(t *testing.T) {
 	o := &Opener{Browser: func(u string) error { opened = u; return nil }}
 	if err := o.OpenGitHub(); err != nil || opened != "https://github.com/luis-mc/ci-runners-shared-pool" {
 		t.Fatalf("%q %v", opened, err)
+	}
+}
+
+// The status line and Open Doctor open the console at their page.
+func TestOpenPageUsesTheTargetLink(t *testing.T) {
+	for _, path := range []string{JobsPath, DoctorPath} {
+		ft := &fakeTargets{}
+		var opened string
+		o := &Opener{Targets: ft, Browser: func(u string) error { opened = u; return nil }}
+		if err := o.OpenPage(context.Background(), path); err != nil || ft.got != path || opened == "" {
+			t.Fatalf("%s: %q %q %v", path, ft.got, opened, err)
+		}
 	}
 }

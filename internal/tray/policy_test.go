@@ -16,12 +16,12 @@ func policyMenu(p MachinePolicy) map[string]MenuItem {
 	return out
 }
 
-// CRSP75: the Mode submenu has the three modes as radio items, and the one in
-// force is ticked.
-func TestModeSubmenuIsThreeRadioItemsWithOneTick(t *testing.T) {
-	for _, mode := range []string{ModeAutomatic, ModeAlways, ModePaused} {
-		m := policyMenu(MachinePolicy{Known: true, Mode: mode, Accepting: mode != ModePaused})
-		sub := map[string]string{IDModeAuto: ModeAutomatic, IDModeAlw: ModeAlways, IDModePause: ModePaused}
+// TRAY3: the Mode submenu has Automatic and Always as radio items, and the one in
+// force is ticked. Paused is no mode of the tray.
+func TestModeSubmenuIsTwoRadioItemsWithOneTick(t *testing.T) {
+	for _, mode := range []string{ModeAutomatic, ModeAlways} {
+		m := policyMenu(MachinePolicy{Known: true, Mode: mode, Accepting: true})
+		sub := map[string]string{IDModeAuto: ModeAutomatic, IDModeAlw: ModeAlways}
 		ticked := 0
 		for id, want := range sub {
 			it := m[id]
@@ -39,19 +39,21 @@ func TestModeSubmenuIsThreeRadioItemsWithOneTick(t *testing.T) {
 			t.Errorf("mode %s: %d items ticked, want 1", mode, ticked)
 		}
 	}
-	m := policyMenu(MachinePolicy{Known: true, Mode: ModeAutomatic, Accepting: true})
-	for id, label := range map[string]string{IDMode: "Mode", IDModeAuto: "Automatic", IDModeAlw: "Always", IDModePause: "Paused"} {
-		if m[id].Label != label {
-			t.Errorf("%s label %q want %q", id, m[id].Label, label)
-		}
+	if got := policyMenu(MachinePolicy{Known: true, Mode: ModeAlways, Accepting: true})[IDMode].Label; got != "Mode: Always" {
+		t.Errorf("label %q", got)
+	}
+	// A machine paused from the console ticks neither mode.
+	m := policyMenu(MachinePolicy{Known: true, Mode: ModePaused, PauseReason: "paused"})
+	if m[IDModeAuto].Checked || m[IDModeAlw].Checked {
+		t.Error("Paused is not a mode of the tray")
 	}
 }
 
-// CRSP75: Pause for 1 hour shows while running; Resume shows while the user holds a pause.
+// TRAY3: the Pause submenu shows while running; Paused ... Resume now shows while the user holds a pause.
 func TestPauseAndResumeItems(t *testing.T) {
 	run := policyMenu(MachinePolicy{Known: true, Mode: ModeAutomatic, Accepting: true})
-	if run[IDPauseHour].Hidden || run[IDPauseHour].Label != "Pause for 1 hour" || run[IDPauseTill].Hidden || !run[IDResume].Hidden {
-		t.Errorf("running: pause %+v until %+v resume %+v", run[IDPauseHour], run[IDPauseTill], run[IDResume])
+	if run[IDPause].Hidden || run[IDPauseHour].Label != "for 1 hour" || run[IDPauseTill].Label != "until I resume" || !run[IDResume].Hidden {
+		t.Errorf("running: pause %+v resume %+v", run[IDPause], run[IDResume])
 	}
 	for name, p := range map[string]MachinePolicy{
 		"timed pause":    {Known: true, Mode: ModeAutomatic, PauseUntil: time.Now().Add(time.Hour), PauseReason: "paused"},
@@ -59,8 +61,8 @@ func TestPauseAndResumeItems(t *testing.T) {
 		"paused by mode": {Known: true, Mode: ModePaused, PauseReason: "paused"},
 	} {
 		m := policyMenu(p)
-		if !m[IDPauseHour].Hidden || !m[IDPauseTill].Hidden || m[IDResume].Hidden || m[IDResume].Label != "Resume" {
-			t.Errorf("%s: pause hidden %v, resume hidden %v", name, m[IDPauseHour].Hidden, m[IDResume].Hidden)
+		if !m[IDPause].Hidden || m[IDResume].Hidden || !strings.HasSuffix(m[IDResume].Label, "Resume now") {
+			t.Errorf("%s: pause hidden %v, resume %+v", name, m[IDPause].Hidden, m[IDResume])
 		}
 	}
 }
@@ -68,7 +70,7 @@ func TestPauseAndResumeItems(t *testing.T) {
 // An older service says nothing about a policy: the tray offers no mode.
 func TestNoPolicyHidesTheModeItems(t *testing.T) {
 	m := policyMenu(MachinePolicy{})
-	for _, id := range []string{IDMode, IDModeAuto, IDModeAlw, IDModePause, IDPauseHour, IDPauseTill, IDResume} {
+	for _, id := range []string{IDMode, IDModeAuto, IDModeAlw, IDPause, IDPauseHour, IDPauseTill, IDResume} {
 		if !m[id].Hidden {
 			t.Errorf("%s is shown without a policy", id)
 		}

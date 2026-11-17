@@ -79,6 +79,15 @@ func (o *Opener) OpenReview(ctx context.Context, path string) error {
 	return o.open(ctx, "Could not open the Review step", func() (string, error) { return o.Targets.LinkTo(ctx, path) })
 }
 
+// OpenPage opens a console page (Jobs, Doctor) through a one-time link. A
+// service that cannot link to a page opens the console start page instead.
+func (o *Opener) OpenPage(ctx context.Context, path string) error {
+	if o.Targets == nil {
+		return o.Open(ctx)
+	}
+	return o.open(ctx, "Could not open the console", func() (string, error) { return o.Targets.LinkTo(ctx, path) })
+}
+
 // OpenGitHub opens the repository page.
 func (o *Opener) OpenGitHub() error {
 	if err := o.Browser(RepoURL); err != nil {

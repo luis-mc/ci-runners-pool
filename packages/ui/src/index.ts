@@ -18,6 +18,7 @@ export * from './components/Table';
 export * from './components/TimeAxis';
 export * from './components/Export';
 export * from './components/Fields';
+export * from './components/OrderList';
 export * from './components/Dialog';
 export * from './components/Controls';
 export * from './components/Wizard';

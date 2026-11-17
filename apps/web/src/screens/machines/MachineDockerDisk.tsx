@@ -44,7 +44,7 @@ export function compactWhy(reason: string | undefined): string {
     case 'offline':
       return 'Waiting: the machine is offline';
     case 'not_active':
-      return 'Waiting: the machine is paused or drained';
+      return 'Waiting: the machine is paused or not taking jobs';
     case 'no_report':
       return 'Waiting for the agent to look at the disk';
     case 'no_admin':

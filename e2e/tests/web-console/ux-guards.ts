@@ -159,6 +159,29 @@ const MEASURES = {
       if (Math.abs(l - l0) > 1 || Math.abs(r - r0) > 1) bad.push(label(b) + ' edges ' + Math.round(l) + '-' + Math.round(r) + ' differ from ' + Math.round(l0) + '-' + Math.round(r0));
     }
     return bad;`,
+  /** UX-69 (LOOK9): on a signed-in page the title, the first menu item and the page content share the frame's left edge, and the content fills the frame to its right edge, within 1 px. The sign-in frame is narrow and has no header. */
+  pageEdges: `${VISIBLE}
+    const title = document.querySelector('.ds-header__product');
+    const first = document.querySelector('.ds-topmenu__link');
+    const main = document.querySelector('main');
+    if (!title || !main) return [];
+    const content = Array.from(main.children).filter(visible);
+    if (content.length === 0) return [];
+    const textLeft = (e) => { const r = document.createRange(); r.selectNodeContents(e); const b = r.getBoundingClientRect(); return b.width > 0 ? b.left : e.getBoundingClientRect().left; };
+    const mp = getComputedStyle(main);
+    const mr = main.getBoundingClientRect();
+    const frameL = mr.left + parseFloat(mp.paddingLeft);
+    const frameR = mr.right - parseFloat(mp.paddingRight);
+    const bad = [];
+    const tl = textLeft(title);
+    if (Math.abs(tl - frameL) > 1) bad.push('title starts at ' + Math.round(tl) + ' but the frame at ' + Math.round(frameL));
+    if (first) { const fl = first.getBoundingClientRect().left; if (Math.abs(fl - tl) > 1) bad.push('first menu item starts at ' + fl.toFixed(1) + ' but the title at ' + tl.toFixed(1)); }
+    for (const c of content) {
+      const r = c.getBoundingClientRect();
+      if (Math.abs(r.left - frameL) > 1) bad.push(label(c) + ' starts at ' + Math.round(r.left) + ' but the frame at ' + Math.round(frameL));
+      if (Math.abs(r.right - frameR) > 1) bad.push(label(c) + ' ends at ' + Math.round(r.right) + ' but the frame at ' + Math.round(frameR));
+    }
+    return bad;`,
   /** UX-69 (A3): the open menu item has no box: no side border, no outline, no fill. */
   navBox: `${VISIBLE}
     const bad = [];
