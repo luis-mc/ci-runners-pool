@@ -20,6 +20,13 @@ const queue: Schemas['QueueSettings'] = {
   no_runner_wait_minutes: 2,
 };
 
+const KEYS = ['Repository priority', 'Event class', 'Fair share', 'Time queued'];
+const rowNames = () =>
+  screen
+    .getAllByRole('listitem')
+    .map((li) => li.querySelector('.ds-order__name')?.textContent)
+    .filter(Boolean);
+
 const api = (user = owner) =>
   signedIn(user)
     .on('GET', '/api/v1/settings/pool', pool)
@@ -33,12 +40,7 @@ describe('Budgets (R5.27)', () => {
     expect(screen.getByRole('button', { name: /Drain timeout/ }).textContent).toContain(
       '60',
     );
-    expect(
-      screen.getByRole<HTMLInputElement>('radio', {
-        name: 'Repository priority',
-        checked: true,
-      }).checked,
-    ).toBe(true);
+    expect(rowNames()).toEqual(KEYS);
     expect(screen.getByText(/no running job is waited/)).toBeTruthy();
   });
 
@@ -58,18 +60,39 @@ describe('Budgets (R5.27)', () => {
     expect(await screen.findByText('Settings saved.')).toBeTruthy();
   });
 
-  it('refuses a duplicate order key before anything is sent', async () => {
-    const a = api();
+  it('lists each order key once and saves a moved order', async () => {
+    const a = api()
+      .on('PUT', '/api/v1/settings/pool', pool)
+      .on('PUT', '/api/v1/settings/queue', queue);
     renderApp(a, '/settings/budgets');
     await screen.findByRole('button', { name: /Memory budget/ });
-    const second = screen.getAllByRole('radio', { name: 'Repository priority' })[1];
-    if (!second) throw new Error('no second place');
-    fireEvent.click(second);
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(
-      await screen.findByText('Each of the four order keys must be used once.'),
-    ).toBeTruthy();
-    expect(a.count('PUT', '/api/v1/settings/pool')).toBe(0);
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Move Repository priority up' })
+        .disabled,
+    ).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Move Event class up' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(a.count('PUT', '/api/v1/settings/queue')).toBe(1));
+    expect(
+      a.calls.find((c) => c.path === '/api/v1/settings/queue' && c.method === 'PUT')?.body,
+    ).toEqual({ ...queue, order: ['event_class', 'priority', 'fair_share', 'queued_at'] });
+  });
+
+  it('normalises stored duplicates on load', async () => {
+    const a = signedIn(owner)
+      .on('GET', '/api/v1/settings/pool', pool)
+      .on('GET', '/api/v1/settings/queue', {
+        ...queue,
+        order: ['queued_at', 'queued_at', 'priority', 'priority'],
+      });
+    renderApp(a, '/settings/budgets');
+    await screen.findByRole('button', { name: /Memory budget/ });
+    expect(rowNames()).toEqual([
+      'Time queued',
+      'Repository priority',
+      'Event class',
+      'Fair share',
+    ]);
   });
 
   it('Cancel puts the saved values back', async () => {

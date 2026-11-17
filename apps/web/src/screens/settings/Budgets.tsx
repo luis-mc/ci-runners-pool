@@ -5,12 +5,13 @@
 import {
   Button,
   CheckRow,
-  ChoiceField,
   Cluster,
   ErrorSummary,
   FormActions,
   Message,
   NumberField,
+  OrderList,
+  normaliseOrder,
   Section,
   Stack,
   Text,
@@ -31,7 +32,13 @@ const KEYS: { value: Key; label: string }[] = [
   { value: 'fair_share', label: 'Fair share' },
   { value: 'queued_at', label: 'Time queued' },
 ];
-const PLACES = ['First', 'Second', 'Third', 'Fourth'];
+const KEY_ORDER = KEYS.map((k) => ({ id: k.value, label: k.label }));
+
+/** Stored config with a repeated or missing key: keep the first of each, append the missing in the default order. */
+export const normaliseQueue = (queue: Queue): Queue => ({
+  ...queue,
+  order: normaliseOrder(queue.order, KEY_ORDER) as Queue['order'],
+});
 
 /** The mistakes of a form, each in one sentence, before anything is sent. */
 export function budgetProblems(pool: Pool, queue: Queue): string[] {
@@ -88,7 +95,7 @@ function BudgetsForm({
   const client = useClient();
   const session = useSession();
   const [p, setP] = useState<Pool>(pool);
-  const [q, setQ] = useState<Queue>(queue);
+  const [q, setQ] = useState<Queue>(normaliseQueue(queue));
   const [errors, setErrors] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
   const save = useCommand(async () => {
@@ -101,11 +108,6 @@ function BudgetsForm({
     setSaved(true);
     onSaved();
   });
-  const place = (i: number, key: Key) => {
-    const order = [...q.order];
-    order[i] = key;
-    setQ({ ...q, order });
-  };
   return (
     <form
       onSubmit={(e) => {
@@ -165,17 +167,12 @@ function BudgetsForm({
         <Section title="Queue order">
           <Stack>
             <Text>The first key decides first. A later key breaks the ties.</Text>
-            <Cluster>
-              {PLACES.map((name, i) => (
-                <ChoiceField
-                  key={name}
-                  label={name}
-                  value={q.order[i] ?? ''}
-                  onChange={(v) => place(i, v as Key)}
-                  choices={KEYS}
-                />
-              ))}
-            </Cluster>
+            <OrderList
+              label="Queue order"
+              items={KEY_ORDER}
+              value={q.order}
+              onChange={(order) => setQ({ ...q, order: order as Queue['order'] })}
+            />
             <CheckRow
               label="Fair share"
               help="Repositories take turns inside one priority."
@@ -202,7 +199,7 @@ function BudgetsForm({
           <Button
             onPress={() => {
               setP(pool);
-              setQ(queue);
+              setQ(normaliseQueue(queue));
               setErrors([]);
               setSaved(false);
               save.clear();

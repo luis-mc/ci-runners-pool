@@ -743,3 +743,11 @@ The words of the Repositories screen when the list is grouped by owner and hides
 | {n} public repositories are listed, muted: the pool serves private repositories only. | The note line while they are listed. |
 | Hide them | Link in that line: lists private repositories only again. |
 | {n} private repositories | Count beside the toolbar; `{n} private & public repositories` when public is active or listed. |
+
+## Ordered list words
+
+| Word | Where |
+| --- | --- |
+| Move {item} up | Name of the icon button ↑ on a row. |
+| Move {item} down | Name of the icon button ↓ on a row. |
+| {item} moved to place {n} of {total}. | Live line after a move. |
