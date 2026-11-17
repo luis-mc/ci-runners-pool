@@ -824,15 +824,34 @@ body {
 .ds-field[data-width='short'] > :is(.ds-input, .ds-number, .ds-button) {
   max-inline-size: var(--ds-width-field-short);
 }
+.ds-field > .ds-number {
+  inline-size: 100%;
+  box-sizing: border-box;
+}
 .ds-field[data-width='medium'] > :is(.ds-input, .ds-number) {
   max-inline-size: var(--ds-width-field-medium);
 }
-/* Side by side in a row, a field is as wide as its box. */
+/* Side by side in a row, a field is exactly as wide as its width class, and the boxes share one top line: the
+   row sits on its bottom edge, so a name that wraps grows upward and never pushes its box down (LOOK25, CORE-7, UX-23). */
+.ds-cluster:has(> .ds-field) {
+  align-items: end;
+}
 .ds-cluster > .ds-field[data-width='short'] {
-  max-inline-size: var(--ds-width-field-short);
+  inline-size: var(--ds-width-field-short);
+  max-inline-size: 100%;
 }
 .ds-cluster > .ds-field[data-width='medium'] {
-  max-inline-size: var(--ds-width-field-medium);
+  inline-size: var(--ds-width-field-medium);
+  max-inline-size: 100%;
+}
+.ds-cluster > .ds-field > :is(.ds-input, .ds-number) {
+  inline-size: 100%;
+  box-sizing: border-box;
+}
+/* A check box or radio draws its 16 px box inside a 44 px hit area: pull the area left so the drawn box
+   starts on the same edge as the fields above it (LOOK25, CORE-7). */
+.ds-choice__row:not([data-card], [data-structured]) > :is(.ds-checkbox, .ds-radio) {
+  margin-inline-start: calc((var(--ds-icon-size) - var(--ds-target-min)) / 2);
 }
 .ds-field[data-width='full'] {
   max-inline-size: var(--ds-width-field-full);
