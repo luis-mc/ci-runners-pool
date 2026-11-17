@@ -1836,6 +1836,30 @@ func (e TrialSetMode) Valid() bool {
 	}
 }
 
+// Defines values for UpdateStageFailedAt.
+const (
+	UpdateStageFailedAtDownloading    UpdateStageFailedAt = "downloading"
+	UpdateStageFailedAtInstalling     UpdateStageFailedAt = "installing"
+	UpdateStageFailedAtRestarting     UpdateStageFailedAt = "restarting"
+	UpdateStageFailedAtWaitingForJobs UpdateStageFailedAt = "waiting_for_jobs"
+)
+
+// Valid indicates whether the value is a known member of the UpdateStageFailedAt enum.
+func (e UpdateStageFailedAt) Valid() bool {
+	switch e {
+	case UpdateStageFailedAtDownloading:
+		return true
+	case UpdateStageFailedAtInstalling:
+		return true
+	case UpdateStageFailedAtRestarting:
+		return true
+	case UpdateStageFailedAtWaitingForJobs:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateStageName.
 const (
 	UpdateStageNameDone           UpdateStageName = "done"
@@ -4196,6 +4220,9 @@ type UpdateStage struct {
 	// Error failed only, in words.
 	Error *string `json:"error,omitempty"`
 
+	// FailedAt failed only, the stage that failed.
+	FailedAt *UpdateStageFailedAt `json:"failed_at,omitempty"`
+
 	// LogPath failed only, the log that has the detail.
 	LogPath *string         `json:"log_path,omitempty"`
 	Name    UpdateStageName `json:"name"`
@@ -4206,6 +4233,9 @@ type UpdateStage struct {
 	// Version The version being installed; for done, the version that runs.
 	Version *string `json:"version,omitempty"`
 }
+
+// UpdateStageFailedAt failed only, the stage that failed.
+type UpdateStageFailedAt string
 
 // UpdateStageName defines model for UpdateStage.Name.
 type UpdateStageName string

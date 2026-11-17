@@ -99,7 +99,7 @@ function CompactGate() {
   if (s.status === 'loading')
     return (
       <main>
-        <Page frame="narrow">
+        <Page frame="compact">
           <PageHeader title="CI Runners Shared Pool" />
           <Loading what="Loading your session" />
         </Page>
@@ -118,7 +118,7 @@ function CompactGate() {
   if (s.status === 'failed')
     return (
       <main>
-        <Page frame="narrow">
+        <Page frame="compact">
           <PageHeader title="CI Runners Shared Pool" />
           <Failed
             what="Could not load your session."

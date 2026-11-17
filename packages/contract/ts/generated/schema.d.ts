@@ -4140,6 +4140,11 @@ export interface components {
             error?: string;
             /** @description failed only, the log that has the detail. */
             log_path?: string;
+            /**
+             * @description failed only, the stage that failed.
+             * @enum {string}
+             */
+            failed_at?: "downloading" | "waiting_for_jobs" | "installing" | "restarting";
             /** Format: date-time */
             at: string;
         };

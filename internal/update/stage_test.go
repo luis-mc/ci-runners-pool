@@ -133,7 +133,7 @@ func TestManagerStageFailedCarriesErrorAndLog(t *testing.T) {
 		t.Fatal("a bad checksum must refuse")
 	}
 	s, ok := ReadStage(filepath.Join(h.dir, "updates"))
-	if !ok || s.Name != StageFailed || s.Error == "" || !strings.HasSuffix(s.LogPath, LogFile) {
+	if !ok || s.Name != StageFailed || s.Error == "" || !strings.HasSuffix(s.LogPath, LogFile) || s.FailedAt != StageDownloading {
 		t.Fatalf("%+v", s)
 	}
 }
@@ -152,7 +152,7 @@ func TestHelperWritesDoneAndFailedStages(t *testing.T) {
 	if err := RunPlan(context.Background(), p, env); err == nil {
 		t.Fatal("an unhealthy build must fail")
 	}
-	if s, _ := ReadStage(dir); s.Name != StageFailed || s.Error == "" || s.LogPath != filepath.Join(dir, LogFile) {
+	if s, _ := ReadStage(dir); s.Name != StageFailed || s.Error == "" || s.LogPath != filepath.Join(dir, LogFile) || s.FailedAt != StageInstalling {
 		t.Fatalf("%+v", s)
 	}
 }

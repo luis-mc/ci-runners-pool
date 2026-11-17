@@ -314,6 +314,14 @@ func (m *Manager) stage(s Stage) {
 	}
 }
 
+// currentStage is the name of the stage that runs now ("" when none does), read before a failure replaces it.
+func (m *Manager) currentStage() string {
+	if s, ok := ReadStage(m.o.Dir); ok && s.Name != StageDone && s.Name != StageFailed {
+		return s.Name
+	}
+	return ""
+}
+
 // logPath is the log a failed update points to.
 func (m *Manager) logPath() string {
 	if m.o.GOOS == "windows" && m.o.InstallKind == KindMSI {
@@ -457,7 +465,7 @@ func (m *Manager) giveUpDrain(actor string, limit time.Duration) {
 	m.lock = nil
 	msg := m.errText
 	m.mu.Unlock()
-	m.stage(Stage{Name: StageFailed, Percent: -1, Error: msg, LogPath: m.logPath()})
+	m.stage(Stage{Name: StageFailed, Percent: -1, Error: msg, LogPath: m.logPath(), FailedAt: StageWaitingForJobs})
 	if err := m.o.Drainer.CancelDrain(context.Background(), actor); err != nil {
 		m.o.Logger.Warn("could not cancel the drain", "err", err)
 	}
@@ -474,7 +482,7 @@ func (m *Manager) fail(err error, version string) {
 	if version != "" {
 		_ = RecordFailure(m.o.Dir, version, m.o.Now(), false)
 	}
-	m.stage(Stage{Name: StageFailed, Percent: -1, Version: version, Error: err.Error(), LogPath: m.logPath()})
+	m.stage(Stage{Name: StageFailed, Percent: -1, Version: version, Error: err.Error(), LogPath: m.logPath(), FailedAt: m.currentStage()})
 	m.o.Logger.Warn("update refused or failed", "err", err)
 }
 

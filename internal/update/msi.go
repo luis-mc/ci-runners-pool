@@ -124,7 +124,7 @@ func recoverMSI(dir, current string, now time.Time) (bool, Result) {
 		if r.OK {
 			_ = WriteStage(dir, Stage{Name: StageDone, Percent: 100, Version: rec.To, At: now})
 		} else {
-			_ = WriteStage(dir, Stage{Name: StageFailed, Percent: -1, Version: rec.To, Error: r.Error, LogPath: rec.Log, At: now})
+			_ = WriteStage(dir, Stage{Name: StageFailed, Percent: -1, Version: rec.To, Error: r.Error, LogPath: rec.Log, FailedAt: StageInstalling, At: now})
 		}
 		_ = os.Remove(filepath.Join(dir, PendingMSIFile))
 		return true, r

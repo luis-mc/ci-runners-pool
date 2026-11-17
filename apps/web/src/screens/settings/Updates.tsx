@@ -40,7 +40,6 @@ const IN_PROGRESS: readonly UpdateStatus['state'][] = [
 
 // The compact update page (TRAY4): one step per stage of the update, in the order the service goes through them.
 const COMPACT_STEPS = [
-  'Reading the service',
   'Review',
   'Downloading',
   'Waiting for jobs',
@@ -49,18 +48,18 @@ const COMPACT_STEPS = [
   'Done',
 ] as const;
 const STAGE_STEP: Record<UpdateStage['name'], number> = {
-  downloading: 2,
-  waiting_for_jobs: 3,
-  installing: 4,
-  restarting: 5,
-  done: 6,
-  failed: 2,
+  downloading: 1,
+  waiting_for_jobs: 2,
+  installing: 3,
+  restarting: 4,
+  done: 5,
+  failed: 1,
 };
 const STATE_STEP: Partial<Record<UpdateStatus['state'], number>> = {
-  downloading: 2,
-  waiting_for_jobs: 3,
-  installing: 4,
-  restarting: 5,
+  downloading: 1,
+  waiting_for_jobs: 2,
+  installing: 3,
+  restarting: 4,
 };
 /** A stage this old is a leftover, not a running update. */
 const STAGE_FRESH_MS = 45 * 60 * 1000;
@@ -74,12 +73,24 @@ const stageRecentDone = (u: UpdateStatus): boolean =>
   u.stage.version === u.current_version &&
   Date.now() - new Date(u.stage.at).getTime() < STAGE_FRESH_MS;
 
+const STAGE_WORDS: Record<UpdateStage['name'], string> = {
+  downloading: 'Downloading',
+  waiting_for_jobs: 'Waiting for running jobs to end',
+  installing: 'Installing',
+  restarting: 'Restarting the service',
+  done: 'Done',
+  failed: 'Failed',
+};
+
 /** The live line of the work step: the stage in words and its percent when it has one. */
 export function stageLine(u: UpdateStatus): string {
-  const word = stateWord(u);
+  const word = u.stage && stageLive(u) ? STAGE_WORDS[u.stage.name] : stateWord(u);
   const pc = u.stage?.percent;
   return pc === undefined ? word : `${word} ${pc}%`;
 }
+
+/** A reason as a sentence: it ends with a full stop. */
+const sentence = (t: string): string => (t === '' || /[.!?]$/.test(t) ? t : `${t}.`);
 
 export function jobLine(j: UpdateJob): string {
   return `${j.repository}${j.workflow ? ` ${j.workflow}` : ''}, run ${j.run_id}, job ${j.job}`;
@@ -227,7 +238,7 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
       ? COMPACT_STEPS
       : (['Reading the service', 'Review', working, 'Done'] as const);
   // The compact page marks a failure at the step it reached.
-  const reached = useRef(2);
+  const reached = useRef(1);
 
   const settle = (u: UpdateStatus, afterReload: boolean) => {
     setStatus(u);
@@ -279,7 +290,10 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
       try {
         const u = await unwrap(client.GET('/api/v1/update'));
         setStatus(u);
-        if (u.state === 'failed' || (compact && u.stage?.name === 'failed' && !stageLive(u))) {
+        if (
+          u.state === 'failed' ||
+          (compact && u.stage?.name === 'failed' && !stageLive(u))
+        ) {
           setProblem(u.error ?? u.stage?.error ?? 'The service did not say why.');
           setPhase('failed');
           break;
@@ -357,7 +371,13 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
       STATE_STEP[status.state] ??
       reached.current;
   }
-  const workStep = compact ? reached.current : 2;
+  const failedAt = status?.stage?.failed_at;
+  const workStep =
+    compact && phase === 'failed' && failedAt
+      ? STAGE_STEP[failedAt]
+      : compact
+        ? reached.current
+        : 2;
   const step =
     phase === 'loading'
       ? 0
@@ -365,13 +385,16 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
         ? workStep
         : phase === 'done' || phase === 'done-after-reload'
           ? doneStep
-          : 1;
+          : compact
+            ? 0
+            : 1;
   const close = () => {
     window.close();
     // A window that was not opened by a program stays open: go to the console instead.
     void navigate('/');
   };
   const shown = compact ? stageLine : stateWord;
+  const isDone = phase === 'done' || phase === 'done-after-reload';
 
   let body;
   if (phase === 'first-run') {
@@ -396,15 +419,13 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
             {`Version ${target} is ready. Running jobs finish first; the service restarts (about 1 min).`}
           </Text>
         ) : (
-        <Text>
-          {kind === 'update'
-            ? `Update ${status?.current_version} to ${target}. This machine takes no new jobs, waits for the running jobs to end${minutes ? ` (up to ${minutes} minutes)` : ''}, then installs and restarts the service. No running job is stopped.`
-            : `Restart the service. This machine takes no new jobs, waits for the running jobs to end${minutes ? ` (up to ${minutes} minutes)` : ''}, then restarts. No running job is stopped.`}
-        </Text>
+          <Text>
+            {kind === 'update'
+              ? `Update ${status?.current_version} to ${target}. This machine takes no new jobs, waits for the running jobs to end${minutes ? ` (up to ${minutes} minutes)` : ''}, then installs and restarts the service. No running job is stopped.`
+              : `Restart the service. This machine takes no new jobs, waits for the running jobs to end${minutes ? ` (up to ${minutes} minutes)` : ''}, then restarts. No running job is stopped.`}
+          </Text>
         )}
-        {compact ? (
-          <Text>Running jobs are safe.</Text>
-        ) : jobs.length > 0 ? (
+        {compact ? null : jobs.length > 0 ? (
           <Stack>
             <Text>These jobs run now and are waited for:</Text>
             <BulletList items={jobs.map(jobLine)} />
@@ -429,21 +450,24 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
             The service is restarting. This page waits for it.
           </Message>
         ) : null}
-        {compact ? <Text>Running jobs are safe.</Text> : null}
-        <Facts
-          items={[
-            { name: 'State', value: status ? shown(status) : 'Starting' },
-            { name: 'Jobs still running', value: String(jobs.length) },
-            ...jobs.map((j) => ({ name: jobLine(j), value: 'running' })),
-          ]}
-        />
+        {compact ? (
+          <Text>Running jobs are safe.</Text>
+        ) : (
+          <Facts
+            items={[
+              { name: 'State', value: status ? shown(status) : 'Starting' },
+              { name: 'Jobs still running', value: String(jobs.length) },
+              ...jobs.map((j) => ({ name: jobLine(j), value: 'running' })),
+            ]}
+          />
+        )}
       </Stack>
     );
   } else if (phase === 'failed') {
     body = (
       <Message tone="problem">
         {kind === 'update' ? 'The update did not finish.' : 'The restart did not finish.'}{' '}
-        {problem ?? ''} The running version stays.{' '}
+        {sentence(problem ?? '')} The running version stays.{' '}
         {compact && status?.stage?.log_path
           ? `The log is ${status.stage.log_path}. Open the log folder from the tray menu. Then try again.`
           : 'Try again.'}
@@ -501,7 +525,7 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
       name={kind === 'update' ? 'Update' : 'Restart the service'}
       steps={STEPS}
       current={step}
-      firstStep={1}
+      firstStep={compact ? -1 : 1}
       phase={phase}
       reading="Reading the service"
       progress={
@@ -516,8 +540,17 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
             }
           : undefined
       }
-      onBack={compact ? close : () => void navigate(settingsPath('updates'))}
-      {...(compact ? { backLabel: 'Not now', hide: { label: 'Hide', onPress: close } } : {})}
+      onBack={compact && !isDone ? close : () => void navigate(settingsPath('updates'))}
+      {...(compact
+        ? {
+            backLabel: isDone
+              ? 'Open Updates'
+              : ['failed', 'paused', 'stopped'].includes(phase)
+                ? 'Close'
+                : 'Not now',
+            hide: { label: 'Hide', onPress: close },
+          }
+        : {})}
       primary={primary}
       review={phase === 'ready-to-review'}
       onStartAgain={startAgain}
@@ -525,7 +558,10 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
       donePrimary={
         compact
           ? { label: 'Close', onPress: close }
-          : { label: 'Open Updates', onPress: () => void navigate(settingsPath('updates')) }
+          : {
+              label: 'Open Updates',
+              onPress: () => void navigate(settingsPath('updates')),
+            }
       }
     >
       {body}
@@ -537,7 +573,7 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
 export function UpdateCompactPage() {
   return (
     <main>
-      <Page frame="narrow">
+      <Page frame="compact">
         <PageHeader title="Update" />
         <UpdateWizard compact />
       </Page>

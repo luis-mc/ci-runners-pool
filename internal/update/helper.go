@@ -77,7 +77,7 @@ func RunPlan(ctx context.Context, p Plan, env Env) error {
 	res := Result{OK: err == nil, Kind: p.Kind, From: p.From, To: p.To, At: env.Now()}
 	stage := Stage{Name: StageDone, Percent: 100, Version: p.To, At: env.Now()}
 	if err != nil {
-		stage = Stage{Name: StageFailed, Percent: -1, Version: p.To, Error: err.Error(), LogPath: filepath.Join(p.Dir, LogFile), At: env.Now()}
+		stage = Stage{Name: StageFailed, Percent: -1, Version: p.To, Error: err.Error(), LogPath: filepath.Join(p.Dir, LogFile), FailedAt: StageInstalling, At: env.Now()}
 	}
 	defer func() { _ = WriteStage(p.Dir, stage) }()
 	if err != nil {

@@ -6597,6 +6597,10 @@ components:
         log_path:
           type: string
           description: failed only, the log that has the detail.
+        failed_at:
+          type: string
+          enum: [downloading, waiting_for_jobs, installing, restarting]
+          description: failed only, the stage that failed.
         at:
           type: string
           format: date-time

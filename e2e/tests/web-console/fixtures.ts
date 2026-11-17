@@ -275,6 +275,15 @@ export function signedIn(user: unknown = owner): Mock {
     })
     .on('GET', '/api/v1/me/preferences', { theme: 'dark' })
     .on('GET', '/api/v1/overview', overview())
+    .on('GET', '/api/v1/update', {
+      current_version: '1.4.0',
+      latest_version: '1.5.0',
+      update_available: true,
+      state: 'idle',
+      auto_update: false,
+      running_jobs: [],
+      drain_timeout_minutes: 60,
+    })
     .on('GET', '/api/v1/setup', {
       has_app: true,
       has_owner: true,

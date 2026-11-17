@@ -259,6 +259,12 @@ body {
   max-inline-size: var(--ds-frame-narrow);
   margin-inline: auto;
 }
+.ds-page[data-frame='compact'] {
+  box-sizing: border-box;
+  max-inline-size: var(--ds-frame-narrow);
+  margin-inline: auto;
+  padding: var(--ds-space-2) var(--ds-page-gutter) var(--ds-space-3);
+}
 .ds-h1 {
   margin: 0;
   font-size: var(--ds-size-6);
@@ -1283,6 +1289,15 @@ body {
   }
   .ds-steps__button {
     inline-size: 100%;
+  }
+}
+/* The small window (TRAY4) keeps the wrapped step bar at every width: its steps have long names and no room for one row. */
+@media (min-width: 601px) {
+  .ds-page[data-frame='compact'] .ds-steps {
+    display: flex;
+  }
+  .ds-page[data-frame='compact'] .ds-steps__button {
+    inline-size: auto;
   }
 }
 .ds-steps__button {

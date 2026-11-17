@@ -64,6 +64,10 @@ func toGenUpdate(st update.Status) gen.UpdateStatus {
 			l := sg.LogPath
 			g.LogPath = &l
 		}
+		if sg.FailedAt != "" {
+			f := gen.UpdateStageFailedAt(sg.FailedAt)
+			g.FailedAt = &f
+		}
 		out.Stage = &g
 	}
 	for _, j := range st.RunningJobs {

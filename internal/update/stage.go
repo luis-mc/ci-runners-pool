@@ -28,12 +28,14 @@ const (
 // Stage is where the running update stands. Percent is 0 to 100 and is only
 // meaningful for downloading and installing; -1 says "no number".
 type Stage struct {
-	Name    string    `json:"stage"`
-	Percent int       `json:"percent"`
-	Version string    `json:"version,omitempty"` // the version being installed (done: the version that runs)
-	Error   string    `json:"error,omitempty"`   // failed: what went wrong
-	LogPath string    `json:"log_path,omitempty"`
-	At      time.Time `json:"at"`
+	Name    string `json:"stage"`
+	Percent int    `json:"percent"`
+	Version string `json:"version,omitempty"` // the version being installed (done: the version that runs)
+	Error   string `json:"error,omitempty"`   // failed: what went wrong
+	LogPath string `json:"log_path,omitempty"`
+	// FailedAt is the stage that failed (failed only), so the page can mark the step.
+	FailedAt string    `json:"failed_at,omitempty"`
+	At       time.Time `json:"at"`
 }
 
 // WriteStage stores the stage atomically.
