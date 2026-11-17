@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
+	"sync/atomic"
 )
 
 // LinkSource asks the service for a one-time link.
@@ -59,6 +60,8 @@ type Opener struct {
 	// Current returns the last known status; Open refuses a dead link while stopped (R5.14).
 	Current func() Status
 	LogDir  func() string
+
+	asking atomic.Bool // an update dialog is open; a second press starts no other (TRAY2)
 }
 
 // Open asks for a one-time link and opens it in the browser (R5.6, R5.14).

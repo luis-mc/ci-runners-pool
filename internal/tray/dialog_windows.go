@@ -10,7 +10,20 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
+
+// dialogTimeout ends a dialog nobody answered, so a hidden one cannot live forever.
+const dialogTimeout = 30 * time.Minute
+
+// createNoWindow is CREATE_NO_WINDOW: no console window for powershell. HideWindow
+// would put SW_HIDE in STARTUPINFO, which Windows applies to the form itself.
+const createNoWindow = 0x08000000
+
+// dialogProcAttr is the process attribute of the dialog child.
+func dialogProcAttr() *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{CreationFlags: createNoWindow}
+}
 
 // updateScript is a small WinForms dialog: What changed link, Later (left) and
 // Install now (right, default). It prints "install" for Install now, nothing else.
@@ -20,6 +33,7 @@ const updateScript = `Add-Type -AssemblyName System.Windows.Forms; Add-Type -Ass
 $f = New-Object System.Windows.Forms.Form
 $f.Text = $env:CRSP_DLG_TITLE; $f.StartPosition = 'CenterScreen'; $f.TopMost = $true
 $f.FormBorderStyle = 'FixedDialog'; $f.MaximizeBox = $false; $f.MinimizeBox = $false; $f.ShowInTaskbar = $true
+$f.Add_Shown({ $f.Activate() })
 $f.ClientSize = New-Object System.Drawing.Size(420, 170)
 $l = New-Object System.Windows.Forms.Label
 $l.Text = $env:CRSP_DLG_BODY; $l.Location = New-Object System.Drawing.Point(16, 14); $l.Size = New-Object System.Drawing.Size(388, 80)
@@ -38,8 +52,10 @@ if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Ou
 // AskUpdate shows the update dialog on the user's desktop and waits for the answer.
 func AskUpdate(p UpdatePrompt, _ Launcher) (bool, error) {
 	ps := os.Getenv("SystemRoot") + `\System32\WindowsPowerShell\v1.0\powershell.exe`
-	cmd := exec.CommandContext(context.Background(), ps, "-NoProfile", "-NonInteractive", "-STA", "-ExecutionPolicy", "Bypass", "-Command", updateScript) //nolint:gosec // fixed script, texts in the environment
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	ctx, cancel := context.WithTimeout(context.Background(), dialogTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, ps, "-NoProfile", "-NonInteractive", "-STA", "-ExecutionPolicy", "Bypass", "-Command", updateScript) //nolint:gosec // fixed script, texts in the environment
+	cmd.SysProcAttr = dialogProcAttr()
 	cmd.Env = append(os.Environ(),
 		"CRSP_DLG_TITLE="+PromptTitle, "CRSP_DLG_BODY="+p.Body(), "CRSP_DLG_CHANGED="+PromptChanged,
 		"CRSP_DLG_URL="+p.ReleaseURL, "CRSP_DLG_LATER="+PromptLater, "CRSP_DLG_NOW="+PromptInstallNow)

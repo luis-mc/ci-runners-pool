@@ -122,3 +122,31 @@ func TestOfferedOncePerVersion(t *testing.T) {
 		t.Fatal("no offer while updating")
 	}
 }
+
+// A second press while a dialog is open starts no second dialog (TRAY2).
+func TestOfferWhileDialogOpenAsksOnce(t *testing.T) {
+	release, started := make(chan struct{}), make(chan struct{})
+	calls := 0
+	o := &Opener{Version: "1.4.0", Notify: func(string, string) {}, Installer: &fakeInstaller{},
+		Ask: func(UpdatePrompt, Launcher) (bool, error) {
+			calls++
+			close(started)
+			<-release
+			return false, nil
+		}}
+	done := make(chan error)
+	go func() { done <- o.Offer(context.Background(), found) }()
+	<-started
+	if err := o.Offer(context.Background(), found); err != nil || calls != 1 {
+		t.Fatalf("second Offer: err=%v calls=%d", err, calls)
+	}
+	close(release)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	o.Ask = func(UpdatePrompt, Launcher) (bool, error) { calls++; return false, nil }
+	_ = o.Offer(context.Background(), found)
+	if calls != 2 {
+		t.Fatalf("after the answer a new dialog may open: calls=%d", calls)
+	}
+}
