@@ -248,6 +248,18 @@ func TestAcceptingReportAndCPUCapOverTheLink(t *testing.T) {
 		p := c.Svc.Policy(id)
 		return rc.last() == 50 && p.CPUCapPct == 50 && p.CPUCapState == cpucap.Applied
 	})
+	// The report says which percent the result is about: it never carries a new
+	// percent with the result of the old one.
+	for _, pct := range []int{25, 100} {
+		pct := pct
+		if _, _, err := c.Svc.UpdateSettings(ctx, "owner", id, machines.SettingsUpdate{CPUCapPct: &pct}); err != nil {
+			t.Fatal(err)
+		}
+		waitFor(t, "cap applied again", func() bool {
+			p := c.Svc.Policy(id)
+			return rc.last() == pct && p.CPUCapPct == pct && p.CPUCapState == cpucap.Applied
+		})
+	}
 }
 
 // CRSP83 (runners R5.83): under the free-disk floor the machine pauses with

@@ -3445,10 +3445,10 @@ export interface components {
          */
         PauseReason: "paused" | "on_battery" | "quiet_hours" | "budget" | "base_image_missing";
         /**
-         * @description What the agent did with the CPU cap. not_supported is macOS (machines R5.64).
+         * @description What the agent did with the CPU cap. not_supported is macOS (machines R5.64). applying is the wait until the agent reports the result for the chosen percent.
          * @enum {string}
          */
-        CpuCapState: "applied" | "not_supported" | "failed";
+        CpuCapState: "applied" | "not_supported" | "failed" | "applying";
         /** @description What the agent last reported about the power source and the CPU cap (machines R5.62 to R5.64). */
         MachinePolicy: {
             on_battery: boolean;

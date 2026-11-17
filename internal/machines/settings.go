@@ -73,7 +73,7 @@ func (s *Service) view(ctx context.Context, m Machine) (View, error) {
 		return View{}, err
 	}
 	s.fillPolicy(&m)
-	v := View{Machine: m, Settings: set, Policy: s.Policy(m.ID), Engine: s.Engine(m.ID), Compact: s.CompactStatus(m, set)}
+	v := View{Machine: m, Settings: set, Policy: capFor(s.Policy(m.ID), set.EffectiveCPUCap()), Engine: s.Engine(m.ID), Compact: s.CompactStatus(m, set)}
 	if r, ok := s.RecoveryOf(m); ok {
 		v.Recovery = &r
 	}
