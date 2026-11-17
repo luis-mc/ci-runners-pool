@@ -1,0 +1,263 @@
+diff --git a/apps/web/src/App.tsx b/apps/web/src/App.tsx
+index 4d823c5..e421d7c 100644
+--- a/apps/web/src/App.tsx
++++ b/apps/web/src/App.tsx
+@@ -29,6 +29,7 @@ import { RepositoriesList, RepositoryDetail } from './screens/repositories/Repos
+ import { TurnOnPoolPage } from './screens/repositories/TurnOnPool';
+ import { AddRunnersPage } from './screens/runners/AddRunners';
+ import { RunnersList } from './screens/runners/Runners';
++import { RunnersA, RunnersB, RunnersC, MachineC } from './screens/runners/Look23';
+ import {
+   AccessTab,
+   AuditTab,
+@@ -116,6 +117,10 @@ export function App({
+                 <Route path="machines/add" element={<AddMachinePage />} />
+                 <Route path="machines/:id" element={<MachineDetail />} />
+                 <Route path="runners" element={<RunnersList />} />
++<Route path="look23/a" element={<RunnersA />} />
++<Route path="look23/b" element={<RunnersB />} />
++<Route path="look23/c" element={<RunnersC />} />
++<Route path="look23/c-machine" element={<MachineC />} />
+                 <Route path="runners/add" element={<AddRunnersPage />} />
+                 <Route path="jobs" element={<JobsList />} />
+                 <Route path="jobs/:id" element={<JobDetail />} />
+diff --git a/apps/web/src/screens/overview/Overview.tsx b/apps/web/src/screens/overview/Overview.tsx
+index 41887bd..e640c09 100644
+--- a/apps/web/src/screens/overview/Overview.tsx
++++ b/apps/web/src/screens/overview/Overview.tsx
+@@ -23,6 +23,7 @@ import { unwrap, useClient, type Schemas } from '../../api/api';
+ import { useLiveState, useLiveStore } from '../../live/LiveProvider';
+ import { useLoad } from '../../api/hooks';
+ import { useMachines } from '../../api/machines';
++import { HowCrspWorks } from '../runners/Look23';
+ import { waitWords } from '../jobs/Jobs';
+ import { Load } from '../common';
+ 
+@@ -182,6 +183,7 @@ export function Overview() {
+     <Page>
+       <PageHeader title="Overview" lead="The pool at a glance." />
+       <AppGoneBanner />
++      {new URLSearchParams(window.location.search).get('look') === 'strip' ? <HowCrspWorks /> : null}
+       {!o && firstPaint !== 'failed' ? (
+         <Section title="The pool">
+           <Loading what="Loading the overview" />
+diff --git a/apps/web/src/screens/runners/AddRunners.tsx b/apps/web/src/screens/runners/AddRunners.tsx
+index 7dcd9e5..3033d1b 100644
+--- a/apps/web/src/screens/runners/AddRunners.tsx
++++ b/apps/web/src/screens/runners/AddRunners.tsx
+@@ -91,6 +91,7 @@ export function AddRunnersWizard() {
+   const [params, setParams] = useSearchParams();
+   const storedPlan = useRef(params.get('plan')).current;
+ 
++  const lookA = params.get('look') === 'A';
+   const [phase, setPhase] = useState<WizardPhase>('loading');
+   const [step, setStep] = useState(1);
+   const [machines, setMachines] = useState<Schemas['Machine'][]>([]);
+@@ -354,7 +355,7 @@ export function AddRunnersWizard() {
+           </Message>
+         ) : null}
+         <NumberField
+-          label="Number of runners"
++          label={lookA ? 'Number of slots' : 'Number of runners'}
+           value={count}
+           min={1}
+           max={32}
+@@ -368,7 +369,9 @@ export function AddRunnersWizard() {
+           onChange={setLabels}
+           width="full"
+         />
+-        {orgs.length > 0 ? (
++        {lookA ? (
++          <Message tone="note">Runners serve every repository with the pool on.</Message>
++        ) : orgs.length > 0 ? (
+           <ChoiceField
+             label="Scope"
+             value={scope}
+@@ -395,7 +398,7 @@ export function AddRunnersWizard() {
+             is installed on one.
+           </Message>
+         )}
+-        {scope === 'repository' || orgs.length === 0 ? (
++        {lookA ? null : scope === 'repository' || orgs.length === 0 ? (
+           <ChoiceField
+             label="Repository"
+             help={
+diff --git a/apps/web/src/screens/runners/Look23.tsx b/apps/web/src/screens/runners/Look23.tsx
+new file mode 100644
+index 0000000..4bd5fea
+--- /dev/null
++++ b/apps/web/src/screens/runners/Look23.tsx
+@@ -0,0 +1,173 @@
++// LOOK23 review prototypes (throwaway, never committed as app code; the diff is kept in docs/review/LOOK23).
++import {
++  Breadcrumbs,
++  Button,
++  Facts,
++  Message,
++  NumberField,
++  Page,
++  PageHeader,
++  Section,
++  Stack,
++  Status,
++  Table,
++  Text,
++  type Column,
++} from '@crsp/ui';
++import { useState } from 'react';
++import { unwrap, useClient, type Schemas } from '../../api/api';
++import { useLoad } from '../../api/hooks';
++import { runnerStatus } from './Runners';
++
++type Runner = Schemas['Runner'];
++
++export function HowCrspWorks() {
++  return (
++    <Section title="How crsp works">
++      <Stack>
++        <Facts
++          items={[
++            { name: '1 Pool', value: 'One pool for everything you own.' },
++            { name: '2 Machines', value: 'Machines join the pool.' },
++            { name: '3 Runners', value: 'Each machine has runners. They serve every repository with the pool on.' },
++          ]}
++        />
++        <Text tone="muted">Pool, then Machines, then Runners. Repositories only turn the pool on or off.</Text>
++      </Stack>
++    </Section>
++  );
++}
++
++const slotName = (r: Runner, i: number) => `${r.os === 'windows' ? 'Windows' : r.os === 'macos' ? 'macOS' : 'Linux'} slot ${i}`;
++
++function useRunners() {
++  const client = useClient();
++  const { result } = useLoad(() => unwrap(client.GET('/api/v1/runners')), []);
++  return result.state === 'ready' ? result.data.items : [];
++}
++
++function numbered(items: Runner[]): { r: Runner; label: string }[] {
++  const seen: Record<string, number> = {};
++  return items.map((r) => {
++    const k = `${r.machine_id}/${r.os}`;
++    seen[k] = (seen[k] ?? 0) + 1;
++    return { r, label: slotName(r, seen[k]) };
++  });
++}
++
++type Row = { r: Runner; label: string };
++const servingText = (r: Runner) =>
++  r.current_job ? `${r.current_job.repository}, ${r.current_job.job_name}` : 'waiting for a job';
++
++const slotColumns: Column<Row>[] = [
++  { id: 'slot', header: 'Slot', cell: (x) => x.label, sort: (x) => x.label },
++  { id: 'machine', header: 'Machine', cell: (x) => x.r.machine_name, sort: (x) => x.r.machine_name },
++  { id: 'labels', header: 'Labels', cell: (x) => x.r.labels.join(', ') },
++  {
++    id: 'state',
++    header: 'State',
++    cell: (x) => {
++      const s = runnerStatus(x.r);
++      return <Status kind={s.kind} word={s.word} />;
++    },
++  },
++  { id: 'serving', header: 'Serving now', cell: (x) => servingText(x.r) },
++];
++
++/** A: flat list of slots, repo of the current job when busy. */
++export function RunnersA() {
++  const rows = numbered(useRunners());
++  return (
++    <Page>
++      <PageHeader
++        title="Runners"
++        lead="Runners serve every repository with the pool on."
++        action={<Button kind="primary">Add runners</Button>}
++      />
++      <Section title="Runners" count={rows.length}>
++        <Table caption="Runners" columns={slotColumns} rows={rows} rowKey={(x) => x.r.id} />
++      </Section>
++    </Page>
++  );
++}
++
++function PoolFacts({ items }: { items: Runner[] }) {
++  const machines = new Set(items.map((r) => r.machine_id)).size;
++  const busy = items.filter((r) => r.state === 'busy').length;
++  return (
++    <Section title="Pool">
++      <Facts
++        items={[
++          { name: 'Pool', value: `${machines} machines, ${items.length} runners, ${busy} busy` },
++          { name: 'Repositories', value: 'Every repository with the pool on can use any runner.' },
++        ]}
++      />
++    </Section>
++  );
++}
++
++/** B: pool capacity at top, grouped by machine. */
++export function RunnersB() {
++  const items = useRunners();
++  const rows = numbered(items);
++  const byMachine = [...new Set(items.map((r) => r.machine_name))];
++  return (
++    <Page>
++      <PageHeader
++        title="Runners"
++        lead="Runners serve every repository with the pool on."
++        action={<Button kind="primary">Add runners</Button>}
++      />
++      <PoolFacts items={items} />
++      {byMachine.map((name) => {
++        const mine = rows.filter((x) => x.r.machine_name === name);
++        const busy = mine.filter((x) => x.r.state === 'busy').length;
++        return (
++          <Section key={name} title={name} count={mine.length} hint={`${mine.length} runners, ${busy} busy`}>
++            <Table
++              caption={`Runners on ${name}`}
++              columns={slotColumns.filter((c) => c.id !== 'machine')}
++              rows={mine}
++              rowKey={(x) => x.r.id}
++            />
++          </Section>
++        );
++      })}
++    </Page>
++  );
++}
++
++/** C: read-only runners view. */
++export function RunnersC() {
++  const rows = numbered(useRunners());
++  return (
++    <Page>
++      <PageHeader title="Runners" lead="Read-only. Change how many runners a machine has on its page." />
++      <Section title="Runners" count={rows.length}>
++        <Table caption="Runners" columns={slotColumns} rows={rows} rowKey={(x) => x.r.id} />
++      </Section>
++    </Page>
++  );
++}
++
++/** C: machine page section with steppers per system. */
++export function MachineC() {
++  const [linux, setLinux] = useState(3);
++  const [win, setWin] = useState(1);
++  return (
++    <Page>
++      <Breadcrumbs trail={[{ to: '/machines', label: 'Machines' }, { label: 'win-1' }]} />
++      <PageHeader title="win-1" lead="Windows, with Linux containers. Online." />
++      <Section title="Runners on this machine" hint="Runners serve every repository with the pool on.">
++        <Stack>
++          <NumberField label="Linux" value={linux} min={0} max={32} onChange={setLinux} />
++          <NumberField label="Windows" value={win} min={0} max={32} onChange={setWin} />
++          <Message tone="note">
++            Runners on this machine: Linux {linux}, Windows {win}. crsp adds or removes runners to match.
++          </Message>
++          <Button kind="primary">Save runners</Button>
++        </Stack>
++      </Section>
++    </Page>
++  );
++}
