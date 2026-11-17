@@ -1,6 +1,6 @@
 # LOOK19 report: long state text on Runners (review, no decision)
 
-Task: a failed runner's State cell shows the full error and wraps into a very tall narrow column. Three options built as real-app screenshots (vite dev server, e2e mock fixtures, Phosphor dark). Committed app code is unchanged; each option is a patch under `docs/review/LOOK19/`.
+Task (the brief asked for docs/work/LOOK19.md; docs_check W1 forbids it on a PR, so it lives here): a failed runner's State cell shows the full error and wraps into a very tall narrow column. Three options built as real-app screenshots (vite dev server, e2e mock fixtures, Phosphor dark). Committed app code is unchanged; each option is a patch under `docs/review/LOOK19/`.
 
 ## Files (docs/review/LOOK19/)
 - `index.html` side-by-side, labelled. PNGs: `baseline|A|B|C-{1300,1800,393}.png`, plus `-open` shots for A (dialog) and B (expanded row).
