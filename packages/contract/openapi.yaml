@@ -228,6 +228,30 @@ paths:
           $ref: '#/components/responses/Redirect'
         default:
           $ref: '#/components/responses/Error'
+  /auth/github/handoff:
+    get:
+      operationId: redeemSignInHandoff
+      x-cli: none
+      x-cli-reason: 'Browser entry point; the CLI signs in with the device flow instead.'
+      tags: [auth]
+      summary: Finish a sign-in on the address it started on
+      description: >-
+        github-integration R5.8 (OPS16). A sign-in that started on an address
+        GitHub has no callback URL for goes through the registered loopback
+        address and comes back here, on the address it started on, with a
+        one-time code. The code is single use, valid 60 seconds, bound to the
+        sign-in state, to this address and to the browser that started the
+        sign-in. Sets the session cookie and redirects to the kept path.
+      x-auth: public
+      x-rate-limit: 20/minute/ip
+      parameters:
+        - $ref: '#/components/parameters/OAuthCode'
+        - $ref: '#/components/parameters/OAuthState'
+      responses:
+        '302':
+          $ref: '#/components/responses/Redirect'
+        default:
+          $ref: '#/components/responses/Error'
   /auth/link:
     get:
       operationId: redeemTrayLink
@@ -1829,6 +1853,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListenAddressChosen'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /api/v1/settings/signin-address:
+    post:
+      operationId: checkSignInAddress
+      x-cli: none
+      x-cli-reason: 'A console step: the owner adds a sign-in address to the GitHub App in the console (owner rule: everything from the web console).'
+      tags: [settings]
+      summary: Can GitHub sign in on this controller address?
+      description: >-
+        github-integration R5.8 (OPS16). Says whether the GitHub App has a
+        callback URL for the address (`registered`), and gives the exact URL to
+        add and the App's settings page. Does a dry sign-in against GitHub when
+        the controller does not know the address yet, and keeps an address GitHub
+        accepted. Never signs anyone in.
+      x-auth: admin
+      x-rate-limit: 20/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListenAddressChoice'
+      responses:
+        '200':
+          description: The sign-in address and whether GitHub knows it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInAddress'
         default:
           $ref: '#/components/responses/Error'
 
@@ -3980,6 +4035,22 @@ components:
         address:
           type: string
           description: host:port of this PC.
+    SignInAddress:
+      type: object
+      required: [address, callback_url, registered]
+      properties:
+        address:
+          type: string
+          description: The console origin, such as https://192.168.1.162:8460.
+        callback_url:
+          type: string
+          description: The exact callback URL to add to the GitHub App.
+        app_url:
+          type: string
+          description: The App's settings page on GitHub, when the App is known.
+        registered:
+          type: boolean
+          description: GitHub accepts the callback URL, so sign-in works on this address.
     ListenAddressChosen:
       type: object
       required: [address, restarting]

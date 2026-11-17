@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
@@ -167,4 +168,13 @@ func startTrayChannel(ctx context.Context, logger *slog.Logger, b trayBackend) {
 			logger.Warn("tray channel stopped", "err", err)
 		}
 	}()
+}
+
+// loopbackConsoleURL is the plain-http loopback origin on the port of console.
+func loopbackConsoleURL(console string) string {
+	_, port, err := net.SplitHostPort(strings.TrimPrefix(strings.TrimPrefix(console, "https://"), "http://"))
+	if err != nil || port == "" {
+		port = "8460"
+	}
+	return "http://" + net.JoinHostPort("127.0.0.1", port)
 }

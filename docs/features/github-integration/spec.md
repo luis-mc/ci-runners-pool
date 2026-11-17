@@ -151,7 +151,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 
 ### 5.2 Sign-in and users
 
-**R5.8** (M1, built) — **Web sign-in.** The console signs in with the App's user OAuth flow (`/login/oauth/authorize`, then `/login/oauth/access_token`). It sends a random `state` and a PKCE `S256` challenge. Both are single use and expire after 10 minutes. The redirect URI is the callback URL of the address the browser used.
+**R5.8** (M1, built) — **Web sign-in.** The console signs in with the App's user OAuth flow (`/login/oauth/authorize`, then `/login/oauth/access_token`). It sends a random `state` and a PKCE `S256` challenge. Both are single use and expire after 10 minutes. The redirect URI is always one GitHub knows (OPS16). GitHub cannot edit an App's callback URLs, so the controller keeps the list the App was made with (settings row `github_callback_origins`; an App made before the list was kept knows `http://127.0.0.1:<port>` only) and every address a dry sign-in confirmed. **(a)** When the browser's address is on the list, the redirect URI is its callback URL. **(b)** When it is not and the browser is on the controller's PC (the request came from a loopback or an own address), the round trip goes through the registered loopback callback and returns to the address the browser started on: the callback makes the session, keeps the cookie behind a one-time code (single use, 60 seconds, bound to the sign-in `state`, to the start address and to the browser by the host-only `crsp_handoff` cookie) and redirects to `GET /auth/github/handoff`, which sets the session cookie on that address; any mismatch burns the code and ends the session. **(c)** Otherwise a dry sign-in asks GitHub (`/login/oauth/authorize`, no redirect followed, 404 means unknown) and keeps a confirmed address; when GitHub does not know it, the browser is never sent to GitHub: the sign-in page shows the guided step "Add this sign-in address to your GitHub App" with the exact callback URL, Copy, a button to the App's settings page and "Check and sign in". The address chooser (operations R5.90) shows the same step, with Check, before it switches (`POST /api/v1/settings/signin-address`). Source: `internal/auth/registered.go`, `internal/auth/signin.go`, `internal/api/handlers_auth.go`, `apps/web/src/auth/CallbackGuide.tsx`.
 
 **R5.9** (M1, built) — **Identity.** A user is identified by their numeric GitHub user id, never by login. The login is shown and refreshed at each sign-in.
 
@@ -411,7 +411,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.5 | internal/auth/manifest_test.go |
 | R5.6 | internal/github/apphealth_test.go; internal/api/handlers_apphealth_test.go; cmd/crsp/apphealth_gate_test.go; apps/web/src/screens/overview/Overview.test.tsx (CRSP107) |
 | R5.7 | planned: internal/github/key_rotation_test.go |
-| R5.8 | internal/auth/oauth_test.go; internal/api/handlers_github_test.go |
+| R5.8 | internal/auth/oauth_test.go; internal/auth/handoff_test.go (OPS16); internal/github/redirect_check_test.go; internal/api/handlers_github_test.go; internal/api/samemachine_test.go; apps/web/src/auth/SignIn.callback.test.tsx; apps/web/src/screens/settings/ListenAddress.test.tsx |
 | R5.9 | internal/auth/oauth_test.go |
 | R5.10 | internal/auth/oauth_test.go; internal/auth/users_test.go |
 | R5.11 | internal/auth/users_test.go; internal/api/handlers_github_test.go |

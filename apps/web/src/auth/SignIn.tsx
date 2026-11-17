@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { unwrap, useClient } from '../api/api';
 import { useLoad } from '../api/hooks';
+import { CallbackGuide } from './CallbackGuide';
 import { signInUrl, safeReturnPath, useSession } from './session';
 
 export function SignInPage() {
@@ -36,6 +37,18 @@ export function SignInPage() {
               ? 'The sign-in link from the tray expired or was already used. Choose Open in the tray again, or sign in with GitHub.'
               : 'The sign-in link from the tray works on the computer that made it only. Sign in with GitHub here.'}
           </Message>
+        ) : failed === 'callback_not_registered' ? (
+          <Stack>
+            <Message tone="needs-you">
+              {`Sign-in does not work on ${params.get('address') ?? 'this address'} yet. Open the console on the PC that runs it at http://127.0.0.1:8460, or add this address to the GitHub App.`}
+            </Message>
+            {params.get('callback') ? (
+              <CallbackGuide
+                callbackUrl={params.get('callback') ?? ''}
+                appUrl={params.get('app_url') ?? undefined}
+              />
+            ) : null}
+          </Stack>
         ) : failed ? (
           <Message tone="problem">
             Sign-in failed. GitHub did not let you in ({failed}). Try again.
@@ -59,7 +72,9 @@ export function SignInPage() {
               window.location.assign(signInUrl(returnTo));
             }}
           >
-            Sign in with GitHub
+            {failed === 'callback_not_registered'
+              ? 'Check and sign in'
+              : 'Sign in with GitHub'}
           </Button>
           {noApp ? <TextLink to="/setup">Open the setup page</TextLink> : null}
         </Stack>

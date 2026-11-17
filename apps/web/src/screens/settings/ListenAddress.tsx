@@ -18,6 +18,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand, useLoad } from '../../api/hooks';
+import { CallbackGuide } from '../../auth/CallbackGuide';
 import { useSession } from '../../auth/session';
 import { TIMING } from '../../timing';
 import { Load } from '../common';
@@ -89,7 +90,8 @@ export function NetworkSettings() {
   );
 }
 
-type Phase = 'choosing' | 'applying' | 'done';
+type Phase = 'choosing' | 'guide' | 'applying' | 'done';
+type SignInAddress = Schemas['SignInAddress'];
 
 /** The dialog: three choices as a radio group, Cancel left, Use this address right (UX-44). */
 export function ChooseAddressDialog({
@@ -109,6 +111,7 @@ export function ChooseAddressDialog({
   const [phase, setPhase] = useState<Phase>('choosing');
   const [chosen, setChosen] = useState('');
   const [failure, setFailure] = useState<string | undefined>(undefined);
+  const [guide, setGuide] = useState<SignInAddress | undefined>(undefined);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -148,14 +151,28 @@ export function ChooseAddressDialog({
     }
   };
 
-  const apply = useCommand(async () => {
-    setFailure(undefined);
+  const put = async () => {
     const out = await unwrap(
       client.PUT('/api/v1/settings/listen-address', { body: { address } }),
     );
     setChosen(out.address);
     setPhase('applying');
     void follow(out.address);
+  };
+
+  // Before switching, GitHub must know the sign-in address of the new console address (OPS16): a dry sign-in
+  // asks it. When it does not, the guided step gives the callback URL to add; Check asks again.
+  const apply = useCommand(async () => {
+    setFailure(undefined);
+    const info = await unwrap(
+      client.POST('/api/v1/settings/signin-address', { body: { address } }),
+    );
+    if (!info.registered) {
+      setGuide(info);
+      setPhase('guide');
+      return;
+    }
+    await put();
   });
 
   const title = 'Choose an address';
@@ -166,6 +183,34 @@ export function ChooseAddressDialog({
           The controller answers on {chosen}. It also keeps 127.0.0.1 for this console and
           the tray.
         </Message>
+      </Dialog>
+    );
+  if (phase === 'guide' && guide)
+    return (
+      <Dialog
+        title="Add this sign-in address to your GitHub App"
+        onClose={onClose}
+        primary={{
+          label: 'Check',
+          onPress: () => void apply.run(),
+          busy: apply.busy,
+          busyLabel: 'Checking',
+        }}
+      >
+        <Stack>
+          <CallbackGuide callbackUrl={guide.callback_url} appUrl={guide.app_url} />
+          <Text>
+            {`When you have added it, press Check. The controller then tries a sign-in for ${guide.address} and switches to it. Until then it stays on ${data?.running ?? 'the old address'}.`}
+          </Text>
+          {apply.error ? (
+            <Message tone="problem">Could not check the address. {apply.error}</Message>
+          ) : (
+            <Message tone="note">
+              GitHub does not know this address yet. Pressing Check before you added it
+              changes nothing.
+            </Message>
+          )}
+        </Stack>
       </Dialog>
     );
   if (phase === 'applying')

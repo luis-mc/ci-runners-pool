@@ -39,6 +39,14 @@ const listen = (extra: object = {}) => ({
   ...extra,
 });
 
+const signinAddress = (extra: object = {}) => ({
+  address: 'https://192.168.1.20:8460',
+  callback_url: 'https://192.168.1.20:8460/auth/github/callback',
+  app_url: 'https://github.com/settings/apps/crsp-test',
+  registered: true,
+  ...extra,
+});
+
 function open() {
   fireEvent.click(screen.getByRole('button', { name: 'Choose an address' }));
 }
@@ -76,6 +84,7 @@ describe('Settings > Console > Network', () => {
         if (gets === 3) return new Response('down', { status: 502 });
         return listen(gets >= 5 ? { running: '192.168.1.20:8460' } : {});
       })
+      .on('POST', '/api/v1/settings/signin-address', () => signinAddress())
       .on('PUT', '/api/v1/settings/listen-address', (c) => ({
         address: (c.body as { address: string }).address,
         restarting: true,
@@ -98,6 +107,7 @@ describe('Settings > Console > Network', () => {
   it('sends a typed address', async () => {
     const a = signedIn()
       .on('GET', '/api/v1/settings/listen-address', listen())
+      .on('POST', '/api/v1/settings/signin-address', () => signinAddress())
       .on('PUT', '/api/v1/settings/listen-address', (c) => ({
         address: (c.body as { address: string }).address,
         restarting: true,
@@ -126,6 +136,7 @@ describe('Settings > Console > Network', () => {
   it('says why when the address is refused', async () => {
     const a = signedIn()
       .on('GET', '/api/v1/settings/listen-address', listen())
+      .on('POST', '/api/v1/settings/signin-address', () => signinAddress())
       .on('PUT', '/api/v1/settings/listen-address', () =>
         apiError(400, 'bad_request', '10.1.1.1 is not an address of this PC'),
       );
@@ -150,6 +161,7 @@ describe('Settings > Console > Network', () => {
             : {},
         );
       })
+      .on('POST', '/api/v1/settings/signin-address', () => signinAddress())
       .on('PUT', '/api/v1/settings/listen-address', {
         address: '192.168.1.20:8460',
         restarting: true,
@@ -214,6 +226,7 @@ describe('Access for CI: the Needs-you box', () => {
       .on('GET', '/api/v1/settings/listen-address', () =>
         listen(chosen ? { running: '192.168.1.20:8460' } : {}),
       )
+      .on('POST', '/api/v1/settings/signin-address', () => signinAddress())
       .on('PUT', '/api/v1/settings/listen-address', () => {
         chosen = true;
         return { address: '192.168.1.20:8460', restarting: true };
@@ -226,5 +239,66 @@ describe('Access for CI: the Needs-you box', () => {
     expect(await screen.findByText('https://192.168.1.20:8460')).toBeTruthy();
     expect(screen.queryByText(/cannot reach this controller yet/)).toBeNull();
     expect(a.count('PUT', '/api/v1/settings/listen-address')).toBe(1);
+  });
+
+  // OPS16: GitHub only signs people in on addresses the App has a callback URL for.
+  it('shows the guided step before switching to an address GitHub does not know, and Check switches once it does', async () => {
+    let known = false;
+    const a = signedIn()
+      .on('GET', '/api/v1/settings/listen-address', listen())
+      .on('POST', '/api/v1/settings/signin-address', () =>
+        signinAddress({ registered: known }),
+      )
+      .on('PUT', '/api/v1/settings/listen-address', (c) => ({
+        address: (c.body as { address: string }).address,
+        restarting: true,
+      }));
+    renderApp(a, '/settings/console');
+    await screen.findByText('127.0.0.1:8460');
+    open();
+    await (await inDialog()).findAllByRole('radio');
+    fireEvent.click(screen.getByRole('button', { name: 'Use this address' }));
+    expect(
+      await screen.findByText('Add this sign-in address to your GitHub App'),
+    ).toBeTruthy();
+    expect(screen.getByLabelText('Callback URL').textContent).toBe(
+      'https://192.168.1.20:8460/auth/github/callback',
+    );
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Open the App on GitHub' }).getAttribute('href'),
+    ).toBe('https://github.com/settings/apps/crsp-test');
+    // Nothing was switched.
+    expect(a.calls.some((c) => c.method === 'PUT')).toBe(false);
+    // Check before it was added: still the guide, still no switch.
+    fireEvent.click(screen.getByRole('button', { name: 'Check' }));
+    await waitFor(() =>
+      expect(
+        a.calls.filter((c) => c.path === '/api/v1/settings/signin-address'),
+      ).toHaveLength(2),
+    );
+    expect(a.calls.some((c) => c.method === 'PUT')).toBe(false);
+    // Added on GitHub: Check confirms and the controller switches.
+    known = true;
+    fireEvent.click(await screen.findByRole('button', { name: 'Check' }));
+    expect(await screen.findByText(/Waiting for running jobs to finish/)).toBeTruthy();
+    expect(a.calls.find((c) => c.method === 'PUT')?.body).toEqual({
+      address: '192.168.1.20:8460',
+    });
+  });
+
+  it('does not offer a link that is not a GitHub page', async () => {
+    const a = signedIn()
+      .on('GET', '/api/v1/settings/listen-address', listen())
+      .on('POST', '/api/v1/settings/signin-address', () =>
+        signinAddress({ registered: false, app_url: 'https://evil.example/x' }),
+      );
+    renderApp(a, '/settings/console');
+    await screen.findByText('127.0.0.1:8460');
+    open();
+    await (await inDialog()).findAllByRole('radio');
+    fireEvent.click(screen.getByRole('button', { name: 'Use this address' }));
+    await screen.findByText('Add this sign-in address to your GitHub App');
+    expect(screen.queryByRole('button', { name: 'Open the App on GitHub' })).toBeNull();
   });
 });

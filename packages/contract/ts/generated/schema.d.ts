@@ -141,6 +141,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/github/handoff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Finish a sign-in on the address it started on
+         * @description github-integration R5.8 (OPS16). A sign-in that started on an address GitHub has no callback URL for goes through the registered loopback address and comes back here, on the address it started on, with a one-time code. The code is single use, valid 60 seconds, bound to the sign-in state, to this address and to the browser that started the sign-in. Sets the session cookie and redirects to the kept path.
+         */
+        get: operations["redeemSignInHandoff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/link": {
         parameters: {
             query?: never;
@@ -1255,6 +1275,26 @@ export interface paths {
          */
         put: operations["putListenAddress"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/signin-address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Can GitHub sign in on this controller address?
+         * @description github-integration R5.8 (OPS16). Says whether the GitHub App has a callback URL for the address (`registered`), and gives the exact URL to add and the App's settings page. Does a dry sign-in against GitHub when the controller does not know the address yet, and keeps an address GitHub accepted. Never signs anyone in.
+         */
+        post: operations["checkSignInAddress"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2538,6 +2578,16 @@ export interface components {
         ListenAddressChoice: {
             /** @description host:port of this PC. */
             address: string;
+        };
+        SignInAddress: {
+            /** @description The console origin, such as https://192.168.1.162:8460. */
+            address: string;
+            /** @description The exact callback URL to add to the GitHub App. */
+            callback_url: string;
+            /** @description The App's settings page on GitHub, when the App is known. */
+            app_url?: string;
+            /** @description GitHub accepts the callback URL, so sign-in works on this address. */
+            registered: boolean;
         };
         ListenAddressChosen: {
             address: string;
@@ -4589,6 +4639,22 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    redeemSignInHandoff: {
+        parameters: {
+            query: {
+                code: components["parameters"]["OAuthCode"];
+                state: components["parameters"]["OAuthState"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            302: components["responses"]["Redirect"];
+            default: components["responses"]["Error"];
+        };
+    };
     redeemTrayLink: {
         parameters: {
             query: {
@@ -6187,6 +6253,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListenAddressChosen"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    checkSignInAddress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListenAddressChoice"];
+            };
+        };
+        responses: {
+            /** @description The sign-in address and whether GitHub knows it. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInAddress"];
                 };
             };
             default: components["responses"]["Error"];

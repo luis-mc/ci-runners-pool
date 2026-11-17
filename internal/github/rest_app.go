@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"time"
 )
@@ -70,6 +71,47 @@ func (c *REST) AuthorizeURL(state, codeChallenge, redirectURI string) string {
 	q.Set("code_challenge", codeChallenge)
 	q.Set("code_challenge_method", "S256")
 	return c.cfg.WebBase + "/login/oauth/authorize?" + q.Encode()
+}
+
+// CheckRedirectURI asks GitHub's authorize page whether redirectURI is one of
+// the App's callback URLs, without signing anyone in (a dry sign-in). GitHub
+// answers 404 ("The redirect_uri is not associated with this application")
+// for an address the App does not know, and a redirect to the login page or
+// the page itself for a known one. No cookie is sent and no redirect is
+// followed, so nothing is granted.
+func (c *REST) CheckRedirectURI(ctx context.Context, redirectURI string) (bool, error) {
+	c.mu.Lock()
+	clientID := c.clientID
+	c.mu.Unlock()
+	if clientID == "" {
+		return false, errNoApp
+	}
+	ctx, cancel := context.WithTimeout(ctx, CallDeadline)
+	defer cancel()
+	q := url.Values{}
+	q.Set("client_id", clientID)
+	q.Set("redirect_uri", redirectURI)
+	q.Set("state", "crsp-check")
+	hr, err := http.NewRequestWithContext(ctx, http.MethodGet, c.cfg.WebBase+"/login/oauth/authorize?"+q.Encode(), nil)
+	if err != nil {
+		return false, err
+	}
+	hr.Header.Set("User-Agent", "crsp")
+	hc := *c.cfg.HTTP
+	hc.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	res, err := hc.Do(hr)
+	if err != nil {
+		return false, fmt.Errorf("%w: %v", ErrUnavailable, scrubURLError(err))
+	}
+	defer func() { _ = res.Body.Close() }()
+	switch {
+	case res.StatusCode == http.StatusNotFound:
+		return false, nil
+	case res.StatusCode < 400:
+		return true, nil
+	default:
+		return false, fmt.Errorf("%w: GitHub answered %d to the sign-in check", ErrUnavailable, res.StatusCode)
+	}
 }
 
 // ExchangeCode implements OAuth.

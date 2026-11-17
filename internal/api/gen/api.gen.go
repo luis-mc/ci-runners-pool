@@ -3856,6 +3856,21 @@ type SetupStateStepsFirstRepository string
 // Severity defines model for Severity.
 type Severity string
 
+// SignInAddress defines model for SignInAddress.
+type SignInAddress struct {
+	// Address The console origin, such as https://192.168.1.162:8460.
+	Address string `json:"address"`
+
+	// AppUrl The App's settings page on GitHub, when the App is known.
+	AppUrl *string `json:"app_url,omitempty"`
+
+	// CallbackUrl The exact callback URL to add to the GitHub App.
+	CallbackUrl string `json:"callback_url"`
+
+	// Registered GitHub accepts the callback URL, so sign-in works on this address.
+	Registered bool `json:"registered"`
+}
+
 // Slot defines model for Slot.
 type Slot struct {
 	Job         string    `json:"job"`
@@ -4450,6 +4465,12 @@ type CompleteSignInParams struct {
 	State OAuthState `form:"state" json:"state"`
 }
 
+// RedeemSignInHandoffParams defines parameters for RedeemSignInHandoff.
+type RedeemSignInHandoffParams struct {
+	Code  OAuthCode  `form:"code" json:"code"`
+	State OAuthState `form:"state" json:"state"`
+}
+
 // StartSignInParams defines parameters for StartSignIn.
 type StartSignInParams struct {
 	ReturnTo *string `form:"return_to,omitempty" json:"return_to,omitempty"`
@@ -4577,6 +4598,9 @@ type SetPublicRepositoriesJSONRequestBody = PublicRepositoriesSet
 
 // UpdateQueueSettingsJSONRequestBody defines body for UpdateQueueSettings for application/json ContentType.
 type UpdateQueueSettingsJSONRequestBody = QueueSettings
+
+// CheckSignInAddressJSONRequestBody defines body for CheckSignInAddress for application/json ContentType.
+type CheckSignInAddressJSONRequestBody = ListenAddressChoice
 
 // StartAppManifestJSONRequestBody defines body for StartAppManifest for application/json ContentType.
 type StartAppManifestJSONRequestBody = StartAppManifestRequest
@@ -4934,6 +4958,9 @@ type ServerInterface interface {
 	// UpdateQueueSettings Change the order of service
 	// (PUT /api/v1/settings/queue)
 	UpdateQueueSettings(w http.ResponseWriter, r *http.Request)
+	// CheckSignInAddress Can GitHub sign in on this controller address?
+	// (POST /api/v1/settings/signin-address)
+	CheckSignInAddress(w http.ResponseWriter, r *http.Request)
 	// GetSetupState First-run state; what the setup page shows
 	// (GET /api/v1/setup)
 	GetSetupState(w http.ResponseWriter, r *http.Request)
@@ -4970,6 +4997,9 @@ type ServerInterface interface {
 	// CompleteSignIn GitHub OAuth callback; makes the session
 	// (GET /auth/github/callback)
 	CompleteSignIn(w http.ResponseWriter, r *http.Request, params CompleteSignInParams)
+	// RedeemSignInHandoff Finish a sign-in on the address it started on
+	// (GET /auth/github/handoff)
+	RedeemSignInHandoff(w http.ResponseWriter, r *http.Request, params RedeemSignInHandoffParams)
 	// StartSignIn Start web sign-in with the App's user OAuth flow
 	// (GET /auth/github/login)
 	StartSignIn(w http.ResponseWriter, r *http.Request, params StartSignInParams)
@@ -8183,6 +8213,20 @@ func (siw *ServerInterfaceWrapper) UpdateQueueSettings(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// CheckSignInAddress operation middleware
+func (siw *ServerInterfaceWrapper) CheckSignInAddress(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CheckSignInAddress(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSetupState operation middleware
 func (siw *ServerInterfaceWrapper) GetSetupState(w http.ResponseWriter, r *http.Request) {
 
@@ -8449,6 +8493,52 @@ func (siw *ServerInterfaceWrapper) CompleteSignIn(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CompleteSignIn(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RedeemSignInHandoff operation middleware
+func (siw *ServerInterfaceWrapper) RedeemSignInHandoff(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RedeemSignInHandoffParams
+
+	// ------------- Required query parameter "code" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "code", r.URL.Query(), &params.Code, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "code"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RedeemSignInHandoff(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -8769,6 +8859,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/auth/github/app-created", wrapper.CompleteAppManifest)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/auth/github/login", wrapper.StartSignIn)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/auth/github/callback", wrapper.CompleteSignIn)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/auth/github/handoff", wrapper.RedeemSignInHandoff)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/auth/link", wrapper.RedeemTrayLink)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/auth/cli/config", wrapper.GetCliLoginConfig)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/auth/cli", wrapper.ExchangeCliToken)
@@ -8836,6 +8927,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/settings/pool", wrapper.UpdatePoolSettings)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings/listen-address", wrapper.GetListenAddress)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/settings/listen-address", wrapper.PutListenAddress)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/settings/signin-address", wrapper.CheckSignInAddress)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings/public-repositories", wrapper.GetPublicRepositories)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/settings/public-repositories", wrapper.SetPublicRepositories)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners", wrapper.ListRunners)
@@ -13453,6 +13545,45 @@ func (response UpdateQueueSettingsdefaultJSONResponse) VisitUpdateQueueSettingsR
 	return err
 }
 
+type CheckSignInAddressRequestObject struct {
+	Body *CheckSignInAddressJSONRequestBody
+}
+
+type CheckSignInAddressResponseObject interface {
+	VisitCheckSignInAddressResponse(w http.ResponseWriter) error
+}
+
+type CheckSignInAddress200JSONResponse SignInAddress
+
+func (response CheckSignInAddress200JSONResponse) VisitCheckSignInAddressResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckSignInAddressdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CheckSignInAddressdefaultJSONResponse) VisitCheckSignInAddressResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetSetupStateRequestObject struct {
 }
 
@@ -13905,6 +14036,42 @@ type CompleteSignIndefaultJSONResponse struct {
 }
 
 func (response CompleteSignIndefaultJSONResponse) VisitCompleteSignInResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RedeemSignInHandoffRequestObject struct {
+	Params RedeemSignInHandoffParams
+}
+
+type RedeemSignInHandoffResponseObject interface {
+	VisitRedeemSignInHandoffResponse(w http.ResponseWriter) error
+}
+
+type RedeemSignInHandoff302Response = RedirectResponse
+
+func (response RedeemSignInHandoff302Response) VisitRedeemSignInHandoffResponse(w http.ResponseWriter) error {
+	w.Header().Set("Location", fmt.Sprint(response.Headers.Location))
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.WriteHeader(302)
+	return nil
+}
+
+type RedeemSignInHandoffdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RedeemSignInHandoffdefaultJSONResponse) VisitRedeemSignInHandoffResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -14398,6 +14565,9 @@ type StrictServerInterface interface {
 	// UpdateQueueSettings Change the order of service
 	// (PUT /api/v1/settings/queue)
 	UpdateQueueSettings(ctx context.Context, request UpdateQueueSettingsRequestObject) (UpdateQueueSettingsResponseObject, error)
+	// CheckSignInAddress Can GitHub sign in on this controller address?
+	// (POST /api/v1/settings/signin-address)
+	CheckSignInAddress(ctx context.Context, request CheckSignInAddressRequestObject) (CheckSignInAddressResponseObject, error)
 	// GetSetupState First-run state; what the setup page shows
 	// (GET /api/v1/setup)
 	GetSetupState(ctx context.Context, request GetSetupStateRequestObject) (GetSetupStateResponseObject, error)
@@ -14434,6 +14604,9 @@ type StrictServerInterface interface {
 	// CompleteSignIn GitHub OAuth callback; makes the session
 	// (GET /auth/github/callback)
 	CompleteSignIn(ctx context.Context, request CompleteSignInRequestObject) (CompleteSignInResponseObject, error)
+	// RedeemSignInHandoff Finish a sign-in on the address it started on
+	// (GET /auth/github/handoff)
+	RedeemSignInHandoff(ctx context.Context, request RedeemSignInHandoffRequestObject) (RedeemSignInHandoffResponseObject, error)
 	// StartSignIn Start web sign-in with the App's user OAuth flow
 	// (GET /auth/github/login)
 	StartSignIn(ctx context.Context, request StartSignInRequestObject) (StartSignInResponseObject, error)
@@ -17603,6 +17776,37 @@ func (sh *strictHandler) UpdateQueueSettings(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+// CheckSignInAddress operation middleware
+func (sh *strictHandler) CheckSignInAddress(w http.ResponseWriter, r *http.Request) {
+	var request CheckSignInAddressRequestObject
+
+	var body CheckSignInAddressJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CheckSignInAddress(ctx, request.(CheckSignInAddressRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CheckSignInAddress")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CheckSignInAddressResponseObject); ok {
+		if err := validResponse.VisitCheckSignInAddressResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetSetupState operation middleware
 func (sh *strictHandler) GetSetupState(w http.ResponseWriter, r *http.Request) {
 	var request GetSetupStateRequestObject
@@ -17922,6 +18126,32 @@ func (sh *strictHandler) CompleteSignIn(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CompleteSignInResponseObject); ok {
 		if err := validResponse.VisitCompleteSignInResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RedeemSignInHandoff operation middleware
+func (sh *strictHandler) RedeemSignInHandoff(w http.ResponseWriter, r *http.Request, params RedeemSignInHandoffParams) {
+	var request RedeemSignInHandoffRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RedeemSignInHandoff(ctx, request.(RedeemSignInHandoffRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RedeemSignInHandoff")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RedeemSignInHandoffResponseObject); ok {
+		if err := validResponse.VisitRedeemSignInHandoffResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
