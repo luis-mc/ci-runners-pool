@@ -111,19 +111,19 @@ function PoolStatus() {
   if (!machines) return <Status kind="waiting" word="reading" />;
   if (machines.length === 0) return <Status kind="waiting" word="no machines" />;
   const online = machines.filter((m) => m.online && m.state === 'active').length;
-  if (online === 0) return <Status kind="failed" word="offline" />;
-  return <Status kind="ok" word={`${online} of ${machines.length} online`} />;
+  if (online === 0) return <Status kind="failed" word="machines offline" />;
+  return <Status kind="ok" word={`${online} of ${machines.length} ${machines.length === 1 ? 'machine' : 'machines'} online`} />;
 }
 
 function LiveState() {
   const live = useLiveState();
   const now = useNow();
-  if (live.status === 'live') return <Status kind="ok" word="live" />;
+  if (live.status === 'live') return <Status kind="ok" word="live updates" />;
   if (live.status === 'connecting') return <Status kind="waiting" word="connecting" />;
   return (
     <Status
       kind="waiting"
-      word={`paused${live.lastEventAt ? `, data from ${formatAgo(live.lastEventAt, now)}` : ''}`}
+      word={`updates paused${live.lastEventAt ? `, data from ${formatAgo(live.lastEventAt, now)}` : ''}`}
     />
   );
 }
