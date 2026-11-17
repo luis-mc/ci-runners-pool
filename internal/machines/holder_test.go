@@ -61,6 +61,12 @@ func TestHolderFarPastItsUsualDurationIsFlaggedOnceWithChoices(t *testing.T) {
 	ch, _ := e.Svc.Drain(context.Background(), "owner", id, "")
 	fa.Next(isDrain)
 	fa.Send(drainStatus(ch.ID, false, j))
+	// The agent's report is handled on the session goroutine; the clock must
+	// not move before it has landed, or the tick has no holder to flag.
+	waitFor(t, "holder", func() bool {
+		c, _ := e.Svc.GetChange(context.Background(), id, ch.ID)
+		return c.Detail.Holder != nil
+	})
 
 	e.Clk.Add(15 * time.Minute) // 1.5 times the usual: not far past yet
 	tick(t, e)
@@ -75,6 +81,8 @@ func TestHolderFarPastItsUsualDurationIsFlaggedOnceWithChoices(t *testing.T) {
 	if !c.Detail.Holder.OverUsual || c.Detail.Holder.Usual != 10*time.Minute {
 		t.Fatalf("holder = %+v", c.Detail.Holder)
 	}
+	waitFor(t, "stuck alert", func() bool { mu.Lock(); defer mu.Unlock(); return len(stuck) >= 1 })
+	tick(t, e) // a later tick must not raise it again
 	mu.Lock()
 	n := len(stuck)
 	mu.Unlock()

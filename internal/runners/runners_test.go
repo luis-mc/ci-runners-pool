@@ -71,10 +71,10 @@ func TestPinnedHash(t *testing.T) {
 	if _, err := PinFor("plan9", "x64"); err == nil {
 		t.Error("unknown OS")
 	}
-	if u := (Pin{OS: "windows", Arch: "x64", Version: "2.330.0"}).DownloadURL(); !strings.HasSuffix(u, "actions-runner-win-x64-2.330.0.zip") {
+	if u := (Pin{OS: "windows", Arch: "x64", Version: "2.338.2"}).DownloadURL(); !strings.HasSuffix(u, "actions-runner-win-x64-2.338.2.zip") {
 		t.Error(u)
 	}
-	if u := (Pin{OS: "macos", Arch: "arm64", Version: "2.330.0"}).DownloadURL(); !strings.HasSuffix(u, "actions-runner-osx-arm64-2.330.0.tar.gz") {
+	if u := (Pin{OS: "macos", Arch: "arm64", Version: "2.338.2"}).DownloadURL(); !strings.HasSuffix(u, "actions-runner-osx-arm64-2.338.2.tar.gz") {
 		t.Error(u)
 	}
 
