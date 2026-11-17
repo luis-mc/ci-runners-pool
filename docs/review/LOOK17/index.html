@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LOOK17 Repositories options</title>
+<style>
+body{margin:0;padding:16px;background:#0b0f0b;color:#cfe;font:14px/1.4 system-ui,sans-serif}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:16px;margin:28px 0 8px}
+p{max-width:70ch;color:#9b9}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px}
+figure{margin:0;background:#111a11;border:1px solid #2a4;padding:8px;border-radius:6px;min-width:0}
+figcaption{font-weight:600;margin-bottom:6px}figcaption span{display:block;font-weight:400;color:#9b9;font-size:12px}
+.shot{max-height:520px;overflow-y:auto}
+img{display:block;max-width:100%;height:auto}
+code{color:#8f8}
+</style></head><body>
+<h1>LOOK17: Repositories without a horizontal scroll bar (options, no decision yet)</h1>
+<p>Real console, mocked API, Phosphor dark, 7 private repositories (moobable and padevia on the pool). Click a picture for the full size. Measured: scroll bar at 1300 / 1800 / 393 px: today yes / yes / no; A, B and C no / no / no.</p>
+<h2>1300 px wide</h2><div class="grid">
+<figure><figcaption>Today<span>Nine columns in a scroll frame. Variables cut off, names wrap, Labels header sits lower.</span></figcaption><div class="shot"><a href="today/repositories-1300.png"><img loading="lazy" src="today/repositories-1300.png" alt="Today at 1300 px"></a></div></figure>
+<figure><figcaption>A: fewer columns<span>Repository (name + one-line summary), Pool, Jobs go to, Last delivery. Visibility only as a tag when not Private. Labels, parallel jobs, priority and variables move to the repository page.</span></figcaption><div class="shot"><a href="A/repositories-1300.png"><img loading="lazy" src="A/repositories-1300.png" alt="A: fewer columns at 1300 px"></a></div></figure>
+<figure><figcaption>B: two-line rows<span>Line 1: name, pool, jobs go to. Line 2 (muted): labels, parallel, priority, last delivery, variables. Header only for line 1.</span></figcaption><div class="shot"><a href="B/repositories-1300.png"><img loading="lazy" src="B/repositories-1300.png" alt="B: two-line rows at 1300 px"></a></div></figure>
+<figure><figcaption>C: cards under 1400 px<span>Table from 1400 px (names never break, Labels wrap between labels, all headers sort and align); cards below.</span></figcaption><div class="shot"><a href="C/repositories-1300.png"><img loading="lazy" src="C/repositories-1300.png" alt="C: cards under 1400 px at 1300 px"></a></div></figure>
+</div>
+<h2>1800 px wide</h2><div class="grid">
+<figure><figcaption>Today<span>Nine columns in a scroll frame. Variables cut off, names wrap, Labels header sits lower.</span></figcaption><div class="shot"><a href="today/repositories-1800.png"><img loading="lazy" src="today/repositories-1800.png" alt="Today at 1800 px"></a></div></figure>
+<figure><figcaption>A: fewer columns<span>Repository (name + one-line summary), Pool, Jobs go to, Last delivery. Visibility only as a tag when not Private. Labels, parallel jobs, priority and variables move to the repository page.</span></figcaption><div class="shot"><a href="A/repositories-1800.png"><img loading="lazy" src="A/repositories-1800.png" alt="A: fewer columns at 1800 px"></a></div></figure>
+<figure><figcaption>B: two-line rows<span>Line 1: name, pool, jobs go to. Line 2 (muted): labels, parallel, priority, last delivery, variables. Header only for line 1.</span></figcaption><div class="shot"><a href="B/repositories-1800.png"><img loading="lazy" src="B/repositories-1800.png" alt="B: two-line rows at 1800 px"></a></div></figure>
+<figure><figcaption>C: cards under 1400 px<span>Table from 1400 px (names never break, Labels wrap between labels, all headers sort and align); cards below.</span></figcaption><div class="shot"><a href="C/repositories-1800.png"><img loading="lazy" src="C/repositories-1800.png" alt="C: cards under 1400 px at 1800 px"></a></div></figure>
+</div>
+<h2>393 px wide</h2><div class="grid">
+<figure><figcaption>Today<span>Nine columns in a scroll frame. Variables cut off, names wrap, Labels header sits lower.</span></figcaption><div class="shot"><a href="today/repositories-393.png"><img loading="lazy" src="today/repositories-393.png" alt="Today at 393 px"></a></div></figure>
+<figure><figcaption>A: fewer columns<span>Repository (name + one-line summary), Pool, Jobs go to, Last delivery. Visibility only as a tag when not Private. Labels, parallel jobs, priority and variables move to the repository page.</span></figcaption><div class="shot"><a href="A/repositories-393.png"><img loading="lazy" src="A/repositories-393.png" alt="A: fewer columns at 393 px"></a></div></figure>
+<figure><figcaption>B: two-line rows<span>Line 1: name, pool, jobs go to. Line 2 (muted): labels, parallel, priority, last delivery, variables. Header only for line 1.</span></figcaption><div class="shot"><a href="B/repositories-393.png"><img loading="lazy" src="B/repositories-393.png" alt="B: two-line rows at 393 px"></a></div></figure>
+<figure><figcaption>C: cards under 1400 px<span>Table from 1400 px (names never break, Labels wrap between labels, all headers sort and align); cards below.</span></figcaption><div class="shot"><a href="C/repositories-393.png"><img loading="lazy" src="C/repositories-393.png" alt="C: cards under 1400 px at 393 px"></a></div></figure>
+</div>
+<h2>Other screens with a horizontal scroll bar today</h2>
+<p>None. 19 screens (overview, machines and detail, add machine, repository detail, turn on the pool, runners, add runners, jobs, job detail, doctor, images, image detail, caches, five settings pages) were measured at 1300 and 393 px with the e2e fixtures: no page overflow and no scrolling frame. Only Repositories at 1300 and 1800 px has one. Fixture data is small: a long list or a long name elsewhere may still scroll, so the shared <code>.ds-table-frame</code> (<code>overflow-x: auto</code>) is the place to change for "anywhere in the console". No screenshots exist because no screen shows a bar.</p>
+</body></html>

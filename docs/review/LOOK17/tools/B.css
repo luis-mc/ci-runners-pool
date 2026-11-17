@@ -1,0 +1,26 @@
+.look-rows { list-style: none; margin: 0; padding: 0; font-size: var(--ds-size-2); }
+.look-rows__head, .look-rows__row {
+  display: grid;
+  grid-template-columns: var(--ds-target-min) minmax(0, 1fr) 6rem 16rem;
+  column-gap: var(--ds-space-3);
+  align-items: center;
+  border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
+}
+.look-rows__head { font-weight: var(--ds-weight-bold); padding-block: var(--ds-space-3); }
+.look-rows__row { padding-block: var(--ds-space-2); }
+.look-rows__name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-3); min-inline-size: 0; }
+.look-rows__name .ds-link { white-space: nowrap; }
+.look-rows__details {
+  grid-column: 2 / -1;
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-size-1);
+}
+.look-rows__row[data-inactive] { color: var(--ds-color-text-inactive); }
+@media (max-width: 599px) {
+  .look-rows__head { display: none; }
+  .look-rows__row { grid-template-columns: var(--ds-target-min) minmax(0, 1fr); row-gap: 0; }
+  .look-rows__name { grid-column: 2; }
+  .look-rows__pool, .look-rows__where { grid-column: 2; }
+  .look-rows__pool::before { content: 'Pool: '; color: var(--ds-color-text-muted); }
+  .look-rows__where::before { content: 'Jobs go to: '; color: var(--ds-color-text-muted); }
+}

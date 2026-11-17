@@ -1,0 +1,25 @@
+/* C: table from 1400 px, cards below. */
+.look-cards { list-style: none; margin: 0; padding: 0; display: none; }
+.look-wide { display: block; }
+.look-label { display: inline-block; white-space: nowrap; margin-inline-end: var(--ds-space-2); }
+.look-wide .ds-table td { white-space: nowrap; padding-inline: var(--ds-space-1); }
+.look-wide .ds-table th { white-space: normal; padding-inline: var(--ds-space-1); }
+.look-wide .ds-table th .ds-table__sort { white-space: normal; text-align: start; padding-inline: 0; }
+.look-wide .ds-table td:nth-child(5) { white-space: normal; }
+.look-wide .ds-table td { vertical-align: middle; }
+.look-wide .ds-table th { vertical-align: middle; }
+.look-wide .ds-table__value { overflow-wrap: normal; }
+@media (max-width: 1399px) {
+  .look-wide { display: none; }
+  .look-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr)); gap: var(--ds-space-3); }
+  .look-card {
+    display: grid; grid-template-columns: var(--ds-target-min) minmax(0, 1fr); align-items: center;
+    padding: var(--ds-space-3); border: var(--ds-border-thin) solid var(--ds-color-divider); border-radius: var(--ds-radius-3);
+  }
+  .look-card__name { display: flex; flex-wrap: wrap; gap: var(--ds-space-3); align-items: center; }
+  .look-card__name .ds-link { white-space: nowrap; }
+  .look-card__facts { grid-column: 2; margin: 0; display: grid; gap: var(--ds-space-1); font-size: var(--ds-size-1); }
+  .look-card__facts div { display: grid; grid-template-columns: minmax(6rem, 35%) minmax(0, 1fr); gap: var(--ds-space-3); }
+  .look-card__facts dt { color: var(--ds-color-text-muted); }
+  .look-card__facts dd { margin: 0; min-inline-size: 0; }
+}

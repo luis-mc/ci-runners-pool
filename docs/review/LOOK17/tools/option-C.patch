@@ -1,0 +1,90 @@
+diff --git a/apps/web/src/screens/repositories/Repositories.tsx b/apps/web/src/screens/repositories/Repositories.tsx
+index 9a09bf1..397403e 100644
+--- a/apps/web/src/screens/repositories/Repositories.tsx
++++ b/apps/web/src/screens/repositories/Repositories.tsx
+@@ -197,7 +197,21 @@ export function RepositoriesList() {
+       ),
+       sort: (r) => String(r.pool_on),
+     },
+-    { id: 'labels', header: 'Labels', cell: (r) => r.policy.labels.join(', ') || 'none' },
++    {
++      id: 'labels',
++      header: 'Labels',
++      cell: (r) =>
++        r.policy.labels.length ? (
++          r.policy.labels.map((l) => (
++            <span key={l} className="look-label">
++              {l}
++            </span>
++          ))
++        ) : (
++          'none'
++        ),
++      sort: (r) => r.policy.labels.join(','),
++    },
+     {
+       id: 'max',
+       header: 'Parallel jobs',
+@@ -241,6 +255,7 @@ export function RepositoriesList() {
+         const s = variableStatus(r);
+         return <Status kind={s.kind} word={s.word} />;
+       },
++      sort: (r) => variableStatus(r).word,
+     },
+   ];
+ 
+@@ -484,6 +499,7 @@ export function RepositoriesList() {
+                             })
+                           }
+                         />
++<div className="look-wide">
+                         <Table
+                           caption={`${g.owner} repositories`}
+                           columns={columns}
+@@ -502,6 +518,46 @@ export function RepositoriesList() {
+                           toggleLabel={(r) => `Select ${r.full_name}`}
+                           inactive={(r) => publicWhileOff(r, enabled)}
+                         />
++</div>
++<ul className="look-cards" aria-label={`${g.owner} repositories (cards)`}>
++                          {g.rows.map((r) => (
++                            <li
++                              key={r.id}
++                              className="look-card"
++                              data-list-row
++                              data-inactive={publicWhileOff(r, enabled) || undefined}
++                            >
++                              <input
++                                type="checkbox"
++                                className="ds-checkbox"
++                                checked={selected.has(String(r.id))}
++                                aria-label={`Select ${r.full_name}`}
++                                onChange={() =>
++                                  setPicked((p) => {
++                                    const n = new Set(p);
++                                    if (n.has(r.id)) n.delete(r.id);
++                                    else n.add(r.id);
++                                    return n;
++                                  })
++                                }
++                              />
++                              <span className="look-card__name">
++                                <TextLink to={`/repositories/${r.owner}/${r.name}`}>
++                                  {r.name}
++                                </TextLink>
++                                <VisibilityCell r={r} inactive={publicWhileOff(r, enabled)} />
++                              </span>
++                              <dl className="look-card__facts">
++                                {columns.slice(2).map((c) => (
++                                  <div key={c.id}>
++                                    <dt>{c.header}</dt>
++                                    <dd>{c.cell(r)}</dd>
++                                  </div>
++                                ))}
++                              </dl>
++                            </li>
++                          ))}
++                        </ul>
+                       </Stack>
+                     );
+                   })

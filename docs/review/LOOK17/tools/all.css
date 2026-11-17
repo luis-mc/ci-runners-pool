@@ -1,0 +1,2 @@
+/* Shooting only: the key-hint bar is fixed to the window and would sit across a full-page shot. */
+.ds-keyhints { display: none !important; }
