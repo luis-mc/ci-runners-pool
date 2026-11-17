@@ -1,0 +1,101 @@
+diff --git a/apps/web/src/screens/runners/Runners.tsx b/apps/web/src/screens/runners/Runners.tsx
+index 5626cc0..27eb505 100644
+--- a/apps/web/src/screens/runners/Runners.tsx
++++ b/apps/web/src/screens/runners/Runners.tsx
+@@ -83,6 +83,12 @@ export function stateCounts(items: readonly Runner[]): {
+   return { idle, busy, other: items.length - idle - busy };
+ }
+ 
++/** LOOK19 option C: the first clause of a long reason, on one line. */
++export function reasonSummary(reason: string): string {
++  const flat = reason.replace(/\s+/g, ' ').trim();
++  return (flat.split(/ \(|: /)[0] ?? flat).slice(0, 60);
++}
++
+ export function failedWords(n: number): string {
+   return `${n} ${n === 1 ? 'runner' : 'runners'} failed. The State column says why. Remove a failed runner with Remove, then add runners again.`;
+ }
+@@ -169,15 +175,30 @@ export function RunnersList() {
+       cell: (r) => <TextLink to={`/machines/${r.machine_id}`}>{r.machine_name}</TextLink>,
+       sort: (r) => r.machine_name,
+     },
+-    { id: 'os', header: 'System', cell: (r) => r.os, sort: (r) => r.os },
+-    { id: 'backend', header: 'Backend', cell: (r) => r.backend },
+     {
+       id: 'iso',
+       header: 'Isolation',
+-      cell: (r) => isolationText(r),
++      cell: (r) => (
++        <Stack gap="tight">
++          <span>{r.isolation === 'persistent' || r.keeps_state ? `${r.isolation}, state kept` : r.isolation}</span>
++          <Text tone="muted">{`${r.os} ${r.arch}`}</Text>
++        </Stack>
++      ),
+       sort: (r) => r.isolation,
+     },
+-    { id: 'labels', header: 'Labels', cell: (r) => r.labels.join(', ') },
++    {
++      id: 'labels',
++      header: 'Labels',
++      cell: (r) => (
++        <>
++          <span aria-hidden="true">
++            {r.labels.slice(0, 2).join(', ')}
++            {r.labels.length > 2 ? ` +${r.labels.length - 2}` : ''}
++          </span>
++          <span className="ds-visually-hidden">{r.labels.join(', ')}</span>
++        </>
++      ),
++    },
+     {
+       id: 'state',
+       header: 'State',
+@@ -187,7 +208,7 @@ export function RunnersList() {
+           <Stack gap="tight">
+             <Status kind={s.kind} word={s.word} />
+             {(r.reason ?? (r.state === 'failed' ? r.failed_reason : null)) ? (
+-              <Text tone="muted">{r.reason ?? r.failed_reason}</Text>
++              <Text tone="muted">{reasonSummary(r.reason ?? r.failed_reason ?? '')}</Text>
+             ) : null}
+           </Stack>
+         );
+@@ -336,14 +357,34 @@ export function RunnersList() {
+                   {`${data.items.filter(isLight).length} of these are light runners. The pool made them when you turned it on, one per system, so jobs that last seconds do not wait behind a long build. Turn them off for a repository on its page.`}
+                 </Message>
+               ) : null}
+-              {data.items.some((r) => r.state === 'failed') ? (
++              {data.items.filter((r) => r.state === 'failed').map((r) => (
+                 <Message
+-                  tone="needs-you"
+-                  action={<LinkButton to="/runners/add">Add runners</LinkButton>}
++                  key={r.id}
++                  tone="problem"
++                  action={
++                    <Stack gap="tight">
++                      <Button
++                        kind="danger"
++                        onPress={() => {
++                          setPicked(new Set([r.id]));
++                          del.ask([`Runner ${r.name}`], []);
++                        }}
++                        disabled={!admin || !r.managed}
++                        reason={why}
++                      >
++                        Remove
++                      </Button>
++                      <LinkButton to="/runners/add">Add runners</LinkButton>
++                    </Stack>
++                  }
+                 >
+-                  {failedWords(data.items.filter((r) => r.state === 'failed').length)}
++                  <Stack gap="tight">
++                    <strong>{`${r.name} failed on ${r.machine_name}`}</strong>
++                    <span>{r.reason ?? r.failed_reason ?? ''}</span>
++                    <span>Fix: remove this runner with Remove, then add runners again.</span>
++                  </Stack>
+                 </Message>
+-              ) : null}
++              ))}
+               <Section title="Runners" count={rows.length}>
+                 <Stack>
+                   <ListToolbar

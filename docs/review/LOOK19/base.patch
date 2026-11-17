@@ -1,0 +1,39 @@
+diff --git a/apps/web/src/screens/runners/Runners.tsx b/apps/web/src/screens/runners/Runners.tsx
+index 5626cc0..661dc2a 100644
+--- a/apps/web/src/screens/runners/Runners.tsx
++++ b/apps/web/src/screens/runners/Runners.tsx
+@@ -169,15 +169,30 @@ export function RunnersList() {
+       cell: (r) => <TextLink to={`/machines/${r.machine_id}`}>{r.machine_name}</TextLink>,
+       sort: (r) => r.machine_name,
+     },
+-    { id: 'os', header: 'System', cell: (r) => r.os, sort: (r) => r.os },
+-    { id: 'backend', header: 'Backend', cell: (r) => r.backend },
+     {
+       id: 'iso',
+       header: 'Isolation',
+-      cell: (r) => isolationText(r),
++      cell: (r) => (
++        <Stack gap="tight">
++          <span>{r.isolation === 'persistent' || r.keeps_state ? `${r.isolation}, state kept` : r.isolation}</span>
++          <Text tone="muted">{`${r.os} ${r.arch}`}</Text>
++        </Stack>
++      ),
+       sort: (r) => r.isolation,
+     },
+-    { id: 'labels', header: 'Labels', cell: (r) => r.labels.join(', ') },
++    {
++      id: 'labels',
++      header: 'Labels',
++      cell: (r) => (
++        <>
++          <span aria-hidden="true">
++            {r.labels.slice(0, 2).join(', ')}
++            {r.labels.length > 2 ? ` +${r.labels.length - 2}` : ''}
++          </span>
++          <span className="ds-visually-hidden">{r.labels.join(', ')}</span>
++        </>
++      ),
++    },
+     {
+       id: 'state',
+       header: 'State',

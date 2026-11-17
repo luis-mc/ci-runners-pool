@@ -1,0 +1,108 @@
+diff --git a/apps/web/src/screens/runners/Runners.tsx b/apps/web/src/screens/runners/Runners.tsx
+index 5626cc0..04b13b8 100644
+--- a/apps/web/src/screens/runners/Runners.tsx
++++ b/apps/web/src/screens/runners/Runners.tsx
+@@ -3,6 +3,7 @@
+ import {
+   Button,
+   Chips,
++  Dialog,
+   Empty,
+   LinkButton,
+   Message,
+@@ -83,6 +84,12 @@ export function stateCounts(items: readonly Runner[]): {
+   return { idle, busy, other: items.length - idle - busy };
+ }
+ 
++/** LOOK19 option A: the first clause of a long reason, on one line. */
++export function reasonSummary(reason: string): string {
++  const flat = reason.replace(/\s+/g, ' ').trim();
++  return (flat.split(/ \(|: /)[0] ?? flat).slice(0, 60);
++}
++
+ export function failedWords(n: number): string {
+   return `${n} ${n === 1 ? 'runner' : 'runners'} failed. The State column says why. Remove a failed runner with Remove, then add runners again.`;
+ }
+@@ -122,6 +129,7 @@ export function RunnersList() {
+     },
+   );
+ 
++  const [details, setDetails] = useState<Runner | undefined>(undefined);
+   const [replacing, setReplacing] = useState<Runner | undefined>(undefined);
+   const replace = useQuestion(
+     async () => {
+@@ -169,15 +177,30 @@ export function RunnersList() {
+       cell: (r) => <TextLink to={`/machines/${r.machine_id}`}>{r.machine_name}</TextLink>,
+       sort: (r) => r.machine_name,
+     },
+-    { id: 'os', header: 'System', cell: (r) => r.os, sort: (r) => r.os },
+-    { id: 'backend', header: 'Backend', cell: (r) => r.backend },
+     {
+       id: 'iso',
+       header: 'Isolation',
+-      cell: (r) => isolationText(r),
++      cell: (r) => (
++        <Stack gap="tight">
++          <span>{r.isolation === 'persistent' || r.keeps_state ? `${r.isolation}, state kept` : r.isolation}</span>
++          <Text tone="muted">{`${r.os} ${r.arch}`}</Text>
++        </Stack>
++      ),
+       sort: (r) => r.isolation,
+     },
+-    { id: 'labels', header: 'Labels', cell: (r) => r.labels.join(', ') },
++    {
++      id: 'labels',
++      header: 'Labels',
++      cell: (r) => (
++        <>
++          <span aria-hidden="true">
++            {r.labels.slice(0, 2).join(', ')}
++            {r.labels.length > 2 ? ` +${r.labels.length - 2}` : ''}
++          </span>
++          <span className="ds-visually-hidden">{r.labels.join(', ')}</span>
++        </>
++      ),
++    },
+     {
+       id: 'state',
+       header: 'State',
+@@ -187,7 +210,10 @@ export function RunnersList() {
+           <Stack gap="tight">
+             <Status kind={s.kind} word={s.word} />
+             {(r.reason ?? (r.state === 'failed' ? r.failed_reason : null)) ? (
+-              <Text tone="muted">{r.reason ?? r.failed_reason}</Text>
++              <>
++                <Text tone="muted">{reasonSummary(r.reason ?? r.failed_reason ?? '')}</Text>
++                <Button onPress={() => setDetails(r)}>Details</Button>
++              </>
+             ) : null}
+           </Stack>
+         );
+@@ -279,8 +305,27 @@ export function RunnersList() {
+     picked.has(r.id),
+   );
+ 
++  const full = details ? (details.reason ?? details.failed_reason ?? '') : '';
+   return (
+     <Page>
++      {details ? (
++        <Dialog
++          title={`${details.name} failed`}
++          onClose={() => setDetails(undefined)}
++          cancelLabel="Close"
++          primary={{
++            label: 'Copy message',
++            onPress: () => void navigator.clipboard?.writeText(full),
++          }}
++        >
++          <Stack>
++            <Text>{full}</Text>
++            <Text tone="muted">
++              Next step: remove this runner with Remove, then add runners again.
++            </Text>
++          </Stack>
++        </Dialog>
++      ) : null}
+       <PageHeader
+         title="Runners"
+         lead="Every runner, with where it runs and how it is isolated."

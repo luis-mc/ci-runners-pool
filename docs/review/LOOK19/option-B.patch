@@ -1,0 +1,203 @@
+diff --git a/apps/web/src/screens/runners/Runners.tsx b/apps/web/src/screens/runners/Runners.tsx
+index 5626cc0..280e9c7 100644
+--- a/apps/web/src/screens/runners/Runners.tsx
++++ b/apps/web/src/screens/runners/Runners.tsx
+@@ -122,6 +122,7 @@ export function RunnersList() {
+     },
+   );
+ 
++  const [openRows, setOpenRows] = useState<Set<string>>(new Set());
+   const [replacing, setReplacing] = useState<Runner | undefined>(undefined);
+   const replace = useQuestion(
+     async () => {
+@@ -169,15 +170,30 @@ export function RunnersList() {
+       cell: (r) => <TextLink to={`/machines/${r.machine_id}`}>{r.machine_name}</TextLink>,
+       sort: (r) => r.machine_name,
+     },
+-    { id: 'os', header: 'System', cell: (r) => r.os, sort: (r) => r.os },
+-    { id: 'backend', header: 'Backend', cell: (r) => r.backend },
+     {
+       id: 'iso',
+       header: 'Isolation',
+-      cell: (r) => isolationText(r),
++      cell: (r) => (
++        <Stack gap="tight">
++          <span>{r.isolation === 'persistent' || r.keeps_state ? `${r.isolation}, state kept` : r.isolation}</span>
++          <Text tone="muted">{`${r.os} ${r.arch}`}</Text>
++        </Stack>
++      ),
+       sort: (r) => r.isolation,
+     },
+-    { id: 'labels', header: 'Labels', cell: (r) => r.labels.join(', ') },
++    {
++      id: 'labels',
++      header: 'Labels',
++      cell: (r) => (
++        <>
++          <span aria-hidden="true">
++            {r.labels.slice(0, 2).join(', ')}
++            {r.labels.length > 2 ? ` +${r.labels.length - 2}` : ''}
++          </span>
++          <span className="ds-visually-hidden">{r.labels.join(', ')}</span>
++        </>
++      ),
++    },
+     {
+       id: 'state',
+       header: 'State',
+@@ -187,7 +203,22 @@ export function RunnersList() {
+           <Stack gap="tight">
+             <Status kind={s.kind} word={s.word} />
+             {(r.reason ?? (r.state === 'failed' ? r.failed_reason : null)) ? (
+-              <Text tone="muted">{r.reason ?? r.failed_reason}</Text>
++              <>
++                <span className="ds-table__clip">{r.reason ?? r.failed_reason}</span>
++                <Button
++                  onPress={() =>
++                    setOpenRows((o) => {
++                      const n = new Set(o);
++                      if (!n.delete(r.id)) n.add(r.id);
++                      return n;
++                    })
++                  }
++                  expanded={openRows.has(r.id)}
++                  controls={`why-${r.id}`}
++                >
++                  {openRows.has(r.id) ? 'Hide' : 'Full error'}
++                </Button>
++              </>
+             ) : null}
+           </Stack>
+         );
+@@ -439,6 +470,16 @@ export function RunnersList() {
+                       columns={columns}
+                       rows={rows}
+                       rowKey={(r) => r.id}
++                      expandedRow={(r) =>
++                        openRows.has(r.id) ? (
++                          <div id={`why-${r.id}`} role="region" aria-label={`Why ${r.name} failed`}>
++                            <Stack gap="tight">
++                              <Text>{r.reason ?? r.failed_reason ?? ''}</Text>
++                              <Text tone="muted">Next step: remove this runner with Remove, then add runners again.</Text>
++                            </Stack>
++                          </div>
++                        ) : null
++                      }
+                       selected={picked}
+                       onToggle={(k) =>
+                         setPicked((p) => {
+diff --git a/packages/ui/src/components.css b/packages/ui/src/components.css
+index 5cb8576..e2e0fa1 100644
+--- a/packages/ui/src/components.css
++++ b/packages/ui/src/components.css
+@@ -752,6 +752,23 @@ body {
+ .ds-table__pick {
+   inline-size: var(--ds-target-min);
+ }
++/* LOOK19 option B: one line with an ellipsis; the full text is in the expanded row. */
++.ds-table__clip {
++  display: block;
++  max-inline-size: 22ch;
++  overflow: hidden;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++}
++.ds-table__expanded td {
++  background: var(--ds-color-selection);
++  overflow-wrap: anywhere;
++}
++@media (max-width: 599px) {
++  .ds-table__clip {
++    max-inline-size: 100%;
++  }
++}
+ /* At phone width every row is a stack of "name  value" lines (UX-25, UX-69). The lead cell is the title line. A
+    column marked secondary is left out. */
+ @media (max-width: 599px) {
+diff --git a/packages/ui/src/components/Button.tsx b/packages/ui/src/components/Button.tsx
+index 1842999..687a5f0 100644
+--- a/packages/ui/src/components/Button.tsx
++++ b/packages/ui/src/components/Button.tsx
+@@ -23,6 +23,9 @@ export interface ButtonProps {
+   reasonIsWait?: boolean | undefined;
+   /** The id of a line on the page that says what the button waits for (a busy button points at it). */
+   describedBy?: string | undefined;
++  /** LOOK19 option B: this button shows or hides the region `controls`. */
++  expanded?: boolean | undefined;
++  controls?: string | undefined;
+ }
+ 
+ export function Button({
+@@ -38,6 +41,8 @@ export function Button({
+   part,
+   reasonIsWait = false,
+   describedBy,
++  expanded,
++  controls,
+ }: ButtonProps) {
+   const reasonId = useId();
+   const locked = disabled || busy;
+@@ -53,6 +58,8 @@ export function Button({
+         disabled={locked}
+         aria-busy={busy || undefined}
+         aria-describedby={showReason ? reasonId : describedBy}
++        aria-expanded={expanded}
++        aria-controls={controls}
+         title={title}
+         data-part={part}
+         onClick={onPress}
+diff --git a/packages/ui/src/components/Table.tsx b/packages/ui/src/components/Table.tsx
+index 4836006..403d3be 100644
+--- a/packages/ui/src/components/Table.tsx
++++ b/packages/ui/src/components/Table.tsx
+@@ -1,7 +1,7 @@
+ // Component 15: tables and list rows. Use a table only to compare three or more facts (UX-25). Column heads
+ // sort. A wide table may scroll sideways inside its frame, the page never does (UX-49). j and k move the
+ // active row, Enter opens it (UX-57): the shell sets `data-list-row` and the handler reads it.
+-import { useMemo, useState, type ReactNode } from 'react';
++import { Fragment, useMemo, useState, type ReactNode } from 'react';
+ import { useKeyHints } from './KeyHints';
+ import { Pane } from './Pane';
+ 
+@@ -26,6 +26,7 @@ export function Table<T>({
+   toggleLabel,
+   inactive,
+   title,
++  expandedRow,
+ }: {
+   caption: string;
+   /** Draws the table inside a pane with this title and the row count; leave out when the page already has one. */
+@@ -40,6 +41,8 @@ export function Table<T>({
+   toggleLabel?: ((row: T) => string) | undefined;
+   /** A row the screen shows in grey because it cannot be used now (UX-70): text and links grey, links underlined; its reason sits in the row. */
+   inactive?: ((row: T) => boolean) | undefined;
++  /** LOOK19 option B: a full-width row under a row, or null. */
++  expandedRow?: ((row: T) => ReactNode) | undefined;
+ }) {
+   useKeyHints(
+     rows.length > 0
+@@ -104,9 +107,10 @@ export function Table<T>({
+         <tbody>
+           {sorted.map((row) => {
+             const key = rowKey(row);
++            const extra = expandedRow?.(row);
+             return (
++              <Fragment key={key}>
+               <tr
+-                key={key}
+                 data-list-row
+                 data-selected={selected?.has(key) || undefined}
+                 data-inactive={inactive?.(row) || undefined}
+@@ -143,6 +147,12 @@ export function Table<T>({
+                   </td>
+                 ))}
+               </tr>
++              {extra ? (
++                <tr className="ds-table__expanded">
++                  <td colSpan={columns.length + (onToggle ? 1 : 0)}>{extra}</td>
++                </tr>
++              ) : null}
++              </Fragment>
+             );
+           })}
+         </tbody>
