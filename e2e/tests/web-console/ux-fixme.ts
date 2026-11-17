@@ -23,34 +23,6 @@ export const FIXME: Record<string, string> = {
   'primary|/settings/budgets|data': 'CRSP159 one primary button',
   'primary|/settings/audit|data': 'CRSP159 one primary button',
   'primary|/settings/export|data': 'CRSP159 one primary button',
-  'keyboard|/repositories/:owner/:name|data':
-    'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/machines/add|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/machines/:id|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/runners/add|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/jobs|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/images|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/caches|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/settings/users|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/settings/app|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/settings/repositories|data':
-    'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/settings/appearance|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/settings/retention|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/settings/backups|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/settings/budgets|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/settings/notifications|data':
-    'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/settings/access|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/settings/updates|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/settings/audit|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/settings/export|data': 'CRSP158 ArrowDown and ArrowUp walk the controls',
-  'keyboard|/setup|data':
-    'CRSP158 ArrowDown walk repeats a control on this screen (found in the RELEASE-28 join)',
-  'keyboard|/settings/console|data':
-    'CRSP158 ArrowDown walk skips controls on this settings tab (found in the RELEASE-28 join)',
-  'keyboard|/settings/data|data':
-    'CRSP158 ArrowDown walk skips controls on this settings tab (found in the RELEASE-28 join)',
   'primary|/settings/access|data':
     'CRSP159 one primary button on this settings tab (found in the RELEASE-28 join)',
   'primary|/settings/data|data':
