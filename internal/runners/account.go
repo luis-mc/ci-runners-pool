@@ -45,6 +45,10 @@ func hash4(s string, salt int) string {
 // tests of test_dl310_windows_runner.py).
 func AccountName(runnerName string, taken func(string) bool) string {
 	slug := sanitizeSlug(runnerName)
+	// A runner already named crsp-… must not get the prefix twice.
+	for strings.HasPrefix(slug, AccountPrefix) {
+		slug = strings.TrimLeft(strings.TrimPrefix(slug, AccountPrefix), "-")
+	}
 	if slug == "" {
 		slug = "runner"
 	}

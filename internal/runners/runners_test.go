@@ -209,3 +209,26 @@ func TestDrainFailsClosed(t *testing.T) {
 		t.Errorf("err=%v acted=%v", err, acted)
 	}
 }
+
+// A runner already named crsp-… gets the prefix once (OPS18), and the name
+// never goes past the 20 characters Windows allows.
+func TestAccountNameSinglePrefix(t *testing.T) {
+	for _, in := range []string{"crsp-light-comics-organizer-windows", "crsp-box-1", "crsp-crsp-x", "CRSP_Light"} {
+		got := AccountName(in, nil)
+		if strings.HasPrefix(got, AccountPrefix+AccountPrefix) {
+			t.Errorf("%q -> %q has a doubled prefix", in, got)
+		}
+		if len(got) > MaxAccountLen {
+			t.Errorf("%q -> %q is %d long", in, got, len(got))
+		}
+		if !strings.HasPrefix(got, AccountPrefix) {
+			t.Errorf("%q -> %q lacks the prefix", in, got)
+		}
+	}
+	if got := AccountName("crsp-box-1", nil); got != "crsp-box-1" {
+		t.Errorf("got %s", got)
+	}
+	if got := AccountName("crsp-", nil); got != "crsp-runner" {
+		t.Errorf("got %s", got)
+	}
+}
