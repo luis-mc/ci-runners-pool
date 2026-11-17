@@ -167,7 +167,8 @@ The body scrolls when the content is taller than the space. The overlay never gr
 
 - **Used for:** picking one answer from rows (up to 6) or a drop-down (7 or more). A multi-choice list starts with Select all N and Clear.
 - **Looks:** rows with a round mark where one is chosen, or a drop-down when there are many.
-- **Source:** `src/ui/choice-list`
+- **Option with detail (LOOK14):** an option may carry a name, a value and a description. The radio sits on the first line. Line 1 is the name in bold. Line 2 is the value in the normal colour, when the option has one. Line 3 is the description in the muted colour. Options are set apart by a space token and a divider line. The whole option is the click target, with a hover and a selected state (a bar on the start edge). An option's own field (such as Another address) shows under its description only while the option is chosen. A page passes the three parts as data (`Choice.label`, `Choice.detail`, `Choice.description`, `Choice.extra`) and never joins them into one label.
+- **Source:** `src/ui/choice-list`, `packages/ui/src/components/Fields.tsx`
 - **Rules:** UX-12, UX-22, UX-7.
 - **Guard:** none yet.
 

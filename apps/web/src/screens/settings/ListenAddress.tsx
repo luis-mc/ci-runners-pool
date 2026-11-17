@@ -23,13 +23,8 @@ import { TIMING } from '../../timing';
 import { Load } from '../common';
 
 type Listen = Schemas['ListenAddress'];
-type Candidate = Schemas['ListenAddressCandidate'];
 
 const OTHER = 'other';
-
-export function choiceLabel(c: Candidate): string {
-  return c.address ? `${c.label}: ${c.address}. ${c.who}` : `${c.label}. ${c.who}`;
-}
 
 /** Settings > Console > Network. */
 export function NetworkSettings() {
@@ -219,18 +214,24 @@ export function ChooseAddressDialog({
               onChange={setChoice}
               choices={l.candidates.map((c) => ({
                 value: c.id,
-                label: choiceLabel(c),
+                label: c.label,
+                ...(c.address ? { detail: c.address } : {}),
+                description: c.who,
+                ...(c.id === OTHER
+                  ? {
+                      extra: (
+                        <TextField
+                          label="Address as host:port"
+                          value={typed}
+                          onChange={setTyped}
+                          help="An address of this PC, such as 192.168.1.20:8460. The port is 8460 unless you write another."
+                        />
+                      ),
+                    }
+                  : {}),
                 ...(l.from_env ? { disabledReason: 'Set by the environment.' } : {}),
               }))}
             />
-            {selected === OTHER ? (
-              <TextField
-                label="Address as host:port"
-                value={typed}
-                onChange={setTyped}
-                help="An address of this PC, such as 192.168.1.20:8460. The port is 8460 unless you write another."
-              />
-            ) : null}
             <Text>
               The controller restarts once when you press Use this address. Running jobs
               finish first.

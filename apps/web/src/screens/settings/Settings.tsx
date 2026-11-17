@@ -317,10 +317,15 @@ export function UsersSettings() {
               value={role}
               onChange={(v) => setRole(v as 'admin' | 'viewer')}
               choices={[
-                { value: 'viewer', label: 'Viewer: reads everything, changes nothing' },
+                {
+                  value: 'viewer',
+                  label: 'Viewer',
+                  description: 'Reads everything, changes nothing.',
+                },
                 {
                   value: 'admin',
-                  label: 'Admin: changes repositories, machines and runners',
+                  label: 'Admin',
+                  description: 'Changes repositories, machines and runners.',
                 },
               ]}
             />

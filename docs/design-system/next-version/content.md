@@ -618,7 +618,7 @@ The words of the Settings section Access for CI and of the action that sets up p
 | Revoke {name}? / Access {name} stops working at once. A CI job that uses it is refused. | Title and line of the question card. |
 | Make an access | The section of the form. |
 | Write a name for the access, such as "parity CI". | Error when the name is empty. |
-| What it can do / Parity: read the runners and run the doctor, nothing else | The field and its one choice. |
+| What it can do / Parity | The field and its one choice; description: Read the runners and run the doctor, nothing else. |
 | Make | The primary button of the form. Busy: Making. |
 | Could not make the access. {reason} | Problem message when making fails. |
 | Access {name} is made / I have it | Title and close button of the card that shows the value once. |
@@ -724,7 +724,7 @@ The words of Settings > Console > Network and of the dialog that chooses the con
 | Use this address | Primary action of the dialog; busy word Saving, then Restarting. |
 | Listening on | Fact: the address the controller listens on now. |
 | Chosen, after the next restart | Fact: the stored choice is not yet the running address. |
-| This PC's network address | Choice (recommended): who can reach it is runners and machines on the network and containers on this PC. |
+| This PC's network address | Choice (recommended), with its address on line 2; description: Runners and machines on your network, and containers on this PC. |
 | Docker and WSL on this PC only | Choice: containers and WSL on this PC, no other machine. |
 | Another address | Choice: opens the box Address as host:port. |
 | Address as host:port | Box label; help: an address of this PC, port 8460 unless written. |

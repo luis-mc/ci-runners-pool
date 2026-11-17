@@ -377,13 +377,22 @@ export function NotificationsSettings() {
   ];
 
   const kindChoices = [
-    { value: 'email', label: 'Email: sent through a mail server you name' },
+    {
+      value: 'email',
+      label: 'Email',
+      description: 'Sent through a mail server you name.',
+    },
     {
       value: 'webhook',
-      label: 'Webhook: a signed message to a link, for the whole pool',
+      label: 'Webhook',
+      description: 'A signed message to a link, for the whole pool.',
       ...(cannotWebhook ? { disabledReason: cannotWebhook } : {}),
     },
-    { value: 'desktop', label: 'Desktop: a notice from the tray on your computer' },
+    {
+      value: 'desktop',
+      label: 'Desktop',
+      description: 'A notice from the tray on your computer.',
+    },
   ];
 
   return (
