@@ -234,6 +234,18 @@ export function signedIn(user: unknown = owner): Mock {
       setup_link_redeemed: true,
       steps: { connect_github: 'done', first_machine: 'done', first_repository: 'done' },
     })
+    .on('GET', '/api/v1/settings/pool', {
+      budget_memory_pct: 80,
+      budget_cpu_pct: 80,
+      size_slots_from_machine: true,
+      default_job_slots: 2,
+      drain_timeout_minutes: 30,
+    })
+    .on('GET', '/api/v1/settings/queue', {
+      order: ['priority', 'event_class', 'fair_share', 'queued_at'],
+      fair_share: true,
+      no_runner_wait_minutes: 2,
+    })
     .on('GET', '/api/v1/settings/public-repositories', {
       enabled: false,
       public_on_pool: 0,

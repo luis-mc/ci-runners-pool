@@ -57,6 +57,8 @@ export interface WizardProps {
   review?: boolean | undefined;
   /** The words for the state a stored run is in, said once above the content. */
   stateNote?: string | undefined;
+  /** The wizard sits on a screen whose own primary is elsewhere: its buttons are default, never primary (UX-4). */
+  embedded?: boolean | undefined;
   children: ReactNode;
 }
 
@@ -70,17 +72,26 @@ export function Wizard(p: WizardProps) {
   const current = atEnd && p.phase !== 'failed' ? last : p.current;
   const isDone = p.phase === 'done' || p.phase === 'done-after-reload';
 
+  // A wizard inside a screen that has its own primary (a machine page) draws default buttons (UX-4).
+  const kind = p.embedded ? 'default' : 'primary';
   let primary: ReactNode;
   if (p.phase === 'loading') {
     primary = (
-      <Button kind="primary" disabled reason={p.reading ?? 'Reading'} reasonIsWait>
+      <Button
+        kind={kind}
+        part={p.embedded ? 'primary' : undefined}
+        disabled
+        reason={p.reading ?? 'Reading'}
+        reasonIsWait
+      >
         {p.primary.label}
       </Button>
     );
   } else if (p.phase === 'running') {
     primary = (
       <Button
-        kind="primary"
+        kind={kind}
+        part={p.embedded ? 'primary' : undefined}
         busy
         busyLabel={p.primary.busyLabel ?? 'Working'}
         disabled
@@ -91,30 +102,47 @@ export function Wizard(p: WizardProps) {
     );
   } else if (isDone) {
     primary = p.donePrimary ? (
-      <Button kind="primary" onPress={p.donePrimary.onPress}>
+      <Button
+        kind={kind}
+        part={p.embedded ? 'primary' : undefined}
+        onPress={p.donePrimary.onPress}
+      >
         {p.donePrimary.label}
       </Button>
     ) : (
-      <Button kind="primary" onPress={p.onStartAgain}>
+      <Button
+        kind={kind}
+        part={p.embedded ? 'primary' : undefined}
+        onPress={p.onStartAgain}
+      >
         Start again
       </Button>
     );
   } else if (p.phase === 'stopped' || p.phase === 'paused') {
     primary = (
-      <Button kind="primary" onPress={p.onStartAgain}>
+      <Button
+        kind={kind}
+        part={p.embedded ? 'primary' : undefined}
+        onPress={p.onStartAgain}
+      >
         Start again
       </Button>
     );
   } else if (p.phase === 'failed') {
     primary = (
-      <Button kind="primary" onPress={p.onTryAgain}>
+      <Button
+        kind={kind}
+        part={p.embedded ? 'primary' : undefined}
+        onPress={p.onTryAgain}
+      >
         Try again
       </Button>
     );
   } else {
     primary = (
       <Button
-        kind="primary"
+        kind={kind}
+        part={p.embedded ? 'primary' : undefined}
         onPress={p.primary.onPress}
         disabled={p.primary.disabled}
         reason={p.primary.reason}

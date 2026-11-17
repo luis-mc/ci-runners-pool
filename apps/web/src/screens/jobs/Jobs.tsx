@@ -11,7 +11,6 @@ import {
   Cluster,
   Empty,
   ExportButton,
-  ExternalButton,
   Facts,
   LinkButton,
   Message,
@@ -347,7 +346,10 @@ export function JobsList() {
               </Cluster>
             </Stack>
           </Section>
-          <Section title="History" actions={<ExportButton what="jobs" run={exportAll} />}>
+          <Section
+            title="History"
+            actions={<ExportButton what="jobs" run={exportAll} kind="primary" />}
+          >
             <Stack>
               <Load
                 result={history.result}
@@ -466,7 +468,12 @@ function JobBody({ j }: { j: Job }) {
         lead={`${j.repository}, run ${formatNumber(j.run_id)}, attempt ${j.run_attempt}.`}
         action={
           safeUrl ? (
-            <ExternalButton href={safeUrl}>Open the run on GitHub</ExternalButton>
+            <Button
+              kind="primary"
+              onPress={() => window.open(safeUrl, '_blank', 'noopener,noreferrer')}
+            >
+              Open the run on GitHub
+            </Button>
           ) : undefined
         }
       />

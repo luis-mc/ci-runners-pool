@@ -424,7 +424,7 @@ export function AppearanceSettings() {
               choices={THEMES.map((t) => ({
                 value: t.id,
                 label: t.name,
-                swatch: t.id,
+                preview: t.id,
               }))}
             />
             <ChoiceField
@@ -570,7 +570,6 @@ function RetentionForm({
         <FormActions>
           <Button onPress={onSaved}>Cancel</Button>
           <Button
-            kind="primary"
             submit
             busy={save.busy}
             busyLabel="Saving"
@@ -712,7 +711,6 @@ export function BackupsSettings() {
                 Cancel
               </Button>
               <Button
-                kind="primary"
                 submit
                 busy={save.busy}
                 busyLabel="Saving"
@@ -782,7 +780,6 @@ export function AppKeySettings() {
           ) : null}
           <FormActions>
             <Button
-              kind="primary"
               submit
               busy={replace.busy}
               busyLabel="Replacing"

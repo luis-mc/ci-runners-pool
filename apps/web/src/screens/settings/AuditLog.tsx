@@ -111,7 +111,7 @@ export function AuditLogSettings() {
               <SearchBar label="Search what" value={action} onChange={setAction} />
             </>
           }
-          actions={<ExportButton what="the audit log" onExport={exportAll} />}
+          actions={<ExportButton primary what="the audit log" onExport={exportAll} />}
         />
         <Load
           result={result.state === 'ready' ? { ...result, data: rows } : result}

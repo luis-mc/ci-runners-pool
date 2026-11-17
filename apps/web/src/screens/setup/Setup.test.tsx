@@ -188,13 +188,15 @@ describe('Setup page when every step is done (UX-6)', () => {
       .on('GET', '/api/v1/machines', { items: [machine()] });
     renderApp(api, '/setup');
     const go = await screen.findByRole('button', { name: 'Open the overview' });
-    expect(go.getAttribute('href')).toBe('/');
     expect(go.getAttribute('data-kind')).toBe('primary');
+    expect(go.hasAttribute('data-primary')).toBe(true);
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     const primaries = screen
       .getAllByRole('button')
       .filter((b) => b.getAttribute('data-kind') === 'primary');
     expect(primaries).toHaveLength(1);
+    fireEvent.click(go);
+    await waitFor(() => expect(window.location.pathname).toBe('/'));
   });
 
   it('counts the first repository when any repository has the pool on', async () => {

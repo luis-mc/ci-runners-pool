@@ -18,10 +18,26 @@ const FOCUSABLE =
 async function controls(page: Page): Promise<string[]> {
   return page.evaluate((sel) => {
     const out: string[] = [];
+    const radioStop = new Map<string, Element>();
+    document
+      .querySelectorAll<HTMLInputElement>('input[type=radio][name]')
+      .forEach((r) => {
+        const cur = radioStop.get(r.name) as HTMLInputElement | undefined;
+        if (!cur || (r.checked && !cur.checked)) radioStop.set(r.name, r);
+      });
     document.querySelectorAll(sel).forEach((e, i) => {
+      // A radio group is one stop (D10): its chosen radio, else its first.
+      if (
+        e instanceof HTMLInputElement &&
+        e.type === 'radio' &&
+        e.name &&
+        radioStop.get(e.name) !== e
+      )
+        return;
       const r = e.getBoundingClientRect();
       const s = getComputedStyle(e);
       if (r.width === 0 || r.height === 0 || s.visibility === 'hidden') return;
+      if (e.getAttribute('tabindex')?.startsWith('-')) return; // a roving member: its group's own keys
       if (e.closest('[inert], [hidden], [aria-hidden=true]')) return;
       (e as HTMLElement).dataset.kwalk = String(i);
       out.push(String(i));

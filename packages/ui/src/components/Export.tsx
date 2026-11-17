@@ -3,7 +3,7 @@
 // it holds, then the date and time. The button is busy until the file arrives (UX-13); a failure is one line under
 // it (UX-27). A page gives `run` (the part saves the file the page returns) or `onExport` (the page saves it).
 import { useState } from 'react';
-import { Button } from './Button';
+import { Button, type ButtonKind } from './Button';
 import { formatFileStamp } from './format';
 import { Message } from './Message';
 
@@ -30,6 +30,10 @@ export interface ExportButtonProps {
   label?: string | undefined;
   disabled?: boolean | undefined;
   reason?: string | undefined;
+  /** The button look; the one next action of a screen is primary (UX-4). */
+  kind?: ButtonKind | undefined;
+  /** The one primary button of the screen (UX-4), when the export is what the screen is for. */
+  primary?: boolean | undefined;
 }
 
 function save(file: ExportedFile, what: string) {
@@ -52,6 +56,8 @@ export function ExportButton({
   label = 'Export',
   disabled,
   reason,
+  kind,
+  primary,
 }: ExportButtonProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -70,6 +76,7 @@ export function ExportButton({
   return (
     <span className="ds-export">
       <Button
+        kind={kind ?? (primary ? 'primary' : undefined)}
         onPress={() => void go()}
         busy={busy}
         busyLabel="Exporting"
