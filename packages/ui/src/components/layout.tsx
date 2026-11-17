@@ -119,7 +119,7 @@ export function PageHeader({
   );
 }
 
-/** The page body of a screen: one stack with a narrow or wide frame. */
+/** The page body of a screen: one stack. The default is the full wide frame, from the title's left edge to the frame's right edge; `narrow` is for sign-in and other auth flows only (UX-69). */
 export function Page({
   children,
   frame = 'wide',

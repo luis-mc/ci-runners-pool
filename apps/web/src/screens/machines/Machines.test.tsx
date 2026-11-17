@@ -148,18 +148,20 @@ describe('Machine detail', () => {
       waiting_for: [],
     });
     renderApp(api, '/machines/m1');
-    fireEvent.click(await screen.findByRole('button', { name: 'Drain' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Drain build-1?' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Stop new jobs' }));
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Stop new jobs on build-1?',
+    });
     expect(within(dialog).getByText('octo/app e2e')).toBeTruthy();
     expect(api.count('POST', '/api/v1/machines/m1/drain')).toBe(0);
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Drain' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Stop new jobs' }));
     await waitFor(() => expect(api.count('POST', '/api/v1/machines/m1/drain')).toBe(1));
   });
 
   it('does nothing when the question is cancelled', async () => {
     const api = base();
     renderApp(api, '/machines/m1');
-    fireEvent.click(await screen.findByRole('button', { name: 'Drain' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Stop new jobs' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -235,7 +237,7 @@ describe('Machine detail', () => {
       true,
     );
     expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: 'Drain' }).disabled,
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Stop new jobs' }).disabled,
     ).toBe(true);
   });
 });
@@ -243,15 +245,18 @@ describe('Machine detail', () => {
 describe('Machine detail, one page', () => {
   const base = () =>
     signedIn().on('GET', '/api/v1/machines/:id', machine({ running_jobs: running }));
-  it('has one primary (Drain), one foot with Cancel and Save, and Remove in its pane', async () => {
+  it('has one primary (Save; Stop new jobs is secondary), one foot with Cancel and Save, and Remove in its pane', async () => {
     const api = base();
     renderApp(api, '/machines/m1');
     await screen.findByRole('heading', { level: 1, name: 'build-1' });
     const primaries = Array.from(document.querySelectorAll('button[data-primary]')).map(
       (b) => b.textContent,
     );
-    expect(primaries.filter((t) => t === 'Drain')).toEqual(['Drain']);
-    expect(primaries).not.toContain('Save');
+    expect(primaries).not.toContain('Stop new jobs');
+    expect(
+      screen.getByText('Running jobs finish first. Resume takes jobs again.'),
+    ).toBeTruthy();
+    expect(primaries).toEqual(['Save']);
     expect(screen.getAllByRole('button', { name: 'Save' }).length).toBe(1);
     expect(screen.getAllByRole('button', { name: 'Cancel' }).length).toBe(1);
     const remove = screen.getByRole('region', { name: 'Remove this machine' });

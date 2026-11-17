@@ -90,20 +90,19 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 | Item | Kind | Notes |
 |---|---|---|
-| `CI Runners Shared Pool <version> - up to date` | Text, grey, not pressable | Reads `- update <v> available` when a newer stable release exists, `- updating…` while an update drains, downloads or installs, and ends with ` · auto-update off` when Automatic updates is off. With no answer from the service it shows only the name and version. |
-| `Service: Running · N jobs running · M waiting` | Text, grey, not pressable | The state is a word: Running, Waiting, Failed, Stopped or Starting. Stopped reads `Service: Stopped at 14:30 · exit code 3`. The tooltip keeps the glyph form (R5.2). |
+| `CI Runners Shared Pool <version> - up to date` | Text, grey, not pressable | When a newer stable release exists it reads `CI Runners Shared Pool <version>` and the Update to line follows. It reads `- updating…` while an update drains, downloads or installs, `- update failed` after a failed one, and ends with ` · auto-update off` when Automatic updates is off. With no answer from the service it shows only the name and version. |
+| `↑ Update to <version>` | Action | Shown only when a newer release exists and no update runs. Runs the same ask-first flow as Look for updates: the update dialog (TRAY2); nothing installs before the yes. |
+| `Running - N jobs - M runners` | Action | The state is a word: Running, Waiting, Failed, Stopped or Starting. No runner yet reads `Running - no runners yet`. Stopped reads `Stopped at 14:30 - exit code 3`. Opens the console Jobs page. The tooltip keeps the glyph form (R5.2). |
 | (separator) | | |
-| Mode | Submenu with three radio items: Automatic, Always, Paused. The mode in force is ticked (R5.42). | Hidden when the service does not report a machine policy. |
-| Pause for 1 hour, Pause until I resume | Action | Pause new jobs on this machine; the running jobs finish. Hidden while a pause or the Paused mode holds. |
-| Resume | Action | Ends the pause, and returns the Paused mode to Automatic. Shown only while a pause or the Paused mode holds. |
-| Open CI Runners Shared Pool | Action. It is not bold: the owner accepted a plain entry, and the menu has no default-entry code path. | Opens the console, signed in, through a one-time link. |
-| Look for updates | Action | Asks the service to look for a newer stable release now. It only looks (R5.43). Up to date: one notice, `CI Runners Shared Pool <version> is the newest stable release.` A newer release: the update dialog. |
-| Update to `<version>` | Action | Shown only when a newer release waits for a yes, that is, Automatic updates is off. Opens the console Review step. |
-| Restart the service | Action | Opens the console Review step. Never restarts without that yes. |
-| Open log folder | Action | Opens the service's log folder in the file manager. |
-| Open on GitHub | Action | Opens the repository page in the browser. |
+| Open console, Open on GitHub, Look for updates | Action | Open console signs in through a one-time link. Open on GitHub opens the repository page. Look for updates only looks (R5.43). Up to date: one notice, `CI Runners Shared Pool <version> is the newest stable release.` A newer release: the update dialog. |
+| (separator) | | |
+| Pause | Submenu: `for 1 hour`, `until I resume` | Pauses new jobs on this machine; the running jobs finish. Hidden while a pause or the Paused mode holds, and when the service reports no machine policy. |
+| `Paused until HH:MM - Resume now` | Action | Takes the place of Pause while a timed pause holds; `Paused - Resume now` for a pause with no end or the Paused mode. Ends the pause and returns the Paused mode to Automatic. |
+| `Mode: <current>` | Submenu with two radio items: Automatic, Always (R5.42) | The mode in force is ticked. Paused is not a mode here: a machine paused from the console shows the plain label `Mode` and ticks neither. Hidden when the service does not report a machine policy. |
+| (separator) | | |
+| Restart the service, Open log folder, Open Doctor | Action | Restart opens the console Review step and never restarts without that yes. Open log folder opens the service's log folder in the file manager. Open Doctor opens the console Doctor page. |
+| (separator) | | |
 | ✓ Start at login | Switch with a tick | Turns the autostart entry on or off. On by default. |
-| (separator) | | |
 | Quit tray | Action | Closes the tray only. The service keeps running. |
 
 **Menu (later).** A Notices item with a count (M8).
@@ -128,9 +127,9 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 ### Menu and status
 
-**R5.1** — The tray menu MUST hold, in this order, on Windows, macOS and Linux: the version line, the service line, a separator, Mode (a submenu), Pause for 1 hour, Pause until I resume, Resume, Open CI Runners Shared Pool, Look for updates, Update to `<version>` (only when a newer release waits for a yes), Restart the service, Open log folder, Open on GitHub, Start at login, a separator, Quit tray. The first two lines are grey text. (M1, CRSP19)
+**R5.1** — The tray menu MUST hold, in this order, on Windows, macOS and Linux: the version line (grey text), `↑ Update to <version>` (only when a newer release exists), the status line, a separator, Open console, Open on GitHub, Look for updates, a separator, Pause (a submenu; `Paused until HH:MM - Resume now` takes its place while a pause holds), Mode: `<current>` (a submenu), a separator, Restart the service, Open log folder, Open Doctor, a separator, Start at login, Quit tray. No entry is bold. (M1, CRSP19, TRAY3)
 
-**R5.2** — The service line MUST read `Service: <word> · N jobs running · M waiting` with the state as a word (UX-58). The tooltip MUST show the same facts with the UX-58 glyph: product name, glyph and state word, running job count and waiting job count. A stopped service shows the stop time and exit code instead of counts, in both. (M1, CRSP19)
+**R5.2** — The status line MUST read `<word> - N jobs - M runners` with the state as a word (UX-58), and opens the console Jobs page. The tooltip MUST show the same facts with the UX-58 glyph: product name, glyph and state word, running job count and waiting job count. A stopped service shows the stop time and exit code instead of counts, in both. (M1, CRSP19)
 
 **R5.3** — The tray MUST ask the local service for status every 5 seconds and update the icon, tooltip and status line within 10 seconds of a change. (M1)
 
@@ -140,7 +139,7 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 ### Mode and pause (CRSP75)
 
-**R5.42** — The tray MUST show this machine's mode and let the person change it (machines R5.61): a Mode submenu with Automatic, Always and Paused as radio items (the one in force ticked), Pause for 1 hour, Pause until I resume, and Resume. A pause item hides while a pause or the Paused mode holds; Resume shows then and ends the pause and the Paused mode. The menu header ends with ` · Paused` or ` · On battery` (or ` · Quiet hours`) while the machine takes no new job, and the tooltip says it in lower case. A machine over its load budget is working, so the header does not say Busy. A change goes to the controller as a machine setting through the local channel calls `mode`, `pause` and `resume`, and the status answer carries the policy back (`policy`: mode, accepting, pause_reason, on_battery, pause_until_ms, until_resumed). The console shows the change at once, a change in the console reaches the menu on the next 5-second poll (R5.3), and each change is in the audit log as `tray:<os user>`. A failed change shows one notice and changes nothing. The running jobs always finish. (M1)
+**R5.42** — The tray MUST show this machine's mode and let the person change it (machines R5.61): a Mode submenu with Automatic and Always as radio items (the one in force ticked), a Pause submenu with `for 1 hour` and `until I resume`, and `Paused until HH:MM - Resume now`. The Pause submenu hides while a pause or the Paused mode holds; the Resume entry shows then and ends the pause and the Paused mode. The menu header ends with ` · Paused` or ` · On battery` (or ` · Quiet hours`) while the machine takes no new job, and the tooltip says it in lower case. A machine over its load budget is working, so the header does not say Busy. A change goes to the controller as a machine setting through the local channel calls `mode`, `pause` and `resume`, and the status answer carries the policy back (`policy`: mode, accepting, pause_reason, on_battery, pause_until_ms, until_resumed). The console shows the change at once, a change in the console reaches the menu on the next 5-second poll (R5.3), and each change is in the audit log as `tray:<os user>`. A failed change shows one notice and changes nothing. The running jobs always finish. (M1)
 
 ### Open and the one-time sign-in link
 
@@ -276,7 +275,7 @@ Rows marked built have tests that exist and run in CI. Rows marked planned are n
 | Requirement | Test |
 |---|---|
 | R5.1 | built: internal/tray/menu_test.go, TestMenuOrder, TestUpdateItemOnlyWhenNewerAndAutoOff |
-| R5.42 | built (CRSP75): internal/tray/policy_test.go, TestModeSubmenuIsThreeRadioItemsWithOneTick, TestPauseAndResumeItems, TestNoPolicyHidesTheModeItems, TestHeaderNamesWhyTheMachineTakesNoJobs, TestClientSetsModePauseAndResume, TestOpenerChangesPolicyAndNoticesAFailure; internal/trayserver/server_unix_test.go, TestChannelModePauseAndResume; internal/machines/policy_test.go, TestPauseFromTheTray |
+| R5.42 | built (CRSP75): internal/tray/policy_test.go, TestModeSubmenuIsTwoRadioItemsWithOneTick, TestPauseAndResumeItems, TestNoPolicyHidesTheModeItems, TestHeaderNamesWhyTheMachineTakesNoJobs, TestClientSetsModePauseAndResume, TestOpenerChangesPolicyAndNoticesAFailure; internal/trayserver/server_unix_test.go, TestChannelModePauseAndResume; internal/machines/policy_test.go, TestPauseFromTheTray |
 | R5.43 | built (CRSP147): internal/tray/update_prompt_test.go, TestLookForUpdatesAsksAndNeverInstallsByItself, TestLookForUpdatesWithoutDialogNeverInstalls, TestInstallNowFailureIsSaid, TestUpToDateAndAlreadyUpdatingAskNothing, TestPromptBodyNamesVersionsAndJobCount, TestOfferedOncePerVersion. The OS dialogs (PowerShell form, zenity, kdialog, osascript) are not driven in CI |
 | R5.2 | built: internal/tray/menu_test.go, TestServiceLinePerState, TestHeaderPerUpdateState; internal/tray/tray_test.go, TestStatusTextPerState (tooltip) |
 | R5.3 | built: internal/tray/tray_test.go, TestPollerUpdatesWithin10s (injected clock) |

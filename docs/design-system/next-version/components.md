@@ -488,6 +488,8 @@ The body scrolls when the content is taller than the space. The overlay never gr
 - **Rules:** UX-10, UX-15, UX-16, UX-20.
 - **Guard:** `e2e/tests/design-layout.spec.ts` (layout at 360, 393 and 1300 px).
 
+A field's width caps its box, never its name and help: a lone field's name and help use the width of the section, one line each on a desktop, and the box keeps its own width below (component 14, LOOK10). Side by side in a row, a field is as wide as its box.
+
 ## 44. GitHub grant
 
 - **Used for:** every place that needs an App permission or repository access it lacks (Set up parity, Turn on the pool, Repositories, the pool per organization).
@@ -496,6 +498,16 @@ The body scrolls when the content is taller than the space. The overlay never gr
 - **Source:** `packages/ui/src/components/Grant.tsx` (`GithubGrant`).
 - **Rules:** UX-15, UX-26, UX-38, UX-58.
 - **Guard:** `packages/ui/src/components/Grant.test.tsx`, `e2e/tests/web-console/a11y.spec.ts`.
+
+## 45. Ordered list
+
+- **Used for:** choosing the order of a fixed set of items, where each item is used once (the queue order in Budgets).
+- **Looks:** one list of numbered rows, `1  Repository priority  [↑] [↓]`. The two icon buttons sit at the right of the row and stay there at phone width; each is 44 px (UX-16). Move up is disabled on the first row, Move down on the last. An item cannot be chosen twice, so a duplicate is impossible.
+- **Behaviour:** Move up and Move down swap the row with its neighbour. With a row focused, Alt+ArrowUp and Alt+ArrowDown do the same and focus follows the row. A live line says the new place. A stored value with a repeated or missing item is normalised on load: the first of each is kept and the missing are appended in the default order.
+- **Source:** `packages/ui/src/components/OrderList.tsx` (`OrderList`, `normaliseOrder`), `packages/ui/src/components.css`
+- **Rules:** UX-16, UX-20.
+- **Guard:** `packages/ui/src/components/OrderList.test.tsx`, `apps/web/src/screens/settings/Budgets.test.tsx`.
+- **Words:** see content.md, Ordered list words.
 
 ## How to add a component
 

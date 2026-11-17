@@ -38,7 +38,7 @@ for (const width of [360, 393, 1300]) {
       ).toBeVisible();
       await expect(
         page.locator('button[data-primary]').filter({ hasText: 'Save' }),
-      ).toHaveCount(0);
+      ).toHaveCount(1);
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       ).toBe(true);

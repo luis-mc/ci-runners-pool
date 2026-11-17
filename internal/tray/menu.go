@@ -5,50 +5,61 @@ import (
 	"strings"
 )
 
-// Menu item labels. Words come from docs/design-system/v1/content.md (R6.7).
+// Menu item labels. Words come from docs/design-system/next-version/content.md (TRAY3).
 const (
 	ProductName       = "CI Runners Shared Pool"
-	LabelOpen         = "Open " + ProductName
+	LabelOpen         = "Open console"
 	LabelCheck        = "Look for updates"
 	LabelRestart      = "Restart the service"
 	LabelOpenLogs     = "Open log folder"
 	LabelOpenGitHub   = "Open on GitHub"
+	LabelOpenDoctor   = "Open Doctor"
 	LabelStartAtLogin = "Start at login"
 	LabelQuit         = "Quit tray"
 	LabelMode         = "Mode"
+	LabelModeCurrent  = "Mode: "
 	LabelAutomatic    = "Automatic"
 	LabelAlways       = "Always"
-	LabelPaused       = "Paused"
-	LabelPauseHour    = "Pause for 1 hour"
-	LabelPauseUntil   = "Pause until I resume"
-	LabelResume       = "Resume"
+	LabelPause        = "Pause"
+	LabelPauseHour    = "for 1 hour"
+	LabelPauseUntil   = "until I resume"
+	// LabelUpdatePrefix is the up arrow before Update to <version>.
+	LabelUpdatePrefix = "\u2191 Update to "
 	// RepoURL is the repository page that Open on GitHub opens.
 	RepoURL = "https://github.com/luis-mc/ci-runners-shared-pool"
 )
 
-// Item IDs, in menu order. The update item sits after Look for updates and is
-// shown only when a newer release waits for a yes (auto-update off).
+// Console pages the tray opens through a one-time link.
+const (
+	JobsPath   = "/jobs"
+	DoctorPath = "/doctor"
+)
+
+// Item IDs, in menu order. The update item sits under the header and is shown
+// only when a newer release exists.
 const (
 	IDHeader    = "header"
-	IDService   = "service"
+	IDUpdate    = "update"
+	IDStatus    = "status"
 	IDSep1      = "sep1"
-	IDMode      = "mode"
-	IDModeAuto  = "mode_automatic"
-	IDModeAlw   = "mode_always"
-	IDModePause = "mode_paused"
+	IDOpen      = "open"
+	IDGitHub    = "github"
+	IDCheck     = "check"
+	IDSep2      = "sep2"
+	IDPause     = "pause"
 	IDPauseHour = "pause_hour"
 	IDPauseTill = "pause_until_resumed"
 	IDResume    = "resume"
-	IDOpen      = "open"
-	IDCheck     = "check"
-	IDUpdate    = "update"
+	IDMode      = "mode"
+	IDModeAuto  = "mode_automatic"
+	IDModeAlw   = "mode_always"
+	IDSep3      = "sep3"
 	IDRestart   = "restart"
 	IDLogs      = "logs"
-	IDGitHub    = "github"
+	IDDoctor    = "doctor"
+	IDSep4      = "sep4"
 	IDLogin     = "login"
-	IDSep2      = "sep2"
 	IDQuit      = "quit"
-	updateLabel = "Update to "
 )
 
 // MenuItem is one entry of the tray menu.
@@ -100,7 +111,7 @@ func Header(version string, st Status) string {
 	case st.Update.Updating():
 		base += " - updating…"
 	case st.Update.Available && st.Update.Latest != "":
-		base += " - update " + st.Update.Latest + " available"
+		// The Update to line below says which version; the header stays plain.
 	default:
 		base += " - up to date"
 	}
@@ -113,9 +124,9 @@ func Header(version string, st Status) string {
 	return base
 }
 
-// ServiceLine is the second menu line: "Service: Running · 2 jobs running · 1 waiting".
-// The state is always a word (UX-58); the tooltip keeps the glyph.
-func (s Status) ServiceLine() string {
+// StatusLine is the status line: "Running - 2 jobs - 1 runner". The state is
+// always a word (UX-58); the tooltip keeps the glyph.
+func (s Status) StatusLine() string {
 	word := map[State]string{
 		StateHealthy: "Running", StateWaiting: "Waiting", StateFailed: "Failed",
 		StateStopped: "Stopped", StateStarting: "Starting",
@@ -124,24 +135,24 @@ func (s Status) ServiceLine() string {
 		word = "Starting"
 	}
 	var b strings.Builder
-	b.WriteString("Service: " + word)
+	b.WriteString(word)
 	switch s.State {
 	case StateStopped:
 		if !s.StoppedAt.IsZero() {
 			b.WriteString(" at " + s.StoppedAt.Format("15:04"))
 		}
-		fmt.Fprintf(&b, " · exit code %d", s.ExitCode)
+		fmt.Fprintf(&b, " - exit code %d", s.ExitCode)
 	case StateFailed:
 		if s.Fault != "" {
-			b.WriteString(" · " + s.Fault)
+			b.WriteString(" - " + s.Fault)
 		}
 	case StateStarting:
 	default:
 		if s.State == StateHealthy && s.Runners == 0 && s.Running == 0 && s.Waiting == 0 {
-			b.WriteString(" · no runners yet")
+			b.WriteString(" - no runners yet")
 			break
 		}
-		fmt.Fprintf(&b, " · %s running · %d waiting", plural(s.Running, "job"), s.Waiting)
+		fmt.Fprintf(&b, " - %s - %s", plural(s.Running, "job"), plural(s.Runners, "runner"))
 	}
 	return b.String()
 }
@@ -153,22 +164,29 @@ func plural(n int, noun string) string {
 	return fmt.Sprintf("%d %ss", n, noun)
 }
 
-// BuildMenu returns the tray menu in order (R5.1). The same list is built for
-// Windows, macOS and Linux.
-func BuildMenu(version string, st Status, startAtLogin bool) []MenuItem {
-	showUpdate := st.Update.Available && st.Update.AutoOff && !st.Update.Updating() && st.Update.Latest != ""
-	return append(append([]MenuItem{
-		{ID: IDHeader, Label: Header(version, st)},
-		{ID: IDService, Label: st.ServiceLine()},
-		{ID: IDSep1, Separator: true},
-	}, policyItems(st)...), buildRest(st, startAtLogin, showUpdate)...)
+// UpdateShown says whether the Update to line shows: a newer release exists
+// and no update is running.
+func (s Status) UpdateShown() bool {
+	return s.Update.Available && !s.Update.Updating() && s.Update.Latest != ""
 }
 
-// policyItems are the Mode submenu, the pause items and Resume (CRSP75, R5.31).
-// With no policy from the service they are hidden: an older service cannot
-// change the mode. The three modes are radio items; the one in force is ticked.
-// Pause items hide while the user holds a pause, and Resume shows then.
-func policyItems(st Status) []MenuItem {
+// ResumeLabel is the pause item while the user holds a pause.
+func (p MachinePolicy) ResumeLabel() string {
+	if !p.PauseUntil.IsZero() {
+		return "Paused until " + p.PauseUntil.Local().Format("15:04") + " - Resume now"
+	}
+	return "Paused - Resume now"
+}
+
+// BuildMenu returns the tray menu in order (TRAY3). The same list is built for
+// Windows, macOS and Linux. No entry is bold: the menu library has no default entry.
+//
+// With no policy from the service the pause and mode items are hidden: an older
+// service cannot change them. While the user holds a pause the Pause submenu
+// gives way to one Paused until HH:MM - Resume now entry. The Mode submenu has
+// Automatic and Always; Paused is no mode here, so a machine paused from the
+// console ticks neither.
+func BuildMenu(version string, st Status, startAtLogin bool) []MenuItem {
 	p := st.Policy
 	hide := !p.Known
 	mode := p.Mode
@@ -176,27 +194,35 @@ func policyItems(st Status) []MenuItem {
 		mode = ModeAutomatic
 	}
 	paused := p.UserPaused()
+	modeLabel := LabelMode
+	switch mode {
+	case ModeAutomatic:
+		modeLabel = LabelModeCurrent + LabelAutomatic
+	case ModeAlways:
+		modeLabel = LabelModeCurrent + LabelAlways
+	}
 	return []MenuItem{
-		{ID: IDMode, Label: LabelMode, Action: true, Hidden: hide},
+		{ID: IDHeader, Label: Header(version, st)},
+		{ID: IDUpdate, Label: LabelUpdatePrefix + st.Update.Latest, Action: true, Hidden: !st.UpdateShown()},
+		{ID: IDStatus, Label: st.StatusLine(), Action: true},
+		{ID: IDSep1, Separator: true},
+		{ID: IDOpen, Label: LabelOpen, Action: true},
+		{ID: IDGitHub, Label: LabelOpenGitHub, Action: true},
+		{ID: IDCheck, Label: LabelCheck, Action: true},
+		{ID: IDSep2, Separator: true},
+		{ID: IDPause, Label: LabelPause, Action: true, Hidden: hide || paused},
+		{ID: IDPauseHour, Label: LabelPauseHour, Action: true, Parent: IDPause, Hidden: hide || paused},
+		{ID: IDPauseTill, Label: LabelPauseUntil, Action: true, Parent: IDPause, Hidden: hide || paused},
+		{ID: IDResume, Label: p.ResumeLabel(), Action: true, Hidden: hide || !paused},
+		{ID: IDMode, Label: modeLabel, Action: true, Hidden: hide},
 		{ID: IDModeAuto, Label: LabelAutomatic, Action: true, Radio: true, Switch: true, Checked: mode == ModeAutomatic, Parent: IDMode, Hidden: hide},
 		{ID: IDModeAlw, Label: LabelAlways, Action: true, Radio: true, Switch: true, Checked: mode == ModeAlways, Parent: IDMode, Hidden: hide},
-		{ID: IDModePause, Label: LabelPaused, Action: true, Radio: true, Switch: true, Checked: mode == ModePaused, Parent: IDMode, Hidden: hide},
-		{ID: IDPauseHour, Label: LabelPauseHour, Action: true, Hidden: hide || paused},
-		{ID: IDPauseTill, Label: LabelPauseUntil, Action: true, Hidden: hide || paused},
-		{ID: IDResume, Label: LabelResume, Action: true, Hidden: hide || !paused},
-	}
-}
-
-func buildRest(st Status, startAtLogin, showUpdate bool) []MenuItem {
-	return []MenuItem{
-		{ID: IDOpen, Label: LabelOpen, Action: true},
-		{ID: IDCheck, Label: LabelCheck, Action: true},
-		{ID: IDUpdate, Label: updateLabel + st.Update.Latest, Action: true, Hidden: !showUpdate},
+		{ID: IDSep3, Separator: true},
 		{ID: IDRestart, Label: LabelRestart, Action: true},
 		{ID: IDLogs, Label: LabelOpenLogs, Action: true},
-		{ID: IDGitHub, Label: LabelOpenGitHub, Action: true},
+		{ID: IDDoctor, Label: LabelOpenDoctor, Action: true},
+		{ID: IDSep4, Separator: true},
 		{ID: IDLogin, Label: LabelStartAtLogin, Action: true, Switch: true, Checked: startAtLogin},
-		{ID: IDSep2, Separator: true},
 		{ID: IDQuit, Label: LabelQuit, Action: true},
 	}
 }

@@ -326,7 +326,7 @@ These tokens take a different value at each width. The gutter is the space at th
 
 | Token | Value | Use |
 |---|---|---|
-| `--ds-frame-narrow` | `40rem` | not used by the console frame any more (UX-69); kept for a part that must hold one column of text |
+| `--ds-frame-narrow` | `40rem` | the sign-in and other auth pages only (`Page frame="narrow"`, UX-69); no other page uses it |
 | `--ds-frame-wide` | `76rem` | the one page frame: header, menu, page and key-hint bar share its left and right edge (UX-69) |
 
 ### Control heights

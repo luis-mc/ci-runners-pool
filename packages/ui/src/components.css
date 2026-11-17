@@ -246,6 +246,11 @@ body {
   gap: var(--ds-space-5);
   min-inline-size: 0;
 }
+/* The default frame is the full wide frame. Only a sign-in page is narrow (UX-69). */
+.ds-page[data-frame='narrow'] {
+  max-inline-size: var(--ds-frame-narrow);
+  margin-inline: auto;
+}
 .ds-h1 {
   margin: 0;
   font-size: var(--ds-size-6);
@@ -299,6 +304,15 @@ body {
 }
 .ds-page-header__action {
   flex: 0 0 auto;
+}
+@media (max-width: 599px) {
+  .ds-page-header__action {
+    flex: 1 1 100%;
+  }
+  .ds-page-header__action .ds-button-wrap,
+  .ds-page-header__action .ds-button {
+    inline-size: 100%;
+  }
 }
 .ds-breadcrumbs__list {
   display: flex;
@@ -787,10 +801,18 @@ body {
   align-content: start;
   min-inline-size: 0;
 }
-.ds-field[data-width='short'] {
+/* A width caps the box, never the name and help: a lone field's text uses the section width (LOOK10). */
+.ds-field[data-width='short'] > :is(.ds-input, .ds-number, .ds-button) {
   max-inline-size: var(--ds-width-field-short);
 }
-.ds-field[data-width='medium'] {
+.ds-field[data-width='medium'] > :is(.ds-input, .ds-number) {
+  max-inline-size: var(--ds-width-field-medium);
+}
+/* Side by side in a row, a field is as wide as its box. */
+.ds-cluster > .ds-field[data-width='short'] {
+  max-inline-size: var(--ds-width-field-short);
+}
+.ds-cluster > .ds-field[data-width='medium'] {
   max-inline-size: var(--ds-width-field-medium);
 }
 .ds-field[data-width='full'] {
@@ -1474,4 +1496,43 @@ body {
 .ds-file__actions {
   display: flex;
   gap: var(--ds-space-2);
+}
+
+/* ordered list (component 45, LOOK10) */
+.ds-order__list {
+  display: grid;
+  gap: var(--ds-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-inline-size: var(--ds-width-field-medium);
+}
+.ds-order__row {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-3);
+  min-block-size: var(--ds-target-min);
+  padding-inline: var(--ds-space-3);
+  border: var(--ds-border-thin) solid var(--ds-color-border);
+  border-radius: var(--ds-radius-1);
+  background: var(--ds-color-surface);
+}
+.ds-order__place {
+  min-inline-size: 1.5ch;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-color-text-muted);
+}
+.ds-order__name {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+.ds-order__moves {
+  display: flex;
+  gap: var(--ds-space-1);
+  margin-inline-start: auto;
+}
+.ds-order__move {
+  min-inline-size: var(--ds-target-min);
+  min-block-size: var(--ds-target-min);
+  padding-inline: 0;
 }

@@ -151,7 +151,8 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 		}
 		open, check, upd, restart := sys[IDOpen], sys[IDCheck], sys[IDUpdate], sys[IDRestart]
 		logs, gh, login, quit := sys[IDLogs], sys[IDGitHub], sys[IDLogin], sys[IDQuit]
-		modeAuto, modeAlw, modePause := sys[IDModeAuto], sys[IDModeAlw], sys[IDModePause]
+		status, doctor := sys[IDStatus], sys[IDDoctor]
+		modeAuto, modeAlw := sys[IDModeAuto], sys[IDModeAlw]
 		pauseHour, pauseTill, resume := sys[IDPauseHour], sys[IDPauseTill], sys[IDResume]
 
 		var relaunchOnce sync.Once
@@ -165,22 +166,27 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 			curCh <- s
 			for _, it := range BuildMenu(o.Version, s, login.Checked()) {
 				switch it.ID {
-				case IDHeader, IDService:
+				case IDHeader, IDStatus:
 					sys[it.ID].SetTitle(it.Label)
-				case IDUpdate:
+				case IDUpdate, IDResume, IDMode:
 					sys[it.ID].SetTitle(it.Label)
 					if it.Hidden {
 						sys[it.ID].Hide()
 					} else {
 						sys[it.ID].Show()
 					}
-				case IDMode, IDPauseHour, IDPauseTill, IDResume:
+				case IDPause, IDPauseHour, IDPauseTill:
 					if it.Hidden {
 						sys[it.ID].Hide()
 					} else {
 						sys[it.ID].Show()
 					}
-				case IDModeAuto, IDModeAlw, IDModePause:
+				case IDModeAuto, IDModeAlw:
+					if it.Hidden {
+						sys[it.ID].Hide()
+					} else {
+						sys[it.ID].Show()
+					}
 					if it.Checked {
 						sys[it.ID].Check()
 					} else {
@@ -213,15 +219,17 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 				case <-check.ClickedCh:
 					go func() { _ = opener.LookForUpdates(ctx) }()
 				case <-upd.ClickedCh:
-					go func() { _ = opener.OpenReview(ctx, ReviewUpdatePath) }()
+					go func() { _ = opener.Offer(ctx, current()) }()
+				case <-status.ClickedCh:
+					go func() { _ = opener.OpenPage(ctx, JobsPath) }()
+				case <-doctor.ClickedCh:
+					go func() { _ = opener.OpenPage(ctx, DoctorPath) }()
 				case <-restart.ClickedCh:
 					go func() { _ = opener.OpenReview(ctx, ReviewRestartPath) }()
 				case <-modeAuto.ClickedCh:
 					go func() { _ = opener.SetMode(ctx, ModeAutomatic, p.OnStatus) }()
 				case <-modeAlw.ClickedCh:
 					go func() { _ = opener.SetMode(ctx, ModeAlways, p.OnStatus) }()
-				case <-modePause.ClickedCh:
-					go func() { _ = opener.SetMode(ctx, ModePaused, p.OnStatus) }()
 				case <-pauseHour.ClickedCh:
 					go func() { _ = opener.PauseFor(ctx, PauseOneHour, p.OnStatus) }()
 				case <-pauseTill.ClickedCh:
