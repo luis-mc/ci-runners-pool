@@ -705,3 +705,18 @@ The words of the repositories page when the list is the last copy because the re
 | GitHub answered {status}: {message}. | Needs-you message for any other GitHub error, with GitHub's own status and words. |
 | The list could not be refreshed. | Needs-you message when no reason is known. |
 | The list is the last copy, from {when}. | Second sentence of each message above; without a time: The list is the last copy. |
+
+## Repositories list: groups and inactive types
+
+The words of the Repositories screen when the list is grouped by owner and hides repositories of an inactive type (web-console, LOOK5; owner decisions LOOK D15 and D16). Active types today: Private.
+
+| Word | Where and meaning |
+|---|---|
+| {owner} | Group heading row, with a tick box that selects the whole group. |
+| {n} repositories · {m} use the pool | Under the owner; `1 repository` when n is 1. |
+| {n} public repositories are not listed: the pool serves private repositories only. | Note line above the list while public repositories are not an active type. |
+| List them too | Link in the note: shows them, muted, in their groups. |
+| Change active types | Link in the note: opens the active-types setting. |
+| {n} public repositories are listed, muted: the pool serves private repositories only. | The note line while they are listed. |
+| Hide them | Link in that line: lists private repositories only again. |
+| {n} private repositories | Count beside the toolbar; `{n} private & public repositories` when public is active or listed. |

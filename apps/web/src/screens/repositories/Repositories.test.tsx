@@ -31,7 +31,7 @@ function withRepos(api: MockApi, items = [repository(), on]): MockApi {
 describe('Repositories list', () => {
   it('shows pool state, labels, limits and variable status as words', async () => {
     renderApp(withRepos(signedIn()), '/repositories');
-    const table = await screen.findByRole('table', { name: 'Repositories' });
+    const table = await screen.findByRole('table', { name: 'octo repositories' });
     expect(within(table).getByText('on')).toBeTruthy();
     expect(within(table).getByText('off')).toBeTruthy();
     expect(within(table).getByText('wrong variable')).toBeTruthy();
@@ -41,7 +41,7 @@ describe('Repositories list', () => {
 
   it('filters by pool state and by search', async () => {
     renderApp(withRepos(signedIn()), '/repositories');
-    await screen.findByRole('table', { name: 'Repositories' });
+    await screen.findByRole('table', { name: 'octo repositories' });
     fireEvent.click(screen.getByRole('button', { name: 'Pool on' }));
     expect(screen.queryByRole('link', { name: 'app' })).toBeNull();
     expect(screen.getByRole('link', { name: 'site' })).toBeTruthy();
@@ -54,7 +54,7 @@ describe('Repositories list', () => {
 
   it('offers Select all N and Clear, and names the count on the action (UX-7, UX-12)', async () => {
     renderApp(withRepos(signedIn()), '/repositories');
-    await screen.findByRole('table', { name: 'Repositories' });
+    await screen.findByRole('table', { name: 'octo repositories' });
     fireEvent.click(screen.getByRole('button', { name: 'Select all 2' }));
     expect(screen.getByRole('button', { name: 'Turn on 2 repositories' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Turn off 2 repositories' })).toBeTruthy();
@@ -67,7 +67,7 @@ describe('Repositories list', () => {
       withRepos(signedIn(), [repository({ user_is_github_admin: false })]),
       '/repositories',
     );
-    await screen.findByRole('table', { name: 'Repositories' });
+    await screen.findByRole('table', { name: 'octo repositories' });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select octo/app' }));
     const button = screen.getByRole<HTMLButtonElement>('button', {
       name: 'Turn on 1 repository',
@@ -103,7 +103,7 @@ describe('Repositories list', () => {
         steps: [],
       });
     renderApp(api, '/repositories');
-    await screen.findByRole('table', { name: 'Repositories' });
+    await screen.findByRole('table', { name: 'octo repositories' });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select octo/site' }));
     fireEvent.click(screen.getByRole('button', { name: 'Turn off 1 repository' }));
     const dialog = await screen.findByRole('dialog', {
@@ -145,7 +145,7 @@ describe('Repositories list', () => {
         /GitHub could not be reached\. The list is the last copy, from 2026-11-14/,
       ),
     ).toBeTruthy();
-    expect(screen.getByRole('table', { name: 'Repositories' })).toBeTruthy();
+    expect(screen.getByRole('table', { name: 'octo repositories' })).toBeTruthy();
   });
 
   it('says the sign-in ended, never that GitHub is down (CRSP148)', async () => {
@@ -198,7 +198,7 @@ describe('Repositories list', () => {
       url: 'https://github.example/apps/x/installations/new',
     });
     renderApp(api, '/repositories');
-    await screen.findByRole('table', { name: 'Repositories' });
+    await screen.findByRole('table', { name: 'octo repositories' });
     fireEvent.click(screen.getByRole('button', { name: 'Add a repository' }));
     await waitFor(() => expect(api.count('GET', '/api/v1/github/install-url')).toBe(1));
   });
@@ -263,7 +263,7 @@ describe('Repository detail', () => {
       },
     });
     renderApp(withRepos(signedIn(), [hosted, waiting]), '/repositories');
-    const table = await screen.findByRole('table', { name: 'Repositories' });
+    const table = await screen.findByRole('table', { name: 'octo repositories' });
     expect(within(table).getByText('GitHub-hosted runners')).toBeTruthy();
     expect(within(table).getByText('waiting for a machine')).toBeTruthy();
   });
@@ -477,7 +477,7 @@ describe('Webhook health (RES14)', () => {
 
   it('shows the last delivery result per repository in the list', async () => {
     renderApp(withRepos(signedIn(), [polling, healthy, repository()]), '/repositories');
-    const table = await screen.findByRole('table', { name: 'Repositories' });
+    const table = await screen.findByRole('table', { name: 'octo repositories' });
     expect(within(table).getByText('delivery failed')).toBeTruthy();
     expect(within(table).getByText('delivered')).toBeTruthy();
   });
@@ -524,7 +524,7 @@ describe('A repository that left the installation (github-integration R5.22)', (
 
   it('says in the list that it left the installation', async () => {
     renderApp(withRepos(signedIn(), [left, repository()]), '/repositories');
-    const table = await screen.findByRole('table', { name: 'Repositories' });
+    const table = await screen.findByRole('table', { name: 'octo repositories' });
     expect(within(table).getByText('left the installation')).toBeTruthy();
   });
 
@@ -606,7 +606,7 @@ describe('Missing App permission on Repositories (R5.86)', () => {
       stale: { stale: false },
     });
     renderApp(api, '/repositories');
-    await screen.findByRole('table', { name: 'Repositories' });
+    await screen.findByRole('table', { name: 'octo repositories' });
     await waitFor(() =>
       expect(api.count('GET', '/api/v1/github/installations')).toBeGreaterThan(0),
     );
