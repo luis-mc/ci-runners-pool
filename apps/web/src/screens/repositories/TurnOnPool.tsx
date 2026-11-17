@@ -141,12 +141,8 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
 
   const { enabled } = usePublicRepositories();
   // A public repository cannot take the pool while the setting is off (github-integration R5.55).
-  const publicOff = repos.filter(
-    (r) => mayTry(r) && publicWhileOff(r, enabled),
-  );
-  const eligible = repos.filter(
-    (r) => mayTry(r) && !publicWhileOff(r, enabled),
-  );
+  const publicOff = repos.filter((r) => mayTry(r) && publicWhileOff(r, enabled));
+  const eligible = repos.filter((r) => mayTry(r) && !publicWhileOff(r, enabled));
   const blocked = repos.filter((r) => !mayTry(r));
   const chosen = eligible.filter((r) => picked.has(r.id));
 

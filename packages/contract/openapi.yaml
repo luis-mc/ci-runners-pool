@@ -6759,7 +6759,19 @@ components:
     Image:
       type: object
       description: One image on one machine (runners R5.32 and R5.33).
-      required: [id, machine_id, os, base, base_tools, extra_packages, layers, size_bytes, state, newest]
+      required:
+        [
+          id,
+          machine_id,
+          os,
+          base,
+          base_tools,
+          extra_packages,
+          layers,
+          size_bytes,
+          state,
+          newest,
+        ]
       properties:
         base_tools:
           type: array

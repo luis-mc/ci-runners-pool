@@ -297,9 +297,7 @@ export function RepositoriesList() {
             const chosen = data.items.filter((r) => picked.has(r.id));
             // While the list is the last copy the admin flag is unknown, not "no": the
             // plan checks it again at the change (CRSP148, R5.19).
-            const noAdmin = data.stale.stale
-              ? []
-              : chosen.filter((r) => !mayTry(r));
+            const noAdmin = data.stale.stale ? [] : chosen.filter((r) => !mayTry(r));
             const publicOff = chosen.filter((r) => publicWhileOff(r, enabled));
             if (data.items.length === 0)
               return (
