@@ -3558,7 +3558,10 @@ type Repository struct {
 	// Routing Where the jobs of a repository go now and why (github-integration R5.44). Absent while the pool is off for the repository.
 	Routing *RepositoryRouting `json:"routing,omitempty"`
 
-	// UserIsGithubAdmin github-integration R5.19; without it the switch is disabled with this reason.
+	// UserAdminKnown False when the controller could not read the user's admin rights (no GitHub sign-in in memory and the App could not say). Then user_is_github_admin means "not checked", not "not admin" (github-integration R5.19).
+	UserAdminKnown bool `json:"user_admin_known"`
+
+	// UserIsGithubAdmin github-integration R5.19; without it the switch is disabled with this reason. Only a claim when user_admin_known is true.
 	UserIsGithubAdmin bool                 `json:"user_is_github_admin"`
 	Variables         []RepositoryVariable `json:"variables"`
 	Visibility        RepositoryVisibility `json:"visibility"`

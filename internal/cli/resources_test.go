@@ -30,7 +30,7 @@ func jobJSON(id int, repo, name, state string) map[string]any {
 
 func repoJSON(id int, full string, on bool) map[string]any {
 	owner, name, _ := strings.Cut(full, "/")
-	return map[string]any{"id": id, "full_name": full, "owner": owner, "name": name, "installation_id": 1, "visibility": "private", "pool_on": on, "user_is_github_admin": true,
+	return map[string]any{"id": id, "full_name": full, "owner": owner, "name": name, "installation_id": 1, "visibility": "private", "pool_on": on, "user_is_github_admin": true, "user_admin_known": true,
 		"variables": []any{map[string]any{"name": "RUNS_ON_LINUX", "status": "ok"}},
 		"policy":    map[string]any{"priority": 0, "max_parallel_jobs": 2, "allow_fork_pull_requests": false, "labels": []string{"self-hosted", "linux"}, "runner_groups": []string{}}}
 }

@@ -61,6 +61,7 @@ import {
   PUBLIC_OFF_REASON,
   PUBLIC_SETTING_PATH,
   activeTypes,
+  mayTry,
   publicWhileOff,
   usePublicRepositories,
   usePublicSwitch,
@@ -297,7 +298,7 @@ export function RepositoriesList() {
             // plan checks it again at the change (CRSP148, R5.19).
             const noAdmin = data.stale.stale
               ? []
-              : chosen.filter((r) => !r.user_is_github_admin);
+              : chosen.filter((r) => !mayTry(r));
             const publicOff = chosen.filter((r) => publicWhileOff(r, enabled));
             if (data.items.length === 0)
               return (
@@ -715,11 +716,11 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
           ) : (
             <Button
               kind="primary"
-              disabled={!admin || !r.user_is_github_admin || publicOff}
+              disabled={!admin || !mayTry(r) || publicOff}
               reason={
                 !admin
                   ? session.whyNot('admin')
-                  : !r.user_is_github_admin
+                  : !mayTry(r)
                     ? 'You need admin rights on this repository in GitHub.'
                     : publicOff
                       ? 'Public repositories are off. Turn them on in Settings first.'

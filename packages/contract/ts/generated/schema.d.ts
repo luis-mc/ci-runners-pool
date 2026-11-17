@@ -2819,6 +2819,7 @@ export interface components {
          *       "default_branch": "main",
          *       "pool_on": true,
          *       "user_is_github_admin": true,
+         *       "user_admin_known": true,
          *       "variables": [
          *         {
          *           "name": "RUNS_ON_LINUX",
@@ -2857,8 +2858,10 @@ export interface components {
              * @enum {string}
              */
             pool_off_reason?: "left_installation";
-            /** @description github-integration R5.19; without it the switch is disabled with this reason. */
+            /** @description github-integration R5.19; without it the switch is disabled with this reason. Only a claim when user_admin_known is true. */
             user_is_github_admin: boolean;
+            /** @description False when the controller could not read the user's admin rights (no GitHub sign-in in memory and the App could not say). Then user_is_github_admin means "not checked", not "not admin" (github-integration R5.19). */
+            user_admin_known: boolean;
             variables: components["schemas"]["RepositoryVariable"][];
             policy: components["schemas"]["RepositoryPolicy"];
             routing?: components["schemas"]["RepositoryRouting"];

@@ -204,6 +204,7 @@ export function repository(
     visibility: 'private',
     pool_on: false,
     user_is_github_admin: true,
+    user_admin_known: true,
     variables: [],
     policy: {
       priority: 10,

@@ -4398,6 +4398,7 @@ components:
           visibility,
           pool_on,
           user_is_github_admin,
+          user_admin_known,
           variables,
           policy,
         ]
@@ -4429,7 +4430,14 @@ components:
             (github-integration R5.22). Absent otherwise.
         user_is_github_admin:
           type: boolean
-          description: github-integration R5.19; without it the switch is disabled with this reason.
+          description: github-integration R5.19; without it the switch is disabled with this reason. Only a claim when user_admin_known is true.
+        user_admin_known:
+          type: boolean
+          description: >-
+            False when the controller could not read the user's admin rights (no
+            GitHub sign-in in memory and the App could not say). Then
+            user_is_github_admin means "not checked", not "not admin"
+            (github-integration R5.19).
         variables:
           type: array
           items:
@@ -4452,6 +4460,7 @@ components:
         default_branch: main
         pool_on: true
         user_is_github_admin: true
+        user_admin_known: true
         variables:
           - name: RUNS_ON_LINUX
             status: ok

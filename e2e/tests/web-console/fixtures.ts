@@ -93,6 +93,7 @@ export const repository = (over: Record<string, unknown> = {}) => ({
   visibility: 'private',
   pool_on: false,
   user_is_github_admin: true,
+  user_admin_known: true,
   variables: [],
   policy: {
     priority: 10,
@@ -292,6 +293,7 @@ export function publicRows() {
   const base = {
     installation_id: 1,
     user_is_github_admin: true,
+    user_admin_known: true,
     variables: [],
     policy: {
       priority: 10,

@@ -27,6 +27,17 @@ export function visibilityWord(r: Pick<Repository, 'visibility'>): string {
       : 'Private';
 }
 
+/**
+ * False only when the controller read the user's rights and they are not admin.
+ * An unread flag (no GitHub sign-in in memory after a restart) is not "no":
+ * the change checks it again and fails with the real reason (OPS15, R5.19).
+ */
+export function mayTry(
+  r: Pick<Repository, 'user_is_github_admin' | 'user_admin_known'>,
+): boolean {
+  return r.user_is_github_admin || !r.user_admin_known;
+}
+
 /** True when the repository is public and the setting is known to be off. */
 export function publicWhileOff(
   r: Pick<Repository, 'visibility'>,
