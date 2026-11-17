@@ -366,8 +366,12 @@ The words of the Pool size wizard on a machine's page (machines R5.58). The wiza
 | Mistakes | The pool needs at least {n} GiB. The pool needs at least {n} CPUs. This is the size that is set now. Change it to review. |
 | Review line | The pool of {machine} changes from {size} to {size}. |
 | Fits | This size fits the budget of the machine. |
-| Does not fit | This size does not fit the budget. {reason} |
+| Does not fit | This size does not fit the budget. {reason} (memory over the room: see Too big) |
 | Nearest | The nearest sizes that fit: |
+| Too big (memory over the room) | {requested} is too much: only {room} is free for the pool right now (other programs use {used}). Use {fit memory} and {fit cpus}? |
+| Too big, button | Use {fit memory} and {fit cpus} (applies both sizes to the fields; it does not save) |
+| Too big, CPU reason | {fit cpus}: each CPU needs about 1.5 GiB. (shown when the CPUs change with the memory) |
+| Too big, room note | The room moves with what else runs on this PC. |
 | Cannot check | The size cannot be checked yet. {why} Try again when the agent has reported. |
 | Lower size | This lowers the pool size. Jobs that need more than the new size wait or fail to start. |
 | The tick | Yes, lower the pool size |

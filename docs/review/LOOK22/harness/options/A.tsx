@@ -28,7 +28,7 @@ export function PoolSizeWizard({ m, onChanged }: { m: Machine; onChanged: () => 
       <SizeChoice room={room} mode={mode} setMode={setMode} mem={mem} cpus={cpus}
         setMem={(n) => { setMem(n); setMode('custom'); save.clear(); }}
         setCpus={(n) => { setCpus(n); setMode('custom'); save.clear(); }} />
-      <LiveLine live={live} />
+      <LiveLine live={live} onFit={(m2, c2) => { setMem(m2); setCpus(c2); setMode('custom'); save.clear(); }} />
       {live.shrink && !same ? <CheckRow label="Yes, lower the pool size" checked={yes} onChange={setYes} /> : null}
       {save.saved ? <Message tone="done">{save.saved}</Message> : null}
       {save.error ? <Message tone="problem">Could not save. {save.error} Try again.</Message> : null}

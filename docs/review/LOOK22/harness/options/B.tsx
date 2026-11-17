@@ -77,7 +77,7 @@ export function PoolSizeWizard({ m, onChanged }: { m: Machine; onChanged: () => 
           </Button>
         </Cluster>
       ) : null}
-      <LiveLine live={live} />
+      <LiveLine live={live} onFit={(m2, c2) => { setMem(m2); setCpus(c2); save.clear(); }} />
       {live.shrink && !same ? <CheckRow label="Yes, lower the pool size" checked={yes} onChange={setYes} /> : null}
       {save.saved ? <Message tone="done">{save.saved}</Message> : null}
       {save.error ? <Message tone="problem">Could not save. {save.error} Try again.</Message> : null}

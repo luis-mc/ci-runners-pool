@@ -1,5 +1,5 @@
 // Shared by the three options of LOOK22: the live check, the Recommended size and the save call.
-import { Message, type Tone } from '@crsp/ui';
+import { Button, Cluster, Message, Stack, Text, type Tone } from '@crsp/ui';
 import { useEffect, useRef, useState } from 'react';
 import { unwrap, useClient, type Schemas } from '@app/api/api';
 
@@ -54,6 +54,8 @@ export interface Live {
   saveable: boolean;
   shrink: boolean;
   check: Check | undefined;
+  /** Memory is over the room: the nearest size that fits, offered as one button. */
+  fit?: { mem: number; cpus: number; label: string; note: string };
 }
 
 /** The Review check, run live (250 ms after the last edit) for the size being edited. */
@@ -78,16 +80,30 @@ export function useLiveCheck(m: Machine, mem: number, cpus: number, on: boolean)
     }, 250);
     return () => clearTimeout(t);
   }, [m.id, mem, cpus, on]);
-  return describe(check, busy, mem);
+  return describe(check, busy, mem, cpus);
 }
 
-function describe(c: Check | undefined, busy: boolean, mem: number): Live {
+function describe(c: Check | undefined, busy: boolean, mem: number, cpus: number): Live {
   const none = { saveable: false, shrink: false, check: c };
   if (busy) return { ...none, tone: 'busy', text: 'Checking this size against the budget.' };
   if (!c) return { ...none, tone: 'needs-you', text: 'The size cannot be checked now.' };
   if (!c.known) return { ...none, tone: 'needs-you', text: `The size cannot be checked yet. ${c.why ?? ''}` };
   if (c.needs_shrink_confirm)
     return { tone: 'needs-you', text: 'This lowers the pool size. Jobs that need more than the new size wait or fail to start.', saveable: true, shrink: true, check: c };
+  if (!c.ok && c.short === 'memory' && c.room_gib !== undefined && c.cpu_budget !== undefined) {
+    // The controller's own figures: room = budget less used outside and guests; 1.5 GiB per CPU (poolsize.GiBPerCPU).
+    const used = (c.memory_budget_gib ?? 0) - c.room_gib;
+    const fitMem = Math.max(MIN_GIB, Math.floor(c.room_gib));
+    const fitCpus = Math.max(MIN_CPUS, Math.min(Math.floor(fitMem / 1.5), c.cpu_budget));
+    const label = `Use ${gib(fitMem)} and ${cpuWord(fitCpus)}`;
+    const note = fitCpus !== cpus ? `${cpuWord(fitCpus)}: each CPU needs about 1.5 GiB. ` : '';
+    return {
+      ...none,
+      tone: 'problem',
+      text: `${gib(mem)} is too much: only ${gib(c.room_gib)} is free for the pool right now (other programs use ${gib(used)}). ${label}?`,
+      fit: { mem: fitMem, cpus: fitCpus, label, note: `${note}The room moves with what else runs on this PC.` },
+    };
+  }
   if (!c.ok) {
     const near = c.nearest.length ? ` Nearest that fits: ${c.nearest.join('; ')}.` : '';
     return { ...none, tone: 'problem', text: `More than the room for the pool. ${(c.reason ?? '').replace(/\.?$/, '.')}${near}` };
@@ -98,13 +114,25 @@ function describe(c: Check | undefined, busy: boolean, mem: number): Live {
   return { tone: 'done', text: `Fits the budget. Leaves ${gib(left)} for this PC.`, saveable: true, shrink: false, check: c };
 }
 
-export function LiveLine({ live }: { live: Live }) {
+export function LiveLine({ live, onFit }: { live: Live; onFit?: (mem: number, cpus: number) => void }) {
   if (live.tone === 'busy')
     return (
       <p role="status" className="ds-text" data-tone="muted">
         {live.text}
       </p>
     );
+  if (live.fit && onFit) {
+    const f = live.fit;
+    return (
+      <Stack>
+        <Message tone={live.tone}>{live.text}</Message>
+        <Text tone="muted">{f.note}</Text>
+        <Cluster>
+          <Button onPress={() => onFit(f.mem, f.cpus)}>{f.label}</Button>
+        </Cluster>
+      </Stack>
+    );
+  }
   return <Message tone={live.tone}>{live.text}</Message>;
 }
 

@@ -56,7 +56,7 @@ const C = [
 (async () => {
   const b = await chromium.launch();
   let port = 5210;
-  for (const [opt, plan] of [['baseline', BASE], ['A', A()], ['B', B], ['C', C]]) {
+  for (const [opt, plan] of [['baseline', BASE], ['A', A()], ['B', B], ['C', C]].filter(([o]) => !(process.env.ONLY && o === 'baseline'))) {
     const p0 = port++;
     const vite = spawn('pnpm', ['-C', 'apps/web', 'exec', 'vite', '--config', cfg, '--port', String(p0), '--strictPort'], { env: { ...process.env, OPTION: opt === 'baseline' ? '' : opt }, stdio: 'ignore' });
     await new Promise((r) => setTimeout(r, 5000));
@@ -70,7 +70,7 @@ const C = [
         const pane = p.locator('.ds-pane').filter({ has: p.getByRole('heading', { name: 'Pool size', exact: true }) });
         await pane.waitFor();
         await p.waitForTimeout(1200);
-        const shot = async (state) => { await settle(p); await pane.scrollIntoViewIfNeeded(); await pane.screenshot({ path: path.join(out, `${opt}-${state}-${vp}.png`) }); };
+        const shot = async (state) => { if (process.env.ONLY && !process.env.ONLY.split(',').includes(state)) return; await settle(p); await pane.scrollIntoViewIfNeeded(); await pane.screenshot({ path: path.join(out, `${opt}-${state}-${vp}.png`) }); };
         if (steps) for (const [state, run] of steps) { await run(p, pane); await shot(state); }
         else if (SAVED[opt]) { await SAVED[opt](p, pane); await shot('saved'); }
         await ctx.close();

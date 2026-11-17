@@ -39,3 +39,11 @@ Result "Recommended (5 GiB, 3 CPUs)". Note: the owner's example "8 GiB, 8 CPUs" 
 
 ## Docs
 Docs: none, review only (screenshots, harness and this report; no behaviour change).
+
+## Update 2026-11-17: "too big" wording (owner request), all options
+- Memory over the room now reads: "{requested} is too much: only {room} is free for the pool right now (other programs use {used}). Use {mem} and {cpus}?", a button "Use {mem} and {cpus}" that sets both fields (no save), a note "The room moves with what else runs on this PC.", and "{cpus}: each CPU needs about 1.5 GiB." when the CPUs change with the memory (controller rule `GiBPerCPU` in `internal/poolsize/budget.go`).
+- Values come from the live check: requested, `room_gib`, used = `memory_budget_gib - room_gib` (outside WSL plus guests, as the controller's reason counts it), fit = room rounded down to a whole GiB, CPUs = fit / 1.5 capped by the CPU budget. Other refusals (floor, CPU budget, 1.5 ratio) keep the controller's reason.
+- Shots: figures stay the earlier ones (room 10.5, used 16.4), so the 12 GiB shot reads "only 10.5 GiB ... use 16.4 GiB ... Use 10 GiB and 6 CPUs?". Owner's 9 GiB / 8.5 / 18.4 / 5 CPUs example gives the same shape with those numbers. Re-shot: A, B, C `editing-error` at desktop and phone (`ONLY=editing-error` in `shoot.cjs`).
+- Words are in `docs/design-system/next-version/content.md` (Pool size words) with CHANGES C87. Committed app code is untouched (`PoolSize.tsx` still has the old text; options live in the harness only).
+- `golangci-lint` is installed in this sandbox. `core.hooksPath` is set by the repo's own `prepare` script, not by me.
+Docs: none, review only.
