@@ -175,9 +175,9 @@ func TestWipeErrorsMapToTheEnvelope(t *testing.T) {
 	}
 }
 
-// Runners R5.32: milestone 1 builds no images. The list is empty; an image id
-// names nothing, so the other three answer 404 and never fake data.
-func TestImagesAreEmptyInMilestone1(t *testing.T) {
+// Runners R5.32: with no machine that can run container jobs the list is
+// empty, and an image id names nothing.
+func TestImagesAreEmptyWithoutMachines(t *testing.T) {
 	mux := cachesMux(&fakeCaches{})
 	rec := do(mux, http.MethodGet, "/api/v1/images?os=linux", "")
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"items":[]`) {
@@ -185,12 +185,10 @@ func TestImagesAreEmptyInMilestone1(t *testing.T) {
 	}
 	for _, r := range [][2]string{
 		{http.MethodGet, "/api/v1/images/img_1"},
-		{http.MethodPut, "/api/v1/images/img_1/layers"},
 		{http.MethodPost, "/api/v1/images/img_1/rebuild?confirm=true"},
 	} {
-		rec := do(mux, r[0], r[1], `{"enabled_layers":["build-tools"]}`)
-		if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "Images arrive with milestone 2") ||
-			!strings.Contains(rec.Body.String(), `"code":"not_found"`) {
+		rec := do(mux, r[0], r[1], `{"enabled_layers":["kvm"]}`)
+		if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), `"code":"not_found"`) {
 			t.Errorf("%s %s: %d %s", r[0], r[1], rec.Code, rec.Body)
 		}
 	}

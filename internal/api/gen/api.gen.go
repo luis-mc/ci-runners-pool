@@ -456,6 +456,7 @@ func (e HealthStatus) Valid() bool {
 // Defines values for ImageState.
 const (
 	ImageStateFailed     ImageState = "failed"
+	ImageStateNotBuilt   ImageState = "not_built"
 	ImageStateReady      ImageState = "ready"
 	ImageStateRebuilding ImageState = "rebuilding"
 )
@@ -464,6 +465,8 @@ const (
 func (e ImageState) Valid() bool {
 	switch e {
 	case ImageStateFailed:
+		return true
+	case ImageStateNotBuilt:
 		return true
 	case ImageStateReady:
 		return true
@@ -2630,14 +2633,20 @@ type HostCommandResult struct {
 // Image One image on one machine (runners R5.32 and R5.33).
 type Image struct {
 	// Base The base image.
-	Base    string     `json:"base"`
-	BuiltAt *time.Time `json:"built_at,omitempty"`
+	Base string `json:"base"`
+
+	// BaseTools What every image on the machine holds, always.
+	BaseTools []ImageTool `json:"base_tools"`
+	BuiltAt   *time.Time  `json:"built_at,omitempty"`
 
 	// Error Why the last build failed; the old image keeps serving.
-	Error     *string      `json:"error,omitempty"`
-	Id        string       `json:"id"`
-	Layers    []ImageLayer `json:"layers"`
-	MachineId string       `json:"machine_id"`
+	Error *string `json:"error,omitempty"`
+
+	// ExtraPackages Extra packages per repository on the machine.
+	ExtraPackages []ImageExtraPackages `json:"extra_packages"`
+	Id            string               `json:"id"`
+	Layers        []ImageLayer         `json:"layers"`
+	MachineId     string               `json:"machine_id"`
 
 	// NeedsRebuild The saved layers differ from the built ones.
 	NeedsRebuild *bool `json:"needs_rebuild,omitempty"`
@@ -2652,17 +2661,37 @@ type Image struct {
 // ImageState defines model for Image.State.
 type ImageState string
 
+// ImageExtraPackages defines model for ImageExtraPackages.
+type ImageExtraPackages struct {
+	Packages   []string `json:"packages"`
+	Repository string   `json:"repository"`
+}
+
 // ImageLayer defines model for ImageLayer.
 type ImageLayer struct {
-	Enabled   bool   `json:"enabled"`
-	Id        string `json:"id"`
-	Name      string `json:"name"`
+	// Adds The tools the layer adds to the base.
+	Adds    []ImageTool `json:"adds"`
+	Enabled bool        `json:"enabled"`
+	Id      string      `json:"id"`
+	Name    string      `json:"name"`
+
+	// NeededBy The repositories on the machine that ask for a layer (LOOK12).
+	NeededBy LayerNeededBy `json:"needed_by"`
+
+	// Purpose One line, completes "Pick it when".
+	Purpose   string `json:"purpose"`
 	SizeBytes int64  `json:"size_bytes"`
 }
 
 // ImageList defines model for ImageList.
 type ImageList struct {
 	Items []Image `json:"items"`
+}
+
+// ImageTool defines model for ImageTool.
+type ImageTool struct {
+	Name    string  `json:"name"`
+	Version *string `json:"version,omitempty"`
 }
 
 // InstallCommands defines model for InstallCommands.
@@ -2785,6 +2814,17 @@ type JoinCodeCreated struct {
 	Code     string          `json:"code"`
 	Commands InstallCommands `json:"commands"`
 	JoinCode JoinCode        `json:"join_code"`
+}
+
+// LayerNeededBy The repositories on the machine that ask for a layer (LOOK12).
+type LayerNeededBy struct {
+	Count int `json:"count"`
+
+	// Failing Repositories whose recent job failed for lack of the layer.
+	Failing int `json:"failing"`
+
+	// Repositories Full names of the repositories.
+	Repositories []string `json:"repositories"`
 }
 
 // ListenAddress defines model for ListenAddress.

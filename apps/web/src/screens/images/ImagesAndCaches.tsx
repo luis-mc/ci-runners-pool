@@ -4,8 +4,8 @@
 import {
   Button,
   Card,
+  type Column,
   CardGrid,
-  CheckRow,
   Empty,
   Facts,
   LevelBar,
@@ -17,6 +17,8 @@ import {
   Section,
   Stack,
   Status,
+  Table,
+  TextLink,
   ListToolbar,
   SearchBar,
   Tabs,
@@ -34,12 +36,53 @@ import { ApiError, unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { useLiveStore, useVersion } from '../../live/LiveProvider';
+import { useNarrow } from '../../shell/Shell';
 import { TIMING } from '../../timing';
 import { Ask, Load } from '../common';
 import { cacheName, wipingLabel } from './labels';
 
 type Cache = Schemas['Cache'];
 type Image = Schemas['Image'];
+type Layer = Schemas['ImageLayer'];
+
+/** The base list on a phone shows this many tools before Show all. */
+const BASE_SHORT = 6;
+
+const toolText = (t: Schemas['ImageTool']): string =>
+  t.version ? `${t.name} ${t.version}` : t.name;
+
+const imageStateWord = (s: Image['state']): string =>
+  s === 'not_built' ? 'not built yet' : s;
+
+function neededByCell(n: Layer['needed_by']) {
+  if (n.count === 0) return '—';
+  const word = `${n.count} ${n.count === 1 ? 'repository' : 'repositories'}`;
+  return n.failing > 0 ? (
+    <Status kind="waiting" word={`${word} · jobs fail without it`} />
+  ) : (
+    word
+  );
+}
+
+function layerColumns(enabled: readonly string[], editable: boolean): Column<Layer>[] {
+  return [
+    {
+      id: 'layer',
+      header: 'Layer',
+      cell: (l) => (!editable && enabled.includes(l.id) ? `${l.name} · on` : l.name),
+      sort: (l) => l.name,
+    },
+    { id: 'adds', header: 'Adds', cell: (l) => l.adds.map(toolText).join(', '), secondary: true },
+    { id: 'purpose', header: 'Pick it when', cell: (l) => l.purpose, secondary: true },
+    { id: 'needed', header: 'Needed by', cell: (l) => neededByCell(l.needed_by), secondary: true },
+    {
+      id: 'size',
+      header: 'Size',
+      cell: (l) => (l.size_bytes > 0 ? formatSize(l.size_bytes) : '—'),
+      sort: (l) => l.size_bytes,
+    },
+  ];
+}
 
 const TABS = [
   { id: 'images', label: 'Images' },
@@ -144,7 +187,7 @@ function ImagesTab({ nameOf }: { nameOf: (id: string) => string }) {
       {(data) =>
         data.items.length === 0 ? (
           <Section title="Images" count={0}>
-            <Empty title="No images yet. Images are built when a runner first needs one." />
+            <Empty title="No images yet. A machine shows one here once it can run container jobs." />
           </Section>
         ) : (
           <Section title="Images" count={shownImages(data.items).length}>
@@ -194,6 +237,12 @@ function ImageCard({
   const dirty =
     draft !== undefined && [...draft].sort().join() !== [...saved].sort().join();
   const rebuilding = image.state === 'rebuilding';
+  const notBuilt = image.state === 'not_built';
+  const editable = admin && !rebuilding;
+  const narrow = useNarrow();
+  const [showAll, setShowAll] = useState(false);
+  const baseShown = narrow && !showAll ? image.base_tools.slice(0, BASE_SHORT) : image.base_tools;
+  const baseText = baseShown.map(toolText).join(' · ');
 
   const save = useCommand(async () => {
     await unwrap(
@@ -241,8 +290,8 @@ function ImageCard({
             onPress={() => void probe.run()}
             busy={probe.busy || rebuilding}
             busyLabel={rebuilding ? 'Rebuilding' : 'Working'}
-            disabled={!admin}
-            reason={why}
+            disabled={!admin || notBuilt}
+            reason={!admin ? why : 'Not built yet. It is built when the first runner starts.'}
           >
             Rebuild
           </Button>
@@ -256,14 +305,15 @@ function ImageCard({
               ? 'ok'
               : image.state === 'failed'
                 ? 'failed'
-                : 'running'
+                : image.state === 'not_built'
+                  ? 'off'
+                  : 'running'
           }
-          word={image.state}
+          word={imageStateWord(image.state)}
         />
         <Facts
           items={[
-            { name: 'Base', value: image.base },
-            { name: 'Size', value: formatSize(image.size_bytes) },
+            { name: 'Size', value: notBuilt ? '—' : formatSize(image.size_bytes) },
             {
               name: 'Built at',
               value: image.built_at ? formatDateTime(image.built_at) : 'not built yet',
@@ -271,20 +321,90 @@ function ImageCard({
             { name: 'Newest', value: image.newest ? 'yes' : 'no' },
           ]}
         />
-        {image.layers.map((l) => (
-          <CheckRow
-            key={l.id}
-            label={l.name}
-            help={formatSize(l.size_bytes)}
-            checked={enabled.includes(l.id)}
-            onChange={(c) =>
-              setDraft(c ? [...enabled, l.id] : enabled.filter((x) => x !== l.id))
-            }
-            {...(!admin || rebuilding
-              ? { disabledReason: !admin ? why : 'The image is being rebuilt.' }
+        {notBuilt ? (
+          <Message tone="note">
+            Not built yet. Choose layers now; it is built when the first runner starts.
+          </Message>
+        ) : null}
+        <Facts
+          items={[
+            {
+              name: 'Base (always included)',
+              value: (
+                <Stack gap="tight">
+                  <Text>{baseText}</Text>
+                  {narrow && image.base_tools.length > BASE_SHORT ? (
+                    <Button onPress={() => setShowAll(!showAll)}>
+                      {showAll ? 'Show fewer' : 'Show all'}
+                    </Button>
+                  ) : null}
+                </Stack>
+              ),
+            },
+            {
+              name: 'Extra packages, per repository',
+              value: (
+                <Stack gap="tight">
+                  {image.extra_packages.length === 0 ? (
+                    <Text>None</Text>
+                  ) : (
+                    image.extra_packages.map((e) => (
+                      <Text key={e.repository}>
+                        {e.repository}: {e.packages.join(', ')}
+                      </Text>
+                    ))
+                  )}
+                  <TextLink to="/repositories">Change in Repositories</TextLink>
+                </Stack>
+              ),
+            },
+          ]}
+        />
+        <Section
+          title="Optional layers"
+          hint="Tick, Save, then Rebuild. Running jobs finish first."
+        >
+          {editable ? (
+            <ListToolbar
+              label="Optional layers"
+              selection={
+                <>
+                  <Button onPress={() => setDraft(image.layers.map((l) => l.id))}>
+                    {`Select all ${image.layers.length}`}
+                  </Button>
+                  <Button
+                    onPress={() => setDraft([])}
+                    disabled={enabled.length === 0}
+                    title="Nothing is selected."
+                  >
+                    Clear
+                  </Button>
+                </>
+              }
+            />
+          ) : null}
+          <Table
+            caption={`Optional layers of ${title}`}
+            columns={layerColumns(enabled, editable)}
+            rows={image.layers}
+            rowKey={(l) => l.id}
+            selected={new Set(enabled)}
+            {...(editable
+              ? {
+                  onToggle: (id: string) =>
+                    setDraft(
+                      enabled.includes(id)
+                        ? enabled.filter((x) => x !== id)
+                        : [...enabled, id],
+                    ),
+                  toggleLabel: (l: Layer) => `Add ${l.name} to the image`,
+                }
               : {})}
           />
-        ))}
+          {!editable ? (
+            <Text tone="muted">{!admin ? why : 'The image is being rebuilt.'}</Text>
+          ) : null}
+        </Section>
         {rebuilding ? <Progress label={`Rebuilding ${title}`} /> : null}
         {image.needs_rebuild && !rebuilding ? (
           <Message tone="note">

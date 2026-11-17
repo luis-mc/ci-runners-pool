@@ -168,7 +168,7 @@ The words of the images and caches screen (web-console 4.7).
 |---|---|
 | Tabs | Images, Caches |
 | Cache kinds | Tool cache, Rust build cache, Actions cache, Git mirror, Registry mirror |
-| Empty images | No images yet. Images are built when a runner first needs one. |
+| Empty images | No images yet. A machine shows one here once it can run container jobs. |
 | Empty caches | No caches yet. Caches show here when a runner has been added. |
 | Question title | Wipe {cache}? Rebuild the image of {machine}, {OS}? |
 | Wiping | Wiping {cache}, waiting for {jobs} |
@@ -177,6 +177,14 @@ The words of the images and caches screen (web-console 4.7).
 | Over the cap | {size} of {cap} ({percent}), over the cap |
 | Wipe failed | Could not wipe {cache}. {why} |
 | Rebuild failed | Could not rebuild. {why} The old image keeps serving. |
+| Image state, before the first build | not built yet |
+| Not built message | Not built yet. Choose layers now; it is built when the first runner starts. |
+| Rebuild, not built | Not built yet. It is built when the first runner starts. |
+| Image parts | Base (always included), Extra packages, per repository, Optional layers, None, Change in Repositories, Show all, Show fewer |
+| Layer hint | Tick, Save, then Rebuild. Running jobs finish first. |
+| Layer table heads | Layer, Adds, Pick it when, Needed by, Size |
+| Needed by | {n} repository, {n} repositories; with failing jobs: {n} repositories · jobs fail without it; none or unknown size: — |
+| Layer line, on, read only | {layer} · on |
 | Layers differ | The saved layers differ from the built image. Rebuild to use them. |
 
 ## Labels

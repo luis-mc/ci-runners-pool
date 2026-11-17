@@ -38,9 +38,36 @@ const image = (over: Partial<Schemas['Image']> = {}): Schemas['Image'] => ({
   machine_id: 'm1',
   os: 'linux',
   base: 'ubuntu-24.04',
+  base_tools: [
+    { name: 'Ubuntu', version: '24.04' },
+    { name: 'git' },
+    { name: 'curl' },
+    { name: 'python3' },
+    { name: 'jq' },
+    { name: 'zip' },
+    { name: 'node', version: '26' },
+    { name: 'pnpm' },
+  ],
+  extra_packages: [{ repository: 'octo/app', packages: ['libssl-dev', 'ffmpeg'] }],
   layers: [
-    { id: 'build-tools', name: 'Build tools', enabled: true, size_bytes: 900_000_000 },
-    { id: 'browsers', name: 'Browsers', enabled: false, size_bytes: 1_500_000_000 },
+    {
+      id: 'build-tools',
+      name: 'Build tools',
+      enabled: true,
+      size_bytes: 900_000_000,
+      adds: [{ name: 'gcc' }],
+      purpose: 'your jobs compile C',
+      needed_by: { count: 0, repositories: [], failing: 0 },
+    },
+    {
+      id: 'browsers',
+      name: 'Browsers',
+      enabled: false,
+      size_bytes: 1_500_000_000,
+      adds: [{ name: 'chromium' }, { name: 'firefox' }],
+      purpose: 'your tests drive a browser',
+      needed_by: { count: 2, repositories: ['octo/app', 'octo/web'], failing: 1 },
+    },
   ],
   size_bytes: 4_000_000_000,
   built_at: '2026-11-14T09:00:00Z',
@@ -49,13 +76,18 @@ const image = (over: Partial<Schemas['Image']> = {}): Schemas['Image'] => ({
   ...over,
 });
 
+const notBuilt = (): Schemas['Image'] => {
+  const { built_at: _built, ...rest } = image();
+  return { ...rest, state: 'not_built', size_bytes: 0 };
+};
+
 describe('Images', () => {
   it('shows loading, then the empty state in the words of the design system', async () => {
     renderApp(base(), '/images');
     expect(await screen.findByText('Loading images')).toBeTruthy();
     expect(
       await screen.findByText(
-        'No images yet. Images are built when a runner first needs one.',
+        'No images yet. A machine shows one here once it can run container jobs.',
       ),
     ).toBeTruthy();
     expect(screen.getByRole('region', { name: 'Images' })).toBeTruthy();
@@ -83,7 +115,7 @@ describe('Images', () => {
       .on('PUT', '/api/v1/images/:id/layers', image());
     renderApp(api, '/images');
     const card = await screen.findByRole('region', { name: 'build-1, linux' });
-    expect(within(card).getByText('ubuntu-24.04')).toBeTruthy();
+    expect(within(card).getByText(/Ubuntu 24\.04 · git/)).toBeTruthy();
     expect(within(card).getByText('4.0 GB')).toBeTruthy();
     const save = within(card).getByRole<HTMLButtonElement>('button', { name: 'Save' });
     expect(save.disabled).toBe(true);
@@ -95,6 +127,72 @@ describe('Images', () => {
       (api.calls.find((c) => c.method === 'PUT')?.body as { enabled_layers: string[] })
         .enabled_layers,
     ).toEqual(['build-tools', 'browsers']);
+  });
+
+  it('shows a machine that has no image yet, and lets the layers be chosen and saved', async () => {
+    const api = base()
+      .on('GET', '/api/v1/images', {
+        items: [notBuilt()],
+      })
+      .on('PUT', '/api/v1/images/:id/layers', image({ state: 'not_built' }));
+    renderApp(api, '/images');
+    const card = await screen.findByRole('region', { name: 'build-1, linux' });
+    expect(
+      within(card).getByText(
+        'Not built yet. Choose layers now; it is built when the first runner starts.',
+      ),
+    ).toBeTruthy();
+    expect(
+      within(card).getByRole<HTMLButtonElement>('button', { name: 'Rebuild' }).disabled,
+    ).toBe(true);
+    fireEvent.click(within(card).getByRole('checkbox', { name: /Browsers/ }));
+    fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(api.count('PUT', '/api/v1/images/i1/layers')).toBe(1));
+  });
+
+  it('shows what the image holds: the base, extra packages per repository and the layer table', async () => {
+    renderApp(base().on('GET', '/api/v1/images', { items: [image()] }), '/images');
+    const card = await screen.findByRole('region', { name: 'build-1, linux' });
+    expect(within(card).getByText('Base (always included)')).toBeTruthy();
+    expect(within(card).getByText('Extra packages, per repository')).toBeTruthy();
+    expect(within(card).getByText('octo/app: libssl-dev, ffmpeg')).toBeTruthy();
+    expect(
+      within(card).getByRole('link', { name: 'Change in Repositories' }),
+    ).toBeTruthy();
+    expect(
+      within(card).getByText('Tick, Save, then Rebuild. Running jobs finish first.'),
+    ).toBeTruthy();
+    const table = within(card).getByRole('table', { name: /Optional layers/ });
+    for (const h of ['Layer', 'Adds', 'Pick it when', 'Needed by', 'Size'])
+      expect(within(table).getByRole('columnheader', { name: h })).toBeTruthy();
+    expect(within(table).getByText('chromium, firefox')).toBeTruthy();
+    expect(within(table).getByText('your tests drive a browser')).toBeTruthy();
+  });
+
+  it('says in amber when jobs fail without a layer', async () => {
+    renderApp(base().on('GET', '/api/v1/images', { items: [image()] }), '/images');
+    const card = await screen.findByRole('region', { name: 'build-1, linux' });
+    const warn = within(card).getByText('2 repositories · jobs fail without it');
+    expect(warn.closest('[data-status]')?.getAttribute('data-status')).toBe('waiting');
+  });
+
+  it('on a phone truncates the base list and Show all opens it', async () => {
+    const real: unknown = Reflect.get(window, 'matchMedia');
+    window.matchMedia = ((q: string) => ({
+      matches: true,
+      media: q,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      renderApp(base().on('GET', '/api/v1/images', { items: [image()] }), '/images');
+      const card = await screen.findByRole('region', { name: 'build-1, linux' });
+      expect(within(card).queryByText(/node 26/)).toBeNull();
+      fireEvent.click(within(card).getByRole('button', { name: 'Show all' }));
+      expect(within(card).getByText(/node 26 · pnpm/)).toBeTruthy();
+    } finally {
+      Reflect.set(window, 'matchMedia', real);
+    }
   });
 
   it('asks before a rebuild and names the machine and the jobs it waits for (UX-62)', async () => {

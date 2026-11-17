@@ -4134,7 +4134,30 @@ export interface components {
             state: "running" | "passed" | "failed";
             detail?: string;
         };
+        ImageTool: {
+            /** @example node */
+            name: string;
+            /** @example 26 */
+            version?: string;
+        };
+        /** @description The repositories on the machine that ask for a layer (LOOK12). */
+        LayerNeededBy: {
+            count: number;
+            /** @description Full names of the repositories. */
+            repositories: string[];
+            /** @description Repositories whose recent job failed for lack of the layer. */
+            failing: number;
+        };
+        ImageExtraPackages: {
+            repository: string;
+            packages: string[];
+        };
         ImageLayer: {
+            /** @description The tools the layer adds to the base. */
+            adds: components["schemas"]["ImageTool"][];
+            /** @description One line, completes "Pick it when". */
+            purpose: string;
+            needed_by: components["schemas"]["LayerNeededBy"];
             /** @example browsers */
             id: string;
             /** @example Browsers for Playwright */
@@ -4150,12 +4173,42 @@ export interface components {
          *       "machine_id": "m_01JCRSP0001",
          *       "os": "linux",
          *       "base": "ubuntu-24.04",
+         *       "base_tools": [
+         *         {
+         *           "name": "Ubuntu",
+         *           "version": "24.04"
+         *         },
+         *         {
+         *           "name": "git"
+         *         }
+         *       ],
+         *       "extra_packages": [
+         *         {
+         *           "repository": "luis-mc/app",
+         *           "packages": [
+         *             "libssl-dev"
+         *           ]
+         *         }
+         *       ],
          *       "layers": [
          *         {
-         *           "id": "build-tools",
-         *           "name": "Build tools",
+         *           "id": "kvm",
+         *           "name": "KVM virtual machines",
          *           "enabled": true,
-         *           "size_bytes": 612368384
+         *           "size_bytes": 612368384,
+         *           "adds": [
+         *             {
+         *               "name": "qemu-system-x86_64"
+         *             }
+         *           ],
+         *           "purpose": "your jobs boot a virtual machine with qemu",
+         *           "needed_by": {
+         *             "count": 1,
+         *             "repositories": [
+         *               "luis-mc/app"
+         *             ],
+         *             "failing": 0
+         *           }
          *         }
          *       ],
          *       "size_bytes": 2147483648,
@@ -4166,6 +4219,10 @@ export interface components {
          *     }
          */
         Image: {
+            /** @description What every image on the machine holds, always. */
+            base_tools: components["schemas"]["ImageTool"][];
+            /** @description Extra packages per repository on the machine. */
+            extra_packages: components["schemas"]["ImageExtraPackages"][];
             id: string;
             machine_id: string;
             os: components["schemas"]["OS"];
@@ -4184,7 +4241,7 @@ export interface components {
             /** @description The saved layers differ from the built ones. */
             needs_rebuild?: boolean;
             /** @enum {string} */
-            state: "ready" | "rebuilding" | "failed";
+            state: "ready" | "rebuilding" | "failed" | "not_built";
             /** @description Why the last build failed; the old image keeps serving. */
             error?: string;
         };

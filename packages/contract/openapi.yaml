@@ -6596,10 +6596,55 @@ components:
           type: string
 
     # ---------- images and caches (CRSP32)
+    ImageTool:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: node
+        version:
+          type: string
+          example: '26'
+    LayerNeededBy:
+      type: object
+      description: The repositories on the machine that ask for a layer (LOOK12).
+      required: [count, repositories, failing]
+      properties:
+        count:
+          type: integer
+        repositories:
+          type: array
+          items:
+            type: string
+          description: Full names of the repositories.
+        failing:
+          type: integer
+          description: Repositories whose recent job failed for lack of the layer.
+    ImageExtraPackages:
+      type: object
+      required: [repository, packages]
+      properties:
+        repository:
+          type: string
+        packages:
+          type: array
+          items:
+            type: string
     ImageLayer:
       type: object
-      required: [id, name, enabled, size_bytes]
+      required: [id, name, enabled, size_bytes, adds, purpose, needed_by]
       properties:
+        adds:
+          type: array
+          description: The tools the layer adds to the base.
+          items:
+            $ref: '#/components/schemas/ImageTool'
+        purpose:
+          type: string
+          description: One line, completes "Pick it when".
+        needed_by:
+          $ref: '#/components/schemas/LayerNeededBy'
         id:
           type: string
           example: browsers
@@ -6614,8 +6659,18 @@ components:
     Image:
       type: object
       description: One image on one machine (runners R5.32 and R5.33).
-      required: [id, machine_id, os, base, layers, size_bytes, state, newest]
+      required: [id, machine_id, os, base, base_tools, extra_packages, layers, size_bytes, state, newest]
       properties:
+        base_tools:
+          type: array
+          description: What every image on the machine holds, always.
+          items:
+            $ref: '#/components/schemas/ImageTool'
+        extra_packages:
+          type: array
+          description: Extra packages per repository on the machine.
+          items:
+            $ref: '#/components/schemas/ImageExtraPackages'
         id:
           type: string
         machine_id:
@@ -6644,7 +6699,7 @@ components:
           description: The saved layers differ from the built ones.
         state:
           type: string
-          enum: [ready, rebuilding, failed]
+          enum: [ready, rebuilding, failed, not_built]
         error:
           type: string
           description: Why the last build failed; the old image keeps serving.
@@ -6653,11 +6708,25 @@ components:
         machine_id: m_01JCRSP0001
         os: linux
         base: ubuntu-24.04
+        base_tools:
+          - name: Ubuntu
+            version: '24.04'
+          - name: git
+        extra_packages:
+          - repository: luis-mc/app
+            packages: [libssl-dev]
         layers:
-          - id: build-tools
-            name: Build tools
+          - id: kvm
+            name: KVM virtual machines
             enabled: true
             size_bytes: 612368384
+            adds:
+              - name: qemu-system-x86_64
+            purpose: your jobs boot a virtual machine with qemu
+            needed_by:
+              count: 1
+              repositories: [luis-mc/app]
+              failing: 0
         size_bytes: 2147483648
         built_at: '2026-11-13T22:00:00Z'
         newest: true
