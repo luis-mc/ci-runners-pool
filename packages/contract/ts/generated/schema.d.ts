@@ -4126,6 +4126,22 @@ export interface components {
             drain_timeout_minutes?: number;
             /** Format: uri */
             release_url?: string;
+            stage?: components["schemas"]["UpdateStage"];
+        };
+        /** @description The live stage of the last or running update (TRAY4). It is kept in a file, so it survives the service restart. */
+        UpdateStage: {
+            /** @enum {string} */
+            name: "downloading" | "waiting_for_jobs" | "installing" | "restarting" | "done" | "failed";
+            /** @description Only for downloading and installing; absent when the stage has no number. Installing is a rough guess from the installer log. */
+            percent?: number;
+            /** @description The version being installed; for done, the version that runs. */
+            version?: string;
+            /** @description failed only, in words. */
+            error?: string;
+            /** @description failed only, the log that has the detail. */
+            log_path?: string;
+            /** Format: date-time */
+            at: string;
         };
         UpdateJob: {
             repository: string;

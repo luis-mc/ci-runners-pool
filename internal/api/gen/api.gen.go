@@ -1836,6 +1836,36 @@ func (e TrialSetMode) Valid() bool {
 	}
 }
 
+// Defines values for UpdateStageName.
+const (
+	UpdateStageNameDone           UpdateStageName = "done"
+	UpdateStageNameDownloading    UpdateStageName = "downloading"
+	UpdateStageNameFailed         UpdateStageName = "failed"
+	UpdateStageNameInstalling     UpdateStageName = "installing"
+	UpdateStageNameRestarting     UpdateStageName = "restarting"
+	UpdateStageNameWaitingForJobs UpdateStageName = "waiting_for_jobs"
+)
+
+// Valid indicates whether the value is a known member of the UpdateStageName enum.
+func (e UpdateStageName) Valid() bool {
+	switch e {
+	case UpdateStageNameDone:
+		return true
+	case UpdateStageNameDownloading:
+		return true
+	case UpdateStageNameFailed:
+		return true
+	case UpdateStageNameInstalling:
+		return true
+	case UpdateStageNameRestarting:
+		return true
+	case UpdateStageNameWaitingForJobs:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateStatusState.
 const (
 	UpdateStatusStateChecking       UpdateStatusState = "checking"
@@ -4159,6 +4189,27 @@ type UpdateJob struct {
 	Workflow   *string `json:"workflow,omitempty"`
 }
 
+// UpdateStage The live stage of the last or running update (TRAY4). It is kept in a file, so it survives the service restart.
+type UpdateStage struct {
+	At time.Time `json:"at"`
+
+	// Error failed only, in words.
+	Error *string `json:"error,omitempty"`
+
+	// LogPath failed only, the log that has the detail.
+	LogPath *string         `json:"log_path,omitempty"`
+	Name    UpdateStageName `json:"name"`
+
+	// Percent Only for downloading and installing; absent when the stage has no number. Installing is a rough guess from the installer log.
+	Percent *int `json:"percent,omitempty"`
+
+	// Version The version being installed; for done, the version that runs.
+	Version *string `json:"version,omitempty"`
+}
+
+// UpdateStageName defines model for UpdateStage.Name.
+type UpdateStageName string
+
 // UpdateStatus operations R5.11 to R5.18, tray R5.18.
 type UpdateStatus struct {
 	AutoUpdate          bool       `json:"auto_update"`
@@ -4175,6 +4226,9 @@ type UpdateStatus struct {
 
 	// RunningJobs Jobs running on this machine that the drain waits for.
 	RunningJobs []UpdateJob `json:"running_jobs"`
+
+	// Stage The live stage of the last or running update (TRAY4). It is kept in a file, so it survives the service restart.
+	Stage *UpdateStage `json:"stage,omitempty"`
 
 	// State waiting_for_jobs is the drain. failed carries `error`.
 	State           UpdateStatusState `json:"state"`

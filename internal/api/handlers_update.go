@@ -46,6 +46,26 @@ func toGenUpdate(st update.Status) gen.UpdateStatus {
 		d := st.DrainTimeoutMinutes
 		out.DrainTimeoutMinutes = &d
 	}
+	if sg := st.Stage; sg != nil {
+		g := gen.UpdateStage{Name: gen.UpdateStageName(sg.Name), At: sg.At}
+		if sg.Percent >= 0 && (sg.Name == update.StageDownloading || sg.Name == update.StageInstalling) {
+			p := sg.Percent
+			g.Percent = &p
+		}
+		if sg.Version != "" {
+			v := sg.Version
+			g.Version = &v
+		}
+		if sg.Error != "" {
+			e := sg.Error
+			g.Error = &e
+		}
+		if sg.LogPath != "" {
+			l := sg.LogPath
+			g.LogPath = &l
+		}
+		out.Stage = &g
+	}
 	for _, j := range st.RunningJobs {
 		g := gen.UpdateJob{Repository: j.Repository, RunId: j.RunID, Job: j.Job}
 		if j.Workflow != "" {

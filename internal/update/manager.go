@@ -67,6 +67,8 @@ type Status struct {
 	RunningJobs         []Job
 	DrainTimeoutMinutes int
 	ReleaseURL          string
+	// Stage is the live stage file (TRAY4); nil when no update ran yet.
+	Stage *Stage
 }
 
 // Drainer is the machines side: it names the jobs on this machine and drains it.
@@ -224,6 +226,9 @@ func (m *Manager) Status(ctx context.Context) Status {
 		Error: m.errText, ReleaseURL: m.latest.URL,
 	}
 	m.mu.Unlock()
+	if sg, ok := ReadStage(m.o.Dir); ok {
+		st.Stage = &sg
+	}
 	st.Available = Newer(st.Current, st.Latest)
 	st.AutoUpdate = m.o.AutoUpdate(ctx)
 	if m.o.Drainer != nil {
@@ -300,6 +305,26 @@ func (m *Manager) check(ctx context.Context, auto bool) (Status, error) {
 	return m.Status(ctx), nil
 }
 
+// stage records the live stage for the API and the console page. A stage that cannot be
+// written is only logged: it must never stop an update.
+func (m *Manager) stage(s Stage) {
+	s.At = m.o.Now()
+	if err := WriteStage(m.o.Dir, s); err != nil {
+		m.o.Logger.Warn("could not write the update stage", "err", err)
+	}
+}
+
+// logPath is the log a failed update points to.
+func (m *Manager) logPath() string {
+	if m.o.GOOS == "windows" && m.o.InstallKind == KindMSI {
+		if m.o.MSILog != "" {
+			return m.o.MSILog
+		}
+		return MSILogPath()
+	}
+	return filepath.Join(m.o.Dir, LogFile)
+}
+
 func readFailures(dir string) Failures { f, _ := ReadFailures(dir); return f }
 
 func (m *Manager) setError(text string) {
@@ -373,7 +398,15 @@ func (m *Manager) begin(ctx context.Context, kind Kind, actor string) (Status, e
 
 	p := &pending{kind: kind, version: m.o.Current}
 	if kind == KindUpdate {
-		file, err := m.prepare(ctx, rel)
+		m.stage(Stage{Name: StageDownloading, Percent: 0, Version: rel.Version})
+		last := -2
+		dctx := WithProgress(ctx, func(done, total int64) {
+			if pc := Percent(done, total); pc != last {
+				last = pc
+				m.stage(Stage{Name: StageDownloading, Percent: pc, Version: rel.Version})
+			}
+		})
+		file, err := m.prepare(dctx, rel)
 		if err != nil {
 			m.fail(err, rel.Version)
 			return m.Status(ctx), err
@@ -384,6 +417,7 @@ func (m *Manager) begin(ctx context.Context, kind Kind, actor string) (Status, e
 	m.pending = p
 	m.state = StateWaitingForJobs
 	m.mu.Unlock()
+	m.stage(Stage{Name: StageWaitingForJobs, Percent: -1, Version: p.version})
 	if err := m.o.Drainer.BeginDrain(ctx, kind, actor); err != nil {
 		m.fail(err, p.version)
 		return m.Status(ctx), err
@@ -421,7 +455,9 @@ func (m *Manager) giveUpDrain(actor string, limit time.Duration) {
 	m.errText = "Running jobs did not end within " + limit.String() + ". The drain was cancelled and the machine takes jobs again. The update tries again at the next check."
 	lock := m.lock
 	m.lock = nil
+	msg := m.errText
 	m.mu.Unlock()
+	m.stage(Stage{Name: StageFailed, Percent: -1, Error: msg, LogPath: m.logPath()})
 	if err := m.o.Drainer.CancelDrain(context.Background(), actor); err != nil {
 		m.o.Logger.Warn("could not cancel the drain", "err", err)
 	}
@@ -438,6 +474,7 @@ func (m *Manager) fail(err error, version string) {
 	if version != "" {
 		_ = RecordFailure(m.o.Dir, version, m.o.Now(), false)
 	}
+	m.stage(Stage{Name: StageFailed, Percent: -1, Version: version, Error: err.Error(), LogPath: m.logPath()})
 	m.o.Logger.Warn("update refused or failed", "err", err)
 }
 
@@ -530,6 +567,7 @@ func (m *Manager) OnIdle(ctx context.Context, kind Kind) error {
 	m.state = StateInstalling
 	lock := m.lock
 	m.mu.Unlock()
+	m.stage(Stage{Name: StageInstalling, Percent: -1, Version: p.version})
 	pid, err := m.o.Spawn(ctx, m.o.Exe, plan, planPath)
 	if err != nil {
 		m.fail(fmt.Errorf("could not start the install helper: %w", err), p.version)
@@ -541,6 +579,7 @@ func (m *Manager) OnIdle(ctx context.Context, kind Kind) error {
 	m.mu.Lock()
 	m.state, m.pending = StateRestarting, nil
 	m.mu.Unlock()
+	m.stage(Stage{Name: StageRestarting, Percent: -1, Version: p.version})
 	return nil
 }
 
@@ -551,6 +590,7 @@ func (m *Manager) onIdleMSI(ctx context.Context, p *pending) error {
 	m.state = StateInstalling
 	lock := m.lock
 	m.mu.Unlock()
+	m.stage(Stage{Name: StageInstalling, Percent: 0, Version: p.version})
 	pid, err := m.startMSI(ctx, p)
 	if err != nil {
 		m.fail(err, p.version)
@@ -562,6 +602,7 @@ func (m *Manager) onIdleMSI(ctx context.Context, p *pending) error {
 	m.mu.Lock()
 	m.state, m.pending = StateRestarting, nil
 	m.mu.Unlock()
+	go m.followMSILog(p.version)
 	return nil
 }
 
@@ -607,7 +648,11 @@ func httpFetch(ctx context.Context, url, dst string) error {
 		return err
 	}
 	const max = 300 << 20
-	n, err := io.Copy(f, io.LimitReader(resp.Body, max+1))
+	var body io.Reader = io.LimitReader(resp.Body, max+1)
+	if _, ok := ctx.Value(progressKey{}).(func(done, total int64)); ok {
+		body = &progressReader{r: body, ctx: ctx, total: resp.ContentLength}
+	}
+	n, err := io.Copy(f, body)
 	if cerr := f.Close(); err == nil {
 		err = cerr
 	}
@@ -619,4 +664,19 @@ func httpFetch(ctx context.Context, url, dst string) error {
 		return err
 	}
 	return os.Rename(tmp, dst)
+}
+
+// progressReader reports the bytes read to the context's progress function, at most once per percent.
+type progressReader struct {
+	r     io.Reader
+	ctx   context.Context //nolint:containedctx // read-through wrapper, lives for one download
+	total int64
+	done  int64
+}
+
+func (p *progressReader) Read(b []byte) (int, error) {
+	n, err := p.r.Read(b)
+	p.done += int64(n)
+	reportProgress(p.ctx, p.done, p.total)
+	return n, err
 }
