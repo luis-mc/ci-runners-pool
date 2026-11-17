@@ -734,6 +734,14 @@ The words of Settings > Console > Network and of the dialog that chooses the con
 | This address is set by CRSP_LISTEN_ADDR on this PC, so it cannot be changed here. | Note when the environment decides. |
 | Could not use this address. {reason} | Problem when the address is refused. |
 | The controller did not listen on the new address. {reason} | Problem when it restarted but could not bind. |
+| Add this sign-in address to your GitHub App | Title of the guided step, in the dialog before the switch (github-integration R5.8, OPS16). |
+| GitHub only signs people in on addresses the GitHub App knows. It does not know this one yet. Add this callback URL to the App: copy it, open the App's settings on GitHub, and under Callback URL choose Add Callback URL. | Text of the guided step, with the box Callback URL (Copy) and the action Open the App on GitHub. |
+| Callback URL | Label of the copyable box. |
+| Open the App on GitHub | Link button to the App's settings page, github.com only. |
+| When you have added it, press Try again. The controller then tries a sign-in for {address} and switches to it. Until then it stays on {address}. | Line in the guided step; Try again is the primary action, busy word Asking GitHub. |
+| GitHub does not know this address yet. Pressing Try again before you added it changes nothing. | Note in the guided step. |
+| Could not check the address. {reason} | Problem when GitHub could not be asked. |
+| Sign-in does not work on {address} yet. Open the console on the PC that runs it at http://127.0.0.1:8460, or add this address to the GitHub App. | Needs-you message on the sign-in page; the guided step follows and the action is Try again. |
 
 ## Repositories list: groups and inactive types
 

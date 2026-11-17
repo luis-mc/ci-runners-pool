@@ -242,7 +242,7 @@ describe('Access for CI: the Needs-you box', () => {
   });
 
   // OPS16: GitHub only signs people in on addresses the App has a callback URL for.
-  it('shows the guided step before switching to an address GitHub does not know, and Check switches once it does', async () => {
+  it('shows the guided step before switching to an address GitHub does not know, and Try again switches once it does', async () => {
     let known = false;
     const a = signedIn()
       .on('GET', '/api/v1/settings/listen-address', listen())
@@ -270,17 +270,17 @@ describe('Access for CI: the Needs-you box', () => {
     ).toBe('https://github.com/settings/apps/crsp-test');
     // Nothing was switched.
     expect(a.calls.some((c) => c.method === 'PUT')).toBe(false);
-    // Check before it was added: still the guide, still no switch.
-    fireEvent.click(screen.getByRole('button', { name: 'Check' }));
+    // Try again before it was added: still the guide, still no switch.
+    fireEvent.click((await inDialog()).getByRole('button', { name: 'Try again' }));
     await waitFor(() =>
       expect(
         a.calls.filter((c) => c.path === '/api/v1/settings/signin-address'),
       ).toHaveLength(2),
     );
     expect(a.calls.some((c) => c.method === 'PUT')).toBe(false);
-    // Added on GitHub: Check confirms and the controller switches.
+    // Added on GitHub: Try again confirms and the controller switches.
     known = true;
-    fireEvent.click(await screen.findByRole('button', { name: 'Check' }));
+    fireEvent.click(await (await inDialog()).findByRole('button', { name: 'Try again' }));
     expect(await screen.findByText(/Waiting for running jobs to finish/)).toBeTruthy();
     expect(a.calls.find((c) => c.method === 'PUT')?.body).toEqual({
       address: '192.168.1.20:8460',

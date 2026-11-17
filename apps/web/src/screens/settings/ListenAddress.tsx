@@ -161,7 +161,7 @@ export function ChooseAddressDialog({
   };
 
   // Before switching, GitHub must know the sign-in address of the new console address (OPS16): a dry sign-in
-  // asks it. When it does not, the guided step gives the callback URL to add; Check asks again.
+  // asks it. When it does not, the guided step gives the callback URL to add; Try again asks once more.
   const apply = useCommand(async () => {
     setFailure(undefined);
     const info = await unwrap(
@@ -191,23 +191,23 @@ export function ChooseAddressDialog({
         title="Add this sign-in address to your GitHub App"
         onClose={onClose}
         primary={{
-          label: 'Check',
+          label: 'Try again',
           onPress: () => void apply.run(),
           busy: apply.busy,
-          busyLabel: 'Checking',
+          busyLabel: 'Asking GitHub',
         }}
       >
         <Stack>
           <CallbackGuide callbackUrl={guide.callback_url} appUrl={guide.app_url} />
           <Text>
-            {`When you have added it, press Check. The controller then tries a sign-in for ${guide.address} and switches to it. Until then it stays on ${data?.running ?? 'the old address'}.`}
+            {`When you have added it, press Try again. The controller then tries a sign-in for ${guide.address} and switches to it. Until then it stays on ${data?.running ?? 'the old address'}.`}
           </Text>
           {apply.error ? (
             <Message tone="problem">Could not check the address. {apply.error}</Message>
           ) : (
             <Message tone="note">
-              GitHub does not know this address yet. Pressing Check before you added it
-              changes nothing.
+              GitHub does not know this address yet. Pressing Try again before you added
+              it changes nothing.
             </Message>
           )}
         </Stack>

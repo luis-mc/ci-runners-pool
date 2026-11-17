@@ -29,7 +29,7 @@ describe('Sign-in page, address GitHub does not know', () => {
     expect(
       screen.getByRole('button', { name: 'Open the App on GitHub' }).getAttribute('href'),
     ).toBe('https://github.com/settings/apps/crsp-test');
-    expect(screen.getByRole('button', { name: 'Check and sign in' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
   });
 
   it('offers no link to a page that is not on GitHub', async () => {

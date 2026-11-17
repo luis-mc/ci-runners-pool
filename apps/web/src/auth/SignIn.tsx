@@ -72,9 +72,7 @@ export function SignInPage() {
               window.location.assign(signInUrl(returnTo));
             }}
           >
-            {failed === 'callback_not_registered'
-              ? 'Check and sign in'
-              : 'Sign in with GitHub'}
+            {failed === 'callback_not_registered' ? 'Try again' : 'Sign in with GitHub'}
           </Button>
           {noApp ? <TextLink to="/setup">Open the setup page</TextLink> : null}
         </Stack>
