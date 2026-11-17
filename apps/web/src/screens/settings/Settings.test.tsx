@@ -100,7 +100,7 @@ describe('Appearance (UX-60)', () => {
 });
 
 describe('Colour themes (UX-60)', () => {
-  it('offers the six themes with a swatch row each and Phosphor by default', async () => {
+  it('offers the six themes with a live preview in dark and light each, and Phosphor by default', async () => {
     window.localStorage.clear();
     document.documentElement.removeAttribute('data-theme-name');
     renderApp(signedIn(), '/settings/appearance');
@@ -116,19 +116,20 @@ describe('Colour themes (UX-60)', () => {
       'solarized',
       'nord',
     ]);
-    expect(group.querySelectorAll('.ds-swatches')).toHaveLength(6);
+    expect(group.querySelectorAll('.ds-theme-preview')).toHaveLength(12);
+    expect(within(group).getByRole('img', { name: 'Nord, light' })).toBeTruthy();
     expect(
-      within(group).getByRole<HTMLInputElement>('radio', { name: 'Phosphor' }).checked,
+      within(group).getByRole<HTMLInputElement>('radio', { name: /^Phosphor/ }).checked,
     ).toBe(true);
   });
 
   it('picks a theme, applies it at once and keeps it in this browser', async () => {
     window.localStorage.clear();
     renderApp(signedIn(), '/settings/appearance');
-    fireEvent.click(await screen.findByRole('radio', { name: 'Nord' }));
+    fireEvent.click(await screen.findByRole('radio', { name: /^Nord/ }));
     expect(document.documentElement.getAttribute('data-theme-name')).toBe('nord');
     expect(window.localStorage.getItem('crsp.theme-name')).toBe('nord');
-    expect(screen.getByRole<HTMLInputElement>('radio', { name: 'Nord' }).checked).toBe(
+    expect(screen.getByRole<HTMLInputElement>('radio', { name: /^Nord/ }).checked).toBe(
       true,
     );
   });
@@ -137,7 +138,7 @@ describe('Colour themes (UX-60)', () => {
     window.localStorage.setItem('crsp.theme-name', 'gruvbox');
     document.documentElement.removeAttribute('data-theme-name');
     renderApp(signedIn(), '/settings/appearance');
-    await screen.findByRole('radio', { name: 'Gruvbox' });
+    await screen.findByRole('radio', { name: /^Gruvbox/ });
     expect(document.documentElement.getAttribute('data-theme-name')).toBe('gruvbox');
     expect(screen.getByRole('group', { name: 'Mode' })).toBeTruthy();
   });

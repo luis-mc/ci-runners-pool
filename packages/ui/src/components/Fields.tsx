@@ -2,6 +2,7 @@
 // the box after the action is pressed (UX-20, UX-21). Rows for up to 6 answers, a drop-down for 7 or more
 // (UX-22). Switches save at once; check boxes wait for Save.
 import { useId, type ReactNode } from 'react';
+import { ThemePreview } from './ThemePreview';
 
 export interface FieldShellProps {
   label: string;
@@ -158,6 +159,8 @@ export interface Choice {
   label: string;
   /** A theme id: the row shows a small row of that theme's colours, drawn from its tokens (UX-60). */
   swatch?: string | undefined;
+  /** A theme id: the row shows a live ThemePreview of that theme in dark and in light (UX-60, component 42). */
+  preview?: string | undefined;
   /** Why the choice cannot be taken (UX-38). */
   disabledReason?: string | undefined;
 }
@@ -237,6 +240,12 @@ export function ChoiceField(
             <span className="ds-choice__text">
               {c.label}
               {c.swatch ? <Swatches theme={c.swatch} /> : null}
+              {c.preview ? (
+                <span className="ds-choice__previews">
+                  <ThemePreview theme={c.preview} mode="dark" />
+                  <ThemePreview theme={c.preview} mode="light" />
+                </span>
+              ) : null}
               {c.disabledReason ? (
                 <span className="ds-choice__reason"> {c.disabledReason}</span>
               ) : null}

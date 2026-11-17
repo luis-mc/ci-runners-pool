@@ -30,6 +30,8 @@ export interface ExportButtonProps {
   label?: string | undefined;
   disabled?: boolean | undefined;
   reason?: string | undefined;
+  /** The one primary button of the screen (UX-4), when the export is what the screen is for. */
+  primary?: boolean | undefined;
 }
 
 function save(file: ExportedFile, what: string) {
@@ -52,6 +54,7 @@ export function ExportButton({
   label = 'Export',
   disabled,
   reason,
+  primary,
 }: ExportButtonProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -70,6 +73,7 @@ export function ExportButton({
   return (
     <span className="ds-export">
       <Button
+        kind={primary ? 'primary' : undefined}
         onPress={() => void go()}
         busy={busy}
         busyLabel="Exporting"

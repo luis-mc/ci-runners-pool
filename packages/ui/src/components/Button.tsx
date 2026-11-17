@@ -17,8 +17,8 @@ export interface ButtonProps {
   disabled?: boolean | undefined;
   submit?: boolean | undefined;
   title?: string | undefined;
-  /** What part this is in a shared flow (stop, back, other); read by the wizard harness. */
-  part?: 'stop' | 'back' | 'pause' | 'other' | undefined;
+  /** What part this is in a shared flow (stop, back, other, or primary for the wizard's own primary drawn as a default button); read by the wizard harness. */
+  part?: 'stop' | 'back' | 'pause' | 'other' | 'primary' | undefined;
   /** The reason is the one line that says what the page waits for (UX-38). */
   reasonIsWait?: boolean | undefined;
   /** The id of a line on the page that says what the button waits for (a busy button points at it). */

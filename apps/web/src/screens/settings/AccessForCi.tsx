@@ -315,7 +315,6 @@ function ParitySetupAction({ onMade }: { onMade: () => void }) {
                 />
                 <Cluster>
                   <Button
-                    kind="primary"
                     busy={run.busy}
                     busyLabel="Setting up"
                     disabled={!chosen || !session.can('admin') || needsAddress}
