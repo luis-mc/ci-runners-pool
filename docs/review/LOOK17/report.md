@@ -1,6 +1,6 @@
 # LOOK17: no horizontal scroll, options (review)
 
-Status: review only, no decision. App code is unchanged; the options were applied while shooting.
+Status: review only (the brief-style copy lives on branch docs-work/LOOK17 as docs/work/LOOK17.md; docs/work never reaches main), no decision. App code is unchanged; the options were applied while shooting.
 
 ## Finding
 Repositories shows a scroll bar at 1300 and 1800 px (Variables cut off, names wrap onto 3 lines, Labels header lower because Labels has no sort button). At 393 px the table already folds into stacked rows (no bar). The cause is shared: `.ds-table-frame { overflow-x: auto }` in `packages/ui/src/components.css`, which design rule UX-49 allows ("a wide table may scroll sideways inside its frame"). "No horizontal bars anywhere" needs UX-49 changed too.
