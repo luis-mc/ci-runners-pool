@@ -965,14 +965,17 @@ body {
 .ds-field__head {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: var(--ds-space-2);
+  gap: 0 var(--ds-space-2);
   min-inline-size: 0;
 }
 .ds-field__head > .ds-field__label {
   min-inline-size: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+/* In a row of fields the name stays on one line; the mark drops under it when there is no room. */
+.ds-field-grid .ds-field__head > .ds-field__label {
+  max-inline-size: 100%;
 }
 /* The mark of a value that differs from what is saved (LOOK21): a quiet word in the primary colour. */
 .ds-field__changed {
