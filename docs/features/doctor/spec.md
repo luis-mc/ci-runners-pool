@@ -506,8 +506,8 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R6.8 | internal/api/handlers_live_test.go TestDoctorRoutes (API); internal/doctor/cli/cli_test.go (CLI) |
 | R5.44 | internal/doctor/checks/dockercompact_test.go TestDockerCompactNeedsAdminRights, TestDockerCompactOfflineMachineIsSkipped |
 | R5.45 | internal/doctor/checks/checks_test.go TestRunnerLogon; apps/web/src/screens/doctor/Doctor.test.tsx (the logon right finding) |
-| R5.46 | planned in the OPS28 code branches: `internal/doctor/checks` test for `runner.unclean` (ok, fail with the reason, skip for ephemeral and offline) |
-| R5.47 | planned in the OPS28 code branches: `internal/doctor/checks` test for `repo.ephemeral_capacity` (ok, fail, skip for private and Any runner) |
+| R5.46 | internal/doctor/checks/runnerkind_test.go TestRunnerUnclean |
+| R5.47 | internal/doctor/checks/runnerkind_test.go TestRepoEphemeralCapacity |
 
 ## 10. Decisions
 
