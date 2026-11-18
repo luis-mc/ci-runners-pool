@@ -62,23 +62,18 @@ func cmdRunner() *command {
 						if r.CurrentJob != nil {
 							job = r.CurrentJob.JobName
 						}
-						rows = append(rows, []string{r.Name, mach, string(r.Os), string(r.Backend), string(r.Kind), strings.Join(r.Labels, ","), job, output.Age(r.CreatedAt, c.env.Now())})
+						rows = append(rows, []string{r.Name, mach, string(r.Os), string(r.Backend), string(r.Kind), keepsText(r), strings.Join(r.Labels, ","), job, output.Age(r.CreatedAt, c.env.Now())})
 					}
-					output.Table(c.env.Stdout, output.MaxWidth, []string{"NAME", "MACHINE", "OS", "BACKEND", "KIND", "LABELS", "JOB", "AGE"}, rows)
+					output.Table(c.env.Stdout, output.MaxWidth, []string{"NAME", "MACHINE", "OS", "BACKEND", "KIND", "DEPS", "LABELS", "JOB", "AGE"}, rows)
 					return nil
 				}},
-			{name: "add", summary: "add runners on a machine", args: "--machine M --os OS [--backend B] [--persistent] [--count N] [--yes]",
-				flags: func(c *call, fs *flag.FlagSet) {
-					fs.String("machine", "", "machine to add the runners on")
-					fs.String("os", "", "linux, windows or macos")
-					fs.String("backend", "", "isolation backend, for example docker")
-					fs.Bool("persistent", false, "keep state between jobs")
-					fs.Int("count", 1, "how many runners")
-					fs.String("repo", "", "only this repository, OWNER/NAME (leave out: the runners serve every repository that uses the pool)")
-					fs.String("labels", "", "labels, comma separated")
-					yesFlag(fs)
-				},
-				run: func(c *call, _ []string) error { return c.runnerAdd() }},
+			runnerAddCommand("add"),
+			{name: "update", summary: "change a persistent runner's setting", args: "NAME --keep-dependencies|--no-keep-dependencies",
+				flags: func(_ *call, fs *flag.FlagSet) { keepDependenciesFlags(fs) },
+				run:   func(c *call, args []string) error { return c.runnerUpdate(args) }},
+			{name: "clear-cache", summary: "remove a persistent runner's downloaded dependencies now", args: "NAME [--yes]",
+				flags: func(_ *call, fs *flag.FlagSet) { yesFlag(fs) },
+				run:   func(c *call, args []string) error { return c.runnerClearCache(args) }},
 			{name: "env", summary: "show the merged environment of a runner (sensitive values masked)", args: "NAME",
 				run: func(c *call, args []string) error { return c.runnerEnv(args) }},
 			{name: "remove", summary: "remove a runner after its job ends", args: "NAME [--yes]",
@@ -89,6 +84,160 @@ func cmdRunner() *command {
 				run:   func(c *call, args []string) error { return c.runnerDeleteOffline(args) }},
 		},
 	}
+}
+
+// runnerAddCommand is `runner add` (the verb is add, never create).
+func runnerAddCommand(name string) *command {
+	return &command{name: name, summary: "add runners on a machine",
+		args: "--machine M --os OS [--backend B] [--persistent|--ephemeral] [--keep-dependencies|--no-keep-dependencies] [--count N] [--yes]",
+		flags: func(c *call, fs *flag.FlagSet) {
+			fs.String("machine", "", "machine to add the runners on")
+			fs.String("os", "", "linux, windows or macos")
+			fs.String("backend", "", "isolation backend, for example docker")
+			fs.Bool("persistent", false, "a long-lived runner that keeps its tools and caches between jobs")
+			fs.Bool("ephemeral", false, "a fresh container for every job (the default)")
+			keepDependenciesFlags(fs)
+			fs.Int("count", 1, "how many runners")
+			fs.String("repo", "", "only this repository, OWNER/NAME (leave out: the runners serve every repository that uses the pool)")
+			fs.String("labels", "", "labels, comma separated")
+			yesFlag(fs)
+		},
+		run: func(c *call, _ []string) error { return c.runnerAdd() }}
+}
+
+func keepDependenciesFlags(fs *flag.FlagSet) {
+	fs.Bool("keep-dependencies", false, "persistent runner: keep downloaded dependencies between jobs (the default)")
+	fs.Bool("no-keep-dependencies", false, "persistent runner: remove downloaded dependencies after each job too")
+}
+
+// keepDependencies reads the two flags: nil when neither is given.
+func (c *call) keepDependencies() (*bool, error) {
+	set := map[string]bool{}
+	c.fs.Visit(func(f *flag.Flag) { set[f.Name] = true })
+	switch {
+	case set["keep-dependencies"] && set["no-keep-dependencies"]:
+		return nil, fail(ExitUsage, "Use --keep-dependencies or --no-keep-dependencies, not both.")
+	case set["keep-dependencies"]:
+		v := c.fs.Lookup("keep-dependencies").Value.String() == "true"
+		return &v, nil
+	case set["no-keep-dependencies"]:
+		v := c.fs.Lookup("no-keep-dependencies").Value.String() != "true"
+		return &v, nil
+	}
+	return nil, nil
+}
+
+func (c *call) findRunner(s *session, name string) (*client.Runner, error) {
+	rs, err := c.runners(s, client.ListRunnersParams{})
+	if err != nil {
+		return nil, err
+	}
+	for i := range rs {
+		if strings.EqualFold(rs[i].Name, name) || rs[i].Id == name {
+			return &rs[i], nil
+		}
+	}
+	return nil, fail(ExitNotFound, "No runner %q. Run crsp runner list.", name)
+}
+
+// runnerUpdate changes the keep-dependencies setting of a persistent runner
+// (runners R5.89).
+func (c *call) runnerUpdate(args []string) error {
+	if len(args) != 1 {
+		return fail(ExitUsage, "Usage: crsp runner update NAME --keep-dependencies|--no-keep-dependencies")
+	}
+	keep, err := c.keepDependencies()
+	if err != nil {
+		return err
+	}
+	if keep == nil {
+		return fail(ExitUsage, "Nothing to change. Give --keep-dependencies or --no-keep-dependencies.")
+	}
+	s, err := c.open()
+	if err != nil {
+		return err
+	}
+	run, err := c.findRunner(s, args[0])
+	if err != nil {
+		return err
+	}
+	if run.Kind != client.RunnerKindPersistent {
+		return fail(ExitUsage, "%s is an ephemeral runner. Each job gets a fresh container, so there is nothing to keep. Nothing changed.", run.Name)
+	}
+	r, err := s.client.UpdateRunnerSettingsWithResponse(c.env.Context, run.Id, client.RunnerSettingsUpdate{KeepDependencies: keep})
+	if err != nil {
+		return s.transport(err)
+	}
+	if err := apiError(r.StatusCode(), r.Body); err != nil {
+		return err
+	}
+	if c.g.json && r.JSON200 != nil {
+		return output.JSON(c.env.Stdout, r.JSON200)
+	}
+	if *keep {
+		_, _ = fmt.Fprintf(c.env.Stderr, "%s keeps downloaded dependencies between jobs. Temporary files of each job are always removed.\n", run.Name)
+	} else {
+		_, _ = fmt.Fprintf(c.env.Stderr, "%s removes downloaded dependencies after each job, with the temporary files.\n", run.Name)
+	}
+	return nil
+}
+
+// runnerClearCache removes a persistent runner's dependency cache now; the
+// controller waits for a running job first (runners R5.89).
+func (c *call) runnerClearCache(args []string) error {
+	if len(args) != 1 {
+		return fail(ExitUsage, "Usage: crsp runner clear-cache NAME [--yes]")
+	}
+	s, err := c.open()
+	if err != nil {
+		return err
+	}
+	run, err := c.findRunner(s, args[0])
+	if err != nil {
+		return err
+	}
+	if run.Kind != client.RunnerKindPersistent {
+		return fail(ExitUsage, "%s is an ephemeral runner and has no dependency cache. Nothing changed.", run.Name)
+	}
+	items := []string{"dependency cache of runner " + run.Name}
+	if run.CurrentJob != nil {
+		items = append(items, "waits for running job: "+jobTitle(*run.CurrentJob))
+	}
+	if err := c.confirm("This removes the downloaded dependencies of "+run.Name+". Its next jobs download them again.", items, c.yesFlag()); err != nil {
+		return err
+	}
+	r, err := s.client.ClearRunnerCacheWithResponse(c.env.Context, run.Id)
+	if err != nil {
+		return s.transport(err)
+	}
+	if err := apiError(r.StatusCode(), r.Body); err != nil {
+		return err
+	}
+	if c.g.json && r.JSON202 != nil {
+		return output.JSON(c.env.Stdout, r.JSON202)
+	}
+	if run.CurrentJob != nil {
+		_, _ = fmt.Fprintf(c.env.Stderr, "The cache of %s is cleared when its running job ends.\n", run.Name)
+	} else {
+		_, _ = fmt.Fprintf(c.env.Stderr, "The cache of %s is being cleared.\n", run.Name)
+	}
+	return nil
+}
+
+// keepsText is what a persistent runner keeps between jobs: kept, removed, or
+// "-" for an ephemeral runner. An unclean runner says so (runners R5.89, R5.90).
+func keepsText(r client.Runner) string {
+	text := "-"
+	if r.Kind == client.RunnerKindPersistent && r.KeepDependencies != nil {
+		text = "removed"
+		if *r.KeepDependencies {
+			text = "kept"
+		}
+	}
+	if r.UncleanReason != nil && *r.UncleanReason != "" {
+		text = "unclean"
+	}
+	return text
 }
 
 func (c *call) runners(s *session, p client.ListRunnersParams) ([]client.Runner, error) {
@@ -108,7 +257,7 @@ func (c *call) runners(s *session, p client.ListRunnersParams) ([]client.Runner,
 func (c *call) runnerAdd() error {
 	f := func(n string) string { return c.fs.Lookup(n).Value.String() }
 	if f("machine") == "" || f("os") == "" {
-		return fail(ExitUsage, "Usage: crsp runner add --machine M --os OS [--repo OWNER/NAME] [--backend B] [--persistent] [--count N]")
+		return fail(ExitUsage, "Usage: crsp runner add --machine M --os OS [--repo OWNER/NAME] [--backend B] [--persistent|--ephemeral] [--keep-dependencies|--no-keep-dependencies] [--count N]")
 	}
 	os := client.OS(f("os"))
 	if !os.Valid() {
@@ -167,11 +316,24 @@ func (c *call) runnerAdd() error {
 		}
 		return fail(ExitUsage, "Machine %s does not support %s. %s Nothing changed.", m.Name, want, hint)
 	}
+	if f("persistent") == "true" && f("ephemeral") == "true" {
+		return fail(ExitUsage, "Use --persistent or --ephemeral, not both.")
+	}
+	keep, err := c.keepDependencies()
+	if err != nil {
+		return err
+	}
 	kind := client.RunnerKindEphemeral
 	if f("persistent") == "true" {
 		kind = client.RunnerKindPersistent
 	}
+	if keep != nil && kind != client.RunnerKindPersistent {
+		return fail(ExitUsage, "--keep-dependencies and --no-keep-dependencies are for persistent runners. Add --persistent, or leave them out. Nothing changed.")
+	}
 	req := client.PlanRunnersRequest{Os: os, Kind: kind, MachineId: m.Id, Count: count}
+	if kind == client.RunnerKindPersistent {
+		req.KeepDependencies = keep
+	}
 	if f("repo") != "" { // without a repository the runners are pool runners
 		repo, err := c.findRepo(s, f("repo"))
 		if err != nil {

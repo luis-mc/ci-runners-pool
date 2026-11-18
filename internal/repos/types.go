@@ -74,7 +74,7 @@ type Policy struct {
 	// (github-integration R5.60). Read it with EffectiveRunnerKinds.
 	RunnerKinds string
 	UpdatedAt   time.Time
-	UpdatedBy    string
+	UpdatedBy   string
 }
 
 // Runner kinds a repository's jobs may use (github-integration R5.60).

@@ -38,6 +38,8 @@ var operationCommands = map[string]string{
 	"deleteRunnerRegistration":   "runner delete-offline",
 	"getRunner":                  "runner remove",
 	"getRunnerEnv":               "runner env",
+	"updateRunnerSettings":       "runner update",
+	"clearRunnerCache":           "runner clear-cache",
 	"listJobs":                   "job list",
 	"streamEvents":               "job watch",
 	"getSpeedComparison":         "compare",
