@@ -29,14 +29,19 @@ function withRepos(api: MockApi, items = [repository(), on]): MockApi {
 }
 
 describe('Repositories list', () => {
-  it('shows pool state, labels, limits and variable status as words', async () => {
+  it('shows four columns, and limits and variable status as a muted line under the name (LOOK29)', async () => {
     renderApp(withRepos(signedIn()), '/repositories');
     const table = await screen.findByRole('table', { name: 'octo repositories' });
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map((h) => (h.textContent ?? '').replace(/[ ▲▼]+$/, '').trim())
+        .filter(Boolean),
+    ).toEqual(['Repository', 'Pool', 'Jobs go to', 'Last delivery']);
     expect(within(table).getByText('on')).toBeTruthy();
     expect(within(table).getByText('off')).toBeTruthy();
-    expect(within(table).getByText('wrong variable')).toBeTruthy();
-    expect(within(table).getByText('not used')).toBeTruthy();
-    expect(within(table).getAllByText('self-hosted').length).toBe(2);
+    expect(within(table).getByText(/parallel · priority \d+ · wrong variable/)).toBeTruthy();
+    expect(within(table).getByText(/parallel · priority \d+ · not used/)).toBeTruthy();
   });
 
   it('filters by pool state and by search', async () => {

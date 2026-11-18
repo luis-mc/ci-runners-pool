@@ -5,6 +5,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { Button } from './Button';
 import { KeyHintsProvider } from './KeyHints';
 import { formatTime } from './format';
+import { usePopoverDismiss } from './Popover';
 import { Progress } from './Progress';
 import { Status } from './Status';
 
@@ -91,10 +92,12 @@ export function UserMenu({
   signInAgainBusy?: boolean | undefined;
 }) {
   const [open, setOpen] = useState(false);
+  const { buttonRef, panelRef } = usePopoverDismiss(open, () => setOpen(false));
   const ended = githubSignIn?.state === 'ended';
   return (
     <div className="ds-usermenu">
       <button
+        ref={buttonRef}
         type="button"
         className="ds-button"
         aria-expanded={open}
@@ -112,6 +115,7 @@ export function UserMenu({
       </button>
       {open ? (
         <div
+          ref={panelRef}
           id="ds-usermenu-panel"
           className="ds-popover"
           role="group"

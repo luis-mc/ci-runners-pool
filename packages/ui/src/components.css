@@ -670,9 +670,11 @@ body {
   inline-size: 100%;
 }
 
-/* table */
+/* table: a table never scrolls sideways (UX-49). It folds to stacked rows at phone width, and its cells wrap. */
+.ds-table td .ds-stack {
+  gap: 0;
+}
 .ds-table-frame {
-  overflow-x: auto;
   border: var(--ds-border-thin) solid var(--ds-color-divider);
   border-radius: var(--ds-radius-3);
 }
@@ -705,7 +707,8 @@ body {
 .ds-table td {
   padding: var(--ds-space-3);
   text-align: start;
-  vertical-align: top;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
   border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
 }
 .ds-table th {
