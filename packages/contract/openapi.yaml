@@ -5112,6 +5112,11 @@ components:
           $ref: '#/components/schemas/MachineRecovery'
         docker_compact_status:
           $ref: '#/components/schemas/DockerCompactStatus'
+        runner_problems:
+          type: array
+          description: Runner services on this machine that did not start after the agent gave their account the right to log on as a service again and tried once more (runners R5.88). Empty or absent while every runner service runs. The console shows a Problem banner for each until the service runs.
+          items:
+            $ref: '#/components/schemas/RunnerServiceProblem'
         last_seen_at:
           type: string
           format: date-time
@@ -5149,6 +5154,25 @@ components:
           stale: false
         slots_used: 1
         last_seen_at: '2026-11-14T10:00:05Z'
+    RunnerServiceProblem:
+      type: object
+      required: [runner, service, account, reason]
+      properties:
+        runner:
+          type: string
+          description: The runner's name.
+        service:
+          type: string
+          description: The Windows service name.
+        account:
+          type: string
+          description: The account the service runs as, for example `.\crsp-box-1`.
+        reason:
+          type: string
+          description: Why the service did not start, as Windows said it, redacted.
+        logon_right:
+          type: boolean
+          description: True when the account holds the right to log on as a service now, so the reason is something else.
     MachineList:
       type: object
       required: [items]

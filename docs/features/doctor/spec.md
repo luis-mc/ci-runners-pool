@@ -201,6 +201,8 @@ States:
 
 **R5.44** (M1, CRSP136) — **`machine.docker.compact`: the agent can make Docker's disk smaller.** For each online machine whose Docker disk compact policy is on (caches R5.52) and that has a Docker Desktop disk file, the doctor says `ok` when the agent runs with administrator rights, and `warn` when it does not: "The agent on <machine> cannot make Docker's disk smaller", with the size of the disk file and that the compact is skipped every night. The fix names the Machine page (the console action: the Docker disk section, with the action Turn off and the words to install the agent again from an administrator window) and the CLI `crsp machine settings <machine> --docker-compact off`. A machine that is offline is `skip`; a machine without the policy on or without a disk file has no finding. The check reads only.
 
+**R5.45** (M1, Built OPS24; runners R5.88) — **`runner.logon`: the account of a Windows runner can log on as a service.** For each persistent Windows runner of an online machine the check reads what the agent reported after it gave the account the right again: `ok` when the account holds `SeServiceLogonRight` and the service runs; `fail` when the account does not hold it (the finding names the account and the service, for example `.\crsp-gameroompc-1` and `actions.runner.<scope>.crsp-gameroompc-1`), and `fail` when the right is held but the service does not run (the detail gives the reason Windows gave). `skip` for an agent that did not report the service or could not read the rights; an offline machine is `skip`. A Linux or macOS runner has no finding. The fix is one click: the finding's fix text says Press Start and links to the machine, and the Doctor screen draws a **Start** button on it that asks that machine's agent to check again now, which gives the account the right and starts the service (it is the call of Redetect, admin only). The check only reads; the repair is the agent's own pass.
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -496,6 +498,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R6.7 | e2e/tests/doctor.spec.ts layout at 360, 393 and 1300 px and axe scan (planned) |
 | R6.8 | internal/api/handlers_live_test.go TestDoctorRoutes (API); internal/doctor/cli/cli_test.go (CLI) |
 | R5.44 | internal/doctor/checks/dockercompact_test.go TestDockerCompactNeedsAdminRights, TestDockerCompactOfflineMachineIsSkipped |
+| R5.45 | internal/doctor/checks/checks_test.go TestRunnerLogon; apps/web/src/screens/doctor/Doctor.test.tsx (the logon right finding) |
 
 ## 10. Decisions
 

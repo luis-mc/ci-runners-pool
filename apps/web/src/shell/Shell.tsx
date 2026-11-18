@@ -30,6 +30,7 @@ import { useMachines, useRefreshTick } from '../api/machines';
 import { useLiveState, useVersion } from '../live/LiveProvider';
 import { wipingLabel } from '../screens/images/labels';
 import { allRepositories } from '../screens/repositories/plans';
+import { RunnerProblemBanner, runnerProblems } from './RunnerProblems';
 import { KEY_HINTS, SHORTCUTS, handleKey, isMac } from './shortcuts';
 
 /** The first first-run step that is still to do, in the words of the setup page; none when all are done. */
@@ -253,6 +254,8 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const [signingInAgain, setSigningInAgain] = useState(false);
   const [setup, setSetup] = useState<Schemas['SetupState'] | undefined>(undefined);
   const client = useClient();
+  // The machines list is the one the header reads (UX-19); a runner service that did not start shows on it.
+  const machineList = useMachines();
   // The first-run steps change when a machine joins or a repository's pool turns on.
   const machinesVersion = useVersion('machines');
   const repositoriesVersion = useVersion('repositories');
@@ -364,6 +367,17 @@ export function AppShell({ children }: { children?: ReactNode }) {
           ? '1 repository runs on GitHub-hosted runners because no crsp machine is up.'
           : `${hosted} repositories run on GitHub-hosted runners because no crsp machine is up.`}
       </Message>,
+    );
+  const machineItems =
+    machineList.result.state === 'loading' ? [] : (machineList.result.data?.items ?? []);
+  for (const { machine, problem } of runnerProblems(machineItems))
+    banners.push(
+      <RunnerProblemBanner
+        key={`runner-${machine.id}-${problem.service}`}
+        machine={machine}
+        problem={problem}
+        onStarted={machineList.reload}
+      />,
     );
   if (live.status === 'paused')
     banners.push(

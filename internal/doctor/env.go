@@ -209,6 +209,25 @@ type Runner struct {
 	// agent read; nil when it did not look (R5.42).
 	SymlinkWanted bool
 	Symlink       *SymlinkProbe
+	// Logon is what the agent saw of the service account's right to log on as
+	// a service and of the service itself, after it gave the right again; nil
+	// when it did not look (runners R5.88, doctor R5.45).
+	Logon *LogonProbe
+}
+
+// LogonProbe is what the agent saw of one Windows runner service: the account,
+// whether it holds SeServiceLogonRight, and whether the service runs.
+type LogonProbe struct {
+	Service string
+	Account string
+	// Known is false when the agent could not read the rights of the account.
+	Known bool
+	// Held is true when the account holds SeServiceLogonRight.
+	Held bool
+	// Running is true when the service runs.
+	Running bool
+	// Problem is why the service did not start after the agent's one retry.
+	Problem string
 }
 
 // SymlinkProbe is what the agent read about the symbolic link right of a

@@ -59,6 +59,20 @@ type Response struct {
 
 	// Policy is this machine's mode and acceptance (CRSP75).
 	Policy *PolicyInfo `json:"policy,omitempty"`
+
+	// RunnerProblems are the runner services of this machine that did not
+	// start after the agent gave their account the logon right again and
+	// tried once more (runners R5.88). An older service leaves it out.
+	RunnerProblems []RunnerProblem `json:"runner_problems,omitempty"`
+}
+
+// RunnerProblem is one runner service that did not start.
+type RunnerProblem struct {
+	Runner  string `json:"runner"`
+	Service string `json:"service"`
+	Account string `json:"account,omitempty"`
+	// Reason is why Windows did not start it, as the agent reported it.
+	Reason string `json:"reason"`
 }
 
 // Dialer opens the local channel: a named pipe on Windows, a Unix socket elsewhere.
@@ -143,6 +157,7 @@ func statusFrom(r Response) Status {
 		State: st, Running: r.Running, Waiting: r.Waiting, Runners: r.Runners, Fault: r.Fault, Version: r.Version,
 		Update: UpdateInfo{Latest: r.LatestVersion, Available: r.UpdateAvailable, State: r.UpdateState, ReleaseURL: r.ReleaseURL, Jobs: r.Running, AutoOff: r.AutoUpdate != nil && !*r.AutoUpdate},
 	}
+	out.RunnerProblems = r.RunnerProblems
 	if p := r.Policy; p != nil {
 		out.Policy = MachinePolicy{
 			Known: true, Mode: p.Mode, Accepting: p.Accepting, PauseReason: p.PauseReason, OnBattery: p.OnBattery,

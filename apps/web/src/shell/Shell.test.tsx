@@ -433,3 +433,65 @@ describe('the menu on a phone (UX-15, UX-16)', () => {
     }
   });
 });
+
+// runners R5.88: a runner service that did not start is a Problem banner on every screen, with the machine,
+// the runner and the reason; Start asks the agent again, and the banner clears when the service runs.
+describe('a runner service that did not start', () => {
+  const why =
+    'The service did not start: Logon failure: the user has not been granted the requested logon type at this computer (Windows error 1069)';
+  const broken = () =>
+    machine({
+      id: 'm9',
+      name: 'GameRoomPC',
+      os: 'windows',
+      runner_problems: [
+        {
+          runner: 'crsp-gameroompc-1',
+          service: 'actions.runner.luis-mc-demo.crsp-gameroompc-1',
+          account: '.\\crsp-gameroompc-1',
+          reason: why,
+          logon_right: false,
+        },
+      ],
+    });
+
+  it('shows a Problem banner naming the machine, the runner and the reason, with Start', async () => {
+    const api = signedIn().on('GET', '/api/v1/machines', { items: [broken()] });
+    renderApp(api, '/runners');
+    const banner = await screen.findByText(
+      /crsp-gameroompc-1 on GameRoomPC did not start/,
+    );
+    expect(banner.textContent).toContain('Logon failure');
+    expect(screen.getByRole('button', { name: 'Start' })).toBeTruthy();
+  });
+
+  it('Start asks that machine to check again, and the banner clears once the service runs', async () => {
+    let fixed = false;
+    const api = signedIn()
+      .on('GET', '/api/v1/machines', () => ({
+        items: [fixed ? machine({ id: 'm9', name: 'GameRoomPC' }) : broken()],
+      }))
+      .on('POST', '/api/v1/machines/:id/redetect', () => {
+        fixed = true;
+        return { status: 202 };
+      });
+    renderApp(api, '/runners');
+    fireEvent.click(await screen.findByRole('button', { name: 'Start' }));
+    await waitFor(() =>
+      expect(api.count('POST', '/api/v1/machines/m9/redetect')).toBe(1),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByText(/crsp-gameroompc-1 on GameRoomPC did not start/),
+      ).toBeNull(),
+    );
+  });
+
+  it('shows no banner for a machine without a problem or one that is offline', async () => {
+    const off = { ...broken(), online: false };
+    const api = signedIn().on('GET', '/api/v1/machines', { items: [machine(), off] });
+    renderApp(api, '/runners');
+    await screen.findByRole('heading', { level: 1, name: 'Runners' });
+    expect(screen.queryByText(/did not start/)).toBeNull();
+  });
+});

@@ -852,3 +852,18 @@ The words of the small update page the tray opens (tray R5.43, web-console R5.96
 | Close | The primary on Done, and the left button after a failure. |
 | Open Updates | The left button on Done: opens Settings, Updates. |
 | The update did not finish. {reason} The running version stays. The log is {path}. Open the log folder from the tray menu. Then try again. | The failure message. |
+
+## Runner service words
+
+The words of a runner service that did not start (runners R5.88, web-console R5.97, tray R5.44, doctor R5.45). The agent has already given the service account the right to log on as a service again and tried twice.
+
+| Where | Word |
+|---|---|
+| Banner (problem) | {runner} on {machine} did not start. {reason} |
+| Banner and Doctor action | Start. It asks that machine's agent to give the account the right again and start the service. Busy word: Starting. Disabled for a user who is not an admin, with the reason. |
+| Tray notification title | A runner did not start |
+| Tray notification text | {runner} did not start. {reason} Open the console and press Start. |
+| Doctor finding, the right is missing | The account {account} of {runner} cannot log on as a service |
+| Doctor finding, the service is stopped | The service {service} of {runner} is not running |
+| Doctor finding, fine | {account} can log on as a service and {runner} runs |
+| Doctor fix | Press Start. The agent gives the account the right to log on as a service again and starts the service on {machine}. |

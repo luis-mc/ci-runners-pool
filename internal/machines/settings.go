@@ -27,6 +27,9 @@ type View struct {
 	Recovery *Recovery
 	// Compact is the Docker disk compact policy state (caches R5.51 to R5.54).
 	Compact CompactStatus
+	// RunnerServices are the runner services of the machine as its agent last
+	// left them (runners R5.88); empty for an offline machine.
+	RunnerServices []RunnerService
 }
 
 // BackendView is a detected backend and whether the user allowed it (R5.12).
@@ -74,6 +77,9 @@ func (s *Service) view(ctx context.Context, m Machine) (View, error) {
 	}
 	s.fillPolicy(&m)
 	v := View{Machine: m, Settings: set, Policy: capFor(s.Policy(m.ID), set.EffectiveCPUCap()), Engine: s.Engine(m.ID), Compact: s.CompactStatus(m, set)}
+	if m.Online {
+		v.RunnerServices = s.RunnerServices(m.ID)
+	}
 	if r, ok := s.RecoveryOf(m); ok {
 		v.Recovery = &r
 	}

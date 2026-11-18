@@ -47,6 +47,8 @@ type Status struct {
 	Version   string    // the version the service runs, "" when it does not say
 	Update    UpdateInfo
 	Policy    MachinePolicy
+	// RunnerProblems are the runner services of this machine that did not start.
+	RunnerProblems []RunnerProblem
 }
 
 // Modes of a machine (machines R5.61) and the two pauses of the tray.

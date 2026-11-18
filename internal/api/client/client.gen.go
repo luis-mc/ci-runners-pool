@@ -3016,8 +3016,11 @@ type Machine struct {
 	Policy *MachinePolicy `json:"policy,omitempty"`
 
 	// Recovery Present only when the agent of the machine needs recovery (operations R5.44, web-console R5.33).
-	Recovery    *MachineRecovery `json:"recovery,omitempty"`
-	RunningJobs *[]Job           `json:"running_jobs,omitempty"`
+	Recovery *MachineRecovery `json:"recovery,omitempty"`
+
+	// RunnerProblems Runner services on this machine that did not start after the agent gave their account the right to log on as a service again and tried once more (runners R5.88). Empty or absent while every runner service runs. The console shows a Problem banner for each until the service runs.
+	RunnerProblems *[]RunnerServiceProblem `json:"runner_problems,omitempty"`
+	RunningJobs    *[]Job                  `json:"running_jobs,omitempty"`
 
 	// Settings machines R5.22, scheduling R5.1.
 	Settings  MachineSettings `json:"settings"`
@@ -3910,6 +3913,24 @@ type RunnerScope struct {
 
 // RunnerScopeKind defines model for RunnerScope.Kind.
 type RunnerScopeKind string
+
+// RunnerServiceProblem defines model for RunnerServiceProblem.
+type RunnerServiceProblem struct {
+	// Account The account the service runs as, for example `.\crsp-box-1`.
+	Account string `json:"account"`
+
+	// LogonRight True when the account holds the right to log on as a service now, so the reason is something else.
+	LogonRight *bool `json:"logon_right,omitempty"`
+
+	// Reason Why the service did not start, as Windows said it, redacted.
+	Reason string `json:"reason"`
+
+	// Runner The runner's name.
+	Runner string `json:"runner"`
+
+	// Service The Windows service name.
+	Service string `json:"service"`
+}
 
 // RunnerState What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
 type RunnerState string

@@ -45,6 +45,7 @@ func Register(reg *doctor.Registry) {
 		doctor.NewCheck("runner.listener", doctor.GroupRunner, M1, false, runnerListener),
 		doctor.NewCheck("runner.toolcache", doctor.GroupRunner, M1, false, runnerToolCache),
 		doctor.NewCheck("runner.symlink", doctor.GroupRunner, M1, false, runnerSymlink),
+		doctor.NewCheck("runner.logon", doctor.GroupRunner, M1, false, runnerLogon),
 		doctor.NewCheck("runner.labels.generic", doctor.GroupRunner, M1, false, runnerLabelsGeneric),
 		doctor.NewCheck("github.app.installation", doctor.GroupGitHub, M1, false, appInstallation),
 		doctor.NewCheck("github.app.permissions", doctor.GroupGitHub, M1, false, appPermissions),
