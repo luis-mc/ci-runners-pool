@@ -12,7 +12,7 @@ import (
 // images/: none missing, none changed, none extra.
 func TestEmbeddedTreeMatchesFolder(t *testing.T) {
 	onDisk := map[string][]byte{}
-	for _, top := range []string{"linux-base", "layers"} {
+	for _, top := range []string{"linux-base", "layers", "persistent"} {
 		err := filepath.WalkDir(top, func(p string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() {
 				return err

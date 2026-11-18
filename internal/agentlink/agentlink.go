@@ -178,6 +178,8 @@ func (a *Agent) AddRunner(ctx context.Context, machineID string, spec backend.Ru
 	kind, be := "persistent", string(backend.Persistent)
 	if cfg.JITConfig != "" {
 		kind, be = "ephemeral", string(backend.Docker)
+	} else if spec.Container {
+		be = string(backend.Docker) // a persistent Linux runner in the pool container (runners R5.93)
 	}
 	r, err := a.L.call(ctx, machineID, func(id string) *agentv1.SessionResponse {
 		add := &agentv1.AddRunner{CommandId: id, Runner: &agentv1.RunnerSpec{
