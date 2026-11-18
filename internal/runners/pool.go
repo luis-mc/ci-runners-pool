@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 )
 
 // MaxRegistrationsPerMachine is the number of GitHub registrations one machine
@@ -76,6 +78,28 @@ func (s *Service) addPoolRunner(ctx context.Context, a AddSpec, version, actor s
 	return nil
 }
 
+// addPoolContainerRunner stores a Linux container runner of a Windows machine as a pool runner (R5.47, OPS27). It
+// has no registration: the demand loop starts a container for each job that carries the pool label.
+func (s *Service) addPoolContainerRunner(ctx context.Context, a AddSpec, actor string) error {
+	size, err := ParseSize(string(a.SizeClass))
+	if err != nil {
+		return refuse("%v", err)
+	}
+	pin, err := PinFor("linux", a.Arch)
+	if err != nil {
+		return err
+	}
+	rec := Record{ID: s.newID("r_"), Name: a.Name, MachineID: a.MachineID, OS: a.OS, Arch: a.Arch, Kind: "ephemeral",
+		Backend: a.Backend, Isolation: string(backend.IsolationContainer), Labels: a.Labels, Route: RouteForLabels(s.PoolName, a.Labels),
+		SizeClass: size, Scope: Scope{Kind: ScopePool}, RunnerVersion: pin.Version, State: Idle,
+		Reason: "a container starts for each job of the pool", Managed: true, CreatedAt: s.now()}
+	if err := s.Store.InsertRunner(ctx, rec); err != nil {
+		return err
+	}
+	s.audit(ctx, actor, "runner.pool_add", a.MachineID, rec.ID, a.Name)
+	return nil
+}
+
 // SyncPoolRegistrations keeps one hidden GitHub registration for each pool
 // runner and each repository that uses the pool: it adds the missing ones,
 // removes those of a repository that stopped using the pool after a drain (the
@@ -122,7 +146,7 @@ func (s *Service) SyncPoolRegistrations(ctx context.Context, actor string) error
 		}
 	}
 	for _, p := range all {
-		if !IsPoolRunner(p) || !p.Managed || p.State == Failed || p.State == Removing || p.State == Draining {
+		if !IsPoolRunner(p) || p.Kind == "ephemeral" || !p.Managed || p.State == Failed || p.State == Removing || p.State == Draining {
 			continue
 		}
 		have := map[string]Record{}

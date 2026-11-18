@@ -573,6 +573,10 @@ The words of Add runners and the machine list for a Windows machine whose contai
 |---|---|
 | Windows, runs Linux containers | The System column of the machine list for a Windows machine with Docker Desktop on WSL2. |
 | Linux runners on this Windows machine run in containers, through Docker. The container backend must be allowed on the machine. | Note in Add runners when the chosen machine runs Windows and the system is Linux. |
+| The container backend is not allowed on this machine. Linux runners here need it. | Problem on Add runners step 1 when the system is Linux, the machine runs Windows and the container backend is off. It is also the reason Next is disabled. |
+| Allow it on the machine | The button beside that message; it opens the machine page. |
+| Nothing would be added with these choices. Change them and try again. | Problem on Add runners step 1 when the plan has no step, so Review is not reached. |
+| {reason}. | A refusal of the plan, shown on Add runners step 1 with a full stop, so the user changes a choice. Try again after a failure goes back to step 1 with the reason in the same place. |
 | This machine runs windows, not linux. | The reason a machine is greyed for a system it cannot run (also for a Windows machine without Linux containers). |
 | WSL is installed but not ready; run wsl --install | Backend reason, shown only when WSL2 does not work and Docker does not run on it. It is written once. |
 

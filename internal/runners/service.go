@@ -270,7 +270,9 @@ func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]Ad
 	if req.Kind == "ephemeral" && req.OS != "linux" {
 		return nil, refuse("machine %s: ephemeral runners run Linux containers only, not %s", m.Name, OSName(req.OS))
 	}
-	if req.Scope.Kind == ScopePool && req.Kind == "ephemeral" {
+	// A container runner of a Windows machine is the pool's way to serve Linux jobs there (R5.47), so a pool
+	// request may name it. Any other ephemeral pool runner is made per job by the pool itself (OPS27).
+	if req.Scope.Kind == ScopePool && req.Kind == "ephemeral" && !crossesToLinuxContainers(m, req.OS) {
 		return nil, refuse("machine %s: ephemeral runners are made for each job by the pool and already serve every repository that uses it; add a persistent runner instead", m.Name)
 	}
 	verified := map[string]bool{}
@@ -615,6 +617,9 @@ func (s *Service) runStep(ctx context.Context, p Plan, st Step, actor string) er
 // addRunner registers and starts one persistent runner. The registration token
 // is fetched now, used once and dropped (runners R6.2).
 func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error {
+	if a.Kind == "ephemeral" && a.Scope.Kind == ScopePool {
+		return s.addPoolContainerRunner(ctx, a, actor)
+	}
 	if a.Kind == "ephemeral" {
 		_, err := s.StartJobRunner(ctx, JobRunner{Name: a.Name, MachineID: a.MachineID, Arch: a.Arch,
 			Backend: a.Backend, Labels: a.Labels, Scope: a.Scope}, actor)

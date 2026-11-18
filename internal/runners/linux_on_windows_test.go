@@ -74,3 +74,36 @@ func TestLinuxOfferedOnWindowsWithLinuxContainers(t *testing.T) {
 		t.Fatalf("windows runner: %+v %v", p, err)
 	}
 }
+
+// OPS27: the console adds a Linux runner of the pool to a Windows machine as an ephemeral container runner. The
+// plan accepts it, applying stores a pool runner, and a refusal comes at plan time with its reason.
+func TestPoolLinuxContainerRunnerOnWindowsPlansAndApplies(t *testing.T) {
+	ctx := context.Background()
+	poolReq := AddRequest{OS: "linux", Kind: "ephemeral", MachineID: "m1", Count: 1, Scope: Scope{Kind: ScopePool}}
+
+	r := newRig(winDockerMachine("linux", true))
+	p, err := r.svc.PlanAdd(ctx, poolReq, "u")
+	if err != nil || len(p.Steps) != 1 {
+		t.Fatalf("plan %+v %v", p, err)
+	}
+	if got, _ := r.svc.Apply(ctx, p.ID, nil, "u"); got.State != PlanDone {
+		t.Fatalf("apply %+v", got)
+	}
+	all, _ := r.store.ListRunners(ctx, Filter{})
+	if len(all) != 1 || !IsPoolRunner(all[0]) || all[0].Kind != "ephemeral" || all[0].Backend != "docker" {
+		t.Fatalf("runners %+v", all)
+	}
+
+	// Not allowed on the machine: refused when the plan is made, naming the backend.
+	var re *RefusalError
+	_, err = newRig(winDockerMachine("linux", false)).svc.PlanAdd(ctx, poolReq, "u")
+	if !errors.As(err, &re) || !strings.Contains(re.Reason, "container backend is not allowed") {
+		t.Fatalf("not allowed: %v", err)
+	}
+	// An ephemeral pool runner on a Linux machine stays refused: the pool makes those per job.
+	lin := machine("linux", "x64", true)
+	lin.Backends = append(lin.Backends, BackendOption{Name: backend.Docker, Usable: true, Allowed: true, Kinds: []string{"ephemeral"}, OS: []string{"linux"}})
+	if _, err = newRig(lin).svc.PlanAdd(ctx, poolReq, "u"); !errors.As(err, &re) || !strings.Contains(re.Reason, "persistent runner") {
+		t.Fatalf("linux ephemeral: %v", err)
+	}
+}

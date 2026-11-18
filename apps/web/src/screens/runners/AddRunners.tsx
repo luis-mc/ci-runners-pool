@@ -42,12 +42,32 @@ export function machineSupports(m: Schemas['Machine'], os: OS): boolean {
   );
 }
 
-/** The Linux runner of a Windows machine is a container runner, so it is ephemeral. */
+/** The Linux runner of a Windows machine is a container runner, so it is ephemeral. The controller takes it for the
+ * pool: it serves the pool's jobs there like any runner (runners R5.47, OPS27). */
 export function runnerKind(
   m: Schemas['Machine'] | undefined,
   os: OS,
 ): 'persistent' | 'ephemeral' {
   return m && m.os !== os ? 'ephemeral' : 'persistent';
+}
+
+/** A Linux runner on a Windows machine runs in the container backend, which a machine allows by itself (R5.27). */
+export function containerBackendAllowed(m: Schemas['Machine']): boolean {
+  return m.backends.some((b) => b.name === 'docker' && b.usable && b.allowed);
+}
+
+/** A reason ends with a full stop, so words can follow it. */
+export function sentence(text: string): string {
+  const t = text.trim();
+  return /[.!?]$/.test(t) ? t : `${t}.`;
+}
+
+const NOT_ALLOWED =
+  'The container backend is not allowed on this machine. Linux runners here need it.';
+const NO_STEPS = 'Nothing would be added with these choices. Change them and try again.';
+
+function crossesTo(m: Schemas['Machine'], os: OS): boolean {
+  return m.os !== os && machineSupports(m, os);
 }
 
 const RUNS_ON: Record<OS, string> = {
@@ -102,6 +122,9 @@ export function AddRunnersWizard() {
   };
   const [plan, setPlan] = useState<Plan | undefined>(undefined);
   const [problem, setProblem] = useState<string | undefined>(undefined);
+  // The step that failed (index), and the reason a plan was refused, shown on step 1.
+  const [failedAt, setFailedAt] = useState<number | undefined>(undefined);
+  const [refusal, setRefusal] = useState<string | undefined>(undefined);
   const [stopping, setStopping] = useState(false);
   const [stopError, setStopError] = useState<string | undefined>(undefined);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -114,6 +137,7 @@ export function AddRunnersWizard() {
     else if (p.state === 'stopped') setPhase('stopped');
     else {
       setProblem(p.steps.find((s) => s.state === 'failed')?.error ?? 'A step failed.');
+      setFailedAt(2);
       setPhase('failed');
     }
   };
@@ -153,6 +177,7 @@ export function AddRunnersWizard() {
       } catch (e) {
         if (!on) return;
         setProblem(e instanceof Error ? e.message : 'The controller did not answer.');
+        setFailedAt(0);
         setStep(4);
         setPhase('failed');
       }
@@ -180,7 +205,13 @@ export function AddRunnersWizard() {
       e.machine = 'Pick a machine that runs this system.';
     if (count < 1) e.count = 'Add at least 1 runner.';
     setErrors(e);
+    setRefusal(undefined);
     if (Object.keys(e).length) return;
+    const chosen = machines.find((m) => m.id === machineId);
+    if (chosen && crossesTo(chosen, os) && !containerBackendAllowed(chosen)) {
+      setRefusal(NOT_ALLOWED);
+      return;
+    }
     setStep(2);
     setPhase('planning');
     try {
@@ -198,12 +229,20 @@ export function AddRunnersWizard() {
           },
         }),
       );
+      if (p.steps.length === 0) {
+        // Review never lists nothing: with no step there is nothing to review.
+        setRefusal(NO_STEPS);
+        setStep(1);
+        setPhase('first-run');
+        return;
+      }
       setPlan(p);
       setPhase('ready-to-review');
     } catch (err) {
-      setProblem(err instanceof Error ? err.message : 'Could not plan the runners.');
-      setStep(4);
-      setPhase('failed');
+      // A refusal of the controller is shown on step 1 with its reason; the user changes the choices there.
+      setRefusal(sentence(errorText(err)));
+      setStep(1);
+      setPhase('first-run');
     }
   };
 
@@ -240,6 +279,7 @@ export function AddRunnersWizard() {
       settle(p, false);
     } catch (err) {
       setProblem(err instanceof Error ? err.message : 'Could not register the runners.');
+      setFailedAt(2);
       setStep(4);
       setPhase('failed');
     }
@@ -266,17 +306,26 @@ export function AddRunnersWizard() {
     }
   };
 
+  // Try again never sends the same request: the user goes back to step 1 with the reason, to change a choice.
+  const tryAgain = () => {
+    const why = problem;
+    startAgain();
+    if (why) setRefusal(sentence(why));
+  };
+
   const startAgain = () => {
     setParams(new URLSearchParams(), { replace: true });
     setPlan(undefined);
     setProblem(undefined);
+    setFailedAt(undefined);
+    setRefusal(undefined);
     setStep(1);
     setPhase('first-run');
   };
 
   const picked = machines.find((m) => m.id === machineId);
-  const containerRunner =
-    picked !== undefined && picked.os !== os && machineSupports(picked, os);
+  const containerRunner = picked !== undefined && crossesTo(picked, os);
+  const containerOff = containerRunner && !containerBackendAllowed(picked);
 
   const prog = plan ? planProgress(plan) : { done: 0, total: 0 };
 
@@ -319,7 +368,20 @@ export function AddRunnersWizard() {
               : { disabledReason: `This machine runs ${m.os}, not ${os}.` }),
           }))}
         />
-        {containerRunner ? (
+        {containerOff ? (
+          <Message
+            tone="needs-you"
+            action={
+              <LinkButton to={`/pool/machines/${picked.id}`}>
+                Allow it on the machine
+              </LinkButton>
+            }
+          >
+            {NOT_ALLOWED}
+          </Message>
+        ) : null}
+        {refusal ? <Message tone="problem">{refusal}</Message> : null}
+        {containerRunner && !containerOff ? (
           <Message tone="note">
             Linux runners on this Windows machine run in containers, through Docker. The
             container backend must be allowed on the machine.
@@ -378,7 +440,7 @@ export function AddRunnersWizard() {
       <Stack>
         {phase === 'failed' ? (
           <Message tone="problem">
-            The runners were not all added. {problem ?? ''} Try again.
+            The runners were not all added. {sentence(problem ?? 'A step failed.')}
           </Message>
         ) : null}
         {phase === 'stopped' ? (
@@ -442,8 +504,8 @@ export function AddRunnersWizard() {
           ? {
               label: 'Next',
               onPress: () => void toReview(),
-              disabled: machines.length === 0,
-              reason: 'Add a machine first.',
+              disabled: machines.length === 0 || containerOff,
+              reason: machines.length === 0 ? 'Add a machine first.' : NOT_ALLOWED,
             }
           : {
               label: `Add ${count} ${count === 1 ? 'runner' : 'runners'}`,
@@ -453,7 +515,8 @@ export function AddRunnersWizard() {
       }
       review={step === 2}
       onStartAgain={startAgain}
-      onTryAgain={startAgain}
+      onTryAgain={tryAgain}
+      failedAt={failedAt}
       donePrimary={{
         label: 'Open Runners',
         onPress: () => void navigate('/pool/runners'),

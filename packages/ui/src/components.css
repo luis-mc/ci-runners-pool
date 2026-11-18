@@ -1503,6 +1503,9 @@ legend > .ds-field__changed {
   font-weight: var(--ds-weight-bold);
   border-block-end-color: var(--ds-color-primary);
 }
+.ds-steps__item[data-standing='now'] .ds-steps__button[data-failed] {
+  border-block-end-color: var(--ds-color-problem, currentColor);
+}
 .ds-steps__item[data-standing='later'] .ds-steps__button {
   color: var(--ds-color-text-muted);
   cursor: not-allowed;

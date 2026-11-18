@@ -1,7 +1,7 @@
 // CRSP37 part C against the mocked API: the audit log export, the config export and Stop on an applying plan
 // (web-console 11, UX-30, UX-39, R5.29).
 import { expect, test } from '@playwright/test';
-import { signedIn, viewer } from './fixtures';
+import { machine, signedIn, viewer } from './fixtures';
 
 const event = (id: number, action: string) => ({
   id,
@@ -173,4 +173,70 @@ test('Add runners: Stop ends the plan stopped and Done says what is left', async
     timeout: 10_000,
   });
   expect(mock.count('POST', '/api/v1/runner-plans/rp1/stop')).toBe(1);
+});
+
+// OPS27: Linux runners on a Windows machine that runs Linux containers.
+const winMachine = (docker: boolean) =>
+  machine({
+    id: 'm2',
+    name: 'GameRoomPC',
+    os: 'windows',
+    container_os: 'linux',
+    backends: [
+      { name: 'persistent', present: true, usable: true, allowed: true },
+      { name: 'docker', present: true, usable: true, allowed: docker },
+    ],
+  });
+const emptyRepos = { items: [], stale: { stale: false } };
+const poolPlan = (state: string, stepState: string) => ({
+  id: 'rp9',
+  area: 'runners',
+  state,
+  created_at: '2026-11-18T10:00:00Z',
+  created_by: 'octo',
+  steps: [
+    {
+      id: 's1',
+      action: 'add_runner',
+      text: 'Add ephemeral runner crsp-pool-1 on machine GameRoomPC',
+      needs_yes: false,
+      state: stepState,
+    },
+  ],
+});
+
+test('Add runners: Linux on a Windows machine is planned and added to the pool', async ({
+  page,
+}) => {
+  const mock = signedIn()
+    .on('GET', '/api/v1/machines', { items: [winMachine(true)] })
+    .on('GET', '/api/v1/github/repositories', emptyRepos)
+    .on('POST', '/api/v1/runner-plans', poolPlan('planned', 'planned'))
+    .on('POST', '/api/v1/runner-plans/:id/apply', poolPlan('applying', 'running'))
+    .on('GET', '/api/v1/runner-plans/:id', poolPlan('done', 'done'));
+  await mock.install(page);
+  await page.goto('/pool/runners/add');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(page.getByText('Add ephemeral runner crsp-pool-1')).toBeVisible();
+  await page.getByRole('button', { name: 'Add 1 runner' }).click();
+  await expect(page.getByText('The runners are added.')).toBeVisible({ timeout: 10_000 });
+  expect(mock.count('POST', '/api/v1/runner-plans')).toBe(1);
+});
+
+test('Add runners: the container backend not allowed is said on step 1', async ({
+  page,
+}) => {
+  const mock = signedIn()
+    .on('GET', '/api/v1/machines', { items: [winMachine(false)] })
+    .on('GET', '/api/v1/github/repositories', emptyRepos);
+  await mock.install(page);
+  await page.goto('/pool/runners/add');
+  await expect(
+    page.getByText(/The container backend is not allowed on this machine/),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Allow it on the machine' }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled();
+  expect(mock.count('POST', '/api/v1/runner-plans')).toBe(0);
 });
