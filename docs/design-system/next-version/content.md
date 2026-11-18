@@ -824,3 +824,23 @@ The words of the account menu at the top right and of the Users and roles intro 
 | Opening GitHub | Busy word of that action. |
 | GitHub sign-in ended | Accessible label of the amber dot on the account button. |
 | Who may use this console. Your own GitHub sign-in is in the {login} menu at the top right. | Intro line of Users and roles. |
+
+## Update page words
+
+The words of the small update page the tray opens (tray R5.43, web-console R5.96). The page is the shared wizard (component 4); the steps follow UX-30.
+
+| Words | Used for |
+|---|---|
+| Update | Title of the page and name of the wizard. |
+| Version {version} is ready. Running jobs finish first; the service restarts (about 1 min). | The Review line. It is also the text of the native fallback box. |
+| Update now | The primary on Review. Busy word: Updating. |
+| Not now | The left button on Review: nothing starts. |
+| Running jobs are safe. | Line under the progress bar while the update works. |
+| Hide | Closes the window while the update goes on. It stops nothing. |
+| Downloading, Waiting for jobs, Installing, Restarting | The work steps, in the order the service goes through them. |
+| Downloading {n}%, Waiting for running jobs to end, Installing {n}%, Restarting the service | The live line of the current step. |
+| The service is restarting. This page waits for it. | Note while the service is down for the install. |
+| Updated to {version}. | The Done message. |
+| Close | The primary on Done, and the left button after a failure. |
+| Open Updates | The left button on Done: opens Settings, Updates. |
+| The update did not finish. {reason} The running version stays. The log is {path}. Open the log folder from the tray menu. Then try again. | The failure message. |

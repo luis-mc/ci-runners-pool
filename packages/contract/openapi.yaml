@@ -6566,6 +6566,8 @@ components:
         release_url:
           type: string
           format: uri
+        stage:
+          $ref: '#/components/schemas/UpdateStage'
       example:
         current_version: 1.4.0
         latest_version: 1.5.0
@@ -6573,6 +6575,35 @@ components:
         state: idle
         auto_update: true
         running_jobs: []
+    UpdateStage:
+      type: object
+      description: The live stage of the last or running update (TRAY4). It is kept in a file, so it survives the service restart.
+      required: [name, at]
+      properties:
+        name:
+          type: string
+          enum: [downloading, waiting_for_jobs, installing, restarting, done, failed]
+        percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Only for downloading and installing; absent when the stage has no number. Installing is a rough guess from the installer log.
+        version:
+          type: string
+          description: The version being installed; for done, the version that runs.
+        error:
+          type: string
+          description: failed only, in words.
+        log_path:
+          type: string
+          description: failed only, the log that has the detail.
+        failed_at:
+          type: string
+          enum: [downloading, waiting_for_jobs, installing, restarting]
+          description: failed only, the stage that failed.
+        at:
+          type: string
+          format: date-time
     UpdateJob:
       type: object
       required: [repository, run_id, job]

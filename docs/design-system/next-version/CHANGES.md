@@ -91,3 +91,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C86: account menu words added: the GitHub sign-in line, its ended state, the action Sign in with GitHub again with its busy word, the dot label, and the Users and roles intro line; the user menu is one shared part with an amber dot (content.md; web-console R5.95, LOOK15)
 - C87: CPU cap wait word added: Setting the CPU cap. (content.md; machines R5.64, OPS21)
 - C88: loading is a state of the current step, never a numbered step: the step row starts at 1, shows no check while loading, one wait line, primary locked, Back free (ux-rules.md UX-30, components.md 4, content.md; owner decision LOOK20)
+- C89: update page words added (content.md); the wizard takes a left-button word and a Hide button, and `Page` takes the `compact` frame for the tray's small window (components.md 4, ux-rules.md UX-69; web-console R5.96, tray R5.43, TRAY4)

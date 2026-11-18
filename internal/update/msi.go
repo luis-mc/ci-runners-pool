@@ -121,6 +121,11 @@ func recoverMSI(dir, current string, now time.Time) (bool, Result) {
 	done := func(r Result) (bool, Result) {
 		r.Kind, r.From, r.To, r.At = "update", rec.From, rec.To, now
 		_ = WriteResult(dir, r)
+		if r.OK {
+			_ = WriteStage(dir, Stage{Name: StageDone, Percent: 100, Version: rec.To, At: now})
+		} else {
+			_ = WriteStage(dir, Stage{Name: StageFailed, Percent: -1, Version: rec.To, Error: r.Error, LogPath: rec.Log, FailedAt: StageInstalling, At: now})
+		}
 		_ = os.Remove(filepath.Join(dir, PendingMSIFile))
 		return true, r
 	}
@@ -143,6 +148,34 @@ func recoverMSI(dir, current string, now time.Time) (bool, Result) {
 		return done(Result{Error: "the installer left no result in its log. The log is " + rec.Log})
 	}
 	return false, Result{}
+}
+
+// followMSILog writes the install percent into the stage file while the installer
+// runs and this service still lives (the upgrade stops it part way; the next
+// start settles the result). It ends when the log has its end line.
+func (m *Manager) followMSILog(version string) {
+	logp := m.o.MSILog
+	if logp == "" {
+		logp = MSILogPath()
+	}
+	last := -1
+	deadline := m.o.Now().Add(LockMaxAge)
+	for m.o.Now().Before(deadline) {
+		time.Sleep(time.Second)
+		b, err := os.ReadFile(logp) //nolint:gosec // our own log
+		if err != nil {
+			continue
+		}
+		pc := MSIPercent(b)
+		if pc != last {
+			last = pc
+			if pc >= 100 {
+				m.stage(Stage{Name: StageRestarting, Percent: -1, Version: version})
+				return
+			}
+			m.stage(Stage{Name: StageInstalling, Percent: pc, Version: version, LogPath: logp})
+		}
+	}
 }
 
 func clearFailures(dir, version string) error {

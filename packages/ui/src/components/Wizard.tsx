@@ -46,6 +46,10 @@ export interface WizardProps {
   stopping?: boolean | undefined;
   onStop?: (() => void) | undefined;
   onBack?: (() => void) | undefined;
+  /** The words of the left button when it is not Back: "Not now" on a Review that only asks (TRAY4). */
+  backLabel?: string | undefined;
+  /** A wizard whose work goes on without its window: Hide closes the window while it runs and stops nothing (TRAY4). */
+  hide?: { label: string; onPress: () => void } | undefined;
   onStep?: ((index: number) => void) | undefined;
   /** The one primary of the current step (not used in running, paused, stopped, failed, done). */
   primary: WizardPrimary;
@@ -218,7 +222,12 @@ export function Wizard(p: WizardProps) {
               onPress={p.onBack}
               disabled={p.phase !== 'loading' && current <= (p.firstStep ?? 0)}
             >
-              Back
+              {p.backLabel ?? 'Back'}
+            </Button>
+          ) : null}
+          {p.phase === 'running' && p.hide ? (
+            <Button part="other" onPress={p.hide.onPress}>
+              {p.hide.label}
             </Button>
           ) : null}
           {canStopNow ? (

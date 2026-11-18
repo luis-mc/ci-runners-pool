@@ -7,8 +7,9 @@ import (
 	"sync"
 )
 
-// UpdatePrompt is what the update dialog says (CRSP147). It stays on screen
-// until the person answers: Install now (primary, right) or Later (left).
+// UpdatePrompt is what the native update box says (CRSP147, TRAY4). The console page
+// is the normal way to ask; this box is the fallback when no browser can open. It stays on
+// screen until the person answers: Update now (primary, right) or Not now (left).
 type UpdatePrompt struct {
 	Current    string // the version that runs
 	Latest     string // the newer stable release
@@ -19,23 +20,14 @@ type UpdatePrompt struct {
 // Dialog texts. Words the user sees; kept here so the OS dialogs and the tests share them.
 const (
 	PromptTitle      = "Update available"
-	PromptInstallNow = "Install now"
-	PromptLater      = "Later"
+	PromptInstallNow = "Update now"
+	PromptLater      = "Not now"
 	PromptChanged    = "What changed"
 )
 
-// Body is the dialog text: both versions and, when jobs run, the wait and their count.
+// Body is the dialog text: the version, the drain and the restart, in the owner's words.
 func (p UpdatePrompt) Body() string {
-	s := fmt.Sprintf("%s %s is installed. Version %s is available.", ProductName, p.Current, p.Latest)
-	switch {
-	case p.Jobs == 1:
-		s += " 1 job is running. Install now waits for it to finish; no job is stopped."
-	case p.Jobs > 1:
-		s += fmt.Sprintf(" %d jobs are running. Install now waits for them to finish; no job is stopped.", p.Jobs)
-	default:
-		s += " No job is running, so it installs at once."
-	}
-	return s
+	return fmt.Sprintf("Version %s is ready. Running jobs finish first; the service restarts (about 1 min).", p.Latest)
 }
 
 // ErrNoDialog says this desktop has no program that can show the dialog.
@@ -50,10 +42,15 @@ type UpdateInstaller interface {
 	Install(ctx context.Context) (Status, error)
 }
 
-// Offer shows the update dialog for the status and acts on the answer: Install now
-// asks the service to install (it drains first), Later changes nothing. Only the
+// Offer asks about the update: it opens the console page in a small window; when that
+// cannot open it shows the native dialog and acts on the answer: Update now
+// asks the service to install (it drains first), Not now changes nothing. Only the
 // person's answer installs; a check alone never does.
 func (o *Opener) Offer(ctx context.Context, st Status) error {
+	// The console page asks (and shows the progress) in the console theme. The native box is the fallback.
+	if o.OpenUpdate(ctx) == nil {
+		return nil
+	}
 	if o.Ask == nil || o.Installer == nil {
 		o.notify("Update "+st.Update.Latest+" available", "Open the console, Settings, Updates, to install it. Running jobs finish first.")
 		return nil
@@ -65,7 +62,7 @@ func (o *Opener) Offer(ctx context.Context, st Status) error {
 	p := UpdatePrompt{Current: o.Version, Latest: st.Update.Latest, ReleaseURL: st.Update.ReleaseURL, Jobs: st.Update.Jobs}
 	now, err := o.Ask(p, o.Browser)
 	if err != nil {
-		o.notify("Update "+p.Latest+" available", "No dialog could be shown here. Open the console, Settings, Updates, to install it.")
+		o.notify("Update "+p.Latest+" available", "No window could be shown here. Open the console, Settings, Updates, to install it.")
 		return err
 	}
 	if !now {
