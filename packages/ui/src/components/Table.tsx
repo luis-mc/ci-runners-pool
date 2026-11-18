@@ -70,6 +70,7 @@ export function Table<T>({
   title,
   expandLabel = 'Details',
   rowLabel,
+  detail,
 }: {
   caption: string;
   /** Draws the table inside a pane with this title and the row count; leave out when the page already has one. */
@@ -88,6 +89,11 @@ export function Table<T>({
   expandLabel?: string | undefined;
   /** Names a row for the region the button opens (a screen reader reads it with the button's word). */
   rowLabel?: ((row: T) => string) | undefined;
+  /**
+   * A row that opens in place to more than text: a last column holds a button (`label`) that opens a full-width row
+   * under it with `render(row)` (a run opens to its jobs). The button's name carries `rowLabel`.
+   */
+  detail?: { label: string; render: (row: T) => ReactNode } | undefined;
 }) {
   const base = useId();
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
@@ -155,6 +161,11 @@ export function Table<T>({
                 )}
               </th>
             ))}
+            {detail ? (
+              <th scope="col">
+                <span className="ds-visually-hidden">{detail.label}</span>
+              </th>
+            ) : null}
           </tr>
         </thead>
         <tbody>
@@ -229,8 +240,34 @@ export function Table<T>({
                       </span>
                     </td>
                   ))}
+                  {detail ? (
+                    <td data-label={detail.label}>
+                      <Button
+                        onPress={() => toggleOpen(key)}
+                        expanded={isOpen}
+                        controls={regionId}
+                      >
+                        {detail.label}
+                      </Button>
+                    </td>
+                  ) : null}
                 </tr>
-                {isOpen && expandedText !== undefined ? (
+                {isOpen && detail ? (
+                  <tr className="ds-table__expanded">
+                    <td colSpan={columns.length + 1 + (onToggle ? 1 : 0)}>
+                      <div
+                        id={regionId}
+                        role="region"
+                        aria-label={
+                          rowLabel ? `${detail.label}: ${rowLabel(row)}` : detail.label
+                        }
+                      >
+                        {detail.render(row)}
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+                {isOpen && !detail && expandedText !== undefined ? (
                   <tr className="ds-table__expanded">
                     <td colSpan={columns.length + (onToggle ? 1 : 0)}>
                       <div

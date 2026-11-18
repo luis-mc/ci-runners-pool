@@ -50,3 +50,19 @@ export function useJobsGet<T>(
     [path, JSON.stringify(clean), v, poll ? tick : 0],
   );
 }
+
+/** Asks once for a list, for an export file: the answer is not kept on screen. */
+export function useFetcher(): <T>(path: string, query?: Query) => Promise<T> {
+  const client = useClient() as unknown as LooseClient;
+  return <T>(path: string, query: Query = {}) => {
+    const clean: Record<string, string | number> = {};
+    for (const [k, val] of Object.entries(query))
+      if (val !== undefined && val !== '') clean[k] = val;
+    return unwrap<T>(
+      client.GET(path, { params: { query: clean } }) as Promise<{
+        data?: T;
+        response: Response;
+      }>,
+    );
+  };
+}

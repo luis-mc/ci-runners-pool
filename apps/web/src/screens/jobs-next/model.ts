@@ -61,7 +61,7 @@ type ContractJob = Schemas['Job'];
 
 export interface JobItem extends ContractJob {
   /** repo + workflow + job name + matrix values; the same job of another run has the same key. */
-  job_key: string;
+  jobKey: string;
   /** The id of the job inside its run: job name plus matrix values. Edges use it. */
   node_id: string;
   matrix: string[];
@@ -81,6 +81,8 @@ export interface JobItem extends ContractJob {
   forecast: Forecast;
   /** Present on the detail answer, and on a run's jobs. */
   steps?: StepItem[];
+  /** A job that calls a reusable workflow: its own jobs are only known when the run starts. */
+  reusable?: boolean;
 }
 
 export interface HistoryPoint {
@@ -127,6 +129,18 @@ export interface RunItem {
   /** Node ids on the critical path. */
   critical_path: string[];
   eta?: Eta;
+  /**
+   * Where the edges come from: the workflow file at the commit (read once per commit, cached), or, when the file
+   * could not be read, only the overlap of the jobs in time (then `edges` is empty).
+   */
+  graph?: { source: 'workflow_file' | 'timing'; sha: string };
+}
+
+export interface RunPageData {
+  items: RunItem[];
+  next_cursor?: string;
+  total: number;
+  stale: Schemas['Staleness'];
 }
 
 export interface JobPage {
@@ -164,7 +178,7 @@ export interface JobStats {
 }
 
 export interface ForecastAnswer {
-  job_key: string;
+  jobKey: string;
   forecast: Forecast;
   steps: { name: string; forecast: Forecast }[];
   history: HistoryPoint[];

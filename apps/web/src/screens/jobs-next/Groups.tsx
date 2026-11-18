@@ -1,6 +1,7 @@
 // Jobs sub-sections (RES15): the jobs grouped by repository, machine, runner, runner type or job type. One table
 // each: running, queued, done, failed, average wait and run time, and a small trend of the last run times.
 import {
+  Badge,
   Empty,
   LinkButton,
   Section,
@@ -16,7 +17,7 @@ import { Load } from '../common';
 import { useJobsGet } from './api';
 import { DONE_KEPT } from './JobsHome';
 import type { JobItem, JobPage } from './model';
-import { JOB_TYPE_WORDS } from './words';
+import { JOB_TYPE_WORDS, RETENTION_WORDS, baseJobName } from './words';
 
 export type GroupBy = 'repository' | 'machine' | 'runner' | 'runner-type' | 'job-type';
 
@@ -52,15 +53,14 @@ const SPECS: Record<GroupBy, Spec> = {
   'runner-type': {
     title: 'Runner types',
     what: 'runner type',
-    key: (j) => (j.runner ? `${j.runner.kind}, ${j.runner.backend}` : NOT_PLACED),
-    filter: (j) =>
-      `runner_kind=${j.runner?.kind ?? ''}&backend=${encodeURIComponent(j.runner?.backend ?? '')}`,
+    key: (j) => j.runner?.kind ?? NOT_PLACED,
+    filter: (j) => `runner_kind=${j.runner?.kind ?? ''}`,
   },
   'job-type': {
     title: 'Job types',
     what: 'job type',
-    key: (j) => JOB_TYPE_WORDS[j.job_type],
-    filter: (j) => `job_type=${j.job_type}`,
+    key: (j) => baseJobName(j.job_name),
+    filter: (j) => `job=${encodeURIComponent(baseJobName(j.job_name))}`,
   },
 };
 
@@ -74,6 +74,10 @@ interface Group {
   waitS: number | undefined;
   runS: number | undefined;
   trend: number[];
+  /** The backends the group's jobs ran on (docker, wsl2, hyperv), for runner types. */
+  backends: string[];
+  /** The scheduler class of a job type: heavy when any of its jobs is heavy. */
+  weight: 'light' | 'standard' | 'heavy';
 }
 
 const avg = (xs: number[]): number | undefined =>
@@ -101,6 +105,10 @@ export function groupJobs(jobs: readonly JobItem[], spec: Spec): Group[] {
         runS: avg(
           done.flatMap((j) => (j.run_seconds === undefined ? [] : [j.run_seconds])),
         ),
+        backends: [
+          ...new Set(js.flatMap((j) => (j.runner ? [j.runner.backend] : []))),
+        ].sort(),
+        weight: weightOf(js),
         trend: done
           .filter((j) => j.run_seconds !== undefined)
           .sort((a, b) => (a.completed_at ?? '').localeCompare(b.completed_at ?? ''))
@@ -109,6 +117,11 @@ export function groupJobs(jobs: readonly JobItem[], spec: Spec): Group[] {
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function weightOf(js: readonly JobItem[]): Group['weight'] {
+  if (js.some((j) => j.job_type === 'heavy')) return 'heavy';
+  return js.every((j) => j.job_type === 'light') ? 'light' : 'standard';
 }
 
 const secs = (s: number | undefined) =>
@@ -144,6 +157,26 @@ export function GroupTab({ by }: { by: GroupBy }) {
       cell: (g) => g.name,
       sort: (g) => g.name,
     },
+    ...(by === 'runner-type'
+      ? [
+          {
+            id: 'backend',
+            header: 'Backend',
+            cell: (g: Group) => g.backends.join(', ') || 'none',
+            secondary: true,
+          },
+        ]
+      : []),
+    ...(by === 'job-type'
+      ? [
+          {
+            id: 'weight',
+            header: 'Weight',
+            cell: (g: Group) => <Badge>{JOB_TYPE_WORDS[g.weight]}</Badge>,
+            sort: (g: Group) => g.weight,
+          },
+        ]
+      : []),
     {
       id: 'running',
       header: 'Running',
@@ -206,7 +239,11 @@ export function GroupTab({ by }: { by: GroupBy }) {
       header: 'Jobs',
       cell: (g) =>
         g.filter ? (
-          <LinkButton to={`/jobs/done?${g.filter}`}>Open jobs</LinkButton>
+          <LinkButton
+            to={`/jobs/done?${by === 'repository' ? '' : 'view=jobs&'}${g.filter}`}
+          >
+            {by === 'repository' ? 'Open runs' : 'Open jobs'}
+          </LinkButton>
         ) : null,
     },
   ];
@@ -231,6 +268,19 @@ export function GroupTab({ by }: { by: GroupBy }) {
                   rowKey={(g) => g.name}
                 />
               )}
+              {by === 'runner-type' ? (
+                <Text tone="muted">
+                  Persistent runners keep state between jobs; ephemeral runners are fresh
+                  for every job. The backend is where the runner runs.
+                </Text>
+              ) : null}
+              {by === 'job-type' ? (
+                <Text tone="muted">
+                  A job type is the job name without its matrix values. Light jobs need
+                  little of a machine, heavy jobs a lot.
+                </Text>
+              ) : null}
+              <Text tone="muted">{RETENTION_WORDS}</Text>
               {by === 'runner' || by === 'machine' ? (
                 <Text tone="muted">
                   A repository never picks a runner: the pool places each job, so this

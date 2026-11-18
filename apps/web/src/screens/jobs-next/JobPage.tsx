@@ -31,6 +31,7 @@ import { Load } from '../common';
 import { useJobsGet } from './api';
 import { median } from './forecast';
 import type { JobDetail, JobItem, RunItem } from './model';
+import { graphSource } from './runBasis';
 import { graphNodes, stepRows } from './runViews';
 import {
   RUNNER_KIND_WORDS,
@@ -38,9 +39,9 @@ import {
   etaWords,
   forecastWords,
   jobStatus,
-  rangeWords,
   repoPath,
   secondsOrNone,
+  taskIdOf,
   waitWords,
   waitedSeconds,
 } from './words';
@@ -64,8 +65,12 @@ export function JobPage() {
           ...(j
             ? [
                 {
+                  to: `/jobs/done?repository=${encodeURIComponent(j.repository)}`,
+                  label: j.repository,
+                },
+                {
                   to: `/jobs/run/${j.run_id}?attempt=${j.run_attempt}`,
-                  label: `Run ${j.run_id}`,
+                  label: `Run #${j.run_id}, attempt ${j.run_attempt}`,
                 },
               ]
             : []),
@@ -127,7 +132,7 @@ function JobBody({ j }: { j: JobDetail }) {
     <Stack>
       <PageHeader
         title={j.job_name}
-        lead={`${j.repository}, ${j.workflow ?? 'workflow'}, run ${formatNumber(j.run_id)}, attempt ${j.run_attempt}.`}
+        lead={`Job of run ${formatNumber(j.run_id)}, attempt ${j.run_attempt}, in ${j.repository}, workflow ${j.workflow ?? 'not known'}. It has ${j.steps.length} steps.`}
       />
       <Cluster>
         <Status kind={s.kind} word={s.word} />
@@ -174,7 +179,8 @@ function JobBody({ j }: { j: JobDetail }) {
             },
             { name: 'Workflow', value: j.workflow ?? 'not known' },
             { name: 'Branch', value: j.branch },
-            { name: 'Worktree or task', value: j.worktree ?? 'not reported' },
+            { name: 'Task', value: taskIdOf(j.branch) ?? 'none in the branch name' },
+            { name: 'Worktree', value: j.worktree ?? 'not reported' },
             { name: 'Commit', value: j.head_sha ? j.head_sha.slice(0, 7) : 'not known' },
             {
               name: 'Pull request',
@@ -210,7 +216,7 @@ function JobBody({ j }: { j: JobDetail }) {
       </Section>
       <Section
         title="Steps"
-        hint="Each step on one time line, with its forecast range after the bar."
+        hint="Step times are from GitHub. Each step is on one time line, with its forecast range after the bar."
       >
         {j.state === 'queued' ? (
           <Empty title="The job has not started, so no step has run. The forecast of each step shows once it runs." />
@@ -272,8 +278,10 @@ function JobBody({ j }: { j: JobDetail }) {
       <Section title="Forecast">
         <Facts
           items={[
-            { name: 'This job should take', value: forecastWords(j.forecast) },
-            { name: 'Based on', value: basisWords(j.forecast) },
+            {
+              name: 'This job should take',
+              value: `${forecastWords(j.forecast)}, ${basisWords(j.forecast)}`,
+            },
             ...(j.run_eta && j.state !== 'done'
               ? [{ name: 'The run should end', value: etaWords(j.run_eta) }]
               : []),
@@ -298,7 +306,7 @@ function JobBody({ j }: { j: JobDetail }) {
       </Section>
       <Section
         title="History of this job"
-        hint={`The same job in earlier runs: ${j.job_key}.`}
+        hint={`The same job in earlier runs: ${j.jobKey}.`}
       >
         {durations.length < 2 ? (
           <Empty title="Not enough runs yet to draw a history." />
@@ -343,7 +351,7 @@ function JobBody({ j }: { j: JobDetail }) {
                 },
               ]}
             />
-            <Text tone="muted">{`Forecast range of this job: ${forecastWords(j.forecast)}${j.forecast.basis === 'not_enough_history' ? '' : `, ${rangeWords(j.forecast.lo, j.forecast.hi)}`}.`}</Text>
+            <Text tone="muted">{`Forecast range of this job: ${forecastWords(j.forecast)}.`}</Text>
           </Stack>
         )}
       </Section>
@@ -361,17 +369,20 @@ function RunGraph({ job }: { job: JobItem }) {
   return (
     <Load result={result} what="the run" reload={reload}>
       {(run) => (
-        <JobGraph
-          label={`Jobs of run ${run.id}`}
-          nodes={graphNodes(
-            run,
-            Date.now(),
-            (x) => void navigate(`/jobs/${x.id}`),
-            job.id,
-          )}
-          edges={run.edges}
-          emptyText="This run has no other jobs."
-        />
+        <Stack>
+          <Text tone="muted">{graphSource(run)}</Text>
+          <JobGraph
+            label={`Jobs of run ${run.id}`}
+            nodes={graphNodes(
+              run,
+              Date.now(),
+              (x) => void navigate(`/jobs/${x.id}`),
+              job.id,
+            )}
+            edges={run.edges}
+            emptyText="This run has no other jobs."
+          />
+        </Stack>
       )}
     </Load>
   );

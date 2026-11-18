@@ -99,10 +99,11 @@ export function Segmented<T extends string>({
   options: readonly { value: T; label: string }[];
   value: T | '';
   onChange: (value: T | '') => void;
-  allLabel?: string | undefined;
+  /** The word of the option that shows every item; `null` leaves it out (a view switch has no "All"). */
+  allLabel?: string | null | undefined;
 }) {
   const all: readonly { value: T | ''; label: string }[] = [
-    { value: '', label: allLabel },
+    ...(allLabel === null ? [] : [{ value: '' as const, label: allLabel }]),
     ...options,
   ];
   return (

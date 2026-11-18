@@ -2366,3 +2366,9 @@ button.ds-jobgraph__node:hover {
   inset-block-end: 100%;
   inset-inline-start: 0;
 }
+
+/* Short text (component 55): the cut name has a dotted underline, so a reader sees there is more on hover. */
+.ds-short {
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2em;
+}

@@ -11,6 +11,7 @@ import type {
   JobPage,
   JobStats,
   RunItem,
+  RunPageData,
   DayStat,
 } from '../screens/jobs-next/model';
 import {
@@ -26,6 +27,7 @@ import {
   type FixtureData,
 } from './fixtures';
 import { runEta } from '../screens/jobs-next/forecast';
+import { baseJobName } from '../screens/jobs-next/words';
 
 const OWNER: Schemas['User'] = {
   id: 1,
@@ -186,6 +188,16 @@ export class ReviewApi {
     const jobs = run.jobs.map((j) => this.live(j));
     const dag = dagOf(jobs, this.now());
     const eta = run.state === 'done' ? undefined : runEta(dag);
+    if (run.graph?.source === 'timing') {
+      // The workflow file could not be read: no edges, only the overlap in time (the jobs are drawn as parallel).
+      return {
+        ...run,
+        jobs: jobs.map((j) => ({ ...j, needs: [] })),
+        edges: [],
+        critical_path: [],
+        ...(eta ? { eta } : {}),
+      };
+    }
     return { ...run, jobs, ...(eta ? { eta } : {}) };
   }
 
@@ -201,20 +213,73 @@ export class ReviewApi {
     const machineId = q.get('machine_id');
     const branch = q.get('branch');
     const backend = q.get('backend');
+    const jobBase = q.get('job');
+    const since = Number(q.get('since') ?? 0);
+    const from = since > 0 ? this.now() - since * 86_400_000 : 0;
     return items.filter(
       (j) =>
         (!repo || j.repository === repo) &&
         (!machine || j.runner?.machine_name === machine || j.machine_id === machine) &&
         (!runner || j.runner?.name === runner || j.runner_name === runner) &&
         (!kind || j.runner?.kind === kind) &&
-        (!key || j.job_key === key) &&
+        (!key || j.jobKey === key) &&
         (!type || j.job_type === type) &&
         (!result || j.result === result) &&
         (!repoId || String(j.repository_id) === repoId) &&
         (!machineId || j.machine_id === machineId) &&
         (!branch || j.branch === branch) &&
-        (!backend || j.runner?.backend === backend),
+        (!backend || j.runner?.backend === backend) &&
+        (!jobBase || baseJobName(j.job_name) === jobBase) &&
+        (!from || !j.completed_at || Date.parse(j.completed_at) >= from),
     );
+  }
+
+  /** One row for each run (its latest attempt), for the Queue, Running and Done lists. */
+  private runsPage(q: URLSearchParams): RunPageData {
+    const state = q.get('state');
+    const latest = new Map<number, number>();
+    for (const r of this.data.runs)
+      latest.set(r.id, Math.max(latest.get(r.id) ?? 0, r.attempt));
+    const repo = q.get('repository');
+    const from =
+      Number(q.get('since') ?? 0) > 0
+        ? this.now() - Number(q.get('since')) * 86_400_000
+        : 0;
+    const runs = [...latest.entries()]
+      .flatMap(([id, attempt]) => {
+        const r = this.runOf(id, attempt);
+        return r ? [r] : [];
+      })
+      .filter((r) => !repo || r.repository === repo);
+    const placed = (r: RunItem) =>
+      r.jobs.filter((j) => j.state === 'queued' && j.queue_position !== undefined);
+    const lastEnd = (r: RunItem) =>
+      Math.max(...r.jobs.map((j) => (j.completed_at ? Date.parse(j.completed_at) : 0)));
+    let items: RunItem[];
+    if (state === 'queued')
+      items = runs
+        .filter((r) => placed(r).length > 0)
+        .sort(
+          (a, b) =>
+            Math.min(...placed(a).map((j) => j.queue_position ?? 0)) -
+            Math.min(...placed(b).map((j) => j.queue_position ?? 0)),
+        );
+    else if (state === 'running')
+      items = runs
+        .filter((r) => r.state === 'running')
+        .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    else
+      items = runs
+        .filter((r) => r.state === 'done' && (!from || lastEnd(r) >= from))
+        .sort((a, b) => lastEnd(b) - lastEnd(a));
+    const limit = Math.min(Number(q.get('limit') ?? 50) || 50, 200);
+    const start = Number(q.get('cursor') ?? 0) || 0;
+    return {
+      items: items.slice(start, start + limit),
+      ...(start + limit < items.length ? { next_cursor: String(start + limit) } : {}),
+      total: items.length,
+      stale: { stale: false },
+    };
   }
 
   private jobsPage(q: URLSearchParams): JobPage {
@@ -253,7 +318,7 @@ export class ReviewApi {
     const sameRun = this.all().filter(
       (x) => x.run_id === j.run_id && x.node_id === j.node_id,
     );
-    const history = (this.data.histories.get(j.job_key) ?? []).slice(-30);
+    const history = (this.data.histories.get(j.jobKey) ?? []).slice(-30);
     const run = this.runOf(j.run_id, j.run_attempt);
     return {
       ...j,
@@ -272,8 +337,12 @@ export class ReviewApi {
   }
 
   private stats(q: URLSearchParams): JobStats {
+    const span = Number(q.get('days') ?? 14) || 14;
+    const from = this.now() - span * 86_400_000;
     const done = this.filter(
-      this.data.jobs.filter((j) => j.state === 'done'),
+      this.data.jobs.filter(
+        (j) => j.state === 'done' && Date.parse(j.completed_at ?? '') >= from,
+      ),
       q,
     );
     const byDay = new Map<string, JobItem[]>();
@@ -297,7 +366,7 @@ export class ReviewApi {
       });
     const grid = new Map<string, number>();
     for (const j of this.data.jobs) {
-      if (!j.started_at) continue;
+      if (!j.started_at || Date.parse(j.started_at) < from) continue;
       const d = new Date(j.started_at);
       const k = `${(d.getUTCDay() + 6) % 7}-${d.getUTCHours()}`;
       grid.set(k, (grid.get(k) ?? 0) + 1);
@@ -327,9 +396,9 @@ export class ReviewApi {
   private forecastAnswer(key: string): ForecastAnswer | undefined {
     const h = this.data.histories.get(key);
     if (!h) return undefined;
-    const sample = this.data.jobs.find((j) => j.job_key === key);
+    const sample = this.data.jobs.find((j) => j.jobKey === key);
     return {
-      job_key: key,
+      jobKey: key,
       forecast: forecastOfKey(h),
       steps: (sample?.steps ?? []).map((s) => ({
         name: s.name,
@@ -444,6 +513,8 @@ export class ReviewApi {
         });
       case '/api/v1/jobs':
         return json(this.jobsPage(q));
+      case '/api/v1/runs':
+        return json(this.runsPage(q));
       case '/api/v1/jobs/stats':
         return json(this.stats(q));
       case '/api/v1/forecast': {

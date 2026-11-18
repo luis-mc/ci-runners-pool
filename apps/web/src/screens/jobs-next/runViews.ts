@@ -207,12 +207,20 @@ export function graphNodes(
     return {
       id: j.node_id,
       label: j.job_name,
-      sublabel:
+      sublabel: [
         j.state === 'done' || j.state === 'running'
           ? `${s.word}, ${ran !== undefined ? formatDuration(ran) : ''}`
           : j.queue_position
             ? `queued, number ${j.queue_position}`
             : `waits for ${j.needs.length} ${j.needs.length === 1 ? 'job' : 'jobs'}`,
+        j.reusable
+          ? 'reusable workflow, expands at run time'
+          : j.matrix.length
+            ? 'matrix, expands at run time'
+            : undefined,
+      ]
+        .filter(Boolean)
+        .join('; '),
       status: s.kind,
       ...(j.id === currentId ? { current: true } : {}),
       ...(crit.has(j.node_id) ? { critical: true } : {}),

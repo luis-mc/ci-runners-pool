@@ -13,6 +13,7 @@ import {
   Stack,
   Status,
   Tabs,
+  Text,
   TextLink,
   Waterfall,
   formatDateTime,
@@ -23,7 +24,8 @@ import { Load } from '../common';
 import { useJobsGet } from './api';
 import type { RunItem } from './model';
 import { graphNodes, runRows } from './runViews';
-import { etaWords, repoPath } from './words';
+import { basisFor, graphSource } from './runBasis';
+import { etaWords, repoPath, sourceWords, taskIdOf } from './words';
 
 export function RunPage() {
   const { runId = '' } = useParams();
@@ -39,7 +41,18 @@ export function RunPage() {
   return (
     <Page>
       <Breadcrumbs
-        trail={[{ to: '/jobs', label: 'Jobs' }, { label: run ? `Run ${run.id}` : 'Run' }]}
+        trail={[
+          { to: '/jobs', label: 'Jobs' },
+          ...(run
+            ? [
+                {
+                  to: `/jobs/done?repository=${encodeURIComponent(run.repository)}`,
+                  label: run.repository,
+                },
+                { label: `Run #${run.id}, attempt ${run.attempt}` },
+              ]
+            : [{ label: 'Run' }]),
+        ]}
       />
       {run ? null : (
         <PageHeader title="Run" lead="One workflow run and all of its jobs." />
@@ -86,7 +99,7 @@ function RunBody({ run, onAttempt }: { run: RunItem; onAttempt: (a: number) => v
     <Stack>
       <PageHeader
         title={`${run.workflow} on ${run.branch}`}
-        lead={`${run.repository}, run ${formatNumber(run.id)}, attempt ${run.attempt}, ${run.jobs.length} jobs.`}
+        lead={`${run.repository}, run ${formatNumber(run.id)}, attempt ${run.attempt}. This run has ${run.jobs.length} jobs; each job has steps.`}
       />
       <Cluster>
         <Status kind={kind} word={word} />
@@ -113,8 +126,9 @@ function RunBody({ run, onAttempt }: { run: RunItem; onAttempt: (a: number) => v
                 ),
               },
               { name: 'Branch', value: run.branch },
-              { name: 'Worktree or task', value: run.worktree ?? 'not reported' },
-              { name: 'Commit', value: run.head_sha.slice(0, 7) },
+              { name: 'Task', value: taskIdOf(run.branch) ?? 'none in the branch name' },
+              { name: 'Worktree', value: run.worktree ?? 'not reported' },
+              { name: 'Commit and event', value: sourceWords(run) },
               {
                 name: 'Pull request',
                 value: run.pull_request ? `#${run.pull_request}` : 'none',
@@ -124,7 +138,7 @@ function RunBody({ run, onAttempt }: { run: RunItem; onAttempt: (a: number) => v
                 ? [
                     {
                       name: 'Should end',
-                      value: `${etaWords(run.eta)} (follows the critical path)`,
+                      value: `${etaWords(run.eta)}, ${basisFor(run)}`,
                     },
                   ]
                 : []),
@@ -136,12 +150,15 @@ function RunBody({ run, onAttempt }: { run: RunItem; onAttempt: (a: number) => v
         title="Job graph"
         hint="An arrow means the job on its right needs the job on its left. The thick path is the longest chain."
       >
-        <JobGraph
-          label={`Jobs of run ${run.id}`}
-          nodes={graphNodes(run, now, open)}
-          edges={run.edges}
-          emptyText="This run has no jobs."
-        />
+        <Stack>
+          <Text tone="muted">{graphSource(run)}</Text>
+          <JobGraph
+            label={`Jobs of run ${run.id}`}
+            nodes={graphNodes(run, now, open)}
+            edges={run.edges}
+            emptyText="This run has no jobs."
+          />
+        </Stack>
       </Section>
       <Section
         title="Timeline"

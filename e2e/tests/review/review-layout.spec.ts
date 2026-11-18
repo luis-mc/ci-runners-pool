@@ -1,6 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 import { expectDomLayout } from '../../../scripts/design/dom-layout';
-import { OTHER_AREAS, THEMES, hasApp, reviewScreens, serveApp } from './review-app';
+import {
+  OTHER_AREAS,
+  THEMES,
+  expandFirstRun,
+  hasApp,
+  reviewScreens,
+  serveApp,
+} from './review-app';
 
 // The review build (RES15) at 360, 393 and 1300 px, dark and light, with the shared DOM layout checker. The
 // review build holds fake data and lives in docs/review/RES15/app; it is served here by a small static server.
@@ -41,6 +48,7 @@ for (const t of THEMES) {
       await open(page, s.hash, t.theme, t.mode);
       await expect(page.locator('h1')).toHaveCount(1);
       await expect(page.locator('h1')).toHaveText(s.h1);
+      if (s.expand) await expandFirstRun(page);
       await expect(page.getByText('Review build with fake data')).toBeVisible();
       await expectDomLayout(page, `review ${s.name} (${t.name})`, {
         spaceVar: '--ds-space-',

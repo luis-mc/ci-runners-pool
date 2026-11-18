@@ -7,7 +7,14 @@
 import { test } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { SHOTS_DIR, THEMES, hasApp, reviewScreens, serveApp } from './review-app';
+import {
+  SHOTS_DIR,
+  THEMES,
+  expandFirstRun,
+  hasApp,
+  reviewScreens,
+  serveApp,
+} from './review-app';
 
 const WIDTHS = [
   { width: 1300, height: 900 },
@@ -42,6 +49,7 @@ test('screenshots of every review screen', async ({ browser }) => {
         await page.waitForFunction(
           () => document.querySelectorAll('[data-state="loading"]').length === 0,
         );
+        if (s.expand) await expandFirstRun(page);
         await page.waitForTimeout(250);
         await page.screenshot({
           path: join(SHOTS_DIR, `${s.name}-${size.width}-${theme.name}.png`),

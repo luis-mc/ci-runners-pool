@@ -207,3 +207,17 @@ describe('ThemePreview and the default theme (LOOK D11)', () => {
     expect(DEFAULT_THEME_ID).toBe('phosphor');
   });
 });
+
+describe('ShortText', () => {
+  it('cuts a long name in the middle and keeps the full name for hover and readers', async () => {
+    const { shortenMiddle, ShortText } = await import('./ShortText');
+    expect(shortenMiddle('main')).toBe('main');
+    const cut = shortenMiddle('dependabot/npm_and_yarn/vite-8.3.8', 22);
+    expect(cut.length).toBeLessThanOrEqual(22);
+    expect(cut).toContain('…');
+    const { container } = render(<ShortText text="dependabot/npm_and_yarn/vite-8.3.8" />);
+    expect(container.querySelector('[title]')?.getAttribute('title')).toBe(
+      'dependabot/npm_and_yarn/vite-8.3.8',
+    );
+  });
+});

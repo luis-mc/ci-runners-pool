@@ -2,6 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
+import type { Page } from '@playwright/test';
 import { buildFixtures } from '../../../apps/web/src/review/fixtures';
 
 export const APP_DIR = resolve('docs/review/RES15/app');
@@ -47,6 +48,22 @@ export interface ReviewScreen {
   hash: string;
   /** The words of the h1. */
   h1: RegExp;
+  /** A step before the check or the picture: a run row opened in place. */
+  expand?: boolean;
+}
+
+/** Opens the first run row of the list in place (its Jobs button), and waits for its waterfall. */
+export async function expandFirstRun(page: Page): Promise<void> {
+  const button = page
+    .getByRole('button', { name: 'Jobs', exact: true })
+    .and(page.locator('[aria-expanded]'))
+    .first();
+  await button.click();
+  await page
+    .getByRole('region', { name: /^Jobs: / })
+    .first()
+    .waitFor();
+  await page.waitForTimeout(200);
 }
 
 /** The screens of the review build: the tabs, and a job page of each kind, and a run page. */
@@ -64,6 +81,8 @@ export function reviewScreens(): ReviewScreen[] {
   const retried = job((j) => j.run_attempt === 2);
   const long = data.runs.find((r) => r.jobs.length === 14);
   if (!long) throw new Error('no long run');
+  const timing = data.runs.find((r) => r.graph?.source === 'timing');
+  if (!timing) throw new Error('no run with a timing graph');
   const tab = (name: string, path: string): ReviewScreen => ({
     name,
     hash: `#/jobs${path}`,
@@ -79,6 +98,12 @@ export function reviewScreens(): ReviewScreen[] {
     tab('jobs-by-runner-type', '/runner-type'),
     tab('jobs-by-job-type', '/job-type'),
     tab('jobs-charts', '/charts'),
+    tab('jobs-queue-jobs', '?view=jobs'),
+    tab('jobs-running-jobs', '/running?view=jobs'),
+    tab('jobs-done-jobs', '/done?view=jobs'),
+    { ...tab('jobs-queue-expanded', ''), expand: true },
+    { ...tab('jobs-running-expanded', '/running'), expand: true },
+    { ...tab('jobs-done-expanded', '/done'), expand: true },
     {
       name: 'job-running',
       hash: `#/jobs/${running.id}`,
@@ -103,6 +128,11 @@ export function reviewScreens(): ReviewScreen[] {
       name: 'job-retried',
       hash: `#/jobs/${retried.id}`,
       h1: new RegExp(exactly(retried.job_name as string)),
+    },
+    {
+      name: 'run-timing-graph',
+      hash: `#/jobs/run/${timing.id}`,
+      h1: new RegExp(exactly(`${timing.workflow} on ${timing.branch}`)),
     },
     { name: 'run-long-dag', hash: `#/jobs/run/${long.id}`, h1: /Release on main/ },
   ];

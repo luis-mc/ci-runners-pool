@@ -3,17 +3,21 @@
 // (component 15). Wait reasons say what is happening (UX-29); a status is a word, a glyph and a colour (UX-58).
 import {
   Button,
+  Cluster,
   Empty,
+  ExportButton,
   LinkButton,
   Message,
   Page,
   PageHeader,
   Progress,
   Section,
+  Segmented,
   Stack,
   Status,
   Table,
   Tabs,
+  Text,
   TextLink,
   formatDateTime,
   formatDuration,
@@ -22,14 +26,18 @@ import {
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Load } from '../common';
-import { useJobsGet, type Query } from './api';
-import type { JobItem, JobPage } from './model';
+import { useFetcher, useJobsGet, type Query } from './api';
+import { csvFile } from './csv';
+import type { JobItem, JobPage, RunItem, RunPageData } from './model';
+import { BranchWords, RunDetail, runColumns } from './RunRows';
+import { summarize } from './runSummary';
 import {
-  forecastWords,
+  RETENTION_WORDS,
+  forecastOne,
   jobStatus,
-  rangeWords,
   ranSeconds,
   secondsOrNone,
+  startsWords,
   waitWords,
   waitedSeconds,
 } from './words';
@@ -46,9 +54,16 @@ export const JOBS_NEXT_TABS = [
   { id: 'charts', label: 'Charts', to: '/jobs/charts' },
 ] as const;
 
-/** The most done jobs the console keeps and shows (owner question pending: is 100 right?). */
+/** Done: shows 25, "Show more" adds 25 up to 100 a page; older ones by filter and range (owner decision 1). */
 export const DONE_KEPT = 100;
 export const DONE_STEP = 25;
+/** Days kept: 90 (owner decision 1 and 2). */
+export const KEPT_DAYS = 90;
+const RANGES = [
+  { value: '7', label: 'Last 7 days' },
+  { value: '30', label: 'Last 30 days' },
+  { value: '90', label: 'Last 90 days' },
+] as const;
 
 export function JobsNextLayout() {
   const navigate = useNavigate();
@@ -59,7 +74,7 @@ export function JobsNextLayout() {
     <Page>
       <PageHeader
         title="Jobs"
-        lead="Queued, running and done jobs: where each one builds, what is done, and how long it takes."
+        lead="Each row is a workflow run. Open a run to see its jobs, and a job to see its steps."
       />
       <Tabs
         label="Jobs sections"
@@ -82,6 +97,7 @@ const FILTER_KEYS = [
   'runner_kind',
   'backend',
   'job_type',
+  'job',
 ] as const;
 const FILTER_NAMES: Record<(typeof FILTER_KEYS)[number], string> = {
   repository: 'repository',
@@ -90,6 +106,7 @@ const FILTER_NAMES: Record<(typeof FILTER_KEYS)[number], string> = {
   runner_kind: 'runner type',
   backend: 'backend',
   job_type: 'job type',
+  job: 'job',
 };
 
 function useFilters(): { query: Query; note: string | undefined; clearTo: string } {
@@ -106,7 +123,9 @@ function useFilters(): { query: Query; note: string | undefined; clearTo: string
   }
   return {
     query,
-    note: parts.length ? `Showing only jobs of ${parts.join(' and ')}.` : undefined,
+    note: parts.length
+      ? `Showing only what belongs to ${parts.join(' and ')}.`
+      : undefined,
     clearTo: pathname,
   };
 }
@@ -131,10 +150,7 @@ function whereWords(j: JobItem): string {
 
 function BranchCell({ j }: { j: JobItem }) {
   return (
-    <>
-      {j.branch}
-      {j.worktree ? ` (worktree ${j.worktree})` : ''}
-    </>
+    <BranchWords branch={j.branch} {...(j.worktree ? { worktree: j.worktree } : {})} />
   );
 }
 
@@ -199,7 +215,7 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
   const forecast: Column<JobItem> = {
     id: 'forecast',
     header: 'Forecast',
-    cell: (j) => forecastWords(j.forecast),
+    cell: (j) => forecastOne(j.forecast),
     sort: (j) => j.forecast.p50,
     secondary: true,
   };
@@ -224,12 +240,7 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
       {
         id: 'starts',
         header: 'Starts',
-        cell: (j) =>
-          j.queue_eta
-            ? j.queue_eta.p50 < 20
-              ? 'now'
-              : `in ${rangeWords(j.queue_eta.lo, j.queue_eta.hi)}`
-            : 'not known',
+        cell: (j) => startsWords(j.queue_eta, j.queue_position),
         sort: (j) => j.queue_eta?.p50 ?? 0,
         secondary: true,
       },
@@ -268,7 +279,7 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
           const known = j.forecast.basis !== 'not_enough_history';
           return (
             <Progress
-              label={`${j.job_name}, ${formatDuration(t)} of ${known ? rangeWords(j.forecast.lo, j.forecast.hi) : 'an unknown time'}`}
+              label={`${j.job_name}, ${formatDuration(t)} of ${known ? forecastOne(j.forecast) : 'an unknown time'}`}
               {...(known
                 ? { value: Math.min(t, j.forecast.p50), max: j.forecast.p50 }
                 : {})}
@@ -299,93 +310,261 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
   ];
 }
 
-function useJobTable(kind: Kind) {
-  const f = useFilters();
-  const [shown, setShown] = useState(DONE_STEP);
-  const limit = kind === 'done' ? shown : 100;
-  const jobs = useJobsGet<JobPage>(
-    '/api/v1/jobs',
-    { state: kind === 'queue' ? 'queued' : kind, limit, ...f.query },
-    kind !== 'done',
+type View = 'runs' | 'jobs';
+
+/** Which list the reader sees: runs by default; a filter only jobs have (runner, machine, type) opens the jobs. */
+function useView(): { view: View; set: (v: View) => void } {
+  const [params, setParams] = useSearchParams();
+  const jobOnly = ['machine', 'runner', 'runner_kind', 'backend', 'job_type', 'job'].some(
+    (k) => params.get(k),
   );
-  return { f, shown, setShown, ...jobs };
+  const raw = params.get('view');
+  const view: View = raw === 'jobs' || raw === 'runs' ? raw : jobOnly ? 'jobs' : 'runs';
+  return {
+    view,
+    set: (v) => {
+      const next = new URLSearchParams(params);
+      next.set('view', v);
+      setParams(next, { replace: true });
+    },
+  };
+}
+
+function ViewSwitch({ view, onChange }: { view: View; onChange: (v: View) => void }) {
+  return (
+    <Segmented<View>
+      label="Show runs or jobs"
+      options={[
+        { value: 'runs', label: 'Runs' },
+        { value: 'jobs', label: 'Jobs' },
+      ]}
+      value={view}
+      onChange={(v) => onChange(v === '' ? 'runs' : v)}
+      allLabel={null}
+    />
+  );
 }
 
 const TITLES: Record<Kind, string> = { queue: 'Queue', running: 'Running', done: 'Done' };
-const HINTS: Record<Kind, string> = {
-  queue:
-    'In the order the jobs will be placed. A job that waits says why and when it should start.',
-  running:
-    'What each job does now, on which runner, and how far it is against its forecast.',
-  done: 'The last finished jobs, newest first.',
+const HINTS: Record<Kind, Record<View, string>> = {
+  queue: {
+    runs: 'One row for each run that has jobs waiting: its place in line, when it should start, and why it waits.',
+    jobs: 'Every waiting job in the order it will be placed. A job that waits says why and when it should start.',
+  },
+  running: {
+    runs: 'One row for each run in progress: jobs done of all, what runs now, and when it should end.',
+    jobs: 'What each job does now, on which runner, and how far it is against its forecast.',
+  },
+  done: {
+    runs: 'The last finished runs, newest first. Open a run to see its jobs.',
+    jobs: 'The last finished jobs, newest first.',
+  },
 };
 const EMPTY: Record<Kind, string> = {
   queue: 'Nothing is waiting. Every job has a slot.',
-  running: 'No job is running now.',
-  done: 'No finished jobs yet. Jobs show here when a workflow has run on the pool.',
+  running: 'No run is in progress.',
+  done: 'No finished runs yet. Runs show here when a workflow has run on the pool.',
 };
 
 function JobsListTab({ kind }: { kind: Kind }) {
+  const f = useFilters();
+  const { view, set } = useView();
+  const [params, setParams] = useSearchParams();
+  const days = RANGES.some((r) => r.value === params.get('days'))
+    ? (params.get('days') as string)
+    : String(KEPT_DAYS);
+  const [shown, setShown] = useState(DONE_STEP);
+  const since = kind === 'done' ? { since: days } : {};
+  const limit = kind === 'done' ? shown : 100;
+  const base = { state: kind === 'queue' ? 'queued' : kind, limit, ...f.query, ...since };
+  const runs = useJobsGet<RunPageData>(
+    '/api/v1/runs',
+    base,
+    kind !== 'done' && view === 'runs',
+  );
+  const jobs = useJobsGet<JobPage>(
+    '/api/v1/jobs',
+    base,
+    kind !== 'done' && view === 'jobs',
+  );
+  const fetchAll = useFetcher();
   const navigate = useNavigate();
-  const { f, shown, setShown, result, reload } = useJobTable(kind);
-  // Running jobs advance with the clock between two answers: every answer renders again.
   const live = Date.now();
+  const unit = view === 'runs' ? 'runs' : 'jobs';
+  const exportRows = async () => {
+    const q = { ...base, limit: 200 };
+    if (view === 'runs') {
+      const page = await fetchAll<RunPageData>('/api/v1/runs', q);
+      return csvFile(
+        `crsp-${kind}-runs.csv`,
+        [
+          'repository',
+          'workflow',
+          'run',
+          'attempt',
+          'branch',
+          'commit',
+          'event',
+          'jobs_done',
+          'jobs_total',
+          'total_seconds',
+          'result',
+        ],
+        page.items.map((r) => {
+          const s = summarize(r, live);
+          return [
+            r.repository,
+            r.workflow,
+            r.id,
+            r.attempt,
+            r.branch,
+            r.head_sha.slice(0, 7),
+            r.pull_request ? `PR ${r.pull_request}` : r.trigger,
+            s.doneJobs,
+            s.total,
+            Math.round(s.elapsed),
+            s.result.word,
+          ];
+        }),
+      );
+    }
+    const page = await fetchAll<JobPage>('/api/v1/jobs', q);
+    return csvFile(
+      `crsp-${kind}-jobs.csv`,
+      [
+        'repository',
+        'workflow',
+        'job',
+        'run',
+        'attempt',
+        'branch',
+        'runner',
+        'machine',
+        'waited_seconds',
+        'run_seconds',
+        'result',
+      ],
+      page.items.map((j) => [
+        j.repository,
+        j.workflow,
+        j.job_name,
+        j.run_id,
+        j.run_attempt,
+        j.branch,
+        j.runner?.name,
+        j.runner?.machine_name,
+        j.github_wait_seconds,
+        j.run_seconds,
+        jobStatus(j).word,
+      ]),
+    );
+  };
+  const list = (
+    page: { total: number; next_cursor?: string | undefined },
+    items: RunItem[] | JobItem[],
+  ) => {
+    const canMore =
+      kind === 'done' && page.next_cursor !== undefined && shown < DONE_KEPT;
+    return (
+      <Section
+        title={TITLES[kind]}
+        count={page.total}
+        hint={HINTS[kind][view]}
+        actions={
+          canMore ? (
+            <Button onPress={() => setShown((s) => Math.min(DONE_KEPT, s + DONE_STEP))}>
+              Show 25 more
+            </Button>
+          ) : undefined
+        }
+      >
+        <Stack>
+          {items.length === 0 ? (
+            <Empty
+              title={
+                f.note ? `No ${unit.slice(0, -1)} matches this filter.` : EMPTY[kind]
+              }
+            />
+          ) : view === 'runs' ? (
+            <Table
+              caption={`${TITLES[kind]} runs`}
+              columns={runColumns(kind, live)}
+              rows={items as RunItem[]}
+              rowKey={(r) => `${r.id}-${r.attempt}`}
+              expandLabel="Why"
+              rowLabel={(r) => `${r.workflow} run ${r.id}`}
+              detail={{
+                label: 'Jobs',
+                render: (r) => (
+                  <RunDetail
+                    run={r}
+                    now={live}
+                    open={(j) => void navigate(`/jobs/${j.id}`)}
+                  />
+                ),
+              }}
+            />
+          ) : (
+            <JobTable
+              kind={kind}
+              items={items as JobItem[]}
+              now={live}
+              onOpen={(j) => void navigate(`/jobs/${j.id}`)}
+            />
+          )}
+          {kind === 'done' && items.length > 0 ? (
+            <Text tone="muted">
+              {`Showing ${items.length} of ${page.total} ${unit} in the last ${days} days. ${
+                page.next_cursor !== undefined && shown >= DONE_KEPT
+                  ? `A page holds at most ${DONE_KEPT}: choose a shorter range or a filter to see others. `
+                  : ''
+              }Jobs are kept ${KEPT_DAYS} days. ${RETENTION_WORDS}`}
+            </Text>
+          ) : null}
+        </Stack>
+      </Section>
+    );
+  };
   return (
     <Stack>
       <FilterNote note={f.note} to={f.clearTo} />
-      <Load
-        result={result}
-        what={`the ${TITLES[kind].toLowerCase()} list`}
-        reload={reload}
-      >
-        {(page) => {
-          const kept = Math.min(page.total, DONE_KEPT);
-          const canMore =
-            kind === 'done' && page.items.length < kept && shown < DONE_KEPT;
-          return (
-            <Section
-              title={TITLES[kind]}
-              count={kind === 'done' ? kept : page.total}
-              hint={HINTS[kind]}
-              actions={
-                canMore ? (
-                  <Button
-                    onPress={() => setShown((s) => Math.min(DONE_KEPT, s + DONE_STEP))}
-                  >
-                    Show 25 more
-                  </Button>
-                ) : undefined
-              }
-            >
-              <Stack>
-                {page.items.length === 0 ? (
-                  <Empty title={f.note ? 'No job matches this filter.' : EMPTY[kind]} />
-                ) : (
-                  <JobTable
-                    kind={kind}
-                    items={page.items}
-                    now={live}
-                    onOpen={(j) => void navigate(`/jobs/${j.id}`)}
-                  />
-                )}
-                {kind === 'done' &&
-                page.total > DONE_KEPT &&
-                page.items.length >= kept ? (
-                  <Message tone="note" dismissible={false}>
-                    Only the last {DONE_KEPT} done jobs are kept. Older ones are not
-                    shown.
-                  </Message>
-                ) : null}
-                {kind === 'done' && page.items.length > 0 ? (
-                  <Message tone="note" dismissible={false}>
-                    {`Showing ${page.items.length} of ${kept} kept done jobs.`}
-                  </Message>
-                ) : null}
-              </Stack>
-            </Section>
-          );
-        }}
-      </Load>
+      <Cluster>
+        <ViewSwitch view={view} onChange={set} />
+        {kind === 'done' ? (
+          <Segmented
+            label="Range"
+            options={RANGES}
+            value={days}
+            onChange={(v) => {
+              const next = new URLSearchParams(params);
+              next.set('days', v || String(KEPT_DAYS));
+              setParams(next, { replace: true });
+              setShown(DONE_STEP);
+            }}
+            allLabel={null}
+          />
+        ) : null}
+        {kind === 'done' ? (
+          <ExportButton what={`done ${unit}`} run={exportRows} label="Export CSV" />
+        ) : null}
+      </Cluster>
+      {view === 'runs' ? (
+        <Load
+          result={runs.result}
+          what={`the ${TITLES[kind].toLowerCase()} list`}
+          reload={runs.reload}
+        >
+          {(page) => list(page, page.items)}
+        </Load>
+      ) : (
+        <Load
+          result={jobs.result}
+          what={`the ${TITLES[kind].toLowerCase()} list`}
+          reload={jobs.reload}
+        >
+          {(page) => list(page, page.items)}
+        </Load>
+      )}
     </Stack>
   );
 }

@@ -70,11 +70,27 @@ describe('new Jobs screens with the review mock', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
-  it('shows 25 done jobs first and adds 25 on Show more', async () => {
-    open('/jobs/done');
+  it('lists one row per run, and shows 25 done jobs first with Show more in the jobs view', async () => {
+    const view = open('/jobs/done');
+    await waitFor(() => expect(screen.getByText(/Showing \d+ of \d+ runs/)).toBeTruthy());
+    expect(screen.getAllByRole('button', { name: 'Jobs' }).length).toBeGreaterThan(1);
+    view.unmount();
+    open('/jobs/done?view=jobs');
     await waitFor(() => expect(screen.getByText(/Showing 25 of/)).toBeTruthy());
     screen.getByRole('button', { name: 'Show 25 more' }).click();
     await waitFor(() => expect(screen.getByText(/Showing 50 of/)).toBeTruthy());
+  });
+
+  it('opens a run row in place to its jobs', async () => {
+    open('/jobs/running');
+    await waitFor(() => expect(screen.getAllByRole('table').length).toBeGreaterThan(0));
+    screen
+      .getAllByRole('button', { name: 'Jobs' })
+      .find((b) => b.hasAttribute('aria-expanded'))
+      ?.click();
+    await waitFor(() =>
+      expect(screen.getAllByRole('region', { name: /^Jobs: / }).length).toBe(1),
+    );
   });
 
   it('renders a job page for a running, a failed, a queued and a retried job', async () => {
@@ -114,7 +130,7 @@ describe('new Jobs screens with the review mock', () => {
 
   it('shows the failed state when the list cannot load', async () => {
     const api = new ReviewApi();
-    api.failing.add('/api/v1/jobs');
+    api.failing.add('/api/v1/runs');
     open('/jobs', api);
     await waitFor(() =>
       expect(screen.getByText(/Could not load the queue list/)).toBeTruthy(),

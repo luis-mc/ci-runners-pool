@@ -18,10 +18,85 @@ export function rangeWords(lo: number, hi: number): string {
 
 export const NO_FORECAST = 'not enough history yet';
 
-/** The forecast range of a job or a step in words; "not enough history yet" when there are fewer than 5 samples. */
-export function forecastWords(f: Forecast): string {
-  return f.basis === 'not_enough_history' ? NO_FORECAST : rangeWords(f.lo, f.hi);
+/** One number for a table cell: "about 40 s", "about 7 min", "about 1 h 5 min" (owner decision 4). */
+export function oneNumber(seconds: number): string {
+  if (seconds < 60) return `about ${Math.max(5, Math.round(seconds / 5) * 5)} s`;
+  if (seconds < 120) return `about ${Math.round(seconds / 10) * 10} s`;
+  if (seconds < 3600) return `about ${Math.round(seconds / 60)} min`;
+  return `about ${formatDuration(Math.round(seconds / 300) * 300)}`;
 }
+
+/** "the workflow's typical time", "the repository's typical time": the labelled stand-in under 5 runs (decision 7). */
+function typicalLabel(f: Forecast): string {
+  return f.basis === 'workflow'
+    ? "the workflow's typical time"
+    : "the repository's typical time";
+}
+
+/**
+ * The forecast of a job or a step as a RANGE, for the Job and Run pages. Under 5 runs of the job itself it says so
+ * and names the workflow's or the repository's typical time, labelled; with nothing at all, only the first part.
+ */
+export function forecastWords(f: Forecast): string {
+  if (f.basis === 'not_enough_history') return NO_FORECAST;
+  if (f.basis === 'job_key') return rangeWords(f.lo, f.hi);
+  return `${NO_FORECAST}; ${typicalLabel(f)} is ${rangeWords(f.lo, f.hi)}`;
+}
+
+/** The forecast as ONE NUMBER, for a table cell. */
+export function forecastOne(f: Forecast): string {
+  if (f.basis === 'not_enough_history') return NO_FORECAST;
+  if (f.basis === 'job_key') return oneNumber(f.p50);
+  return `${NO_FORECAST} (${f.basis === 'workflow' ? 'workflow' : 'repository'} typical ${oneNumber(f.p50)})`;
+}
+
+export function ordinal(n: number): string {
+  const rest = n % 100;
+  if (rest >= 11 && rest <= 13) return `${n}th`;
+  return `${n}${({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th'}`;
+}
+
+/** The start range of a queued job in minutes: "in about 4 to 7 min", "now". */
+export function startRange(e: Eta): string {
+  if (e.p50 < 20) return 'now';
+  const m = (s: number) => Math.max(1, Math.round(s / 60));
+  const a = m(e.lo);
+  const b = m(e.hi);
+  return a === b ? `in about ${a} min` : `in about ${a} to ${b} min`;
+}
+
+/** "starts in about 4 to 7 min, 3rd in line" (decision 8). */
+export function startsWords(e: Eta | undefined, place: number | undefined): string {
+  if (!e) return 'start not known';
+  return `starts ${startRange(e)}${place ? `, ${ordinal(place)} in line` : ''}`;
+}
+
+/** The task id at the start of a branch name ("RES15-jobs-section" gives "RES15"); none when it does not start with one. */
+export function taskIdOf(branch: string): string | undefined {
+  return (
+    /^([A-Z][A-Z0-9]*-\d+)(?=-|$)/.exec(branch)?.[1] ??
+    /^([A-Z]+\d+)(?=-|$)/.exec(branch)?.[1]
+  );
+}
+
+/** A matrix job's name without its values: "test [ubuntu, 22]" is "test" (job type, decision 10). */
+export function baseJobName(name: string): string {
+  return name.replace(/\s*\[.*\]\s*$/, '').trim();
+}
+
+/** "a1b2c3d, PR #52" or "a1b2c3d, push". */
+export function sourceWords(r: {
+  head_sha?: string | undefined;
+  trigger?: string | undefined;
+  pull_request?: number | undefined;
+}): string {
+  const sha = r.head_sha ? r.head_sha.slice(0, 7) : 'no commit';
+  return `${sha}, ${r.pull_request ? `PR #${r.pull_request}` : (r.trigger ?? 'push')}`;
+}
+
+/** What is kept and for how long (owner decision 2), said in the Done and Charts footers. */
+export const RETENTION_WORDS =
+  'crsp keeps steps for 30 days, jobs for 90 days and daily summaries for 400 days.';
 
 /** Where the forecast comes from, in words ("median of the last 30 runs on linux-box"). */
 export function basisWords(f: Forecast): string {
@@ -40,6 +115,11 @@ export function basisWords(f: Forecast): string {
 
 export function etaWords(e: Eta): string {
   return e.p50 < 20 ? 'now' : `in ${rangeWords(e.lo, e.hi)}`;
+}
+
+/** An ETA as one number for a table: "in about 7 min". */
+export function etaOne(e: Eta): string {
+  return e.p50 < 20 ? 'now' : `in ${oneNumber(e.p50)}`;
 }
 
 export function secondsOrNone(n: number | undefined): string {

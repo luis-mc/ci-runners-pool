@@ -240,6 +240,8 @@ interface JobTpl {
   steps: keyof typeof STEPS;
   /** How many past runs the history holds (default 30). */
   past?: number;
+  /** The job calls a reusable workflow. */
+  reusable?: boolean;
 }
 interface WfTpl {
   repo: string;
@@ -501,6 +503,7 @@ export const RELEASE: WfTpl = {
     }),
     J({
       name: 'publish',
+      reusable: true,
       needs: ['package-msi', 'package-deb', 'package-docker'],
       type: 'light',
       os: 'linux',
@@ -856,11 +859,12 @@ function makeRun(ctx: Ctx, spec: RunSpec): JobItem[] {
       created_at: iso(spec.createdAt),
       queued_at: iso(queuedAt),
       html_url: `https://github.com/${tpl.repo}/actions/runs/${spec.id}/job/${31_000_000_000 + (hash(`${spec.id}-${n.id}`) % 900_000_000)}`,
-      job_key: key,
+      jobKey: key,
       node_id: n.id,
       matrix: n.m,
       branch: spec.branch,
       job_type: n.t.type,
+      ...(n.t.reusable ? { reusable: true } : {}),
       needs,
       forecast,
       ...(pr ? { pull_request: pr } : {}),
@@ -1388,10 +1392,16 @@ export function buildRuns(jobs: readonly JobItem[], now: number): RunItem[] {
       jobs: js,
       edges,
       critical_path: criticalIds(dag),
+      graph: { source: 'workflow_file', sha: first.head_sha ?? '' },
       ...(pr ? { pull_request: pr } : {}),
       ...(worktree ? { worktree } : {}),
     });
   }
+  // One finished run whose workflow file could not be read: only the overlap in time is drawn.
+  const odd = [...runs]
+    .filter((r) => r.state === 'done' && r.attempt === 1 && r.jobs.length >= 4)
+    .sort((a, b) => a.id - b.id)[2];
+  if (odd) odd.graph = { source: 'timing', sha: odd.head_sha };
   return runs;
 }
 
@@ -1412,13 +1422,14 @@ export function forecastOfKey(h: readonly HistoryPoint[], branch = 'main'): Fore
 /** Wire shape for the shell: the contract's own Job fields only. */
 export function toSchemaJob(j: JobItem): Schemas['Job'] {
   const {
-    job_key: _k,
+    jobKey: _k,
     node_id: _n,
     matrix: _m,
     branch: _b,
     pull_request: _p,
     worktree: _w,
     job_type: _t,
+    reusable: _ru,
     needs: _nd,
     runner: _r,
     cleanup_seconds: _c,
@@ -1428,6 +1439,6 @@ export function toSchemaJob(j: JobItem): Schemas['Job'] {
     steps: _s,
     ...rest
   } = j;
-  void [_k, _n, _m, _b, _p, _w, _t, _nd, _r, _c, _q, _e, _f, _s];
+  void [_k, _n, _m, _b, _p, _w, _t, _ru, _nd, _r, _c, _q, _e, _f, _s];
   return rest;
 }
