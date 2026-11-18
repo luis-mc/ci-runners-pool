@@ -141,6 +141,22 @@ func (b *Backend) psOK(ctx context.Context, step, script string, env, secret map
 	return nil
 }
 
+// accountSID reads the SID of the account that was made, so icacls never has
+// to map a name.
+func (b *Backend) accountSID(ctx context.Context, account string, env map[string]string) (string, error) {
+	res, err := b.ps(ctx, scriptAccountSID, env, nil)
+	if err != nil {
+		return "", &FolderResetError{Detail: fmt.Sprintf("read SID of %s: %v", account, err), Err: err}
+	}
+	sid := strings.TrimSpace(res.Stdout)
+	if res.ExitCode != 0 || !strings.HasPrefix(sid, "S-1-") {
+		e := &FolderResetError{Detail: fmt.Sprintf("read SID of %s: powershell exited %d: %s", account, res.ExitCode, b.redact(plainError(res.Stderr, res.Stdout)))}
+		b.log("acl", e.Detail)
+		return "", e
+	}
+	return sid, nil
+}
+
 func (b *Backend) redact(s string) string {
 	if b.d.Redact != nil {
 		return b.d.Redact(s)
@@ -334,7 +350,11 @@ func (b *Backend) start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	}
 	// An account switch leaves old owners and explicit entries on the files
 	// (R5.50): hand the folder to the account and reset it before the lock.
-	if err := ResetFolderACL(ctx, b.d, folder, account); err != nil {
+	sid, err := b.accountSID(ctx, account, env)
+	if err != nil {
+		return h, err
+	}
+	if err := ResetFolderACL(ctx, b.d, folder, account, sid); err != nil {
 		return h, err
 	}
 	if err := b.psOK(ctx, "lock folder", scriptLock, env, nil); err != nil {

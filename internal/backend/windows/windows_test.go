@@ -16,6 +16,8 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
+const testSID = "S-1-5-21-1111-2222-3333-1004"
+
 const testPassword = "S3cret-Pass-Word-ZZZ-never-logged!"
 
 type rig struct {
@@ -29,7 +31,7 @@ type rig struct {
 
 func newRig(t *testing.T) *rig {
 	t.Helper()
-	r := &rig{cmd: &sysfake.Commands{}, fs: sysfake.NewFS(), body: []byte("zip bytes")}
+	r := &rig{cmd: &sysfake.Commands{Rules: []sysfake.Rule{{Match: "SID.Value", Result: sys.Result{Stdout: testSID + "\r\n"}}}}, fs: sysfake.NewFS(), body: []byte("zip bytes")}
 	r.fe = &sysfake.Fetcher{FS: r.fs, Body: r.body}
 	verify := func(path, want string) error {
 		d, err := r.fs.ReadFile(path)
@@ -67,6 +69,11 @@ func scripts(r *rig) []string {
 }
 
 // index of the first call whose script contains marker, or -1.
+// withSID keeps the SID answer beside a test's own rules.
+func withSID(rules []sysfake.Rule) []sysfake.Rule {
+	return append(rules, sysfake.Rule{Match: "SID.Value", Result: sys.Result{Stdout: testSID + "\r\n"}})
+}
+
 func idx(r *rig, marker string) int {
 	for i, c := range r.cmd.Calls {
 		if strings.Contains(c.Stdin, marker) {
@@ -359,7 +366,7 @@ func TestRemoveFailureStops(t *testing.T) {
 	meta.Account = "old-account"
 	_ = persistent.WriteMeta(r.fs, folder+`\`+persistent.MetaFile, *meta)
 	r.cmd.Calls = nil
-	r.cmd.Rules = []sysfake.Rule{{Match: "Runner.Listener.exe", Result: sys.Result{ExitCode: 1, Stderr: "remove failed"}}}
+	r.cmd.Rules = withSID([]sysfake.Rule{{Match: "Runner.Listener.exe", Result: sys.Result{ExitCode: 1, Stderr: "remove failed"}}})
 	err := start(t, r, spec, backend.StartConfig{Registration: "REGTOKEN2", Removal: "REMOVETOKEN"})
 	if !errors.Is(err, ErrRemovalFailed) {
 		t.Fatalf("err = %v", err)
@@ -467,7 +474,7 @@ func TestCleanUpTwice(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := persistent.ServiceName(spec.GitHubURL, spec.Name)
-	r.cmd.Rules = []sysfake.Rule{{Match: "Win32_Service -Filter \"Name LIKE", Result: sys.Result{Stdout: `{"Name":"` + svc + `","State":"Running","PathName":"\"C:\\ProgramData\\crsp\\runners\\box-1\\bin\\RunnerService.exe\"","StartName":".\\crsp-box-1"}`}}}
+	r.cmd.Rules = withSID([]sysfake.Rule{{Match: "Win32_Service -Filter \"Name LIKE", Result: sys.Result{Stdout: `{"Name":"` + svc + `","State":"Running","PathName":"\"C:\\ProgramData\\crsp\\runners\\box-1\\bin\\RunnerService.exe\"","StartName":".\\crsp-box-1"}`}}})
 	h := backend.Handle{Ref: svc}
 	if err := r.b.CleanUp(context.Background(), h); err != nil {
 		t.Fatal(err)
@@ -480,7 +487,7 @@ func TestCleanUpTwice(t *testing.T) {
 			t.Errorf("folder not removed: %s", n)
 		}
 	}
-	r.cmd.Rules = []sysfake.Rule{{Match: "Name LIKE", Result: sys.Result{Stdout: "[]"}}}
+	r.cmd.Rules = withSID([]sysfake.Rule{{Match: "Name LIKE", Result: sys.Result{Stdout: "[]"}}})
 	if err := r.b.CleanUp(context.Background(), h); err != nil {
 		t.Fatalf("second CleanUp: %v", err)
 	}
@@ -492,10 +499,10 @@ func TestDeregisterFailureKeepsRunner(t *testing.T) {
 	spec := r.spec()
 	svc := persistent.ServiceName(spec.GitHubURL, spec.Name)
 	row := `{"Name":"` + svc + `","State":"Running","PathName":"\"C:\\ProgramData\\crsp\\runners\\box-1\\bin\\RunnerService.exe\"","StartName":".\\crsp-box-1"}`
-	r.cmd.Rules = []sysfake.Rule{
+	r.cmd.Rules = withSID([]sysfake.Rule{
 		{Match: "Runner.Listener.exe", Result: sys.Result{ExitCode: 1}},
 		{Match: "Name LIKE", Result: sys.Result{Stdout: row}},
-	}
+	})
 	err := r.b.Deregister(context.Background(), backend.Handle{Ref: svc}, "REMOVETOKEN")
 	if !errors.Is(err, ErrRemovalFailed) {
 		t.Fatalf("err = %v", err)
@@ -520,7 +527,7 @@ func TestFindFromServiceList(t *testing.T) {
  {"Name":"actions.runner.luis-mc-old.hand-made","State":"Stopped","PathName":"\"D:\\actions-runner\\bin\\RunnerService.exe\"","StartName":"NT AUTHORITY\\NETWORK SERVICE"},
  {"Name":"Spooler","State":"Running","PathName":"x","StartName":"LocalSystem"}
 ]`
-	r.cmd.Rules = []sysfake.Rule{{Match: "Name LIKE", Result: sys.Result{Stdout: rows}}}
+	r.cmd.Rules = withSID([]sysfake.Rule{{Match: "Name LIKE", Result: sys.Result{Stdout: rows}}})
 	found, err := r.b.Find(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -548,7 +555,7 @@ func (deniedFS) ReadFile(string) ([]byte, error) { return nil, errors.New("acces
 func TestFindReportsUnreadableFolder(t *testing.T) {
 	r := newRig(t)
 	r.b.d.FS = deniedFS{r.fs}
-	r.cmd.Rules = []sysfake.Rule{{Match: "Name LIKE", Result: sys.Result{Stdout: `{"Name":"actions.runner.a-b.x","State":"Running","PathName":"\"C:\\locked\\bin\\RunnerService.exe\"","StartName":".\\crsp-x"}`}}}
+	r.cmd.Rules = withSID([]sysfake.Rule{{Match: "Name LIKE", Result: sys.Result{Stdout: `{"Name":"actions.runner.a-b.x","State":"Running","PathName":"\"C:\\locked\\bin\\RunnerService.exe\"","StartName":".\\crsp-x"}`}}})
 	found, err := r.b.Find(context.Background())
 	if err != nil || len(found) != 1 {
 		t.Fatalf("%v %v", found, err)
@@ -560,12 +567,12 @@ func TestFindReportsUnreadableFolder(t *testing.T) {
 
 func TestDetect(t *testing.T) {
 	r := newRig(t)
-	r.cmd.Rules = []sysfake.Rule{{Match: "IsInRole", Result: sys.Result{Stdout: "admin=False;ps=5.1"}}}
+	r.cmd.Rules = withSID([]sysfake.Rule{{Match: "IsInRole", Result: sys.Result{Stdout: "admin=False;ps=5.1"}}})
 	s, _ := r.b.Detect(context.Background())
 	if s.Usable || s.Reason == "" || !s.Present {
 		t.Errorf("%+v", s)
 	}
-	r.cmd.Rules = []sysfake.Rule{{Match: "IsInRole", Result: sys.Result{Stdout: "admin=True;ps=5.1"}}}
+	r.cmd.Rules = withSID([]sysfake.Rule{{Match: "IsInRole", Result: sys.Result{Stdout: "admin=True;ps=5.1"}}})
 	s, _ = r.b.Detect(context.Background())
 	if !s.Usable {
 		t.Errorf("%+v", s)
@@ -591,7 +598,7 @@ func TestRestartNeverStartsASecondListener(t *testing.T) {
 	folder := `C:\ProgramData\crsp\runners\box-1`
 	r.fs.Files[folder+`\.env`] = []byte("stale\n")
 	r.cmd.Calls = nil
-	r.cmd.Rules = []sysfake.Rule{{Match: "Get-Process", Result: sys.Result{Stdout: "5120\r\n"}}}
+	r.cmd.Rules = withSID([]sysfake.Rule{{Match: "Get-Process", Result: sys.Result{Stdout: "5120\r\n"}}})
 	err := start(t, r, spec, backend.StartConfig{Registration: "REGTOKEN"})
 	if !errors.Is(err, persistent.ErrListenerAlive) {
 		t.Fatalf("err = %v", err)
@@ -620,7 +627,7 @@ func TestAccountSwitchResetsFolderACL(t *testing.T) {
 	folder := r.b.Folder("box-1")
 	want := []string{
 		"takeown /F " + folder + " /R /D Y",
-		"icacls " + folder + " /setowner crsp-box-1 /T /C",
+		"icacls " + folder + " /setowner *" + testSID + " /T /C",
 		"icacls " + folder + " /reset /T /C",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
@@ -632,8 +639,15 @@ func TestACLResetFailureStopsBeforeLock(t *testing.T) {
 	r := newRig(t)
 	r.cmd.Rules = append(r.cmd.Rules, sysfake.Rule{Match: "icacls", Result: sys.Result{ExitCode: 5, Stderr: "Access is denied."}})
 	err := start(t, r, r.spec(), backend.StartConfig{Registration: "REGTOKEN"})
-	if err == nil || !strings.Contains(err.Error(), "Access is denied") || !strings.Contains(err.Error(), "reset folder owner") {
-		t.Fatalf("err = %v", err)
+	if err == nil || !strings.HasPrefix(err.Error(), ErrPrepareFolder) || strings.Contains(err.Error(), "icacls") {
+		t.Fatalf("err = %v, want the one short line", err)
+	}
+	var fe *FolderResetError
+	if !errors.As(err, &fe) || !strings.Contains(fe.Detail, "Access is denied") || !strings.Contains(fe.Detail, "reset folder owner") {
+		t.Fatalf("detail = %+v", fe)
+	}
+	if !strings.Contains(strings.Join(r.logs, "\n"), "Access is denied") {
+		t.Error("the full reason is in the log")
 	}
 	if idx(r, "SetAccessRuleProtection") >= 0 || idx(r, "New-Service") >= 0 {
 		t.Error("the folder was locked or the service made after a failed reset")
@@ -669,5 +683,45 @@ func TestEnvCarriesCIMaxParallel(t *testing.T) {
 	}
 	if env := string(r.fs.Files[`C:\ProgramData\crsp\runners\box-1\.env`]); !strings.Contains(env, "CI_MAX_PARALLEL=3") {
 		t.Errorf(".env:\n%s", env)
+	}
+}
+
+// The owner is the SID read after the account exists: the SID is read after
+// the account is made, before the first icacls, and the name never reaches
+// /setowner (error 1332 on a name Windows cannot map).
+func TestSIDReadAfterAccountBeforeICACLS(t *testing.T) {
+	r := newRig(t)
+	if err := start(t, r, r.spec(), backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
+		t.Fatal(err)
+	}
+	acct, sid := idx(r, "New-LocalUser"), idx(r, "SID.Value")
+	first := -1
+	for i, c := range r.cmd.Calls {
+		if c.Name == "takeown" || c.Name == "icacls" {
+			first = i
+			break
+		}
+	}
+	if acct < 0 || sid <= acct || first <= sid {
+		t.Fatalf("order: account %d, sid %d, first folder tool %d", acct, sid, first)
+	}
+	for _, c := range r.cmd.Calls {
+		if c.Name == "icacls" && strings.Contains(c.String(), "crsp-box-1") {
+			t.Errorf("icacls got the account name: %s", c)
+		}
+	}
+}
+
+func TestNoSIDStopsBeforeICACLS(t *testing.T) {
+	r := newRig(t)
+	r.cmd.Rules = withSID([]sysfake.Rule{{Match: "SID.Value", Result: sys.Result{ExitCode: 1, Stderr: errMarker + "no such user"}}})
+	err := start(t, r, r.spec(), backend.StartConfig{Registration: "REGTOKEN"})
+	if err == nil || !strings.HasPrefix(err.Error(), ErrPrepareFolder) {
+		t.Fatalf("err = %v", err)
+	}
+	for _, c := range r.cmd.Calls {
+		if c.Name == "icacls" || c.Name == "takeown" {
+			t.Errorf("%s ran without a SID", c.Name)
+		}
 	}
 }

@@ -29,6 +29,14 @@ if (-not (Get-LocalGroupMember -Group $env:CRSP_GROUP -Member $env:CRSP_ACCOUNT 
 if (-not (Get-LocalUser -Name $env:CRSP_ACCOUNT).Enabled) { throw "the account $($env:CRSP_ACCOUNT) is disabled" }
 `
 
+	// scriptAccountSID writes the SID of the account that was made, one line.
+	// Needs CRSP_ACCOUNT.
+	scriptAccountSID = scriptHeader + `
+$sid = (Get-LocalUser -Name $env:CRSP_ACCOUNT).SID.Value
+if (-not $sid) { throw "no SID for the account $($env:CRSP_ACCOUNT)" }
+[Console]::Out.WriteLine($sid)
+`
+
 	// scriptRights sets the rights of the account through the LSA: log on as a
 	// service, the two deny logons, and the symlink right to match the setting
 	// (runners R5.14, R5.20). Only this one account is touched, and each right

@@ -10,6 +10,21 @@ import (
 
 const errResetACLPrefix = "reset folder owner and access"
 
+// ErrPrepareFolder is the one line the owner sees when the folder reset
+// fails; the step, the exit code and the tool text go to the log and to
+// FolderResetError.Detail.
+const ErrPrepareFolder = "Could not prepare the runner folder"
+
+// FolderResetError is a failed folder reset. Error is the short line; Detail
+// is the whole reason.
+type FolderResetError struct {
+	Detail string
+	Err    error
+}
+
+func (e *FolderResetError) Error() string { return ErrPrepareFolder }
+func (e *FolderResetError) Unwrap() error { return e.Err }
+
 // ResetFolderACL gives the runner folder and every file in it to the account
 // and puts every file back to inherited access (runners R5.50). A runner moved
 // from NETWORK SERVICE to its own account otherwise keeps files, such as its
@@ -17,33 +32,46 @@ const errResetACLPrefix = "reset folder owner and access"
 // job fails with "Access is denied". The steps are the same as running by hand:
 //
 //	takeown /F <dir> /R /D Y
-//	icacls <dir> /setowner <account> /T /C
+//	icacls <dir> /setowner *<sid> /T /C
 //	icacls <dir> /reset /T /C
 //
-// It runs after the account exists and before the folder is locked. Each exit
-// code is checked; a failure stops the change with the step and the reason.
-func ResetFolderACL(ctx context.Context, d sys.Deps, folder, account string) error {
+// The owner is given as the SID of the account that was made ("*S-1-5-…"),
+// never as a name, so a name Windows cannot map (error 1332) never reaches
+// icacls. It runs after the account exists and before the folder is locked.
+// Each exit code is checked; a failure stops the change. The error is one
+// short line; the step and the reason are logged and kept in Detail.
+func ResetFolderACL(ctx context.Context, d sys.Deps, folder, account, sid string) error {
+	if !strings.HasPrefix(sid, "S-1-") {
+		return fail(d, &FolderResetError{Detail: fmt.Sprintf("%s: no SID for account %s", errResetACLPrefix, account)})
+	}
 	steps := []struct {
 		name string
 		cmd  sys.Command
 	}{
 		{"take ownership", sys.Command{Name: "takeown", Args: []string{"/F", folder, "/R", "/D", "Y"}}},
-		{"set owner " + account, sys.Command{Name: "icacls", Args: []string{folder, "/setowner", account, "/T", "/C"}}},
+		{"set owner " + account, sys.Command{Name: "icacls", Args: []string{folder, "/setowner", "*" + sid, "/T", "/C"}}},
 		{"reset to inherited access", sys.Command{Name: "icacls", Args: []string{folder, "/reset", "/T", "/C"}}},
 	}
 	for _, s := range steps {
 		res, err := d.Cmd.Run(ctx, s.cmd)
 		if err != nil {
-			return fmt.Errorf("%s (%s): %w", errResetACLPrefix, s.name, err)
+			return fail(d, &FolderResetError{Detail: fmt.Sprintf("%s (%s): %v", errResetACLPrefix, s.name, err), Err: err})
 		}
 		if res.ExitCode != 0 {
-			return fmt.Errorf("%s (%s): %s exited %d: %s", errResetACLPrefix, s.name, s.cmd.Name, res.ExitCode, firstLineOf(d, res.Stderr+res.Stdout))
+			return fail(d, &FolderResetError{Detail: fmt.Sprintf("%s (%s): %s exited %d: %s", errResetACLPrefix, s.name, s.cmd.Name, res.ExitCode, firstLineOf(d, res.Stderr+res.Stdout))})
 		}
 		if d.LogLine != nil {
 			d.LogLine("acl", redactWith(d, fmt.Sprintf("%s: %s %s", s.name, s.cmd.Name, strings.Join(s.cmd.Args, " "))))
 		}
 	}
 	return nil
+}
+
+func fail(d sys.Deps, e *FolderResetError) error {
+	if d.LogLine != nil {
+		d.LogLine("acl", redactWith(d, e.Detail))
+	}
+	return e
 }
 
 func redactWith(d sys.Deps, s string) string {
