@@ -7,7 +7,7 @@ status: building
 version: 0.1.0
 owner: owner
 type: reference
-code: [internal/update/**, internal/recovery/**, internal/backup/**, internal/configio/**, internal/install/**, installer/**, cmd/crsp/service_*.go]
+code: [internal/addresses/**, internal/update/**, internal/recovery/**, internal/backup/**, internal/configio/**, internal/install/**, installer/**, cmd/crsp/service_*.go]
 design_system: [components 4, components 9, components 16, components 18, components 34, UX-5, UX-6, UX-9, UX-13, UX-26, UX-29, UX-30, UX-34, UX-38, UX-62]
 last_verified: 2026-11-14
 artifact:
@@ -310,6 +310,12 @@ Not built: a copyable reinstall command with a one-time token in the console, an
 
 **R5.91** (built, TRAY4) — **A running update leaves a live stage.** The controller and the install helper write `stage.json` in the update work folder, beside `result.json`, and `GET /api/v1/update` shows it as `stage`: `name` (`downloading`, `waiting_for_jobs`, `installing`, `restarting`, `done` or `failed`), `percent` for downloading (bytes of the release asset) and for installing (a rough guess from how far the verbose msiexec log has got through the standard install actions; 100 only when the log has its end line), `version`, `at`, and for a failure `error`, `log_path` and `failed_at` (the stage that failed). The file is replaced whole and survives the service restart that the install causes, so the next start can say `done` with the new version, or `failed` with the log path (Windows: `msi-update.log`; elsewhere `update.log`). While `msiexec` runs the service is stopped part way by the upgrade, so the percent stops there and the page waits for the service to come back. A stage that cannot be written is only logged and never stops an update.
 
+### External addresses (OPS35)
+
+**R5.92** (built, OPS35) — **No address is written into code; the owner sets the GitHub address in the environment.** The controller, the agent and the tray read four optional settings once at start, in one file (`internal/addresses/addresses.go`), and every other package receives the value through its struct. `CRSP_GITHUB_URL` (default `https://github.com`) is GitHub's web address: runner target pages, job links, the App and installation pages of the guided grant, the install page and the sign-in and device flow all follow it. `CRSP_GITHUB_API_URL` (default `https://api.github.com`) is the REST address; when only `CRSP_GITHUB_URL` names another host (GitHub Enterprise Server) it is `<url>/api/v3`. `CRSP_RUNNER_DOWNLOAD_URL` (default `<CRSP_GITHUB_URL>/actions/runner/releases/download`) is where the Actions runner archives are fetched. Each is an absolute `https` address (`http` only for `127.0.0.1` and `localhost`), with no trailing slash, query or credentials; a bad value stops the start and the message names the variable. The default behaviour is unchanged. Not settings: the signed Sigstore trust data, the GitHub Actions OIDC issuer and the signer identity of crsp releases (fixed identities, constants in the same file), and the VM image catalogue hosts (`internal/vmcheck/vm-images.json`, catalogue data; a mirror setting is a follow-up). The web console never holds an address of its own: it calls its own origin, and the GitHub pages it opens come from the controller. Source: `internal/addresses/addresses.go`, `internal/config/config.go`, `cmd/crsp/addresses_wiring.go`.
+
+**R5.93** (built, OPS35) — **A guard keeps it so.** `go test ./...` fails when a non-test Go file other than `internal/addresses/addresses.go` (and generated code and the fake GitHub) holds a string literal that starts with `http://` or `https://` and a host; comments are not scanned. `pnpm exec vitest run --project guard` fails when code in `apps/web/src` or `packages/*/src` (tests and test support excluded) holds an absolute `http(s)` address in a string, a template or JSX text, except `127.0.0.1`, `localhost` and `example.com` in help words. Source: `internal/addresses/guard_test.go`, `guards/no-hardcoded-addresses.guard.test.ts`.
+
 ## 6. Non-functional requirements
 
 **R6.1** (M3) — An update never stops a running job. A controller restart never stops a job on any machine; agents reconnect with backoff.
@@ -448,6 +454,8 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R5.88 | internal/update/update_test.go TestAfterInstallRunsOnlyAfterASuccessfulMSIUpdate; internal/tray/tray_test.go TestUpdatedNoticeOncePerVersion. The start in the user's session (`internal/tray/launch_windows.go`) is built and compiled for Windows; a Windows install run is not in CI yet |
 | R5.89 | installer/wxs_test.go TestMSIHasOneProgramsListEntry, TestMSIUpgradeReplacesTheOldProduct; .github/workflows/windows-msi-check.yml; installer/smoke.ps1 and installer/upgrade-test.ps1 (Windows runner) |
 | R5.91 | built (TRAY4): internal/update/stage_test.go, TestStageFileRoundTripAndMissing, TestPercentOfDownload, TestMSIPercentFromTheVerboseLog, TestMSIPercentReadsUTF16Logs, TestManagerWritesTheStagesOfAnUpdate, TestManagerStageFailedCarriesErrorAndLog, TestHelperWritesDoneAndFailedStages, TestRecoverMSIWritesDoneAndFailedStage, TestHTTPFetchReportsProgress; internal/api/handlers_update_test.go, TestUpdateStatusCarriesTheStage |
+| R5.92 | internal/addresses/addresses_test.go TestLoadDefaults, TestLoadEnterpriseDerivesAPIAndDownload, TestLoadExplicitValuesWin, TestLoadRejectsBadAddressesNamingTheVariable, TestLoadReportsEveryProblem, TestEnterpriseHostRunnerURLAndGrantPages, TestZeroSetDownloadURLUsesDefaults; packages/ui/src/components/Grant.test.tsx "opens only https pages the controller names" |
+| R5.93 | internal/addresses/guard_test.go TestNoLiteralAddressesInGo; guards/no-hardcoded-addresses.guard.test.ts |
 
 ## 10. Decisions
 
@@ -488,6 +496,7 @@ Built in CRSP18: see the status line at the top. The seams:
 ## 12. Code map
 
 Source: internal/config/config.go
+Source: internal/addresses/addresses.go
 Source: internal/listenaddr/listenaddr.go
 Source: internal/settings/listen.go
 Source: internal/api/handlers_listen.go
