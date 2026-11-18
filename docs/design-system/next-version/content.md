@@ -603,7 +603,15 @@ The words of the setting that lets the pool serve public repositories, and of th
 | Active types: Private (default) / Active types: Private & Public | The line near the title of Repositories. The value links to the setting. |
 | Visibility, Private, Public, Internal | The column and its values. |
 | Public repositories are off, so the pool does not serve this one. | The reason in a greyed public row. Link: Turn on public repositories. |
-| Public repositories are off. Turn them on in Settings first. | The reason of a disabled Turn on the pool, and of a repository that Add runners cannot choose. |
+| Use pool | Primary action of the action bar on Repositories, for the ticked repositories. Also the action on a repository's page. |
+| Stop using pool | Primary action of the action bar on Repositories when every ticked repository already uses the pool. Also the action on a repository's page. |
+| Nothing selected | Status line of the action bar on Repositories while nothing is ticked. |
+| {n} selected | Status line of the action bar while {n} rows are ticked. |
+| Tick the repositories that should use the pool. | Reason of the disabled Use pool while nothing is ticked. |
+| Unsaved changes ({n}) | Status line of the action bar on an edit screen while {n} things differ from what is saved. |
+| Nothing has changed yet. | Reason of the disabled Save in the action bar while nothing differs from what is saved. |
+| Change a setting to save. | Reason of the disabled Save on a machine's page while nothing differs from what is saved. |
+| Public repositories are off. Turn them on in Settings first. | The reason of a disabled Use pool, and of a repository that Add runners cannot choose. |
 | Public repositories are off: {names}. Turn them on in Settings first. | The reason of the disabled Turn on N repositories when the selection holds a public one. |
 | {n} public repositories are not listed: public repositories are off. Turn them on in Settings to use the pool there. | Note in Turn on the pool. Action: Open the setting. |
 | Fix it | The link in the list from a repository with a Problem to its page. |
@@ -619,7 +627,7 @@ The words of the first-run fixes (web-console 4.1 and 4.3, CRSP124). The console
 | Install the App on a repository | The button that opens GitHub's install page for the App in a new tab. Busy word: Opening GitHub. |
 | Install the App on an organization | The same button in Add runners, when the App is on no organization. |
 | GitHub is open in a new tab. Pick the account and the repositories there, then come back to this tab. The list refreshes by itself. | Note under the install button after it opened GitHub. |
-| GitHub saved the App installation. The list below is read again. Turn the pool on for the repositories you want. | Done message on Repositories after GitHub's return with setup_action install or update. Action: Turn on the pool. |
+| GitHub saved the App installation. The list below is read again. Tick the repositories you want and press Use pool. | Done message on Repositories after GitHub's return with setup_action install or update. Action: Use pool. |
 | GitHub sent the install request to an owner of the account. The repositories show here when they approve it. | Needs-you message after the return with setup_action request. |
 | No repository is waiting. Install the App on a repository to turn the pool on for it, or open Repositories to see the ones that already use it. | Needs-you message in Turn on the pool when no repository is free. |
 | Turning the pool on also makes one light runner per system, on a machine that is up. Jobs that last seconds use it, so they do not wait behind a long build. Turn it off for a repository on its page. | Note on the Review step of Turn on the pool. |

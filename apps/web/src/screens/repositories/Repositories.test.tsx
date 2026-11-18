@@ -52,14 +52,33 @@ describe('Repositories list', () => {
     expect(screen.queryByRole('link', { name: 'site' })).toBeNull();
   });
 
-  it('offers Select all N and Clear, and names the count on the action (UX-7, UX-12)', async () => {
+  it('shows the action bar with the count, and Use pool waits for a selection (UX-4, UX-7, UX-12, UX-71)', async () => {
     renderApp(withRepos(signedIn()), '/repositories');
     await screen.findByRole('table', { name: 'octo repositories' });
+    const bar = screen.getByRole('region', { name: 'Actions' });
+    expect(within(bar).getByText('Nothing selected')).toBeTruthy();
+    const use = within(bar).getByRole<HTMLButtonElement>('button', { name: 'Use pool' });
+    expect(use.disabled).toBe(true);
+    expect(
+      within(bar).getByText('Tick the repositories that should use the pool.'),
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Select all 2' }));
-    expect(screen.getByRole('button', { name: 'Turn on 2 repositories' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Turn off 2 repositories' })).toBeTruthy();
+    expect(within(bar).getByText('2 selected')).toBeTruthy();
+    expect(
+      within(bar).getByRole<HTMLButtonElement>('button', { name: 'Use pool' }).disabled,
+    ).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
-    expect(screen.queryByRole('button', { name: /Turn on \d/ })).toBeNull();
+    expect(within(bar).getByText('Nothing selected')).toBeTruthy();
+  });
+
+  it('turns Use pool into Stop using pool when every selected repository uses the pool', async () => {
+    renderApp(withRepos(signedIn()), '/repositories');
+    await screen.findByRole('table', { name: 'octo repositories' });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select octo/site' }));
+    const bar = screen.getByRole('region', { name: 'Actions' });
+    expect(within(bar).getByRole('button', { name: 'Stop using pool' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select octo/app' }));
+    expect(within(bar).getByRole('button', { name: 'Use pool' })).toBeTruthy();
   });
 
   it('disables turn-on for a repository without GitHub admin rights and says why (UX-38)', async () => {
@@ -69,9 +88,7 @@ describe('Repositories list', () => {
     );
     await screen.findByRole('table', { name: 'octo repositories' });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select octo/app' }));
-    const button = screen.getByRole<HTMLButtonElement>('button', {
-      name: 'Turn on 1 repository',
-    });
+    const button = screen.getByRole<HTMLButtonElement>('button', { name: 'Use pool' });
     expect(button.disabled).toBe(true);
     expect(screen.getByText(/You need admin rights on octo\/app in GitHub/)).toBeTruthy();
   });
@@ -85,9 +102,7 @@ describe('Repositories list', () => {
     );
     await screen.findByRole('table', { name: 'octo repositories' });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select octo/app' }));
-    const button = screen.getByRole<HTMLButtonElement>('button', {
-      name: 'Turn on 1 repository',
-    });
+    const button = screen.getByRole<HTMLButtonElement>('button', { name: 'Use pool' });
     expect(button.disabled).toBe(false);
     expect(screen.queryByText(/You need admin rights/)).toBeNull();
   });
@@ -121,7 +136,7 @@ describe('Repositories list', () => {
     renderApp(api, '/repositories');
     await screen.findByRole('table', { name: 'octo repositories' });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select octo/site' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Turn off 1 repository' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Stop using pool' }));
     const dialog = await screen.findByRole('dialog', {
       name: 'Turn off these repositories?',
     });
@@ -463,7 +478,7 @@ describe('Repository detail', () => {
     expect(await screen.findByText(/line 1: "a b" is not a package name/)).toBeTruthy();
   });
 
-  it('shows Turn on the pool disabled with the reason when the user lacks GitHub admin rights', async () => {
+  it('shows Use pool disabled with the reason when the user lacks GitHub admin rights', async () => {
     const a = withRepos(signedIn()).on(
       'GET',
       '/api/v1/repositories/:id',
@@ -471,7 +486,7 @@ describe('Repository detail', () => {
     );
     renderApp(a, '/repositories/octo/app');
     const button = await screen.findByRole<HTMLButtonElement>('button', {
-      name: 'Turn on the pool',
+      name: 'Use pool',
     });
     expect(button.disabled).toBe(true);
     expect(

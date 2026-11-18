@@ -22,6 +22,7 @@ import {
   useNow,
   type Column,
   type StatusKind,
+  ActionBar,
 } from '@crsp/ui';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -302,17 +303,6 @@ export function RunnersList() {
       <PageHeader
         title="Runners"
         lead="Every runner, with where it runs and how it is isolated."
-        action={
-          admin ? (
-            <Button kind="primary" onPress={() => void navigate('/runners/add')}>
-              Add runners
-            </Button>
-          ) : (
-            <Button kind="primary" disabled reason={why}>
-              Add runners
-            </Button>
-          )
-        }
       />
       <Load result={result} what="runners" reload={reload}>
         {(data) => {
@@ -510,6 +500,18 @@ export function RunnersList() {
           setCleaning(undefined);
         }}
         onConfirm={() => void cleanup.confirm()}
+      />
+      <ActionBar
+        primary={
+          <Button
+            kind="primary"
+            disabled={!admin}
+            reason={admin ? undefined : why}
+            onPress={() => void navigate('/runners/add')}
+          >
+            Add runners
+          </Button>
+        }
       />
     </Page>
   );

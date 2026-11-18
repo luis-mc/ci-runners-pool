@@ -40,10 +40,10 @@ describe('Repositories list in a pane', () => {
   it('has one primary, also while rows are ticked (UX-4)', async () => {
     renderApp(list(signedIn()), '/repositories');
     await screen.findByRole('table', { name: 'octo repositories' });
-    expect(primaries()).toEqual(['Turn on the pool']);
+    expect(primaries()).toEqual(['Use pool']);
     fireEvent.click(screen.getByRole('button', { name: 'Select all 1' }));
-    expect(screen.getByRole('button', { name: 'Turn on 1 repository' })).toBeTruthy();
-    expect(primaries()).toEqual(['Turn on the pool']);
+    expect(screen.getByRole('button', { name: 'Use pool' })).toBeTruthy();
+    expect(primaries()).toEqual(['Use pool']);
   });
 
   it('shows Select all N, and Clear that waits for a ticked row, in one toolbar line (UX-12)', async () => {
@@ -106,14 +106,17 @@ describe('Repository detail in panes', () => {
     renderApp(detail(), '/repositories/octo/app');
     await screen.findByRole('heading', { level: 1, name: 'octo/app' });
     expect(screen.getAllByRole('button', { name: /^Save/ })).toHaveLength(1);
-    // The pool is off: Turn on the pool is the next step, Save is secondary.
-    expect(primaries()).toEqual(['Turn on the pool']);
+    // The action bar holds the one primary: Save (UX-4, UX-71).
+    expect(primaries()).toEqual(['Save']);
   });
 
-  it('makes Save the primary once the pool is on', async () => {
+  it('keeps Save the one primary also once the pool is on, in the action bar', async () => {
     renderApp(detail(repository({ pool_on: true })), '/repositories/octo/app');
     await screen.findByRole('heading', { level: 1, name: 'octo/app' });
     expect(primaries()).toEqual(['Save']);
+    const bar = screen.getByRole('region', { name: 'Actions' });
+    expect(within(bar).getByRole('button', { name: 'Save' })).toBeTruthy();
+    expect(within(bar).getByRole('button', { name: 'Cancel' })).toBeTruthy();
   });
 
   it('saves the policy, the fallback and the packages with one Save, asking once', async () => {
@@ -151,12 +154,18 @@ describe('Repository detail in panes', () => {
     expect(sent['confirm_fallback_cost']).toBe(true);
   });
 
-  it('sends nothing for a Save with no change', async () => {
+  it('disables Save with its reason while clean, and counts the unsaved changes', async () => {
     const a = detail();
     renderApp(a, '/repositories/octo/app');
     await screen.findByRole('heading', { level: 1, name: 'octo/app' });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-    expect(await screen.findByText('Nothing changed.')).toBeTruthy();
+    const save = screen.getByRole<HTMLButtonElement>('button', { name: 'Save' });
+    expect(save.disabled).toBe(true);
+    expect(screen.getByText('Nothing has changed yet.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Run jobs from public forks' }));
+    expect(screen.getByText('Unsaved changes (1)')).toBeTruthy();
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Save' }).disabled).toBe(
+      false,
+    );
     expect(
       a.calls.filter((c) => c.method === 'PATCH' || c.method === 'PUT'),
     ).toHaveLength(0);
