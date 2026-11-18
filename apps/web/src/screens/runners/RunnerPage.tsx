@@ -141,6 +141,7 @@ function RunnerBody({ r, onChanged }: { r: Runner; onChanged: () => void }) {
             </Text>
             <EditBar
               changes={keeps !== saved ? 1 : 0}
+              submit={false}
               onSave={() => void save.run()}
               onCancel={() => setKeeps(saved)}
               busy={save.busy}
