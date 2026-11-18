@@ -2163,7 +2163,7 @@ paths:
       tags: [runners]
       summary: Change a persistent runner's settings
       description: >-
-        runners R5.89. Today only keep_dependencies. Turning it off removes the
+        runners R5.90. Today only keep_dependencies. Turning it off removes the
         dependency caches at the next clean-up; a running job is not touched.
       x-auth: admin
       x-rate-limit: 60/minute/user
@@ -2190,7 +2190,7 @@ paths:
       tags: [runners]
       summary: Clear a persistent runner's dependency cache now
       description: >-
-        runners R5.89. Safe while the runner is idle; a runner with a job waits
+        runners R5.90. Safe while the runner is idle; a runner with a job waits
         for the job to end, then clears. Answers 202.
       x-auth: admin
       x-rate-limit: 30/minute/user
@@ -6144,16 +6144,16 @@ components:
           description: True for a persistent runner (runners R5.7, UX-61).
         keep_dependencies:
           type: boolean
-          description: Persistent runner only. True when its downloaded dependencies stay between jobs (runners R5.89). Absent for an ephemeral runner.
+          description: Persistent runner only. True when its downloaded dependencies stay between jobs (runners R5.90). Absent for an ephemeral runner.
         dependency_cache_bytes:
           type: integer
           format: int64
           minimum: 0
-          description: Persistent runner only. Size of this runner's own dependency cache folder, as last measured (runners R5.89).
+          description: Persistent runner only. Size of this runner's own dependency cache folder, as last measured (runners R5.90).
         unclean_reason:
           type: string
           description: >-
-            Set when the clean-up after (or before) a job failed (runners R5.90).
+            Set when the clean-up after (or before) a job failed (runners R5.91).
             The runner takes no new job until it is clean. Absent when clean.
         failed_reason:
           type: string
@@ -6249,7 +6249,7 @@ components:
             Persistent runners only: keep downloaded dependencies (tool cache,
             package manager caches, browsers, image layers) between jobs.
             Default true. Temporary files of each job are always removed
-            (runners R5.89, R5.90). Ignored for an ephemeral runner.
+            (runners R5.90, R5.91). Ignored for an ephemeral runner.
         scope:
           $ref: '#/components/schemas/RunnerScope'
           description: >-
@@ -6257,7 +6257,7 @@ components:
             runners per machine, never a repository (runners R5.88). For an
             ephemeral pool request `count` is the number of ephemeral runners
             that may run at once on the machine (a ceiling, not standing
-            runners; runners R5.91).
+            runners; runners R5.92).
       example:
         os: linux
         kind: persistent

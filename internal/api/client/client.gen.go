@@ -3606,14 +3606,14 @@ type PlanRepositoryChangesRequestChangesPool string
 type PlanRunnersRequest struct {
 	Count int `json:"count"`
 
-	// KeepDependencies Persistent runners only: keep downloaded dependencies (tool cache, package manager caches, browsers, image layers) between jobs. Default true. Temporary files of each job are always removed (runners R5.89, R5.90). Ignored for an ephemeral runner.
+	// KeepDependencies Persistent runners only: keep downloaded dependencies (tool cache, package manager caches, browsers, image layers) between jobs. Default true. Temporary files of each job are always removed (runners R5.90, R5.91). Ignored for an ephemeral runner.
 	KeepDependencies *bool      `json:"keep_dependencies,omitempty"`
 	Kind             RunnerKind `json:"kind"`
 	Labels           *[]string  `json:"labels,omitempty"`
 	MachineId        string     `json:"machine_id"`
 	Os               OS         `json:"os"`
 
-	// Scope Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.88). For an ephemeral pool request `count` is the number of ephemeral runners that may run at once on the machine (a ceiling, not standing runners; runners R5.91).
+	// Scope Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.88). For an ephemeral pool request `count` is the number of ephemeral runners that may run at once on the machine (a ceiling, not standing runners; runners R5.92).
 	Scope *RunnerScope `json:"scope,omitempty"`
 }
 
@@ -4005,7 +4005,7 @@ type Runner struct {
 	// CurrentJob One job attempt (observability R5.7, R5.8).
 	CurrentJob *Job `json:"current_job,omitempty"`
 
-	// DependencyCacheBytes Persistent runner only. Size of this runner's own dependency cache folder, as last measured (runners R5.89).
+	// DependencyCacheBytes Persistent runner only. Size of this runner's own dependency cache folder, as last measured (runners R5.90).
 	DependencyCacheBytes *int64 `json:"dependency_cache_bytes,omitempty"`
 
 	// FailedReason Whole plain reason the runner is in the failed state, with what the clean-up left behind. Only present when state is failed.
@@ -4014,7 +4014,7 @@ type Runner struct {
 	Id             string    `json:"id"`
 	Isolation      Isolation `json:"isolation"`
 
-	// KeepDependencies Persistent runner only. True when its downloaded dependencies stay between jobs (runners R5.89). Absent for an ephemeral runner.
+	// KeepDependencies Persistent runner only. True when its downloaded dependencies stay between jobs (runners R5.90). Absent for an ephemeral runner.
 	KeepDependencies *bool `json:"keep_dependencies,omitempty"`
 
 	// KeepsState True for a persistent runner (runners R5.7, UX-61).
@@ -4045,7 +4045,7 @@ type Runner struct {
 	// State What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
 	State RunnerState `json:"state"`
 
-	// UncleanReason Set when the clean-up after (or before) a job failed (runners R5.90). The runner takes no new job until it is clean. Absent when clean.
+	// UncleanReason Set when the clean-up after (or before) a job failed (runners R5.91). The runner takes no new job until it is clean. Absent when clean.
 	UncleanReason *string `json:"unclean_reason,omitempty"`
 }
 
@@ -6080,7 +6080,7 @@ type ClientInterface interface {
 
 	// ClearRunnerCache Clear a persistent runner's dependency cache now
 	//
-	// runners R5.89. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
+	// runners R5.90. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
 	//
 	// Corresponds with POST /api/v1/runners/{runnerId}/clear-cache (the `ClearRunnerCache` operationId).
 	ClearRunnerCache(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -6108,7 +6108,7 @@ type ClientInterface interface {
 
 	// UpdateRunnerSettingsWithBody Change a persistent runner's settings
 	//
-	// runners R5.89. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+	// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -6117,7 +6117,7 @@ type ClientInterface interface {
 
 	// UpdateRunnerSettings Change a persistent runner's settings
 	//
-	// runners R5.89. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+	// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -8800,7 +8800,7 @@ func (c *Client) GetRunner(ctx context.Context, runnerId RunnerId, reqEditors ..
 
 // ClearRunnerCache Clear a persistent runner's dependency cache now
 //
-// runners R5.89. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
+// runners R5.90. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
 //
 // Corresponds with POST /api/v1/runners/{runnerId}/clear-cache (the `ClearRunnerCache` operationId).
 func (c *Client) ClearRunnerCache(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -8868,7 +8868,7 @@ func (c *Client) PlanRunnerReplacement(ctx context.Context, runnerId RunnerId, r
 
 // UpdateRunnerSettingsWithBody Change a persistent runner's settings
 //
-// runners R5.89. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
 //
 // Takes any type of body and a specified content type.
 //
@@ -8887,7 +8887,7 @@ func (c *Client) UpdateRunnerSettingsWithBody(ctx context.Context, runnerId Runn
 
 // UpdateRunnerSettings Change a persistent runner's settings
 //
-// runners R5.89. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -16785,7 +16785,7 @@ type ClientWithResponsesInterface interface {
 
 	// ClearRunnerCacheWithResponse Clear a persistent runner's dependency cache now
 	//
-	// runners R5.89. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
+	// runners R5.90. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -16821,7 +16821,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateRunnerSettingsWithBodyWithResponse Change a persistent runner's settings
 	//
-	// runners R5.89. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+	// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -16830,7 +16830,7 @@ type ClientWithResponsesInterface interface {
 
 	// UpdateRunnerSettingsWithResponse Change a persistent runner's settings
 	//
-	// runners R5.89. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+	// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -25637,7 +25637,7 @@ func (c *ClientWithResponses) GetRunnerWithResponse(ctx context.Context, runnerI
 
 // ClearRunnerCacheWithResponse Clear a persistent runner's dependency cache now
 //
-// runners R5.89. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
+// runners R5.90. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -25697,7 +25697,7 @@ func (c *ClientWithResponses) PlanRunnerReplacementWithResponse(ctx context.Cont
 
 // UpdateRunnerSettingsWithBodyWithResponse Change a persistent runner's settings
 //
-// runners R5.89. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -25712,7 +25712,7 @@ func (c *ClientWithResponses) UpdateRunnerSettingsWithBodyWithResponse(ctx conte
 
 // UpdateRunnerSettingsWithResponse Change a persistent runner's settings
 //
-// runners R5.89. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //

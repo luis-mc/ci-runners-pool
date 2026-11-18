@@ -38,7 +38,14 @@ type PolicyUpdate struct {
 	// HostedLabels sets the hosted label of the OSes named; an empty label puts
 	// the default back.
 	HostedLabels *map[string]string
+	// RunnerKinds sets which runners take the repository's jobs:
+	// RunnerKindsEphemeralOnly, RunnerKindsAnyRunner, or RunnerKindsDefault to
+	// clear the owner's choice (github-integration R5.60).
+	RunnerKinds *string
 }
+
+// RunnerKindsDefault in a PolicyUpdate clears the owner's choice.
+const RunnerKindsDefault = "default"
 
 // ErrForkNeedsConfirm: turning fork pull requests on asks first.
 var ErrForkNeedsConfirm = errors.New("fork pull request code would run on your machines; confirm to turn it on")
@@ -130,6 +137,16 @@ func (u PolicyUpdate) Apply(p Policy) (Policy, error) {
 			labels = nil
 		}
 		p.HostedLabels = labels
+	}
+	if u.RunnerKinds != nil {
+		switch k := strings.ToLower(strings.TrimSpace(*u.RunnerKinds)); k {
+		case RunnerKindsEphemeralOnly, RunnerKindsAnyRunner:
+			p.RunnerKinds = k
+		case RunnerKindsDefault, "":
+			p.RunnerKinds = ""
+		default:
+			return p, auth.Invalid("runner kinds must be ephemeral_only, any_runner or default")
+		}
 	}
 	for _, b := range []struct {
 		name string

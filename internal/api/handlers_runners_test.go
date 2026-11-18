@@ -21,6 +21,7 @@ type fakeRunners struct {
 	refuse    string
 	removed   bool
 	started   []string
+	cleared   []string
 	lastActor string
 	lastAdd   runners.AddRequest
 	views     map[string]runners.View // overrides of the view fields of a record
@@ -51,6 +52,33 @@ func (f *fakeRunners) GetView(_ context.Context, id string) (runners.View, error
 		return f.view(r), nil
 	}
 	return runners.View{}, runners.ErrNotFound
+}
+func (f *fakeRunners) UpdateSettings(_ context.Context, id string, keep *bool, actor string) (runners.View, error) {
+	r, ok := f.recs[id]
+	if !ok {
+		return runners.View{}, runners.ErrNotFound
+	}
+	if r.Kind != "persistent" {
+		return runners.View{}, &runners.RefusalError{Reason: "runner " + r.Name + " is ephemeral"}
+	}
+	f.lastActor = actor
+	if keep != nil {
+		r.KeepDependencies = *keep
+	}
+	f.recs[id] = r
+	return f.view(r), nil
+}
+func (f *fakeRunners) RequestClearCache(_ context.Context, id, actor string) (runners.View, error) {
+	r, ok := f.recs[id]
+	if !ok {
+		return runners.View{}, runners.ErrNotFound
+	}
+	if r.Kind != "persistent" {
+		return runners.View{}, &runners.RefusalError{Reason: "runner " + r.Name + " is ephemeral"}
+	}
+	f.lastActor = actor
+	f.cleared = append(f.cleared, id)
+	return f.view(r), nil
 }
 func (f *fakeRunners) PlanAdd(_ context.Context, req runners.AddRequest, actor string) (runners.Plan, error) {
 	f.lastActor, f.lastAdd = actor, req

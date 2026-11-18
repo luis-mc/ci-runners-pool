@@ -25,6 +25,8 @@ type RunnersService interface {
 	BeginRemove(ctx context.Context, id string, confirm bool, actor string) (runners.Record, func(context.Context) error, error)
 	DeleteOfflineRegistration(ctx context.Context, id string, confirm bool, actor string) (runners.Record, error)
 	StartRemove(ctx context.Context, finish func(context.Context) error)
+	UpdateSettings(ctx context.Context, runnerID string, keepDependencies *bool, actor string) (runners.View, error)
+	RequestClearCache(ctx context.Context, runnerID, actor string) (runners.View, error)
 }
 
 var _ RunnersService = (*runners.Service)(nil)
@@ -229,6 +231,7 @@ func (s *server) PlanRunners(ctx context.Context, req gen.PlanRunnersRequestObje
 	if b.Labels != nil {
 		ar.Labels = *b.Labels
 	}
+	ar.KeepDependencies = b.KeepDependencies
 	p, err := s.opts.Runners.PlanAdd(ctx, ar, actorFrom(ctx))
 	if err != nil {
 		code, body := runnerFail(err)

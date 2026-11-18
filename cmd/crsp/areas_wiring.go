@@ -285,11 +285,18 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	}); ok {
 		q.SetLightLookup(func(machineID, name string) bool { return runnerSvc.RunsLight(ctx, machineID, name) })
 	}
+	// An unclean runner takes no new job (runners R5.91).
+	if q, ok := d.Queue.(interface {
+		SetUncleanLookup(func(machineID, runnerName string) string)
+	}); ok {
+		q.SetUncleanLookup(func(machineID, name string) string { return runnerSvc.Unclean(ctx, machineID, name) })
+	}
 	rsvc.SetLight(lightKeeper{svc: runnerSvc})
 	// Long-lived runners serve every repository that uses the pool: one hidden
 	// registration for each pool repository, made and removed with the pool
 	// switch and by the reconcile loop (runners R5.88).
 	runnerSvc.PoolRepos = poolRepos(repoStore)
+	rsvc.SetEphemeral(runnerSvc)
 	rsvc.SetRegistrar(runnerSvc)
 	rsvc.SetFleet(runnerSvc)
 
@@ -310,10 +317,11 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 			return gh, nil
 		},
 		Store: doctor.NewMemStore(), Events: hub, Logger: logger, PoolName: pool,
-		KVM:     reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
-		Engines: reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
-		Extra:   checks.KVMReportedChecks(),
-		Demand:  quietSource{wd: quietDemand},
+		KVM:       reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
+		Engines:   reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
+		Extra:     checks.KVMReportedChecks(),
+		Demand:    quietSource{wd: quietDemand},
+		Ephemeral: runnerSvc,
 	})
 
 	c.Options.Version, c.Options.DB, c.Options.Logger = version, d.DB, logger

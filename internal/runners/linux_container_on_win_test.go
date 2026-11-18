@@ -39,7 +39,7 @@ func TestLinuxOfferedOnWindowsWithLinuxContainers(t *testing.T) {
 	if a.Backend != "docker" || a.OS != "linux" || a.Kind != "ephemeral" {
 		t.Fatalf("spec %+v", a)
 	}
-	if got := strings.Join(a.Labels, ","); got != "linux,pool-a,self-hosted,x64" {
+	if got := strings.Join(a.Labels, ","); got != "ephemeral,linux,pool-a,self-hosted,x64" {
 		t.Fatalf("labels %s", got)
 	}
 	if !strings.Contains(p.Steps[0].Text, "Linux") || !strings.Contains(p.Steps[0].Text, "container") {
@@ -63,10 +63,20 @@ func TestLinuxOfferedOnWindowsWithLinuxContainers(t *testing.T) {
 	if !errors.As(err, &re) || !strings.Contains(re.Reason, "container backend is not allowed") {
 		t.Fatalf("not allowed: %v", err)
 	}
-	// A persistent Linux runner cannot be made on Windows.
+	// A persistent Linux runner is accepted on Windows (R5.93): a long-lived container.
 	req.Kind = "persistent"
-	if _, err = newRig(winDockerMachine("linux", true)).svc.PlanAdd(ctx, req, "u"); !errors.As(err, &re) || !strings.Contains(re.Reason, "ephemeral") {
-		t.Fatalf("persistent: %v", err)
+	pp, err := newRig(winDockerMachine("linux", true)).svc.PlanAdd(ctx, req, "u")
+	if err != nil || pp.Adds[0].Backend != "docker" || !pp.Adds[0].KeepDependencies {
+		t.Fatalf("persistent: %+v %v", pp, err)
+	}
+	for _, l := range pp.Adds[0].Labels {
+		if l == EphemeralLabel {
+			t.Fatalf("a persistent runner carries %q: %v", l, pp.Adds[0].Labels)
+		}
+	}
+	// Refused with a reason when the container backend is off.
+	if _, err = newRig(winDockerMachine("linux", false)).svc.PlanAdd(ctx, req, "u"); !errors.As(err, &re) || !strings.Contains(re.Reason, "container backend is not allowed") {
+		t.Fatalf("persistent, backend off: %v", err)
 	}
 	// Windows runners on that machine keep working as before.
 	req.OS = "windows"
@@ -99,11 +109,5 @@ func TestPoolLinuxContainerRunnerOnWindowsPlansAndApplies(t *testing.T) {
 	_, err = newRig(winDockerMachine("linux", false)).svc.PlanAdd(ctx, poolReq, "u")
 	if !errors.As(err, &re) || !strings.Contains(re.Reason, "container backend is not allowed") {
 		t.Fatalf("not allowed: %v", err)
-	}
-	// An ephemeral pool runner on a Linux machine stays refused: the pool makes those per job.
-	lin := machine("linux", "x64", true)
-	lin.Backends = append(lin.Backends, BackendOption{Name: backend.Docker, Usable: true, Allowed: true, Kinds: []string{"ephemeral"}, OS: []string{"linux"}})
-	if _, err = newRig(lin).svc.PlanAdd(ctx, poolReq, "u"); !errors.As(err, &re) || !strings.Contains(re.Reason, "persistent runner") {
-		t.Fatalf("linux ephemeral: %v", err)
 	}
 }

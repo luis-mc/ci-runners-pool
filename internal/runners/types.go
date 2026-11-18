@@ -53,14 +53,14 @@ type Record struct {
 	// whose machine slot it serves. Empty on every other record (runners R5.88).
 	PoolRunnerID string
 	// KeepDependencies is the persistent runner's setting: downloaded
-	// dependencies stay between jobs (runners R5.89). Temporary files of a job
+	// dependencies stay between jobs (runners R5.90). Temporary files of a job
 	// are always removed, whatever this says. Meaningless for ephemeral.
 	KeepDependencies bool
 	// DependencyCacheBytes is the size of the runner's own dependency cache
-	// folder, as the agent last measured it (runners R5.89).
+	// folder, as the agent last measured it (runners R5.90).
 	DependencyCacheBytes int64
 	// UncleanReason is set when the clean-up of a job failed; the runner takes
-	// no new job until it is clean (runners R5.90).
+	// no new job until it is clean (runners R5.91).
 	UncleanReason string
 	// FailedReason is the whole plain reason a runner is in the failed state,
 	// including what the clean-up left behind. Empty in every other state.
@@ -72,6 +72,15 @@ type Record struct {
 
 // KeepsState is true for a persistent runner (runners R5.7).
 func (r Record) KeepsState() bool { return r.Kind == "persistent" }
+
+// Hygiene is the part of a persistent runner's record that its clean-up
+// writes: the dependency setting, the size of its own dependency cache and the
+// reason it is unclean ("" when clean).
+type Hygiene struct {
+	KeepDependencies     bool
+	DependencyCacheBytes int64
+	UncleanReason        string
+}
 
 // Filter narrows a runner list.
 type Filter struct {
@@ -104,7 +113,9 @@ type Machine struct {
 	// when the engine answers (machines R5.18, runners R5.47); a Windows machine
 	// with Docker Desktop on WSL2 says "linux". Empty when not known.
 	ContainerOS string
-	Symlink     bool // a machine or label setting asks for the symlink right (R5.14)
+	// Online is true while the machine's agent is connected.
+	Online  bool
+	Symlink bool // a machine or label setting asks for the symlink right (R5.14)
 	// PoolCPUs and JobSlots are the owner's pool size and the runners that run
 	// at once; a runner's CPU count is their split (machines R5.54, R5.58).
 	// PoolCPUs 0 means no pool size is set and no CPU count is exported.
@@ -170,6 +181,9 @@ type AddSpec struct {
 	MaxParallel int
 	// PoolRunnerID makes the runner a hidden registration of that pool runner.
 	PoolRunnerID string
+	// KeepDependencies is the persistent runner's setting (runners R5.90);
+	// false for an ephemeral runner, which keeps nothing.
+	KeepDependencies bool
 }
 
 // Plan is a planned change. Nothing changes until it is applied.
@@ -197,6 +211,9 @@ type Store interface {
 	// SetRunnerPool makes a runner a hidden registration of a pool runner
 	// (the migration of a repository runner, runners R5.88).
 	SetRunnerPool(ctx context.Context, id, poolRunnerID string) error
+	// SetRunnerHygiene stores the dependency setting, the cache size and the
+	// unclean reason of a persistent runner (runners R5.90, R5.91).
+	SetRunnerHygiene(ctx context.Context, id string, h Hygiene) error
 	SavePlan(ctx context.Context, p Plan) error
 	GetPlan(ctx context.Context, id string) (Plan, error)
 }

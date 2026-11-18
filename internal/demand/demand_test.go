@@ -33,6 +33,10 @@ type fakeRunners struct {
 	removeErr error
 	running   map[string]int
 	failNext  error
+	// ceiling is the ephemeral ceiling of every machine; 0 leaves it wide open
+	// (the job slots alone limit), noCeiling makes it zero.
+	ceiling   int
+	noCeiling bool
 }
 
 func (f *fakeRunners) StartJobRunner(_ context.Context, j runners.JobRunner, _ string) (runners.Record, error) {
@@ -66,6 +70,18 @@ func (f *fakeRunners) EphemeralOnMachine(_ context.Context, m string) (int, erro
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.running[m], nil
+}
+
+func (f *fakeRunners) EphemeralCeiling(_ context.Context, _ string) (int, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	switch {
+	case f.noCeiling:
+		return 0, nil
+	case f.ceiling > 0:
+		return f.ceiling, nil
+	}
+	return 1000, nil
 }
 
 func newLoop(slots int) (*Loop, *fakeRunners, *time.Time) {

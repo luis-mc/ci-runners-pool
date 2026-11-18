@@ -1466,7 +1466,7 @@ export interface paths {
         head?: never;
         /**
          * Change a persistent runner's settings
-         * @description runners R5.89. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+         * @description runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
          */
         patch: operations["updateRunnerSettings"];
         trace?: never;
@@ -1482,7 +1482,7 @@ export interface paths {
         put?: never;
         /**
          * Clear a persistent runner's dependency cache now
-         * @description runners R5.89. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
+         * @description runners R5.90. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
          */
         post: operations["clearRunnerCache"];
         delete?: never;
@@ -3882,14 +3882,14 @@ export interface components {
             managed: boolean;
             /** @description True for a persistent runner (runners R5.7, UX-61). */
             keeps_state: boolean;
-            /** @description Persistent runner only. True when its downloaded dependencies stay between jobs (runners R5.89). Absent for an ephemeral runner. */
+            /** @description Persistent runner only. True when its downloaded dependencies stay between jobs (runners R5.90). Absent for an ephemeral runner. */
             keep_dependencies?: boolean;
             /**
              * Format: int64
-             * @description Persistent runner only. Size of this runner's own dependency cache folder, as last measured (runners R5.89).
+             * @description Persistent runner only. Size of this runner's own dependency cache folder, as last measured (runners R5.90).
              */
             dependency_cache_bytes?: number;
-            /** @description Set when the clean-up after (or before) a job failed (runners R5.90). The runner takes no new job until it is clean. Absent when clean. */
+            /** @description Set when the clean-up after (or before) a job failed (runners R5.91). The runner takes no new job until it is clean. Absent when clean. */
             unclean_reason?: string;
             /** @description Whole plain reason the runner is in the failed state, with what the clean-up left behind. Only present when state is failed. */
             failed_reason?: string;
@@ -3939,9 +3939,9 @@ export interface components {
             machine_id: string;
             count: number;
             labels?: string[];
-            /** @description Persistent runners only: keep downloaded dependencies (tool cache, package manager caches, browsers, image layers) between jobs. Default true. Temporary files of each job are always removed (runners R5.89, R5.90). Ignored for an ephemeral runner. */
+            /** @description Persistent runners only: keep downloaded dependencies (tool cache, package manager caches, browsers, image layers) between jobs. Default true. Temporary files of each job are always removed (runners R5.90, R5.91). Ignored for an ephemeral runner. */
             keep_dependencies?: boolean;
-            /** @description Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.88). For an ephemeral pool request `count` is the number of ephemeral runners that may run at once on the machine (a ceiling, not standing runners; runners R5.91). */
+            /** @description Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.88). For an ephemeral pool request `count` is the number of ephemeral runners that may run at once on the machine (a ceiling, not standing runners; runners R5.92). */
             scope?: components["schemas"]["RunnerScope"];
         };
         /**

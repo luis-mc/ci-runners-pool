@@ -40,6 +40,9 @@ type DoctorDeps struct {
 	Engines doctor.EngineSource
 	// Demand is what the quiet-demand watchdog found; nil makes demand.quiet skip.
 	Demand doctor.DemandSource
+	// Ephemeral says whether the pool can make an ephemeral runner; nil makes
+	// repo.ephemeral_capacity skip.
+	Ephemeral doctor.EphemeralSource
 }
 
 // NewDoctor makes the engine with the M1 core checks and every extra check,
@@ -53,7 +56,7 @@ func NewDoctor(d DoctorDeps) (*doctor.Engine, *doctor.Service) {
 	eng := &doctor.Engine{
 		Registry: reg, Store: d.Store, Events: d.Events, Logger: d.Logger,
 		Env: func(ctx context.Context) (doctor.Env, error) {
-			env := doctor.Env{Fleet: d.Fleet, PoolName: d.PoolName, KVM: d.KVM, Engines: d.Engines, Demand: d.Demand}
+			env := doctor.Env{Fleet: d.Fleet, PoolName: d.PoolName, KVM: d.KVM, Engines: d.Engines, Demand: d.Demand, Ephemeral: d.Ephemeral}
 			if d.GitHub != nil {
 				g, err := d.GitHub(ctx)
 				if err != nil {
