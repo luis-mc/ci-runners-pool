@@ -40,6 +40,8 @@ type CacheSource interface {
 // FoundRunners reads the runners from the OS service list (runners R5.5).
 type FoundRunners struct {
 	Find func(ctx context.Context) ([]CacheRunner, error)
+	// Container is the persistent Linux runners in the pool container; nil on a machine without it.
+	Container ContainerRunners
 }
 
 // Runners implements CacheSource.
