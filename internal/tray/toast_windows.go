@@ -107,8 +107,8 @@ func toast(title, body string, click func()) {
 
 	done := false
 	proc := syscall.NewCallback(func(h, m, wp, lp uintptr) uintptr {
-		switch {
-		case m == wmToast:
+		switch m {
+		case wmToast:
 			switch lp & 0xffff {
 			case ninUserClick:
 				if click != nil && !done {
@@ -120,10 +120,10 @@ func toast(title, body string, click func()) {
 				_, _, _ = destroy.Call(h)
 			}
 			return 0
-		case m == 0x0113: // WM_TIMER: the toast has lived long enough
+		case 0x0113: // WM_TIMER: the toast has lived long enough
 			_, _, _ = destroy.Call(h)
 			return 0
-		case m == 0x0002: // WM_DESTROY
+		case 0x0002: // WM_DESTROY
 			_, _, _ = post.Call(0)
 			return 0
 		}

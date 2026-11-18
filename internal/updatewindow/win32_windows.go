@@ -26,7 +26,6 @@ var (
 	pPostQuitMessage        = user32.NewProc("PostQuitMessage")
 	pShowWindow             = user32.NewProc("ShowWindow")
 	pSetForegroundWindow    = user32.NewProc("SetForegroundWindow")
-	pGetClientRect          = user32.NewProc("GetClientRect")
 	pAdjustWindowRectExFor  = user32.NewProc("AdjustWindowRectExForDpi")
 	pSetWindowPos           = user32.NewProc("SetWindowPos")
 	pGetWindowRect          = user32.NewProc("GetWindowRect")
@@ -42,7 +41,6 @@ var (
 	pPostMessage            = user32.NewProc("PostMessageW")
 	pSendMessage            = user32.NewProc("SendMessageW")
 	pFindWindow             = user32.NewProc("FindWindowW")
-	pGetDpiForWindow        = user32.NewProc("GetDpiForWindow")
 	pSetProcessDpiAwareness = user32.NewProc("SetProcessDpiAwarenessContext")
 	pDestroyWindow          = user32.NewProc("DestroyWindow")
 	pSetCapture             = user32.NewProc("SetCapture")
@@ -218,13 +216,6 @@ func dpiOfMonitor(mon uintptr) int {
 		return 96
 	}
 	return int(x)
-}
-
-func dpiOfWindow(h uintptr) int {
-	if r, _, _ := pGetDpiForWindow.Call(h); r != 0 {
-		return int(r)
-	}
-	return 96
 }
 
 func rgb(c RGB) uintptr { return uintptr(c.COLORREF()) }

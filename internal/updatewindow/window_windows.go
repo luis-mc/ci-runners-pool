@@ -38,11 +38,10 @@ type win struct {
 	model *Model
 	ui    uiState
 
-	layout   Layout
-	view     View
-	lastSt   State
-	animOn   bool
-	quitting bool
+	layout Layout
+	view   View
+	lastSt State
+	animOn bool
 }
 
 var theWin *win
