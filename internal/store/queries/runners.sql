@@ -3,8 +3,8 @@
 -- name: InsertRunner :exec
 INSERT INTO runners (id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind,
     repository_id, organization, runner_group, runner_version, state, managed, service_name, account, folder,
-    route_pool, route_queue, size_class)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    route_pool, route_queue, size_class, keep_dependencies, dependency_cache_bytes, unclean_reason)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetRunner :one
 SELECT * FROM runners WHERE id = ?;
@@ -25,6 +25,10 @@ UPDATE runners SET state = ?, current_job_id = ?, updated_at = strftime('%Y-%m-%
 
 -- name: SetRunnerRegistration :exec
 UPDATE runners SET github_runner_id = ?, runner_version = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?;
+
+-- name: SetRunnerHygiene :exec
+UPDATE runners SET keep_dependencies = ?, dependency_cache_bytes = ?, unclean_reason = ?,
+    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?;
 
 -- name: DeleteRunner :exec
 DELETE FROM runners WHERE id = ?;
