@@ -922,3 +922,37 @@ The words of Settings > Access > Webhooks and the link on the repository page (g
 | Write the address without a user name, a query or a #fragment. | Mistake. |
 | The App does not listen for workflow jobs yet. On GitHub, open the App's permissions page and under Subscribe to events tick Workflow job, then save. Jobs are learned by webhooks once you have done that. | Guided step; its button is Open the App on GitHub. |
 | Turn on webhooks | Link at the end of the repository note "no webhook"; goes to Settings > Access > Webhooks. |
+
+
+## Runner kind words
+
+The words of Add runners step 1, the Runners list, the runner page and the Repositories page for the kind of a runner (runners R5.89 to R5.92, github-integration R5.60, web-console R5.101, R5.102; owner decisions D93, D94, D95, 2026-11-18).
+
+| Word | Where and meaning |
+|---|---|
+| Kind | The label of the one-choice list on Add runners step 1. |
+| Persistent | Choice. Line under it: Keeps its tools and caches between jobs. Starts jobs faster. |
+| Ephemeral | Choice. Line under it: A fresh container for every job. Nothing carries over. Recommended for public repositories. |
+| Ephemeral is chosen because a public repository uses the pool. | The one line under Kind while no one has picked and a public repository has the pool on. |
+| Persistent is chosen because no public repository uses the pool. | The same line when no public repository has the pool on. |
+| {Kind} is chosen because {Other kind} is not offered here. | The same line when the preferred kind cannot run on the machine for the system. |
+| Ephemeral needs the container backend, which is not allowed on this machine. | Reason of the greyed Ephemeral choice. "which does not work on this machine" when the backend is allowed but not usable. |
+| Persistent Linux runners on this Windows machine need the container backend, which is not allowed on this machine. | Reason of the greyed Persistent choice for Linux on a Windows machine. |
+| Ephemeral runners are not available for Windows yet. Windows runners are persistent. | Reason of the greyed Ephemeral choice for Windows. The same for macOS with its name. |
+| The container backend decides which kinds this machine offers. | Note with the button Allow it on the machine, shown while a kind is greyed for the container backend. |
+| Keep downloaded dependencies | Check box on Add runners step 1 for a persistent runner (on by default) and on the runner page. |
+| Temporary files of each job are always removed. | Help line of that check box. Not a setting. |
+| Most ephemeral runners at once | Label of the count for an ephemeral runner. Help: The pool makes a fresh container for each job, up to this many at the same time. |
+| Allow {n} ephemeral runner(s) | The primary of Review for ephemeral runners (busy word: Registering). |
+| {n} persistent runner(s) on {machine}. | Review text, then the dependency sentence: Downloaded dependencies are kept between jobs. / Downloaded dependencies are removed after each job too. / Each job gets a fresh container (ephemeral: Up to {n} ephemeral runner(s) at once on {machine}.). |
+| Persistent. Keeps dependencies: yes | Third line of the Isolation cell in the Runners list. Ephemeral shows Ephemeral only. |
+| Dependencies | Section of the runner page for a persistent runner. |
+| Dependency cache size | Fact of the runner page. Not measured yet when the controller has no size. |
+| Clear now | Button of the runner page (busy word: Clearing). |
+| A job is running. Clearing waits for it to finish. | Line under Clear now while the runner is busy. |
+| not clean | State word of a runner whose clean-up failed. |
+| Not clean: {reason}. It takes no new job until it is clean. | The runner's problem on its page and the full text of the State cell. |
+| Runner kind | Column of the Repositories list, fact and field of a repository. Choices: Use the default ({Ephemeral only or Any runner}), Ephemeral only, Any runner. |
+| Ephemeral only (default) | Value while the owner has not chosen; the default is Ephemeral only for a public repository, Any runner for a private one. |
+| Jobs from a public repository can then run on a persistent runner, which keeps files between jobs. Anyone who can open a pull request may reach it. | Warning under the field when a public repository is set to Any runner, and the body line of the question card Let public jobs use persistent runners? (answer Allow). |
+| No ephemeral runner capacity: jobs would wait. | Line in the Runner kind column and a Problem on the repository page with the button Add runners, while the pool has no machine that can make an ephemeral runner. |
