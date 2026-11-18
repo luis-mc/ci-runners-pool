@@ -8,7 +8,7 @@ import { useMachines } from '../../api/machines';
 import { useVersion } from '../../live/LiveProvider';
 import { allRepositories } from '../repositories/plans';
 
-export const STRIP_KEY = 'crsp.howItWorks.dismissed';
+export const STRIP_STORE_NAME = 'crsp.howItWorks.dismissed';
 
 /** The strip is for a pool that is not set up: it needs a machine, a runner and a repository to go away. */
 export function showStrip(f: {
@@ -23,7 +23,7 @@ export function showStrip(f: {
 
 function wasDismissed(): boolean {
   try {
-    return window.localStorage.getItem(STRIP_KEY) === '1';
+    return window.localStorage.getItem(STRIP_STORE_NAME) === '1';
   } catch {
     return false;
   }
@@ -60,7 +60,7 @@ export function HowCrspWorks() {
           onPress={() => {
             setDismissed(true);
             try {
-              window.localStorage.setItem(STRIP_KEY, '1');
+              window.localStorage.setItem(STRIP_STORE_NAME, '1');
             } catch {
               // The strip stays hidden for this visit only.
             }

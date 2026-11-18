@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { machine, renderApp, repository, runner, signedIn } from '../../testing/mock';
 import { groupByMachine, runnerTotals } from '../runners/Runners';
 import { groupJobs, byDay } from '../jobs/JobsGrouped';
-import { showStrip, STRIP_KEY } from '../overview/HowCrspWorks';
+import { showStrip, STRIP_STORE_NAME } from '../overview/HowCrspWorks';
 import { poolTotals } from './PoolSummary';
 
 afterEach(cleanup);
@@ -219,7 +219,7 @@ describe('How crsp works strip (D33)', () => {
     expect(await screen.findByText(/How crsp works:/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Hide this' }));
     await waitFor(() => expect(screen.queryByText(/How crsp works:/)).toBeNull());
-    expect(window.localStorage.getItem(STRIP_KEY)).toBe('1');
+    expect(window.localStorage.getItem(STRIP_STORE_NAME)).toBe('1');
     cleanup();
     renderApp(empty(), '/');
     await screen.findByRole('heading', { level: 1, name: 'Overview' });
