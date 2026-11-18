@@ -918,3 +918,20 @@ The words of Settings > Access > Webhooks and the link on the repository page (g
 | Write the address without a user name, a query or a #fragment. | Mistake. |
 | The App does not listen for workflow jobs yet. On GitHub, open the App's permissions page and under Subscribe to events tick Workflow job, then save. Jobs are learned by webhooks once you have done that. | Guided step; its button is Open the App on GitHub. |
 | Turn on webhooks | Link at the end of the repository note "no webhook"; goes to Settings > Access > Webhooks. |
+
+## Runner leftover words
+
+The words of the Doctor finding that lists runner services, folders, accounts and downloads no controller owns, and removes them (doctor R5.46, web-console 4.8, OPS33). Here Remove takes the leftover off the machine for good, and the card says so.
+
+| Word | Where and meaning |
+|---|---|
+| Remove | The one button of the finding, and the action of its question card. Admin only (busy word: Removing). |
+| Remove these leftovers from {machine}? | The title of the question card. |
+| Each item below is removed from this machine. This cannot be undone. | The line above the items of the card: what happens. |
+| Service, Folder, Account, Download | The kind word that starts each leftover. |
+| {kind} {name} ({size}) | One leftover in the card: its kind, its name and its size when it has one. |
+| {kind} {name} ({size}), account {account}. {why} | One leftover in the finding. |
+| Removed, Already gone, Refused, Failed | The result word of each item after the call. A reason follows Refused and Failed. |
+| {kind} {name}: {result}. {reason} | One line of the result list in the finding. |
+| Runner leftovers on {machine}: {kind} {name} removed, ... | Done message when every item went and the finding is gone. |
+| The agent has no administrator rights. Run it as a service with rights. | The reason beside a disabled Remove when the finding says the agent needs rights. |

@@ -282,3 +282,155 @@ describe('Doctor screen', () => {
     expect(await screen.findByText('needs admin')).toBeTruthy();
   });
 });
+
+describe('runner leftovers finding (doctor R5.46, OPS33)', () => {
+  const leftovers: Schemas['RunnerLeftover'][] = [
+    {
+      kind: 'service',
+      name: 'actions.runner.old',
+      account: '.\\crsp-old',
+      why: 'No runner of this controller owns it.',
+    },
+    {
+      kind: 'folder',
+      name: 'C:\\runners\\old',
+      size_bytes: 2_147_483_648,
+      why: 'No runner record points to it.',
+    },
+  ];
+  const leftoverFinding = (over: Partial<Finding> = {}): Finding => ({
+    ...finding({
+      check: 'machine.runner_leftovers',
+      severity: 'warn',
+      title: 'build-2 has runner leftovers',
+      subject: { kind: 'machine', id: 'm2', name: 'build-2' },
+      fix: { text: 'Remove the leftovers.' },
+      items: leftovers,
+      action: { id: 'remove_runner_leftovers', label: 'Remove' },
+    }),
+    detail: 'The machine has services and folders no runner owns.',
+    ...over,
+  });
+  const REMOVE = '/api/v1/machines/m2/runner-leftovers/remove';
+  const setup = (f: Finding = leftoverFinding(), who = signedIn()) =>
+    who
+      .on('GET', '/api/v1/doctor/findings', { items: [f], last_run_at: lastRun })
+      .on('POST', '/api/v1/doctor/runs', run({ state: 'done' }));
+
+  it('lists each leftover with kind, name, size, account and why', async () => {
+    renderApp(setup(), '/doctor');
+    const list = await screen.findByRole('list', { name: 'Runner leftovers' });
+    const lines = within(list)
+      .getAllByRole('listitem')
+      .map((l) => l.textContent);
+    expect(lines).toEqual([
+      'Service actions.runner.old, account .\\crsp-old. No runner of this controller owns it.',
+      'Folder C:\\runners\\old (2.1 GB). No runner record points to it.',
+    ]);
+  });
+
+  it('asks first, naming every item, and does nothing on Cancel', async () => {
+    const api = setup();
+    renderApp(api, '/doctor');
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+    const card = await screen.findByRole('dialog');
+    expect(within(card).getByText(/cannot be undone/)).toBeTruthy();
+    expect(within(card).getByText('Remove these leftovers from build-2?')).toBeTruthy();
+    const items = within(within(card).getByRole('list', { name: 'What goes' }))
+      .getAllByRole('listitem')
+      .map((l) => l.textContent);
+    expect(items).toEqual([
+      'Service actions.runner.old',
+      'Folder C:\\runners\\old (2.1 GB)',
+    ]);
+    expect(
+      within(card).getByRole('button', { name: 'Remove' }).getAttribute('data-kind'),
+    ).toBe('danger');
+    fireEvent.click(within(card).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(api.count('POST', REMOVE)).toBe(0);
+  });
+
+  it('removes exactly the items, shows the result per item and runs the check again for the machine', async () => {
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>((r) => (release = r));
+    const api = setup().on('POST', REMOVE, async () => {
+      await gate;
+      return {
+        results: [
+          {
+            kind: 'service',
+            name: 'actions.runner.old',
+            outcome: 'removed',
+            steps: ['stopped', 'deleted'],
+          },
+          {
+            kind: 'folder',
+            name: 'C:\\runners\\old',
+            outcome: 'failed',
+            error: 'A file is in use.',
+            steps: [],
+          },
+        ],
+      };
+    });
+    renderApp(api, '/doctor');
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+    const card = await screen.findByRole('dialog');
+    fireEvent.click(within(card).getByRole('button', { name: 'Remove' }));
+    const busy = await within(
+      await screen.findByRole('dialog'),
+    ).findByRole<HTMLButtonElement>('button', { name: 'Removing' });
+    expect(busy.disabled).toBe(true);
+    release?.();
+    const results = await screen.findByRole('list', { name: 'Removal results' });
+    expect(
+      within(results)
+        .getAllByRole('listitem')
+        .map((l) => l.textContent),
+    ).toEqual([
+      'Service actions.runner.old: Removed',
+      'Folder C:\\runners\\old: Failed. A file is in use.',
+    ]);
+    expect(api.calls.find((c) => c.path === REMOVE)?.body).toEqual({
+      items: [
+        { kind: 'service', name: 'actions.runner.old' },
+        { kind: 'folder', name: 'C:\\runners\\old' },
+      ],
+    });
+    await waitFor(() =>
+      expect(api.calls.find((c) => c.path === '/api/v1/doctor/runs')?.body).toEqual({
+        scope: { machines: ['m2'], checks: ['machine.runner_leftovers'] },
+      }),
+    );
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('disables Remove and says why when the agent has no administrator rights', async () => {
+    renderApp(setup(leftoverFinding({ needs_admin: true })), '/doctor');
+    const button = await screen.findByRole<HTMLButtonElement>('button', {
+      name: 'Remove',
+    });
+    expect(button.disabled).toBe(true);
+    expect(
+      screen.getByText(
+        'The agent has no administrator rights. Run it as a service with rights.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('keeps a viewer from removing and says why (UX-38)', async () => {
+    renderApp(setup(leftoverFinding(), signedIn(viewer)), '/doctor');
+    const button = await screen.findByRole<HTMLButtonElement>('button', {
+      name: 'Remove',
+    });
+    expect(button.disabled).toBe(true);
+  });
+
+  it('has no Remove on a finding without the action', async () => {
+    const { action: _action, ...bare } = leftoverFinding();
+    renderApp(setup(bare), '/doctor');
+    await screen.findByRole('list', { name: 'Runner leftovers' });
+    expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
+  });
+});
