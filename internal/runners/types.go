@@ -53,14 +53,14 @@ type Record struct {
 	// whose machine slot it serves. Empty on every other record (runners R5.88).
 	PoolRunnerID string
 	// KeepDependencies is the persistent runner's setting: downloaded
-	// dependencies stay between jobs (runners R5.89). Temporary files of a job
+	// dependencies stay between jobs (runners R5.90). Temporary files of a job
 	// are always removed, whatever this says. Meaningless for ephemeral.
 	KeepDependencies bool
 	// DependencyCacheBytes is the size of the runner's own dependency cache
-	// folder, as the agent last measured it (runners R5.89).
+	// folder, as the agent last measured it (runners R5.90).
 	DependencyCacheBytes int64
 	// UncleanReason is set when the clean-up of a job failed; the runner takes
-	// no new job until it is clean (runners R5.90).
+	// no new job until it is clean (runners R5.91).
 	UncleanReason string
 	// FailedReason is the whole plain reason a runner is in the failed state,
 	// including what the clean-up left behind. Empty in every other state.
@@ -207,7 +207,7 @@ type Store interface {
 	// (the migration of a repository runner, runners R5.88).
 	SetRunnerPool(ctx context.Context, id, poolRunnerID string) error
 	// SetRunnerHygiene stores the dependency setting, the cache size and the
-	// unclean reason of a persistent runner (runners R5.89, R5.90).
+	// unclean reason of a persistent runner (runners R5.90, R5.91).
 	SetRunnerHygiene(ctx context.Context, id string, h Hygiene) error
 	SavePlan(ctx context.Context, p Plan) error
 	GetPlan(ctx context.Context, id string) (Plan, error)

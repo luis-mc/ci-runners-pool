@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Persistent runner hygiene (runners R5.89, R5.90). The pool always removes a
+// Persistent runner hygiene (runners R5.90, R5.91). The pool always removes a
 // job's temporary files; the agent reports how that went (ReportClean). A
 // failed clean-up leaves the runner unclean and it takes no new job until a
 // later clean-up succeeds. The dependency caches stay only while the runner's
@@ -94,7 +94,7 @@ func (s *Service) foldIntoPool(ctx context.Context, reg Record) error {
 
 // Unclean returns the reason the persistent runner of this machine and name is
 // unclean, or "" when it is clean or unknown. The job gate reads it: an unclean
-// runner takes no new job (runners R5.90).
+// runner takes no new job (runners R5.91).
 func (s *Service) Unclean(ctx context.Context, machineID, runnerName string) string {
 	r, err := s.findByName(ctx, machineID, runnerName)
 	if err != nil {
@@ -135,7 +135,7 @@ func (s *Service) members(ctx context.Context, r Record) ([]Record, error) {
 // RequestClearCache asks for the dependency cache of a persistent runner to be
 // cleared. An idle runner clears it as soon as its agent reads the flag; a
 // runner with a job clears it after the job (the agent only reads the flag
-// between jobs). The flag lasts until ReportClean (runners R5.89).
+// between jobs). The flag lasts until ReportClean (runners R5.90).
 func (s *Service) RequestClearCache(ctx context.Context, runnerID, actor string) (View, error) {
 	r, err := s.find(ctx, runnerID)
 	if err != nil {
@@ -177,7 +177,7 @@ func (s *Service) setClearPending(machineID, name string, on bool) {
 }
 
 // UpdateSettings changes the dependency setting of a persistent runner
-// (runners R5.89). Turning it off makes the next clean-up drop the dependency
+// (runners R5.90). Turning it off makes the next clean-up drop the dependency
 // caches too. An ephemeral runner has no such setting and is refused.
 func (s *Service) UpdateSettings(ctx context.Context, runnerID string, keepDependencies *bool, actor string) (View, error) {
 	r, err := s.find(ctx, runnerID)
