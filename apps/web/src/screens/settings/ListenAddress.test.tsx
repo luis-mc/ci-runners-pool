@@ -71,8 +71,8 @@ describe('Settings > Console > Network', () => {
     expect(
       d.getByRole('radio', { name: /172\.28\.0\.1:8460.*No other machine/ }),
     ).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Use this address' })).toBeTruthy();
+    expect(d.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+    expect(d.getByRole('button', { name: 'Use this address' })).toBeTruthy();
   });
 
   it('applies the choice, waits while the controller restarts, then says it answers', async () => {

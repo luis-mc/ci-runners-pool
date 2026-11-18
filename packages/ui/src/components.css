@@ -324,6 +324,9 @@ body {
 .ds-stack[data-gap='loose'] {
   gap: var(--ds-space-5);
 }
+.ds-stack[data-gap='section'] {
+  gap: var(--ds-space-6);
+}
 .ds-cluster {
   display: flex;
   flex-wrap: wrap;
@@ -552,6 +555,20 @@ body {
   flex: 1 1 12rem;
   overflow-wrap: anywhere;
 }
+.ds-message[data-dismissible] .ds-message__body {
+  flex-basis: 8rem;
+}
+.ds-message__dismiss {
+  min-inline-size: var(--ds-target-min);
+  min-block-size: var(--ds-target-min);
+  flex: none;
+  margin-inline-start: auto;
+  color: inherit;
+  background: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
 .ds-message[data-tone='done'] {
   background: var(--ds-color-done-tint);
   color: var(--ds-color-on-done-tint);
@@ -766,9 +783,11 @@ body {
   inline-size: 100%;
 }
 
-/* table */
+/* table: a table never scrolls sideways (UX-49). It folds to stacked rows at phone width, and its cells wrap. */
+.ds-table td .ds-stack {
+  gap: 0;
+}
 .ds-table-frame {
-  overflow-x: auto;
   border: var(--ds-border-thin) solid var(--ds-color-divider);
   border-radius: var(--ds-radius-3);
 }
@@ -801,7 +820,8 @@ body {
 .ds-table td {
   padding: var(--ds-space-3);
   text-align: start;
-  vertical-align: top;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
   border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
 }
 .ds-table th {
@@ -848,6 +868,24 @@ body {
 .ds-table__pick {
   inline-size: var(--ds-target-min);
 }
+/* Long free text in a cell: one line with an ellipsis; its button opens the full text in a full-width row (LOOK19). */
+.ds-table__clip {
+  display: block;
+  max-inline-size: 40ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-color-text-muted);
+}
+.ds-table tr[data-list-row]:focus .ds-table__clip,
+.ds-table tr[data-list-row]:focus-within .ds-table__clip,
+.ds-table tr[data-active] .ds-table__clip {
+  color: inherit;
+}
+.ds-table__expanded td {
+  background: var(--ds-color-selection);
+  overflow-wrap: anywhere;
+}
 /* At phone width every row is a stack of "name  value" lines (UX-25, UX-69). The lead cell is the title line. A
    column marked secondary is left out. */
 @media (max-width: 599px) {
@@ -887,6 +925,16 @@ body {
   }
   .ds-table td.ds-table__pick {
     display: block;
+  }
+  .ds-table__clip {
+    max-inline-size: 100%;
+  }
+  .ds-table__expanded td::before {
+    content: none;
+  }
+  .ds-table__expanded td {
+    display: block;
+    padding: var(--ds-space-2) var(--ds-space-3);
   }
   .ds-table td.ds-table__pick::before {
     content: none;
@@ -955,6 +1003,38 @@ body {
 .ds-field__label {
   font-weight: var(--ds-weight-semibold);
   padding: 0;
+}
+.ds-field__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 var(--ds-space-2);
+  min-inline-size: 0;
+}
+.ds-field__head > .ds-field__label {
+  min-inline-size: 0;
+}
+/* In a row of fields the name stays on one line; the mark drops under it when there is no room. */
+.ds-field-grid .ds-field__head > .ds-field__label {
+  max-inline-size: 100%;
+}
+/* The mark of a value that differs from what is saved (LOOK21): a quiet word in the primary colour. */
+.ds-field__changed {
+  flex: none;
+  color: var(--ds-color-primary);
+  font-size: var(--ds-size-2);
+  font-weight: var(--ds-weight-semibold);
+  white-space: nowrap;
+}
+legend > .ds-field__changed {
+  margin-inline-start: var(--ds-space-3);
+}
+.ds-choice__row > .ds-field__changed {
+  margin-inline-start: auto;
+}
+.ds-field[data-changed] > :is(.ds-input, .ds-number) {
+  border-color: var(--ds-color-primary);
 }
 .ds-field__help {
   margin: 0;

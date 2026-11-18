@@ -98,6 +98,21 @@ function jobsApi(items: { queue?: Job[]; history?: Job[]; next?: string } = {}) 
 }
 
 describe('wait reasons and results in words', () => {
+  it('shows a long wait reason as one line with a Details button that opens it', async () => {
+    const text =
+      'waits for a free slot on any Linux machine that carries the labels self-hosted and arm64';
+    renderApp(
+      jobsApi({ queue: [{ ...queued, wait_text: text }], history: [job()] }),
+      '/jobs',
+    );
+    const table = await screen.findByRole('table', { name: 'Queued jobs' });
+    const button = within(table).getByRole('button', { name: 'Details' });
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(button);
+    expect(within(table).getByRole('region', { name: /Details/ }).textContent).toBe(text);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('says why a queued job waits (UX-29), preferring the server line', () => {
     expect(waitWords({ wait_reason: 'free_slot', wait_text: 'waits on box-1' })).toBe(
       'waits on box-1',
@@ -226,7 +241,27 @@ describe('Jobs screen', () => {
     expect(await screen.findByText('ci.yml / test')).toBeTruthy();
   });
 
-  it('loads earlier jobs with Show earlier and keeps the rows when that fails', async () => {
+  it('keeps the last 100 finished jobs and pages in the rest with See all (D34)', async () => {
+    const api = jobsApi({ history: [job()], next: 'j1' });
+    renderApp(api, '/jobs');
+    await screen.findByText('ci.yml / test');
+    expect(screen.getByText('Showing the last 100 finished jobs.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'See all' })).toBeTruthy();
+    expect(
+      api.calls.filter(
+        (c) => c.query.get('state') === 'done' && c.query.get('limit') === '100',
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(api.calls.some((c) => c.query.get('cursor'))).toBe(false);
+  });
+
+  it('has no See all when every finished job is already shown (D34)', async () => {
+    renderApp(jobsApi({ history: [job()] }), '/jobs');
+    await screen.findByText('ci.yml / test');
+    expect(screen.queryByRole('button', { name: 'See all' })).toBeNull();
+  });
+
+  it('loads earlier jobs with See all and keeps the rows when that fails', async () => {
     let calls = 0;
     const api = jobsApi({ history: [job()], next: 'j1' }).on(
       'GET',
@@ -245,7 +280,7 @@ describe('Jobs screen', () => {
     );
     renderApp(api, '/jobs');
     await screen.findByText('ci.yml / test');
-    fireEvent.click(screen.getByRole('button', { name: 'Show earlier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'See all' }));
     expect(await screen.findByText(/Could not load earlier jobs/)).toBeTruthy();
     expect(screen.getByText('ci.yml / test')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
@@ -363,14 +398,14 @@ describe('Jobs panes and states (UX-4, UX-6, UX-10, UX-17)', () => {
     const filters = screen.getByRole('region', { name: 'Filters' });
     expect(within(filters).getByRole('group', { name: 'Result' })).toBeTruthy();
     expect(within(filters).getByText('Repository')).toBeTruthy();
-    const history = screen.getByRole('region', { name: 'History' });
-    expect(within(history).getByRole('button', { name: /Export/ })).toBeTruthy();
+    const bar = screen.getByRole('region', { name: 'Actions' });
+    expect(within(bar).getByRole('button', { name: /Export/ })).toBeTruthy();
   });
 
   it('offers Add runners once, as the one primary, when there are no jobs', async () => {
     renderApp(jobsApi(), '/jobs');
     const add = await screen.findByRole('button', { name: 'Add runners' });
-    expect(add.getAttribute('href')).toBe('/runners/add');
+    expect(add.getAttribute('href')).toBe('/pool/runners/add');
     expect(screen.getAllByRole('button', { name: 'Add runners' })).toHaveLength(1);
     expect(
       screen

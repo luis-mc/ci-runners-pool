@@ -186,7 +186,11 @@ export function MachinePolicySection({
             void change.run({ cpu_cap_pct: Number(v) as Schemas['CpuCapPct'] })
           }
         />
-        {applying ? <Message tone="note">Setting the CPU cap.</Message> : null}
+        {applying ? (
+          <Message tone="note" dismissible={false}>
+            Setting the CPU cap.
+          </Message>
+        ) : null}
         {policy?.cpu_cap_state === 'failed' ? (
           <Message tone="problem">
             The CPU cap was not set. {policy.cpu_cap_detail ?? ''}

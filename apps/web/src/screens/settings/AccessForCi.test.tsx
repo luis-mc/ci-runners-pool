@@ -4,7 +4,6 @@
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderApp, signedIn, viewer } from '../../testing/mock';
-import { section } from './testSection';
 
 afterEach(cleanup);
 
@@ -70,7 +69,10 @@ describe('Make an access (R5.90)', () => {
     expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Make an access' }));
     expect(screen.getByRole('textbox', { name: 'Name' })).toBeTruthy();
-    fireEvent.click(section('access-for-ci').getByRole('button', { name: 'Cancel' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
+      target: { value: 'x' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Make an access' })).toBeTruthy();
   });
@@ -86,7 +88,7 @@ describe('Make an access (R5.90)', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
       target: { value: 'second' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Make' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     const dialog = await screen.findByRole('dialog', { name: 'Access second is made' });
     expect(within(dialog).getByLabelText('Access value').textContent).toBe(
       'crsp_acc_shownonce123',
@@ -107,7 +109,10 @@ describe('Make an access (R5.90)', () => {
     renderApp(a, '/settings/access');
     await screen.findByRole('table', { name: 'Access for CI' });
     fireEvent.click(screen.getByRole('button', { name: 'Make an access' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Make' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), {
+      target: { value: '  ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText(/Write a name for the access/)).toBeTruthy();
     expect(a.count('POST', '/api/v1/access-credentials')).toBe(0);
   });

@@ -2,6 +2,7 @@
 // not managed.
 import {
   Button,
+  CappedList,
   Chips,
   Empty,
   LinkButton,
@@ -15,7 +16,6 @@ import {
   Status,
   Table,
   Text,
-  TextLink,
   formatAgo,
   formatDuration,
   Facts,
@@ -82,6 +82,31 @@ export function stateCounts(items: readonly Runner[]): {
   const idle = items.filter((r) => r.state === 'idle').length;
   const busy = items.filter((r) => r.state === 'busy').length;
   return { idle, busy, other: items.length - idle - busy };
+}
+
+/** D32: the pool's totals above the list, "2 machines, 6 runners, 2 busy". */
+export function runnerTotals(items: readonly Runner[]): string {
+  const machines = new Set(items.map((r) => r.machine_id)).size;
+  const busy = items.filter((r) => r.state === 'busy').length;
+  const n = (c: number, one: string, many: string) => `${c} ${c === 1 ? one : many}`;
+  return `${n(machines, 'machine', 'machines')}, ${n(items.length, 'runner', 'runners')}, ${busy} busy`;
+}
+
+/** D32: the runners of each machine together, machines in name order. */
+export function groupByMachine<T extends Pick<Runner, 'machine_id' | 'machine_name'>>(
+  rows: readonly T[],
+): { id: string; name: string; rows: T[] }[] {
+  const by = new Map<string, { id: string; name: string; rows: T[] }>();
+  for (const r of rows) {
+    const g = by.get(r.machine_id) ?? {
+      id: r.machine_id,
+      name: r.machine_name,
+      rows: [],
+    };
+    g.rows.push(r);
+    by.set(r.machine_id, g);
+  }
+  return [...by.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function failedWords(n: number): string {
@@ -183,33 +208,27 @@ export function RunnersList() {
   const columns: Column<Runner>[] = [
     { id: 'name', header: 'Name', cell: (r) => r.name, sort: (r) => r.name },
     {
-      id: 'machine',
-      header: 'Machine',
-      cell: (r) => <TextLink to={`/machines/${r.machine_id}`}>{r.machine_name}</TextLink>,
-      sort: (r) => r.machine_name,
-    },
-    { id: 'os', header: 'System', cell: (r) => r.os, sort: (r) => r.os },
-    { id: 'backend', header: 'Backend', cell: (r) => r.backend },
-    {
       id: 'iso',
       header: 'Isolation',
-      cell: (r) => isolationText(r),
+      cell: (r) => (
+        <Stack gap="tight">
+          <span>{isolationText(r)}</span>
+          <Text tone="muted">{`${r.os} ${r.arch}, ${r.backend}`}</Text>
+        </Stack>
+      ),
       sort: (r) => r.isolation,
     },
-    { id: 'labels', header: 'Labels', cell: (r) => r.labels.join(', ') },
+    { id: 'labels', header: 'Labels', cell: (r) => <CappedList items={r.labels} /> },
     {
       id: 'state',
       header: 'State',
       cell: (r) => {
         const s = runnerStatus(r);
-        return (
-          <Stack gap="tight">
-            <Status kind={s.kind} word={s.word} />
-            {(r.reason ?? (r.state === 'failed' ? r.failed_reason : null)) ? (
-              <Text tone="muted">{r.reason ?? r.failed_reason}</Text>
-            ) : null}
-          </Stack>
-        );
+        return <Status kind={s.kind} word={s.word} />;
+      },
+      long: (r) => {
+        const full = r.reason ?? (r.state === 'failed' ? r.failed_reason : null);
+        return full ? { full } : null;
       },
       sort: (r) => r.state,
     },
@@ -302,7 +321,7 @@ export function RunnersList() {
     <Page>
       <PageHeader
         title="Runners"
-        lead="Every runner, with where it runs and how it is isolated."
+        lead="The runners of the pool, by machine. They serve every repository that uses the pool."
       />
       <Load result={result} what="runners" reload={reload}>
         {(data) => {
@@ -322,6 +341,7 @@ export function RunnersList() {
             );
           return (
             <Stack>
+              <Text>{runnerTotals(data.items)}</Text>
               <Facts
                 items={[
                   { name: 'Idle', value: String(stateCounts(data.items).idle) },
@@ -347,7 +367,7 @@ export function RunnersList() {
               {data.items.some((r) => r.state === 'failed') ? (
                 <Message
                   tone="needs-you"
-                  action={<LinkButton to="/runners/add">Add runners</LinkButton>}
+                  action={<LinkButton to="/pool/runners/add">Add runners</LinkButton>}
                 >
                   {failedWords(data.items.filter((r) => r.state === 'failed').length)}
                 </Message>
@@ -441,26 +461,44 @@ export function RunnersList() {
                       {data.items.length} runners are hidden by the search and the
                       filters. Clear them to see all.
                     </Message>
-                  ) : (
-                    <Table
-                      caption="Runners"
-                      columns={columns}
-                      rows={rows}
-                      rowKey={(r) => r.id}
-                      selected={picked}
-                      onToggle={(k) =>
-                        setPicked((p) => {
-                          const n = new Set(p);
-                          if (n.has(k)) n.delete(k);
-                          else n.add(k);
-                          return n;
-                        })
-                      }
-                      toggleLabel={(r) => `Select ${r.name}`}
-                    />
-                  )}
+                  ) : null}
                 </Stack>
               </Section>
+              {rows.length > 0 ? (
+                <Stack>
+                  {groupByMachine(rows).map((g) => (
+                    <Section
+                      key={g.id}
+                      title={`Machine ${g.name}`}
+                      count={g.rows.length}
+                      actions={
+                        <LinkButton to={`/pool/machines/${g.id}`}>
+                          {`Open ${g.name}`}
+                        </LinkButton>
+                      }
+                    >
+                      <Table
+                        caption={`Runners on ${g.name}`}
+                        columns={columns}
+                        rows={g.rows}
+                        rowKey={(r) => r.id}
+                        expandLabel="Full error"
+                        rowLabel={(r) => r.name}
+                        selected={picked}
+                        onToggle={(k) =>
+                          setPicked((p) => {
+                            const n = new Set(p);
+                            if (n.has(k)) n.delete(k);
+                            else n.add(k);
+                            return n;
+                          })
+                        }
+                        toggleLabel={(r) => `Select ${r.name}`}
+                      />
+                    </Section>
+                  ))}
+                </Stack>
+              ) : null}
             </Stack>
           );
         }}
@@ -507,7 +545,7 @@ export function RunnersList() {
             kind="primary"
             disabled={!admin}
             reason={admin ? undefined : why}
-            onPress={() => void navigate('/runners/add')}
+            onPress={() => void navigate('/pool/runners/add')}
           >
             Add runners
           </Button>

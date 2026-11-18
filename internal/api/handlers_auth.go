@@ -70,6 +70,7 @@ var githubAreaAuth = map[string]string{
 	"getRepository": authUser, "updateRepositoryPolicy": authAdmin, "getRepositoryRunsOn": authUser,
 	"getRepositoryExtraPackages": authUser, "setRepositoryExtraPackages": authAdmin,
 	"getRepositoryTrial": authUser, "setRepositoryTrial": authAdmin, "setRepositoryWebhookMode": authAdmin,
+	"getAppWebhook": authAdmin, "setAppWebhook": authOwner, "clearAppWebhook": authOwner,
 	"replaceAppPrivateKey": authOwner, "getPublicRepositories": authUser, "setPublicRepositories": authOwner,
 	// CRSP134 access credentials for CI and the parity setup action.
 	"listAccessCredentials": authAdmin, "createAccessCredential": authAdmin, "revokeAccessCredential": authAdmin,

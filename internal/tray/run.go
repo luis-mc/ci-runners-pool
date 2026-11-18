@@ -158,6 +158,7 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 
 		var relaunchOnce sync.Once
 		offers := &Offered{}
+		alerts := &Alerted{}
 		p := &Poller{Source: client, Manager: ServiceState}
 		p.OnStatus = func(s Status) {
 			select {
@@ -200,6 +201,10 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 			// A found update the owner has not been asked about yet: the same Install now / Later dialog.
 			if offers.Due(s) {
 				go func() { _ = opener.Offer(ctx, s) }()
+			}
+			// A runner service that did not start: one notification for each, until it runs.
+			for _, rp := range alerts.Due(s) {
+				DesktopNotice(ProblemTitle, ProblemBody(rp))
 			}
 			// The service runs a newer version than this tray: the update installed.
 			// Start the tray of the new version and quit this one (R5.18, within 30 s).

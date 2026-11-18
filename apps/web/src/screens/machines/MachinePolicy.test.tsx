@@ -20,7 +20,7 @@ describe('Machine policy section', () => {
   it('shows the mode, the battery switch and the CPU cap of the machine', async () => {
     renderApp(
       detail(withSettings({ mode: 'always', pause_on_battery: false, cpu_cap_pct: 50 })),
-      '/machines/m1',
+      '/pool/machines/m1',
     );
     await screen.findByRole('heading', { name: 'build-1' });
     expect(screen.getByRole<HTMLInputElement>('radio', { name: /Always/ }).checked).toBe(
@@ -37,7 +37,7 @@ describe('Machine policy section', () => {
 
   it('saves a mode at once, without Save', async () => {
     const api = detail();
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
     fireEvent.click(screen.getByRole('radio', { name: /Paused/ }));
     await waitFor(() => expect(api.count('PATCH', '/api/v1/machines/m1')).toBe(1));
@@ -46,7 +46,7 @@ describe('Machine policy section', () => {
 
   it('saves the battery switch and the CPU cap at once', async () => {
     const api = detail();
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
     fireEvent.click(screen.getByRole('switch', { name: 'Pause on battery' }));
     await waitFor(() => expect(api.count('PATCH', '/api/v1/machines/m1')).toBe(1));
@@ -65,7 +65,7 @@ describe('Machine policy section', () => {
           policy: { on_battery: true, battery_known: true },
         }),
       ),
-      '/machines/m1',
+      '/pool/machines/m1',
     );
     await screen.findByRole('heading', { name: 'build-1' });
     expect(screen.getAllByText('On battery').length).toBeGreaterThan(0);
@@ -79,7 +79,7 @@ describe('Machine policy section', () => {
         { accepting: false, pause_reason: 'paused' },
       ),
     );
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
     expect(screen.getByText('Paused until')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Resume' }));
@@ -91,7 +91,7 @@ describe('Machine policy section', () => {
     const api = detail(
       withSettings({ mode: 'paused' }, { accepting: false, pause_reason: 'paused' }),
     );
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
     fireEvent.click(screen.getByRole('button', { name: 'Resume' }));
     await waitFor(() => expect(api.count('PATCH', '/api/v1/machines/m1')).toBe(1));
@@ -110,7 +110,7 @@ describe('Machine policy section', () => {
           },
         }),
       ),
-      '/machines/m1',
+      '/pool/machines/m1',
     );
     await screen.findByRole('heading', { name: 'build-1' });
     expect(screen.getAllByText(/Not supported on macOS yet/).length).toBeGreaterThan(0);
@@ -167,7 +167,7 @@ describe('Machine policy section', () => {
           },
         }),
       ),
-      '/machines/m1',
+      '/pool/machines/m1',
     );
     expect(
       await screen.findByText(/The CPU cap was not set\. 1 of 2 runner services/),
@@ -177,7 +177,7 @@ describe('Machine policy section', () => {
   it('shows a viewer the values and the reason the controls are off (UX-38)', async () => {
     renderApp(
       signedIn(viewer).on('GET', '/api/v1/machines/:id', machine()),
-      '/machines/m1',
+      '/pool/machines/m1',
     );
     await screen.findByRole('heading', { name: 'build-1' });
     expect(
@@ -204,7 +204,7 @@ describe('Machines list: takes jobs', () => {
         machine({ id: 'm3', name: 'desk', accepting: false, pause_reason: 'paused' }),
       ],
     });
-    renderApp(api, '/machines');
+    renderApp(api, '/pool/machines');
     const table = await screen.findByRole('table', { name: 'Machines' });
     expect(within(table).getByText('Taking jobs')).toBeTruthy();
     expect(within(table).getByText('On battery')).toBeTruthy();

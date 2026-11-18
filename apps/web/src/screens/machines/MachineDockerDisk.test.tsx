@@ -48,7 +48,7 @@ const lastPatch = (api: ReturnType<typeof detail>) =>
 
 describe('Docker disk section', () => {
   it('shows the numbers, the state and the policy', async () => {
-    renderApp(detail(), '/machines/m1');
+    renderApp(detail(), '/pool/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
     expect(screen.getByRole('heading', { name: 'Docker disk' })).toBeTruthy();
     expect(screen.getByText('Waiting for quiet hours')).toBeTruthy();
@@ -70,7 +70,7 @@ describe('Docker disk section', () => {
 
   it('saves the mode and the quiet hours at once, without Save', async () => {
     const api = detail();
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
     fireEvent.click(screen.getByRole('radio', { name: /^Off/ }));
     await waitFor(() => expect(api.count('PATCH', '/api/v1/machines/m1')).toBe(1));
@@ -83,7 +83,10 @@ describe('Docker disk section', () => {
   });
 
   it('keeps a quiet hour that is not on the hour', async () => {
-    renderApp(detail(windows({ docker_compact_quiet_start: '02:30' })), '/machines/m1');
+    renderApp(
+      detail(windows({ docker_compact_quiet_start: '02:30' })),
+      '/pool/machines/m1',
+    );
     await screen.findByRole('heading', { name: 'build-1' });
     expect(
       screen.getByRole<HTMLSelectElement>('combobox', { name: 'Quiet hours start' })
@@ -93,7 +96,7 @@ describe('Docker disk section', () => {
 
   it('says when the agent cannot make the disk smaller and offers Turn off', async () => {
     const api = detail(windows({}, { can_compact: false, reason: 'no_admin' }));
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
     expect(screen.getByText(/does not run as administrator/)).toBeTruthy();
     expect(
@@ -105,7 +108,7 @@ describe('Docker disk section', () => {
   });
 
   it('shows nothing for a machine without a Docker Desktop disk file', async () => {
-    renderApp(detail(machine()), '/machines/m1');
+    renderApp(detail(machine()), '/pool/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
     expect(screen.queryByRole('heading', { name: 'Docker disk' })).toBeNull();
   });

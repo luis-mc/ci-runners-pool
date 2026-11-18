@@ -11,7 +11,6 @@ import {
   Empty,
   ErrorSummary,
   Facts,
-  FormActions,
   Message,
   Section,
   Stack,
@@ -26,6 +25,7 @@ import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand, useLoad, useQuestion, type Loaded } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { Ask, Load } from '../common';
+import { useTabPart } from './TabForm';
 import { GrantGuide } from '../GrantGuide';
 import { ChooseAddressDialog } from './ListenAddress';
 
@@ -74,7 +74,7 @@ function AccessCredentials({ version }: { version: number }) {
     const problems: string[] = [];
     if (!name.trim()) problems.push('Write a name for the access, such as "parity CI".');
     setErrors(problems);
-    if (problems.length) return;
+    if (problems.length) return false;
     const made = await unwrap(
       client.POST('/api/v1/access-credentials', {
         body: { name: name.trim(), scope: 'parity' },
@@ -84,6 +84,18 @@ function AccessCredentials({ version }: { version: number }) {
     setName('');
     setMaking(false);
     reload();
+    return true;
+  });
+  // The "Make an access" form is a part of the Access tab: the name counts as a change, and Save in the bar makes.
+  useTabPart('access-for-ci', {
+    changes: name !== '' ? 1 : 0,
+    save: async () => (await make.run()) === true,
+    reset: () => {
+      setName('');
+      setErrors([]);
+      setMaking(false);
+      make.clear();
+    },
   });
   const revoke = useQuestion(
     async () => {
@@ -179,46 +191,30 @@ function AccessCredentials({ version }: { version: number }) {
       </Section>
       {making ? (
         <Section title="Make an access">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void make.run();
-            }}
-          >
-            <Stack>
-              <ErrorSummary errors={errors} />
-              <TextField label="Name" value={name} onChange={setName} />
-              <ChoiceField
-                label="What it can do"
-                value="parity"
-                onChange={() => undefined}
-                choices={[
-                  {
-                    value: 'parity',
-                    label: 'Parity',
-                    description: 'Read the runners and run the doctor, nothing else.',
-                  },
-                ]}
-              />
-              {make.error ? (
-                <Message tone="problem">Could not make the access. {make.error}</Message>
-              ) : null}
-              <FormActions>
-                <Button
-                  onPress={() => {
-                    setName('');
-                    setErrors([]);
-                    setMaking(false);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button kind="primary" submit busy={make.busy} busyLabel="Making">
-                  Make
-                </Button>
-              </FormActions>
-            </Stack>
-          </form>
+          <Stack>
+            <ErrorSummary errors={errors} />
+            <TextField
+              label="Name"
+              value={name}
+              onChange={setName}
+              changed={name !== ''}
+            />
+            <ChoiceField
+              label="What it can do"
+              value="parity"
+              onChange={() => undefined}
+              choices={[
+                {
+                  value: 'parity',
+                  label: 'Parity',
+                  description: 'Read the runners and run the doctor, nothing else.',
+                },
+              ]}
+            />
+            {make.error ? (
+              <Message tone="problem">Could not make the access. {make.error}</Message>
+            ) : null}
+          </Stack>
         </Section>
       ) : null}
       {shown ? (
@@ -390,9 +386,7 @@ function NeedsAddress({
         </span>
         {chooseHere ? (
           <Cluster>
-            <Button kind="primary" onPress={() => setChoosing(true)}>
-              Choose an address
-            </Button>
+            <Button onPress={() => setChoosing(true)}>Choose an address</Button>
           </Cluster>
         ) : (
           <Facts items={[{ name: 'Setting to fix', value: setting }]} />

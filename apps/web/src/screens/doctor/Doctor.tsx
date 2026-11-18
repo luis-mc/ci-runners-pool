@@ -1,5 +1,5 @@
 // Doctor (web-console 4.8, R5.26): findings grouped by area with a status word (UX-58), what is wrong and its fix,
-// the time of the last run (UX-53), and "Run the doctor" as the one primary (UX-4). It is busy while the run lasts
+// the time of the last run (UX-53), and "Run checks again" as the one primary, in the action bar (UX-71); a fix button in a row is a normal button (D27). It is busy while the run lasts
 // and shows its progress (UX-13, UX-29); the busy state is the server's run state, not a timer (UX-19).
 import {
   Badge,
@@ -34,6 +34,32 @@ import { Load } from '../common';
 type Finding = Schemas['DoctorFinding'];
 type Run = Schemas['DoctorRun'];
 type Severity = Schemas['Severity'];
+
+/** The one-click fix of `runner.logon` (runners R5.89, doctor R5.45): the agent gives the account the right to log
+ * on as a service again and starts the service. It is the call the Problem banner makes. */
+function StartRunnerService({ machineId }: { machineId: string }) {
+  const client = useClient();
+  const session = useSession();
+  const admin = session.can('admin');
+  const start = useCommand(async () => {
+    await unwrap(
+      client.POST('/api/v1/machines/{machineId}/redetect', {
+        params: { path: { machineId } },
+      }),
+    );
+  });
+  return (
+    <Button
+      onPress={() => void start.run()}
+      busy={start.busy}
+      busyLabel="Starting"
+      disabled={!admin}
+      reason={!admin ? session.whyNot('admin') : undefined}
+    >
+      Start
+    </Button>
+  );
+}
 
 /** How often a running run is asked again when no live event came. */
 export const POLL_MS = 3000;
@@ -113,6 +139,7 @@ export function DoctorScreen() {
     return r;
   });
   const running = run?.state === 'running';
+  const hasRun = result.state === 'ready' && Boolean(result.data.last_run_at);
 
   // The run's own state is read from the server: on every live doctor event, and on a slow poll as a fallback.
   const runId = run?.id;
@@ -153,9 +180,9 @@ export function DoctorScreen() {
         <Stack gap="tight">
           <span>{f.title}</span>
           <Text tone="muted">{f.subject.name}</Text>
-          {f.detail ? <Text tone="muted">{f.detail}</Text> : null}
         </Stack>
       ),
+      long: (f) => (f.detail ? { full: f.detail } : null),
     },
     {
       id: 'fix',
@@ -167,6 +194,9 @@ export function DoctorScreen() {
           {f.fix.link?.startsWith('/') ? (
             <Cluster>
               <LinkButton to={f.fix.link}>Open</LinkButton>
+              {f.check === 'runner.logon' && f.severity === 'fail' ? (
+                <StartRunnerService machineId={f.fix.link.slice('/machines/'.length)} />
+              ) : null}
             </Cluster>
           ) : null}
           {f.needs_admin && !admin ? <Badge>needs admin</Badge> : null}
@@ -209,7 +239,7 @@ export function DoctorScreen() {
           if (data.items.length === 0 && !data.last_run_at)
             return (
               <Section title="Findings">
-                <Empty title="No checks have run yet. Use Run the doctor at the top to look for problems." />
+                <Empty title="No checks have run yet. Use Run checks below to look for problems." />
               </Section>
             );
           const last = data.last_run_at ? formatPast(data.last_run_at, now) : undefined;
@@ -232,6 +262,8 @@ export function DoctorScreen() {
                     columns={columns}
                     rows={g.items}
                     rowKey={(f) => `${f.check}:${f.subject.id}`}
+                    expandLabel="Details"
+                    rowLabel={(f) => f.title}
                   />
                 </Section>
               ))}
@@ -249,7 +281,7 @@ export function DoctorScreen() {
             reason={why}
             onPress={() => void start.run()}
           >
-            Run the doctor
+            {hasRun ? 'Run checks again' : 'Run checks'}
           </Button>
         }
       />

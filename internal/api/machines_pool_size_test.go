@@ -89,6 +89,14 @@ func TestPoolSizeCheckDryRun(t *testing.T) {
 	if !c.Known || c.Ok || c.Reason == nil || len(c.Nearest) == 0 || c.Short == nil || *c.Short != "memory" || c.RoomGib == nil {
 		t.Fatalf("a size over the budget names the budget and the nearest size: %+v", c)
 	}
+	// LOOK22: room 19.2 GiB, CPU budget 4: half is 9 GiB and 2 CPUs, three quarters 14 GiB and 3 CPUs.
+	if c.RecommendedHalf == nil || c.RecommendedHalf.MemoryGib != 9 || c.RecommendedHalf.Cpus != 2 ||
+		c.RecommendedThreeQuarters == nil || c.RecommendedThreeQuarters.MemoryGib != 14 || c.RecommendedThreeQuarters.Cpus != 3 {
+		t.Fatalf("recommended sizes: %+v %+v", c.RecommendedHalf, c.RecommendedThreeQuarters)
+	}
+	if c := check(0, 0); c.RecommendedHalf != nil {
+		t.Fatalf("clearing carries no recommendation: %+v", c)
+	}
 	if rec := doM(t, mux, "GET", "/api/v1/machines/"+id, nil); strings.Contains(rec.Body.String(), `"pool_cpus":4`) {
 		t.Fatalf("the check saved a size: %s", rec.Body)
 	}

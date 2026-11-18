@@ -1,7 +1,7 @@
 // UX-5, UX-30, UX-54, R5.19: every wizard (Connect GitHub, Add a machine, Turn on the pool, Add runners) is driven
 // through the ten states of the wizard harness. The page passes data only; the shared wizard owns the step bar,
 // the locks, Stop, busy and Done. The harness reads each state from the DOM and judges it.
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   judgeAll,
@@ -10,14 +10,7 @@ import {
   type WizardState,
 } from '../../../../scripts/design/wizard-behaviour';
 import { TIMING } from '../timing';
-import {
-  MockApi,
-  apiError,
-  machine,
-  renderApp,
-  repository,
-  signedIn,
-} from '../testing/mock';
+import { MockApi, machine, renderApp, repository, signedIn } from '../testing/mock';
 import { createApiClient } from '@crsp/contract';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -133,7 +126,7 @@ const machineDriver: WizardDriver = {
   id: 'add-machine',
   async open(state) {
     const api = machineApi();
-    let path = '/machines/add';
+    let path = '/pool/machines/add';
     if (state === 'loading') api.on('GET', '/api/v1/machines', never);
     if (state === 'planning') api.on('GET', '/api/v1/install-command', never);
     if (['paused', 'stopped', 'failed', 'done-after-reload'].includes(state)) {
@@ -286,7 +279,7 @@ const runnersDriver: WizardDriver = {
       .on('POST', '/api/v1/runner-plans', rplan('planned'))
       .on('POST', '/api/v1/runner-plans/:id/apply', rplan('applying'))
       .on('GET', '/api/v1/runner-plans/:id', rplan('done'));
-    let path = '/runners/add';
+    let path = '/pool/runners/add';
     if (state === 'loading') api.on('GET', '/api/v1/machines', never);
     if (state === 'planning') api.on('POST', '/api/v1/runner-plans', never);
     if (state === 'running') api.on('GET', '/api/v1/runner-plans/:id', rplan('applying'));
@@ -310,8 +303,7 @@ const runnersDriver: WizardDriver = {
       await screen.findByRole('button', { name: STORED });
       return snap();
     }
-    await screen.findByRole('radio', { name: 'octo/app' });
-    fireEvent.click(screen.getByRole('radio', { name: 'octo/app' }));
+    await screen.findByRole('textbox', { name: /Labels/ });
     if (state === 'first-run') return snap();
     await press('Next');
     if (state === 'planning') return snap();
@@ -500,84 +492,6 @@ const updateDriverFor = (compact: boolean): WizardDriver => ({
 const updateDriver = updateDriverFor(false);
 const updatePageDriver = updateDriverFor(true);
 
-// ---------------------------------------------------------------------------------------------------- Pool size
-const sizeCheck = (extra: object = {}) => ({
-  known: true,
-  ok: true,
-  needs_shrink_confirm: false,
-  nearest: [],
-  total_gib: 32,
-  used_outside_gib: 8,
-  memory_budget_gib: 27.2,
-  room_gib: 19.2,
-  cpu_budget: 4,
-  decided: 'fits',
-  current_memory_gib: 0,
-  current_cpus: 0,
-  ...extra,
-});
-
-const poolSizeDriver: WizardDriver = {
-  id: 'pool-size',
-  async open(state) {
-    let checks = 0;
-    const api = signedIn()
-      .on('GET', '/api/v1/machines/:id', machine())
-      .on('POST', '/api/v1/machines/:id/pool-size-check', () => {
-        checks++;
-        // The 1st read fills the Size step, the 2nd is Review, the 3rd is the read right before saving.
-        if (state === 'loading' && checks === 1) return hang();
-        if (state === 'planning' && checks === 2) return hang();
-        if (state === 'stopped' && checks === 3) return sizeCheck({ current_cpus: 3 });
-        return sizeCheck();
-      })
-      .on('PATCH', '/api/v1/machines/:id', () =>
-        state === 'running'
-          ? hang()
-          : state === 'failed'
-            ? apiError(400, 'invalid', 'the memory budget is short')
-            : machine(),
-      );
-    let path = '/machines/m1';
-    if (state === 'paused') path += '?pool_size=saving';
-    if (state === 'done-after-reload') path += '?pool_size=saved';
-    renderApp(api, path);
-    await step('Pool size');
-    const snap = () => read(state, 'Pool size', false);
-    if (state === 'loading') return snap();
-    if (state === 'paused' || state === 'done-after-reload') {
-      await screen.findByRole('button', { name: /Start again/ });
-      return snap();
-    }
-    await screen.findByRole('button', { name: /Pool CPUs/ });
-    if (state === 'first-run') return snap();
-    // A value that differs from the one set, so Review is allowed.
-    fireEvent.click(screen.getByRole('button', { name: /Pool CPUs/ }));
-    const dialog = await screen.findByRole('dialog');
-    fireEvent.click(within(dialog).getByRole('button', { name: '4' }));
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    // The step bar also has a Review button; the one that acts is in the action bar.
-    fireEvent.click(
-      screen
-        .getAllByRole('button', { name: 'Review' })
-        .find((b) => b.closest('.ds-action-bar')) as HTMLElement,
-    );
-    if (state === 'planning') return snap();
-    await screen.findByText(/Nothing has changed yet/);
-    if (state === 'ready-to-review') return snap();
-    await press('Save 4 GiB and 4 CPUs');
-    if (state === 'running') {
-      await screen.findByText(/Saving the pool size/, { selector: 'p' });
-      return snap();
-    }
-    if (state === 'stopped') await screen.findByText(/Stopped\. Nothing was saved/);
-    else if (state === 'failed') await screen.findByText(/was not saved/);
-    else await screen.findByText(/The pool size is/);
-    return snap();
-  },
-};
-
 describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
   const drivers = [
     connectDriver,
@@ -586,7 +500,6 @@ describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
     runnersDriver,
     updateDriver,
     updatePageDriver,
-    poolSizeDriver,
   ];
   for (const d of drivers) {
     it(`${d.id} passes the ten states and keeps its known list empty`, async () => {
@@ -635,7 +548,7 @@ describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
 
   it('Stop withdraws the join code and the wizard still ends at Done (R5.17)', async () => {
     const api = machineApi();
-    renderApp(api, '/machines/add');
+    renderApp(api, '/pool/machines/add');
     await screen.findByRole('radio', { name: 'Linux' });
     await press('Next');
     await press('Join a machine');
@@ -686,9 +599,9 @@ describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
           stopped = true;
           return mk('applying');
         });
-      renderApp(api, repo ? '/repositories/turn-on' : '/runners/add');
+      renderApp(api, repo ? '/repositories/turn-on' : '/pool/runners/add');
       if (repo) await tickOnce('Select octo/app');
-      else fireEvent.click(await screen.findByRole('radio', { name: 'octo/app' }));
+      else await screen.findByRole('textbox', { name: /Labels/ });
       await press('Next');
       await screen.findByText(/Nothing has changed yet/);
       await press(repo ? 'Turn on 1 repository' : 'Add 1 runner');
@@ -711,8 +624,8 @@ describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
         ...rplan('planned'),
         created_by: String((c.body as { count: number }).count),
       }));
-    renderApp(api, '/runners/add');
-    fireEvent.click(await screen.findByRole('radio', { name: 'octo/app' }));
+    renderApp(api, '/pool/runners/add');
+    await screen.findByRole('textbox', { name: /Labels/ });
     await press('Next');
     await screen.findByText(/1 runner on build-1/);
     fireEvent.click(screen.getByRole('button', { name: /Runners$/ }));

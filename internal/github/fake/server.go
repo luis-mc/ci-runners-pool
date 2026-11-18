@@ -137,8 +137,15 @@ type Server struct {
 	// NoWebhookSecret makes a conversion return an empty webhook secret, as
 	// GitHub does for an App made without a hook.
 	NoWebhookSecret bool
-	OAuthCodes      map[string]int64
-	OAuthVerifiers  map[string]string // code -> expected PKCE challenge
+	// Hook is the App webhook config set through PATCH /app/hook/config
+	// (OPS25): url, secret and content_type as GitHub keeps them.
+	Hook map[string]string
+	// HookPatches counts the PATCH /app/hook/config calls.
+	HookPatches int
+	// AppEvents, when not nil, replaces the events GET /app reports.
+	AppEvents      []string
+	OAuthCodes     map[string]int64
+	OAuthVerifiers map[string]string // code -> expected PKCE challenge
 	// DeviceCodes: device code -> approving user id (0 pending, -1 denied).
 	DeviceCodes map[string]int64
 	// ForkApproval is the fork pull request approval policy per repository.

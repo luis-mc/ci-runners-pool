@@ -365,6 +365,7 @@ NOT YET IMPLEMENTED:
 - OS secret stores (Windows Credential Manager, macOS Keychain, Linux Secret Service): the CLI uses the 0600 file store behind `internal/secrets` until each store lands. The file is refused when its mode is wider than 0600.
 - `login` runs GitHub's device flow with the URLs from `getCliLoginConfig` (the contract's shape) and then calls `exchangeCliToken`. The sequence diagram in section 3 shows the controller doing the polling; the contract does not.
 - `machine add --name` is printed as a hint only: the contract's join code has no name field.
+- `runner add` takes no repository: without `--repo` the runners are pool runners that serve every repository that uses the pool (runners R5.88); `--repo` is kept for a runner bound to one repository.
 - `runner add --backend` is checked against the machine's backends on the client; the contract's plan request has no backend field.
 - The contract still lists a `stop_jobs` decision (`decideMachineChange`). The controller refuses it with 400 and the CLI never sends it; removing it from the contract is a follow-up that touches the generated client (CRSP19 changes the same files).
 - Operations with `x-cli: none` in the contract (users, settings, audit, repository plans for other areas, slots, setup, webhooks) have no command yet (open question 7).

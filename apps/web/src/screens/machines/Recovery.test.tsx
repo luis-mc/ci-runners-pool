@@ -21,20 +21,26 @@ const needing = (over: Record<string, unknown> = {}) =>
 describe('Agent recovery', () => {
   it('says needs recovery in the State column of the list', async () => {
     const api = signedIn().on('GET', '/api/v1/machines', { items: [needing()] });
-    renderApp(api, '/machines');
+    renderApp(api, '/pool/machines');
     const row = (await screen.findByRole('link', { name: 'build-1' })).closest('tr')!;
     expect(within(row).getByText('needs recovery')).toBeTruthy();
   });
 
   it('shows no Recovery section for a healthy machine', async () => {
-    renderApp(signedIn().on('GET', '/api/v1/machines/:id', machine()), '/machines/m1');
+    renderApp(
+      signedIn().on('GET', '/api/v1/machines/:id', machine()),
+      '/pool/machines/m1',
+    );
     await screen.findByRole('heading', { name: 'build-1' });
     expect(screen.queryByRole('region', { name: 'Recovery' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Recover' })).toBeNull();
   });
 
   it('shows the message, the versions and since when', async () => {
-    renderApp(signedIn().on('GET', '/api/v1/machines/:id', needing()), '/machines/m1');
+    renderApp(
+      signedIn().on('GET', '/api/v1/machines/:id', needing()),
+      '/pool/machines/m1',
+    );
     const section = await screen.findByRole('region', { name: 'Recovery' });
     expect(within(section).getByText(/too old to work with the controller/)).toBeTruthy();
     expect(within(section).getByText('0.1.0')).toBeTruthy();
@@ -51,7 +57,7 @@ describe('Agent recovery', () => {
         await held;
         return undefined;
       });
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     fireEvent.click(await screen.findByRole('button', { name: 'Recover' }));
     const busy = await screen.findByRole<HTMLButtonElement>('button', {
       name: 'Recovering',
@@ -69,7 +75,7 @@ describe('Agent recovery', () => {
   it('shows ready and a locked action for a machine that is already armed', async () => {
     renderApp(
       signedIn().on('GET', '/api/v1/machines/:id', needing({ armed: true })),
-      '/machines/m1',
+      '/pool/machines/m1',
     );
     await screen.findByText(/Recovery is ready/);
     expect(
@@ -83,7 +89,7 @@ describe('Agent recovery', () => {
       .on('POST', '/api/v1/machines/:id/recovery', () =>
         apiError(409, 'conflict', 'This machine does not need recovery.'),
       );
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     fireEvent.click(await screen.findByRole('button', { name: 'Recover' }));
     await screen.findByText(/Could not start recovery/);
     expect(screen.queryByText(/Recovery is ready/)).toBeNull();
@@ -97,7 +103,7 @@ describe('Agent recovery', () => {
   it('keeps Recover off for a viewer and says why', async () => {
     renderApp(
       signedIn(viewer).on('GET', '/api/v1/machines/:id', needing({ reason: 'stuck' })),
-      '/machines/m1',
+      '/pool/machines/m1',
     );
     await screen.findByText(/did not\./);
     expect(

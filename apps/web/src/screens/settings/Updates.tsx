@@ -182,7 +182,6 @@ export function UpdatesSettings() {
               </Button>
               {u.update_available ? (
                 <Button
-                  kind="primary"
                   onPress={() => void navigate('/settings/updates/review?kind=update')}
                   disabled={!session.can('admin')}
                   reason={session.whyNot('admin')}
@@ -398,10 +397,14 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
       </Message>
     );
   } else if (phase === 'planning') {
-    body = <Message tone="note">Looking for a newer stable release.</Message>;
+    body = (
+      <Message tone="note" dismissible={false}>
+        Looking for a newer stable release.
+      </Message>
+    );
   } else if (phase === 'stopped') {
     body = (
-      <Message tone="note">
+      <Message tone="note" dismissible={false}>
         Stopped. Nothing changed: {status?.current_version} is the newest stable release.
       </Message>
     );

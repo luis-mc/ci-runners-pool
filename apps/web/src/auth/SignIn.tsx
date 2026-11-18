@@ -1,5 +1,14 @@
 // Sign-in page (web-console 4.1): signed out, signing in, failed, no access (R5.8..R5.10).
-import { Button, Message, Page, PageHeader, Stack, Text, TextLink } from '@crsp/ui';
+import {
+  ActionBar,
+  Button,
+  Message,
+  Page,
+  PageHeader,
+  Stack,
+  Text,
+  TextLink,
+} from '@crsp/ui';
 import { useState } from 'react';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { unwrap, useClient } from '../api/api';
@@ -82,21 +91,25 @@ export function SignInPage() {
         ) : null}
         <Stack>
           <Text>Sign in with the GitHub account the owner allowed.</Text>
-          <Button
-            kind="primary"
-            busy={starting}
-            busyLabel="Signing in"
-            disabled={noApp}
-            reason={noApp ? 'Create the GitHub App first.' : undefined}
-            onPress={() => {
-              setStarting(true);
-              window.location.assign(signInUrl(returnTo));
-            }}
-          >
-            {failed === 'callback_not_registered' ? 'Try again' : 'Sign in with GitHub'}
-          </Button>
           {noApp ? <TextLink to="/setup">Open the setup page</TextLink> : null}
         </Stack>
+        <ActionBar
+          primary={
+            <Button
+              kind="primary"
+              busy={starting}
+              busyLabel="Signing in"
+              disabled={noApp}
+              reason={noApp ? 'Create the GitHub App first.' : undefined}
+              onPress={() => {
+                setStarting(true);
+                window.location.assign(signInUrl(returnTo));
+              }}
+            >
+              {failed === 'callback_not_registered' ? 'Try again' : 'Sign in with GitHub'}
+            </Button>
+          }
+        />
       </Page>
     </main>
   );
@@ -111,9 +124,13 @@ export function NoAccess({ login, onSignOut }: { login: string; onSignOut: () =>
           Signed in as {login || 'this account'}. This GitHub account has no access. Ask
           the owner to add it.
         </Message>
-        <Button kind="primary" onPress={onSignOut}>
-          Sign out
-        </Button>
+        <ActionBar
+          primary={
+            <Button kind="primary" onPress={onSignOut}>
+              Sign out
+            </Button>
+          }
+        />
       </Page>
     </main>
   );

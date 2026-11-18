@@ -433,8 +433,10 @@ func TestStaleEnvOnlyRewrites(t *testing.T) {
 	if err := start(t, r, spec, backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
 		t.Fatal(err)
 	}
-	if len(r.cmd.Calls) != 3 || !strings.Contains(r.cmd.Calls[0].Stdin, "Stop-Service") ||
-		!strings.Contains(r.cmd.Calls[1].Stdin, "Get-Process") || !strings.Contains(r.cmd.Calls[2].Stdin, "Start-Service") {
+	// Stop, wait for the listener, give the logon right again (R5.89), start.
+	if len(r.cmd.Calls) != 4 || !strings.Contains(r.cmd.Calls[0].Stdin, "Stop-Service") ||
+		!strings.Contains(r.cmd.Calls[1].Stdin, "Get-Process") || !strings.Contains(r.cmd.Calls[2].Stdin, "LsaAddAccountRights") ||
+		!strings.Contains(r.cmd.Calls[3].Stdin, "Start-Service") {
 		t.Fatalf("calls = %v", r.cmd.Texts())
 	}
 	if len(r.cmd.Calls[0].SecretEnv) != 0 {

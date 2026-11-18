@@ -53,6 +53,11 @@ type State struct {
 type Tracker struct {
 	// Now is a seam for tests.
 	Now func() time.Time
+	// HooksOn says the GitHub App sends webhooks at all. Nil means yes. An
+	// App made without a webhook URL (the default for a controller behind a
+	// LAN address, github-integration R5.5) never announces a job, so the
+	// poller finding every job first is no missed delivery (OPS22).
+	HooksOn func() bool
 
 	mu      sync.Mutex
 	repos   map[string]*State
@@ -123,6 +128,9 @@ func (t *Tracker) Delivered(fullName string, jobID int64) {
 // that polling saw more than MissedGrace ago and no delivery announced counts
 // as a missed delivery for its repository.
 func (t *Tracker) PollSawQueued(fullName string, jobID int64) {
+	if t.WebhooksOff() {
+		return
+	}
 	repo := key(fullName)
 	t.mu.Lock()
 	now := t.Now()
@@ -149,6 +157,10 @@ func (t *Tracker) PollSawQueued(fullName string, jobID int64) {
 	t.Record(fullName, ResultMissed)
 }
 
+// WebhooksOff reports that the App has no webhook, so polling is the only way
+// jobs are learned and nothing can be missed.
+func (t *Tracker) WebhooksOff() bool { return t.HooksOn != nil && !t.HooksOn() }
+
 // Get returns a repository's state; a repository never seen is in webhook
 // mode with no delivery.
 func (t *Tracker) Get(fullName string) State {
@@ -158,6 +170,21 @@ func (t *Tracker) Get(fullName string) State {
 		return *s
 	}
 	return State{Mode: ModeWebhook}
+}
+
+// Last returns the time and result of the newest delivery of any repository;
+// zero and "" when none arrived (OPS25).
+func (t *Tracker) Last() (time.Time, string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	var at time.Time
+	var res Result
+	for _, s := range t.repos {
+		if s.LastAt.After(at) {
+			at, res = s.LastAt, s.Last
+		}
+	}
+	return at, string(res)
 }
 
 // SwitchBack returns a repository to webhook mode and forgets its failures.

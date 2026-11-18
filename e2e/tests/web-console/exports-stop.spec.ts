@@ -165,8 +165,7 @@ test('Add runners: Stop ends the plan stopped and Done says what is left', async
       return plan('applying');
     });
   await mock.install(page);
-  await page.goto('/runners/add');
-  await page.getByRole('radio', { name: 'octo/app' }).check();
+  await page.goto('/pool/runners/add');
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('button', { name: 'Add 1 runner' }).click();
   await page.getByRole('button', { name: 'Stop' }).click();

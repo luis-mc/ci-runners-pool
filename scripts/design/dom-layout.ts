@@ -114,6 +114,10 @@ export function domLayoutSource(
       const kids = Array.from(box.children).filter(visible).filter((k) => getComputedStyle(k).position !== 'absolute' && getComputedStyle(k).position !== 'fixed')
         // The action bar sits at the foot of the window on purpose (UX-71): the free space above it is not a gap.
         .filter((k) => !k.classList.contains('ds-action-bar'));
+      // Gaps are measured in the order the eye reads: a flex item with a CSS order (the phone action bar puts the
+      // primary above the secondary) sits where its order says, not where the markup has it.
+      const order = (k) => parseInt(getComputedStyle(k).order, 10) || 0;
+      kids.sort((x, y) => order(x) - order(y));
       if (kids.length < 2) continue;
       const rects = kids.map((k) => k.getBoundingClientRect());
       const vertical = [];
