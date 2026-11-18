@@ -297,6 +297,7 @@ export function signedIn(user: unknown = owner): Mock {
       enabled: false,
       public_on_pool: 0,
     })
+    .on('GET', '/api/v1/app/webhook', { state: 'off' })
     .on('GET', '/api/v1/machines', { items: [machine()] })
     .on('GET', '/api/v1/machines/:id', machine())
     .on('GET', '/api/v1/repositories/:id', repository())

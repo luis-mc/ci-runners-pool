@@ -201,7 +201,8 @@ func TestValidateWebhookAddress(t *testing.T) { // R5.51
 func TestSelfTestClientRefusesLocalAddresses(t *testing.T) { // R5.51
 	srv := httptest.NewTLSServer(http.NotFoundHandler())
 	defer srv.Close()
-	res, err := NewSelfTestClient().Get(srv.URL) // 127.0.0.1
+	r, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL, nil) // 127.0.0.1
+	res, err := NewSelfTestClient().Do(r)
 	if res != nil {
 		_ = res.Body.Close()
 	}

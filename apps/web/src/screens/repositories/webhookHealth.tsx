@@ -5,6 +5,7 @@ import {
   Message,
   Stack,
   Status,
+  TextLink,
   formatPast,
   useNow,
   type StatusKind,
@@ -58,7 +59,7 @@ export function deliveryNotice(r: Repository): string | null {
   const w = r.webhook;
   if (!w) return null;
   if (w.webhooks_off)
-    return 'The GitHub App of this controller has no webhook, so GitHub tells crsp nothing. crsp finds jobs by polling GitHub every 15 seconds, and jobs still run. Nothing needs fixing unless you want jobs to start at once.';
+    return 'The GitHub App of this controller has no webhook, so GitHub tells crsp nothing. crsp finds jobs by polling GitHub every 15 seconds, and jobs still run. Nothing needs fixing unless you want jobs to start at once. You can turn on webhooks in Settings.';
   if (w.last_result === 'missed' && w.mode !== 'polling')
     return 'GitHub did not tell crsp about a job; crsp found it by polling, so it ran a little late. The webhook of the GitHub App cannot reach this controller. In the GitHub App settings, check that the webhook address is public and starts with https, and look at Recent Deliveries for the red mark.';
   return null;
@@ -85,7 +86,17 @@ export function PollingNotice({
   });
   const notice = deliveryNotice(r);
   if (r.webhook?.mode !== 'polling')
-    return notice ? <Message tone="note">{notice}</Message> : null;
+    return notice ? (
+      <Message tone="note">
+        {notice}
+        {r.webhook?.webhooks_off ? (
+          <>
+            {' '}
+            <TextLink to="/settings/access#webhooks">Turn on webhooks</TextLink>
+          </>
+        ) : null}
+      </Message>
+    ) : null;
   return (
     <Stack>
       <Message tone="needs-you">

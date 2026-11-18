@@ -550,6 +550,10 @@ describe('Webhook health (RES14)', () => {
       await screen.findByText(/has no webhook, so GitHub tells crsp nothing/),
     ).toBeTruthy();
     expect(screen.queryByText('delivery missed')).toBeNull();
+    // OPS25: one link to where the owner turns webhooks on, no GitHub settings hunt.
+    expect(
+      screen.getByRole('link', { name: 'Turn on webhooks' }).getAttribute('href'),
+    ).toBe('/settings/access#webhooks');
   });
 
   it('says what a missed delivery means and what to check (OPS22)', async () => {

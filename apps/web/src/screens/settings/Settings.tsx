@@ -47,6 +47,7 @@ import { NotificationsSettings } from './Notifications';
 import { PublicRepositoriesSettings } from './PublicRepositoriesSettings';
 import { NetworkSettings } from './ListenAddress';
 import { UpdatesSettings } from './Updates';
+import { WebhooksSettings } from './Webhooks';
 
 type User = Schemas['User'];
 
@@ -105,6 +106,9 @@ export function AccessTab() {
       </At>
       <At id="github-app">
         <AppKeySettings />
+      </At>
+      <At id="webhooks">
+        <WebhooksSettings />
       </At>
       <At id="access-for-ci">
         <AccessForCiSettings />
