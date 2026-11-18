@@ -955,7 +955,6 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 | Only the last 100 done jobs are kept. Older ones are not shown. | Note under the Done list at the limit. |
 | Showing {n} of {m} kept done jobs. | Note under the Done list. |
 | Showing only jobs of {filter}. / Show every job | Note and button when a group row opened a filtered list. |
-| Open jobs | Button of a group row. |
 | about 6 to 9 min, about 40 to 55 s | A forecast or ETA range. |
 | not enough history yet | No forecast: fewer than 5 runs. No number is made up. |
 | median of the last {n} runs on {machine} | The basis of a forecast; also "of the jobs of this workflow" and "of this repository". |
@@ -986,7 +985,7 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 | Result | Column of a run: success, failure, timed out, cancelled, running or waiting. |
 | (task RES15) | After the branch, when the branch starts with a task id. A worktree shows as "(worktree {name})" only when the job reported it, otherwise "not reported". |
 | Task, Worktree | Facts of the Job and Run pages. "none in the branch name" and "not reported" are their empty words. |
-| Open the run | Button under an opened run row, to the Run page. |
+| Open run page | Button under an opened run row, to the Run page. |
 | Last 7 days, Last 30 days, Last 90 days | Range switch of Done. |
 | Show 25 more | Adds 25 runs or jobs up to 100 a page; older ones by range and filter. |
 | Export CSV, Export daily summaries (CSV) | Buttons of Done and of Charts. |
@@ -999,3 +998,14 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 | expands at run time | Marks a matrix job or a reusable workflow in the job graph. |
 | Arrows come from the workflow file at commit {sha} (read once per commit and kept). | Line over the job graph. When the file cannot be read: "no arrows are drawn: jobs that ran at the same time are shown side by side. This is a guess from timing, not from the workflow." |
 
+### Row action words (RES17, UX-72)
+
+One word set for the button at the end of a table row. The guard reads this table: a label not listed here fails the review layout spec.
+
+| Word | Where and meaning |
+|---|---|
+| Open run | Row action of a run row (Queue, Running, Done): opens the run in place, as a waterfall of its jobs. |
+| Open | Row action of a group row (By repository, machine, runner, runner type, job type). The group's name is already in the row. |
+| Open job | Row action of a job row (Jobs view of Queue, Running, Done): opens the Job page. |
+| Open run page | Button inside an opened run, to the Run page. |
+| Why, Details | Button inside a cell that has a long text, to read it whole. Not a row action. |
