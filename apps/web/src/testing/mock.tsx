@@ -237,6 +237,7 @@ export function signedIn(user: Schemas['User'] = owner): MockApi {
       github_signin: { state: 'active', expires_at: '2026-11-17T18:30:00Z' },
     })
     .on('GET', '/api/v1/me/preferences', { theme: 'dark' })
+    .on('GET', '/api/v1/app/webhook', { state: 'off' })
     .on('GET', '/api/v1/settings/public-repositories', {
       enabled: false,
       public_on_pool: 0,

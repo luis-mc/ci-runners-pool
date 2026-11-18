@@ -2,6 +2,7 @@
 // (UX-33) with filters by repository, machine, result and time range, the detail with a link to the run on
 // GitHub, and Export of every row of the filter in the order shown (UX-39).
 import {
+  ActionBar,
   Badge,
   Breadcrumbs,
   Button,
@@ -159,12 +160,15 @@ export function JobsList() {
     null,
   );
   const [loadingMore, setLoadingMore] = useState(false);
+  // D34: the list keeps the last 100 finished jobs; See all pages in the rest.
+  const [seeAll, setSeeAll] = useState(false);
   const [moreError, setMoreError] = useState<string | undefined>(undefined);
   const first = history.result.state === 'loading' ? undefined : history.result;
   const firstData = first && 'data' in first ? first.data : undefined;
   useEffect(() => {
     setMore(null);
     setMoreError(undefined);
+    setSeeAll(false);
   }, [firstData]);
   const cursor = more ? more.cursor : firstData?.next_cursor;
   const loadMore = () => {
@@ -221,7 +225,12 @@ export function JobsList() {
       },
       sort: (j) => j.queued_at ?? j.created_at ?? '',
     },
-    { id: 'why', header: 'Why it waits', cell: (j) => waitWords(j) },
+    {
+      id: 'why',
+      header: 'Why it waits',
+      cell: () => null,
+      long: (j) => ({ full: waitWords(j) }),
+    },
     {
       id: 'open',
       header: 'Open',
@@ -261,14 +270,7 @@ export function JobsList() {
       />
       {noJobs ? (
         <Section title="Jobs">
-          <Empty
-            title="No jobs yet. Jobs show here when a workflow runs on the pool."
-            action={
-              <LinkButton to="/runners/add" kind="primary">
-                Add runners
-              </LinkButton>
-            }
-          />
+          <Empty title="No jobs yet. Jobs show here when a workflow runs on the pool." />
         </Section>
       ) : (
         <>
@@ -283,6 +285,8 @@ export function JobsList() {
                     columns={queueColumns}
                     rows={data.items}
                     rowKey={(j) => String(j.id)}
+                    expandLabel="Details"
+                    rowLabel={(j) => j.job_name}
                     onOpen={(j) => void navigate(`/jobs/${j.id}`)}
                   />
                 )
@@ -346,10 +350,7 @@ export function JobsList() {
               </Cluster>
             </Stack>
           </Section>
-          <Section
-            title="History"
-            actions={<ExportButton what="jobs" run={exportAll} kind="primary" />}
-          >
+          <Section title="History">
             <Stack>
               <Load
                 result={history.result}
@@ -369,6 +370,23 @@ export function JobsList() {
                           {formatCount(rows.length, 'job')} already loaded.
                         </Message>
                       ) : null}
+                      {cursor && !seeAll ? (
+                        <Message
+                          tone="note"
+                          action={
+                            <Button
+                              onPress={() => {
+                                setSeeAll(true);
+                                loadMore();
+                              }}
+                            >
+                              See all
+                            </Button>
+                          }
+                        >
+                          {`Showing the last ${PAGE} finished jobs.`}
+                        </Message>
+                      ) : null}
                       <TimeAxis
                         label="Job history"
                         rows={rows}
@@ -383,7 +401,7 @@ export function JobsList() {
                             ? () => zoom(-1)
                             : undefined
                         }
-                        hasMore={Boolean(cursor)}
+                        hasMore={seeAll && Boolean(cursor)}
                         onLoadMore={loadMore}
                         loadingMore={loadingMore}
                         emptyText={
@@ -402,6 +420,19 @@ export function JobsList() {
             </Stack>
           </Section>
         </>
+      )}
+      {noJobs ? (
+        <ActionBar
+          primary={
+            <LinkButton to="/pool/runners/add" kind="primary">
+              Add runners
+            </LinkButton>
+          }
+        />
+      ) : (
+        <ActionBar
+          primary={<ExportButton what="jobs" run={exportAll} kind="primary" />}
+        />
       )}
     </Page>
   );
@@ -439,6 +470,8 @@ export function JobDetail() {
       ),
     [id, v],
   );
+  const url = result.state === 'ready' ? result.data.html_url : undefined;
+  const safeUrl = url?.startsWith('https://') ? url : undefined;
   return (
     <Page>
       <Breadcrumbs
@@ -453,6 +486,18 @@ export function JobDetail() {
       <Load result={result} what="the job" reload={reload}>
         {(j) => <JobBody j={j} />}
       </Load>
+      {safeUrl ? (
+        <ActionBar
+          primary={
+            <Button
+              kind="primary"
+              onPress={() => window.open(safeUrl, '_blank', 'noopener,noreferrer')}
+            >
+              Open the run on GitHub
+            </Button>
+          }
+        />
+      ) : null}
     </Page>
   );
 }
@@ -460,22 +505,11 @@ export function JobDetail() {
 function JobBody({ j }: { j: Job }) {
   const s = jobStatus(j);
   const when = (t: string | undefined) => (t ? formatDateTime(t) : 'not yet');
-  const safeUrl = j.html_url?.startsWith('https://') ? j.html_url : undefined;
   return (
     <Stack>
       <PageHeader
         title={j.job_name}
         lead={`${j.repository}, run ${formatNumber(j.run_id)}, attempt ${j.run_attempt}.`}
-        action={
-          safeUrl ? (
-            <Button
-              kind="primary"
-              onPress={() => window.open(safeUrl, '_blank', 'noopener,noreferrer')}
-            >
-              Open the run on GitHub
-            </Button>
-          ) : undefined
-        }
       />
       <Cluster>
         <Status kind={s.kind} word={s.word} />

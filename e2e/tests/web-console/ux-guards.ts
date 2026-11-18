@@ -10,6 +10,7 @@ export const WIDTHS = [
   { width: 360, height: 780 },
   { width: 393, height: 852 },
   { width: 1300, height: 900 },
+  { width: 1800, height: 1000 },
 ] as const;
 export const MODES = ['dark', 'light'] as const;
 export type Mode = (typeof MODES)[number];
@@ -113,11 +114,12 @@ const MEASURES = {
       if (r.width < 43.5 || r.height < 43.5) bad.push(label(e) + ' is ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' px');
     }
     return bad;`,
-  /** UX-4: one primary button on the screen (a screen that offers an action has exactly one). */
+  /** UX-4: one primary button on the screen (a screen that offers an action has exactly one). The tabs that
+   *  switch the section, the sort buttons of a table head and the row buttons of a table are not the screen's actions. */
   primary: `${VISIBLE}
-    const all = Array.from(document.querySelectorAll('[data-primary], button[data-kind=primary]')).filter(visible);
+    const all = Array.from(document.querySelectorAll('[data-primary], button[data-kind=primary], a[data-button][data-kind=primary]')).filter(visible);
     const names = all.map(label);
-    const hasActions = Array.from(document.querySelectorAll('main button, main a[data-button]')).some(visible);
+    const hasActions = Array.from(document.querySelectorAll('main button, main a[data-button]')).some((e) => visible(e) && !e.closest('[role=tablist], table, [role=table], [role=row]'));
     if (names.length > 1) return ['more than one primary: ' + names.join(' | ')];
     if (names.length === 0 && hasActions) return ['no primary button although the screen has actions'];
     return [];`,
@@ -145,6 +147,17 @@ const MEASURES = {
         seen.add(e);
         if (e.scrollWidth > e.clientWidth + 1 && e.clientWidth > 0) bad.push(label(e) + ' scrolls sideways (' + e.scrollWidth + ' px in ' + e.clientWidth + ' px)');
       }
+    }
+    return bad;`,
+  /** UX-49 (LOOK29): nothing shows a horizontal scroll bar: the page does not overflow, and no box that scrolls (overflow auto or scroll) has more width than it shows. */
+  noScrollbar: `${VISIBLE}
+    const bad = [];
+    const de = document.documentElement;
+    if (de.scrollWidth > de.clientWidth) bad.push('the page scrolls sideways (' + de.scrollWidth + ' px in ' + de.clientWidth + ' px)');
+    for (const e of document.querySelectorAll('body *')) {
+      if (e.matches('input, textarea, select, option, svg, svg *') || !visible(e)) continue;
+      const s = getComputedStyle(e);
+      if ((s.overflowX === 'auto' || s.overflowX === 'scroll') && e.scrollWidth > e.clientWidth + 1) bad.push(label(e) + ' has a horizontal scroll bar (' + e.scrollWidth + ' px in ' + e.clientWidth + ' px)');
     }
     return bad;`,
   /** UX-69 (A1): header, menu, main, banner and key-hint frames share one left and right edge, within 1 px. */

@@ -16,6 +16,7 @@ type apiApp struct {
 	ClientID    string            `json:"client_id"`
 	HTMLURL     string            `json:"html_url"`
 	Permissions map[string]string `json:"permissions"`
+	Events      []string          `json:"events"`
 	Owner       struct {
 		Login string `json:"login"`
 		Type  string `json:"type"`
@@ -24,7 +25,7 @@ type apiApp struct {
 
 func (a apiApp) app() App {
 	return App{ID: a.ID, Slug: a.Slug, ClientID: a.ClientID, OwnerLogin: a.Owner.Login,
-		OwnerType: a.Owner.Type, HTMLURL: a.HTMLURL, Permissions: a.Permissions}
+		OwnerType: a.Owner.Type, HTMLURL: a.HTMLURL, Permissions: a.Permissions, Events: a.Events}
 }
 
 // ConvertManifest implements AppClient (R5.3). The code is single use on
@@ -339,4 +340,23 @@ func (c *REST) CheckAppKey(ctx context.Context, appID int64, pemBytes []byte) er
 		return ErrKeyRefused
 	}
 	return nil
+}
+
+// SetAppHook implements AppClient (OPS25): PATCH /app/hook/config.
+func (c *REST) SetAppHook(ctx context.Context, h AppHook) error {
+	return c.patchHook(ctx, map[string]string{"url": h.URL, "secret": h.Secret, "content_type": "json", "insecure_ssl": "0"})
+}
+
+// ClearAppHook implements AppClient (OPS25): an empty address and secret.
+func (c *REST) ClearAppHook(ctx context.Context) error {
+	return c.patchHook(ctx, map[string]string{"url": "", "secret": "", "content_type": "json", "insecure_ssl": "0"})
+}
+
+func (c *REST) patchHook(ctx context.Context, body map[string]string) error {
+	jwt, err := c.appJWT(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = c.do(ctx, req{method: "PATCH", path: "/app/hook/config", bearer: jwt, body: body, write: true}, nil)
+	return err
 }

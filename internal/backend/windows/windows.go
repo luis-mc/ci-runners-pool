@@ -64,9 +64,10 @@ type Backend struct {
 }
 
 var (
-	_ backend.Backend      = (*Backend)(nil)
-	_ backend.Finder       = (*Backend)(nil)
-	_ backend.Deregisterer = (*Backend)(nil)
+	_ backend.Backend       = (*Backend)(nil)
+	_ backend.Finder        = (*Backend)(nil)
+	_ backend.Deregisterer  = (*Backend)(nil)
+	_ backend.ServiceHealer = (*Backend)(nil)
 )
 
 // New builds the backend over its seams.
@@ -280,7 +281,7 @@ func (b *Backend) start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 		if err := b.stopService(ctx, env, folder); err != nil {
 			return h, err
 		}
-		return h, b.psOK(ctx, "start", scriptStartService, env, nil)
+		return h, b.startService(ctx, env, account)
 	case persistent.UpdateRights:
 		if err := b.rights.Grant(ctx, account, r.WindowsSymlinkRight); err != nil {
 			return h, err
@@ -299,7 +300,7 @@ func (b *Backend) start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 		// the folder is locked to the new account (R5.19, DL315).
 		if err := b.runner(ctx, "remove old registration", have.Folder, []string{"remove"}, cfg.Removal); err != nil {
 			// Leave the old runner as it was: start its service again.
-			_ = b.psOK(ctx, "restart old service", scriptStartService, oldEnv, nil)
+			_ = b.startService(ctx, oldEnv, have.Account)
 			return h, fmt.Errorf("%w: %v", ErrRemovalFailed, err)
 		}
 		if err := b.psOK(ctx, "delete old service", scriptDeleteService, oldEnv, nil); err != nil {
@@ -499,7 +500,7 @@ func (b *Backend) Deregister(ctx context.Context, h backend.Handle, removeToken 
 		return err
 	}
 	if err := b.runner(ctx, "deregister", f.Folder, []string{"remove"}, removeToken); err != nil {
-		_ = b.psOK(ctx, "start", scriptStartService, map[string]string{"CRSP_SERVICE": h.Ref}, nil)
+		_ = b.startService(ctx, map[string]string{"CRSP_SERVICE": h.Ref}, f.Account)
 		return fmt.Errorf("%w: %v", ErrRemovalFailed, err)
 	}
 	return nil

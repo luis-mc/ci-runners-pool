@@ -1,5 +1,5 @@
 // R5.26: findings grouped by area with a status word (UX-58), what is wrong and its fix, the time of the last run
-// (UX-53), and "Run the doctor" as the one primary, busy with progress while the run lasts (UX-13, UX-29).
+// (UX-53), and "Run checks again" as the one primary, busy with progress while the run lasts (UX-13, UX-29).
 // R5.31: loading, empty, could not load.
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -24,7 +24,7 @@ function finding(over: Partial<Finding> = {}): Finding {
     severity: 'fail',
     title: 'No online runner carries [self-hosted, linux, arm64]',
     detail: '.github/workflows/ci.yml:12 needs [self-hosted, linux, arm64]',
-    fix: { text: 'Add a runner with these labels.', link: '/runners' },
+    fix: { text: 'Add a runner with these labels.', link: '/pool/runners' },
     needs_admin: false,
     milestone: 1,
     checked_at: '2026-11-14T10:00:12Z',
@@ -73,6 +73,39 @@ describe('doctor words', () => {
   });
 });
 
+describe('the logon right finding (runners R5.89, doctor R5.45)', () => {
+  const lost = finding({
+    check: 'runner.logon',
+    title: 'The account .\\crsp-a of crsp-a cannot log on as a service',
+    subject: { kind: 'runner', id: 'r1', name: 'crsp-a' },
+    fix: {
+      text: 'Press Start. The agent gives the account the right again.',
+      link: '/machines/m9',
+    },
+  });
+
+  it('has one Start button that asks the machine to give the right and start the service', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/doctor/findings', { items: [lost], last_run_at: lastRun })
+      .on('POST', '/api/v1/machines/:id/redetect', { status: 202 });
+    renderApp(api, '/doctor');
+    fireEvent.click(await screen.findByRole('button', { name: 'Start' }));
+    await waitFor(() =>
+      expect(api.count('POST', '/api/v1/machines/m9/redetect')).toBe(1),
+    );
+  });
+
+  it('has no Start button on other findings', async () => {
+    const api = signedIn().on('GET', '/api/v1/doctor/findings', {
+      items: [finding()],
+      last_run_at: lastRun,
+    });
+    renderApp(api, '/doctor');
+    await screen.findByText(/1 problem found/);
+    expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
+  });
+});
+
 describe('Doctor screen', () => {
   it('shows the loading state first', async () => {
     renderApp(signedIn().on('GET', '/api/v1/doctor/findings', { items: [] }), '/doctor');
@@ -104,10 +137,21 @@ describe('Doctor screen', () => {
     );
     const labels = screen.getByRole('region', { name: 'Workflow labels' });
     expect(within(labels).getByText('failed')).toBeTruthy();
-    expect(within(labels).getByText(/needs \[self-hosted, linux, arm64\]/)).toBeTruthy();
+    // LOOK19: the detail is one clipped line with a Details button; the full text opens in a row under it.
+    const details = within(labels).getByRole('button', { name: 'Details' });
+    expect(details.getAttribute('aria-expanded')).toBe('false');
+    expect(within(labels).queryByRole('region', { name: /Details/ })).toBeNull();
+    fireEvent.click(details);
+    expect(details.getAttribute('aria-expanded')).toBe('true');
+    expect(within(labels).getByRole('region', { name: /Details/ }).textContent).toBe(
+      '.github/workflows/ci.yml:12 needs [self-hosted, linux, arm64]',
+    );
+    expect(details.getAttribute('aria-controls')).toBe(
+      within(labels).getByRole('region', { name: /Details/ }).id,
+    );
     expect(
       within(labels).getByRole('button', { name: 'Open' }).getAttribute('href'),
-    ).toBe('/runners');
+    ).toBe('/pool/runners');
     expect(
       screen.getByText(/Last run \d{4}-\d{2}-\d{2} \d{2}:\d{2} \(5 min ago\)\./),
     ).toBeTruthy();
@@ -132,10 +176,10 @@ describe('Doctor screen', () => {
     renderApp(api, '/doctor');
     expect(
       await screen.findByText(
-        'No checks have run yet. Use Run the doctor at the top to look for problems.',
+        'No checks have run yet. Use Run checks below to look for problems.',
       ),
     ).toBeTruthy();
-    const buttons = screen.getAllByRole('button', { name: 'Run the doctor' });
+    const buttons = screen.getAllByRole('button', { name: 'Run checks' });
     expect(buttons.length).toBe(1); // one primary, not a second one in the empty state
     expect(screen.getByRole('heading', { level: 1, name: 'Doctor' })).toBeTruthy();
     expect(screen.getByRole('region', { name: 'Findings' })).toBeTruthy();
@@ -169,7 +213,7 @@ describe('Doctor screen', () => {
       .on('GET', '/api/v1/doctor/runs/:id', () => run({ state, counts: { fail: 1 } }));
     renderApp(api, '/doctor');
     await screen.findByText(/No problems found/);
-    fireEvent.click(screen.getByRole('button', { name: 'Run the doctor' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Run checks again' }));
     const busy = await screen.findByRole<HTMLButtonElement>('button', {
       name: 'Running the doctor',
     });
@@ -185,7 +229,7 @@ describe('Doctor screen', () => {
     );
     expect(await screen.findByRole('region', { name: 'Workflow labels' })).toBeTruthy();
     const again = screen.getByRole<HTMLButtonElement>('button', {
-      name: 'Run the doctor',
+      name: 'Run checks again',
     });
     expect(again.disabled).toBe(false);
     expect(screen.queryByRole('progressbar')).toBeNull();
@@ -201,13 +245,28 @@ describe('Doctor screen', () => {
       );
     renderApp(api, '/doctor');
     await screen.findByRole('region', { name: 'Workflow labels' });
-    fireEvent.click(screen.getByRole('button', { name: 'Run the doctor' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Run checks again' }));
     expect(
       await screen.findByText(/Could not run the doctor\. the doctor could not start/),
     ).toBeTruthy();
     expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: 'Run the doctor' }).disabled,
+      screen.getByRole<HTMLButtonElement>('button', { name: 'Run checks again' })
+        .disabled,
     ).toBe(false);
+  });
+
+  it('keeps Run checks again as the one primary, in the bar; a fix button in a row stays normal (D27)', async () => {
+    const api = signedIn().on('GET', '/api/v1/doctor/findings', {
+      items: [finding({ fix: { text: 'Open it.', link: '/machines' } })],
+      last_run_at: lastRun,
+    });
+    renderApp(api, '/doctor');
+    const bar = await screen.findByRole('region', { name: 'Actions' });
+    const again = await within(bar).findByRole('button', { name: 'Run checks again' });
+    expect(again.getAttribute('data-primary')).toBe('true');
+    const fix = screen.getByRole('button', { name: 'Open' });
+    expect(fix.hasAttribute('data-primary')).toBe(false);
+    expect(document.querySelectorAll('[data-primary]')).toHaveLength(1);
   });
 
   it('keeps a viewer from running it and says why (UX-38)', async () => {
@@ -217,7 +276,7 @@ describe('Doctor screen', () => {
     });
     renderApp(api, '/doctor');
     const button = await screen.findByRole<HTMLButtonElement>('button', {
-      name: 'Run the doctor',
+      name: 'Run checks again',
     });
     expect(button.disabled).toBe(true);
     expect(await screen.findByText('needs admin')).toBeTruthy();

@@ -38,8 +38,22 @@ func (b trayBackend) response(ctx context.Context, st update.Status) tray.Respon
 		State: tray.StateHealthy, Running: len(st.RunningJobs), Version: st.Current, AutoUpdate: &on,
 		LatestVersion: st.Latest, ReleaseURL: st.ReleaseURL, UpdateAvailable: st.Available, UpdateState: string(st.State),
 		LogDir: tray.LogDir(),
-		Policy: b.policy(ctx),
+		Policy: b.policy(ctx), RunnerProblems: b.runnerProblems(ctx),
 	}
+}
+
+// runnerProblems are the runner services of this machine that did not start
+// (runners R5.89); none before the machine joined.
+func (b trayBackend) runnerProblems(ctx context.Context) []tray.RunnerProblem {
+	v, ok := b.Drain.policy(ctx)
+	if !ok {
+		return nil
+	}
+	var out []tray.RunnerProblem
+	for _, p := range v.RunnerProblems() {
+		out = append(out, tray.RunnerProblem{Runner: p.Runner, Service: p.Service, Account: p.Account, Reason: p.Problem})
+	}
+	return out
 }
 
 // policy is this machine's mode and acceptance; nil before the machine joined.

@@ -115,6 +115,14 @@ func toGenRunner(v runners.View) gen.Runner {
 		why := v.Reason
 		out.Reason = &why
 	}
+	if r.Scope.Kind == runners.ScopePool {
+		n := v.Registrations
+		out.Registrations = &n
+		if v.Serving != "" {
+			sv := v.Serving
+			out.Serving = &sv
+		}
+	}
 	if r.RunnerVersion != "" {
 		ver := r.RunnerVersion
 		out.RunnerVersion = &ver
@@ -206,7 +214,10 @@ func (s *server) PlanRunners(ctx context.Context, req gen.PlanRunnersRequestObje
 		return gen.PlanRunnersdefaultJSONResponse{StatusCode: http.StatusBadRequest,
 			Body: gen.ErrorEnvelope{Error: gen.ErrorBody{Code: CodeBadRequest, Message: "the request is not valid"}}}, nil
 	}
-	ar := runners.AddRequest{OS: string(b.Os), Kind: string(b.Kind), MachineID: b.MachineId, Count: b.Count, Scope: fromGenScope(b.Scope)}
+	ar := runners.AddRequest{OS: string(b.Os), Kind: string(b.Kind), MachineID: b.MachineId, Count: b.Count, Scope: runners.Scope{Kind: runners.ScopePool}}
+	if b.Scope != nil && b.Scope.Kind != gen.RunnerScopeKind(runners.ScopePool) { // no scope: pool runners
+		ar.Scope = fromGenScope(*b.Scope)
+	}
 	if b.Labels != nil {
 		ar.Labels = *b.Labels
 	}

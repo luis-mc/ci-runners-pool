@@ -27,7 +27,7 @@ import {
   useNow,
   type Column,
   ActionBar,
-  unsavedStatus,
+  EditBar,
 } from '@crsp/ui';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -40,7 +40,7 @@ import { Ask, Load } from '../common';
 import { machineStatus } from '../overview/Overview';
 import { MachineDockerDiskSection } from './MachineDockerDisk';
 import { MachinePolicySection, PolicyStatus } from './MachinePolicy';
-import { PoolSizeWizard } from './PoolSize';
+import { usePoolSize } from './PoolSize';
 import { RecoverySection } from './Recovery';
 
 type Machine = Schemas['Machine'];
@@ -63,7 +63,7 @@ export function MachinesList() {
     {
       id: 'name',
       header: 'Name',
-      cell: (m) => <TextLink to={`/machines/${m.id}`}>{m.name}</TextLink>,
+      cell: (m) => <TextLink to={`/pool/machines/${m.id}`}>{m.name}</TextLink>,
       sort: (m) => m.name,
     },
     { id: 'os', header: 'System', cell: (m) => systemText(m), sort: (m) => m.os },
@@ -174,7 +174,7 @@ export function MachinesList() {
             kind="primary"
             disabled={!session.can('admin')}
             reason={session.can('admin') ? undefined : session.whyNot('admin')}
-            onPress={() => void navigate('/machines/add')}
+            onPress={() => void navigate('/pool/machines/add')}
           >
             Add a machine
           </Button>
@@ -201,7 +201,7 @@ export function MachineDetail() {
     <Page>
       <Breadcrumbs
         trail={[
-          { to: '/machines', label: 'Machines' },
+          { to: '/pool/machines', label: 'Machines' },
           { label: result.state === 'ready' ? result.data.name : 'Machine' },
         ]}
       />
@@ -238,7 +238,8 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
   const [errors, setErrors] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
 
-  const changeCount =
+  const poolSize = usePoolSize(m, onChanged);
+  const settingsChanges =
     (mem !== m.settings.budget_memory_pct ? 1 : 0) +
     (cpu !== m.settings.budget_cpu_pct ? 1 : 0) +
     (slots !== m.settings.job_slots ? 1 : 0) +
@@ -246,6 +247,7 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
     (allowed.slice().sort().join() !== m.settings.allowed_backends.slice().sort().join()
       ? 1
       : 0);
+  const changeCount = settingsChanges + poolSize.changes;
   const body = useMemo(
     () => ({
       budget_memory_pct: mem,
@@ -277,6 +279,12 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
     if (slots < 1) problems.push('Job slots must be at least 1.');
     setErrors(problems);
     if (problems.length) return;
+    if (!(await poolSize.save())) return;
+    if (settingsChanges === 0) {
+      setSaved(true);
+      onChanged();
+      return;
+    }
     try {
       await unwrap(
         client.PATCH('/api/v1/machines/{machineId}', {
@@ -329,7 +337,7 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
           params: { path: { machineId: m.id }, query: { confirm: true } },
         }),
       ),
-    () => void navigate('/machines'),
+    () => void navigate('/pool/machines'),
   );
 
   const untickedUsable = m.backends.filter((b) => b.usable && !allowed.includes(b.name));
@@ -429,6 +437,10 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
                   key={b.name}
                   label={b.name}
                   checked={allowed.includes(b.name)}
+                  changed={
+                    allowed.includes(b.name) !==
+                    m.settings.allowed_backends.includes(b.name)
+                  }
                   onChange={(c) =>
                     setAllowed((a) =>
                       c ? [...a, b.name] : a.filter((x) => x !== b.name),
@@ -451,6 +463,7 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
                 unit="%"
                 min={1}
                 max={100}
+                changed={mem !== m.settings.budget_memory_pct}
                 onChange={setMem}
               />
               <NumberField
@@ -459,6 +472,7 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
                 unit="%"
                 min={1}
                 max={100}
+                changed={cpu !== m.settings.budget_cpu_pct}
                 onChange={setCpu}
               />
               <NumberField
@@ -466,6 +480,7 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
                 value={slots}
                 min={1}
                 max={64}
+                changed={slots !== m.settings.job_slots}
                 onChange={setSlots}
               />
               <NumberField
@@ -475,15 +490,14 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
                 unit=" min"
                 min={1}
                 max={1440}
+                changed={drain !== m.settings.drain_timeout_minutes}
                 onChange={setDrain}
               />
             </FieldGrid>
           </Section>
+          {poolSize.section}
         </Stack>
       </form>
-      <Section title="Pool size">
-        <PoolSizeWizard m={m} onChanged={onChanged} />
-      </Section>
       <Pane
         title="Remove this machine"
         footer={
@@ -515,22 +529,23 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
         {save.error ? (
           <Message tone="problem">Could not save. {save.error} Try again.</Message>
         ) : null}
-        <ActionBar
-          status={unsavedStatus(changeCount)}
-          secondary={<Button onPress={() => void navigate('/machines')}>Cancel</Button>}
-          primary={
-            <Button
-              kind="primary"
-              submit={false}
-              onPress={() => void save.run()}
-              busy={save.busy}
-              busyLabel="Saving"
-              disabled={!admin || changeCount === 0}
-              reason={!admin ? why : 'Change a setting to save.'}
-            >
-              Save
-            </Button>
-          }
+        <EditBar
+          changes={changeCount}
+          onSave={() => void save.run()}
+          onCancel={() => {
+            setMem(m.settings.budget_memory_pct);
+            setCpu(m.settings.budget_cpu_pct);
+            setSlots(m.settings.job_slots);
+            setDrain(m.settings.drain_timeout_minutes);
+            setAllowed(m.settings.allowed_backends);
+            setErrors([]);
+            poolSize.reset();
+          }}
+          submit={false}
+          busy={save.busy}
+          blocked={!admin}
+          why={why}
+          holdReason={poolSize.hold}
         />
       </Stack>
       <Ask

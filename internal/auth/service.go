@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"net/http"
 	"regexp"
 	"strconv"
 	"sync"
@@ -40,6 +41,15 @@ type Config struct {
 	// address a dry sign-in confirmed (OPS16).
 	LoadRegistered func(ctx context.Context) ([]string, error)
 	SaveRegistered func(ctx context.Context, origins []string) error
+	// LoadWebhookAddress and SaveWebhookAddress keep the public address the
+	// owner gave for webhooks (OPS25). Nil keeps none.
+	LoadWebhookAddress func(ctx context.Context) (string, error)
+	SaveWebhookAddress func(ctx context.Context, address string) error
+	// HookHealth gives the newest webhook delivery (OPS25); nil says none.
+	HookHealth WebhookHealth
+	// SelfTestHTTP is the client of the webhook self-test; nil uses
+	// NewSelfTestClient. A test passes its own.
+	SelfTestHTTP *http.Client
 	// OnApp is called after the App is made, so the GitHub client can use it.
 	OnApp func(AppRecord)
 	Now   func() time.Time

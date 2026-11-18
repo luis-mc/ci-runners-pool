@@ -10,7 +10,6 @@ import {
   Cluster,
   Empty,
   ErrorSummary,
-  FormActions,
   Message,
   NumberField,
   Section,
@@ -27,6 +26,7 @@ import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { Ask, Load } from '../common';
+import { useTabPart } from './TabForm';
 
 type Channel = Schemas['NotificationChannel'];
 type Kind = Schemas['NotificationKind'];
@@ -221,6 +221,14 @@ export function NotificationsSettings() {
     [],
   );
   const [draft, setDraft] = useState<Draft | undefined>(undefined);
+  // What the open form started from: a field is "Changed" when it differs from this.
+  const [base, setBase] = useState<Draft>(BLANK);
+  const open = (d: Draft) => {
+    setBase(d);
+    setDraft(d);
+  };
+  const differs = (k: keyof Draft) =>
+    draft !== undefined && JSON.stringify(draft[k]) !== JSON.stringify(base[k]);
   const [errors, setErrors] = useState<string[]>([]);
   const [saved, setSaved] = useState<string | undefined>(undefined);
   const [target, setTarget] = useState<Channel | undefined>(undefined);
@@ -232,10 +240,10 @@ export function NotificationsSettings() {
   const set = (patch: Partial<Draft>) => setDraft((d) => (d ? { ...d, ...patch } : d));
 
   const save = useCommand(async () => {
-    if (!draft) return;
+    if (!draft) return false;
     const problems = problemsOf(draft);
     setErrors(problems);
-    if (problems.length) return;
+    if (problems.length) return false;
     if (draft.id) {
       await unwrap(
         client.PATCH('/api/v1/notification-channels/{channelId}', {
@@ -251,6 +259,16 @@ export function NotificationsSettings() {
     setSaved(`Channel ${draft.name.trim()} saved.`);
     setDraft(undefined);
     reload();
+    return true;
+  });
+  useTabPart('notifications', {
+    changes: draft ? 1 : 0,
+    save: async () => (await save.run()) === true,
+    reset: () => {
+      setDraft(undefined);
+      setErrors([]);
+      save.clear();
+    },
   });
 
   const test = useCommand(async (c: Channel) => {
@@ -335,7 +353,7 @@ export function NotificationsSettings() {
               setSaved(undefined);
               setErrors([]);
               save.clear();
-              setDraft(draftOf(c));
+              open(draftOf(c));
             }}
             disabled={!allowed(c)}
             reason={allowed(c) ? undefined : cannotWebhook}
@@ -426,33 +444,28 @@ export function NotificationsSettings() {
         {draft ? null : (
           <Cluster>
             <Button
-              kind="primary"
               onPress={() => {
                 setSaved(undefined);
                 setErrors([]);
                 save.clear();
-                setDraft({ ...BLANK });
+                open({ ...BLANK });
               }}
             >
-              Add
+              Add channel
             </Button>
           </Cluster>
         )}
       </Section>
       {draft ? (
         <Section title={draft.id ? `Edit ${draft.title}` : 'Add a channel'}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void save.run();
-            }}
-          >
+          <div>
             <Stack>
               <ErrorSummary errors={errors} />
               {draft.id ? null : (
                 <ChoiceField
                   label="Kind"
                   value={draft.kind}
+                  changed={differs('kind')}
                   onChange={(v) => set({ kind: v as Kind })}
                   choices={kindChoices}
                 />
@@ -460,6 +473,7 @@ export function NotificationsSettings() {
               <TextField
                 label="Name"
                 value={draft.name}
+                changed={differs('name')}
                 onChange={(name) => set({ name })}
               />
               {draft.kind === 'email' ? (
@@ -468,17 +482,20 @@ export function NotificationsSettings() {
                     label="Address"
                     help="The mailbox the notices go to."
                     value={draft.address}
+                    changed={differs('address')}
                     onChange={(address) => set({ address })}
                   />
                   <TextField
                     label="Mail server"
                     help="A host name, for example smtp.example.com. The password goes only over an encrypted link."
                     value={draft.smtpHost}
+                    changed={differs('smtpHost')}
                     onChange={(smtpHost) => set({ smtpHost })}
                   />
                   <NumberField
                     label="Mail server port"
                     value={draft.smtpPort}
+                    changed={differs('smtpPort')}
                     min={1}
                     max={65535}
                     onChange={(smtpPort) => set({ smtpPort })}
@@ -487,6 +504,7 @@ export function NotificationsSettings() {
                     label="User name"
                     optional
                     value={draft.smtpUser}
+                    changed={differs('smtpUser')}
                     onChange={(smtpUser) => set({ smtpUser })}
                   />
                   <TextField
@@ -499,12 +517,14 @@ export function NotificationsSettings() {
                         : 'No password is set. It is kept in the secret store and never shown again.'
                     }
                     value={draft.smtpPassword}
+                    changed={differs('smtpPassword')}
                     onChange={(smtpPassword) => set({ smtpPassword })}
                   />
                   {draft.hadSecret ? (
                     <CheckRow
                       label="Remove the password"
                       checked={draft.removePassword}
+                      changed={differs('removePassword')}
                       onChange={(removePassword) => set({ removePassword })}
                     />
                   ) : null}
@@ -512,6 +532,7 @@ export function NotificationsSettings() {
                     label="Sender"
                     help="The address the notices come from."
                     value={draft.smtpFrom}
+                    changed={differs('smtpFrom')}
                     onChange={(smtpFrom) => set({ smtpFrom })}
                   />
                 </>
@@ -522,6 +543,7 @@ export function NotificationsSettings() {
                     label="Web address"
                     help="An https address. Redirects are not followed."
                     value={draft.url}
+                    changed={differs('url')}
                     onChange={(url) => set({ url })}
                   />
                   <TextField
@@ -534,6 +556,7 @@ export function NotificationsSettings() {
                         : `At least ${MIN_SIGNING_LENGTH} characters. It is shown here once, then kept only in the secret store.`
                     }
                     value={draft.secret}
+                    changed={differs('secret')}
                     onChange={(secret) => set({ secret })}
                   />
                   <Cluster>
@@ -555,6 +578,7 @@ export function NotificationsSettings() {
                     key={e}
                     label={EVENT_WORDS[e]}
                     checked={draft.events.includes(e)}
+                    changed={base.events.includes(e) !== draft.events.includes(e)}
                     onChange={(on) =>
                       set({
                         events: EVENTS.filter((x) =>
@@ -569,6 +593,7 @@ export function NotificationsSettings() {
                 label="Lowest severity"
                 help="Doctor findings below this are not sent."
                 value={draft.minSeverity}
+                changed={differs('minSeverity')}
                 onChange={(v) => set({ minSeverity: v as Severity })}
                 choices={(Object.keys(SEVERITY_WORDS) as Severity[]).map((s) => ({
                   value: s,
@@ -578,27 +603,14 @@ export function NotificationsSettings() {
               <CheckRow
                 label="On"
                 checked={draft.enabled}
+                changed={differs('enabled')}
                 onChange={(enabled) => set({ enabled })}
               />
               {save.error ? (
                 <Message tone="problem">Could not save the channel. {save.error}</Message>
               ) : null}
-              <FormActions>
-                <Button
-                  onPress={() => {
-                    setDraft(undefined);
-                    setErrors([]);
-                    save.clear();
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button kind="primary" submit busy={save.busy} busyLabel="Saving">
-                  Save
-                </Button>
-              </FormActions>
             </Stack>
-          </form>
+          </div>
         </Section>
       ) : null}
       <Ask

@@ -29,14 +29,21 @@ function withRepos(api: MockApi, items = [repository(), on]): MockApi {
 }
 
 describe('Repositories list', () => {
-  it('shows pool state, labels, limits and variable status as words', async () => {
+  it('shows four columns, and limits and variable status as a muted line under the name (LOOK29)', async () => {
     renderApp(withRepos(signedIn()), '/repositories');
     const table = await screen.findByRole('table', { name: 'octo repositories' });
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map((h) => (h.textContent ?? '').replace(/[ ▲▼]+$/, '').trim())
+        .filter(Boolean),
+    ).toEqual(['Repository', 'Pool', 'Jobs go to', 'Last delivery']);
     expect(within(table).getByText('on')).toBeTruthy();
     expect(within(table).getByText('off')).toBeTruthy();
-    expect(within(table).getByText('wrong variable')).toBeTruthy();
-    expect(within(table).getByText('not used')).toBeTruthy();
-    expect(within(table).getAllByText('self-hosted').length).toBe(2);
+    expect(
+      within(table).getByText(/parallel · priority \d+ · wrong variable/),
+    ).toBeTruthy();
+    expect(within(table).getByText(/parallel · priority \d+ · not used/)).toBeTruthy();
   });
 
   it('filters by pool state and by search', async () => {
@@ -542,6 +549,56 @@ describe('Webhook health (RES14)', () => {
     const table = await screen.findByRole('table', { name: 'octo repositories' });
     expect(within(table).getByText('delivery failed')).toBeTruthy();
     expect(within(table).getByText('delivered')).toBeTruthy();
+  });
+
+  it('says plainly when the App has no webhook (OPS22)', async () => {
+    const none = repository({
+      id: 11,
+      full_name: 'octo/nohook',
+      owner: 'octo',
+      name: 'nohook',
+      pool_on: true,
+      webhook: {
+        mode: 'webhook',
+        failures_in_a_row: 0,
+        last_result: 'missed',
+        last_delivery_at: new Date().toISOString(),
+        webhooks_off: true,
+      },
+    });
+    const a = withRepos(signedIn(), [none]).on('GET', '/api/v1/repositories/:id', none);
+    renderApp(a, '/repositories/octo/nohook');
+    expect(
+      await screen.findByText(/has no webhook, so GitHub tells crsp nothing/),
+    ).toBeTruthy();
+    expect(screen.queryByText('delivery missed')).toBeNull();
+    // OPS25: one link to where the owner turns webhooks on, no GitHub settings hunt.
+    expect(
+      screen.getByRole('link', { name: 'Turn on webhooks' }).getAttribute('href'),
+    ).toBe('/settings/access#webhooks');
+  });
+
+  it('says what a missed delivery means and what to check (OPS22)', async () => {
+    const missed = repository({
+      id: 12,
+      full_name: 'octo/late',
+      owner: 'octo',
+      name: 'late',
+      pool_on: true,
+      webhook: {
+        mode: 'webhook',
+        failures_in_a_row: 1,
+        last_result: 'missed',
+        last_delivery_at: new Date().toISOString(),
+      },
+    });
+    const a = withRepos(signedIn(), [missed]).on(
+      'GET',
+      '/api/v1/repositories/:id',
+      missed,
+    );
+    renderApp(a, '/repositories/octo/late');
+    expect(await screen.findByText(/did not tell crsp about a job/)).toBeTruthy();
   });
 
   it('says crsp polls and switches back on a press', async () => {

@@ -84,7 +84,7 @@ test('Add a webhook, send a test, edit it and delete it with a question card', a
   );
 
   // Add a webhook.
-  await page.getByRole('button', { name: 'Add' }).click();
+  await page.getByRole('button', { name: 'Add channel' }).click();
   const form = page.getByRole('region', { name: 'Add a channel' });
   await form.getByRole('radio', { name: /^Webhook/ }).check();
   await form.getByRole('textbox', { name: 'Name', exact: true }).fill('Team chat');
@@ -93,7 +93,7 @@ test('Add a webhook, send a test, edit it and delete it with a question card', a
     .fill('https://hooks.example.com/crsp');
   await form.getByRole('button', { name: 'Make a secret' }).click();
   await form.getByRole('checkbox', { name: 'Job waiting' }).check();
-  await form.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByText('Channel Team chat saved.')).toBeVisible();
   const table = page.getByRole('table', { name: 'Notification channels' });
   await expect(table).toContainText('hooks.example.com');
@@ -115,7 +115,7 @@ test('Add a webhook, send a test, edit it and delete it with a question card', a
   const edit = page.getByRole('region', { name: 'Edit Team chat' });
   await expect(edit.getByLabel(/Signing secret/)).toHaveValue('');
   await edit.getByRole('textbox', { name: 'Name', exact: true }).fill('Ops chat');
-  await edit.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByText('Channel Ops chat saved.')).toBeVisible();
   const patch = mock.calls.find((c) => c.method === 'PATCH');
   expect(patch?.body).not.toHaveProperty('secret');
@@ -148,7 +148,7 @@ test('A failed test says what failed; Cancel leaves the form', async ({ page }) 
   await page.goto('/settings/notifications');
   await page.getByRole('button', { name: 'Send test' }).click();
   await expect(page.getByText(/Test failed\. My mail: Could not reach/)).toBeVisible();
-  await page.getByRole('button', { name: 'Add' }).click();
+  await page.getByRole('button', { name: 'Add channel' }).click();
   await expect(page.getByRole('region', { name: 'Add a channel' })).toBeVisible();
   await page.getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('region', { name: 'Add a channel' })).toHaveCount(0);
@@ -172,7 +172,7 @@ test('The server refusing a channel is shown on the form', async ({ page }) => {
       'No channels yet. Add a channel to be told when a machine, job or disk needs you.',
     ),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Add' }).click();
+  await page.getByRole('button', { name: 'Add channel' }).click();
   await page.getByRole('radio', { name: /^Desktop/ }).check();
   await page.getByRole('textbox', { name: 'Name', exact: true }).fill('Desk');
   await page.getByRole('button', { name: 'Save' }).click();
@@ -189,7 +189,7 @@ for (const state of ['list', 'add form', 'edit form']) {
       page.getByRole('table', { name: 'Notification channels' }),
     ).toBeVisible();
     if (state === 'add form') {
-      await page.getByRole('button', { name: 'Add' }).click();
+      await page.getByRole('button', { name: 'Add channel' }).click();
       await expect(page.getByRole('region', { name: 'Add a channel' })).toBeVisible();
     }
     if (state === 'edit form') {

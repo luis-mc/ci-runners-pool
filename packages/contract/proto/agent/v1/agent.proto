@@ -803,6 +803,30 @@ message MachineReport {
   MacVmReport macos_vms = 11;
   // The Docker disk file of this machine (caches R5.51 to R5.54). Unset by an older agent.
   DockerDiskReport docker_disk = 12;
+  // The runner services of this machine after the agent re-asserted their
+  // logon right (runners R5.89). Empty on a machine without persistent runner
+  // services, and from an older agent.
+  repeated RunnerServiceReport runner_services = 13;
+}
+
+// RunnerServiceReport is one runner service as the agent left it after it
+// re-asserted the logon right of the service account (runners R5.89). The
+// agent reads and heals; the controller shows the problem and clears it when
+// the service runs.
+message RunnerServiceReport {
+  string runner_name = 1;
+  string service_name = 2;
+  // The account the service runs as, for example .\crsp-box-1.
+  string account = 3;
+  bool running = 4;
+  // False when the agent could not read the rights of the account.
+  bool logon_known = 5;
+  // True when the account holds SeServiceLogonRight now.
+  bool logon_held = 6;
+  // True when this pass had to give the right back (it was lost).
+  bool regranted = 7;
+  // Why the service does not run, after the one retry; empty while it runs.
+  string problem = 8;
 }
 
 // DockerDiskReport is what the agent read about Docker's disk file: the size of

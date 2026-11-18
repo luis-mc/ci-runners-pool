@@ -446,6 +446,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/app/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the GitHub App webhook state
+         * @description github-integration R5.51 (OPS25). Says whether real webhooks are off, on or failing, the public address, and the newest delivery of any repository. The secret is never returned.
+         */
+        get: operations["getAppWebhook"];
+        /**
+         * Turn real GitHub webhooks on
+         * @description github-integration R5.51 (OPS25). The owner gives the public https address that forwards to the controller. The controller makes a webhook secret and keeps it in the OS secret store, sends a signed test ping to `<address>/webhooks/github`, and only when that works sets the App's webhook at GitHub (`PATCH /app/hook/config`). A failed test or a refusal of GitHub keeps the old state. When the App does not subscribe to `workflow_job`, the answer carries `events_link`, the App's page where the owner ticks it.
+         */
+        put: operations["setAppWebhook"];
+        post?: never;
+        /**
+         * Turn real GitHub webhooks off
+         * @description github-integration R5.51 (OPS25). Clears the App's webhook config at GitHub, removes the webhook secret and returns to polling.
+         */
+        delete: operations["clearAppWebhook"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -2988,6 +3016,28 @@ export interface components {
              * @description Set in polling mode.
              */
             polling_since?: string;
+            /** @description True when the GitHub App has no webhook, so jobs are learned by polling only and no delivery can be missed (OPS22). Absent when webhooks are on. */
+            webhooks_off?: boolean;
+        };
+        /** @description The webhook of the GitHub App as the console shows it (github-integration R5.51). */
+        AppWebhook: {
+            /**
+             * @description Off means jobs are learned by polling. Failing means the newest delivery failed or was missed.
+             * @enum {string}
+             */
+            state: "off" | "on" | "failing";
+            /** @description The public https address that forwards to the controller. Absent when off. */
+            address?: string;
+            /** Format: date-time */
+            last_delivery_at?: string;
+            /** @enum {string} */
+            last_result?: "ok" | "failed" | "missed";
+            /** @description The App's permissions page at GitHub, set when the App does not subscribe to workflow_job. */
+            events_link?: string;
+        };
+        AppWebhookUpdate: {
+            /** @description A public https address GitHub can reach, such as https://hooks.example.com. */
+            address: string;
         };
         /** @description A new App private key, sent once and never returned (github-integration R5.7). */
         AppKeyUpload: {
@@ -3310,10 +3360,24 @@ export interface components {
             pending_change?: components["schemas"]["MachineChange"];
             recovery?: components["schemas"]["MachineRecovery"];
             docker_compact_status?: components["schemas"]["DockerCompactStatus"];
+            /** @description Runner services on this machine that did not start after the agent gave their account the right to log on as a service again and tried once more (runners R5.89). Empty or absent while every runner service runs. The console shows a Problem banner for each until the service runs. */
+            runner_problems?: components["schemas"]["RunnerServiceProblem"][];
             /** Format: date-time */
             last_seen_at: string;
             /** Format: date-time */
             joined_at?: string;
+        };
+        RunnerServiceProblem: {
+            /** @description The runner's name. */
+            runner: string;
+            /** @description The Windows service name. */
+            service: string;
+            /** @description The account the service runs as, for example `.\crsp-box-1`. */
+            account: string;
+            /** @description Why the service did not start, as Windows said it, redacted. */
+            reason: string;
+            /** @description True when the account holds the right to log on as a service now, so the reason is something else. */
+            logon_right?: boolean;
         };
         MachineList: {
             items: components["schemas"]["Machine"][];
@@ -3469,6 +3533,11 @@ export interface components {
             pool_memory_gib: number;
             pool_cpus: number;
         };
+        /** @description A recommended pool size. Memory is a share of the room rounded down to whole GiB, at least the floor; CPUs are the same share of the CPU budget, at most memory / 1.5, at least the floor. */
+        PoolSizeRecommended: {
+            memory_gib: number;
+            cpus: number;
+        };
         /**
          * @example {
          *       "known": true,
@@ -3512,6 +3581,8 @@ export interface components {
             docker_ceiling_gib?: number;
             /** @description The figure that decided. */
             decided?: string;
+            recommended_half?: components["schemas"]["PoolSizeRecommended"];
+            recommended_three_quarters?: components["schemas"]["PoolSizeRecommended"];
             /** Format: double */
             current_memory_gib: number;
             current_cpus: number;
@@ -3762,12 +3833,19 @@ export interface components {
             /** Format: int64 */
             github_runner_id?: number;
             current_job?: components["schemas"]["Job"];
+            /** @description Pool runner only: the repository (owner/name) of the job it runs now. Absent when it is idle (runners R5.88). */
+            serving?: string;
+            /** @description Pool runner only: how many hidden GitHub registrations it holds, one for each repository that uses the pool. Absent on other runners. */
+            registrations?: number;
             /** Format: date-time */
             created_at?: string;
         };
         RunnerScope: {
-            /** @enum {string} */
-            kind: "repository" | "organization";
+            /**
+             * @description `pool` is a pool runner: a machine, a system and labels with no repository. Its GitHub registrations are hidden, one for each repository that uses the pool (runners R5.88).
+             * @enum {string}
+             */
+            kind: "repository" | "organization" | "pool";
             /** Format: int64 */
             repository_id?: number;
             organization?: string;
@@ -3786,11 +3864,7 @@ export interface components {
          *         "self-hosted",
          *         "linux",
          *         "x64"
-         *       ],
-         *       "scope": {
-         *         "kind": "repository",
-         *         "repository_id": 700100
-         *       }
+         *       ]
          *     }
          */
         PlanRunnersRequest: {
@@ -3799,7 +3873,8 @@ export interface components {
             machine_id: string;
             count: number;
             labels?: string[];
-            scope: components["schemas"]["RunnerScope"];
+            /** @description Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.88). */
+            scope?: components["schemas"]["RunnerScope"];
         };
         /**
          * @description One job attempt (observability R5.7, R5.8).
@@ -5096,6 +5171,73 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAppWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The webhook state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppWebhook"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setAppWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppWebhookUpdate"];
+            };
+        };
+        responses: {
+            /** @description Webhooks are on. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppWebhook"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    clearAppWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Webhooks are off. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppWebhook"];
+                };
             };
             default: components["responses"]["Error"];
         };

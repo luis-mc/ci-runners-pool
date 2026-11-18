@@ -130,8 +130,12 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	})
 	authStore := d.DB.Auth()
 	cbSettings := settings.New(d.DB)
+	health := webhookhealth.New()
 	asvc := auth.New(authStore, auth.Config{
-		GitHub: gh, Secrets: d.Secrets, Now: d.Now,
+		LoadWebhookAddress: cbSettings.GetWebhookAddress,
+		SaveWebhookAddress: cbSettings.SetWebhookAddress,
+		HookHealth:         health,
+		GitHub:             gh, Secrets: d.Secrets, Now: d.Now,
 		// An App made before the list was kept has the loopback callback
 		// of this port only (OPS16): never the address chosen later.
 		ConsoleURLs:    func() []string { return []string{loopbackConsoleURL(console)} },
@@ -145,7 +149,16 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	rsvc := repos.New(repos.Config{Store: repoStore, GitHub: gh, Tokens: asvc, Audit: asvc, PoolName: pool,
 		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Sizes: machineCapacity{svc: d.Machines, pool: pool}, Up: machineUp{svc: d.Machines},
 		FallbackGrace: fallbackGrace(d), PublicRepositories: publicRepositories(d), Now: d.Now})
-	health := webhookhealth.New()
+	// An App made without a webhook has no webhook secret in the store (R5.3):
+	// no delivery can arrive, so polling finding a job is not a missed delivery.
+	health.HooksOn = func() bool {
+		app := gh.AppID()
+		if app == 0 {
+			return false
+		}
+		b, err := d.Secrets.Get(context.Background(), github.SecretKey(app, github.SecretWebhookSecret))
+		return err == nil && len(b) > 0
+	}
 	appHealth := &github.AppHealth{Client: gh, AppID: gh.AppID, Now: d.Now}
 	hook := &github.WebhookHandler{
 		Verifier: func() (github.WebhookVerifier, error) {
@@ -228,6 +241,18 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		GitHub: gh, Agent: agent, Audit: runnerAudit{auth: asvc},
 		PoolName: pool, CacheQuota: d.Cfg.Cache, Now: d.Now, Services: agent.Services,
 		// A public repository gets no new runner while the setting is off (github-integration R5.55).
+		// A plan with no scope takes the first repository with the pool on (D31, until OPS23).
+		DefaultScope: func(ctx context.Context) (runners.Scope, error) {
+			on := true
+			rs, err := repoStore.ListRepositories(ctx, repos.ListFilter{Pool: &on})
+			if err != nil {
+				return runners.Scope{}, err
+			}
+			if len(rs) == 0 {
+				return runners.Scope{}, runners.ErrNoPoolRepository
+			}
+			return runners.Scope{Kind: "repository", RepositoryID: rs[0].ID}, nil
+		},
 		Gate: func(ctx context.Context, sc runners.Scope) error {
 			if sc.RepositoryID == 0 {
 				return nil
@@ -261,6 +286,11 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		q.SetLightLookup(func(machineID, name string) bool { return runnerSvc.RunsLight(ctx, machineID, name) })
 	}
 	rsvc.SetLight(lightKeeper{svc: runnerSvc})
+	// Long-lived runners serve every repository that uses the pool: one hidden
+	// registration for each pool repository, made and removed with the pool
+	// switch and by the reconcile loop (runners R5.88).
+	runnerSvc.PoolRepos = poolRepos(repoStore)
+	rsvc.SetRegistrar(runnerSvc)
 	rsvc.SetFleet(runnerSvc)
 
 	// Demand: poll queued jobs of the repositories with the pool on and start one

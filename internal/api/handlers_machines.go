@@ -249,6 +249,17 @@ func machineToAPI(v machines.View, now time.Time) gen.Machine {
 		}
 		out.DockerCompactStatus = &d
 	}
+	if probs := v.RunnerProblems(); len(probs) > 0 {
+		list := make([]gen.RunnerServiceProblem, 0, len(probs))
+		for _, p := range probs {
+			item := gen.RunnerServiceProblem{Runner: p.Runner, Service: p.Service, Account: p.Account, Reason: p.Problem}
+			if p.LogonKnown {
+				item.LogonRight = machinesPtr(p.LogonHeld)
+			}
+			list = append(list, item)
+		}
+		out.RunnerProblems = &list
+	}
 	for _, b := range v.Backends {
 		bs := gen.BackendSupport{Name: gen.BackendName(b.Name), Present: b.Present, Usable: b.Usable, Allowed: b.Allowed}
 		if b.Version != "" {
@@ -517,6 +528,10 @@ func (s *server) CheckMachinePoolSize(ctx context.Context, r gen.CheckMachinePoo
 	}
 	if res.Decided != "" {
 		out.Decided = &res.Decided
+	}
+	if c.Known && res.TotalGiB > 0 {
+		out.RecommendedHalf = &gen.PoolSizeRecommended{MemoryGib: res.Half.MemGiB, Cpus: res.Half.CPUs}
+		out.RecommendedThreeQuarters = &gen.PoolSizeRecommended{MemoryGib: res.ThreeQuarters.MemGiB, Cpus: res.ThreeQuarters.CPUs}
 	}
 	return gen.CheckMachinePoolSize200JSONResponse(out), nil
 }

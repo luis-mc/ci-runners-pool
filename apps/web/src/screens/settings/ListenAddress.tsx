@@ -62,7 +62,6 @@ export function NetworkSettings() {
             {l.problem ? <Message tone="problem">{l.problem}</Message> : null}
             <Cluster>
               <Button
-                kind="primary"
                 onPress={() => setOpen(true)}
                 disabled={l.from_env || !session.can('admin')}
                 reason={

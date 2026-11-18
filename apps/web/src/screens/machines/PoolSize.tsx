@@ -1,32 +1,34 @@
-// The pool size of a machine (web-console 4.4, machines R5.58): a wizard on the machine's page. Steps: Size,
-// Review, Saving, Done. Review shows the budget check and the nearest size that fits; a size below the current
-// one needs its own yes. The page passes data only; the shared wizard owns the steps, locks and busy state.
+// The pool size of a machine (web-console 4.4, machines R5.58, LOOK22): a plain section of the machine's page, not a
+// wizard. Facts, a choice of three (half of the free room, three quarters of it, Custom), and a live check line that
+// asks the controller 250 ms after the last edit. The size is part of the page's one Save (UX-71); a shrink still
+// needs its own yes. The page passes data only; `usePoolSize` hands it the change count, Save and Cancel.
 import {
-  BulletList,
+  ChoiceField,
   CheckRow,
-  ErrorSummary,
   Facts,
   Message,
   NumberField,
+  Section,
   Stack,
   Text,
-  Wizard,
-  type WizardPhase,
+  Button,
+  type Tone,
 } from '@crsp/ui';
-import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useSession } from '../../auth/session';
 
 type Machine = Schemas['Machine'];
 type Check = Schemas['PoolSizeCheck'];
 
-const STEPS = ['Size', 'Review', 'Saving', 'Done'] as const;
-const PARAM = 'pool_size';
-
-// The floors of machines R5.58: 4 GiB and 2 CPUs.
-const MIN_GIB = 4;
-const MIN_CPUS = 2;
+// The floors of machines R5.58: 4 GiB and 2 CPUs. 1.5 GiB per CPU.
+export const MIN_GIB = 4;
+export const MIN_CPUS = 2;
+const GIB_PER_CPU = 1.5;
+/** The check line asks the controller this long after the last edit (last answer wins). */
+export const CHECK_DELAY_MS = 250;
+/** A size that fits but leaves less than this for the rest of the PC is a warning. */
+export const LEFT_WARNING_GIB = 3;
 
 export const gib = (n: number) => `${Number(n.toFixed(1))} GiB`;
 export const cpuWord = (n: number) => `${n} ${n === 1 ? 'CPU' : 'CPUs'}`;
@@ -35,30 +37,127 @@ export function sizeWords(mem: number | undefined, cpus: number | undefined): st
   return mem && cpus ? `${gib(mem)} and ${cpuWord(cpus)}` : 'not set';
 }
 
-export function PoolSizeWizard({ m, onChanged }: { m: Machine; onChanged: () => void }) {
+export type SizeChoice = 'half' | 'three' | 'custom';
+
+export const choiceLabel = (
+  kind: 'half' | 'three',
+  r: { memory_gib: number; cpus: number },
+) =>
+  `Recommended: ${kind === 'half' ? 'half' : 'three quarters'} of the free room (${gib(r.memory_gib)}, ${cpuWord(r.cpus)})`;
+
+/** How a recommended size was computed, in the words of the owner (D39). */
+export const choiceHow = (kind: 'half' | 'three', c: Check): string =>
+  `${kind === 'half' ? 'Half' : 'Three quarters'} of the ${gib(c.room_gib ?? 0)} free for the pool, rounded down to whole GiB. CPUs: the same share of the CPU budget (${c.cpu_budget ?? 0}), at most one per ${GIB_PER_CPU} GiB.`;
+
+/** The size the controller would fit when the memory asked for is more than the room. */
+export function fitSize(c: Check): { mem: number; cpus: number } | undefined {
+  if (c.room_gib === undefined) return undefined;
+  const mem = Math.floor(c.room_gib);
+  if (mem < MIN_GIB) return undefined;
+  const cpus = Math.max(
+    MIN_CPUS,
+    Math.min(Math.floor(mem / GIB_PER_CPU), c.cpu_budget ?? Infinity),
+  );
+  return { mem, cpus };
+}
+
+export interface LiveLine {
+  tone: Tone;
+  text: string;
+  /** "Use 10 GiB and 6 CPUs": sets both fields, saves nothing. */
+  use?: { label: string; mem: number; cpus: number } | undefined;
+  notes: string[];
+}
+
+/** The words of the check line for one answer of the controller (tones ok = done, warning = needs-you, error = problem). */
+export function liveLine(
+  c: Check,
+  mem: number,
+  cpus: number,
+  curMem: number,
+  curCpus: number,
+): LiveLine {
+  if (!c.known)
+    return {
+      tone: 'needs-you',
+      text: `The size cannot be checked yet. ${c.why ?? ''} Try again when the agent has reported.`.replace(
+        '  ',
+        ' ',
+      ),
+      notes: [],
+    };
+  if (!c.ok) {
+    if (c.short === 'memory' && c.room_gib !== undefined) {
+      const fit = fitSize(c);
+      const used = (c.memory_budget_gib ?? 0) - c.room_gib;
+      const notes = ['The room moves with what else runs on this PC.'];
+      if (fit && cpus !== fit.cpus)
+        notes.push(`${cpuWord(fit.cpus)}: each CPU needs about 1.5 GiB.`);
+      return {
+        tone: 'problem',
+        text: `${gib(mem)} is too much: only ${gib(c.room_gib)} is free for the pool right now (other programs use ${gib(used)}).${fit ? ` Use ${gib(fit.mem)} and ${cpuWord(fit.cpus)}?` : ''}`,
+        use: fit
+          ? {
+              label: `Use ${gib(fit.mem)} and ${cpuWord(fit.cpus)}`,
+              mem: fit.mem,
+              cpus: fit.cpus,
+            }
+          : undefined,
+        notes,
+      };
+    }
+    return {
+      tone: 'problem',
+      text: `This size does not fit the budget. ${c.reason ?? ''}${c.nearest.length ? ` The nearest sizes that fit: ${c.nearest.join('; ')}.` : ''}`.trim(),
+      notes: [],
+    };
+  }
+  const shrinks = c.needs_shrink_confirm || mem < curMem || cpus < curCpus;
+  if (shrinks)
+    return {
+      tone: 'needs-you',
+      text: 'This lowers the pool size. Jobs that need more than the new size wait or fail to start.',
+      notes: [],
+    };
+  const left = (c.room_gib ?? Infinity) - mem;
+  if (left < LEFT_WARNING_GIB)
+    return {
+      tone: 'needs-you',
+      text: `This size fits, but leaves ${gib(Math.max(left, 0))} for this PC.`,
+      notes: [],
+    };
+  return { tone: 'done', text: 'This size fits the budget of the machine.', notes: [] };
+}
+
+export interface PoolSizeForm {
+  /** 1 when the person changed the pool size, else 0. */
+  changes: number;
+  /** Why the page's Save must wait, or undefined. */
+  hold: string | undefined;
+  /** Sends the size. True when saved or nothing to save; false when it did not save (the section says why). */
+  save: () => Promise<boolean>;
+  reset: () => void;
+  section: React.ReactNode;
+}
+
+/** The state of the pool size section. The page adds `changes` to its own and calls `save` from its one Save. */
+export function usePoolSize(m: Machine, onChanged: () => void): PoolSizeForm {
   const client = useClient();
   const session = useSession();
-  const [params, setParams] = useSearchParams();
-  const stored = useRef(params.get(PARAM)).current;
   const admin = session.can('admin');
-
   const curMem = m.settings.pool_memory_gib ?? 0;
   const curCpus = m.settings.pool_cpus ?? 0;
+
+  const [choice, setChoice] = useState<SizeChoice | undefined>(undefined);
   const [mem, setMem] = useState(curMem || MIN_GIB);
   const [cpus, setCpus] = useState(curCpus || MIN_CPUS);
-  const [phase, setPhase] = useState<WizardPhase>(
-    stored === 'saving' ? 'paused' : stored === 'saved' ? 'done-after-reload' : 'loading',
-  );
-  const [step, setStep] = useState(stored === 'saving' ? 2 : stored === 'saved' ? 3 : 0);
+  const [room, setRoom] = useState<Check | undefined>(undefined);
   const [check, setCheck] = useState<Check | undefined>(undefined);
+  const [waiting, setWaiting] = useState(false);
   const [yes, setYes] = useState(false);
-  const [errors, setErrors] = useState<string[]>([]);
   const [problem, setProblem] = useState<string | undefined>(undefined);
-  const [left, setLeft] = useState<string | undefined>(undefined);
-  const [saved, setSaved] = useState<{ mem: number; cpus: number } | undefined>(
-    undefined,
-  );
   const mounted = useRef(true);
+  const seq = useRef(0);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -66,86 +165,121 @@ export function PoolSizeWizard({ m, onChanged }: { m: Machine; onChanged: () => 
     };
   }, []);
 
-  // The budget is read once when the form opens, so the Size step shows the room the pool has (R5.58).
-  const [room, setRoom] = useState<Check | undefined>(undefined);
+  const runCheck = useCallback(
+    (memGiB: number, poolCpus: number) =>
+      unwrap(
+        client.POST('/api/v1/machines/{machineId}/pool-size-check', {
+          params: { path: { machineId: m.id } },
+          body: { pool_memory_gib: memGiB, pool_cpus: poolCpus },
+        }),
+      ),
+    [client, m.id],
+  );
+
+  // The room and the recommended sizes are read once with the size that is set (or the floor).
   useEffect(() => {
-    if (stored) return;
     let on = true;
-    void unwrap(
-      client.POST('/api/v1/machines/{machineId}/pool-size-check', {
-        params: { path: { machineId: m.id } },
-        body: { pool_memory_gib: curMem || MIN_GIB, pool_cpus: curCpus || MIN_CPUS },
-      }),
-    )
+    void runCheck(curMem || MIN_GIB, curCpus || MIN_CPUS)
       .then((c) => on && setRoom(c))
-      .catch(() => undefined)
-      .finally(() => on && setPhase((p) => (p === 'loading' ? 'first-run' : p)));
+      .catch(() => undefined);
     return () => {
       on = false;
     };
     // Read once for this machine.
   }, [m.id]);
 
-  const mark = (value: string | undefined) => {
-    const next = new URLSearchParams(params);
-    if (value) next.set(PARAM, value);
-    else next.delete(PARAM);
-    setParams(next, { replace: true });
-  };
+  const changed = choice !== undefined && (mem !== curMem || cpus !== curCpus);
+  const tooLow = mem < MIN_GIB || cpus < MIN_CPUS;
 
-  const runCheck = () =>
-    unwrap(
-      client.POST('/api/v1/machines/{machineId}/pool-size-check', {
-        params: { path: { machineId: m.id } },
-        body: { pool_memory_gib: mem, pool_cpus: cpus },
-      }),
-    );
-
-  const toReview = async () => {
-    const problems: string[] = [];
-    if (mem < MIN_GIB) problems.push(`The pool needs at least ${MIN_GIB} GiB.`);
-    if (cpus < MIN_CPUS) problems.push(`The pool needs at least ${MIN_CPUS} CPUs.`);
-    if (mem === curMem && cpus === curCpus)
-      problems.push('This is the size that is set now. Change it to review.');
-    setErrors(problems);
-    if (problems.length) return;
-    setStep(1);
-    setPhase('planning');
+  // The live check: 250 ms after the last edit, the last answer wins.
+  useEffect(() => {
+    seq.current += 1;
+    const mine = seq.current;
     setYes(false);
-    try {
-      const c = await runCheck();
-      if (!mounted.current) return;
-      setCheck(c);
-      setPhase('ready-to-review');
-    } catch (e) {
-      if (!mounted.current) return;
-      setProblem(e instanceof Error ? e.message : 'The controller did not answer.');
-      setStep(3);
-      setPhase('failed');
+    if (!changed || tooLow) {
+      setCheck(undefined);
+      setWaiting(false);
+      return;
+    }
+    setWaiting(true);
+    const timer = setTimeout(() => {
+      runCheck(mem, cpus)
+        .then((c) => {
+          if (mounted.current && seq.current === mine) {
+            setCheck(c);
+            setWaiting(false);
+          }
+        })
+        .catch((e: unknown) => {
+          if (mounted.current && seq.current === mine) {
+            setCheck({
+              known: false,
+              ok: false,
+              needs_shrink_confirm: false,
+              nearest: [],
+              why: e instanceof Error ? e.message : 'The controller did not answer.',
+              current_memory_gib: curMem,
+              current_cpus: curCpus,
+            });
+            setWaiting(false);
+          }
+        });
+    }, CHECK_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [changed, tooLow, mem, cpus, runCheck, curMem, curCpus]);
+
+  const pick = (v: string) => {
+    const c = v as SizeChoice;
+    setChoice(c);
+    setProblem(undefined);
+    if (c === 'half' && room?.recommended_half) {
+      setMem(room.recommended_half.memory_gib);
+      setCpus(room.recommended_half.cpus);
+    } else if (c === 'three' && room?.recommended_three_quarters) {
+      setMem(room.recommended_three_quarters.memory_gib);
+      setCpus(room.recommended_three_quarters.cpus);
     }
   };
 
-  const save = async () => {
-    if (!check) return;
-    setStep(2);
-    setPhase('running');
-    mark('saving');
+  const line =
+    check && changed && !waiting
+      ? liveLine(check, mem, cpus, curMem, curCpus)
+      : undefined;
+  const needsYes = Boolean(
+    changed &&
+    check?.known &&
+    check.ok &&
+    line?.tone === 'needs-you' &&
+    (check.needs_shrink_confirm || mem < curMem || cpus < curCpus),
+  );
+
+  let hold: string | undefined;
+  if (changed) {
+    if (!admin) hold = session.whyNot('admin');
+    else if (tooLow)
+      hold =
+        mem < MIN_GIB
+          ? `The pool needs at least ${MIN_GIB} GiB.`
+          : `The pool needs at least ${MIN_CPUS} CPUs.`;
+    else if (waiting || !check) hold = 'Reading the budget.';
+    else if (!check.known) hold = 'The size cannot be checked yet.';
+    else if (!check.ok) hold = 'This size does not fit. Change the pool size.';
+    else if (needsYes && !yes) hold = 'Tick the box to confirm lowering the pool size.';
+  }
+
+  const save = async (): Promise<boolean> => {
+    if (!changed) return true;
+    setProblem(undefined);
     try {
       // The size is read again right before it is saved, so a change made meanwhile is never overwritten.
-      const again = await runCheck();
-      if (!mounted.current) return;
-      if (
-        again.current_memory_gib !== check.current_memory_gib ||
-        again.current_cpus !== check.current_cpus
-      ) {
-        setLeft(
-          `The pool size changed to ${sizeWords(again.current_memory_gib, again.current_cpus)} while you reviewed.`,
+      const again = await runCheck(mem, cpus);
+      if (!mounted.current) return false;
+      if (again.current_memory_gib !== curMem || again.current_cpus !== curCpus) {
+        setProblem(
+          `The pool size changed to ${sizeWords(again.current_memory_gib, again.current_cpus)} while you edited. Nothing was saved.`,
         );
-        mark(undefined);
-        setStep(3);
-        setPhase('stopped');
         onChanged();
-        return;
+        return false;
       }
       await unwrap(
         client.PATCH('/api/v1/machines/{machineId}', {
@@ -153,234 +287,165 @@ export function PoolSizeWizard({ m, onChanged }: { m: Machine; onChanged: () => 
           body: {
             pool_memory_gib: mem,
             pool_cpus: cpus,
-            ...(check.needs_shrink_confirm ? { confirm_shrink: true } : {}),
+            ...(again.needs_shrink_confirm ? { confirm_shrink: true } : {}),
           },
         }),
       );
-      if (!mounted.current) return;
-      setSaved({ mem, cpus });
-      mark('saved');
-      setStep(3);
-      setPhase('done');
-      onChanged();
+      if (!mounted.current) return true;
+      setChoice(undefined);
+      setCheck(undefined);
+      return true;
     } catch (e) {
-      if (!mounted.current) return;
-      mark(undefined);
-      setProblem(e instanceof Error ? e.message : 'The controller did not answer.');
-      setStep(3);
-      setPhase('failed');
+      if (mounted.current)
+        setProblem(
+          `The pool size was not saved. ${e instanceof Error ? e.message : 'The controller did not answer.'} Try again.`,
+        );
+      return false;
     }
   };
 
-  const startAgain = () => {
-    mark(undefined);
-    setCheck(undefined);
-    setProblem(undefined);
-    setLeft(undefined);
-    setErrors([]);
-    setYes(false);
+  const reset = () => {
+    setChoice(undefined);
     setMem(curMem || MIN_GIB);
     setCpus(curCpus || MIN_CPUS);
-    setStep(0);
-    setPhase('first-run');
+    setCheck(undefined);
+    setProblem(undefined);
+    setYes(false);
   };
 
-  const sizing = sizingFacts(check);
-  const roomFacts = sizingFacts(room);
+  const roomKnown = Boolean(
+    room?.known && room.recommended_half && room.recommended_three_quarters,
+  );
+  const unknown = 'The budget is not known yet.';
+  const roomFacts = room?.known
+    ? [
+        ...(room.room_gib !== undefined
+          ? [{ name: 'Room for the pool', value: gib(room.room_gib) }]
+          : []),
+        ...(room.cpu_budget !== undefined
+          ? [{ name: 'CPU budget', value: cpuWord(room.cpu_budget) }]
+          : []),
+      ]
+    : [{ name: 'Budget', value: 'not known yet' }];
 
-  let body;
-  if (step === 0) {
-    body = (
+  const section = (
+    <Section title="Pool size">
       <Stack>
         <Facts
           items={[
             { name: 'Pool size now', value: sizeWords(curMem, curCpus) },
             ...roomFacts,
-            ...(roomFacts.length === 0
-              ? [{ name: 'Budget', value: 'not known yet; Review says when it is' }]
-              : []),
           ]}
         />
-        <ErrorSummary errors={errors} />
-        <NumberField
-          label="Pool memory"
-          help="Memory the pool may use on this machine, in GiB."
-          value={mem}
-          unit=" GiB"
-          min={MIN_GIB}
-          max={4096}
-          decimals={1}
-          onChange={setMem}
+        <ChoiceField
+          label="New pool size"
+          value={choice ?? ''}
+          onChange={pick}
+          changed={changed}
+          choices={[
+            {
+              value: 'half',
+              label:
+                roomKnown && room?.recommended_half
+                  ? choiceLabel('half', room.recommended_half)
+                  : 'Recommended: half of the free room',
+              ...(roomKnown && room
+                ? { description: choiceHow('half', room) }
+                : { disabledReason: unknown }),
+            },
+            {
+              value: 'three',
+              label:
+                roomKnown && room?.recommended_three_quarters
+                  ? choiceLabel('three', room.recommended_three_quarters)
+                  : 'Recommended: three quarters of the free room',
+              ...(roomKnown && room
+                ? { description: choiceHow('three', room) }
+                : { disabledReason: unknown }),
+            },
+            {
+              value: 'custom',
+              label: 'Custom',
+              description: 'Choose the memory and the CPUs yourself.',
+              extra: (
+                <Stack>
+                  <NumberField
+                    label="Pool memory"
+                    help="Memory the pool may use on this machine, in GiB."
+                    value={mem}
+                    unit=" GiB"
+                    min={MIN_GIB}
+                    max={4096}
+                    decimals={1}
+                    changed={choice === 'custom' && mem !== curMem}
+                    onChange={(v) => {
+                      setChoice('custom');
+                      setMem(v);
+                    }}
+                  />
+                  <NumberField
+                    label="Pool CPUs"
+                    help="CPUs the pool may use on this machine."
+                    value={cpus}
+                    min={MIN_CPUS}
+                    max={512}
+                    changed={choice === 'custom' && cpus !== curCpus}
+                    onChange={(v) => {
+                      setChoice('custom');
+                      setCpus(v);
+                    }}
+                  />
+                </Stack>
+              ),
+            },
+          ]}
         />
-        <NumberField
-          label="Pool CPUs"
-          help="CPUs the pool may use on this machine."
-          value={cpus}
-          min={MIN_CPUS}
-          max={512}
-          onChange={setCpus}
-        />
-      </Stack>
-    );
-  } else if (step === 1) {
-    body = !check ? (
-      <Text>Reading the budget of {m.name}.</Text>
-    ) : !check.known ? (
-      <Message tone="needs-you">
-        The size cannot be checked yet. {check.why ?? ''} Try again when the agent has
-        reported.
-      </Message>
-    ) : (
-      <Stack>
-        <Text>
-          {`The pool of ${m.name} changes from ${sizeWords(check.current_memory_gib, check.current_cpus)} to ${gib(mem)} and ${cpuWord(cpus)}.`}
-        </Text>
-        {check.ok ? (
-          <Message tone="done">This size fits the budget of the machine.</Message>
-        ) : (
-          <>
-            <Message tone="problem">
-              This size does not fit the budget. {check.reason ?? ''}
-            </Message>
-            {check.nearest.length > 0 ? (
-              <>
-                <Text>The nearest sizes that fit:</Text>
-                <BulletList items={check.nearest} />
-              </>
-            ) : null}
-          </>
-        )}
-        {sizing.length > 0 ? <Facts items={sizing} /> : null}
-        {check.ok && check.needs_shrink_confirm ? (
-          <>
-            <Message tone="needs-you">
-              This lowers the pool size. Jobs that need more than the new size wait or
-              fail to start.
-            </Message>
-            <CheckRow label="Yes, lower the pool size" checked={yes} onChange={setYes} />
-          </>
-        ) : null}
-      </Stack>
-    );
-  } else if (step === 2) {
-    body = (
-      <Stack>
-        {phase === 'paused' ? (
-          <Message tone="needs-you">
-            Paused. The page closed while the size was saving. Start again to read the
-            size that is set.
-          </Message>
-        ) : null}
-        <Facts items={[{ name: 'Pool size now', value: sizeWords(curMem, curCpus) }]} />
-      </Stack>
-    );
-  } else {
-    body = (
-      <Stack>
-        {phase === 'failed' ? (
+        {changed && tooLow ? (
           <Message tone="problem">
-            The pool size was not saved. {problem ?? ''} Try again.
+            {mem < MIN_GIB
+              ? `The pool needs at least ${MIN_GIB} GiB.`
+              : `The pool needs at least ${MIN_CPUS} CPUs.`}
           </Message>
         ) : null}
-        {phase === 'stopped' ? (
-          <Message tone="note">Stopped. Nothing was saved. {left ?? ''}</Message>
+        {changed && !tooLow && !line ? (
+          <Text tone="muted">Reading the budget of {m.name}.</Text>
         ) : null}
-        {phase === 'done' || phase === 'done-after-reload' ? (
-          <Message tone="done">
-            {`The pool size is ${sizeWords(saved?.mem ?? curMem, saved?.cpus ?? curCpus)}.`}
-          </Message>
+        {line ? (
+          <Stack gap="tight">
+            <Message
+              tone={line.tone}
+              action={
+                line.use ? (
+                  <Button
+                    onPress={() => {
+                      const u = line.use;
+                      if (!u) return;
+                      setChoice('custom');
+                      setMem(u.mem);
+                      setCpus(u.cpus);
+                    }}
+                  >
+                    {line.use.label}
+                  </Button>
+                ) : undefined
+              }
+            >
+              {line.text}
+            </Message>
+            {line.notes.map((n) => (
+              <Text tone="muted" key={n}>
+                {n}
+              </Text>
+            ))}
+          </Stack>
         ) : null}
-        <Facts
-          items={[
-            { name: 'Pool size now', value: sizeWords(curMem, curCpus) },
-            ...(phase === 'failed' || phase === 'stopped'
-              ? [{ name: 'Asked for', value: sizeWords(mem, cpus) }]
-              : []),
-          ]}
-        />
+        {needsYes ? (
+          <CheckRow label="Yes, lower the pool size" checked={yes} onChange={setYes} />
+        ) : null}
+        {problem ? <Message tone="problem">{problem}</Message> : null}
       </Stack>
-    );
-  }
-
-  const blocked = !admin
-    ? session.whyNot('admin')
-    : step === 1 && phase === 'planning'
-      ? 'Reading the budget.'
-      : step === 1 && check && !check.known
-        ? 'The size cannot be checked yet.'
-        : step === 1 && check && !check.ok
-          ? 'This size does not fit. Go back and change it.'
-          : step === 1 && check?.needs_shrink_confirm && !yes
-            ? 'Tick the box to confirm lowering the pool size.'
-            : undefined;
-
-  return (
-    <Wizard
-      name="Pool size"
-      embedded
-      steps={STEPS}
-      current={step}
-      firstStep={0}
-      phase={phase}
-      reading={`Reading the budget of ${m.name}`}
-      progress={
-        phase === 'running' ? { text: `Saving the pool size of ${m.name}` } : undefined
-      }
-      onBack={() => {
-        setStep(0);
-        setPhase('first-run');
-      }}
-      onStep={(i) => {
-        if (i === 0) {
-          setStep(0);
-          setPhase('first-run');
-        }
-      }}
-      primary={
-        step === 0
-          ? {
-              label: 'Review',
-              onPress: () => void toReview(),
-              disabled: !admin,
-              reason: admin ? undefined : session.whyNot('admin'),
-            }
-          : {
-              label: `Save ${gib(mem)} and ${cpuWord(cpus)}`,
-              busyLabel: 'Saving',
-              onPress: () => void save(),
-              disabled: blocked !== undefined,
-              reason: blocked,
-            }
-      }
-      review={step === 1}
-      onStartAgain={startAgain}
-      onTryAgain={startAgain}
-    >
-      {body}
-    </Wizard>
+    </Section>
   );
-}
 
-function sizingFacts(c: Check | undefined) {
-  if (!c || !c.known) return [];
-  return [
-    ...(c.total_gib !== undefined
-      ? [{ name: 'Memory of the machine', value: gib(c.total_gib) }]
-      : []),
-    ...(c.used_outside_gib !== undefined
-      ? [{ name: 'Used outside the pool', value: gib(c.used_outside_gib) }]
-      : []),
-    ...(c.memory_budget_gib !== undefined
-      ? [{ name: 'Memory budget', value: gib(c.memory_budget_gib) }]
-      : []),
-    ...(c.room_gib !== undefined
-      ? [{ name: 'Room for the pool', value: gib(c.room_gib) }]
-      : []),
-    ...(c.cpu_budget !== undefined
-      ? [{ name: 'CPU budget', value: cpuWord(c.cpu_budget) }]
-      : []),
-    ...(c.decided && c.decided !== 'fits'
-      ? [{ name: 'Decided by', value: c.decided }]
-      : []),
-  ];
+  return { changes: changed ? 1 : 0, hold, save, reset, section };
 }

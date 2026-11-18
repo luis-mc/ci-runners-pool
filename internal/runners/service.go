@@ -40,6 +40,10 @@ type Service struct {
 	// off (github-integration R5.55). The error it returns reaches the caller
 	// as it is. Nil allows every scope.
 	Gate func(ctx context.Context, scope Scope) error
+	// DefaultScope picks the scope of a runner plan that names none: the first
+	// repository with the pool on, until every pool repository gets its own
+	// registration (OPS23). Nil, or an error, refuses such a plan.
+	DefaultScope func(ctx context.Context) (Scope, error)
 	// Drain settings; the idle check and clock are replaceable for tests.
 	Poll, WarnAfter, DrainTimeout time.Duration
 	Sleep                         func(ctx context.Context, d time.Duration) error
@@ -71,6 +75,19 @@ type Service struct {
 	// Services lists the OS services of a machine, from its agent. Nil means
 	// the service state is not known, so no runner shows `stopped` (UX-19).
 	Services func(ctx context.Context, machineID string) ([]backend.Found, error)
+
+	// PoolRepos lists the repositories that use the pool, with the scope each
+	// registers in. Nil means no pool runner gets a registration (runners R5.88).
+	PoolRepos func(ctx context.Context) ([]PoolRepo, error)
+	// Pauser pauses and resumes the service of a hidden registration for the
+	// slot lock. Nil means the lock only watches: it reports two busy
+	// registrations of one runner but cannot stop the second one.
+	Pauser ServicePauser
+
+	poolMu   sync.Mutex // one pool reconcile at a time
+	slotMu   sync.Mutex // guards draining and paused
+	draining map[string]bool
+	paused   map[string]bool
 
 	lightTry map[string]lightTry // repository and OS -> tries of the failed light runner
 
@@ -114,6 +131,14 @@ type AddRequest struct {
 	Count     int
 	Labels    []string
 	Scope     Scope
+	// PoolLevel is set when the request named no scope and the service chose
+	// one; the runners then carry the pool label too.
+	PoolLevel bool
+}
+
+// Empty reports that the scope names nothing.
+func (s Scope) Empty() bool {
+	return s.Kind == "" && s.RepositoryID == 0 && s.Organization == ""
 }
 
 var nonSlug = strings.NewReplacer(" ", "-", "_", "-", ".", "-")
@@ -159,7 +184,7 @@ func contains(l []string, s string) bool {
 	return false
 }
 
-func (s *Service) freeName(ctx context.Context, m Machine, taken map[string]bool) (string, error) {
+func (s *Service) freeName(ctx context.Context, m Machine, taken map[string]bool, infix string) (string, error) {
 	existing, err := s.Store.ListRunners(ctx, Filter{MachineID: m.ID})
 	if err != nil {
 		return "", err
@@ -172,7 +197,7 @@ func (s *Service) freeName(ctx context.Context, m Machine, taken map[string]bool
 		base = "runner"
 	}
 	for n := 1; ; n++ {
-		name := fmt.Sprintf("%s-%d", base, n)
+		name := fmt.Sprintf("%s%s-%d", base, infix, n)
 		if !taken[name] {
 			taken[name] = true
 			return name, nil
@@ -187,7 +212,18 @@ func (s *Service) PlanAdd(ctx context.Context, req AddRequest, actor string) (Pl
 	if req.Count < 1 || req.Count > 64 {
 		return Plan{}, refuse("count must be from 1 to 64")
 	}
-	if s.Gate != nil {
+	if req.Scope.Empty() {
+		// The user asked for runners of the pool, not of one repository.
+		if s.DefaultScope == nil {
+			return Plan{}, ErrNoPoolRepository
+		}
+		sc, err := s.DefaultScope(ctx)
+		if err != nil {
+			return Plan{}, err
+		}
+		req.Scope, req.PoolLevel = sc, true
+	}
+	if s.Gate != nil && req.Scope.Kind != ScopePool { // a pool runner has no repository to gate
 		if err := s.Gate(ctx, req.Scope); err != nil {
 			return Plan{}, err
 		}
@@ -234,12 +270,15 @@ func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]Ad
 	if req.Kind == "ephemeral" && req.OS != "linux" {
 		return nil, refuse("machine %s: ephemeral runners run Linux containers only, not %s", m.Name, OSName(req.OS))
 	}
+	if req.Scope.Kind == ScopePool && req.Kind == "ephemeral" {
+		return nil, refuse("machine %s: ephemeral runners are made for each job by the pool and already serve every repository that uses it; add a persistent runner instead", m.Name)
+	}
 	verified := map[string]bool{}
 	for _, v := range be.Verified {
 		verified[v] = true
 	}
 	want := append([]string{"self-hosted", req.OS, m.Arch}, req.Labels...)
-	if crossesToLinuxContainers(m, req.OS) && s.PoolName != "" {
+	if (req.PoolLevel || crossesToLinuxContainers(m, req.OS)) && s.PoolName != "" {
 		// A container runner on a Windows machine takes the pool's jobs
 		// (R5.47), so it carries the pool label.
 		want = append(want, s.PoolName)
@@ -251,7 +290,11 @@ func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]Ad
 	taken := map[string]bool{}
 	var out []AddSpec
 	for i := 0; i < req.Count; i++ {
-		name, err := s.freeName(ctx, m, taken)
+		infix := ""
+		if req.Scope.Kind == ScopePool {
+			infix = "-pool"
+		}
+		name, err := s.freeName(ctx, m, taken, infix)
 		if err != nil {
 			return nil, err
 		}
@@ -340,6 +383,9 @@ func (s *Service) StartApply(ctx context.Context, planID string, approved []stri
 	}
 	if s.Gate != nil { // the setting may have been switched off since the plan was made
 		for _, a := range p.Adds {
+			if a.Scope.Kind == ScopePool {
+				continue
+			}
 			if err := s.Gate(ctx, a.Scope); err != nil {
 				return p, err
 			}
@@ -578,6 +624,9 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 	if err != nil {
 		return err
 	}
+	if a.Scope.Kind == ScopePool {
+		return s.addPoolRunner(ctx, a, pin.Version, actor)
+	}
 	if a.Scope, err = s.registrationScope(ctx, a.Scope); err != nil {
 		return fmt.Errorf("resolve scope: %w", err)
 	}
@@ -593,7 +642,7 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 	rec := Record{ID: id, Name: a.Name, MachineID: a.MachineID, OS: a.OS, Arch: a.Arch, Kind: a.Kind,
 		Backend: a.Backend, Isolation: string(backend.IsolationPersistent), Labels: a.Labels,
 		Route: RouteForLabels(s.PoolName, a.Labels), SizeClass: size, Scope: a.Scope,
-		RunnerVersion: pin.Version, State: Creating, Managed: true, CreatedAt: s.now()}
+		RunnerVersion: pin.Version, State: Creating, Managed: true, CreatedAt: s.now(), PoolRunnerID: a.PoolRunnerID}
 	if err := s.Store.InsertRunner(ctx, rec); err != nil {
 		return err
 	}
@@ -701,6 +750,9 @@ func (s *Service) BeginRemove(ctx context.Context, id string, confirm bool, acto
 	id = r.ID
 	if !r.Managed {
 		return r, nil, refuse("runner %s was not made by CRSP; replace it instead", r.Name)
+	}
+	if r.Scope.Kind == ScopePool {
+		return s.beginRemovePool(ctx, r, confirm, actor)
 	}
 	if !confirm {
 		items := []ConfirmItem{

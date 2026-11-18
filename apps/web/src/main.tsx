@@ -1,16 +1,17 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { App } from './App';
 import '@crsp/ui/ui.css';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('#root is missing from index.html');
 
+// A data router, so a screen with unsaved changes can hold a move out of it (LOOK21, `LeaveGuard`).
+const router = createBrowserRouter([{ path: '*', element: <App /> }]);
+
 createRoot(container).render(
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <RouterProvider router={router} />
   </StrictMode>,
 );

@@ -22,7 +22,7 @@ Each action has one word. The Never use column lists words that must not stand i
 | Try again | Repeat something that failed. Also asks once more for a state. | Retry, Redo, Check again, Check now, Recheck |
 | Refresh | Load the shown data again. | Reload, Update |
 | Review | Open what waits for a decision, to look it over. Also the name of every looking-over step, and of the first of the last three steps of a wizard that changes something. | Check, Confirm, Summary |
-| Hide | Stop showing something. It is kept. | Dismiss, Close |
+| Hide | Stop showing something. It is kept. Also the x on a note. | Dismiss, Close |
 | Show | Show something that was hidden. | Reveal, Unhide |
 | Open | Go to an item to see it. | View, Go to |
 | See all N | Go from a preview to the whole list. N is the count. | More, View all |
@@ -48,7 +48,8 @@ Each action has one word. The Never use column lists words that must not stand i
 | What changed | The link of the update dialog to the release page of the new version. It changes nothing. | Release notes, Changelog |
 | Quit tray | Close the tray icon only. The service keeps running. | Exit, Close |
 | Export | Save every row of a table or list as a file, in the order shown (component 29). It changes nothing. | Download, Save as |
-| Run the doctor | Start the doctor now. While it runs the button says Running the doctor. | Scan, Check, Run checks |
+| Run checks again | Start the doctor now, on the Doctor page, as its one primary in the action bar. Before the first run it says Run checks. While it runs the button says Running the doctor. | Run the doctor, Scan, Check |
+| Add channel | Open the form of a new notification channel. It changes nothing until the tab's Save. A normal button. | Add, New channel, Create |
 | Widen the range | Show a longer time range when the range shown has nothing. | Expand, Zoom |
 | Zoom in, Zoom out | Show a shorter or a longer time range on a time axis. | Narrow, Expand |
 | Show earlier | Load the rows before the last one on a time axis. It is also loaded by itself as the end nears the screen. | More, Older |
@@ -350,35 +351,38 @@ The words of the shared components (`design_system.py components`). A project ch
 | Change | File field |
 | Remove {name} | File field |
 | Choose a {pattern} file. | File field |
+| Full error | Table: the button of a failed runner's long reason |
+| Details | Table: the button of any other long text (Doctor, Jobs) |
 
 ## Pool size words
 
-The words of the Pool size wizard on a machine's page (machines R5.58). The wizard is the shared wizard (component 4); the steps follow UX-30.
+The words of the Pool size section on a machine's page (machines R5.58, LOOK22). It is a plain section of the page's one form; there is no wizard and no Save of its own (UX-71).
 
 | Where | Word |
 |---|---|
 | Section | Pool size |
-| Steps | Size, Review, Saving, Done |
-| Loading | Reading the budget of {machine} |
-| Fact names | Pool size now, Memory of the machine, Used outside the pool, Memory budget, Room for the pool, CPU budget, Decided by, Asked for |
+| Fact names | Pool size now, Room for the pool, CPU budget |
 | Not set | not set |
-| Budget not known | Budget: not known yet; Review says when it is |
-| Fields | Pool memory (help: Memory the pool may use on this machine, in GiB.), Pool CPUs (help: CPUs the pool may use on this machine.) |
-| Mistakes | The pool needs at least {n} GiB. The pool needs at least {n} CPUs. This is the size that is set now. Change it to review. |
-| Review line | The pool of {machine} changes from {size} to {size}. |
-| Fits | This size fits the budget of the machine. |
-| Does not fit | This size does not fit the budget. {reason} |
-| Nearest | The nearest sizes that fit: |
-| Cannot check | The size cannot be checked yet. {why} Try again when the agent has reported. |
-| Lower size | This lowers the pool size. Jobs that need more than the new size wait or fail to start. |
+| Budget not known | Budget: not known yet; the three choices say The budget is not known yet. |
+| Choice name | New pool size |
+| Choices | Recommended: half of the free room ({memory}, {cpus}); Recommended: three quarters of the free room ({memory}, {cpus}); Custom |
+| How computed (line under a recommended choice) | Half of the {room} free for the pool, rounded down to whole GiB. CPUs: the same share of the CPU budget ({budget}), at most one per 1.5 GiB. (Three quarters: the same with Three quarters.) |
+| Custom | Choose the memory and the CPUs yourself. Fields: Pool memory (help: Memory the pool may use on this machine, in GiB.), Pool CPUs (help: CPUs the pool may use on this machine.) |
+| Mistakes | The pool needs at least {n} GiB. The pool needs at least {n} CPUs. |
+| Reading | Reading the budget of {machine}. |
+| Check line, fits (done) | This size fits the budget of the machine. |
+| Check line, little left (needs you) | This size fits, but leaves {left} for this PC. (Shown when less than 3 GiB of the room is left.) |
+| Check line, lower size (needs you) | This lowers the pool size. Jobs that need more than the new size wait or fail to start. |
 | The tick | Yes, lower the pool size |
-| Primary | Save {memory} and {cpus} (busy word: Saving) |
-| Reasons beside the primary | Reading the budget. The size cannot be checked yet. This size does not fit. Go back and change it. Tick the box to confirm lowering the pool size. |
-| Saving line | Saving the pool size of {machine} |
-| Paused | Paused. The page closed while the size was saving. Start again to read the size that is set. |
-| Done | The pool size is {size}. |
-| Stopped | Stopped. Nothing was saved. The pool size changed to {size} while you reviewed. |
-| Failed | The pool size was not saved. {why} Try again. |
+| Check line, does not fit (problem) | This size does not fit the budget. {reason} The nearest sizes that fit: {sizes}. (memory over the room: see Too big) |
+| Too big (memory over the room) | {requested} is too much: only {room} is free for the pool right now (other programs use {used}). Use {fit memory} and {fit cpus}? |
+| Too big, button | Use {fit memory} and {fit cpus} (applies both sizes to the fields; it does not save) |
+| Too big, CPU reason | {fit cpus}: each CPU needs about 1.5 GiB. (shown when the CPUs change with the memory) |
+| Too big, room note | The room moves with what else runs on this PC. |
+| Cannot check | The size cannot be checked yet. {why} Try again when the agent has reported. |
+| Reasons beside the page's Save | Reading the budget. The size cannot be checked yet. This size does not fit. Change the pool size. Tick the box to confirm lowering the pool size. |
+| Changed while editing | The pool size changed to {size} while you edited. Nothing was saved. |
+| Not saved | The pool size was not saved. {why} Try again. |
 
 ## Extra packages words
 
@@ -474,7 +478,8 @@ The words of the Add a machine wizard (machines R5.3a, R5.4a), the runner states
 | Runner state | idle, busy |
 | Runner counts | Idle, Busy, Not ready |
 | Runner job | {repository} {job}, running {duration} |
-| Repository column and fact | Last delivery: no delivery yet, delivered, delivery failed, delivery missed, pool off; Last webhook delivery; Jobs are learned by: webhooks, polling |
+| Repository column and fact | Last delivery: no delivery yet, delivered, delivery failed, delivery missed, no webhook, pool off; Last webhook delivery; Jobs are learned by: webhooks, polling |
+| Webhook notes | The GitHub App of this controller has no webhook, so GitHub tells crsp nothing. crsp finds jobs by polling GitHub every 15 seconds, and jobs still run. Nothing needs fixing unless you want jobs to start at once. / GitHub did not tell crsp about a job; crsp found it by polling, so it ran a little late. The webhook of the GitHub App cannot reach this controller. In the GitHub App settings, check that the webhook address is public and starts with https, and look at Recent Deliveries for the red mark. |
 | Polling notice | GitHub deliveries to this repository failed {n} times in a row, so crsp now polls GitHub for its jobs. Jobs still run, but they start a little later. |
 | Polling button | Switch back to webhooks (busy word: Switching) |
 | Polling failure | Could not switch back. {reason} |
@@ -608,6 +613,8 @@ The words of the setting that lets the pool serve public repositories, and of th
 | Nothing selected | Status line of the action bar on Repositories while nothing is ticked. |
 | {n} selected | Status line of the action bar while {n} rows are ticked. |
 | Tick the repositories that should use the pool. | Reason of the disabled Use pool while nothing is ticked. |
+| Discard changes? | Title of the question when the person leaves an edit screen with unsaved changes. Body: You changed this page and did not save. If you leave now, the changes are lost. Answers: Keep editing, Discard. |
+| Changed | The mark on a field whose value differs from what is saved. |
 | Unsaved changes ({n}) | Status line of the action bar on an edit screen while {n} things differ from what is saved. |
 | Nothing has changed yet. | Reason of the disabled Save in the action bar while nothing differs from what is saved. |
 | Change a setting to save. | Reason of the disabled Save on a machine's page while nothing differs from what is saved. |
@@ -743,7 +750,7 @@ The dialog the tray opens when a newer stable release is found (tray R5.43, oper
 
 ## GitHub error words
 
-The words of the repositories page when the list is the last copy because the read from GitHub failed (github-integration R5.88 and R5.89, web-console, CRSP148). Say what GitHub really said (UX-28).
+The words of the repositories page when the list is the last copy because the read from GitHub failed (github-integration R5.89 and R5.89, web-console, CRSP148). Say what GitHub really said (UX-28).
 
 | Word | Where and meaning |
 |---|---|
@@ -852,3 +859,62 @@ The words of the small update page the tray opens (tray R5.43, web-console R5.96
 | Close | The primary on Done, and the left button after a failure. |
 | Open Updates | The left button on Done: opens Settings, Updates. |
 | The update did not finish. {reason} The running version stays. The log is {path}. Open the log folder from the tray menu. Then try again. | The failure message. |
+
+## Shared Pool and Jobs words
+
+The words of the six-item menu, Shared Pool and the Jobs sub-sections (owner decisions D24, D29, D31 to D34, LOOK31). "Runners" stays "runners" (D29).
+
+| Word | Where and meaning |
+|---|---|
+| Shared Pool | Menu area and page title: the one pool of machines and their runners. |
+| Summary, Machines, Runners, Images and caches, Size and backends | The tabs of Shared Pool. |
+| All, By repository, By machine, By runner type, By job type, Wait and duration | The tabs of Jobs. |
+| One pool across your machines. Set it up here, then choose the repositories that use it. | Lead of the Shared Pool summary. |
+| Set up the pool | Title of the first-run guide. |
+| Three steps. A step opens when the one before it is done. | Hint of the first-run guide. |
+| 1 Add a machine / 2 Set runners / 3 Choose repositories | The steps of the guide; each shows `done, {n} ...` when finished. |
+| Add a machine first. | Reason on a step or button that cannot start yet. |
+| {n} machines, {m} runners, {k} busy | The pool totals above the runner list and on the summary. |
+| Runners serve every repository that uses the pool. | The one line on Add runners, in place of the Repository question. |
+| How crsp works: the Pool has Machines, and each machine has Runners. Repositories use the pool. Start in Shared Pool. | The first-run strip on the Overview. |
+| Hide this | Button that hides the strip for good in this browser. |
+| Showing the last 100 finished jobs. | Note above the finished jobs when more exist. |
+| See all | Button that pages in the earlier finished jobs. |
+| Done, failed and the averages count the last 200 finished jobs. | Quiet line under a grouped Jobs table. |
+| not placed yet | Group name of a job that has no machine or runner yet. |
+## Runner service words
+
+The words of a runner service that did not start (runners R5.89, web-console R5.98, tray R5.44, doctor R5.45). The agent has already given the service account the right to log on as a service again and tried twice.
+
+| Where | Word |
+|---|---|
+| Banner (problem) | {runner} on {machine} did not start. {reason} |
+| Banner and Doctor action | Start. It asks that machine's agent to give the account the right again and start the service. Busy word: Starting. Disabled for a user who is not an admin, with the reason. |
+| Tray notification title | A runner did not start |
+| Tray notification text | {runner} did not start. {reason} Open the console and press Start. |
+| Doctor finding, the right is missing | The account {account} of {runner} cannot log on as a service |
+| Doctor finding, the service is stopped | The service {service} of {runner} is not running |
+| Doctor finding, fine | {account} can log on as a service and {runner} runs |
+| Doctor fix | Press Start. The agent gives the account the right to log on as a service again and starts the service on {machine}. |
+## Webhook settings words
+
+The words of Settings > Access > Webhooks and the link on the repository page (github-integration R5.51, web-console R5.99, OPS25).
+
+| Word | Where and meaning |
+|---|---|
+| Webhooks | Section title; the name of the state line. |
+| on / off / failing | Status words of the state: on, off, failing (the newest delivery failed or was missed). |
+| Real webhooks | Check box. Help: "Clear it and Save to find jobs by polling GitHub again." |
+| Public https address | Field name; help: "The address that forwards to this controller, for example https://hooks.example.com. crsp sends a signed test to it before GitHub is changed." |
+| With webhooks GitHub tells crsp about a job the moment it is queued, so the job starts at once. Without them crsp asks GitHub for new jobs every 15 seconds, so a job can start up to 15 seconds late. Webhooks need an address GitHub can reach: a tunnel or a reverse proxy with a real certificate. A LAN address or a self-signed certificate does not work. | The explanation at the top of the section. |
+| Testing the address | Busy word of Save while the address is tested; Turning off is the busy word when the box was cleared. |
+| Webhooks are on. GitHub now tells crsp about jobs at once. | Done line after Save. |
+| Webhooks are off. crsp finds jobs by polling GitHub again. | Done line after turning off. |
+| Could not save the webhook. {reason} | Problem line; the reason is the controller's own plain words. |
+| The address must start with https://. GitHub does not send webhooks to plain http. | Mistake in the list. |
+| {host} is a local address. GitHub can only reach a public address, such as a tunnel or a reverse proxy with a real certificate. | Mistake in the list. |
+| Write the public address that forwards to this controller. | Mistake when the field is empty. |
+| This is not a web address. Write it like https://hooks.example.com. | Mistake. |
+| Write the address without a user name, a query or a #fragment. | Mistake. |
+| The App does not listen for workflow jobs yet. On GitHub, open the App's permissions page and under Subscribe to events tick Workflow job, then save. Jobs are learned by webhooks once you have done that. | Guided step; its button is Open the App on GitHub. |
+| Turn on webhooks | Link at the end of the repository note "no webhook"; goes to Settings > Access > Webhooks. |

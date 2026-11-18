@@ -186,7 +186,11 @@ export function GithubGrant({
           {labels.failed} {error}
         </Message>
       );
-    return <Message tone="note">{labels.checking}</Message>;
+    return (
+      <Message tone="note" dismissible={false}>
+        {labels.checking}
+      </Message>
+    );
   }
   const all = needed ?? state.missing;
   if (state.ready)

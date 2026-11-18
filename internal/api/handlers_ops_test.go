@@ -28,13 +28,11 @@ type opsEnv struct {
 func newOpsEnv(t *testing.T) *opsEnv {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
 	dir := t.TempDir()
 	db, err := backup.OpenDB(ctx, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = db.Close() })
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	var mux *http.ServeMux
 	ops := backup.Start(ctx, backup.StartOptions{
@@ -45,6 +43,10 @@ func newOpsEnv(t *testing.T) *opsEnv {
 			return m
 		},
 	})
+	// Cleanups run last-in first-out, after TempDir was made: stop the background
+	// jobs and wait for them, then close the database, then TempDir is removed.
+	t.Cleanup(func() { _ = db.Close() })
+	t.Cleanup(func() { cancel(); ops.Wait() })
 	mux = http.NewServeMux()
 	Register(mux, Options{Version: "test", DB: db, Logger: log, Settings: ops.Settings, Audit: ops.Audit, Backup: ops.Backup, Authn: asRole(auth.RoleOwner),
 		Config: configexport.Source{Version: "test", Settings: ops.Settings, Secrets: secretstest.New(),

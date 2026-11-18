@@ -51,6 +51,48 @@ func (e AddUserRequestRole) Valid() bool {
 	}
 }
 
+// Defines values for AppWebhookLastResult.
+const (
+	AppWebhookLastResultFailed AppWebhookLastResult = "failed"
+	AppWebhookLastResultMissed AppWebhookLastResult = "missed"
+	AppWebhookLastResultOk     AppWebhookLastResult = "ok"
+)
+
+// Valid indicates whether the value is a known member of the AppWebhookLastResult enum.
+func (e AppWebhookLastResult) Valid() bool {
+	switch e {
+	case AppWebhookLastResultFailed:
+		return true
+	case AppWebhookLastResultMissed:
+		return true
+	case AppWebhookLastResultOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AppWebhookState.
+const (
+	AppWebhookStateFailing AppWebhookState = "failing"
+	AppWebhookStateOff     AppWebhookState = "off"
+	AppWebhookStateOn      AppWebhookState = "on"
+)
+
+// Valid indicates whether the value is a known member of the AppWebhookState enum.
+func (e AppWebhookState) Valid() bool {
+	switch e {
+	case AppWebhookStateFailing:
+		return true
+	case AppWebhookStateOff:
+		return true
+	case AppWebhookStateOn:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Arch.
 const (
 	Arm64 Arch = "arm64"
@@ -911,16 +953,16 @@ func (e MachineState) Valid() bool {
 
 // Defines values for NotificationChannelScope.
 const (
-	Personal NotificationChannelScope = "personal"
-	Pool     NotificationChannelScope = "pool"
+	NotificationChannelScopePersonal NotificationChannelScope = "personal"
+	NotificationChannelScopePool     NotificationChannelScope = "pool"
 )
 
 // Valid indicates whether the value is a known member of the NotificationChannelScope enum.
 func (e NotificationChannelScope) Valid() bool {
 	switch e {
-	case Personal:
+	case NotificationChannelScopePersonal:
 		return true
-	case Pool:
+	case NotificationChannelScopePool:
 		return true
 	default:
 		return false
@@ -1521,6 +1563,7 @@ func (e RunnerKind) Valid() bool {
 // Defines values for RunnerScopeKind.
 const (
 	RunnerScopeKindOrganization RunnerScopeKind = "organization"
+	RunnerScopeKindPool         RunnerScopeKind = "pool"
 	RunnerScopeKindRepository   RunnerScopeKind = "repository"
 )
 
@@ -1528,6 +1571,8 @@ const (
 func (e RunnerScopeKind) Valid() bool {
 	switch e {
 	case RunnerScopeKindOrganization:
+		return true
+	case RunnerScopeKindPool:
 		return true
 	case RunnerScopeKindRepository:
 		return true
@@ -2237,6 +2282,32 @@ type AppManifestForm struct {
 	Manifest map[string]interface{} `json:"manifest"`
 	PostUrl  string                 `json:"post_url"`
 	State    string                 `json:"state"`
+}
+
+// AppWebhook The webhook of the GitHub App as the console shows it (github-integration R5.51).
+type AppWebhook struct {
+	// Address The public https address that forwards to the controller. Absent when off.
+	Address *string `json:"address,omitempty"`
+
+	// EventsLink The App's permissions page at GitHub, set when the App does not subscribe to workflow_job.
+	EventsLink     *string               `json:"events_link,omitempty"`
+	LastDeliveryAt *time.Time            `json:"last_delivery_at,omitempty"`
+	LastResult     *AppWebhookLastResult `json:"last_result,omitempty"`
+
+	// State Off means jobs are learned by polling. Failing means the newest delivery failed or was missed.
+	State AppWebhookState `json:"state"`
+}
+
+// AppWebhookLastResult defines model for AppWebhook.LastResult.
+type AppWebhookLastResult string
+
+// AppWebhookState Off means jobs are learned by polling. Failing means the newest delivery failed or was missed.
+type AppWebhookState string
+
+// AppWebhookUpdate defines model for AppWebhookUpdate.
+type AppWebhookUpdate struct {
+	// Address A public https address GitHub can reach, such as https://hooks.example.com.
+	Address string `json:"address"`
 }
 
 // ApplyPlanRequest defines model for ApplyPlanRequest.
@@ -3015,8 +3086,11 @@ type Machine struct {
 	Policy *MachinePolicy `json:"policy,omitempty"`
 
 	// Recovery Present only when the agent of the machine needs recovery (operations R5.44, web-console R5.33).
-	Recovery    *MachineRecovery `json:"recovery,omitempty"`
-	RunningJobs *[]Job           `json:"running_jobs,omitempty"`
+	Recovery *MachineRecovery `json:"recovery,omitempty"`
+
+	// RunnerProblems Runner services on this machine that did not start after the agent gave their account the right to log on as a service again and tried once more (runners R5.89). Empty or absent while every runner service runs. The console shows a Problem banner for each until the service runs.
+	RunnerProblems *[]RunnerServiceProblem `json:"runner_problems,omitempty"`
+	RunningJobs    *[]Job                  `json:"running_jobs,omitempty"`
 
 	// Settings machines R5.22, scheduling R5.1.
 	Settings  MachineSettings `json:"settings"`
@@ -3490,12 +3564,14 @@ type PlanRepositoryChangesRequestChangesPool string
 
 // PlanRunnersRequest defines model for PlanRunnersRequest.
 type PlanRunnersRequest struct {
-	Count     int         `json:"count"`
-	Kind      RunnerKind  `json:"kind"`
-	Labels    *[]string   `json:"labels,omitempty"`
-	MachineId string      `json:"machine_id"`
-	Os        OS          `json:"os"`
-	Scope     RunnerScope `json:"scope"`
+	Count     int        `json:"count"`
+	Kind      RunnerKind `json:"kind"`
+	Labels    *[]string  `json:"labels,omitempty"`
+	MachineId string     `json:"machine_id"`
+	Os        OS         `json:"os"`
+
+	// Scope Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.88).
+	Scope *RunnerScope `json:"scope,omitempty"`
 }
 
 // PlanStep defines model for PlanStep.
@@ -3553,12 +3629,18 @@ type PoolSizeCheck struct {
 	Ok bool `json:"ok"`
 
 	// Reason Why it is refused, naming the budget that is short.
-	Reason         *string             `json:"reason,omitempty"`
-	RoomGib        *float64            `json:"room_gib,omitempty"`
-	Short          *PoolSizeCheckShort `json:"short,omitempty"`
-	TotalGib       *float64            `json:"total_gib,omitempty"`
-	UsedOutsideGib *float64            `json:"used_outside_gib,omitempty"`
-	Why            *string             `json:"why,omitempty"`
+	Reason *string `json:"reason,omitempty"`
+
+	// RecommendedHalf A recommended pool size. Memory is a share of the room rounded down to whole GiB, at least the floor; CPUs are the same share of the CPU budget, at most memory / 1.5, at least the floor.
+	RecommendedHalf *PoolSizeRecommended `json:"recommended_half,omitempty"`
+
+	// RecommendedThreeQuarters A recommended pool size. Memory is a share of the room rounded down to whole GiB, at least the floor; CPUs are the same share of the CPU budget, at most memory / 1.5, at least the floor.
+	RecommendedThreeQuarters *PoolSizeRecommended `json:"recommended_three_quarters,omitempty"`
+	RoomGib                  *float64             `json:"room_gib,omitempty"`
+	Short                    *PoolSizeCheckShort  `json:"short,omitempty"`
+	TotalGib                 *float64             `json:"total_gib,omitempty"`
+	UsedOutsideGib           *float64             `json:"used_outside_gib,omitempty"`
+	Why                      *string              `json:"why,omitempty"`
 }
 
 // PoolSizeCheckShort defines model for PoolSizeCheck.Short.
@@ -3568,6 +3650,12 @@ type PoolSizeCheckShort string
 type PoolSizeCheckRequest struct {
 	PoolCpus      int     `json:"pool_cpus"`
 	PoolMemoryGib float64 `json:"pool_memory_gib"`
+}
+
+// PoolSizeRecommended A recommended pool size. Memory is a share of the room rounded down to whole GiB, at least the floor; CPUs are the same share of the CPU budget, at most memory / 1.5, at least the floor.
+type PoolSizeRecommended struct {
+	Cpus      int `json:"cpus"`
+	MemoryGib int `json:"memory_gib"`
 }
 
 // Preferences defines model for Preferences.
@@ -3877,9 +3965,15 @@ type Runner struct {
 	Os      OS     `json:"os"`
 
 	// Reason Why the runner is in a state that is not idle or busy (UX-19). Absent when there is nothing to say.
-	Reason        *string     `json:"reason,omitempty"`
+	Reason *string `json:"reason,omitempty"`
+
+	// Registrations Pool runner only: how many hidden GitHub registrations it holds, one for each repository that uses the pool. Absent on other runners.
+	Registrations *int        `json:"registrations,omitempty"`
 	RunnerVersion *string     `json:"runner_version,omitempty"`
 	Scope         RunnerScope `json:"scope"`
+
+	// Serving Pool runner only: the repository (owner/name) of the job it runs now. Absent when it is idle (runners R5.88).
+	Serving *string `json:"serving,omitempty"`
 
 	// State What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
 	State RunnerState `json:"state"`
@@ -3901,14 +3995,33 @@ type RunnerList struct {
 
 // RunnerScope defines model for RunnerScope.
 type RunnerScope struct {
+	// Kind `pool` is a pool runner: a machine, a system and labels with no repository. Its GitHub registrations are hidden, one for each repository that uses the pool (runners R5.88).
 	Kind         RunnerScopeKind `json:"kind"`
 	Organization *string         `json:"organization,omitempty"`
 	RepositoryId *int64          `json:"repository_id,omitempty"`
 	RunnerGroup  *string         `json:"runner_group,omitempty"`
 }
 
-// RunnerScopeKind defines model for RunnerScope.Kind.
+// RunnerScopeKind `pool` is a pool runner: a machine, a system and labels with no repository. Its GitHub registrations are hidden, one for each repository that uses the pool (runners R5.88).
 type RunnerScopeKind string
+
+// RunnerServiceProblem defines model for RunnerServiceProblem.
+type RunnerServiceProblem struct {
+	// Account The account the service runs as, for example `.\crsp-box-1`.
+	Account string `json:"account"`
+
+	// LogonRight True when the account holds the right to log on as a service now, so the reason is something else.
+	LogonRight *bool `json:"logon_right,omitempty"`
+
+	// Reason Why the service did not start, as Windows said it, redacted.
+	Reason string `json:"reason"`
+
+	// Runner The runner's name.
+	Runner string `json:"runner"`
+
+	// Service The Windows service name.
+	Service string `json:"service"`
+}
 
 // RunnerState What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
 type RunnerState string
@@ -4326,6 +4439,9 @@ type WebhookHealth struct {
 
 	// PollingSince Set in polling mode.
 	PollingSince *time.Time `json:"polling_since,omitempty"`
+
+	// WebhooksOff True when the GitHub App has no webhook, so jobs are learned by polling only and no delivery can be missed (OPS22). Absent when webhooks are on.
+	WebhooksOff *bool `json:"webhooks_off,omitempty"`
 }
 
 // WebhookHealthLastResult defines model for WebhookHealth.LastResult.
@@ -4661,6 +4777,9 @@ type CreateAccessCredentialJSONRequestBody = AccessCredentialCreate
 // ReplaceAppPrivateKeyJSONRequestBody defines body for ReplaceAppPrivateKey for application/json ContentType.
 type ReplaceAppPrivateKeyJSONRequestBody = AppKeyUpload
 
+// SetAppWebhookJSONRequestBody defines body for SetAppWebhook for application/json ContentType.
+type SetAppWebhookJSONRequestBody = AppWebhookUpdate
+
 // ExchangeCliTokenJSONRequestBody defines body for ExchangeCliToken for application/json ContentType.
 type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
 
@@ -4792,6 +4911,15 @@ type ServerInterface interface {
 	// ReplaceAppPrivateKey Replace the GitHub App private key
 	// (PUT /api/v1/app/private-key)
 	ReplaceAppPrivateKey(w http.ResponseWriter, r *http.Request)
+	// ClearAppWebhook Turn real GitHub webhooks off
+	// (DELETE /api/v1/app/webhook)
+	ClearAppWebhook(w http.ResponseWriter, r *http.Request)
+	// GetAppWebhook Read the GitHub App webhook state
+	// (GET /api/v1/app/webhook)
+	GetAppWebhook(w http.ResponseWriter, r *http.Request)
+	// SetAppWebhook Turn real GitHub webhooks on
+	// (PUT /api/v1/app/webhook)
+	SetAppWebhook(w http.ResponseWriter, r *http.Request)
 	// ListAuditEvents The audit log, newest first
 	// (GET /api/v1/audit)
 	ListAuditEvents(w http.ResponseWriter, r *http.Request, params ListAuditEventsParams)
@@ -5243,6 +5371,48 @@ func (siw *ServerInterfaceWrapper) ReplaceAppPrivateKey(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ReplaceAppPrivateKey(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ClearAppWebhook operation middleware
+func (siw *ServerInterfaceWrapper) ClearAppWebhook(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClearAppWebhook(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAppWebhook operation middleware
+func (siw *ServerInterfaceWrapper) GetAppWebhook(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAppWebhook(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetAppWebhook operation middleware
+func (siw *ServerInterfaceWrapper) SetAppWebhook(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetAppWebhook(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -9037,6 +9207,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/me/preferences", wrapper.GetPreferences)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/me/preferences", wrapper.UpdatePreferences)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/app/private-key", wrapper.ReplaceAppPrivateKey)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/app/webhook", wrapper.ClearAppWebhook)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/app/webhook", wrapper.GetAppWebhook)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/app/webhook", wrapper.SetAppWebhook)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/users", wrapper.ListUsers)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/users", wrapper.AddUser)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/users/{userId}", wrapper.RemoveUser)
@@ -9311,6 +9484,121 @@ type ReplaceAppPrivateKeydefaultJSONResponse struct {
 }
 
 func (response ReplaceAppPrivateKeydefaultJSONResponse) VisitReplaceAppPrivateKeyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ClearAppWebhookRequestObject struct {
+}
+
+type ClearAppWebhookResponseObject interface {
+	VisitClearAppWebhookResponse(w http.ResponseWriter) error
+}
+
+type ClearAppWebhook200JSONResponse AppWebhook
+
+func (response ClearAppWebhook200JSONResponse) VisitClearAppWebhookResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ClearAppWebhookdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ClearAppWebhookdefaultJSONResponse) VisitClearAppWebhookResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAppWebhookRequestObject struct {
+}
+
+type GetAppWebhookResponseObject interface {
+	VisitGetAppWebhookResponse(w http.ResponseWriter) error
+}
+
+type GetAppWebhook200JSONResponse AppWebhook
+
+func (response GetAppWebhook200JSONResponse) VisitGetAppWebhookResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAppWebhookdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetAppWebhookdefaultJSONResponse) VisitGetAppWebhookResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetAppWebhookRequestObject struct {
+	Body *SetAppWebhookJSONRequestBody
+}
+
+type SetAppWebhookResponseObject interface {
+	VisitSetAppWebhookResponse(w http.ResponseWriter) error
+}
+
+type SetAppWebhook200JSONResponse AppWebhook
+
+func (response SetAppWebhook200JSONResponse) VisitSetAppWebhookResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetAppWebhookdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response SetAppWebhookdefaultJSONResponse) VisitSetAppWebhookResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -14399,6 +14687,15 @@ type StrictServerInterface interface {
 	// ReplaceAppPrivateKey Replace the GitHub App private key
 	// (PUT /api/v1/app/private-key)
 	ReplaceAppPrivateKey(ctx context.Context, request ReplaceAppPrivateKeyRequestObject) (ReplaceAppPrivateKeyResponseObject, error)
+	// ClearAppWebhook Turn real GitHub webhooks off
+	// (DELETE /api/v1/app/webhook)
+	ClearAppWebhook(ctx context.Context, request ClearAppWebhookRequestObject) (ClearAppWebhookResponseObject, error)
+	// GetAppWebhook Read the GitHub App webhook state
+	// (GET /api/v1/app/webhook)
+	GetAppWebhook(ctx context.Context, request GetAppWebhookRequestObject) (GetAppWebhookResponseObject, error)
+	// SetAppWebhook Turn real GitHub webhooks on
+	// (PUT /api/v1/app/webhook)
+	SetAppWebhook(ctx context.Context, request SetAppWebhookRequestObject) (SetAppWebhookResponseObject, error)
 	// ListAuditEvents The audit log, newest first
 	// (GET /api/v1/audit)
 	ListAuditEvents(ctx context.Context, request ListAuditEventsRequestObject) (ListAuditEventsResponseObject, error)
@@ -14926,6 +15223,85 @@ func (sh *strictHandler) ReplaceAppPrivateKey(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ReplaceAppPrivateKeyResponseObject); ok {
 		if err := validResponse.VisitReplaceAppPrivateKeyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ClearAppWebhook operation middleware
+func (sh *strictHandler) ClearAppWebhook(w http.ResponseWriter, r *http.Request) {
+	var request ClearAppWebhookRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ClearAppWebhook(ctx, request.(ClearAppWebhookRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ClearAppWebhook")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ClearAppWebhookResponseObject); ok {
+		if err := validResponse.VisitClearAppWebhookResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetAppWebhook operation middleware
+func (sh *strictHandler) GetAppWebhook(w http.ResponseWriter, r *http.Request) {
+	var request GetAppWebhookRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAppWebhook(ctx, request.(GetAppWebhookRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAppWebhook")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAppWebhookResponseObject); ok {
+		if err := validResponse.VisitGetAppWebhookResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetAppWebhook operation middleware
+func (sh *strictHandler) SetAppWebhook(w http.ResponseWriter, r *http.Request) {
+	var request SetAppWebhookRequestObject
+
+	var body SetAppWebhookJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetAppWebhook(ctx, request.(SetAppWebhookRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetAppWebhook")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetAppWebhookResponseObject); ok {
+		if err := validResponse.VisitSetAppWebhookResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -47,7 +47,7 @@ test('Add a machine: Review, Joining with a one-time code, then Done with the ma
       joined ? join('joined', { machine_id: 'm1' }) : join('waiting'),
     );
   await mock.install(page);
-  await page.goto('/machines/add');
+  await page.goto('/pool/machines/add');
   await expect(
     page.getByRole('heading', { level: 1, name: 'Add a machine' }),
   ).toBeVisible();
@@ -92,7 +92,7 @@ test('Add a machine: Stop withdraws the code and the wizard still ends at Done',
     .on('GET', '/api/v1/join-codes/:id', join('waiting'))
     .on('DELETE', '/api/v1/join-codes/:id', undefined);
   await mock.install(page);
-  await page.goto('/machines/add');
+  await page.goto('/pool/machines/add');
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('button', { name: 'Join a machine' }).click();
   await page.getByRole('button', { name: 'Stop' }).click();
@@ -165,7 +165,7 @@ test('Stop new jobs asks first, names the running jobs, and stops new jobs on ye
     waiting_for: [],
   });
   await mock.install(page);
-  await page.goto('/machines/m1');
+  await page.goto('/pool/machines/m1');
   await page.getByRole('button', { name: 'Stop new jobs', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Stop new jobs on build-1?' });
   await expect(dialog).toContainText('octo/app e2e');
@@ -187,7 +187,7 @@ test('Agent recovery: the state is shown, Recover is locked while it runs, then 
       return undefined;
     });
   await mock.install(page);
-  await page.goto('/machines');
+  await page.goto('/pool/machines');
   await expect(page.getByRole('row', { name: /build-1/ })).toContainText(
     'needs recovery',
   );
@@ -206,7 +206,7 @@ test('Agent recovery: the state is shown, Recover is locked while it runs, then 
 test('Escape closes the question and nothing changes (UX-46)', async ({ page }) => {
   const mock = signedIn();
   await mock.install(page);
-  await page.goto('/machines/m1');
+  await page.goto('/pool/machines/m1');
   await page.getByRole('button', { name: 'Remove' }).click();
   await expect(page.getByRole('dialog', { name: 'Remove build-1?' })).toBeVisible();
   await page.keyboard.press('Escape');
@@ -237,7 +237,7 @@ test('Delete runners names each runner and its job, then deletes with the yes', 
     })
     .on('DELETE', '/api/v1/runners/:id', runner());
   await mock.install(page);
-  await page.goto('/runners');
+  await page.goto('/pool/runners');
   await page.getByRole('checkbox', { name: 'Select crsp-linux-1' }).check();
   await page.getByRole('button', { name: 'Delete 1 runner' }).click();
   const dialog = page.getByRole('dialog', { name: 'Delete these runners?' });
@@ -249,7 +249,7 @@ test('Delete runners names each runner and its job, then deletes with the yes', 
 
 test('Runners show their isolation in words', async ({ page }) => {
   await signedIn().install(page);
-  await page.goto('/runners');
+  await page.goto('/pool/runners');
   await expect(page.getByText('persistent, state kept between jobs')).toBeVisible();
 });
 
@@ -263,7 +263,7 @@ test('The owner adds a user', async ({ page }) => {
   await mock.install(page);
   await page.goto('/settings/users');
   await page.getByRole('textbox', { name: 'GitHub login' }).fill('bob');
-  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect.poll(() => mock.count('POST', '/api/v1/users')).toBe(1);
 });
 
@@ -293,7 +293,7 @@ test('When the session ends the dialog shows over the page and the page stays', 
     failure(401, 'session_expired', 'The session ended.'),
   );
   await mock.install(page);
-  await page.goto('/machines');
+  await page.goto('/pool/machines');
   const dialog = page.getByRole('dialog', { name: 'Session ended' });
   await expect(dialog).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Machines' })).toBeVisible();
@@ -309,12 +309,13 @@ test('Images and caches opens from the menu and says that there are no images ye
   const mock = signedIn();
   await mock.install(page);
   await page.goto('/');
-  await page.getByRole('link', { name: 'Images and caches' }).click();
+  await page.getByRole('link', { name: 'Shared Pool' }).click();
+  await page.getByRole('tab', { name: 'Images and caches', exact: true }).click();
   await expect(
     page.getByRole('heading', { level: 1, name: 'Images and caches' }),
   ).toBeVisible();
   await expect(page.getByText(/Each machine has one Linux image\./)).toBeVisible();
-  await page.getByRole('tab', { name: 'Caches' }).click();
+  await page.getByRole('tab', { name: 'Caches', exact: true }).click();
   const card = page.getByRole('region', { name: 'Tool cache of crsp-linux-1' });
   await expect(card).toContainText('3.2 GB of 10.0 GB (32%)');
   await expect(card).toContainText('never');
@@ -338,7 +339,7 @@ test('Wipe a cache asks first, names the cache, its size and the job, and wipes 
       return cache({ state: 'wiping', waiting_for: ['octo/app e2e'] });
     });
   await mock.install(page);
-  await page.goto('/images?tab=caches');
+  await page.goto('/pool/images?tab=caches');
   await page.getByRole('button', { name: 'Wipe', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Wipe Tool cache of crsp-linux-1?' });
   await expect(dialog).toContainText('Tool cache of crsp-linux-1, 3.2 GB');

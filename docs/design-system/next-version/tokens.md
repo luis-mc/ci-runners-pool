@@ -265,7 +265,7 @@ Each role names its weight. The ceiling is the heaviest weight the role may use.
 | `--ds-space-3` | `12px` | gap between related items |
 | `--ds-space-4` | `16px` | default gap, page gutter on a phone |
 | `--ds-space-5` | `24px` | gap between cards |
-| `--ds-space-6` | `32px` | gap between sections |
+| `--ds-space-6` | `32px` | gap between sections (`Stack gap="section"`, the sections of a Settings tab) |
 | `--ds-space-7` | `48px` | page padding on wide screens |
 | `--ds-target-min` | `44px` | smallest touch target (UX-16) |
 

@@ -1,45 +1,4 @@
 {
   "comment": "The known breaches of the action-bar guard (action-bar.test.ts, UX-71). A RATCHET: the list only shrinks. Each entry: file, kind (outside: a primary button outside <ActionBar primary={...}>; many: more than one primary in the bar) and count. Remove an entry (or lower its count) when the screen uses the bar; the guard fails if a listed breach is gone but still listed, and for any breach not listed. Never add an entry or raise a count.",
-  "entries": [
-    {
-      "file": "apps/web/src/auth/SignIn.tsx",
-      "kind": "outside",
-      "count": 2
-    },
-    {
-      "file": "apps/web/src/screens/jobs/Jobs.tsx",
-      "kind": "outside",
-      "count": 3
-    },
-    {
-      "file": "apps/web/src/screens/settings/AccessForCi.tsx",
-      "kind": "outside",
-      "count": 2
-    },
-    {
-      "file": "apps/web/src/screens/settings/ListenAddress.tsx",
-      "kind": "outside",
-      "count": 1
-    },
-    {
-      "file": "apps/web/src/screens/settings/Notifications.tsx",
-      "kind": "outside",
-      "count": 2
-    },
-    {
-      "file": "apps/web/src/screens/settings/Settings.tsx",
-      "kind": "outside",
-      "count": 2
-    },
-    {
-      "file": "apps/web/src/screens/settings/Updates.tsx",
-      "kind": "outside",
-      "count": 1
-    },
-    {
-      "file": "apps/web/src/screens/setup/Setup.tsx",
-      "kind": "outside",
-      "count": 2
-    }
-  ]
+  "entries": []
 }

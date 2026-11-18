@@ -4,6 +4,7 @@ import { NumberKeypad } from '../pickers/NumberKeypad';
 import { commitValue } from '../pickers/number-keypad-logic';
 import { Button } from './Button';
 import { Dialog } from './Dialog';
+import { ChangedMark } from './Fields';
 
 export function SearchBar({
   value,
@@ -213,6 +214,7 @@ export function NumberField({
   onChange,
   help,
   error,
+  changed,
 }: {
   label: string;
   value: number;
@@ -224,6 +226,8 @@ export function NumberField({
   onChange: (value: number) => void;
   help?: string | undefined;
   error?: string | undefined;
+  /** The value differs from what is saved: the field is marked "Changed" (LOOK21). */
+  changed?: boolean | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const [buffer, setBuffer] = useState(String(value));
@@ -237,10 +241,14 @@ export function NumberField({
       className="ds-field"
       data-width="short"
       data-invalid={Boolean(error) || undefined}
+      data-changed={changed || undefined}
     >
-      <span className="ds-field__label" id={`${id}-l`}>
-        {label}
-      </span>
+      <div className="ds-field__head">
+        <span className="ds-field__label" id={`${id}-l`}>
+          {label}
+        </span>
+        {changed ? <ChangedMark /> : null}
+      </div>
       {help ? <p className="ds-field__help">{help}</p> : null}
       {error ? <p className="ds-field__error">{error}</p> : null}
       <button

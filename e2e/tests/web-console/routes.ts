@@ -49,6 +49,8 @@ export function parseRoutes(source: string): ConsoleRoute[] {
     const path = /\bpath="([^"]*)"/.exec(tag)?.[1];
     const isIndex = /\bindex\b/.test(tag.replace(/element=\{[\s\S]*\}/, ''));
     const segment = path ?? '';
+    // A route whose path is a computed value (the moved-address redirects in App.tsx) is a redirect, not a screen.
+    if (selfClosing && path === undefined && /\bpath=\{/.test(tag)) continue;
     if (!selfClosing) {
       stack.push(segment);
       continue;

@@ -121,11 +121,13 @@ export function HostedFields({
   onChange: (next: HostedState) => void;
 }) {
   const isPublic = r.visibility === 'public';
+  const start = hostedStart(r);
   return (
     <Stack>
       <ChoiceField
         label="When no crsp machine can take these jobs"
         value={value.mode}
+        changed={value.mode !== start.mode}
         onChange={(v) => onChange({ ...value, mode: v === HOSTED ? HOSTED : WAIT })}
         choices={[
           { value: WAIT, label: 'Wait for a crsp machine' },
@@ -144,6 +146,7 @@ export function HostedFields({
           <NumberField
             label="Monthly cap of hosted minutes"
             value={value.cap}
+            changed={value.cap !== start.cap}
             min={0}
             onChange={(v) => onChange({ ...value, cap: v })}
             help="0 means no cap. Once the cap is reached this month, jobs wait again."
@@ -154,6 +157,7 @@ export function HostedFields({
               label={`Hosted label for ${OS_NAME[os]}`}
               optional
               value={value.labels[os]}
+              changed={value.labels[os] !== start.labels[os]}
               onChange={(v) =>
                 onChange({ ...value, labels: { ...value.labels, [os]: v } })
               }

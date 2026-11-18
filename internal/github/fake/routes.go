@@ -48,7 +48,20 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request) {
 		if s.appPerms != nil {
 			app["permissions"] = s.appPerms
 		}
+		if s.AppEvents != nil {
+			app["events"] = s.AppEvents
+		}
 		writeJSON(w, 200, app)
+	case r.Method == "PATCH" && p == "/app/hook/config":
+		if !s.checkJWT(bearer(r)) {
+			unauthorized(w)
+			return
+		}
+		in := map[string]string{}
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		s.Hook = in
+		s.HookPatches++
+		writeJSON(w, 200, map[string]any{"url": in["url"], "content_type": in["content_type"], "insecure_ssl": in["insecure_ssl"]})
 	case r.Method == "GET" && p == "/app/hook/deliveries":
 		if !s.checkJWT(bearer(r)) {
 			unauthorized(w)

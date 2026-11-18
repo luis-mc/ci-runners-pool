@@ -103,12 +103,10 @@ describe('Repositories: inactive types are not listed', () => {
     expect(screen.queryByRole('link', { name: 'site' })).toBeNull();
   });
 
-  it('Change active types opens the setting', async () => {
+  it('the note has List them too and no Change active types link', async () => {
     renderApp(app(), '/repositories');
-    fireEvent.click(await screen.findByRole('link', { name: 'Change active types' }));
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Settings' }),
-    ).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'List them too' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Change active types' })).toBeNull();
   });
 
   it('shows no note and lists everything when public repositories are on', async () => {

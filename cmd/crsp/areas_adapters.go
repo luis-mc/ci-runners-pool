@@ -362,13 +362,18 @@ func (f doctorFleet) Runners(ctx context.Context) ([]doctor.Runner, error) {
 		return nil, err
 	}
 	names := map[string]string{}
+	services := map[string][]machines.RunnerService{}
 	if views, err := f.machines.List(ctx); err == nil {
 		for _, v := range views {
 			names[v.Machine.ID] = v.Machine.Name
+			services[v.Machine.ID] = v.RunnerServices
 		}
 	}
 	out := make([]doctor.Runner, 0, len(rs))
 	for _, r := range rs {
+		if runners.IsPoolRunner(r) {
+			continue // a pool runner has no registration; its hidden registrations are listed
+		}
 		dr := doctor.Runner{
 			ID: r.ID, Name: r.Name, MachineID: r.MachineID, MachineName: names[r.MachineID], OS: r.OS, Kind: r.Kind,
 			Labels: r.Labels, GitHubRunnerID: r.GitHubRunnerID, ServiceName: r.ServiceName, FolderReadable: true,
@@ -384,9 +389,22 @@ func (f doctorFleet) Runners(ctx context.Context) ([]doctor.Runner, error) {
 				dr.Scope = github.RunnerScope{Owner: repo.Owner, Repo: repo.Name}
 			}
 		}
+		dr.Logon = logonProbe(services[r.MachineID], r)
 		out = append(out, dr)
 	}
 	return out, nil
+}
+
+// logonProbe is what the machine's agent reported about the runner's service
+// (runners R5.89); nil when it reported none for this runner.
+func logonProbe(svcs []machines.RunnerService, r runners.Record) *doctor.LogonProbe {
+	for _, s := range svcs {
+		if (r.ServiceName != "" && s.Service == r.ServiceName) || s.Runner == r.Name {
+			return &doctor.LogonProbe{Service: s.Service, Account: s.Account, Known: s.LogonKnown, Held: s.LogonHeld,
+				Running: s.Running, Problem: s.Problem}
+		}
+	}
+	return nil
 }
 
 // Services needs a machine's agent to list its OS services; the agent link does
@@ -441,6 +459,23 @@ func (p lightPlacer) LightHosts(ctx context.Context, os string) ([]runners.Light
 		out = append(out, runners.LightHost{MachineID: m.ID, LightSlots: v.Settings.LightSlots})
 	}
 	return out, nil
+}
+
+// poolRepos lists the repositories whose pool is on, with the scope their
+// runners register in.
+func poolRepos(store repos.Store) func(context.Context) ([]runners.PoolRepo, error) {
+	return func(ctx context.Context) ([]runners.PoolRepo, error) {
+		on := true
+		rs, err := store.ListRepositories(ctx, repos.ListFilter{Pool: &on})
+		if err != nil {
+			return nil, err
+		}
+		out := make([]runners.PoolRepo, 0, len(rs))
+		for _, r := range rs {
+			out = append(out, runners.PoolRepo{ID: r.ID, FullName: r.FullName, Scope: runners.Scope{Kind: "repository", RepositoryID: r.ID}})
+		}
+		return out, nil
+	}
 }
 
 // lightKeeper gives the repositories service the light runners of the runners service.
