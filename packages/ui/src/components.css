@@ -2016,6 +2016,10 @@ legend > .ds-field__changed {
   .ds-waterfall__axis-gap {
     display: none;
   }
+  /* A narrow chart keeps the first and the last time only, so the labels never run into each other. */
+  .ds-waterfall__tick:not([data-end]):not(:first-child) {
+    display: none;
+  }
 }
 
 .ds-jobgraph {
@@ -2371,4 +2375,9 @@ button.ds-jobgraph__node:hover {
 .ds-short {
   text-decoration: underline dotted;
   text-underline-offset: 0.2em;
+}
+
+/* The button that opens a row in place (component 15 `detail`) stays on one line. */
+.ds-table td.ds-table__detail {
+  white-space: nowrap;
 }

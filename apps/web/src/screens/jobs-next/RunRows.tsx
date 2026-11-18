@@ -21,13 +21,13 @@ import { etaOne, startRange, sourceWords, taskIdOf, waitWords } from './words';
 
 export type RunKind = 'queue' | 'running' | 'done';
 
-export function BranchWords({ branch, worktree }: { branch: string; worktree?: string }) {
+/** The branch cut in the middle; the task id is added only when the cut hides it. Worktree: see the detail. */
+export function BranchWords({ branch, max = 16 }: { branch: string; max?: number }) {
   const task = taskIdOf(branch);
   return (
     <>
-      <ShortText text={branch} max={20} />
-      {task ? ` (task ${task})` : ''}
-      {worktree ? ` (worktree ${worktree})` : ''}
+      <ShortText text={branch} max={max} />
+      {task && branch.length > max ? ` (task ${task})` : ''}
     </>
   );
 }
@@ -54,9 +54,7 @@ export function runColumns(kind: RunKind, now: number): Column<RunItem>[] {
   const branch: Column<RunItem> = {
     id: 'branch',
     header: 'Branch',
-    cell: (r) => (
-      <BranchWords branch={r.branch} {...(r.worktree ? { worktree: r.worktree } : {})} />
-    ),
+    cell: (r) => <BranchWords branch={r.branch} />,
     sort: (r) => r.branch,
     secondary: true,
   };
@@ -81,12 +79,6 @@ export function runColumns(kind: RunKind, now: number): Column<RunItem>[] {
     cell: (r) => `${sum(r).doneJobs} of ${sum(r).total}`,
     sort: (r) => sum(r).doneJobs / Math.max(1, sum(r).total),
     secondary: true,
-  };
-  const started: Column<RunItem> = {
-    id: 'started',
-    header: 'Started',
-    cell: (r) => formatDateTime(r.created_at),
-    sort: (r) => r.created_at,
   };
   if (kind === 'queue')
     return [
@@ -129,7 +121,6 @@ export function runColumns(kind: RunKind, now: number): Column<RunItem>[] {
     ];
   if (kind === 'running')
     return [
-      started,
       repo,
       workflow,
       branch,
@@ -208,7 +199,7 @@ export function RunDetail({
   return (
     <Stack>
       <Text tone="muted">
-        {`Run ${run.id}${run.attempt > 1 ? `, attempt ${run.attempt}` : ''}, ${run.jobs.length} jobs: queue wait is the light part of a bar, the run the dark part. Open a job to see its steps. Branch: ${run.branch}.`}
+        {`Run ${run.id}${run.attempt > 1 ? `, attempt ${run.attempt}` : ''}, ${run.jobs.length} jobs: queue wait is the light part of a bar, the run the dark part. Open a job to see its steps. Branch: ${run.branch}. Task: ${taskIdOf(run.branch) ?? 'none in the branch name'}. Worktree: ${run.worktree ?? 'not reported'}.`}
       </Text>
       <Waterfall
         label={`Jobs of run ${run.id}`}

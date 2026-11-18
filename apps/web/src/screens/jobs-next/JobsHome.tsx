@@ -149,9 +149,7 @@ function whereWords(j: JobItem): string {
 }
 
 function BranchCell({ j }: { j: JobItem }) {
-  return (
-    <BranchWords branch={j.branch} {...(j.worktree ? { worktree: j.worktree } : {})} />
-  );
+  return <BranchWords branch={j.branch} />;
 }
 
 function JobCell({ j }: { j: JobItem }) {

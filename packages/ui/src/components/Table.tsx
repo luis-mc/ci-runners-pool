@@ -241,7 +241,7 @@ export function Table<T>({
                     </td>
                   ))}
                   {detail ? (
-                    <td data-label={detail.label}>
+                    <td data-label={detail.label} className="ds-table__detail">
                       <Button
                         onPress={() => toggleOpen(key)}
                         expanded={isOpen}

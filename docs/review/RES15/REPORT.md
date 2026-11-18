@@ -10,6 +10,8 @@ Binding product model: top menu Overview, Shared Pool, Repositories, Jobs, Docto
 
 ## 2. Information model
 
+The hierarchy is **run, then job, then step**, and every screen says which level it shows. A GitHub workflow run has several jobs, and each job has steps. So the lists show **one row for each workflow run**; a run opens (in place, or on its own page) to its jobs as a waterfall; a job opens to its steps. The breadcrumb of the Job page is `Jobs / repository / run #N, attempt A / job`.
+
 ```
 Run (workflow run, GitHub run id)
  └─ Attempt (run_attempt 1..n; a re-run is a new attempt of the same run)
@@ -27,21 +29,28 @@ Job key = repository + workflow file + job name + matrix values   (the unit the 
 | Needs | which job waits for which | the workflow file at `head_sha` (one read per sha), else only "parallel in time" is drawn |
 | Worktree / task | text the job reports, shown as "reported by the job" | env var or label through the hook; the delivery task id parsed from the branch name (`RES15-jobs-section`) |
 
-Worktree is not visible to GitHub. Honest display: show the branch always; show a task or worktree only when the job reported it or the branch matches `<TASK>-<slug>`; otherwise write "not reported". Never guess a worktree path.
+Worktree is not visible to GitHub. Display (decision 6): the branch always; the task id, read from the branch when it starts with one (`RES15-jobs-section` gives task RES15); the worktree only when the job reports it, otherwise "not reported". Never guess a worktree path.
 
 ## 3. What each screen shows, and why
 
-| Screen | Shows | Why |
-|---|---|---|
-| Jobs home, Queue | queue order (1, 2, 3), repository, job, branch, why it waits (gate reason, UX-29), waited so far, forecast start range | the first question is "when does mine start, and why not now" |
-| Jobs home, Running | job, repository, branch, runner and machine, current step and its progress against the forecast, run time so far, forecast end range | "is it stuck or just slow" |
-| Jobs home, Done | last 25, "Show more" adds 25, up to the kept limit; result, waited, ran, forecast vs actual | recent outcomes at a glance, bounded list |
-| By repository / machine / runner / runner type / job type | one table per grouping: running, queued, done, failed, median wait, median run, p90 run, trend sparkline | find where time goes without picking a repository for a runner |
-| Charts | durations and waits over time (median and range), forecast vs actual, busiest hours (weekday x hour) | learn the pool's rhythm, check the forecast earns trust |
-| Job page | project, branch and commit, pull request, worktree or task when known, run and attempt (switch attempts), job graph with this job and the critical path marked, steps as a waterfall with forecast per step, runner, machine, backend, runner kind, timings (queued at, waited and why, started, ran, clean-up), queue position and ETA range, history of this job key, GitHub links | one place to answer "what happened to this job" |
-| Run page | all jobs of one run as a waterfall (queue wait lighter, run darker), the graph, run total and critical path | parallel vs sequence at run level |
+Queue, Running and Done list **runs**. A `Runs | Jobs` switch above each list keeps the flat job list for filtering by runner, machine and job kind (a group row that filters by those opens the Jobs view). A run row has a **Jobs** button: it opens the run in place, as a waterfall of its jobs (queue wait light, run dark, forecast bracket for what is unfinished); a job opens to its steps. The run name links to the Run page.
 
-Design rules used: UX-29 wait reasons, UX-33 time axis, UX-41 charts with a text alternative, UX-49 no sideways scroll, UX-57 keyboard, UX-58 status as word, glyph and colour. New shared parts: Waterfall, Job graph, Trend chart, Sparkline, Heatmap, Forecast chart (components 49 to 54 in `next-version`).
+| Screen | Row and columns | Why |
+|---|---|---|
+| Queue, Runs | one row for each run that has jobs waiting: place in line, repository, workflow and run number, branch (task), commit and event or pull request, jobs queued of all, start range ("in about 4 to 7 min"), why it waits | the first question is "when does my run start, and why not now" |
+| Queue, Jobs | the waiting jobs in order: place, repository, workflow and job, branch, forecast, "starts in about 4 to 7 min, 3rd in line", why it waits | the same, one job at a time |
+| Running, Runs | repository, workflow, branch, commit and event, jobs done of all (7 of 9), the job running now, time so far, end forecast (one number), result | "is it stuck or just slow" |
+| Running, Jobs | job, runner and machine, the step now, progress against the forecast, run time, forecast | the step level |
+| Done, Runs | finished, repository, workflow, branch, commit and event, jobs done of all, total time, slowest job, result | recent outcomes at a glance |
+| Done, Jobs | finished, repository, workflow and job, branch, runner and machine, waited, ran, forecast, status | for filtering by runner, machine and kind |
+| By repository / machine / runner / runner type / job type | one table per grouping: running, queued, done, failed, average wait, average run, trend sparkline; runner type adds the backend, job type adds a light or heavy badge | find where time goes without picking a repository for a runner |
+| Charts | durations and waits over time (median and slow end), jobs per day, forecast vs actual, busiest hours; 14 days first, switch to 7 or 30; a button exports the daily summaries as CSV | learn the pool's rhythm, check the forecast earns trust |
+| Run page | breadcrumb, facts (repository, branch, task, worktree, commit and event, started, end forecast with its basis), the job graph (and where its arrows come from), the jobs as a waterfall | parallel vs sequence at run level |
+| Job page | breadcrumb `Jobs / repository / run #N, attempt A / job`, project and code, attempts, the run's job graph with this job marked, steps as a waterfall ("from GitHub"), runner, times, queue place and start range, forecast as a range with its basis, history of the job | one place to answer "what happened to this job" |
+
+Tables show **one number** ("about 7 min"), times in compact words ("1 min 19 s"), and a long branch cut in the middle (`RES15-jobs…ection`) with the full name on hover and in the detail; no table scrolls the page sideways at 1300 px (the layout spec checks it at 360, 393 and 1300 px). The Job and Run pages show a **range with its basis** ("about 6 to 9 min, median of the last 20 runs on linux-box").
+
+Design rules used: UX-29 wait reasons, UX-33 time axis, UX-41 charts with a text alternative, UX-49 no sideways scroll, UX-57 keyboard, UX-58 status as word, glyph and colour. Shared parts: Waterfall, Job graph, Trend chart, Sparkline, Heatmap, Forecast chart (components 49 to 54), and new in this round Short text (55), a table row that opens in place (component 15, `detail`) and a view switch without All (component 12). All are in `next-version`, with `CHANGES` C114 to C116 and words in `content.md`.
 
 ## 4. Forecast method (first version)
 
@@ -92,22 +101,26 @@ Stored: repository, workflow file name, job name, matrix values, step names, bra
 
 ## 8. Review build
 
-Open `docs/review/RES15/index.html`. The app opens from `app/` with `python3 -m http.server`, no controller. All data is fake and generated from a fixed seed; the production console never loads it. Routes: `#/jobs` (Queue, Running, Done), `#/jobs/repository`, `/machine`, `/runner`, `/runner-type`, `/job-type`, `/charts`, `#/jobs/<id>`, `#/jobs/run/<id>`. Other top-menu areas open with fake pool data so the frame is real.
+Open `docs/review/RES15/index.html`. The app opens from `app/` with `python3 -m http.server`, no controller. All data is fake and generated from a fixed seed; the production console never loads it. Routes: `#/jobs` (Queue), `/jobs/running`, `/jobs/done` (add `?view=jobs` for the flat job list), `#/jobs/repository`, `/machine`, `/runner`, `/runner-type`, `/job-type`, `/charts`, `#/jobs/<id>`, `#/jobs/run/<id>`. One finished run (the third with 4 or more jobs) has an unreadable workflow file, to show the timing fallback. Other top-menu areas open with fake pool data so the frame is real.
 
-## 9. Open questions for the owner
+## 9. Owner decisions (18 Nov 2026)
 
-Each has a recommendation; the first option is it.
+All binding. Each is built in the review build.
 
-1. **How many done jobs to keep and show?** (a) Keep 90 days of rows, show 25, "Show more" up to 100 per page, older ones by filter and range. (b) Keep and show the last 100 only (the current spec, D34). (c) Keep 400 days, show 25 at a time with no cap. Recommendation: (a).
-2. **How long to keep step rows?** (a) 30 days of steps, 90 of jobs, 400 of daily aggregates. (b) Steps as long as jobs (90). (c) Keep no steps, show them live from GitHub only. Recommendation: (a).
-3. **Fetch the workflow file to draw the graph?** (a) Yes, one read per head sha, cached; jobs with `needs` draw as a graph, dynamic matrix and reusable workflows are marked "expands at run time". (b) No; draw only what happened in time (jobs overlapping = parallel). (c) Ask per repository in Settings. Recommendation: (a), with (b) as the fallback when the read fails.
-4. **Forecast: a range or one number?** (a) A range with the basis ("about 6 to 9 min, median of the last 20"). (b) One number. (c) A range on the job page, one number in tables. Recommendation: (c) is nearest to (a); the review build shows (a) everywhere so you can judge.
-5. **Where do step times come from?** (a) The GitHub `workflow_job` webhook steps (free, no job change, second precision). (b) A hook mark per step (finer, needs workflow changes, only crsp runners). (c) Both, hook wins when present. Recommendation: (a) now, (c) later.
-6. **How is the worktree shown?** (a) Branch always; task id when the branch name starts with a task id; worktree only when the job reports it; else "not reported". (b) Branch only. (c) Require every job to report a worktree label. Recommendation: (a).
-7. **Cold start with no history?** (a) Say "not enough history yet" until 5 runs; use workflow or repository medians in between, labelled. (b) Always show a number from the repository median. (c) Show nothing until 20 runs. Recommendation: (a).
-8. **Should the forecast be shown before a job starts (queue ETA)?** (a) Yes, a start range from slots and jobs ahead. (b) Only the wait reason, no time. Recommendation: (a), because the owner asked for queue order and waiting time.
-9. **Runner and runner type grouping:** (a) By runner = one row per runner name; by runner type = persistent vs ephemeral, with backend as a second line. (b) Runner type = backend (docker, wsl2, hyperv). (c) Both as filters on one table. Recommendation: (a), backend is a column.
-10. **Job type = what?** (a) Job name with matrix values removed (test, build, lint). (b) Light vs heavy (scheduler classes). (c) Label set. Recommendation: (a), with light and heavy as a badge.
-11. **Charts range:** (a) 14 days, switch to 7 or 30. (b) 30 days fixed. Recommendation: (a).
-12. **Should the data be exportable?** (a) CSV of the filtered list (already planned, R5.14) plus the daily aggregates. (b) The list only. Recommendation: (a).
-13. **Where does the Jobs section replace the current one?** (a) Replace the current Jobs screens once approved, keep the old routes redirecting. (b) Run both for one release. Recommendation: (a).
+**A. Runs versus jobs.** A CI run has several jobs, so Queue, Running and Done list **one row for each workflow run**: repository, workflow, branch (and task id), commit, event or pull request, started, total time so far or total, jobs done of all (for example 7 of 9), slowest or current job, result. A row opens in place (and the run name opens the Run page) to its jobs as a waterfall, and each job opens to its steps. A `Runs | Jobs` switch keeps the flat job list for filtering by runner, machine and kind. Queue rows show the run's queued jobs, its place in line and its start range. The run, job, step hierarchy is named everywhere, with the breadcrumb `Jobs / repository / run #N, attempt A / job` on the Job page.
+
+1. **Done list.** Keep 90 days; show 25; "Show 25 more" up to 100 a page; older runs by range (7, 30, 90 days) and filter.
+2. **Retention.** Steps 30 days, jobs 90, daily summaries 400. Said in the Done, Charts and group footers.
+3. **Job graph.** From the workflow file (`needs`), read once per commit and cached. A matrix or a reusable workflow is marked "expands at run time". When the file cannot be read, the graph falls back to the overlap of the jobs in time, with a note that it is a guess.
+4. **Forecast wording.** A range with its basis on the Job and Run pages ("about 6 to 9 min, median of the last 20"); one number in tables ("about 7 min").
+5. **Step times.** From the GitHub job events now ("Step times are from GitHub"); hook marks later.
+6. **Branch, task, worktree.** Branch always; task id when the branch starts with one; worktree only when the job reports it, else "not reported".
+7. **Under 5 runs.** "not enough history yet", plus the workflow's or the repository's typical time, labelled ("workflow typical about 4 min").
+8. **Queue.** A start range from the free slots and the jobs ahead ("starts in about 4 to 7 min, 3rd in line"), plus why it waits.
+9. **By runner** is each runner name. **By runner type** is persistent versus ephemeral, with the backend (docker, wsl2, hyperv) as a column.
+10. **By job type** is the job name without matrix values, with a light or heavy badge.
+11. **Charts.** 14 days first, a switch to 7 or 30.
+12. **Export.** CSV of the filtered list (Done, runs or jobs) and of the daily summaries (Charts). In the review build the buttons download the fake data.
+13. **Replacement.** The new section replaces today's Jobs screens when it is built (the old routes redirect). This is a build step after approval; nothing in the production console changes now (the review build is a flag of its own entry).
+
+Table fixes in the same round: one number per forecast cell, a branch cut in the middle with the full name on hover and in the detail, compact times, and no sideways scroll at 1300 px.

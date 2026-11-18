@@ -971,3 +971,31 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 | Run time and wait per day, Jobs per day, Forecast against actual, Busiest hours | Chart pane titles. |
 | {n}% of {m} finished jobs ran inside their forecast range. The aim is about 80%. | Line over Forecast against actual. |
 | Review build with fake data. Nothing here is real and nothing is saved. | Banner of the review build only. |
+
+### Runs first (RES16, owner decisions of 18 Nov 2026)
+
+| Word | Where and meaning |
+|---|---|
+| Runs, Jobs | Switch above Queue, Running and Done: one row for each workflow run, or the flat job list for filtering by runner, machine and kind. |
+| Place, Starts | Queue run row: the smallest place of its queued jobs, and the start range ("in about 4 to 7 min"). |
+| starts in about 4 to 7 min, 3rd in line | Start range and place of a queued job; the reason it waits (UX-29) is beside it. |
+| Jobs done, Jobs queued | Column: "7 of 9". |
+| Total time, Time so far, Ends | Columns of a done run, of a running run, and the end forecast of a running run (one number: "in about 7 min"). |
+| Slowest job, Running now | Columns: the job that took longest, the job that runs now. |
+| Commit and event | Column: the short commit and the event or pull request ("a1b2c3d, PR #52"). |
+| Result | Column of a run: success, failure, timed out, cancelled, running or waiting. |
+| (task RES15) | After the branch, when the branch starts with a task id. A worktree shows as "(worktree {name})" only when the job reported it, otherwise "not reported". |
+| Task, Worktree | Facts of the Job and Run pages. "none in the branch name" and "not reported" are their empty words. |
+| Open the run | Button under an opened run row, to the Run page. |
+| Last 7 days, Last 30 days, Last 90 days | Range switch of Done. |
+| Show 25 more | Adds 25 runs or jobs up to 100 a page; older ones by range and filter. |
+| Export CSV, Export daily summaries (CSV) | Buttons of Done and of Charts. |
+| crsp keeps steps for 30 days, jobs for 90 days and daily summaries for 400 days. | Footer of Done, Charts and the group tables. |
+| 7 days, 14 days, 30 days | Range switch of Charts; 14 is the first. |
+| Backend, Weight | Columns of By runner type (docker, wsl2, hyperv) and By job type (Light, Standard, Heavy badge). |
+| about 7 min | One number in a table. A range ("about 6 to 9 min") with its basis ("median of the last 20 runs") is for the Job and Run pages. |
+| not enough history yet (workflow typical about 4 min) | A job with fewer than 5 runs: no number is made up; the workflow's or the repository's typical time is named and labelled. |
+| Step times are from GitHub. | Hint of the Steps pane. |
+| expands at run time | Marks a matrix job or a reusable workflow in the job graph. |
+| Arrows come from the workflow file at commit {sha} (read once per commit and kept). | Line over the job graph. When the file cannot be read: "no arrows are drawn: jobs that ran at the same time are shown side by side. This is a guess from timing, not from the workflow." |
+
