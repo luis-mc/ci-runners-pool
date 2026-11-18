@@ -4,6 +4,7 @@
 import {
   BulletList,
   Breadcrumbs,
+  CheckRow,
   ChoiceField,
   Facts,
   LinkButton,
@@ -30,6 +31,7 @@ import {
   type Plan,
   type Repository,
 } from '../repositories/plans';
+import { chooseKind, KIND_HELP, KIND_NAMES, type Kind } from './kinds';
 
 const STEPS = ['Runners', 'Review', 'Registering', 'Done'] as const;
 type OS = Schemas['OS'];
@@ -42,12 +44,23 @@ export function machineSupports(m: Schemas['Machine'], os: OS): boolean {
   );
 }
 
-/** The Linux runner of a Windows machine is a container runner, so it is ephemeral. */
-export function runnerKind(
-  m: Schemas['Machine'] | undefined,
-  os: OS,
-): 'persistent' | 'ephemeral' {
-  return m && m.os !== os ? 'ephemeral' : 'persistent';
+/** A Linux runner on a Windows machine runs in the container backend, which a machine allows by itself (R5.27). */
+export function containerBackendAllowed(m: Schemas['Machine']): boolean {
+  return m.backends.some((b) => b.name === 'docker' && b.usable && b.allowed);
+}
+
+/** A reason ends with a full stop, so words can follow it. */
+export function sentence(text: string): string {
+  const t = text.trim();
+  return /[.!?]$/.test(t) ? t : `${t}.`;
+}
+
+const NOT_ALLOWED =
+  'The container backend is not allowed on this machine. Linux runners here need it.';
+const NO_STEPS = 'Nothing would be added with these choices. Change them and try again.';
+
+function crossesTo(m: Schemas['Machine'], os: OS): boolean {
+  return m.os !== os && machineSupports(m, os);
 }
 
 const RUNS_ON: Record<OS, string> = {
@@ -93,6 +106,9 @@ export function AddRunnersWizard() {
   const [os, setOs] = useState<OS>('linux');
   const [machineId, setMachineId] = useState('');
   const [count, setCount] = useState(1);
+  // The kind the user picked; until then the D94(b) default stands. Keep dependencies is for a persistent runner.
+  const [kindPick, setKindPick] = useState<Kind | undefined>(undefined);
+  const [keepDeps, setKeepDeps] = useState(true);
   const [labels, setLabelsText] = useState('self-hosted');
   // Labels follow the repository's own variables until the user writes their own (finding 12).
   const [labelsEdited, setLabelsEdited] = useState(false);
@@ -102,6 +118,9 @@ export function AddRunnersWizard() {
   };
   const [plan, setPlan] = useState<Plan | undefined>(undefined);
   const [problem, setProblem] = useState<string | undefined>(undefined);
+  // The step that failed (index), and the reason a plan was refused, shown on step 1.
+  const [failedAt, setFailedAt] = useState<number | undefined>(undefined);
+  const [refusal, setRefusal] = useState<string | undefined>(undefined);
   const [stopping, setStopping] = useState(false);
   const [stopError, setStopError] = useState<string | undefined>(undefined);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -114,6 +133,7 @@ export function AddRunnersWizard() {
     else if (p.state === 'stopped') setPhase('stopped');
     else {
       setProblem(p.steps.find((s) => s.state === 'failed')?.error ?? 'A step failed.');
+      setFailedAt(2);
       setPhase('failed');
     }
   };
@@ -153,6 +173,7 @@ export function AddRunnersWizard() {
       } catch (e) {
         if (!on) return;
         setProblem(e instanceof Error ? e.message : 'The controller did not answer.');
+        setFailedAt(0);
         setStep(4);
         setPhase('failed');
       }
@@ -169,6 +190,8 @@ export function AddRunnersWizard() {
     if (!labelsEdited) setLabelsText(wanted);
   }, [wanted, labelsEdited]);
   const supports = (m: Schemas['Machine']) => machineSupports(m, os);
+  const picked = machines.find((m) => m.id === machineId);
+  const choice = chooseKind(picked, os, repos, kindPick);
   const labelList = labels
     .split(',')
     .map((x) => x.trim())
@@ -180,7 +203,12 @@ export function AddRunnersWizard() {
       e.machine = 'Pick a machine that runs this system.';
     if (count < 1) e.count = 'Add at least 1 runner.';
     setErrors(e);
+    setRefusal(undefined);
     if (Object.keys(e).length) return;
+    if (containerOff) {
+      setRefusal(NOT_ALLOWED);
+      return;
+    }
     setStep(2);
     setPhase('planning');
     try {
@@ -188,22 +216,28 @@ export function AddRunnersWizard() {
         client.POST('/api/v1/runner-plans', {
           body: {
             os,
-            kind: runnerKind(
-              machines.find((m) => m.id === machineId),
-              os,
-            ),
+            kind: choice.kind,
             machine_id: machineId,
             count,
             labels: labelList,
+            ...(choice.kind === 'persistent' ? { keep_dependencies: keepDeps } : {}),
           },
         }),
       );
+      if (p.steps.length === 0) {
+        // Review never lists nothing: with no step there is nothing to review.
+        setRefusal(NO_STEPS);
+        setStep(1);
+        setPhase('first-run');
+        return;
+      }
       setPlan(p);
       setPhase('ready-to-review');
     } catch (err) {
-      setProblem(err instanceof Error ? err.message : 'Could not plan the runners.');
-      setStep(4);
-      setPhase('failed');
+      // A refusal of the controller is shown on step 1 with its reason; the user changes the choices there.
+      setRefusal(sentence(errorText(err)));
+      setStep(1);
+      setPhase('first-run');
     }
   };
 
@@ -240,6 +274,7 @@ export function AddRunnersWizard() {
       settle(p, false);
     } catch (err) {
       setProblem(err instanceof Error ? err.message : 'Could not register the runners.');
+      setFailedAt(2);
       setStep(4);
       setPhase('failed');
     }
@@ -266,17 +301,29 @@ export function AddRunnersWizard() {
     }
   };
 
+  // Try again never sends the same request: the user goes back to step 1 with the reason, to change a choice.
+  const tryAgain = () => {
+    const why = problem;
+    startAgain();
+    if (why) setRefusal(sentence(why));
+  };
+
   const startAgain = () => {
     setParams(new URLSearchParams(), { replace: true });
     setPlan(undefined);
     setProblem(undefined);
+    setFailedAt(undefined);
+    setRefusal(undefined);
     setStep(1);
     setPhase('first-run');
   };
 
-  const picked = machines.find((m) => m.id === machineId);
-  const containerRunner =
-    picked !== undefined && picked.os !== os && machineSupports(picked, os);
+  const containerRunner = picked !== undefined && crossesTo(picked, os);
+  const containerOff = picked !== undefined && choice.none;
+  const ephemeral = choice.kind === 'ephemeral';
+  const backendReason =
+    picked !== undefined &&
+    Object.values(choice.reasons).some((r) => r?.includes('container backend'));
 
   const prog = plan ? planProgress(plan) : { done: 0, total: 0 };
 
@@ -319,20 +366,70 @@ export function AddRunnersWizard() {
               : { disabledReason: `This machine runs ${m.os}, not ${os}.` }),
           }))}
         />
-        {containerRunner ? (
+        {picked && containerOff ? (
+          <Message
+            tone="needs-you"
+            action={
+              <LinkButton to={`/pool/machines/${picked.id}`}>
+                Allow it on the machine
+              </LinkButton>
+            }
+          >
+            {NOT_ALLOWED}
+          </Message>
+        ) : null}
+        {refusal ? <Message tone="problem">{refusal}</Message> : null}
+        <ChoiceField
+          label="Kind"
+          value={choice.kind}
+          onChange={(v) => setKindPick(v as Kind)}
+          choices={(['persistent', 'ephemeral'] as const).map((k) => ({
+            value: k,
+            label: KIND_NAMES[k],
+            description: KIND_HELP[k],
+            ...(choice.reasons[k] ? { disabledReason: choice.reasons[k] } : {}),
+          }))}
+        />
+        {choice.line ? <Text tone="muted">{choice.line}</Text> : null}
+        {picked && backendReason && !containerOff ? (
+          <Message
+            tone="note"
+            action={
+              <LinkButton to={`/pool/machines/${picked.id}`}>
+                Allow it on the machine
+              </LinkButton>
+            }
+          >
+            The container backend decides which kinds this machine offers.
+          </Message>
+        ) : null}
+        {containerRunner && !containerOff && !ephemeral ? (
           <Message tone="note">
             Linux runners on this Windows machine run in containers, through Docker. The
             container backend must be allowed on the machine.
           </Message>
         ) : null}
         <NumberField
-          label="Number of runners"
+          label={ephemeral ? 'Most ephemeral runners at once' : 'Number of runners'}
+          {...(ephemeral
+            ? {
+                help: 'The pool makes a fresh container for each job, up to this many at the same time.',
+              }
+            : {})}
           value={count}
           min={1}
           max={32}
           onChange={setCount}
           {...(errors.count ? { error: errors.count } : {})}
         />
+        {ephemeral ? null : (
+          <CheckRow
+            label="Keep downloaded dependencies"
+            checked={keepDeps}
+            onChange={setKeepDeps}
+            help="Temporary files of each job are always removed."
+          />
+        )}
         <TextField
           label="Labels"
           help="Separate labels with commas."
@@ -347,9 +444,16 @@ export function AddRunnersWizard() {
     body = (
       <Stack>
         <Text>
-          {count} {count === 1 ? 'runner' : 'runners'} on{' '}
-          {machines.find((m) => m.id === machineId)?.name ?? 'the machine'}. These steps
-          run:
+          {ephemeral
+            ? `Up to ${count} ephemeral ${count === 1 ? 'runner' : 'runners'} at once`
+            : `${count} persistent ${count === 1 ? 'runner' : 'runners'}`}{' '}
+          on {picked?.name ?? 'the machine'}.{' '}
+          {ephemeral
+            ? 'Each job gets a fresh container.'
+            : keepDeps
+              ? 'Downloaded dependencies are kept between jobs. Temporary files of each job are always removed.'
+              : 'Downloaded dependencies are removed after each job too. Temporary files of each job are always removed.'}{' '}
+          These steps run:
         </Text>
         <BulletList items={(plan?.steps ?? []).map((s) => s.text)} />
       </Stack>
@@ -378,7 +482,7 @@ export function AddRunnersWizard() {
       <Stack>
         {phase === 'failed' ? (
           <Message tone="problem">
-            The runners were not all added. {problem ?? ''} Try again.
+            The runners were not all added. {sentence(problem ?? 'A step failed.')}
           </Message>
         ) : null}
         {phase === 'stopped' ? (
@@ -442,18 +546,21 @@ export function AddRunnersWizard() {
           ? {
               label: 'Next',
               onPress: () => void toReview(),
-              disabled: machines.length === 0,
-              reason: 'Add a machine first.',
+              disabled: machines.length === 0 || containerOff,
+              reason: machines.length === 0 ? 'Add a machine first.' : NOT_ALLOWED,
             }
           : {
-              label: `Add ${count} ${count === 1 ? 'runner' : 'runners'}`,
+              label: ephemeral
+                ? `Allow ${count} ephemeral ${count === 1 ? 'runner' : 'runners'}`
+                : `Add ${count} ${count === 1 ? 'runner' : 'runners'}`,
               busyLabel: 'Registering',
               onPress: () => void apply(),
             }
       }
       review={step === 2}
       onStartAgain={startAgain}
-      onTryAgain={startAgain}
+      onTryAgain={tryAgain}
+      failedAt={failedAt}
       donePrimary={{
         label: 'Open Runners',
         onPress: () => void navigate('/pool/runners'),

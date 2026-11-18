@@ -192,6 +192,10 @@ func (s *Service) views(ctx context.Context, recs []Record) []View {
 			}
 		}
 		state, why := Truth(r, f)
+		if r.UncleanReason != "" && state != Failed {
+			// An unclean runner takes no new job until its clean-up works (R5.91).
+			why = "needs clean-up, takes no new job: " + r.UncleanReason
+		}
 		out = append(out, View{Record: r, State: state, Reason: why, MachineName: names[r.MachineID]})
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Name < out[j].Name })

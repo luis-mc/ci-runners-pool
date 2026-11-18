@@ -168,7 +168,7 @@ The words of the images and caches screen (web-console 4.7).
 | Where | Word |
 |---|---|
 | Tabs | Images, Caches |
-| Cache kinds | Tool cache, Rust build cache, Actions cache, Git mirror, Registry mirror |
+| Cache kinds | Tool cache, Rust build cache, Actions cache, Git mirror, Registry mirror, Dependency cache |
 | Empty images | No images yet. A machine shows one here once it can run container jobs. |
 | Empty caches | No caches yet. Caches show here when a runner has been added. |
 | Question title | Wipe {cache}? Rebuild the image of {machine}, {OS}? |
@@ -230,12 +230,17 @@ The words of the machine mode, the battery pause and the CPU cap (machines R5.61
 | Taking jobs | State word: the machine takes new jobs. |
 | Paused, On battery, Quiet hours | State words: why the machine takes no new job. |
 | Busy | State word: the load is over the budget, so a new job waits. The tray header does not say it. |
+| Needs a base image, Disk low | State words: a backend it may use has no runner base image on the machine; the disk is almost full. |
+| You stopped new jobs from the console. The jobs that run finish. Resume takes jobs again. | The note under Now for Not taking jobs. |
+| The mode is Paused. It takes no new job. The jobs that run finish. | The note under Now for Paused by the mode. |
+| It was paused from the tray. It takes no new job. The jobs that run finish. | The note under Now for Paused from the tray. |
+| New jobs are stopped. Resume takes jobs again. | The hint under Resume in the page header. |
 | Now | The facts line with the state word. |
 | Paused until | The end of a pause from the tray with a timer. A date and time (Dates, times and numbers). |
 | Until you resume | The value of the fact Paused for a pause from the tray that has no end. |
 | Power | The facts line. Values: On battery, On mains. Shown only when the machine's battery state is known. |
 | Pause on battery | The switch. Saved at once. |
-| Always ignores the battery. | The note under the switch in Always. |
+| Always ignores the battery. | The reason beside the Pause on battery switch in Always; the switch is off and disabled. |
 | Off: the machine keeps taking jobs on battery. | The note under the switch when it is off. |
 | On: Automatic takes no new job while the machine runs on battery. | The note under the switch when it is on. |
 | CPU for runners | The name of the CPU cap list. Values: 25%, 50%, 75%, 100%. |
@@ -573,6 +578,10 @@ The words of Add runners and the machine list for a Windows machine whose contai
 |---|---|
 | Windows, runs Linux containers | The System column of the machine list for a Windows machine with Docker Desktop on WSL2. |
 | Linux runners on this Windows machine run in containers, through Docker. The container backend must be allowed on the machine. | Note in Add runners when the chosen machine runs Windows and the system is Linux. |
+| The container backend is not allowed on this machine. Linux runners here need it. | Problem on Add runners step 1 when the system is Linux, the machine runs Windows and the container backend is off. It is also the reason Next is disabled. |
+| Allow it on the machine | The button beside that message; it opens the machine page. |
+| Nothing would be added with these choices. Change them and try again. | Problem on Add runners step 1 when the plan has no step, so Review is not reached. |
+| {reason}. | A refusal of the plan, shown on Add runners step 1 with a full stop, so the user changes a choice. Try again after a failure goes back to step 1 with the reason in the same place. |
 | This machine runs windows, not linux. | The reason a machine is greyed for a system it cannot run (also for a Windows machine without Linux containers). |
 | WSL is installed but not ready; run wsl --install | Backend reason, shown only when WSL2 does not work and Docker does not run on it. It is written once. |
 
@@ -860,6 +869,39 @@ The words of the small update page the tray opens (tray R5.43, web-console R5.96
 | Open Updates | The left button on Done: opens Settings, Updates. |
 | The update did not finish. {reason} The running version stays. The log is {path}. Open the log folder from the tray menu. Then try again. | The failure message. |
 
+## Native update window words
+
+The words of the native update window on Windows (tray R5.46 to R5.49). The steps and buttons follow UX-30 and UX-71; the web page of the same update is in Update page words.
+
+| Words | Used for |
+|---|---|
+| Update - CI Runners Shared Pool | The title of the window. |
+| Update to {version} | The heading on Review. |
+| Version {version} is ready. You run {version}. | First line on Review. |
+| Running jobs finish first, then the service restarts (about 1 min). No job is stopped. | Second line on Review. |
+| Not now, Update now | The two buttons on Review. Update now is the main one and the default. |
+| Starting the update. | The line between pressing Update now and the first answer. |
+| Downloading {version} | The heading while it downloads; the bar shows {n}%. |
+| The update is checked against its checksum and signature before it installs. | The line under the download bar. |
+| Waiting for jobs | The heading while the machine drains. |
+| {n} jobs run now. The update starts when they are done. | The job line; one job reads `1 job runs now. The update starts when it is done.` and none reads `The jobs on this machine are finishing. The update starts when they are done.` |
+| This machine takes no new jobs meanwhile. No job is stopped. | The note while it waits. |
+| Hide | Closes the window; the update goes on. The default while it works. |
+| Cancel update | Stops the update while it downloads or waits for jobs. Busy word: Cancelling... |
+| Installing {version} | The heading while it installs; the bar shows {n}% when the service knows it. |
+| This cannot be cancelled. You can hide this window; the update goes on. | The note while it installs. |
+| Restarting the service | The heading while the service is replaced. |
+| The service is replaced and starts again. This window waits for it. | The note while the service is down. |
+| Updated | The heading on Done. |
+| Now running {version}. | The Done line, and the body of the toast after an automatic update. |
+| Close | The button on Done, Failed and Cancelled. |
+| The update failed | The heading on Failed. |
+| Still on {version}. | The line after the reason on Failed and after a cancel. |
+| Log: {path} | The last line on Failed. |
+| Update cancelled | The heading after Cancel update. |
+| Nothing changed. Still on {version}. | The line after a cancel. |
+| CI RUNNERS SHARED POOL | The name in the band and in the installer bitmaps (capitals: the art is drawn in a 5 by 7 pixel font). |
+
 ## Shared Pool and Jobs words
 
 The words of the six-item menu, Shared Pool and the Jobs sub-sections (owner decisions D24, D29, D31 to D34, LOOK31). "Runners" stays "runners" (D29).
@@ -918,3 +960,37 @@ The words of Settings > Access > Webhooks and the link on the repository page (g
 | Write the address without a user name, a query or a #fragment. | Mistake. |
 | The App does not listen for workflow jobs yet. On GitHub, open the App's permissions page and under Subscribe to events tick Workflow job, then save. Jobs are learned by webhooks once you have done that. | Guided step; its button is Open the App on GitHub. |
 | Turn on webhooks | Link at the end of the repository note "no webhook"; goes to Settings > Access > Webhooks. |
+
+
+## Runner kind words
+
+The words of Add runners step 1, the Runners list, the runner page and the Repositories page for the kind of a runner (runners R5.89 to R5.92, github-integration R5.60, web-console R5.101, R5.102; owner decisions D93, D94, D95, 2026-11-18).
+
+| Word | Where and meaning |
+|---|---|
+| Kind | The label of the one-choice list on Add runners step 1. |
+| Persistent | Choice. Line under it: Keeps its tools and caches between jobs. Starts jobs faster. |
+| Ephemeral | Choice. Line under it: A fresh container for every job. Nothing carries over. Recommended for public repositories. |
+| Ephemeral is chosen because a public repository uses the pool. | The one line under Kind while no one has picked and a public repository has the pool on. |
+| Persistent is chosen because no public repository uses the pool. | The same line when no public repository has the pool on. |
+| {Kind} is chosen because {Other kind} is not offered here. | The same line when the preferred kind cannot run on the machine for the system. |
+| Ephemeral needs the container backend, which is not allowed on this machine. | Reason of the greyed Ephemeral choice. "which does not work on this machine" when the backend is allowed but not usable. |
+| Persistent Linux runners on this Windows machine need the container backend, which is not allowed on this machine. | Reason of the greyed Persistent choice for Linux on a Windows machine. |
+| Ephemeral runners are not available for Windows yet. Windows runners are persistent. | Reason of the greyed Ephemeral choice for Windows. The same for macOS with its name. |
+| The container backend decides which kinds this machine offers. | Note with the button Allow it on the machine, shown while a kind is greyed for the container backend. |
+| Keep downloaded dependencies | Check box on Add runners step 1 for a persistent runner (on by default) and on the runner page. |
+| Temporary files of each job are always removed. | Help line of that check box. Not a setting. |
+| Most ephemeral runners at once | Label of the count for an ephemeral runner. Help: The pool makes a fresh container for each job, up to this many at the same time. |
+| Allow {n} ephemeral runner(s) | The primary of Review for ephemeral runners (busy word: Registering). |
+| {n} persistent runner(s) on {machine}. | Review text, then the dependency sentence: Downloaded dependencies are kept between jobs. / Downloaded dependencies are removed after each job too. / Each job gets a fresh container (ephemeral: Up to {n} ephemeral runner(s) at once on {machine}.). |
+| Persistent. Keeps dependencies: yes | Third line of the Isolation cell in the Runners list. Ephemeral shows Ephemeral only. |
+| Dependencies | Section of the runner page for a persistent runner. |
+| Dependency cache size | Fact of the runner page. Not measured yet when the controller has no size. |
+| Clear now | Button of the runner page (busy word: Clearing). |
+| A job is running. Clearing waits for it to finish. | Line under Clear now while the runner is busy. |
+| not clean | State word of a runner whose clean-up failed. |
+| Not clean: {reason}. It takes no new job until it is clean. | The runner's problem on its page and the full text of the State cell. |
+| Runner kind | Column of the Repositories list, fact and field of a repository. Choices: Use the default ({Ephemeral only or Any runner}), Ephemeral only, Any runner. |
+| Ephemeral only (default) | Value while the owner has not chosen; the default is Ephemeral only for a public repository, Any runner for a private one. |
+| Jobs from a public repository can then run on a persistent runner, which keeps files between jobs. Anyone who can open a pull request may reach it. | Warning under the field when a public repository is set to Any runner, and the body line of the question card Let public jobs use persistent runners? (answer Allow). |
+| No ephemeral runner capacity: jobs would wait. | Line in the Runner kind column and a Problem on the repository page with the button Add runners, while the pool has no machine that can make an ephemeral runner. |

@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { expectDomLayout } from '../../scripts/design/dom-layout';
-import { failure, needingRecovery, publicRows, signedIn } from './web-console/fixtures';
+import {
+  failure,
+  needingRecovery,
+  publicRows,
+  signedIn,
+  stoppedMachine,
+} from './web-console/fixtures';
 import { jobsAndDoctor } from './web-console/jobs-doctor-fixtures';
 
 // The DOM layout checker (design system, Enforcement kit) on the console's M1 screens, at 360, 393 and 1300 px.
@@ -11,6 +17,7 @@ const SCREENS: {
   ready: string;
   loads?: string[];
   recovery?: boolean;
+  stopped?: boolean;
   publicRows?: boolean;
   signedOut?: boolean;
   policy?: boolean;
@@ -52,6 +59,12 @@ const SCREENS: {
   { name: 'turn on the pool', path: '/repositories/turn-on', ready: 'Turn on the pool' },
   { name: 'machines', path: '/pool/machines', ready: 'Machines' },
   { name: 'machine detail', path: '/pool/machines/m1', ready: 'build-1' },
+  {
+    name: 'machine detail stopped',
+    path: '/pool/machines/m1',
+    ready: 'build-1',
+    stopped: true,
+  },
   {
     name: 'machine detail needing recovery',
     path: '/pool/machines/m1',
@@ -149,6 +162,7 @@ for (const screen of SCREENS) {
     const mock = jobsAndDoctor(signedIn());
     screen.tweak?.(mock);
     if (screen.recovery) mock.on('GET', '/api/v1/machines/:id', needingRecovery());
+    if (screen.stopped) mock.on('GET', '/api/v1/machines/:id', stoppedMachine());
     if (screen.publicRows) mock.on('GET', '/api/v1/github/repositories', publicRows());
     if (screen.loads) {
       mock
@@ -194,6 +208,39 @@ for (const screen of SCREENS) {
     if (screen.policy)
       await expect(page.getByRole('heading', { name: 'Policy' })).toBeVisible();
     await expectDomLayout(page, screen.name, { spaceVar: '--ds-space-' });
+  });
+}
+
+// LOOK32, UX-3: the machine page header keeps Stop new jobs and Resume at the right edge, with the hint right-aligned
+// under the button, and the header and the Facts box do not move between the two states.
+for (const width of [1300, 393, 360]) {
+  test(`machine header: action at the end, same height in both states at ${width} px`, async ({
+    page,
+  }) => {
+    const mock = jobsAndDoctor(signedIn());
+    await mock.install(page);
+    await page.setViewportSize({ width, height: 900 });
+    const measure = async (word: string) => {
+      await page.goto('/pool/machines/m1');
+      const button = page.getByRole('button', { name: word, exact: true });
+      await expect(button).toBeVisible();
+      const header = (await page.locator('.ds-page-header').boundingBox())!;
+      const b = (await button.boundingBox())!;
+      const hint = (await page.locator('.ds-page-header__hint').boundingBox())!;
+      const facts = (await page.getByRole('heading', { name: 'Facts' }).boundingBox())!;
+      return { header, b, hint, facts };
+    };
+    const before = await measure('Stop new jobs');
+    mock.on('GET', '/api/v1/machines/:id', stoppedMachine());
+    const after = await measure('Resume');
+    for (const m of [before, after]) {
+      const right = m.header.x + m.header.width;
+      if (width >= 600) expect(Math.abs(m.b.x + m.b.width - right)).toBeLessThan(2);
+      expect(m.hint.x + m.hint.width).toBeLessThanOrEqual(right + 1);
+      if (width >= 600) expect(Math.abs(m.hint.x + m.hint.width - right)).toBeLessThan(2);
+    }
+    expect(Math.abs(after.header.height - before.header.height)).toBeLessThan(1);
+    expect(Math.abs(after.facts.y - before.facts.y)).toBeLessThan(1);
   });
 }
 

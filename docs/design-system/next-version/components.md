@@ -7,8 +7,8 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 1. Page header
 
 - **Used for:** the headline that says where you are, with an optional line below it and the page's one primary action. (`Stack` of the layout part takes the gap `section`, 32 px, for the sections of a page such as a Settings tab; LOOK16.)
-- **Looks:** a large title with a quiet line below it. The primary action sits at the end of the title row.
-- **Source:** `src/ui/page-header`
+- **Looks:** a large title with a quiet line below it. The primary action sits at the end of the title row, right-aligned. An optional hint is one muted line right-aligned under the action, inside the same slot; the slot is at most 22 rem wide, so a hint never widens it and never moves the action. A page that swaps one action for another (Stop new jobs and Resume) passes a hint in both states, so the header keeps its height and nothing below it moves. At phone width the slot is full width and the hint reads from the left.
+- **Source:** `packages/ui/src/components/layout.tsx` (`PageHeader`: `title`, `lead`, `action`, `hint`)
 - **Rules:** UX-3, UX-4, UX-17.
 - **Guard:** none yet.
 
@@ -32,6 +32,7 @@ One numbered section per shared component. A part that nearly fits is extended w
 
 - **Used for:** a guided flow with a step bar on top, only the current step, and Back and the primary action at the bottom. A wizard that changes something ends with three steps, in order: Review, then the work (its own verb in the "-ing" form), then Done (UX-30). Review shows what will happen in numbers and words, and the line "Nothing has changed yet." Earlier steps stay reachable, and Review counts again after a change. Its one primary is named by the work and its count. The work step shows live progress and has no Back. Done shows what really happened, never the plan, and its one primary is the next action. A job under about a second opens Done at once. A stopped or failed job still ends at Done and says what was done and what is left. A step that only reads before Review is named by what it reads ("Reading files"), never "Checking". Loading the data of the current step is a state of that step, never a numbered step of its own: the step row starts at 1 with the first step the user acts on and shows no check while loading, the step shows one wait line, its primary is locked with the reason, and Back is free.
 - **Looks:** a step bar on top, one step in the middle, and Back and the primary action at the bottom. From 601 px up the step bar is one row with every step the same width (UX-15); on a phone the steps wrap. A wizard in the tray's small window (`Page frame="compact"`) keeps the wrapped bar at every width. The left button says Back, or the words the page gives it: `Not now` on a Review that only asks, `Close` after a failure, `Open Updates` on Done. A wizard whose work goes on without its window (an update the service runs) has `Hide` beside the busy primary while it works; Hide stops nothing, so it is not Stop.
+- **Failed step:** with the phase `failed` a page may give `failedAt`, the index of the step that failed. That step is marked failed (✕), is the current one and is not ticked; later steps stay locked. Without it a failure shows as before.
 - **Source:** `src/ui/wizard`
 - **Rules:** UX-5, UX-4, UX-24, UX-30, UX-35.
 - **Guard:** none yet.
@@ -235,7 +236,8 @@ A `Tag` is the small outlined label that names a kind next to a word, such as `i
 
 - **Used for:** the search or filter bar, and the layout of a page that finds things: the bar, then the chips or toolbar rows, then the content, always in that order at the same distances. The bar has an icon, the field, and one small x inside the field that empties it and keeps focus.
 - **Looks:** a field with a search icon on the left and a small x inside on the right, then the chips, then the content.
-- **Source:** `src/ui/search-bar`
+- **Caret:** every single-line text box (the search bar, the command palette box of component 38, the text field of component 14, the typed date of the date picker) shows the Phosphor block caret instead of the browser's thin line (look review option A, LOOK33). The block is `--ds-color-primary`, sits at the real insertion point, follows typing, the arrow keys, Home, End and clicks, and shows only while the box has focus. The character under it is drawn in `--ds-color-on-primary`, so it stays readable like on a terminal. It blinks with `--ds-cursor-blink` (1000 ms, steady under reduced motion). While text is selected the normal selection shows and the block does not. Right-to-left text, a password and an IME composition keep the browser's own caret, and so does a text area. The block is hidden from screen readers. It is drawn by the shared `CaretInput`; a page never draws a caret.
+- **Source:** `src/ui/search-bar`, `packages/ui/src/components/CaretInput.tsx`
 - **Rules:** UX-31, UX-7, UX-16, UX-17.
 - **Guard:** none yet.
 
@@ -536,6 +538,14 @@ A field's width caps its box, never its name and help: a lone field's name and h
 - **Source:** `packages/ui/src/components/ActionBar.tsx` (`ActionBar`, `selectedStatus`, `unsavedStatus`), `packages/ui/src/components/EditBar.tsx` (`EditBar`, `LeaveGuard`), `packages/ui/src/components/Wizard.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-4, UX-13, UX-38, UX-71.
 - **Guard:** `scripts/design/action-bar.test.ts` (a primary button outside the bar, or two in it, fails; `action-bar.known.json` only shrinks).
+
+## 49. Native update window and installer art
+
+- **Used for:** the update on Windows: one native window for the whole update (Review, Downloading, Waiting for jobs, Installing, Restarting, Done, Failed), and the banner and dialog bitmaps of the MSI. Outside the shared UI package because Windows draws it; it still wears the same tokens.
+- **Looks:** the Phosphor dark theme: page fill, text and muted text, a progress bar with a border and a filled part, a divider line above one row of buttons on the right. At the top a band: the crsp icon and the product name in the primary colour on the page colour with faint scanlines. The heading is bold in the primary colour (done colour on Done, problem colour on a failure). The primary button is filled, the others outlined, with a focus ring just inside the button; a busy button is dim and says so. The window has a title, the crsp icon and a close button only, no minimise or maximise, is centred on the screen of the tray icon, comes to the front once and is never always on top. It is laid out in units of the font height, so no text is cut off at 100, 125, 150 or 200 %. The installer bitmaps keep their light side where the stock dialogs write text, and carry the same band art (icon, name, scanlines) on the other side.
+- **Source:** `internal/updatewindow/` (`model.go` the states, `layout.go` the units, `art.go` the band and the installer bitmaps, `window_windows.go` the window), `internal/updatewindow/tokens_gen.go` (generated from `packages/ui/src/tokens.css` by `internal/updatewindow/genart`), `installer/build.ps1` and `installer/crsp.wxs` (`WixUIBannerBmp`, `WixUIDialogBmp`)
+- **Rules:** CORE-1 to CORE-7, UX-30 (steps in order, later steps cannot be pressed), UX-71 (the buttons on one bar at the foot), UX-4.
+- **Guard:** `internal/updatewindow/layout_test.go` and `art_test.go` (nothing clipped at every DPI, the palette equals the tokens), and `crsp update-window --layout-check` on the Windows runner (`.github/workflows/tray-smoke.yml`).
 
 ## How to add a component
 

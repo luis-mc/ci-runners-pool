@@ -79,6 +79,9 @@ func RunPlan(ctx context.Context, p Plan, env Env) error {
 	if err != nil {
 		stage = Stage{Name: StageFailed, Percent: -1, Version: p.To, Error: err.Error(), LogPath: filepath.Join(p.Dir, LogFile), FailedAt: StageInstalling, At: env.Now()}
 	}
+	if prev, ok := ReadStage(p.Dir); ok {
+		stage.StartedBy = prev.StartedBy
+	}
 	defer func() { _ = WriteStage(p.Dir, stage) }()
 	if err != nil {
 		res.Error = err.Error()
@@ -96,7 +99,11 @@ func RunPlan(ctx context.Context, p Plan, env Env) error {
 var errNotHealthy = errors.New("the new build did not report healthy in time")
 
 func runPlan(ctx context.Context, p Plan, env *Env) error {
-	_ = WriteStage(p.Dir, Stage{Name: StageInstalling, Percent: -1, Version: p.To, At: env.Now()})
+	first := Stage{Name: StageInstalling, Percent: -1, Version: p.To, At: env.Now()}
+	if prev, ok := ReadStage(p.Dir); ok {
+		first.StartedBy = prev.StartedBy
+	}
+	_ = WriteStage(p.Dir, first)
 	want := p.To
 	if p.Kind == "restart" {
 		want = p.From

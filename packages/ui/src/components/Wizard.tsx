@@ -60,6 +60,8 @@ export interface WizardProps {
   onTryAgain?: (() => void) | undefined;
   /** The first step the user acts on (a read-only step before it has no Back). */
   firstStep?: number | undefined;
+  /** The index of the step that failed. Set with the phase `failed`, that step is marked failed and is not ticked. */
+  failedAt?: number | undefined;
   /** Show "Nothing has changed yet." (on the Review step). */
   review?: boolean | undefined;
   /** The words for the state a stored run is in, said once above the content. */
@@ -76,7 +78,13 @@ export function Wizard(p: WizardProps) {
   const last = p.steps.length - 1;
   const locked = p.phase === 'running' || p.phase === 'loading';
   const atEnd = END.includes(p.phase);
-  const current = atEnd && p.phase !== 'failed' ? last : p.current;
+  const failedStep = p.phase === 'failed' ? p.failedAt : undefined;
+  const current =
+    failedStep !== undefined
+      ? failedStep
+      : atEnd && p.phase !== 'failed'
+        ? last
+        : p.current;
   const isDone = p.phase === 'done' || p.phase === 'done-after-reload';
 
   // A wizard inside a screen that has its own primary (a machine page) draws default buttons (UX-4).
@@ -174,12 +182,13 @@ export function Wizard(p: WizardProps) {
               <button
                 type="button"
                 className="ds-steps__button"
+                data-failed={i === failedStep || undefined}
                 aria-current={standing === 'now' ? 'step' : undefined}
                 disabled={!pressable && standing !== 'now'}
                 onClick={() => p.onStep?.(i)}
               >
                 <span className="ds-steps__n" aria-hidden="true">
-                  {standing === 'done' ? '✓' : i + 1}
+                  {i === failedStep ? '✕' : standing === 'done' ? '✓' : i + 1}
                 </span>{' '}
                 {name}
               </button>

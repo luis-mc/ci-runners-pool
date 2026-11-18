@@ -4,6 +4,7 @@
 // Keyboard (WAI-ARIA APG date picker): the grid is one tab stop; arrows move a day or a week,
 // Home/End go to the start or end of the week, Page Up/Down change the month (with Shift the year),
 // Enter or Space picks the focused day, Escape cancels.
+import { CaretInput } from '../components/CaretInput';
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import {
   clampDay,
@@ -324,7 +325,7 @@ export function DatePicker({
         <span id={hintId} className="ds-datepicker__hint">
           {typedPattern(locale)}
         </span>
-        <input
+        <CaretInput
           id={typedId}
           className="ds-datepicker__input"
           type="text"

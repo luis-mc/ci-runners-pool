@@ -1,0 +1,5 @@
+---
+change: minor
+task: OPS28
+---
+Adds R5.60, the runner kind of a repository (owner decision D94(a), 18 Nov 2026). Jobs of a public repository run only on ephemeral runners by default; a private repository may use any runner; the owner can override either on the Repositories page. Reasoning: the rule has to hold where GitHub decides, not in a scheduler of ours. Every ephemeral runner carries the label `ephemeral` and no persistent runner does, and an Ephemeral only repository gets that label in its `RUNS_ON_*` variables, so GitHub can never offer its jobs to a persistent runner. That needs no scheduler change, works with GitHub's queueing and with re-runs, and needs no check in each runner. A public repository set to Any runner shows a plain warning and asks first. A public repository with no ephemeral capacity shows that state with a link to Add runners and in Doctor, because its jobs would wait and nothing is moved to a persistent runner by itself. R5.60 applies only once a public repository is served at all (R5.54 to R5.56).

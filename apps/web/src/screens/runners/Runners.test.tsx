@@ -12,7 +12,7 @@ import {
   viewer,
 } from '../../testing/mock';
 import { currentJobText, isolationText, runnerStatus, stateCounts } from './Runners';
-import { machineSupports, runnerKind } from './AddRunners';
+import { containerBackendAllowed, machineSupports, sentence } from './AddRunners';
 
 afterEach(cleanup);
 
@@ -351,7 +351,7 @@ describe('Add runners', () => {
     ).toBeTruthy();
   });
 
-  it('asks for an ephemeral container runner only across systems', () => {
+  it('knows which systems a machine can run', () => {
     const win = machine({ os: 'windows', container_os: 'linux' });
     expect(machineSupports(win, 'linux')).toBe(true);
     expect(machineSupports(win, 'windows')).toBe(true);
@@ -359,9 +359,6 @@ describe('Add runners', () => {
     expect(
       machineSupports(machine({ os: 'windows', container_os: 'windows' }), 'linux'),
     ).toBe(false);
-    expect(runnerKind(win, 'linux')).toBe('ephemeral');
-    expect(runnerKind(win, 'windows')).toBe('persistent');
-    expect(runnerKind(machine(), 'linux')).toBe('persistent');
   });
 });
 
@@ -465,5 +462,117 @@ describe('Runners list truth (UX-1, UX-6, UX-19)', () => {
     expect(within(dialog).getByText('Runner crsp-linux-1')).toBeTruthy();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(api.count('DELETE', '/api/v1/runners/r1')).toBe(1));
+  });
+});
+
+describe('Add runners: Linux on a Windows machine (OPS27)', () => {
+  const win = (docker: boolean) =>
+    machine({
+      id: 'm2',
+      name: 'GameRoomPC',
+      os: 'windows',
+      container_os: 'linux',
+      backends: [
+        { name: 'persistent', present: true, usable: true, allowed: true },
+        { name: 'docker', present: true, usable: true, allowed: docker },
+      ],
+    });
+  const repos = { items: [], stale: { stale: false } };
+  const planOf = (steps: unknown[]) => ({
+    id: 'rp1',
+    area: 'runners',
+    state: 'planned',
+    created_at: 'x',
+    created_by: 'octo',
+    steps,
+  });
+  const step = (state: string, error?: string) => ({
+    id: 's1',
+    action: 'add_runner',
+    text: 'Add ephemeral runner crsp-pool-1',
+    needs_yes: false,
+    state,
+    ...(error ? { error } : {}),
+  });
+
+  it('asks the controller for the container runner of the pool, and knows the backend', () => {
+    expect(containerBackendAllowed(win(true))).toBe(true);
+    expect(containerBackendAllowed(win(false))).toBe(false);
+    expect(sentence('No way')).toBe('No way.');
+    expect(sentence('No way.')).toBe('No way.');
+  });
+
+  it('says on step 1 that the container backend is off, links to the machine and locks Next', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/machines', { items: [win(false)] })
+      .on('GET', '/api/v1/github/repositories', repos);
+    renderApp(api, '/pool/runners/add');
+    await screen.findByRole('group', { name: 'Add runners' });
+    expect(
+      (await screen.findAllByText(/The container backend is not allowed on this machine/))
+        .length,
+    ).toBeGreaterThan(0);
+    const link = screen.getByRole('button', { name: 'Allow it on the machine' });
+    expect(link.getAttribute('href')).toBe('/pool/machines/m2');
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Next' }).disabled).toBe(
+      true,
+    );
+    expect(api.count('POST', '/api/v1/runner-plans')).toBe(0);
+  });
+
+  it('shows a refusal of the plan on step 1 with its reason, not at Done', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/machines', { items: [win(true)] })
+      .on('GET', '/api/v1/github/repositories', repos)
+      .on('POST', '/api/v1/runner-plans', () =>
+        apiError(422, 'refused', 'machine GameRoomPC: not possible'),
+      );
+    renderApp(api, '/pool/runners/add');
+    await screen.findByRole('group', { name: 'Add runners' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Next' }));
+    expect(await screen.findByText('machine GameRoomPC: not possible.')).toBeTruthy();
+    expect(screen.queryByText('Nothing has changed yet.')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeTruthy();
+  });
+
+  it('never reaches Review with no step', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/machines', { items: [win(true)] })
+      .on('GET', '/api/v1/github/repositories', repos)
+      .on('POST', '/api/v1/runner-plans', planOf([]));
+    renderApp(api, '/pool/runners/add');
+    await screen.findByRole('group', { name: 'Add runners' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Next' }));
+    expect(
+      await screen.findByText(/Nothing would be added with these choices/),
+    ).toBeTruthy();
+    expect(screen.queryByText(/These steps run/)).toBeNull();
+  });
+
+  it('shows a failed step as failed, ends the text with a full stop, and Try again goes back to step 1', async () => {
+    const failed = planOf([step('failed', 'registration was refused')]);
+    const api = signedIn()
+      .on('GET', '/api/v1/machines', { items: [win(true)] })
+      .on('GET', '/api/v1/github/repositories', repos)
+      .on('POST', '/api/v1/runner-plans', planOf([step('planned')]))
+      .on('POST', '/api/v1/runner-plans/:id/apply', { ...failed, state: 'failed' })
+      .on('GET', '/api/v1/runner-plans/:id', { ...failed, state: 'failed' });
+    renderApp(api, '/pool/runners/add');
+    await screen.findByRole('group', { name: 'Add runners' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Next' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add 1 runner' }));
+    const text = await screen.findByText(/The runners were not all added\./);
+    expect(text.textContent).toBe(
+      'The runners were not all added. registration was refused.',
+    );
+    const strip = screen.getByRole('list', { name: 'Steps' });
+    expect(
+      within(strip).getByRole('button', { name: /Registering/ }).textContent,
+    ).toContain('✕');
+    expect(strip.textContent).not.toMatch(/✓ Registering/);
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('button', { name: 'Next' })).toBeTruthy();
+    expect(screen.getByText('registration was refused.')).toBeTruthy();
+    expect(api.count('POST', '/api/v1/runner-plans/rp1/apply')).toBe(1);
   });
 });

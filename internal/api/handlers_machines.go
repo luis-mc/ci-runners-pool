@@ -216,6 +216,10 @@ func machineToAPI(v machines.View, now time.Time) gen.Machine {
 		out.JoinedAt = machinesPtr(m.JoinedAt)
 	}
 	out.Accepting = machinesPtr(m.Accepting)
+	out.Taking = gen.MachineTaking{TakingJobs: m.Taking.Taking}
+	if m.Taking.Reason != "" {
+		out.Taking.Reason = machinesPtr(gen.MachineTakingReason(m.Taking.Reason))
+	}
 	if v.Engine.Usable && v.Engine.ContainerOS != "" {
 		out.ContainerOs = machinesPtr(gen.OS(v.Engine.ContainerOS))
 	}

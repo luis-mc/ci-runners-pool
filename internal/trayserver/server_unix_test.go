@@ -24,6 +24,7 @@ type fakeBackend struct {
 	// The policy calls (CRSP75): the last mode and pause the tray sent.
 	mode, pause string
 	resumed     int
+	cancelled   int
 }
 
 func (f *fakeBackend) policy() tray.Response {
@@ -47,6 +48,12 @@ func (f *fakeBackend) Resume(_ context.Context, c Caller) (tray.Response, error)
 	f.caller, f.pause, f.mode = c, "", ""
 	f.resumed++
 	return f.policy(), nil
+}
+
+func (f *fakeBackend) Cancel(_ context.Context, c Caller) (tray.Response, error) {
+	f.caller = c
+	f.cancelled++
+	return tray.Response{State: tray.StateHealthy, Stage: &tray.StageInfo{Name: "waiting_for_jobs", Percent: -1, StartedBy: "tray"}}, nil
 }
 
 func (f *fakeBackend) Status(context.Context) (tray.Response, error) {
@@ -201,6 +208,16 @@ func TestChannelModePauseAndResume(t *testing.T) {
 	}
 	if st, err = c.Resume(ctx); err != nil || fb.resumed != 1 || st.Policy.Mode != "automatic" {
 		t.Fatalf("resume: %v %+v", err, st.Policy)
+	}
+}
+
+// D15: Cancel is its own call and the answer carries the stage.
+func TestChannelCancelIsItsOwnCall(t *testing.T) {
+	fb := &fakeBackend{}
+	c, _ := start(t, fb)
+	st, err := c.Cancel(context.Background())
+	if err != nil || fb.cancelled != 1 || st.Update.Stage == nil || st.Update.Stage.StartedBy != "tray" {
+		t.Fatalf("cancel: %v %d %+v", err, fb.cancelled, st.Update.Stage)
 	}
 }
 

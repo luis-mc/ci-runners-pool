@@ -48,6 +48,8 @@ type Env struct {
 	Sleep   func(ctx context.Context, d time.Duration)
 	Now     func() time.Time
 	Measure func() load.Reading
+	// Cleaner lets a test replace parts of the real cleaner.
+	Cleaner func(*Cleaner)
 	// Disk overrides the disk read of the disk guard (tests).
 	Disk func() (runnercache.Disk, error)
 }
@@ -200,6 +202,9 @@ func runStarted(ctx context.Context, args []string, e Env) int {
 		}
 	}
 	cfg.Report, cfg.Healthy = e.reporter("job-started")
+	if Enabled(e.Getenv) {
+		cfg.Clean = func() CleanResult { return e.cleaner(PhaseStarted, log).Clean() }
+	}
 	return RunGate(ctx, cfg)
 }
 
@@ -213,9 +218,14 @@ func runCompleted(ctx context.Context, args []string, e Env) int {
 		_, _ = fmt.Fprintln(e.Stderr, "job-completed:", err)
 	}
 	report, healthy := e.reporter("job-completed")
-	return RunJobDone(ctx, DoneConfig{
+	logf := e.logger(*logPath)
+	var clean func() CleanResult
+	if Enabled(e.Getenv) {
+		clean = func() CleanResult { return e.cleaner(PhaseCompleted, logf).Clean() }
+	}
+	return RunJobDone(ctx, DoneConfig{Clean: clean,
 		Client: e.client(), Job: jobFromEnv(e.Getenv), Workspace: e.Getenv("GITHUB_WORKSPACE"), KeepWork: *keep,
-		Log: e.logger(*logPath), Caches: runnercache.CapsFromEnv(e.Getenv), Report: report, Healthy: healthy,
+		Log: logf, Caches: runnercache.CapsFromEnv(e.Getenv), Report: report, Healthy: healthy,
 	})
 }
 
@@ -236,4 +246,13 @@ func osDisk(getenv func(string) string) func() (runnercache.Disk, error) {
 		}
 		return runnercache.Disk{}, last
 	}
+}
+
+// cleaner is the real cleaner for this hook; the environment is the hook's own.
+func (e Env) cleaner(phase string, log func(string)) *Cleaner {
+	c := NewCleaner(e.Getenv, phase, log)
+	if e.Cleaner != nil {
+		e.Cleaner(c)
+	}
+	return c
 }

@@ -29,7 +29,7 @@ func (q *Queries) DeleteRunnerUsageBefore(ctx context.Context, reportedAt string
 }
 
 const getRunner = `-- name: GetRunner :one
-SELECT id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind, repository_id, organization, runner_group, github_runner_id, runner_version, state, managed, service_name, account, folder, current_job_id, created_at, updated_at, route_pool, route_queue, size_class FROM runners WHERE id = ?
+SELECT id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind, repository_id, organization, runner_group, github_runner_id, runner_version, state, managed, service_name, account, folder, current_job_id, created_at, updated_at, route_pool, route_queue, size_class, keep_dependencies, dependency_cache_bytes, unclean_reason FROM runners WHERE id = ?
 `
 
 func (q *Queries) GetRunner(ctx context.Context, id string) (Runner, error) {
@@ -62,12 +62,15 @@ func (q *Queries) GetRunner(ctx context.Context, id string) (Runner, error) {
 		&i.RoutePool,
 		&i.RouteQueue,
 		&i.SizeClass,
+		&i.KeepDependencies,
+		&i.DependencyCacheBytes,
+		&i.UncleanReason,
 	)
 	return i, err
 }
 
 const getRunnerByService = `-- name: GetRunnerByService :one
-SELECT id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind, repository_id, organization, runner_group, github_runner_id, runner_version, state, managed, service_name, account, folder, current_job_id, created_at, updated_at, route_pool, route_queue, size_class FROM runners WHERE machine_id = ? AND service_name = ?
+SELECT id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind, repository_id, organization, runner_group, github_runner_id, runner_version, state, managed, service_name, account, folder, current_job_id, created_at, updated_at, route_pool, route_queue, size_class, keep_dependencies, dependency_cache_bytes, unclean_reason FROM runners WHERE machine_id = ? AND service_name = ?
 `
 
 type GetRunnerByServiceParams struct {
@@ -105,6 +108,9 @@ func (q *Queries) GetRunnerByService(ctx context.Context, arg GetRunnerByService
 		&i.RoutePool,
 		&i.RouteQueue,
 		&i.SizeClass,
+		&i.KeepDependencies,
+		&i.DependencyCacheBytes,
+		&i.UncleanReason,
 	)
 	return i, err
 }
@@ -113,33 +119,36 @@ const insertRunner = `-- name: InsertRunner :exec
 
 INSERT INTO runners (id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind,
     repository_id, organization, runner_group, runner_version, state, managed, service_name, account, folder,
-    route_pool, route_queue, size_class)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    route_pool, route_queue, size_class, keep_dependencies, dependency_cache_bytes, unclean_reason)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertRunnerParams struct {
-	ID            string
-	Name          string
-	MachineID     string
-	Os            string
-	Arch          string
-	Kind          string
-	Backend       string
-	Isolation     string
-	Labels        string
-	ScopeKind     string
-	RepositoryID  sql.NullInt64
-	Organization  sql.NullString
-	RunnerGroup   sql.NullString
-	RunnerVersion string
-	State         string
-	Managed       int64
-	ServiceName   string
-	Account       string
-	Folder        string
-	RoutePool     string
-	RouteQueue    string
-	SizeClass     string
+	ID                   string
+	Name                 string
+	MachineID            string
+	Os                   string
+	Arch                 string
+	Kind                 string
+	Backend              string
+	Isolation            string
+	Labels               string
+	ScopeKind            string
+	RepositoryID         sql.NullInt64
+	Organization         sql.NullString
+	RunnerGroup          sql.NullString
+	RunnerVersion        string
+	State                string
+	Managed              int64
+	ServiceName          string
+	Account              string
+	Folder               string
+	RoutePool            string
+	RouteQueue           string
+	SizeClass            string
+	KeepDependencies     int64
+	DependencyCacheBytes int64
+	UncleanReason        string
 }
 
 // Runners, their state changes and usage (runners R5.2 to R5.6, R5.12).
@@ -167,6 +176,9 @@ func (q *Queries) InsertRunner(ctx context.Context, arg InsertRunnerParams) erro
 		arg.RoutePool,
 		arg.RouteQueue,
 		arg.SizeClass,
+		arg.KeepDependencies,
+		arg.DependencyCacheBytes,
+		arg.UncleanReason,
 	)
 	return err
 }
@@ -193,7 +205,7 @@ func (q *Queries) InsertRunnerEvent(ctx context.Context, arg InsertRunnerEventPa
 }
 
 const listRunners = `-- name: ListRunners :many
-SELECT id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind, repository_id, organization, runner_group, github_runner_id, runner_version, state, managed, service_name, account, folder, current_job_id, created_at, updated_at, route_pool, route_queue, size_class FROM runners
+SELECT id, name, machine_id, os, arch, kind, backend, isolation, labels, scope_kind, repository_id, organization, runner_group, github_runner_id, runner_version, state, managed, service_name, account, folder, current_job_id, created_at, updated_at, route_pool, route_queue, size_class, keep_dependencies, dependency_cache_bytes, unclean_reason FROM runners
 WHERE (?1 IS NULL OR machine_id = ?1)
   AND (?2 IS NULL OR os = ?2)
   AND (?3 IS NULL OR state = ?3)
@@ -249,6 +261,9 @@ func (q *Queries) ListRunners(ctx context.Context, arg ListRunnersParams) ([]Run
 			&i.RoutePool,
 			&i.RouteQueue,
 			&i.SizeClass,
+			&i.KeepDependencies,
+			&i.DependencyCacheBytes,
+			&i.UncleanReason,
 		); err != nil {
 			return nil, err
 		}
@@ -261,6 +276,28 @@ func (q *Queries) ListRunners(ctx context.Context, arg ListRunnersParams) ([]Run
 		return nil, err
 	}
 	return items, nil
+}
+
+const setRunnerHygiene = `-- name: SetRunnerHygiene :exec
+UPDATE runners SET keep_dependencies = ?, dependency_cache_bytes = ?, unclean_reason = ?,
+    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?
+`
+
+type SetRunnerHygieneParams struct {
+	KeepDependencies     int64
+	DependencyCacheBytes int64
+	UncleanReason        string
+	ID                   string
+}
+
+func (q *Queries) SetRunnerHygiene(ctx context.Context, arg SetRunnerHygieneParams) error {
+	_, err := q.exec(ctx, q.setRunnerHygieneStmt, setRunnerHygiene,
+		arg.KeepDependencies,
+		arg.DependencyCacheBytes,
+		arg.UncleanReason,
+		arg.ID,
+	)
+	return err
 }
 
 const setRunnerRegistration = `-- name: SetRunnerRegistration :exec
