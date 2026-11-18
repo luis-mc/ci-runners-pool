@@ -5935,6 +5935,17 @@ components:
           format: int64
         current_job:
           $ref: '#/components/schemas/Job'
+        serving:
+          type: string
+          description: >-
+            Pool runner only: the repository (owner/name) of the job it runs
+            now. Absent when it is idle (runners R5.80).
+        registrations:
+          type: integer
+          minimum: 0
+          description: >-
+            Pool runner only: how many hidden GitHub registrations it holds,
+            one for each repository that uses the pool. Absent on other runners.
         created_at:
           type: string
           format: date-time
@@ -5961,7 +5972,11 @@ components:
       properties:
         kind:
           type: string
-          enum: [repository, organization]
+          enum: [repository, organization, pool]
+          description: >-
+            `pool` is a pool runner: a machine, a system and labels with no
+            repository. Its GitHub registrations are hidden, one for each
+            repository that uses the pool (runners R5.80).
         repository_id:
           type: integer
           format: int64
@@ -5979,7 +5994,7 @@ components:
             $ref: '#/components/schemas/Runner'
     PlanRunnersRequest:
       type: object
-      required: [os, kind, machine_id, count, scope]
+      required: [os, kind, machine_id, count]
       properties:
         os:
           $ref: '#/components/schemas/OS'
@@ -5997,15 +6012,15 @@ components:
             type: string
         scope:
           $ref: '#/components/schemas/RunnerScope'
+          description: >-
+            Leave it out to add pool runners (scope `pool`): the user adds
+            runners per machine, never a repository (runners R5.80).
       example:
         os: linux
         kind: persistent
         machine_id: m_01JCRSP0001
         count: 2
         labels: [self-hosted, linux, x64]
-        scope:
-          kind: repository
-          repository_id: 700100
 
     # ---------- jobs, slots, live
     Job:

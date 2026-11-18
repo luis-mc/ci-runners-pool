@@ -908,16 +908,16 @@ func (e MachineState) Valid() bool {
 
 // Defines values for NotificationChannelScope.
 const (
-	Personal NotificationChannelScope = "personal"
-	Pool     NotificationChannelScope = "pool"
+	NotificationChannelScopePersonal NotificationChannelScope = "personal"
+	NotificationChannelScopePool     NotificationChannelScope = "pool"
 )
 
 // Valid indicates whether the value is a known member of the NotificationChannelScope enum.
 func (e NotificationChannelScope) Valid() bool {
 	switch e {
-	case Personal:
+	case NotificationChannelScopePersonal:
 		return true
-	case Pool:
+	case NotificationChannelScopePool:
 		return true
 	default:
 		return false
@@ -1518,6 +1518,7 @@ func (e RunnerKind) Valid() bool {
 // Defines values for RunnerScopeKind.
 const (
 	RunnerScopeKindOrganization RunnerScopeKind = "organization"
+	RunnerScopeKindPool         RunnerScopeKind = "pool"
 	RunnerScopeKindRepository   RunnerScopeKind = "repository"
 )
 
@@ -1525,6 +1526,8 @@ const (
 func (e RunnerScopeKind) Valid() bool {
 	switch e {
 	case RunnerScopeKindOrganization:
+		return true
+	case RunnerScopeKindPool:
 		return true
 	case RunnerScopeKindRepository:
 		return true
@@ -3433,12 +3436,14 @@ type PlanRepositoryChangesRequestChangesPool string
 
 // PlanRunnersRequest defines model for PlanRunnersRequest.
 type PlanRunnersRequest struct {
-	Count     int         `json:"count"`
-	Kind      RunnerKind  `json:"kind"`
-	Labels    *[]string   `json:"labels,omitempty"`
-	MachineId string      `json:"machine_id"`
-	Os        OS          `json:"os"`
-	Scope     RunnerScope `json:"scope"`
+	Count     int        `json:"count"`
+	Kind      RunnerKind `json:"kind"`
+	Labels    *[]string  `json:"labels,omitempty"`
+	MachineId string     `json:"machine_id"`
+	Os        OS         `json:"os"`
+
+	// Scope Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.80).
+	Scope *RunnerScope `json:"scope,omitempty"`
 }
 
 // PlanStep defines model for PlanStep.
@@ -3820,9 +3825,15 @@ type Runner struct {
 	Os      OS     `json:"os"`
 
 	// Reason Why the runner is in a state that is not idle or busy (UX-19). Absent when there is nothing to say.
-	Reason        *string     `json:"reason,omitempty"`
+	Reason *string `json:"reason,omitempty"`
+
+	// Registrations Pool runner only: how many hidden GitHub registrations it holds, one for each repository that uses the pool. Absent on other runners.
+	Registrations *int        `json:"registrations,omitempty"`
 	RunnerVersion *string     `json:"runner_version,omitempty"`
 	Scope         RunnerScope `json:"scope"`
+
+	// Serving Pool runner only: the repository (owner/name) of the job it runs now. Absent when it is idle (runners R5.80).
+	Serving *string `json:"serving,omitempty"`
 
 	// State What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
 	State RunnerState `json:"state"`
@@ -3844,13 +3855,14 @@ type RunnerList struct {
 
 // RunnerScope defines model for RunnerScope.
 type RunnerScope struct {
+	// Kind `pool` is a pool runner: a machine, a system and labels with no repository. Its GitHub registrations are hidden, one for each repository that uses the pool (runners R5.80).
 	Kind         RunnerScopeKind `json:"kind"`
 	Organization *string         `json:"organization,omitempty"`
 	RepositoryId *int64          `json:"repository_id,omitempty"`
 	RunnerGroup  *string         `json:"runner_group,omitempty"`
 }
 
-// RunnerScopeKind defines model for RunnerScope.Kind.
+// RunnerScopeKind `pool` is a pool runner: a machine, a system and labels with no repository. Its GitHub registrations are hidden, one for each repository that uses the pool (runners R5.80).
 type RunnerScopeKind string
 
 // RunnerState What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.

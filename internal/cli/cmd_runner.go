@@ -67,14 +67,14 @@ func cmdRunner() *command {
 					output.Table(c.env.Stdout, output.MaxWidth, []string{"NAME", "MACHINE", "OS", "BACKEND", "KIND", "LABELS", "JOB", "AGE"}, rows)
 					return nil
 				}},
-			{name: "add", summary: "add runners on a machine", args: "--machine M --os OS --repo OWNER/NAME [--backend B] [--persistent] [--count N] [--yes]",
+			{name: "add", summary: "add runners on a machine", args: "--machine M --os OS [--backend B] [--persistent] [--count N] [--yes]",
 				flags: func(c *call, fs *flag.FlagSet) {
 					fs.String("machine", "", "machine to add the runners on")
 					fs.String("os", "", "linux, windows or macos")
 					fs.String("backend", "", "isolation backend, for example docker")
 					fs.Bool("persistent", false, "keep state between jobs")
 					fs.Int("count", 1, "how many runners")
-					fs.String("repo", "", "repository the runners serve, OWNER/NAME")
+					fs.String("repo", "", "only this repository, OWNER/NAME (leave out: the runners serve every repository that uses the pool)")
 					fs.String("labels", "", "labels, comma separated")
 					yesFlag(fs)
 				},
@@ -117,9 +117,6 @@ func (c *call) runnerAdd() error {
 	count := mustInt(f("count"))
 	if count < 1 || count > 64 {
 		return fail(ExitUsage, "--count must be between 1 and 64.")
-	}
-	if f("repo") == "" {
-		return fail(ExitUsage, "Say which repository the runners serve: --repo OWNER/NAME.")
 	}
 	s, err := c.open()
 	if err != nil {
@@ -170,16 +167,18 @@ func (c *call) runnerAdd() error {
 		}
 		return fail(ExitUsage, "Machine %s does not support %s. %s Nothing changed.", m.Name, want, hint)
 	}
-	repo, err := c.findRepo(s, f("repo"))
-	if err != nil {
-		return err
-	}
 	kind := client.RunnerKindEphemeral
 	if f("persistent") == "true" {
 		kind = client.RunnerKindPersistent
 	}
-	req := client.PlanRunnersRequest{Os: os, Kind: kind, MachineId: m.Id, Count: count,
-		Scope: client.RunnerScope{Kind: client.RunnerScopeKindRepository, RepositoryId: &repo.Id}}
+	req := client.PlanRunnersRequest{Os: os, Kind: kind, MachineId: m.Id, Count: count}
+	if f("repo") != "" { // without a repository the runners are pool runners
+		repo, err := c.findRepo(s, f("repo"))
+		if err != nil {
+			return err
+		}
+		req.Scope = &client.RunnerScope{Kind: client.RunnerScopeKindRepository, RepositoryId: &repo.Id}
+	}
 	if l := splitList(f("labels")); len(l) > 0 {
 		req.Labels = &l
 	}
