@@ -218,3 +218,19 @@ func TestOnHelloAsksTheAgentToMeasureAndOtherMessagesAreNotTaken(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+// caches R5.56: each persistent runner's own dependency folder is a line of its
+// own with its size, next to the shared caches.
+func TestDependencyFolderOfARunnerIsListed(t *testing.T) {
+	s, _, _ := setup()
+	s.HandleReport("m1", &agentv1.CacheReport{Caches: []*agentv1.CacheStatus{
+		{RunnerName: "r1", Kind: "dependency_cache", SizeBytes: 7 << 20},
+	}})
+	l, err := s.List(context.Background(), "", caches.KindDependency)
+	if err != nil || len(l) != 1 || l[0].RunnerName != "r1" || l[0].Size != 7<<20 {
+		t.Fatalf("%+v %v", l, err)
+	}
+	if caches.KindName(caches.KindDependency) != "dependency cache" {
+		t.Fatal(caches.KindName(caches.KindDependency))
+	}
+}

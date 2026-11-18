@@ -26,6 +26,9 @@ import (
 const (
 	KindTool = "tool_cache"
 	KindRust = "rust_cache"
+	// KindDependency is the whole dependency folder of one persistent runner:
+	// one line per persistent runner with its size (caches R5.56, runners R5.90).
+	KindDependency = "dependency_cache"
 )
 
 // State of a cache.
@@ -170,7 +173,7 @@ func (s *Service) HandleReport(machineID string, r *agentv1.CacheReport) {
 	out := make([]entry, 0, len(r.GetCaches()))
 	for _, c := range r.GetCaches() {
 		kind := c.GetKind()
-		if kind != KindTool && kind != KindRust {
+		if kind != KindTool && kind != KindRust && kind != KindDependency {
 			continue
 		}
 		id := CacheID(machineID, c.GetRunnerName(), kind)
@@ -249,6 +252,8 @@ func KindName(kind string) string {
 		return "tool cache"
 	case KindRust:
 		return "Rust build cache"
+	case KindDependency:
+		return "dependency cache"
 	}
 	return kind
 }

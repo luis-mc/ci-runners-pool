@@ -151,6 +151,9 @@ const runnerScript = `IFS= read -r c || exit 1; test -n "$c" || exit 1; ACTIONS_
 // on standard input only (github-integration R5.40), and starts the runner. The runner
 // takes one job and exits (runners R5.25).
 func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.StartConfig) (backend.Handle, error) {
+	if cfg.JITConfig == "" && cfg.Registration != "" && r.Container {
+		return b.StartPersistent(ctx, r, cfg)
+	}
 	b.learn(cfg.JITConfig, cfg.Registration, cfg.Removal)
 	if cfg.JITConfig == "" {
 		return backend.Handle{}, ErrNeedsJIT
@@ -352,6 +355,9 @@ func (b *Backend) Stop(ctx context.Context, h backend.Handle) error {
 	if !ok {
 		return fmt.Errorf("bad runner reference %q", h.Ref)
 	}
+	if IsPersistentPool(pool) {
+		return b.stopPersistent(ctx, name)
+	}
 	res, err := b.run(ctx, "exec", pool, "pkill", "-TERM", "-f", jobDir(name)+"/bin/Runner.Listener")
 	if err != nil {
 		return err
@@ -373,6 +379,9 @@ func (b *Backend) CleanUp(ctx context.Context, h backend.Handle) error {
 	pool, name, ok := splitRef(h.Ref)
 	if !ok {
 		return fmt.Errorf("bad runner reference %q", h.Ref)
+	}
+	if IsPersistentPool(pool) {
+		return b.cleanUpPersistent(ctx, name)
 	}
 	if err := b.cleanUp(ctx, pool, name); err != nil {
 		return err

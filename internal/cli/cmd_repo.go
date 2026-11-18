@@ -142,13 +142,14 @@ func cmdRepo() *command {
 				run: func(c *call, args []string) error { return c.setPool(args, "on") }},
 			{name: "disable", summary: "turn the pool off for a repository", args: "OWNER/NAME [--yes]", flags: func(c *call, fs *flag.FlagSet) { yesFlag(fs) },
 				run: func(c *call, args []string) error { return c.setPool(args, "off") }},
-			{name: "policy", summary: "show or change a repository's policy", args: "OWNER/NAME [--labels A,B] [--max-parallel N] [--priority N] [--allow-fork-prs] [--light-runner=true|false] [--yes]",
+			{name: "policy", summary: "show or change a repository's policy", args: "OWNER/NAME [--labels A,B] [--max-parallel N] [--priority N] [--allow-fork-prs] [--light-runner=true|false] [--runner-kind ephemeral-only|any-runner|default] [--yes]",
 				flags: func(c *call, fs *flag.FlagSet) {
 					fs.String("labels", "", "generic labels, comma separated")
 					fs.Int("max-parallel", 0, "most jobs at once")
 					fs.Int("priority", 0, "higher goes first")
 					fs.Bool("allow-fork-prs", false, "run jobs from fork pull requests")
 					fs.Bool("light-runner", true, "keep a light runner for jobs that last seconds")
+					fs.String("runner-kind", "", "which runners take the jobs: ephemeral-only, any-runner, or default (public: ephemeral-only, private: any-runner)")
 					yesFlag(fs)
 				},
 				run: func(c *call, args []string) error { return c.repoPolicy(args) }},
@@ -316,6 +317,16 @@ func (c *call) repoPolicy(args []string) error {
 			upd.ConfirmForkRisk = &t
 		}
 	}
+	if set["runner-kind"] {
+		k, err := parseRunnerKind(c.fs.Lookup("runner-kind").Value.String())
+		if err != nil {
+			return err
+		}
+		upd.RunnerKinds, changed = &k, true
+		if k == client.RepositoryPolicyUpdateRunnerKindsAnyRunner && repo.Visibility == client.Public {
+			_, _ = fmt.Fprintf(c.env.Stderr, "Warning: %s is a public repository. With Any runner, its jobs may run on a persistent runner that keeps files between jobs, and anyone who can open a pull request can start those jobs. Ephemeral only is the safe choice.\n", repo.FullName)
+		}
+	}
 	policy := repo.Policy
 	if changed {
 		r, err := s.client.UpdateRepositoryPolicyWithResponse(c.env.Context, repo.Id, upd)
@@ -332,8 +343,8 @@ func (c *call) repoPolicy(args []string) error {
 	if c.g.json {
 		return output.JSON(c.env.Stdout, policy)
 	}
-	_, _ = fmt.Fprintf(c.env.Stdout, "Repository:      %s\nLabels:          %s\nMax parallel:    %d\nPriority:        %d\nFork PRs:        %s\nLight runner:    %s\n",
-		repo.FullName, strings.Join(policy.Labels, ", "), policy.MaxParallelJobs, policy.Priority, onOff(policy.AllowForkPullRequests), onOff(policy.LightRunner))
+	_, _ = fmt.Fprintf(c.env.Stdout, "Repository:      %s\nLabels:          %s\nMax parallel:    %d\nPriority:        %d\nFork PRs:        %s\nLight runner:    %s\nRunner kind:     %s\n",
+		repo.FullName, strings.Join(policy.Labels, ", "), policy.MaxParallelJobs, policy.Priority, onOff(policy.AllowForkPullRequests), onOff(policy.LightRunner), repoKindText(policy))
 	if changed {
 		_, _ = fmt.Fprintln(c.env.Stderr, "Policy saved.")
 	}
@@ -405,4 +416,33 @@ func onOff(b bool) string {
 		return "on"
 	}
 	return "off"
+}
+
+// parseRunnerKind reads the --runner-kind value (github-integration R5.60).
+func parseRunnerKind(v string) (client.RepositoryPolicyUpdateRunnerKinds, error) {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "ephemeral-only", "ephemeral", "ephemeral_only":
+		return client.RepositoryPolicyUpdateRunnerKindsEphemeralOnly, nil
+	case "any-runner", "any", "any_runner":
+		return client.RepositoryPolicyUpdateRunnerKindsAnyRunner, nil
+	case "default":
+		return client.RepositoryPolicyUpdateRunnerKindsDefault, nil
+	}
+	return "", fail(ExitUsage, "--runner-kind takes ephemeral-only, any-runner or default.")
+}
+
+// repoKindText says which runners take a repository's jobs and whether the
+// owner chose it or it is the default of the visibility.
+func repoKindText(p client.RepositoryPolicy) string {
+	if p.RunnerKinds == nil {
+		return "-"
+	}
+	text := "Any runner"
+	if *p.RunnerKinds == client.RepositoryPolicyRunnerKindsEphemeralOnly {
+		text = "Ephemeral only"
+	}
+	if p.RunnerKindsSet != nil && *p.RunnerKindsSet {
+		return text + " (set by you)"
+	}
+	return text + " (default)"
 }

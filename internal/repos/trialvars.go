@@ -119,7 +119,7 @@ func (t *TrialVars) Desired(ctx context.Context, full string) (map[string]string
 	}
 	// The crsp labels, not the hosted ones: a repository on fallback still
 	// gets a canary on crsp.
-	return t.s.desired(ctx, pol, nil)
+	return t.s.desired(ctx, pol, nil, pol.EphemeralOnly(r.Visibility))
 }
 
 // Dispatch implements trial.Dispatcher.

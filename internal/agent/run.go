@@ -344,6 +344,7 @@ type link struct {
 	following bool
 
 	wipes  *wiper
+	hyg    hygieneKeeper
 	budget *Budgeter
 
 	// kick wakes the policy loop; capMu guards cap, the last CPU cap set.
@@ -576,6 +577,8 @@ func (l *link) handle(ctx context.Context, msg *agentv1.SessionResponse) error {
 		go l.runHostCommand(ctx, m.RunHostCommand)
 	case *agentv1.SessionResponse_MeasureCaches:
 		go l.reportCaches(ctx, m.MeasureCaches.GetCommandId())
+	case *agentv1.SessionResponse_RunnerHygiene:
+		l.applyHygiene(ctx, m.RunnerHygiene)
 	case *agentv1.SessionResponse_WipeCache:
 		l.wipes.start(ctx, m.WipeCache)
 	case *agentv1.SessionResponse_UpdateAgent:
@@ -601,6 +604,8 @@ func (l *link) reportCaches(ctx context.Context, commandID string) {
 		Caches: MeasureCaches(ctx, l.cfg.Caches, l.cfg.cacheFS()),
 	}
 	_ = l.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_CacheReport{CacheReport: rep}})
+	// The clean-up state of each persistent runner goes with it (runners R5.91).
+	l.reportClean(ctx)
 }
 
 // cacheLoop reports once when the session opens and then every CacheEvery.

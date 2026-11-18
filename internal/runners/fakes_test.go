@@ -81,6 +81,18 @@ func (m *memStore) SetRunnerPool(_ context.Context, id, poolRunnerID string) err
 	return nil
 }
 
+func (m *memStore) SetRunnerHygiene(_ context.Context, id string, h Hygiene) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	r, ok := m.runners[id]
+	if !ok {
+		return ErrNotFound
+	}
+	r.KeepDependencies, r.DependencyCacheBytes, r.UncleanReason = h.KeepDependencies, h.DependencyCacheBytes, h.UncleanReason
+	m.runners[id] = r
+	return nil
+}
+
 func (m *memStore) SetRunnerService(_ context.Context, id, svc, acct string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

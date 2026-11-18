@@ -85,7 +85,7 @@ func (a *GitHubArea) refresh(ctx context.Context, p auth.Principal) syncState {
 	return syncState{at: a.Repos.LastSync(p.UserID)}
 }
 
-func toPolicy(p repos.Policy) gen.RepositoryPolicy {
+func toPolicy(p repos.Policy, visibility string) gen.RepositoryPolicy {
 	out := gen.RepositoryPolicy{AllowForkPullRequests: p.AllowForkPRs, Labels: nonNil(p.Labels), RunnerGroups: nonNil(p.RunnerGroups),
 		MaxParallelJobs: p.MaxParallelJobs, Priority: p.Priority, LightRunner: p.LightRunner}
 	if p.LegacyVars {
@@ -107,6 +107,10 @@ func toPolicy(p repos.Policy) gen.RepositoryPolicy {
 		}
 		out.HostedLabels = &v
 	}
+	kinds := gen.RepositoryPolicyRunnerKinds(p.EffectiveRunnerKinds(visibility))
+	out.RunnerKinds = &kinds
+	set := p.RunnerKindsSet()
+	out.RunnerKindsSet = &set
 	if len(p.ExtraPackages) > 0 {
 		v := append([]string(nil), p.ExtraPackages...)
 		out.ExtraPackages = &v
@@ -140,7 +144,7 @@ func nonNil(s []string) []string {
 func toRepository(v repos.RepositoryView) gen.Repository {
 	out := gen.Repository{Id: v.ID, InstallationId: v.InstallationID, FullName: v.FullName, Name: v.Name, Owner: v.Owner,
 		Visibility: gen.RepositoryVisibility(v.Visibility), PoolOn: v.PoolOn, UserIsGithubAdmin: v.UserIsAdmin, UserAdminKnown: v.AdminKnown,
-		Policy: toPolicy(v.Policy), Variables: []gen.RepositoryVariable{}}
+		Policy: toPolicy(v.Policy, v.Visibility), Variables: []gen.RepositoryVariable{}}
 	if v.Routing.Where != "" {
 		rt := gen.RepositoryRouting{Where: gen.RepositoryRoutingWhere(v.Routing.Where), Why: gen.RepositoryRoutingWhy(v.Routing.Why), UsedMinutes: v.Routing.UsedMinutes}
 		if len(v.Routing.OSes) > 0 {
@@ -160,6 +164,7 @@ func toRepository(v repos.RepositoryView) gen.Repository {
 		}
 		out.Problem = &pr
 	}
+	out.EphemeralCapacity = v.EphemeralCapacity
 	if v.LeftInstallation() {
 		why := gen.LeftInstallation
 		out.PoolOffReason = &why
@@ -379,13 +384,21 @@ func (s *server) UpdateRepositoryPolicy(ctx context.Context, req gen.UpdateRepos
 	u := repos.PolicyUpdate{Priority: b.Priority, MaxParallelJobs: b.MaxParallelJobs, AllowForkPRs: b.AllowForkPullRequests,
 		Labels: b.Labels, RunnerGroups: b.RunnerGroups, BudgetMemoryPct: b.BudgetMemoryPct, BudgetCPUPct: b.BudgetCpuPct, LightRunner: b.LightRunner, LegacyVars: b.LegacyVars,
 		HostedFallback: b.HostedFallback, FallbackCapMinutes: b.FallbackCapMinutes, HostedLabels: b.HostedLabels}
+	if b.RunnerKinds != nil {
+		k := string(*b.RunnerKinds)
+		u.RunnerKinds = &k
+	}
 	u.ConfirmForkRisk = b.ConfirmForkRisk != nil && *b.ConfirmForkRisk
 	u.ConfirmFallbackCost = b.ConfirmFallbackCost != nil && *b.ConfirmFallbackCost
 	pol, err := s.ghArea().Repos.UpdatePolicy(ctx, s.principal(ctx), req.RepositoryId, u)
 	if err != nil {
 		return fail(err)
 	}
-	return gen.UpdateRepositoryPolicy200JSONResponse(toPolicy(pol)), nil
+	visibility := ""
+	if v, err := s.ghArea().Repos.Get(ctx, s.principal(ctx), req.RepositoryId); err == nil {
+		visibility = v.Visibility
+	}
+	return gen.UpdateRepositoryPolicy200JSONResponse(toPolicy(pol, visibility)), nil
 }
 
 func toExtraPackages(names []string) gen.ExtraPackages {

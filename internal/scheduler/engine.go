@@ -26,6 +26,9 @@ type Engine struct {
 	// light says whether a runner is on the light queue, read from its stored
 	// route and never from its name (runners R5.70). Nil means no runner is.
 	light func(machineID, runnerName string) bool
+	// unclean gives the reason a runner is unclean after a failed clean-up, or
+	// "" (runners R5.91). Nil means every runner is clean.
+	unclean func(machineID, runnerName string) string
 	// warm lists the warm runners of a machine and warmRelease drains some of
 	// them when a real job needs the budget (scheduling R5.66). Both nil: no warm pool.
 	warm        func(machineID string) []WarmRunner
@@ -60,6 +63,11 @@ func WithAccepting(f func(machineID string) (ok bool, reason string)) Option {
 // runner serves the light queue. The runner registry answers it; the engine
 // never parses a runner name (runners R5.70). Set it before jobs arrive.
 func (e *Engine) SetLightLookup(f func(machineID, runnerName string) bool) { e.light = f }
+
+// SetUncleanLookup sets where the gate reads whether a runner is unclean: the
+// reason its last clean-up failed, "" when it is clean. An unclean runner takes
+// no new job (runners R5.91). The runner registry answers it.
+func (e *Engine) SetUncleanLookup(f func(machineID, runnerName string) string) { e.unclean = f }
 
 // NewEngine returns the slot queue over a store.
 func NewEngine(store slots.Store, opts ...Option) *Engine {

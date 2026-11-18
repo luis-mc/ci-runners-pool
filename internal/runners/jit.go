@@ -33,6 +33,8 @@ type JobRunner struct {
 // agent then calls Stop and CleanUp (R5.26), and a record of an ephemeral
 // runner is removed by the caller.
 func (s *Service) StartJobRunner(ctx context.Context, j JobRunner, actor string) (Record, error) {
+	// Every ephemeral runner carries the ephemeral label (R5.92).
+	j.Labels = append(append([]string(nil), j.Labels...), EphemeralLabel)
 	labels, err := ValidateLabels(j.Labels, s.PoolName, map[string]bool{"docker": true})
 	if err != nil {
 		return Record{}, err
