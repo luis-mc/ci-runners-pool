@@ -14,8 +14,15 @@ export interface Forecast {
   p50: number;
   lo: number;
   hi: number;
+  /** The quartiles, for a run's ETA range (sum of p25 to sum of p75 along the critical path). */
+  p25?: number;
+  p75?: number;
   basis: ForecastBasis;
   samples: number;
+  /** The machine class the sample is from, when the same-machine sample was used. */
+  machine?: string;
+  /** The median of the last 10 moved by more than a quarter against the 20 before; the last 10 are used. */
+  changed_lately?: boolean;
 }
 
 export interface StepItem {
@@ -50,7 +57,9 @@ export interface Eta {
   hi: number;
 }
 
-export interface JobItem extends Schemas['Job'] {
+type ContractJob = Schemas['Job'];
+
+export interface JobItem extends ContractJob {
   /** repo + workflow + job name + matrix values; the same job of another run has the same key. */
   job_key: string;
   /** The id of the job inside its run: job name plus matrix values. Edges use it. */
@@ -79,6 +88,7 @@ export interface HistoryPoint {
   seconds: number;
   result: JobResult;
   branch: string;
+  machine?: string;
 }
 
 export interface AttemptRef {
@@ -175,7 +185,7 @@ export function makeJobKey(
   ].join(' / ');
 }
 
-/** "test [ubuntu, 22]" for a matrix job, else the job name. */
-export function jobTitle(j: Pick<JobItem, 'job_name' | 'matrix'>): string {
-  return j.matrix.length ? `${j.job_name} [${j.matrix.join(', ')}]` : j.job_name;
+/** The job name as shown: "test [ubuntu, 22]" for a matrix job (the name already holds the values). */
+export function jobTitle(j: Pick<JobItem, 'job_name'>): string {
+  return j.job_name;
 }
