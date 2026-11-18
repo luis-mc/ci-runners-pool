@@ -39,11 +39,17 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.countUsersStmt, err = db.PrepareContext(ctx, countUsers); err != nil {
 		return nil, fmt.Errorf("error preparing query CountUsers: %w", err)
 	}
+	if q.dailySummarisedDaysStmt, err = db.PrepareContext(ctx, dailySummarisedDays); err != nil {
+		return nil, fmt.Errorf("error preparing query DailySummarisedDays: %w", err)
+	}
 	if q.deleteAuditBeforeStmt, err = db.PrepareContext(ctx, deleteAuditBefore); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteAuditBefore: %w", err)
 	}
 	if q.deleteJobHistoryBeforeStmt, err = db.PrepareContext(ctx, deleteJobHistoryBefore); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteJobHistoryBefore: %w", err)
+	}
+	if q.deleteJobStepsStmt, err = db.PrepareContext(ctx, deleteJobSteps); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteJobSteps: %w", err)
 	}
 	if q.deleteJobTicketsStmt, err = db.PrepareContext(ctx, deleteJobTickets); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteJobTickets: %w", err)
@@ -56,6 +62,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.deleteNotificationChannelStmt, err = db.PrepareContext(ctx, deleteNotificationChannel); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteNotificationChannel: %w", err)
+	}
+	if q.deletePendingFactsStmt, err = db.PrepareContext(ctx, deletePendingFacts); err != nil {
+		return nil, fmt.Errorf("error preparing query DeletePendingFacts: %w", err)
 	}
 	if q.deleteRunnerStmt, err = db.PrepareContext(ctx, deleteRunner); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteRunner: %w", err)
@@ -126,6 +135,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getJobHistoryStmt, err = db.PrepareContext(ctx, getJobHistory); err != nil {
 		return nil, fmt.Errorf("error preparing query GetJobHistory: %w", err)
 	}
+	if q.getJobsRowStmt, err = db.PrepareContext(ctx, getJobsRow); err != nil {
+		return nil, fmt.Errorf("error preparing query GetJobsRow: %w", err)
+	}
 	if q.getJoinCodeStmt, err = db.PrepareContext(ctx, getJoinCode); err != nil {
 		return nil, fmt.Errorf("error preparing query GetJoinCode: %w", err)
 	}
@@ -153,6 +165,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getOwnerStmt, err = db.PrepareContext(ctx, getOwner); err != nil {
 		return nil, fmt.Errorf("error preparing query GetOwner: %w", err)
 	}
+	if q.getPendingFactsStmt, err = db.PrepareContext(ctx, getPendingFacts); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPendingFacts: %w", err)
+	}
 	if q.getPlanStmt, err = db.PrepareContext(ctx, getPlan); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPlan: %w", err)
 	}
@@ -174,6 +189,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getRunnerByServiceStmt, err = db.PrepareContext(ctx, getRunnerByService); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRunnerByService: %w", err)
 	}
+	if q.getRunsRowStmt, err = db.PrepareContext(ctx, getRunsRow); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRunsRow: %w", err)
+	}
 	if q.getSettingStmt, err = db.PrepareContext(ctx, getSetting); err != nil {
 		return nil, fmt.Errorf("error preparing query GetSetting: %w", err)
 	}
@@ -185,6 +203,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getUserStmt, err = db.PrepareContext(ctx, getUser); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUser: %w", err)
+	}
+	if q.getWorkflowGraphStmt, err = db.PrepareContext(ctx, getWorkflowGraph); err != nil {
+		return nil, fmt.Errorf("error preparing query GetWorkflowGraph: %w", err)
 	}
 	if q.insertAuditEntryStmt, err = db.PrepareContext(ctx, insertAuditEntry); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertAuditEntry: %w", err)
@@ -203,6 +224,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.insertDoctorRunStmt, err = db.PrepareContext(ctx, insertDoctorRun); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertDoctorRun: %w", err)
+	}
+	if q.insertJobStepStmt, err = db.PrepareContext(ctx, insertJobStep); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertJobStep: %w", err)
 	}
 	if q.insertJoinCodeStmt, err = db.PrepareContext(ctx, insertJoinCode); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertJoinCode: %w", err)
@@ -279,6 +303,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listCliTokensStmt, err = db.PrepareContext(ctx, listCliTokens); err != nil {
 		return nil, fmt.Errorf("error preparing query ListCliTokens: %w", err)
 	}
+	if q.listDailySummariesStmt, err = db.PrepareContext(ctx, listDailySummaries); err != nil {
+		return nil, fmt.Errorf("error preparing query ListDailySummaries: %w", err)
+	}
 	if q.listExpiredSlotsStmt, err = db.PrepareContext(ctx, listExpiredSlots); err != nil {
 		return nil, fmt.Errorf("error preparing query ListExpiredSlots: %w", err)
 	}
@@ -288,8 +315,14 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listInstallationsStmt, err = db.PrepareContext(ctx, listInstallations); err != nil {
 		return nil, fmt.Errorf("error preparing query ListInstallations: %w", err)
 	}
+	if q.listJobAttemptsStmt, err = db.PrepareContext(ctx, listJobAttempts); err != nil {
+		return nil, fmt.Errorf("error preparing query ListJobAttempts: %w", err)
+	}
 	if q.listJobHistoryStmt, err = db.PrepareContext(ctx, listJobHistory); err != nil {
 		return nil, fmt.Errorf("error preparing query ListJobHistory: %w", err)
+	}
+	if q.listJobStepsStmt, err = db.PrepareContext(ctx, listJobSteps); err != nil {
+		return nil, fmt.Errorf("error preparing query ListJobSteps: %w", err)
 	}
 	if q.listLatestFindingsStmt, err = db.PrepareContext(ctx, listLatestFindings); err != nil {
 		return nil, fmt.Errorf("error preparing query ListLatestFindings: %w", err)
@@ -321,6 +354,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listRepositoriesStmt, err = db.PrepareContext(ctx, listRepositories); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRepositories: %w", err)
 	}
+	if q.listRunAttemptsStmt, err = db.PrepareContext(ctx, listRunAttempts); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRunAttempts: %w", err)
+	}
 	if q.listRunFindingsStmt, err = db.PrepareContext(ctx, listRunFindings); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRunFindings: %w", err)
 	}
@@ -351,6 +387,33 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.markMachinesOfflineStmt, err = db.PrepareContext(ctx, markMachinesOffline); err != nil {
 		return nil, fmt.Errorf("error preparing query MarkMachinesOffline: %w", err)
 	}
+	if q.pruneDailySummariesStmt, err = db.PrepareContext(ctx, pruneDailySummaries); err != nil {
+		return nil, fmt.Errorf("error preparing query PruneDailySummaries: %w", err)
+	}
+	if q.pruneJobFactsStmt, err = db.PrepareContext(ctx, pruneJobFacts); err != nil {
+		return nil, fmt.Errorf("error preparing query PruneJobFacts: %w", err)
+	}
+	if q.pruneJobStepsStmt, err = db.PrepareContext(ctx, pruneJobSteps); err != nil {
+		return nil, fmt.Errorf("error preparing query PruneJobSteps: %w", err)
+	}
+	if q.pruneJobStepsOfJobsStmt, err = db.PrepareContext(ctx, pruneJobStepsOfJobs); err != nil {
+		return nil, fmt.Errorf("error preparing query PruneJobStepsOfJobs: %w", err)
+	}
+	if q.pruneJobsStmt, err = db.PrepareContext(ctx, pruneJobs); err != nil {
+		return nil, fmt.Errorf("error preparing query PruneJobs: %w", err)
+	}
+	if q.pruneRunsStmt, err = db.PrepareContext(ctx, pruneRuns); err != nil {
+		return nil, fmt.Errorf("error preparing query PruneRuns: %w", err)
+	}
+	if q.pruneWorkflowGraphsStmt, err = db.PrepareContext(ctx, pruneWorkflowGraphs); err != nil {
+		return nil, fmt.Errorf("error preparing query PruneWorkflowGraphs: %w", err)
+	}
+	if q.putPendingFactsStmt, err = db.PrepareContext(ctx, putPendingFacts); err != nil {
+		return nil, fmt.Errorf("error preparing query PutPendingFacts: %w", err)
+	}
+	if q.putWorkflowGraphStmt, err = db.PrepareContext(ctx, putWorkflowGraph); err != nil {
+		return nil, fmt.Errorf("error preparing query PutWorkflowGraph: %w", err)
+	}
 	if q.recordSignInStmt, err = db.PrepareContext(ctx, recordSignIn); err != nil {
 		return nil, fmt.Errorf("error preparing query RecordSignIn: %w", err)
 	}
@@ -377,6 +440,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.setJobCompletedStmt, err = db.PrepareContext(ctx, setJobCompleted); err != nil {
 		return nil, fmt.Errorf("error preparing query SetJobCompleted: %w", err)
+	}
+	if q.setJobForecastStmt, err = db.PrepareContext(ctx, setJobForecast); err != nil {
+		return nil, fmt.Errorf("error preparing query SetJobForecast: %w", err)
 	}
 	if q.setJobSlotStmt, err = db.PrepareContext(ctx, setJobSlot); err != nil {
 		return nil, fmt.Errorf("error preparing query SetJobSlot: %w", err)
@@ -444,6 +510,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.updateUserRoleStmt, err = db.PrepareContext(ctx, updateUserRole); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateUserRole: %w", err)
 	}
+	if q.upsertDailySummaryStmt, err = db.PrepareContext(ctx, upsertDailySummary); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertDailySummary: %w", err)
+	}
 	if q.upsertDoctorStateStmt, err = db.PrepareContext(ctx, upsertDoctorState); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertDoctorState: %w", err)
 	}
@@ -459,6 +528,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.upsertJobHistoryStmt, err = db.PrepareContext(ctx, upsertJobHistory); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertJobHistory: %w", err)
 	}
+	if q.upsertJobsRowStmt, err = db.PrepareContext(ctx, upsertJobsRow); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertJobsRow: %w", err)
+	}
 	if q.upsertManagedVariableStmt, err = db.PrepareContext(ctx, upsertManagedVariable); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertManagedVariable: %w", err)
 	}
@@ -470,6 +542,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.upsertRunnerUsageStmt, err = db.PrepareContext(ctx, upsertRunnerUsage); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertRunnerUsage: %w", err)
+	}
+	if q.upsertRunsRowStmt, err = db.PrepareContext(ctx, upsertRunsRow); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertRunsRow: %w", err)
 	}
 	if q.upsertTrayBindingStmt, err = db.PrepareContext(ctx, upsertTrayBinding); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertTrayBinding: %w", err)
@@ -513,6 +588,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing countUsersStmt: %w", cerr)
 		}
 	}
+	if q.dailySummarisedDaysStmt != nil {
+		if cerr := q.dailySummarisedDaysStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing dailySummarisedDaysStmt: %w", cerr)
+		}
+	}
 	if q.deleteAuditBeforeStmt != nil {
 		if cerr := q.deleteAuditBeforeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteAuditBeforeStmt: %w", cerr)
@@ -521,6 +601,11 @@ func (q *Queries) Close() error {
 	if q.deleteJobHistoryBeforeStmt != nil {
 		if cerr := q.deleteJobHistoryBeforeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteJobHistoryBeforeStmt: %w", cerr)
+		}
+	}
+	if q.deleteJobStepsStmt != nil {
+		if cerr := q.deleteJobStepsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteJobStepsStmt: %w", cerr)
 		}
 	}
 	if q.deleteJobTicketsStmt != nil {
@@ -541,6 +626,11 @@ func (q *Queries) Close() error {
 	if q.deleteNotificationChannelStmt != nil {
 		if cerr := q.deleteNotificationChannelStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteNotificationChannelStmt: %w", cerr)
+		}
+	}
+	if q.deletePendingFactsStmt != nil {
+		if cerr := q.deletePendingFactsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deletePendingFactsStmt: %w", cerr)
 		}
 	}
 	if q.deleteRunnerStmt != nil {
@@ -658,6 +748,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getJobHistoryStmt: %w", cerr)
 		}
 	}
+	if q.getJobsRowStmt != nil {
+		if cerr := q.getJobsRowStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getJobsRowStmt: %w", cerr)
+		}
+	}
 	if q.getJoinCodeStmt != nil {
 		if cerr := q.getJoinCodeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getJoinCodeStmt: %w", cerr)
@@ -703,6 +798,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getOwnerStmt: %w", cerr)
 		}
 	}
+	if q.getPendingFactsStmt != nil {
+		if cerr := q.getPendingFactsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPendingFactsStmt: %w", cerr)
+		}
+	}
 	if q.getPlanStmt != nil {
 		if cerr := q.getPlanStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getPlanStmt: %w", cerr)
@@ -738,6 +838,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getRunnerByServiceStmt: %w", cerr)
 		}
 	}
+	if q.getRunsRowStmt != nil {
+		if cerr := q.getRunsRowStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRunsRowStmt: %w", cerr)
+		}
+	}
 	if q.getSettingStmt != nil {
 		if cerr := q.getSettingStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getSettingStmt: %w", cerr)
@@ -756,6 +861,11 @@ func (q *Queries) Close() error {
 	if q.getUserStmt != nil {
 		if cerr := q.getUserStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getUserStmt: %w", cerr)
+		}
+	}
+	if q.getWorkflowGraphStmt != nil {
+		if cerr := q.getWorkflowGraphStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getWorkflowGraphStmt: %w", cerr)
 		}
 	}
 	if q.insertAuditEntryStmt != nil {
@@ -786,6 +896,11 @@ func (q *Queries) Close() error {
 	if q.insertDoctorRunStmt != nil {
 		if cerr := q.insertDoctorRunStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing insertDoctorRunStmt: %w", cerr)
+		}
+	}
+	if q.insertJobStepStmt != nil {
+		if cerr := q.insertJobStepStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertJobStepStmt: %w", cerr)
 		}
 	}
 	if q.insertJoinCodeStmt != nil {
@@ -913,6 +1028,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listCliTokensStmt: %w", cerr)
 		}
 	}
+	if q.listDailySummariesStmt != nil {
+		if cerr := q.listDailySummariesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listDailySummariesStmt: %w", cerr)
+		}
+	}
 	if q.listExpiredSlotsStmt != nil {
 		if cerr := q.listExpiredSlotsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listExpiredSlotsStmt: %w", cerr)
@@ -928,9 +1048,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listInstallationsStmt: %w", cerr)
 		}
 	}
+	if q.listJobAttemptsStmt != nil {
+		if cerr := q.listJobAttemptsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listJobAttemptsStmt: %w", cerr)
+		}
+	}
 	if q.listJobHistoryStmt != nil {
 		if cerr := q.listJobHistoryStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listJobHistoryStmt: %w", cerr)
+		}
+	}
+	if q.listJobStepsStmt != nil {
+		if cerr := q.listJobStepsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listJobStepsStmt: %w", cerr)
 		}
 	}
 	if q.listLatestFindingsStmt != nil {
@@ -983,6 +1113,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listRepositoriesStmt: %w", cerr)
 		}
 	}
+	if q.listRunAttemptsStmt != nil {
+		if cerr := q.listRunAttemptsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRunAttemptsStmt: %w", cerr)
+		}
+	}
 	if q.listRunFindingsStmt != nil {
 		if cerr := q.listRunFindingsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listRunFindingsStmt: %w", cerr)
@@ -1033,6 +1168,51 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing markMachinesOfflineStmt: %w", cerr)
 		}
 	}
+	if q.pruneDailySummariesStmt != nil {
+		if cerr := q.pruneDailySummariesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing pruneDailySummariesStmt: %w", cerr)
+		}
+	}
+	if q.pruneJobFactsStmt != nil {
+		if cerr := q.pruneJobFactsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing pruneJobFactsStmt: %w", cerr)
+		}
+	}
+	if q.pruneJobStepsStmt != nil {
+		if cerr := q.pruneJobStepsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing pruneJobStepsStmt: %w", cerr)
+		}
+	}
+	if q.pruneJobStepsOfJobsStmt != nil {
+		if cerr := q.pruneJobStepsOfJobsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing pruneJobStepsOfJobsStmt: %w", cerr)
+		}
+	}
+	if q.pruneJobsStmt != nil {
+		if cerr := q.pruneJobsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing pruneJobsStmt: %w", cerr)
+		}
+	}
+	if q.pruneRunsStmt != nil {
+		if cerr := q.pruneRunsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing pruneRunsStmt: %w", cerr)
+		}
+	}
+	if q.pruneWorkflowGraphsStmt != nil {
+		if cerr := q.pruneWorkflowGraphsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing pruneWorkflowGraphsStmt: %w", cerr)
+		}
+	}
+	if q.putPendingFactsStmt != nil {
+		if cerr := q.putPendingFactsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing putPendingFactsStmt: %w", cerr)
+		}
+	}
+	if q.putWorkflowGraphStmt != nil {
+		if cerr := q.putWorkflowGraphStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing putWorkflowGraphStmt: %w", cerr)
+		}
+	}
 	if q.recordSignInStmt != nil {
 		if cerr := q.recordSignInStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing recordSignInStmt: %w", cerr)
@@ -1076,6 +1256,11 @@ func (q *Queries) Close() error {
 	if q.setJobCompletedStmt != nil {
 		if cerr := q.setJobCompletedStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing setJobCompletedStmt: %w", cerr)
+		}
+	}
+	if q.setJobForecastStmt != nil {
+		if cerr := q.setJobForecastStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setJobForecastStmt: %w", cerr)
 		}
 	}
 	if q.setJobSlotStmt != nil {
@@ -1188,6 +1373,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing updateUserRoleStmt: %w", cerr)
 		}
 	}
+	if q.upsertDailySummaryStmt != nil {
+		if cerr := q.upsertDailySummaryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertDailySummaryStmt: %w", cerr)
+		}
+	}
 	if q.upsertDoctorStateStmt != nil {
 		if cerr := q.upsertDoctorStateStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertDoctorStateStmt: %w", cerr)
@@ -1213,6 +1403,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing upsertJobHistoryStmt: %w", cerr)
 		}
 	}
+	if q.upsertJobsRowStmt != nil {
+		if cerr := q.upsertJobsRowStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertJobsRowStmt: %w", cerr)
+		}
+	}
 	if q.upsertManagedVariableStmt != nil {
 		if cerr := q.upsertManagedVariableStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertManagedVariableStmt: %w", cerr)
@@ -1231,6 +1426,11 @@ func (q *Queries) Close() error {
 	if q.upsertRunnerUsageStmt != nil {
 		if cerr := q.upsertRunnerUsageStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertRunnerUsageStmt: %w", cerr)
+		}
+	}
+	if q.upsertRunsRowStmt != nil {
+		if cerr := q.upsertRunsRowStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertRunsRowStmt: %w", cerr)
 		}
 	}
 	if q.upsertTrayBindingStmt != nil {
@@ -1297,12 +1497,15 @@ type Queries struct {
 	countMachineSlotsStmt             *sql.Stmt
 	countRepositoryRunningStmt        *sql.Stmt
 	countUsersStmt                    *sql.Stmt
+	dailySummarisedDaysStmt           *sql.Stmt
 	deleteAuditBeforeStmt             *sql.Stmt
 	deleteJobHistoryBeforeStmt        *sql.Stmt
+	deleteJobStepsStmt                *sql.Stmt
 	deleteJobTicketsStmt              *sql.Stmt
 	deleteMachineLoadBeforeStmt       *sql.Stmt
 	deleteManagedVariableStmt         *sql.Stmt
 	deleteNotificationChannelStmt     *sql.Stmt
+	deletePendingFactsStmt            *sql.Stmt
 	deleteRunnerStmt                  *sql.Stmt
 	deleteRunnerUsageBeforeStmt       *sql.Stmt
 	deleteRunsOnFindingsStmt          *sql.Stmt
@@ -1326,6 +1529,7 @@ type Queries struct {
 	getGitHubAppStmt                  *sql.Stmt
 	getGitHubJobStmt                  *sql.Stmt
 	getJobHistoryStmt                 *sql.Stmt
+	getJobsRowStmt                    *sql.Stmt
 	getJoinCodeStmt                   *sql.Stmt
 	getMachineStmt                    *sql.Stmt
 	getMachineByKeyStmt               *sql.Stmt
@@ -1335,6 +1539,7 @@ type Queries struct {
 	getNotificationChannelStmt        *sql.Stmt
 	getOpenMachineChangeStmt          *sql.Stmt
 	getOwnerStmt                      *sql.Stmt
+	getPendingFactsStmt               *sql.Stmt
 	getPlanStmt                       *sql.Stmt
 	getPreferencesStmt                *sql.Stmt
 	getRepoPolicyStmt                 *sql.Stmt
@@ -1342,16 +1547,19 @@ type Queries struct {
 	getRepositoryByNameStmt           *sql.Stmt
 	getRunnerStmt                     *sql.Stmt
 	getRunnerByServiceStmt            *sql.Stmt
+	getRunsRowStmt                    *sql.Stmt
 	getSettingStmt                    *sql.Stmt
 	getTicketStmt                     *sql.Stmt
 	getTrayBindingStmt                *sql.Stmt
 	getUserStmt                       *sql.Stmt
+	getWorkflowGraphStmt              *sql.Stmt
 	insertAuditEntryStmt              *sql.Stmt
 	insertAuditEventStmt              *sql.Stmt
 	insertBackupStmt                  *sql.Stmt
 	insertCliTokenStmt                *sql.Stmt
 	insertDoctorFindingStmt           *sql.Stmt
 	insertDoctorRunStmt               *sql.Stmt
+	insertJobStepStmt                 *sql.Stmt
 	insertJoinCodeStmt                *sql.Stmt
 	insertLinkCodeStmt                *sql.Stmt
 	insertMachineStmt                 *sql.Stmt
@@ -1377,10 +1585,13 @@ type Queries struct {
 	listAuditEventsStmt               *sql.Stmt
 	listBackupsStmt                   *sql.Stmt
 	listCliTokensStmt                 *sql.Stmt
+	listDailySummariesStmt            *sql.Stmt
 	listExpiredSlotsStmt              *sql.Stmt
 	listExpiredTicketsStmt            *sql.Stmt
 	listInstallationsStmt             *sql.Stmt
+	listJobAttemptsStmt               *sql.Stmt
 	listJobHistoryStmt                *sql.Stmt
+	listJobStepsStmt                  *sql.Stmt
 	listLatestFindingsStmt            *sql.Stmt
 	listMachineLoadStmt               *sql.Stmt
 	listMachineSlotsStmt              *sql.Stmt
@@ -1391,6 +1602,7 @@ type Queries struct {
 	listOpenGitHubJobsStmt            *sql.Stmt
 	listPoolRepositoriesStmt          *sql.Stmt
 	listRepositoriesStmt              *sql.Stmt
+	listRunAttemptsStmt               *sql.Stmt
 	listRunFindingsStmt               *sql.Stmt
 	listRunnersStmt                   *sql.Stmt
 	listRunsOnFindingsStmt            *sql.Stmt
@@ -1401,6 +1613,15 @@ type Queries struct {
 	markMachineRemovedStmt            *sql.Stmt
 	markMachineSeenStmt               *sql.Stmt
 	markMachinesOfflineStmt           *sql.Stmt
+	pruneDailySummariesStmt           *sql.Stmt
+	pruneJobFactsStmt                 *sql.Stmt
+	pruneJobStepsStmt                 *sql.Stmt
+	pruneJobStepsOfJobsStmt           *sql.Stmt
+	pruneJobsStmt                     *sql.Stmt
+	pruneRunsStmt                     *sql.Stmt
+	pruneWorkflowGraphsStmt           *sql.Stmt
+	putPendingFactsStmt               *sql.Stmt
+	putWorkflowGraphStmt              *sql.Stmt
 	recordSignInStmt                  *sql.Stmt
 	renameMachineStmt                 *sql.Stmt
 	revokeCliTokenStmt                *sql.Stmt
@@ -1410,6 +1631,7 @@ type Queries struct {
 	revokeUserCliTokensStmt           *sql.Stmt
 	setGitHubJobWaitStmt              *sql.Stmt
 	setJobCompletedStmt               *sql.Stmt
+	setJobForecastStmt                *sql.Stmt
 	setJobSlotStmt                    *sql.Stmt
 	setJobStartedStmt                 *sql.Stmt
 	setMachineChangeStateStmt         *sql.Stmt
@@ -1432,15 +1654,18 @@ type Queries struct {
 	updateNotificationChannelStmt     *sql.Stmt
 	updatePlanStmt                    *sql.Stmt
 	updateUserRoleStmt                *sql.Stmt
+	upsertDailySummaryStmt            *sql.Stmt
 	upsertDoctorStateStmt             *sql.Stmt
 	upsertGitHubAppStmt               *sql.Stmt
 	upsertGitHubJobStmt               *sql.Stmt
 	upsertInstallationStmt            *sql.Stmt
 	upsertJobHistoryStmt              *sql.Stmt
+	upsertJobsRowStmt                 *sql.Stmt
 	upsertManagedVariableStmt         *sql.Stmt
 	upsertRepoPolicyStmt              *sql.Stmt
 	upsertRepositoryStmt              *sql.Stmt
 	upsertRunnerUsageStmt             *sql.Stmt
+	upsertRunsRowStmt                 *sql.Stmt
 	upsertTrayBindingStmt             *sql.Stmt
 	useJoinCodeStmt                   *sql.Stmt
 	useLinkCodeStmt                   *sql.Stmt
@@ -1456,12 +1681,15 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		countMachineSlotsStmt:             q.countMachineSlotsStmt,
 		countRepositoryRunningStmt:        q.countRepositoryRunningStmt,
 		countUsersStmt:                    q.countUsersStmt,
+		dailySummarisedDaysStmt:           q.dailySummarisedDaysStmt,
 		deleteAuditBeforeStmt:             q.deleteAuditBeforeStmt,
 		deleteJobHistoryBeforeStmt:        q.deleteJobHistoryBeforeStmt,
+		deleteJobStepsStmt:                q.deleteJobStepsStmt,
 		deleteJobTicketsStmt:              q.deleteJobTicketsStmt,
 		deleteMachineLoadBeforeStmt:       q.deleteMachineLoadBeforeStmt,
 		deleteManagedVariableStmt:         q.deleteManagedVariableStmt,
 		deleteNotificationChannelStmt:     q.deleteNotificationChannelStmt,
+		deletePendingFactsStmt:            q.deletePendingFactsStmt,
 		deleteRunnerStmt:                  q.deleteRunnerStmt,
 		deleteRunnerUsageBeforeStmt:       q.deleteRunnerUsageBeforeStmt,
 		deleteRunsOnFindingsStmt:          q.deleteRunsOnFindingsStmt,
@@ -1485,6 +1713,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getGitHubAppStmt:                  q.getGitHubAppStmt,
 		getGitHubJobStmt:                  q.getGitHubJobStmt,
 		getJobHistoryStmt:                 q.getJobHistoryStmt,
+		getJobsRowStmt:                    q.getJobsRowStmt,
 		getJoinCodeStmt:                   q.getJoinCodeStmt,
 		getMachineStmt:                    q.getMachineStmt,
 		getMachineByKeyStmt:               q.getMachineByKeyStmt,
@@ -1494,6 +1723,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getNotificationChannelStmt:        q.getNotificationChannelStmt,
 		getOpenMachineChangeStmt:          q.getOpenMachineChangeStmt,
 		getOwnerStmt:                      q.getOwnerStmt,
+		getPendingFactsStmt:               q.getPendingFactsStmt,
 		getPlanStmt:                       q.getPlanStmt,
 		getPreferencesStmt:                q.getPreferencesStmt,
 		getRepoPolicyStmt:                 q.getRepoPolicyStmt,
@@ -1501,16 +1731,19 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getRepositoryByNameStmt:           q.getRepositoryByNameStmt,
 		getRunnerStmt:                     q.getRunnerStmt,
 		getRunnerByServiceStmt:            q.getRunnerByServiceStmt,
+		getRunsRowStmt:                    q.getRunsRowStmt,
 		getSettingStmt:                    q.getSettingStmt,
 		getTicketStmt:                     q.getTicketStmt,
 		getTrayBindingStmt:                q.getTrayBindingStmt,
 		getUserStmt:                       q.getUserStmt,
+		getWorkflowGraphStmt:              q.getWorkflowGraphStmt,
 		insertAuditEntryStmt:              q.insertAuditEntryStmt,
 		insertAuditEventStmt:              q.insertAuditEventStmt,
 		insertBackupStmt:                  q.insertBackupStmt,
 		insertCliTokenStmt:                q.insertCliTokenStmt,
 		insertDoctorFindingStmt:           q.insertDoctorFindingStmt,
 		insertDoctorRunStmt:               q.insertDoctorRunStmt,
+		insertJobStepStmt:                 q.insertJobStepStmt,
 		insertJoinCodeStmt:                q.insertJoinCodeStmt,
 		insertLinkCodeStmt:                q.insertLinkCodeStmt,
 		insertMachineStmt:                 q.insertMachineStmt,
@@ -1536,10 +1769,13 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listAuditEventsStmt:               q.listAuditEventsStmt,
 		listBackupsStmt:                   q.listBackupsStmt,
 		listCliTokensStmt:                 q.listCliTokensStmt,
+		listDailySummariesStmt:            q.listDailySummariesStmt,
 		listExpiredSlotsStmt:              q.listExpiredSlotsStmt,
 		listExpiredTicketsStmt:            q.listExpiredTicketsStmt,
 		listInstallationsStmt:             q.listInstallationsStmt,
+		listJobAttemptsStmt:               q.listJobAttemptsStmt,
 		listJobHistoryStmt:                q.listJobHistoryStmt,
+		listJobStepsStmt:                  q.listJobStepsStmt,
 		listLatestFindingsStmt:            q.listLatestFindingsStmt,
 		listMachineLoadStmt:               q.listMachineLoadStmt,
 		listMachineSlotsStmt:              q.listMachineSlotsStmt,
@@ -1550,6 +1786,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listOpenGitHubJobsStmt:            q.listOpenGitHubJobsStmt,
 		listPoolRepositoriesStmt:          q.listPoolRepositoriesStmt,
 		listRepositoriesStmt:              q.listRepositoriesStmt,
+		listRunAttemptsStmt:               q.listRunAttemptsStmt,
 		listRunFindingsStmt:               q.listRunFindingsStmt,
 		listRunnersStmt:                   q.listRunnersStmt,
 		listRunsOnFindingsStmt:            q.listRunsOnFindingsStmt,
@@ -1560,6 +1797,15 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		markMachineRemovedStmt:            q.markMachineRemovedStmt,
 		markMachineSeenStmt:               q.markMachineSeenStmt,
 		markMachinesOfflineStmt:           q.markMachinesOfflineStmt,
+		pruneDailySummariesStmt:           q.pruneDailySummariesStmt,
+		pruneJobFactsStmt:                 q.pruneJobFactsStmt,
+		pruneJobStepsStmt:                 q.pruneJobStepsStmt,
+		pruneJobStepsOfJobsStmt:           q.pruneJobStepsOfJobsStmt,
+		pruneJobsStmt:                     q.pruneJobsStmt,
+		pruneRunsStmt:                     q.pruneRunsStmt,
+		pruneWorkflowGraphsStmt:           q.pruneWorkflowGraphsStmt,
+		putPendingFactsStmt:               q.putPendingFactsStmt,
+		putWorkflowGraphStmt:              q.putWorkflowGraphStmt,
 		recordSignInStmt:                  q.recordSignInStmt,
 		renameMachineStmt:                 q.renameMachineStmt,
 		revokeCliTokenStmt:                q.revokeCliTokenStmt,
@@ -1569,6 +1815,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		revokeUserCliTokensStmt:           q.revokeUserCliTokensStmt,
 		setGitHubJobWaitStmt:              q.setGitHubJobWaitStmt,
 		setJobCompletedStmt:               q.setJobCompletedStmt,
+		setJobForecastStmt:                q.setJobForecastStmt,
 		setJobSlotStmt:                    q.setJobSlotStmt,
 		setJobStartedStmt:                 q.setJobStartedStmt,
 		setMachineChangeStateStmt:         q.setMachineChangeStateStmt,
@@ -1591,15 +1838,18 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		updateNotificationChannelStmt:     q.updateNotificationChannelStmt,
 		updatePlanStmt:                    q.updatePlanStmt,
 		updateUserRoleStmt:                q.updateUserRoleStmt,
+		upsertDailySummaryStmt:            q.upsertDailySummaryStmt,
 		upsertDoctorStateStmt:             q.upsertDoctorStateStmt,
 		upsertGitHubAppStmt:               q.upsertGitHubAppStmt,
 		upsertGitHubJobStmt:               q.upsertGitHubJobStmt,
 		upsertInstallationStmt:            q.upsertInstallationStmt,
 		upsertJobHistoryStmt:              q.upsertJobHistoryStmt,
+		upsertJobsRowStmt:                 q.upsertJobsRowStmt,
 		upsertManagedVariableStmt:         q.upsertManagedVariableStmt,
 		upsertRepoPolicyStmt:              q.upsertRepoPolicyStmt,
 		upsertRepositoryStmt:              q.upsertRepositoryStmt,
 		upsertRunnerUsageStmt:             q.upsertRunnerUsageStmt,
+		upsertRunsRowStmt:                 q.upsertRunsRowStmt,
 		upsertTrayBindingStmt:             q.upsertTrayBindingStmt,
 		useJoinCodeStmt:                   q.useJoinCodeStmt,
 		useLinkCodeStmt:                   q.useLinkCodeStmt,

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/jobsdata"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 )
 
@@ -48,6 +49,9 @@ func (r *Retention) RunOnce(ctx context.Context) error {
 	day := 24 * time.Hour
 	var errs []error
 	if _, err := r.DB.DeleteJobHistoryBefore(ctx, t.Add(-time.Duration(st.RetentionJobHistoryDays)*day)); err != nil {
+		errs = append(errs, err)
+	}
+	if _, err := r.DB.Jobs().Prune(ctx, t, jobsdata.DefaultRetention); err != nil {
 		errs = append(errs, err)
 	}
 	if _, err := r.DB.TrimJobHistoryToRows(ctx, store.MaxJobHistoryRows); err != nil {
