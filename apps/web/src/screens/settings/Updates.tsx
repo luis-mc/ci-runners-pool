@@ -182,7 +182,6 @@ export function UpdatesSettings() {
               </Button>
               {u.update_available ? (
                 <Button
-                  kind="primary"
                   onPress={() => void navigate('/settings/updates/review?kind=update')}
                   disabled={!session.can('admin')}
                   reason={session.whyNot('admin')}

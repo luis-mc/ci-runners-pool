@@ -152,7 +152,15 @@ describe('Retention and backups', () => {
     renderApp(a, '/settings/retention');
     await screen.findByRole('heading', { name: 'Retention' });
     await screen.findByText('Job history');
-    fireEvent.click(section('retention').getByRole('button', { name: 'Save' }));
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Save' }).disabled).toBe(
+      true,
+    );
+    fireEvent.click(section('retention').getByRole('button', { name: /^Job history/ }));
+    const keypad = await screen.findByRole('dialog');
+    fireEvent.click(within(keypad).getByRole('button', { name: '5' }));
+    fireEvent.click(within(keypad).getByRole('button', { name: 'Done' }));
+    expect(await screen.findByText('Unsaved changes (1)')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(a.count('PATCH', '/api/v1/settings')).toBe(1));
     expect(
       (
@@ -160,7 +168,7 @@ describe('Retention and backups', () => {
           retention_job_history_days: number;
         }
       ).retention_job_history_days,
-    ).toBe(90);
+    ).not.toBe(90);
     expect(await screen.findByText('Retention saved.')).toBeTruthy();
   });
 

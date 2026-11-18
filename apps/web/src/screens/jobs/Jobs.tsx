@@ -2,6 +2,7 @@
 // (UX-33) with filters by repository, machine, result and time range, the detail with a link to the run on
 // GitHub, and Export of every row of the filter in the order shown (UX-39).
 import {
+  ActionBar,
   Badge,
   Breadcrumbs,
   Button,
@@ -261,14 +262,7 @@ export function JobsList() {
       />
       {noJobs ? (
         <Section title="Jobs">
-          <Empty
-            title="No jobs yet. Jobs show here when a workflow runs on the pool."
-            action={
-              <LinkButton to="/runners/add" kind="primary">
-                Add runners
-              </LinkButton>
-            }
-          />
+          <Empty title="No jobs yet. Jobs show here when a workflow runs on the pool." />
         </Section>
       ) : (
         <>
@@ -346,10 +340,7 @@ export function JobsList() {
               </Cluster>
             </Stack>
           </Section>
-          <Section
-            title="History"
-            actions={<ExportButton what="jobs" run={exportAll} kind="primary" />}
-          >
+          <Section title="History">
             <Stack>
               <Load
                 result={history.result}
@@ -403,6 +394,19 @@ export function JobsList() {
           </Section>
         </>
       )}
+      {noJobs ? (
+        <ActionBar
+          primary={
+            <LinkButton to="/runners/add" kind="primary">
+              Add runners
+            </LinkButton>
+          }
+        />
+      ) : (
+        <ActionBar
+          primary={<ExportButton what="jobs" run={exportAll} kind="primary" />}
+        />
+      )}
     </Page>
   );
 }
@@ -439,6 +443,8 @@ export function JobDetail() {
       ),
     [id, v],
   );
+  const url = result.state === 'ready' ? result.data.html_url : undefined;
+  const safeUrl = url?.startsWith('https://') ? url : undefined;
   return (
     <Page>
       <Breadcrumbs
@@ -453,6 +459,18 @@ export function JobDetail() {
       <Load result={result} what="the job" reload={reload}>
         {(j) => <JobBody j={j} />}
       </Load>
+      {safeUrl ? (
+        <ActionBar
+          primary={
+            <Button
+              kind="primary"
+              onPress={() => window.open(safeUrl, '_blank', 'noopener,noreferrer')}
+            >
+              Open the run on GitHub
+            </Button>
+          }
+        />
+      ) : null}
     </Page>
   );
 }
@@ -460,22 +478,11 @@ export function JobDetail() {
 function JobBody({ j }: { j: Job }) {
   const s = jobStatus(j);
   const when = (t: string | undefined) => (t ? formatDateTime(t) : 'not yet');
-  const safeUrl = j.html_url?.startsWith('https://') ? j.html_url : undefined;
   return (
     <Stack>
       <PageHeader
         title={j.job_name}
         lead={`${j.repository}, run ${formatNumber(j.run_id)}, attempt ${j.run_attempt}.`}
-        action={
-          safeUrl ? (
-            <Button
-              kind="primary"
-              onPress={() => window.open(safeUrl, '_blank', 'noopener,noreferrer')}
-            >
-              Open the run on GitHub
-            </Button>
-          ) : undefined
-        }
       />
       <Cluster>
         <Status kind={s.kind} word={s.word} />

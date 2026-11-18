@@ -48,7 +48,8 @@ Each action has one word. The Never use column lists words that must not stand i
 | What changed | The link of the update dialog to the release page of the new version. It changes nothing. | Release notes, Changelog |
 | Quit tray | Close the tray icon only. The service keeps running. | Exit, Close |
 | Export | Save every row of a table or list as a file, in the order shown (component 29). It changes nothing. | Download, Save as |
-| Run the doctor | Start the doctor now. While it runs the button says Running the doctor. | Scan, Check, Run checks |
+| Run checks again | Start the doctor now, on the Doctor page, as its one primary in the action bar. Before the first run it says Run checks. While it runs the button says Running the doctor. | Run the doctor, Scan, Check |
+| Add channel | Open the form of a new notification channel. It changes nothing until the tab's Save. A normal button. | Add, New channel, Create |
 | Widen the range | Show a longer time range when the range shown has nothing. | Expand, Zoom |
 | Zoom in, Zoom out | Show a shorter or a longer time range on a time axis. | Narrow, Expand |
 | Show earlier | Load the rows before the last one on a time axis. It is also loaded by itself as the end nears the screen. | More, Older |

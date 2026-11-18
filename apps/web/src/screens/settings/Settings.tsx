@@ -39,6 +39,7 @@ import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { Ask, Load } from '../common';
+import { TabForm, useTabPart } from './TabForm';
 import { SECTIONS, settingsPath } from './sections';
 import { AccessForCiSettings } from './AccessForCi';
 import { AuditLogSettings, ConfigExportSettings } from './AuditLog';
@@ -115,20 +116,20 @@ export function AccessTab() {
 
 export function RepositoriesTab() {
   return (
-    <Stack>
+    <TabForm>
       <At id="public-repositories">
         <PublicRepositoriesSettings />
       </At>
       <At id="budgets">
         <BudgetsSettings />
       </At>
-    </Stack>
+    </TabForm>
   );
 }
 
 export function ConsoleTab() {
   return (
-    <Stack>
+    <TabForm>
       <At id="appearance">
         <AppearanceSettings />
       </At>
@@ -141,13 +142,13 @@ export function ConsoleTab() {
       <At id="updates">
         <UpdatesSettings />
       </At>
-    </Stack>
+    </TabForm>
   );
 }
 
 export function DataTab() {
   return (
-    <Stack>
+    <TabForm>
       <At id="retention">
         <RetentionSettings />
       </At>
@@ -157,7 +158,7 @@ export function DataTab() {
       <At id="config-export">
         <ConfigExportSettings />
       </At>
-    </Stack>
+    </TabForm>
   );
 }
 
@@ -308,12 +309,7 @@ export function UsersSettings() {
         </Load>
       </Section>
       <Section title="Add a user">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void add.run();
-          }}
-        >
+        <div>
           <Stack>
             <ErrorSummary errors={errors} />
             <TextField label="GitHub login" value={login} onChange={setLogin} />
@@ -339,12 +335,12 @@ export function UsersSettings() {
             ) : null}
             <FormActions>
               <Button onPress={() => setLogin('')}>Cancel</Button>
-              <Button kind="primary" submit busy={add.busy} busyLabel="Adding">
+              <Button onPress={() => void add.run()} busy={add.busy} busyLabel="Adding">
                 Add
               </Button>
             </FormActions>
           </Stack>
-        </form>
+        </div>
       </Section>
       {editing ? (
         <Dialog
@@ -503,6 +499,20 @@ function RetentionForm({
   const [raw, setRaw] = useState(s.retention_load_raw_hours ?? 48);
   const [errors, setErrors] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
+  const was = {
+    jobs: s.retention_job_history_days ?? 90,
+    logs: s.retention_logs_days ?? 14,
+    mib: s.retention_logs_mib_per_machine ?? 500,
+    audit: s.retention_audit_days ?? 365,
+    raw: s.retention_load_raw_hours ?? 48,
+  };
+  const changes = [
+    jobs !== was.jobs,
+    logs !== was.logs,
+    mib !== was.mib,
+    audit !== was.audit,
+    raw !== was.raw,
+  ].filter(Boolean).length;
   const save = useCommand(async () => {
     const p: string[] = [];
     for (const [n, v] of [
@@ -512,7 +522,8 @@ function RetentionForm({
     ] as const)
       if (v < 1) p.push(`${n} must be kept at least 1 day.`);
     setErrors(p);
-    if (p.length) return;
+    setSaved(false);
+    if (p.length) return false;
     await unwrap(
       client.PATCH('/api/v1/settings', {
         body: {
@@ -526,14 +537,24 @@ function RetentionForm({
     );
     setSaved(true);
     onSaved();
+    return true;
+  });
+  useTabPart('retention', {
+    changes,
+    save: async () => (await save.run()) === true,
+    reset: () => {
+      setJobs(was.jobs);
+      setLogs(was.logs);
+      setMib(was.mib);
+      setAudit(was.audit);
+      setRaw(was.raw);
+      setErrors([]);
+      save.clear();
+    },
+    blocked: canEdit ? undefined : (why ?? 'Only the owner can change this.'),
   });
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        void save.run();
-      }}
-    >
+    <div>
       <Stack>
         <ErrorSummary errors={errors} />
         <FieldGrid>
@@ -582,20 +603,8 @@ function RetentionForm({
         {save.error ? (
           <Message tone="problem">Could not save. {save.error}</Message>
         ) : null}
-        <FormActions>
-          <Button onPress={onSaved}>Cancel</Button>
-          <Button
-            submit
-            busy={save.busy}
-            busyLabel="Saving"
-            disabled={!canEdit}
-            reason={why}
-          >
-            Save
-          </Button>
-        </FormActions>
       </Stack>
-    </form>
+    </div>
   );
 }
 
@@ -614,13 +623,30 @@ export function BackupsSettings() {
   const saved = settings.result.state === 'ready' ? settings.result.data : undefined;
   const shownTime = time ?? saved?.backup_time_local ?? '03:00';
   const shownKeep = keep ?? saved?.backup_keep_days ?? 14;
+  const savedTime = saved?.backup_time_local ?? '03:00';
+  const savedKeep = saved?.backup_keep_days ?? 14;
   const save = useCommand(async () => {
     await unwrap(
       client.PATCH('/api/v1/settings', {
         body: { backup_time_local: shownTime, backup_keep_days: shownKeep },
       }),
     );
+    setTime(null);
+    setKeep(undefined);
     settings.reload();
+    return true;
+  });
+  useTabPart('backups', {
+    changes: (shownTime !== savedTime ? 1 : 0) + (shownKeep !== savedKeep ? 1 : 0),
+    save: async () => (await save.run()) === true,
+    reset: () => {
+      setTime(null);
+      setKeep(undefined);
+      save.clear();
+    },
+    blocked: session.can('owner')
+      ? undefined
+      : (session.whyNot('owner') ?? 'Only the owner can change this.'),
   });
   const cols: Column<Schemas['Backup']>[] = [
     { id: 'file', header: 'File', cell: (b) => b.file },
@@ -651,7 +677,6 @@ export function BackupsSettings() {
       <Section title="Backups">
         <Cluster>
           <Button
-            kind="primary"
             onPress={() => void run.run()}
             busy={run.busy}
             busyLabel="Backing up"
@@ -692,12 +717,7 @@ export function BackupsSettings() {
         </Load>
       </Section>
       <Section title="Schedule">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void save.run();
-          }}
-        >
+        <div>
           <Stack>
             <TimePicker
               label="Backup time"
@@ -716,27 +736,8 @@ export function BackupsSettings() {
             {save.error ? (
               <Message tone="problem">Could not save. {save.error}</Message>
             ) : null}
-            <FormActions>
-              <Button
-                onPress={() => {
-                  setTime(null);
-                  setKeep(undefined);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                submit
-                busy={save.busy}
-                busyLabel="Saving"
-                disabled={!session.can('owner')}
-                reason={session.whyNot('owner')}
-              >
-                Save
-              </Button>
-            </FormActions>
           </Stack>
-        </form>
+        </div>
       </Section>
     </Stack>
   );

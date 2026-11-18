@@ -1,5 +1,5 @@
 // Doctor (web-console 4.8, R5.26): findings grouped by area with a status word (UX-58), what is wrong and its fix,
-// the time of the last run (UX-53), and "Run the doctor" as the one primary (UX-4). It is busy while the run lasts
+// the time of the last run (UX-53), and "Run checks again" as the one primary, in the action bar (UX-71); a fix button in a row is a normal button (D27). It is busy while the run lasts
 // and shows its progress (UX-13, UX-29); the busy state is the server's run state, not a timer (UX-19).
 import {
   Badge,
@@ -113,6 +113,7 @@ export function DoctorScreen() {
     return r;
   });
   const running = run?.state === 'running';
+  const hasRun = result.state === 'ready' && Boolean(result.data.last_run_at);
 
   // The run's own state is read from the server: on every live doctor event, and on a slow poll as a fallback.
   const runId = run?.id;
@@ -209,7 +210,7 @@ export function DoctorScreen() {
           if (data.items.length === 0 && !data.last_run_at)
             return (
               <Section title="Findings">
-                <Empty title="No checks have run yet. Use Run the doctor at the top to look for problems." />
+                <Empty title="No checks have run yet. Use Run checks below to look for problems." />
               </Section>
             );
           const last = data.last_run_at ? formatPast(data.last_run_at, now) : undefined;
@@ -249,7 +250,7 @@ export function DoctorScreen() {
             reason={why}
             onPress={() => void start.run()}
           >
-            Run the doctor
+            {hasRun ? 'Run checks again' : 'Run checks'}
           </Button>
         }
       />
