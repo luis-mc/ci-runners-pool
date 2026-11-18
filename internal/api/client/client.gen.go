@@ -444,7 +444,7 @@ func (e DoctorRunTrigger) Valid() bool {
 
 // Defines values for ForecastBasis.
 const (
-	ForecastBasisJobIdent         ForecastBasis = "job_ident"
+	ForecastBasisJobKey           ForecastBasis = "job_key"
 	ForecastBasisNotEnoughHistory ForecastBasis = "not_enough_history"
 	ForecastBasisRepository       ForecastBasis = "repository"
 	ForecastBasisWorkflow         ForecastBasis = "workflow"
@@ -453,7 +453,7 @@ const (
 // Valid indicates whether the value is a known member of the ForecastBasis enum.
 func (e ForecastBasis) Valid() bool {
 	switch e {
-	case ForecastBasisJobIdent:
+	case ForecastBasisJobKey:
 		return true
 	case ForecastBasisNotEnoughHistory:
 		return true

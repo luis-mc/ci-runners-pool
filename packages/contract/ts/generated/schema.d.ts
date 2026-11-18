@@ -4114,7 +4114,7 @@ export interface components {
          * @description Where a forecast came from. The job key, else its workflow, else its repository, else nothing (5 samples needed).
          * @enum {string}
          */
-        ForecastBasis: "job_ident" | "workflow" | "repository" | "not_enough_history";
+        ForecastBasis: "job_key" | "workflow" | "repository" | "not_enough_history";
         /** @description A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way. */
         Forecast: {
             p50: number;

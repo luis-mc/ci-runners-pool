@@ -252,7 +252,7 @@ func TestJobsRoutesRefuseBadInput(t *testing.T) {
 func TestQueuePositionAndEtaFromTheSimulation(t *testing.T) {
 	running := aJob(1, "build", jobsdata.Running)
 	running.MachineID, running.StartedAt = "m1", testNow.Add(-10*time.Second)
-	running.Forecast = &jobsdata.ForecastRecord{LoMS: 60000, MidMS: 60000, HiMS: 60000, Basis: "job_ident", Samples: 10}
+	running.Forecast = &jobsdata.ForecastRecord{LoMS: 60000, MidMS: 60000, HiMS: 60000, Basis: "job_key", Samples: 10}
 	first, second := aJob(2, "test", jobsdata.Queued), aJob(3, "test (b)", jobsdata.Queued)
 	first.MachineID, second.MachineID = "m1", "m1"
 	first.QueuedAt, second.QueuedAt = testNow.Add(-5*time.Minute), testNow.Add(-4*time.Minute)
@@ -413,7 +413,7 @@ func TestListRunsPagesFiltersAndEta(t *testing.T) {
 	open.RunRow = fd.runs[0]
 	open.Jobs = open.Jobs[:1]
 	open.Jobs[0].State, open.Jobs[0].StartedAt, open.Jobs[0].CompletedAt = jobsdata.Running, testNow.Add(-20*time.Second), time.Time{}
-	open.Jobs[0].Forecast = &jobsdata.ForecastRecord{LoMS: 60000, MidMS: 60000, HiMS: 60000, Basis: "job_ident", Samples: 9}
+	open.Jobs[0].Forecast = &jobsdata.ForecastRecord{LoMS: 60000, MidMS: 60000, HiMS: 60000, Basis: "job_key", Samples: 9}
 	open.Graph = jobsdata.Graph{}
 	fd.runInfo[fd.runs[0].RunID] = open
 	mux := dataMux(fd, auth.RoleViewer, nil)
@@ -475,7 +475,7 @@ func TestGroupsStatsSummariesAndForecast(t *testing.T) {
 	fd := &fakeData{
 		groups: []jobsdata.GroupRow{{Name: "test", Filter: "job_type=test", Running: 1, Done: 4, WaitP50: 2, Trend: []float64{1, 2}, Light: &light}},
 		stats: jobsdata.Stats{Days: []jobsdata.Day{{Day: "2026-11-17", Jobs: 3, Failed: 1, RunP50: 9}}, Hours: []jobsdata.HourCount{{Weekday: 2, Hour: 9, Count: 4}},
-			ForecastPoints: []jobsdata.ForecastPoint{{JobID: 1, ForecastS: 10, ActualS: 12, LoS: 9, HiS: 14, Basis: "job_ident"}}},
+			ForecastPoints: []jobsdata.ForecastPoint{{JobID: 1, ForecastS: 10, ActualS: 12, LoS: 9, HiS: 14, Basis: "job_key"}}},
 		sums:   []jobsdata.DailySummary{{Day: "2026-11-17", Repository: "o/r", JobType: "test", Jobs: 3, RunP50MS: 9000}},
 		jobs:   []jobsdata.Job{aJob(5, "test", jobsdata.Done)},
 		detail: map[int64]jobsdata.JobDetail{5: {Job: aJob(5, "test", jobsdata.Done), Steps: []jobsdata.Step{{Number: 1, Name: "Set up"}}}},
@@ -501,7 +501,7 @@ func TestGroupsStatsSummariesAndForecast(t *testing.T) {
 		t.Fatalf("summaries %+v", sums)
 	}
 	ans := decode[gen.ForecastAnswer](t, get(t, mux, "/api/v1/forecast?repository_id=7&job_ident="+strings.ReplaceAll(aJob(5, "test", jobsdata.Done).JobKey, " ", "%20")))
-	if ans.Forecast.Basis != "job_ident" || ans.Forecast.P50 != 50 || len(ans.Steps) != 1 || ans.Steps[0].Forecast.P50 != 4 || len(ans.History) != 1 {
+	if ans.Forecast.Basis != "job_key" || ans.Forecast.P50 != 50 || len(ans.Steps) != 1 || ans.Steps[0].Forecast.P50 != 4 || len(ans.History) != 1 {
 		t.Fatalf("forecast %+v", ans)
 	}
 }
