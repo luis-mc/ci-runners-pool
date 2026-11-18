@@ -183,6 +183,18 @@ func Text(w io.Writer, run gen.DoctorRun, minSev string) {
 				_, _ = fmt.Fprintf(w, "      %s\n", line)
 			}
 		}
+		if f.Items != nil {
+			detail := ""
+			if f.Detail != nil {
+				detail = *f.Detail
+			}
+			for _, it := range *f.Items {
+				// The detail often says the item already; list only what it does not.
+				if !strings.Contains(detail, it.Name) {
+					_, _ = fmt.Fprintf(w, "      - %s %s: %s\n", it.Kind, it.Name, it.Why)
+				}
+			}
+		}
 		if f.Severity != gen.SeverityOk {
 			_, _ = fmt.Fprintf(w, "      Fix: %s\n", f.Fix.Text)
 			if f.Fix.Command != nil && *f.Fix.Command != "" {
@@ -256,8 +268,17 @@ type JSONFinding struct {
 	Detail     string      `json:"detail"`
 	Fix        JSONFix     `json:"fix"`
 	NeedsAdmin bool        `json:"needs_admin"`
-	Milestone  int         `json:"milestone"`
-	CheckedAt  time.Time   `json:"checked_at"`
+	// Items and Action are set by a finding that lists things and offers a button (R5.46).
+	Items     []gen.RunnerLeftover `json:"items,omitempty"`
+	Action    *JSONAction          `json:"action,omitempty"`
+	Milestone int                  `json:"milestone"`
+	CheckedAt time.Time            `json:"checked_at"`
+}
+
+// JSONAction is the one button a finding offers.
+type JSONAction struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
 }
 
 // JSONSubject is the subject of a finding.
@@ -304,6 +325,12 @@ func JSON(run gen.DoctorRun) JSONRun {
 		}
 		if f.Detail != nil {
 			jf.Detail = *f.Detail
+		}
+		if f.Items != nil {
+			jf.Items = *f.Items
+		}
+		if f.Action != nil {
+			jf.Action = &JSONAction{ID: string(f.Action.Id), Label: f.Action.Label}
 		}
 		out.Findings = append(out.Findings, jf)
 	}
