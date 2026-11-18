@@ -150,6 +150,7 @@ A message is one or two short sentences in plain words. It names the thing, neve
 | Date | Year-month-day. | 2026-11-02 |
 | Time | 24-hour, local time. | 14:30 |
 | Date and time | Date, a space, then time. | 2026-11-02 14:30 |
+| Short date and time | Day, month name, time; only in a one-line table cell (UX-72). The detail shows the full form above. | 18 Nov 13:28 |
 | Number | Digits, with a space for thousands. A dot for decimals. | 12 345.5 |
 | Count | A number before the noun. The noun agrees with the count. | 1 item, 3 items |
 | Size | A number and a unit, with a space. | 4.2 MB |

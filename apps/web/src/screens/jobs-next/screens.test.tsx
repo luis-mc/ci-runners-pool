@@ -73,7 +73,7 @@ describe('new Jobs screens with the review mock', () => {
   it('lists one row per run, and shows 25 done jobs first with Show more in the jobs view', async () => {
     const view = open('/jobs/done');
     await waitFor(() => expect(screen.getByText(/Showing \d+ of \d+ runs/)).toBeTruthy());
-    expect(screen.getAllByRole('button', { name: 'Jobs' }).length).toBeGreaterThan(1);
+    expect(screen.getAllByRole('button', { name: 'Open run' }).length).toBeGreaterThan(1);
     view.unmount();
     open('/jobs/done?view=jobs');
     await waitFor(() => expect(screen.getByText(/Showing 25 of/)).toBeTruthy());
@@ -85,11 +85,11 @@ describe('new Jobs screens with the review mock', () => {
     open('/jobs/running');
     await waitFor(() => expect(screen.getAllByRole('table').length).toBeGreaterThan(0));
     screen
-      .getAllByRole('button', { name: 'Jobs' })
+      .getAllByRole('button', { name: 'Open run' })
       .find((b) => b.hasAttribute('aria-expanded'))
       ?.click();
     await waitFor(() =>
-      expect(screen.getAllByRole('region', { name: /^Jobs: / }).length).toBe(1),
+      expect(screen.getAllByRole('region', { name: /^Open run: / }).length).toBe(1),
     );
   });
 

@@ -33,7 +33,7 @@ Worktree is not visible to GitHub. Display (decision 6): the branch always; the 
 
 ## 3. What each screen shows, and why
 
-Queue, Running and Done list **runs**. A `Runs | Jobs` switch above each list keeps the flat job list for filtering by runner, machine and job kind (a group row that filters by those opens the Jobs view). A run row has a **Jobs** button: it opens the run in place, as a waterfall of its jobs (queue wait light, run dark, forecast bracket for what is unfinished); a job opens to its steps. The run name links to the Run page.
+Queue, Running and Done list **runs**. A `Runs | Jobs` switch above each list keeps the flat job list for filtering by runner, machine and job kind (a group row that filters by those opens the Jobs view). A run row ends with an **Open run** button: it opens the run in place, as a waterfall of its jobs (queue wait light, run dark, forecast bracket for what is unfinished); a job opens to its steps. The run name links to the Run page.
 
 | Screen | Row and columns | Why |
 |---|---|---|
@@ -124,3 +124,32 @@ All binding. Each is built in the review build.
 13. **Replacement.** The new section replaces today's Jobs screens when it is built (the old routes redirect). This is a build step after approval; nothing in the production console changes now (the review build is a flag of its own entry).
 
 Table fixes in the same round: one number per forecast cell, a branch cut in the middle with the full name on hover and in the detail, compact times, and no sideways scroll at 1300 px.
+
+## 10. RES17: one row pattern in every Jobs list (owner report 18 Nov 2026, 23:08)
+
+The owner saw the same action under three names (Jobs, Open runs, Open jobs), a button that wrapped on two tabs, and run rows 89 to 130 px high. Measured at 1300 px before the fix: Queue, Running and Done said *Jobs* (44 px); By repository *Open runs*; By machine and By runner *Open jobs*; By runner type and By job type *Open jobs* at 46 px (wrapped); run rows were 89 to 130 px, the jobs lists up to 214 px.
+
+**Design-system entries.** Rule **UX-72** (ux-rules.md): table rows are one line on desktop, long text is cut with its full text on hover and in the detail, a row action uses the same words for the same action in every list. Component **56** `RowAction` and the Table props `action` and `oneLine` (components.md 15, 56); tokens `--ds-row-action-width` (8rem) and `--ds-cell-max` (12ch); the table *Row action words* in content.md. CHANGES **C117** and **C118**. No app CSS: every list passes data to the shared Table.
+
+**Words.** content.md had no rule on these words, only the entries *Open jobs* (group row) and *Open the run*, which this round replaces. So: a run row *Open run* (it opens the run in place; inside the opened run *Open run page* goes to the Run page), a group row *Open* (the group name is already in the row; a screen reader hears *Open: runner-1*), a job row *Open job*. The "Not placed yet" group opens the queue.
+
+**What changed in the lists.**
+
+- One action column of fixed width (`--ds-row-action-width`), label on one line, 44 px high, in every list (Queue, Running, Done in Runs and Jobs view; the five group tables). At 393 px it is the last, full-width line of each card, in the same place in every card.
+- Every row of every list is 69 px high at 1300 px (one 44 px button line plus the cell padding). A cell is one line cut at 12 characters with an ellipsis; its full text is the hover text; the branch, the workflow, the job and the running job keep their full text in `title`.
+- Times are compact (*1 min 19 s*); the Done *Finished* column reads *18 Nov 13:28* (full date in the detail, in the Job and Run pages).
+- *Slowest job* reads *duration, job* so the cut never hides the time. *Commit and event* is one short cell, never stacked.
+- The *Why* button sits inline at the right of its cell.
+
+**RES17 consistency fixes** (the same class of defect on the other Jobs screens):
+
+1. Queue, Running and Done run rows: *Jobs* became *Open run*.
+2. By repository: *Open runs* became *Open*. By machine and By runner: *Open jobs* became *Open*. By runner type and By job type: *Open jobs* (wrapped, 46 px) became *Open* (44 px, one line). The column head *Jobs* of those tables went; the action column has no visible head.
+3. Jobs view (Queue, Running, Done) had no row button, only a row that opened on Enter or double click and a link in the name: each row now ends with *Open job*.
+4. Opened run: *Open the run* became *Open run page* (it no longer repeats the row's own word).
+5. Jobs view, desktop width: the tables were 1340 to 1825 px wide and scrolled the page sideways. Four columns that the same facts also give elsewhere are no longer in the table: Queue jobs *Forecast* (the *Starts* column says it), Running jobs *Waited* and *Forecast* (the *Progress* label says the forecast; the Job page has both), Done jobs *Forecast* (Charts has forecast against actual). They stay on the Job page.
+6. A run row opened in place no longer widens the page (the opened row wraps its text).
+7. Group rows without a runner (*not placed yet*) had no button and a shorter card; they now open the queue, so the cards of one list are alike.
+8. Dates in the Done tables use the short form; the Job and Run pages keep the full form.
+
+**Guard.** `e2e/tests/review/review-layout.spec.ts` (UX-72), for every Jobs screen, the Job and Run pages and Charts, at 1300 px: (a) a row in a table body is taller than one line plus padding, or rows of one table differ in height; (b) a head or a button in a table is taller than the button token (wraps); (c) a button label is not a word of the *Row action words* table of content.md. At 393 px: the action of every card of a list sits at the same place and size. It failed on the previous build (first run: Queue, Running, Done, group and job tables, 130 px rows, labels *Jobs*, *Open runs*, *Open jobs*, wrapped *Open jobs*) and passes on this one.

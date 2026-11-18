@@ -2377,7 +2377,72 @@ button.ds-jobgraph__node:hover {
   text-underline-offset: 0.2em;
 }
 
-/* The button that opens a row in place (component 15 `detail`) stays on one line. */
-.ds-table td.ds-table__detail {
+/* The row action column (components 15 and 56, UX-72): a fixed width from a token, the label on one line. */
+.ds-table th.ds-table__action,
+.ds-table td.ds-table__action {
+  inline-size: var(--ds-row-action-width);
   white-space: nowrap;
+}
+.ds-table td.ds-table__action .ds-button-wrap {
+  display: flex;
+}
+.ds-table td.ds-table__action .ds-button {
+  inline-size: 100%;
+  white-space: nowrap;
+  text-decoration: none;
+}
+/* One line a row (UX-72): wide screens only. A cell is cut with an ellipsis at --ds-cell-max, the button of a long
+   text sits inline at the right of its cell, and every row of the table has the height of a button plus padding. */
+@media (min-width: 600px) {
+  .ds-table[data-one-line] th,
+  .ds-table[data-one-line] td {
+    padding-inline: var(--ds-space-2);
+  }
+  .ds-table[data-one-line] .ds-table__sort {
+    padding-inline: 0;
+  }
+  .ds-table[data-one-line] td {
+    white-space: nowrap;
+  }
+  .ds-table[data-one-line] .ds-table__expanded td {
+    white-space: normal;
+  }
+  .ds-table[data-one-line] tbody tr:not(.ds-table__expanded) {
+    block-size: calc(
+      var(--ds-control-height) + 2 * var(--ds-space-3) + var(--ds-border-thin)
+    );
+  }
+  .ds-table[data-one-line] .ds-table__value {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    max-inline-size: var(--ds-cell-max);
+    min-inline-size: 0;
+  }
+  .ds-table[data-one-line] .ds-table__text,
+  .ds-table[data-one-line] .ds-table__clip {
+    display: block;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ds-table[data-one-line] .ds-table__clip {
+    flex: 1 1 auto;
+    max-inline-size: none;
+  }
+  .ds-table[data-one-line] .ds-table__value .ds-button-wrap {
+    flex: none;
+  }
+}
+/* At phone width the action is the last line of the card, full width, in the same place in every card. */
+@media (max-width: 599px) {
+  .ds-table td.ds-table__action {
+    display: block;
+    inline-size: auto;
+    padding-block-start: var(--ds-space-2);
+  }
+  .ds-table td.ds-table__action::before {
+    content: none;
+  }
 }

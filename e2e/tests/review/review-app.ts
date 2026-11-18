@@ -52,15 +52,15 @@ export interface ReviewScreen {
   expand?: boolean;
 }
 
-/** Opens the first run row of the list in place (its Jobs button), and waits for its waterfall. */
+/** Opens the first run row of the list in place (its Open run button), and waits for its waterfall. */
 export async function expandFirstRun(page: Page): Promise<void> {
   const button = page
-    .getByRole('button', { name: 'Jobs', exact: true })
+    .getByRole('button', { name: 'Open run', exact: true })
     .and(page.locator('[aria-expanded]'))
     .first();
   await button.click();
   await page
-    .getByRole('region', { name: /^Jobs: / })
+    .getByRole('region', { name: /^Open run: / })
     .first()
     .waitFor();
   await page.waitForTimeout(200);

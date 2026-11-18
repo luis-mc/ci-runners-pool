@@ -35,6 +35,7 @@ export * from './components/SearchList';
 export * from './themes';
 export * from './components/Rows';
 export * from './components/ShortText';
+export * from './components/RowAction';
 export * from './components/Waterfall';
 export * from './components/JobGraph';
 export * from './components/Charts';

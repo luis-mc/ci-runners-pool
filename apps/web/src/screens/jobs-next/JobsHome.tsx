@@ -19,7 +19,7 @@ import {
   Tabs,
   Text,
   TextLink,
-  formatDateTime,
+  formatShortDateTime,
   formatDuration,
   type Column,
 } from '@crsp/ui';
@@ -180,12 +180,14 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
     id: 'job',
     header: 'Workflow and job',
     cell: (j) => <JobCell j={j} />,
+    title: (j) => `${j.workflow ?? 'workflow'} / ${j.job_name}`,
     sort: (j) => j.job_name,
   };
   const branch: Column<JobItem> = {
     id: 'branch',
     header: 'Branch',
     cell: (j) => <BranchCell j={j} />,
+    title: (j) => j.branch,
     sort: (j) => j.branch,
     secondary: true,
   };
@@ -208,13 +210,6 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
     header: 'Ran',
     cell: (j) => secondsOrNone(ranSeconds(j, now)),
     sort: (j) => ranSeconds(j, now) ?? 0,
-    secondary: true,
-  };
-  const forecast: Column<JobItem> = {
-    id: 'forecast',
-    header: 'Forecast',
-    cell: (j) => forecastOne(j.forecast),
-    sort: (j) => j.forecast.p50,
     secondary: true,
   };
   const status: Column<JobItem> = {
@@ -242,7 +237,6 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
         sort: (j) => j.queue_eta?.p50 ?? 0,
         secondary: true,
       },
-      forecast,
       {
         id: 'why',
         header: 'Why it waits',
@@ -268,7 +262,6 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
         },
         secondary: true,
       },
-      waited,
       {
         id: 'progress',
         header: 'Progress',
@@ -287,14 +280,13 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
         secondary: true,
       },
       ran,
-      forecast,
       status,
     ];
   return [
     {
       id: 'finished',
       header: 'Finished',
-      cell: (j) => (j.completed_at ? formatDateTime(j.completed_at) : 'not known'),
+      cell: (j) => (j.completed_at ? formatShortDateTime(j.completed_at) : 'not known'),
       sort: (j) => j.completed_at ?? '',
     },
     repo,
@@ -303,7 +295,6 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
     where,
     waited,
     ran,
-    forecast,
     status,
   ];
 }
@@ -491,8 +482,9 @@ function JobsListTab({ kind }: { kind: Kind }) {
               rowKey={(r) => `${r.id}-${r.attempt}`}
               expandLabel="Why"
               rowLabel={(r) => `${r.workflow} run ${r.id}`}
+              oneLine
               detail={{
-                label: 'Jobs',
+                label: 'Open run',
                 render: (r) => (
                   <RunDetail
                     run={r}
@@ -587,6 +579,12 @@ function JobTable({
       expandLabel="Details"
       rowLabel={(j) => j.job_name}
       onOpen={onOpen}
+      oneLine
+      action={{
+        label: 'Open job',
+        to: (j) => `/jobs/${j.id}`,
+        name: (j) => j.job_name,
+      }}
     />
   );
 }

@@ -221,3 +221,49 @@ describe('ShortText', () => {
     );
   });
 });
+
+describe('RowAction and the one-line table (UX-72)', () => {
+  const rows = [
+    { id: 'a', name: 'alpha', long: 'a-very-long-branch-name-that-is-cut' },
+    { id: 'b', name: 'beta', long: 'short' },
+  ];
+  const columns = [
+    { id: 'name', header: 'Name', cell: (r: (typeof rows)[number]) => r.name },
+    { id: 'long', header: 'Branch', cell: (r: (typeof rows)[number]) => r.long },
+  ];
+  const view = () =>
+    render(
+      <MemoryRouter>
+        <Table
+          caption="Things"
+          columns={columns}
+          rows={rows}
+          rowKey={(r) => r.id}
+          oneLine
+          action={{ label: 'Open', to: (r) => `/things/${r.id}`, name: (r) => r.name }}
+        />
+      </MemoryRouter>,
+    );
+  it('ends every row with the same word, named by its row', () => {
+    view();
+    const buttons = screen.getAllByRole('button', { name: /^Open: / });
+    expect(buttons.map((b) => b.textContent)).toEqual(['Open', 'Open']);
+    expect(buttons[0]?.getAttribute('aria-label')).toBe('Open: alpha');
+    expect(buttons[1]?.getAttribute('href')).toBe('/things/b');
+  });
+  it('marks the table one line and gives a cut cell its full text on hover', () => {
+    const { container } = view();
+    expect(container.querySelector('table')?.hasAttribute('data-one-line')).toBe(true);
+    expect(container.querySelector('[title="a-very-long-branch-name-that-is-cut"]')).not.toBeNull();
+  });
+  it('keeps the action column a fixed width from a token and never wraps its label', () => {
+    expect(block('.ds-table th.ds-table__action,\n.ds-table td.ds-table__action {')).toContain(
+      'inline-size: var(--ds-row-action-width)',
+    );
+    expect(block('.ds-table td.ds-table__action .ds-button {')).toContain('white-space: nowrap');
+  });
+  it('short date: 18 Nov 13:28', async () => {
+    const { formatShortDateTime } = await import('./format');
+    expect(formatShortDateTime(new Date(2026, 10, 18, 13, 28))).toBe('18 Nov 13:28');
+  });
+});

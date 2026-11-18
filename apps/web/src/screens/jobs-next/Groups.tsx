@@ -3,7 +3,6 @@
 import {
   Badge,
   Empty,
-  LinkButton,
   Section,
   Sparkline,
   Stack,
@@ -234,18 +233,6 @@ export function GroupTab({ by }: { by: GroupBy }) {
         ),
       secondary: true,
     },
-    {
-      id: 'open',
-      header: 'Jobs',
-      cell: (g) =>
-        g.filter ? (
-          <LinkButton
-            to={`/jobs/done?${by === 'repository' ? '' : 'view=jobs&'}${g.filter}`}
-          >
-            {by === 'repository' ? 'Open runs' : 'Open jobs'}
-          </LinkButton>
-        ) : null,
-    },
   ];
   return (
     <Load result={all} what={`the jobs by ${spec.what}`} reload={reload}>
@@ -266,6 +253,16 @@ export function GroupTab({ by }: { by: GroupBy }) {
                   columns={columns}
                   rows={groups}
                   rowKey={(g) => g.name}
+                  oneLine
+                  action={{
+                    label: 'Open',
+                    // Jobs that no runner took yet wait in the queue, so that is what the row opens.
+                    to: (g) =>
+                      g.filter
+                        ? `/jobs/done?${by === 'repository' ? '' : 'view=jobs&'}${g.filter}`
+                        : '/jobs?view=jobs',
+                    name: (g) => g.name,
+                  }}
                 />
               )}
               {by === 'runner-type' ? (

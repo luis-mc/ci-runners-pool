@@ -83,57 +83,66 @@ function allowedLabels(): Set<string> {
   return words;
 }
 
-interface Breach {
-  table: string;
-  what: string;
-}
-
-async function rowBreaches(page: Page, allowed: string[]): Promise<Breach[]> {
-  return page.evaluate((labels) => {
-    const px = (v: string) => {
-      const probe = document.createElement('div');
-      probe.style.cssText = `position:absolute;visibility:hidden;inline-size:${v}`;
-      document.body.append(probe);
-      const n = probe.getBoundingClientRect().width;
-      probe.remove();
-      return n;
-    };
-    // One line plus padding: the control height and the cell padding above and below (and the 1 px line).
-    const oneLine = px('var(--ds-control-height)') + 2 * px('var(--ds-space-3)') + 2;
-    const control = px('var(--ds-control-height)') + 1;
-    const out: { table: string; what: string }[] = [];
-    document.querySelectorAll<HTMLTableElement>('table.ds-table').forEach((t, n) => {
-      if (!t.getClientRects().length || t.closest('.ds-table__expanded')) return;
-      const name = `${t.querySelector('caption')?.textContent ?? 'table'} #${n}`;
-      const rows = [...(t.tBodies[0]?.rows ?? [])].filter(
-        (r) => !r.classList.contains('ds-table__expanded'),
-      );
-      const heights = rows.map((r) => Math.round(r.getBoundingClientRect().height));
-      const tall = Math.max(0, ...heights);
-      if (tall > oneLine)
-        out.push({ table: name, what: `a row is ${tall} px, more than one line (${oneLine} px)` });
-      if (new Set(heights).size > 1)
-        out.push({ table: name, what: `rows differ in height: ${[...new Set(heights)].join(', ')} px` });
-      t.querySelectorAll<HTMLElement>('tbody .ds-button, tbody a[data-button]').forEach((b) => {
-        const label = (b.textContent ?? '').trim();
-        const h = b.getBoundingClientRect().height;
-        if (h > control) out.push({ table: name, what: `button "${label}" wraps (${Math.round(h)} px)` });
-        if (!labels.includes(label))
-          out.push({ table: name, what: `button "${label}" is not a word of Row action words` });
-      });
+/** Runs in the page: the breaches of UX-72 in every visible table, as `{ table, what }`. */
+const ROW_SOURCE = (labels: string[]) => `(() => {
+  const labels = ${JSON.stringify(labels)};
+  const px = (v) => {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;visibility:hidden;inline-size:' + v;
+    document.body.append(probe);
+    const n = probe.getBoundingClientRect().width;
+    probe.remove();
+    return n;
+  };
+  // One line plus padding: the control height, the cell padding above and below, and the 1 px line.
+  const control = px('var(--ds-control-height)');
+  const oneLine = control + 2 * px('var(--ds-space-3)') + 2;
+  const out = new Set();
+  document.querySelectorAll('table.ds-table').forEach((t, n) => {
+    if (!t.getClientRects().length || t.closest('.ds-table__expanded')) return;
+    const cap = t.querySelector('caption');
+    const name = (cap ? cap.textContent : 'table') + ' #' + n;
+    const rows = [...(t.tBodies[0] ? t.tBodies[0].rows : [])].filter((r) => !r.classList.contains('ds-table__expanded'));
+    const heights = rows.map((r) => Math.round(r.getBoundingClientRect().height));
+    const tall = Math.max(0, ...heights);
+    if (tall > oneLine) out.add(name + ': a row is ' + tall + ' px high, more than one line (' + oneLine + ' px)');
+    if (new Set(heights).size > 1) out.add(name + ': rows differ in height: ' + [...new Set(heights)].join(', ') + ' px');
+    t.querySelectorAll('thead th').forEach((th) => {
+      const h = th.getBoundingClientRect().height;
+      if (h > oneLine) out.add(name + ': the head "' + (th.textContent || '').trim() + '" wraps (' + Math.round(h) + ' px high)');
     });
-    return out;
-  }, allowed);
-}
+    t.querySelectorAll('tbody .ds-button, tbody a[data-button]').forEach((b) => {
+      const label = (b.textContent || '').trim();
+      const h = b.getBoundingClientRect().height;
+      if (h > control + 1) out.add(name + ': the button "' + label + '" wraps (' + Math.round(h) + ' px high)');
+      if (!labels.includes(label)) out.add(name + ': the button "' + label + '" is not a word of Row action words');
+    });
+  });
+  return [...out];
+})()`;
 
-const ROW_SCREENS = reviewScreens().filter(
-  (s) => /^jobs-/.test(s.name) && !s.expand && s.name !== 'jobs-charts',
-);
+/** Runs in the page at phone width: where the button of each card sits, per table. */
+const CARD_SOURCE = `(() => [...document.querySelectorAll('table.ds-table')]
+  .filter((t) => t.getClientRects().length)
+  .map((t) => {
+    const rows = [...(t.tBodies[0] ? t.tBodies[0].rows : [])].filter((r) => !r.classList.contains('ds-table__expanded'));
+    const seen = new Set();
+    for (const r of rows) {
+      const b = r.querySelector('.ds-table__action .ds-button');
+      if (!b) continue;
+      const rr = r.getBoundingClientRect();
+      const br = b.getBoundingClientRect();
+      seen.add(Math.round(br.left - rr.left) + '/' + Math.round(rr.bottom - br.bottom) + '/' + Math.round(br.width));
+    }
+    return [...seen];
+  }))()`;
+
+const ROW_SCREENS = reviewScreens().filter((s) => !s.expand);
 
 for (const s of ROW_SCREENS) {
   test(`rows of ${s.name} are one line with one set of words`, async ({ page }) => {
     await open(page, s.hash, 'phosphor', 'dark');
-    expect(await rowBreaches(page, [...allowedLabels()])).toEqual([]);
+    expect(await page.evaluate<string[]>(ROW_SOURCE([...allowedLabels()]))).toEqual([]);
   });
 }
 
@@ -142,26 +151,7 @@ for (const s of ROW_SCREENS) {
     await open(page, s.hash, 'phosphor', 'dark');
     await page.setViewportSize({ width: 393, height: 852 });
     await page.waitForTimeout(150);
-    const spots = await page.evaluate(() =>
-      [...document.querySelectorAll<HTMLTableElement>('table.ds-table')]
-        .filter((t) => t.getClientRects().length)
-        .map((t) => {
-          const rows = [...(t.tBodies[0]?.rows ?? [])].filter(
-            (r) => !r.classList.contains('ds-table__expanded'),
-          );
-          const seen = new Set<string>();
-          for (const r of rows) {
-            const b = r.querySelector<HTMLElement>('.ds-button');
-            if (!b) continue;
-            const rr = r.getBoundingClientRect();
-            const br = b.getBoundingClientRect();
-            seen.add(
-              `${Math.round(br.left - rr.left)}/${Math.round(rr.bottom - br.bottom)}/${Math.round(br.width)}`,
-            );
-          }
-          return [...seen];
-        }),
-    );
+    const spots = await page.evaluate<string[][]>(CARD_SOURCE);
     for (const seen of spots) expect(seen.length).toBeLessThanOrEqual(1);
   });
 }

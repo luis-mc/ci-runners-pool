@@ -10,7 +10,7 @@ import {
   Text,
   TextLink,
   Waterfall,
-  formatDateTime,
+  formatShortDateTime,
   formatDuration,
   type Column,
 } from '@crsp/ui';
@@ -49,12 +49,14 @@ export function runColumns(kind: RunKind, now: number): Column<RunItem>[] {
         {` #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`}
       </>
     ),
+    title: (r) => `${r.workflow} #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`,
     sort: (r) => r.workflow,
   };
   const branch: Column<RunItem> = {
     id: 'branch',
     header: 'Branch',
     cell: (r) => <BranchWords branch={r.branch} />,
+    title: (r) => r.branch,
     sort: (r) => r.branch,
     secondary: true,
   };
@@ -132,6 +134,7 @@ export function runColumns(kind: RunKind, now: number): Column<RunItem>[] {
         cell: (r) => (
           <CappedList items={sum(r).runningJobs.map((j) => j.job_name)} max={1} />
         ),
+        title: (r) => sum(r).runningJobs.map((j) => j.job_name).join(', '),
         secondary: true,
       },
       {
@@ -156,7 +159,7 @@ export function runColumns(kind: RunKind, now: number): Column<RunItem>[] {
       header: 'Finished',
       cell: (r) => {
         const f = sum(r).finishedAt;
-        return f ? formatDateTime(f) : 'not known';
+        return f ? formatShortDateTime(f) : 'not known';
       },
       sort: (r) => sum(r).finishedAt ?? '',
     },
@@ -177,7 +180,7 @@ export function runColumns(kind: RunKind, now: number): Column<RunItem>[] {
       header: 'Slowest job',
       cell: (r) => {
         const s = sum(r).slowest;
-        return s ? `${s.job.job_name}, ${formatDuration(s.seconds)}` : 'none';
+        return s ? `${formatDuration(s.seconds)}, ${s.job.job_name}` : 'none';
       },
       secondary: true,
     },
@@ -210,7 +213,7 @@ export function RunDetail({
       />
       <Cluster>
         <LinkButton to={`/jobs/run/${run.id}?attempt=${run.attempt}`}>
-          Open the run
+          Open run page
         </LinkButton>
       </Cluster>
     </Stack>
