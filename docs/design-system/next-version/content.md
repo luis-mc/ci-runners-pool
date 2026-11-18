@@ -22,8 +22,7 @@ Each action has one word. The Never use column lists words that must not stand i
 | Try again | Repeat something that failed. Also asks once more for a state. | Retry, Redo, Check again, Check now, Recheck |
 | Refresh | Load the shown data again. | Reload, Update |
 | Review | Open what waits for a decision, to look it over. Also the name of every looking-over step, and of the first of the last three steps of a wizard that changes something. | Check, Confirm, Summary |
-| Hide | Stop showing something. It is kept. | Close |
-| Dismiss | The x on a note: remove it from view in this browser until its text changes. Notes only. | Close, Hide |
+| Hide | Stop showing something. It is kept. Also the x on a note. | Dismiss, Close |
 | Show | Show something that was hidden. | Reveal, Unhide |
 | Open | Go to an item to see it. | View, Go to |
 | See all N | Go from a preview to the whole list. N is the count. | More, View all |
@@ -77,6 +76,7 @@ A retired word is not drawn as a label, button or message. The guard scans the s
 | Retry | Try again |
 | Reload | Refresh |
 | Abort | Stop |
+| Dismiss | Hide |
 | Check | Review (to look over, or to open what waits), or Try again (to ask once more for a state) |
 | Check again | Try again |
 | Check now | Try again |

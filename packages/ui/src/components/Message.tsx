@@ -81,7 +81,7 @@ export function Message({
         <button
           type="button"
           className="ds-message__dismiss"
-          aria-label="Dismiss"
+          aria-label="Hide"
           onClick={() => {
             remember(noteId, text);
             setHiddenText(text);

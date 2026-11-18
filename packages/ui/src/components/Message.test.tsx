@@ -10,9 +10,9 @@ afterEach(() => {
 });
 
 describe('Message dismiss', () => {
-  it('a note has a Dismiss button that hides it and is remembered', () => {
+  it('a note has a Hide button that hides it and is remembered', () => {
     const { unmount } = render(<Message tone="note">Four repos hidden.</Message>);
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hide' }));
     expect(screen.queryByText('Four repos hidden.')).toBeNull();
     unmount();
     render(<Message tone="note">Four repos hidden.</Message>);
@@ -21,7 +21,7 @@ describe('Message dismiss', () => {
 
   it('shows again when its text changes', () => {
     const { unmount } = render(<Message tone="note">Four repos hidden.</Message>);
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hide' }));
     unmount();
     render(<Message tone="note">Five repos hidden.</Message>);
     expect(screen.getByText('Five repos hidden.')).toBeTruthy();
@@ -36,11 +36,11 @@ describe('Message dismiss', () => {
     });
     render(<Message tone="note">Hello.</Message>);
     expect(screen.getByText('Hello.')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hide' }));
     expect(screen.queryByText('Hello.')).toBeNull();
   });
 
-  it('has no Dismiss on other tones, with an action, or when dismissible is false', () => {
+  it('has no Hide on other tones, with an action, or when dismissible is false', () => {
     render(
       <>
         <Message tone="done">a</Message>
@@ -54,6 +54,6 @@ describe('Message dismiss', () => {
         </Message>
       </>,
     );
-    expect(screen.queryByRole('button', { name: 'Dismiss' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Hide' })).toBeNull();
   });
 });
