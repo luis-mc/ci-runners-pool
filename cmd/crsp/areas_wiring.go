@@ -216,7 +216,12 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	if reg == nil {
 		reg = registry.Platform(registry.RealDeps(nil, secretRedactor.Redact, secretRedactor.Add), runnerIDSource(logger, d.DB))
 	}
-	rstore := runners.NewMemStore()
+	// Every change to a runner record is told to the live view, so the console list moves without a reload.
+	rstore := runners.NotifyStore{Store: runners.NewMemStore(), OnChange: func(r runners.Record, gone bool) {
+		if b := api.RunnerEventJSON(r, gone); b != nil {
+			hub.Publish(events.RunnerState, b)
+		}
+	}}
 	agent := linkAgent{local: runners.NewLocalAgent(reg), svc: d.Machines, remote: remoteAgent(d.Link)}
 	runnerSvc := &runners.Service{
 		Store: rstore, Machines: machineLookup{svc: d.Machines}, Resolver: scopeResolver{repos: repoStore, auth: asvc},

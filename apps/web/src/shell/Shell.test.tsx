@@ -71,8 +71,8 @@ describe('the shell (R5.3)', () => {
         snapshot: overview(),
       }),
     );
-    expect(await screen.findByText('1 of 1 online')).toBeTruthy();
-    expect(screen.getByText('live')).toBeTruthy();
+    expect(await screen.findByText('1 of 1 machine online')).toBeTruthy();
+    expect(screen.getByText('live updates')).toBeTruthy();
   });
 
   it('reads the header count from the machines list, not the overview (UX-19)', async () => {
@@ -80,7 +80,7 @@ describe('the shell (R5.3)', () => {
       items: [machine(), machine({ id: 'm2', name: 'GameRoomPC-2' })],
     });
     renderApp(api, '/');
-    expect(await screen.findByText('2 of 2 online')).toBeTruthy();
+    expect(await screen.findByText('2 of 2 machines online')).toBeTruthy();
     expect(screen.queryByText('no machines')).toBeNull();
   });
 
@@ -92,7 +92,7 @@ describe('the shell (R5.3)', () => {
   it('hides the first-run banner when all three steps are done', async () => {
     renderApp(signedIn(), '/');
     await screen.findByRole('heading', { name: 'Overview' });
-    await screen.findByText('1 of 1 online');
+    await screen.findByText('1 of 1 machine online');
     expect(screen.queryByText(/First run is not finished\./)).toBeNull();
   });
 

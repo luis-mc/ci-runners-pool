@@ -3445,10 +3445,10 @@ export interface components {
          */
         PauseReason: "paused" | "on_battery" | "quiet_hours" | "budget" | "base_image_missing";
         /**
-         * @description What the agent did with the CPU cap. not_supported is macOS (machines R5.64).
+         * @description What the agent did with the CPU cap. not_supported is macOS (machines R5.64). applying is the wait until the agent reports the result for the chosen percent.
          * @enum {string}
          */
-        CpuCapState: "applied" | "not_supported" | "failed";
+        CpuCapState: "applied" | "not_supported" | "failed" | "applying";
         /** @description What the agent last reported about the power source and the CPU cap (machines R5.62 to R5.64). */
         MachinePolicy: {
             on_battery: boolean;
@@ -4126,6 +4126,27 @@ export interface components {
             drain_timeout_minutes?: number;
             /** Format: uri */
             release_url?: string;
+            stage?: components["schemas"]["UpdateStage"];
+        };
+        /** @description The live stage of the last or running update (TRAY4). It is kept in a file, so it survives the service restart. */
+        UpdateStage: {
+            /** @enum {string} */
+            name: "downloading" | "waiting_for_jobs" | "installing" | "restarting" | "done" | "failed";
+            /** @description Only for downloading and installing; absent when the stage has no number. Installing is a rough guess from the installer log. */
+            percent?: number;
+            /** @description The version being installed; for done, the version that runs. */
+            version?: string;
+            /** @description failed only, in words. */
+            error?: string;
+            /** @description failed only, the log that has the detail. */
+            log_path?: string;
+            /**
+             * @description failed only, the stage that failed.
+             * @enum {string}
+             */
+            failed_at?: "downloading" | "waiting_for_jobs" | "installing" | "restarting";
+            /** Format: date-time */
+            at: string;
         };
         UpdateJob: {
             repository: string;

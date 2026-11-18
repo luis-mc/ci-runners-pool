@@ -43,7 +43,7 @@ func TestRightBeforeServiceAndPasswordPassed(t *testing.T) {
 func TestLogonCheckFailureIsWhole(t *testing.T) {
 	r := newRig(t)
 	why := "the account crsp-box-1 cannot log on as a service: the account has no right to log on as a service (Windows error 1385: Logon failure: the user has not been granted the requested logon type at this machine.)"
-	r.cmd.Rules = []sysfake.Rule{{Match: "CrspLogon", Result: sys.Result{ExitCode: 1, Stderr: errMarker + why + "\r\n"}}}
+	r.cmd.Rules = withSID([]sysfake.Rule{{Match: "CrspLogon", Result: sys.Result{ExitCode: 1, Stderr: errMarker + why + "\r\n"}}})
 	err := start(t, r, r.spec(), backend.StartConfig{Registration: "REGTOKEN"})
 	if err == nil || !strings.Contains(err.Error(), why) {
 		t.Fatalf("err = %v", err)
@@ -57,7 +57,7 @@ func TestLogonCheckFailureIsWhole(t *testing.T) {
 // and no CLIXML is.
 func TestServiceFailureTextWhole(t *testing.T) {
 	r := newRig(t)
-	r.cmd.Rules = []sysfake.Rule{{Match: "New-Service", Result: sys.Result{ExitCode: 1, Stderr: errMarker + logonText + "\r\n"}}}
+	r.cmd.Rules = withSID([]sysfake.Rule{{Match: "New-Service", Result: sys.Result{ExitCode: 1, Stderr: errMarker + logonText + "\r\n"}}})
 	err := start(t, r, r.spec(), backend.StartConfig{Registration: "REGTOKEN"})
 	if err == nil || !strings.Contains(err.Error(), "register service: powershell exited 1: "+logonText) {
 		t.Fatalf("err = %v", err)
@@ -94,7 +94,7 @@ func TestWrapScriptCatchesInner(t *testing.T) {
 // A failed add removes the service, the account and the folder, and says so.
 func TestFailedAddCleansUp(t *testing.T) {
 	r := newRig(t)
-	r.cmd.Rules = []sysfake.Rule{{Match: "New-Service", Result: sys.Result{ExitCode: 1, Stderr: errMarker + logonText}}}
+	r.cmd.Rules = withSID([]sysfake.Rule{{Match: "New-Service", Result: sys.Result{ExitCode: 1, Stderr: errMarker + logonText}}})
 	err := start(t, r, r.spec(), backend.StartConfig{Registration: "REGTOKEN", Removal: "RMTOKEN"})
 	var sf *StartFailure
 	if !errors.As(err, &sf) {

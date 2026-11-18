@@ -214,6 +214,7 @@ describe('Machine detail', () => {
     });
     renderApp(api, '/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
+    fireEvent.click(screen.getAllByRole('checkbox')[0]!);
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     const dialog = await screen.findByRole('dialog', { name: 'Save these settings?' });
     expect(within(dialog).getByText('octo/app e2e')).toBeTruthy();

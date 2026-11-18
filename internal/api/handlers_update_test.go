@@ -18,10 +18,11 @@ type fakeUpdate struct {
 	applied   []update.Kind
 	confirmed []bool
 	jobs      []update.Job
+	stage     *update.Stage
 }
 
 func (f *fakeUpdate) Status(context.Context) update.Status {
-	return update.Status{Current: "1.4.0", Latest: "1.5.0", Available: true, State: update.StateIdle, AutoUpdate: true, RunningJobs: f.jobs, DrainTimeoutMinutes: 60}
+	return update.Status{Current: "1.4.0", Latest: "1.5.0", Available: true, State: update.StateIdle, AutoUpdate: true, RunningJobs: f.jobs, DrainTimeoutMinutes: 60, Stage: f.stage}
 }
 func (f *fakeUpdate) Check(ctx context.Context) (update.Status, error) { return f.Status(ctx), nil }
 func (f *fakeUpdate) Apply(ctx context.Context, k update.Kind, confirmed bool, _ string) (update.Status, error) {
@@ -113,5 +114,30 @@ func TestSettingsAutoUpdateDefaultOnAndToggle(t *testing.T) {
 	}
 	if rec := e.do("GET", "/api/v1/settings", ""); !strings.Contains(rec.Body.String(), `"auto_update":false`) {
 		t.Fatalf("not saved: %s", rec.Body)
+	}
+}
+
+// TRAY4: the live stage rides on the status; a stage without a number shows none.
+func TestUpdateStatusCarriesTheStage(t *testing.T) {
+	read := func(st *update.Stage) map[string]any {
+		rec := doReq(updateMux(&fakeUpdate{stage: st}), "GET", "/api/v1/update")
+		var got map[string]any
+		_ = json.Unmarshal(rec.Body.Bytes(), &got)
+		return got
+	}
+	if _, has := read(nil)["stage"]; has {
+		t.Fatal("no stage file, no stage")
+	}
+	dl, _ := read(&update.Stage{Name: update.StageDownloading, Percent: 40, Version: "1.5.0"})["stage"].(map[string]any)
+	if dl["name"] != "downloading" || dl["percent"] != float64(40) || dl["version"] != "1.5.0" {
+		t.Fatalf("%v", dl)
+	}
+	wait, _ := read(&update.Stage{Name: update.StageWaitingForJobs, Percent: -1})["stage"].(map[string]any)
+	if _, has := wait["percent"]; has {
+		t.Fatalf("waiting has no percent: %v", wait)
+	}
+	bad, _ := read(&update.Stage{Name: update.StageFailed, Percent: -1, Error: "boom", LogPath: "C:/x/msi.log"})["stage"].(map[string]any)
+	if bad["error"] != "boom" || bad["log_path"] != "C:/x/msi.log" {
+		t.Fatalf("%v", bad)
 	}
 }

@@ -160,3 +160,39 @@ func TestAcceptingReportSetsMachineStatus(t *testing.T) {
 		t.Fatalf("unknown machine: %v", err)
 	}
 }
+
+// R5.64: a report about another percent than the chosen one shows as applying,
+// without the old error; the state returns when the agent reports the chosen percent.
+func TestCPUCapStateFollowsTheChosenPct(t *testing.T) {
+	e, id, _ := setup(t)
+	ctx := context.Background()
+	report := func(pct int32, state, detail string) {
+		e.Svc.HandleAccepting(ctx, id, &agentv1.AcceptingReport{Accepting: true, CpuCapPct: pct, CpuCapState: state, CpuCapDetail: detail})
+	}
+	set := func(pct int) {
+		if _, _, err := e.Svc.UpdateSettings(ctx, "owner", id, machines.SettingsUpdate{CPUCapPct: num(pct)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	state := func() (string, string) {
+		v, _ := e.Svc.Get(ctx, id)
+		return v.Policy.CPUCapState, v.Policy.CPUCapDetail
+	}
+	set(100)
+	report(100, machines.CapFailed, "access denied")
+	if s, d := state(); s != machines.CapFailed || d != "access denied" {
+		t.Fatalf("matching pct: %q %q", s, d)
+	}
+	set(50)
+	if s, d := state(); s != machines.CapApplying || d != "" {
+		t.Fatalf("after the change, old report: %q %q", s, d)
+	}
+	report(100, machines.CapFailed, "access denied") // a late report of the old value
+	if s, _ := state(); s != machines.CapApplying {
+		t.Fatalf("a report for another pct: %q", s)
+	}
+	report(50, machines.CapApplied, "")
+	if s, d := state(); s != machines.CapApplied || d != "" {
+		t.Fatalf("report for the chosen pct: %q %q", s, d)
+	}
+}

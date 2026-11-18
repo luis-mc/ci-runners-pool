@@ -49,12 +49,12 @@ func NewJob(pct int) (*Job, error) {
 	return j, nil
 }
 
-// SetCap sets the hard CPU cap of the job; 100 removes it.
+// SetCap sets the hard CPU cap of the job. 100 is a cap of all cores (rate
+// 10000): Windows rejects an empty rate control (flags 0, rate 0) with
+// "The parameter is incorrect", so the cap is never cleared that way.
 func (j *Job) SetCap(pct int) error {
-	info := cpuRateControl{}
-	if pct < 100 {
-		info = cpuRateControl{ControlFlags: jobCPURateControlEnable | jobCPURateControlHardCap, CPURate: uint32(pct * 100)} //nolint:gosec // 25 to 99
-	}
+	pct = min(max(pct, 1), 100)
+	info := cpuRateControl{ControlFlags: jobCPURateControlEnable | jobCPURateControlHardCap, CPURate: uint32(pct * 100)} //nolint:gosec // 1 to 100
 	if _, err := windows.SetInformationJobObject(j.h, windows.JobObjectCpuRateControlInformation,
 		uintptr(unsafe.Pointer(&info)), uint32(unsafe.Sizeof(info))); err != nil { //nolint:gosec // fixed size
 		return fmt.Errorf("setting the CPU rate: %w", err)

@@ -13,6 +13,7 @@ const SCREENS: {
   recovery?: boolean;
   publicRows?: boolean;
   signedOut?: boolean;
+  policy?: boolean;
   tweak?: (m: ReturnType<typeof signedIn>) => unknown;
 }[] = [
   { name: 'sign-in', path: '/sign-in', ready: 'Sign in', signedOut: true },
@@ -42,6 +43,12 @@ const SCREENS: {
     publicRows: true,
   },
   { name: 'repository detail', path: '/repositories/octo/app', ready: 'octo/app' },
+  {
+    name: 'repository policy',
+    path: '/repositories/octo/app',
+    ready: 'octo/app',
+    policy: true,
+  },
   { name: 'turn on the pool', path: '/repositories/turn-on', ready: 'Turn on the pool' },
   { name: 'machines', path: '/machines', ready: 'Machines' },
   { name: 'machine detail', path: '/machines/m1', ready: 'build-1' },
@@ -78,7 +85,64 @@ const SCREENS: {
   { name: 'settings data', path: '/settings/data', ready: 'Settings' },
   { name: 'settings audit log', path: '/settings/audit', ready: 'Settings' },
   { name: 'settings old address', path: '/settings/backups', ready: 'Settings' },
+  // The small page the tray opens (TRAY4): asks first, follows the stage, says what failed.
+  ...(['confirm', 'running', 'failed', 'done'] as const).map((state) => ({
+    name: `update page ${state}`,
+    path: '/update',
+    ready: 'Update',
+    tweak: (m: ReturnType<typeof signedIn>) =>
+      m.on('GET', '/api/v1/update', updateStatus(state)),
+  })),
 ];
+
+function updateStatus(state: 'confirm' | 'running' | 'failed' | 'done') {
+  const base = {
+    current_version: '1.4.0',
+    latest_version: '1.5.0',
+    update_available: true,
+    state: 'idle',
+    auto_update: false,
+    running_jobs: [],
+    drain_timeout_minutes: 60,
+  };
+  if (state === 'running')
+    return {
+      ...base,
+      state: 'downloading',
+      stage: {
+        name: 'downloading',
+        percent: 42,
+        version: '1.5.0',
+        at: new Date().toISOString(),
+      },
+    };
+  if (state === 'failed')
+    return {
+      ...base,
+      state: 'failed',
+      error: 'The installer failed with exit code 1603',
+      stage: {
+        name: 'failed',
+        failed_at: 'installing',
+        error: 'The installer failed with exit code 1603',
+        log_path: 'C:\\ProgramData\\crsp\\logs\\msi-update.log',
+        at: new Date().toISOString(),
+      },
+    };
+  if (state === 'done')
+    return {
+      ...base,
+      current_version: '1.5.0',
+      update_available: false,
+      stage: {
+        name: 'done',
+        percent: 100,
+        version: '1.5.0',
+        at: new Date().toISOString(),
+      },
+    };
+  return base;
+}
 
 for (const screen of SCREENS) {
   test(`layout: ${screen.name}`, async ({ page }) => {
@@ -127,6 +191,8 @@ for (const screen of SCREENS) {
     if (screen.recovery)
       await expect(page.getByRole('button', { name: 'Recover' })).toBeVisible();
     await page.waitForLoadState('networkidle');
+    if (screen.policy)
+      await expect(page.getByRole('heading', { name: 'Policy' })).toBeVisible();
     await expectDomLayout(page, screen.name, { spaceVar: '--ds-space-' });
   });
 }

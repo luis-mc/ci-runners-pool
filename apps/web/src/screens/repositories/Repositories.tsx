@@ -9,7 +9,6 @@ import {
   Empty,
   ErrorSummary,
   Facts,
-  FormActions,
   LinkButton,
   Message,
   NumberField,
@@ -33,6 +32,9 @@ import {
   useNow,
   type Column,
   type StatusKind,
+  ActionBar,
+  selectedStatus,
+  unsavedStatus,
 } from '@crsp/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -174,6 +176,26 @@ export function RepositoriesList() {
     },
   );
 
+  const items =
+    result.state === 'loading'
+      ? undefined
+      : (result as { data?: Awaited<ReturnType<typeof allRepositories>> }).data;
+  const chosen = (items?.items ?? []).filter((r) => picked.has(r.id));
+  // While the list is the last copy the admin flag is unknown, not "no": the
+  // plan checks it again at the change (CRSP148, R5.19).
+  const noAdmin = items?.stale.stale ? [] : chosen.filter((r) => !mayTry(r));
+  const publicOff = chosen.filter((r) => publicWhileOff(r, enabled));
+  const allUse = chosen.length > 0 && chosen.every((r) => r.pool_on);
+  const blocked = !admin
+    ? session.whyNot('admin')
+    : chosen.length === 0
+      ? 'Tick the repositories that should use the pool.'
+      : !allUse && noAdmin.length > 0
+        ? `You need admin rights on ${noAdmin.map((r) => r.full_name).join(', ')} in GitHub.`
+        : !allUse && publicOff.length > 0
+          ? `Public repositories are off: ${publicOff.map((r) => r.full_name).join(', ')}. Turn them on in Settings first.`
+          : undefined;
+
   const columns: Column<Repository>[] = [
     {
       id: 'name',
@@ -249,30 +271,19 @@ export function RepositoriesList() {
       <PageHeader
         title="Repositories"
         lead="Choose which repositories use the pool, and with which limits."
-        action={
-          admin ? (
-            <Button kind="primary" onPress={() => void navigate('/repositories/turn-on')}>
-              Turn on the pool
-            </Button>
-          ) : (
-            <Button kind="primary" disabled reason={session.whyNot('admin')}>
-              Turn on the pool
-            </Button>
-          )
-        }
       />
       {returned ? (
         <Message
           tone={returned === 'request' ? 'needs-you' : 'done'}
           action={
             returned === 'request' ? undefined : (
-              <LinkButton to="/repositories/turn-on">Turn on the pool</LinkButton>
+              <LinkButton to="/repositories">Use pool</LinkButton>
             )
           }
         >
           {returned === 'request'
             ? 'GitHub sent the install request to an owner of the account. The repositories show here when they approve it.'
-            : 'GitHub saved the App installation. The list below is read again. Turn the pool on for the repositories you want.'}
+            : 'GitHub saved the App installation. The list below is read again. Tick the repositories you want and press Use pool.'}
         </Message>
       ) : null}
       <Pane title="Repositories">
@@ -294,11 +305,6 @@ export function RepositoriesList() {
             const shown = paginate(filtered, Math.min(page, pages), PAGE);
             const groups = groupByOwner(shown, listed);
             const selected = new Set([...picked].map(String));
-            const chosen = data.items.filter((r) => picked.has(r.id));
-            // While the list is the last copy the admin flag is unknown, not "no": the
-            // plan checks it again at the change (CRSP148, R5.19).
-            const noAdmin = data.stale.stale ? [] : chosen.filter((r) => !mayTry(r));
-            const publicOff = chosen.filter((r) => publicWhileOff(r, enabled));
             if (data.items.length === 0)
               return (
                 <Empty
@@ -407,49 +413,6 @@ export function RepositoriesList() {
                       >
                         Clear
                       </Button>
-                      {picked.size > 0 ? (
-                        <>
-                          <span>{`${picked.size} selected`}</span>
-                          <Button
-                            disabled={
-                              !admin || noAdmin.length > 0 || publicOff.length > 0
-                            }
-                            reason={
-                              !admin
-                                ? session.whyNot('admin')
-                                : noAdmin.length > 0
-                                  ? `You need admin rights on ${noAdmin.map((r) => r.full_name).join(', ')} in GitHub.`
-                                  : publicOff.length > 0
-                                    ? `Public repositories are off: ${publicOff.map((r) => r.full_name).join(', ')}. Turn them on in Settings first.`
-                                    : undefined
-                            }
-                            onPress={() =>
-                              void navigate(
-                                `/repositories/turn-on?${chosen.map((r) => `repo=${r.id}`).join('&')}`,
-                              )
-                            }
-                          >
-                            {`Turn on ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
-                          </Button>
-                          <Button
-                            kind="danger"
-                            disabled={!admin}
-                            reason={session.whyNot('admin')}
-                            onPress={() =>
-                              offQ.ask(
-                                chosen.flatMap((r) => [
-                                  `${r.full_name}: pool off`,
-                                  ...r.variables.map(
-                                    (x) => `${r.full_name}: variable ${x.name}`,
-                                  ),
-                                ]),
-                              )
-                            }
-                          >
-                            {`Turn off ${chosen.length} ${chosen.length === 1 ? 'repository' : 'repositories'}`}
-                          </Button>
-                        </>
-                      ) : null}
                     </>
                   }
                   count={`${filtered.length} ${typeWords(enabled, showPublic)}${filtered.length === 1 ? 'repository' : 'repositories'}`}
@@ -519,6 +482,30 @@ export function RepositoriesList() {
       </Pane>
       <MissingPermissionsGuide onReady={reload} />
       <OrgPools version={v} />
+      <ActionBar
+        status={chosen.length === 0 ? 'Nothing selected' : selectedStatus(chosen.length)}
+        primary={
+          <Button
+            kind="primary"
+            disabled={blocked !== undefined}
+            reason={blocked}
+            onPress={() =>
+              allUse
+                ? offQ.ask(
+                    chosen.flatMap((r) => [
+                      `${r.full_name}: pool off`,
+                      ...r.variables.map((x) => `${r.full_name}: variable ${x.name}`),
+                    ]),
+                  )
+                : void navigate(
+                    `/repositories/turn-on?${chosen.map((r) => `repo=${r.id}`).join('&')}`,
+                  )
+            }
+          >
+            {allUse ? 'Stop using pool' : 'Use pool'}
+          </Button>
+        }
+      />
       <Ask
         title="Turn off these repositories?"
         action="Turn off"
@@ -617,6 +604,16 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
     light !== p.light_runner ||
     hostedChanged(hosted, hostedStart(r));
   const packagesChanged = packages !== startPackages;
+  const changeCount = [
+    labels !== p.labels.join(', '),
+    groups !== p.runner_groups.join(', '),
+    max !== p.max_parallel_jobs,
+    priority !== p.priority,
+    forks !== p.allow_fork_pull_requests,
+    light !== p.light_runner,
+    hostedChanged(hosted, hostedStart(r)),
+    packagesChanged,
+  ].filter(Boolean).length;
   const forkRisk = forks && !p.allow_fork_pull_requests;
   const costRisk = turnsFallbackOn(r, hosted);
 
@@ -700,7 +697,6 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
         action={
           r.pool_on ? (
             <Button
-              kind="danger"
               disabled={!admin}
               reason={session.whyNot('admin')}
               onPress={() =>
@@ -710,11 +706,10 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
                 ])
               }
             >
-              Turn off the pool
+              Stop using pool
             </Button>
           ) : (
             <Button
-              kind="primary"
               disabled={!admin || !mayTry(r) || publicOff}
               reason={
                 !admin
@@ -727,7 +722,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
               }
               onPress={() => void navigate(`/repositories/turn-on?repo=${r.id}`)}
             >
-              Turn on the pool
+              Use pool
             </Button>
           )
         }
@@ -909,19 +904,24 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
           {save.error ? (
             <Message tone="problem">Could not save. {save.error}</Message>
           ) : null}
-          <FormActions>
-            <Button onPress={() => void navigate('/repositories')}>Cancel</Button>
-            <Button
-              kind={r.pool_on ? 'primary' : 'default'}
-              submit
-              busy={save.busy}
-              busyLabel="Saving"
-              disabled={!admin}
-              reason={session.whyNot('admin')}
-            >
-              Save
-            </Button>
-          </FormActions>
+          <ActionBar
+            status={unsavedStatus(changeCount)}
+            secondary={
+              <Button onPress={() => void navigate('/repositories')}>Cancel</Button>
+            }
+            primary={
+              <Button
+                kind="primary"
+                submit
+                busy={save.busy}
+                busyLabel="Saving"
+                disabled={!admin || changeCount === 0}
+                reason={!admin ? session.whyNot('admin') : 'Nothing has changed yet.'}
+              >
+                Save
+              </Button>
+            }
+          />
         </Stack>
       </form>
       <Ask

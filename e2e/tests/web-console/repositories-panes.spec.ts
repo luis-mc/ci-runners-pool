@@ -13,13 +13,13 @@ const SCREENS = [
     name: 'list',
     path: '/repositories',
     panes: ['Repositories'],
-    primaries: ['Turn on the pool'],
+    primaries: ['Use pool'],
   },
   {
     name: 'detail',
     path: '/repositories/octo/app',
     panes: ['State', 'Policy', 'Hosted fallback', 'Extra packages'],
-    primaries: ['Turn on the pool'],
+    primaries: ['Save'],
   },
   {
     name: 'turn on the pool',

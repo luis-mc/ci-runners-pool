@@ -119,13 +119,13 @@ export function PageHeader({
   );
 }
 
-/** The page body of a screen: one stack. The default is the full wide frame, from the title's left edge to the frame's right edge; `narrow` is for sign-in and other auth flows only (UX-69). */
+/** The page body of a screen: one stack. The default is the full wide frame, from the title's left edge to the frame's right edge; `narrow` is for sign-in and other auth flows only (UX-69); `compact` is for the small window the tray opens (TRAY4): narrow, with its own gutter, because no shell frame is around it. */
 export function Page({
   children,
   frame = 'wide',
 }: {
   children: ReactNode;
-  frame?: 'narrow' | 'wide' | undefined;
+  frame?: 'compact' | 'narrow' | 'wide' | undefined;
 }) {
   return (
     <div className="ds-page" data-frame={frame} data-layout-group>

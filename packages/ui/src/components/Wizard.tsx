@@ -2,6 +2,7 @@
 // A page passes data only: the phase it reads from the server, the steps, the primary and the step content.
 // The ten phases are the ten states of the wizard harness (scripts/design/wizard-behaviour.ts).
 import { useId, type ReactNode } from 'react';
+import { ActionBar } from './ActionBar';
 import { Button } from './Button';
 import { Progress } from './Progress';
 
@@ -34,7 +35,9 @@ export interface WizardProps {
   /** Index of the current step. */
   current: number;
   phase: WizardPhase;
-  /** What the loading step is reading ("Reading the controller"). Said once (UX-38). */
+  /** What the current step is still reading ("Reading the controller"). Loading is a state of the current step,
+   * never a step of its own: one wait line, the primary locked, Back free, no step checked (UX-38). `steps` never
+   * lists it. */
   reading?: string | undefined;
   /** The work step's live line: the item in hand, n of N, the time left (UX-29). */
   progress?:
@@ -44,6 +47,10 @@ export interface WizardProps {
   stopping?: boolean | undefined;
   onStop?: (() => void) | undefined;
   onBack?: (() => void) | undefined;
+  /** The words of the left button when it is not Back: "Not now" on a Review that only asks (TRAY4). */
+  backLabel?: string | undefined;
+  /** A wizard whose work goes on without its window: Hide closes the window while it runs and stops nothing (TRAY4). */
+  hide?: { label: string; onPress: () => void } | undefined;
   onStep?: ((index: number) => void) | undefined;
   /** The one primary of the current step (not used in running, paused, stopped, failed, done). */
   primary: WizardPrimary;
@@ -208,33 +215,42 @@ export function Wizard(p: WizardProps) {
           <p className="ds-text">Nothing has changed yet.</p>
         ) : null}
       </div>
-      <div className="ds-action-bar">
-        <div className="ds-action-bar__side" data-layout-group>
-          {showBack ? (
-            <Button
-              part="back"
-              onPress={p.onBack}
-              disabled={p.phase !== 'loading' && current <= (p.firstStep ?? 0)}
-            >
-              Back
-            </Button>
-          ) : null}
-          {canStopNow ? (
-            <Button
-              part="stop"
-              kind="stop"
-              onPress={p.onStop}
-              busy={p.stopping}
-              busyLabel="Stopping"
-            >
-              Stop
-            </Button>
-          ) : null}
-        </div>
-        <div className="ds-action-bar__main" data-layout-group>
-          {primary}
-        </div>
-      </div>
+      <ActionBar
+        label={`${p.name} actions`}
+        sticky={!p.embedded}
+        secondary={
+          showBack || canStopNow || (p.phase === 'running' && p.hide) ? (
+            <>
+              {showBack ? (
+                <Button
+                  part="back"
+                  onPress={p.onBack}
+                  disabled={p.phase !== 'loading' && current <= (p.firstStep ?? 0)}
+                >
+                  {p.backLabel ?? 'Back'}
+                </Button>
+              ) : null}
+              {p.phase === 'running' && p.hide ? (
+                <Button part="other" onPress={p.hide.onPress}>
+                  {p.hide.label}
+                </Button>
+              ) : null}
+              {canStopNow ? (
+                <Button
+                  part="stop"
+                  kind="stop"
+                  onPress={p.onStop}
+                  busy={p.stopping}
+                  busyLabel="Stopping"
+                >
+                  Stop
+                </Button>
+              ) : null}
+            </>
+          ) : undefined
+        }
+        primary={primary}
+      />
     </div>
   );
 }

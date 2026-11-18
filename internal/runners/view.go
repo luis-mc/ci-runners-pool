@@ -77,7 +77,7 @@ func (s *Service) ListView(ctx context.Context, f Filter) ([]View, error) {
 
 // GetView is ListView for one runner.
 func (s *Service) GetView(ctx context.Context, id string) (View, error) {
-	r, err := s.Store.GetRunner(ctx, id)
+	r, err := s.find(ctx, id)
 	if err != nil {
 		return View{}, err
 	}

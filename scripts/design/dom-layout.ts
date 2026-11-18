@@ -6,7 +6,9 @@
  *  2. consistent gaps between the siblings of one group, each a step of the spacing scale (`--space-0..7`);
  *  3. aligned left edges: the blocks of one column start at the same x;
  *  4. stacked buttons (one under another) share one width;
- *  5. where a rule asks for it, the primary action is in view without scrolling.
+ *  5. where a rule asks for it, the primary action is in view without scrolling;
+ *  6. fields in one visual row share one width class, one box width and one top edge (CORE-7, UX-23);
+ *  7. a check box or radio is drawn on the left edge of the field column of its group (CORE-7).
  *
  * Use `expectDomLayout(page, 'library page', { known: KNOWN_LAYOUT_BREACHES, primary: '...' })` in a spec.
  * A screen that breaks a rule today is in `layout.known.json` (loaded as `KNOWN_LAYOUT_BREACHES`) with the task that fixes it. It is a RATCHET:
@@ -26,7 +28,13 @@ export const LAYOUT_WIDTHS = [
 ] as const;
 
 export type LayoutRule =
-  'overflow' | 'gap' | 'left-edge' | 'button-width' | 'primary-in-view';
+  | 'overflow'
+  | 'gap'
+  | 'left-edge'
+  | 'button-width'
+  | 'primary-in-view'
+  | 'field-row'
+  | 'check-edge';
 
 /** One known breach: the screen, the width it happens at ('*' for every width), the rule and the task that removes it. */
 export interface KnownLayoutBreach {
@@ -103,7 +111,9 @@ export function domLayoutSource(
       seen.add(box);
       const display = getComputedStyle(box).display;
       if (display === 'inline' || display === 'table-row') continue;
-      const kids = Array.from(box.children).filter(visible).filter((k) => getComputedStyle(k).position !== 'absolute' && getComputedStyle(k).position !== 'fixed');
+      const kids = Array.from(box.children).filter(visible).filter((k) => getComputedStyle(k).position !== 'absolute' && getComputedStyle(k).position !== 'fixed')
+        // The action bar sits at the foot of the window on purpose (UX-71): the free space above it is not a gap.
+        .filter((k) => !k.classList.contains('ds-action-bar'));
       if (kids.length < 2) continue;
       const rects = kids.map((k) => k.getBoundingClientRect());
       const vertical = [];
@@ -150,6 +160,45 @@ export function domLayoutSource(
         buttons.forEach((b, i) => {
           if (Math.abs(rs[i].width - w0) > 1) add('button-width', 'stacked buttons differ in width in ' + name(parent) + ': ' + name(buttons[0]) + ' ' + Math.round(w0) + ' px, ' + name(b) + ' ' + Math.round(rs[i].width) + ' px');
         });
+      }
+    }
+
+    // 6 and 7. fields in one row share width class, box width and top line; check boxes share the field column
+    const boxOf = (f) => f.querySelector('input:not([type=checkbox]):not([type=radio]), select, textarea, .ds-number');
+    const drawnLeft = (c) => {
+      const r = c.getBoundingClientRect();
+      const w = parseFloat(getComputedStyle(c, '::before').width);
+      return Number.isFinite(w) ? r.left + (r.width - w) / 2 : r.left;
+    };
+    const seenRows = new Set();
+    for (const box of Array.from(document.querySelectorAll(cfg.groups)).filter(visible)) {
+      if (seenRows.has(box)) continue;
+      seenRows.add(box);
+      const kids = Array.from(box.children).filter(visible);
+      const fields = kids.filter((k) => k.classList.contains('ds-field') && boxOf(k) && visible(boxOf(k)));
+      const done = new Set();
+      for (const f of fields) {
+        if (done.has(f)) continue;
+        const fr = f.getBoundingClientRect();
+        const row = fields.filter((g) => sameRow(g.getBoundingClientRect(), fr));
+        row.forEach((g) => done.add(g));
+        if (row.length < 2) continue;
+        const b0 = boxOf(row[0]).getBoundingClientRect();
+        for (const g of row.slice(1)) {
+          const b = boxOf(g).getBoundingClientRect();
+          if (g.dataset.width !== row[0].dataset.width) add('field-row', 'fields side by side differ in width class in ' + name(box) + ': ' + (row[0].dataset.width || 'none') + ' and ' + (g.dataset.width || 'none'));
+          if (Math.abs(b.width - b0.width) > 1) add('field-row', 'boxes side by side differ in width in ' + name(box) + ': ' + Math.round(b0.width) + ' px and ' + Math.round(b.width) + ' px');
+          if (Math.abs(b.top - b0.top) > 1) add('field-row', 'boxes side by side start at different heights in ' + name(box) + ': ' + Math.round(b0.top) + ' px and ' + Math.round(b.top) + ' px');
+        }
+      }
+      const column = fields.length ? Math.min(...fields.map((g) => g.getBoundingClientRect().left)) : null;
+      if (column !== null) {
+        for (const k of kids) {
+          const c = k.matches('.ds-choice__row') ? k.querySelector(':scope > input[type=checkbox], :scope > input[type=radio]') : null;
+          if (!c || k.hasAttribute('data-card') || k.hasAttribute('data-structured')) continue;
+          const x = drawnLeft(c);
+          if (Math.abs(x - column) > 1) add('check-edge', 'a check box or radio starts ' + Math.round(x - column) + ' px from the field column in ' + name(box));
+        }
       }
     }
 

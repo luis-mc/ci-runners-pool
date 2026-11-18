@@ -20,7 +20,7 @@ import (
 // machine is tried after the delete; a machine that is gone does not keep the
 // record alive.
 func (s *Service) DeleteOfflineRegistration(ctx context.Context, id string, confirm bool, actor string) (Record, error) {
-	r, err := s.Store.GetRunner(ctx, id)
+	r, err := s.find(ctx, id)
 	if err != nil {
 		return Record{}, err
 	}

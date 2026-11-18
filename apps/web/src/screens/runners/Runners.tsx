@@ -22,10 +22,11 @@ import {
   useNow,
   type Column,
   type StatusKind,
+  ActionBar,
 } from '@crsp/ui';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { unwrap, useClient, type Schemas } from '../../api/api';
+import { ApiError, unwrap, useClient, type Schemas } from '../../api/api';
 import { useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
@@ -92,6 +93,8 @@ export function isLight(r: Pick<Runner, 'name' | 'labels'>): boolean {
   return r.labels.includes('crsp-light') || r.name.startsWith('crsp-light-');
 }
 
+const LEAVING_POLL_MS = 3000;
+
 export function RunnersList() {
   const client = useClient();
   const navigate = useNavigate();
@@ -99,6 +102,16 @@ export function RunnersList() {
   const now = useNow();
   const v = useVersion('runners');
   const { result, reload } = useLoad(() => unwrap(client.GET('/api/v1/runners')), [v]);
+  // A runner on its way out (draining, removing) is read again every few seconds, so the row goes
+  // without a reload even when the live stream is quiet (OPS19).
+  const leaving =
+    result.state === 'ready' &&
+    result.data.items.some((r) => r.state === 'draining' || r.state === 'removing');
+  useEffect(() => {
+    if (!leaving) return;
+    const t = setInterval(reload, LEAVING_POLL_MS);
+    return () => clearInterval(t);
+  }, [leaving, reload]);
   const [q, setQ] = useState('');
   const [os, setOs] = useState<'' | 'linux' | 'windows' | 'macos'>('');
   const [iso, setIso] = useState<'' | Schemas['Isolation']>('');
@@ -109,11 +122,17 @@ export function RunnersList() {
   const del = useQuestion(
     async () => {
       for (const id of picked) {
-        await unwrap(
-          client.DELETE('/api/v1/runners/{runnerId}', {
-            params: { path: { runnerId: id }, query: { confirm: true } },
-          }),
-        );
+        try {
+          await unwrap(
+            client.DELETE('/api/v1/runners/{runnerId}', {
+              params: { path: { runnerId: id }, query: { confirm: true } },
+            }),
+          );
+        } catch (e) {
+          // A runner that is already gone is what the person asked for: not a problem (OPS19).
+          if (e instanceof ApiError && e.code === 'not_found') continue;
+          throw e;
+        }
       }
     },
     () => {
@@ -284,17 +303,6 @@ export function RunnersList() {
       <PageHeader
         title="Runners"
         lead="Every runner, with where it runs and how it is isolated."
-        action={
-          admin ? (
-            <Button kind="primary" onPress={() => void navigate('/runners/add')}>
-              Add runners
-            </Button>
-          ) : (
-            <Button kind="primary" disabled reason={why}>
-              Add runners
-            </Button>
-          )
-        }
       />
       <Load result={result} what="runners" reload={reload}>
         {(data) => {
@@ -492,6 +500,18 @@ export function RunnersList() {
           setCleaning(undefined);
         }}
         onConfirm={() => void cleanup.confirm()}
+      />
+      <ActionBar
+        primary={
+          <Button
+            kind="primary"
+            disabled={!admin}
+            reason={admin ? undefined : why}
+            onPress={() => void navigate('/runners/add')}
+          >
+            Add runners
+          </Button>
+        }
       />
     </Page>
   );

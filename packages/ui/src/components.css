@@ -162,9 +162,13 @@ body {
   background: var(--ds-color-page);
   font-size: var(--ds-size-2);
   border-block-start: var(--ds-border-thin) solid var(--ds-color-border);
+  box-sizing: border-box;
+  min-block-size: var(--ds-keyhints-height);
+  display: grid;
+  align-content: center;
 }
 .ds-frame:has(.ds-keyhints) {
-  padding-block-end: calc(var(--ds-target-min) + var(--ds-space-4));
+  padding-block-end: calc(var(--ds-keyhints-height) + var(--ds-space-4));
 }
 @media (pointer: coarse), (hover: none) {
   .ds-keyhints {
@@ -181,6 +185,92 @@ body {
   margin-block: 0;
   padding-block: 0;
   list-style: none;
+}
+/* The action bar: sticky at the foot of the main content, above the key-hint bar, never scrolled away (UX-71). */
+.ds-frame {
+  --ds-keyhints-height: 0px;
+}
+.ds-frame:has(.ds-keyhints) {
+  --ds-keyhints-height: var(--ds-target-min);
+}
+@media (pointer: coarse), (hover: none) {
+  .ds-frame:has(.ds-keyhints) {
+    --ds-keyhints-height: 0px;
+  }
+}
+.ds-action-bar {
+  position: sticky;
+  inset-block-end: var(--ds-keyhints-height);
+  z-index: var(--ds-z-sticky);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-3);
+  padding-block: var(--ds-space-3);
+  background: var(--ds-color-page);
+  border-block-start: var(--ds-border-thin) solid var(--ds-color-border);
+}
+.ds-action-bar[data-sticky='false'] {
+  position: static;
+}
+.ds-action-bar__status {
+  flex: 1 1 auto;
+  margin: 0;
+  color: var(--ds-color-text-muted);
+}
+.ds-action-bar__side,
+.ds-action-bar__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-3);
+}
+/* The first part, when it is not the status line, takes the free space: the buttons sit at the right. */
+.ds-action-bar > :first-child {
+  margin-inline-start: auto;
+}
+/* A screen with a bar fills the window, and the bar sits at its foot even when the page is short: every
+   ancestor of the bar up to the frame becomes a column that grows, and the bar takes the free space above it. */
+.ds-frame:has(.ds-action-bar) {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 100dvh;
+}
+.ds-main:has(.ds-action-bar),
+.ds-main :has(.ds-action-bar) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+.ds-main :has(.ds-action-bar) > .ds-action-bar,
+.ds-main > .ds-action-bar {
+  margin-block-start: auto;
+}
+@media (max-width: 599px) {
+  .ds-action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ds-action-bar__side,
+  .ds-action-bar__main {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ds-action-bar__main {
+    order: 1;
+  }
+  .ds-action-bar__side {
+    order: 2;
+  }
+  .ds-action-bar > :first-child {
+    margin-inline-start: 0;
+  }
+  .ds-action-bar .ds-button-wrap,
+  .ds-action-bar .ds-button {
+    inline-size: 100%;
+    justify-content: center;
+  }
 }
 .ds-usermenu {
   position: relative;
@@ -258,6 +348,12 @@ body {
 .ds-page[data-frame='narrow'] {
   max-inline-size: var(--ds-frame-narrow);
   margin-inline: auto;
+}
+.ds-page[data-frame='compact'] {
+  box-sizing: border-box;
+  max-inline-size: var(--ds-frame-narrow);
+  margin-inline: auto;
+  padding: var(--ds-space-2) var(--ds-page-gutter) var(--ds-space-3);
 }
 .ds-h1 {
   margin: 0;
@@ -824,15 +920,34 @@ body {
 .ds-field[data-width='short'] > :is(.ds-input, .ds-number, .ds-button) {
   max-inline-size: var(--ds-width-field-short);
 }
+.ds-field > .ds-number {
+  inline-size: 100%;
+  box-sizing: border-box;
+}
 .ds-field[data-width='medium'] > :is(.ds-input, .ds-number) {
   max-inline-size: var(--ds-width-field-medium);
 }
-/* Side by side in a row, a field is as wide as its box. */
+/* Side by side in a row, a field is exactly as wide as its width class, and the boxes share one top line: the
+   row sits on its bottom edge, so a name that wraps grows upward and never pushes its box down (LOOK25, CORE-7, UX-23). */
+.ds-cluster:has(> .ds-field) {
+  align-items: end;
+}
 .ds-cluster > .ds-field[data-width='short'] {
-  max-inline-size: var(--ds-width-field-short);
+  inline-size: var(--ds-width-field-short);
+  max-inline-size: 100%;
 }
 .ds-cluster > .ds-field[data-width='medium'] {
-  max-inline-size: var(--ds-width-field-medium);
+  inline-size: var(--ds-width-field-medium);
+  max-inline-size: 100%;
+}
+.ds-cluster > .ds-field > :is(.ds-input, .ds-number) {
+  inline-size: 100%;
+  box-sizing: border-box;
+}
+/* A check box or radio draws its 16 px box inside a 44 px hit area: pull the area left so the drawn box
+   starts on the same edge as the fields above it (LOOK25, CORE-7). */
+.ds-choice__row:not([data-card], [data-structured]) > :is(.ds-checkbox, .ds-radio) {
+  margin-inline-start: calc((var(--ds-icon-size) - var(--ds-target-min)) / 2);
 }
 .ds-field[data-width='full'] {
   max-inline-size: var(--ds-width-field-full);
@@ -1285,6 +1400,15 @@ body {
     inline-size: 100%;
   }
 }
+/* The small window (TRAY4) keeps the wrapped step bar at every width: its steps have long names and no room for one row. */
+@media (min-width: 601px) {
+  .ds-page[data-frame='compact'] .ds-steps {
+    display: flex;
+  }
+  .ds-page[data-frame='compact'] .ds-steps__button {
+    inline-size: auto;
+  }
+}
 .ds-steps__button {
   min-block-size: var(--ds-target-min);
   padding-inline: var(--ds-space-3);
@@ -1309,41 +1433,9 @@ body {
   gap: var(--ds-space-4);
   min-inline-size: 0;
 }
-.ds-action-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ds-space-3);
-  padding-block-start: var(--ds-space-3);
-  border-block-start: var(--ds-border-thin) solid var(--ds-color-divider);
-}
-.ds-action-bar__side,
-.ds-action-bar__main {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--ds-space-3);
-}
 .ds-details summary {
   cursor: pointer;
   min-block-size: var(--ds-target-min);
-}
-
-@media (max-width: 600px) {
-  .ds-action-bar {
-    flex-direction: column-reverse;
-    align-items: stretch;
-  }
-  .ds-action-bar__side,
-  .ds-action-bar__main {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .ds-action-bar .ds-button,
-  .ds-action-bar .ds-button-wrap {
-    inline-size: 100%;
-  }
 }
 
 /* component 24: time axis list */

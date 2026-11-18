@@ -130,6 +130,7 @@ describe('Budgets (R5.27)', () => {
     );
     renderApp(a, '/settings/budgets');
     await screen.findByRole('button', { name: /Memory budget/ });
+    fireEvent.click(screen.getByRole('checkbox', { name: /Size the slots/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText(/Could not save\. .*between 5 and 1440/)).toBeTruthy();
   });

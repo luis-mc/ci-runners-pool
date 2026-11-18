@@ -7,7 +7,8 @@ import {
   CheckRow,
   ErrorSummary,
   FieldGrid,
-  FormActions,
+  ActionBar,
+  unsavedStatus,
   Message,
   NumberField,
   OrderList,
@@ -98,6 +99,13 @@ function BudgetsForm({
   const [q, setQ] = useState<Queue>(normaliseQueue(queue));
   const [errors, setErrors] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
+  const changeCount =
+    (Object.keys(pool) as (keyof Pool)[]).filter(
+      (k) => JSON.stringify(pool[k]) !== JSON.stringify(p[k]),
+    ).length +
+    (Object.keys(queue) as (keyof Queue)[]).filter(
+      (k) => JSON.stringify(normaliseQueue(queue)[k]) !== JSON.stringify(q[k]),
+    ).length;
   const save = useCommand(async () => {
     const problems = budgetProblems(p, q);
     setErrors(problems);
@@ -196,29 +204,40 @@ function BudgetsForm({
         {save.error ? (
           <Message tone="problem">Could not save. {save.error}</Message>
         ) : null}
-        <FormActions>
-          <Button
-            onPress={() => {
-              setP(pool);
-              setQ(normaliseQueue(queue));
-              setErrors([]);
-              setSaved(false);
-              save.clear();
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            kind="primary"
-            submit
-            busy={save.busy}
-            busyLabel="Saving"
-            disabled={!session.can('admin')}
-            reason={session.whyNot('admin')}
-          >
-            Save
-          </Button>
-        </FormActions>
+        <ActionBar
+          status={unsavedStatus(changeCount)}
+          secondary={
+            <Button
+              onPress={() => {
+                setP(pool);
+                setQ(normaliseQueue(queue));
+                setErrors([]);
+                setSaved(false);
+                save.clear();
+              }}
+              disabled={changeCount === 0}
+              reason="Nothing has changed."
+            >
+              Cancel
+            </Button>
+          }
+          primary={
+            <Button
+              kind="primary"
+              submit
+              busy={save.busy}
+              busyLabel="Saving"
+              disabled={!session.can('admin') || changeCount === 0}
+              reason={
+                session.can('admin')
+                  ? 'Nothing has changed yet.'
+                  : session.whyNot('admin')
+              }
+            >
+              Save
+            </Button>
+          }
+        />
       </Stack>
     </form>
   );

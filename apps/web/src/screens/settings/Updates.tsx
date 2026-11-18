@@ -28,6 +28,7 @@ import { Load } from '../common';
 import { settingsPath } from './sections';
 
 type UpdateStatus = Schemas['UpdateStatus'];
+type UpdateStage = NonNullable<UpdateStatus['stage']>;
 type UpdateJob = Schemas['UpdateJob'];
 
 const IN_PROGRESS: readonly UpdateStatus['state'][] = [
@@ -36,6 +37,60 @@ const IN_PROGRESS: readonly UpdateStatus['state'][] = [
   'installing',
   'restarting',
 ];
+
+// The compact update page (TRAY4): one step per stage of the update, in the order the service goes through them.
+const COMPACT_STEPS = [
+  'Review',
+  'Downloading',
+  'Waiting for jobs',
+  'Installing',
+  'Restarting',
+  'Done',
+] as const;
+const STAGE_STEP: Record<UpdateStage['name'], number> = {
+  downloading: 1,
+  waiting_for_jobs: 2,
+  installing: 3,
+  restarting: 4,
+  done: 5,
+  failed: 1,
+};
+const STATE_STEP: Partial<Record<UpdateStatus['state'], number>> = {
+  downloading: 1,
+  waiting_for_jobs: 2,
+  installing: 3,
+  restarting: 4,
+};
+/** A stage this old is a leftover, not a running update. */
+const STAGE_FRESH_MS = 45 * 60 * 1000;
+const stageLive = (u: UpdateStatus): boolean =>
+  u.stage !== undefined &&
+  u.stage.name !== 'done' &&
+  u.stage.name !== 'failed' &&
+  Date.now() - new Date(u.stage.at).getTime() < STAGE_FRESH_MS;
+const stageRecentDone = (u: UpdateStatus): boolean =>
+  u.stage?.name === 'done' &&
+  u.stage.version === u.current_version &&
+  Date.now() - new Date(u.stage.at).getTime() < STAGE_FRESH_MS;
+
+const STAGE_WORDS: Record<UpdateStage['name'], string> = {
+  downloading: 'Downloading',
+  waiting_for_jobs: 'Waiting for running jobs to end',
+  installing: 'Installing',
+  restarting: 'Restarting the service',
+  done: 'Done',
+  failed: 'Failed',
+};
+
+/** The live line of the work step: the stage in words and its percent when it has one. */
+export function stageLine(u: UpdateStatus): string {
+  const word = u.stage && stageLive(u) ? STAGE_WORDS[u.stage.name] : stateWord(u);
+  const pc = u.stage?.percent;
+  return pc === undefined ? word : `${word} ${pc}%`;
+}
+
+/** A reason as a sentence: it ends with a full stop. */
+const sentence = (t: string): string => (t === '' || /[.!?]$/.test(t) ? t : `${t}.`);
 
 export function jobLine(j: UpdateJob): string {
   return `${j.repository}${j.workflow ? ` ${j.workflow}` : ''}, run ${j.run_id}, job ${j.job}`;
@@ -155,7 +210,7 @@ export function UpdatesSettings() {
 type Kind = 'update' | 'restart';
 
 /** The Review step of an update or a restart: reads, Review, the work (drain, install), Done. */
-export function UpdateWizard() {
+export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
   const client = useClient();
   const [params, setParams] = useSearchParams();
   const kind: Kind = params.get('kind') === 'restart' ? 'restart' : 'update';
@@ -178,11 +233,19 @@ export function UpdateWizard() {
   }, []);
 
   const working = kind === 'update' ? 'Updating' : 'Restarting';
-  const STEPS = ['Reading the service', 'Review', working, 'Done'] as const;
+  const STEPS =
+    compact && kind === 'update' ? COMPACT_STEPS : (['Review', working, 'Done'] as const);
+  // The compact page marks a failure at the step it reached.
+  const reached = useRef(1);
 
   const settle = (u: UpdateStatus, afterReload: boolean) => {
     setStatus(u);
-    if (IN_PROGRESS.includes(u.state)) {
+    const live = IN_PROGRESS.includes(u.state) || (compact && stageLive(u));
+    if (live && compact && !wasStarted) {
+      // The tray opened this page on an update that already runs: follow it, there is nothing to start again.
+      setPhase('running');
+      void follow(u.latest_version ?? u.stage?.version);
+    } else if (live) {
       setPhase(afterReload ? 'paused' : 'running');
     } else if (u.state === 'failed') {
       setProblem(u.error ?? 'The service did not say why.');
@@ -192,6 +255,8 @@ export function UpdateWizard() {
         setProblem(`The service still runs ${u.current_version}, not ${startedTo}.`);
         setPhase('failed');
       } else setPhase(afterReload ? 'done-after-reload' : 'done');
+    } else if (compact && stageRecentDone(u) && !u.update_available) {
+      setPhase('done-after-reload');
     } else if (kind === 'update' && !u.update_available) {
       setPhase(u.latest_version ? 'stopped' : 'first-run');
     } else setPhase('ready-to-review');
@@ -223,13 +288,17 @@ export function UpdateWizard() {
       try {
         const u = await unwrap(client.GET('/api/v1/update'));
         setStatus(u);
-        if (u.state === 'failed') {
-          setProblem(u.error ?? 'The service did not say why.');
+        if (
+          u.state === 'failed' ||
+          (compact && u.stage?.name === 'failed' && !stageLive(u))
+        ) {
+          setProblem(u.error ?? u.stage?.error ?? 'The service did not say why.');
           setPhase('failed');
           break;
         }
         const finished =
           !IN_PROGRESS.includes(u.state) &&
+          !(compact && stageLive(u)) &&
           (kind === 'update' ? u.current_version === target : lost || u.state === 'idle');
         if (finished) {
           setLostService(false);
@@ -293,14 +362,33 @@ export function UpdateWizard() {
   const jobs = status?.running_jobs ?? [];
   const minutes = status?.drain_timeout_minutes;
   const target = status?.latest_version ?? '';
+  const doneStep = STEPS.length - 1;
+  if (compact && status && (phase === 'running' || phase === 'paused')) {
+    reached.current =
+      (status.stage && STAGE_STEP[status.stage.name]) ??
+      STATE_STEP[status.state] ??
+      reached.current;
+  }
+  const failedAt = status?.stage?.failed_at;
+  const workStep =
+    compact && phase === 'failed' && failedAt
+      ? STAGE_STEP[failedAt]
+      : compact
+        ? reached.current
+        : 1;
   const step =
-    phase === 'loading'
-      ? 0
-      : phase === 'running' || phase === 'paused' || phase === 'failed'
-        ? 2
-        : phase === 'done' || phase === 'done-after-reload'
-          ? 3
-          : 1;
+    phase === 'running' || phase === 'paused' || phase === 'failed'
+      ? workStep
+      : phase === 'done' || phase === 'done-after-reload'
+        ? doneStep
+        : 0;
+  const close = () => {
+    window.close();
+    // A window that was not opened by a program stays open: go to the console instead.
+    void navigate('/');
+  };
+  const shown = compact ? stageLine : stateWord;
+  const isDone = phase === 'done' || phase === 'done-after-reload';
 
   let body;
   if (phase === 'first-run') {
@@ -320,12 +408,18 @@ export function UpdateWizard() {
   } else if (phase === 'ready-to-review') {
     body = (
       <Stack>
-        <Text>
-          {kind === 'update'
-            ? `Update ${status?.current_version} to ${target}. This machine takes no new jobs, waits for the running jobs to end${minutes ? ` (up to ${minutes} minutes)` : ''}, then installs and restarts the service. No running job is stopped.`
-            : `Restart the service. This machine takes no new jobs, waits for the running jobs to end${minutes ? ` (up to ${minutes} minutes)` : ''}, then restarts. No running job is stopped.`}
-        </Text>
-        {jobs.length > 0 ? (
+        {compact ? (
+          <Text>
+            {`Version ${target} is ready. Running jobs finish first; the service restarts (about 1 min).`}
+          </Text>
+        ) : (
+          <Text>
+            {kind === 'update'
+              ? `Update ${status?.current_version} to ${target}. This machine takes no new jobs, waits for the running jobs to end${minutes ? ` (up to ${minutes} minutes)` : ''}, then installs and restarts the service. No running job is stopped.`
+              : `Restart the service. This machine takes no new jobs, waits for the running jobs to end${minutes ? ` (up to ${minutes} minutes)` : ''}, then restarts. No running job is stopped.`}
+          </Text>
+        )}
+        {compact ? null : jobs.length > 0 ? (
           <Stack>
             <Text>These jobs run now and are waited for:</Text>
             <BulletList items={jobs.map(jobLine)} />
@@ -350,20 +444,27 @@ export function UpdateWizard() {
             The service is restarting. This page waits for it.
           </Message>
         ) : null}
-        <Facts
-          items={[
-            { name: 'State', value: status ? stateWord(status) : 'Starting' },
-            { name: 'Jobs still running', value: String(jobs.length) },
-            ...jobs.map((j) => ({ name: jobLine(j), value: 'running' })),
-          ]}
-        />
+        {compact ? (
+          <Text>Running jobs are safe.</Text>
+        ) : (
+          <Facts
+            items={[
+              { name: 'State', value: status ? shown(status) : 'Starting' },
+              { name: 'Jobs still running', value: String(jobs.length) },
+              ...jobs.map((j) => ({ name: jobLine(j), value: 'running' })),
+            ]}
+          />
+        )}
       </Stack>
     );
   } else if (phase === 'failed') {
     body = (
       <Message tone="problem">
         {kind === 'update' ? 'The update did not finish.' : 'The restart did not finish.'}{' '}
-        {problem ?? ''} The running version stays. Try again.
+        {sentence(problem ?? '')} The running version stays.{' '}
+        {compact && status?.stage?.log_path
+          ? `The log is ${status.stage.log_path}. Open the log folder from the tray menu. Then try again.`
+          : 'Try again.'}
       </Message>
     );
   } else if (phase === 'done' || phase === 'done-after-reload') {
@@ -371,7 +472,9 @@ export function UpdateWizard() {
       <Stack>
         <Message tone="done">
           {kind === 'update'
-            ? `The service runs ${status?.current_version}.`
+            ? compact
+              ? `Updated to ${status?.current_version}.`
+              : `The service runs ${status?.current_version}.`
             : 'The service restarted.'}
         </Message>
         <Facts
@@ -402,7 +505,11 @@ export function UpdateWizard() {
           },
         }
       : {
-          label: kind === 'update' ? `Update to ${target}` : 'Restart the service',
+          label: compact
+            ? 'Update now'
+            : kind === 'update'
+              ? `Update to ${target}`
+              : 'Restart the service',
           busyLabel: working,
           onPress: () => void start(),
         };
@@ -412,30 +519,59 @@ export function UpdateWizard() {
       name={kind === 'update' ? 'Update' : 'Restart the service'}
       steps={STEPS}
       current={step}
-      firstStep={1}
+      firstStep={0}
       phase={phase}
       reading="Reading the service"
       progress={
         phase === 'running'
           ? {
               text: status
-                ? `${stateWord(status)}${jobs.length ? `: ${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'} left` : ''}`
+                ? `${shown(status)}${jobs.length ? `: ${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'} left` : ''}`
                 : 'Starting',
+              ...(compact && status?.stage?.percent !== undefined
+                ? { value: status.stage.percent, max: 100 }
+                : {}),
             }
           : undefined
       }
-      onBack={() => void navigate(settingsPath('updates'))}
+      onBack={compact && !isDone ? close : () => void navigate(settingsPath('updates'))}
+      {...(compact
+        ? {
+            backLabel: isDone
+              ? 'Open Updates'
+              : ['failed', 'paused', 'stopped'].includes(phase)
+                ? 'Close'
+                : 'Not now',
+            hide: { label: 'Hide', onPress: close },
+          }
+        : {})}
       primary={primary}
       review={phase === 'ready-to-review'}
       onStartAgain={startAgain}
       onTryAgain={startAgain}
-      donePrimary={{
-        label: 'Open Updates',
-        onPress: () => void navigate(settingsPath('updates')),
-      }}
+      donePrimary={
+        compact
+          ? { label: 'Close', onPress: close }
+          : {
+              label: 'Open Updates',
+              onPress: () => void navigate(settingsPath('updates')),
+            }
+      }
     >
       {body}
     </Wizard>
+  );
+}
+
+/** The small window the tray opens (TRAY4): the same update steps, no shell around them, in the console theme. */
+export function UpdateCompactPage() {
+  return (
+    <main>
+      <Page frame="compact">
+        <PageHeader title="Update" />
+        <UpdateWizard compact />
+      </Page>
+    </main>
   );
 }
 

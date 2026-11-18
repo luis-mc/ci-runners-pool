@@ -419,8 +419,8 @@ const upd = (extra: object = {}) => ({
 // A real hang: the body never ends, so the client waits (the shared `never` answers {} at once).
 const hang = () => new Response(new ReadableStream());
 
-const updateDriver: WizardDriver = {
-  id: 'update',
+const updateDriverFor = (compact: boolean): WizardDriver => ({
+  id: compact ? 'update-page' : 'update',
   async open(state) {
     let applied = false;
     const api = signedIn()
@@ -436,7 +436,10 @@ const updateDriver: WizardDriver = {
         return upd({ state: 'waiting_for_jobs' });
       })
       .on('POST', '/api/v1/update/check', upd());
-    let path = '/settings/updates/review?kind=update';
+    let path = compact ? '/update' : '/settings/updates/review?kind=update';
+    const sep = compact ? '?' : '&';
+    const closeWord = compact ? 'Close' : 'Open Updates';
+    const goWord = compact ? 'Update now' : 'Update to 1.5.0';
     if (state === 'loading') api.on('GET', '/api/v1/update', hang);
     if (state === 'first-run' || state === 'planning')
       api.on(
@@ -446,7 +449,7 @@ const updateDriver: WizardDriver = {
       );
     if (state === 'planning') api.on('POST', '/api/v1/update/check', hang);
     if (state === 'paused') {
-      path += '&started=1&to=1.5.0';
+      path += `${sep}started=1&to=1.5.0`;
       api.on('GET', '/api/v1/update', upd({ state: 'waiting_for_jobs' }));
     }
     if (state === 'stopped')
@@ -462,7 +465,7 @@ const updateDriver: WizardDriver = {
         upd({ state: 'failed', error: 'the checksum check failed' }),
       );
     if (state === 'done-after-reload') {
-      path += '&started=1&to=1.5.0';
+      path += `${sep}started=1&to=1.5.0`;
       api.on(
         'GET',
         '/api/v1/update',
@@ -474,7 +477,9 @@ const updateDriver: WizardDriver = {
     const snap = () => read(state, 'Update', false);
     if (state === 'loading') return snap();
     if (['paused', 'stopped', 'failed', 'done-after-reload'].includes(state)) {
-      await screen.findByRole('button', { name: /Start again|Try again|Open Updates/ });
+      await screen.findAllByRole('button', {
+        name: new RegExp(`Start again|Try again|${closeWord}`),
+      });
       return snap();
     }
     if (state === 'first-run' || state === 'planning') {
@@ -483,15 +488,17 @@ const updateDriver: WizardDriver = {
     }
     await screen.findByText(/Nothing has changed yet/);
     if (state === 'ready-to-review') return snap();
-    await press('Update to 1.5.0');
+    await press(goWord);
     if (state === 'running') {
       await screen.findByText(/Waiting for running jobs to end/, { selector: 'p' });
       return snap();
     }
-    await screen.findByRole('button', { name: 'Open Updates' });
+    await screen.findByRole('button', { name: closeWord });
     return snap();
   },
-};
+});
+const updateDriver = updateDriverFor(false);
+const updatePageDriver = updateDriverFor(true);
 
 // ---------------------------------------------------------------------------------------------------- Pool size
 const sizeCheck = (extra: object = {}) => ({
@@ -578,6 +585,7 @@ describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
     poolDriver,
     runnersDriver,
     updateDriver,
+    updatePageDriver,
     poolSizeDriver,
   ];
   for (const d of drivers) {
