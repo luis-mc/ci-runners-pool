@@ -34,7 +34,6 @@ import (
 func realController(t *testing.T) (*controller, http.Handler) {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
 	dir := t.TempDir()
 	cfg := config.Config{DataDir: dir, ListenAddr: "127.0.0.1:8460"}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -43,8 +42,10 @@ func realController(t *testing.T) (*controller, http.Handler) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = db.Close() })
 	ops := backup.Start(ctx, backup.StartOptions{DB: db, DataDir: dir, Version: "test", Logger: logger})
+	// LIFO: stop and wait for the background jobs, then close the db, then TempDir goes.
+	t.Cleanup(func() { _ = db.Close() })
+	t.Cleanup(func() { cancel(); ops.Wait() })
 	sec := secrets.NewMemory()
 	ca, err := tlsca.LoadOrCreate(ctx, tlsca.Options{Dir: dir + "/tls", Secrets: sec, Hosts: []string{"localhost"}})
 	if err != nil {
