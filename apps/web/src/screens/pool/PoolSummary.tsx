@@ -233,13 +233,10 @@ export function PoolSummary() {
                               f.online < f.machines || f.failed > 0 ? (
                                 <Status
                                   kind="failed"
-                                  word={`${f.machines - f.online} machines offline, ${f.failed} runners not ready`}
+                                  word={`${f.machines - f.online} offline, ${f.failed} not ready`}
                                 />
                               ) : (
-                                <Status
-                                  kind="ok"
-                                  word="all machines and runners are ready"
-                                />
+                                <Status kind="ok" word="all ready" />
                               ),
                           },
                         ]}

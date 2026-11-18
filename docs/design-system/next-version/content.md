@@ -823,3 +823,26 @@ The words of the account menu at the top right and of the Users and roles intro 
 | Opening GitHub | Busy word of that action. |
 | GitHub sign-in ended | Accessible label of the amber dot on the account button. |
 | Who may use this console. Your own GitHub sign-in is in the {login} menu at the top right. | Intro line of Users and roles. |
+
+## Shared Pool and Jobs words
+
+The words of the six-item menu, Shared Pool and the Jobs sub-sections (owner decisions D24, D29, D31 to D34, LOOK31). "Runners" stays "runners" (D29).
+
+| Word | Where and meaning |
+|---|---|
+| Shared Pool | Menu area and page title: the one pool of machines and their runners. |
+| Summary, Machines, Runners, Images and caches, Size and backends | The tabs of Shared Pool. |
+| All, By repository, By machine, By runner type, By job type, Wait and duration | The tabs of Jobs. |
+| One pool across your machines. Set it up here, then choose the repositories that use it. | Lead of the Shared Pool summary. |
+| Set up the pool | Title of the first-run guide. |
+| Three steps. A step opens when the one before it is done. | Hint of the first-run guide. |
+| 1 Add a machine / 2 Set runners / 3 Choose repositories | The steps of the guide; each shows `done, {n} ...` when finished. |
+| Add a machine first. | Reason on a step or button that cannot start yet. |
+| {n} machines, {m} runners, {k} busy | The pool totals above the runner list and on the summary. |
+| Runners serve every repository that uses the pool. | The one line on Add runners, in place of the Repository question. |
+| How crsp works: the Pool has Machines, and each machine has Runners. Repositories use the pool. Start in Shared Pool. | The first-run strip on the Overview. |
+| Hide this | Button that hides the strip for good in this browser. |
+| Showing the last 100 finished jobs. | Note above the finished jobs when more exist. |
+| See all | Button that pages in the earlier finished jobs. |
+| Done, failed and the averages count the last 200 finished jobs. | Quiet line under a grouped Jobs table. |
+| not placed yet | Group name of a job that has no machine or runner yet. |

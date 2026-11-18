@@ -97,7 +97,7 @@ The states named for every list follow the design system: loading (component 16,
 
 - **Purpose:** the frame around every signed-in screen.
 - **Header:** the product name, the pool status as a word, glyph and colour (UX-58), the live-update state, a button that opens the command palette (it shows `Ctrl+K`, or `Cmd+K` on macOS), and the user menu (GitHub login, role, the state of the GitHub sign-in, Sign in with GitHub again when it ended, Sign out; R5.95).
-- **Top menu (component 2):** Overview, Repositories, Machines, Runners, Jobs, Images and caches, Doctor, Settings. The current area is marked. Below 601 px the areas are one Menu button that opens the list, so the menu never takes more than one row (UX-15, UX-16; CRSP159). Detail pages show breadcrumbs (component 2).
+- **Top menu (component 2):** six areas: Overview, Shared Pool, Repositories, Jobs, Doctor, Settings (owner decision D24, LOOK31). The current area is marked. Shared Pool and Jobs have sub-sections as tabs (component 3). The old addresses `/machines`, `/runners`, `/images` and `/caches` redirect to their place in Shared Pool and keep the query, so bookmarks, the setup banner and a stored plan (`?plan=`) work. Below 601 px the areas are one Menu button that opens the list, so the menu never takes more than one row (UX-15, UX-16; CRSP159). Detail pages show breadcrumbs (component 2).
 - **Page header (component 1):** one headline per screen (UX-3), with the screen's one primary action (UX-4).
 - **Banner slot (component 18):** the one app-wide slot (UX-27). It carries "Live updates paused", "First run is not finished" and "A new version is ready".
 - **Activity strip (component 27):** running work that the console started, such as a drain, an image rebuild or an update (UX-34).
@@ -148,6 +148,7 @@ The states named for every list follow the design system: loading (component 16,
 
 - **Purpose:** see the pool at a glance and jump to what needs you.
 - **Data:** `getOverview`, then `streamEvents`.
+- **First run:** a note strip "How crsp works" (Pool, Machines, Runners; repositories use the pool) shows until the pool has a machine, a runner and a repository; it can be hidden and stays hidden in this browser (D33, LOOK31).
 - **Shows:** a card per machine (component 8, UX-10) with its state word (UX-58) and three level bars for memory, CPU and slots against its budget (UX-41, owner question Q4); the queue count; the running jobs (component 15); the section "Why jobs wait" (component 15): every queued or held job with the first reason it waits, in words, from `waiting` of `getOverview` (scheduling R5.48, UX-34, UX-19); today's minutes saved as a lettered figure (component 31). Each item links to its screen.
 - **Actions:** none. The overview only shows and links (UX-52).
 - **States:** loading; empty (no machine yet: "No machines yet. Add a machine to start." links to Machines, content.md); could not load; live; live updates paused. Every section, and the loading and could-not-load states, sit in a pane titled in its top border (UX-10, UX-51); the h1 stays in every state (UX-17).
@@ -169,6 +170,16 @@ The states named for every list follow the design system: loading (component 16,
 - **Role:** turning the pool on also needs admin rights on that repository in GitHub; a row without them shows the action disabled with that reason (UX-38).
 - **Detail:** policies are in `github-integration` and `scheduling`.
 - **Components:** 1, 4, 10, 11, 13, 14, 15, 17, 19, 20, 21, 22, 34.
+- **Milestone:** M1.
+
+### 4.3a Shared Pool
+
+- **Purpose:** set up the one pool: its machines, their runners, images and caches, size and backends (D24, LOOK31).
+- **Routes:** `/pool` (Summary), `/pool/machines`, `/pool/machines/add`, `/pool/machines/:id`, `/pool/runners`, `/pool/runners/add`, `/pool/images`, `/pool/images/:imageId`, `/pool/size`. A tab row (component 3) over each list page: Summary, Machines, Runners, Images and caches, Size and backends. Add and detail pages show a breadcrumb back instead.
+- **Summary:** the pool (machines online, runners and busy, repositories using the pool, health, capacity as a level bar of job slots in use, UX-41) and Runners per system. Until the pool has a machine, a runner and a repository it opens with the first-run guide: 1 Add a machine, 2 Set runners, 3 Choose repositories; a step that cannot start yet is disabled and says why (UX-6).
+- **Size and backends:** one row per machine with its job slots and allowed backends, and a link to the machine page where the size wizard and the policy live.
+- **Data:** `listMachines`, `listRunners`, `listRepositories` (pool on).
+- **Components:** 1, 3, 8, 15, 17, 19, 41.
 - **Milestone:** M1.
 
 ### 4.4 Machines
@@ -194,8 +205,8 @@ The states named for every list follow the design system: loading (component 16,
 
 - **Purpose:** see every runner and create runners per OS on machines that support it.
 - **Data:** `listRunners`, `getRunner`, `planRunners`, `createRunners`, `deleteRunner`, `streamRunnerLog`.
-- **List:** a live table (component 15): name, machine, OS, backend, isolation (UX-61), labels, state (UX-58), current job, age (UX-53). Search and filters by machine, OS, isolation and state (components 11, 21).
-- **Add runners:** a wizard (component 4): OS; machine (only machines whose backends support the OS; others are greyed with the reason, UX-38; a Windows machine whose container engine runs Linux containers also supports Linux, as an ephemeral container runner with a note, CRSP127); count and labels; Review; Registering (n of N); Done.
+- **List (D32, LOOK31):** the pool totals on top ("2 machines, 6 runners, 2 busy"), then one table per machine (component 15; a pane titled with the machine, with a link to the machine page): name, OS, backend, isolation (UX-61), labels, state (UX-58), current job with the repository of a busy runner, age (UX-53). Search and filters by OS and isolation (components 11, 21). A runner serves every repository that uses the pool.
+- **Add runners (D31, LOOK31):** a wizard (component 4) that asks System, Machine, Number and Labels, and no repository, with the line "Runners serve every repository that uses the pool." Machine: only machines whose backends support the OS; others are greyed with the reason (UX-38; a Windows machine whose container engine runs Linux containers also supports Linux, as an ephemeral container runner with a note, CRSP127). Then Review; Registering (n of N); Done. `planRunners` takes no scope: the server takes the first repository with the pool on and adds the pool label (until OPS23 gives every pool repository its own registration); with no such repository it refuses with a reason. The labels start from that repository's `RUNS_ON_*` variable, else `self-hosted`.
 - **Actions and confirmations:** delete a runner, or the selected runners: a question card that names each runner and the job it runs, and waits for the drain (UX-62).
 - **States:** loading; empty ("No runners yet. Add runners to start.", or "Add a machine first." when there is none); could not load; live.
 - **Detail:** runner life, JIT config and labels are in `runners`.
@@ -206,6 +217,8 @@ The states named for every list follow the design system: loading (component 16,
 
 - **Purpose:** see the queue and the job history, and why a job waits.
 - **Data:** `listJobs` (queued, running, done; filters by repository, machine, result, time range), `getJob`, `exportJobs`.
+- **Sub-sections (D24, LOOK31):** a tab row (component 3): All (this list), By repository, By machine, By runner type, By job type, and Wait and duration. A grouped tab is one table: running, queued, done, failed, average wait and average duration, from the queue, the running jobs and the last 200 finished jobs. Wait and duration shows each day's average wait and duration as level bars (UX-41). The detail has no tabs.
+- **Done list (D34):** the history keeps the last 100 finished jobs; See all pages in earlier ones.
 - **Queue:** a table (component 15) of queued jobs with repository, labels, wait time and the reason it waits ("waits for a free slot on any Linux machine"; UX-29).
 - **History:** a time axis list (component 24, UX-33): repository, workflow and job name, result (UX-58), machine, backend, wait time, run time. Each row opens the detail, with a link to the run on GitHub.
 - **Panes:** Queue, Filters (result, time range, repository, machine) and History (the time axis, with Export in its border line), each a pane (UX-10). The row under the cursor is drawn in reverse video (UX-51).
