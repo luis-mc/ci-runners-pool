@@ -34,3 +34,4 @@ export * from './components/RowKeys';
 export * from './components/SearchList';
 export * from './themes';
 export * from './components/Rows';
+export type * from './components/Viz.types';
