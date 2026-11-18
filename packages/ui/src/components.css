@@ -1073,6 +1073,34 @@ legend > .ds-field__changed {
   border: var(--ds-border-medium) solid var(--ds-color-border);
   border-radius: var(--ds-radius-1);
 }
+/* The block caret of the Phosphor look (LOOK33): drawn by CaretInput at the insertion point; the native caret is
+   hidden only while the block is shown. The character under the block is drawn inverted so it stays readable. */
+[data-caret='block'] {
+  caret-color: transparent;
+}
+.ds-caret {
+  position: absolute;
+  z-index: 1;
+  box-sizing: border-box;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+  white-space: pre;
+  line-height: 1.1;
+  color: var(--ds-color-on-primary);
+  background: var(--ds-color-primary);
+  animation: ds-caret-blink var(--ds-cursor-blink) steps(1) infinite;
+}
+@keyframes ds-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-caret {
+    animation: none;
+  }
+}
 .ds-input--area {
   padding-block: var(--ds-space-2);
   resize: vertical;

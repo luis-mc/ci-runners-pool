@@ -236,7 +236,8 @@ A `Tag` is the small outlined label that names a kind next to a word, such as `i
 
 - **Used for:** the search or filter bar, and the layout of a page that finds things: the bar, then the chips or toolbar rows, then the content, always in that order at the same distances. The bar has an icon, the field, and one small x inside the field that empties it and keeps focus.
 - **Looks:** a field with a search icon on the left and a small x inside on the right, then the chips, then the content.
-- **Source:** `src/ui/search-bar`
+- **Caret:** every single-line text box (the search bar, the command palette box of component 38, the text field of component 14, the typed date of the date picker) shows the Phosphor block caret instead of the browser's thin line (look review option A, LOOK33). The block is `--ds-color-primary`, sits at the real insertion point, follows typing, the arrow keys, Home, End and clicks, and shows only while the box has focus. The character under it is drawn in `--ds-color-on-primary`, so it stays readable like on a terminal. It blinks with `--ds-cursor-blink` (1000 ms, steady under reduced motion). While text is selected the normal selection shows and the block does not. Right-to-left text, a password and an IME composition keep the browser's own caret, and so does a text area. The block is hidden from screen readers. It is drawn by the shared `CaretInput`; a page never draws a caret.
+- **Source:** `src/ui/search-bar`, `packages/ui/src/components/CaretInput.tsx`
 - **Rules:** UX-31, UX-7, UX-16, UX-17.
 - **Guard:** none yet.
 
