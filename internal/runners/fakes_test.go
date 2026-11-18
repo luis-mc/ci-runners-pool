@@ -69,6 +69,18 @@ func (m *memStore) SetRunnerState(_ context.Context, id string, to State, detail
 	m.runners[id] = r
 	return nil
 }
+func (m *memStore) SetRunnerPool(_ context.Context, id, poolRunnerID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	r, ok := m.runners[id]
+	if !ok {
+		return ErrNotFound
+	}
+	r.PoolRunnerID = poolRunnerID
+	m.runners[id] = r
+	return nil
+}
+
 func (m *memStore) SetRunnerService(_ context.Context, id, svc, acct string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

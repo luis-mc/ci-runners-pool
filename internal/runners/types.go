@@ -11,9 +11,15 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/poolsize"
 )
 
+// ScopePool is the scope of a pool runner: a machine, a system and labels,
+// with no repository of its own. Its GitHub registrations are hidden records
+// (PoolRunnerID set) that the pool reconcile keeps, one for each repository
+// that uses the pool (runners R5.80).
+const ScopePool = "pool"
+
 // Scope is where a runner registers (runners R5.2).
 type Scope struct {
-	Kind         string // repository or organization
+	Kind         string // repository, organization, or pool (a pool runner)
 	RepositoryID int64
 	Organization string
 	Group        string
@@ -43,6 +49,9 @@ type Record struct {
 	Folder         string
 	GitHubRunnerID int64
 	CurrentJob     string // empty when none
+	// PoolRunnerID is set on a hidden registration: the id of the pool runner
+	// whose machine slot it serves. Empty on every other record (runners R5.80).
+	PoolRunnerID string
 	// FailedReason is the whole plain reason a runner is in the failed state,
 	// including what the clean-up left behind. Empty in every other state.
 	FailedReason string
@@ -149,6 +158,8 @@ type AddSpec struct {
 	SizeClass SizeClass
 	// MaxParallel is CI_MAX_PARALLEL for the runner's jobs; 0 sets none.
 	MaxParallel int
+	// PoolRunnerID makes the runner a hidden registration of that pool runner.
+	PoolRunnerID string
 }
 
 // Plan is a planned change. Nothing changes until it is applied.
@@ -173,6 +184,9 @@ type Store interface {
 	SetRunnerService(ctx context.Context, id, serviceName, account string) error
 	SetRunnerRegistration(ctx context.Context, id string, githubRunnerID int64, version string) error
 	DeleteRunner(ctx context.Context, id string) error
+	// SetRunnerPool makes a runner a hidden registration of a pool runner
+	// (the migration of a repository runner, runners R5.80).
+	SetRunnerPool(ctx context.Context, id, poolRunnerID string) error
 	SavePlan(ctx context.Context, p Plan) error
 	GetPlan(ctx context.Context, id string) (Plan, error)
 }

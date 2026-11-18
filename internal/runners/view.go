@@ -63,6 +63,11 @@ type View struct {
 	State       State
 	Reason      string
 	MachineName string
+	// Serving is the repository of the job a pool runner runs now, and
+	// Registrations is how many hidden registrations it holds (runners R5.80).
+	// Both are empty on a runner that is not a pool runner.
+	Serving       string
+	Registrations int
 }
 
 // ListView lists runners with the state each one really has, from GitHub's
@@ -72,7 +77,7 @@ func (s *Service) ListView(ctx context.Context, f Filter) ([]View, error) {
 	if err != nil {
 		return nil, err
 	}
-	return s.views(ctx, recs), nil
+	return s.withPool(ctx, recs, true), nil
 }
 
 // GetView is ListView for one runner.
@@ -81,7 +86,55 @@ func (s *Service) GetView(ctx context.Context, id string) (View, error) {
 	if err != nil {
 		return View{}, err
 	}
-	return s.views(ctx, []Record{r})[0], nil
+	return s.withPool(ctx, []Record{r}, false)[0], nil
+}
+
+// withPool shows the hidden registrations of a pool runner as that runner: a
+// list does not show them by themselves, a lookup by id does.
+func (s *Service) withPool(ctx context.Context, recs []Record, hideKids bool) []View {
+	var plain, parents []Record
+	for _, r := range recs {
+		switch {
+		case IsPoolRunner(r):
+			parents = append(parents, r)
+		case IsRegistration(r) && hideKids:
+		default:
+			plain = append(plain, r)
+		}
+	}
+	out := s.views(ctx, plain)
+	if len(parents) == 0 {
+		return out
+	}
+	all, err := s.Store.ListRunners(ctx, Filter{})
+	if err != nil {
+		all = recs
+	}
+	kids := map[string][]Record{}
+	for _, r := range all {
+		if r.PoolRunnerID != "" {
+			kids[r.PoolRunnerID] = append(kids[r.PoolRunnerID], r)
+		}
+	}
+	names := map[int64]string{}
+	if s.PoolRepos != nil {
+		if rs, err := s.PoolRepos(ctx); err == nil {
+			for _, pr := range rs {
+				names[pr.ID] = pr.FullName
+			}
+		}
+	}
+	for _, p := range parents {
+		machine := p.MachineID
+		if s.Machines != nil {
+			if m, err := s.Machines.GetMachine(ctx, p.MachineID); err == nil && m.Name != "" {
+				machine = m.Name
+			}
+		}
+		out = append(out, poolView(p, s.views(ctx, kids[p.ID]), names, machine))
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out
 }
 
 type ghList struct {
