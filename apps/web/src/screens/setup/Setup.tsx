@@ -31,13 +31,7 @@ import { TurnOnPoolWizard } from '../repositories/TurnOnPool';
 
 type SetupState = Schemas['SetupState'];
 
-const CONNECT_STEPS = [
-  'Reading the controller',
-  'Account',
-  'Review',
-  'Creating the App',
-  'Done',
-] as const;
+const CONNECT_STEPS = ['Account', 'Review', 'Creating the App', 'Done'] as const;
 
 // The words for the error code GitHub's redirect brings back (content: Connect GitHub words).
 const HALF_MADE =
@@ -310,8 +304,8 @@ export function ConnectGithubWizard({
     <Wizard
       name="Connect GitHub"
       steps={CONNECT_STEPS}
-      current={phase === 'loading' ? 0 : step}
-      firstStep={1}
+      current={step - 1}
+      firstStep={0}
       phase={phase}
       reading="Reading the controller"
       onBack={() => {
@@ -319,7 +313,7 @@ export function ConnectGithubWizard({
         setPhase('first-run');
       }}
       onStep={(i) => {
-        if (i === 1) {
+        if (i === 0) {
           setStep(1);
           setPhase('first-run');
         }

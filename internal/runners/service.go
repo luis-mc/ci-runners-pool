@@ -266,7 +266,7 @@ func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]Ad
 // then one step per removal, each with its own yes, each waiting until the new
 // runner is online, the runner list can be read and the old runner has no job.
 func (s *Service) PlanReplacement(ctx context.Context, runnerID, actor string) (Plan, error) {
-	old, err := s.Store.GetRunner(ctx, runnerID)
+	old, err := s.find(ctx, runnerID)
 	if err != nil {
 		return Plan{}, err
 	}
@@ -349,6 +349,31 @@ func (s *Service) StartApply(ctx context.Context, planID string, approved []stri
 	bg := context.WithoutCancel(ctx)
 	s.background(func() { _, _ = s.Apply(bg, planID, approved, actor) })
 	return p, nil
+}
+
+// find reads one runner by its id. A caller that holds the runner's name
+// instead (a light or persistent runner is known by its name too) is answered
+// when the name is the name of exactly one runner, so a lookup never misses a
+// runner that is in the list (OPS19).
+func (s *Service) find(ctx context.Context, key string) (Record, error) {
+	r, err := s.Store.GetRunner(ctx, key)
+	if !errors.Is(err, ErrNotFound) {
+		return r, err
+	}
+	all, lerr := s.Store.ListRunners(ctx, Filter{})
+	if lerr != nil {
+		return Record{}, lerr
+	}
+	var hit []Record
+	for _, x := range all {
+		if x.Name == key {
+			hit = append(hit, x)
+		}
+	}
+	if len(hit) == 1 {
+		return hit[0], nil
+	}
+	return Record{}, ErrNotFound
 }
 
 // StartRemove runs the drain and removal of a confirmed BeginRemove in the
@@ -669,10 +694,11 @@ func (s *Service) removeRegistration(ctx context.Context, r Record, actor, actio
 // UX-62). With confirm it sets the runner `draining` and returns finish, which
 // waits for an idle runner and removes it; run finish in the background.
 func (s *Service) BeginRemove(ctx context.Context, id string, confirm bool, actor string) (Record, func(context.Context) error, error) {
-	r, err := s.Store.GetRunner(ctx, id)
+	r, err := s.find(ctx, id)
 	if err != nil {
 		return Record{}, nil, err
 	}
+	id = r.ID
 	if !r.Managed {
 		return r, nil, refuse("runner %s was not made by CRSP; replace it instead", r.Name)
 	}

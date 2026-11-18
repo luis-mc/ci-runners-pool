@@ -178,7 +178,7 @@ export function UpdateWizard() {
   }, []);
 
   const working = kind === 'update' ? 'Updating' : 'Restarting';
-  const STEPS = ['Reading the service', 'Review', working, 'Done'] as const;
+  const STEPS = ['Review', working, 'Done'] as const;
 
   const settle = (u: UpdateStatus, afterReload: boolean) => {
     setStatus(u);
@@ -294,13 +294,11 @@ export function UpdateWizard() {
   const minutes = status?.drain_timeout_minutes;
   const target = status?.latest_version ?? '';
   const step =
-    phase === 'loading'
-      ? 0
-      : phase === 'running' || phase === 'paused' || phase === 'failed'
+    phase === 'running' || phase === 'paused' || phase === 'failed'
+      ? 1
+      : phase === 'done' || phase === 'done-after-reload'
         ? 2
-        : phase === 'done' || phase === 'done-after-reload'
-          ? 3
-          : 1;
+        : 0;
 
   let body;
   if (phase === 'first-run') {
@@ -412,7 +410,7 @@ export function UpdateWizard() {
       name={kind === 'update' ? 'Update' : 'Restart the service'}
       steps={STEPS}
       current={step}
-      firstStep={1}
+      firstStep={0}
       phase={phase}
       reading="Reading the service"
       progress={

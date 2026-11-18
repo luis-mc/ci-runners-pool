@@ -34,7 +34,9 @@ export interface WizardProps {
   /** Index of the current step. */
   current: number;
   phase: WizardPhase;
-  /** What the loading step is reading ("Reading the controller"). Said once (UX-38). */
+  /** What the current step is still reading ("Reading the controller"). Loading is a state of the current step,
+   * never a step of its own: one wait line, the primary locked, Back free, no step checked (UX-38). `steps` never
+   * lists it. */
   reading?: string | undefined;
   /** The work step's live line: the item in hand, n of N, the time left (UX-29). */
   progress?:
