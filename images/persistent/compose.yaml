@@ -17,7 +17,7 @@ services:
     hostname: ${CRSP_POOL_NAME:-crsp-persistent-pool}
     restart: unless-stopped
     init: true
-    user: "${CRSP_UID:-1001}:${CRSP_UID:-1001}"
+    user: '${CRSP_UID:-1001}:${CRSP_UID:-1001}'
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges]

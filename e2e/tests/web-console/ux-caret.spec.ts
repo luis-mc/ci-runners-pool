@@ -71,7 +71,9 @@ test('Command palette: the block caret follows the text and goes on blur', async
   await check(page, dialog.getByRole('textbox'));
 });
 
-test('the block is steady under reduced motion and blinks otherwise', async ({ page }) => {
+test('the block is steady under reduced motion and blinks otherwise', async ({
+  page,
+}) => {
   await openRoute(page, { url: '/machines', signedOut: false });
   await page.getByRole('textbox', { name: 'Search machines' }).focus();
   const name = () =>

@@ -24,7 +24,8 @@ export interface BlockCaret {
   font: CSSProperties;
 }
 
-const RTL = /[\p{Script=Hebrew}\p{Script=Arabic}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}]/u;
+const RTL =
+  /[\p{Script=Hebrew}\p{Script=Arabic}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}]/u;
 
 function textWidth(host: HTMLElement, font: CSSProperties, text: string): number {
   const probe = document.createElement('span');

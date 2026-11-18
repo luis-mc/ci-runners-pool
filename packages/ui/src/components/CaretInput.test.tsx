@@ -14,7 +14,16 @@ beforeEach(() => {
     this: HTMLElement,
   ) {
     const w = (this.textContent ?? '').length * W;
-    return { width: w, height: 18, x: 0, y: 0, top: 0, left: 0, right: w, bottom: 18 } as DOMRect;
+    return {
+      width: w,
+      height: 18,
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: w,
+      bottom: 18,
+    } as DOMRect;
   });
   vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(200);
   vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(40);
@@ -119,12 +128,14 @@ describe('block caret', () => {
 
   it('keeps the placeholder', () => {
     render(<Box />);
-    expect((screen.getByLabelText<HTMLInputElement>('Find')).placeholder).toBe('Find');
+    expect(screen.getByLabelText<HTMLInputElement>('Find').placeholder).toBe('Find');
   });
 
   it('blinks with the token and is steady under reduced motion', () => {
     const css = readFileSync(resolve('src/components.css'), 'utf8');
-    expect(css).toMatch(/\.ds-caret\s*\{[^}]*animation:\s*ds-caret-blink var\(--ds-cursor-blink\) steps\(1\) infinite/);
+    expect(css).toMatch(
+      /\.ds-caret\s*\{[^}]*animation:\s*ds-caret-blink var\(--ds-cursor-blink\) steps\(1\) infinite/,
+    );
     expect(css).toMatch(
       /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.ds-caret\s*\{\s*animation:\s*none;/,
     );
