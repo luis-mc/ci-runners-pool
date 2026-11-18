@@ -11,7 +11,7 @@ import (
 
 // R5.64: the Job Object carries a hard CPU rate cap that reads back as set.
 func TestJobObjectCapReadsBack(t *testing.T) {
-	for _, pct := range []int{25, 50, 75} {
+	for _, pct := range []int{25, 50, 75, 100} {
 		j, err := NewJob(pct)
 		if err != nil {
 			t.Fatalf("NewJob(%d): %v", pct, err)
