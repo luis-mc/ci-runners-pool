@@ -58,6 +58,33 @@ type Result struct {
 	CPUBudget                                       int
 	DockerCeilingGiB                                float64
 	Decided                                         string
+	// Half and ThreeQuarters are the recommended sizes (LOOK22): that share
+	// of the room. Set whenever the sizing inputs are.
+	Half, ThreeQuarters Recommended
+}
+
+// Recommended is one recommended pool size.
+type Recommended struct {
+	MemGiB int
+	CPUs   int
+}
+
+// Recommend sizes the pool at a share of the room: the memory is that share
+// of roomGiB rounded down to whole GiB, at least the floor; the CPUs are the
+// same share of the CPU budget, at most memory / GiBPerCPU, at least the floor.
+func Recommend(roomGiB float64, cpuBudget int, share float64) Recommended {
+	mem := int(math.Floor(roomGiB*share + 1e-9))
+	if mem < MinGiB {
+		mem = MinGiB
+	}
+	cpus := int(math.Floor(float64(cpuBudget)*share + 1e-9))
+	if byMem := int(math.Floor(float64(mem)/GiBPerCPU + 1e-9)); cpus > byMem {
+		cpus = byMem
+	}
+	if cpus < MinCPUs {
+		cpus = MinCPUs
+	}
+	return Recommended{MemGiB: mem, CPUs: cpus}
 }
 
 func gib(b int64) float64 { return float64(b) / float64(GiB) }
@@ -97,6 +124,8 @@ func Check(in Inputs, r Request) Result {
 		res.RoomGiB = 0
 	}
 	res.CPUBudget = in.TotalCPUs * cpuPct / 100
+	res.Half = Recommend(res.RoomGiB, res.CPUBudget, 0.5)
+	res.ThreeQuarters = Recommend(res.RoomGiB, res.CPUBudget, 0.75)
 	maxCPUsForMem := int(math.Floor(r.MemGiB/GiBPerCPU + 1e-9))
 	refuse := func(short, decided, reason string, nearest ...string) Result {
 		res.Short, res.Decided, res.Reason, res.Nearest = short, decided, reason, nearest

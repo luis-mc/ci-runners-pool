@@ -356,32 +356,33 @@ The words of the shared components (`design_system.py components`). A project ch
 
 ## Pool size words
 
-The words of the Pool size wizard on a machine's page (machines R5.58). The wizard is the shared wizard (component 4); the steps follow UX-30.
+The words of the Pool size section on a machine's page (machines R5.58, LOOK22). It is a plain section of the page's one form; there is no wizard and no Save of its own (UX-71).
 
 | Where | Word |
 |---|---|
 | Section | Pool size |
-| Steps | Size, Review, Saving, Done |
-| Loading | Reading the budget of {machine} |
-| Fact names | Pool size now, Memory of the machine, Used outside the pool, Memory budget, Room for the pool, CPU budget, Decided by, Asked for |
+| Fact names | Pool size now, Room for the pool, CPU budget |
 | Not set | not set |
-| Budget not known | Budget: not known yet; Review says when it is |
-| Fields | Pool memory (help: Memory the pool may use on this machine, in GiB.), Pool CPUs (help: CPUs the pool may use on this machine.) |
-| Mistakes | The pool needs at least {n} GiB. The pool needs at least {n} CPUs. This is the size that is set now. Change it to review. |
-| Review line | The pool of {machine} changes from {size} to {size}. |
-| Fits | This size fits the budget of the machine. |
-| Does not fit | This size does not fit the budget. {reason} |
-| Nearest | The nearest sizes that fit: |
-| Cannot check | The size cannot be checked yet. {why} Try again when the agent has reported. |
-| Lower size | This lowers the pool size. Jobs that need more than the new size wait or fail to start. |
+| Budget not known | Budget: not known yet; the three choices say The budget is not known yet. |
+| Choice name | New pool size |
+| Choices | Recommended: half of the free room ({memory}, {cpus}); Recommended: three quarters of the free room ({memory}, {cpus}); Custom |
+| How computed (line under a recommended choice) | Half of the {room} free for the pool, rounded down to whole GiB. CPUs: the same share of the CPU budget ({budget}), at most one per 1.5 GiB. (Three quarters: the same with Three quarters.) |
+| Custom | Choose the memory and the CPUs yourself. Fields: Pool memory (help: Memory the pool may use on this machine, in GiB.), Pool CPUs (help: CPUs the pool may use on this machine.) |
+| Mistakes | The pool needs at least {n} GiB. The pool needs at least {n} CPUs. |
+| Reading | Reading the budget of {machine}. |
+| Check line, fits (done) | This size fits the budget of the machine. |
+| Check line, little left (needs you) | This size fits, but leaves {left} for this PC. (Shown when less than 3 GiB of the room is left.) |
+| Check line, lower size (needs you) | This lowers the pool size. Jobs that need more than the new size wait or fail to start. |
 | The tick | Yes, lower the pool size |
-| Primary | Save {memory} and {cpus} (busy word: Saving) |
-| Reasons beside the primary | Reading the budget. The size cannot be checked yet. This size does not fit. Go back and change it. Tick the box to confirm lowering the pool size. |
-| Saving line | Saving the pool size of {machine} |
-| Paused | Paused. The page closed while the size was saving. Start again to read the size that is set. |
-| Done | The pool size is {size}. |
-| Stopped | Stopped. Nothing was saved. The pool size changed to {size} while you reviewed. |
-| Failed | The pool size was not saved. {why} Try again. |
+| Check line, does not fit (problem) | This size does not fit the budget. {reason} The nearest sizes that fit: {sizes}. (memory over the room: see Too big) |
+| Too big (memory over the room) | {requested} is too much: only {room} is free for the pool right now (other programs use {used}). Use {fit memory} and {fit cpus}? |
+| Too big, button | Use {fit memory} and {fit cpus} (applies both sizes to the fields; it does not save) |
+| Too big, CPU reason | {fit cpus}: each CPU needs about 1.5 GiB. (shown when the CPUs change with the memory) |
+| Too big, room note | The room moves with what else runs on this PC. |
+| Cannot check | The size cannot be checked yet. {why} Try again when the agent has reported. |
+| Reasons beside the page's Save | Reading the budget. The size cannot be checked yet. This size does not fit. Change the pool size. Tick the box to confirm lowering the pool size. |
+| Changed while editing | The pool size changed to {size} while you edited. Nothing was saved. |
+| Not saved | The pool size was not saved. {why} Try again. |
 
 ## Extra packages words
 
@@ -612,6 +613,8 @@ The words of the setting that lets the pool serve public repositories, and of th
 | Nothing selected | Status line of the action bar on Repositories while nothing is ticked. |
 | {n} selected | Status line of the action bar while {n} rows are ticked. |
 | Tick the repositories that should use the pool. | Reason of the disabled Use pool while nothing is ticked. |
+| Discard changes? | Title of the question when the person leaves an edit screen with unsaved changes. Body: You changed this page and did not save. If you leave now, the changes are lost. Answers: Keep editing, Discard. |
+| Changed | The mark on a field whose value differs from what is saved. |
 | Unsaved changes ({n}) | Status line of the action bar on an edit screen while {n} things differ from what is saved. |
 | Nothing has changed yet. | Reason of the disabled Save in the action bar while nothing differs from what is saved. |
 | Change a setting to save. | Reason of the disabled Save on a machine's page while nothing differs from what is saved. |

@@ -3629,12 +3629,18 @@ type PoolSizeCheck struct {
 	Ok bool `json:"ok"`
 
 	// Reason Why it is refused, naming the budget that is short.
-	Reason         *string             `json:"reason,omitempty"`
-	RoomGib        *float64            `json:"room_gib,omitempty"`
-	Short          *PoolSizeCheckShort `json:"short,omitempty"`
-	TotalGib       *float64            `json:"total_gib,omitempty"`
-	UsedOutsideGib *float64            `json:"used_outside_gib,omitempty"`
-	Why            *string             `json:"why,omitempty"`
+	Reason *string `json:"reason,omitempty"`
+
+	// RecommendedHalf A recommended pool size. Memory is a share of the room rounded down to whole GiB, at least the floor; CPUs are the same share of the CPU budget, at most memory / 1.5, at least the floor.
+	RecommendedHalf *PoolSizeRecommended `json:"recommended_half,omitempty"`
+
+	// RecommendedThreeQuarters A recommended pool size. Memory is a share of the room rounded down to whole GiB, at least the floor; CPUs are the same share of the CPU budget, at most memory / 1.5, at least the floor.
+	RecommendedThreeQuarters *PoolSizeRecommended `json:"recommended_three_quarters,omitempty"`
+	RoomGib                  *float64             `json:"room_gib,omitempty"`
+	Short                    *PoolSizeCheckShort  `json:"short,omitempty"`
+	TotalGib                 *float64             `json:"total_gib,omitempty"`
+	UsedOutsideGib           *float64             `json:"used_outside_gib,omitempty"`
+	Why                      *string              `json:"why,omitempty"`
 }
 
 // PoolSizeCheckShort defines model for PoolSizeCheck.Short.
@@ -3644,6 +3650,12 @@ type PoolSizeCheckShort string
 type PoolSizeCheckRequest struct {
 	PoolCpus      int     `json:"pool_cpus"`
 	PoolMemoryGib float64 `json:"pool_memory_gib"`
+}
+
+// PoolSizeRecommended A recommended pool size. Memory is a share of the room rounded down to whole GiB, at least the floor; CPUs are the same share of the CPU budget, at most memory / 1.5, at least the floor.
+type PoolSizeRecommended struct {
+	Cpus      int `json:"cpus"`
+	MemoryGib int `json:"memory_gib"`
 }
 
 // Preferences defines model for Preferences.

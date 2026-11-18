@@ -529,6 +529,10 @@ func (s *server) CheckMachinePoolSize(ctx context.Context, r gen.CheckMachinePoo
 	if res.Decided != "" {
 		out.Decided = &res.Decided
 	}
+	if c.Known && res.TotalGiB > 0 {
+		out.RecommendedHalf = &gen.PoolSizeRecommended{MemoryGib: res.Half.MemGiB, Cpus: res.Half.CPUs}
+		out.RecommendedThreeQuarters = &gen.PoolSizeRecommended{MemoryGib: res.ThreeQuarters.MemGiB, Cpus: res.ThreeQuarters.CPUs}
+	}
 	return gen.CheckMachinePoolSize200JSONResponse(out), nil
 }
 

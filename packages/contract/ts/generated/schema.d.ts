@@ -3533,6 +3533,11 @@ export interface components {
             pool_memory_gib: number;
             pool_cpus: number;
         };
+        /** @description A recommended pool size. Memory is a share of the room rounded down to whole GiB, at least the floor; CPUs are the same share of the CPU budget, at most memory / 1.5, at least the floor. */
+        PoolSizeRecommended: {
+            memory_gib: number;
+            cpus: number;
+        };
         /**
          * @example {
          *       "known": true,
@@ -3576,6 +3581,8 @@ export interface components {
             docker_ceiling_gib?: number;
             /** @description The figure that decided. */
             decided?: string;
+            recommended_half?: components["schemas"]["PoolSizeRecommended"];
+            recommended_three_quarters?: components["schemas"]["PoolSizeRecommended"];
             /** Format: double */
             current_memory_gib: number;
             current_cpus: number;

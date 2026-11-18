@@ -2,7 +2,7 @@
 // they changed here, and the one action bar at the foot of the tab says "Unsaved changes (N)" and carries one Save
 // for the whole tab. A section that is not saving (Add channel, Choose an address, Back up now) keeps a normal
 // button inside its own section.
-import { ActionBar, Button, Stack, unsavedStatus } from '@crsp/ui';
+import { EditBar, Stack } from '@crsp/ui';
 import {
   createContext,
   useCallback,
@@ -70,31 +70,15 @@ export function TabForm({ children }: { children: ReactNode }) {
           void saveAll();
         }}
       >
-        <Stack>
+        <Stack gap="section">
           {children}
-          <ActionBar
-            status={unsavedStatus(total)}
-            secondary={
-              <Button
-                onPress={() => parts.current.forEach((p) => p.reset())}
-                disabled={total === 0}
-                reason="Nothing has changed."
-              >
-                Cancel
-              </Button>
-            }
-            primary={
-              <Button
-                kind="primary"
-                submit
-                busy={busy}
-                busyLabel="Saving"
-                disabled={total === 0 || Boolean(blocked)}
-                reason={blocked ?? 'Nothing has changed yet.'}
-              >
-                Save
-              </Button>
-            }
+          <EditBar
+            changes={total}
+            onSave={() => void saveAll()}
+            onCancel={() => parts.current.forEach((p) => p.reset())}
+            busy={busy}
+            blocked={Boolean(blocked)}
+            why={blocked}
           />
         </Stack>
       </form>

@@ -34,7 +34,7 @@ import {
   type StatusKind,
   ActionBar,
   selectedStatus,
-  unsavedStatus,
+  EditBar,
 } from '@crsp/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -577,25 +577,39 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
     }),
     [labels, groups, max, priority, forks, light],
   );
+  const diff = {
+    labels: labels !== p.labels.join(', '),
+    groups: groups !== p.runner_groups.join(', '),
+    max: max !== p.max_parallel_jobs,
+    priority: priority !== p.priority,
+    forks: forks !== p.allow_fork_pull_requests,
+    light: light !== p.light_runner,
+    hosted: hostedChanged(hosted, hostedStart(r)),
+    packages: packages !== startPackages,
+  };
   const policyChanged =
-    labels !== p.labels.join(', ') ||
-    groups !== p.runner_groups.join(', ') ||
-    max !== p.max_parallel_jobs ||
-    priority !== p.priority ||
-    forks !== p.allow_fork_pull_requests ||
-    light !== p.light_runner ||
-    hostedChanged(hosted, hostedStart(r));
-  const packagesChanged = packages !== startPackages;
-  const changeCount = [
-    labels !== p.labels.join(', '),
-    groups !== p.runner_groups.join(', '),
-    max !== p.max_parallel_jobs,
-    priority !== p.priority,
-    forks !== p.allow_fork_pull_requests,
-    light !== p.light_runner,
-    hostedChanged(hosted, hostedStart(r)),
-    packagesChanged,
-  ].filter(Boolean).length;
+    diff.labels ||
+    diff.groups ||
+    diff.max ||
+    diff.priority ||
+    diff.forks ||
+    diff.light ||
+    diff.hosted;
+  const packagesChanged = diff.packages;
+  const changeCount = Object.values(diff).filter(Boolean).length;
+  /** Cancel: the form goes back to what is saved. */
+  const cancel = () => {
+    setLabels(p.labels.join(', '));
+    setGroups(p.runner_groups.join(', '));
+    setMax(p.max_parallel_jobs);
+    setPriority(p.priority);
+    setForks(p.allow_fork_pull_requests);
+    setLight(p.light_runner);
+    setHosted(hostedStart(r));
+    setPackages(startPackages);
+    setErrors([]);
+    setSaved(undefined);
+  };
   const forkRisk = forks && !p.allow_fork_pull_requests;
   const costRisk = turnsFallbackOn(r, hosted);
 
@@ -811,6 +825,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
                 label="Labels"
                 help="Separate labels with commas."
                 value={labels}
+                changed={diff.labels}
                 onChange={setLabels}
                 width="full"
               />
@@ -818,6 +833,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
                 label="Runner groups"
                 optional
                 value={groups}
+                changed={diff.groups}
                 onChange={setGroups}
                 width="full"
               />
@@ -825,6 +841,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
                 <NumberField
                   label="Maximum parallel jobs"
                   value={max}
+                  changed={diff.max}
                   min={1}
                   max={64}
                   onChange={setMax}
@@ -832,6 +849,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
                 <NumberField
                   label="Priority"
                   value={priority}
+                  changed={diff.priority}
                   min={0}
                   max={100}
                   onChange={setPriority}
@@ -840,11 +858,13 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
               <CheckRow
                 label="Run jobs from public forks"
                 checked={forks}
+                changed={diff.forks}
                 onChange={setForks}
               />
               <CheckRow
                 label="Keep a light runner for short jobs"
                 checked={light}
+                changed={diff.light}
                 onChange={setLight}
               />
               <Message tone="note">
@@ -869,6 +889,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
                 label="Extra packages"
                 help="Distribution packages added to the pool image, one name per line."
                 value={packages}
+                changed={diff.packages}
                 onChange={setPackages}
                 rows={6}
                 width="full"
@@ -886,23 +907,13 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
           {save.error ? (
             <Message tone="problem">Could not save. {save.error}</Message>
           ) : null}
-          <ActionBar
-            status={unsavedStatus(changeCount)}
-            secondary={
-              <Button onPress={() => void navigate('/repositories')}>Cancel</Button>
-            }
-            primary={
-              <Button
-                kind="primary"
-                submit
-                busy={save.busy}
-                busyLabel="Saving"
-                disabled={!admin || changeCount === 0}
-                reason={!admin ? session.whyNot('admin') : 'Nothing has changed yet.'}
-              >
-                Save
-              </Button>
-            }
+          <EditBar
+            changes={changeCount}
+            onSave={() => void save.run()}
+            onCancel={cancel}
+            busy={save.busy}
+            blocked={!admin}
+            why={session.whyNot('admin')}
           />
         </Stack>
       </form>

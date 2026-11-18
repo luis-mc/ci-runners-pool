@@ -38,7 +38,7 @@ describe('Users and roles (R5.28)', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'GitHub login' }), {
       target: { value: 'bob' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(a.count('POST', '/api/v1/users')).toBe(1));
     expect(a.calls.find((c) => c.method === 'POST')?.body).toEqual({
       login: 'bob',
@@ -49,7 +49,8 @@ describe('Users and roles (R5.28)', () => {
   it('shows the mistake when no login is written', async () => {
     renderApp(api(), '/settings/users');
     await screen.findByRole('table', { name: 'Users' });
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('radio', { name: /Admin/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Write the GitHub login to add.')).toBeTruthy();
   });
 

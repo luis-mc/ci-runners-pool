@@ -12,6 +12,17 @@ export interface FieldShellProps {
   error?: string | undefined;
   optional?: boolean | undefined;
   width?: 'short' | 'medium' | 'full' | undefined;
+  /** The value differs from what is saved: the field is marked "Changed" (LOOK21, UX-71). */
+  changed?: boolean | undefined;
+}
+
+/** The mark of a field whose value differs from what is saved. Drawn by the shared parts only. */
+export function ChangedMark() {
+  return (
+    <span className="ds-field__changed" aria-hidden="true">
+      Changed
+    </span>
+  );
 }
 
 function Shell({
@@ -19,6 +30,7 @@ function Shell({
   help,
   error,
   optional,
+  changed,
   width = 'medium',
   htmlFor,
   helpId,
@@ -35,11 +47,15 @@ function Shell({
       className="ds-field"
       data-width={width}
       data-invalid={Boolean(error) || undefined}
+      data-changed={changed || undefined}
     >
-      <label className="ds-field__label" htmlFor={htmlFor} title={label}>
-        {label}
-        {optional ? ' (optional)' : ''}
-      </label>
+      <div className="ds-field__head">
+        <label className="ds-field__label" htmlFor={htmlFor} title={label}>
+          {label}
+          {optional ? ' (optional)' : ''}
+        </label>
+        {changed ? <ChangedMark /> : null}
+      </div>
       {help ? (
         <p className="ds-field__help" id={helpId}>
           {help}
@@ -187,6 +203,7 @@ export function ChoiceField(
       className="ds-field"
       data-width="full"
       data-invalid={Boolean(props.error) || undefined}
+      data-changed={props.changed || undefined}
     >
       <fieldset
         className="ds-choice"
@@ -196,6 +213,7 @@ export function ChoiceField(
         <legend className="ds-field__label">
           {props.label}
           {props.optional ? ' (optional)' : ''}
+          {props.changed ? <ChangedMark /> : null}
         </legend>
         {props.help ? (
           <p className="ds-field__help" id={helpId}>
@@ -271,6 +289,7 @@ export function CheckRow({
   aside,
   asideTone,
   stacked = false,
+  changed = false,
 }: {
   label: string;
   checked: boolean;
@@ -282,10 +301,13 @@ export function CheckRow({
   asideTone?: 'needs-you' | undefined;
   /** The label in bold with the help on its own line below. */
   stacked?: boolean | undefined;
+  /** The box differs from what is saved: the row is marked "Changed" (LOOK21). */
+  changed?: boolean | undefined;
 }) {
   return (
     <label
       className="ds-choice__row"
+      data-changed={changed || undefined}
       data-disabled={Boolean(disabledReason) || undefined}
       data-aside={aside ? true : undefined}
       data-stack={stacked || undefined}
@@ -306,6 +328,7 @@ export function CheckRow({
           <span className="ds-choice__reason"> {disabledReason}</span>
         ) : null}
       </span>
+      {changed ? <ChangedMark /> : null}
       {aside ? (
         <span className="ds-choice__aside" data-tone={asideTone}>
           {aside}

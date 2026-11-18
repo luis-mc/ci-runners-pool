@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { Pane } from './Pane';
 
 type Gap = 'tight' | 'normal' | 'loose';
+/** A Stack also has the gap between the sections of a page: 32 px, `--ds-space-6` (LOOK16, D35). */
+type StackGap = Gap | 'section';
 
 export function Stack({
   children,
@@ -10,7 +12,7 @@ export function Stack({
   as: Tag = 'div',
 }: {
   children: ReactNode;
-  gap?: Gap | undefined;
+  gap?: StackGap | undefined;
   as?: 'div' | 'section' | undefined;
 }) {
   return (
