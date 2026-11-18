@@ -67,9 +67,14 @@ describe('Settings > Access > Webhooks', () => {
   });
 
   it('saves a good address and says webhooks are on', async () => {
+    // After Save the page reads the state again, so the answer follows the save.
+    let saved = false;
     const a = signedIn()
-      .on('GET', PATH, { state: 'off' })
-      .on('PUT', PATH, on({ last_delivery_at: undefined, last_result: undefined }));
+      .on('GET', PATH, () => (saved ? on() : { state: 'off' }))
+      .on('PUT', PATH, () => {
+        saved = true;
+        return on();
+      });
     await open(a);
     fireEvent.click(await screen.findByRole('checkbox', { name: /Real webhooks/ }));
     fireEvent.change(await screen.findByLabelText('Public https address'), {
@@ -77,19 +82,21 @@ describe('Settings > Access > Webhooks', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText(/Webhooks are on/)).toBeTruthy();
+    expect(await screen.findByText('on')).toBeTruthy();
     expect(a.calls.find((c) => c.method === 'PUT')?.body).toEqual({
       address: 'https://hooks.example.com',
     });
   });
 
   it('shows the guided link when the App does not listen for workflow jobs', async () => {
+    const events = 'https://github.com/settings/apps/crsp/permissions';
+    let saved = false;
     const a = signedIn()
-      .on('GET', PATH, { state: 'off' })
-      .on(
-        'PUT',
-        PATH,
-        on({ events_link: 'https://github.com/settings/apps/crsp/permissions' }),
-      );
+      .on('GET', PATH, () => (saved ? on({ events_link: events }) : { state: 'off' }))
+      .on('PUT', PATH, () => {
+        saved = true;
+        return on({ events_link: events });
+      });
     await open(a);
     fireEvent.click(await screen.findByRole('checkbox', { name: /Real webhooks/ }));
     fireEvent.change(await screen.findByLabelText('Public https address'), {
@@ -97,10 +104,8 @@ describe('Settings > Access > Webhooks', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText(/tick Workflow job/)).toBeTruthy();
-    const link = screen.getByRole('button', { name: 'Open the App on GitHub' });
-    expect(link.getAttribute('href')).toBe(
-      'https://github.com/settings/apps/crsp/permissions',
-    );
+    const button = screen.getByRole('button', { name: 'Open the App on GitHub' });
+    expect(button.getAttribute('href')).toBe(events);
   });
 
   it('says what the controller found when the test fails and keeps the form', async () => {
@@ -131,7 +136,13 @@ describe('Settings > Access > Webhooks', () => {
   });
 
   it('turns webhooks off with Save and returns to polling', async () => {
-    const a = signedIn().on('GET', PATH, on()).on('DELETE', PATH, { state: 'off' });
+    let cleared = false;
+    const a = signedIn()
+      .on('GET', PATH, () => (cleared ? { state: 'off' } : on()))
+      .on('DELETE', PATH, () => {
+        cleared = true;
+        return { state: 'off' };
+      });
     await open(a);
     fireEvent.click(await screen.findByRole('checkbox', { name: /Real webhooks/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));

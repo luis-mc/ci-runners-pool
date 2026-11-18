@@ -76,10 +76,20 @@ function stateStatus(w: Webhook): { kind: 'ok' | 'off' | 'failed'; word: string 
 export function WebhooksSettings() {
   const client = useClient();
   const { result, reload } = useLoad(() => unwrap(client.GET('/api/v1/app/webhook')), []);
+  // The done line outlives the reload that follows a save, so the state and the line agree.
+  const [done, setDone] = useState<string | undefined>(undefined);
   return (
     <Section title="Webhooks">
       <Load result={result} what="the webhook state" reload={reload}>
-        {(w) => <WebhooksForm key={JSON.stringify(w)} webhook={w} onSaved={reload} />}
+        {(w) => (
+          <WebhooksForm
+            key={JSON.stringify(w)}
+            webhook={w}
+            done={done}
+            setDone={setDone}
+            onSaved={reload}
+          />
+        )}
       </Load>
     </Section>
   );
@@ -96,38 +106,44 @@ function LastDelivery({ w }: { w: Webhook }) {
   );
 }
 
-function WebhooksForm({ webhook, onSaved }: { webhook: Webhook; onSaved: () => void }) {
+function WebhooksForm({
+  webhook,
+  done,
+  setDone,
+  onSaved,
+}: {
+  webhook: Webhook;
+  done: string | undefined;
+  setDone: (text: string | undefined) => void;
+  onSaved: () => void;
+}) {
   const client = useClient();
   const session = useSession();
   const wasOn = webhook.state !== 'off';
   const [on, setOn] = useState(wasOn);
   const [address, setAddress] = useState(webhook.address ?? '');
   const [errors, setErrors] = useState<string[]>([]);
-  const [done, setDone] = useState<string | undefined>(undefined);
-  const [eventsLink, setEventsLink] = useState<string | undefined>(webhook.events_link);
   const save = useCommand(async () => {
     setDone(undefined);
     if (on) {
       const problem = webhookAddressProblem(address);
       setErrors(problem ? [problem] : []);
       if (problem) return;
-      const out = await unwrap(
+      await unwrap(
         client.PUT('/api/v1/app/webhook', { body: { address: address.trim() } }),
       );
-      setEventsLink(out.events_link);
       setDone('Webhooks are on. GitHub now tells crsp about jobs at once.');
-      if (!out.events_link) onSaved();
+      onSaved();
       return;
     }
     setErrors([]);
     if (!wasOn) return;
     await unwrap(client.DELETE('/api/v1/app/webhook'));
-    setEventsLink(undefined);
     setDone('Webhooks are off. crsp finds jobs by polling GitHub again.');
     onSaved();
   });
   const st = stateStatus(webhook);
-  const link = safeAppUrl(eventsLink);
+  const link = safeAppUrl(webhook.events_link);
   const owner = session.can('owner');
   return (
     <form
@@ -157,7 +173,7 @@ function WebhooksForm({ webhook, onSaved }: { webhook: Webhook; onSaved: () => v
         />
         <CheckRow
           label="Real webhooks"
-          help="Off: jobs are found by polling GitHub."
+          help="Clear it and Save to find jobs by polling GitHub again."
           checked={on}
           onChange={(v) => {
             setOn(v);

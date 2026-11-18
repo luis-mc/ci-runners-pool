@@ -833,7 +833,7 @@ The words of Settings > Access > Webhooks and the link on the repository page (g
 |---|---|
 | Webhooks | Section title; the name of the state line. |
 | on / off / failing | Status words of the state: on, off, failing (the newest delivery failed or was missed). |
-| Real webhooks | Check box. Help: "Off: jobs are found by polling GitHub." |
+| Real webhooks | Check box. Help: "Clear it and Save to find jobs by polling GitHub again." |
 | Public https address | Field name; help: "The address that forwards to this controller, for example https://hooks.example.com. crsp sends a signed test to it before GitHub is changed." |
 | With webhooks GitHub tells crsp about a job the moment it is queued, so the job starts at once. Without them crsp asks GitHub for new jobs every 15 seconds, so a job can start up to 15 seconds late. Webhooks need an address GitHub can reach: a tunnel or a reverse proxy with a real certificate. A LAN address or a self-signed certificate does not work. | The explanation at the top of the section. |
 | Testing the address | Busy word of Save while the address is tested; Turning off is the busy word when the box was cleared. |

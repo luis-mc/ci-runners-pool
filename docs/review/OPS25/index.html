@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPS25 review: webhooks in Settings</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#0b0f0b;color:#cfe9cf;margin:0;padding:16px}
+h1{font-size:1.2rem} h2{font-size:1rem;margin-top:24px}
+img{max-width:100%;border:1px solid #2f5f2f;display:block;margin:8px 0}
+p{max-width:70ch}
+</style>
+</head>
+<body>
+<h1>OPS25: turn on real GitHub webhooks from the console</h1>
+<p>Settings &gt; Access &gt; Webhooks, Phosphor dark. Desktop 1300 px and phone 393 px. Rules cited: CORE-1 to CORE-7, UX-22, UX-24, UX-38, UX-44.</p>
+<h2>Off (polling)</h2>
+<img src="off-1300.png" alt="Webhooks off, desktop"><img src="off-393.png" alt="Webhooks off, phone" width="393">
+<h2>On, last delivery ok</h2>
+<img src="on-1300.png" alt="Webhooks on, desktop"><img src="on-393.png" alt="Webhooks on, phone" width="393">
+<h2>Failing</h2>
+<img src="failing-1300.png" alt="Webhooks failing, desktop"><img src="failing-393.png" alt="Webhooks failing, phone" width="393">
+<h2>After Save: App does not listen for workflow jobs (guided step)</h2>
+<img src="guided-1300.png" alt="Guided GitHub step, desktop">
+<h2>A local address is refused before anything is sent</h2>
+<img src="mistake-393.png" alt="Mistake list, phone" width="393">
+</body>
+</html>
