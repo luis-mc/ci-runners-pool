@@ -457,7 +457,7 @@ A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTE
 | R5.68 | `internal/scheduler/accepting_test.go` TestGateHoldsNewJobsWithTheReasonWhileNotAccepting, TestGateHoldsLightRunnerJobsWhilePaused, TestGateDoesNotHoldOnTheBudgetReason, TestPauseNeverCutsAJobThatHoldsASlot; `internal/agent/policy_test.go` TestAutomaticPausesOnBatteryAndNeverCutsARunningJob | built (CRSP75) |
 | R5.69 | `internal/scheduler/weights_test.go` TestAdmissionByWeight, TestHeavyWeightBlocksWhileSlotNumberFree, TestUnknownClassDefaultWeight, TestWeightAboveBudgetRunsAlone, TestWeightFitsButLoadNotMeasured, TestWaitWordsNameTheWeight; `internal/scheduler/slots/weights_test.go` | new |
 | R5.70 | `internal/scheduler/gate_test.go` TestRenewKeepsTheSlot, TestRenewJobsKeepsListedJobsOnly, TestExpiredLeaseReclaimsTheSlot, TestRenewAfterExpiryIsLost, TestReusedPidCannotStealASlot, TestCrashedHolderSlotIsReclaimedForTheQueue, TestRetriedGateRenewsTheLease; `internal/store/slot_lease_migration_test.go` TestIntegrationSlotLeaseMigrationKeepsHeldSlots | new (dev-standards lesson 4, rule D3) |
-| R5.72 | `internal/forecast/queue_test.go` TestQueueStartRange, TestPassedOverJobHasNoRange, TestRangeDoesNotChangeOrder |
+| R5.72 | `internal/forecast/forecast_test.go` TestQueueStartRange, TestPassedOverJobHasNoRange, TestRangeDoesNotChangeOrder |
 | R6.1 | `internal/hooks/hooks_test.go` TestQuietGateUnderTwoSeconds | `test_load.py` Cache `test_no_sleep_and_delta_from_saved_raw` |
 | R6.2 | `internal/scheduler/gate_test.go` TestTwoTakersNeverShareASlot | `test_machine.py` Slots `test_race_two_processes_never_share_one_slot` |
 | R6.3 | `internal/scheduler/guard_test.go` TestQueriesHaveDeadline | new |

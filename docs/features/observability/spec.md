@@ -371,18 +371,18 @@ Rows that name a file without "planned" are built (CRSP18, CRSP23). Planned rows
 | R5.32 | internal/settings/retention_test.go TestHourlyJobDeletesPastLimit, TestRetentionUsesSettings; internal/settings/settings_test.go TestOutOfRangeRefusedWithRange, TestEveryRangeMatchesFloorAndCeiling |
 | R5.33 | planned: internal/bench/compare_test.go TestRunsBothOnTheSameCommit, TestNothingShownWhenARunFails, TestNeverStartsByItself (CRSP92) |
 | R5.34 | internal/compare/compare_test.go TestMatchingByNameAcrossKinds, TestMedianAndP95, TestRowStatsAndMinutesSaved, TestCostMath, TestPublicRepositoryExcluded, TestAPISourceEndToEnd; internal/api/handlers_compare_test.go TestSpeedComparisonJSON, TestSpeedComparisonIsReadOnly; internal/cli/resources_test.go TestCompareTableAndJSON |
-| R5.35 | internal/store/jobsdata_test.go TestMigrationTables, TestWriteAndReadRunJobSteps; internal/jobsdata/ingest/ingest_test.go TestWorkflowJobWritesRows |
-| R5.36 | internal/jobsdata/types_test.go TestJobTypeStripsMatrix, TestTaskIDFromBranch; internal/jobsdata/ingest/ingest_test.go TestWorktreeOnlyWhenReported |
+| R5.35 | internal/store/jobsdata_test.go TestMigrationTables, TestWriteAndReadRunJobSteps; internal/jobsdata/ingest/recorder_test.go TestWorkflowJobWritesRows |
+| R5.36 | internal/jobsdata/types_test.go TestJobTypeStripsMatrix, TestTaskIDFromBranch; internal/jobsdata/ingest/recorder_test.go TestWorktreeOnlyWhenReported |
 | R5.37 | internal/store/jobsdata_test.go TestRetention90_30_400, TestSummaryWrittenBeforeRawRowsLeave, TestListPagesTo100 |
-| R5.38 | internal/jobsdata/ingest/ingest_test.go TestNothingSecretStored; internal/store/jobsdata_test.go TestNoForbiddenColumns |
-| R5.39 | internal/api/jobs_handlers_test.go TestListJobsFilters, TestGetJobSteps, TestGetRun, TestGetJobStats, TestGetForecast, TestViewerRole |
+| R5.38 | internal/jobsdata/ingest/recorder_test.go TestNothingSecretStored; internal/store/jobsdata_test.go TestNoForbiddenColumns |
+| R5.39 | internal/api/handlers_jobsdata_test.go TestListJobsFilters, TestGetJobSteps, TestGetRun, TestGetJobStats, TestGetForecast, TestViewerRole |
 | R5.40 | internal/forecast/forecast_test.go TestSampleLast30Within90Days, TestMedianPoint, TestRangeP25P90WithTenPercentFloor, TestTimeoutNotInSample |
 | R5.41 | internal/forecast/forecast_test.go TestFallbackChain, TestNotEnoughHistoryUnderFive |
 | R5.42 | internal/forecast/forecast_test.go TestCriticalPathRange, TestDriftChangedLately |
-| R5.43 | internal/forecast/queue_test.go TestQueueStartRange |
-| R5.44 | internal/forecast/forecast_test.go TestForecastLogHitRate; internal/api/jobs_handlers_test.go TestGetJobStatsForecastPoints |
-| R5.45 | internal/api/jobs_handlers_test.go TestExportJobsCSV, TestExportDailyCSV |
-| R5.46 | internal/api/jobs_handlers_test.go TestJobWithoutStepsSaysWhy; apps/web/src/screens/jobs/JobPage.test.tsx |
+| R5.43 | internal/forecast/forecast_test.go TestQueueStartRange |
+| R5.44 | internal/forecast/forecast_test.go TestForecastLogHitRate; internal/api/handlers_jobsdata_test.go TestGetJobStatsForecastPoints |
+| R5.45 | internal/api/handlers_jobsdata_test.go TestExportJobsCSV, TestExportDailyCSV |
+| R5.46 | internal/api/handlers_jobsdata_test.go TestJobWithoutStepsSaysWhy; apps/web/src/screens/jobs/JobPage.test.tsx |
 | R6.1 | planned: internal/events/latency_test.go TestP95UnderTwoSeconds |
 | R6.2 | internal/events/hub_test.go TestLoadThrottlePerMachine (the median of three is the machines feature) |
 | R6.3 | internal/events/hub_test.go TestSSEFormatAndServe (heartbeat), TestSlowSubscriberIsClosedAndNeverBlocksPublisher, TestStreamCap; internal/api/handlers_live_test.go TestStreamEventsTooManyStreams |

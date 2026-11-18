@@ -633,7 +633,7 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.101 | Vitest | `apps/web/src/screens/jobs/Jobs.test.tsx` (runs rows with jobs done of total, the Runs/Jobs switch keeps the filter and the address) |
 | R5.102 | Vitest | `apps/web/src/screens/jobs/Jobs.test.tsx` (Queue, Running, Done columns, wait reason, result as word) |
 | R5.103 | Vitest | `apps/web/src/screens/jobs/RunPage.test.tsx`, `apps/web/src/screens/jobs/JobPage.test.tsx` (run opens jobs, job opens steps, step names as text) |
-| R5.104 | Vitest, Go test | `apps/web/src/screens/jobs/Done.test.tsx` (25, Show more to 100, older by range); `internal/api/jobs_handlers_test.go` TestListJobsCursorAndLimit |
+| R5.104 | Vitest, Go test | `apps/web/src/screens/jobs/Done.test.tsx` (25, Show more to 100, older by range); `internal/api/handlers_jobsdata_test.go` TestListJobsCursorAndLimit |
 | R5.105 | Vitest | `apps/web/src/screens/jobs/Groups.test.tsx` |
 | R5.106 | Vitest, Go test | `apps/web/src/screens/jobs/Groups.test.tsx` (runner, runner type, job type badge); `internal/store/jobsdata_test.go` TestGroupBy |
 | R5.107 | Vitest | `apps/web/src/screens/jobs/Charts.test.tsx` (14 days, 7 and 30, text alternative) |
@@ -642,7 +642,7 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.110 | Vitest | `apps/web/src/screens/jobs/JobPage.test.tsx` (branch, task id, worktree not reported) |
 | R5.111 | Vitest | `apps/web/src/screens/jobs/JobPage.test.tsx` (steps waterfall, steps no longer kept) |
 | R5.112 | Vitest | `apps/web/src/screens/jobs/Forecast.test.tsx` (range with basis, one number in tables, not enough history yet) |
-| R5.113 | Vitest, Go test | `apps/web/src/screens/jobs/Jobs.test.tsx` (both exports); `internal/api/jobs_handlers_test.go` TestExportJobsCSV, TestExportDailyCSV |
+| R5.113 | Vitest, Go test | `apps/web/src/screens/jobs/Jobs.test.tsx` (both exports); `internal/api/handlers_jobsdata_test.go` TestExportJobsCSV, TestExportDailyCSV |
 | R5.114 | Vitest, Playwright e2e | `apps/web/src/screens/jobs/redirects.test.tsx`; `e2e/tests/web-console/ux-routes.spec.ts` (old routes land on the new ones) |
 | R5.115 | Playwright e2e | `e2e/tests/web-console/ux-routes.spec.ts` (data-mode layout check at 360, 393 and 1300 px for every Jobs route) |
 | R5.96 | Vitest, Playwright e2e | `apps/web/src/screens/settings/UpdatePage.test.tsx` (first run, asks first, Not now, Update now with percent and Hide, follows a running update, waits for the service and ends with Updated to X, failed with the log path, done after reload), `apps/web/src/screens/wizards.test.tsx` (the update page passes the ten wizard states), `e2e/tests/web-console/ux-routes.spec.ts` (`/update` at 360, 393 and 1300 px). Screens in `docs/review/TRAY4/` |
