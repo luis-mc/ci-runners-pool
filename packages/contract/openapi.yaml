@@ -5527,7 +5527,18 @@ components:
         reason:
           type: string
           description: Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
-          enum: [offline, stopped, mode_paused, tray_paused, on_battery, busy, quiet_hours, base_image_missing, disk_low]
+          enum:
+            [
+              offline,
+              stopped,
+              mode_paused,
+              tray_paused,
+              on_battery,
+              busy,
+              quiet_hours,
+              base_image_missing,
+              disk_low,
+            ]
     CpuCapState:
       type: string
       description: What the agent did with the CPU cap. not_supported is macOS (machines R5.64). applying is the wait until the agent reports the result for the chosen percent.

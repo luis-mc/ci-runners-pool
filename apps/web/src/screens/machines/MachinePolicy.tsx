@@ -175,7 +175,11 @@ export function MachinePolicySection({
               : []),
           ]}
         />
-        {t.note ? <Message tone="note">{t.note}</Message> : null}
+        {t.note ? (
+          <Message tone="note" dismissible={false}>
+            {t.note}
+          </Message>
+        ) : null}
         <ChoiceField
           label="Mode"
           help={MODE_HELP[mode]}
