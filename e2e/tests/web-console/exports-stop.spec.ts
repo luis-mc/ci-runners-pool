@@ -232,7 +232,9 @@ test('Add runners: the container backend not allowed is said on step 1', async (
   await mock.install(page);
   await page.goto('/pool/runners/add');
   await expect(
-    page.getByText(/The container backend is not allowed on this machine/),
+    page
+      .getByRole('region', { name: 'Runners to add' })
+      .getByText(/The container backend is not allowed on this machine/),
   ).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Allow it on the machine' }),
