@@ -83,13 +83,11 @@ describe('the six areas and the old addresses (D24)', () => {
     ]);
     const first = within(tabs).getByRole('tab', { name: 'Summary' });
     first.focus();
-    fireEvent.keyDown(tabs, { key: 'ArrowRight' });
+    fireEvent.keyDown(first, { key: 'ArrowRight' });
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Machines' }),
     ).toBeTruthy();
-    fireEvent.keyDown(screen.getByRole('tablist', { name: 'Shared Pool sections' }), {
-      key: 'End',
-    });
+    fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'End' });
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Size and backends' }),
     ).toBeTruthy();

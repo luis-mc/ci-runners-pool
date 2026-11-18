@@ -54,11 +54,7 @@ export function PoolSizePage() {
             <Section title="Machines" count={0}>
               <Empty
                 title="No machines yet. Add a machine, then set its size here."
-                action={
-                  <LinkButton to="/pool/machines/add" kind="primary">
-                    Add a machine
-                  </LinkButton>
-                }
+                action={<LinkButton to="/pool/machines/add">Add a machine</LinkButton>}
               />
             </Section>
           ) : (

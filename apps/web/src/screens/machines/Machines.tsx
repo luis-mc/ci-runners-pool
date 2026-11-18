@@ -517,7 +517,9 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
         ) : null}
         <ActionBar
           status={unsavedStatus(changeCount)}
-          secondary={<Button onPress={() => void navigate('/pool/machines')}>Cancel</Button>}
+          secondary={
+            <Button onPress={() => void navigate('/pool/machines')}>Cancel</Button>
+          }
           primary={
             <Button
               kind="primary"

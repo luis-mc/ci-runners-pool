@@ -1,6 +1,7 @@
 // Shared Pool > Summary (D24, LOOK31): what the pool is now (machines, runners per system, capacity, health) and,
 // until it is set up, the first-run guide: 1 Add a machine, 2 Set runners, 3 Choose repositories.
 import {
+  ActionBar,
   Button,
   Facts,
   LevelBar,
@@ -90,11 +91,9 @@ export function FirstRunGuide({ f }: { f: PoolFigures }) {
                 <Stack>
                   <Text>A computer that runs your jobs: Linux, Windows or macOS.</Text>
                   {admin ? (
-                    <LinkButton to="/pool/machines/add" kind="primary">
-                      Add a machine
-                    </LinkButton>
+                    <LinkButton to="/pool/machines/add">Add a machine</LinkButton>
                   ) : (
-                    <Button kind="primary" disabled reason={why}>
+                    <Button disabled reason={why}>
                       Add a machine
                     </Button>
                   )}
@@ -117,9 +116,7 @@ export function FirstRunGuide({ f }: { f: PoolFigures }) {
                       Add runners
                     </Button>
                   ) : admin ? (
-                    <LinkButton to="/pool/runners/add" kind="primary">
-                      Add runners
-                    </LinkButton>
+                    <LinkButton to="/pool/runners/add">Add runners</LinkButton>
                   ) : (
                     <Button disabled reason={why}>
                       Add runners
@@ -144,9 +141,7 @@ export function FirstRunGuide({ f }: { f: PoolFigures }) {
                       Choose repositories
                     </Button>
                   ) : (
-                    <LinkButton to="/repositories" kind="primary">
-                      Choose repositories
-                    </LinkButton>
+                    <LinkButton to="/repositories">Choose repositories</LinkButton>
                   )}
                 </Stack>
               ),
@@ -177,15 +172,6 @@ export function PoolSummary() {
       <PageHeader
         title="Shared Pool"
         lead="One pool across your machines. Set it up here, then choose the repositories that use it."
-        action={
-          machines.result.state === 'ready' &&
-          machines.result.data.items.length > 0 &&
-          session.can('admin') ? (
-            <LinkButton to="/pool/runners/add" kind="primary">
-              Add runners
-            </LinkButton>
-          ) : undefined
-        }
       />
       <Load result={machines.result} what="the pool" reload={machines.reload}>
         {(m) => {
@@ -263,6 +249,17 @@ export function PoolSummary() {
           );
         }}
       </Load>
+      {machines.result.state === 'ready' &&
+      machines.result.data.items.length > 0 &&
+      session.can('admin') ? (
+        <ActionBar
+          primary={
+            <LinkButton to="/pool/runners/add" kind="primary">
+              Add runners
+            </LinkButton>
+          }
+        />
+      ) : null}
     </Page>
   );
 }
