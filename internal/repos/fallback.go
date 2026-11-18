@@ -126,7 +126,7 @@ func (s *Service) capReached(ctx context.Context, r Repository, pol Policy) (boo
 // fallbackOSes lists the OSes a repository's variables cover (a variable is
 // written for each), in the fixed order.
 func (s *Service) fallbackOSes(ctx context.Context, pol Policy) ([]string, error) {
-	want, err := s.desired(ctx, pol, nil)
+	want, err := s.desired(ctx, pol, nil, false)
 	if err != nil {
 		return nil, err
 	}

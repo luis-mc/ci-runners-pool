@@ -126,7 +126,7 @@ func (s *Service) sizeFloors() map[string]SizeFloor {
 // sizeVariables builds the size variables for the OSes in base: for each size
 // the labels of the machines that have the room, never a machine too small. A
 // size that no machine can serve is left out (R5.67).
-func (s *Service) sizeVariables(ctx context.Context, pol Policy, base map[string]bool, hosted map[string]string) (map[string][]string, error) {
+func (s *Service) sizeVariables(ctx context.Context, pol Policy, base map[string]bool, hosted map[string]string, ephemeral bool) (map[string][]string, error) {
 	if s.cfg.Sizes == nil {
 		return nil, nil
 	}
@@ -154,7 +154,7 @@ func (s *Service) sizeVariables(ctx context.Context, pol Policy, base map[string
 			if !served {
 				continue
 			}
-			list := labelList(v.OS, labels, pol.Labels)
+			list := withEphemeral(labelList(v.OS, labels, pol.Labels), ephemeral && hosted[v.OS] == "")
 			if h := hosted[v.OS]; h != "" {
 				list = []string{h}
 			}

@@ -503,7 +503,7 @@ func Match(jobLabels []string, arch, pool string) ([]string, string) {
 	set := map[string]bool{arch: true}
 	for l := range have {
 		switch {
-		case l == "self-hosted", l == "linux", l == "x64", l == "arm64", l == "docker":
+		case l == "self-hosted", l == "linux", l == "x64", l == "arm64", l == "docker", l == runners.EphemeralLabel:
 			set[l] = true
 		case pool != "" && l == strings.ToLower(pool):
 			set[pool] = true

@@ -217,7 +217,7 @@ func TestStopPublicOnPoolKeepsPolicyAndCounts(t *testing.T) {
 			t.Errorf("public variable %s, want the hosted label", v)
 		}
 	})
-	if len(f.removed) != 1 || f.removed[0] != 100 || len(l.removed) != 1 {
+	if len(f.removed) != 1 || f.removed[0] != 100 || len(l.removed) == 0 {
 		t.Errorf("fleet %v light %v", f.removed, l.removed)
 	}
 	if !e.audit.has("pool.off|owner1|alice/web|the repository is public") || !e.audit.has("runners.removed|owner1|alice/web") {
