@@ -158,7 +158,7 @@ func (l machineLookup) GetMachine(ctx context.Context, id string) (runners.Machi
 		return runners.Machine{}, err
 	}
 	m := runners.Machine{ID: v.Machine.ID, Name: v.Machine.Name, OS: v.Machine.OS, Arch: v.Machine.Arch,
-		PoolCPUs: v.Settings.PoolCPUs, PoolMemoryGiB: v.Settings.PoolMemoryGiB, JobSlots: v.Settings.JobSlots}
+		Online: v.Machine.Online, PoolCPUs: v.Settings.PoolCPUs, PoolMemoryGiB: v.Settings.PoolMemoryGiB, JobSlots: v.Settings.JobSlots}
 	if v.Engine.RunsLinuxContainers() {
 		m.ContainerOS = "linux"
 	}

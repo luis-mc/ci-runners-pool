@@ -55,6 +55,16 @@ func regName(parent string, sc Scope) string {
 	return fmt.Sprintf("%s-r%d", parent, sc.RepositoryID)
 }
 
+// isolationOf names where a persistent runner lives: in a long-lived container
+// when the container backend runs it (a Linux runner on a Windows machine,
+// R5.93), as the machine's own account otherwise.
+func isolationOf(a AddSpec) string {
+	if a.Backend == string(backend.Docker) {
+		return string(backend.IsolationContainer)
+	}
+	return string(backend.IsolationPersistent)
+}
+
 // addPoolRunner stores a pool runner. It has no GitHub registration: the pool
 // reconcile makes one for each repository that uses the pool.
 func (s *Service) addPoolRunner(ctx context.Context, a AddSpec, version, actor string) error {
@@ -63,9 +73,9 @@ func (s *Service) addPoolRunner(ctx context.Context, a AddSpec, version, actor s
 		return refuse("%v", err)
 	}
 	rec := Record{ID: s.newID("r_"), Name: a.Name, MachineID: a.MachineID, OS: a.OS, Arch: a.Arch, Kind: a.Kind,
-		Backend: a.Backend, Isolation: "persistent", Labels: a.Labels, Route: RouteForLabels(s.PoolName, a.Labels),
+		Backend: a.Backend, Isolation: isolationOf(a), Labels: a.Labels, Route: RouteForLabels(s.PoolName, a.Labels),
 		SizeClass: size, Scope: Scope{Kind: ScopePool}, RunnerVersion: version, State: Idle,
-		Reason: "no repository uses the pool yet", Managed: true, CreatedAt: s.now()}
+		Reason: "no repository uses the pool yet", Managed: true, CreatedAt: s.now(), KeepDependencies: a.KeepDependencies}
 	if err := s.Store.InsertRunner(ctx, rec); err != nil {
 		return err
 	}
@@ -200,7 +210,7 @@ func (s *Service) addRegistration(ctx context.Context, parent Record, repo PoolR
 	}
 	return s.addRunner(ctx, AddSpec{Name: regName(parent.Name, sc), MachineID: parent.MachineID, OS: parent.OS, Arch: parent.Arch,
 		Kind: "persistent", Backend: parent.Backend, Labels: parent.Labels, Scope: repo.Scope, Symlink: m.Symlink,
-		SizeClass: parent.SizeClass, MaxParallel: m.MaxParallel(), PoolRunnerID: parent.ID}, actor)
+		SizeClass: parent.SizeClass, MaxParallel: m.MaxParallel(), PoolRunnerID: parent.ID, KeepDependencies: parent.KeepDependencies}, actor)
 }
 
 // startDrainRemove removes a registration after its job ends, in the
@@ -322,7 +332,8 @@ func (s *Service) migrateToPool(ctx context.Context, actor string) error {
 		}
 		parent := Record{ID: s.newID("r_"), Name: name, MachineID: r.MachineID, OS: r.OS, Arch: r.Arch, Kind: r.Kind,
 			Backend: r.Backend, Isolation: r.Isolation, Labels: r.Labels, Route: r.Route, SizeClass: r.SizeClass,
-			Scope: Scope{Kind: ScopePool}, RunnerVersion: r.RunnerVersion, State: Idle, Managed: true, CreatedAt: r.CreatedAt}
+			Scope: Scope{Kind: ScopePool}, RunnerVersion: r.RunnerVersion, State: Idle, Managed: true, CreatedAt: r.CreatedAt,
+			KeepDependencies: r.KeepDependencies}
 		if err := s.Store.InsertRunner(ctx, parent); err != nil {
 			errs = append(errs, err)
 			continue
@@ -424,6 +435,14 @@ func (s *Service) setPaused(id string, on bool) {
 // it shows, the repository of the job it serves and how many registrations
 // it holds.
 func poolView(p Record, kids []View, names map[int64]string, machine string) View {
+	v := poolViewBase(p, kids, names, machine)
+	if p.UncleanReason != "" {
+		v.Reason = "needs clean-up, takes no new job: " + p.UncleanReason
+	}
+	return v
+}
+
+func poolViewBase(p Record, kids []View, names map[int64]string, machine string) View {
 	v := View{Record: p, State: Idle, Reason: "no repository uses the pool yet", MachineName: machine, Registrations: len(kids)}
 	if len(kids) == 0 {
 		return v

@@ -113,7 +113,9 @@ type Machine struct {
 	// when the engine answers (machines R5.18, runners R5.47); a Windows machine
 	// with Docker Desktop on WSL2 says "linux". Empty when not known.
 	ContainerOS string
-	Symlink     bool // a machine or label setting asks for the symlink right (R5.14)
+	// Online is true while the machine's agent is connected.
+	Online  bool
+	Symlink bool // a machine or label setting asks for the symlink right (R5.14)
 	// PoolCPUs and JobSlots are the owner's pool size and the runners that run
 	// at once; a runner's CPU count is their split (machines R5.54, R5.58).
 	// PoolCPUs 0 means no pool size is set and no CPU count is exported.
@@ -179,6 +181,9 @@ type AddSpec struct {
 	MaxParallel int
 	// PoolRunnerID makes the runner a hidden registration of that pool runner.
 	PoolRunnerID string
+	// KeepDependencies is the persistent runner's setting (runners R5.90);
+	// false for an ephemeral runner, which keeps nothing.
+	KeepDependencies bool
 }
 
 // Plan is a planned change. Nothing changes until it is applied.

@@ -285,6 +285,12 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	}); ok {
 		q.SetLightLookup(func(machineID, name string) bool { return runnerSvc.RunsLight(ctx, machineID, name) })
 	}
+	// An unclean runner takes no new job (runners R5.91).
+	if q, ok := d.Queue.(interface {
+		SetUncleanLookup(func(machineID, runnerName string) string)
+	}); ok {
+		q.SetUncleanLookup(func(machineID, name string) string { return runnerSvc.Unclean(ctx, machineID, name) })
+	}
 	rsvc.SetLight(lightKeeper{svc: runnerSvc})
 	// Long-lived runners serve every repository that uses the pool: one hidden
 	// registration for each pool repository, made and removed with the pool

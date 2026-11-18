@@ -137,6 +137,9 @@ type AddRequest struct {
 	// PoolLevel is set when the request named no scope and the service chose
 	// one; the runners then carry the pool label too.
 	PoolLevel bool
+	// KeepDependencies is the persistent runner's setting (runners R5.90); nil
+	// means on. It is ignored for an ephemeral runner.
+	KeepDependencies *bool
 }
 
 // Empty reports that the scope names nothing.
@@ -149,7 +152,8 @@ var nonSlug = strings.NewReplacer(" ", "-", "_", "-", ".", "-")
 // chooseBackend finds an allowed, usable backend for the OS and kind (R5.1).
 // A Windows machine whose container engine runs Linux containers (Docker
 // Desktop on WSL2) also takes Linux runners, in the container backend and
-// ephemeral only (R5.47).
+// ephemeral only (R5.47); since OPS28 it also takes persistent Linux runners in
+// a long-lived container (R5.93).
 func chooseBackend(m Machine, os, kind string) (BackendOption, error) {
 	if m.OS == os {
 		for _, b := range m.Backends {
@@ -159,11 +163,11 @@ func chooseBackend(m Machine, os, kind string) (BackendOption, error) {
 		}
 	}
 	if crossesToLinuxContainers(m, os) {
-		if kind != "ephemeral" {
-			return BackendOption{}, refuse("machine %s: Linux runners on a Windows machine run in containers, so they are ephemeral, not persistent", m.Name)
-		}
+		// Both kinds run in the container backend here. A persistent one is a
+		// long-lived container the agent keeps; the backend need not list the
+		// kind for it (R5.93).
 		for _, b := range m.Backends {
-			if b.Name == backend.Docker && b.Usable && b.Allowed && contains(b.Kinds, kind) && contains(b.OS, os) {
+			if b.Name == backend.Docker && b.Usable && b.Allowed && contains(b.OS, os) && (kind == "persistent" || contains(b.Kinds, kind)) {
 				return b, nil
 			}
 		}
@@ -261,6 +265,9 @@ func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]Ad
 	if req.Kind != "persistent" && req.Kind != "ephemeral" {
 		return nil, refuse("machine %s: %s runners are not built yet", m.Name, req.Kind)
 	}
+	if req.Kind == "ephemeral" && req.OS != "linux" {
+		return nil, refuse("machine %s: ephemeral runners are fresh Linux containers, so %s cannot have them; add a persistent runner instead", m.Name, OSName(req.OS))
+	}
 	be, err := chooseBackend(m, req.OS, req.Kind)
 	if err != nil {
 		if req.Kind == "ephemeral" {
@@ -270,13 +277,11 @@ func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]Ad
 		}
 		return nil, err
 	}
-	if req.Kind == "ephemeral" && req.OS != "linux" {
-		return nil, refuse("machine %s: ephemeral runners run Linux containers only, not %s", m.Name, OSName(req.OS))
-	}
-	// A container runner of a Windows machine is the pool's way to serve Linux jobs there (R5.47), so a pool
-	// request may name it. Any other ephemeral pool runner is made per job by the pool itself (OPS27).
-	if req.Scope.Kind == ScopePool && req.Kind == "ephemeral" && !crossesToLinuxContainers(m, req.OS) {
-		return nil, refuse("machine %s: ephemeral runners are made for each job by the pool and already serve every repository that uses it; add a persistent runner instead", m.Name)
+	// An ephemeral pool request sets the ceiling of ephemeral runners at once on the machine (R5.92).
+	for _, l := range req.Labels {
+		if req.Kind == "persistent" && strings.TrimSpace(l) == EphemeralLabel {
+			return nil, refuse("label %q is carried by ephemeral runners only; a persistent runner does not take it, so jobs that ask for ephemeral runners never reach it", EphemeralLabel)
+		}
 	}
 	verified := map[string]bool{}
 	for _, v := range be.Verified {
@@ -288,10 +293,14 @@ func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]Ad
 		// (R5.47), so it carries the pool label.
 		want = append(want, s.PoolName)
 	}
+	if req.Kind == "ephemeral" {
+		want = append(want, EphemeralLabel)
+	}
 	labels, err := ValidateLabels(want, s.PoolName, verified)
 	if err != nil {
 		return nil, refuse("%v", err)
 	}
+	keep := req.KeepDependencies == nil || *req.KeepDependencies
 	taken := map[string]bool{}
 	var out []AddSpec
 	for i := 0; i < req.Count; i++ {
@@ -304,7 +313,8 @@ func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]Ad
 			return nil, err
 		}
 		out = append(out, AddSpec{Name: name, MachineID: m.ID, OS: req.OS, Arch: m.Arch, Kind: req.Kind,
-			Backend: string(be.Name), Labels: labels, Scope: req.Scope, Symlink: m.Symlink, MaxParallel: m.MaxParallel()})
+			Backend: string(be.Name), Labels: labels, Scope: req.Scope, Symlink: m.Symlink, MaxParallel: m.MaxParallel(),
+			KeepDependencies: keep && req.Kind == "persistent"})
 	}
 	return out, nil
 }
@@ -648,9 +658,10 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 	}
 	id := s.newID("r_")
 	rec := Record{ID: id, Name: a.Name, MachineID: a.MachineID, OS: a.OS, Arch: a.Arch, Kind: a.Kind,
-		Backend: a.Backend, Isolation: string(backend.IsolationPersistent), Labels: a.Labels,
+		Backend: a.Backend, Isolation: isolationOf(a), Labels: a.Labels,
 		Route: RouteForLabels(s.PoolName, a.Labels), SizeClass: size, Scope: a.Scope,
-		RunnerVersion: pin.Version, State: Creating, Managed: true, CreatedAt: s.now(), PoolRunnerID: a.PoolRunnerID}
+		RunnerVersion: pin.Version, State: Creating, Managed: true, CreatedAt: s.now(), PoolRunnerID: a.PoolRunnerID,
+		KeepDependencies: a.KeepDependencies}
 	if err := s.Store.InsertRunner(ctx, rec); err != nil {
 		return err
 	}
