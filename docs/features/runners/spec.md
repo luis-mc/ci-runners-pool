@@ -14,7 +14,7 @@ code:
   - internal/envsets/**
   - internal/regcreds/**
 design_system: [UX-4, UX-5, UX-6, UX-9, UX-13, UX-19, UX-25, UX-29, UX-30, UX-38, UX-53, UX-58, UX-61, UX-62]
-last_verified: 2026-11-14
+last_verified: 2026-11-18
 artifact:
 generator: luismc-docs 2.6.1
 ---
