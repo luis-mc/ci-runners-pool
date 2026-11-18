@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"sync"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/settings"
@@ -30,7 +31,14 @@ type Ops struct {
 	Settings *settings.Service
 	Audit    *audit.Log
 	Backup   *Service
+
+	wg sync.WaitGroup
 }
+
+// Wait blocks until the background jobs started by Start have returned. Cancel
+// the context given to Start first; callers that remove the data directory
+// afterwards (tests) call Wait so nothing writes into it any more.
+func (o *Ops) Wait() { o.wg.Wait() }
 
 // Start builds the settings, audit and backup services and starts the daily
 // backup and the hourly retention job. They stop when ctx ends. Call
@@ -46,7 +54,9 @@ func Start(ctx context.Context, o StartOptions) *Ops {
 		Logger: o.Logger, Restart: o.Restart, DrillHandler: o.DrillHandler,
 	})
 	ret := &settings.Retention{DB: o.DB, Settings: set, Audit: log, DataDir: o.DataDir, Logger: o.Logger}
-	go svc.Run(ctx)
-	go ret.Run(ctx)
-	return &Ops{Settings: set, Audit: log, Backup: svc}
+	ops := &Ops{Settings: set, Audit: log, Backup: svc}
+	ops.wg.Add(2)
+	go func() { defer ops.wg.Done(); svc.Run(ctx) }()
+	go func() { defer ops.wg.Done(); ret.Run(ctx) }()
+	return ops
 }
