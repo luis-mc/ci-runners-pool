@@ -111,7 +111,9 @@ export function domLayoutSource(
       seen.add(box);
       const display = getComputedStyle(box).display;
       if (display === 'inline' || display === 'table-row') continue;
-      const kids = Array.from(box.children).filter(visible).filter((k) => getComputedStyle(k).position !== 'absolute' && getComputedStyle(k).position !== 'fixed');
+      const kids = Array.from(box.children).filter(visible).filter((k) => getComputedStyle(k).position !== 'absolute' && getComputedStyle(k).position !== 'fixed')
+        // The action bar sits at the foot of the window on purpose (UX-71): the free space above it is not a gap.
+        .filter((k) => !k.classList.contains('ds-action-bar'));
       if (kids.length < 2) continue;
       const rects = kids.map((k) => k.getBoundingClientRect());
       const vertical = [];
