@@ -375,6 +375,21 @@ func (e DockerCompactMode) Valid() bool {
 	}
 }
 
+// Defines values for DoctorFindingActionId.
+const (
+	RemoveRunnerLeftovers DoctorFindingActionId = "remove_runner_leftovers"
+)
+
+// Valid indicates whether the value is a known member of the DoctorFindingActionId enum.
+func (e DoctorFindingActionId) Valid() bool {
+	switch e {
+	case RemoveRunnerLeftovers:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DoctorRunState.
 const (
 	DoctorRunStateDone    DoctorRunState = "done"
@@ -1356,6 +1371,30 @@ func (e RegistryLoginInputKind) Valid() bool {
 	}
 }
 
+// Defines values for RemoveRunnerLeftoversResultResultsOutcome.
+const (
+	RemoveRunnerLeftoversResultResultsOutcomeAlreadyGone RemoveRunnerLeftoversResultResultsOutcome = "already_gone"
+	RemoveRunnerLeftoversResultResultsOutcomeFailed      RemoveRunnerLeftoversResultResultsOutcome = "failed"
+	RemoveRunnerLeftoversResultResultsOutcomeRefused     RemoveRunnerLeftoversResultResultsOutcome = "refused"
+	RemoveRunnerLeftoversResultResultsOutcomeRemoved     RemoveRunnerLeftoversResultResultsOutcome = "removed"
+)
+
+// Valid indicates whether the value is a known member of the RemoveRunnerLeftoversResultResultsOutcome enum.
+func (e RemoveRunnerLeftoversResultResultsOutcome) Valid() bool {
+	switch e {
+	case RemoveRunnerLeftoversResultResultsOutcomeAlreadyGone:
+		return true
+	case RemoveRunnerLeftoversResultResultsOutcomeFailed:
+		return true
+	case RemoveRunnerLeftoversResultResultsOutcomeRefused:
+		return true
+	case RemoveRunnerLeftoversResultResultsOutcomeRemoved:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RepositoryPoolOffReason.
 const (
 	LeftInstallation RepositoryPoolOffReason = "left_installation"
@@ -1554,6 +1593,30 @@ func (e RunnerKind) Valid() bool {
 	case RunnerKindEphemeral:
 		return true
 	case RunnerKindPersistent:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunnerLeftoverKind.
+const (
+	Account  RunnerLeftoverKind = "account"
+	Download RunnerLeftoverKind = "download"
+	Folder   RunnerLeftoverKind = "folder"
+	Service  RunnerLeftoverKind = "service"
+)
+
+// Valid indicates whether the value is a known member of the RunnerLeftoverKind enum.
+func (e RunnerLeftoverKind) Valid() bool {
+	switch e {
+	case Account:
+		return true
+	case Download:
+		return true
+	case Folder:
+		return true
+	case Service:
 		return true
 	default:
 		return false
@@ -2533,6 +2596,11 @@ type DockerCompactStatus struct {
 
 // DoctorFinding defines model for DoctorFinding.
 type DoctorFinding struct {
+	// Action The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine).
+	Action *struct {
+		Id    DoctorFindingActionId `json:"id"`
+		Label string                `json:"label"`
+	} `json:"action,omitempty"`
 	Check     string    `json:"check"`
 	CheckedAt time.Time `json:"checked_at"`
 	Detail    *string   `json:"detail,omitempty"`
@@ -2541,9 +2609,12 @@ type DoctorFinding struct {
 		Link    *string `json:"link,omitempty"`
 		Text    string  `json:"text"`
 	} `json:"fix"`
-	Milestone  int      `json:"milestone"`
-	NeedsAdmin bool     `json:"needs_admin"`
-	Severity   Severity `json:"severity"`
+
+	// Items The things the finding lists, for example the runner leftovers of a machine (doctor R5.46).
+	Items      *[]RunnerLeftover `json:"items,omitempty"`
+	Milestone  int               `json:"milestone"`
+	NeedsAdmin bool              `json:"needs_admin"`
+	Severity   Severity          `json:"severity"`
 	Subject    struct {
 		Id   string `json:"id"`
 		Kind string `json:"kind"`
@@ -2551,6 +2622,9 @@ type DoctorFinding struct {
 	} `json:"subject"`
 	Title string `json:"title"`
 }
+
+// DoctorFindingActionId defines model for DoctorFinding.Action.Id.
+type DoctorFindingActionId string
 
 // DoctorFindingList defines model for DoctorFindingList.
 type DoctorFindingList struct {
@@ -3750,6 +3824,28 @@ type RegistrySettings struct {
 	Logins      []RegistryLogin `json:"logins"`
 }
 
+// RemoveRunnerLeftoversRequest defines model for RemoveRunnerLeftoversRequest.
+type RemoveRunnerLeftoversRequest struct {
+	Items []struct {
+		Kind RunnerLeftoverKind `json:"kind"`
+		Name string             `json:"name"`
+	} `json:"items"`
+}
+
+// RemoveRunnerLeftoversResult defines model for RemoveRunnerLeftoversResult.
+type RemoveRunnerLeftoversResult struct {
+	Results []struct {
+		Error   *string                                   `json:"error,omitempty"`
+		Kind    RunnerLeftoverKind                        `json:"kind"`
+		Name    string                                    `json:"name"`
+		Outcome RemoveRunnerLeftoversResultResultsOutcome `json:"outcome"`
+		Steps   []string                                  `json:"steps"`
+	} `json:"results"`
+}
+
+// RemoveRunnerLeftoversResultResultsOutcome defines model for RemoveRunnerLeftoversResult.Results.Outcome.
+type RemoveRunnerLeftoversResultResultsOutcome string
+
 // Repository defines model for Repository.
 type Repository struct {
 	DefaultBranch  *string          `json:"default_branch,omitempty"`
@@ -3987,6 +4083,23 @@ type RunnerEnv struct {
 
 // RunnerKind defines model for RunnerKind.
 type RunnerKind string
+
+// RunnerLeftover One runner service, folder, local account or download that no runner of this controller owns (doctor R5.46).
+type RunnerLeftover struct {
+	Account *string            `json:"account,omitempty"`
+	Kind    RunnerLeftoverKind `json:"kind"`
+
+	// Name The service name, the account name, or the full path of a folder or file.
+	Name      string  `json:"name"`
+	Path      *string `json:"path,omitempty"`
+	SizeBytes *int64  `json:"size_bytes,omitempty"`
+
+	// Why Why it is not owned, in words for people.
+	Why string `json:"why"`
+}
+
+// RunnerLeftoverKind defines model for RunnerLeftoverKind.
+type RunnerLeftoverKind string
 
 // RunnerList defines model for RunnerList.
 type RunnerList struct {
@@ -4819,6 +4932,9 @@ type DrainMachineJSONRequestBody = DrainRequest
 // CheckMachinePoolSizeJSONRequestBody defines body for CheckMachinePoolSize for application/json ContentType.
 type CheckMachinePoolSizeJSONRequestBody = PoolSizeCheckRequest
 
+// RemoveRunnerLeftoversJSONRequestBody defines body for RemoveRunnerLeftovers for application/json ContentType.
+type RemoveRunnerLeftoversJSONRequestBody = RemoveRunnerLeftoversRequest
+
 // FreeStaleSlotsJSONRequestBody defines body for FreeStaleSlots for application/json ContentType.
 type FreeStaleSlotsJSONRequestBody = FreeSlotsRequest
 
@@ -5091,6 +5207,9 @@ type ServerInterface interface {
 	// ResumeMachine Return a drained machine to active
 	// (POST /api/v1/machines/{machineId}/resume)
 	ResumeMachine(w http.ResponseWriter, r *http.Request, machineId MachineId, params ResumeMachineParams)
+	// RemoveRunnerLeftovers Remove runner leftovers no controller owns
+	// (POST /api/v1/machines/{machineId}/runner-leftovers/remove)
+	RemoveRunnerLeftovers(w http.ResponseWriter, r *http.Request, machineId MachineId)
 	// ListSlots Slot holders and the waiting queue of a machine
 	// (GET /api/v1/machines/{machineId}/slots)
 	ListSlots(w http.ResponseWriter, r *http.Request, machineId MachineId)
@@ -7358,6 +7477,32 @@ func (siw *ServerInterfaceWrapper) ResumeMachine(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// RemoveRunnerLeftovers operation middleware
+func (siw *ServerInterfaceWrapper) RemoveRunnerLeftovers(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveRunnerLeftovers(w, r, machineId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListSlots operation middleware
 func (siw *ServerInterfaceWrapper) ListSlots(w http.ResponseWriter, r *http.Request) {
 
@@ -9240,6 +9385,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/machines/{machineId}", wrapper.UpdateMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/drain", wrapper.DrainMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/command", wrapper.RunMachineCommand)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/runner-leftovers/remove", wrapper.RemoveRunnerLeftovers)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/resume", wrapper.ResumeMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/pool-size-check", wrapper.CheckMachinePoolSize)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/redetect", wrapper.RedetectMachine)
@@ -11966,6 +12112,46 @@ type ResumeMachinedefaultJSONResponse struct {
 }
 
 func (response ResumeMachinedefaultJSONResponse) VisitResumeMachineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveRunnerLeftoversRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	Body      *RemoveRunnerLeftoversJSONRequestBody
+}
+
+type RemoveRunnerLeftoversResponseObject interface {
+	VisitRemoveRunnerLeftoversResponse(w http.ResponseWriter) error
+}
+
+type RemoveRunnerLeftovers200JSONResponse RemoveRunnerLeftoversResult
+
+func (response RemoveRunnerLeftovers200JSONResponse) VisitRemoveRunnerLeftoversResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveRunnerLeftoversdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RemoveRunnerLeftoversdefaultJSONResponse) VisitRemoveRunnerLeftoversResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -14867,6 +15053,9 @@ type StrictServerInterface interface {
 	// ResumeMachine Return a drained machine to active
 	// (POST /api/v1/machines/{machineId}/resume)
 	ResumeMachine(ctx context.Context, request ResumeMachineRequestObject) (ResumeMachineResponseObject, error)
+	// RemoveRunnerLeftovers Remove runner leftovers no controller owns
+	// (POST /api/v1/machines/{machineId}/runner-leftovers/remove)
+	RemoveRunnerLeftovers(ctx context.Context, request RemoveRunnerLeftoversRequestObject) (RemoveRunnerLeftoversResponseObject, error)
 	// ListSlots Slot holders and the waiting queue of a machine
 	// (GET /api/v1/machines/{machineId}/slots)
 	ListSlots(ctx context.Context, request ListSlotsRequestObject) (ListSlotsResponseObject, error)
@@ -16850,6 +17039,39 @@ func (sh *strictHandler) ResumeMachine(w http.ResponseWriter, r *http.Request, m
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ResumeMachineResponseObject); ok {
 		if err := validResponse.VisitResumeMachineResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RemoveRunnerLeftovers operation middleware
+func (sh *strictHandler) RemoveRunnerLeftovers(w http.ResponseWriter, r *http.Request, machineId MachineId) {
+	var request RemoveRunnerLeftoversRequestObject
+
+	request.MachineId = machineId
+
+	var body RemoveRunnerLeftoversJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RemoveRunnerLeftovers(ctx, request.(RemoveRunnerLeftoversRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RemoveRunnerLeftovers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RemoveRunnerLeftoversResponseObject); ok {
+		if err := validResponse.VisitRemoveRunnerLeftoversResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

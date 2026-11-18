@@ -478,6 +478,7 @@ type SessionRequest struct {
 	//	*SessionRequest_CacheWipeStatus
 	//	*SessionRequest_MachineReport
 	//	*SessionRequest_AcceptingReport
+	//	*SessionRequest_RunnerLeftoversReport
 	Message       isSessionRequest_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -709,6 +710,15 @@ func (x *SessionRequest) GetAcceptingReport() *AcceptingReport {
 	return nil
 }
 
+func (x *SessionRequest) GetRunnerLeftoversReport() *RunnerLeftoversReport {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_RunnerLeftoversReport); ok {
+			return x.RunnerLeftoversReport
+		}
+	}
+	return nil
+}
+
 type isSessionRequest_Message interface {
 	isSessionRequest_Message()
 }
@@ -801,6 +811,11 @@ type SessionRequest_AcceptingReport struct {
 	AcceptingReport *AcceptingReport `protobuf:"bytes,23,opt,name=accepting_report,json=acceptingReport,proto3,oneof"`
 }
 
+type SessionRequest_RunnerLeftoversReport struct {
+	// The answer to ScanRunnerLeftovers and RemoveRunnerLeftovers (OPS33).
+	RunnerLeftoversReport *RunnerLeftoversReport `protobuf:"bytes,24,opt,name=runner_leftovers_report,json=runnerLeftoversReport,proto3,oneof"`
+}
+
 func (*SessionRequest_Hello) isSessionRequest_Message() {}
 
 func (*SessionRequest_Heartbeat) isSessionRequest_Message() {}
@@ -843,6 +858,8 @@ func (*SessionRequest_MachineReport) isSessionRequest_Message() {}
 
 func (*SessionRequest_AcceptingReport) isSessionRequest_Message() {}
 
+func (*SessionRequest_RunnerLeftoversReport) isSessionRequest_Message() {}
+
 // SessionResponse is one message from the controller.
 type SessionResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -868,6 +885,8 @@ type SessionResponse struct {
 	//	*SessionResponse_ReportMachine
 	//	*SessionResponse_UpdateRunnerFiles
 	//	*SessionResponse_RunHostCommand
+	//	*SessionResponse_ScanRunnerLeftovers
+	//	*SessionResponse_RemoveRunnerLeftovers
 	Message       isSessionResponse_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1090,6 +1109,24 @@ func (x *SessionResponse) GetRunHostCommand() *RunHostCommand {
 	return nil
 }
 
+func (x *SessionResponse) GetScanRunnerLeftovers() *ScanRunnerLeftovers {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_ScanRunnerLeftovers); ok {
+			return x.ScanRunnerLeftovers
+		}
+	}
+	return nil
+}
+
+func (x *SessionResponse) GetRemoveRunnerLeftovers() *RemoveRunnerLeftovers {
+	if x != nil {
+		if x, ok := x.Message.(*SessionResponse_RemoveRunnerLeftovers); ok {
+			return x.RemoveRunnerLeftovers
+		}
+	}
+	return nil
+}
+
 type isSessionResponse_Message interface {
 	isSessionResponse_Message()
 }
@@ -1177,6 +1214,16 @@ type SessionResponse_RunHostCommand struct {
 	RunHostCommand *RunHostCommand `protobuf:"bytes,24,opt,name=run_host_command,json=runHostCommand,proto3,oneof"`
 }
 
+type SessionResponse_ScanRunnerLeftovers struct {
+	// OPS33: look for runner leftovers no controller owns, and remove chosen ones.
+	// The controller sends them only when the machine's report says `runner_leftovers`.
+	ScanRunnerLeftovers *ScanRunnerLeftovers `protobuf:"bytes,25,opt,name=scan_runner_leftovers,json=scanRunnerLeftovers,proto3,oneof"`
+}
+
+type SessionResponse_RemoveRunnerLeftovers struct {
+	RemoveRunnerLeftovers *RemoveRunnerLeftovers `protobuf:"bytes,26,opt,name=remove_runner_leftovers,json=removeRunnerLeftovers,proto3,oneof"`
+}
+
 func (*SessionResponse_HelloAck) isSessionResponse_Message() {}
 
 func (*SessionResponse_Heartbeat) isSessionResponse_Message() {}
@@ -1216,6 +1263,10 @@ func (*SessionResponse_ReportMachine) isSessionResponse_Message() {}
 func (*SessionResponse_UpdateRunnerFiles) isSessionResponse_Message() {}
 
 func (*SessionResponse_RunHostCommand) isSessionResponse_Message() {}
+
+func (*SessionResponse_ScanRunnerLeftovers) isSessionResponse_Message() {}
+
+func (*SessionResponse_RemoveRunnerLeftovers) isSessionResponse_Message() {}
 
 // Hello opens a session. On reconnect it carries what the agent runs now, so
 // the controller can reconcile (machines R5.38, scheduling R5.35).
@@ -5222,8 +5273,10 @@ type MachineReport struct {
 	// logon right (runners R5.89). Empty on a machine without persistent runner
 	// services, and from an older agent.
 	RunnerServices []*RunnerServiceReport `protobuf:"bytes,13,rep,name=runner_services,json=runnerServices,proto3" json:"runner_services,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// True when this agent understands ScanRunnerLeftovers and RemoveRunnerLeftovers (OPS33).
+	RunnerLeftovers bool `protobuf:"varint,14,opt,name=runner_leftovers,json=runnerLeftovers,proto3" json:"runner_leftovers,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *MachineReport) Reset() {
@@ -5347,6 +5400,510 @@ func (x *MachineReport) GetRunnerServices() []*RunnerServiceReport {
 	return nil
 }
 
+func (x *MachineReport) GetRunnerLeftovers() bool {
+	if x != nil {
+		return x.RunnerLeftovers
+	}
+	return false
+}
+
+// OwnedRunner is a runner this controller owns on the machine. The agent never
+// reports or removes anything that belongs to one: not its service, folder or
+// account. The folder is the runner's name under the agent's runners folder.
+type OwnedRunner struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// The OS service name of the runner; empty when it has none yet.
+	ServiceName   string `protobuf:"bytes,2,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OwnedRunner) Reset() {
+	*x = OwnedRunner{}
+	mi := &file_agent_v1_agent_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OwnedRunner) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OwnedRunner) ProtoMessage() {}
+
+func (x *OwnedRunner) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OwnedRunner.ProtoReflect.Descriptor instead.
+func (*OwnedRunner) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{53}
+}
+
+func (x *OwnedRunner) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *OwnedRunner) GetServiceName() string {
+	if x != nil {
+		return x.ServiceName
+	}
+	return ""
+}
+
+// ScanRunnerLeftovers asks the agent to look for runner services, folders, local
+// accounts and download files made by a controller that is not this one. The
+// scan reads only and never touches anything. The agent answers with one
+// RunnerLeftoversReport with items.
+type ScanRunnerLeftovers struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CommandId     string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	Owned         []*OwnedRunner         `protobuf:"bytes,2,rep,name=owned,proto3" json:"owned,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScanRunnerLeftovers) Reset() {
+	*x = ScanRunnerLeftovers{}
+	mi := &file_agent_v1_agent_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScanRunnerLeftovers) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScanRunnerLeftovers) ProtoMessage() {}
+
+func (x *ScanRunnerLeftovers) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScanRunnerLeftovers.ProtoReflect.Descriptor instead.
+func (*ScanRunnerLeftovers) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *ScanRunnerLeftovers) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *ScanRunnerLeftovers) GetOwned() []*OwnedRunner {
+	if x != nil {
+		return x.Owned
+	}
+	return nil
+}
+
+// LeftoverRef names one item to remove. kind and name are those of the item in the scan.
+type LeftoverRef struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// service, folder, account or download.
+	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	// The service name, the account name, or the full path of the folder or file.
+	Name          string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LeftoverRef) Reset() {
+	*x = LeftoverRef{}
+	mi := &file_agent_v1_agent_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LeftoverRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeftoverRef) ProtoMessage() {}
+
+func (x *LeftoverRef) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeftoverRef.ProtoReflect.Descriptor instead.
+func (*LeftoverRef) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{55}
+}
+
+func (x *LeftoverRef) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *LeftoverRef) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// RemoveRunnerLeftovers removes the named items, each only when a fresh scan of
+// the agent still finds it, it is still not owned (by owned) and it lies inside
+// the crsp runners folder or is a crsp runner service or account. The agent
+// answers with one RunnerLeftoversReport with results, one per ref, in order.
+type RemoveRunnerLeftovers struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CommandId     string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	Owned         []*OwnedRunner         `protobuf:"bytes,2,rep,name=owned,proto3" json:"owned,omitempty"`
+	Items         []*LeftoverRef         `protobuf:"bytes,3,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveRunnerLeftovers) Reset() {
+	*x = RemoveRunnerLeftovers{}
+	mi := &file_agent_v1_agent_proto_msgTypes[56]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveRunnerLeftovers) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveRunnerLeftovers) ProtoMessage() {}
+
+func (x *RemoveRunnerLeftovers) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[56]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveRunnerLeftovers.ProtoReflect.Descriptor instead.
+func (*RemoveRunnerLeftovers) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{56}
+}
+
+func (x *RemoveRunnerLeftovers) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *RemoveRunnerLeftovers) GetOwned() []*OwnedRunner {
+	if x != nil {
+		return x.Owned
+	}
+	return nil
+}
+
+func (x *RemoveRunnerLeftovers) GetItems() []*LeftoverRef {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+// Leftover is one item of the scan.
+type Leftover struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// service, folder, account or download.
+	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// The folder or file path; for a service, the folder of its binary.
+	Path string `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	// Bytes on disk of a folder or download; 0 for a service or an account.
+	SizeBytes int64 `protobuf:"varint,4,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	// The account a service runs as; for an account, its own name.
+	Account string `protobuf:"bytes,5,opt,name=account,proto3" json:"account,omitempty"`
+	// Why it is not owned, in words for people.
+	Why           string `protobuf:"bytes,6,opt,name=why,proto3" json:"why,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Leftover) Reset() {
+	*x = Leftover{}
+	mi := &file_agent_v1_agent_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Leftover) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Leftover) ProtoMessage() {}
+
+func (x *Leftover) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Leftover.ProtoReflect.Descriptor instead.
+func (*Leftover) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *Leftover) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *Leftover) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Leftover) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *Leftover) GetSizeBytes() int64 {
+	if x != nil {
+		return x.SizeBytes
+	}
+	return 0
+}
+
+func (x *Leftover) GetAccount() string {
+	if x != nil {
+		return x.Account
+	}
+	return ""
+}
+
+func (x *Leftover) GetWhy() string {
+	if x != nil {
+		return x.Why
+	}
+	return ""
+}
+
+// LeftoverResult is what happened to one requested item.
+type LeftoverResult struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Kind  string                 `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	Name  string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// removed, already_gone, refused or failed.
+	Outcome string `protobuf:"bytes,3,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	// Why it was refused or failed, redacted; empty when removed.
+	Error string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	// What the agent did, one line per step, in order.
+	Steps         []string `protobuf:"bytes,5,rep,name=steps,proto3" json:"steps,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LeftoverResult) Reset() {
+	*x = LeftoverResult{}
+	mi := &file_agent_v1_agent_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LeftoverResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeftoverResult) ProtoMessage() {}
+
+func (x *LeftoverResult) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeftoverResult.ProtoReflect.Descriptor instead.
+func (*LeftoverResult) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{58}
+}
+
+func (x *LeftoverResult) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *LeftoverResult) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *LeftoverResult) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+func (x *LeftoverResult) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *LeftoverResult) GetSteps() []string {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+// RunnerLeftoversReport answers ScanRunnerLeftovers (items) and
+// RemoveRunnerLeftovers (results).
+type RunnerLeftoversReport struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	CommandId string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	// False when the scan or the removal could not run at all; error says why.
+	Ok    bool   `protobuf:"varint,2,opt,name=ok,proto3" json:"ok,omitempty"`
+	Error string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	// True when the agent has the rights to remove services and accounts.
+	Admin           bool              `protobuf:"varint,4,opt,name=admin,proto3" json:"admin,omitempty"`
+	Items           []*Leftover       `protobuf:"bytes,5,rep,name=items,proto3" json:"items,omitempty"`
+	Results         []*LeftoverResult `protobuf:"bytes,6,rep,name=results,proto3" json:"results,omitempty"`
+	ScannedAtUnixMs int64             `protobuf:"varint,7,opt,name=scanned_at_unix_ms,json=scannedAtUnixMs,proto3" json:"scanned_at_unix_ms,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *RunnerLeftoversReport) Reset() {
+	*x = RunnerLeftoversReport{}
+	mi := &file_agent_v1_agent_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunnerLeftoversReport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunnerLeftoversReport) ProtoMessage() {}
+
+func (x *RunnerLeftoversReport) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunnerLeftoversReport.ProtoReflect.Descriptor instead.
+func (*RunnerLeftoversReport) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{59}
+}
+
+func (x *RunnerLeftoversReport) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *RunnerLeftoversReport) GetOk() bool {
+	if x != nil {
+		return x.Ok
+	}
+	return false
+}
+
+func (x *RunnerLeftoversReport) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *RunnerLeftoversReport) GetAdmin() bool {
+	if x != nil {
+		return x.Admin
+	}
+	return false
+}
+
+func (x *RunnerLeftoversReport) GetItems() []*Leftover {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *RunnerLeftoversReport) GetResults() []*LeftoverResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *RunnerLeftoversReport) GetScannedAtUnixMs() int64 {
+	if x != nil {
+		return x.ScannedAtUnixMs
+	}
+	return 0
+}
+
 // RunnerServiceReport is one runner service as the agent left it after it
 // re-asserted the logon right of the service account (runners R5.89). The
 // agent reads and heals; the controller shows the problem and clears it when
@@ -5372,7 +5929,7 @@ type RunnerServiceReport struct {
 
 func (x *RunnerServiceReport) Reset() {
 	*x = RunnerServiceReport{}
-	mi := &file_agent_v1_agent_proto_msgTypes[53]
+	mi := &file_agent_v1_agent_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5384,7 +5941,7 @@ func (x *RunnerServiceReport) String() string {
 func (*RunnerServiceReport) ProtoMessage() {}
 
 func (x *RunnerServiceReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[53]
+	mi := &file_agent_v1_agent_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5397,7 +5954,7 @@ func (x *RunnerServiceReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunnerServiceReport.ProtoReflect.Descriptor instead.
 func (*RunnerServiceReport) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{53}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *RunnerServiceReport) GetRunnerName() string {
@@ -5479,7 +6036,7 @@ type DockerDiskReport struct {
 
 func (x *DockerDiskReport) Reset() {
 	*x = DockerDiskReport{}
-	mi := &file_agent_v1_agent_proto_msgTypes[54]
+	mi := &file_agent_v1_agent_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5491,7 +6048,7 @@ func (x *DockerDiskReport) String() string {
 func (*DockerDiskReport) ProtoMessage() {}
 
 func (x *DockerDiskReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[54]
+	mi := &file_agent_v1_agent_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5504,7 +6061,7 @@ func (x *DockerDiskReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerDiskReport.ProtoReflect.Descriptor instead.
 func (*DockerDiskReport) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{54}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *DockerDiskReport) GetPresent() bool {
@@ -5573,7 +6130,7 @@ type SymlinkReport struct {
 
 func (x *SymlinkReport) Reset() {
 	*x = SymlinkReport{}
-	mi := &file_agent_v1_agent_proto_msgTypes[55]
+	mi := &file_agent_v1_agent_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5585,7 +6142,7 @@ func (x *SymlinkReport) String() string {
 func (*SymlinkReport) ProtoMessage() {}
 
 func (x *SymlinkReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[55]
+	mi := &file_agent_v1_agent_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5598,7 +6155,7 @@ func (x *SymlinkReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SymlinkReport.ProtoReflect.Descriptor instead.
 func (*SymlinkReport) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{55}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *SymlinkReport) GetKnown() bool {
@@ -5648,7 +6205,7 @@ type MacVmReport struct {
 
 func (x *MacVmReport) Reset() {
 	*x = MacVmReport{}
-	mi := &file_agent_v1_agent_proto_msgTypes[56]
+	mi := &file_agent_v1_agent_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5660,7 +6217,7 @@ func (x *MacVmReport) String() string {
 func (*MacVmReport) ProtoMessage() {}
 
 func (x *MacVmReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[56]
+	mi := &file_agent_v1_agent_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5673,7 +6230,7 @@ func (x *MacVmReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MacVmReport.ProtoReflect.Descriptor instead.
 func (*MacVmReport) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{56}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *MacVmReport) GetKnown() bool {
@@ -5725,7 +6282,7 @@ type PackageFailure struct {
 
 func (x *PackageFailure) Reset() {
 	*x = PackageFailure{}
-	mi := &file_agent_v1_agent_proto_msgTypes[57]
+	mi := &file_agent_v1_agent_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5737,7 +6294,7 @@ func (x *PackageFailure) String() string {
 func (*PackageFailure) ProtoMessage() {}
 
 func (x *PackageFailure) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[57]
+	mi := &file_agent_v1_agent_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5750,7 +6307,7 @@ func (x *PackageFailure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PackageFailure.ProtoReflect.Descriptor instead.
 func (*PackageFailure) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{57}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *PackageFailure) GetSetHash() string {
@@ -5802,7 +6359,7 @@ type KvmReport struct {
 
 func (x *KvmReport) Reset() {
 	*x = KvmReport{}
-	mi := &file_agent_v1_agent_proto_msgTypes[58]
+	mi := &file_agent_v1_agent_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5814,7 +6371,7 @@ func (x *KvmReport) String() string {
 func (*KvmReport) ProtoMessage() {}
 
 func (x *KvmReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[58]
+	mi := &file_agent_v1_agent_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5827,7 +6384,7 @@ func (x *KvmReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KvmReport.ProtoReflect.Descriptor instead.
 func (*KvmReport) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{58}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *KvmReport) GetDeviceKnown() bool {
@@ -5898,7 +6455,7 @@ type EngineReport struct {
 
 func (x *EngineReport) Reset() {
 	*x = EngineReport{}
-	mi := &file_agent_v1_agent_proto_msgTypes[59]
+	mi := &file_agent_v1_agent_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5910,7 +6467,7 @@ func (x *EngineReport) String() string {
 func (*EngineReport) ProtoMessage() {}
 
 func (x *EngineReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[59]
+	mi := &file_agent_v1_agent_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5923,7 +6480,7 @@ func (x *EngineReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EngineReport.ProtoReflect.Descriptor instead.
 func (*EngineReport) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{59}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *EngineReport) GetKind() string {
@@ -5976,7 +6533,7 @@ type ImageReport struct {
 
 func (x *ImageReport) Reset() {
 	*x = ImageReport{}
-	mi := &file_agent_v1_agent_proto_msgTypes[60]
+	mi := &file_agent_v1_agent_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5988,7 +6545,7 @@ func (x *ImageReport) String() string {
 func (*ImageReport) ProtoMessage() {}
 
 func (x *ImageReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[60]
+	mi := &file_agent_v1_agent_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6001,7 +6558,7 @@ func (x *ImageReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImageReport.ProtoReflect.Descriptor instead.
 func (*ImageReport) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{60}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *ImageReport) GetKey() string {
@@ -6071,7 +6628,7 @@ type AcceptingReport struct {
 
 func (x *AcceptingReport) Reset() {
 	*x = AcceptingReport{}
-	mi := &file_agent_v1_agent_proto_msgTypes[61]
+	mi := &file_agent_v1_agent_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6083,7 +6640,7 @@ func (x *AcceptingReport) String() string {
 func (*AcceptingReport) ProtoMessage() {}
 
 func (x *AcceptingReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[61]
+	mi := &file_agent_v1_agent_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6096,7 +6653,7 @@ func (x *AcceptingReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptingReport.ProtoReflect.Descriptor instead.
 func (*AcceptingReport) Descriptor() ([]byte, []int) {
-	return file_agent_v1_agent_proto_rawDescGZIP(), []int{61}
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *AcceptingReport) GetAccepting() bool {
@@ -6166,7 +6723,7 @@ type GateDecision_Go struct {
 
 func (x *GateDecision_Go) Reset() {
 	*x = GateDecision_Go{}
-	mi := &file_agent_v1_agent_proto_msgTypes[62]
+	mi := &file_agent_v1_agent_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6178,7 +6735,7 @@ func (x *GateDecision_Go) String() string {
 func (*GateDecision_Go) ProtoMessage() {}
 
 func (x *GateDecision_Go) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[62]
+	mi := &file_agent_v1_agent_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6223,7 +6780,7 @@ type GateDecision_Wait struct {
 
 func (x *GateDecision_Wait) Reset() {
 	*x = GateDecision_Wait{}
-	mi := &file_agent_v1_agent_proto_msgTypes[63]
+	mi := &file_agent_v1_agent_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6235,7 +6792,7 @@ func (x *GateDecision_Wait) String() string {
 func (*GateDecision_Wait) ProtoMessage() {}
 
 func (x *GateDecision_Wait) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[63]
+	mi := &file_agent_v1_agent_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6289,7 +6846,7 @@ type GateDecision_Timeout struct {
 
 func (x *GateDecision_Timeout) Reset() {
 	*x = GateDecision_Timeout{}
-	mi := &file_agent_v1_agent_proto_msgTypes[64]
+	mi := &file_agent_v1_agent_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6301,7 +6858,7 @@ func (x *GateDecision_Timeout) String() string {
 func (*GateDecision_Timeout) ProtoMessage() {}
 
 func (x *GateDecision_Timeout) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[64]
+	mi := &file_agent_v1_agent_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6343,7 +6900,8 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x12machine_credential\x18\x02 \x01(\tR\x11machineCredential\x12\x1f\n" +
 	"\vcert_sha256\x18\x03 \x01(\tR\n" +
 	"certSha256\x125\n" +
-	"\bsettings\x18\x04 \x01(\v2\x19.agent.v1.MachineSettingsR\bsettings\"\xf9\t\n" +
+	"\bsettings\x18\x04 \x01(\v2\x19.agent.v1.MachineSettingsR\bsettings\"\xd4\n" +
+	"\n" +
 	"\x0eSessionRequest\x12'\n" +
 	"\x05hello\x18\x01 \x01(\v2\x0f.agent.v1.HelloH\x00R\x05hello\x123\n" +
 	"\theartbeat\x18\x02 \x01(\v2\x13.agent.v1.HeartbeatH\x00R\theartbeat\x127\n" +
@@ -6368,8 +6926,10 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\fcache_report\x18\x14 \x01(\v2\x15.agent.v1.CacheReportH\x00R\vcacheReport\x12G\n" +
 	"\x11cache_wipe_status\x18\x15 \x01(\v2\x19.agent.v1.CacheWipeStatusH\x00R\x0fcacheWipeStatus\x12@\n" +
 	"\x0emachine_report\x18\x16 \x01(\v2\x17.agent.v1.MachineReportH\x00R\rmachineReport\x12F\n" +
-	"\x10accepting_report\x18\x17 \x01(\v2\x19.agent.v1.AcceptingReportH\x00R\x0facceptingReportB\t\n" +
-	"\amessage\"\xac\t\n" +
+	"\x10accepting_report\x18\x17 \x01(\v2\x19.agent.v1.AcceptingReportH\x00R\x0facceptingReport\x12Y\n" +
+	"\x17runner_leftovers_report\x18\x18 \x01(\v2\x1f.agent.v1.RunnerLeftoversReportH\x00R\x15runnerLeftoversReportB\t\n" +
+	"\amessage\"\xdc\n" +
+	"\n" +
 	"\x0fSessionResponse\x121\n" +
 	"\thello_ack\x18\x01 \x01(\v2\x12.agent.v1.HelloAckH\x00R\bhelloAck\x123\n" +
 	"\theartbeat\x18\x02 \x01(\v2\x13.agent.v1.HeartbeatH\x00R\theartbeat\x127\n" +
@@ -6396,7 +6956,9 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"wipe_cache\x18\x15 \x01(\v2\x13.agent.v1.WipeCacheH\x00R\twipeCache\x12@\n" +
 	"\x0ereport_machine\x18\x16 \x01(\v2\x17.agent.v1.ReportMachineH\x00R\rreportMachine\x12M\n" +
 	"\x13update_runner_files\x18\x17 \x01(\v2\x1b.agent.v1.UpdateRunnerFilesH\x00R\x11updateRunnerFiles\x12D\n" +
-	"\x10run_host_command\x18\x18 \x01(\v2\x18.agent.v1.RunHostCommandH\x00R\x0erunHostCommandB\t\n" +
+	"\x10run_host_command\x18\x18 \x01(\v2\x18.agent.v1.RunHostCommandH\x00R\x0erunHostCommand\x12S\n" +
+	"\x15scan_runner_leftovers\x18\x19 \x01(\v2\x1d.agent.v1.ScanRunnerLeftoversH\x00R\x13scanRunnerLeftovers\x12Y\n" +
+	"\x17remove_runner_leftovers\x18\x1a \x01(\v2\x1f.agent.v1.RemoveRunnerLeftoversH\x00R\x15removeRunnerLeftoversB\t\n" +
 	"\amessage\"\xf1\x02\n" +
 	"\x05Hello\x12\x1d\n" +
 	"\n" +
@@ -6779,7 +7341,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x05error\x18\x05 \x01(\tR\x05error\".\n" +
 	"\rReportMachine\x12\x1d\n" +
 	"\n" +
-	"command_id\x18\x01 \x01(\tR\tcommandId\"\xfb\x04\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\"\xa6\x05\n" +
 	"\rMachineReport\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12-\n" +
@@ -6797,7 +7359,46 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\tmacos_vms\x18\v \x01(\v2\x15.agent.v1.MacVmReportR\bmacosVms\x12;\n" +
 	"\vdocker_disk\x18\f \x01(\v2\x1a.agent.v1.DockerDiskReportR\n" +
 	"dockerDisk\x12F\n" +
-	"\x0frunner_services\x18\r \x03(\v2\x1d.agent.v1.RunnerServiceReportR\x0erunnerServices\"\x85\x02\n" +
+	"\x0frunner_services\x18\r \x03(\v2\x1d.agent.v1.RunnerServiceReportR\x0erunnerServices\x12)\n" +
+	"\x10runner_leftovers\x18\x0e \x01(\bR\x0frunnerLeftovers\"D\n" +
+	"\vOwnedRunner\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
+	"\fservice_name\x18\x02 \x01(\tR\vserviceName\"a\n" +
+	"\x13ScanRunnerLeftovers\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12+\n" +
+	"\x05owned\x18\x02 \x03(\v2\x15.agent.v1.OwnedRunnerR\x05owned\"5\n" +
+	"\vLeftoverRef\x12\x12\n" +
+	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"\x90\x01\n" +
+	"\x15RemoveRunnerLeftovers\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12+\n" +
+	"\x05owned\x18\x02 \x03(\v2\x15.agent.v1.OwnedRunnerR\x05owned\x12+\n" +
+	"\x05items\x18\x03 \x03(\v2\x15.agent.v1.LeftoverRefR\x05items\"\x91\x01\n" +
+	"\bLeftover\x12\x12\n" +
+	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\x12\x1d\n" +
+	"\n" +
+	"size_bytes\x18\x04 \x01(\x03R\tsizeBytes\x12\x18\n" +
+	"\aaccount\x18\x05 \x01(\tR\aaccount\x12\x10\n" +
+	"\x03why\x18\x06 \x01(\tR\x03why\"~\n" +
+	"\x0eLeftoverResult\x12\x12\n" +
+	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
+	"\aoutcome\x18\x03 \x01(\tR\aoutcome\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\x12\x14\n" +
+	"\x05steps\x18\x05 \x03(\tR\x05steps\"\xfd\x01\n" +
+	"\x15RunnerLeftoversReport\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x0e\n" +
+	"\x02ok\x18\x02 \x01(\bR\x02ok\x12\x14\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\x12\x14\n" +
+	"\x05admin\x18\x04 \x01(\bR\x05admin\x12(\n" +
+	"\x05items\x18\x05 \x03(\v2\x12.agent.v1.LeftoverR\x05items\x122\n" +
+	"\aresults\x18\x06 \x03(\v2\x18.agent.v1.LeftoverResultR\aresults\x12+\n" +
+	"\x12scanned_at_unix_ms\x18\a \x01(\x03R\x0fscannedAtUnixMs\"\x85\x02\n" +
 	"\x13RunnerServiceReport\x12\x1f\n" +
 	"\vrunner_name\x18\x01 \x01(\tR\n" +
 	"runnerName\x12!\n" +
@@ -6911,77 +7512,84 @@ func file_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 65)
+var file_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 72)
 var file_agent_v1_agent_proto_goTypes = []any{
-	(ProtocolVersion)(0),         // 0: agent.v1.ProtocolVersion
-	(RunnerState)(0),             // 1: agent.v1.RunnerState
-	(SlotKind)(0),                // 2: agent.v1.SlotKind
-	(LogLevel)(0),                // 3: agent.v1.LogLevel
-	(*JoinRequest)(nil),          // 4: agent.v1.JoinRequest
-	(*JoinResponse)(nil),         // 5: agent.v1.JoinResponse
-	(*SessionRequest)(nil),       // 6: agent.v1.SessionRequest
-	(*SessionResponse)(nil),      // 7: agent.v1.SessionResponse
-	(*Hello)(nil),                // 8: agent.v1.Hello
-	(*HelloAck)(nil),             // 9: agent.v1.HelloAck
-	(*Heartbeat)(nil),            // 10: agent.v1.Heartbeat
-	(*Facts)(nil),                // 11: agent.v1.Facts
-	(*Gpu)(nil),                  // 12: agent.v1.Gpu
-	(*BackendSupport)(nil),       // 13: agent.v1.BackendSupport
-	(*LoadReport)(nil),           // 14: agent.v1.LoadReport
-	(*RunnerStates)(nil),         // 15: agent.v1.RunnerStates
-	(*RunnerStatus)(nil),         // 16: agent.v1.RunnerStatus
-	(*AddRunner)(nil),            // 17: agent.v1.AddRunner
-	(*RunnerSpec)(nil),           // 18: agent.v1.RunnerSpec
-	(*RemoveRunner)(nil),         // 19: agent.v1.RemoveRunner
-	(*DrainRunner)(nil),          // 20: agent.v1.DrainRunner
-	(*StopRunner)(nil),           // 21: agent.v1.StopRunner
-	(*RunnerResult)(nil),         // 22: agent.v1.RunnerResult
-	(*RunHostCommand)(nil),       // 23: agent.v1.RunHostCommand
-	(*UpdateRunnerFiles)(nil),    // 24: agent.v1.UpdateRunnerFiles
-	(*UsageReport)(nil),          // 25: agent.v1.UsageReport
-	(*JobRef)(nil),               // 26: agent.v1.JobRef
-	(*Holder)(nil),               // 27: agent.v1.Holder
-	(*GateRequest)(nil),          // 28: agent.v1.GateRequest
-	(*GateBeat)(nil),             // 29: agent.v1.GateBeat
-	(*GateCancel)(nil),           // 30: agent.v1.GateCancel
-	(*SlotGrant)(nil),            // 31: agent.v1.SlotGrant
-	(*GateDecision)(nil),         // 32: agent.v1.GateDecision
-	(*JobCompleted)(nil),         // 33: agent.v1.JobCompleted
-	(*ReleaseAck)(nil),           // 34: agent.v1.ReleaseAck
-	(*HolderReport)(nil),         // 35: agent.v1.HolderReport
-	(*MachineSettings)(nil),      // 36: agent.v1.MachineSettings
-	(*Drain)(nil),                // 37: agent.v1.Drain
-	(*Resume)(nil),               // 38: agent.v1.Resume
-	(*DrainStatus)(nil),          // 39: agent.v1.DrainStatus
-	(*Redetect)(nil),             // 40: agent.v1.Redetect
-	(*MachineRemoved)(nil),       // 41: agent.v1.MachineRemoved
-	(*CommandResult)(nil),        // 42: agent.v1.CommandResult
-	(*LogBatch)(nil),             // 43: agent.v1.LogBatch
-	(*LogLine)(nil),              // 44: agent.v1.LogLine
-	(*RunChecks)(nil),            // 45: agent.v1.RunChecks
-	(*CheckResults)(nil),         // 46: agent.v1.CheckResults
-	(*CheckResult)(nil),          // 47: agent.v1.CheckResult
-	(*UpdateAgent)(nil),          // 48: agent.v1.UpdateAgent
-	(*UpdateReport)(nil),         // 49: agent.v1.UpdateReport
-	(*MeasureCaches)(nil),        // 50: agent.v1.MeasureCaches
-	(*CacheReport)(nil),          // 51: agent.v1.CacheReport
-	(*CacheStatus)(nil),          // 52: agent.v1.CacheStatus
-	(*WipeCache)(nil),            // 53: agent.v1.WipeCache
-	(*CacheWipeStatus)(nil),      // 54: agent.v1.CacheWipeStatus
-	(*ReportMachine)(nil),        // 55: agent.v1.ReportMachine
-	(*MachineReport)(nil),        // 56: agent.v1.MachineReport
-	(*RunnerServiceReport)(nil),  // 57: agent.v1.RunnerServiceReport
-	(*DockerDiskReport)(nil),     // 58: agent.v1.DockerDiskReport
-	(*SymlinkReport)(nil),        // 59: agent.v1.SymlinkReport
-	(*MacVmReport)(nil),          // 60: agent.v1.MacVmReport
-	(*PackageFailure)(nil),       // 61: agent.v1.PackageFailure
-	(*KvmReport)(nil),            // 62: agent.v1.KvmReport
-	(*EngineReport)(nil),         // 63: agent.v1.EngineReport
-	(*ImageReport)(nil),          // 64: agent.v1.ImageReport
-	(*AcceptingReport)(nil),      // 65: agent.v1.AcceptingReport
-	(*GateDecision_Go)(nil),      // 66: agent.v1.GateDecision.Go
-	(*GateDecision_Wait)(nil),    // 67: agent.v1.GateDecision.Wait
-	(*GateDecision_Timeout)(nil), // 68: agent.v1.GateDecision.Timeout
+	(ProtocolVersion)(0),          // 0: agent.v1.ProtocolVersion
+	(RunnerState)(0),              // 1: agent.v1.RunnerState
+	(SlotKind)(0),                 // 2: agent.v1.SlotKind
+	(LogLevel)(0),                 // 3: agent.v1.LogLevel
+	(*JoinRequest)(nil),           // 4: agent.v1.JoinRequest
+	(*JoinResponse)(nil),          // 5: agent.v1.JoinResponse
+	(*SessionRequest)(nil),        // 6: agent.v1.SessionRequest
+	(*SessionResponse)(nil),       // 7: agent.v1.SessionResponse
+	(*Hello)(nil),                 // 8: agent.v1.Hello
+	(*HelloAck)(nil),              // 9: agent.v1.HelloAck
+	(*Heartbeat)(nil),             // 10: agent.v1.Heartbeat
+	(*Facts)(nil),                 // 11: agent.v1.Facts
+	(*Gpu)(nil),                   // 12: agent.v1.Gpu
+	(*BackendSupport)(nil),        // 13: agent.v1.BackendSupport
+	(*LoadReport)(nil),            // 14: agent.v1.LoadReport
+	(*RunnerStates)(nil),          // 15: agent.v1.RunnerStates
+	(*RunnerStatus)(nil),          // 16: agent.v1.RunnerStatus
+	(*AddRunner)(nil),             // 17: agent.v1.AddRunner
+	(*RunnerSpec)(nil),            // 18: agent.v1.RunnerSpec
+	(*RemoveRunner)(nil),          // 19: agent.v1.RemoveRunner
+	(*DrainRunner)(nil),           // 20: agent.v1.DrainRunner
+	(*StopRunner)(nil),            // 21: agent.v1.StopRunner
+	(*RunnerResult)(nil),          // 22: agent.v1.RunnerResult
+	(*RunHostCommand)(nil),        // 23: agent.v1.RunHostCommand
+	(*UpdateRunnerFiles)(nil),     // 24: agent.v1.UpdateRunnerFiles
+	(*UsageReport)(nil),           // 25: agent.v1.UsageReport
+	(*JobRef)(nil),                // 26: agent.v1.JobRef
+	(*Holder)(nil),                // 27: agent.v1.Holder
+	(*GateRequest)(nil),           // 28: agent.v1.GateRequest
+	(*GateBeat)(nil),              // 29: agent.v1.GateBeat
+	(*GateCancel)(nil),            // 30: agent.v1.GateCancel
+	(*SlotGrant)(nil),             // 31: agent.v1.SlotGrant
+	(*GateDecision)(nil),          // 32: agent.v1.GateDecision
+	(*JobCompleted)(nil),          // 33: agent.v1.JobCompleted
+	(*ReleaseAck)(nil),            // 34: agent.v1.ReleaseAck
+	(*HolderReport)(nil),          // 35: agent.v1.HolderReport
+	(*MachineSettings)(nil),       // 36: agent.v1.MachineSettings
+	(*Drain)(nil),                 // 37: agent.v1.Drain
+	(*Resume)(nil),                // 38: agent.v1.Resume
+	(*DrainStatus)(nil),           // 39: agent.v1.DrainStatus
+	(*Redetect)(nil),              // 40: agent.v1.Redetect
+	(*MachineRemoved)(nil),        // 41: agent.v1.MachineRemoved
+	(*CommandResult)(nil),         // 42: agent.v1.CommandResult
+	(*LogBatch)(nil),              // 43: agent.v1.LogBatch
+	(*LogLine)(nil),               // 44: agent.v1.LogLine
+	(*RunChecks)(nil),             // 45: agent.v1.RunChecks
+	(*CheckResults)(nil),          // 46: agent.v1.CheckResults
+	(*CheckResult)(nil),           // 47: agent.v1.CheckResult
+	(*UpdateAgent)(nil),           // 48: agent.v1.UpdateAgent
+	(*UpdateReport)(nil),          // 49: agent.v1.UpdateReport
+	(*MeasureCaches)(nil),         // 50: agent.v1.MeasureCaches
+	(*CacheReport)(nil),           // 51: agent.v1.CacheReport
+	(*CacheStatus)(nil),           // 52: agent.v1.CacheStatus
+	(*WipeCache)(nil),             // 53: agent.v1.WipeCache
+	(*CacheWipeStatus)(nil),       // 54: agent.v1.CacheWipeStatus
+	(*ReportMachine)(nil),         // 55: agent.v1.ReportMachine
+	(*MachineReport)(nil),         // 56: agent.v1.MachineReport
+	(*OwnedRunner)(nil),           // 57: agent.v1.OwnedRunner
+	(*ScanRunnerLeftovers)(nil),   // 58: agent.v1.ScanRunnerLeftovers
+	(*LeftoverRef)(nil),           // 59: agent.v1.LeftoverRef
+	(*RemoveRunnerLeftovers)(nil), // 60: agent.v1.RemoveRunnerLeftovers
+	(*Leftover)(nil),              // 61: agent.v1.Leftover
+	(*LeftoverResult)(nil),        // 62: agent.v1.LeftoverResult
+	(*RunnerLeftoversReport)(nil), // 63: agent.v1.RunnerLeftoversReport
+	(*RunnerServiceReport)(nil),   // 64: agent.v1.RunnerServiceReport
+	(*DockerDiskReport)(nil),      // 65: agent.v1.DockerDiskReport
+	(*SymlinkReport)(nil),         // 66: agent.v1.SymlinkReport
+	(*MacVmReport)(nil),           // 67: agent.v1.MacVmReport
+	(*PackageFailure)(nil),        // 68: agent.v1.PackageFailure
+	(*KvmReport)(nil),             // 69: agent.v1.KvmReport
+	(*EngineReport)(nil),          // 70: agent.v1.EngineReport
+	(*ImageReport)(nil),           // 71: agent.v1.ImageReport
+	(*AcceptingReport)(nil),       // 72: agent.v1.AcceptingReport
+	(*GateDecision_Go)(nil),       // 73: agent.v1.GateDecision.Go
+	(*GateDecision_Wait)(nil),     // 74: agent.v1.GateDecision.Wait
+	(*GateDecision_Timeout)(nil),  // 75: agent.v1.GateDecision.Timeout
 }
 var file_agent_v1_agent_proto_depIdxs = []int32{
 	11, // 0: agent.v1.JoinRequest.facts:type_name -> agent.v1.Facts
@@ -7007,78 +7615,86 @@ var file_agent_v1_agent_proto_depIdxs = []int32{
 	51, // 20: agent.v1.SessionRequest.cache_report:type_name -> agent.v1.CacheReport
 	54, // 21: agent.v1.SessionRequest.cache_wipe_status:type_name -> agent.v1.CacheWipeStatus
 	56, // 22: agent.v1.SessionRequest.machine_report:type_name -> agent.v1.MachineReport
-	65, // 23: agent.v1.SessionRequest.accepting_report:type_name -> agent.v1.AcceptingReport
-	9,  // 24: agent.v1.SessionResponse.hello_ack:type_name -> agent.v1.HelloAck
-	10, // 25: agent.v1.SessionResponse.heartbeat:type_name -> agent.v1.Heartbeat
-	36, // 26: agent.v1.SessionResponse.settings:type_name -> agent.v1.MachineSettings
-	32, // 27: agent.v1.SessionResponse.gate_decision:type_name -> agent.v1.GateDecision
-	34, // 28: agent.v1.SessionResponse.release_ack:type_name -> agent.v1.ReleaseAck
-	17, // 29: agent.v1.SessionResponse.add_runner:type_name -> agent.v1.AddRunner
-	19, // 30: agent.v1.SessionResponse.remove_runner:type_name -> agent.v1.RemoveRunner
-	20, // 31: agent.v1.SessionResponse.drain_runner:type_name -> agent.v1.DrainRunner
-	37, // 32: agent.v1.SessionResponse.drain:type_name -> agent.v1.Drain
-	38, // 33: agent.v1.SessionResponse.resume:type_name -> agent.v1.Resume
-	40, // 34: agent.v1.SessionResponse.redetect:type_name -> agent.v1.Redetect
-	45, // 35: agent.v1.SessionResponse.run_checks:type_name -> agent.v1.RunChecks
-	41, // 36: agent.v1.SessionResponse.machine_removed:type_name -> agent.v1.MachineRemoved
-	48, // 37: agent.v1.SessionResponse.update_agent:type_name -> agent.v1.UpdateAgent
-	21, // 38: agent.v1.SessionResponse.stop_runner:type_name -> agent.v1.StopRunner
-	50, // 39: agent.v1.SessionResponse.measure_caches:type_name -> agent.v1.MeasureCaches
-	53, // 40: agent.v1.SessionResponse.wipe_cache:type_name -> agent.v1.WipeCache
-	55, // 41: agent.v1.SessionResponse.report_machine:type_name -> agent.v1.ReportMachine
-	24, // 42: agent.v1.SessionResponse.update_runner_files:type_name -> agent.v1.UpdateRunnerFiles
-	23, // 43: agent.v1.SessionResponse.run_host_command:type_name -> agent.v1.RunHostCommand
-	0,  // 44: agent.v1.Hello.protocol_version:type_name -> agent.v1.ProtocolVersion
-	11, // 45: agent.v1.Hello.facts:type_name -> agent.v1.Facts
-	14, // 46: agent.v1.Hello.load:type_name -> agent.v1.LoadReport
-	15, // 47: agent.v1.Hello.runners:type_name -> agent.v1.RunnerStates
-	35, // 48: agent.v1.Hello.holders:type_name -> agent.v1.HolderReport
-	0,  // 49: agent.v1.HelloAck.protocol_version:type_name -> agent.v1.ProtocolVersion
-	36, // 50: agent.v1.HelloAck.settings:type_name -> agent.v1.MachineSettings
-	12, // 51: agent.v1.Facts.gpus:type_name -> agent.v1.Gpu
-	13, // 52: agent.v1.Facts.backends:type_name -> agent.v1.BackendSupport
-	16, // 53: agent.v1.RunnerStates.runners:type_name -> agent.v1.RunnerStatus
-	1,  // 54: agent.v1.RunnerStatus.state:type_name -> agent.v1.RunnerState
-	26, // 55: agent.v1.RunnerStatus.current_job:type_name -> agent.v1.JobRef
-	18, // 56: agent.v1.AddRunner.runner:type_name -> agent.v1.RunnerSpec
-	1,  // 57: agent.v1.RunnerResult.state:type_name -> agent.v1.RunnerState
-	26, // 58: agent.v1.UsageReport.job:type_name -> agent.v1.JobRef
-	26, // 59: agent.v1.GateRequest.job:type_name -> agent.v1.JobRef
-	27, // 60: agent.v1.GateRequest.holder:type_name -> agent.v1.Holder
-	2,  // 61: agent.v1.SlotGrant.kind:type_name -> agent.v1.SlotKind
-	66, // 62: agent.v1.GateDecision.go:type_name -> agent.v1.GateDecision.Go
-	67, // 63: agent.v1.GateDecision.wait:type_name -> agent.v1.GateDecision.Wait
-	68, // 64: agent.v1.GateDecision.timeout:type_name -> agent.v1.GateDecision.Timeout
-	26, // 65: agent.v1.JobCompleted.job:type_name -> agent.v1.JobRef
-	26, // 66: agent.v1.ReleaseAck.job:type_name -> agent.v1.JobRef
-	27, // 67: agent.v1.HolderReport.alive:type_name -> agent.v1.Holder
-	26, // 68: agent.v1.HolderReport.running:type_name -> agent.v1.JobRef
-	26, // 69: agent.v1.DrainStatus.waiting_for:type_name -> agent.v1.JobRef
-	44, // 70: agent.v1.LogBatch.lines:type_name -> agent.v1.LogLine
-	3,  // 71: agent.v1.LogLine.level:type_name -> agent.v1.LogLevel
-	26, // 72: agent.v1.LogLine.job:type_name -> agent.v1.JobRef
-	47, // 73: agent.v1.CheckResults.results:type_name -> agent.v1.CheckResult
-	26, // 74: agent.v1.UpdateReport.waiting_for:type_name -> agent.v1.JobRef
-	52, // 75: agent.v1.CacheReport.caches:type_name -> agent.v1.CacheStatus
-	26, // 76: agent.v1.CacheWipeStatus.waiting_for:type_name -> agent.v1.JobRef
-	62, // 77: agent.v1.MachineReport.kvm:type_name -> agent.v1.KvmReport
-	63, // 78: agent.v1.MachineReport.engine:type_name -> agent.v1.EngineReport
-	64, // 79: agent.v1.MachineReport.images:type_name -> agent.v1.ImageReport
-	61, // 80: agent.v1.MachineReport.package_failures:type_name -> agent.v1.PackageFailure
-	59, // 81: agent.v1.MachineReport.symlink:type_name -> agent.v1.SymlinkReport
-	60, // 82: agent.v1.MachineReport.macos_vms:type_name -> agent.v1.MacVmReport
-	58, // 83: agent.v1.MachineReport.docker_disk:type_name -> agent.v1.DockerDiskReport
-	57, // 84: agent.v1.MachineReport.runner_services:type_name -> agent.v1.RunnerServiceReport
-	31, // 85: agent.v1.GateDecision.Go.slots:type_name -> agent.v1.SlotGrant
-	4,  // 86: agent.v1.AgentService.Join:input_type -> agent.v1.JoinRequest
-	6,  // 87: agent.v1.AgentService.Session:input_type -> agent.v1.SessionRequest
-	5,  // 88: agent.v1.AgentService.Join:output_type -> agent.v1.JoinResponse
-	7,  // 89: agent.v1.AgentService.Session:output_type -> agent.v1.SessionResponse
-	88, // [88:90] is the sub-list for method output_type
-	86, // [86:88] is the sub-list for method input_type
-	86, // [86:86] is the sub-list for extension type_name
-	86, // [86:86] is the sub-list for extension extendee
-	0,  // [0:86] is the sub-list for field type_name
+	72, // 23: agent.v1.SessionRequest.accepting_report:type_name -> agent.v1.AcceptingReport
+	63, // 24: agent.v1.SessionRequest.runner_leftovers_report:type_name -> agent.v1.RunnerLeftoversReport
+	9,  // 25: agent.v1.SessionResponse.hello_ack:type_name -> agent.v1.HelloAck
+	10, // 26: agent.v1.SessionResponse.heartbeat:type_name -> agent.v1.Heartbeat
+	36, // 27: agent.v1.SessionResponse.settings:type_name -> agent.v1.MachineSettings
+	32, // 28: agent.v1.SessionResponse.gate_decision:type_name -> agent.v1.GateDecision
+	34, // 29: agent.v1.SessionResponse.release_ack:type_name -> agent.v1.ReleaseAck
+	17, // 30: agent.v1.SessionResponse.add_runner:type_name -> agent.v1.AddRunner
+	19, // 31: agent.v1.SessionResponse.remove_runner:type_name -> agent.v1.RemoveRunner
+	20, // 32: agent.v1.SessionResponse.drain_runner:type_name -> agent.v1.DrainRunner
+	37, // 33: agent.v1.SessionResponse.drain:type_name -> agent.v1.Drain
+	38, // 34: agent.v1.SessionResponse.resume:type_name -> agent.v1.Resume
+	40, // 35: agent.v1.SessionResponse.redetect:type_name -> agent.v1.Redetect
+	45, // 36: agent.v1.SessionResponse.run_checks:type_name -> agent.v1.RunChecks
+	41, // 37: agent.v1.SessionResponse.machine_removed:type_name -> agent.v1.MachineRemoved
+	48, // 38: agent.v1.SessionResponse.update_agent:type_name -> agent.v1.UpdateAgent
+	21, // 39: agent.v1.SessionResponse.stop_runner:type_name -> agent.v1.StopRunner
+	50, // 40: agent.v1.SessionResponse.measure_caches:type_name -> agent.v1.MeasureCaches
+	53, // 41: agent.v1.SessionResponse.wipe_cache:type_name -> agent.v1.WipeCache
+	55, // 42: agent.v1.SessionResponse.report_machine:type_name -> agent.v1.ReportMachine
+	24, // 43: agent.v1.SessionResponse.update_runner_files:type_name -> agent.v1.UpdateRunnerFiles
+	23, // 44: agent.v1.SessionResponse.run_host_command:type_name -> agent.v1.RunHostCommand
+	58, // 45: agent.v1.SessionResponse.scan_runner_leftovers:type_name -> agent.v1.ScanRunnerLeftovers
+	60, // 46: agent.v1.SessionResponse.remove_runner_leftovers:type_name -> agent.v1.RemoveRunnerLeftovers
+	0,  // 47: agent.v1.Hello.protocol_version:type_name -> agent.v1.ProtocolVersion
+	11, // 48: agent.v1.Hello.facts:type_name -> agent.v1.Facts
+	14, // 49: agent.v1.Hello.load:type_name -> agent.v1.LoadReport
+	15, // 50: agent.v1.Hello.runners:type_name -> agent.v1.RunnerStates
+	35, // 51: agent.v1.Hello.holders:type_name -> agent.v1.HolderReport
+	0,  // 52: agent.v1.HelloAck.protocol_version:type_name -> agent.v1.ProtocolVersion
+	36, // 53: agent.v1.HelloAck.settings:type_name -> agent.v1.MachineSettings
+	12, // 54: agent.v1.Facts.gpus:type_name -> agent.v1.Gpu
+	13, // 55: agent.v1.Facts.backends:type_name -> agent.v1.BackendSupport
+	16, // 56: agent.v1.RunnerStates.runners:type_name -> agent.v1.RunnerStatus
+	1,  // 57: agent.v1.RunnerStatus.state:type_name -> agent.v1.RunnerState
+	26, // 58: agent.v1.RunnerStatus.current_job:type_name -> agent.v1.JobRef
+	18, // 59: agent.v1.AddRunner.runner:type_name -> agent.v1.RunnerSpec
+	1,  // 60: agent.v1.RunnerResult.state:type_name -> agent.v1.RunnerState
+	26, // 61: agent.v1.UsageReport.job:type_name -> agent.v1.JobRef
+	26, // 62: agent.v1.GateRequest.job:type_name -> agent.v1.JobRef
+	27, // 63: agent.v1.GateRequest.holder:type_name -> agent.v1.Holder
+	2,  // 64: agent.v1.SlotGrant.kind:type_name -> agent.v1.SlotKind
+	73, // 65: agent.v1.GateDecision.go:type_name -> agent.v1.GateDecision.Go
+	74, // 66: agent.v1.GateDecision.wait:type_name -> agent.v1.GateDecision.Wait
+	75, // 67: agent.v1.GateDecision.timeout:type_name -> agent.v1.GateDecision.Timeout
+	26, // 68: agent.v1.JobCompleted.job:type_name -> agent.v1.JobRef
+	26, // 69: agent.v1.ReleaseAck.job:type_name -> agent.v1.JobRef
+	27, // 70: agent.v1.HolderReport.alive:type_name -> agent.v1.Holder
+	26, // 71: agent.v1.HolderReport.running:type_name -> agent.v1.JobRef
+	26, // 72: agent.v1.DrainStatus.waiting_for:type_name -> agent.v1.JobRef
+	44, // 73: agent.v1.LogBatch.lines:type_name -> agent.v1.LogLine
+	3,  // 74: agent.v1.LogLine.level:type_name -> agent.v1.LogLevel
+	26, // 75: agent.v1.LogLine.job:type_name -> agent.v1.JobRef
+	47, // 76: agent.v1.CheckResults.results:type_name -> agent.v1.CheckResult
+	26, // 77: agent.v1.UpdateReport.waiting_for:type_name -> agent.v1.JobRef
+	52, // 78: agent.v1.CacheReport.caches:type_name -> agent.v1.CacheStatus
+	26, // 79: agent.v1.CacheWipeStatus.waiting_for:type_name -> agent.v1.JobRef
+	69, // 80: agent.v1.MachineReport.kvm:type_name -> agent.v1.KvmReport
+	70, // 81: agent.v1.MachineReport.engine:type_name -> agent.v1.EngineReport
+	71, // 82: agent.v1.MachineReport.images:type_name -> agent.v1.ImageReport
+	68, // 83: agent.v1.MachineReport.package_failures:type_name -> agent.v1.PackageFailure
+	66, // 84: agent.v1.MachineReport.symlink:type_name -> agent.v1.SymlinkReport
+	67, // 85: agent.v1.MachineReport.macos_vms:type_name -> agent.v1.MacVmReport
+	65, // 86: agent.v1.MachineReport.docker_disk:type_name -> agent.v1.DockerDiskReport
+	64, // 87: agent.v1.MachineReport.runner_services:type_name -> agent.v1.RunnerServiceReport
+	57, // 88: agent.v1.ScanRunnerLeftovers.owned:type_name -> agent.v1.OwnedRunner
+	57, // 89: agent.v1.RemoveRunnerLeftovers.owned:type_name -> agent.v1.OwnedRunner
+	59, // 90: agent.v1.RemoveRunnerLeftovers.items:type_name -> agent.v1.LeftoverRef
+	61, // 91: agent.v1.RunnerLeftoversReport.items:type_name -> agent.v1.Leftover
+	62, // 92: agent.v1.RunnerLeftoversReport.results:type_name -> agent.v1.LeftoverResult
+	31, // 93: agent.v1.GateDecision.Go.slots:type_name -> agent.v1.SlotGrant
+	4,  // 94: agent.v1.AgentService.Join:input_type -> agent.v1.JoinRequest
+	6,  // 95: agent.v1.AgentService.Session:input_type -> agent.v1.SessionRequest
+	5,  // 96: agent.v1.AgentService.Join:output_type -> agent.v1.JoinResponse
+	7,  // 97: agent.v1.AgentService.Session:output_type -> agent.v1.SessionResponse
+	96, // [96:98] is the sub-list for method output_type
+	94, // [94:96] is the sub-list for method input_type
+	94, // [94:94] is the sub-list for extension type_name
+	94, // [94:94] is the sub-list for extension extendee
+	0,  // [0:94] is the sub-list for field type_name
 }
 
 func init() { file_agent_v1_agent_proto_init() }
@@ -7112,6 +7728,7 @@ func file_agent_v1_agent_proto_init() {
 		(*SessionRequest_CacheWipeStatus)(nil),
 		(*SessionRequest_MachineReport)(nil),
 		(*SessionRequest_AcceptingReport)(nil),
+		(*SessionRequest_RunnerLeftoversReport)(nil),
 	}
 	file_agent_v1_agent_proto_msgTypes[3].OneofWrappers = []any{
 		(*SessionResponse_HelloAck)(nil),
@@ -7134,6 +7751,8 @@ func file_agent_v1_agent_proto_init() {
 		(*SessionResponse_ReportMachine)(nil),
 		(*SessionResponse_UpdateRunnerFiles)(nil),
 		(*SessionResponse_RunHostCommand)(nil),
+		(*SessionResponse_ScanRunnerLeftovers)(nil),
+		(*SessionResponse_RemoveRunnerLeftovers)(nil),
 	}
 	file_agent_v1_agent_proto_msgTypes[13].OneofWrappers = []any{
 		(*AddRunner_Registration)(nil),
@@ -7150,7 +7769,7 @@ func file_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_v1_agent_proto_rawDesc), len(file_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   65,
+			NumMessages:   72,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

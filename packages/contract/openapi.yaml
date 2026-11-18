@@ -1420,6 +1420,38 @@ paths:
                 $ref: '#/components/schemas/HostCommandResult'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}/runner-leftovers/remove:
+    post:
+      operationId: removeRunnerLeftovers
+      tags: [machines]
+      summary: Remove runner leftovers no controller owns
+      description: >-
+        doctor R5.46 (OPS33). Removes the named items from the machine through
+        its agent: the service by its exact name, the folder, the local account
+        and the download. Only items the latest doctor scan of this machine
+        listed and that this controller still does not own are removed; anything
+        owned, or outside the crsp runners folders, is refused. The agent needs
+        administrator rights. Each item has its own result; a partial failure
+        answers 200 with the failed items in `results`.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveRunnerLeftoversRequest'
+      responses:
+        '200':
+          description: One result per requested item.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoveRunnerLeftoversResult'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/machines/{machineId}/resume:
     post:
       operationId: resumeMachine
@@ -6558,6 +6590,68 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DoctorFinding'
+    RunnerLeftoverKind:
+      type: string
+      enum: [service, folder, account, download]
+    RunnerLeftover:
+      type: object
+      description: One runner service, folder, local account or download that no runner of this controller owns (doctor R5.46).
+      required: [kind, name, why]
+      properties:
+        kind:
+          $ref: '#/components/schemas/RunnerLeftoverKind'
+        name:
+          type: string
+          description: The service name, the account name, or the full path of a folder or file.
+        path:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+        account:
+          type: string
+        why:
+          type: string
+          description: Why it is not owned, in words for people.
+    RemoveRunnerLeftoversRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            type: object
+            required: [kind, name]
+            properties:
+              kind:
+                $ref: '#/components/schemas/RunnerLeftoverKind'
+              name:
+                type: string
+    RemoveRunnerLeftoversResult:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            required: [kind, name, outcome, steps]
+            properties:
+              kind:
+                $ref: '#/components/schemas/RunnerLeftoverKind'
+              name:
+                type: string
+              outcome:
+                type: string
+                enum: [removed, already_gone, refused, failed]
+              error:
+                type: string
+              steps:
+                type: array
+                items:
+                  type: string
     DoctorFinding:
       type: object
       required: [check, subject, severity, title, fix, needs_admin, milestone, checked_at]
@@ -6593,6 +6687,21 @@ components:
               type: string
         needs_admin:
           type: boolean
+        items:
+          type: array
+          description: The things the finding lists, for example the runner leftovers of a machine (doctor R5.46).
+          items:
+            $ref: '#/components/schemas/RunnerLeftover'
+        action:
+          type: object
+          description: The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine).
+          required: [id, label]
+          properties:
+            id:
+              type: string
+              enum: [remove_runner_leftovers]
+            label:
+              type: string
         milestone:
           type: integer
         checked_at:

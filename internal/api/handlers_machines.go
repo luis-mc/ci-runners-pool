@@ -719,3 +719,9 @@ func (s *server) JoinMachineOverSsh(ctx context.Context, r gen.JoinMachineOverSs
 	}
 	return gen.JoinMachineOverSsh201JSONResponse(codeToAPI(c.JoinCode, c.JoinCode.State(time.Now()))), nil
 }
+
+// RemoveRunnerLeftovers implements POST /api/v1/machines/{machineId}/runner-leftovers/remove
+// (doctor R5.46, OPS33).
+func (s *server) RemoveRunnerLeftovers(_ context.Context, _ gen.RemoveRunnerLeftoversRequestObject) (gen.RemoveRunnerLeftoversResponseObject, error) {
+	return fail[gen.RemoveRunnerLeftoversdefaultJSONResponse](s, machines.ErrNotSupported), nil
+}

@@ -84,17 +84,43 @@ type Fix struct {
 	Link    string `json:"link,omitempty"`
 }
 
+// Item is one thing a finding lists, such as a runner leftover of a machine (R5.46).
+type Item struct {
+	// Kind is service, folder, account or download.
+	Kind string `json:"kind"`
+	// Name is the service or account name, or the full path.
+	Name      string `json:"name"`
+	Path      string `json:"path,omitempty"`
+	SizeBytes int64  `json:"size_bytes,omitempty"`
+	Account   string `json:"account,omitempty"`
+	Why       string `json:"why"`
+}
+
+// Action is the one button a finding offers. The doctor only names it; the
+// console runs it on a screen with its own confirm (UX-52, R5.46).
+type Action struct {
+	// ID is remove_runner_leftovers.
+	ID    string `json:"id"`
+	Label string `json:"label"`
+}
+
+// Action IDs.
+const ActionRemoveRunnerLeftovers = "remove_runner_leftovers"
+
 // Finding is one result for one check and subject (R5.2).
 type Finding struct {
-	Check      string    `json:"check"`
-	Subject    Subject   `json:"subject"`
-	Severity   Severity  `json:"severity"`
-	Title      string    `json:"title"`
-	Detail     string    `json:"detail,omitempty"`
-	Fix        Fix       `json:"fix"`
-	NeedsAdmin bool      `json:"needs_admin"`
-	Milestone  int       `json:"milestone"`
-	CheckedAt  time.Time `json:"checked_at"`
+	Check      string   `json:"check"`
+	Subject    Subject  `json:"subject"`
+	Severity   Severity `json:"severity"`
+	Title      string   `json:"title"`
+	Detail     string   `json:"detail,omitempty"`
+	Fix        Fix      `json:"fix"`
+	NeedsAdmin bool     `json:"needs_admin"`
+	// Items and Action are set by a finding that lists things and offers a button (R5.46).
+	Items     []Item    `json:"items,omitempty"`
+	Action    *Action   `json:"action,omitempty"`
+	Milestone int       `json:"milestone"`
+	CheckedAt time.Time `json:"checked_at"`
 }
 
 // Scope limits a run (R5.1). Empty means everything. Checks are ID prefixes
