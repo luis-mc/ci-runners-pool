@@ -201,15 +201,22 @@ export function RepositoriesList() {
       id: 'name',
       header: 'Repository',
       cell: (r) => (
-        <TextLink to={`/repositories/${r.owner}/${r.name}`}>{r.name}</TextLink>
+        <Stack gap="tight">
+          <Text>
+            <TextLink to={`/repositories/${r.owner}/${r.name}`}>{r.name}</TextLink>
+            {r.visibility !== 'private' || r.problem ? (
+              <>
+                {' '}
+                <VisibilityCell r={r} inactive={publicWhileOff(r, enabled)} />
+              </>
+            ) : null}
+          </Text>
+          <Text tone="muted">
+            {`${r.policy.max_parallel_jobs} parallel · priority ${r.policy.priority} · ${variableStatus(r).word}`}
+          </Text>
+        </Stack>
       ),
       sort: (r) => r.name,
-    },
-    {
-      id: 'visibility',
-      header: 'Visibility',
-      cell: (r) => <VisibilityCell r={r} inactive={publicWhileOff(r, enabled)} />,
-      sort: (r) => r.visibility,
     },
     {
       id: 'pool',
@@ -218,19 +225,6 @@ export function RepositoriesList() {
         <Status kind={r.pool_on ? 'ok' : 'off'} word={r.pool_on ? 'on' : 'off'} />
       ),
       sort: (r) => String(r.pool_on),
-    },
-    { id: 'labels', header: 'Labels', cell: (r) => r.policy.labels.join(', ') || 'none' },
-    {
-      id: 'max',
-      header: 'Parallel jobs',
-      cell: (r) => r.policy.max_parallel_jobs,
-      sort: (r) => r.policy.max_parallel_jobs,
-    },
-    {
-      id: 'prio',
-      header: 'Priority',
-      cell: (r) => r.policy.priority,
-      sort: (r) => r.policy.priority,
     },
     {
       id: 'where',
@@ -255,14 +249,6 @@ export function RepositoriesList() {
           />
         ),
       sort: (r) => r.webhook?.last_delivery_at ?? '',
-    },
-    {
-      id: 'vars',
-      header: 'Variables',
-      cell: (r) => {
-        const s = variableStatus(r);
-        return <Status kind={s.kind} word={s.word} />;
-      },
     },
   ];
 
