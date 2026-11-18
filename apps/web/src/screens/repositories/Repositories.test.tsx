@@ -40,7 +40,9 @@ describe('Repositories list', () => {
     ).toEqual(['Repository', 'Pool', 'Jobs go to', 'Last delivery']);
     expect(within(table).getByText('on')).toBeTruthy();
     expect(within(table).getByText('off')).toBeTruthy();
-    expect(within(table).getByText(/parallel · priority \d+ · wrong variable/)).toBeTruthy();
+    expect(
+      within(table).getByText(/parallel · priority \d+ · wrong variable/),
+    ).toBeTruthy();
     expect(within(table).getByText(/parallel · priority \d+ · not used/)).toBeTruthy();
   });
 
