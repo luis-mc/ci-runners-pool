@@ -14,7 +14,7 @@ import (
 // ScopePool is the scope of a pool runner: a machine, a system and labels,
 // with no repository of its own. Its GitHub registrations are hidden records
 // (PoolRunnerID set) that the pool reconcile keeps, one for each repository
-// that uses the pool (runners R5.80).
+// that uses the pool (runners R5.88).
 const ScopePool = "pool"
 
 // Scope is where a runner registers (runners R5.2).
@@ -50,7 +50,7 @@ type Record struct {
 	GitHubRunnerID int64
 	CurrentJob     string // empty when none
 	// PoolRunnerID is set on a hidden registration: the id of the pool runner
-	// whose machine slot it serves. Empty on every other record (runners R5.80).
+	// whose machine slot it serves. Empty on every other record (runners R5.88).
 	PoolRunnerID string
 	// FailedReason is the whole plain reason a runner is in the failed state,
 	// including what the clean-up left behind. Empty in every other state.
@@ -185,7 +185,7 @@ type Store interface {
 	SetRunnerRegistration(ctx context.Context, id string, githubRunnerID int64, version string) error
 	DeleteRunner(ctx context.Context, id string) error
 	// SetRunnerPool makes a runner a hidden registration of a pool runner
-	// (the migration of a repository runner, runners R5.80).
+	// (the migration of a repository runner, runners R5.88).
 	SetRunnerPool(ctx context.Context, id, poolRunnerID string) error
 	SavePlan(ctx context.Context, p Plan) error
 	GetPlan(ctx context.Context, id string) (Plan, error)

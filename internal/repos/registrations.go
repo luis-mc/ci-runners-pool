@@ -9,7 +9,7 @@ import (
 // syncRegistrations makes the pool runners' hidden registrations follow the
 // pool switch. It is best effort: the pool switch is already stored, a failure
 // is written to the audit log and the reconcile loop tries again (runners
-// R5.80).
+// R5.88).
 func (s *Service) syncRegistrations(ctx context.Context, p auth.Principal, r Repository) {
 	if s.cfg.Registrar == nil {
 		return

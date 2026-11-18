@@ -64,7 +64,7 @@ type View struct {
 	Reason      string
 	MachineName string
 	// Serving is the repository of the job a pool runner runs now, and
-	// Registrations is how many hidden registrations it holds (runners R5.80).
+	// Registrations is how many hidden registrations it holds (runners R5.88).
 	// Both are empty on a runner that is not a pool runner.
 	Serving       string
 	Registrations int

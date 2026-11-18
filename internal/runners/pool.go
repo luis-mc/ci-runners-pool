@@ -10,7 +10,7 @@ import (
 // MaxRegistrationsPerMachine is the number of GitHub registrations one machine
 // may hold before the Doctor says so. GitHub limits the runners of a
 // repository and of an organization, and each registration is a service and a
-// folder on the machine (runners R5.80).
+// folder on the machine (runners R5.88).
 const MaxRegistrationsPerMachine = 20
 
 // PoolRepo is a repository that uses the pool and the scope its runners

@@ -3443,7 +3443,7 @@ type PlanRunnersRequest struct {
 	MachineId string     `json:"machine_id"`
 	Os        OS         `json:"os"`
 
-	// Scope Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.80).
+	// Scope Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.88).
 	Scope *RunnerScope `json:"scope,omitempty"`
 }
 
@@ -3833,7 +3833,7 @@ type Runner struct {
 	RunnerVersion *string     `json:"runner_version,omitempty"`
 	Scope         RunnerScope `json:"scope"`
 
-	// Serving Pool runner only: the repository (owner/name) of the job it runs now. Absent when it is idle (runners R5.80).
+	// Serving Pool runner only: the repository (owner/name) of the job it runs now. Absent when it is idle (runners R5.88).
 	Serving *string `json:"serving,omitempty"`
 
 	// State What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
@@ -3856,14 +3856,14 @@ type RunnerList struct {
 
 // RunnerScope defines model for RunnerScope.
 type RunnerScope struct {
-	// Kind `pool` is a pool runner: a machine, a system and labels with no repository. Its GitHub registrations are hidden, one for each repository that uses the pool (runners R5.80).
+	// Kind `pool` is a pool runner: a machine, a system and labels with no repository. Its GitHub registrations are hidden, one for each repository that uses the pool (runners R5.88).
 	Kind         RunnerScopeKind `json:"kind"`
 	Organization *string         `json:"organization,omitempty"`
 	RepositoryId *int64          `json:"repository_id,omitempty"`
 	RunnerGroup  *string         `json:"runner_group,omitempty"`
 }
 
-// RunnerScopeKind `pool` is a pool runner: a machine, a system and labels with no repository. Its GitHub registrations are hidden, one for each repository that uses the pool (runners R5.80).
+// RunnerScopeKind `pool` is a pool runner: a machine, a system and labels with no repository. Its GitHub registrations are hidden, one for each repository that uses the pool (runners R5.88).
 type RunnerScopeKind string
 
 // RunnerState What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.

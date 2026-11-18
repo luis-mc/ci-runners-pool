@@ -282,7 +282,7 @@ type LightRunners interface {
 }
 
 // PoolRegistrar keeps the hidden GitHub registrations of the long-lived pool
-// runners: one for each repository that uses the pool (runners R5.80).
+// runners: one for each repository that uses the pool (runners R5.88).
 type PoolRegistrar interface {
 	// SyncPoolRegistrations adds the registrations of a repository that
 	// started using the pool and drains and removes those of a repository that

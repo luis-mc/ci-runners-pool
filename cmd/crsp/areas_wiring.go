@@ -258,7 +258,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	rsvc.SetLight(lightKeeper{svc: runnerSvc})
 	// Long-lived runners serve every repository that uses the pool: one hidden
 	// registration for each pool repository, made and removed with the pool
-	// switch and by the reconcile loop (runners R5.80).
+	// switch and by the reconcile loop (runners R5.88).
 	runnerSvc.PoolRepos = poolRepos(repoStore)
 	rsvc.SetRegistrar(runnerSvc)
 	rsvc.SetFleet(runnerSvc)

@@ -299,6 +299,8 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R5.89** (built, CRSP148) — **A list that could not be refreshed says why.** The lists are read with the App's key (R5.17, R5.18), so a restart does not stale them; the user's GitHub token is held in memory only (R6.2) and is needed only for actions that act as the user. A repository or installation list that is the last copy carries `stale.reason` (`session_expired`, `permission_missing`, `unreachable`, `github_error`), and for a GitHub answer its `status` and `message` word for word (UX-28). When the App call fails, the reason is the App's error (`unreachable`, `github_error` or `permission_missing`), never `session_expired`. The console says "Your GitHub sign-in ended" for `session_expired`, with the action "Sign in with GitHub again" that starts the sign-in and returns to the same screen (UX-6), never "GitHub is not answering", and while the list is the last copy it does not say "you need admin rights": the admin flag is unknown then, and the plan reads it again from GitHub at the change (R5.19).
 
+**R5.90** (built, OPS23) — **The pool switch drives the hidden registrations of long-lived runners.** Turning the pool on for a repository makes one hidden registration for each long-lived pool runner (runners R5.88); turning it off, or the repository leaving the installation (R5.22), drains and removes them. The switch is stored first; a registration that fails does not undo it, is audited as `pool.registrations_failed` and is tried again by the reconcile loop.
+
 **R5.89a** (built, LOOK15) — **The session says whether the GitHub sign-in holds.** `getSession` returns `github_signin`: `active` with `expires_at` while the memory-only user token (R6.2) is held and not past its end (8 hours from GitHub), or `ended` after a restart, the 8 hours or a sign-out. The token itself is never returned. The console shows it in the account menu (web-console R5.95).
 
 ## 6. Non-functional requirements
@@ -479,6 +481,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.85 | built: internal/auth/manifest_test.go TestManifestPermissionsExact; internal/github/grant_test.go TestSecretsIsInTheManifestSet; internal/github/client_test.go TestMissingPermissions |
 | R5.86 | built: internal/github/grant_test.go TestDiffGrantStates, TestGrantPagesForAUserAndAnOrganization; internal/api/handlers_access_test.go TestGrantReadsBothSidesOfGitHub, TestGrantWithoutAnInstallationStartsWithInstall, TestGrantNeedsAPermissionNameAndAnAdmin, TestSetupParityWithoutThePermissionMakesNothingAndNamesThePages |
 | R5.87 | built: internal/github/grant_test.go TestForgetInstallationTokenMakesANewToken, TestParseInstallationEvent; internal/api/handlers_access_test.go TestAcceptedPermissionsRefreshTheInstallationToken |
+| R5.90 | built: internal/repos/registrations_test.go TestPoolSwitchSyncsRegistrationsAfterTheSwitchIsStored, TestRegistrationFailureDoesNotUndoThePoolSwitch, TestReconcileInstallationsSyncsRegistrations |
 
 ## 10. Decisions
 

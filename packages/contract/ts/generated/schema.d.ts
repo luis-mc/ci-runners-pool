@@ -3763,7 +3763,7 @@ export interface components {
             github_runner_id?: number;
             current_job?: components["schemas"]["Job"];
             /** @description Pool runner only: the repository (owner/name) of the job it runs
-             *     now. Absent when it is idle (runners R5.80). */
+             *     now. Absent when it is idle (runners R5.88). */
             serving?: string;
             /** @description Pool runner only: how many hidden GitHub registrations it holds,
              *     one for each repository that uses the pool. Absent on other runners. */
@@ -3775,7 +3775,7 @@ export interface components {
             /**
              * @description `pool` is a pool runner: a machine, a system and labels with no
              *     repository. Its GitHub registrations are hidden, one for each
-             *     repository that uses the pool (runners R5.80).
+             *     repository that uses the pool (runners R5.88).
              * @enum {string}
              */
             kind: "repository" | "organization" | "pool";
@@ -3807,7 +3807,7 @@ export interface components {
             count: number;
             labels?: string[];
             /** @description Leave it out to add pool runners (scope `pool`): the user adds
-             *     runners per machine, never a repository (runners R5.80). */
+             *     runners per machine, never a repository (runners R5.88). */
             scope?: components["schemas"]["RunnerScope"];
         };
         /**

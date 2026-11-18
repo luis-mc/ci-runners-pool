@@ -73,7 +73,7 @@ type Service struct {
 	Services func(ctx context.Context, machineID string) ([]backend.Found, error)
 
 	// PoolRepos lists the repositories that use the pool, with the scope each
-	// registers in. Nil means no pool runner gets a registration (runners R5.80).
+	// registers in. Nil means no pool runner gets a registration (runners R5.88).
 	PoolRepos func(ctx context.Context) ([]PoolRepo, error)
 	// Pauser pauses and resumes the service of a hidden registration for the
 	// slot lock. Nil means the lock only watches: it reports two busy

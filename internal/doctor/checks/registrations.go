@@ -11,7 +11,7 @@ import (
 // MaxRegistrationsPerMachine is how many GitHub registrations one machine may
 // hold before the Doctor says so. A long-lived pool runner has one hidden
 // registration for each repository that uses the pool, and each is a service
-// and a folder on the machine (runners R5.80). GitHub also limits the runners
+// and a folder on the machine (runners R5.88). GitHub also limits the runners
 // of a repository and of an organization.
 const MaxRegistrationsPerMachine = 20
 

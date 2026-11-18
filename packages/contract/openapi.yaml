@@ -5939,7 +5939,7 @@ components:
           type: string
           description: >-
             Pool runner only: the repository (owner/name) of the job it runs
-            now. Absent when it is idle (runners R5.80).
+            now. Absent when it is idle (runners R5.88).
         registrations:
           type: integer
           minimum: 0
@@ -5976,7 +5976,7 @@ components:
           description: >-
             `pool` is a pool runner: a machine, a system and labels with no
             repository. Its GitHub registrations are hidden, one for each
-            repository that uses the pool (runners R5.80).
+            repository that uses the pool (runners R5.88).
         repository_id:
           type: integer
           format: int64
@@ -6014,7 +6014,7 @@ components:
           $ref: '#/components/schemas/RunnerScope'
           description: >-
             Leave it out to add pool runners (scope `pool`): the user adds
-            runners per machine, never a repository (runners R5.80).
+            runners per machine, never a repository (runners R5.88).
       example:
         os: linux
         kind: persistent
