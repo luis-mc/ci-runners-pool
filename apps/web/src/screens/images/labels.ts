@@ -7,6 +7,7 @@ const KIND: Record<Schemas['CacheKind'], string> = {
   actions_cache: 'Actions cache',
   git_mirror: 'Git mirror',
   registry_mirror: 'Registry mirror',
+  dependency_cache: 'Dependency cache',
 };
 
 export const cacheKindLabel = (k: Schemas['CacheKind']): string => KIND[k];

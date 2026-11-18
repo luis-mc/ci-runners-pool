@@ -168,7 +168,7 @@ The words of the images and caches screen (web-console 4.7).
 | Where | Word |
 |---|---|
 | Tabs | Images, Caches |
-| Cache kinds | Tool cache, Rust build cache, Actions cache, Git mirror, Registry mirror |
+| Cache kinds | Tool cache, Rust build cache, Actions cache, Git mirror, Registry mirror, Dependency cache |
 | Empty images | No images yet. A machine shows one here once it can run container jobs. |
 | Empty caches | No caches yet. Caches show here when a runner has been added. |
 | Question title | Wipe {cache}? Rebuild the image of {machine}, {OS}? |

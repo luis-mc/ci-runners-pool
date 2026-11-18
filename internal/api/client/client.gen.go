@@ -261,17 +261,20 @@ func (e CacheState) Valid() bool {
 
 // Defines values for CacheKind.
 const (
-	ActionsCache   CacheKind = "actions_cache"
-	GitMirror      CacheKind = "git_mirror"
-	RegistryMirror CacheKind = "registry_mirror"
-	RustCache      CacheKind = "rust_cache"
-	ToolCache      CacheKind = "tool_cache"
+	ActionsCache    CacheKind = "actions_cache"
+	DependencyCache CacheKind = "dependency_cache"
+	GitMirror       CacheKind = "git_mirror"
+	RegistryMirror  CacheKind = "registry_mirror"
+	RustCache       CacheKind = "rust_cache"
+	ToolCache       CacheKind = "tool_cache"
 )
 
 // Valid indicates whether the value is a known member of the CacheKind enum.
 func (e CacheKind) Valid() bool {
 	switch e {
 	case ActionsCache:
+		return true
+	case DependencyCache:
 		return true
 	case GitMirror:
 		return true

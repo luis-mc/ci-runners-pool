@@ -4496,7 +4496,7 @@ export interface components {
          * @description `tool_cache` and `rust_cache` are the per-runner folders of milestone 1 (caches R5.36, R5.39); the others arrive with later milestones.
          * @enum {string}
          */
-        CacheKind: "actions_cache" | "git_mirror" | "tool_cache" | "registry_mirror" | "rust_cache";
+        CacheKind: "actions_cache" | "git_mirror" | "tool_cache" | "registry_mirror" | "rust_cache" | "dependency_cache";
         /**
          * @description One cache on one machine (caches R5.8 to R5.14).
          * @example {
