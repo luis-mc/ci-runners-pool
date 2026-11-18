@@ -5979,7 +5979,7 @@ components:
             $ref: '#/components/schemas/Runner'
     PlanRunnersRequest:
       type: object
-      required: [os, kind, machine_id, count, scope]
+      required: [os, kind, machine_id, count]
       properties:
         os:
           $ref: '#/components/schemas/OS'
@@ -5996,6 +5996,10 @@ components:
           items:
             type: string
         scope:
+          description: >-
+            Optional. Left out, the runners serve the pool: the server takes the
+            first repository with the pool on and adds the pool label (until
+            every pool repository gets its own registration).
           $ref: '#/components/schemas/RunnerScope'
       example:
         os: linux
@@ -6003,9 +6007,6 @@ components:
         machine_id: m_01JCRSP0001
         count: 2
         labels: [self-hosted, linux, x64]
-        scope:
-          kind: repository
-          repository_id: 700100
 
     # ---------- jobs, slots, live
     Job:

@@ -205,7 +205,10 @@ func (s *server) PlanRunners(ctx context.Context, req gen.PlanRunnersRequestObje
 		return gen.PlanRunnersdefaultJSONResponse{StatusCode: http.StatusBadRequest,
 			Body: gen.ErrorEnvelope{Error: gen.ErrorBody{Code: CodeBadRequest, Message: "the request is not valid"}}}, nil
 	}
-	ar := runners.AddRequest{OS: string(b.Os), Kind: string(b.Kind), MachineID: b.MachineId, Count: b.Count, Scope: fromGenScope(b.Scope)}
+	ar := runners.AddRequest{OS: string(b.Os), Kind: string(b.Kind), MachineID: b.MachineId, Count: b.Count}
+	if b.Scope != nil {
+		ar.Scope = fromGenScope(*b.Scope)
+	}
 	if b.Labels != nil {
 		ar.Labels = *b.Labels
 	}

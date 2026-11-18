@@ -3786,11 +3786,7 @@ export interface components {
          *         "self-hosted",
          *         "linux",
          *         "x64"
-         *       ],
-         *       "scope": {
-         *         "kind": "repository",
-         *         "repository_id": 700100
-         *       }
+         *       ]
          *     }
          */
         PlanRunnersRequest: {
@@ -3799,7 +3795,8 @@ export interface components {
             machine_id: string;
             count: number;
             labels?: string[];
-            scope: components["schemas"]["RunnerScope"];
+            /** @description Optional. Left out, the runners serve the pool: the server takes the first repository with the pool on and adds the pool label (until every pool repository gets its own registration). */
+            scope?: components["schemas"]["RunnerScope"];
         };
         /**
          * @description One job attempt (observability R5.7, R5.8).

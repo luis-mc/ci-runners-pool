@@ -223,6 +223,18 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		GitHub: gh, Agent: agent, Audit: runnerAudit{auth: asvc},
 		PoolName: pool, CacheQuota: d.Cfg.Cache, Now: d.Now, Services: agent.Services,
 		// A public repository gets no new runner while the setting is off (github-integration R5.55).
+		// A plan with no scope takes the first repository with the pool on (D31, until OPS23).
+		DefaultScope: func(ctx context.Context) (runners.Scope, error) {
+			on := true
+			rs, err := repoStore.ListRepositories(ctx, repos.ListFilter{Pool: &on})
+			if err != nil {
+				return runners.Scope{}, err
+			}
+			if len(rs) == 0 {
+				return runners.Scope{}, runners.ErrNoPoolRepository
+			}
+			return runners.Scope{Kind: "repository", RepositoryID: rs[0].ID}, nil
+		},
 		Gate: func(ctx context.Context, sc runners.Scope) error {
 			if sc.RepositoryID == 0 {
 				return nil

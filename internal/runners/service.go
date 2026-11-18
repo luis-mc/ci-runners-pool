@@ -40,6 +40,10 @@ type Service struct {
 	// off (github-integration R5.55). The error it returns reaches the caller
 	// as it is. Nil allows every scope.
 	Gate func(ctx context.Context, scope Scope) error
+	// DefaultScope picks the scope of a runner plan that names none: the first
+	// repository with the pool on, until every pool repository gets its own
+	// registration (OPS23). Nil, or an error, refuses such a plan.
+	DefaultScope func(ctx context.Context) (Scope, error)
 	// Drain settings; the idle check and clock are replaceable for tests.
 	Poll, WarnAfter, DrainTimeout time.Duration
 	Sleep                         func(ctx context.Context, d time.Duration) error
@@ -114,6 +118,14 @@ type AddRequest struct {
 	Count     int
 	Labels    []string
 	Scope     Scope
+	// PoolLevel is set when the request named no scope and the service chose
+	// one; the runners then carry the pool label too.
+	PoolLevel bool
+}
+
+// Empty reports that the scope names nothing.
+func (s Scope) Empty() bool {
+	return s.Kind == "" && s.RepositoryID == 0 && s.Organization == ""
 }
 
 var nonSlug = strings.NewReplacer(" ", "-", "_", "-", ".", "-")
@@ -187,6 +199,17 @@ func (s *Service) PlanAdd(ctx context.Context, req AddRequest, actor string) (Pl
 	if req.Count < 1 || req.Count > 64 {
 		return Plan{}, refuse("count must be from 1 to 64")
 	}
+	if req.Scope.Empty() {
+		// The user asked for runners of the pool, not of one repository.
+		if s.DefaultScope == nil {
+			return Plan{}, ErrNoPoolRepository
+		}
+		sc, err := s.DefaultScope(ctx)
+		if err != nil {
+			return Plan{}, err
+		}
+		req.Scope, req.PoolLevel = sc, true
+	}
 	if s.Gate != nil {
 		if err := s.Gate(ctx, req.Scope); err != nil {
 			return Plan{}, err
@@ -239,7 +262,7 @@ func (s *Service) addSpecs(ctx context.Context, m Machine, req AddRequest) ([]Ad
 		verified[v] = true
 	}
 	want := append([]string{"self-hosted", req.OS, m.Arch}, req.Labels...)
-	if crossesToLinuxContainers(m, req.OS) && s.PoolName != "" {
+	if (req.PoolLevel || crossesToLinuxContainers(m, req.OS)) && s.PoolName != "" {
 		// A container runner on a Windows machine takes the pool's jobs
 		// (R5.47), so it carries the pool label.
 		want = append(want, s.PoolName)
