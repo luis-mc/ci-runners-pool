@@ -89,6 +89,9 @@ type Service struct {
 	draining map[string]bool
 	paused   map[string]bool
 
+	hygMu        sync.Mutex      // guards clearPending
+	clearPending map[string]bool // machine|runner name -> a cache clear was asked
+
 	lightTry map[string]lightTry // repository and OS -> tries of the failed light runner
 
 	mu      sync.Mutex // one plan apply at a time

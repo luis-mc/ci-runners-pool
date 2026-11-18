@@ -73,6 +73,15 @@ type Record struct {
 // KeepsState is true for a persistent runner (runners R5.7).
 func (r Record) KeepsState() bool { return r.Kind == "persistent" }
 
+// Hygiene is the part of a persistent runner's record that its clean-up
+// writes: the dependency setting, the size of its own dependency cache and the
+// reason it is unclean ("" when clean).
+type Hygiene struct {
+	KeepDependencies     bool
+	DependencyCacheBytes int64
+	UncleanReason        string
+}
+
 // Filter narrows a runner list.
 type Filter struct {
 	MachineID string
@@ -197,6 +206,9 @@ type Store interface {
 	// SetRunnerPool makes a runner a hidden registration of a pool runner
 	// (the migration of a repository runner, runners R5.88).
 	SetRunnerPool(ctx context.Context, id, poolRunnerID string) error
+	// SetRunnerHygiene stores the dependency setting, the cache size and the
+	// unclean reason of a persistent runner (runners R5.89, R5.90).
+	SetRunnerHygiene(ctx context.Context, id string, h Hygiene) error
 	SavePlan(ctx context.Context, p Plan) error
 	GetPlan(ctx context.Context, id string) (Plan, error)
 }
