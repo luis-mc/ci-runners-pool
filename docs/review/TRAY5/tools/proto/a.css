@@ -1,0 +1,25 @@
+/* Option A: compact fixed dialog, close only. Steps are a vertical list on the left; content fills the window. */
+html, body { margin: 0; block-size: 100%; overflow: hidden; }
+.proto[data-proto='A'] { block-size: 100vh; position: relative; background: var(--ds-color-page); }
+.proto[data-proto='A'] main, .proto[data-proto='A'] .ds-page { block-size: 100%; max-inline-size: none; margin: 0; padding: 0; display: block; }
+.proto[data-proto='A'] .ds-wizard { block-size: 100vh; box-sizing: border-box; gap: 0; display: grid;
+  grid-template-columns: 200px 1fr; grid-template-rows: 1fr auto; }
+.proto[data-proto='A'] .ds-steps { grid-column: 1; grid-row: 1 / span 2; display: flex; flex-direction: column; flex-wrap: nowrap; gap: 0;
+  padding: 76px 0 0; background: var(--ds-color-surface); border-inline-end: 1px solid var(--ds-color-divider); }
+.proto[data-proto='A'] .ds-steps__item { display: block; }
+.proto[data-proto='A'] .ds-steps__button { inline-size: 100%; text-align: start; min-block-size: 36px; border: 0; padding-inline: 16px; border-inline-start: 3px solid transparent; font-size: var(--ds-size-2); }
+.proto[data-proto='A'] .ds-steps__item[data-standing='now'] .ds-steps__button { border-inline-start-color: var(--ds-color-primary); background: var(--ds-color-selection); }
+.proto[data-proto='A'] .ds-wizard__body { grid-column: 2; grid-row: 1; padding: 72px 20px 12px; align-content: start; overflow: auto; }
+.proto[data-proto='A'] .ds-action-bar { grid-column: 2; grid-row: 2; position: static; padding: 12px 20px; }
+.proto[data-proto='A'] .proto-head { position: absolute; inset-block-start: 0; inset-inline-start: 0; inline-size: 100%; pointer-events: none; z-index: 2; }
+.proto[data-proto='A'] .proto-head img { position: absolute; inset-block-start: 16px; inset-inline-start: 16px; }
+.proto[data-proto='A'] .proto-head__text { display: block; }
+.proto[data-proto='A'] .proto-name { position: absolute; inset-block-start: 14px; inset-inline-start: 56px; inline-size: 130px; font-size: var(--ds-size-1); line-height: 1.2; color: var(--ds-color-text); }
+.proto[data-proto='A'] .proto-title { position: absolute; inset-block-start: 20px; inset-inline-start: 220px; font-size: var(--ds-size-5); font-weight: 700; color: var(--ds-color-text); }
+.proto[data-proto='A'] .proto-sub { display: none; }
+/* The window is under 600 px wide, but it is a desktop window: keep the bar on one row (the phone layout of the web page does not apply). */
+.proto[data-proto='A'] .ds-action-bar { flex-direction: row; align-items: center; flex-wrap: nowrap; }
+.proto[data-proto='A'] .ds-action-bar__side, .proto[data-proto='A'] .ds-action-bar__main { flex-direction: row; align-items: center; }
+.proto[data-proto='A'] .ds-action-bar > :first-child { margin-inline-start: auto; }
+.proto[data-proto='A'] .ds-action-bar .ds-button-wrap, .proto[data-proto='A'] .ds-action-bar .ds-button { inline-size: auto; }
+.proto[data-proto='A'] .ds-action-bar__side { order: 0; } .proto[data-proto='A'] .ds-action-bar__main { order: 1; }

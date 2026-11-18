@@ -1,0 +1,44 @@
+/* Option C: the native Windows installer look (MSI dialog style) with crsp branding. Banner on top (title, step line,
+   icon on the right), a body, a grey button bar. It takes the Windows light or dark colours, not the Phosphor theme:
+   Windows Installer cannot follow a web theme. */
+html, body { margin: 0; }
+.proto[data-proto='C'] {
+  --c-bar: #f0f0f0; --c-body: #ffffff; --c-text: #000; --c-muted: #444; --c-line: #a0a0a0; --c-btn: #e1e1e1; --c-btn-line: #adadad; --c-accent: #0067c0; --c-prog: #06b025; --c-trough: #e6e6e6;
+  --ds-color-page: var(--c-body); --ds-color-surface: var(--c-body); --ds-color-text: var(--c-text); --ds-color-text-muted: var(--c-muted);
+  --ds-color-border: var(--c-btn-line); --ds-color-divider: var(--c-line); --ds-color-primary: var(--c-accent); --ds-color-on-primary: #fff;
+  --ds-color-focus: var(--c-accent); --ds-radius-1: 0; --ds-radius-2: 0; --ds-radius-3: 0; --ds-glow-focus: none; --ds-scanline-focus: none;
+  --ds-color-done: #107c10; --ds-color-done-bg: #dff6dd; --ds-color-on-done: #000; --ds-color-problem: #c42b1c; --ds-color-problem-bg: #fde7e9; --ds-color-on-problem: #000;
+  --ds-color-note-bg: #e5f1fb; --ds-color-on-note: #000; --ds-color-needs-you-bg: #fff4ce; --ds-color-on-needs-you: #000;
+  --ds-font-body: 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif; --ds-font-mono: 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif;
+  font-family: var(--ds-font-body); font-size: 12px; min-block-size: 100vh; display: flex; flex-direction: column; background: var(--c-body); color: var(--c-text);
+}
+:root[data-theme='dark'] .proto[data-proto='C'] {
+  --c-bar: #2b2b2b; --c-body: #202020; --c-text: #fff; --c-muted: #c8c8c8; --c-line: #5a5a5a; --c-btn: #333; --c-btn-line: #5a5a5a; --c-accent: #60cdff; --c-trough: #3a3a3a;
+  --ds-color-on-primary: #000; --ds-color-done-bg: #1b3a1b; --ds-color-on-done: #fff; --ds-color-problem-bg: #442726; --ds-color-on-problem: #fff;
+  --ds-color-note-bg: #1d3347; --ds-color-on-note: #fff; --ds-color-needs-you-bg: #433519; --ds-color-on-needs-you: #fff;
+}
+.proto[data-proto='C'] * { font-family: inherit; }
+.proto[data-proto='C'] .proto-head { position: relative; block-size: 58px; box-sizing: border-box; padding: 8px 20px; background: var(--c-body); border-block-end: 1px solid var(--c-line); display: block; }
+.proto[data-proto='C'] .proto-head img { position: absolute; inset-inline-end: 16px; inset-block-start: 13px; }
+.proto[data-proto='C'] .proto-head__text { display: block; }
+.proto[data-proto='C'] .proto-name { display: none; }
+.proto[data-proto='C'] .proto-title { display: block; font-weight: 700; font-size: 13px; }
+.proto[data-proto='C'] .proto-title::before { content: 'CI Runners Shared Pool '; }
+.proto[data-proto='C'] .proto-sub { display: block; margin-block-start: 6px; padding-inline-start: 18px; color: var(--c-muted); }
+.proto[data-proto='C'] main { flex: 1; display: flex; flex-direction: column; }
+.proto[data-proto='C'] .ds-page { max-inline-size: none; margin: 0; padding: 0; flex: 1; display: flex; flex-direction: column; }
+.proto[data-proto='C'] .ds-wizard { flex: 1; gap: 0; grid-template-rows: 1fr auto; }
+.proto[data-proto='C'] .ds-steps { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); } /* kept for screen readers; the banner says the step */
+.proto[data-proto='C'] .ds-wizard__body { padding: 18px 24px; align-content: start; background: var(--c-body); font-size: 12px; }
+.proto[data-proto='C'] .ds-text, .proto[data-proto='C'] .ds-message { font-size: 12px; }
+.proto[data-proto='C'] .ds-action-bar { position: static; padding: 12px 16px; background: var(--c-bar); border-block-start: 1px solid var(--c-line); gap: 8px; }
+.proto[data-proto='C'] .ds-button { min-block-size: 24px; min-inline-size: 75px; padding: 0 12px; font-size: 12px; font-weight: 400; background: var(--c-btn); color: var(--c-text); border: 1px solid var(--c-btn-line); border-radius: 3px; box-shadow: none; text-transform: none; }
+.proto[data-proto='C'] .ds-button[data-kind='primary'], .proto[data-proto='C'] .ds-button[data-part='primary'] { background: var(--c-accent); color: var(--ds-color-on-primary); border-color: var(--c-accent); }
+.proto[data-proto='C'] .ds-progress { block-size: 15px; border-radius: 0; background: var(--c-trough); border: 1px solid var(--c-btn-line); }
+.proto[data-proto='C'] .ds-progress__fill { background: var(--c-prog); border-radius: 0; box-shadow: none; }
+/* The window is under 600 px wide, but it is a desktop window: keep the bar on one row (the phone layout of the web page does not apply). */
+.proto[data-proto='C'] .ds-action-bar { flex-direction: row; align-items: center; flex-wrap: nowrap; }
+.proto[data-proto='C'] .ds-action-bar__side, .proto[data-proto='C'] .ds-action-bar__main { flex-direction: row; align-items: center; }
+.proto[data-proto='C'] .ds-action-bar > :first-child { margin-inline-start: auto; }
+.proto[data-proto='C'] .ds-action-bar .ds-button-wrap, .proto[data-proto='C'] .ds-action-bar .ds-button { inline-size: auto; }
+.proto[data-proto='C'] .ds-action-bar__side { order: 0; } .proto[data-proto='C'] .ds-action-bar__main { order: 1; }

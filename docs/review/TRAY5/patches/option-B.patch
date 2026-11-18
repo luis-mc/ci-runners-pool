@@ -1,0 +1,275 @@
+diff --git a/apps/web/index.html b/apps/web/index.html
+index 75c018c..142fa05 100644
+--- a/apps/web/index.html
++++ b/apps/web/index.html
+@@ -4,6 +4,7 @@
+     <meta charset="UTF-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+     <script src="/theme-init.js"></script>
++    <link rel="icon" type="image/png" href="/crsp-icon.png" />
+     <title>CI Runners Shared Pool</title>
+   </head>
+   <body>
+diff --git a/apps/web/public/crsp-icon.png b/apps/web/public/crsp-icon.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..8cd4824dc6d51dacde63fc04d78bf55d7390431c
+GIT binary patch
+literal 920
+zcmV;J184k+P)<h;3K|Lk000e1NJLTq002M$002M;1^@s6s%dfF000ADNkl<Zc%1B8
+zKXRK+6#m4|#jo*<%M5WrZeUlWvyLEl=^U4-5}yEZ0#8mLt4b-3Aa$YB4MGYtla84j
+zAeo(c%fO12cKIWg-F&YwtdPw2@!sPty!GHXF8Ib!@S`vQFbBZ?-T}A*aKk?rum?~8
+z*a64@Z1XtHgkyTejBoS_KMEPa2LKBq-o=;z34nDTr+Z@s@T2gG2uD4TmKhTxW`g8#
+zS_q$wCx9P?O8}qAz0YBc{MS5Am!k^cM<I*t)qq$0lrfKZ%;R*+2hJh@x%-M--UK8h
+zL@~Gkl;AcaUUiu<Z@AY@l>hM!75Gv35x_S9Z}^x&U`hDH<^1~B@7?RZcL9hzbNm1K
+zn1NvDwz!;M|5O!Wrb%9k*X4J<sf4%7_gdc<k5>T82`_v{2ConDhT4kGy}baG@Sgep
+z1o2E9^aY?>-R6wN%@APcz9BB!lc7!pPK%g5`h77+X#9RaT<-b6Ne`e3&y*sk4=jk2
+zngFDjZMISpfF?GkRe60NAa3$HfRe?JHi@r8j5dB>G~M5mfXx-&Rp$(%2Q1o<pOEoq
+z7LW-L3Hvr8Y7~G91{-5vL{Ke`s&&AFPzQ_(G3LAG7y%FT0JataHr@A6q2%h3`v;D=
+zKSw~EOAlzQk}S7*H3#&5_0M!)?_xC%xO310?y3UVT>QvzRTbdqLjz0grko4-QTT_C
+zx`aGVXI_2CJ^Lqs>jGRH4vkX>j8!*q4^V!UWRcY-L)vduEwG|0z|KJdcGVn^^&RtF
+zWA;>z==%GdGxvbj9TpR|Z7Be?qGf0Jr=}p|?RTEgX5tExraE8^;0xawJ7x!n`Kqn?
+zM(F|6TjN3)WW=>D03jCkZA6WuC_rL)QB+jp|KQyqJsVgK@rLMBOb;CM++wl2RP+GQ
+z0XF7>OeEhZ0NG=?Wsfy-Y7~HaZ<B_Priw(?PkeDWRN5mwI1JjvxM%~#w2Ec2tA8v6
+zKurYq6Td4I)IVHk3qT^Ug5inpPY_SlqDNZ*65-{T3mI%mt+F%8_|#iwmB?##i?i-)
+z)`d-PRZZ;}XR-cCmAsY*2(2{MEST^Vk1Ij{;MTA@fz>Rxy5w7VKtoHddyA$d6DaqV
+u%{6qHy18&tk|^C;IxB<ei>IB(-vIzzi6@F0Bml$!0000<MNUMnLSTaYqN<Ys
+
+literal 0
+HcmV?d00001
+
+diff --git a/apps/web/src/App.tsx b/apps/web/src/App.tsx
+index c0de220..8be8b74 100644
+--- a/apps/web/src/App.tsx
++++ b/apps/web/src/App.tsx
+@@ -44,6 +44,7 @@ import {
+   SettingsLayout,
+   ThemeApplier,
+ } from './screens/settings/Settings';
++import { InstallerPage } from './proto/Installer';
+ import { UpdateCompactPage, UpdateReviewPage } from './screens/settings/Updates';
+ import { SetupPage } from './screens/setup/Setup';
+ 
+@@ -159,6 +160,7 @@ export function App({
+             <Routes>
+               <Route path="/sign-in" element={<SignInPage />} />
+               <Route path="/setup" element={<SetupPage />} />
++              <Route path="/installer" element={<InstallerPage />} />
+               <Route element={<CompactGate />}>
+                 <Route path="update" element={<UpdateCompactPage />} />
+               </Route>
+diff --git a/apps/web/src/main.tsx b/apps/web/src/main.tsx
+index 1d6b85e..fb9f07e 100644
+--- a/apps/web/src/main.tsx
++++ b/apps/web/src/main.tsx
+@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
+ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+ import { App } from './App';
+ import '@crsp/ui/ui.css';
++import './proto/proto.css';
+ 
+ const container = document.getElementById('root');
+ if (!container) throw new Error('#root is missing from index.html');
+diff --git a/apps/web/src/proto/Chrome.tsx b/apps/web/src/proto/Chrome.tsx
+new file mode 100644
+index 0000000..98f6462
+--- /dev/null
++++ b/apps/web/src/proto/Chrome.tsx
+@@ -0,0 +1,34 @@
++// TRAY5 prototype only (never committed to app code): the window chrome shared by the updater and the installer.
++import { useEffect, useState, type ReactNode } from 'react';
++
++export const OPT: 'A' | 'B' | 'C' = 'B' as 'A';
++
++export function Proto({ title, children }: { title: string; children: ReactNode }) {
++  const [sub, setSub] = useState('');
++  useEffect(() => {
++    document.title = `${title} - CI Runners Shared Pool`;
++    const read = () => {
++      const items = Array.from(document.querySelectorAll('.ds-steps__item'));
++      const i = items.findIndex((li) => li.getAttribute('data-standing') === 'now');
++      if (i >= 0)
++        setSub(`Step ${i + 1} of ${items.length}: ${(items[i]?.textContent ?? '').replace(/^[✓\d]+\s*/, '').trim()}`);
++    };
++    read();
++    const mo = new MutationObserver(read);
++    mo.observe(document.body, { subtree: true, attributes: true, childList: true });
++    return () => mo.disconnect();
++  }, [title]);
++  return (
++    <div className="proto" data-proto={OPT}>
++      <header className="proto-head">
++        <img src="/crsp-icon.png" alt="" width={32} height={32} />
++        <div className="proto-head__text">
++          <b className="proto-name">CI Runners Shared Pool</b>
++          <span className="proto-title">{title}</span>
++          <span className="proto-sub">{sub}</span>
++        </div>
++      </header>
++      {children}
++    </div>
++  );
++}
+diff --git a/apps/web/src/proto/Installer.tsx b/apps/web/src/proto/Installer.tsx
+new file mode 100644
+index 0000000..ce56524
+--- /dev/null
++++ b/apps/web/src/proto/Installer.tsx
+@@ -0,0 +1,72 @@
++// TRAY5 prototype only: the installer window as the same shared wizard (welcome, choices, installing, done, failed).
++import { Facts, Message, Stack, Switch, Text, Wizard, type WizardPhase } from '@crsp/ui';
++import { useState } from 'react';
++import { useSearchParams } from 'react-router-dom';
++import { OPT, Proto } from './Chrome';
++
++const STEPS = OPT === 'B' ? ['Welcome', 'Choices', 'Install', 'Done'] : ['Welcome', 'Choices', 'Installing', 'Done'];
++const noop = () => undefined;
++
++export function InstallerPage() {
++  const [params] = useSearchParams();
++  const state = params.get('state') ?? 'welcome';
++  const [tray, setTray] = useState(true);
++  const [open, setOpen] = useState(true);
++  const phase: WizardPhase =
++    state === 'installing' ? 'running' : state === 'done' ? 'done' : state === 'failed' ? 'failed' : 'ready-to-review';
++  const current = state === 'welcome' ? 0 : state === 'choices' ? 1 : state === 'done' ? 3 : 2;
++  let body;
++  if (state === 'welcome')
++    body = (
++      <Stack>
++        <Text>Install CI Runners Shared Pool 0.1.12 on this PC.</Text>
++        <Text>It adds the crsp service, the tray icon and a Start menu shortcut. Your data stays.</Text>
++      </Stack>
++    );
++  else if (state === 'choices')
++    body = (
++      <Stack>
++        <Facts items={[{ name: 'Install folder', value: 'C:\\Program Files\\crsp' }]} />
++        <Switch label="Start the tray when I sign in" on={tray} onChange={setTray} />
++        <Switch label="Open the console when done" on={open} onChange={setOpen} />
++      </Stack>
++    );
++  else if (state === 'installing') body = <Text>Running jobs are not affected. Nothing else to do.</Text>;
++  else if (state === 'failed')
++    body = (
++      <Message tone="problem">
++        The install did not finish. The installer stopped with code 1603. Nothing was changed. The log is
++        C:\ProgramData\crsp\logs\msi-install.log. Then try again.
++      </Message>
++    );
++  else
++    body = (
++      <Stack>
++        <Message tone="done">Now running 0.1.12.</Message>
++        <Facts items={[{ name: 'Version', value: '0.1.12' }, { name: 'Service', value: 'running' }]} />
++      </Stack>
++    );
++  return (
++    <Proto title="Setup">
++      <main>
++        <div className="ds-page" data-frame="compact">
++          <Wizard
++            name="Setup"
++            steps={STEPS}
++            current={current}
++            firstStep={-1}
++            phase={phase}
++            progress={phase === 'running' ? { text: 'Installing 60%', value: 60, max: 100 } : undefined}
++            onBack={noop}
++            backLabel={state === 'welcome' ? 'Cancel' : state === 'done' || state === 'failed' ? 'Close' : 'Back'}
++            primary={{ label: state === 'welcome' ? 'Next' : 'Install', busyLabel: 'Installing', onPress: noop }}
++            donePrimary={{ label: 'Open the console', onPress: noop }}
++            onTryAgain={noop}
++          >
++            {body}
++          </Wizard>
++        </div>
++      </main>
++    </Proto>
++  );
++}
+diff --git a/apps/web/src/proto/proto.css b/apps/web/src/proto/proto.css
+new file mode 100644
+index 0000000..2382e4c
+--- /dev/null
++++ b/apps/web/src/proto/proto.css
+@@ -0,0 +1,24 @@
++/* Option B: one frame for updater and installer. Header band with the crsp icon and name, a one-row step strip with
++   short labels, the primary action bottom-right on an action bar. */
++html, body { margin: 0; }
++.proto[data-proto='B'] { min-block-size: 100vh; display: flex; flex-direction: column; background: var(--ds-color-page); }
++.proto[data-proto='B'] .proto-head { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--ds-color-surface); border-block-end: 1px solid var(--ds-color-border); }
++.proto[data-proto='B'] .proto-head__text { display: flex; flex: 1; align-items: baseline; gap: 12px; flex-wrap: wrap; }
++.proto[data-proto='B'] .proto-name { font-size: var(--ds-size-3); }
++.proto[data-proto='B'] .proto-title { margin-inline-start: auto; color: var(--ds-color-text-muted); font-size: var(--ds-size-2); }
++.proto[data-proto='B'] .proto-sub { display: none; }
++.proto[data-proto='B'] main { flex: 1; display: flex; flex-direction: column; }
++.proto[data-proto='B'] .ds-page { max-inline-size: none; margin: 0; padding: 0; flex: 1; display: flex; flex-direction: column; }
++.proto[data-proto='B'] .ds-wizard { flex: 1; gap: 0; grid-template-rows: auto 1fr auto; }
++.proto[data-proto='B'] .ds-steps { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; padding: 0 16px; border-block-end: 1px solid var(--ds-color-divider); }
++.proto[data-proto='B'] .ds-steps__button { inline-size: 100%; padding-inline: 2px; font-size: var(--ds-size-1); min-block-size: 40px; }
++.proto[data-proto='B'] .ds-steps__n { display: none; }
++.proto[data-proto='B'] .ds-steps__item[data-standing='done'] .ds-steps__button::before { content: '✓ '; }
++.proto[data-proto='B'] .ds-wizard__body { padding: 20px 16px; align-content: start; }
++.proto[data-proto='B'] .ds-action-bar { position: static; padding: 12px 16px; background: var(--ds-color-surface); border-block-start: 1px solid var(--ds-color-border); }
++/* The window is under 600 px wide, but it is a desktop window: keep the bar on one row (the phone layout of the web page does not apply). */
++.proto[data-proto='B'] .ds-action-bar { flex-direction: row; align-items: center; flex-wrap: nowrap; }
++.proto[data-proto='B'] .ds-action-bar__side, .proto[data-proto='B'] .ds-action-bar__main { flex-direction: row; align-items: center; }
++.proto[data-proto='B'] .ds-action-bar > :first-child { margin-inline-start: auto; }
++.proto[data-proto='B'] .ds-action-bar .ds-button-wrap, .proto[data-proto='B'] .ds-action-bar .ds-button { inline-size: auto; }
++.proto[data-proto='B'] .ds-action-bar__side { order: 0; } .proto[data-proto='B'] .ds-action-bar__main { order: 1; }
+diff --git a/apps/web/src/screens/settings/Updates.tsx b/apps/web/src/screens/settings/Updates.tsx
+index 194292f..86df184 100644
+--- a/apps/web/src/screens/settings/Updates.tsx
++++ b/apps/web/src/screens/settings/Updates.tsx
+@@ -25,6 +25,7 @@ import { useCommand, useLoad } from '../../api/hooks';
+ import { useSession } from '../../auth/session';
+ import { TIMING } from '../../timing';
+ import { Load } from '../common';
++import { OPT, Proto } from '../../proto/Chrome';
+ import { settingsPath } from './sections';
+ 
+ type UpdateStatus = Schemas['UpdateStatus'];
+@@ -41,10 +42,10 @@ const IN_PROGRESS: readonly UpdateStatus['state'][] = [
+ // The compact update page (TRAY4): one step per stage of the update, in the order the service goes through them.
+ const COMPACT_STEPS = [
+   'Review',
+-  'Downloading',
+-  'Waiting for jobs',
+-  'Installing',
+-  'Restarting',
++  'Download',
++  'Jobs',
++  'Install',
++  'Restart',
+   'Done',
+ ] as const;
+ const STAGE_STEP: Record<UpdateStage['name'], number> = {
+@@ -476,7 +477,7 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
+         <Message tone="done">
+           {kind === 'update'
+             ? compact
+-              ? `Updated to ${status?.current_version}.`
++              ? `Now running ${status?.current_version}.`
+               : `The service runs ${status?.current_version}.`
+             : 'The service restarted.'}
+         </Message>
+@@ -569,12 +570,13 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
+ /** The small window the tray opens (TRAY4): the same update steps, no shell around them, in the console theme. */
+ export function UpdateCompactPage() {
+   return (
+-    <main>
+-      <Page frame="compact">
+-        <PageHeader title="Update" />
+-        <UpdateWizard compact />
+-      </Page>
+-    </main>
++    <Proto title="Update">
++      <main>
++        <Page frame="compact">
++          <UpdateWizard compact />
++        </Page>
++      </main>
++    </Proto>
+   );
+ }
+ 

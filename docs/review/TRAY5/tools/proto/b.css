@@ -1,0 +1,24 @@
+/* Option B: one frame for updater and installer. Header band with the crsp icon and name, a one-row step strip with
+   short labels, the primary action bottom-right on an action bar. */
+html, body { margin: 0; }
+.proto[data-proto='B'] { min-block-size: 100vh; display: flex; flex-direction: column; background: var(--ds-color-page); }
+.proto[data-proto='B'] .proto-head { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--ds-color-surface); border-block-end: 1px solid var(--ds-color-border); }
+.proto[data-proto='B'] .proto-head__text { display: flex; flex: 1; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.proto[data-proto='B'] .proto-name { font-size: var(--ds-size-3); }
+.proto[data-proto='B'] .proto-title { margin-inline-start: auto; color: var(--ds-color-text-muted); font-size: var(--ds-size-2); }
+.proto[data-proto='B'] .proto-sub { display: none; }
+.proto[data-proto='B'] main { flex: 1; display: flex; flex-direction: column; }
+.proto[data-proto='B'] .ds-page { max-inline-size: none; margin: 0; padding: 0; flex: 1; display: flex; flex-direction: column; }
+.proto[data-proto='B'] .ds-wizard { flex: 1; gap: 0; grid-template-rows: auto 1fr auto; }
+.proto[data-proto='B'] .ds-steps { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; padding: 0 16px; border-block-end: 1px solid var(--ds-color-divider); }
+.proto[data-proto='B'] .ds-steps__button { inline-size: 100%; padding-inline: 2px; font-size: var(--ds-size-1); min-block-size: 40px; }
+.proto[data-proto='B'] .ds-steps__n { display: none; }
+.proto[data-proto='B'] .ds-steps__item[data-standing='done'] .ds-steps__button::before { content: '✓ '; }
+.proto[data-proto='B'] .ds-wizard__body { padding: 20px 16px; align-content: start; }
+.proto[data-proto='B'] .ds-action-bar { position: static; padding: 12px 16px; background: var(--ds-color-surface); border-block-start: 1px solid var(--ds-color-border); }
+/* The window is under 600 px wide, but it is a desktop window: keep the bar on one row (the phone layout of the web page does not apply). */
+.proto[data-proto='B'] .ds-action-bar { flex-direction: row; align-items: center; flex-wrap: nowrap; }
+.proto[data-proto='B'] .ds-action-bar__side, .proto[data-proto='B'] .ds-action-bar__main { flex-direction: row; align-items: center; }
+.proto[data-proto='B'] .ds-action-bar > :first-child { margin-inline-start: auto; }
+.proto[data-proto='B'] .ds-action-bar .ds-button-wrap, .proto[data-proto='B'] .ds-action-bar .ds-button { inline-size: auto; }
+.proto[data-proto='B'] .ds-action-bar__side { order: 0; } .proto[data-proto='B'] .ds-action-bar__main { order: 1; }
