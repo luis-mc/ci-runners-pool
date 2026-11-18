@@ -2,14 +2,12 @@
 // console: a public https address that forwards to the controller. The controller makes the secret, sends a signed
 // test to the address and sets the App's webhook at GitHub; nothing is done in a terminal or in GitHub's settings,
 // except one guided step when the App does not subscribe to workflow_job. Only shared parts of @crsp/ui are used
-// (UX-22, UX-24, UX-38). The Access tab already has its one primary (Add), so Save is a plain button, as Replace key is.
+// (UX-22, UX-24, UX-38, UX-71). The section is a part of the Access tab's one form: the bar at the foot counts its changes and saves it.
 import {
-  Button,
   CheckRow,
   ErrorSummary,
   ExternalButton,
   Facts,
-  FormActions,
   Message,
   Section,
   Stack,
@@ -25,6 +23,7 @@ import { useCommand, useLoad } from '../../api/hooks';
 import { safeAppUrl } from '../../auth/CallbackGuide';
 import { useSession } from '../../auth/session';
 import { Load } from '../common';
+import { useTabPart } from './TabForm';
 
 type Webhook = Schemas['AppWebhook'];
 
@@ -128,30 +127,40 @@ function WebhooksForm({
     if (on) {
       const problem = webhookAddressProblem(address);
       setErrors(problem ? [problem] : []);
-      if (problem) return;
+      if (problem) return false;
       await unwrap(
         client.PUT('/api/v1/app/webhook', { body: { address: address.trim() } }),
       );
       setDone('Webhooks are on. GitHub now tells crsp about jobs at once.');
       onSaved();
-      return;
+      return true;
     }
     setErrors([]);
-    if (!wasOn) return;
+    if (!wasOn) return true;
     await unwrap(client.DELETE('/api/v1/app/webhook'));
     setDone('Webhooks are off. crsp finds jobs by polling GitHub again.');
     onSaved();
+    return true;
   });
   const st = stateStatus(webhook);
   const link = safeAppUrl(webhook.events_link);
   const owner = session.can('owner');
+  const addressChanged = on && address.trim() !== (webhook.address ?? '');
+  // The section is a part of the Access tab: its changes count in the bar, and Save in the bar saves it.
+  useTabPart('webhooks', {
+    changes: (on !== wasOn ? 1 : 0) + (addressChanged ? 1 : 0),
+    save: async () => (await save.run()) === true,
+    reset: () => {
+      setOn(wasOn);
+      setAddress(webhook.address ?? '');
+      setErrors([]);
+      setDone(undefined);
+      save.clear();
+    },
+    blocked: owner ? undefined : (session.whyNot('owner') ?? 'Only the owner.'),
+  });
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        void save.run();
-      }}
-    >
+    <>
       <Stack>
         <Text>
           With webhooks GitHub tells crsp about a job the moment it is queued, so the job
@@ -175,6 +184,7 @@ function WebhooksForm({
           label="Real webhooks"
           help="Clear it and Save to find jobs by polling GitHub again."
           checked={on}
+          changed={on !== wasOn}
           onChange={(v) => {
             setOn(v);
             setDone(undefined);
@@ -189,6 +199,7 @@ function WebhooksForm({
             label="Public https address"
             help="The address that forwards to this controller, for example https://hooks.example.com. crsp sends a signed test to it before GitHub is changed."
             value={address}
+            changed={addressChanged}
             onChange={(v) => {
               setAddress(v);
               setDone(undefined);
@@ -212,29 +223,7 @@ function WebhooksForm({
         {link ? (
           <ExternalButton href={link}>Open the App on GitHub</ExternalButton>
         ) : null}
-        <FormActions>
-          <Button
-            onPress={() => {
-              setOn(wasOn);
-              setAddress(webhook.address ?? '');
-              setErrors([]);
-              setDone(undefined);
-              save.clear();
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            submit
-            busy={save.busy}
-            busyLabel={on ? 'Testing the address' : 'Turning off'}
-            disabled={!owner}
-            reason={session.whyNot('owner')}
-          >
-            Save
-          </Button>
-        </FormActions>
       </Stack>
-    </form>
+    </>
   );
 }

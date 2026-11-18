@@ -605,6 +605,8 @@ paths:
   /api/v1/app/webhook:
     get:
       operationId: getAppWebhook
+      x-cli: none
+      x-cli-reason: 'The webhook address is set in the console, Settings, Access, Webhooks, where the guided GitHub step is.'
       tags: [auth]
       summary: Read the GitHub App webhook state
       description: >-
@@ -624,6 +626,8 @@ paths:
           $ref: '#/components/responses/Error'
     put:
       operationId: setAppWebhook
+      x-cli: none
+      x-cli-reason: 'The webhook address is set in the console, Settings, Access, Webhooks, where the guided GitHub step is.'
       tags: [auth]
       summary: Turn real GitHub webhooks on
       description: >-
@@ -653,6 +657,8 @@ paths:
           $ref: '#/components/responses/Error'
     delete:
       operationId: clearAppWebhook
+      x-cli: none
+      x-cli-reason: 'The webhook address is set in the console, Settings, Access, Webhooks, where the guided GitHub step is.'
       tags: [auth]
       summary: Turn real GitHub webhooks off
       description: >-
