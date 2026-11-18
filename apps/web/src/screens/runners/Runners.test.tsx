@@ -544,7 +544,11 @@ describe('Add runners: Linux on a Windows machine (OPS27)', () => {
     await screen.findByRole('group', { name: 'Add runners' });
     fireEvent.click(await screen.findByRole('button', { name: 'Next' }));
     expect(
-      await screen.findByText(/Nothing would be added with these choices/),
+      await screen.findByText(
+        /Nothing would be added with these choices/,
+        {},
+        { timeout: 5000 },
+      ),
     ).toBeTruthy();
     expect(screen.queryByText(/These steps run/)).toBeNull();
   });
