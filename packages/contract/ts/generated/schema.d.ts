@@ -1667,6 +1667,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Jobs grouped by repository, machine, runner, runner type or job type
+         * @description OPS34 D9, D10. One row per group with its counts, wait and run time percentiles and a trend of the last run times. `filter` is the query that lists the jobs of the group.
+         */
+        get: operations["listJobGroups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Chart data of the last days
+         * @description OPS34 D2. Jobs, wait and run time per day, jobs per weekday and hour (UTC), and the forecasts next to the actual times. Takes the filters of listJobs.
+         */
+        get: operations["getJobStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/summaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Daily summaries kept after the jobs are pruned
+         * @description OPS34 D2, D12. One row per day, repository and job type, kept 400 days. Oldest day first.
+         */
+        get: operations["listJobSummaries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Workflow runs, newest first
+         * @description OPS34 D3, D6. One row per run attempt with its job counts, total time and, for an open run, the ETA of the run.
+         */
+        get: operations["listRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One run attempt with its jobs, needs graph and ETA
+         * @description OPS34 D3, D4. The jobs carry their forecast and, when queued, their place and ETA. `edges` come from the workflow file when it was read, else from timing overlap (`graph.source`).
+         */
+        get: operations["getRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The forecast of a job key with its steps and history
+         * @description OPS34 D4. One number with a range and the basis it rests on. Steps come from the newest finished job of the key and only when step samples exist.
+         */
+        get: operations["getForecast"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/{jobId}": {
         parameters: {
             query?: never;
@@ -1978,6 +2098,26 @@ export interface paths {
          * @description web-console R5.24, observability R5.7 to R5.11. Takes the filters of listJobs and holds every matching row (no paging), in the order the list shows. The file is named for what it holds then the stamp, such as `crsp-jobs-2026-11-14-1005.csv`, and says so in `Content-Disposition`.
          */
         get: operations["exportJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/job-summaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export the daily job summaries as a file
+         * @description OPS34 D2, D12. Holds every daily summary of the range (one job type of one repository per day, kept 400 days), oldest day first. Named `crsp-job-summaries-<stamp>.csv`; text that looks like a formula is neutralised in the CSV (UX-39).
+         */
+        get: operations["exportJobSummaries"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3938,11 +4078,275 @@ export interface components {
             run_seconds?: number;
             result?: components["schemas"]["JobResult"];
             html_url?: string;
+            /** @description Repository, workflow, job name with matrix values. The same job of another run has the same key (OPS34). */
+            job_ident?: string;
+            /** @description The id of the job inside its run (its name with matrix values). Edges and `needs` use it. */
+            node_id?: string;
+            matrix?: string[];
+            branch?: string;
+            pull_request?: number;
+            /** @description The task id the branch starts with, when it does. */
+            task_id?: string;
+            /** @description Only when the job reported it. */
+            worktree?: string;
+            /**
+             * @description The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
+             * @enum {string}
+             */
+            job_type?: "light" | "standard" | "heavy";
+            /** @description node_id of the jobs this one needs. */
+            needs?: string[];
+            runner?: components["schemas"]["RunnerRef"];
+            cleanup_seconds?: number;
+            /** @description 1-based place in the queue, queued jobs only. */
+            queue_position?: number;
+            queue_eta?: components["schemas"]["Eta"];
+            forecast?: components["schemas"]["Forecast"];
         };
         JobPage: {
             items: components["schemas"]["Job"][];
             next_cursor?: string;
+            /** @description The count of the filter without paging. */
+            total?: number;
             stale: components["schemas"]["Staleness"];
+        };
+        /**
+         * @description Where a forecast came from. The job key, else its workflow, else its repository, else nothing (5 samples needed).
+         * @enum {string}
+         */
+        ForecastBasis: "job_ident" | "workflow" | "repository" | "not_enough_history";
+        /** @description A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way. */
+        Forecast: {
+            p50: number;
+            lo: number;
+            hi: number;
+            p25?: number;
+            p75?: number;
+            basis: components["schemas"]["ForecastBasis"];
+            samples: number;
+            /** @description Set when only samples of this machine were used. */
+            machine?: string;
+            /** @description The median of the last 10 moved by more than a quarter against the 20 before; the last 10 are used. */
+            changed_lately?: boolean;
+        };
+        /** @description Seconds from now, with a range. When a queued job starts, or when a run ends. */
+        Eta: {
+            p50: number;
+            lo: number;
+            hi: number;
+        };
+        RunnerRef: {
+            id: string;
+            name: string;
+            kind: components["schemas"]["RunnerKind"];
+            machine_id?: string;
+            machine_name?: string;
+            backend?: string;
+            isolation?: components["schemas"]["Isolation"];
+            /** @enum {string} */
+            cache?: "warm" | "cold";
+        };
+        StepItem: {
+            number: number;
+            name: string;
+            /** @enum {string} */
+            state: "queued" | "running" | "done" | "skipped";
+            /** @enum {string} */
+            result?: "success" | "failure" | "cancelled" | "skipped";
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: date-time */
+            completed_at?: string;
+            run_seconds?: number;
+            forecast?: components["schemas"]["Forecast"];
+        };
+        /** @description One earlier run of a job key. */
+        HistoryPoint: {
+            /** Format: date-time */
+            at: string;
+            seconds: number;
+            result?: components["schemas"]["JobResult"];
+            branch: string;
+            machine?: string;
+        };
+        AttemptRef: {
+            attempt: number;
+            /** Format: int64 */
+            job_id: number;
+            result?: components["schemas"]["JobResult"];
+            /** @enum {string} */
+            state: "queued" | "running" | "done";
+        };
+        /** @description A job with its steps, the last 30 runs of its key, its attempts and the ETA of its run (OPS34). */
+        JobDetail: components["schemas"]["Job"] & {
+            steps: components["schemas"]["StepItem"][];
+            /** @description The last 30 durations of this job key, oldest first. */
+            history: components["schemas"]["HistoryPoint"][];
+            attempts: components["schemas"]["AttemptRef"][];
+            run_eta?: components["schemas"]["Eta"];
+        };
+        /** @description One run attempt in a list. */
+        RunSummary: {
+            /**
+             * Format: int64
+             * @description The GitHub run id.
+             */
+            id: number;
+            attempt: number;
+            attempts?: number[];
+            repository: string;
+            /** Format: int64 */
+            repository_id?: number;
+            workflow: string;
+            branch: string;
+            head_sha: string;
+            pull_request?: number;
+            task_id?: string;
+            worktree?: string;
+            trigger: string;
+            html_url: string;
+            /** @enum {string} */
+            state: "queued" | "running" | "done";
+            result?: components["schemas"]["JobResult"];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            completed_at?: string;
+            jobs_total: number;
+            jobs_done: number;
+            jobs_failed: number;
+            /** @description Wall time from created to completed, or to now while open. */
+            total_seconds?: number;
+            eta?: components["schemas"]["Eta"];
+        };
+        RunPage: {
+            items: components["schemas"]["RunSummary"][];
+            next_cursor?: string;
+            total: number;
+            stale: components["schemas"]["Staleness"];
+        };
+        /** @description Where the edges of a run come from (OPS34 D3). */
+        RunGraph: {
+            /** @enum {string} */
+            source: "workflow_file" | "timing_overlap";
+            /** @description A sentence for the screen, such as "the matrix expands at run time". */
+            note?: string;
+            /** @description node_id of the jobs a matrix or a reusable workflow expands at run time. */
+            dynamic_nodes: string[];
+        };
+        /** @description A run attempt with its jobs and needs graph. */
+        RunItem: {
+            /** Format: int64 */
+            id: number;
+            attempt: number;
+            attempts: number[];
+            repository: string;
+            /** Format: int64 */
+            repository_id?: number;
+            workflow: string;
+            branch: string;
+            head_sha: string;
+            pull_request?: number;
+            task_id?: string;
+            worktree?: string;
+            trigger: string;
+            html_url: string;
+            /** @enum {string} */
+            state: "queued" | "running" | "done";
+            result?: components["schemas"]["JobResult"];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            completed_at?: string;
+            jobs: components["schemas"]["Job"][];
+            /** @description [a, b]: b needs a. Node ids. */
+            edges: string[][];
+            /** @description Node ids on the critical path. */
+            critical_path: string[];
+            eta?: components["schemas"]["Eta"];
+            graph: components["schemas"]["RunGraph"];
+        };
+        JobGroupRow: {
+            name: string;
+            /** @description The query that lists this group's jobs, such as `repository=owner/name`. */
+            filter: string;
+            running: number;
+            queued: number;
+            done: number;
+            failed: number;
+            wait_p50: number;
+            wait_p90: number;
+            run_p50: number;
+            run_p90: number;
+            /** @description The last run times in seconds, oldest first, at most 20. */
+            trend: number[];
+            /** @description Job type groups only. */
+            light?: boolean;
+        };
+        JobGroupList: {
+            items: components["schemas"]["JobGroupRow"][];
+        };
+        DayStat: {
+            /** @description UTC date, such as 2026-11-18. */
+            day: string;
+            jobs: number;
+            failed: number;
+            wait_p50: number;
+            wait_p90: number;
+            run_p50: number;
+            run_p90: number;
+        };
+        HourStat: {
+            /** @description 0 is Sunday. */
+            weekday: number;
+            /** @description UTC. */
+            hour: number;
+            count: number;
+        };
+        ForecastPoint: {
+            /** Format: int64 */
+            job_id: number;
+            forecast_seconds: number;
+            actual_seconds: number;
+            lo: number;
+            hi: number;
+            basis: string;
+            /** @description What the forecast rested on, in words. */
+            note?: string;
+        };
+        JobStats: {
+            days: components["schemas"]["DayStat"][];
+            hours: components["schemas"]["HourStat"][];
+            forecast_points: components["schemas"]["ForecastPoint"][];
+        };
+        /** @description One job type of one repository on one day (OPS34 D2). */
+        JobSummary: {
+            day: string;
+            repository: string;
+            job_type: string;
+            jobs: number;
+            failed: number;
+            /** Format: int64 */
+            wait_p50_ms: number;
+            /** Format: int64 */
+            wait_p90_ms: number;
+            /** Format: int64 */
+            run_p50_ms: number;
+            /** Format: int64 */
+            run_p90_ms: number;
+        };
+        JobSummaryList: {
+            items: components["schemas"]["JobSummary"][];
+        };
+        StepForecast: {
+            name: string;
+            forecast: components["schemas"]["Forecast"];
+        };
+        ForecastAnswer: {
+            job_ident: string;
+            forecast: components["schemas"]["Forecast"];
+            steps: components["schemas"]["StepForecast"][];
+            history: components["schemas"]["HistoryPoint"][];
         };
         Slot: {
             /** @enum {string} */
@@ -4630,6 +5034,16 @@ export interface components {
         /** @description Opaque cursor from the previous page's `next_cursor`. */
         Cursor: string;
         Limit: number;
+        /** @description Page size of the Jobs section; 25 when absent, at most 100. */
+        JobsLimit: number;
+        /** @description The runner name (OPS34 D9). */
+        JobRunner: string;
+        JobRunnerKind: components["schemas"]["RunnerKind"];
+        /** @description The job name without its matrix values, such as `test` (OPS34 D10). */
+        JobTypeFilter: string;
+        JobKeyFilter: string;
+        JobBranchFilter: string;
+        JobRunIdFilter: number;
         From: string;
         To: string;
         /** @description The yes to a question card that named what goes (UX-62). */
@@ -6978,11 +7392,20 @@ export interface operations {
                 machine_id?: string;
                 backend?: string;
                 result?: components["schemas"]["JobResult"];
+                /** @description The runner name (OPS34 D9). */
+                runner?: components["parameters"]["JobRunner"];
+                runner_kind?: components["parameters"]["JobRunnerKind"];
+                /** @description The job name without its matrix values, such as `test` (OPS34 D10). */
+                job_type?: components["parameters"]["JobTypeFilter"];
+                job_ident?: components["parameters"]["JobKeyFilter"];
+                branch?: components["parameters"]["JobBranchFilter"];
+                run_id?: components["parameters"]["JobRunIdFilter"];
                 from?: components["parameters"]["From"];
                 to?: components["parameters"]["To"];
                 /** @description Opaque cursor from the previous page's `next_cursor`. */
                 cursor?: components["parameters"]["Cursor"];
-                limit?: components["parameters"]["Limit"];
+                /** @description Page size of the Jobs section; 25 when absent, at most 100. */
+                limit?: components["parameters"]["JobsLimit"];
             };
             header?: never;
             path?: never;
@@ -6990,7 +7413,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description One page of jobs. */
+            /** @description One page of jobs, with the total of the filter, each job's forecast and, for a queued job, its place and ETA. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -7028,6 +7451,174 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    listJobGroups: {
+        parameters: {
+            query?: {
+                /** @description The grouping. The handler answers 400 when it is missing or not one of these. */
+                by?: "repository" | "machine" | "runner" | "runner-type" | "job-type";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The groups. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobGroupList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getJobStats: {
+        parameters: {
+            query?: {
+                days?: 7 | 14 | 30;
+                state?: "queued" | "running" | "done";
+                repository_id?: number;
+                machine_id?: string;
+                backend?: string;
+                result?: components["schemas"]["JobResult"];
+                /** @description The runner name (OPS34 D9). */
+                runner?: components["parameters"]["JobRunner"];
+                runner_kind?: components["parameters"]["JobRunnerKind"];
+                /** @description The job name without its matrix values, such as `test` (OPS34 D10). */
+                job_type?: components["parameters"]["JobTypeFilter"];
+                job_ident?: components["parameters"]["JobKeyFilter"];
+                branch?: components["parameters"]["JobBranchFilter"];
+                run_id?: components["parameters"]["JobRunIdFilter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The chart data. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobStats"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listJobSummaries: {
+        parameters: {
+            query?: {
+                from?: components["parameters"]["From"];
+                to?: components["parameters"]["To"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The summaries of the range. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobSummaryList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listRuns: {
+        parameters: {
+            query?: {
+                state?: "queued" | "running" | "done";
+                result?: components["schemas"]["JobResult"];
+                repository_id?: number;
+                branch?: components["parameters"]["JobBranchFilter"];
+                from?: components["parameters"]["From"];
+                to?: components["parameters"]["To"];
+                /** @description Opaque cursor from the previous page's `next_cursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Page size of the Jobs section; 25 when absent, at most 100. */
+                limit?: components["parameters"]["JobsLimit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of runs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunPage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRun: {
+        parameters: {
+            query?: {
+                /** @description The attempt; the newest when absent. */
+                attempt?: number;
+            };
+            header?: never;
+            path: {
+                runId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The run. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunItem"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getForecast: {
+        parameters: {
+            query?: {
+                /** @description Required; the handler answers 400 when it is missing. */
+                job_ident?: string;
+                /** @description Required; the handler answers 400 when it is missing. */
+                repository_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The forecast. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForecastAnswer"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     getJob: {
         parameters: {
             query?: never;
@@ -7039,13 +7630,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The job. */
+            /** @description The job with its steps, history, attempts and the ETA of its run. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Job"];
+                    "application/json": components["schemas"]["JobDetail"];
                 };
             };
             default: components["responses"]["Error"];
@@ -7432,6 +8023,30 @@ export interface operations {
                 machine_id?: string;
                 backend?: string;
                 result?: components["schemas"]["JobResult"];
+                /** @description The runner name (OPS34 D9). */
+                runner?: components["parameters"]["JobRunner"];
+                runner_kind?: components["parameters"]["JobRunnerKind"];
+                /** @description The job name without its matrix values, such as `test` (OPS34 D10). */
+                job_type?: components["parameters"]["JobTypeFilter"];
+                job_ident?: components["parameters"]["JobKeyFilter"];
+                branch?: components["parameters"]["JobBranchFilter"];
+                run_id?: components["parameters"]["JobRunIdFilter"];
+                from?: components["parameters"]["From"];
+                to?: components["parameters"]["To"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ExportFile"];
+            default: components["responses"]["Error"];
+        };
+    };
+    exportJobSummaries: {
+        parameters: {
+            query?: {
                 from?: components["parameters"]["From"];
                 to?: components["parameters"]["To"];
             };

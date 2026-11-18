@@ -111,6 +111,27 @@ func (e Arch) Valid() bool {
 	}
 }
 
+// Defines values for AttemptRefState.
+const (
+	AttemptRefStateDone    AttemptRefState = "done"
+	AttemptRefStateQueued  AttemptRefState = "queued"
+	AttemptRefStateRunning AttemptRefState = "running"
+)
+
+// Valid indicates whether the value is a known member of the AttemptRefState enum.
+func (e AttemptRefState) Valid() bool {
+	switch e {
+	case AttemptRefStateDone:
+		return true
+	case AttemptRefStateQueued:
+		return true
+	case AttemptRefStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AuditEventResult.
 const (
 	AuditEventResultDone    AuditEventResult = "done"
@@ -420,6 +441,30 @@ func (e DoctorRunTrigger) Valid() bool {
 	}
 }
 
+// Defines values for ForecastBasis.
+const (
+	ForecastBasisJobIdent         ForecastBasis = "job_ident"
+	ForecastBasisNotEnoughHistory ForecastBasis = "not_enough_history"
+	ForecastBasisRepository       ForecastBasis = "repository"
+	ForecastBasisWorkflow         ForecastBasis = "workflow"
+)
+
+// Valid indicates whether the value is a known member of the ForecastBasis enum.
+func (e ForecastBasis) Valid() bool {
+	switch e {
+	case ForecastBasisJobIdent:
+		return true
+	case ForecastBasisNotEnoughHistory:
+		return true
+	case ForecastBasisRepository:
+		return true
+	case ForecastBasisWorkflow:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for FreeSlotsRequestSlotsKind.
 const (
 	FreeSlotsRequestSlotsKindCi    FreeSlotsRequestSlotsKind = "ci"
@@ -600,6 +645,27 @@ func (e Isolation) Valid() bool {
 	}
 }
 
+// Defines values for JobJobType.
+const (
+	JobJobTypeHeavy    JobJobType = "heavy"
+	JobJobTypeLight    JobJobType = "light"
+	JobJobTypeStandard JobJobType = "standard"
+)
+
+// Valid indicates whether the value is a known member of the JobJobType enum.
+func (e JobJobType) Valid() bool {
+	switch e {
+	case JobJobTypeHeavy:
+		return true
+	case JobJobTypeLight:
+		return true
+	case JobJobTypeStandard:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JobState.
 const (
 	JobStateDone    JobState = "done"
@@ -615,6 +681,48 @@ func (e JobState) Valid() bool {
 	case JobStateQueued:
 		return true
 	case JobStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobDetailJobType.
+const (
+	JobDetailJobTypeHeavy    JobDetailJobType = "heavy"
+	JobDetailJobTypeLight    JobDetailJobType = "light"
+	JobDetailJobTypeStandard JobDetailJobType = "standard"
+)
+
+// Valid indicates whether the value is a known member of the JobDetailJobType enum.
+func (e JobDetailJobType) Valid() bool {
+	switch e {
+	case JobDetailJobTypeHeavy:
+		return true
+	case JobDetailJobTypeLight:
+		return true
+	case JobDetailJobTypeStandard:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobDetailState.
+const (
+	JobDetailStateDone    JobDetailState = "done"
+	JobDetailStateQueued  JobDetailState = "queued"
+	JobDetailStateRunning JobDetailState = "running"
+)
+
+// Valid indicates whether the value is a known member of the JobDetailState enum.
+func (e JobDetailState) Valid() bool {
+	switch e {
+	case JobDetailStateDone:
+		return true
+	case JobDetailStateQueued:
+		return true
+	case JobDetailStateRunning:
 		return true
 	default:
 		return false
@@ -1542,6 +1650,66 @@ func (e Role) Valid() bool {
 	}
 }
 
+// Defines values for RunGraphSource.
+const (
+	TimingOverlap RunGraphSource = "timing_overlap"
+	WorkflowFile  RunGraphSource = "workflow_file"
+)
+
+// Valid indicates whether the value is a known member of the RunGraphSource enum.
+func (e RunGraphSource) Valid() bool {
+	switch e {
+	case TimingOverlap:
+		return true
+	case WorkflowFile:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunItemState.
+const (
+	RunItemStateDone    RunItemState = "done"
+	RunItemStateQueued  RunItemState = "queued"
+	RunItemStateRunning RunItemState = "running"
+)
+
+// Valid indicates whether the value is a known member of the RunItemState enum.
+func (e RunItemState) Valid() bool {
+	switch e {
+	case RunItemStateDone:
+		return true
+	case RunItemStateQueued:
+		return true
+	case RunItemStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunSummaryState.
+const (
+	RunSummaryStateDone    RunSummaryState = "done"
+	RunSummaryStateQueued  RunSummaryState = "queued"
+	RunSummaryStateRunning RunSummaryState = "running"
+)
+
+// Valid indicates whether the value is a known member of the RunSummaryState enum.
+func (e RunSummaryState) Valid() bool {
+	switch e {
+	case RunSummaryStateDone:
+		return true
+	case RunSummaryStateQueued:
+		return true
+	case RunSummaryStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RunnerKind.
 const (
 	RunnerKindEphemeral  RunnerKind = "ephemeral"
@@ -1554,6 +1722,24 @@ func (e RunnerKind) Valid() bool {
 	case RunnerKindEphemeral:
 		return true
 	case RunnerKindPersistent:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunnerRefCache.
+const (
+	Cold RunnerRefCache = "cold"
+	Warm RunnerRefCache = "warm"
+)
+
+// Valid indicates whether the value is a known member of the RunnerRefCache enum.
+func (e RunnerRefCache) Valid() bool {
+	switch e {
+	case Cold:
+		return true
+	case Warm:
 		return true
 	default:
 		return false
@@ -1809,6 +1995,54 @@ func (e StartAppManifestRequestAccountType) Valid() bool {
 	case StartAppManifestRequestAccountTypeOrganization:
 		return true
 	case StartAppManifestRequestAccountTypeUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for StepItemResult.
+const (
+	StepItemResultCancelled StepItemResult = "cancelled"
+	StepItemResultFailure   StepItemResult = "failure"
+	StepItemResultSkipped   StepItemResult = "skipped"
+	StepItemResultSuccess   StepItemResult = "success"
+)
+
+// Valid indicates whether the value is a known member of the StepItemResult enum.
+func (e StepItemResult) Valid() bool {
+	switch e {
+	case StepItemResultCancelled:
+		return true
+	case StepItemResultFailure:
+		return true
+	case StepItemResultSkipped:
+		return true
+	case StepItemResultSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for StepItemState.
+const (
+	StepItemStateDone    StepItemState = "done"
+	StepItemStateQueued  StepItemState = "queued"
+	StepItemStateRunning StepItemState = "running"
+	StepItemStateSkipped StepItemState = "skipped"
+)
+
+// Valid indicates whether the value is a known member of the StepItemState enum.
+func (e StepItemState) Valid() bool {
+	switch e {
+	case StepItemStateDone:
+		return true
+	case StepItemStateQueued:
+		return true
+	case StepItemStateRunning:
+		return true
+	case StepItemStateSkipped:
 		return true
 	default:
 		return false
@@ -2187,6 +2421,75 @@ func (e ListJobsParamsState) Valid() bool {
 	}
 }
 
+// Defines values for ListJobGroupsParamsBy.
+const (
+	ListJobGroupsParamsByJobType    ListJobGroupsParamsBy = "job-type"
+	ListJobGroupsParamsByMachine    ListJobGroupsParamsBy = "machine"
+	ListJobGroupsParamsByRepository ListJobGroupsParamsBy = "repository"
+	ListJobGroupsParamsByRunner     ListJobGroupsParamsBy = "runner"
+	ListJobGroupsParamsByRunnerType ListJobGroupsParamsBy = "runner-type"
+)
+
+// Valid indicates whether the value is a known member of the ListJobGroupsParamsBy enum.
+func (e ListJobGroupsParamsBy) Valid() bool {
+	switch e {
+	case ListJobGroupsParamsByJobType:
+		return true
+	case ListJobGroupsParamsByMachine:
+		return true
+	case ListJobGroupsParamsByRepository:
+		return true
+	case ListJobGroupsParamsByRunner:
+		return true
+	case ListJobGroupsParamsByRunnerType:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetJobStatsParamsDays.
+const (
+	N14 GetJobStatsParamsDays = 14
+	N30 GetJobStatsParamsDays = 30
+	N7  GetJobStatsParamsDays = 7
+)
+
+// Valid indicates whether the value is a known member of the GetJobStatsParamsDays enum.
+func (e GetJobStatsParamsDays) Valid() bool {
+	switch e {
+	case N14:
+		return true
+	case N30:
+		return true
+	case N7:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetJobStatsParamsState.
+const (
+	GetJobStatsParamsStateDone    GetJobStatsParamsState = "done"
+	GetJobStatsParamsStateQueued  GetJobStatsParamsState = "queued"
+	GetJobStatsParamsStateRunning GetJobStatsParamsState = "running"
+)
+
+// Valid indicates whether the value is a known member of the GetJobStatsParamsState enum.
+func (e GetJobStatsParamsState) Valid() bool {
+	switch e {
+	case GetJobStatsParamsStateDone:
+		return true
+	case GetJobStatsParamsStateQueued:
+		return true
+	case GetJobStatsParamsStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DeleteRegistryLoginParamsKind.
 const (
 	DeleteRegistryLoginParamsKindContainer  DeleteRegistryLoginParamsKind = "container"
@@ -2202,6 +2505,27 @@ func (e DeleteRegistryLoginParamsKind) Valid() bool {
 	case DeleteRegistryLoginParamsKindPersistent:
 		return true
 	case DeleteRegistryLoginParamsKindVm:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListRunsParamsState.
+const (
+	ListRunsParamsStateDone    ListRunsParamsState = "done"
+	ListRunsParamsStateQueued  ListRunsParamsState = "queued"
+	ListRunsParamsStateRunning ListRunsParamsState = "running"
+)
+
+// Valid indicates whether the value is a known member of the ListRunsParamsState enum.
+func (e ListRunsParamsState) Valid() bool {
+	switch e {
+	case ListRunsParamsStateDone:
+		return true
+	case ListRunsParamsStateQueued:
+		return true
+	case ListRunsParamsStateRunning:
 		return true
 	default:
 		return false
@@ -2318,6 +2642,17 @@ type ApplyPlanRequest struct {
 
 // Arch defines model for Arch.
 type Arch string
+
+// AttemptRef defines model for AttemptRef.
+type AttemptRef struct {
+	Attempt int             `json:"attempt"`
+	JobId   int64           `json:"job_id"`
+	Result  *JobResult      `json:"result,omitempty"`
+	State   AttemptRefState `json:"state"`
+}
+
+// AttemptRefState defines model for AttemptRef.State.
+type AttemptRefState string
 
 // AuditEvent observability R5.24.
 type AuditEvent struct {
@@ -2505,6 +2840,18 @@ type CreateJoinFileRequest struct {
 // CreateJoinFileRequestOs defines model for CreateJoinFileRequest.Os.
 type CreateJoinFileRequestOs string
 
+// DayStat defines model for DayStat.
+type DayStat struct {
+	// Day UTC date, such as 2026-11-18.
+	Day     string  `json:"day"`
+	Failed  int     `json:"failed"`
+	Jobs    int     `json:"jobs"`
+	RunP50  float32 `json:"run_p50"`
+	RunP90  float32 `json:"run_p90"`
+	WaitP50 float32 `json:"wait_p50"`
+	WaitP90 float32 `json:"wait_p90"`
+}
+
 // DockerCompactMode The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
 type DockerCompactMode string
 
@@ -2658,6 +3005,13 @@ type ErrorEnvelope struct {
 	Error ErrorBody `json:"error"`
 }
 
+// Eta Seconds from now, with a range. When a queued job starts, or when a run ends.
+type Eta struct {
+	Hi  float32 `json:"hi"`
+	Lo  float32 `json:"lo"`
+	P50 float32 `json:"p50"`
+}
+
 // ExchangeCliTokenRequest defines model for ExchangeCliTokenRequest.
 type ExchangeCliTokenRequest struct {
 	// GithubCredential The device-flow user token. Checked once and dropped.
@@ -2680,6 +3034,49 @@ type ExtraPackages struct {
 type ExtraPackagesUpdate struct {
 	// Text The whole list, one name per line. Blank lines and lines that start with
 	Text string `json:"text"`
+}
+
+// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
+type Forecast struct {
+	// Basis Where a forecast came from. The job key, else its workflow, else its repository, else nothing (5 samples needed).
+	Basis ForecastBasis `json:"basis"`
+
+	// ChangedLately The median of the last 10 moved by more than a quarter against the 20 before; the last 10 are used.
+	ChangedLately *bool   `json:"changed_lately,omitempty"`
+	Hi            float32 `json:"hi"`
+	Lo            float32 `json:"lo"`
+
+	// Machine Set when only samples of this machine were used.
+	Machine *string  `json:"machine,omitempty"`
+	P25     *float32 `json:"p25,omitempty"`
+	P50     float32  `json:"p50"`
+	P75     *float32 `json:"p75,omitempty"`
+	Samples int      `json:"samples"`
+}
+
+// ForecastAnswer defines model for ForecastAnswer.
+type ForecastAnswer struct {
+	// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
+	Forecast Forecast       `json:"forecast"`
+	History  []HistoryPoint `json:"history"`
+	JobIdent string         `json:"job_ident"`
+	Steps    []StepForecast `json:"steps"`
+}
+
+// ForecastBasis Where a forecast came from. The job key, else its workflow, else its repository, else nothing (5 samples needed).
+type ForecastBasis string
+
+// ForecastPoint defines model for ForecastPoint.
+type ForecastPoint struct {
+	ActualSeconds   float32 `json:"actual_seconds"`
+	Basis           string  `json:"basis"`
+	ForecastSeconds float32 `json:"forecast_seconds"`
+	Hi              float32 `json:"hi"`
+	JobId           int64   `json:"job_id"`
+	Lo              float32 `json:"lo"`
+
+	// Note What the forecast rested on, in words.
+	Note *string `json:"note,omitempty"`
 }
 
 // FreeSlotsRequest defines model for FreeSlotsRequest.
@@ -2766,6 +3163,15 @@ type Health struct {
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
 
+// HistoryPoint One earlier run of a job key.
+type HistoryPoint struct {
+	At      time.Time  `json:"at"`
+	Branch  string     `json:"branch"`
+	Machine *string    `json:"machine,omitempty"`
+	Result  *JobResult `json:"result,omitempty"`
+	Seconds float32    `json:"seconds"`
+}
+
 // HostCommandRequest defines model for HostCommandRequest.
 type HostCommandRequest struct {
 	// Command The program and its arguments; run without a shell.
@@ -2784,6 +3190,17 @@ type HostCommandResult struct {
 
 	// Output The last 64 KiB of the combined output, redacted.
 	Output string `json:"output"`
+}
+
+// HourStat defines model for HourStat.
+type HourStat struct {
+	Count int `json:"count"`
+
+	// Hour UTC.
+	Hour int `json:"hour"`
+
+	// Weekday 0 is Sunday.
+	Weekday int `json:"weekday"`
 }
 
 // Image One image on one machine (runners R5.32 and R5.33).
@@ -2894,32 +3311,61 @@ type Isolation string
 
 // Job One job attempt (observability R5.7, R5.8).
 type Job struct {
-	Backend           *string    `json:"backend,omitempty"`
-	CompletedAt       *time.Time `json:"completed_at,omitempty"`
-	CreatedAt         *time.Time `json:"created_at,omitempty"`
+	Backend        *string    `json:"backend,omitempty"`
+	Branch         *string    `json:"branch,omitempty"`
+	CleanupSeconds *int       `json:"cleanup_seconds,omitempty"`
+	CompletedAt    *time.Time `json:"completed_at,omitempty"`
+	CreatedAt      *time.Time `json:"created_at,omitempty"`
+
+	// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
+	Forecast          *Forecast  `json:"forecast,omitempty"`
 	GithubJobId       int64      `json:"github_job_id"`
 	GithubWaitSeconds *int       `json:"github_wait_seconds,omitempty"`
 	HeadSha           *string    `json:"head_sha,omitempty"`
 	HtmlUrl           *string    `json:"html_url,omitempty"`
 	Id                int64      `json:"id"`
 	Isolation         *Isolation `json:"isolation,omitempty"`
-	JobName           string     `json:"job_name"`
-	Labels            []string   `json:"labels"`
-	MachineId         *string    `json:"machine_id,omitempty"`
-	QueuedAt          *time.Time `json:"queued_at,omitempty"`
-	Repository        string     `json:"repository"`
-	RepositoryId      *int64     `json:"repository_id,omitempty"`
-	Result            *JobResult `json:"result,omitempty"`
-	RunAttempt        int        `json:"run_attempt"`
-	RunId             int64      `json:"run_id"`
-	RunSeconds        *int       `json:"run_seconds,omitempty"`
-	RunnerId          *string    `json:"runner_id,omitempty"`
-	RunnerName        *string    `json:"runner_name,omitempty"`
-	SlotAt            *time.Time `json:"slot_at,omitempty"`
-	SlotWaitSeconds   *int       `json:"slot_wait_seconds,omitempty"`
-	StartedAt         *time.Time `json:"started_at,omitempty"`
-	State             JobState   `json:"state"`
-	Trigger           *string    `json:"trigger,omitempty"`
+
+	// JobIdent Repository, workflow, job name with matrix values. The same job of another run has the same key (OPS34).
+	JobIdent *string `json:"job_ident,omitempty"`
+	JobName  string  `json:"job_name"`
+
+	// JobType The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
+	JobType   *JobJobType `json:"job_type,omitempty"`
+	Labels    []string    `json:"labels"`
+	MachineId *string     `json:"machine_id,omitempty"`
+	Matrix    *[]string   `json:"matrix,omitempty"`
+
+	// Needs node_id of the jobs this one needs.
+	Needs *[]string `json:"needs,omitempty"`
+
+	// NodeId The id of the job inside its run (its name with matrix values). Edges and `needs` use it.
+	NodeId      *string `json:"node_id,omitempty"`
+	PullRequest *int    `json:"pull_request,omitempty"`
+
+	// QueueEta Seconds from now, with a range. When a queued job starts, or when a run ends.
+	QueueEta *Eta `json:"queue_eta,omitempty"`
+
+	// QueuePosition 1-based place in the queue, queued jobs only.
+	QueuePosition   *int       `json:"queue_position,omitempty"`
+	QueuedAt        *time.Time `json:"queued_at,omitempty"`
+	Repository      string     `json:"repository"`
+	RepositoryId    *int64     `json:"repository_id,omitempty"`
+	Result          *JobResult `json:"result,omitempty"`
+	RunAttempt      int        `json:"run_attempt"`
+	RunId           int64      `json:"run_id"`
+	RunSeconds      *int       `json:"run_seconds,omitempty"`
+	Runner          *RunnerRef `json:"runner,omitempty"`
+	RunnerId        *string    `json:"runner_id,omitempty"`
+	RunnerName      *string    `json:"runner_name,omitempty"`
+	SlotAt          *time.Time `json:"slot_at,omitempty"`
+	SlotWaitSeconds *int       `json:"slot_wait_seconds,omitempty"`
+	StartedAt       *time.Time `json:"started_at,omitempty"`
+	State           JobState   `json:"state"`
+
+	// TaskId The task id the branch starts with, when it does.
+	TaskId  *string `json:"task_id,omitempty"`
+	Trigger *string `json:"trigger,omitempty"`
 
 	// WaitReason observability R5.5.
 	WaitReason *WaitReason `json:"wait_reason,omitempty"`
@@ -2927,10 +3373,126 @@ type Job struct {
 	// WaitText The reason with its machine, numbers or labels.
 	WaitText *string `json:"wait_text,omitempty"`
 	Workflow *string `json:"workflow,omitempty"`
+
+	// Worktree Only when the job reported it.
+	Worktree *string `json:"worktree,omitempty"`
 }
+
+// JobJobType The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
+type JobJobType string
 
 // JobState defines model for Job.State.
 type JobState string
+
+// JobDetail A job with its steps, the last 30 runs of its key, its attempts and the ETA of its run (OPS34).
+type JobDetail struct {
+	Attempts       []AttemptRef `json:"attempts"`
+	Backend        *string      `json:"backend,omitempty"`
+	Branch         *string      `json:"branch,omitempty"`
+	CleanupSeconds *int         `json:"cleanup_seconds,omitempty"`
+	CompletedAt    *time.Time   `json:"completed_at,omitempty"`
+	CreatedAt      *time.Time   `json:"created_at,omitempty"`
+
+	// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
+	Forecast          *Forecast `json:"forecast,omitempty"`
+	GithubJobId       int64     `json:"github_job_id"`
+	GithubWaitSeconds *int      `json:"github_wait_seconds,omitempty"`
+	HeadSha           *string   `json:"head_sha,omitempty"`
+
+	// History The last 30 durations of this job key, oldest first.
+	History   []HistoryPoint `json:"history"`
+	HtmlUrl   *string        `json:"html_url,omitempty"`
+	Id        int64          `json:"id"`
+	Isolation *Isolation     `json:"isolation,omitempty"`
+
+	// JobIdent Repository, workflow, job name with matrix values. The same job of another run has the same key (OPS34).
+	JobIdent *string `json:"job_ident,omitempty"`
+	JobName  string  `json:"job_name"`
+
+	// JobType The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
+	JobType   *JobDetailJobType `json:"job_type,omitempty"`
+	Labels    []string          `json:"labels"`
+	MachineId *string           `json:"machine_id,omitempty"`
+	Matrix    *[]string         `json:"matrix,omitempty"`
+
+	// Needs node_id of the jobs this one needs.
+	Needs *[]string `json:"needs,omitempty"`
+
+	// NodeId The id of the job inside its run (its name with matrix values). Edges and `needs` use it.
+	NodeId      *string `json:"node_id,omitempty"`
+	PullRequest *int    `json:"pull_request,omitempty"`
+
+	// QueueEta Seconds from now, with a range. When a queued job starts, or when a run ends.
+	QueueEta *Eta `json:"queue_eta,omitempty"`
+
+	// QueuePosition 1-based place in the queue, queued jobs only.
+	QueuePosition *int       `json:"queue_position,omitempty"`
+	QueuedAt      *time.Time `json:"queued_at,omitempty"`
+	Repository    string     `json:"repository"`
+	RepositoryId  *int64     `json:"repository_id,omitempty"`
+	Result        *JobResult `json:"result,omitempty"`
+	RunAttempt    int        `json:"run_attempt"`
+
+	// RunEta Seconds from now, with a range. When a queued job starts, or when a run ends.
+	RunEta          *Eta           `json:"run_eta,omitempty"`
+	RunId           int64          `json:"run_id"`
+	RunSeconds      *int           `json:"run_seconds,omitempty"`
+	Runner          *RunnerRef     `json:"runner,omitempty"`
+	RunnerId        *string        `json:"runner_id,omitempty"`
+	RunnerName      *string        `json:"runner_name,omitempty"`
+	SlotAt          *time.Time     `json:"slot_at,omitempty"`
+	SlotWaitSeconds *int           `json:"slot_wait_seconds,omitempty"`
+	StartedAt       *time.Time     `json:"started_at,omitempty"`
+	State           JobDetailState `json:"state"`
+	Steps           []StepItem     `json:"steps"`
+
+	// TaskId The task id the branch starts with, when it does.
+	TaskId  *string `json:"task_id,omitempty"`
+	Trigger *string `json:"trigger,omitempty"`
+
+	// WaitReason observability R5.5.
+	WaitReason *WaitReason `json:"wait_reason,omitempty"`
+
+	// WaitText The reason with its machine, numbers or labels.
+	WaitText *string `json:"wait_text,omitempty"`
+	Workflow *string `json:"workflow,omitempty"`
+
+	// Worktree Only when the job reported it.
+	Worktree *string `json:"worktree,omitempty"`
+}
+
+// JobDetailJobType The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
+type JobDetailJobType string
+
+// JobDetailState defines model for JobDetail.State.
+type JobDetailState string
+
+// JobGroupList defines model for JobGroupList.
+type JobGroupList struct {
+	Items []JobGroupRow `json:"items"`
+}
+
+// JobGroupRow defines model for JobGroupRow.
+type JobGroupRow struct {
+	Done   int `json:"done"`
+	Failed int `json:"failed"`
+
+	// Filter The query that lists this group's jobs, such as `repository=owner/name`.
+	Filter string `json:"filter"`
+
+	// Light Job type groups only.
+	Light   *bool   `json:"light,omitempty"`
+	Name    string  `json:"name"`
+	Queued  int     `json:"queued"`
+	RunP50  float32 `json:"run_p50"`
+	RunP90  float32 `json:"run_p90"`
+	Running int     `json:"running"`
+
+	// Trend The last run times in seconds, oldest first, at most 20.
+	Trend   []float32 `json:"trend"`
+	WaitP50 float32   `json:"wait_p50"`
+	WaitP90 float32   `json:"wait_p90"`
+}
 
 // JobPage defines model for JobPage.
 type JobPage struct {
@@ -2939,10 +3501,38 @@ type JobPage struct {
 
 	// Stale Set when GitHub did not answer and the last copy is shown (UX-53).
 	Stale Staleness `json:"stale"`
+
+	// Total The count of the filter without paging.
+	Total *int `json:"total,omitempty"`
 }
 
 // JobResult defines model for JobResult.
 type JobResult string
+
+// JobStats defines model for JobStats.
+type JobStats struct {
+	Days           []DayStat       `json:"days"`
+	ForecastPoints []ForecastPoint `json:"forecast_points"`
+	Hours          []HourStat      `json:"hours"`
+}
+
+// JobSummary One job type of one repository on one day (OPS34 D2).
+type JobSummary struct {
+	Day        string `json:"day"`
+	Failed     int    `json:"failed"`
+	JobType    string `json:"job_type"`
+	Jobs       int    `json:"jobs"`
+	Repository string `json:"repository"`
+	RunP50Ms   int64  `json:"run_p50_ms"`
+	RunP90Ms   int64  `json:"run_p90_ms"`
+	WaitP50Ms  int64  `json:"wait_p50_ms"`
+	WaitP90Ms  int64  `json:"wait_p90_ms"`
+}
+
+// JobSummaryList defines model for JobSummaryList.
+type JobSummaryList struct {
+	Items []JobSummary `json:"items"`
+}
 
 // JoinCode defines model for JoinCode.
 type JoinCode struct {
@@ -3935,6 +4525,101 @@ type ResolvedEnvVar struct {
 // Role defines model for Role.
 type Role string
 
+// RunGraph Where the edges of a run come from (OPS34 D3).
+type RunGraph struct {
+	// DynamicNodes node_id of the jobs a matrix or a reusable workflow expands at run time.
+	DynamicNodes []string `json:"dynamic_nodes"`
+
+	// Note A sentence for the screen, such as "the matrix expands at run time".
+	Note   *string        `json:"note,omitempty"`
+	Source RunGraphSource `json:"source"`
+}
+
+// RunGraphSource defines model for RunGraph.Source.
+type RunGraphSource string
+
+// RunItem A run attempt with its jobs and needs graph.
+type RunItem struct {
+	Attempt     int        `json:"attempt"`
+	Attempts    []int      `json:"attempts"`
+	Branch      string     `json:"branch"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+
+	// CriticalPath Node ids on the critical path.
+	CriticalPath []string `json:"critical_path"`
+
+	// Edges [a, b]: b needs a. Node ids.
+	Edges [][]string `json:"edges"`
+
+	// Eta Seconds from now, with a range. When a queued job starts, or when a run ends.
+	Eta *Eta `json:"eta,omitempty"`
+
+	// Graph Where the edges of a run come from (OPS34 D3).
+	Graph        RunGraph     `json:"graph"`
+	HeadSha      string       `json:"head_sha"`
+	HtmlUrl      string       `json:"html_url"`
+	Id           int64        `json:"id"`
+	Jobs         []Job        `json:"jobs"`
+	PullRequest  *int         `json:"pull_request,omitempty"`
+	Repository   string       `json:"repository"`
+	RepositoryId *int64       `json:"repository_id,omitempty"`
+	Result       *JobResult   `json:"result,omitempty"`
+	State        RunItemState `json:"state"`
+	TaskId       *string      `json:"task_id,omitempty"`
+	Trigger      string       `json:"trigger"`
+	Workflow     string       `json:"workflow"`
+	Worktree     *string      `json:"worktree,omitempty"`
+}
+
+// RunItemState defines model for RunItem.State.
+type RunItemState string
+
+// RunPage defines model for RunPage.
+type RunPage struct {
+	Items      []RunSummary `json:"items"`
+	NextCursor *string      `json:"next_cursor,omitempty"`
+
+	// Stale Set when GitHub did not answer and the last copy is shown (UX-53).
+	Stale Staleness `json:"stale"`
+	Total int       `json:"total"`
+}
+
+// RunSummary One run attempt in a list.
+type RunSummary struct {
+	Attempt     int        `json:"attempt"`
+	Attempts    *[]int     `json:"attempts,omitempty"`
+	Branch      string     `json:"branch"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+
+	// Eta Seconds from now, with a range. When a queued job starts, or when a run ends.
+	Eta     *Eta   `json:"eta,omitempty"`
+	HeadSha string `json:"head_sha"`
+	HtmlUrl string `json:"html_url"`
+
+	// Id The GitHub run id.
+	Id           int64           `json:"id"`
+	JobsDone     int             `json:"jobs_done"`
+	JobsFailed   int             `json:"jobs_failed"`
+	JobsTotal    int             `json:"jobs_total"`
+	PullRequest  *int            `json:"pull_request,omitempty"`
+	Repository   string          `json:"repository"`
+	RepositoryId *int64          `json:"repository_id,omitempty"`
+	Result       *JobResult      `json:"result,omitempty"`
+	State        RunSummaryState `json:"state"`
+	TaskId       *string         `json:"task_id,omitempty"`
+
+	// TotalSeconds Wall time from created to completed, or to now while open.
+	TotalSeconds *int    `json:"total_seconds,omitempty"`
+	Trigger      string  `json:"trigger"`
+	Workflow     string  `json:"workflow"`
+	Worktree     *string `json:"worktree,omitempty"`
+}
+
+// RunSummaryState defines model for RunSummary.State.
+type RunSummaryState string
+
 // Runner defines model for Runner.
 type Runner struct {
 	Arch      Arch        `json:"arch"`
@@ -3992,6 +4677,21 @@ type RunnerKind string
 type RunnerList struct {
 	Items []Runner `json:"items"`
 }
+
+// RunnerRef defines model for RunnerRef.
+type RunnerRef struct {
+	Backend     *string         `json:"backend,omitempty"`
+	Cache       *RunnerRefCache `json:"cache,omitempty"`
+	Id          string          `json:"id"`
+	Isolation   *Isolation      `json:"isolation,omitempty"`
+	Kind        RunnerKind      `json:"kind"`
+	MachineId   *string         `json:"machine_id,omitempty"`
+	MachineName *string         `json:"machine_name,omitempty"`
+	Name        string          `json:"name"`
+}
+
+// RunnerRefCache defines model for RunnerRef.Cache.
+type RunnerRefCache string
 
 // RunnerScope defines model for RunnerScope.
 type RunnerScope struct {
@@ -4233,6 +4933,33 @@ type StartAppManifestRequest struct {
 
 // StartAppManifestRequestAccountType defines model for StartAppManifestRequest.AccountType.
 type StartAppManifestRequestAccountType string
+
+// StepForecast defines model for StepForecast.
+type StepForecast struct {
+	// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
+	Forecast Forecast `json:"forecast"`
+	Name     string   `json:"name"`
+}
+
+// StepItem defines model for StepItem.
+type StepItem struct {
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+
+	// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
+	Forecast   *Forecast       `json:"forecast,omitempty"`
+	Name       string          `json:"name"`
+	Number     int             `json:"number"`
+	Result     *StepItemResult `json:"result,omitempty"`
+	RunSeconds *float32        `json:"run_seconds,omitempty"`
+	StartedAt  *time.Time      `json:"started_at,omitempty"`
+	State      StepItemState   `json:"state"`
+}
+
+// StepItemResult defines model for StepItem.Result.
+type StepItemResult string
+
+// StepItemState defines model for StepItem.State.
+type StepItemState string
 
 // Theme defines model for Theme.
 type Theme string
@@ -4485,8 +5212,29 @@ type From = time.Time
 // ImageId defines model for ImageId.
 type ImageId = string
 
+// JobBranchFilter defines model for JobBranchFilter.
+type JobBranchFilter = string
+
 // JobId defines model for JobId.
 type JobId = int64
+
+// JobKeyFilter defines model for JobKeyFilter.
+type JobKeyFilter = string
+
+// JobRunIdFilter defines model for JobRunIdFilter.
+type JobRunIdFilter = int64
+
+// JobRunner defines model for JobRunner.
+type JobRunner = string
+
+// JobRunnerKind defines model for JobRunnerKind.
+type JobRunnerKind = RunnerKind
+
+// JobTypeFilter defines model for JobTypeFilter.
+type JobTypeFilter = string
+
+// JobsLimit defines model for JobsLimit.
+type JobsLimit = int
 
 // JoinCodeId defines model for JoinCodeId.
 type JoinCodeId = string
@@ -4599,6 +5347,12 @@ type ExportAuditEventsParams struct {
 // ExportAuditEventsParamsFormat defines parameters for ExportAuditEvents.
 type ExportAuditEventsParamsFormat string
 
+// ExportJobSummariesParams defines parameters for ExportJobSummaries.
+type ExportJobSummariesParams struct {
+	From *From `form:"from,omitempty" json:"from,omitempty"`
+	To   *To   `form:"to,omitempty" json:"to,omitempty"`
+}
+
 // ExportJobsParams defines parameters for ExportJobs.
 type ExportJobsParams struct {
 	Format       *ExportJobsParamsFormat `form:"format,omitempty" json:"format,omitempty"`
@@ -4607,8 +5361,18 @@ type ExportJobsParams struct {
 	MachineId    *string                 `form:"machine_id,omitempty" json:"machine_id,omitempty"`
 	Backend      *string                 `form:"backend,omitempty" json:"backend,omitempty"`
 	Result       *JobResult              `form:"result,omitempty" json:"result,omitempty"`
-	From         *From                   `form:"from,omitempty" json:"from,omitempty"`
-	To           *To                     `form:"to,omitempty" json:"to,omitempty"`
+
+	// Runner The runner name (OPS34 D9).
+	Runner     *JobRunner     `form:"runner,omitempty" json:"runner,omitempty"`
+	RunnerKind *JobRunnerKind `form:"runner_kind,omitempty" json:"runner_kind,omitempty"`
+
+	// JobType The job name without its matrix values, such as `test` (OPS34 D10).
+	JobType  *JobTypeFilter   `form:"job_type,omitempty" json:"job_type,omitempty"`
+	JobIdent *JobKeyFilter    `form:"job_ident,omitempty" json:"job_ident,omitempty"`
+	Branch   *JobBranchFilter `form:"branch,omitempty" json:"branch,omitempty"`
+	RunId    *JobRunIdFilter  `form:"run_id,omitempty" json:"run_id,omitempty"`
+	From     *From            `form:"from,omitempty" json:"from,omitempty"`
+	To       *To              `form:"to,omitempty" json:"to,omitempty"`
 }
 
 // ExportJobsParamsFormat defines parameters for ExportJobs.
@@ -4616,6 +5380,15 @@ type ExportJobsParamsFormat string
 
 // ExportJobsParamsState defines parameters for ExportJobs.
 type ExportJobsParamsState string
+
+// GetForecastParams defines parameters for GetForecast.
+type GetForecastParams struct {
+	// JobIdent Required; the handler answers 400 when it is missing.
+	JobIdent *string `form:"job_ident,omitempty" json:"job_ident,omitempty"`
+
+	// RepositoryId Required; the handler answers 400 when it is missing.
+	RepositoryId *int64 `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+}
 
 // GetGithubGrantParams defines parameters for GetGithubGrant.
 type GetGithubGrantParams struct {
@@ -4660,16 +5433,69 @@ type ListJobsParams struct {
 	MachineId    *string              `form:"machine_id,omitempty" json:"machine_id,omitempty"`
 	Backend      *string              `form:"backend,omitempty" json:"backend,omitempty"`
 	Result       *JobResult           `form:"result,omitempty" json:"result,omitempty"`
-	From         *From                `form:"from,omitempty" json:"from,omitempty"`
-	To           *To                  `form:"to,omitempty" json:"to,omitempty"`
+
+	// Runner The runner name (OPS34 D9).
+	Runner     *JobRunner     `form:"runner,omitempty" json:"runner,omitempty"`
+	RunnerKind *JobRunnerKind `form:"runner_kind,omitempty" json:"runner_kind,omitempty"`
+
+	// JobType The job name without its matrix values, such as `test` (OPS34 D10).
+	JobType  *JobTypeFilter   `form:"job_type,omitempty" json:"job_type,omitempty"`
+	JobIdent *JobKeyFilter    `form:"job_ident,omitempty" json:"job_ident,omitempty"`
+	Branch   *JobBranchFilter `form:"branch,omitempty" json:"branch,omitempty"`
+	RunId    *JobRunIdFilter  `form:"run_id,omitempty" json:"run_id,omitempty"`
+	From     *From            `form:"from,omitempty" json:"from,omitempty"`
+	To       *To              `form:"to,omitempty" json:"to,omitempty"`
 
 	// Cursor Opaque cursor from the previous page's `next_cursor`.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
-	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Limit Page size of the Jobs section; 25 when absent, at most 100.
+	Limit *JobsLimit `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // ListJobsParamsState defines parameters for ListJobs.
 type ListJobsParamsState string
+
+// ListJobGroupsParams defines parameters for ListJobGroups.
+type ListJobGroupsParams struct {
+	// By The grouping. The handler answers 400 when it is missing or not one of these.
+	By *ListJobGroupsParamsBy `form:"by,omitempty" json:"by,omitempty"`
+}
+
+// ListJobGroupsParamsBy defines parameters for ListJobGroups.
+type ListJobGroupsParamsBy string
+
+// GetJobStatsParams defines parameters for GetJobStats.
+type GetJobStatsParams struct {
+	Days         *GetJobStatsParamsDays  `form:"days,omitempty" json:"days,omitempty"`
+	State        *GetJobStatsParamsState `form:"state,omitempty" json:"state,omitempty"`
+	RepositoryId *int64                  `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+	MachineId    *string                 `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+	Backend      *string                 `form:"backend,omitempty" json:"backend,omitempty"`
+	Result       *JobResult              `form:"result,omitempty" json:"result,omitempty"`
+
+	// Runner The runner name (OPS34 D9).
+	Runner     *JobRunner     `form:"runner,omitempty" json:"runner,omitempty"`
+	RunnerKind *JobRunnerKind `form:"runner_kind,omitempty" json:"runner_kind,omitempty"`
+
+	// JobType The job name without its matrix values, such as `test` (OPS34 D10).
+	JobType  *JobTypeFilter   `form:"job_type,omitempty" json:"job_type,omitempty"`
+	JobIdent *JobKeyFilter    `form:"job_ident,omitempty" json:"job_ident,omitempty"`
+	Branch   *JobBranchFilter `form:"branch,omitempty" json:"branch,omitempty"`
+	RunId    *JobRunIdFilter  `form:"run_id,omitempty" json:"run_id,omitempty"`
+}
+
+// GetJobStatsParamsDays defines parameters for GetJobStats.
+type GetJobStatsParamsDays int
+
+// GetJobStatsParamsState defines parameters for GetJobStats.
+type GetJobStatsParamsState string
+
+// ListJobSummariesParams defines parameters for ListJobSummaries.
+type ListJobSummariesParams struct {
+	From *From `form:"from,omitempty" json:"from,omitempty"`
+	To   *To   `form:"to,omitempty" json:"to,omitempty"`
+}
 
 // RemoveMachineParams defines parameters for RemoveMachine.
 type RemoveMachineParams struct {
@@ -4716,6 +5542,31 @@ type DeleteRunnerParams struct {
 type DeleteRunnerRegistrationParams struct {
 	// Confirm The yes to a question card that named what goes (UX-62).
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
+// ListRunsParams defines parameters for ListRuns.
+type ListRunsParams struct {
+	State        *ListRunsParamsState `form:"state,omitempty" json:"state,omitempty"`
+	Result       *JobResult           `form:"result,omitempty" json:"result,omitempty"`
+	RepositoryId *int64               `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+	Branch       *JobBranchFilter     `form:"branch,omitempty" json:"branch,omitempty"`
+	From         *From                `form:"from,omitempty" json:"from,omitempty"`
+	To           *To                  `form:"to,omitempty" json:"to,omitempty"`
+
+	// Cursor Opaque cursor from the previous page's `next_cursor`.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size of the Jobs section; 25 when absent, at most 100.
+	Limit *JobsLimit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListRunsParamsState defines parameters for ListRuns.
+type ListRunsParamsState string
+
+// GetRunParams defines parameters for GetRun.
+type GetRunParams struct {
+	// Attempt The attempt; the newest when absent.
+	Attempt *int `form:"attempt,omitempty" json:"attempt,omitempty"`
 }
 
 // RestartServiceParams defines parameters for RestartService.
@@ -4992,9 +5843,15 @@ type ServerInterface interface {
 	// ExportConfig Export the configuration without any secret
 	// (GET /api/v1/exports/config)
 	ExportConfig(w http.ResponseWriter, r *http.Request)
+	// ExportJobSummaries Export the daily job summaries as a file
+	// (GET /api/v1/exports/job-summaries)
+	ExportJobSummaries(w http.ResponseWriter, r *http.Request, params ExportJobSummariesParams)
 	// ExportJobs Export the job history as a file
 	// (GET /api/v1/exports/jobs)
 	ExportJobs(w http.ResponseWriter, r *http.Request, params ExportJobsParams)
+	// GetForecast The forecast of a job key with its steps and history
+	// (GET /api/v1/forecast)
+	GetForecast(w http.ResponseWriter, r *http.Request, params GetForecastParams)
 	// GetAppHealth Whether the GitHub App and its key still exist
 	// (GET /api/v1/github/app-health)
 	GetAppHealth(w http.ResponseWriter, r *http.Request)
@@ -5034,6 +5891,15 @@ type ServerInterface interface {
 	// ListJobs Queued, running and finished jobs, newest first
 	// (GET /api/v1/jobs)
 	ListJobs(w http.ResponseWriter, r *http.Request, params ListJobsParams)
+	// ListJobGroups Jobs grouped by repository, machine, runner, runner type or job type
+	// (GET /api/v1/jobs/groups)
+	ListJobGroups(w http.ResponseWriter, r *http.Request, params ListJobGroupsParams)
+	// GetJobStats Chart data of the last days
+	// (GET /api/v1/jobs/stats)
+	GetJobStats(w http.ResponseWriter, r *http.Request, params GetJobStatsParams)
+	// ListJobSummaries Daily summaries kept after the jobs are pruned
+	// (GET /api/v1/jobs/summaries)
+	ListJobSummaries(w http.ResponseWriter, r *http.Request, params ListJobSummariesParams)
 	// GetJob One job attempt with its timing
 	// (GET /api/v1/jobs/{jobId})
 	GetJob(w http.ResponseWriter, r *http.Request, jobId JobId)
@@ -5214,6 +6080,12 @@ type ServerInterface interface {
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
+	// ListRuns Workflow runs, newest first
+	// (GET /api/v1/runs)
+	ListRuns(w http.ResponseWriter, r *http.Request, params ListRunsParams)
+	// GetRun One run attempt with its jobs, needs graph and ETA
+	// (GET /api/v1/runs/{runId})
+	GetRun(w http.ResponseWriter, r *http.Request, runId int64, params GetRunParams)
 	// RestartService Restart the service after a drain
 	// (POST /api/v1/service/restart)
 	RestartService(w http.ResponseWriter, r *http.Request, params RestartServiceParams)
@@ -6192,6 +7064,52 @@ func (siw *ServerInterfaceWrapper) ExportConfig(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// ExportJobSummaries operation middleware
+func (siw *ServerInterfaceWrapper) ExportJobSummaries(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ExportJobSummariesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportJobSummaries(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ExportJobs operation middleware
 func (siw *ServerInterfaceWrapper) ExportJobs(w http.ResponseWriter, r *http.Request) {
 
@@ -6279,6 +7197,84 @@ func (siw *ServerInterfaceWrapper) ExportJobs(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// ------------- Optional query parameter "runner" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "runner", r.URL.Query(), &params.Runner, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "runner"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runner", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "runner_kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "runner_kind", r.URL.Query(), &params.RunnerKind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "runner_kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runner_kind", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "job_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "job_type", r.URL.Query(), &params.JobType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "job_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "job_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "job_ident" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "job_ident", r.URL.Query(), &params.JobIdent, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "job_ident"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "job_ident", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "branch" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "branch", r.URL.Query(), &params.Branch, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "branch"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "branch", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
 	// ------------- Optional query parameter "from" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
@@ -6307,6 +7303,52 @@ func (siw *ServerInterfaceWrapper) ExportJobs(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ExportJobs(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetForecast operation middleware
+func (siw *ServerInterfaceWrapper) GetForecast(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetForecastParams
+
+	// ------------- Optional query parameter "job_ident" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "job_ident", r.URL.Query(), &params.JobIdent, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "job_ident"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "job_ident", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "repository_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "repository_id", r.URL.Query(), &params.RepositoryId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "repository_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repository_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetForecast(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -6770,6 +7812,84 @@ func (siw *ServerInterfaceWrapper) ListJobs(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// ------------- Optional query parameter "runner" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "runner", r.URL.Query(), &params.Runner, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "runner"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runner", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "runner_kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "runner_kind", r.URL.Query(), &params.RunnerKind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "runner_kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runner_kind", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "job_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "job_type", r.URL.Query(), &params.JobType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "job_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "job_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "job_ident" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "job_ident", r.URL.Query(), &params.JobIdent, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "job_ident"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "job_ident", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "branch" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "branch", r.URL.Query(), &params.Branch, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "branch"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "branch", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
 	// ------------- Optional query parameter "from" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
@@ -6824,6 +7944,261 @@ func (siw *ServerInterfaceWrapper) ListJobs(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListJobs(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListJobGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListJobGroups(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListJobGroupsParams
+
+	// ------------- Optional query parameter "by" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "by", r.URL.Query(), &params.By, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "by"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "by", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListJobGroups(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetJobStats operation middleware
+func (siw *ServerInterfaceWrapper) GetJobStats(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetJobStatsParams
+
+	// ------------- Optional query parameter "days" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "days", r.URL.Query(), &params.Days, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "days"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "days", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "repository_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "repository_id", r.URL.Query(), &params.RepositoryId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "repository_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repository_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "machine_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "machine_id", r.URL.Query(), &params.MachineId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "machine_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machine_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "backend" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "backend", r.URL.Query(), &params.Backend, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "backend"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "backend", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "result" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "result", r.URL.Query(), &params.Result, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "result"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "result", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "runner" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "runner", r.URL.Query(), &params.Runner, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "runner"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runner", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "runner_kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "runner_kind", r.URL.Query(), &params.RunnerKind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "runner_kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runner_kind", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "job_type" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "job_type", r.URL.Query(), &params.JobType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "job_type"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "job_type", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "job_ident" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "job_ident", r.URL.Query(), &params.JobIdent, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "job_ident"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "job_ident", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "branch" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "branch", r.URL.Query(), &params.Branch, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "branch"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "branch", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "run_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "run_id", r.URL.Query(), &params.RunId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "run_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "run_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetJobStats(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListJobSummaries operation middleware
+func (siw *ServerInterfaceWrapper) ListJobSummaries(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListJobSummariesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListJobSummaries(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -8371,6 +9746,172 @@ func (siw *ServerInterfaceWrapper) PlanRunnerReplacement(w http.ResponseWriter, 
 	handler.ServeHTTP(w, r)
 }
 
+// ListRuns operation middleware
+func (siw *ServerInterfaceWrapper) ListRuns(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListRunsParams
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "result" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "result", r.URL.Query(), &params.Result, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "result"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "result", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "repository_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "repository_id", r.URL.Query(), &params.RepositoryId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "repository_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repository_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "branch" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "branch", r.URL.Query(), &params.Branch, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "branch"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "branch", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListRuns(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRun operation middleware
+func (siw *ServerInterfaceWrapper) GetRun(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "runId" -------------
+	var runId int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", r.PathValue("runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetRunParams
+
+	// ------------- Optional query parameter "attempt" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "attempt", r.URL.Query(), &params.Attempt, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "attempt"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attempt", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRun(w, r, runId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // RestartService operation middleware
 func (siw *ServerInterfaceWrapper) RestartService(w http.ResponseWriter, r *http.Request) {
 
@@ -9283,6 +10824,12 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/runners/{runnerId}/replace", wrapper.PlanRunnerReplacement)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/jobs", wrapper.ListJobs)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/compare", wrapper.GetSpeedComparison)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/jobs/groups", wrapper.ListJobGroups)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/jobs/stats", wrapper.GetJobStats)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/jobs/summaries", wrapper.ListJobSummaries)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runs", wrapper.ListRuns)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runs/{runId}", wrapper.GetRun)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/forecast", wrapper.GetForecast)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/jobs/{jobId}", wrapper.GetJob)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/overview", wrapper.GetOverview)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/events", wrapper.StreamEvents)
@@ -9301,6 +10848,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/backups/drills", wrapper.RunBackupDrill)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/backups/{backupId}/restore", wrapper.RestoreBackup)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/exports/jobs", wrapper.ExportJobs)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/exports/job-summaries", wrapper.ExportJobSummaries)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/exports/audit", wrapper.ExportAuditEvents)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/exports/config", wrapper.ExportConfig)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/repository-plans/{planId}/stop", wrapper.StopRepositoryPlan)
@@ -10634,6 +12182,84 @@ func (response ExportConfigdefaultJSONResponse) VisitExportConfigResponse(w http
 	return err
 }
 
+type ExportJobSummariesRequestObject struct {
+	Params ExportJobSummariesParams
+}
+
+type ExportJobSummariesResponseObject interface {
+	VisitExportJobSummariesResponse(w http.ResponseWriter) error
+}
+
+type ExportJobSummaries200JSONResponse struct{ ExportFileJSONResponse }
+
+func (response ExportJobSummaries200JSONResponse) VisitExportJobSummariesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportJobSummaries200ApplicationyamlResponse struct {
+	ExportFileApplicationyamlResponse
+}
+
+func (response ExportJobSummaries200ApplicationyamlResponse) VisitExportJobSummariesResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/yaml")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type ExportJobSummaries200TextcsvResponse struct{ ExportFileTextcsvResponse }
+
+func (response ExportJobSummaries200TextcsvResponse) VisitExportJobSummariesResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/csv")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprint(response.Headers.ContentDisposition))
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type ExportJobSummariesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ExportJobSummariesdefaultJSONResponse) VisitExportJobSummariesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ExportJobsRequestObject struct {
 	Params ExportJobsParams
 }
@@ -10701,6 +12327,45 @@ type ExportJobsdefaultJSONResponse struct {
 }
 
 func (response ExportJobsdefaultJSONResponse) VisitExportJobsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetForecastRequestObject struct {
+	Params GetForecastParams
+}
+
+type GetForecastResponseObject interface {
+	VisitGetForecastResponse(w http.ResponseWriter) error
+}
+
+type GetForecast200JSONResponse ForecastAnswer
+
+func (response GetForecast200JSONResponse) VisitGetForecastResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetForecastdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetForecastdefaultJSONResponse) VisitGetForecastResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -11217,6 +12882,123 @@ func (response ListJobsdefaultJSONResponse) VisitListJobsResponse(w http.Respons
 	return err
 }
 
+type ListJobGroupsRequestObject struct {
+	Params ListJobGroupsParams
+}
+
+type ListJobGroupsResponseObject interface {
+	VisitListJobGroupsResponse(w http.ResponseWriter) error
+}
+
+type ListJobGroups200JSONResponse JobGroupList
+
+func (response ListJobGroups200JSONResponse) VisitListJobGroupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListJobGroupsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListJobGroupsdefaultJSONResponse) VisitListJobGroupsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetJobStatsRequestObject struct {
+	Params GetJobStatsParams
+}
+
+type GetJobStatsResponseObject interface {
+	VisitGetJobStatsResponse(w http.ResponseWriter) error
+}
+
+type GetJobStats200JSONResponse JobStats
+
+func (response GetJobStats200JSONResponse) VisitGetJobStatsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetJobStatsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetJobStatsdefaultJSONResponse) VisitGetJobStatsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListJobSummariesRequestObject struct {
+	Params ListJobSummariesParams
+}
+
+type ListJobSummariesResponseObject interface {
+	VisitListJobSummariesResponse(w http.ResponseWriter) error
+}
+
+type ListJobSummaries200JSONResponse JobSummaryList
+
+func (response ListJobSummaries200JSONResponse) VisitListJobSummariesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListJobSummariesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListJobSummariesdefaultJSONResponse) VisitListJobSummariesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetJobRequestObject struct {
 	JobId JobId `json:"jobId"`
 }
@@ -11225,7 +13007,7 @@ type GetJobResponseObject interface {
 	VisitGetJobResponse(w http.ResponseWriter) error
 }
 
-type GetJob200JSONResponse Job
+type GetJob200JSONResponse JobDetail
 
 func (response GetJob200JSONResponse) VisitGetJobResponse(w http.ResponseWriter) error {
 
@@ -13570,6 +15352,85 @@ func (response PlanRunnerReplacementdefaultJSONResponse) VisitPlanRunnerReplacem
 	return err
 }
 
+type ListRunsRequestObject struct {
+	Params ListRunsParams
+}
+
+type ListRunsResponseObject interface {
+	VisitListRunsResponse(w http.ResponseWriter) error
+}
+
+type ListRuns200JSONResponse RunPage
+
+func (response ListRuns200JSONResponse) VisitListRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRunsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListRunsdefaultJSONResponse) VisitListRunsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRunRequestObject struct {
+	RunId  int64 `json:"runId"`
+	Params GetRunParams
+}
+
+type GetRunResponseObject interface {
+	VisitGetRunResponse(w http.ResponseWriter) error
+}
+
+type GetRun200JSONResponse RunItem
+
+func (response GetRun200JSONResponse) VisitGetRunResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRundefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRundefaultJSONResponse) VisitGetRunResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type RestartServiceRequestObject struct {
 	Params RestartServiceParams
 }
@@ -14768,9 +16629,15 @@ type StrictServerInterface interface {
 	// ExportConfig Export the configuration without any secret
 	// (GET /api/v1/exports/config)
 	ExportConfig(ctx context.Context, request ExportConfigRequestObject) (ExportConfigResponseObject, error)
+	// ExportJobSummaries Export the daily job summaries as a file
+	// (GET /api/v1/exports/job-summaries)
+	ExportJobSummaries(ctx context.Context, request ExportJobSummariesRequestObject) (ExportJobSummariesResponseObject, error)
 	// ExportJobs Export the job history as a file
 	// (GET /api/v1/exports/jobs)
 	ExportJobs(ctx context.Context, request ExportJobsRequestObject) (ExportJobsResponseObject, error)
+	// GetForecast The forecast of a job key with its steps and history
+	// (GET /api/v1/forecast)
+	GetForecast(ctx context.Context, request GetForecastRequestObject) (GetForecastResponseObject, error)
 	// GetAppHealth Whether the GitHub App and its key still exist
 	// (GET /api/v1/github/app-health)
 	GetAppHealth(ctx context.Context, request GetAppHealthRequestObject) (GetAppHealthResponseObject, error)
@@ -14810,6 +16677,15 @@ type StrictServerInterface interface {
 	// ListJobs Queued, running and finished jobs, newest first
 	// (GET /api/v1/jobs)
 	ListJobs(ctx context.Context, request ListJobsRequestObject) (ListJobsResponseObject, error)
+	// ListJobGroups Jobs grouped by repository, machine, runner, runner type or job type
+	// (GET /api/v1/jobs/groups)
+	ListJobGroups(ctx context.Context, request ListJobGroupsRequestObject) (ListJobGroupsResponseObject, error)
+	// GetJobStats Chart data of the last days
+	// (GET /api/v1/jobs/stats)
+	GetJobStats(ctx context.Context, request GetJobStatsRequestObject) (GetJobStatsResponseObject, error)
+	// ListJobSummaries Daily summaries kept after the jobs are pruned
+	// (GET /api/v1/jobs/summaries)
+	ListJobSummaries(ctx context.Context, request ListJobSummariesRequestObject) (ListJobSummariesResponseObject, error)
 	// GetJob One job attempt with its timing
 	// (GET /api/v1/jobs/{jobId})
 	GetJob(ctx context.Context, request GetJobRequestObject) (GetJobResponseObject, error)
@@ -14990,6 +16866,12 @@ type StrictServerInterface interface {
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(ctx context.Context, request PlanRunnerReplacementRequestObject) (PlanRunnerReplacementResponseObject, error)
+	// ListRuns Workflow runs, newest first
+	// (GET /api/v1/runs)
+	ListRuns(ctx context.Context, request ListRunsRequestObject) (ListRunsResponseObject, error)
+	// GetRun One run attempt with its jobs, needs graph and ETA
+	// (GET /api/v1/runs/{runId})
+	GetRun(ctx context.Context, request GetRunRequestObject) (GetRunResponseObject, error)
 	// RestartService Restart the service after a drain
 	// (POST /api/v1/service/restart)
 	RestartService(ctx context.Context, request RestartServiceRequestObject) (RestartServiceResponseObject, error)
@@ -15935,6 +17817,32 @@ func (sh *strictHandler) ExportConfig(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ExportJobSummaries operation middleware
+func (sh *strictHandler) ExportJobSummaries(w http.ResponseWriter, r *http.Request, params ExportJobSummariesParams) {
+	var request ExportJobSummariesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ExportJobSummaries(ctx, request.(ExportJobSummariesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ExportJobSummaries")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ExportJobSummariesResponseObject); ok {
+		if err := validResponse.VisitExportJobSummariesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ExportJobs operation middleware
 func (sh *strictHandler) ExportJobs(w http.ResponseWriter, r *http.Request, params ExportJobsParams) {
 	var request ExportJobsRequestObject
@@ -15954,6 +17862,32 @@ func (sh *strictHandler) ExportJobs(w http.ResponseWriter, r *http.Request, para
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ExportJobsResponseObject); ok {
 		if err := validResponse.VisitExportJobsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetForecast operation middleware
+func (sh *strictHandler) GetForecast(w http.ResponseWriter, r *http.Request, params GetForecastParams) {
+	var request GetForecastRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetForecast(ctx, request.(GetForecastRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetForecast")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetForecastResponseObject); ok {
+		if err := validResponse.VisitGetForecastResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -16297,6 +18231,84 @@ func (sh *strictHandler) ListJobs(w http.ResponseWriter, r *http.Request, params
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListJobsResponseObject); ok {
 		if err := validResponse.VisitListJobsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListJobGroups operation middleware
+func (sh *strictHandler) ListJobGroups(w http.ResponseWriter, r *http.Request, params ListJobGroupsParams) {
+	var request ListJobGroupsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListJobGroups(ctx, request.(ListJobGroupsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListJobGroups")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListJobGroupsResponseObject); ok {
+		if err := validResponse.VisitListJobGroupsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetJobStats operation middleware
+func (sh *strictHandler) GetJobStats(w http.ResponseWriter, r *http.Request, params GetJobStatsParams) {
+	var request GetJobStatsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetJobStats(ctx, request.(GetJobStatsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetJobStats")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetJobStatsResponseObject); ok {
+		if err := validResponse.VisitGetJobStatsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListJobSummaries operation middleware
+func (sh *strictHandler) ListJobSummaries(w http.ResponseWriter, r *http.Request, params ListJobSummariesParams) {
+	var request ListJobSummariesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListJobSummaries(ctx, request.(ListJobSummariesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListJobSummaries")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListJobSummariesResponseObject); ok {
+		if err := validResponse.VisitListJobSummariesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -18005,6 +20017,59 @@ func (sh *strictHandler) PlanRunnerReplacement(w http.ResponseWriter, r *http.Re
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(PlanRunnerReplacementResponseObject); ok {
 		if err := validResponse.VisitPlanRunnerReplacementResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListRuns operation middleware
+func (sh *strictHandler) ListRuns(w http.ResponseWriter, r *http.Request, params ListRunsParams) {
+	var request ListRunsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListRuns(ctx, request.(ListRunsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListRuns")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListRunsResponseObject); ok {
+		if err := validResponse.VisitListRunsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRun operation middleware
+func (sh *strictHandler) GetRun(w http.ResponseWriter, r *http.Request, runId int64, params GetRunParams) {
+	var request GetRunRequestObject
+
+	request.RunId = runId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRun(ctx, request.(GetRunRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRun")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRunResponseObject); ok {
+		if err := validResponse.VisitGetRunResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
