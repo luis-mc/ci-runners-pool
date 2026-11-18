@@ -213,7 +213,7 @@ function AccessCredentials({ version }: { version: number }) {
                 >
                   Cancel
                 </Button>
-                <Button kind="primary" submit busy={make.busy} busyLabel="Making">
+                <Button submit busy={make.busy} busyLabel="Making">
                   Make
                 </Button>
               </FormActions>
@@ -390,9 +390,7 @@ function NeedsAddress({
         </span>
         {chooseHere ? (
           <Cluster>
-            <Button kind="primary" onPress={() => setChoosing(true)}>
-              Choose an address
-            </Button>
+            <Button onPress={() => setChoosing(true)}>Choose an address</Button>
           </Cluster>
         ) : (
           <Facts items={[{ name: 'Setting to fix', value: setting }]} />

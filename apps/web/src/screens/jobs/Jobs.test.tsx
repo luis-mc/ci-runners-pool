@@ -363,8 +363,8 @@ describe('Jobs panes and states (UX-4, UX-6, UX-10, UX-17)', () => {
     const filters = screen.getByRole('region', { name: 'Filters' });
     expect(within(filters).getByRole('group', { name: 'Result' })).toBeTruthy();
     expect(within(filters).getByText('Repository')).toBeTruthy();
-    const history = screen.getByRole('region', { name: 'History' });
-    expect(within(history).getByRole('button', { name: /Export/ })).toBeTruthy();
+    const bar = screen.getByRole('region', { name: 'Actions' });
+    expect(within(bar).getByRole('button', { name: /Export/ })).toBeTruthy();
   });
 
   it('offers Add runners once, as the one primary, when there are no jobs', async () => {

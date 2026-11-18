@@ -2,6 +2,7 @@
 // get one. With one it shows the three first-run wizards in order; a later one is greyed until the one before
 // it is done (UX-5).
 import {
+  ActionBar,
   Button,
   ChoiceField,
   ExternalButton,
@@ -379,15 +380,6 @@ export function SetupPage() {
         <PageHeader
           title="Set up the pool"
           lead="From a fresh controller to a first green job."
-          action={
-            result.state === 'ready' &&
-            allDone(result.data) &&
-            session.state.status === 'ready' ? (
-              <Button kind="primary" onPress={() => void navigate('/')}>
-                Open the overview
-              </Button>
-            ) : undefined
-          }
         />
         {redeemError ? (
           <Message tone="problem">
@@ -408,6 +400,17 @@ export function SetupPage() {
             state={result.data}
             signedIn={session.state.status === 'ready'}
             reload={reload}
+          />
+        ) : null}
+        {result.state === 'ready' &&
+        allDone(result.data) &&
+        session.state.status === 'ready' ? (
+          <ActionBar
+            primary={
+              <Button kind="primary" onPress={() => void navigate('/')}>
+                Open the overview
+              </Button>
+            }
           />
         ) : null}
       </Page>
@@ -466,10 +469,7 @@ function Checklist({
           ) : !signedIn ? (
             <Stack>
               <Text>Sign in with GitHub to go on.</Text>
-              <Button
-                kind="primary"
-                onPress={() => window.location.assign(signInUrl('/setup'))}
-              >
+              <Button onPress={() => window.location.assign(signInUrl('/setup'))}>
                 Sign in with GitHub
               </Button>
             </Stack>

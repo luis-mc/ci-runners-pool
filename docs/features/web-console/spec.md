@@ -115,7 +115,7 @@ The states named for every list follow the design system: loading (component 16,
 - **Purpose:** let a user in with their GitHub account.
 - **Data:** `getSession`, `startSignIn`, `completeSignIn` (the GitHub callback).
 - **States:**
-  - signed out: one primary, "Sign in with GitHub" (UX-4);
+  - signed out: one primary, "Sign in with GitHub", in the action bar (UX-71, UX-4; LOOK27);
   - signing in: the button is busy until GitHub answers (UX-13);
   - sign-in failed: a Problem message that says what failed and offers Try again (UX-26, UX-28);
   - no access: "Signed in as `<login>`. This GitHub account has no access. Ask the owner to add it." with Sign out;
@@ -208,8 +208,8 @@ The states named for every list follow the design system: loading (component 16,
 - **Queue:** a table (component 15) of queued jobs with repository, labels, wait time and the reason it waits ("waits for a free slot on any Linux machine"; UX-29).
 - **History:** a time axis list (component 24, UX-33): repository, workflow and job name, result (UX-58), machine, backend, wait time, run time. Each row opens the detail, with a link to the run on GitHub.
 - **Panes:** Queue, Filters (result, time range, repository, machine) and History (the time axis, with Export in its border line), each a pane (UX-10). The row under the cursor is drawn in reverse video (UX-51).
-- **Actions:** export the history (component 29, UX-39); it is the one primary of the list (UX-4), and on the detail the one primary is "Open the run on GitHub". No command changes a job.
-- **States:** loading; empty ("No jobs yet. Jobs show here when a workflow runs on the pool." with the one primary "Add runners", UX-4, UX-6); the detail keeps its h1 "Job" when it could not load (UX-17); could not load; live; an empty period offers to widen the range (component 24).
+- **Actions:** export the history (component 29, UX-39); it is the one primary of the list, in the action bar (component 48, UX-71, UX-4), and on the detail the one primary is "Open the run on GitHub", also in the bar (LOOK27). No command changes a job.
+- **States:** loading; empty ("No jobs yet. Jobs show here when a workflow runs on the pool." with the one primary "Add runners" in the action bar, UX-71, UX-6); the detail keeps its h1 "Job" when it could not load (UX-17); could not load; live; an empty period offers to widen the range (component 24).
 - **Detail:** placement and waits are in `scheduling`; history and minutes saved are in `observability`.
 - **Components:** 1, 11, 12, 15, 17, 19, 21, 24, 29.
 - **Milestone:** later (milestone 2). M1 shows the queue and running jobs on the overview.
@@ -235,7 +235,7 @@ The states named for every list follow the design system: loading (component 16,
 - **Purpose:** list every problem the pool has, with its fix.
 - **Data:** `listDoctorFindings`, `runDoctor`, `getDoctorRun`.
 - **Shows:** findings grouped by area (machines, backends, runners, GitHub registration, repository variables, workflow labels), each with a status word (UX-58), what is wrong, and its fix. A fix that is a command links to the one place that command lives (UX-52). The time of the last run (UX-53).
-- **Actions:** "Run the doctor" is the page's one primary (UX-4). It is busy while the run lasts and shows its progress (UX-13, UX-29).
+- **Actions:** "Run checks again" is the page's one primary, in the action bar (component 48, UX-71, UX-4); before the first run it says "Run checks". It is busy while the run lasts and shows its progress (UX-13, UX-29). A fix button in a row (Open) is a normal button (LOOK27, owner decision D27).
 - **States:** loading; no findings (a Done message: "No problems found." with the time of the run); could not load; running; live.
 - **Detail:** the checks and fixes are in `doctor`.
 - **Components:** 1, 6, 7, 16, 17, 18, 19.
@@ -259,8 +259,9 @@ Settings hold configuration only (UX-52). Settings has five tabs (CRSP159, owner
 | Config export | The configuration as a file, without secrets | `exportConfig` | Export, named for what it holds then the file stamp (UX-39) | built (CRSP37) |
 
 - **Users and roles:** one intro line, "Who may use this console. Your own GitHub sign-in is in the {login} menu at the top right.", then a table (component 15) of GitHub login, role, added by, added at, last sign-in. There is one owner. The owner's own row has no Remove. The roles are in section 5.
+- **One Save per tab (LOOK27, owner decision D26):** the tabs Repositories, Console and Data are each one form. The action bar (component 48, UX-71) says "Unsaved changes (N)" (N counts the changed fields, and an open channel form counts one) and carries Cancel (puts every section of the tab back) and one Save for the whole tab; Save is disabled, with its reason, while nothing changed or the role may not save. One Save sends each changed section in turn and stops at the first refusal, which the section shows. A switch or one-choice list that saves at once (Appearance, Public repositories, Automatic updates) stays as it is. An action that does not save (Add a user, Add channel, Make, Choose an address, Look for updates, Update to N, Restart the service, Back up now, Replace key) is a normal, not primary, button inside its section. The Access tab holds no setting to save, so it has no bar; the Audit log tab has Export as its one primary in the bar.
 - **States:** each sub-page has loading, could not load and, for lists, empty ("No other users yet. Add a GitHub login to let someone in.").
-- **Notifications (built, CRSP37):** a table (component 15) of the channels with name, kind, where it sends, events, lowest severity, on or off and the last test; one form (Add and Edit) that ends with Cancel and Save (UX-24); **Send test** per row, busy and disabled while it runs, one result line under the table (UX-13, UX-27, UX-38); **Delete** with a question card that names the channel and the events it stops carrying (UX-62, R5.30). A secret is never shown again. A viewer sees only their own channels and cannot pick a webhook, with the reason beside it. Empty: "No channels yet. Add a channel to be told when a machine, job or disk needs you."
+- **Notifications (built, CRSP37):** a table (component 15) of the channels with name, kind, where it sends, events, lowest severity, on or off and the last test; one form (Add and Edit) whose Save is the tab's one Save, in the action bar (UX-24, UX-71); **Add channel** (a normal button; the form it opens is saved by the tab's one Save, LOOK27), **Send test** per row, busy and disabled while it runs, one result line under the table (UX-13, UX-27, UX-38); **Delete** with a question card that names the channel and the events it stops carrying (UX-62, R5.30). A secret is never shown again. A viewer sees only their own channels and cannot pick a webhook, with the reason beside it. Empty: "No channels yet. Add a channel to be told when a machine, job or disk needs you."
 - **Detail:** budgets are in `machines` and `scheduling`; notifications in `notifications`; updates, backup and config export in `operations`; the audit log in `observability`.
 - **Components:** 1, 3, 7, 8, 9, 13, 14, 15, 17, 19, 22, 24, 29, 37.
 
