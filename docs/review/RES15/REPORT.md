@@ -48,15 +48,15 @@ Design rules used: UX-29 wait reasons, UX-33 time axis, UX-41 charts with a text
 One explainable rule. No model training, no black box.
 
 1. **Key.** Job key = repository + workflow + job name + matrix values. Step key = job key + step name.
-2. **Sample.** The last 20 successful attempts of that key (cancelled, failed-early and `lost` attempts are left out; a timeout is counted apart and never lowers the forecast). Prefer the same branch kind (main vs other) when it has at least 5 samples, else all.
+2. **Sample.** The last 30 successful attempts of that key, no older than 90 days (cancelled, failed-early and `lost` attempts are left out; a timeout is stored apart and never lowers the forecast). Prefer the same machine class when it has at least 5 samples, else all.
 3. **Point.** Median of the run time.
 4. **Range.** p25 to p90 of the same sample, widened so it is never narrower than plus or minus 10 percent of the median. Said as "about 6 to 9 min".
 5. **Fallback chain.** job key (5 or more samples), else workflow median for the same job name, else repository median, else "not enough history yet" (no number is invented).
-6. **Run ETA.** Longest path (critical path) over the needs graph using each job's forecast; the range is the sum of the path's lows and highs, then trimmed (sum of p25s is too low, so use root-sum-square of half-widths around the sum of medians).
+6. **Run ETA.** Longest path (critical path) over the needs graph using each job's forecast; the range is the sum of p25 values (low) to the sum of p75 values (high) along the path, marked "about" (a heuristic; Monte Carlo over the history is a later step).
 7. **Queue ETA.** Simulate the machine slots: each running job frees its slot at its forecast end; a queued job takes the first free slot in queue order and ends one median later. Reported as a range using the lows and highs of the jobs ahead. This is the Little's-law view, made concrete.
-8. **Drift.** If the median of the last 10 differs from the median of the 20 before by more than 25 percent, mark the forecast "changed lately" and use the last 10.
+8. **Drift.** If the median of the last 10 differs from the median of the 20 before by a ratio above 1.25 or below 0.8 (and by more than 3 MAD of the older window), mark the forecast "changed lately" and use the last 10.
 
-Later, only if the first version is not good enough: condition on machine, backend, runner kind and cache warm or cold; EWMA; quantile regression; Page-Hinkley drift test; critical-path ETA that learns step overlap. Each is a change to one function; the screens already show the basis ("median of last 20 on main") so a better method does not change the layout.
+Later, only if the first version is not good enough: condition on machine, backend, runner kind and cache warm or cold; EWMA; quantile regression; Page-Hinkley drift test; critical-path ETA that learns step overlap. Each is a change to one function; the screens already show the basis ("median of the last 30 runs on this machine") so a better method does not change the layout.
 
 Forecast vs actual (the Charts tab) is the honesty check: it shows how many finished jobs landed inside the range. Aim: about 80 percent.
 
