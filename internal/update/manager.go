@@ -443,7 +443,7 @@ func (m *Manager) begin(ctx context.Context, kind Kind, actor string) (Status, e
 		was := m.cancelled
 		m.mu.Unlock()
 		if was {
-			m.endCancelled(nil, "")
+			m.endCancelled(context.Background(), false, "")
 			return m.Status(ctx), ErrCancelled
 		}
 		if err != nil {
@@ -501,7 +501,7 @@ func (m *Manager) Cancel(ctx context.Context, actor string) (Status, error) {
 		}
 		m.pending = nil
 		m.mu.Unlock()
-		m.endCancelled(ctx, actor)
+		m.endCancelled(ctx, true, actor)
 		return m.Status(ctx), nil
 	}
 	m.mu.Unlock()
@@ -509,15 +509,15 @@ func (m *Manager) Cancel(ctx context.Context, actor string) (Status, error) {
 }
 
 // endCancelled returns to idle after a cancel: the lock goes, the stage file goes, and a
-// started drain ends (actor non-empty).
-func (m *Manager) endCancelled(ctx context.Context, actor string) {
+// started drain ends (endDrain).
+func (m *Manager) endCancelled(ctx context.Context, endDrain bool, actor string) {
 	m.mu.Lock()
 	m.state, m.errText, m.pending, m.cancelled = StateIdle, "", nil, false
 	lock := m.lock
 	m.lock = nil
 	m.mu.Unlock()
 	ClearStage(m.o.Dir)
-	if ctx != nil {
+	if endDrain {
 		if err := m.o.Drainer.CancelDrain(ctx, actor); err != nil {
 			m.o.Logger.Warn("could not cancel the drain", "err", err)
 		}

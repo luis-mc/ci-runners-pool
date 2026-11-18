@@ -537,6 +537,14 @@ A field's width caps its box, never its name and help: a lone field's name and h
 - **Rules:** UX-4, UX-13, UX-38, UX-71.
 - **Guard:** `scripts/design/action-bar.test.ts` (a primary button outside the bar, or two in it, fails; `action-bar.known.json` only shrinks).
 
+## 49. Native update window and installer art
+
+- **Used for:** the update on Windows: one native window for the whole update (Review, Downloading, Waiting for jobs, Installing, Restarting, Done, Failed), and the banner and dialog bitmaps of the MSI. Outside the shared UI package because Windows draws it; it still wears the same tokens.
+- **Looks:** the Phosphor dark theme: page fill, text and muted text, a progress bar with a border and a filled part, a divider line above one row of buttons on the right. At the top a band: the crsp icon and the product name in the primary colour on the page colour with faint scanlines. The heading is bold in the primary colour (done colour on Done, problem colour on a failure). The primary button is filled, the others outlined, with a focus ring just inside the button; a busy button is dim and says so. The window has a title, the crsp icon and a close button only, no minimise or maximise, is centred on the screen of the tray icon, comes to the front once and is never always on top. It is laid out in units of the font height, so no text is cut off at 100, 125, 150 or 200 %. The installer bitmaps keep their light side where the stock dialogs write text, and carry the same band art (icon, name, scanlines) on the other side.
+- **Source:** `internal/updatewindow/` (`model.go` the states, `layout.go` the units, `art.go` the band and the installer bitmaps, `window_windows.go` the window), `internal/updatewindow/tokens_gen.go` (generated from `packages/ui/src/tokens.css` by `internal/updatewindow/genart`), `installer/build.ps1` and `installer/crsp.wxs` (`WixUIBannerBmp`, `WixUIDialogBmp`)
+- **Rules:** CORE-1 to CORE-7, UX-30 (steps in order, later steps cannot be pressed), UX-71 (the buttons on one bar at the foot), UX-4.
+- **Guard:** `internal/updatewindow/layout_test.go` and `art_test.go` (nothing clipped at every DPI, the palette equals the tokens), and `crsp update-window --layout-check` on the Windows runner (`.github/workflows/tray-smoke.yml`).
+
 ## How to add a component
 
 - Give it the next number.
