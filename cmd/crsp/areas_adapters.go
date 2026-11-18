@@ -355,6 +355,33 @@ func (f doctorFleet) Machines(ctx context.Context) ([]doctor.Machine, error) {
 	return out, nil
 }
 
+var _ doctor.UncleanLister = doctorFleet{}
+
+// UncleanRunners lists the runners whose clean-up failed, pool runners
+// included, for runner.unclean (doctor R5.46).
+func (f doctorFleet) UncleanRunners(ctx context.Context) ([]doctor.Runner, error) {
+	managed := true
+	rs, err := f.runners.ListRunners(ctx, runners.Filter{Managed: &managed})
+	if err != nil {
+		return nil, err
+	}
+	names := map[string]string{}
+	if views, err := f.machines.List(ctx); err == nil {
+		for _, v := range views {
+			names[v.Machine.ID] = v.Machine.Name
+		}
+	}
+	var out []doctor.Runner
+	for _, r := range rs {
+		if r.UncleanReason == "" {
+			continue
+		}
+		out = append(out, doctor.Runner{ID: r.ID, Name: r.Name, MachineID: r.MachineID, MachineName: names[r.MachineID],
+			OS: r.OS, Kind: r.Kind, Labels: r.Labels, UncleanReason: r.UncleanReason})
+	}
+	return out, nil
+}
+
 func (f doctorFleet) Runners(ctx context.Context) ([]doctor.Runner, error) {
 	managed := true
 	rs, err := f.runners.ListRunners(ctx, runners.Filter{Managed: &managed})
@@ -376,7 +403,7 @@ func (f doctorFleet) Runners(ctx context.Context) ([]doctor.Runner, error) {
 		}
 		dr := doctor.Runner{
 			ID: r.ID, Name: r.Name, MachineID: r.MachineID, MachineName: names[r.MachineID], OS: r.OS, Kind: r.Kind,
-			Labels: r.Labels, GitHubRunnerID: r.GitHubRunnerID, ServiceName: r.ServiceName, FolderReadable: true,
+			Labels: r.Labels, GitHubRunnerID: r.GitHubRunnerID, ServiceName: r.ServiceName, FolderReadable: true, UncleanReason: r.UncleanReason,
 		}
 		if r.Scope.Organization != "" {
 			dr.Scope = github.RunnerScope{Owner: r.Scope.Organization, Organization: r.Scope.Organization}
@@ -428,7 +455,7 @@ func (f doctorFleet) Repositories(ctx context.Context) ([]doctor.Repository, err
 		}
 		rt, _ := f.rsvc.RoutingOf(ctx, r.ID)
 		out = append(out, doctor.Repository{ID: r.ID, FullName: r.FullName, Owner: r.Owner, Name: r.Name,
-			InstallationID: r.InstallationID, DefaultBranch: r.DefaultBranch, Expected: want, LightRunner: pol.LightRunner,
+			InstallationID: r.InstallationID, DefaultBranch: r.DefaultBranch, Expected: want, LightRunner: pol.LightRunner, EphemeralOnly: pol.EphemeralOnly(r.Visibility),
 			Where: rt.Where, FallbackOn: pol.HostedFallback, HostedOSes: hostedOSes(rt), WaitingOSes: waitingOSes(rt)})
 	}
 	return out, nil
