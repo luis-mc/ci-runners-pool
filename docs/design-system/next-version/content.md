@@ -475,7 +475,8 @@ The words of the Add a machine wizard (machines R5.3a, R5.4a), the runner states
 | Runner state | idle, busy |
 | Runner counts | Idle, Busy, Not ready |
 | Runner job | {repository} {job}, running {duration} |
-| Repository column and fact | Last delivery: no delivery yet, delivered, delivery failed, delivery missed, pool off; Last webhook delivery; Jobs are learned by: webhooks, polling |
+| Repository column and fact | Last delivery: no delivery yet, delivered, delivery failed, delivery missed, no webhook, pool off; Last webhook delivery; Jobs are learned by: webhooks, polling |
+| Webhook notes | The GitHub App of this controller has no webhook, so GitHub tells crsp nothing. crsp finds jobs by polling GitHub every 15 seconds, and jobs still run. Nothing needs fixing unless you want jobs to start at once. / GitHub did not tell crsp about a job; crsp found it by polling, so it ran a little late. The webhook of the GitHub App cannot reach this controller. In the GitHub App settings, check that the webhook address is public and starts with https, and look at Recent Deliveries for the red mark. |
 | Polling notice | GitHub deliveries to this repository failed {n} times in a row, so crsp now polls GitHub for its jobs. Jobs still run, but they start a little later. |
 | Polling button | Switch back to webhooks (busy word: Switching) |
 | Polling failure | Could not switch back. {reason} |
@@ -890,3 +891,25 @@ The words of a runner service that did not start (runners R5.89, web-console R5.
 | Doctor finding, the service is stopped | The service {service} of {runner} is not running |
 | Doctor finding, fine | {account} can log on as a service and {runner} runs |
 | Doctor fix | Press Start. The agent gives the account the right to log on as a service again and starts the service on {machine}. |
+## Webhook settings words
+
+The words of Settings > Access > Webhooks and the link on the repository page (github-integration R5.51, web-console R5.99, OPS25).
+
+| Word | Where and meaning |
+|---|---|
+| Webhooks | Section title; the name of the state line. |
+| on / off / failing | Status words of the state: on, off, failing (the newest delivery failed or was missed). |
+| Real webhooks | Check box. Help: "Clear it and Save to find jobs by polling GitHub again." |
+| Public https address | Field name; help: "The address that forwards to this controller, for example https://hooks.example.com. crsp sends a signed test to it before GitHub is changed." |
+| With webhooks GitHub tells crsp about a job the moment it is queued, so the job starts at once. Without them crsp asks GitHub for new jobs every 15 seconds, so a job can start up to 15 seconds late. Webhooks need an address GitHub can reach: a tunnel or a reverse proxy with a real certificate. A LAN address or a self-signed certificate does not work. | The explanation at the top of the section. |
+| Testing the address | Busy word of Save while the address is tested; Turning off is the busy word when the box was cleared. |
+| Webhooks are on. GitHub now tells crsp about jobs at once. | Done line after Save. |
+| Webhooks are off. crsp finds jobs by polling GitHub again. | Done line after turning off. |
+| Could not save the webhook. {reason} | Problem line; the reason is the controller's own plain words. |
+| The address must start with https://. GitHub does not send webhooks to plain http. | Mistake in the list. |
+| {host} is a local address. GitHub can only reach a public address, such as a tunnel or a reverse proxy with a real certificate. | Mistake in the list. |
+| Write the public address that forwards to this controller. | Mistake when the field is empty. |
+| This is not a web address. Write it like https://hooks.example.com. | Mistake. |
+| Write the address without a user name, a query or a #fragment. | Mistake. |
+| The App does not listen for workflow jobs yet. On GitHub, open the App's permissions page and under Subscribe to events tick Workflow job, then save. Jobs are learned by webhooks once you have done that. | Guided step; its button is Open the App on GitHub. |
+| Turn on webhooks | Link at the end of the repository note "no webhook"; goes to Settings > Access > Webhooks. |

@@ -446,6 +446,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/app/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the GitHub App webhook state
+         * @description github-integration R5.51 (OPS25). Says whether real webhooks are off, on or failing, the public address, and the newest delivery of any repository. The secret is never returned.
+         */
+        get: operations["getAppWebhook"];
+        /**
+         * Turn real GitHub webhooks on
+         * @description github-integration R5.51 (OPS25). The owner gives the public https address that forwards to the controller. The controller makes a webhook secret and keeps it in the OS secret store, sends a signed test ping to `<address>/webhooks/github`, and only when that works sets the App's webhook at GitHub (`PATCH /app/hook/config`). A failed test or a refusal of GitHub keeps the old state. When the App does not subscribe to `workflow_job`, the answer carries `events_link`, the App's page where the owner ticks it.
+         */
+        put: operations["setAppWebhook"];
+        post?: never;
+        /**
+         * Turn real GitHub webhooks off
+         * @description github-integration R5.51 (OPS25). Clears the App's webhook config at GitHub, removes the webhook secret and returns to polling.
+         */
+        delete: operations["clearAppWebhook"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -2988,6 +3016,28 @@ export interface components {
              * @description Set in polling mode.
              */
             polling_since?: string;
+            /** @description True when the GitHub App has no webhook, so jobs are learned by polling only and no delivery can be missed (OPS22). Absent when webhooks are on. */
+            webhooks_off?: boolean;
+        };
+        /** @description The webhook of the GitHub App as the console shows it (github-integration R5.51). */
+        AppWebhook: {
+            /**
+             * @description Off means jobs are learned by polling. Failing means the newest delivery failed or was missed.
+             * @enum {string}
+             */
+            state: "off" | "on" | "failing";
+            /** @description The public https address that forwards to the controller. Absent when off. */
+            address?: string;
+            /** Format: date-time */
+            last_delivery_at?: string;
+            /** @enum {string} */
+            last_result?: "ok" | "failed" | "missed";
+            /** @description The App's permissions page at GitHub, set when the App does not subscribe to workflow_job. */
+            events_link?: string;
+        };
+        AppWebhookUpdate: {
+            /** @description A public https address GitHub can reach, such as https://hooks.example.com. */
+            address: string;
         };
         /** @description A new App private key, sent once and never returned (github-integration R5.7). */
         AppKeyUpload: {
@@ -5114,6 +5164,73 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getAppWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The webhook state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppWebhook"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    setAppWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppWebhookUpdate"];
+            };
+        };
+        responses: {
+            /** @description Webhooks are on. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppWebhook"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    clearAppWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Webhooks are off. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppWebhook"];
+                };
             };
             default: components["responses"]["Error"];
         };

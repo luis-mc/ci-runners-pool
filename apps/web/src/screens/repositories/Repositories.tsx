@@ -70,7 +70,7 @@ import {
   usePublicSwitch,
   visibilityWord,
 } from './publicRepositories';
-import { DeliveryStatus, DeliveryWhen, PollingNotice } from './webhookHealth';
+import { DeliveryStatus, DeliveryWhen, PollingNotice, learnedBy } from './webhookHealth';
 
 const PAGE = 25;
 
@@ -777,7 +777,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
                   { name: 'Last webhook delivery', value: <DeliveryWhen r={r} /> },
                   {
                     name: 'Jobs are learned by',
-                    value: r.webhook?.mode === 'polling' ? 'polling' : 'webhooks',
+                    value: learnedBy(r),
                   },
                 ]
               : []),

@@ -36,3 +36,24 @@ func (s *Service) SetCallbackOrigins(ctx context.Context, origins []string) erro
 		return tx.SetSetting(keyCallbacks, string(b), "system")
 	})
 }
+
+// keyWebhookAddress is the settings row of the public https address that
+// forwards to the controller's /webhooks/github (OPS25). Empty when webhooks
+// are off.
+const keyWebhookAddress = "github_webhook_address"
+
+// GetWebhookAddress returns the stored webhook address, "" when none.
+func (s *Service) GetWebhookAddress(ctx context.Context) (string, error) {
+	raw, ok, err := s.raw(ctx, keyWebhookAddress)
+	if err != nil || !ok {
+		return "", err
+	}
+	return raw, nil
+}
+
+// SetWebhookAddress stores the webhook address; "" clears it.
+func (s *Service) SetWebhookAddress(ctx context.Context, address string) error {
+	return s.db.WithTx(ctx, func(tx *store.Tx) error {
+		return tx.SetSetting(keyWebhookAddress, address, "system")
+	})
+}

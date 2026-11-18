@@ -130,8 +130,12 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	})
 	authStore := d.DB.Auth()
 	cbSettings := settings.New(d.DB)
+	health := webhookhealth.New()
 	asvc := auth.New(authStore, auth.Config{
-		GitHub: gh, Secrets: d.Secrets, Now: d.Now,
+		LoadWebhookAddress: cbSettings.GetWebhookAddress,
+		SaveWebhookAddress: cbSettings.SetWebhookAddress,
+		HookHealth:         health,
+		GitHub:             gh, Secrets: d.Secrets, Now: d.Now,
 		// An App made before the list was kept has the loopback callback
 		// of this port only (OPS16): never the address chosen later.
 		ConsoleURLs:    func() []string { return []string{loopbackConsoleURL(console)} },
@@ -145,7 +149,16 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	rsvc := repos.New(repos.Config{Store: repoStore, GitHub: gh, Tokens: asvc, Audit: asvc, PoolName: pool,
 		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Sizes: machineCapacity{svc: d.Machines, pool: pool}, Up: machineUp{svc: d.Machines},
 		FallbackGrace: fallbackGrace(d), PublicRepositories: publicRepositories(d), Now: d.Now})
-	health := webhookhealth.New()
+	// An App made without a webhook has no webhook secret in the store (R5.3):
+	// no delivery can arrive, so polling finding a job is not a missed delivery.
+	health.HooksOn = func() bool {
+		app := gh.AppID()
+		if app == 0 {
+			return false
+		}
+		b, err := d.Secrets.Get(context.Background(), github.SecretKey(app, github.SecretWebhookSecret))
+		return err == nil && len(b) > 0
+	}
 	appHealth := &github.AppHealth{Client: gh, AppID: gh.AppID, Now: d.Now}
 	hook := &github.WebhookHandler{
 		Verifier: func() (github.WebhookVerifier, error) {
