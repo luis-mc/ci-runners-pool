@@ -1,6 +1,6 @@
 // LOOK33: the block caret of the text boxes. jsdom has no layout, so a character is 8 px wide and the box 200 px.
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { join } from 'node:path';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
@@ -132,14 +132,14 @@ describe('block caret', () => {
   });
 
   it('blinks with the token and is steady under reduced motion', () => {
-    const css = readFileSync(resolve('src/components.css'), 'utf8');
+    const css = readFileSync(join(import.meta.dirname, '..', 'components.css'), 'utf8');
     expect(css).toMatch(
       /\.ds-caret\s*\{[^}]*animation:\s*ds-caret-blink var\(--ds-cursor-blink\) steps\(1\) infinite/,
     );
     expect(css).toMatch(
       /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.ds-caret\s*\{\s*animation:\s*none;/,
     );
-    const tokens = readFileSync(resolve('src/tokens.css'), 'utf8');
+    const tokens = readFileSync(join(import.meta.dirname, '..', 'tokens.css'), 'utf8');
     expect(tokens).toMatch(/--ds-cursor-blink:\s*0ms/);
   });
 });
