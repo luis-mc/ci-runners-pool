@@ -13,6 +13,7 @@ const SCREENS: {
   recovery?: boolean;
   publicRows?: boolean;
   signedOut?: boolean;
+  policy?: boolean;
   tweak?: (m: ReturnType<typeof signedIn>) => unknown;
 }[] = [
   { name: 'sign-in', path: '/sign-in', ready: 'Sign in', signedOut: true },
@@ -42,6 +43,12 @@ const SCREENS: {
     publicRows: true,
   },
   { name: 'repository detail', path: '/repositories/octo/app', ready: 'octo/app' },
+  {
+    name: 'repository policy',
+    path: '/repositories/octo/app',
+    ready: 'octo/app',
+    policy: true,
+  },
   { name: 'turn on the pool', path: '/repositories/turn-on', ready: 'Turn on the pool' },
   { name: 'machines', path: '/machines', ready: 'Machines' },
   { name: 'machine detail', path: '/machines/m1', ready: 'build-1' },
@@ -184,6 +191,8 @@ for (const screen of SCREENS) {
     if (screen.recovery)
       await expect(page.getByRole('button', { name: 'Recover' })).toBeVisible();
     await page.waitForLoadState('networkidle');
+    if (screen.policy)
+      await expect(page.getByRole('heading', { name: 'Policy' })).toBeVisible();
     await expectDomLayout(page, screen.name, { spaceVar: '--ds-space-' });
   });
 }
