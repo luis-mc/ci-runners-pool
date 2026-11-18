@@ -15,7 +15,6 @@ import { currentJobText, isolationText, runnerStatus, stateCounts } from './Runn
 import {
   containerBackendAllowed,
   machineSupports,
-  runnerKind,
   sentence,
 } from './AddRunners';
 
@@ -356,7 +355,7 @@ describe('Add runners', () => {
     ).toBeTruthy();
   });
 
-  it('asks for an ephemeral container runner only across systems', () => {
+  it('knows which systems a machine can run', () => {
     const win = machine({ os: 'windows', container_os: 'linux' });
     expect(machineSupports(win, 'linux')).toBe(true);
     expect(machineSupports(win, 'windows')).toBe(true);
@@ -364,9 +363,6 @@ describe('Add runners', () => {
     expect(
       machineSupports(machine({ os: 'windows', container_os: 'windows' }), 'linux'),
     ).toBe(false);
-    expect(runnerKind(win, 'linux')).toBe('ephemeral');
-    expect(runnerKind(win, 'windows')).toBe('persistent');
-    expect(runnerKind(machine(), 'linux')).toBe('persistent');
   });
 });
 
@@ -504,7 +500,6 @@ describe('Add runners: Linux on a Windows machine (OPS27)', () => {
   });
 
   it('asks the controller for the container runner of the pool, and knows the backend', () => {
-    expect(runnerKind(win(true), 'linux')).toBe('ephemeral');
     expect(containerBackendAllowed(win(true))).toBe(true);
     expect(containerBackendAllowed(win(false))).toBe(false);
     expect(sentence('No way')).toBe('No way.');

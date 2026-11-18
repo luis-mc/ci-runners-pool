@@ -4,6 +4,7 @@
 import {
   BulletList,
   Breadcrumbs,
+  CheckRow,
   ChoiceField,
   Facts,
   LinkButton,
@@ -30,6 +31,7 @@ import {
   type Plan,
   type Repository,
 } from '../repositories/plans';
+import { chooseKind, KIND_HELP, KIND_NAMES, type Kind } from './kinds';
 
 const STEPS = ['Runners', 'Review', 'Registering', 'Done'] as const;
 type OS = Schemas['OS'];
@@ -40,15 +42,6 @@ export function machineSupports(m: Schemas['Machine'], os: OS): boolean {
   return (
     m.os === os || (os === 'linux' && m.os === 'windows' && m.container_os === 'linux')
   );
-}
-
-/** The Linux runner of a Windows machine is a container runner, so it is ephemeral. The controller takes it for the
- * pool: it serves the pool's jobs there like any runner (runners R5.47, OPS27). */
-export function runnerKind(
-  m: Schemas['Machine'] | undefined,
-  os: OS,
-): 'persistent' | 'ephemeral' {
-  return m && m.os !== os ? 'ephemeral' : 'persistent';
 }
 
 /** A Linux runner on a Windows machine runs in the container backend, which a machine allows by itself (R5.27). */
@@ -113,6 +106,9 @@ export function AddRunnersWizard() {
   const [os, setOs] = useState<OS>('linux');
   const [machineId, setMachineId] = useState('');
   const [count, setCount] = useState(1);
+  // The kind the user picked; until then the D94(b) default stands. Keep dependencies is for a persistent runner.
+  const [kindPick, setKindPick] = useState<Kind | undefined>(undefined);
+  const [keepDeps, setKeepDeps] = useState(true);
   const [labels, setLabelsText] = useState('self-hosted');
   // Labels follow the repository's own variables until the user writes their own (finding 12).
   const [labelsEdited, setLabelsEdited] = useState(false);
@@ -194,6 +190,8 @@ export function AddRunnersWizard() {
     if (!labelsEdited) setLabelsText(wanted);
   }, [wanted, labelsEdited]);
   const supports = (m: Schemas['Machine']) => machineSupports(m, os);
+  const picked = machines.find((m) => m.id === machineId);
+  const choice = chooseKind(picked, os, repos, kindPick);
   const labelList = labels
     .split(',')
     .map((x) => x.trim())
@@ -207,8 +205,7 @@ export function AddRunnersWizard() {
     setErrors(e);
     setRefusal(undefined);
     if (Object.keys(e).length) return;
-    const chosen = machines.find((m) => m.id === machineId);
-    if (chosen && crossesTo(chosen, os) && !containerBackendAllowed(chosen)) {
+    if (containerOff) {
       setRefusal(NOT_ALLOWED);
       return;
     }
@@ -219,13 +216,11 @@ export function AddRunnersWizard() {
         client.POST('/api/v1/runner-plans', {
           body: {
             os,
-            kind: runnerKind(
-              machines.find((m) => m.id === machineId),
-              os,
-            ),
+            kind: choice.kind,
             machine_id: machineId,
             count,
             labels: labelList,
+            ...(choice.kind === 'persistent' ? { keep_dependencies: keepDeps } : {}),
           },
         }),
       );
@@ -323,9 +318,12 @@ export function AddRunnersWizard() {
     setPhase('first-run');
   };
 
-  const picked = machines.find((m) => m.id === machineId);
   const containerRunner = picked !== undefined && crossesTo(picked, os);
-  const containerOff = containerRunner && !containerBackendAllowed(picked);
+  const containerOff = picked !== undefined && choice.none;
+  const ephemeral = choice.kind === 'ephemeral';
+  const backendReason =
+    picked !== undefined &&
+    Object.values(choice.reasons).some((r) => r?.includes('container backend'));
 
   const prog = plan ? planProgress(plan) : { done: 0, total: 0 };
 
@@ -368,7 +366,7 @@ export function AddRunnersWizard() {
               : { disabledReason: `This machine runs ${m.os}, not ${os}.` }),
           }))}
         />
-        {containerOff ? (
+        {picked && containerOff ? (
           <Message
             tone="needs-you"
             action={
@@ -381,20 +379,57 @@ export function AddRunnersWizard() {
           </Message>
         ) : null}
         {refusal ? <Message tone="problem">{refusal}</Message> : null}
-        {containerRunner && !containerOff ? (
+        <ChoiceField
+          label="Kind"
+          value={choice.kind}
+          onChange={(v) => setKindPick(v as Kind)}
+          choices={(['persistent', 'ephemeral'] as const).map((k) => ({
+            value: k,
+            label: KIND_NAMES[k],
+            description: KIND_HELP[k],
+            ...(choice.reasons[k] ? { disabledReason: choice.reasons[k] } : {}),
+          }))}
+        />
+        {choice.line ? <Text tone="muted">{choice.line}</Text> : null}
+        {picked && backendReason && !containerOff ? (
+          <Message
+            tone="note"
+            action={
+              <LinkButton to={`/pool/machines/${picked.id}`}>
+                Allow it on the machine
+              </LinkButton>
+            }
+          >
+            The container backend decides which kinds this machine offers.
+          </Message>
+        ) : null}
+        {containerRunner && !containerOff && !ephemeral ? (
           <Message tone="note">
             Linux runners on this Windows machine run in containers, through Docker. The
             container backend must be allowed on the machine.
           </Message>
         ) : null}
         <NumberField
-          label="Number of runners"
+          label={ephemeral ? 'Most ephemeral runners at once' : 'Number of runners'}
+          {...(ephemeral
+            ? {
+                help: 'The pool makes a fresh container for each job, up to this many at the same time.',
+              }
+            : {})}
           value={count}
           min={1}
           max={32}
           onChange={setCount}
           {...(errors.count ? { error: errors.count } : {})}
         />
+        {ephemeral ? null : (
+          <CheckRow
+            label="Keep downloaded dependencies"
+            checked={keepDeps}
+            onChange={setKeepDeps}
+            help="Temporary files of each job are always removed."
+          />
+        )}
         <TextField
           label="Labels"
           help="Separate labels with commas."
@@ -409,9 +444,16 @@ export function AddRunnersWizard() {
     body = (
       <Stack>
         <Text>
-          {count} {count === 1 ? 'runner' : 'runners'} on{' '}
-          {machines.find((m) => m.id === machineId)?.name ?? 'the machine'}. These steps
-          run:
+          {ephemeral
+            ? `Up to ${count} ephemeral ${count === 1 ? 'runner' : 'runners'} at once`
+            : `${count} persistent ${count === 1 ? 'runner' : 'runners'}`}{' '}
+          on {picked?.name ?? 'the machine'}.{' '}
+          {ephemeral
+            ? 'Each job gets a fresh container.'
+            : keepDeps
+              ? 'Downloaded dependencies are kept between jobs. Temporary files of each job are always removed.'
+              : 'Downloaded dependencies are removed after each job too. Temporary files of each job are always removed.'}{' '}
+          These steps run:
         </Text>
         <BulletList items={(plan?.steps ?? []).map((s) => s.text)} />
       </Stack>
@@ -508,7 +550,9 @@ export function AddRunnersWizard() {
               reason: machines.length === 0 ? 'Add a machine first.' : NOT_ALLOWED,
             }
           : {
-              label: `Add ${count} ${count === 1 ? 'runner' : 'runners'}`,
+              label: ephemeral
+                ? `Allow ${count} ephemeral ${count === 1 ? 'runner' : 'runners'}`
+                : `Add ${count} ${count === 1 ? 'runner' : 'runners'}`,
               busyLabel: 'Registering',
               onPress: () => void apply(),
             }
