@@ -25,6 +25,7 @@ const CHECKS: { id: Measure; states: ScreenState[] }[] = [
   { id: 'h1', states: ['data', 'empty', 'failed'] },
   { id: 'selectAll', states: ['data'] },
   { id: 'navScroll', states: ['data'] },
+  { id: 'noScrollbar', states: ['data'] },
   { id: 'pane', states: ['data'] },
   { id: 'frameEdges', states: ['data'] },
   { id: 'pageEdges', states: ['data'] },

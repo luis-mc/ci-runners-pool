@@ -281,3 +281,7 @@ func OSName(os string) string {
 }
 
 func refuse(format string, a ...any) error { return &RefusalError{Reason: fmt.Sprintf(format, a...)} }
+
+// ErrNoPoolRepository refuses a runner plan with no scope while no repository
+// uses the pool: persistent runners register through a repository until OPS23.
+var ErrNoPoolRepository error = &RefusalError{Reason: "no repository uses the pool yet; choose one in Repositories first"}

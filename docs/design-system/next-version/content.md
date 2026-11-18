@@ -48,7 +48,8 @@ Each action has one word. The Never use column lists words that must not stand i
 | What changed | The link of the update dialog to the release page of the new version. It changes nothing. | Release notes, Changelog |
 | Quit tray | Close the tray icon only. The service keeps running. | Exit, Close |
 | Export | Save every row of a table or list as a file, in the order shown (component 29). It changes nothing. | Download, Save as |
-| Run the doctor | Start the doctor now. While it runs the button says Running the doctor. | Scan, Check, Run checks |
+| Run checks again | Start the doctor now, on the Doctor page, as its one primary in the action bar. Before the first run it says Run checks. While it runs the button says Running the doctor. | Run the doctor, Scan, Check |
+| Add channel | Open the form of a new notification channel. It changes nothing until the tab's Save. A normal button. | Add, New channel, Create |
 | Widen the range | Show a longer time range when the range shown has nothing. | Expand, Zoom |
 | Zoom in, Zoom out | Show a shorter or a longer time range on a time axis. | Narrow, Expand |
 | Show earlier | Load the rows before the last one on a time axis. It is also loaded by itself as the end nears the screen. | More, Older |
@@ -852,3 +853,26 @@ The words of the small update page the tray opens (tray R5.43, web-console R5.96
 | Close | The primary on Done, and the left button after a failure. |
 | Open Updates | The left button on Done: opens Settings, Updates. |
 | The update did not finish. {reason} The running version stays. The log is {path}. Open the log folder from the tray menu. Then try again. | The failure message. |
+
+## Shared Pool and Jobs words
+
+The words of the six-item menu, Shared Pool and the Jobs sub-sections (owner decisions D24, D29, D31 to D34, LOOK31). "Runners" stays "runners" (D29).
+
+| Word | Where and meaning |
+|---|---|
+| Shared Pool | Menu area and page title: the one pool of machines and their runners. |
+| Summary, Machines, Runners, Images and caches, Size and backends | The tabs of Shared Pool. |
+| All, By repository, By machine, By runner type, By job type, Wait and duration | The tabs of Jobs. |
+| One pool across your machines. Set it up here, then choose the repositories that use it. | Lead of the Shared Pool summary. |
+| Set up the pool | Title of the first-run guide. |
+| Three steps. A step opens when the one before it is done. | Hint of the first-run guide. |
+| 1 Add a machine / 2 Set runners / 3 Choose repositories | The steps of the guide; each shows `done, {n} ...` when finished. |
+| Add a machine first. | Reason on a step or button that cannot start yet. |
+| {n} machines, {m} runners, {k} busy | The pool totals above the runner list and on the summary. |
+| Runners serve every repository that uses the pool. | The one line on Add runners, in place of the Repository question. |
+| How crsp works: the Pool has Machines, and each machine has Runners. Repositories use the pool. Start in Shared Pool. | The first-run strip on the Overview. |
+| Hide this | Button that hides the strip for good in this browser. |
+| Showing the last 100 finished jobs. | Note above the finished jobs when more exist. |
+| See all | Button that pages in the earlier finished jobs. |
+| Done, failed and the averages count the last 200 finished jobs. | Quiet line under a grouped Jobs table. |
+| not placed yet | Group name of a job that has no machine or runner yet. |

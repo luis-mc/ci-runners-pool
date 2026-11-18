@@ -179,7 +179,7 @@ func (c *call) runnerAdd() error {
 		kind = client.RunnerKindPersistent
 	}
 	req := client.PlanRunnersRequest{Os: os, Kind: kind, MachineId: m.Id, Count: count,
-		Scope: client.RunnerScope{Kind: client.RunnerScopeKindRepository, RepositoryId: &repo.Id}}
+		Scope: &client.RunnerScope{Kind: client.RunnerScopeKindRepository, RepositoryId: &repo.Id}}
 	if l := splitList(f("labels")); len(l) > 0 {
 		req.Labels = &l
 	}

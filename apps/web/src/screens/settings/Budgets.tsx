@@ -3,12 +3,9 @@
 // One form that ends with Cancel and Save (UX-24). A change here touches no machine that already joined, so no
 // runner restarts and no running job is waited for (UX-62); the page says so in one line.
 import {
-  Button,
   CheckRow,
   ErrorSummary,
   FieldGrid,
-  ActionBar,
-  unsavedStatus,
   Message,
   NumberField,
   OrderList,
@@ -22,6 +19,7 @@ import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand, useLoad } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { Load } from '../common';
+import { useTabPart } from './TabForm';
 
 type Pool = Schemas['PoolSettings'];
 type Queue = Schemas['QueueSettings'];
@@ -110,19 +108,27 @@ function BudgetsForm({
     const problems = budgetProblems(p, q);
     setErrors(problems);
     setSaved(false);
-    if (problems.length) return;
+    if (problems.length) return false;
     await unwrap(client.PUT('/api/v1/settings/pool', { body: p }));
     await unwrap(client.PUT('/api/v1/settings/queue', { body: q }));
     setSaved(true);
     onSaved();
+    return true;
+  });
+  useTabPart('budgets', {
+    changes: changeCount,
+    save: async () => (await save.run()) === true,
+    reset: () => {
+      setP(pool);
+      setQ(normaliseQueue(queue));
+      setErrors([]);
+      setSaved(false);
+      save.clear();
+    },
+    blocked: session.can('admin') ? undefined : session.whyNot('admin'),
   });
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        void save.run();
-      }}
-    >
+    <div>
       <Stack>
         <Section title="New machines">
           <Stack>
@@ -204,41 +210,7 @@ function BudgetsForm({
         {save.error ? (
           <Message tone="problem">Could not save. {save.error}</Message>
         ) : null}
-        <ActionBar
-          status={unsavedStatus(changeCount)}
-          secondary={
-            <Button
-              onPress={() => {
-                setP(pool);
-                setQ(normaliseQueue(queue));
-                setErrors([]);
-                setSaved(false);
-                save.clear();
-              }}
-              disabled={changeCount === 0}
-              reason="Nothing has changed."
-            >
-              Cancel
-            </Button>
-          }
-          primary={
-            <Button
-              kind="primary"
-              submit
-              busy={save.busy}
-              busyLabel="Saving"
-              disabled={!session.can('admin') || changeCount === 0}
-              reason={
-                session.can('admin')
-                  ? 'Nothing has changed yet.'
-                  : session.whyNot('admin')
-              }
-            >
-              Save
-            </Button>
-          }
-        />
       </Stack>
-    </form>
+    </div>
   );
 }

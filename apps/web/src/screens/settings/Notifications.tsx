@@ -10,7 +10,6 @@ import {
   Cluster,
   Empty,
   ErrorSummary,
-  FormActions,
   Message,
   NumberField,
   Section,
@@ -27,6 +26,7 @@ import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { Ask, Load } from '../common';
+import { useTabPart } from './TabForm';
 
 type Channel = Schemas['NotificationChannel'];
 type Kind = Schemas['NotificationKind'];
@@ -232,10 +232,10 @@ export function NotificationsSettings() {
   const set = (patch: Partial<Draft>) => setDraft((d) => (d ? { ...d, ...patch } : d));
 
   const save = useCommand(async () => {
-    if (!draft) return;
+    if (!draft) return false;
     const problems = problemsOf(draft);
     setErrors(problems);
-    if (problems.length) return;
+    if (problems.length) return false;
     if (draft.id) {
       await unwrap(
         client.PATCH('/api/v1/notification-channels/{channelId}', {
@@ -251,6 +251,16 @@ export function NotificationsSettings() {
     setSaved(`Channel ${draft.name.trim()} saved.`);
     setDraft(undefined);
     reload();
+    return true;
+  });
+  useTabPart('notifications', {
+    changes: draft ? 1 : 0,
+    save: async () => (await save.run()) === true,
+    reset: () => {
+      setDraft(undefined);
+      setErrors([]);
+      save.clear();
+    },
   });
 
   const test = useCommand(async (c: Channel) => {
@@ -426,7 +436,6 @@ export function NotificationsSettings() {
         {draft ? null : (
           <Cluster>
             <Button
-              kind="primary"
               onPress={() => {
                 setSaved(undefined);
                 setErrors([]);
@@ -434,19 +443,14 @@ export function NotificationsSettings() {
                 setDraft({ ...BLANK });
               }}
             >
-              Add
+              Add channel
             </Button>
           </Cluster>
         )}
       </Section>
       {draft ? (
         <Section title={draft.id ? `Edit ${draft.title}` : 'Add a channel'}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void save.run();
-            }}
-          >
+          <div>
             <Stack>
               <ErrorSummary errors={errors} />
               {draft.id ? null : (
@@ -583,22 +587,8 @@ export function NotificationsSettings() {
               {save.error ? (
                 <Message tone="problem">Could not save the channel. {save.error}</Message>
               ) : null}
-              <FormActions>
-                <Button
-                  onPress={() => {
-                    setDraft(undefined);
-                    setErrors([]);
-                    save.clear();
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button kind="primary" submit busy={save.busy} busyLabel="Saving">
-                  Save
-                </Button>
-              </FormActions>
             </Stack>
-          </form>
+          </div>
         </Section>
       ) : null}
       <Ask

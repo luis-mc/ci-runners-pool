@@ -1,5 +1,5 @@
 // Component 15: tables and list rows. Use a table only to compare three or more facts (UX-25). Column heads
-// sort. A wide table may scroll sideways inside its frame, the page never does (UX-49). j and k move the
+// sort. A table never scrolls sideways, nor does the page: cells wrap and a row folds to a stack at phone width (UX-49). j and k move the
 // active row, Enter opens it (UX-57): the shell sets `data-list-row` and the handler reads it.
 import { useMemo, useState, type ReactNode } from 'react';
 import { useKeyHints } from './KeyHints';

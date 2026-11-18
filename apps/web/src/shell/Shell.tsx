@@ -86,11 +86,9 @@ function AreaMenu() {
 
 export const AREAS: readonly NavItem[] = [
   { to: '/', label: 'Overview', end: true },
+  { to: '/pool', label: 'Shared Pool' },
   { to: '/repositories', label: 'Repositories' },
-  { to: '/machines', label: 'Machines' },
-  { to: '/runners', label: 'Runners' },
   { to: '/jobs', label: 'Jobs' },
-  { to: '/images', label: 'Images and caches' },
   { to: '/doctor', label: 'Doctor' },
   { to: '/settings', label: 'Settings' },
 ];
@@ -156,7 +154,7 @@ function Palette({ onClose }: { onClose: () => void }) {
             id: `runner:${r.id}`,
             label: r.name,
             hint: 'runner',
-            to: `/runners`,
+            to: `/pool/runners`,
           });
       if (repos.status === 'fulfilled')
         for (const r of repos.value.items)
@@ -185,7 +183,7 @@ function Palette({ onClose }: { onClose: () => void }) {
         id: `machine:${m.id}`,
         label: m.name,
         hint: 'machine',
-        to: `/machines/${m.id}`,
+        to: `/pool/machines/${m.id}`,
       });
     items.push(...found);
     if (session.can('admin')) {
@@ -194,13 +192,13 @@ function Palette({ onClose }: { onClose: () => void }) {
           id: 'cmd:add-machine',
           label: 'Add a machine',
           hint: 'command',
-          to: '/machines/add',
+          to: '/pool/machines/add',
         },
         {
           id: 'cmd:add-runners',
           label: 'Add runners',
           hint: 'command',
-          to: '/runners/add',
+          to: '/pool/runners/add',
         },
         {
           id: 'cmd:pool-on',

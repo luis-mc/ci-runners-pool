@@ -96,7 +96,7 @@ describe('Notifications: the channel table', () => {
 });
 
 describe('Notifications: add and edit', () => {
-  it('adds a webhook with a made secret; the form ends with Cancel and Save', async () => {
+  it('adds a webhook with a made secret; Cancel and Save are in the bar', async () => {
     const a = api([]).on('POST', '/api/v1/notification-channels', (c) => ({
       ...(c.body as object),
       id: 'nch_9',
@@ -104,10 +104,15 @@ describe('Notifications: add and edit', () => {
       secret_set: true,
     }));
     renderApp(a, '/settings/notifications');
-    fireEvent.click(await screen.findByRole('button', { name: 'Add' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add channel' }));
     const form = screen.getByRole('region', { name: 'Add a channel' });
-    const buttons = within(form).getAllByRole('button');
-    expect(buttons.slice(-2).map((b) => b.textContent)).toEqual(['Cancel', 'Save']);
+    const bar = screen.getByRole('region', { name: 'Actions' });
+    expect(within(bar).getByText('Unsaved changes (1)')).toBeTruthy();
+    expect(
+      within(bar)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['Cancel', 'Save']);
     fireEvent.click(within(form).getByRole('radio', { name: /^Webhook/ }));
     fill('Name', 'Team chat');
     fill('Web address', 'https://hooks.example.com/crsp');
@@ -139,7 +144,7 @@ describe('Notifications: add and edit', () => {
       secret_set: false,
     }));
     renderApp(a, '/settings/notifications');
-    fireEvent.click(await screen.findByRole('button', { name: 'Add' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add channel' }));
     fill('Name', 'My mail');
     fill('Address', 'alice@example.com');
     fill('Mail server', 'smtp.example.com');
@@ -169,7 +174,7 @@ describe('Notifications: add and edit', () => {
   it('shows every mistake at the top and sends nothing', async () => {
     const a = api([]);
     renderApp(a, '/settings/notifications');
-    fireEvent.click(await screen.findByRole('button', { name: 'Add' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add channel' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Machine offline' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Write a name for the channel.')).toBeTruthy();
@@ -185,7 +190,7 @@ describe('Notifications: add and edit', () => {
   it('refuses a webhook address that is not https and a short secret', async () => {
     const a = api([]);
     renderApp(a, '/settings/notifications');
-    fireEvent.click(await screen.findByRole('button', { name: 'Add' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add channel' }));
     fireEvent.click(screen.getByRole('radio', { name: /^Webhook/ }));
     fill('Name', 'x');
     fill('Web address', 'http://hooks.example.com');
@@ -205,7 +210,7 @@ describe('Notifications: add and edit', () => {
       apiError(400, 'bad_request', 'The mail server points to this machine.'),
     );
     renderApp(a, '/settings/notifications');
-    fireEvent.click(await screen.findByRole('button', { name: 'Add' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add channel' }));
     fireEvent.click(screen.getByRole('radio', { name: /^Desktop/ }));
     fill('Name', 'Desk');
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -217,7 +222,7 @@ describe('Notifications: add and edit', () => {
   it('Cancel leaves the form and sends nothing', async () => {
     const a = api();
     renderApp(a, '/settings/notifications');
-    fireEvent.click(await screen.findByRole('button', { name: 'Add' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add channel' }));
     fill('Name', 'Draft');
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('region', { name: 'Add a channel' })).toBeNull();
@@ -239,7 +244,7 @@ describe('Notifications: add and edit', () => {
     ).toBeTruthy();
     expect(within(form).queryByRole('radio', { name: /^Webhook/ })).toBeNull(); // the kind never changes
     fill('Name', 'Renamed');
-    fireEvent.click(within(form).getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
       expect(a.count('PATCH', '/api/v1/notification-channels/nch_1')).toBe(1),
     );
@@ -256,7 +261,7 @@ describe('Notifications: add and edit', () => {
     const form = await screen.findByRole('region', { name: 'Edit My mail' });
     expect(within(form).getByLabelText<HTMLInputElement>(/Password/).value).toBe('');
     fireEvent.click(within(form).getByRole('checkbox', { name: 'Remove the password' }));
-    fireEvent.click(within(form).getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
       expect(a.count('PATCH', '/api/v1/notification-channels/nch_2')).toBe(1),
     );
@@ -268,7 +273,7 @@ describe('Notifications: add and edit', () => {
       signedIn(viewer).on('GET', '/api/v1/notification-channels', { items: [] }),
       '/settings/notifications',
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Add' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Add channel' }));
     const radio = screen.getByRole<HTMLInputElement>('radio', { name: /^Webhook/ });
     expect(radio.disabled).toBe(true);
     expect(screen.getByText(/Only an admin can do this\./)).toBeTruthy();

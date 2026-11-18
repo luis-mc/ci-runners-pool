@@ -2,6 +2,7 @@
 // what, newest first, and exports every row that matches the filters. Config export downloads the configuration
 // without any secret; a secret is named only as set or not set.
 import {
+  ActionBar,
   Button,
   Empty,
   ExportButton,
@@ -100,56 +101,60 @@ export function AuditLogSettings() {
     );
 
   return (
-    <Section title="Audit log">
-      <Stack>
-        <Text>Who changed what, and when. The newest change is first.</Text>
-        <ListToolbar
-          label="Audit log"
-          search={
-            <>
-              <SearchBar label="Search who" value={actor} onChange={setActor} />
-              <SearchBar label="Search what" value={action} onChange={setAction} />
-            </>
-          }
-          actions={<ExportButton primary what="the audit log" onExport={exportAll} />}
-        />
-        <Load
-          result={result.state === 'ready' ? { ...result, data: rows } : result}
-          what="the audit log"
-          reload={() => setTick((t) => t + 1)}
-        >
-          {(items) =>
-            items.length === 0 ? (
-              <Empty
-                title={
-                  actor || action
-                    ? 'No change matches the search. Clear it to see every change.'
-                    : 'Nothing has been changed yet.'
-                }
-              />
-            ) : (
-              <Stack>
-                <Table
-                  caption="Audit log"
-                  columns={cols}
-                  rows={items}
-                  rowKey={(e) => String(e.id)}
+    <>
+      <Section title="Audit log">
+        <Stack>
+          <Text>Who changed what, and when. The newest change is first.</Text>
+          <ListToolbar
+            label="Audit log"
+            search={
+              <>
+                <SearchBar label="Search who" value={actor} onChange={setActor} />
+                <SearchBar label="Search what" value={action} onChange={setAction} />
+              </>
+            }
+          />
+          <Load
+            result={result.state === 'ready' ? { ...result, data: rows } : result}
+            what="the audit log"
+            reload={() => setTick((t) => t + 1)}
+          >
+            {(items) =>
+              items.length === 0 ? (
+                <Empty
+                  title={
+                    actor || action
+                      ? 'No change matches the search. Clear it to see every change.'
+                      : 'Nothing has been changed yet.'
+                  }
                 />
-                {next ? (
-                  <Button
-                    onPress={() => void more.run()}
-                    busy={more.busy}
-                    busyLabel="Loading more"
-                  >
-                    Load more
-                  </Button>
-                ) : null}
-              </Stack>
-            )
-          }
-        </Load>
-      </Stack>
-    </Section>
+              ) : (
+                <Stack>
+                  <Table
+                    caption="Audit log"
+                    columns={cols}
+                    rows={items}
+                    rowKey={(e) => String(e.id)}
+                  />
+                  {next ? (
+                    <Button
+                      onPress={() => void more.run()}
+                      busy={more.busy}
+                      busyLabel="Loading more"
+                    >
+                      Load more
+                    </Button>
+                  ) : null}
+                </Stack>
+              )
+            }
+          </Load>
+        </Stack>
+      </Section>
+      <ActionBar
+        primary={<ExportButton primary what="the audit log" onExport={exportAll} />}
+      />
+    </>
   );
 }
 
