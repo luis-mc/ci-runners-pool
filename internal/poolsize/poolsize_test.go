@@ -161,3 +161,44 @@ func TestDefaultBudgets(t *testing.T) {
 		t.Fatalf("%+v", r)
 	}
 }
+
+// LOOK22: the two recommended sizes.
+func TestRecommendHalfAndThreeQuarters(t *testing.T) {
+	// The owner's figures: room 10.5 GiB, CPU budget 19.
+	if got := Recommend(10.5, 19, 0.5); got != (Recommended{MemGiB: 5, CPUs: 3}) {
+		t.Fatalf("half: %+v", got)
+	}
+	if got := Recommend(10.5, 19, 0.75); got != (Recommended{MemGiB: 7, CPUs: 4}) {
+		t.Fatalf("three quarters: %+v", got)
+	}
+	// A small CPU budget is the cap: 4 CPUs at half is 2.
+	if got := Recommend(40, 4, 0.5); got != (Recommended{MemGiB: 20, CPUs: 2}) {
+		t.Fatalf("cpu share: %+v", got)
+	}
+	// A big room and budget: the CPU share wins when memory allows it.
+	if got := Recommend(40, 8, 0.75); got != (Recommended{MemGiB: 30, CPUs: 6}) {
+		t.Fatalf("big: %+v", got)
+	}
+}
+
+func TestRecommendKeepsTheFloors(t *testing.T) {
+	if got := Recommend(3, 1, 0.5); got != (Recommended{MemGiB: MinGiB, CPUs: MinCPUs}) {
+		t.Fatalf("floors: %+v", got)
+	}
+	if got := Recommend(0, 0, 0.75); got != (Recommended{MemGiB: MinGiB, CPUs: MinCPUs}) {
+		t.Fatalf("empty room: %+v", got)
+	}
+}
+
+func TestCheckFillsRecommendedSizes(t *testing.T) {
+	// box(): room 21.2, CPU budget 9.
+	r := Check(box(), Request{MemGiB: 8, CPUs: 4})
+	if r.Half != (Recommended{MemGiB: 10, CPUs: 4}) || r.ThreeQuarters != (Recommended{MemGiB: 15, CPUs: 6}) {
+		t.Fatalf("half %+v three quarters %+v", r.Half, r.ThreeQuarters)
+	}
+	// Refused sizes carry them too, so the console can offer them.
+	r = Check(box(), Request{MemGiB: 64, CPUs: 4})
+	if r.OK || r.Half.MemGiB != 10 {
+		t.Fatalf("refused: %+v", r)
+	}
+}

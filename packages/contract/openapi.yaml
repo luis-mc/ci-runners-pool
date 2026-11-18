@@ -5416,6 +5416,15 @@ components:
       example:
         pool_memory_gib: 16
         pool_cpus: 4
+    PoolSizeRecommended:
+      type: object
+      required: [memory_gib, cpus]
+      description: A recommended pool size. Memory is a share of the room rounded down to whole GiB, at least the floor; CPUs are the same share of the CPU budget, at most memory / 1.5, at least the floor.
+      properties:
+        memory_gib:
+          type: integer
+        cpus:
+          type: integer
     PoolSizeCheck:
       type: object
       required:
@@ -5463,6 +5472,10 @@ components:
         decided:
           type: string
           description: The figure that decided.
+        recommended_half:
+          $ref: '#/components/schemas/PoolSizeRecommended'
+        recommended_three_quarters:
+          $ref: '#/components/schemas/PoolSizeRecommended'
         current_memory_gib:
           type: number
           format: double
