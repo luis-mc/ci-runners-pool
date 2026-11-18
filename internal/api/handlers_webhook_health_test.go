@@ -55,3 +55,25 @@ func TestRepositoryTellsWhenTheAppHasNoWebhook(t *testing.T) { // OPS22
 		t.Fatalf("no webhooks_off: %s", b)
 	}
 }
+
+func TestAppWebhookEndpoints(t *testing.T) { // OPS25, R5.51
+	h := newHarness(t)
+	owner, csrf := h.setup(1, "alice")
+	hdr := map[string]string{"X-CSRF-Token": csrf}
+	res, b := h.do("DELETE", "/api/v1/app/webhook", nil, owner, hdr)
+	if res.StatusCode != 200 || !strings.Contains(string(b), `"state":"off"`) || h.fake.HookPatches != 1 {
+		t.Fatalf("turning off: %d %s (patches %d)", res.StatusCode, b, h.fake.HookPatches)
+	}
+	if res, b = h.do("GET", "/api/v1/app/webhook", nil, owner, nil); res.StatusCode != 200 || !strings.Contains(string(b), `"state":"off"`) {
+		t.Fatalf("off: %d %s", res.StatusCode, b)
+	}
+	for _, addr := range []string{"http://hooks.example.com", "https://192.168.1.4", "https://crsp.local", "nonsense"} {
+		res, b = h.do("PUT", "/api/v1/app/webhook", map[string]any{"address": addr}, owner, hdr)
+		if res.StatusCode != 400 {
+			t.Fatalf("%s must be refused: %d %s", addr, res.StatusCode, b)
+		}
+	}
+	if res, _ = h.do("PUT", "/api/v1/app/webhook", map[string]any{"address": "https://hooks.example.com"}, owner, nil); res.StatusCode != 403 {
+		t.Fatalf("a change needs the CSRF token: %d", res.StatusCode)
+	}
+}

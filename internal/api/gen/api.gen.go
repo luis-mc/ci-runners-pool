@@ -51,6 +51,48 @@ func (e AddUserRequestRole) Valid() bool {
 	}
 }
 
+// Defines values for AppWebhookLastResult.
+const (
+	AppWebhookLastResultFailed AppWebhookLastResult = "failed"
+	AppWebhookLastResultMissed AppWebhookLastResult = "missed"
+	AppWebhookLastResultOk     AppWebhookLastResult = "ok"
+)
+
+// Valid indicates whether the value is a known member of the AppWebhookLastResult enum.
+func (e AppWebhookLastResult) Valid() bool {
+	switch e {
+	case AppWebhookLastResultFailed:
+		return true
+	case AppWebhookLastResultMissed:
+		return true
+	case AppWebhookLastResultOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AppWebhookState.
+const (
+	AppWebhookStateFailing AppWebhookState = "failing"
+	AppWebhookStateOff     AppWebhookState = "off"
+	AppWebhookStateOn      AppWebhookState = "on"
+)
+
+// Valid indicates whether the value is a known member of the AppWebhookState enum.
+func (e AppWebhookState) Valid() bool {
+	switch e {
+	case AppWebhookStateFailing:
+		return true
+	case AppWebhookStateOff:
+		return true
+	case AppWebhookStateOn:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Arch.
 const (
 	Arm64 Arch = "arm64"
@@ -2180,6 +2222,32 @@ type AppManifestForm struct {
 	Manifest map[string]interface{} `json:"manifest"`
 	PostUrl  string                 `json:"post_url"`
 	State    string                 `json:"state"`
+}
+
+// AppWebhook The webhook of the GitHub App as the console shows it (github-integration R5.51).
+type AppWebhook struct {
+	// Address The public https address that forwards to the controller. Absent when off.
+	Address *string `json:"address,omitempty"`
+
+	// EventsLink The App's permissions page at GitHub, set when the App does not subscribe to workflow_job.
+	EventsLink     *string               `json:"events_link,omitempty"`
+	LastDeliveryAt *time.Time            `json:"last_delivery_at,omitempty"`
+	LastResult     *AppWebhookLastResult `json:"last_result,omitempty"`
+
+	// State Off means jobs are learned by polling. Failing means the newest delivery failed or was missed.
+	State AppWebhookState `json:"state"`
+}
+
+// AppWebhookLastResult defines model for AppWebhook.LastResult.
+type AppWebhookLastResult string
+
+// AppWebhookState Off means jobs are learned by polling. Failing means the newest delivery failed or was missed.
+type AppWebhookState string
+
+// AppWebhookUpdate defines model for AppWebhookUpdate.
+type AppWebhookUpdate struct {
+	// Address A public https address GitHub can reach, such as https://hooks.example.com.
+	Address string `json:"address"`
 }
 
 // ApplyPlanRequest defines model for ApplyPlanRequest.
@@ -4577,6 +4645,9 @@ type CreateAccessCredentialJSONRequestBody = AccessCredentialCreate
 // ReplaceAppPrivateKeyJSONRequestBody defines body for ReplaceAppPrivateKey for application/json ContentType.
 type ReplaceAppPrivateKeyJSONRequestBody = AppKeyUpload
 
+// SetAppWebhookJSONRequestBody defines body for SetAppWebhook for application/json ContentType.
+type SetAppWebhookJSONRequestBody = AppWebhookUpdate
+
 // ExchangeCliTokenJSONRequestBody defines body for ExchangeCliToken for application/json ContentType.
 type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
 
@@ -4708,6 +4779,15 @@ type ServerInterface interface {
 	// ReplaceAppPrivateKey Replace the GitHub App private key
 	// (PUT /api/v1/app/private-key)
 	ReplaceAppPrivateKey(w http.ResponseWriter, r *http.Request)
+	// ClearAppWebhook Turn real GitHub webhooks off
+	// (DELETE /api/v1/app/webhook)
+	ClearAppWebhook(w http.ResponseWriter, r *http.Request)
+	// GetAppWebhook Read the GitHub App webhook state
+	// (GET /api/v1/app/webhook)
+	GetAppWebhook(w http.ResponseWriter, r *http.Request)
+	// SetAppWebhook Turn real GitHub webhooks on
+	// (PUT /api/v1/app/webhook)
+	SetAppWebhook(w http.ResponseWriter, r *http.Request)
 	// ListAuditEvents The audit log, newest first
 	// (GET /api/v1/audit)
 	ListAuditEvents(w http.ResponseWriter, r *http.Request, params ListAuditEventsParams)
@@ -5159,6 +5239,48 @@ func (siw *ServerInterfaceWrapper) ReplaceAppPrivateKey(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ReplaceAppPrivateKey(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ClearAppWebhook operation middleware
+func (siw *ServerInterfaceWrapper) ClearAppWebhook(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClearAppWebhook(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAppWebhook operation middleware
+func (siw *ServerInterfaceWrapper) GetAppWebhook(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAppWebhook(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetAppWebhook operation middleware
+func (siw *ServerInterfaceWrapper) SetAppWebhook(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetAppWebhook(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -8953,6 +9075,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/me/preferences", wrapper.GetPreferences)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/me/preferences", wrapper.UpdatePreferences)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/app/private-key", wrapper.ReplaceAppPrivateKey)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/app/webhook", wrapper.ClearAppWebhook)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/app/webhook", wrapper.GetAppWebhook)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/app/webhook", wrapper.SetAppWebhook)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/users", wrapper.ListUsers)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/users", wrapper.AddUser)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/users/{userId}", wrapper.RemoveUser)
@@ -9227,6 +9352,121 @@ type ReplaceAppPrivateKeydefaultJSONResponse struct {
 }
 
 func (response ReplaceAppPrivateKeydefaultJSONResponse) VisitReplaceAppPrivateKeyResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ClearAppWebhookRequestObject struct {
+}
+
+type ClearAppWebhookResponseObject interface {
+	VisitClearAppWebhookResponse(w http.ResponseWriter) error
+}
+
+type ClearAppWebhook200JSONResponse AppWebhook
+
+func (response ClearAppWebhook200JSONResponse) VisitClearAppWebhookResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ClearAppWebhookdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ClearAppWebhookdefaultJSONResponse) VisitClearAppWebhookResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAppWebhookRequestObject struct {
+}
+
+type GetAppWebhookResponseObject interface {
+	VisitGetAppWebhookResponse(w http.ResponseWriter) error
+}
+
+type GetAppWebhook200JSONResponse AppWebhook
+
+func (response GetAppWebhook200JSONResponse) VisitGetAppWebhookResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAppWebhookdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetAppWebhookdefaultJSONResponse) VisitGetAppWebhookResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetAppWebhookRequestObject struct {
+	Body *SetAppWebhookJSONRequestBody
+}
+
+type SetAppWebhookResponseObject interface {
+	VisitSetAppWebhookResponse(w http.ResponseWriter) error
+}
+
+type SetAppWebhook200JSONResponse AppWebhook
+
+func (response SetAppWebhook200JSONResponse) VisitSetAppWebhookResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetAppWebhookdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response SetAppWebhookdefaultJSONResponse) VisitSetAppWebhookResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -14315,6 +14555,15 @@ type StrictServerInterface interface {
 	// ReplaceAppPrivateKey Replace the GitHub App private key
 	// (PUT /api/v1/app/private-key)
 	ReplaceAppPrivateKey(ctx context.Context, request ReplaceAppPrivateKeyRequestObject) (ReplaceAppPrivateKeyResponseObject, error)
+	// ClearAppWebhook Turn real GitHub webhooks off
+	// (DELETE /api/v1/app/webhook)
+	ClearAppWebhook(ctx context.Context, request ClearAppWebhookRequestObject) (ClearAppWebhookResponseObject, error)
+	// GetAppWebhook Read the GitHub App webhook state
+	// (GET /api/v1/app/webhook)
+	GetAppWebhook(ctx context.Context, request GetAppWebhookRequestObject) (GetAppWebhookResponseObject, error)
+	// SetAppWebhook Turn real GitHub webhooks on
+	// (PUT /api/v1/app/webhook)
+	SetAppWebhook(ctx context.Context, request SetAppWebhookRequestObject) (SetAppWebhookResponseObject, error)
 	// ListAuditEvents The audit log, newest first
 	// (GET /api/v1/audit)
 	ListAuditEvents(ctx context.Context, request ListAuditEventsRequestObject) (ListAuditEventsResponseObject, error)
@@ -14842,6 +15091,85 @@ func (sh *strictHandler) ReplaceAppPrivateKey(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ReplaceAppPrivateKeyResponseObject); ok {
 		if err := validResponse.VisitReplaceAppPrivateKeyResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ClearAppWebhook operation middleware
+func (sh *strictHandler) ClearAppWebhook(w http.ResponseWriter, r *http.Request) {
+	var request ClearAppWebhookRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ClearAppWebhook(ctx, request.(ClearAppWebhookRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ClearAppWebhook")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ClearAppWebhookResponseObject); ok {
+		if err := validResponse.VisitClearAppWebhookResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetAppWebhook operation middleware
+func (sh *strictHandler) GetAppWebhook(w http.ResponseWriter, r *http.Request) {
+	var request GetAppWebhookRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAppWebhook(ctx, request.(GetAppWebhookRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAppWebhook")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAppWebhookResponseObject); ok {
+		if err := validResponse.VisitGetAppWebhookResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetAppWebhook operation middleware
+func (sh *strictHandler) SetAppWebhook(w http.ResponseWriter, r *http.Request) {
+	var request SetAppWebhookRequestObject
+
+	var body SetAppWebhookJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetAppWebhook(ctx, request.(SetAppWebhookRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetAppWebhook")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetAppWebhookResponseObject); ok {
+		if err := validResponse.VisitSetAppWebhookResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

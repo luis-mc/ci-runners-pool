@@ -172,6 +172,21 @@ func (t *Tracker) Get(fullName string) State {
 	return State{Mode: ModeWebhook}
 }
 
+// Last returns the time and result of the newest delivery of any repository;
+// zero and "" when none arrived (OPS25).
+func (t *Tracker) Last() (time.Time, string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	var at time.Time
+	var res Result
+	for _, s := range t.repos {
+		if s.LastAt.After(at) {
+			at, res = s.LastAt, s.Last
+		}
+	}
+	return at, string(res)
+}
+
 // SwitchBack returns a repository to webhook mode and forgets its failures.
 func (t *Tracker) SwitchBack(fullName string) State {
 	repo := key(fullName)

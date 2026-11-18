@@ -76,6 +76,8 @@ type App struct {
 	OwnerType   string // User or Organization
 	HTMLURL     string
 	Permissions map[string]string
+	// Events are the webhook events the App subscribes to (GET /app).
+	Events []string
 }
 
 // AppCredentials is what the manifest conversion returns once (R5.3). The
@@ -210,6 +212,18 @@ type AppClient interface {
 	// GET /app; it returns ErrBadKey or ErrKeyRefused when the key does not
 	// belong to the App (R5.7). The key is never stored or logged.
 	CheckAppKey(ctx context.Context, appID int64, pemBytes []byte) error
+	// SetAppHook sets the App's webhook address and secret
+	// (PATCH /app/hook/config with an App JWT, OPS25).
+	SetAppHook(ctx context.Context, h AppHook) error
+	// ClearAppHook empties the App's webhook address and secret (OPS25).
+	ClearAppHook(ctx context.Context) error
+}
+
+// AppHook is the webhook part of the App: where GitHub sends deliveries and
+// the secret that signs them (OPS25). The content type is always JSON.
+type AppHook struct {
+	URL    string
+	Secret string
 }
 
 // UserClient is what the console lists with the signed-in user's token

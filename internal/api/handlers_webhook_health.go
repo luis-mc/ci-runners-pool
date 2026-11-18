@@ -66,3 +66,72 @@ func (s *server) SetRepositoryWebhookMode(ctx context.Context, req gen.SetReposi
 	}
 	return gen.SetRepositoryWebhookMode200JSONResponse(toWebhookHealth(a.Health.SwitchBack(v.FullName))), nil
 }
+
+func toAppWebhook(st auth.WebhookStatus) gen.AppWebhook {
+	out := gen.AppWebhook{State: gen.AppWebhookState(st.State)}
+	if st.Address != "" {
+		a := st.Address
+		out.Address = &a
+	}
+	if !st.LastDeliveryAt.IsZero() {
+		at := st.LastDeliveryAt
+		out.LastDeliveryAt = &at
+	}
+	if st.LastResult != "" {
+		r := gen.AppWebhookLastResult(st.LastResult)
+		out.LastResult = &r
+	}
+	if st.EventsLink != "" {
+		l := st.EventsLink
+		out.EventsLink = &l
+	}
+	return out
+}
+
+// GetAppWebhook implements GET /api/v1/app/webhook (github-integration R5.51).
+func (s *server) GetAppWebhook(ctx context.Context, _ gen.GetAppWebhookRequestObject) (gen.GetAppWebhookResponseObject, error) {
+	a := s.ghArea()
+	if a == nil || a.Auth == nil {
+		return gen.GetAppWebhookdefaultJSONResponse{StatusCode: 501, Body: notImplemented()}, nil
+	}
+	st, err := a.Auth.WebhookStatus(ctx)
+	if err != nil {
+		code, body := failure(err)
+		return gen.GetAppWebhookdefaultJSONResponse{StatusCode: code, Body: body}, nil
+	}
+	return gen.GetAppWebhook200JSONResponse(toAppWebhook(st)), nil
+}
+
+// SetAppWebhook implements PUT /api/v1/app/webhook (github-integration R5.51).
+func (s *server) SetAppWebhook(ctx context.Context, req gen.SetAppWebhookRequestObject) (gen.SetAppWebhookResponseObject, error) {
+	fail := func(err error) (gen.SetAppWebhookResponseObject, error) {
+		code, body := failure(err)
+		return gen.SetAppWebhookdefaultJSONResponse{StatusCode: code, Body: body}, nil
+	}
+	a := s.ghArea()
+	if a == nil || a.Auth == nil {
+		return gen.SetAppWebhookdefaultJSONResponse{StatusCode: 501, Body: notImplemented()}, nil
+	}
+	if req.Body == nil {
+		return fail(auth.Invalid("send the public address"))
+	}
+	st, err := a.Auth.SetWebhook(ctx, s.principal(ctx), req.Body.Address)
+	if err != nil {
+		return fail(err)
+	}
+	return gen.SetAppWebhook200JSONResponse(toAppWebhook(st)), nil
+}
+
+// ClearAppWebhook implements DELETE /api/v1/app/webhook (github-integration R5.51).
+func (s *server) ClearAppWebhook(ctx context.Context, _ gen.ClearAppWebhookRequestObject) (gen.ClearAppWebhookResponseObject, error) {
+	a := s.ghArea()
+	if a == nil || a.Auth == nil {
+		return gen.ClearAppWebhookdefaultJSONResponse{StatusCode: 501, Body: notImplemented()}, nil
+	}
+	st, err := a.Auth.ClearWebhook(ctx, s.principal(ctx))
+	if err != nil {
+		code, body := failure(err)
+		return gen.ClearAppWebhookdefaultJSONResponse{StatusCode: code, Body: body}, nil
+	}
+	return gen.ClearAppWebhook200JSONResponse(toAppWebhook(st)), nil
+}

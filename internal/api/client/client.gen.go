@@ -52,6 +52,48 @@ func (e AddUserRequestRole) Valid() bool {
 	}
 }
 
+// Defines values for AppWebhookLastResult.
+const (
+	AppWebhookLastResultFailed AppWebhookLastResult = "failed"
+	AppWebhookLastResultMissed AppWebhookLastResult = "missed"
+	AppWebhookLastResultOk     AppWebhookLastResult = "ok"
+)
+
+// Valid indicates whether the value is a known member of the AppWebhookLastResult enum.
+func (e AppWebhookLastResult) Valid() bool {
+	switch e {
+	case AppWebhookLastResultFailed:
+		return true
+	case AppWebhookLastResultMissed:
+		return true
+	case AppWebhookLastResultOk:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AppWebhookState.
+const (
+	AppWebhookStateFailing AppWebhookState = "failing"
+	AppWebhookStateOff     AppWebhookState = "off"
+	AppWebhookStateOn      AppWebhookState = "on"
+)
+
+// Valid indicates whether the value is a known member of the AppWebhookState enum.
+func (e AppWebhookState) Valid() bool {
+	switch e {
+	case AppWebhookStateFailing:
+		return true
+	case AppWebhookStateOff:
+		return true
+	case AppWebhookStateOn:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Arch.
 const (
 	Arm64 Arch = "arm64"
@@ -2181,6 +2223,32 @@ type AppManifestForm struct {
 	Manifest map[string]interface{} `json:"manifest"`
 	PostUrl  string                 `json:"post_url"`
 	State    string                 `json:"state"`
+}
+
+// AppWebhook The webhook of the GitHub App as the console shows it (github-integration R5.51).
+type AppWebhook struct {
+	// Address The public https address that forwards to the controller. Absent when off.
+	Address *string `json:"address,omitempty"`
+
+	// EventsLink The App's permissions page at GitHub, set when the App does not subscribe to workflow_job.
+	EventsLink     *string               `json:"events_link,omitempty"`
+	LastDeliveryAt *time.Time            `json:"last_delivery_at,omitempty"`
+	LastResult     *AppWebhookLastResult `json:"last_result,omitempty"`
+
+	// State Off means jobs are learned by polling. Failing means the newest delivery failed or was missed.
+	State AppWebhookState `json:"state"`
+}
+
+// AppWebhookLastResult defines model for AppWebhook.LastResult.
+type AppWebhookLastResult string
+
+// AppWebhookState Off means jobs are learned by polling. Failing means the newest delivery failed or was missed.
+type AppWebhookState string
+
+// AppWebhookUpdate defines model for AppWebhookUpdate.
+type AppWebhookUpdate struct {
+	// Address A public https address GitHub can reach, such as https://hooks.example.com.
+	Address string `json:"address"`
 }
 
 // ApplyPlanRequest defines model for ApplyPlanRequest.
@@ -4578,6 +4646,9 @@ type CreateAccessCredentialJSONRequestBody = AccessCredentialCreate
 // ReplaceAppPrivateKeyJSONRequestBody defines body for ReplaceAppPrivateKey for application/json ContentType.
 type ReplaceAppPrivateKeyJSONRequestBody = AppKeyUpload
 
+// SetAppWebhookJSONRequestBody defines body for SetAppWebhook for application/json ContentType.
+type SetAppWebhookJSONRequestBody = AppWebhookUpdate
+
 // ExchangeCliTokenJSONRequestBody defines body for ExchangeCliToken for application/json ContentType.
 type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
 
@@ -4818,6 +4889,38 @@ type ClientInterface interface {
 	//
 	// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
 	ReplaceAppPrivateKey(ctx context.Context, body ReplaceAppPrivateKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ClearAppWebhook Turn real GitHub webhooks off
+	//
+	// github-integration R5.51 (OPS25). Clears the App's webhook config at GitHub, removes the webhook secret and returns to polling.
+	//
+	// Corresponds with DELETE /api/v1/app/webhook (the `ClearAppWebhook` operationId).
+	ClearAppWebhook(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetAppWebhook Read the GitHub App webhook state
+	//
+	// github-integration R5.51 (OPS25). Says whether real webhooks are off, on or failing, the public address, and the newest delivery of any repository. The secret is never returned.
+	//
+	// Corresponds with GET /api/v1/app/webhook (the `GetAppWebhook` operationId).
+	GetAppWebhook(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetAppWebhookWithBody Turn real GitHub webhooks on
+	//
+	// github-integration R5.51 (OPS25). The owner gives the public https address that forwards to the controller. The controller makes a webhook secret and keeps it in the OS secret store, sends a signed test ping to `<address>/webhooks/github`, and only when that works sets the App's webhook at GitHub (`PATCH /app/hook/config`). A failed test or a refusal of GitHub keeps the old state. When the App does not subscribe to `workflow_job`, the answer carries `events_link`, the App's page where the owner ticks it.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/app/webhook (the `SetAppWebhook` operationId).
+	SetAppWebhookWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetAppWebhook Turn real GitHub webhooks on
+	//
+	// github-integration R5.51 (OPS25). The owner gives the public https address that forwards to the controller. The controller makes a webhook secret and keeps it in the OS secret store, sends a signed test ping to `<address>/webhooks/github`, and only when that works sets the App's webhook at GitHub (`PATCH /app/hook/config`). A failed test or a refusal of GitHub keeps the old state. When the App does not subscribe to `workflow_job`, the answer carries `events_link`, the App's page where the owner ticks it.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/app/webhook (the `SetAppWebhook` operationId).
+	SetAppWebhook(ctx context.Context, body SetAppWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListAuditEvents The audit log, newest first
 	//
@@ -6202,6 +6305,78 @@ func (c *Client) ReplaceAppPrivateKeyWithBody(ctx context.Context, contentType s
 // Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
 func (c *Client) ReplaceAppPrivateKey(ctx context.Context, body ReplaceAppPrivateKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewReplaceAppPrivateKeyRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ClearAppWebhook Turn real GitHub webhooks off
+//
+// github-integration R5.51 (OPS25). Clears the App's webhook config at GitHub, removes the webhook secret and returns to polling.
+//
+// Corresponds with DELETE /api/v1/app/webhook (the `ClearAppWebhook` operationId).
+func (c *Client) ClearAppWebhook(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewClearAppWebhookRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetAppWebhook Read the GitHub App webhook state
+//
+// github-integration R5.51 (OPS25). Says whether real webhooks are off, on or failing, the public address, and the newest delivery of any repository. The secret is never returned.
+//
+// Corresponds with GET /api/v1/app/webhook (the `GetAppWebhook` operationId).
+func (c *Client) GetAppWebhook(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetAppWebhookRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetAppWebhookWithBody Turn real GitHub webhooks on
+//
+// github-integration R5.51 (OPS25). The owner gives the public https address that forwards to the controller. The controller makes a webhook secret and keeps it in the OS secret store, sends a signed test ping to `<address>/webhooks/github`, and only when that works sets the App's webhook at GitHub (`PATCH /app/hook/config`). A failed test or a refusal of GitHub keeps the old state. When the App does not subscribe to `workflow_job`, the answer carries `events_link`, the App's page where the owner ticks it.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/app/webhook (the `SetAppWebhook` operationId).
+func (c *Client) SetAppWebhookWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetAppWebhookRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetAppWebhook Turn real GitHub webhooks on
+//
+// github-integration R5.51 (OPS25). The owner gives the public https address that forwards to the controller. The controller makes a webhook secret and keeps it in the OS secret store, sends a signed test ping to `<address>/webhooks/github`, and only when that works sets the App's webhook at GitHub (`PATCH /app/hook/config`). A failed test or a refusal of GitHub keeps the old state. When the App does not subscribe to `workflow_job`, the answer carries `events_link`, the App's page where the owner ticks it.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/app/webhook (the `SetAppWebhook` operationId).
+func (c *Client) SetAppWebhook(ctx context.Context, body SetAppWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetAppWebhookRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -9276,6 +9451,100 @@ func NewReplaceAppPrivateKeyRequestWithBody(server string, contentType string, b
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/app/private-key")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewClearAppWebhookRequest constructs an http.Request for the ClearAppWebhook method
+func NewClearAppWebhookRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/app/webhook")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetAppWebhookRequest constructs an http.Request for the GetAppWebhook method
+func NewGetAppWebhookRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/app/webhook")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetAppWebhookRequest calls the generic SetAppWebhook builder with application/json body
+func NewSetAppWebhookRequest(server string, body SetAppWebhookJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetAppWebhookRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewSetAppWebhookRequestWithBody constructs an http.Request for the SetAppWebhook method, with any body, and a specified content type
+func NewSetAppWebhookRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/app/webhook")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -15027,6 +15296,42 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with PUT /api/v1/app/private-key (the `ReplaceAppPrivateKey` operationId).
 	ReplaceAppPrivateKeyWithResponse(ctx context.Context, body ReplaceAppPrivateKeyJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceAppPrivateKeyResponse, error)
 
+	// ClearAppWebhookWithResponse Turn real GitHub webhooks off
+	//
+	// github-integration R5.51 (OPS25). Clears the App's webhook config at GitHub, removes the webhook secret and returns to polling.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /api/v1/app/webhook (the `ClearAppWebhook` operationId).
+	ClearAppWebhookWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ClearAppWebhookResponse, error)
+
+	// GetAppWebhookWithResponse Read the GitHub App webhook state
+	//
+	// github-integration R5.51 (OPS25). Says whether real webhooks are off, on or failing, the public address, and the newest delivery of any repository. The secret is never returned.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/app/webhook (the `GetAppWebhook` operationId).
+	GetAppWebhookWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAppWebhookResponse, error)
+
+	// SetAppWebhookWithBodyWithResponse Turn real GitHub webhooks on
+	//
+	// github-integration R5.51 (OPS25). The owner gives the public https address that forwards to the controller. The controller makes a webhook secret and keeps it in the OS secret store, sends a signed test ping to `<address>/webhooks/github`, and only when that works sets the App's webhook at GitHub (`PATCH /app/hook/config`). A failed test or a refusal of GitHub keeps the old state. When the App does not subscribe to `workflow_job`, the answer carries `events_link`, the App's page where the owner ticks it.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/app/webhook (the `SetAppWebhook` operationId).
+	SetAppWebhookWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetAppWebhookResponse, error)
+
+	// SetAppWebhookWithResponse Turn real GitHub webhooks on
+	//
+	// github-integration R5.51 (OPS25). The owner gives the public https address that forwards to the controller. The controller makes a webhook secret and keeps it in the OS secret store, sends a signed test ping to `<address>/webhooks/github`, and only when that works sets the App's webhook at GitHub (`PATCH /app/hook/config`). A failed test or a refusal of GitHub keeps the old state. When the App does not subscribe to `workflow_job`, the answer carries `events_link`, the App's page where the owner ticks it.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/app/webhook (the `SetAppWebhook` operationId).
+	SetAppWebhookWithResponse(ctx context.Context, body SetAppWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*SetAppWebhookResponse, error)
+
 	// ListAuditEventsWithResponse The audit log, newest first
 	//
 	// observability R5.24 to R5.27. Viewers may read it (owner decision for M1). Read-only: no operation edits or deletes a row.
@@ -16658,6 +16963,150 @@ func (r ReplaceAppPrivateKeyResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ReplaceAppPrivateKeyResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ClearAppWebhookResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *AppWebhook
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ClearAppWebhookResponse) GetJSON200() *AppWebhook {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ClearAppWebhookResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ClearAppWebhookResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ClearAppWebhookResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ClearAppWebhookResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ClearAppWebhookResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetAppWebhookResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *AppWebhook
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetAppWebhookResponse) GetJSON200() *AppWebhook {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetAppWebhookResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetAppWebhookResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetAppWebhookResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetAppWebhookResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetAppWebhookResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SetAppWebhookResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *AppWebhook
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SetAppWebhookResponse) GetJSON200() *AppWebhook {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r SetAppWebhookResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r SetAppWebhookResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SetAppWebhookResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetAppWebhookResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetAppWebhookResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -22814,6 +23263,66 @@ func (c *ClientWithResponses) ReplaceAppPrivateKeyWithResponse(ctx context.Conte
 	return ParseReplaceAppPrivateKeyResponse(rsp)
 }
 
+// ClearAppWebhookWithResponse Turn real GitHub webhooks off
+//
+// github-integration R5.51 (OPS25). Clears the App's webhook config at GitHub, removes the webhook secret and returns to polling.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /api/v1/app/webhook (the `ClearAppWebhook` operationId).
+func (c *ClientWithResponses) ClearAppWebhookWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ClearAppWebhookResponse, error) {
+	rsp, err := c.ClearAppWebhook(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseClearAppWebhookResponse(rsp)
+}
+
+// GetAppWebhookWithResponse Read the GitHub App webhook state
+//
+// github-integration R5.51 (OPS25). Says whether real webhooks are off, on or failing, the public address, and the newest delivery of any repository. The secret is never returned.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/app/webhook (the `GetAppWebhook` operationId).
+func (c *ClientWithResponses) GetAppWebhookWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAppWebhookResponse, error) {
+	rsp, err := c.GetAppWebhook(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetAppWebhookResponse(rsp)
+}
+
+// SetAppWebhookWithBodyWithResponse Turn real GitHub webhooks on
+//
+// github-integration R5.51 (OPS25). The owner gives the public https address that forwards to the controller. The controller makes a webhook secret and keeps it in the OS secret store, sends a signed test ping to `<address>/webhooks/github`, and only when that works sets the App's webhook at GitHub (`PATCH /app/hook/config`). A failed test or a refusal of GitHub keeps the old state. When the App does not subscribe to `workflow_job`, the answer carries `events_link`, the App's page where the owner ticks it.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/app/webhook (the `SetAppWebhook` operationId).
+func (c *ClientWithResponses) SetAppWebhookWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetAppWebhookResponse, error) {
+	rsp, err := c.SetAppWebhookWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetAppWebhookResponse(rsp)
+}
+
+// SetAppWebhookWithResponse Turn real GitHub webhooks on
+//
+// github-integration R5.51 (OPS25). The owner gives the public https address that forwards to the controller. The controller makes a webhook secret and keeps it in the OS secret store, sends a signed test ping to `<address>/webhooks/github`, and only when that works sets the App's webhook at GitHub (`PATCH /app/hook/config`). A failed test or a refusal of GitHub keeps the old state. When the App does not subscribe to `workflow_job`, the answer carries `events_link`, the App's page where the owner ticks it.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/app/webhook (the `SetAppWebhook` operationId).
+func (c *ClientWithResponses) SetAppWebhookWithResponse(ctx context.Context, body SetAppWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*SetAppWebhookResponse, error) {
+	rsp, err := c.SetAppWebhook(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetAppWebhookResponse(rsp)
+}
+
 // ListAuditEventsWithResponse The audit log, newest first
 //
 // observability R5.24 to R5.27. Viewers may read it (owner decision for M1). Read-only: no operation edits or deletes a row.
@@ -25379,6 +25888,105 @@ func ParseReplaceAppPrivateKeyResponse(rsp *http.Response) (*ReplaceAppPrivateKe
 	switch {
 	case rsp.StatusCode == 204:
 		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseClearAppWebhookResponse parses an HTTP response from a ClearAppWebhookWithResponse call
+func ParseClearAppWebhookResponse(rsp *http.Response) (*ClearAppWebhookResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ClearAppWebhookResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest AppWebhook
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetAppWebhookResponse parses an HTTP response from a GetAppWebhookWithResponse call
+func ParseGetAppWebhookResponse(rsp *http.Response) (*GetAppWebhookResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetAppWebhookResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest AppWebhook
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetAppWebhookResponse parses an HTTP response from a SetAppWebhookWithResponse call
+func ParseSetAppWebhookResponse(rsp *http.Response) (*SetAppWebhookResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetAppWebhookResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest AppWebhook
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error

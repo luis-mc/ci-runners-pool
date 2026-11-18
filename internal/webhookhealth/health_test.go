@@ -118,3 +118,18 @@ func TestNoWebhookNeverCountsAsMissed(t *testing.T) {
 		t.Fatalf("with a webhook the miss counts: %+v", s)
 	}
 }
+
+func TestLastIsTheNewestDeliveryOfAnyRepository(t *testing.T) { // OPS25
+	tr := New()
+	now := time.Date(2026, 11, 18, 9, 0, 0, 0, time.UTC)
+	tr.Now = func() time.Time { return now }
+	if at, res := tr.Last(); !at.IsZero() || res != "" {
+		t.Fatalf("no delivery yet: %v %q", at, res)
+	}
+	tr.Record("a/one", ResultOK)
+	now = now.Add(time.Minute)
+	tr.Record("a/two", ResultFailed)
+	if at, res := tr.Last(); !at.Equal(now) || res != "failed" {
+		t.Fatalf("got %v %q", at, res)
+	}
+}

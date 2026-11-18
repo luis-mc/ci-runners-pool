@@ -602,6 +602,73 @@ paths:
           description: The new key is stored and in use.
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/app/webhook:
+    get:
+      operationId: getAppWebhook
+      tags: [auth]
+      summary: Read the GitHub App webhook state
+      description: >-
+        github-integration R5.51 (OPS25). Says whether real webhooks are off, on or
+        failing, the public address, and the newest delivery of any repository.
+        The secret is never returned.
+      x-auth: admin
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The webhook state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppWebhook'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: setAppWebhook
+      tags: [auth]
+      summary: Turn real GitHub webhooks on
+      description: >-
+        github-integration R5.51 (OPS25). The owner gives the public https address that
+        forwards to the controller. The controller makes a webhook secret and keeps
+        it in the OS secret store, sends a signed test ping to `<address>/webhooks/github`,
+        and only when that works sets the App's webhook at GitHub
+        (`PATCH /app/hook/config`). A failed test or a refusal of GitHub keeps the old
+        state. When the App does not subscribe to `workflow_job`, the answer carries
+        `events_link`, the App's page where the owner ticks it.
+      x-auth: owner
+      x-rate-limit: 5/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppWebhookUpdate'
+      responses:
+        '200':
+          description: Webhooks are on.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppWebhook'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: clearAppWebhook
+      tags: [auth]
+      summary: Turn real GitHub webhooks off
+      description: >-
+        github-integration R5.51 (OPS25). Clears the App's webhook config at GitHub,
+        removes the webhook secret and returns to polling.
+      x-auth: owner
+      x-rate-limit: 5/minute/user
+      responses:
+        '200':
+          description: Webhooks are off.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppWebhook'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/users:
     get:
       operationId: listUsers
@@ -4647,6 +4714,37 @@ components:
         webhooks_off:
           type: boolean
           description: True when the GitHub App has no webhook, so jobs are learned by polling only and no delivery can be missed (OPS22). Absent when webhooks are on.
+    AppWebhook:
+      type: object
+      description: The webhook of the GitHub App as the console shows it (github-integration R5.51).
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [off, on, failing]
+          description: Off means jobs are learned by polling. Failing means the newest delivery failed or was missed.
+        address:
+          type: string
+          description: The public https address that forwards to the controller. Absent when off.
+        last_delivery_at:
+          type: string
+          format: date-time
+        last_result:
+          type: string
+          enum: [ok, failed, missed]
+        events_link:
+          type: string
+          description: The App's permissions page at GitHub, set when the App does not subscribe to workflow_job.
+    AppWebhookUpdate:
+      type: object
+      required: [address]
+      additionalProperties: false
+      properties:
+        address:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          description: A public https address GitHub can reach, such as https://hooks.example.com.
     AppKeyUpload:
       type: object
       description: A new App private key, sent once and never returned (github-integration R5.7).
