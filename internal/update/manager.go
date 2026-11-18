@@ -97,6 +97,10 @@ var (
 	ErrNoUpdate = errors.New("this is already the newest stable release")
 	ErrBusy     = errors.New("an update or restart is already running")
 	ErrNotIdle  = errors.New("a job started before the install; the drain goes on waiting")
+	// ErrCancelled ends an update the person cancelled before the install began.
+	ErrCancelled = errors.New("the update was cancelled; nothing changed")
+	// ErrNotCancellable says the update is past the point where it can stop.
+	ErrNotCancellable = errors.New("no update can be cancelled now: it only stops while it downloads or waits for jobs")
 )
 
 // Options configure a Manager.
@@ -152,6 +156,10 @@ type Manager struct {
 	pending *pending
 	lock    *Lock
 	timer   *time.Timer
+	// cancelDL ends the download that runs now; cancelled says the person asked to cancel (D15).
+	cancelDL  context.CancelFunc
+	cancelled bool
+	startedBy string
 }
 
 type pending struct {
@@ -309,6 +317,14 @@ func (m *Manager) check(ctx context.Context, auto bool) (Status, error) {
 // written is only logged: it must never stop an update.
 func (m *Manager) stage(s Stage) {
 	s.At = m.o.Now()
+	m.mu.Lock()
+	s.StartedBy = m.startedBy
+	m.mu.Unlock()
+	if s.StartedBy == "" { // a new process after the restart: keep what the first stage said
+		if prev, ok := ReadStage(m.o.Dir); ok {
+			s.StartedBy = prev.StartedBy
+		}
+	}
 	if err := WriteStage(m.o.Dir, s); err != nil {
 		m.o.Logger.Warn("could not write the update stage", "err", err)
 	}
@@ -397,6 +413,8 @@ func (m *Manager) begin(ctx context.Context, kind Kind, actor string) (Status, e
 	}
 	m.lock = lock
 	m.errText = ""
+	m.cancelled = false
+	m.startedBy = StartedByActor(actor)
 	if kind == KindUpdate {
 		m.state = StateDownloading
 	} else {
@@ -414,7 +432,20 @@ func (m *Manager) begin(ctx context.Context, kind Kind, actor string) (Status, e
 				m.stage(Stage{Name: StageDownloading, Percent: pc, Version: rel.Version})
 			}
 		})
+		dctx, stop := context.WithCancel(dctx)
+		m.mu.Lock()
+		m.cancelDL = stop
+		m.mu.Unlock()
 		file, err := m.prepare(dctx, rel)
+		stop()
+		m.mu.Lock()
+		m.cancelDL = nil
+		was := m.cancelled
+		m.mu.Unlock()
+		if was {
+			m.endCancelled(nil, "")
+			return m.Status(ctx), ErrCancelled
+		}
 		if err != nil {
 			m.fail(err, rel.Version)
 			return m.Status(ctx), err
@@ -438,6 +469,60 @@ func (m *Manager) begin(ctx context.Context, kind Kind, actor string) (Status, e
 		m.mu.Unlock()
 	}
 	return m.Status(ctx), nil
+}
+
+// Cancel stops an update that has not begun to install: while it downloads or waits for
+// the running jobs. Nothing has changed then, so the machine takes jobs again and no
+// stage is left. From installing on it answers ErrNotCancellable (D15).
+func (m *Manager) Cancel(ctx context.Context, actor string) (Status, error) {
+	m.mu.Lock()
+	switch {
+	case m.state == StateDownloading:
+		m.cancelled = true
+		stop := m.cancelDL
+		m.mu.Unlock()
+		if stop != nil {
+			stop()
+		}
+		// begin ends the download and cleans up; wait for it so the answer is the end state.
+		for i := 0; i < 50; i++ {
+			m.mu.Lock()
+			idle := m.state != StateDownloading
+			m.mu.Unlock()
+			if idle {
+				break
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		return m.Status(ctx), nil
+	case m.state == StateWaitingForJobs && m.pending != nil:
+		if m.timer != nil {
+			m.timer.Stop()
+		}
+		m.pending = nil
+		m.mu.Unlock()
+		m.endCancelled(ctx, actor)
+		return m.Status(ctx), nil
+	}
+	m.mu.Unlock()
+	return m.Status(ctx), ErrNotCancellable
+}
+
+// endCancelled returns to idle after a cancel: the lock goes, the stage file goes, and a
+// started drain ends (actor non-empty).
+func (m *Manager) endCancelled(ctx context.Context, actor string) {
+	m.mu.Lock()
+	m.state, m.errText, m.pending, m.cancelled = StateIdle, "", nil, false
+	lock := m.lock
+	m.lock = nil
+	m.mu.Unlock()
+	ClearStage(m.o.Dir)
+	if ctx != nil {
+		if err := m.o.Drainer.CancelDrain(ctx, actor); err != nil {
+			m.o.Logger.Warn("could not cancel the drain", "err", err)
+		}
+	}
+	lock.Release()
 }
 
 // autoDrainLimit is how long an automatic update waits: the explicit option,

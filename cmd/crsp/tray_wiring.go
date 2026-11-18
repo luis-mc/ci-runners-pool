@@ -37,9 +37,16 @@ func (b trayBackend) response(ctx context.Context, st update.Status) tray.Respon
 	return tray.Response{
 		State: tray.StateHealthy, Running: len(st.RunningJobs), Version: st.Current, AutoUpdate: &on,
 		LatestVersion: st.Latest, ReleaseURL: st.ReleaseURL, UpdateAvailable: st.Available, UpdateState: string(st.State),
-		LogDir: tray.LogDir(),
+		LogDir: tray.LogDir(), Stage: stageInfo(st.Stage),
 		Policy: b.policy(ctx), RunnerProblems: b.runnerProblems(ctx),
 	}
+}
+
+func stageInfo(s *update.Stage) *tray.StageInfo {
+	if s == nil {
+		return nil
+	}
+	return &tray.StageInfo{Name: s.Name, Percent: s.Percent, Version: s.Version, Error: s.Error, LogPath: s.LogPath, FailedAt: s.FailedAt, StartedBy: s.StartedBy}
 }
 
 // runnerProblems are the runner services of this machine that did not start
@@ -124,6 +131,15 @@ func (b trayBackend) Check(ctx context.Context) (tray.Response, error) {
 // the running jobs, so the update is confirmed. It drains first and cuts no job.
 func (b trayBackend) Install(ctx context.Context, c trayserver.Caller) (tray.Response, error) {
 	st, err := b.Updates.Apply(ctx, update.KindUpdate, true, trayActor(c))
+	if err != nil {
+		return tray.Response{}, err
+	}
+	return b.response(ctx, st), nil
+}
+
+// Cancel is the tray's Cancel: it stops an update that downloads or waits for jobs (D15).
+func (b trayBackend) Cancel(ctx context.Context, c trayserver.Caller) (tray.Response, error) {
+	st, err := b.Updates.Cancel(ctx, trayActor(c))
 	if err != nil {
 		return tray.Response{}, err
 	}

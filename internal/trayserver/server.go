@@ -33,6 +33,8 @@ type Backend interface {
 	Check(ctx context.Context) (tray.Response, error)
 	// Install answers `install`: the person said Install now. Drain, then install, then like Status.
 	Install(ctx context.Context, c Caller) (tray.Response, error)
+	// Cancel answers `cancel`: stop an update that downloads or waits for jobs, then like Status.
+	Cancel(ctx context.Context, c Caller) (tray.Response, error)
 	// Link answers `link`: a one-time URL for this caller, landing on target.
 	Link(ctx context.Context, c Caller, target string) (string, error)
 	// SetMode answers `mode`: set this machine's mode (automatic, always or
@@ -128,6 +130,9 @@ func (s *Server) handle(ctx context.Context, conn net.Conn) {
 		answer(reply, fail, r, err)
 	case "install":
 		r, err := s.Backend.Install(ctx, who)
+		answer(reply, fail, r, err)
+	case "cancel":
+		r, err := s.Backend.Cancel(ctx, who)
 		answer(reply, fail, r, err)
 	case "mode":
 		r, err := s.Backend.SetMode(ctx, who, req.Mode)
