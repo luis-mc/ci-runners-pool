@@ -11,6 +11,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/hygiene"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnerprocs"
 )
 
 // The always-clean rule of a persistent runner (runners R5.91): after every job,
@@ -26,13 +27,9 @@ const (
 	PhaseCompleted = "job-completed"
 )
 
-// ProcInfo is one process of the machine as the cleaner sees it.
-type ProcInfo struct {
-	PID, PPID int64
-	// Owner is the account of the process in the form Cleaner.Self uses.
-	Owner string
-	Name  string
-}
+// ProcInfo is one process of the machine as the cleaner sees it. The hook only
+// decides which are leftovers; internal/runnerprocs lists and ends them.
+type ProcInfo = runnerprocs.Proc
 
 // runnerProcessNames are the processes of the runner itself, which are never
 // ended (compared in lower case, without a .exe suffix).
@@ -51,9 +48,9 @@ type Cleaner struct {
 	Self string
 	// Pid is the hook's own process; it and its ancestors are never ended.
 	Pid int64
-	// Procs lists the machine's processes; Kill ends one.
+	// Procs lists the machine's processes; End ends one (both from internal/runnerprocs).
 	Procs func() ([]ProcInfo, error)
-	Kill  func(pid int64) error
+	End   func(pid int64) error
 	// Owner gives the account of a file entry, "" when unknown.
 	Owner func(fs.FileInfo) string
 	// Shared are folders that other accounts also write (/tmp): only entries
@@ -157,7 +154,7 @@ func (c *Cleaner) Clean() (res CleanResult) {
 }
 
 func (c *Cleaner) endProcesses(res *CleanResult) {
-	if c.Procs == nil || c.Kill == nil || c.rootOrUnknown() {
+	if c.Procs == nil || c.End == nil || c.rootOrUnknown() {
 		return
 	}
 	all, err := c.Procs()
@@ -189,7 +186,7 @@ func (c *Cleaner) endProcesses(res *CleanResult) {
 	// Newest first: children go before the parent that would start them again.
 	sort.Slice(victims, func(i, j int) bool { return victims[i].PID > victims[j].PID })
 	for _, p := range victims {
-		if err := c.Kill(p.PID); err != nil && processAlive(c, p.PID) {
+		if err := c.End(p.PID); err != nil && processAlive(c, p.PID) {
 			res.Failed = append(res.Failed, fmt.Sprintf("the process %s (%d), which will not end", p.Name, p.PID))
 			continue
 		}

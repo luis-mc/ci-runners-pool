@@ -178,7 +178,7 @@ func TestCleanEndsProcessesTheJobLeftAndNothingElse(t *testing.T) {
 		}, nil
 	}
 	var killed []int64
-	c.Kill = func(pid int64) error { killed = append(killed, pid); return nil }
+	c.End = func(pid int64) error { killed = append(killed, pid); return nil }
 	res := c.Clean()
 	if res.Unclean() != "" {
 		t.Fatal(res.Unclean())
