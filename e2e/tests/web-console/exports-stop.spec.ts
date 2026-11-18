@@ -1,7 +1,7 @@
 // CRSP37 part C against the mocked API: the audit log export, the config export and Stop on an applying plan
 // (web-console 11, UX-30, UX-39, R5.29).
 import { expect, test } from '@playwright/test';
-import { machine, signedIn, viewer } from './fixtures';
+import { machine, repository, signedIn, viewer } from './fixtures';
 
 const event = (id: number, action: string) => ({
   id,
@@ -241,4 +241,74 @@ test('Add runners: the container backend not allowed is said on step 1', async (
   ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled();
   expect(mock.count('POST', '/api/v1/runner-plans')).toBe(0);
+});
+
+// OPS28: the kind of a runner is chosen on step 1; Ephemeral is preselected while a public repository uses the pool.
+const kindPlan = (text: string, state: string, stepState: string) => ({
+  id: 'rp10',
+  area: 'runners',
+  state,
+  created_at: '2026-11-18T10:00:00Z',
+  created_by: 'octo',
+  steps: [{ id: 's1', action: 'add_runner', text, needs_yes: false, state: stepState }],
+});
+const repos = (visibility: string) => ({
+  items: [repository({ visibility, pool_on: true })],
+  stale: { stale: false },
+});
+const STEP = 'Add runner crsp-pool-1 on machine GameRoomPC';
+const addApi = (visibility: string) =>
+  signedIn()
+    .on('GET', '/api/v1/machines', { items: [winMachine(true)] })
+    .on('GET', '/api/v1/github/repositories', repos(visibility))
+    .on('POST', '/api/v1/runner-plans', kindPlan(STEP, 'planned', 'planned'))
+    .on('POST', '/api/v1/runner-plans/:id/apply', kindPlan(STEP, 'applying', 'running'))
+    .on('GET', '/api/v1/runner-plans/:id', kindPlan(STEP, 'done', 'done'));
+const planned = (mock: ReturnType<typeof signedIn>) =>
+  mock.calls.find((c) => c.method === 'POST' && c.path === '/api/v1/runner-plans')?.body;
+
+test('Add runners: a public repository preselects Ephemeral, with its reason, and adds the ceiling', async ({
+  page,
+}) => {
+  const mock = addApi('public');
+  await mock.install(page);
+  await page.goto('/pool/runners/add');
+  await expect(page.getByRole('radio', { name: /^Ephemeral/ })).toBeChecked();
+  await expect(
+    page.getByText('Ephemeral is chosen because a public repository uses the pool.'),
+  ).toBeVisible();
+  await expect(page.getByText('Most ephemeral runners at once')).toBeVisible();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(
+    page.getByText(/Up to 1 ephemeral runner at once on GameRoomPC/),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Allow 1 ephemeral runner' }).click();
+  await expect(page.getByText('The runners are added.')).toBeVisible({ timeout: 10_000 });
+  expect(planned(mock)).toMatchObject({ os: 'linux', kind: 'ephemeral' });
+});
+
+test('Add runners: a pool of private repositories preselects Persistent and keeps dependencies', async ({
+  page,
+}) => {
+  const mock = addApi('private');
+  await mock.install(page);
+  await page.goto('/pool/runners/add');
+  await expect(page.getByRole('radio', { name: /^Persistent/ })).toBeChecked();
+  await expect(
+    page.getByText('Persistent is chosen because no public repository uses the pool.'),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('checkbox', { name: /Keep downloaded dependencies/ }),
+  ).toBeChecked();
+  await expect(
+    page.getByText(/Temporary files of each job are always removed\./),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: 'Add 1 runner' }).click();
+  await expect(page.getByText('The runners are added.')).toBeVisible({ timeout: 10_000 });
+  expect(planned(mock)).toMatchObject({
+    os: 'linux',
+    kind: 'persistent',
+    keep_dependencies: true,
+  });
 });
