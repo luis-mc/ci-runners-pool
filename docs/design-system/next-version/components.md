@@ -315,7 +315,7 @@ A `Tag` is the small outlined label that names a kind next to a word, such as `i
 
 - **Used for:** numbers over time or in shares, drawn as inline SVG to scale, labelled, in token colours. Each chart has a text or table alternative. A chart shows the top N and then "See all N". Key numbers are lettered figures, never tiles.
 - **Looks:** a drawn chart with labelled axes and token colours, and a table or text under it. Key numbers are large lettered figures.
-- **Source:** `src/ui/chart`
+- **Source:** `packages/ui/src/components/Charts.tsx`
 - **Rules:** UX-41, UX-17, UX-18, UX-11.
 - **Guard:** none yet.
 
@@ -536,6 +536,54 @@ A field's width caps its box, never its name and help: a lone field's name and h
 - **Source:** `packages/ui/src/components/ActionBar.tsx` (`ActionBar`, `selectedStatus`, `unsavedStatus`), `packages/ui/src/components/EditBar.tsx` (`EditBar`, `LeaveGuard`), `packages/ui/src/components/Wizard.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-4, UX-13, UX-38, UX-71.
 - **Guard:** `scripts/design/action-bar.test.ts` (a primary button outside the bar, or two in it, fails; `action-bar.known.json` only shrinks).
+
+## 49. Waterfall
+
+- **Used for:** the steps of a job or the jobs of a run on one time axis: where each started, how long it ran, how long it waited, the forecast for its end and "now" on a live run.
+- **Looks:** one row per step: a glyph, the name, a muted second line and the detail in words, and a bar on a shared axis. A wait is a lighter hatched segment before the bar. The forecast is a bracket with end caps after the bar. The critical path has a thicker outline and the words "critical path". "now" is a dashed line. A row that opens is a button. At phone width the label stacks above the bar. A table under "Show as table" says every row in words.
+- **Source:** `packages/ui/src/components/Waterfall.tsx` (`Waterfall`), `packages/ui/src/components/VizAlt.tsx`, `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-17, UX-18, UX-11, UX-49, UX-57, UX-58.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx`.
+
+## 50. Job graph
+
+- **Used for:** the jobs of a run and what each needs.
+- **Looks:** the stages as columns, a job one stage after the last job it needs, with connectors between them; the critical path has thicker outlines. A loop in the needs never breaks it: the edge that closes it is dropped. At phone width the stages are a vertical list and each job says "after: a, b". A job that opens is a button. A table under "Show as table" lists stage and needs.
+- **Source:** `packages/ui/src/components/JobGraph.tsx` (`JobGraph`, `layoutGraph`), `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-17, UX-18, UX-49, UX-57, UX-58.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx`.
+
+## 51. Trend chart
+
+- **Used for:** one to four series over time or over categories, as lines or columns, with an optional range band.
+- **Looks:** inline SVG to scale with the top and bottom value and the first and last time named; lines differ by dash as well as colour, and a legend names them. A table under "Show as table" lists every point.
+- **Source:** `packages/ui/src/components/Charts.tsx` (`TrendChart`), `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-17, UX-18, UX-11, UX-58.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx`.
+
+## 52. Sparkline
+
+- **Used for:** a small trend in a table cell or a facts row.
+- **Looks:** one line with no axes; the last value can be marked with a dot. It always has its label and the last, lowest and highest value as text. No values say "no data yet".
+- **Source:** `packages/ui/src/components/Charts.tsx` (`Sparkline`), `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-17, UX-11.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx`.
+
+## 53. Heatmap
+
+- **Used for:** a weekday by hour grid of counts or seconds ("busiest hours").
+- **Looks:** seven rows of 24 cells in five steps of one colour; the highest step has an outline. It fits 360 px without scrolling. A table under "Show as table" gives each day's total and busiest hour.
+- **Source:** `packages/ui/src/components/Charts.tsx` (`Heatmap`), `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-17, UX-18, UX-49, UX-58.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx`.
+
+## 54. Forecast chart
+
+- **Used for:** how good a forecast was: one dot per finished job, forecast across and actual up.
+- **Looks:** a dashed diagonal for "forecast = actual"; a bracket with end caps at the height of each dot for its range. A dot inside its range is round, one outside is a diamond. A table under "Show as table" says each job in words.
+- **Source:** `packages/ui/src/components/Charts.tsx` (`ForecastChart`), `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-17, UX-18, UX-58.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx`.
 
 ## How to add a component
 
