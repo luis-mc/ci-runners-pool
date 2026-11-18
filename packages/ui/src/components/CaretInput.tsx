@@ -65,12 +65,15 @@ export function measureCaret(input: HTMLInputElement): BlockCaret | null {
   const padL = parseFloat(cs.paddingLeft) || 0;
   const padR = parseFloat(cs.paddingRight) || 0;
   const x = before - input.scrollLeft;
-  const room = input.clientWidth - padL - padR;
+  // The box's own borders, not clientLeft: some browsers count more than the border in it.
+  const borderL = parseFloat(cs.borderLeftWidth) || 0;
+  const borderR = parseFloat(cs.borderRightWidth) || 0;
+  const room = input.offsetWidth - borderL - borderR - padL - padR;
   if (x < -0.5 || x > room + 0.5) return null;
   const size = parseFloat(cs.fontSize) || 16;
   const height = Math.round(size * 1.1);
   return {
-    left: input.offsetLeft + input.clientLeft + padL + x,
+    left: input.offsetLeft + borderL + padL + x,
     top: input.offsetTop + (input.offsetHeight - height) / 2,
     width: charW || size * 0.6,
     height,

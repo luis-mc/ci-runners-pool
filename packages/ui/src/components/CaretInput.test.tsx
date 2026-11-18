@@ -16,7 +16,7 @@ beforeEach(() => {
     const w = (this.textContent ?? '').length * W;
     return { width: w, height: 18, x: 0, y: 0, top: 0, left: 0, right: w, bottom: 18 } as DOMRect;
   });
-  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(200);
+  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(200);
   vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(40);
 });
 afterEach(() => {
