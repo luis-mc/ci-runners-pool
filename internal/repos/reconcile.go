@@ -102,6 +102,11 @@ func (s *Service) ReconcileInstallations(ctx context.Context) error {
 			}
 		}
 	}
+	// A repository that left the installation is off now: its registrations
+	// go. Registrations that failed earlier are tried again here.
+	if err := s.ReconcileRegistrations(ctx); err != nil {
+		s.cfg.Audit.Audit(ctx, System, "pool.registrations_failed", "repository", "", err.Error())
+	}
 	// The visibility just read was stored with each repository above. It stops
 	// nothing: a public repository on the pool carries a problem while public
 	// repositories are off (R5.41, R5.56).

@@ -347,6 +347,7 @@ func (s *Service) runStep(ctx context.Context, p auth.Principal, r Repository, s
 		// The light runner is best effort: the pool is on either way, and the
 		// doctor says why a light runner is missing (R5.65).
 		r.PoolOn = true
+		s.syncRegistrations(ctx, p, r) // the pool runners get a registration for this repository
 		if err := s.syncLight(ctx, p, r, pol); err != nil {
 			s.cfg.Audit.Audit(ctx, p, "light.failed", "repository", r.FullName, err.Error())
 		}
@@ -363,6 +364,7 @@ func (s *Service) runStep(ctx context.Context, p auth.Principal, r Repository, s
 				s.cfg.Audit.Audit(ctx, p, "light.failed", "repository", r.FullName, err.Error())
 			}
 		}
+		s.syncRegistrations(ctx, p, r) // drain and remove this repository's registrations
 	case ActWriteVariable:
 		if err := s.cfg.GitHub.SetVariable(ctx, r.InstallationID, r.Owner, r.Name, github.Variable{Name: st.Target, Value: st.Value}); err != nil {
 			return err

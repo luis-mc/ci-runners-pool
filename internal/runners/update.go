@@ -123,7 +123,7 @@ func (s *Service) UpdateAll(ctx context.Context, actor string, auto bool) ([]Upd
 	}
 	var out []UpdateResult
 	for _, r := range list {
-		if !r.KeepsState() {
+		if !r.KeepsState() || IsPoolRunner(r) { // a pool runner has no runner files; its registrations do
 			continue
 		}
 		res, err := s.UpdateRunner(ctx, r.ID, actor)

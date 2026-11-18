@@ -62,6 +62,7 @@ func (s *Service) stopPublic(ctx context.Context, p auth.Principal, r Repository
 			errs = append(errs, err)
 		}
 	}
+	s.syncRegistrations(ctx, p, r)
 	if s.cfg.Fleet != nil {
 		names, err := s.cfg.Fleet.RemoveRepositoryRunners(ctx, r.ID, p.Login)
 		if err != nil {

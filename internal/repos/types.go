@@ -281,6 +281,15 @@ type LightRunners interface {
 	RemoveLight(ctx context.Context, r Repository, actor string) error
 }
 
+// PoolRegistrar keeps the hidden GitHub registrations of the long-lived pool
+// runners: one for each repository that uses the pool (runners R5.80).
+type PoolRegistrar interface {
+	// SyncPoolRegistrations adds the registrations of a repository that
+	// started using the pool and drains and removes those of a repository that
+	// stopped. It reads the pool-on repositories from the store.
+	SyncPoolRegistrations(ctx context.Context, actor string) error
+}
+
 // TokenSource gives the GitHub user token of a signed-in user, from memory.
 type TokenSource interface {
 	GitHubToken(userID int64) (github.UserToken, error)
