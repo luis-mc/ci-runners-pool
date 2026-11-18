@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOOK32 + OPS29: machine page before and after</title>
+<style>
+body{font:16px/1.5 system-ui,sans-serif;margin:0 auto;max-width:1400px;padding:16px;background:#fff;color:#111}
+img{max-width:100%;border:1px solid #888}
+@media (prefers-color-scheme:dark){body{background:#111;color:#eee}}
+</style>
+</head>
+<body>
+<h1>LOOK32 + OPS29: machine page, 1300 px</h1>
+<p>Stop new jobs and Resume are right-aligned with the hint under them; the header has the same height in both states, so the Facts box does not move. State, Now, its note and the button read one computed state.</p>
+<h2>Before: taking jobs (Stop new jobs)</h2>
+<img src="before-taking.png" alt="Before: Stop new jobs sits mid-header, its hint runs to the right edge">
+<h2>Before: stopped (Resume)</h2>
+<img src="before-stopped.png" alt="Before: Resume far right, hint gone, Facts box moved up; State says not taking jobs while Now says Taking jobs">
+<h2>After: taking jobs (Stop new jobs)</h2>
+<img src="after-taking.png" alt="After: Stop new jobs right-aligned with its hint under it; State and Now both say Taking jobs">
+<h2>After: stopped (Resume)</h2>
+<img src="after-stopped.png" alt="After: Resume right-aligned with its hint; same header height; State and Now both say Not taking jobs, with a note">
+</body>
+</html>

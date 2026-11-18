@@ -7,8 +7,8 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 1. Page header
 
 - **Used for:** the headline that says where you are, with an optional line below it and the page's one primary action. (`Stack` of the layout part takes the gap `section`, 32 px, for the sections of a page such as a Settings tab; LOOK16.)
-- **Looks:** a large title with a quiet line below it. The primary action sits at the end of the title row.
-- **Source:** `src/ui/page-header`
+- **Looks:** a large title with a quiet line below it. The primary action sits at the end of the title row, right-aligned. An optional hint is one muted line right-aligned under the action, inside the same slot; the slot is at most 22 rem wide, so a hint never widens it and never moves the action. A page that swaps one action for another (Stop new jobs and Resume) passes a hint in both states, so the header keeps its height and nothing below it moves. At phone width the slot is full width and the hint reads from the left.
+- **Source:** `packages/ui/src/components/layout.tsx` (`PageHeader`: `title`, `lead`, `action`, `hint`)
 - **Rules:** UX-3, UX-4, UX-17.
 - **Guard:** none yet.
 

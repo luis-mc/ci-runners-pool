@@ -35,40 +35,75 @@ const MODE_HELP: Record<string, string> = {
 
 const CAPS = [25, 50, 75, 100] as const;
 
-/** Why a machine takes no new job, in words (machines R5.62). */
-export function pauseWords(reason: Machine['pause_reason']): string {
-  switch (reason) {
-    case 'paused':
-      return 'Paused';
-    case 'on_battery':
-      return 'On battery';
-    case 'quiet_hours':
-      return 'Quiet hours';
-    case 'budget':
-      return 'Busy';
-    default:
-      return 'Taking jobs';
-  }
-}
+type Reason = NonNullable<Machine['taking']['reason']>;
 
-const REASON_HELP: Record<string, string> = {
-  paused: 'It takes no new job. The jobs that run finish.',
-  on_battery: 'It takes no new job while it runs on battery. The jobs that run finish.',
-  quiet_hours: 'It takes no new job in quiet hours. The jobs that run finish.',
-  budget: 'Its load is over the budget. A new job waits until the load drops.',
+/** The words of the one computed state (OPS29): the word, the status kind and the note. Every part of the page reads this and nothing else. */
+const TAKING: Record<
+  Reason,
+  { word: string; kind: 'ok' | 'waiting' | 'off'; note: string }
+> = {
+  offline: { word: 'Offline', kind: 'off', note: '' },
+  stopped: {
+    word: 'Not taking jobs',
+    kind: 'off',
+    note: 'You stopped new jobs from the console. The jobs that run finish. Resume takes jobs again.',
+  },
+  mode_paused: {
+    word: 'Paused',
+    kind: 'off',
+    note: 'The mode is Paused. It takes no new job. The jobs that run finish.',
+  },
+  tray_paused: {
+    word: 'Paused',
+    kind: 'off',
+    note: 'It was paused from the tray. It takes no new job. The jobs that run finish.',
+  },
+  on_battery: {
+    word: 'On battery',
+    kind: 'off',
+    note: 'It takes no new job while it runs on battery. The jobs that run finish.',
+  },
+  quiet_hours: {
+    word: 'Quiet hours',
+    kind: 'off',
+    note: 'It takes no new job in quiet hours. The jobs that run finish.',
+  },
+  busy: {
+    word: 'Busy',
+    kind: 'waiting',
+    note: 'Its load is over the budget. A new job waits until the load drops.',
+  },
+  base_image_missing: {
+    word: 'Needs a base image',
+    kind: 'off',
+    note: 'A backend it may use has no runner base image on the machine.',
+  },
+  disk_low: {
+    word: 'Disk low',
+    kind: 'off',
+    note: 'Its disk is almost full. It takes no new job until there is room.',
+  },
 };
 
-/** The state word of a machine for the list and the detail: taking jobs or why not (UX-58). */
+export interface TakingState {
+  taking: boolean;
+  reason: Reason | undefined;
+  word: string;
+  kind: 'ok' | 'waiting' | 'off';
+  note: string;
+}
+
+/** The one state of a machine: taking jobs, or why not (UX-58). It reads the field the controller computes. */
+export function takingState(m: Machine): TakingState {
+  const reason = m.taking.taking_jobs ? undefined : (m.taking.reason ?? 'stopped');
+  if (!reason) return { taking: true, reason, word: 'Taking jobs', kind: 'ok', note: '' };
+  return { taking: false, reason, ...TAKING[reason] };
+}
+
+/** The state word of a machine for the list and the detail. */
 export function PolicyStatus({ m }: { m: Machine }) {
-  if (!m.online) return <Status kind="off" word="Offline" />;
-  if (m.accepting === false)
-    return (
-      <Status
-        kind={m.pause_reason === 'budget' ? 'waiting' : 'off'}
-        word={pauseWords(m.pause_reason)}
-      />
-    );
-  return <Status kind="ok" word="Taking jobs" />;
+  const t = takingState(m);
+  return <Status kind={t.kind} word={t.word} />;
 }
 
 export function MachinePolicySection({
@@ -117,7 +152,7 @@ export function MachinePolicySection({
     onChanged();
   });
 
-  const reason = m.accepting === false ? m.pause_reason : undefined;
+  const t = takingState(m);
   return (
     <Section title="When it works">
       <Stack>
@@ -140,7 +175,11 @@ export function MachinePolicySection({
               : []),
           ]}
         />
-        {reason ? <Message tone="note">{REASON_HELP[reason]}</Message> : null}
+        {t.note ? (
+          <Message tone="note" dismissible={false}>
+            {t.note}
+          </Message>
+        ) : null}
         <ChoiceField
           label="Mode"
           help={MODE_HELP[mode]}
@@ -153,18 +192,18 @@ export function MachinePolicySection({
         />
         <Switch
           label="Pause on battery"
-          on={s.pause_on_battery ?? true}
+          on={mode === 'always' ? false : (s.pause_on_battery ?? true)}
           busy={change.busy}
-          disabledReason={why}
+          disabledReason={mode === 'always' ? 'Always ignores the battery.' : why}
           onChange={(on) => void change.run({ pause_on_battery: on })}
         />
-        <Text>
-          {mode === 'always'
-            ? 'Always ignores the battery.'
-            : s.pause_on_battery === false
+        {mode === 'always' ? null : (
+          <Text>
+            {s.pause_on_battery === false
               ? 'Off: the machine keeps taking jobs on battery.'
               : 'On: Automatic takes no new job while the machine runs on battery.'}
-        </Text>
+          </Text>
+        )}
         <ChoiceField
           label="CPU for runners"
           help={

@@ -119,15 +119,18 @@ type Machine struct {
 	IsController bool
 	AgentVersion string
 	Online       bool
-	// Accepting and PauseReason are what the agent last reported (R5.62). They
-	// are filled when a machine is read; another feature reads `Online &&
+	// Accepting and PauseReason are computed from Taking without offline (R5.62).
+	// They are filled when a machine is read; another feature reads `Online &&
 	// Accepting` to decide on hosted fallback. A machine that reported nothing
 	// accepts.
 	Accepting   bool
 	PauseReason string
-	LastSeen    time.Time
-	JoinedAt    time.Time
-	RemovedAt   time.Time
+	// Taking is the one computed answer the console reads (OPS29): taking jobs
+	// or not, with the reason; it includes offline.
+	Taking    Availability
+	LastSeen  time.Time
+	JoinedAt  time.Time
+	RemovedAt time.Time
 }
 
 // Settings are the per-machine settings (R5.22, scheduling R5.1).

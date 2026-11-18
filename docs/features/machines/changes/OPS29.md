@@ -1,0 +1,5 @@
+---
+change: minor
+task: OPS29
+---
+The controller computes one state for taking jobs (`machines.ComputeAvailability`, API field `taking` on a machine: `taking_jobs` and a `reason` of offline, stopped, mode_paused, tray_paused, on_battery, busy, quiet_hours, base_image_missing or disk_low, in that order). It decides offline, a stop from the console, the mode, the tray pause and the battery switch from its own records, so a change shows at once and a stale agent report cannot contradict it; it reads the agent's report only for busy, quiet hours, a missing base image and a low disk. The agent's own `paused` and `on_battery` are no longer read. `accepting` and `pause_reason` follow the same answer for the features that read them (the hosted fallback, the scheduler, the doctor, the tray), with the same names. The console, the CLI and the tray should read `taking`. Decided from R5.61 (the mode, the tray pause and the drain are machine settings the controller writes) and R5.62 (the exact reason names stay).

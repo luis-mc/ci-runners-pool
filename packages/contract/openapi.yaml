@@ -5236,6 +5236,7 @@ components:
           arch,
           state,
           online,
+          taking,
           is_controller,
           backends,
           settings,
@@ -5260,6 +5261,8 @@ components:
           description: Whether the machine takes new jobs (machines R5.62). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts.
         pause_reason:
           $ref: '#/components/schemas/PauseReason'
+        taking:
+          $ref: '#/components/schemas/MachineTaking'
         policy:
           $ref: '#/components/schemas/MachinePolicy'
         is_controller:
@@ -5585,6 +5588,28 @@ components:
       type: string
       description: Why a machine takes no new job (machines R5.62). Other features read these exact names.
       enum: [paused, on_battery, quiet_hours, budget, base_image_missing]
+    MachineTaking:
+      type: object
+      description: The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows.
+      required: [taking_jobs]
+      properties:
+        taking_jobs:
+          type: boolean
+        reason:
+          type: string
+          description: Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+          enum:
+            [
+              offline,
+              stopped,
+              mode_paused,
+              tray_paused,
+              on_battery,
+              busy,
+              quiet_hours,
+              base_image_missing,
+              disk_low,
+            ]
     CpuCapState:
       type: string
       description: What the agent did with the CPU cap. not_supported is macOS (machines R5.64). applying is the wait until the agent reports the result for the chosen percent.

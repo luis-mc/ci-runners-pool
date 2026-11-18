@@ -230,12 +230,17 @@ The words of the machine mode, the battery pause and the CPU cap (machines R5.61
 | Taking jobs | State word: the machine takes new jobs. |
 | Paused, On battery, Quiet hours | State words: why the machine takes no new job. |
 | Busy | State word: the load is over the budget, so a new job waits. The tray header does not say it. |
+| Needs a base image, Disk low | State words: a backend it may use has no runner base image on the machine; the disk is almost full. |
+| You stopped new jobs from the console. The jobs that run finish. Resume takes jobs again. | The note under Now for Not taking jobs. |
+| The mode is Paused. It takes no new job. The jobs that run finish. | The note under Now for Paused by the mode. |
+| It was paused from the tray. It takes no new job. The jobs that run finish. | The note under Now for Paused from the tray. |
+| New jobs are stopped. Resume takes jobs again. | The hint under Resume in the page header. |
 | Now | The facts line with the state word. |
 | Paused until | The end of a pause from the tray with a timer. A date and time (Dates, times and numbers). |
 | Until you resume | The value of the fact Paused for a pause from the tray that has no end. |
 | Power | The facts line. Values: On battery, On mains. Shown only when the machine's battery state is known. |
 | Pause on battery | The switch. Saved at once. |
-| Always ignores the battery. | The note under the switch in Always. |
+| Always ignores the battery. | The reason beside the Pause on battery switch in Always; the switch is off and disabled. |
 | Off: the machine keeps taking jobs on battery. | The note under the switch when it is off. |
 | On: Automatic takes no new job while the machine runs on battery. | The note under the switch when it is on. |
 | CPU for runners | The name of the CPU cap list. Values: 25%, 50%, 75%, 100%. |

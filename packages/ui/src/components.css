@@ -410,11 +410,27 @@ body {
   color: var(--ds-color-text-muted);
 }
 .ds-page-header__action {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--ds-space-1);
+  margin-inline-start: auto;
+  max-inline-size: 22rem;
+}
+.ds-page-header__hint {
+  margin: 0;
+  text-align: end;
+  color: var(--ds-color-text-muted);
 }
 @media (max-width: 599px) {
   .ds-page-header__action {
     flex: 1 1 100%;
+    align-items: stretch;
+    max-inline-size: none;
+  }
+  .ds-page-header__hint {
+    text-align: start;
   }
   .ds-page-header__action .ds-button-wrap,
   .ds-page-header__action .ds-button {

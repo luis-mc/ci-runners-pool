@@ -31,6 +31,7 @@ export const machine = (over: Record<string, unknown> = {}) => ({
   arch: 'x64',
   state: 'active',
   online: true,
+  taking: { taking_jobs: true },
   is_controller: false,
   backends: [
     { name: 'docker', present: true, usable: true, allowed: true, version: '27' },
@@ -69,6 +70,16 @@ export const machine = (over: Record<string, unknown> = {}) => ({
   ],
   ...over,
 });
+
+/** A machine the owner stopped from the console: the one computed state says stopped (OPS29). */
+export const stoppedMachine = (over: Record<string, unknown> = {}) =>
+  machine({
+    state: 'drained',
+    accepting: false,
+    pause_reason: 'paused',
+    taking: { taking_jobs: false, reason: 'stopped' },
+    ...over,
+  });
 
 /** A machine whose agent needs recovery (operations R5.44, web-console R5.33). */
 export const needingRecovery = (over: Record<string, unknown> = {}) =>

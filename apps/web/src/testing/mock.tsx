@@ -132,6 +132,12 @@ export const viewer: Schemas['User'] = {
   added_at: '2026-11-02T10:00:00Z',
 };
 
+function stoppedOrTaking(state: string | undefined): Schemas['Machine']['taking'] {
+  return state === 'drained' || state === 'draining'
+    ? { taking_jobs: false, reason: 'stopped' }
+    : { taking_jobs: true };
+}
+
 export function machine(over: Partial<Schemas['Machine']> = {}): Schemas['Machine'] {
   return {
     id: 'm1',
@@ -169,6 +175,8 @@ export function machine(over: Partial<Schemas['Machine']> = {}): Schemas['Machin
     slots_used: 1,
     last_seen_at: '2026-11-14T10:00:00Z',
     ...over,
+    // The controller computes one state; a drained machine is stopped unless a test says more.
+    taking: over.taking ?? stoppedOrTaking(over.state),
   };
 }
 

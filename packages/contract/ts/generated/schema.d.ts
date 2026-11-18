@@ -3400,6 +3400,7 @@ export interface components {
             /** @description Whether the machine takes new jobs (machines R5.62). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts. */
             accepting?: boolean;
             pause_reason?: components["schemas"]["PauseReason"];
+            taking: components["schemas"]["MachineTaking"];
             policy?: components["schemas"]["MachinePolicy"];
             /** @description The controller's own machine (machines R5.1); it has no special path. */
             is_controller: boolean;
@@ -3562,6 +3563,15 @@ export interface components {
          * @enum {string}
          */
         PauseReason: "paused" | "on_battery" | "quiet_hours" | "budget" | "base_image_missing";
+        /** @description The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows. */
+        MachineTaking: {
+            taking_jobs: boolean;
+            /**
+             * @description Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+             * @enum {string}
+             */
+            reason?: "offline" | "stopped" | "mode_paused" | "tray_paused" | "on_battery" | "busy" | "quiet_hours" | "base_image_missing" | "disk_low";
+        };
         /**
          * @description What the agent did with the CPU cap. not_supported is macOS (machines R5.64). applying is the wait until the agent reports the result for the chosen percent.
          * @enum {string}
