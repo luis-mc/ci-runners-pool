@@ -283,7 +283,9 @@ export function PoolSizeWizard({ m, onChanged }: { m: Machine; onChanged: () => 
           </Message>
         ) : null}
         {phase === 'stopped' ? (
-          <Message tone="note">Stopped. Nothing was saved. {left ?? ''}</Message>
+          <Message tone="note" dismissible={false}>
+            Stopped. Nothing was saved. {left ?? ''}
+          </Message>
         ) : null}
         {phase === 'done' || phase === 'done-after-reload' ? (
           <Message tone="done">

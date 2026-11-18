@@ -453,7 +453,11 @@ export function AppearanceSettings() {
                 { value: 'light', label: 'Light' },
               ]}
             />
-            {save.busy ? <Message tone="note">Saving the mode.</Message> : null}
+            {save.busy ? (
+              <Message tone="note" dismissible={false}>
+                Saving the mode.
+              </Message>
+            ) : null}
             {save.error ? (
               <Message tone="problem">Could not save the mode. {save.error}</Message>
             ) : null}

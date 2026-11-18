@@ -211,6 +211,7 @@ A `Tag` is the small outlined label that names a kind next to a word, such as `i
 - **Used for:** the four tones (Done, Note, Needs you, Problem); a button's one-line result; and the one app-wide banner slot.
 - **Looks:** a box with a bar down its left side, an icon and a word for the tone, then one line of text.
 - **Source:** `src/ui/message`
+- **Dismiss:** a Note without an action has a small x button named `Dismiss`, reachable by keyboard. It is never on Done, Needs you or Problem. A dismissed note stays hidden in that browser (kept per note in local storage, safe when storage is blocked) and comes back when its text changes. A short state note (saving, looking for a release, stopped, live updates paused) passes `dismissible={false}`.
 - **Rules:** UX-26, UX-27, UX-14, UX-17.
 - **Guard:** none yet.
 

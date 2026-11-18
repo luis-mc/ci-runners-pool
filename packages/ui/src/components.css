@@ -552,6 +552,20 @@ body {
   flex: 1 1 12rem;
   overflow-wrap: anywhere;
 }
+.ds-message[data-dismissible] .ds-message__body {
+  flex-basis: 8rem;
+}
+.ds-message__dismiss {
+  min-inline-size: var(--ds-target-min);
+  min-block-size: var(--ds-target-min);
+  flex: none;
+  margin-inline-start: auto;
+  color: inherit;
+  background: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
 .ds-message[data-tone='done'] {
   background: var(--ds-color-done-tint);
   color: var(--ds-color-on-done-tint);
