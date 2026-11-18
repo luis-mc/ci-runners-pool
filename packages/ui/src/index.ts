@@ -34,4 +34,7 @@ export * from './components/RowKeys';
 export * from './components/SearchList';
 export * from './themes';
 export * from './components/Rows';
+export * from './components/Waterfall';
+export * from './components/JobGraph';
+export * from './components/Charts';
 export type * from './components/Viz.types';
