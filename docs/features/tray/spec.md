@@ -179,6 +179,8 @@ The tray has an icon, a tooltip and one menu. It has no window of its own. Statu
 
 **R5.44** (built, OPS24; runners R5.89) — **A runner that did not start is a notification.** The service's status answer carries `runner_problems`: the runner services of this machine that its agent could not start after it gave their account the right to log on as a service again and tried once more. For each one the tray shows one desktop notification, "A runner did not start", whose text names the runner and the reason and says to open the console and press Start. A problem notifies once, not at every poll; it is forgotten when the service runs, so it notifies again if it comes back. A service without the field (an older service) raises nothing. The words are in content.md, "Runner service words".
 
+**R5.45** (built, TRAY6) — **The menu stays open while the user is in it.** The tray never rebuilds or replaces the menu after it is built. A status from the poll changes an item, the tooltip or the icon only when its text, visibility, tick or state differs from what is shown, and only in place. While the menu is open the tray changes nothing: it keeps the newest status and applies it within 250 ms of the menu closing. On Windows the menu counts as open while the foreground thread is in a menu loop (`GetGUIThreadInfo`), because `TrackPopupMenu` closes when an item is hidden or shown or the tray icon is modified under it. On Linux and macOS the desktop host draws the menu and takes in-place item changes without closing it, so changes apply at once there and the queue stays empty.
+
 **R5.29** — The tray MUST ask the service to look for updates only through the local channel calls `check` and `install`; it never talks to GitHub itself. Update, restart and Look for updates MUST NOT need a network port in the tray (R6.3). (M1, CRSP19)
 
 **R5.30** — Open on GitHub MUST open `https://github.com/luis-mc/ci-runners-shared-pool` in the default browser. (M1, CRSP19)
@@ -280,6 +282,7 @@ Rows marked built have tests that exist and run in CI. Rows marked planned are n
 | R5.42 | built (CRSP75): internal/tray/policy_test.go, TestModeSubmenuIsTwoRadioItemsWithOneTick, TestPauseAndResumeItems, TestNoPolicyHidesTheModeItems, TestHeaderNamesWhyTheMachineTakesNoJobs, TestClientSetsModePauseAndResume, TestOpenerChangesPolicyAndNoticesAFailure; internal/trayserver/server_unix_test.go, TestChannelModePauseAndResume; internal/machines/policy_test.go, TestPauseFromTheTray |
 | R5.43 | built (CRSP147): internal/tray/update_prompt_test.go, TestLookForUpdatesAsksAndNeverInstallsByItself, TestLookForUpdatesWithoutDialogNeverInstalls, TestInstallNowFailureIsSaid, TestUpToDateAndAlreadyUpdatingAskNothing, TestPromptBodyAndChoicesAreTheOwnersWords, TestOfferedOncePerVersion. The OS dialogs (PowerShell form, zenity, kdialog, osascript) are not driven in CI; TRAY4: internal/tray/appwindow_test.go, TestLookupWindowsPrefersEdgeThenChrome, TestLookupDarwinLooksInApplicationsAndHome, TestLookupLinuxTriesNamesInOrder, TestAppWindowArgsAreAppModeAt520By420, TestAppWindowOpensTheBrowserElseTheDefault, TestOfferOpensTheUpdatePageAndAsksNothingNatively, TestOfferFallsBackToTheNativeBox, TestLookWhileUpdatingOpensTheProgressWindow |
 | R5.44 | built (OPS24): internal/tray/runner_problems_test.go |
+| R5.45 | built (TRAY6): internal/tray/apply_test.go, TestStatusWhileMenuOpenIsQueuedAndAppliedAfterClose, TestOnlyChangedItemsAreTouched, TestUpdateItemShownInPlace (fake tray surface). The Windows menu-open check is built, compiled in CI only |
 | R5.2 | built: internal/tray/menu_test.go, TestServiceLinePerState, TestHeaderPerUpdateState; internal/tray/tray_test.go, TestStatusTextPerState (tooltip) |
 | R5.3 | built: internal/tray/tray_test.go, TestPollerUpdatesWithin10s (injected clock) |
 | R5.4 | built: internal/tray/tray_test.go, TestIconIsAlwaysTheDiscDifferingOnlyInColour, TestCommittedAppIconMatches |
@@ -362,6 +365,7 @@ Source: cmd/crsp/tray_wiring.go
 Source: internal/tray/open.go
 Source: internal/tray/open_cmd.go
 Source: internal/tray/menu.go
+Source: internal/tray/apply.go
 Source: internal/update/manager.go
 Source: apps/web/src/screens/settings/Updates.tsx
 Source: internal/tray/icon.go
@@ -377,4 +381,4 @@ Source: cmd/crsp/main.go
 Source: .github/workflows/tray-smoke.yml
 Source: packaging/autostart/README.md
 
-Also: autostart_windows.go, autostart_other.go, svcstate_darwin.go, svcstate_windows.go, notify_*.go and sni_other.go are the per-OS parts; internal/tray/testdata/snihost is the StatusNotifierWatcher stand-in for the Linux smoke.
+Also: menu_open_windows.go and menu_open_other.go (is the menu open), autostart_windows.go, autostart_other.go, svcstate_darwin.go, svcstate_windows.go, notify_*.go and sni_other.go are the per-OS parts; internal/tray/testdata/snihost is the StatusNotifierWatcher stand-in for the Linux smoke.
