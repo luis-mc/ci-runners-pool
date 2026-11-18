@@ -117,12 +117,12 @@ Milestones (M1 to M8) are those of the product brief (`docs/overview/product.md`
 | `logout` | Forget this context's token | M1 | this spec |
 | `open` | Print, and on a desktop open, a one-time console link | M1 | `web-console` |
 | `context list\|use\|remove` | Choose between controllers | M1 | this spec |
-| `repo list\|enable\|disable\|policy` | Repositories and their pool policy | M1 | `github-integration`, `scheduling` |
+| `repo list\|enable\|disable\|policy` | Repositories and their pool policy, with the runner kind (OPS28) | M1 | `github-integration`, `scheduling` |
 | `machine list` | List machines with load and slots | M1 | `machines` |
 | `machine add` | Print a join command with a one-time code | M1 | `machines` |
 | `machine drain\|remove` | Drain or remove a machine | M3 | `machines` |
 | `machine maintain NAME -- COMMAND...` | Hold new jobs, wait until idle, run one command on the machine, lift the hold | built | this spec (R5.29), `machines` |
-| `runner list\|create\|remove` | Runners on machines | M1 | `runners` |
+| `runner list\|create\|update\|clear-cache\|remove` | Runners on machines, with kind, dependency setting and cache clear (OPS28) | M1 | `runners` |
 | `job list\|watch` | Queue and history; live view | M1 | `scheduling` |
 | `doctor` | Run every check and print fixes | M2 | `doctor` |
 | `parity check\|soak\|report` | The parity gate against the old pool | M7 | this spec; [parity plan](../../architecture/parity-plan.md) |
@@ -201,7 +201,7 @@ With `--json`, a refusal prints the contract's `ErrorEnvelope` to stderr and use
 
 **R5.18** — `machine list` MUST show each machine with state (active, drained, offline), OS, backends, slots used and free, memory and CPU load. `machine add [--name NAME] [--expires 15m]` MUST print one join command with a one-time join code, and how long it is valid.
 
-**R5.19** — `runner list` MUST show each runner with machine, OS, backend, labels, persistent or ephemeral, current job and age. `runner create --machine M --os OS [--backend B] [--persistent] [--count N]` MUST refuse a machine that does not support that OS or backend, and say which machines do.
+**R5.19** — `runner list` MUST show each runner with machine, OS, backend, labels, persistent or ephemeral, current job and age. `runner create --machine M --os OS [--backend B] [--persistent] [--count N]` MUST refuse a machine that does not support that OS or backend, and say which machines do. **Built by OPS28 (R5.62):** the runner kind and the dependency setting are flags of `runner create` and `runner update`.
 
 **R5.20** — `job list` MUST show the queue and history, with filters `--repo`, `--machine`, `--result`, `--since`. `job watch` MUST stream live events (queued, started, ended) until stopped with Ctrl+C, and reconnect after a dropped stream.
 
@@ -235,6 +235,8 @@ A command that Ctrl-C cut off may still run on the machine until its own timeout
 **R5.60** (built, CRSP134) — With no login context, the CLI MUST sign in from the environment, for every command that talks to the controller: `CRSP_URL` (the controller address), `CRSP_ACCESS` (an access credential, github-integration R5.82) and `CRSP_CA_FINGERPRINT` (the SHA-256 of the controller's CA certificate, 64 hex characters, colons allowed). The names end in none of `_KEY`, `_TOKEN`, `_SECRET`, `_PASS`. A login context always wins: the environment is the way in only when no context exists. The fingerprint MUST be pinned for an `https` address, by the same rule as the agents (the chain holds the CA with that fingerprint, or the server certificate is that certificate); there is no flag or variable that turns the check off, and a missing or wrong fingerprint sends no request. `http` is allowed for `127.0.0.1` and `[::1]` only, as in R6.3. A partial set names the missing variables and says where to make them (the console, Settings, Access for CI). With none set the answer is the old "Not signed in", now naming the three variables. The access value is never printed, written to the config file or put in an error, and the redactor masks `crsp_acc_` values. The environment sign-in has no stored token: `logout` has nothing to forget. Source: `internal/cli/session.go`.
 
 **R5.61** (built, CRSP136) — `machine settings NAME [--docker-compact on|off|auto] [--docker-compact-threshold GIB] [--docker-compact-idle MINUTES] [--docker-compact-hours HH:MM-HH:MM]` MUST show the Docker disk compact policy of a machine (machines R5.66) and, with a flag, change it with one `PATCH` of the machine's settings and show the result; the same rights as the Machine page (admin). A value out of range MUST exit 2 and send nothing. With `--json` it prints the settings. The compact itself is `machine maintain NAME -- docker-compact` (R5.29) when done by hand.
+
+**R5.62** (M1, Built by OPS28; owner decisions D93, D94 and D95; runners R5.1, R5.90 to R5.93; github-integration R5.60) — **Runner kind, dependency setting and cache clear.** (a) `runner create --machine M --os OS [--count N] [--persistent | --ephemeral] [--keep-dependencies | --no-keep-dependencies]` adds pool runners (no `--repo`). `--persistent` keeps its meaning; `--ephemeral` adds an ephemeral ceiling (`--count` is the most that run at once on the machine, runners R5.92). With neither flag the kind is the default of Add runners (Ephemeral while a public repository uses the pool, otherwise Persistent) and the command prints which kind it chose and why. `--keep-dependencies` and `--no-keep-dependencies` apply to a persistent runner only (default on); with `--ephemeral` they are refused with a plain reason. A kind the machine cannot run is refused with the reason and the machines that can, as in R5.19. (b) `runner update NAME [--keep-dependencies | --no-keep-dependencies]` changes the setting of a persistent runner with one `PATCH /runners/{id}/settings` and prints the result (admin). (c) `runner clear-cache NAME` clears the runner's own dependency folder (`POST /runners/{id}/clear-cache`): at once when the runner is idle, and after the running job when it is busy (the command says which); it asks first unless `--yes` is given (R5.14). (d) `runner list` also shows the kind, for a persistent runner the Keep downloaded dependencies setting and the size of its dependency folder, and the word `unclean` with its reason for a runner that failed its cleanup (runners R5.91). (e) `repo policy OWNER/NAME --runner-kind ephemeral-only|any-runner` sets the per-repository runner kind and `repo policy OWNER/NAME` and `repo list` show it with `(default)` when it follows the visibility; setting a public repository to `any-runner` prints the warning of github-integration R5.60 and needs a yes, as `--allow-fork-prs` does (R5.17). `repo list` also shows `no ephemeral capacity` for a repository that has none.
 
 ## 6. Non-functional requirements
 
@@ -332,6 +334,7 @@ Tests are planned unless marked built. Planned paths are written in plain text u
 | R6.8 | built: internal/cli/output/output_test.go TestJSONGolden |
 | R5.60 | built: internal/cli/envlogin_test.go TestEnvSignInWorksWithoutAContext, TestEnvSignInWorksForOtherCommands, TestEnvSignInPinsTheFingerprint, TestEnvSignInNeedsTheFingerprintForHTTPS, TestEnvSignInPartialSetNamesWhatIsMissing, TestNoContextNoEnvKeepsNotSignedIn, TestLoginContextWinsOverEnv |
 | R5.61 | built: internal/cli/cmd_machine_settings_test.go TestMachineSettingsShowsThePolicy, TestMachineSettingsSetsThePolicy, TestMachineSettingsRefusesBadValues |
+| R5.62 | planned in the OPS28 code branches (names reconciled when they land): `internal/cli` tests for `runner create --ephemeral`, the dependency flags, `runner update`, `runner clear-cache` and `repo policy --runner-kind` |
 
 ## 10. Decisions
 
