@@ -869,6 +869,39 @@ The words of the small update page the tray opens (tray R5.43, web-console R5.96
 | Open Updates | The left button on Done: opens Settings, Updates. |
 | The update did not finish. {reason} The running version stays. The log is {path}. Open the log folder from the tray menu. Then try again. | The failure message. |
 
+## Native update window words
+
+The words of the native update window on Windows (tray R5.46 to R5.49). The steps and buttons follow UX-30 and UX-71; the web page of the same update is in Update page words.
+
+| Words | Used for |
+|---|---|
+| Update - CI Runners Shared Pool | The title of the window. |
+| Update to {version} | The heading on Review. |
+| Version {version} is ready. You run {version}. | First line on Review. |
+| Running jobs finish first, then the service restarts (about 1 min). No job is stopped. | Second line on Review. |
+| Not now, Update now | The two buttons on Review. Update now is the main one and the default. |
+| Starting the update. | The line between pressing Update now and the first answer. |
+| Downloading {version} | The heading while it downloads; the bar shows {n}%. |
+| The update is checked against its checksum and signature before it installs. | The line under the download bar. |
+| Waiting for jobs | The heading while the machine drains. |
+| {n} jobs run now. The update starts when they are done. | The job line; one job reads `1 job runs now. The update starts when it is done.` and none reads `The jobs on this machine are finishing. The update starts when they are done.` |
+| This machine takes no new jobs meanwhile. No job is stopped. | The note while it waits. |
+| Hide | Closes the window; the update goes on. The default while it works. |
+| Cancel update | Stops the update while it downloads or waits for jobs. Busy word: Cancelling... |
+| Installing {version} | The heading while it installs; the bar shows {n}% when the service knows it. |
+| This cannot be cancelled. You can hide this window; the update goes on. | The note while it installs. |
+| Restarting the service | The heading while the service is replaced. |
+| The service is replaced and starts again. This window waits for it. | The note while the service is down. |
+| Updated | The heading on Done. |
+| Now running {version}. | The Done line, and the body of the toast after an automatic update. |
+| Close | The button on Done, Failed and Cancelled. |
+| The update failed | The heading on Failed. |
+| Still on {version}. | The line after the reason on Failed and after a cancel. |
+| Log: {path} | The last line on Failed. |
+| Update cancelled | The heading after Cancel update. |
+| Nothing changed. Still on {version}. | The line after a cancel. |
+| CI RUNNERS SHARED POOL | The name in the band and in the installer bitmaps (capitals: the art is drawn in a 5 by 7 pixel font). |
+
 ## Shared Pool and Jobs words
 
 The words of the six-item menu, Shared Pool and the Jobs sub-sections (owner decisions D24, D29, D31 to D34, LOOK31). "Runners" stays "runners" (D29).

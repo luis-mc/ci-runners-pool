@@ -87,13 +87,11 @@ func Run(args []string, o Options) int {
 		return ExitNoTrayHost
 	}
 
-	if *updated && o.Version != "" && updatedOnce(o.Version) {
-		DesktopNotice("Updated to "+o.Version, ProductName+" now runs version "+o.Version+".")
-	}
-	return loop(o, *smoke, *hold)
+	// No modal box after an update (TRAY5 D13): loop says the result once, by a toast or the window.
+	return loop(o, *smoke, *hold, *updated)
 }
 
-func loop(o Options, smoke bool, hold time.Duration) int {
+func loop(o Options, smoke bool, hold time.Duration, updated bool) int {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	// A quit request (operations R5.86) ends the loop, so the process leaves and frees its exe.
@@ -117,6 +115,21 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 		Browser: OSLauncher, Files: OSLauncher,
 		Window: AppWindowOpener{Lookup: OSBrowserLookup(), Fallback: OSLauncher}.Open,
 		Notify: DesktopNotice, Current: current, LogDir: LogDir,
+		Native: OSNativeWindow(o.Exe, o.Version),
+	}
+	if updated && o.Version != "" && !smoke {
+		go func() {
+			env := AfterEnv{
+				Status: client.Status, Toast: OSToast, Version: o.Version, Due: updatedOnceFor,
+			}
+			if opener.Native != nil {
+				env.OpenWindow = func(ctx context.Context) error {
+					st := current()
+					return opener.Native(ctx, "live", st)
+				}
+			}
+			AfterUpdate(ctx, env)
+		}()
 	}
 
 	ready := make(chan struct{})
@@ -280,6 +293,9 @@ func runQuit(o Options) int {
 	}
 	return ExitOK
 }
+
+// updatedOnceFor is true the first time this version's result is due for this user.
+func updatedOnceFor(version string) bool { return updatedOnce(version) }
 
 // updatedOnce is true the first time this version's "Updated to" notice is due for this user.
 func updatedOnce(version string) bool {
