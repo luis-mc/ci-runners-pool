@@ -13,6 +13,9 @@ const (
 	CapApplied      = "applied"
 	CapNotSupported = "not_supported"
 	CapFailed       = "failed"
+	// CapApplying is the controller's own word: the chosen percent differs
+	// from the one the last report is about, so the agent has not answered yet.
+	CapApplying = "applying"
 )
 
 // Policy is what a machine last reported about taking new jobs (R5.62) and
@@ -143,4 +146,15 @@ func applyPolicy(set Settings, u SettingsUpdate, now time.Time) (Settings, error
 func (s *Service) fillPolicy(m *Machine) {
 	p := s.Policy(m.ID)
 	m.Accepting, m.PauseReason = p.Accepting, p.PauseReason
+}
+
+// capFor settles the cap state a view shows. A report is about the percent the
+// agent applied; when that is not the wanted percent the state is applying and
+// the old result (and its error) is dropped until the agent reports the wanted one.
+func capFor(p Policy, wanted int) Policy {
+	if p.CPUCapState == "" || p.CPUCapState == CapNotSupported || p.CPUCapPct == wanted {
+		return p
+	}
+	p.CPUCapState, p.CPUCapDetail = CapApplying, ""
+	return p
 }

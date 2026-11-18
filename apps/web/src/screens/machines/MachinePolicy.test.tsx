@@ -119,6 +119,42 @@ describe('Machine policy section', () => {
     );
   });
 
+  it('follows the chosen cap: 100 fails, 50 waits, then settles', async () => {
+    const pol = (state: string, detail?: string) => ({
+      on_battery: false,
+      battery_known: true,
+      cpu_cap_state: state,
+      ...(detail ? { cpu_cap_detail: detail } : {}),
+    });
+    const failed = withSettings(
+      { cpu_cap_pct: 100 },
+      { policy: pol('failed', 'access denied') },
+    );
+    const api = detail(failed);
+    renderApp(api, '/machines/m1');
+    expect(
+      await screen.findByText(/The CPU cap was not set\. access denied/),
+    ).toBeTruthy();
+    // The controller answers applying (no old error) until the agent reports 50.
+    const applying = withSettings({ cpu_cap_pct: 50 }, { policy: pol('applying') });
+    api
+      .on('GET', '/api/v1/machines/:id', applying)
+      .on('PATCH', '/api/v1/machines/:id', applying);
+    fireEvent.click(screen.getByRole('radio', { name: '50%' }));
+    expect(await screen.findByText('Setting the CPU cap.')).toBeTruthy();
+    expect(screen.queryByText(/The CPU cap was not set/)).toBeNull();
+    // The page reads again by itself and shows the result for 50.
+    api.on(
+      'GET',
+      '/api/v1/machines/:id',
+      withSettings({ cpu_cap_pct: 50 }, { policy: pol('applied') }),
+    );
+    await waitFor(() => expect(screen.queryByText('Setting the CPU cap.')).toBeNull(), {
+      timeout: 5000,
+    });
+    expect(screen.queryByText(/The CPU cap was not set/)).toBeNull();
+  });
+
   it('shows a cap that failed and why', async () => {
     renderApp(
       detail(

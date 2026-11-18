@@ -270,6 +270,7 @@ func (e CpuCapPct) Valid() bool {
 // Defines values for CpuCapState.
 const (
 	CpuCapStateApplied      CpuCapState = "applied"
+	CpuCapStateApplying     CpuCapState = "applying"
 	CpuCapStateFailed       CpuCapState = "failed"
 	CpuCapStateNotSupported CpuCapState = "not_supported"
 )
@@ -278,6 +279,8 @@ const (
 func (e CpuCapState) Valid() bool {
 	switch e {
 	case CpuCapStateApplied:
+		return true
+	case CpuCapStateApplying:
 		return true
 	case CpuCapStateFailed:
 		return true
@@ -2357,7 +2360,7 @@ type ConsoleLink struct {
 // CpuCapPct The share of the whole machine's CPU the runner processes may use, in percent (machines R5.64). Separate from the load budget. 100 is no cap.
 type CpuCapPct int
 
-// CpuCapState What the agent did with the CPU cap. not_supported is macOS (machines R5.64).
+// CpuCapState What the agent did with the CPU cap. not_supported is macOS (machines R5.64). applying is the wait until the agent reports the result for the chosen percent.
 type CpuCapState string
 
 // CreateJoinCodeRequest defines model for CreateJoinCodeRequest.
@@ -3046,7 +3049,7 @@ type MachinePolicy struct {
 	// CpuCapDetail Why the cap is not applied, in words fit to show.
 	CpuCapDetail *string `json:"cpu_cap_detail,omitempty"`
 
-	// CpuCapState What the agent did with the CPU cap. not_supported is macOS (machines R5.64).
+	// CpuCapState What the agent did with the CPU cap. not_supported is macOS (machines R5.64). applying is the wait until the agent reports the result for the chosen percent.
 	CpuCapState *CpuCapState `json:"cpu_cap_state,omitempty"`
 	OnBattery   bool         `json:"on_battery"`
 }

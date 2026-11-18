@@ -172,9 +172,12 @@ func (l *link) acceptingReport(ctx context.Context) *agentv1.AcceptingReport {
 	l.checkBaseImages(ctx)
 	acc := l.cfg.Gate.Acceptance()
 	res := l.syncCap(ctx, set)
+	l.capMu.Lock()
+	applied := l.cap.pct // the percent the state is about, set after the apply
+	l.capMu.Unlock()
 	r := &agentv1.AcceptingReport{
 		Accepting: acc.Accepting, PauseReason: acc.Reason, OnBattery: acc.Power.OnBattery, BatteryKnown: acc.Power.Known,
-		CpuCapPct: int32(set.EffectiveCPUCap()), CpuCapState: res.State, CpuCapDetail: res.Detail, //nolint:gosec // 25 to 100
+		CpuCapPct: int32(applied), CpuCapState: res.State, CpuCapDetail: res.Detail, //nolint:gosec // 25 to 100
 	}
 	if !acc.PauseUntil.IsZero() {
 		r.PauseUntilUnixMs = acc.PauseUntil.UnixMilli()

@@ -13,6 +13,7 @@ import {
   Text,
   formatDateTime,
 } from '@crsp/ui';
+import { useEffect } from 'react';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand } from '../../api/hooks';
 import { useSession } from '../../auth/session';
@@ -86,6 +87,14 @@ export function MachinePolicySection({
   const policy = m.policy;
   const heldByUser = Boolean(s.pause_until_resumed || s.pause_until);
   const capUnsupported = m.os === 'macos' || policy?.cpu_cap_state === 'not_supported';
+
+  // The agent answers after the setting reaches it: read again until the state settles.
+  const applying = policy?.cpu_cap_state === 'applying';
+  useEffect(() => {
+    if (!applying) return;
+    const t = setInterval(onChanged, 2000);
+    return () => clearInterval(t);
+  }, [applying, onChanged]);
 
   const change = useCommand(async (body: Settings) => {
     await unwrap(
@@ -177,6 +186,7 @@ export function MachinePolicySection({
             void change.run({ cpu_cap_pct: Number(v) as Schemas['CpuCapPct'] })
           }
         />
+        {applying ? <Message tone="note">Setting the CPU cap.</Message> : null}
         {policy?.cpu_cap_state === 'failed' ? (
           <Message tone="problem">
             The CPU cap was not set. {policy.cpu_cap_detail ?? ''}

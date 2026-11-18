@@ -242,6 +242,7 @@ The words of the machine mode, the battery pause and the CPU cap (machines R5.61
 | Not supported on macOS yet. The runners use all the CPU. | The help under the CPU cap list on macOS. |
 | Not supported on macOS yet. | The reason on each CPU cap value on macOS. |
 | The CPU cap was not set. {why} | Problem message when the agent could not set the cap. |
+| Setting the CPU cap. | Note while the agent has not yet reported the result for the chosen value. |
 | It takes no new job. The jobs that run finish. | Note under the state when the machine is paused. |
 | It takes no new job while it runs on battery. The jobs that run finish. | Note when the machine is on battery. |
 | It takes no new job in quiet hours. The jobs that run finish. | Note in quiet hours. |
