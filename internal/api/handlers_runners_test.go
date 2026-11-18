@@ -22,6 +22,8 @@ type fakeRunners struct {
 	removed   bool
 	started   []string
 	lastActor string
+	lastAdd   runners.AddRequest
+	views     map[string]runners.View // overrides of the view fields of a record
 }
 
 func (f *fakeRunners) ListView(_ context.Context, fl runners.Filter) ([]runners.View, error) {
@@ -38,7 +40,11 @@ func (f *fakeRunners) ListView(_ context.Context, fl runners.Filter) ([]runners.
 // view is the record with the machine's name, as the service gives it. A
 // stored failure carries its reason.
 func (f *fakeRunners) view(r runners.Record) runners.View {
-	return runners.View{Record: r, State: r.State, Reason: r.Reason, MachineName: "GameRoomPC"}
+	v := runners.View{Record: r, State: r.State, Reason: r.Reason, MachineName: "GameRoomPC"}
+	if o, ok := f.views[r.ID]; ok {
+		v.Serving, v.Registrations = o.Serving, o.Registrations
+	}
+	return v
 }
 func (f *fakeRunners) GetView(_ context.Context, id string) (runners.View, error) {
 	if r, ok := f.recs[id]; ok {
@@ -47,7 +53,7 @@ func (f *fakeRunners) GetView(_ context.Context, id string) (runners.View, error
 	return runners.View{}, runners.ErrNotFound
 }
 func (f *fakeRunners) PlanAdd(_ context.Context, req runners.AddRequest, actor string) (runners.Plan, error) {
-	f.lastActor = actor
+	f.lastActor, f.lastAdd = actor, req
 	if f.refuse != "" {
 		return runners.Plan{}, &runners.RefusalError{Reason: f.refuse}
 	}

@@ -131,3 +131,16 @@ func (m *MemStore) GetPlan(_ context.Context, id string) (Plan, error) {
 	p.Steps = append([]Step(nil), p.Steps...)
 	return p, nil
 }
+
+// SetRunnerPool implements Store.
+func (m *MemStore) SetRunnerPool(_ context.Context, id, poolRunnerID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	r, ok := m.runners[id]
+	if !ok {
+		return ErrNotFound
+	}
+	r.PoolRunnerID = poolRunnerID
+	m.runners[id] = r
+	return nil
+}

@@ -369,6 +369,9 @@ func (f doctorFleet) Runners(ctx context.Context) ([]doctor.Runner, error) {
 	}
 	out := make([]doctor.Runner, 0, len(rs))
 	for _, r := range rs {
+		if runners.IsPoolRunner(r) {
+			continue // a pool runner has no registration; its hidden registrations are listed
+		}
 		dr := doctor.Runner{
 			ID: r.ID, Name: r.Name, MachineID: r.MachineID, MachineName: names[r.MachineID], OS: r.OS, Kind: r.Kind,
 			Labels: r.Labels, GitHubRunnerID: r.GitHubRunnerID, ServiceName: r.ServiceName, FolderReadable: true,
@@ -441,6 +444,23 @@ func (p lightPlacer) LightHosts(ctx context.Context, os string) ([]runners.Light
 		out = append(out, runners.LightHost{MachineID: m.ID, LightSlots: v.Settings.LightSlots})
 	}
 	return out, nil
+}
+
+// poolRepos lists the repositories whose pool is on, with the scope their
+// runners register in.
+func poolRepos(store repos.Store) func(context.Context) ([]runners.PoolRepo, error) {
+	return func(ctx context.Context) ([]runners.PoolRepo, error) {
+		on := true
+		rs, err := store.ListRepositories(ctx, repos.ListFilter{Pool: &on})
+		if err != nil {
+			return nil, err
+		}
+		out := make([]runners.PoolRepo, 0, len(rs))
+		for _, r := range rs {
+			out = append(out, runners.PoolRepo{ID: r.ID, FullName: r.FullName, Scope: runners.Scope{Kind: "repository", RepositoryID: r.ID}})
+		}
+		return out, nil
+	}
 }
 
 // lightKeeper gives the repositories service the light runners of the runners service.

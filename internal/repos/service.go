@@ -27,6 +27,9 @@ type Config struct {
 	SizeFloors func() map[string]SizeFloor
 	// Light keeps the light runners; nil means none are kept.
 	Light LightRunners
+	// Registrar keeps the hidden registrations of the pool runners; nil means
+	// none are kept.
+	Registrar PoolRegistrar
 	// PoolName names the runner group of the pool per organization (R5.21);
 	// empty means "crsp".
 	PoolName string
@@ -72,6 +75,10 @@ func New(cfg Config) *Service {
 	return &Service{cfg: cfg, admin: map[int64]map[int64]bool{}, synced: map[int64]time.Time{},
 		etags: map[int64]map[string]string{}, cache: map[int64]map[string][]byte{}, stops: map[string]bool{}, running: map[string]bool{}, fb: newFallbackState()}
 }
+
+// SetRegistrar sets who keeps the registrations of the pool runners. The
+// wiring calls it once the runners service exists.
+func (s *Service) SetRegistrar(r PoolRegistrar) { s.cfg.Registrar = r }
 
 // SetLight sets who keeps the light runners. The wiring calls it once the
 // runners service exists, which is after this one.

@@ -332,6 +332,12 @@ func TestRunnerCreateRefusesUnsupported(t *testing.T) {
 	if code != 0 || req["kind"] != "persistent" || req["count"] != float64(2) || req["machine_id"] != "m_build-01" || !strings.Contains(e, "Runners added") {
 		t.Fatalf("%d %v %q", code, req, e)
 	}
+	// OPS23: no repository asked, none sent; the controller adds pool runners.
+	req = nil
+	code, _, e = f.run("runner", "add", "--machine", "build-01", "--os", "linux", "--backend", "docker", "--persistent")
+	if _, has := req["scope"]; code != 0 || has {
+		t.Fatalf("without --repo the request has no scope: %d %v %q", code, req, e)
+	}
 	if code, _, _ := f.run("runner", "add", "--os", "linux"); code != ExitUsage {
 		t.Fatal("missing --machine")
 	}

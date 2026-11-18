@@ -5935,6 +5935,17 @@ components:
           format: int64
         current_job:
           $ref: '#/components/schemas/Job'
+        serving:
+          type: string
+          description: >-
+            Pool runner only: the repository (owner/name) of the job it runs
+            now. Absent when it is idle (runners R5.88).
+        registrations:
+          type: integer
+          minimum: 0
+          description: >-
+            Pool runner only: how many hidden GitHub registrations it holds,
+            one for each repository that uses the pool. Absent on other runners.
         created_at:
           type: string
           format: date-time
@@ -5961,7 +5972,11 @@ components:
       properties:
         kind:
           type: string
-          enum: [repository, organization]
+          enum: [repository, organization, pool]
+          description: >-
+            `pool` is a pool runner: a machine, a system and labels with no
+            repository. Its GitHub registrations are hidden, one for each
+            repository that uses the pool (runners R5.88).
         repository_id:
           type: integer
           format: int64
@@ -5996,11 +6011,10 @@ components:
           items:
             type: string
         scope:
-          description: >-
-            Optional. Left out, the runners serve the pool: the server takes the
-            first repository with the pool on and adds the pool label (until
-            every pool repository gets its own registration).
           $ref: '#/components/schemas/RunnerScope'
+          description: >-
+            Leave it out to add pool runners (scope `pool`): the user adds
+            runners per machine, never a repository (runners R5.88).
       example:
         os: linux
         kind: persistent

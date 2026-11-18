@@ -334,6 +334,7 @@ Repositories and workflows:
 | `workflow.generic` | A self-hosted job with literal labels | warn | Use `${{ fromJSON(vars.RUNS_ON_<OS>) }}` | no | 1 |
 | `workflow.unresolved` | A `runs-on` expression the doctor cannot resolve | info | None needed; it says it was not checked | no | 1 |
 | `runner.labels.generic` | A runner carries a label that is not generic | warn | Remove the label; target by repository variable | no | 1 |
+| `runner.registrations` | A machine holds more than 20 runner registrations (pool runners have one hidden registration for each repository that uses the pool, runners R5.88) | warn | Remove long-lived runners from the machine, or stop using the pool for repositories that do not need them | no | 1 |
 
 Controller:
 
@@ -381,7 +382,7 @@ Each port brings its tests (decision 0005). Source paths are in dev-standards; `
 | exit codes and JSON (R5.22, R5.23) | DS `main` | `test_doctor.py` `test_cli_exit_codes_and_output` | `internal/doctor/cli/cli_test.go` |
 | crash isolation (R5.6) | DS `machine_items` (pool and workflow crash handling) | `test_machine.py` `test_pool_checks_are_called_when_the_module_imports` | `internal/doctor/engine_test.go` TestCrashIsolated |
 
-New checks with no source: `machine.online`, `machine.load.budget`, `machine.clock`, `machine.agent.*`, `machine.tls`, `backend.available`, `backend.macos.vms`, `backend.snapshot`, `runner.orphan`, `github.*`, `repo.vars.runner`, `runner.labels.generic`, `controller.*`, `cache.*`. Each gets its own test file in its group's package.
+New checks with no source: `machine.online`, `machine.load.budget`, `machine.clock`, `machine.agent.*`, `machine.tls`, `backend.available`, `backend.macos.vms`, `backend.snapshot`, `runner.orphan`, `github.*`, `repo.vars.runner`, `runner.labels.generic`, `runner.registrations`, `controller.*`, `cache.*`. Each gets its own test file in its group's package.
 
 Not ported, with the reason:
 
