@@ -8,11 +8,16 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"golang.org/x/sys/windows"
 )
 
 // On a real Windows host the C# of the LSA and logon scripts compiles and
 // reads the rights of a built-in account; nothing is changed.
 func TestLSASourceCompilesAndReads(t *testing.T) {
+	if !windows.GetCurrentProcessToken().IsElevated() {
+		t.Skip("needs an elevated shell: opening the LSA policy needs admin")
+	}
 	script := scriptHeader + lsaSource + logonSource + `
 if (-not [CrspLsa]::Has('BUILTIN\Administrators', 'SeBackupPrivilege')) { throw 'Administrators should hold SeBackupPrivilege' }
 if ([CrspLsa]::Has('BUILTIN\Administrators', 'SeDenyInteractiveLogonRight')) { throw 'Administrators must not be denied' }
