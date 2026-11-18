@@ -74,6 +74,7 @@ import type { Question } from '../api/hooks';
 /** The question card of a destructive step, with its one-line result under it (UX-27). */
 export function Ask({
   title,
+  intro,
   action,
   busyLabel,
   q,
@@ -83,6 +84,7 @@ export function Ask({
   onConfirm,
 }: {
   title: string;
+  intro?: string;
   action: string;
   busyLabel: string;
   q: Question | undefined;
@@ -95,6 +97,7 @@ export function Ask({
   return (
     <QuestionCard
       title={title}
+      intro={intro}
       items={error ? [...q.items, `Problem: ${error}`] : q.items}
       waitsFor={q.waitsFor}
       action={action}

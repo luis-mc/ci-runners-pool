@@ -70,6 +70,42 @@ const SCREENS: {
   },
   { name: 'job detail', path: '/jobs/2', ready: 'test-2' },
   { name: 'doctor', path: '/doctor', ready: 'Doctor' },
+  {
+    name: 'doctor with runner leftovers',
+    path: '/doctor',
+    ready: 'Doctor',
+    tweak: (m: ReturnType<typeof signedIn>) =>
+      m.on('GET', '/api/v1/doctor/findings', {
+        items: [
+          {
+            check: 'machine.runner_leftovers',
+            subject: { kind: 'machine', id: 'm1', name: 'build-1' },
+            severity: 'warn',
+            title: 'build-1 has runner leftovers no runner owns',
+            fix: { text: 'Remove the leftovers.' },
+            needs_admin: false,
+            items: [
+              {
+                kind: 'service',
+                name: 'actions.runner.octo-app.crsp-old',
+                account: '.\\crsp-old',
+                why: 'No runner of this controller owns it.',
+              },
+              {
+                kind: 'folder',
+                name: 'C:\\ProgramData\\crsp\\runners\\crsp-old\\_work',
+                size_bytes: 2147483648,
+                why: 'No runner record points to it.',
+              },
+            ],
+            action: { id: 'remove_runner_leftovers', label: 'Remove' },
+            milestone: 1,
+            checked_at: '2026-11-14T10:00:12Z',
+          },
+        ],
+        last_run_at: '2026-11-14T10:00:12Z',
+      }),
+  },
   { name: 'add runners', path: '/pool/runners/add', ready: 'Add runners' },
   { name: 'images', path: '/pool/images', ready: 'Images and caches' },
   { name: 'image detail', path: '/pool/images/img_m1_linux', ready: 'build-1' },
