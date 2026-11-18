@@ -159,6 +159,13 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 		var relaunchOnce sync.Once
 		offers := &Offered{}
 		alerts := &Alerted{}
+		applier := &Applier{
+			Surf:  traySurface{items: sys},
+			Build: func(s Status) []MenuItem { return BuildMenu(o.Version, s, false) },
+			Open:  MenuOpen,
+		}
+		applier.Seed(items, cur)
+		go applier.Run(ctx)
 		p := &Poller{Source: client, Manager: ServiceState}
 		p.OnStatus = func(s Status) {
 			select {
@@ -166,38 +173,7 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 			default:
 			}
 			curCh <- s
-			for _, it := range BuildMenu(o.Version, s, login.Checked()) {
-				switch it.ID {
-				case IDHeader, IDStatus:
-					sys[it.ID].SetTitle(it.Label)
-				case IDUpdate, IDResume, IDMode:
-					sys[it.ID].SetTitle(it.Label)
-					if it.Hidden {
-						sys[it.ID].Hide()
-					} else {
-						sys[it.ID].Show()
-					}
-				case IDPause, IDPauseHour, IDPauseTill:
-					if it.Hidden {
-						sys[it.ID].Hide()
-					} else {
-						sys[it.ID].Show()
-					}
-				case IDModeAuto, IDModeAlw:
-					if it.Hidden {
-						sys[it.ID].Hide()
-					} else {
-						sys[it.ID].Show()
-					}
-					if it.Checked {
-						sys[it.ID].Check()
-					} else {
-						sys[it.ID].Uncheck()
-					}
-				}
-			}
-			systray.SetTooltip(s.Tooltip())
-			systray.SetIcon(Icon(s.State))
+			applier.Update(s) // in place, and queued while the menu is open (R5.45)
 			// A found update the owner has not been asked about yet: the same Install now / Later dialog.
 			if offers.Due(s) {
 				go func() { _ = opener.Offer(ctx, s) }()
@@ -313,3 +289,24 @@ func updatedOnce(version string) bool {
 	}
 	return updatedDue(p, version)
 }
+
+// traySurface is the live systray menu behind the Applier.
+type traySurface struct{ items map[string]*systray.MenuItem }
+
+func (t traySurface) SetTitle(id, title string) { t.items[id].SetTitle(title) }
+func (t traySurface) SetVisible(id string, v bool) {
+	if v {
+		t.items[id].Show()
+	} else {
+		t.items[id].Hide()
+	}
+}
+func (t traySurface) SetChecked(id string, c bool) {
+	if c {
+		t.items[id].Check()
+	} else {
+		t.items[id].Uncheck()
+	}
+}
+func (t traySurface) SetTooltip(text string) { systray.SetTooltip(text) }
+func (t traySurface) SetIcon(s State)        { systray.SetIcon(Icon(s)) }
