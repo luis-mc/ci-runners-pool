@@ -303,7 +303,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// Runner leftovers (doctor R5.46): the machines service asks the agents, and
 	// builds what this controller owns from the runner records.
 	d.Machines.SetOwnedRunners(ownedRunners(rstore))
-	d.Machines.SetLeftoverSources(localLeftoverSource(), remoteLeftoverSource(d.Link))
+	d.Machines.SetLeftoverSources(localLeftoverSource(logger), remoteLeftoverSource(d.Link))
 
 	// Doctor: the M1 check registry over the controller's own data.
 	_, docSvc := wire.NewDoctor(wire.DoctorDeps{

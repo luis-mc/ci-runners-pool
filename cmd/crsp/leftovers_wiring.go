@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agentlink"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
@@ -12,11 +13,10 @@ import (
 )
 
 // localLeftoverSource is the runner leftovers source of the controller's own
-// machine (doctor R5.46, OPS33). Nil until the in-process agent is wired: the
-// machines service then says the lookup is not available there, and the doctor
-// check skips with that reason.
-func localLeftoverSource() leftovers.Source {
-	return nil
+// machine (doctor R5.46, OPS33): the scan and removal run in this process, on
+// this host.
+func localLeftoverSource(log *slog.Logger) leftovers.Source {
+	return leftovers.NewLocalSource(log)
 }
 
 // remoteLeftoverSource is the agent link as a source; nil without a link (not an

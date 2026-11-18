@@ -57,7 +57,7 @@ func TestLeftoversOnControllerWithoutLocalSourceHasAReason(t *testing.T) {
 	m.Online = true
 	_ = repo.UpdateMachine(ctx, m)
 	svc.SetOwnedRunners(ownedRunners(runners.NewMemStore()))
-	svc.SetLeftoverSources(localLeftoverSource(), nil)
+	svc.SetLeftoverSources(nil, nil)
 	_, err = doctorFleet{machines: svc}.Leftovers(ctx, res.MachineID)
 	if err == nil || errors.Is(err, doctor.ErrUnreachable) || !strings.Contains(err.Error(), "not available") {
 		t.Fatalf("err = %v", err)
