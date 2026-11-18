@@ -43,16 +43,16 @@ const SCREENS: {
   },
   { name: 'repository detail', path: '/repositories/octo/app', ready: 'octo/app' },
   { name: 'turn on the pool', path: '/repositories/turn-on', ready: 'Turn on the pool' },
-  { name: 'machines', path: '/machines', ready: 'Machines' },
-  { name: 'machine detail', path: '/machines/m1', ready: 'build-1' },
+  { name: 'machines', path: '/pool/machines', ready: 'Machines' },
+  { name: 'machine detail', path: '/pool/machines/m1', ready: 'build-1' },
   {
     name: 'machine detail needing recovery',
-    path: '/machines/m1',
+    path: '/pool/machines/m1',
     ready: 'build-1',
     recovery: true,
   },
-  { name: 'add a machine', path: '/machines/add', ready: 'Add a machine' },
-  { name: 'runners', path: '/runners', ready: 'Runners' },
+  { name: 'add a machine', path: '/pool/machines/add', ready: 'Add a machine' },
+  { name: 'runners', path: '/pool/runners', ready: 'Runners' },
   { name: 'jobs', path: '/jobs', ready: 'Jobs' },
   {
     name: 'jobs empty',
@@ -63,10 +63,10 @@ const SCREENS: {
   },
   { name: 'job detail', path: '/jobs/2', ready: 'test-2' },
   { name: 'doctor', path: '/doctor', ready: 'Doctor' },
-  { name: 'add runners', path: '/runners/add', ready: 'Add runners' },
-  { name: 'images', path: '/images', ready: 'Images and caches' },
-  { name: 'image detail', path: '/images/img_m1_linux', ready: 'build-1' },
-  { name: 'caches', path: '/images?tab=caches', ready: 'Images and caches' },
+  { name: 'add runners', path: '/pool/runners/add', ready: 'Add runners' },
+  { name: 'images', path: '/pool/images', ready: 'Images and caches' },
+  { name: 'image detail', path: '/pool/images/img_m1_linux', ready: 'build-1' },
+  { name: 'caches', path: '/pool/images?tab=caches', ready: 'Images and caches' },
   { name: 'settings access', path: '/settings/access', ready: 'Settings' },
   {
     name: 'settings repositories',
@@ -132,7 +132,7 @@ for (const screen of SCREENS) {
 }
 
 // UX-15: on a wide screen the step bar of a wizard is one row, not a wrapped narrow column (CRSP124).
-for (const path of ['/repositories/turn-on', '/runners/add', '/machines/add']) {
+for (const path of ['/repositories/turn-on', '/pool/runners/add', '/pool/machines/add']) {
   test(`step bar is one row at 1300 px: ${path}`, async ({ page }) => {
     const mock = jobsAndDoctor(signedIn());
     await mock.install(page);
@@ -150,7 +150,7 @@ for (const path of ['/repositories/turn-on', '/runners/add', '/machines/add']) {
 }
 
 // CRSP132, UX-11: on a wide screen the toolbar above a list is one row (search, filters, selection, count, actions).
-for (const path of ['/repositories', '/machines', '/runners', '/jobs']) {
+for (const path of ['/repositories', '/pool/machines', '/pool/runners', '/jobs']) {
   test(`list toolbar is one row at 1300 px: ${path}`, async ({ page }) => {
     // The Repositories toolbar (search, Pool, Active types, Select all, count, Add) no longer fits one row inside its pane.
     test.fixme(

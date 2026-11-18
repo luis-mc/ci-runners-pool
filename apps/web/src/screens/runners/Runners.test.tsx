@@ -54,8 +54,8 @@ describe('Runners list', () => {
         }),
       ],
     });
-    renderApp(api, '/runners');
-    const table = await screen.findByRole('table', { name: 'Runners' });
+    renderApp(api, '/pool/runners');
+    const table = await screen.findByRole('table', { name: /^Runners on/ });
     expect(within(table).getByText('persistent, state kept between jobs')).toBeTruthy();
     expect(within(table).getByText('container')).toBeTruthy();
     expect(within(table).getByText('busy')).toBeTruthy();
@@ -73,8 +73,8 @@ describe('Runners list', () => {
         }),
       ],
     });
-    renderApp(api, '/runners');
-    const table = await screen.findByRole('table', { name: 'Runners' });
+    renderApp(api, '/pool/runners');
+    const table = await screen.findByRole('table', { name: /^Runners on/ });
     expect(
       within(table).getByText(/the account has no right to log on as a service/),
     ).toBeTruthy();
@@ -88,7 +88,7 @@ describe('Runners list', () => {
         items: n === 1 ? [runner()] : [runner(), runner({ id: 'r2', name: 'crsp-new' })],
       };
     });
-    renderApp(api, '/runners');
+    renderApp(api, '/pool/runners');
     await screen.findByText('crsp-linux-1');
     act(() =>
       FakeEventSource.latest().emit({
@@ -113,15 +113,15 @@ describe('Runners list', () => {
         }),
       ],
     });
-    renderApp(api, '/runners');
-    await screen.findByRole('table', { name: 'Runners' });
+    renderApp(api, '/pool/runners');
+    await screen.findByRole('table', { name: /^Runners on/ });
     fireEvent.click(screen.getByRole('button', { name: 'container' }));
     expect(screen.queryByText('crsp-linux-1')).toBeNull();
     expect(screen.getByText('crsp-lx-2')).toBeTruthy();
   });
 
   it('says what to do when there is no runner', async () => {
-    renderApp(signedIn().on('GET', '/api/v1/runners', { items: [] }), '/runners');
+    renderApp(signedIn().on('GET', '/api/v1/runners', { items: [] }), '/pool/runners');
     expect(
       await screen.findByText('No runners yet. Use Add runners at the top to start.'),
     ).toBeTruthy();
@@ -136,7 +136,7 @@ describe('Runners list', () => {
       signedIn().on('GET', '/api/v1/runners', {
         items: [runner(), runner({ id: 'r2', name: 'crsp-2' })],
       }),
-      '/runners',
+      '/pool/runners',
     );
     const all = await screen.findByRole('button', { name: 'Select all 2' });
     expect(screen.getByRole('region', { name: 'Runners' })).toBeTruthy();
@@ -152,8 +152,8 @@ describe('Runners list', () => {
         items: [runner({ state: 'busy', current_job: job })],
       })
       .on('DELETE', '/api/v1/runners/:id', runner());
-    renderApp(api, '/runners');
-    await screen.findByRole('table', { name: 'Runners' });
+    renderApp(api, '/pool/runners');
+    await screen.findByRole('table', { name: /^Runners on/ });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select crsp-linux-1' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete 1 runner' }));
     const dialog = await screen.findByRole('dialog', { name: 'Delete these runners?' });
@@ -194,8 +194,8 @@ describe('Runners list', () => {
         created_by: 'octo',
         steps: [],
       });
-    renderApp(api, '/runners');
-    await screen.findByRole('table', { name: 'Runners' });
+    renderApp(api, '/pool/runners');
+    await screen.findByRole('table', { name: /^Runners on/ });
     fireEvent.click(screen.getByRole('button', { name: 'Replace' }));
     const dialog = await screen.findByRole('dialog', { name: 'Replace crsp-linux-1?' });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Replace' }));
@@ -212,8 +212,8 @@ describe('Runners list', () => {
         ],
       })
       .on('DELETE', '/api/v1/runners/:id/registration', runner({ id: 'r9' }));
-    renderApp(api, '/runners');
-    await screen.findByRole('table', { name: 'Runners' });
+    renderApp(api, '/pool/runners');
+    await screen.findByRole('table', { name: /^Runners on/ });
     fireEvent.click(screen.getByRole('button', { name: 'Delete registration' }));
     const dialog = await screen.findByRole('dialog', { name: 'Delete crsp-gone-1?' });
     expect(api.count('DELETE', '/api/v1/runners/r9/registration')).toBe(0);
@@ -226,7 +226,7 @@ describe('Runners list', () => {
   it('keeps a viewer from adding or deleting, and says why', async () => {
     renderApp(
       signedIn(viewer).on('GET', '/api/v1/runners', { items: [runner()] }),
-      '/runners',
+      '/pool/runners',
     );
     const add = await screen.findByRole<HTMLButtonElement>('button', {
       name: 'Add runners',
@@ -242,7 +242,7 @@ describe('Add runners', () => {
         items: [machine(), machine({ id: 'm2', name: 'win-1', os: 'windows' })],
       })
       .on('GET', '/api/v1/github/repositories', { items: [], stale: { stale: false } });
-    renderApp(api, '/runners/add');
+    renderApp(api, '/pool/runners/add');
     await screen.findByRole('group', { name: 'Add runners' });
     const win = await screen.findByRole('radio', { name: /win-1/ });
     expect((win as HTMLInputElement).disabled).toBe(true);
@@ -258,7 +258,7 @@ describe('Add runners', () => {
         ],
       })
       .on('GET', '/api/v1/github/repositories', { items: [], stale: { stale: false } });
-    renderApp(api, '/runners/add');
+    renderApp(api, '/pool/runners/add');
     await screen.findByRole('group', { name: 'Add runners' });
     const ok = await screen.findByRole('radio', { name: /win-1/ });
     expect((ok as HTMLInputElement).disabled).toBe(false);
@@ -321,8 +321,8 @@ describe('Idle and busy at a glance (RES7)', () => {
     const api = signedIn().on('GET', '/api/v1/runners', {
       items: [runner({ state: 'busy', current_job: job }), runner({ id: 'r2' })],
     });
-    renderApp(api, '/runners');
-    await screen.findByRole('table', { name: 'Runners' });
+    renderApp(api, '/pool/runners');
+    await screen.findByRole('table', { name: /^Runners on/ });
     expect(screen.getByText('Idle')).toBeTruthy();
     expect(screen.getByText('Busy')).toBeTruthy();
   });
@@ -333,10 +333,10 @@ describe('Runners list truth (UX-1, UX-6, UX-19)', () => {
     const api = signedIn().on('GET', '/api/v1/runners', {
       items: [runner({ machine_id: 'm9', machine_name: 'GameRoomPC' })],
     });
-    renderApp(api, '/runners');
-    const table = await screen.findByRole('table', { name: 'Runners' });
-    const link = within(table).getByRole('link', { name: 'GameRoomPC' });
-    expect(link.getAttribute('href')).toBe('/machines/m9');
+    renderApp(api, '/pool/runners');
+    const table = await screen.findByRole('table', { name: 'Runners on GameRoomPC' });
+    const link = screen.getByText('Open GameRoomPC').closest('a');
+    expect(link?.getAttribute('href')).toBe('/pool/machines/m9');
     expect(within(table).queryByText('m9')).toBeNull();
   });
 
@@ -355,8 +355,8 @@ describe('Runners list truth (UX-1, UX-6, UX-19)', () => {
         }),
       ],
     });
-    renderApp(api, '/runners');
-    const table = await screen.findByRole('table', { name: 'Runners' });
+    renderApp(api, '/pool/runners');
+    const table = await screen.findByRole('table', { name: /^Runners on/ });
     expect(within(table).getByText('not registered')).toBeTruthy();
     expect(
       within(table).getByText('GitHub does not list a runner with this name'),
@@ -375,8 +375,8 @@ describe('Runners list truth (UX-1, UX-6, UX-19)', () => {
         ],
       })
       .on('DELETE', '/api/v1/runners/:id', runner({ state: 'draining' }));
-    renderApp(api, '/runners');
-    const table = await screen.findByRole('table', { name: 'Runners' });
+    renderApp(api, '/pool/runners');
+    const table = await screen.findByRole('table', { name: /^Runners on/ });
     expect(within(table).getByText('the service did not start')).toBeTruthy();
     expect(within(table).getAllByRole('button', { name: 'Remove' })).toHaveLength(1);
     fireEvent.click(within(table).getByRole('button', { name: 'Remove' }));

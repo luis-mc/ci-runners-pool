@@ -70,7 +70,7 @@ export function ImagesAndCaches() {
         lead="What each machine keeps, and what you can rebuild or wipe."
         action={
           session.can('admin') ? (
-            <Button kind="primary" onPress={() => void navigate('/runners/add')}>
+            <Button kind="primary" onPress={() => void navigate('/pool/runners/add')}>
               Add runners
             </Button>
           ) : undefined
@@ -169,7 +169,9 @@ function ImagesTab({ nameOf }: { nameOf: (id: string) => string }) {
                       ? `${extra} extra ${extra === 1 ? 'layer' : 'layers'}`
                       : 'base only'
                   }
-                  onOpen={() => void navigate(`/images/${encodeURIComponent(img.id)}`)}
+                  onOpen={() =>
+                    void navigate(`/pool/images/${encodeURIComponent(img.id)}`)
+                  }
                 />
               );
             })}

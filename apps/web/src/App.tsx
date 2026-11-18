@@ -19,6 +19,11 @@ import { AppShell } from './shell/Shell';
 import { FaultBoundary } from './screens/common';
 import { DoctorScreen } from './screens/doctor/Doctor';
 import { JobDetail, JobsList } from './screens/jobs/Jobs';
+import { JobsGrouped, JobsLayout, JobsTrends } from './screens/jobs/JobsGrouped';
+import { MOVED, MovedTo } from './screens/pool/redirects';
+import { PoolLayout } from './screens/pool/PoolLayout';
+import { PoolSizePage } from './screens/pool/PoolSizePage';
+import { PoolSummary } from './screens/pool/PoolSummary';
 import { NotFound } from './screens/Later';
 import { ImageDetail } from './screens/images/ImageDetail';
 import { ImagesAndCaches } from './screens/images/ImagesAndCaches';
@@ -112,19 +117,35 @@ export function App({
                 <Route path="repositories" element={<RepositoriesList />} />
                 <Route path="repositories/turn-on" element={<TurnOnPoolPage />} />
                 <Route path="repositories/:owner/:name" element={<RepositoryDetail />} />
-                <Route path="machines" element={<MachinesList />} />
-                <Route path="machines/add" element={<AddMachinePage />} />
-                <Route path="machines/:id" element={<MachineDetail />} />
-                <Route path="runners" element={<RunnersList />} />
-                <Route path="runners/add" element={<AddRunnersPage />} />
-                <Route path="jobs" element={<JobsList />} />
+                <Route path="pool" element={<PoolLayout />}>
+                  <Route index element={<PoolSummary />} />
+                  <Route path="machines" element={<MachinesList />} />
+                  <Route path="runners" element={<RunnersList />} />
+                  <Route path="images" element={<ImagesAndCaches />} />
+                  <Route path="size" element={<PoolSizePage />} />
+                </Route>
+                <Route path="pool/machines/add" element={<AddMachinePage />} />
+                <Route path="pool/machines/:id" element={<MachineDetail />} />
+                <Route path="pool/runners/add" element={<AddRunnersPage />} />
+                <Route path="pool/images/:imageId" element={<ImageDetail />} />
+                <Route element={<JobsLayout />}>
+                  <Route path="jobs" element={<JobsList />} />
+                  <Route
+                    path="jobs/repository"
+                    element={<JobsGrouped by="repository" />}
+                  />
+                  <Route path="jobs/machine" element={<JobsGrouped by="machine" />} />
+                  <Route
+                    path="jobs/runner-type"
+                    element={<JobsGrouped by="runner-type" />}
+                  />
+                  <Route path="jobs/job-type" element={<JobsGrouped by="job-type" />} />
+                  <Route path="jobs/trends" element={<JobsTrends />} />
+                </Route>
                 <Route path="jobs/:id" element={<JobDetail />} />
-                <Route path="images" element={<ImagesAndCaches />} />
-                <Route path="images/:imageId" element={<ImageDetail />} />
-                <Route
-                  path="caches"
-                  element={<Navigate to="/images?tab=caches" replace />}
-                />
+                {MOVED.map(([from, to]) => (
+                  <Route key={from} path={from} element={<MovedTo to={to} />} />
+                ))}
                 <Route path="doctor" element={<DoctorScreen />} />
                 <Route path="settings/updates/review" element={<UpdateReviewPage />} />
                 <Route path="settings" element={<SettingsLayout />}>

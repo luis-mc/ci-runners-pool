@@ -25,6 +25,7 @@ import { useLoad } from '../../api/hooks';
 import { useMachines } from '../../api/machines';
 import { waitWords } from '../jobs/Jobs';
 import { Load } from '../common';
+import { HowCrspWorks } from './HowCrspWorks';
 
 type Machine = Schemas['Machine'];
 type Job = Schemas['Job'];
@@ -54,7 +55,7 @@ export function MachineCard({ m }: { m: Machine }) {
   const cpu = m.load?.cpu_pct;
   const budget = m.settings;
   return (
-    <Card title={m.name} to={`/machines/${m.id}`}>
+    <Card title={m.name} to={`/pool/machines/${m.id}`}>
       <Status kind={s.kind} word={s.word} />
       <LevelBar
         label="Memory"
@@ -182,6 +183,7 @@ export function Overview() {
     <Page>
       <PageHeader title="Overview" lead="The pool at a glance." />
       <AppGoneBanner />
+      <HowCrspWorks />
       {!o && firstPaint !== 'failed' ? (
         <Section title="The pool">
           <Loading what="Loading the overview" />
@@ -202,7 +204,7 @@ export function Overview() {
                 data.items.length === 0 ? (
                   <Empty
                     title="No machine is in the pool yet. Add a machine so jobs have somewhere to run."
-                    action={<TextLink to="/machines/add">Add a machine</TextLink>}
+                    action={<TextLink to="/pool/machines/add">Add a machine</TextLink>}
                   />
                 ) : (
                   <CardGrid>

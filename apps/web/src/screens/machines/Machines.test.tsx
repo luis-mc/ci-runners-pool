@@ -26,7 +26,7 @@ describe('Machines list', () => {
         machine({ id: 'm2', name: 'win-1', os: 'windows', online: false }),
       ],
     });
-    renderApp(api, '/machines');
+    renderApp(api, '/pool/machines');
     const table = await screen.findByRole('table', { name: 'Machines' });
     expect(within(table).getByText('online')).toBeTruthy();
     expect(within(table).getByText('offline')).toBeTruthy();
@@ -39,7 +39,7 @@ describe('Machines list', () => {
     const api = signedIn().on('GET', '/api/v1/machines', {
       items: [machine({ id: 'm2', name: 'win-1', os: 'windows', container_os: 'linux' })],
     });
-    renderApp(api, '/machines');
+    renderApp(api, '/pool/machines');
     const table = await screen.findByRole('table', { name: 'Machines' });
     expect(within(table).getByText('Windows, runs Linux containers')).toBeTruthy();
   });
@@ -48,7 +48,7 @@ describe('Machines list', () => {
     const api = signedIn().on('GET', '/api/v1/machines', {
       items: [machine(), machine({ id: 'm2', name: 'win-1', state: 'drained' })],
     });
-    renderApp(api, '/machines');
+    renderApp(api, '/pool/machines');
     await screen.findByRole('table', { name: 'Machines' });
     fireEvent.change(screen.getByRole('textbox', { name: 'Search machines' }), {
       target: { value: 'win' },
@@ -66,7 +66,7 @@ describe('Machines list', () => {
   });
 
   it('says what to do when there is none, and offers Add a machine to an admin', async () => {
-    renderApp(signedIn().on('GET', '/api/v1/machines', { items: [] }), '/machines');
+    renderApp(signedIn().on('GET', '/api/v1/machines', { items: [] }), '/pool/machines');
     expect(
       await screen.findByText('No machines yet. Use Add a machine above to start.'),
     ).toBeTruthy();
@@ -77,7 +77,7 @@ describe('Machines list', () => {
   it('shows Add a machine disabled with its reason to a viewer (UX-38)', async () => {
     renderApp(
       signedIn(viewer).on('GET', '/api/v1/machines', { items: [machine()] }),
-      '/machines',
+      '/pool/machines',
     );
     const button = await screen.findByRole<HTMLButtonElement>('button', {
       name: 'Add a machine',
@@ -88,7 +88,7 @@ describe('Machines list', () => {
 
   it('puts the search, filters and table inside one pane titled Machines', async () => {
     const api = signedIn().on('GET', '/api/v1/machines', { items: [machine()] });
-    renderApp(api, '/machines');
+    renderApp(api, '/pool/machines');
     const pane = await screen.findByRole('region', { name: 'Machines' });
     expect(within(pane).getByRole('textbox', { name: 'Search machines' })).toBeTruthy();
     expect(within(pane).getByRole('table', { name: 'Machines' })).toBeTruthy();
@@ -99,7 +99,7 @@ describe('Machines list', () => {
       signedIn().on('GET', '/api/v1/machines', () =>
         apiError(503, 'unavailable', 'The database is busy.'),
       ),
-      '/machines',
+      '/pool/machines',
     );
     expect(await screen.findByText(/Could not load machines\./)).toBeTruthy();
     expect(screen.getByText(/The database is busy\. Try again\./)).toBeTruthy();
@@ -112,7 +112,7 @@ describe('Machine detail', () => {
     signedIn().on('GET', '/api/v1/machines/:id', machine({ running_jobs: running }));
 
   it('shows facts, backends and the budget', async () => {
-    renderApp(base(), '/machines/m1');
+    renderApp(base(), '/pool/machines/m1');
     expect(
       await screen.findByRole('heading', { level: 1, name: 'build-1' }),
     ).toBeTruthy();
@@ -133,7 +133,7 @@ describe('Machine detail', () => {
         ],
       }),
     );
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     await screen.findByRole('heading', { level: 1, name: 'build-1' });
     expect(await screen.findAllByText(why)).toHaveLength(1);
   });
@@ -147,7 +147,7 @@ describe('Machine detail', () => {
       started_at: 'x',
       waiting_for: [],
     });
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     fireEvent.click(await screen.findByRole('button', { name: 'Stop new jobs' }));
     const dialog = await screen.findByRole('dialog', {
       name: 'Stop new jobs on build-1?',
@@ -160,7 +160,7 @@ describe('Machine detail', () => {
 
   it('does nothing when the question is cancelled', async () => {
     const api = base();
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     fireEvent.click(await screen.findByRole('button', { name: 'Stop new jobs' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
@@ -179,7 +179,7 @@ describe('Machine detail', () => {
         waiting_for: [],
       })
       .on('GET', '/api/v1/machines', { items: [] });
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
     const dialog = await screen.findByRole('dialog', { name: 'Remove build-1?' });
     expect(within(dialog).getByText('Machine build-1')).toBeTruthy();
@@ -195,7 +195,7 @@ describe('Machine detail', () => {
     const api = signedIn()
       .on('GET', '/api/v1/machines/:id', machine({ state: 'drained' }))
       .on('POST', '/api/v1/machines/:id/resume', machine());
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     fireEvent.click(await screen.findByRole('button', { name: 'Resume' }));
     await waitFor(() => expect(api.count('POST', '/api/v1/machines/m1/resume')).toBe(1));
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -212,7 +212,7 @@ describe('Machine detail', () => {
       }
       return machine();
     });
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     const dialog = await screen.findByRole('dialog', { name: 'Save these settings?' });
@@ -230,7 +230,7 @@ describe('Machine detail', () => {
   it('shows the viewer the form with Save disabled and why', async () => {
     renderApp(
       signedIn(viewer).on('GET', '/api/v1/machines/:id', machine()),
-      '/machines/m1',
+      '/pool/machines/m1',
     );
     await screen.findByRole('heading', { name: 'build-1' });
     expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Save' }).disabled).toBe(
@@ -247,7 +247,7 @@ describe('Machine detail, one page', () => {
     signedIn().on('GET', '/api/v1/machines/:id', machine({ running_jobs: running }));
   it('has one primary (Save; Stop new jobs is secondary), one foot with Cancel and Save, and Remove in its pane', async () => {
     const api = base();
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     await screen.findByRole('heading', { level: 1, name: 'build-1' });
     const primaries = Array.from(document.querySelectorAll('button[data-primary]')).map(
       (b) => b.textContent,
@@ -267,7 +267,7 @@ describe('Machine detail, one page', () => {
     const api = signedIn().on('GET', '/api/v1/machines/:id', () =>
       apiError(500, 'internal', 'The controller could not answer.'),
     );
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Machine' }),
     ).toBeTruthy();
@@ -305,7 +305,7 @@ describe('Machine detail, a drain that waits', () => {
         },
       }),
     );
-    renderApp(api, '/machines/m1');
+    renderApp(api, '/pool/machines/m1');
     expect(await screen.findByText('octo/app build on runner-1')).toBeTruthy();
     expect(screen.getByText('45 min')).toBeTruthy();
     expect(screen.getByText('10 min')).toBeTruthy();
@@ -354,7 +354,7 @@ describe('Machine detail, the pool size', () => {
 
   it('shows the current size, reviews the check, then saves (UX-30)', async () => {
     const a = api(fits);
-    renderApp(a, '/machines/m1');
+    renderApp(a, '/pool/machines/m1');
     await screen.findByRole('group', { name: 'Pool size' });
     expect(await screen.findByText('not set')).toBeTruthy();
     expect(await screen.findByText('Room for the pool')).toBeTruthy();
@@ -384,7 +384,7 @@ describe('Machine detail, the pool size', () => {
       short: 'memory',
       nearest: ['19 GiB fits 4 CPUs'],
     });
-    renderApp(a, '/machines/m1');
+    renderApp(a, '/pool/machines/m1');
     await screen.findByRole('group', { name: 'Pool size' });
     await typeNumber(/Pool memory/, ['3', '0']);
     fireEvent.click(review());
@@ -409,7 +409,7 @@ describe('Machine detail, the pool size', () => {
       { ...fits, needs_shrink_confirm: true, current_memory_gib: 16, current_cpus: 4 },
       m,
     );
-    renderApp(a, '/machines/m1');
+    renderApp(a, '/pool/machines/m1');
     await screen.findByRole('group', { name: 'Pool size' });
     await typeNumber(/Pool memory/, ['8']);
     fireEvent.click(review());
@@ -435,7 +435,7 @@ describe('Machine detail, the pool size', () => {
         ++n <= 2 ? fits : { ...fits, current_memory_gib: 12, current_cpus: 3 },
       )
       .on('PATCH', '/api/v1/machines/:id', machine());
-    renderApp(a, '/machines/m1');
+    renderApp(a, '/pool/machines/m1');
     await screen.findByRole('group', { name: 'Pool size' });
     await typeNumber(/Pool CPUs/, ['4']);
     fireEvent.click(review());
@@ -449,7 +449,7 @@ describe('Machine detail, the pool size', () => {
       signedIn(viewer)
         .on('GET', '/api/v1/machines/:id', machine())
         .on('POST', '/api/v1/machines/:id/pool-size-check', fits),
-      '/machines/m1',
+      '/pool/machines/m1',
     );
     await screen.findByRole('group', { name: 'Pool size' });
     await screen.findByRole('button', { name: /Pool memory/ });

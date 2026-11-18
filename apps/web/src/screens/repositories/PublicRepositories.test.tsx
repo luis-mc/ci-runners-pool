@@ -211,15 +211,10 @@ describe('Turn on the pool and Add runners while public repositories are off', (
     expect(screen.queryByRole('checkbox', { name: 'Select octo/site' })).toBeNull();
   });
 
-  it('Add runners disables a public repository with the reason', async () => {
+  it('Add runners names no repository, so the server refuses a public one while off (D31)', async () => {
     const onPool = { ...pub, pool_on: true };
-    renderApp(list(setting(signedIn(), false), [onPool]), '/runners/add');
-    const radio = await screen.findByRole<HTMLInputElement>('radio', {
-      name: /octo\/site/,
-    });
-    await waitFor(() => expect(radio.disabled).toBe(true));
-    expect(
-      screen.getByText(/Public repositories are off. Turn them on in Settings first./),
-    ).toBeTruthy();
+    renderApp(list(setting(signedIn(), false), [onPool]), '/pool/runners/add');
+    await screen.findByRole('textbox', { name: /Labels/ });
+    expect(screen.queryByRole('radio', { name: /octo\/site/ })).toBeNull();
   });
 });

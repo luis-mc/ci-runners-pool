@@ -41,7 +41,7 @@ describe('List toolbar (CRSP132)', () => {
   });
 
   it('is on the machines list too', async () => {
-    renderApp(signedIn(), '/machines');
+    renderApp(signedIn(), '/pool/machines');
     expect(await screen.findByRole('group', { name: 'Machines toolbar' })).toBeTruthy();
   });
 });

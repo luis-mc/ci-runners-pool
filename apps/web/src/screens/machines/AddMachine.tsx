@@ -531,7 +531,9 @@ export function AddMachineWizard({ onDone }: Props) {
             <Message
               tone="needs-you"
               action={
-                <LinkButton to={`/machines/${machine.id}`}>Open the machine</LinkButton>
+                <LinkButton to={`/pool/machines/${machine.id}`}>
+                  Open the machine
+                </LinkButton>
               }
             >
               {`${machine.backends
@@ -620,7 +622,7 @@ export function AddMachineWizard({ onDone }: Props) {
         : {
             donePrimary: {
               label: 'Open Machines',
-              onPress: () => void navigate('/machines'),
+              onPress: () => void navigate('/pool/machines'),
             },
           })}
     >
@@ -650,7 +652,7 @@ export function AddMachinePage() {
   return (
     <Page>
       <Breadcrumbs
-        trail={[{ to: '/machines', label: 'Machines' }, { label: 'Add a machine' }]}
+        trail={[{ to: '/pool/machines', label: 'Machines' }, { label: 'Add a machine' }]}
       />
       <PageHeader title="Add a machine" />
       <Pane title="New machine">

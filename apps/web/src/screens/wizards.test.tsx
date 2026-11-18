@@ -133,7 +133,7 @@ const machineDriver: WizardDriver = {
   id: 'add-machine',
   async open(state) {
     const api = machineApi();
-    let path = '/machines/add';
+    let path = '/pool/machines/add';
     if (state === 'loading') api.on('GET', '/api/v1/machines', never);
     if (state === 'planning') api.on('GET', '/api/v1/install-command', never);
     if (['paused', 'stopped', 'failed', 'done-after-reload'].includes(state)) {
@@ -286,7 +286,7 @@ const runnersDriver: WizardDriver = {
       .on('POST', '/api/v1/runner-plans', rplan('planned'))
       .on('POST', '/api/v1/runner-plans/:id/apply', rplan('applying'))
       .on('GET', '/api/v1/runner-plans/:id', rplan('done'));
-    let path = '/runners/add';
+    let path = '/pool/runners/add';
     if (state === 'loading') api.on('GET', '/api/v1/machines', never);
     if (state === 'planning') api.on('POST', '/api/v1/runner-plans', never);
     if (state === 'running') api.on('GET', '/api/v1/runner-plans/:id', rplan('applying'));
@@ -310,8 +310,7 @@ const runnersDriver: WizardDriver = {
       await screen.findByRole('button', { name: STORED });
       return snap();
     }
-    await screen.findByRole('radio', { name: 'octo/app' });
-    fireEvent.click(screen.getByRole('radio', { name: 'octo/app' }));
+    await screen.findByRole('textbox', { name: /Labels/ });
     if (state === 'first-run') return snap();
     await press('Next');
     if (state === 'planning') return snap();
@@ -531,7 +530,7 @@ const poolSizeDriver: WizardDriver = {
             ? apiError(400, 'invalid', 'the memory budget is short')
             : machine(),
       );
-    let path = '/machines/m1';
+    let path = '/pool/machines/m1';
     if (state === 'paused') path += '?pool_size=saving';
     if (state === 'done-after-reload') path += '?pool_size=saved';
     renderApp(api, path);
@@ -627,7 +626,7 @@ describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
 
   it('Stop withdraws the join code and the wizard still ends at Done (R5.17)', async () => {
     const api = machineApi();
-    renderApp(api, '/machines/add');
+    renderApp(api, '/pool/machines/add');
     await screen.findByRole('radio', { name: 'Linux' });
     await press('Next');
     await press('Join a machine');
@@ -678,9 +677,9 @@ describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
           stopped = true;
           return mk('applying');
         });
-      renderApp(api, repo ? '/repositories/turn-on' : '/runners/add');
+      renderApp(api, repo ? '/repositories/turn-on' : '/pool/runners/add');
       if (repo) await tickOnce('Select octo/app');
-      else fireEvent.click(await screen.findByRole('radio', { name: 'octo/app' }));
+      else await screen.findByRole('textbox', { name: /Labels/ });
       await press('Next');
       await screen.findByText(/Nothing has changed yet/);
       await press(repo ? 'Turn on 1 repository' : 'Add 1 runner');
@@ -703,8 +702,8 @@ describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
         ...rplan('planned'),
         created_by: String((c.body as { count: number }).count),
       }));
-    renderApp(api, '/runners/add');
-    fireEvent.click(await screen.findByRole('radio', { name: 'octo/app' }));
+    renderApp(api, '/pool/runners/add');
+    await screen.findByRole('textbox', { name: /Labels/ });
     await press('Next');
     await screen.findByText(/1 runner on build-1/);
     fireEvent.click(screen.getByRole('button', { name: /Runners$/ }));
