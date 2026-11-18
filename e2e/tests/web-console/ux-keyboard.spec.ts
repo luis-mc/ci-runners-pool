@@ -95,3 +95,49 @@ test('Ctrl+K opens the palette with focus in the search box', async ({ page }) =
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('textbox')).toBeFocused();
 });
+
+// LOOK18 (UX-57): Left and Right move along a horizontal menu; the ends wrap; Home and End jump.
+test('Left and Right move along the top menu', async ({ page }) => {
+  await openRoute(page, { url: '/', signedOut: false });
+  const links = page.getByRole('navigation', { name: 'Areas' }).getByRole('link');
+  const n = await links.count();
+  expect(n).toBeGreaterThan(2);
+  await links.first().focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(links.nth(1)).toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await expect(links.first()).toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await expect(links.nth(n - 1)).toBeFocused();
+  await page.keyboard.press('Home');
+  await expect(links.first()).toBeFocused();
+  await page.keyboard.press('End');
+  await expect(links.nth(n - 1)).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(links.nth(n - 1)).not.toBeFocused();
+});
+
+test('Left and Right move and choose along the Settings tabs', async ({ page }) => {
+  await openRoute(page, { url: '/settings/access', signedOut: false });
+  const tabs = page.getByRole('tablist', { name: 'Settings' }).getByRole('tab');
+  const n = await tabs.count();
+  expect(n).toBeGreaterThan(2);
+  // A tab changes the address, which draws the page again; the choice settles first, then focus is checked.
+  const lands = async (i: number) => {
+    await expect(tabs.nth(i)).toHaveAttribute('aria-selected', 'true');
+    await expect(tabs.nth(i)).toBeFocused();
+  };
+  await tabs.first().focus();
+  await page.keyboard.press('ArrowRight');
+  await lands(1);
+  await page.keyboard.press('ArrowLeft');
+  await lands(0);
+  await page.keyboard.press('ArrowLeft');
+  await lands(n - 1);
+  await page.keyboard.press('ArrowRight');
+  await lands(0);
+  await page.keyboard.press('End');
+  await lands(n - 1);
+  await page.keyboard.press('Home');
+  await lands(0);
+});

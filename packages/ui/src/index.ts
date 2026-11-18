@@ -27,6 +27,7 @@ export * from './components/KeyHints';
 export * from './components/Shell';
 export * from './components/ThemePreview';
 export * from './components/Navigation';
+export * from './components/RowKeys';
 export * from './components/SearchList';
 export * from './themes';
 export * from './components/Rows';
