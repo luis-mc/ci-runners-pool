@@ -818,6 +818,24 @@ The words of the Repositories screen when the list is grouped by owner and hides
 | Hide them | Link in that line: lists private repositories only again. |
 | {n} private repositories | Count beside the toolbar; `{n} private & public repositories` when public is active or listed. |
 
+## Chart words
+
+The fixed words of the waterfall, job graph and charts (components 49 to 54, RES15). Every other word comes in through props.
+
+| Word | Where |
+|---|---|
+| Show as table | The folded section under every chart that holds its text alternative. |
+| now | Waterfall: the line and its legend ("now: 4 min"). |
+| critical path | Waterfall and job graph: said in words for a job on the critical path. |
+| Name, Detail | Waterfall table heads. |
+| Job, Stage, after, Detail | Job graph: table heads; "Stage {n}" heads a stage; "after: a, b" under a job. |
+| Series, When, Value, Range, Note | Trend chart table heads. |
+| Day, Total, Busiest hour | Heatmap table heads. |
+| forecast, actual, forecast = actual | Forecast chart axes and the diagonal's legend; table heads. |
+| inside the forecast range, outside the forecast range, no range | Forecast chart: said for each job. |
+| lowest, highest, last, values | Chart and sparkline text alternatives ("5 values, last 4 s"). |
+| no data yet | A sparkline, heatmap or forecast chart with nothing to draw. |
+
 ## Ordered list words
 
 | Word | Where |
