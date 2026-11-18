@@ -100,15 +100,17 @@ export function Section({
   );
 }
 
-/** Component 1: the headline, an optional line, and the page's one primary action. */
+/** Component 1: the headline, an optional line, and the page's one primary action. The action sits at the end of the title row, right-aligned; its optional `hint` is one muted line right-aligned under it and never widens the slot, so a page that swaps the action for another (Stop new jobs, Resume) keeps its header height (LOOK32, UX-3). */
 export function PageHeader({
   title,
   lead,
   action,
+  hint,
 }: {
   title: string;
   lead?: string | undefined;
   action?: ReactNode | undefined;
+  hint?: string | undefined;
 }) {
   return (
     <header className="ds-page-header">
@@ -116,7 +118,12 @@ export function PageHeader({
         <h1 className="ds-h1">{title}</h1>
         {lead ? <p className="ds-page-header__lead">{lead}</p> : null}
       </div>
-      {action ? <div className="ds-page-header__action">{action}</div> : null}
+      {action ? (
+        <div className="ds-page-header__action">
+          {action}
+          {hint ? <p className="ds-page-header__hint">{hint}</p> : null}
+        </div>
+      ) : null}
     </header>
   );
 }
