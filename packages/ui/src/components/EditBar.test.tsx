@@ -9,7 +9,15 @@ import { EditBar } from './EditBar';
 
 afterEach(cleanup);
 
-function Page({ changes, onSave = () => {}, onCancel = () => {} }: { changes: number; onSave?: () => void; onCancel?: () => void }) {
+function Page({
+  changes,
+  onSave = () => {},
+  onCancel = () => {},
+}: {
+  changes: number;
+  onSave?: () => void;
+  onCancel?: () => void;
+}) {
   return (
     <div>
       <Link to="/other">Leave</Link>
@@ -21,7 +29,16 @@ function Page({ changes, onSave = () => {}, onCancel = () => {} }: { changes: nu
 function routed(changes: number, onSave?: () => void, onCancel?: () => void) {
   const router = createMemoryRouter(
     [
-      { path: '/', element: <Page changes={changes} {...(onSave ? { onSave } : {})} {...(onCancel ? { onCancel } : {})} /> },
+      {
+        path: '/',
+        element: (
+          <Page
+            changes={changes}
+            {...(onSave ? { onSave } : {})}
+            {...(onCancel ? { onCancel } : {})}
+          />
+        ),
+      },
       { path: '/other', element: <p>Other page</p> },
     ],
     { initialEntries: ['/'] },
@@ -35,8 +52,12 @@ describe('EditBar', () => {
     routed(0);
     const bar = screen.getByRole('region', { name: 'Actions' });
     expect(within(bar).queryByText(/Unsaved changes/)).toBeNull();
-    expect((within(bar).getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((within(bar).getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      within(bar).getByRole<HTMLButtonElement>('button', { name: 'Save' }).disabled,
+    ).toBe(true);
+    expect(
+      within(bar).getByRole<HTMLButtonElement>('button', { name: 'Cancel' }).disabled,
+    ).toBe(true);
     expect(within(bar).getByText('Nothing has changed yet.')).toBeTruthy();
   });
 
@@ -53,10 +74,18 @@ describe('EditBar', () => {
   it('locks Save while it runs and when the person may not save', () => {
     render(
       <MemoryRouter>
-        <EditBar changes={2} onSave={() => {}} onCancel={() => {}} blocked why="Only an admin can save." />
+        <EditBar
+          changes={2}
+          onSave={() => {}}
+          onCancel={() => {}}
+          blocked
+          why="Only an admin can save."
+        />
       </MemoryRouter>,
     );
-    expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Save' }).disabled).toBe(
+      true,
+    );
     expect(screen.getByText('Only an admin can save.')).toBeTruthy();
   });
 });
@@ -74,7 +103,9 @@ describe('leave guard', () => {
   it('Discard leaves the page', async () => {
     const router = routed(1);
     fireEvent.click(screen.getByRole('link', { name: 'Leave' }));
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Discard' }));
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Discard' }),
+    );
     await screen.findByText('Other page');
     expect(router.state.location.pathname).toBe('/other');
   });
@@ -120,7 +151,13 @@ describe('field marks', () => {
         <TextField label="Name" value="a" onChange={() => {}} changed />
         <TextAreaField label="Notes" value="" onChange={() => {}} />
         <NumberField label="Slots" value={2} onChange={() => {}} changed />
-        <ChoiceField label="Role" value="a" choices={[{ value: 'a', label: 'A' }]} onChange={() => {}} changed />
+        <ChoiceField
+          label="Role"
+          value="a"
+          choices={[{ value: 'a', label: 'A' }]}
+          onChange={() => {}}
+          changed
+        />
         <CheckRow label="Public" checked onChange={() => {}} changed />
       </div>,
     );
@@ -129,6 +166,12 @@ describe('field marks', () => {
     // The mark does not rename the field for a screen reader.
     expect(screen.getByLabelText('Name')).toBeTruthy();
     expect(screen.getByRole('group', { name: 'Role' })).toBeTruthy();
-    expect(document.querySelector('.ds-field:has(#' + CSS.escape((screen.getByLabelText('Notes') as HTMLElement).id) + ')')?.hasAttribute('data-changed')).toBe(false);
+    expect(
+      document
+        .querySelector(
+          '.ds-field:has(#' + CSS.escape(screen.getByLabelText('Notes').id) + ')',
+        )
+        ?.hasAttribute('data-changed'),
+    ).toBe(false);
   });
 });

@@ -97,13 +97,13 @@ function BudgetsForm({
   const [q, setQ] = useState<Queue>(normaliseQueue(queue));
   const [errors, setErrors] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
+  const savedQueue = normaliseQueue(queue);
+  const poolChanged = (k: keyof Pool) => JSON.stringify(pool[k]) !== JSON.stringify(p[k]);
+  const queueChanged = (k: keyof Queue) =>
+    JSON.stringify(savedQueue[k]) !== JSON.stringify(q[k]);
   const changeCount =
-    (Object.keys(pool) as (keyof Pool)[]).filter(
-      (k) => JSON.stringify(pool[k]) !== JSON.stringify(p[k]),
-    ).length +
-    (Object.keys(queue) as (keyof Queue)[]).filter(
-      (k) => JSON.stringify(normaliseQueue(queue)[k]) !== JSON.stringify(q[k]),
-    ).length;
+    (Object.keys(pool) as (keyof Pool)[]).filter(poolChanged).length +
+    (Object.keys(queue) as (keyof Queue)[]).filter(queueChanged).length;
   const save = useCommand(async () => {
     const problems = budgetProblems(p, q);
     setErrors(problems);
@@ -141,6 +141,7 @@ function BudgetsForm({
               <NumberField
                 label="Memory budget"
                 value={p.budget_memory_pct}
+                changed={poolChanged('budget_memory_pct')}
                 unit="%"
                 min={10}
                 max={95}
@@ -149,6 +150,7 @@ function BudgetsForm({
               <NumberField
                 label="CPU budget"
                 value={p.budget_cpu_pct}
+                changed={poolChanged('budget_cpu_pct')}
                 unit="%"
                 min={10}
                 max={95}
@@ -157,6 +159,7 @@ function BudgetsForm({
               <NumberField
                 label="Job slots"
                 value={p.default_job_slots}
+                changed={poolChanged('default_job_slots')}
                 min={0}
                 max={64}
                 onChange={(v) => setP({ ...p, default_job_slots: v })}
@@ -165,6 +168,7 @@ function BudgetsForm({
                 label="Time to finish running jobs"
                 help="How long running jobs may take to finish when a machine stops new jobs."
                 value={p.drain_timeout_minutes}
+                changed={poolChanged('drain_timeout_minutes')}
                 unit=" min"
                 min={5}
                 max={1440}
@@ -175,6 +179,7 @@ function BudgetsForm({
               label="Size the slots from the machine"
               help="Uses its cores and memory within the budget. Job slots is used when the machine does not say how big it is."
               checked={p.size_slots_from_machine}
+              changed={poolChanged('size_slots_from_machine')}
               onChange={(v) => setP({ ...p, size_slots_from_machine: v })}
             />
           </Stack>
@@ -192,12 +197,14 @@ function BudgetsForm({
               label="Fair share"
               help="Repositories take turns inside one priority."
               checked={q.fair_share}
+              changed={queueChanged('fair_share')}
               onChange={(v) => setQ({ ...q, fair_share: v })}
             />
             <NumberField
               label='Wait before "no runner"'
               help="Minutes a job waits before the console says no online runner has its labels."
               value={q.no_runner_wait_minutes}
+              changed={queueChanged('no_runner_wait_minutes')}
               unit=" min"
               min={1}
               max={60}

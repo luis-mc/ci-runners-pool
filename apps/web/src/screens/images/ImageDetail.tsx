@@ -14,8 +14,7 @@ import {
   Text,
   formatDateTime,
   formatSize,
-  ActionBar,
-  unsavedStatus,
+  EditBar,
 } from '@crsp/ui';
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -175,6 +174,7 @@ function ImageBody({
               label={l.name}
               help={l.purpose}
               checked={on}
+              changed={on !== saved.includes(l.id)}
               onChange={() => toggle(l.id)}
               disabledReason={
                 editable ? undefined : !admin ? why : 'The image is being rebuilt.'
@@ -236,29 +236,15 @@ function ImageBody({
           Rebuilds after running jobs finish. The old image keeps working until then.
         </Text>
       ) : null}
-      <ActionBar
-        status={unsavedStatus(layerChanges)}
-        secondary={
-          <Button
-            onPress={() => setDraft(undefined)}
-            disabled={!dirty}
-            reason="Nothing has changed."
-          >
-            Cancel
-          </Button>
-        }
-        primary={
-          <Button
-            kind="primary"
-            onPress={() => void save.run()}
-            busy={save.busy}
-            busyLabel="Saving"
-            disabled={!admin || !dirty || rebuilding}
-            reason={!admin ? why : 'Change a layer to save.'}
-          >
-            {notBuilt ? 'Save' : 'Save and rebuild'}
-          </Button>
-        }
+      <EditBar
+        changes={layerChanges}
+        submit={false}
+        onSave={() => void save.run()}
+        onCancel={() => setDraft(undefined)}
+        busy={save.busy}
+        blocked={!admin || rebuilding}
+        why={!admin ? why : 'The image is being rebuilt.'}
+        saveLabel={notBuilt ? 'Save' : 'Save and rebuild'}
       />
     </Stack>
   );

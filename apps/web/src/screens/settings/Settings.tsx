@@ -100,7 +100,7 @@ export function SettingsLayout() {
 
 export function AccessTab() {
   return (
-    <Stack>
+    <TabForm>
       <At id="users">
         <UsersSettings />
       </At>
@@ -110,7 +110,7 @@ export function AccessTab() {
       <At id="access-for-ci">
         <AccessForCiSettings />
       </At>
-    </Stack>
+    </TabForm>
   );
 }
 
@@ -191,10 +191,24 @@ export function UsersSettings() {
     const problems: string[] = [];
     if (!login.trim()) problems.push('Write the GitHub login to add.');
     setErrors(problems);
-    if (problems.length) return;
+    if (problems.length) return false;
     await unwrap(client.POST('/api/v1/users', { body: { login: login.trim(), role } }));
     setLogin('');
+    setRole('viewer');
     reload();
+    return true;
+  });
+  // The "Add a user" form is a part of the Access tab: its fields count as changes, and Save in the bar adds.
+  useTabPart('users', {
+    changes: (login !== '' ? 1 : 0) + (role !== 'viewer' ? 1 : 0),
+    save: async () => (await add.run()) === true,
+    reset: () => {
+      setLogin('');
+      setRole('viewer');
+      setErrors([]);
+      add.clear();
+    },
+    blocked: owner ? undefined : session.whyNot('owner'),
   });
   const change = useCommand(async () => {
     if (!editing) return;
@@ -312,10 +326,16 @@ export function UsersSettings() {
         <div>
           <Stack>
             <ErrorSummary errors={errors} />
-            <TextField label="GitHub login" value={login} onChange={setLogin} />
+            <TextField
+              label="GitHub login"
+              value={login}
+              onChange={setLogin}
+              changed={login !== ''}
+            />
             <ChoiceField
               label="Role"
               value={role}
+              changed={role !== 'viewer'}
               onChange={(v) => setRole(v as 'admin' | 'viewer')}
               choices={[
                 {
@@ -333,12 +353,6 @@ export function UsersSettings() {
             {add.error ? (
               <Message tone="problem">Could not add the user. {add.error}</Message>
             ) : null}
-            <FormActions>
-              <Button onPress={() => setLogin('')}>Cancel</Button>
-              <Button onPress={() => void add.run()} busy={add.busy} busyLabel="Adding">
-                Add
-              </Button>
-            </FormActions>
           </Stack>
         </div>
       </Section>
@@ -561,6 +575,7 @@ function RetentionForm({
           <NumberField
             label="Job history"
             value={jobs}
+            changed={jobs !== was.jobs}
             unit=" days"
             min={1}
             max={3650}
@@ -569,6 +584,7 @@ function RetentionForm({
           <NumberField
             label="Logs"
             value={logs}
+            changed={logs !== was.logs}
             unit=" days"
             min={1}
             max={3650}
@@ -577,6 +593,7 @@ function RetentionForm({
           <NumberField
             label="Logs per machine"
             value={mib}
+            changed={mib !== was.mib}
             unit=" MiB"
             min={1}
             max={100000}
@@ -585,6 +602,7 @@ function RetentionForm({
           <NumberField
             label="Audit log"
             value={audit}
+            changed={audit !== was.audit}
             unit=" days"
             min={1}
             max={3650}
@@ -593,6 +611,7 @@ function RetentionForm({
           <NumberField
             label="Raw load samples"
             value={raw}
+            changed={raw !== was.raw}
             unit=" h"
             min={1}
             max={720}
@@ -728,6 +747,7 @@ export function BackupsSettings() {
             <NumberField
               label="Keep backups"
               value={shownKeep}
+              changed={shownKeep !== savedKeep}
               unit=" days"
               min={1}
               max={3650}
@@ -770,12 +790,7 @@ export function AppKeySettings() {
   });
   return (
     <Section title="GitHub App key">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void replace.run();
-        }}
-      >
+      <div>
         <Stack>
           <FileField
             key={picked}
@@ -796,7 +811,7 @@ export function AppKeySettings() {
           ) : null}
           <FormActions>
             <Button
-              submit
+              onPress={() => void replace.run()}
               busy={replace.busy}
               busyLabel="Replacing"
               disabled={!session.can('owner')}
@@ -806,7 +821,7 @@ export function AppKeySettings() {
             </Button>
           </FormActions>
         </Stack>
-      </form>
+      </div>
     </Section>
   );
 }
