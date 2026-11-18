@@ -112,7 +112,12 @@ function PoolStatus() {
   if (machines.length === 0) return <Status kind="waiting" word="no machines" />;
   const online = machines.filter((m) => m.online && m.state === 'active').length;
   if (online === 0) return <Status kind="failed" word="machines offline" />;
-  return <Status kind="ok" word={`${online} of ${machines.length} ${machines.length === 1 ? 'machine' : 'machines'} online`} />;
+  return (
+    <Status
+      kind="ok"
+      word={`${online} of ${machines.length} ${machines.length === 1 ? 'machine' : 'machines'} online`}
+    />
+  );
 }
 
 function LiveState() {

@@ -17,13 +17,21 @@ const page = (body: string) =>
 const field = (w: string, label: string, width: number) =>
   `<div class="f ds-field" data-width="${w}" style="width:${width}px"><label>${label}</label><input style="width:${width}px"/></div>`;
 
-test('guard fails when boxes in one row differ in width class and width', async ({ page: p }) => {
+test('guard fails when boxes in one row differ in width class and width', async ({
+  page: p,
+}) => {
   await p.setContent(
-    page(`<div data-layout-group class="row">${field('short', 'A', 110)}${field('medium', 'B', 190)}</div>`),
+    page(
+      `<div data-layout-group class="row">${field('short', 'A', 110)}${field('medium', 'B', 190)}</div>`,
+    ),
   );
   const found = await measureDomLayout(p, { spaceVar: '--ds-space-' });
-  expect(found.some((f) => f.rule === 'field-row' && /width class/.test(f.text))).toBe(true);
-  expect(found.some((f) => f.rule === 'field-row' && /differ in width/.test(f.text))).toBe(true);
+  expect(found.some((f) => f.rule === 'field-row' && /width class/.test(f.text))).toBe(
+    true,
+  );
+  expect(
+    found.some((f) => f.rule === 'field-row' && /differ in width/.test(f.text)),
+  ).toBe(true);
 });
 
 test('guard fails when a wrapped label pushes one box lower', async ({ page: p }) => {
@@ -33,10 +41,14 @@ test('guard fails when a wrapped label pushes one box lower', async ({ page: p }
     ),
   );
   const found = await measureDomLayout(p, { spaceVar: '--ds-space-' });
-  expect(found.some((f) => f.rule === 'field-row' && /different heights/.test(f.text))).toBe(true);
+  expect(
+    found.some((f) => f.rule === 'field-row' && /different heights/.test(f.text)),
+  ).toBe(true);
 });
 
-test('guard fails when a check box is off the field column, passes when on it', async ({ page: p }) => {
+test('guard fails when a check box is off the field column, passes when on it', async ({
+  page: p,
+}) => {
   const box = (indent: number) =>
     page(
       `${field('full', 'Name', 300)}<label class="chk ds-choice__row"><input type="checkbox" style="margin-left:${indent}px"/>Forks</label>`,
