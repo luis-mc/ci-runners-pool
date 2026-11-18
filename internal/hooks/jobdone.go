@@ -66,6 +66,10 @@ type DoneConfig struct {
 	// Report and Healthy are as in GateConfig (R5.61). Both may be nil.
 	Report  func(string)
 	Healthy func()
+	// Clean is the always-clean rule of a persistent runner. When set it
+	// replaces KeepWork: the temporary files of a job are always removed
+	// (runners R5.91).
+	Clean func() CleanResult
 }
 
 // RunJobDone frees every slot of every kind the job holds with the outcome ran
@@ -123,7 +127,15 @@ func RunJobDone(ctx context.Context, cfg DoneConfig) (code int) {
 			}
 		}
 	}
-	if !cfg.KeepWork {
+	if cfg.Clean != nil {
+		res := cfg.Clean()
+		if why := res.Unclean(); why != "" {
+			log("not clean, the runner takes no new job until it is: %s", why)
+			if cfg.Report != nil {
+				cfg.Report("this runner is not clean (" + why + "), so it takes no new job until it is")
+			}
+		}
+	} else if !cfg.KeepWork {
 		if work := WorkFolder(cfg.Workspace); work != "" {
 			log("emptying %s", work)
 			bad := EmptyFolder(work)

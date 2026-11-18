@@ -46,6 +46,10 @@ type GateConfig struct {
 	// starts (caches R5.45); CacheFS is the file access, nil the real one.
 	Caches  []runnercache.Cap
 	CacheFS runnercache.FS
+	// Clean is the always-clean rule of a persistent runner; it runs before the
+	// job asks for a slot and holds the job while the runner is unclean. Nil
+	// for a hook that does not belong to a runner of the product.
+	Clean func() CleanResult
 	// MinFreePct is the guard threshold; 0 takes the default (10%).
 	MinFreePct int
 	// Log writes one line; it goes to the job's Set up job step and the agent log (R5.21).
@@ -127,6 +131,9 @@ func RunGate(ctx context.Context, cfg GateConfig) int {
 	// Decide in the log before the first step that can be slow: a hang after
 	// this line is never silence (scheduling R5.63).
 	cfg.logf("job-started: checking disk space, then asking the agent (limit %.0f s per call); if it does not answer the job goes on with a warning", CallTimeout.Seconds())
+	if code, held := cleanHold(ctx, &cfg, start, poll, maxWait); held {
+		return code
+	}
 	// The Rust cap runs first: a full cache folder is what the disk guard would
 	// otherwise hold the job for (caches R5.45).
 	if len(cfg.Caches) > 0 {
@@ -338,6 +345,42 @@ func diskHold(ctx context.Context, cfg *GateConfig, start time.Time, poll, maxWa
 		}
 		if timedOut(cfg.now().Sub(start), poll, maxWait) {
 			cfg.logf("disk guard: timed out after waiting for disk space (%s); the job fails and can be re-run", why)
+			return ExitTimeout, true
+		}
+		cfg.sleep(ctx, poll)
+		if ctx.Err() != nil {
+			return ExitTimeout, true
+		}
+	}
+}
+
+// cleanHold runs the always-clean rule before the job asks for a slot. A runner
+// that cannot clean takes no job: the hook retries the clean-up at every poll
+// and holds, up to the maximum wait, and then fails the job so it can be re-run
+// (runners R5.91). A runner with no clean-up (a hook run by hand) is not held.
+func cleanHold(ctx context.Context, cfg *GateConfig, start time.Time, poll, maxWait time.Duration) (int, bool) {
+	if cfg.Clean == nil {
+		return 0, false
+	}
+	began := false
+	for {
+		res := cfg.Clean()
+		why := res.Unclean()
+		if why == "" {
+			if began {
+				cfg.logf("clean-up: the runner is clean, the job goes on after %.0f s", cfg.now().Sub(start).Seconds())
+			}
+			return 0, false
+		}
+		if !began {
+			cfg.logf("clean-up: holding the job, this runner is not clean: %s (poll %d s, max wait %d min)", why, cfg.Gate.PollSec, cfg.Gate.MaxWaitMin)
+			if cfg.Report != nil {
+				cfg.Report("this runner is not clean (" + why + "), so it takes no job until it is")
+			}
+			began = true
+		}
+		if timedOut(cfg.now().Sub(start), poll, maxWait) {
+			cfg.logf("clean-up: timed out, the runner is still not clean; the job fails and can be re-run")
 			return ExitTimeout, true
 		}
 		cfg.sleep(ctx, poll)
