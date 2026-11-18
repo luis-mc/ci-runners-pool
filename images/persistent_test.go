@@ -17,6 +17,7 @@ import (
 type pool struct {
 	t                          *testing.T
 	state, deps, dir, work, tm string
+	tmpRoot                    string
 }
 
 func newPool(t *testing.T, keep string) *pool {
@@ -25,7 +26,8 @@ func newPool(t *testing.T, keep string) *pool {
 		t.Skip("the container scripts run on Linux")
 	}
 	root := t.TempDir()
-	p := &pool{t: t, state: filepath.Join(root, "state"), deps: filepath.Join(root, "deps")}
+	p := &pool{t: t, state: filepath.Join(root, "state"), deps: filepath.Join(root, "deps"), tmpRoot: t.TempDir()}
+	p.write(filepath.Join(p.tmpRoot, "leftover", "f"))
 	p.dir = filepath.Join(p.state, "r1")
 	p.work = filepath.Join(p.dir, "_work")
 	p.tm = filepath.Join(root, "tmp-r1")
@@ -72,7 +74,7 @@ func (p *pool) run(name string, extra ...string) (string, error) {
 	cmd := exec.CommandContext(p.t.Context(), "setsid", "sh", script(p.t, "clean.sh"), name)
 	cmd.Env = append(os.Environ(), "CRSP_RUNNER_DIR="+p.dir, "CRSP_STATE_DIR="+p.state, "CRSP_DEPS="+filepath.Join(p.deps, "r1"),
 		"GITHUB_WORKSPACE="+filepath.Join(p.work, "repo", "repo"), "TMPDIR="+p.tm, "RUNNER_TEMP="+filepath.Join(p.work, "_temp"),
-		"CRSP_CLEAN_POLL=0")
+		"CRSP_CLEAN_POLL=0", "CRSP_TMP_ROOT="+p.tmpRoot)
 	cmd.Env = append(cmd.Env, extra...)
 	out, err := cmd.CombinedOutput()
 	return string(out), err
@@ -141,7 +143,7 @@ func TestContainerCleanEndsLeftOverProcessesOfItsSessionOnly(t *testing.T) {
 	t.Cleanup(func() { _ = bystander.Process.Kill(); _ = bystander.Wait() })
 	cs := script(t, "clean.sh")
 	cmd := exec.CommandContext(t.Context(), "setsid", "sh", "-c", `sleep 300 & echo $! >"$1"; sleep 0.2; sh "$2" job-completed`, "sh", pidFile, cs)
-	cmd.Env = append(os.Environ(), "CRSP_RUNNER_DIR="+p.dir, "CRSP_STATE_DIR="+p.state, "CRSP_DEPS="+filepath.Join(p.deps, "r1"))
+	cmd.Env = append(os.Environ(), "CRSP_RUNNER_DIR="+p.dir, "CRSP_STATE_DIR="+p.state, "CRSP_DEPS="+filepath.Join(p.deps, "r1"), "CRSP_TMP_ROOT="+p.tmpRoot)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
@@ -198,6 +200,46 @@ func TestContainerCleanThatFailsIsUncleanAndStartHolds(t *testing.T) {
 	}
 }
 
+func TestContainerSweepKeepsItsOwnGroundAndTheSharedTmp(t *testing.T) {
+	p := newPool(t, "1")
+	// the runner's own folders live inside the swept root, as under /tmp
+	root := p.tmpRoot
+	p.state = filepath.Join(root, "state")
+	p.dir = filepath.Join(p.state, "r1")
+	p.work = filepath.Join(p.dir, "_work")
+	p.deps = filepath.Join(root, "deps")
+	p.tm = filepath.Join(root, "tmp-r1")
+	p.write(filepath.Join(p.dir, "_work", "_temp", "script.sh"))
+	p.write(filepath.Join(p.dir, "crsp-hygiene.env"), "CRSP_KEEP_DEPENDENCIES=1\n")
+	p.write(filepath.Join(p.deps, "r1", "npm", "pkg"))
+	p.write(filepath.Join(p.tm, "build", "a.o"))
+	p.write(filepath.Join(root, "other", "junk"))
+	for _, phase := range []string{"job-completed", "job-started"} {
+		if out, err := p.run(phase, "TMPDIR="+root); err != nil {
+			t.Fatalf("%s: %v\n%s", phase, err, out)
+		}
+		if !exists(filepath.Join(p.dir, "crsp-clean.json")) || !exists(p.state) || !exists(filepath.Join(p.deps, "r1", "npm", "pkg")) {
+			t.Errorf("%s: the sweep removed the runner folder, state or dependencies", phase)
+		}
+		if exists(filepath.Join(root, "other")) || exists(filepath.Join(root, "leftover")) {
+			t.Errorf("%s: a foreign entry stays", phase)
+		}
+		if !exists(root) {
+			t.Fatalf("%s: the root itself went", phase)
+		}
+		p.write(filepath.Join(root, "other", "junk"))
+		p.write(filepath.Join(root, "leftover", "f"))
+	}
+	// TMPDIR and RUNNER_TEMP equal to the shared root: the root is never emptied by step 2
+	p.write(filepath.Join(p.dir, "keepme"))
+	if out, err := p.run("job-completed", "TMPDIR="+root, "RUNNER_TEMP="+root); err != nil {
+		t.Fatal(err, out)
+	}
+	if !exists(filepath.Join(p.dir, "keepme")) {
+		t.Error("the runner folder was emptied")
+	}
+}
+
 func TestContainerSharedTmpOnlyWhileNoOtherRunnerHasAJob(t *testing.T) {
 	p := newPool(t, "1")
 	tmp := t.TempDir()
@@ -241,8 +283,15 @@ func TestSupervisorRestartsADeadRunnerWithBackOffAndNeverEphemeral(t *testing.T)
 	if out := tick(); !strings.Contains(out, "starting runner r1") {
 		t.Fatalf("first tick: %s", out)
 	}
-	time.Sleep(300 * time.Millisecond) // the runner exits at once
-	if out := tick(); !strings.Contains(out, "ended, starting it again in 2 s") {
+	// the runner exits at once: poll until the supervisor sees it dead
+	var out string
+	for i := 0; i < 100; i++ {
+		time.Sleep(50 * time.Millisecond)
+		if out = tick(); strings.Contains(out, "ended, starting it again") {
+			break
+		}
+	}
+	if !strings.Contains(out, "ended, starting it again in 2 s") {
 		t.Fatalf("second tick: %s", out)
 	}
 	if out := tick(); strings.Contains(out, "starting runner") {

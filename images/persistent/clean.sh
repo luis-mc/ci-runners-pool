@@ -26,6 +26,11 @@ work=$dir/_work
 poll=${CRSP_CLEAN_POLL:-30}
 maxwait=${CRSP_CLEAN_MAX_WAIT:-600}
 me=$(id -u)
+# The folder whose entries the sweep (3) may remove. Tests point it at a private
+# folder; in the container it is the shared /tmp.
+tmproot=${CRSP_TMP_ROOT:-/tmp}
+self=$0
+case "$self" in /*) ;; *) self=$(pwd)/$self ;; esac
 
 keep=1
 if [ -f "$dir/crsp-hygiene.env" ] && grep -q '^CRSP_KEEP_DEPENDENCIES=\(0\|false\|off\|no\)' "$dir/crsp-hygiene.env"; then
@@ -59,6 +64,36 @@ empty_dir() {
     [ "$skip" = 1 ] && continue
     rm_path "$e"
   done
+}
+
+# empty_around removes everything inside $1 except the path down to $2 (a folder
+# below $1): the folders on the way stay, and so does $2 itself.
+empty_around() {
+  d=$1; k=$2
+  [ -d "$d" ] || return 0
+  for e in "$d"/* "$d"/.[!.]* "$d"/..?*; do
+    [ -e "$e" ] || [ -L "$e" ] || continue
+    [ "$e" = "$k" ] && continue
+    case "$k/" in "$e"/*) empty_around "$e" "$k"; continue ;; esac
+    rm_path "$e"
+  done
+}
+
+# is_ground is true when $1 is, or contains, a path this script stands on: the
+# runner folder, the state, the dependencies, the work folder, TMPDIR,
+# RUNNER_TEMP, the job workspace and the script itself.
+is_ground() {
+  for g in "$dir" "$state" "$deps" "$work" "$TMPDIR" "$RUNNER_TEMP" "$GITHUB_WORKSPACE" "$self"; do
+    [ -n "$g" ] || continue
+    case "$g/" in "$1"/*) return 0 ;; esac
+  done
+  return 1
+}
+
+# same_dir is true when two paths are the same folder.
+same_dir() {
+  [ -n "$1" ] && [ -n "$2" ] || return 1
+  [ "$(cd "$1" 2>/dev/null && pwd -P)" = "$(cd "$2" 2>/dev/null && pwd -P)" ] && [ -d "$1" ]
 }
 
 # 4. processes the job left running: the processes of this runner's own session
@@ -131,24 +166,35 @@ one_pass() {
     fi
     if [ "$phase" = job-started ] && [ -n "$GITHUB_WORKSPACE" ]; then
       case "$GITHUB_WORKSPACE/" in
-        "$e"/*) empty_dir "$e"; [ -d "$GITHUB_WORKSPACE" ] && empty_dir "$GITHUB_WORKSPACE"; continue ;;
+        "$e"/*)
+          # the workspace folder of the starting job stays; only its contents go
+          empty_around "$e" "${GITHUB_WORKSPACE%/}"
+          [ -d "$GITHUB_WORKSPACE" ] && empty_dir "$GITHUB_WORKSPACE"
+          continue ;;
       esac
     fi
     rm_path "$e"
   done
-  # 2. the temp folder of the runner (TMPDIR and RUNNER_TEMP).
-  [ -n "$TMPDIR" ] && [ "$TMPDIR" != / ] && [ "$TMPDIR" != /tmp ] && empty_dir "$TMPDIR"
-  if [ -n "$RUNNER_TEMP" ] && [ "$RUNNER_TEMP" != "$work/_temp" ] && [ "$RUNNER_TEMP" != / ] && [ "$RUNNER_TEMP" != /tmp ]; then
-    empty_dir "$RUNNER_TEMP"
+  # 2. the temp folder of the runner (TMPDIR and RUNNER_TEMP). The shared /tmp
+  # itself is never emptied here; step 3 is the only one that sweeps it.
+  keepfc=""
+  [ "$phase" = job-started ] && keepfc="_runner_file_commands _github_workflow _github_home"
+  if [ -n "$TMPDIR" ] && [ "$TMPDIR" != / ] && ! same_dir "$TMPDIR" /tmp && ! same_dir "$TMPDIR" "$tmproot"; then
+    empty_dir "$TMPDIR" $keepfc
   fi
-  # 3. the entries of /tmp that the runner user owns (the runners of one
-  # container share this user, so only while no other runner has a job).
-  if ! busy_peers; then
-    for e in /tmp/* /tmp/.[!.]*; do
+  if [ -n "$RUNNER_TEMP" ] && ! same_dir "$RUNNER_TEMP" "$work/_temp" && [ "$RUNNER_TEMP" != / ] && ! same_dir "$RUNNER_TEMP" /tmp && ! same_dir "$RUNNER_TEMP" "$tmproot"; then
+    empty_dir "$RUNNER_TEMP" $keepfc
+  fi
+  # 3. the entries of the shared temp root that the runner user owns (the runners
+  # of one container share this user, so only while no other runner has a job).
+  # An entry that is, or holds, the runner's own ground stays.
+  if ! busy_peers && [ -d "$tmproot" ]; then
+    for e in "$tmproot"/* "$tmproot"/.[!.]*; do
       [ -e "$e" ] || [ -L "$e" ] || continue
       [ "$(stat -c %u "$e" 2>/dev/null)" = "$me" ] || continue
       case "$(basename "$e")" in .X11-unix|crsp-*|.dotnet|.net) continue ;; esac
       [ -S "$e" ] || [ -p "$e" ] && continue
+      is_ground "$e" && continue
       rm_path "$e"
     done
   fi

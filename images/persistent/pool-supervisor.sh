@@ -75,11 +75,13 @@ tick() {
       continue
     fi
     if [ -f "$RUN/$n.pid" ]; then
+      # the delay comes from the failures so far; the failure is counted after
       c=0
       [ -f "$RUN/$n.fails" ] && c=$(cat "$RUN/$n.fails")
+      delay=$(backoff_for "$n")
       echo $((c + 1)) >"$RUN/$n.fails"
-      echo "crsp supervisor: runner $n ended, starting it again in $(backoff_for "$n") s"
-      echo $(($(now) + $(backoff_for "$n"))) >"$RUN/$n.next"
+      echo "crsp supervisor: runner $n ended, starting it again in $delay s"
+      echo $(($(now) + delay)) >"$RUN/$n.next"
       rm -f "$RUN/$n.pid"
       continue
     fi
