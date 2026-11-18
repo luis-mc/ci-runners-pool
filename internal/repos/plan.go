@@ -95,7 +95,7 @@ func (s *Service) planOn(ctx context.Context, r Repository) ([]Step, error) {
 	if err != nil {
 		return nil, err
 	}
-	want, err := s.Desired(ctx, pol)
+	want, err := s.desired(ctx, pol, nil, pol.EphemeralOnly(r.Visibility))
 	if err != nil {
 		return nil, err
 	}

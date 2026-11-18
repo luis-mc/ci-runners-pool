@@ -165,7 +165,8 @@ func TestEnableWritesVariablesAndGuardsForks(t *testing.T) { // R5.20, R5.26, R5
 	ctx := context.Background()
 	e.turnOn(100, 101)
 	v, ok := e.fake.Variable("alice/web", "RUNS_ON_LINUX")
-	if !ok || v != `["self-hosted","linux","x64","docker","crsp-home"]` {
+	// alice/web is public: it defaults to ephemeral runners only (R5.60).
+	if !ok || v != `["self-hosted","linux","x64","docker","crsp-home","ephemeral"]` {
 		t.Fatalf("variable %q %v", v, ok)
 	}
 	if _, ok := e.fake.Variable("alice/web", "RUNS_ON_WINDOWS"); ok {
