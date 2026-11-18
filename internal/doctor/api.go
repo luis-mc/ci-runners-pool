@@ -29,6 +29,32 @@ func (f Finding) API() gen.DoctorFinding {
 		l := f.Fix.Link
 		out.Fix.Link = &l
 	}
+	if len(f.Items) > 0 {
+		items := make([]gen.RunnerLeftover, 0, len(f.Items))
+		for _, it := range f.Items {
+			x := gen.RunnerLeftover{Kind: gen.RunnerLeftoverKind(it.Kind), Name: it.Name, Why: it.Why}
+			if it.Path != "" {
+				p := it.Path
+				x.Path = &p
+			}
+			if it.SizeBytes > 0 {
+				n := it.SizeBytes
+				x.SizeBytes = &n
+			}
+			if it.Account != "" {
+				a := it.Account
+				x.Account = &a
+			}
+			items = append(items, x)
+		}
+		out.Items = &items
+	}
+	if f.Action != nil {
+		out.Action = &struct {
+			Id    gen.DoctorFindingActionId `json:"id"`
+			Label string                    `json:"label"`
+		}{Id: gen.DoctorFindingActionId(f.Action.ID), Label: f.Action.Label}
+	}
 	return out
 }
 
