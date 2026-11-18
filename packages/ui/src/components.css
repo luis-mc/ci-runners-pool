@@ -324,6 +324,9 @@ body {
 .ds-stack[data-gap='loose'] {
   gap: var(--ds-space-5);
 }
+.ds-stack[data-gap='section'] {
+  gap: var(--ds-space-6);
+}
 .ds-cluster {
   display: flex;
   flex-wrap: wrap;
@@ -958,6 +961,35 @@ body {
 .ds-field__label {
   font-weight: var(--ds-weight-semibold);
   padding: 0;
+}
+.ds-field__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ds-space-2);
+  min-inline-size: 0;
+}
+.ds-field__head > .ds-field__label {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The mark of a value that differs from what is saved (LOOK21): a quiet word in the primary colour. */
+.ds-field__changed {
+  flex: none;
+  color: var(--ds-color-primary);
+  font-size: var(--ds-size-2);
+  font-weight: var(--ds-weight-semibold);
+  white-space: nowrap;
+}
+legend > .ds-field__changed {
+  margin-inline-start: var(--ds-space-3);
+}
+.ds-choice__row > .ds-field__changed {
+  margin-inline-start: auto;
+}
+.ds-field[data-changed] > :is(.ds-input, .ds-number) {
+  border-color: var(--ds-color-primary);
 }
 .ds-field__help {
   margin: 0;

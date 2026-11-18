@@ -27,6 +27,7 @@ export * from './components/KeyHints';
 export * from './components/Popover';
 export * from './components/Shell';
 export * from './components/ActionBar';
+export * from './components/EditBar';
 export * from './components/ThemePreview';
 export * from './components/Navigation';
 export * from './components/RowKeys';

@@ -70,7 +70,7 @@ export function TabForm({ children }: { children: ReactNode }) {
           void saveAll();
         }}
       >
-        <Stack>
+        <Stack gap="section">
           {children}
           <ActionBar
             status={unsavedStatus(total)}
