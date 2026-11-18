@@ -329,15 +329,11 @@ export function RepositoriesList() {
                       <>
                         {`${unlisted.length} public ${unlisted.length === 1 ? 'repository is' : 'repositories are'} listed in grey: the pool serves private repositories only. `}
                         <TextLink to="/repositories">Hide them</TextLink>
-                        {' · '}
-                        <TextLink to={PUBLIC_SETTING_PATH}>Change active types</TextLink>
                       </>
                     ) : (
                       <>
                         {`${unlisted.length} public ${unlisted.length === 1 ? 'repository is' : 'repositories are'} not listed: the pool serves private repositories only. `}
                         <TextLink to="/repositories?public=1">List them too</TextLink>
-                        {' · '}
-                        <TextLink to={PUBLIC_SETTING_PATH}>Change active types</TextLink>
                       </>
                     )}
                   </Message>

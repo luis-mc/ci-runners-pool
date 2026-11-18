@@ -365,7 +365,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
     );
   if (live.status === 'paused')
     banners.push(
-      <Message key="live" tone="note">
+      <Message key="live" tone="note" dismissible={false}>
         Live updates paused. The data on screen is the last that arrived. The console
         reconnects by itself.
       </Message>,
