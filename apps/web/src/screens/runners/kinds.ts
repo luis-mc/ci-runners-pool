@@ -18,7 +18,11 @@ export const KIND_HELP: Record<Kind, string> = {
     'A fresh container for every job. Nothing carries over. Recommended for public repositories.',
 };
 
-const OS_WORD: Record<OS, string> = { linux: 'Linux', windows: 'Windows', macos: 'macOS' };
+const OS_WORD: Record<OS, string> = {
+  linux: 'Linux',
+  windows: 'Windows',
+  macos: 'macOS',
+};
 
 function container(m: Machine): Machine['backends'][number] | undefined {
   return m.backends.find((b) => b.name === 'docker');

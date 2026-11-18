@@ -12,11 +12,7 @@ import {
   viewer,
 } from '../../testing/mock';
 import { currentJobText, isolationText, runnerStatus, stateCounts } from './Runners';
-import {
-  containerBackendAllowed,
-  machineSupports,
-  sentence,
-} from './AddRunners';
+import { containerBackendAllowed, machineSupports, sentence } from './AddRunners';
 
 afterEach(cleanup);
 
