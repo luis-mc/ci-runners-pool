@@ -76,9 +76,41 @@ describe('Runners list', () => {
     });
     renderApp(api, '/pool/runners');
     const table = await screen.findByRole('table', { name: /^Runners on/ });
+    // LOOK19: one line (the part before the colon) and a Full error button; the whole text opens under the row.
+    expect(within(table).getByText('register service')).toBeTruthy();
+    const button = within(table).getByRole('button', { name: 'Full error' });
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(button);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    const region = within(table).getByRole('region', { name: /Full error/ });
+    expect(region.textContent).toBe(
+      'register service: the account has no right to log on as a service',
+    );
+    expect(button.getAttribute('aria-controls')).toBe(region.id);
+    fireEvent.click(button);
+    expect(within(table).queryByRole('region', { name: /Full error/ })).toBeNull();
+  });
+
+  it('puts system and backend in the isolation cell and caps the labels at two', async () => {
+    const api = signedIn().on('GET', '/api/v1/runners', {
+      items: [
+        runner({
+          os: 'windows',
+          arch: 'x64',
+          backend: 'persistent',
+          labels: ['self-hosted', 'windows', 'x64', 'crsp-light'],
+        }),
+      ],
+    });
+    renderApp(api, '/pool/runners');
+    const table = await screen.findByRole('table', { name: /^Runners on/ });
+    expect(within(table).queryByRole('columnheader', { name: 'System' })).toBeNull();
+    expect(within(table).queryByRole('columnheader', { name: 'Backend' })).toBeNull();
+    expect(within(table).getByText('windows x64, persistent')).toBeTruthy();
+    expect(within(table).getByText('self-hosted, windows +2')).toBeTruthy();
     expect(
-      within(table).getByText(/the account has no right to log on as a service/),
-    ).toBeTruthy();
+      within(table).getByText('self-hosted, windows, x64, crsp-light').className,
+    ).toContain('ds-visually-hidden');
   });
 
   it('reloads when a runner event arrives (live)', async () => {

@@ -351,6 +351,8 @@ The words of the shared components (`design_system.py components`). A project ch
 | Change | File field |
 | Remove {name} | File field |
 | Choose a {pattern} file. | File field |
+| Full error | Table: the button of a failed runner's long reason |
+| Details | Table: the button of any other long text (Doctor, Jobs) |
 
 ## Pool size words
 

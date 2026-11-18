@@ -180,9 +180,9 @@ export function DoctorScreen() {
         <Stack gap="tight">
           <span>{f.title}</span>
           <Text tone="muted">{f.subject.name}</Text>
-          {f.detail ? <Text tone="muted">{f.detail}</Text> : null}
         </Stack>
       ),
+      long: (f) => (f.detail ? { full: f.detail } : null),
     },
     {
       id: 'fix',
@@ -262,6 +262,8 @@ export function DoctorScreen() {
                     columns={columns}
                     rows={g.items}
                     rowKey={(f) => `${f.check}:${f.subject.id}`}
+                    expandLabel="Details"
+                    rowLabel={(f) => f.title}
                   />
                 </Section>
               ))}

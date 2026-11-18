@@ -2,6 +2,7 @@
 // not managed.
 import {
   Button,
+  CappedList,
   Chips,
   Empty,
   LinkButton,
@@ -206,28 +207,28 @@ export function RunnersList() {
 
   const columns: Column<Runner>[] = [
     { id: 'name', header: 'Name', cell: (r) => r.name, sort: (r) => r.name },
-    { id: 'os', header: 'System', cell: (r) => r.os, sort: (r) => r.os },
-    { id: 'backend', header: 'Backend', cell: (r) => r.backend },
     {
       id: 'iso',
       header: 'Isolation',
-      cell: (r) => isolationText(r),
+      cell: (r) => (
+        <Stack gap="tight">
+          <span>{isolationText(r)}</span>
+          <Text tone="muted">{`${r.os} ${r.arch}, ${r.backend}`}</Text>
+        </Stack>
+      ),
       sort: (r) => r.isolation,
     },
-    { id: 'labels', header: 'Labels', cell: (r) => r.labels.join(', ') },
+    { id: 'labels', header: 'Labels', cell: (r) => <CappedList items={r.labels} /> },
     {
       id: 'state',
       header: 'State',
       cell: (r) => {
         const s = runnerStatus(r);
-        return (
-          <Stack gap="tight">
-            <Status kind={s.kind} word={s.word} />
-            {(r.reason ?? (r.state === 'failed' ? r.failed_reason : null)) ? (
-              <Text tone="muted">{r.reason ?? r.failed_reason}</Text>
-            ) : null}
-          </Stack>
-        );
+        return <Status kind={s.kind} word={s.word} />;
+      },
+      long: (r) => {
+        const full = r.reason ?? (r.state === 'failed' ? r.failed_reason : null);
+        return full ? { full } : null;
       },
       sort: (r) => r.state,
     },
@@ -481,6 +482,8 @@ export function RunnersList() {
                         columns={columns}
                         rows={g.rows}
                         rowKey={(r) => r.id}
+                        expandLabel="Full error"
+                        rowLabel={(r) => r.name}
                         selected={picked}
                         onToggle={(k) =>
                           setPicked((p) => {

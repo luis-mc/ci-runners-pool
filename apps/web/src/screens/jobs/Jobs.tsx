@@ -225,7 +225,12 @@ export function JobsList() {
       },
       sort: (j) => j.queued_at ?? j.created_at ?? '',
     },
-    { id: 'why', header: 'Why it waits', cell: (j) => waitWords(j) },
+    {
+      id: 'why',
+      header: 'Why it waits',
+      cell: () => null,
+      long: (j) => ({ full: waitWords(j) }),
+    },
     {
       id: 'open',
       header: 'Open',
@@ -280,6 +285,8 @@ export function JobsList() {
                     columns={queueColumns}
                     rows={data.items}
                     rowKey={(j) => String(j.id)}
+                    expandLabel="Details"
+                    rowLabel={(j) => j.job_name}
                     onOpen={(j) => void navigate(`/jobs/${j.id}`)}
                   />
                 )

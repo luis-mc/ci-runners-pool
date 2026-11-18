@@ -105,3 +105,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C100: runner service words added: the Problem banner, the action Start with its busy word Starting, the tray notification and the Doctor finding words (content.md; runners R5.89, web-console R5.98, tray R5.44, doctor R5.45, OPS24)
 - C101: repository webhook words: status no webhook and two notes (no webhook on the App; a missed delivery and what to check) (content.md; OPS22)
 - C102: webhook settings words added: the section, its explanation, state words, the check box, field and help, the busy words, the done lines and the guided GitHub step (content.md; OPS25, github-integration R5.51)
+- C103: a table cell can hold long text as one clipped line with a button that opens the full text in a full-width row under it (no dialog); the words Full error and Details; `CappedList` caps a list at two and a count (components.md 15, content.md; owner decisions D36 and D37, LOOK19)
