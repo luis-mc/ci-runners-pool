@@ -3310,10 +3310,24 @@ export interface components {
             pending_change?: components["schemas"]["MachineChange"];
             recovery?: components["schemas"]["MachineRecovery"];
             docker_compact_status?: components["schemas"]["DockerCompactStatus"];
+            /** @description Runner services on this machine that did not start after the agent gave their account the right to log on as a service again and tried once more (runners R5.89). Empty or absent while every runner service runs. The console shows a Problem banner for each until the service runs. */
+            runner_problems?: components["schemas"]["RunnerServiceProblem"][];
             /** Format: date-time */
             last_seen_at: string;
             /** Format: date-time */
             joined_at?: string;
+        };
+        RunnerServiceProblem: {
+            /** @description The runner's name. */
+            runner: string;
+            /** @description The Windows service name. */
+            service: string;
+            /** @description The account the service runs as, for example `.\crsp-box-1`. */
+            account: string;
+            /** @description Why the service did not start, as Windows said it, redacted. */
+            reason: string;
+            /** @description True when the account holds the right to log on as a service now, so the reason is something else. */
+            logon_right?: boolean;
         };
         MachineList: {
             items: components["schemas"]["Machine"][];

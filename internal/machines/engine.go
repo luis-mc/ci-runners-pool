@@ -30,6 +30,7 @@ func (e Engine) RunsLinuxContainers() bool {
 // reaches the console through the usual notification.
 func (s *Service) HandleMachineReport(machineID string, r *agentv1.MachineReport) {
 	s.HandleDockerDisk(machineID, r.GetDockerDisk())
+	s.HandleRunnerServices(machineID, r.GetRunnerServices())
 	e := r.GetEngine()
 	if e == nil {
 		return

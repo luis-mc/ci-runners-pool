@@ -362,9 +362,11 @@ func (f doctorFleet) Runners(ctx context.Context) ([]doctor.Runner, error) {
 		return nil, err
 	}
 	names := map[string]string{}
+	services := map[string][]machines.RunnerService{}
 	if views, err := f.machines.List(ctx); err == nil {
 		for _, v := range views {
 			names[v.Machine.ID] = v.Machine.Name
+			services[v.Machine.ID] = v.RunnerServices
 		}
 	}
 	out := make([]doctor.Runner, 0, len(rs))
@@ -387,9 +389,22 @@ func (f doctorFleet) Runners(ctx context.Context) ([]doctor.Runner, error) {
 				dr.Scope = github.RunnerScope{Owner: repo.Owner, Repo: repo.Name}
 			}
 		}
+		dr.Logon = logonProbe(services[r.MachineID], r)
 		out = append(out, dr)
 	}
 	return out, nil
+}
+
+// logonProbe is what the machine's agent reported about the runner's service
+// (runners R5.89); nil when it reported none for this runner.
+func logonProbe(svcs []machines.RunnerService, r runners.Record) *doctor.LogonProbe {
+	for _, s := range svcs {
+		if (r.ServiceName != "" && s.Service == r.ServiceName) || s.Runner == r.Name {
+			return &doctor.LogonProbe{Service: s.Service, Account: s.Account, Known: s.LogonKnown, Held: s.LogonHeld,
+				Running: s.Running, Problem: s.Problem}
+		}
+	}
+	return nil
 }
 
 // Services needs a machine's agent to list its OS services; the agent link does

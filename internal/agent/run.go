@@ -212,6 +212,9 @@ func Run(ctx context.Context, cfg Config) error {
 		cfg.Gate.SetSettings(s, state) // R5.24: apply the last settings while the link is down
 	}
 	var wg sync.WaitGroup
+	// A boot can take the logon right of a runner service account away; give it back now (runners R5.89).
+	wg.Add(1)
+	go func() { defer wg.Done(); healAtStart(ctx, cfg) }()
 	sctx, stopSampling := context.WithCancel(ctx)
 	defer func() { stopSampling(); wg.Wait() }()
 	wg.Add(1)

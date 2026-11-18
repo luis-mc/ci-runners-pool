@@ -814,6 +814,54 @@ func TestRunnerSymlink(t *testing.T) {
 	}
 }
 
+// R5.45 (runners R5.89): a Windows runner's account holds the right to log on
+// as a service and its service runs; the finding names the account and the
+// service and the fix is Start on the machine.
+func TestRunnerLogon(t *testing.T) {
+	win := func(id, name string, p *doctor.LogonProbe) doctor.Runner {
+		r := persistent(id, name)
+		r.OS, r.Logon = "windows", p
+		return r
+	}
+	acct := `.\crsp-lost`
+	rs := []doctor.Runner{
+		persistent("r0", "crsp-linux"),
+		win("r1", "crsp-ok", &doctor.LogonProbe{Service: "svc-ok", Account: `.\crsp-ok`, Known: true, Held: true, Running: true}),
+		win("r2", "crsp-lost", &doctor.LogonProbe{Service: "svc-lost", Account: acct, Known: true, Held: false}),
+		win("r3", "crsp-stopped", &doctor.LogonProbe{Service: "svc-stopped", Account: `.\crsp-stopped`, Known: true, Held: true, Problem: "disabled"}),
+		win("r4", "crsp-unread", nil),
+		win("r5", "crsp-unknown", &doctor.LogonProbe{Account: `.\crsp-unknown`}),
+	}
+	fl := &fleet{machines: []doctor.Machine{healthyMachine()}, runners: rs}
+	got := map[string]doctor.Finding{}
+	for _, f := range run(t, doctor.Env{Fleet: fl}, "runner.logon") {
+		got[f.Subject.Name] = f
+	}
+	want := map[string]doctor.Severity{
+		"crsp-ok": doctor.OK, "crsp-lost": doctor.Fail, "crsp-stopped": doctor.Fail, "crsp-unread": doctor.Skip, "crsp-unknown": doctor.Skip,
+	}
+	for n, sev := range want {
+		if got[n].Severity != sev {
+			t.Errorf("%s = %+v, want %v", n, got[n], sev)
+		}
+	}
+	if _, ok := got["crsp-linux"]; ok {
+		t.Error("a Linux runner has no logon finding")
+	}
+	lost := got["crsp-lost"]
+	for _, w := range []string{acct, "svc-lost"} {
+		if !strings.Contains(lost.Title+lost.Detail, w) {
+			t.Errorf("the finding does not name %q: %+v", w, lost)
+		}
+	}
+	if !strings.Contains(lost.Fix.Text, "Start") || lost.Fix.Link != "/machines/m1" {
+		t.Errorf("fix = %+v", lost.Fix)
+	}
+	if !strings.Contains(got["crsp-stopped"].Detail, "disabled") {
+		t.Errorf("the reason Windows gave is lost: %+v", got["crsp-stopped"])
+	}
+}
+
 // CRSP83 (runners R5.83): a machine paused for disk space names what to clean.
 func TestDiskFloorNamesWhatToClean(t *testing.T) {
 	held := healthyMachine()

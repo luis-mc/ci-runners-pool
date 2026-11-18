@@ -128,3 +128,18 @@ func (l *LocalAgent) Found(ctx context.Context) ([]backend.Found, error) {
 	}
 	return f.Find(ctx)
 }
+
+// HealServices re-asserts the logon right of every runner service account and
+// starts a stopped service, on backends that can (Windows; runners R5.89). A
+// backend without the step answers nothing.
+func (l *LocalAgent) HealServices(ctx context.Context) ([]backend.ServiceHealth, error) {
+	b, err := l.persistent()
+	if err != nil {
+		return nil, nil //nolint:nilerr // no persistent backend: no services to heal
+	}
+	h, ok := b.(backend.ServiceHealer)
+	if !ok {
+		return nil, nil
+	}
+	return h.HealServices(ctx)
+}

@@ -61,3 +61,27 @@ type ToolMount struct {
 type ToolBooter interface {
 	StartWithTools(ctx context.Context, r RunnerSpec, cfg StartConfig, tools []ToolMount) (Handle, error)
 }
+
+// ServiceHealth is one runner service after the backend re-asserted its logon
+// right (runners R5.89).
+type ServiceHealth struct {
+	Runner  string
+	Service string
+	Account string
+	Running bool
+	// LogonKnown is false when the rights of the account could not be read;
+	// LogonHeld is true when the account holds the right to log on as a
+	// service after the pass.
+	LogonKnown, LogonHeld bool
+	// Regranted is true when this pass gave the right back.
+	Regranted bool
+	// Problem is why the service does not run, after the one retry. Empty
+	// while it runs.
+	Problem string
+}
+
+// ServiceHealer re-asserts the logon right of every runner service account of
+// the machine and starts a stopped service (runners R5.89). It is idempotent.
+type ServiceHealer interface {
+	HealServices(ctx context.Context) ([]ServiceHealth, error)
+}

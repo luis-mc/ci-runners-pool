@@ -73,6 +73,39 @@ describe('doctor words', () => {
   });
 });
 
+describe('the logon right finding (runners R5.89, doctor R5.45)', () => {
+  const lost = finding({
+    check: 'runner.logon',
+    title: 'The account .\\crsp-a of crsp-a cannot log on as a service',
+    subject: { kind: 'runner', id: 'r1', name: 'crsp-a' },
+    fix: {
+      text: 'Press Start. The agent gives the account the right again.',
+      link: '/machines/m9',
+    },
+  });
+
+  it('has one Start button that asks the machine to give the right and start the service', async () => {
+    const api = signedIn()
+      .on('GET', '/api/v1/doctor/findings', { items: [lost], last_run_at: lastRun })
+      .on('POST', '/api/v1/machines/:id/redetect', { status: 202 });
+    renderApp(api, '/doctor');
+    fireEvent.click(await screen.findByRole('button', { name: 'Start' }));
+    await waitFor(() =>
+      expect(api.count('POST', '/api/v1/machines/m9/redetect')).toBe(1),
+    );
+  });
+
+  it('has no Start button on other findings', async () => {
+    const api = signedIn().on('GET', '/api/v1/doctor/findings', {
+      items: [finding()],
+      last_run_at: lastRun,
+    });
+    renderApp(api, '/doctor');
+    await screen.findByText(/1 problem found/);
+    expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
+  });
+});
+
 describe('Doctor screen', () => {
   it('shows the loading state first', async () => {
     renderApp(signedIn().on('GET', '/api/v1/doctor/findings', { items: [] }), '/doctor');

@@ -35,6 +35,32 @@ type Finding = Schemas['DoctorFinding'];
 type Run = Schemas['DoctorRun'];
 type Severity = Schemas['Severity'];
 
+/** The one-click fix of `runner.logon` (runners R5.89, doctor R5.45): the agent gives the account the right to log
+ * on as a service again and starts the service. It is the call the Problem banner makes. */
+function StartRunnerService({ machineId }: { machineId: string }) {
+  const client = useClient();
+  const session = useSession();
+  const admin = session.can('admin');
+  const start = useCommand(async () => {
+    await unwrap(
+      client.POST('/api/v1/machines/{machineId}/redetect', {
+        params: { path: { machineId } },
+      }),
+    );
+  });
+  return (
+    <Button
+      onPress={() => void start.run()}
+      busy={start.busy}
+      busyLabel="Starting"
+      disabled={!admin}
+      reason={!admin ? session.whyNot('admin') : undefined}
+    >
+      Start
+    </Button>
+  );
+}
+
 /** How often a running run is asked again when no live event came. */
 export const POLL_MS = 3000;
 
@@ -168,6 +194,9 @@ export function DoctorScreen() {
           {f.fix.link?.startsWith('/') ? (
             <Cluster>
               <LinkButton to={f.fix.link}>Open</LinkButton>
+              {f.check === 'runner.logon' && f.severity === 'fail' ? (
+                <StartRunnerService machineId={f.fix.link.slice('/machines/'.length)} />
+              ) : null}
             </Cluster>
           ) : null}
           {f.needs_admin && !admin ? <Badge>needs admin</Badge> : null}

@@ -167,8 +167,22 @@ foreach ($id in ($env:CRSP_PIDS -split ',')) {
 exit 0
 `
 
+	// scriptStartService starts the service. A failure names the Windows error
+	// of every inner exception, so the logon failure (1069) can be told apart
+	// and retried (runners R5.89). Needs CRSP_SERVICE.
 	scriptStartService = scriptHeader + `
-Start-Service -Name $env:CRSP_SERVICE
+try {
+    Start-Service -Name $env:CRSP_SERVICE
+} catch {
+    $m = $_.Exception.Message
+    $i = $_.Exception.InnerException
+    while ($i) {
+        $m += ' ' + $i.Message
+        if ($i -is [System.ComponentModel.Win32Exception]) { $m += ' (Windows error ' + $i.NativeErrorCode + ')' }
+        $i = $i.InnerException
+    }
+    throw $m
+}
 `
 
 	scriptStopService = scriptHeader + `

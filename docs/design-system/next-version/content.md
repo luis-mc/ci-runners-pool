@@ -744,7 +744,7 @@ The dialog the tray opens when a newer stable release is found (tray R5.43, oper
 
 ## GitHub error words
 
-The words of the repositories page when the list is the last copy because the read from GitHub failed (github-integration R5.88 and R5.89, web-console, CRSP148). Say what GitHub really said (UX-28).
+The words of the repositories page when the list is the last copy because the read from GitHub failed (github-integration R5.89 and R5.89, web-console, CRSP148). Say what GitHub really said (UX-28).
 
 | Word | Where and meaning |
 |---|---|
@@ -876,3 +876,17 @@ The words of the six-item menu, Shared Pool and the Jobs sub-sections (owner dec
 | See all | Button that pages in the earlier finished jobs. |
 | Done, failed and the averages count the last 200 finished jobs. | Quiet line under a grouped Jobs table. |
 | not placed yet | Group name of a job that has no machine or runner yet. |
+## Runner service words
+
+The words of a runner service that did not start (runners R5.89, web-console R5.98, tray R5.44, doctor R5.45). The agent has already given the service account the right to log on as a service again and tried twice.
+
+| Where | Word |
+|---|---|
+| Banner (problem) | {runner} on {machine} did not start. {reason} |
+| Banner and Doctor action | Start. It asks that machine's agent to give the account the right again and start the service. Busy word: Starting. Disabled for a user who is not an admin, with the reason. |
+| Tray notification title | A runner did not start |
+| Tray notification text | {runner} did not start. {reason} Open the console and press Start. |
+| Doctor finding, the right is missing | The account {account} of {runner} cannot log on as a service |
+| Doctor finding, the service is stopped | The service {service} of {runner} is not running |
+| Doctor finding, fine | {account} can log on as a service and {runner} runs |
+| Doctor fix | Press Start. The agent gives the account the right to log on as a service again and starts the service on {machine}. |
