@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"io"
 	"os"
 	"os/exec"
@@ -112,8 +113,14 @@ func loop(o Options, smoke bool, hold time.Duration) int {
 	}
 
 	auto, _ := DefaultAutostart(o.Exe)
+	// A bad CRSP_GITHUB_URL was refused at the service start; the defaults are the safe answer here.
+	addrs, err := addresses.Load(os.Getenv)
+	if err != nil {
+		addrs = addresses.Defaults()
+	}
 	opener := &Opener{
-		Links: client, Targets: client, Checker: client, Policy: client, Version: o.Version, Ask: AskUpdate, Installer: client,
+		RepoURL: addrs.RepoPage(update.Repo),
+		Links:   client, Targets: client, Checker: client, Policy: client, Version: o.Version, Ask: AskUpdate, Installer: client,
 		Browser: OSLauncher, Files: OSLauncher,
 		Window: AppWindowOpener{Lookup: OSBrowserLookup(), Fallback: OSLauncher}.Open,
 		Notify: DesktopNotice, Current: current, LogDir: LogDir,

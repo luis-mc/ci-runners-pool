@@ -23,14 +23,14 @@ func remoteAgent(l *agentlink.Link) runners.Agent {
 // agentRunners lets a remote agent carry out the controller's runner commands
 // with the backends of its own OS (runners R5.1, R5.25).
 func agentRunners() runners.Agent {
-	reg := registry.Platform(registry.RealDeps(func(string, string) {}, secretRedactor.Redact, secretRedactor.Add))
+	reg := registry.Platform(realDeps(func(string, string) {}, secretRedactor.Redact, secretRedactor.Add))
 	return runners.NewLocalAgent(reg)
 }
 
 // agentImageSource lists the job images of the container backend for the
 // machine report; a machine without that backend reports the list as unknown.
 func agentImageSource() agent.ImageSource {
-	reg := registry.Platform(registry.RealDeps(func(string, string) {}, secretRedactor.Redact, secretRedactor.Add))
+	reg := registry.Platform(realDeps(func(string, string) {}, secretRedactor.Redact, secretRedactor.Add))
 	return func(ctx context.Context) ([]runners.Image, bool, error) {
 		b, ok := reg.Get(backend.Docker)
 		if !ok {

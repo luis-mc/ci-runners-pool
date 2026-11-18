@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"io"
 	"net/http"
 	"net/url"
@@ -38,7 +39,7 @@ var (
 
 // ScaleSetClient talks to one scale set of one repository or organization.
 type ScaleSetClient struct {
-	// APIBase is https://api.github.com unless a test or GHES says otherwise.
+	// APIBase is addresses.DefaultGitHubAPIURL unless a test or GHES says otherwise.
 	APIBase string
 	// ConfigURL is the web address of the scope: https://github.com/<owner>/<repo>.
 	ConfigURL string
@@ -152,7 +153,7 @@ func (c *ScaleSetClient) Connect(ctx context.Context) error {
 	}
 	base := c.APIBase
 	if base == "" {
-		base = DefaultAPIBase
+		base = addresses.DefaultGitHubAPIURL
 	}
 	var reg struct {
 		URL   string `json:"url"`

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"io"
 	"net/http"
 	"time"
@@ -21,7 +22,7 @@ import (
 // its own machine when the controller sends UpdateRunnerFiles (runners R5.38).
 // The folder is found from the OS service list, never from the message.
 func agentRunnerFiles() *agent.RunnerFiles {
-	reg := registry.Platform(registry.RealDeps(func(string, string) {}, secretRedactor.Redact, secretRedactor.Add))
+	reg := registry.Platform(realDeps(func(string, string) {}, secretRedactor.Redact, secretRedactor.Add))
 	b, ok := reg.Get(backend.Persistent)
 	if !ok {
 		return nil
@@ -50,6 +51,7 @@ func agentRunnerFiles() *agent.RunnerFiles {
 // pinBundles fetches the official runner archive of the pin for a machine's OS
 // and arch. The updater checks its SHA-256 before it sends it.
 type pinBundles struct {
+	addr   addresses.Set
 	svc    *machines.Service
 	client *http.Client
 }
@@ -68,7 +70,7 @@ func (p pinBundles) Bundle(ctx context.Context, machineID string, req runners.Up
 	if pin.Version != req.Version || pin.SHA256 != req.SHA256 {
 		return nil, errors.New("the update asks for a runner version that is not the pin of this machine")
 	}
-	hr, err := http.NewRequestWithContext(ctx, http.MethodGet, pin.DownloadURL(), nil)
+	hr, err := http.NewRequestWithContext(ctx, http.MethodGet, pin.DownloadURL(p.addr), nil)
 	if err != nil {
 		return nil, err
 	}

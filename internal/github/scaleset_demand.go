@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"strings"
 	"sync"
 	"time"
@@ -85,7 +86,7 @@ func (d *ScaleSetDemand) client(t ScaleSetTarget) *ScaleSetClient {
 	}
 	web := d.WebBase
 	if web == "" {
-		web = DefaultWebBase
+		web = addresses.DefaultGitHubURL
 	}
 	return &ScaleSetClient{
 		APIBase: d.APIBase, ConfigURL: strings.TrimRight(web, "/") + "/" + t.Owner + "/" + t.Repo, Name: d.Name,

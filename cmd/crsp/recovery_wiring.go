@@ -22,7 +22,7 @@ const minAgentProtocol = 2
 
 // mountRecovery serves the frozen recovery call on the agent link: a signed
 // update target for a machine that needs recovery and that the owner armed.
-func mountRecovery(svc *machines.Service, ca *tlsca.Authority, controllerVersion string) {
+func mountRecovery(svc *machines.Service, ca *tlsca.Authority, apiBase, controllerVersion string) {
 	h := &recovery.Handler{
 		Authenticate: func(ctx context.Context, key, id string) (string, error) {
 			m, err := svc.Authenticate(ctx, key, id)
@@ -30,7 +30,7 @@ func mountRecovery(svc *machines.Service, ca *tlsca.Authority, controllerVersion
 		},
 		Armed:  func(ctx context.Context, id, _ string) bool { return svc.RecoveryArmed(ctx, id) },
 		Signer: ca,
-		Target: releaseTarget(controllerVersion),
+		Target: releaseTarget(apiBase, controllerVersion),
 		Served: func(ctx context.Context, id string, t recovery.Target) { svc.RecoveryServed(ctx, id, t.Version) },
 	}
 	svc.SetRecoveryHandler(h)
@@ -38,9 +38,9 @@ func mountRecovery(svc *machines.Service, ca *tlsca.Authority, controllerVersion
 
 // releaseTarget finds the controller's own release for the agent's OS and arch
 // and reads the SHA-256 of its asset from SHA256SUMS.
-func releaseTarget(version string) func(ctx context.Context, req recovery.Request) (recovery.Target, error) {
+func releaseTarget(apiBase, version string) func(ctx context.Context, req recovery.Request) (recovery.Target, error) {
 	return func(ctx context.Context, req recovery.Request) (recovery.Target, error) {
-		rel, err := update.GitHubSource{Version: version}.Latest(ctx)
+		rel, err := update.GitHubSource{Base: apiBase, Version: version}.Latest(ctx)
 		if err != nil {
 			return recovery.Target{}, err
 		}

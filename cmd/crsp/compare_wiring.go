@@ -31,5 +31,5 @@ func newCompareService(gh *github.REST, store repos.Store) (*compare.Service, er
 		}
 		return "", fmt.Errorf("%w: %s", compare.ErrNotFound, full)
 	}
-	return &compare.Service{Source: &compare.API{Bearer: bearer}, Prices: prices}, nil
+	return &compare.Service{Source: &compare.API{Base: gh.APIBase(), Bearer: bearer}, Prices: prices}, nil
 }

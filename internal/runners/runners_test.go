@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -63,18 +64,18 @@ func TestPinnedHash(t *testing.T) {
 			if err != nil || !ValidSHA256(p.SHA256) || p.Version == "" {
 				t.Errorf("%s/%s: %+v %v", os, arch, p, err)
 			}
-			if !strings.HasPrefix(p.DownloadURL(), "https://github.com/actions/runner/releases/download/v"+p.Version+"/actions-runner-") {
-				t.Errorf("url %s", p.DownloadURL())
+			if !strings.HasPrefix(p.DownloadURL(addresses.Set{}), "https://github.com/actions/runner/releases/download/v"+p.Version+"/actions-runner-") {
+				t.Errorf("url %s", p.DownloadURL(addresses.Set{}))
 			}
 		}
 	}
 	if _, err := PinFor("plan9", "x64"); err == nil {
 		t.Error("unknown OS")
 	}
-	if u := (Pin{OS: "windows", Arch: "x64", Version: "2.338.2"}).DownloadURL(); !strings.HasSuffix(u, "actions-runner-win-x64-2.338.2.zip") {
+	if u := (Pin{OS: "windows", Arch: "x64", Version: "2.338.2"}).DownloadURL(addresses.Set{}); !strings.HasSuffix(u, "actions-runner-win-x64-2.338.2.zip") {
 		t.Error(u)
 	}
-	if u := (Pin{OS: "macos", Arch: "arm64", Version: "2.338.2"}).DownloadURL(); !strings.HasSuffix(u, "actions-runner-osx-arm64-2.338.2.tar.gz") {
+	if u := (Pin{OS: "macos", Arch: "arm64", Version: "2.338.2"}).DownloadURL(addresses.Set{}); !strings.HasSuffix(u, "actions-runner-osx-arm64-2.338.2.tar.gz") {
 		t.Error(u)
 	}
 

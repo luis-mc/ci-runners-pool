@@ -25,8 +25,6 @@ const (
 	LabelPauseUntil   = "until I resume"
 	// LabelUpdatePrefix is the up arrow before Update to <version>.
 	LabelUpdatePrefix = "\u2191 Update to "
-	// RepoURL is the repository page that Open on GitHub opens.
-	RepoURL = "https://github.com/luis-mc/ci-runners-shared-pool"
 )
 
 // Console pages the tray opens through a one-time link.

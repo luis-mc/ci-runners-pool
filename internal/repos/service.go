@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"strings"
 	"sync"
 	"time"
@@ -14,11 +15,14 @@ import (
 
 // Config builds a Service.
 type Config struct {
-	Store    Store
-	GitHub   GitHub
-	Tokens   TokenSource
-	Audit    Auditor
-	Capacity Capacity
+	// Addresses are GitHub's addresses for the pages linked to the owner; the
+	// zero value takes the github.com defaults.
+	Addresses addresses.Set
+	Store     Store
+	GitHub    GitHub
+	Tokens    TokenSource
+	Audit     Auditor
+	Capacity  Capacity
 	// Sizes lists the machines with their pool size, for the size variables
 	// such as RUNS_ON_LINUX_LARGE (scheduling R5.67); nil writes none.
 	Sizes SizeCapacity
@@ -71,6 +75,9 @@ type Service struct {
 func New(cfg Config) *Service {
 	if cfg.Now == nil {
 		cfg.Now = time.Now
+	}
+	if cfg.Addresses == (addresses.Set{}) {
+		cfg.Addresses = addresses.Defaults()
 	}
 	return &Service{cfg: cfg, admin: map[int64]map[int64]bool{}, synced: map[int64]time.Time{},
 		etags: map[int64]map[string]string{}, cache: map[int64]map[string][]byte{}, stops: map[string]bool{}, running: map[string]bool{}, fb: newFallbackState()}
