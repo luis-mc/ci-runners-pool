@@ -111,6 +111,14 @@ func toGenRunner(v runners.View) gen.Runner {
 	if r.Labels == nil {
 		out.Labels = []string{}
 	}
+	if r.KeepsState() {
+		keep, size := r.KeepDependencies, r.DependencyCacheBytes
+		out.KeepDependencies, out.DependencyCacheBytes = &keep, &size
+	}
+	if r.UncleanReason != "" {
+		why := r.UncleanReason
+		out.UncleanReason = &why
+	}
 	if v.Reason != "" {
 		why := v.Reason
 		out.Reason = &why
