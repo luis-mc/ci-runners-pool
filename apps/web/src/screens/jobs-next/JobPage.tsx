@@ -1,0 +1,378 @@
+// One job (RES15 review build): where it builds (repository, branch, commit, worktree), its run and attempts, the
+// run's job graph, its steps as a waterfall, the runner, the times, the queue place and ETA, the forecast and the
+// history of its job key. The one primary is "Open the run on GitHub" (LOOK27); no command changes a job.
+import {
+  ActionBar,
+  Badge,
+  Breadcrumbs,
+  Cluster,
+  Empty,
+  ExternalButton,
+  Facts,
+  JobGraph,
+  LinkButton,
+  Page,
+  PageHeader,
+  Section,
+  Sparkline,
+  Stack,
+  Status,
+  Tabs,
+  Text,
+  TextLink,
+  TrendChart,
+  Waterfall,
+  formatDateTime,
+  formatDuration,
+  formatNumber,
+} from '@crsp/ui';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Load } from '../common';
+import { useJobsGet } from './api';
+import { median } from './forecast';
+import type { JobDetail, JobItem, RunItem } from './model';
+import { graphNodes, stepRows } from './runViews';
+import {
+  RUNNER_KIND_WORDS,
+  basisWords,
+  etaWords,
+  forecastWords,
+  jobStatus,
+  rangeWords,
+  repoPath,
+  secondsOrNone,
+  waitWords,
+  waitedSeconds,
+} from './words';
+
+const ghUrl = (u: string | undefined) => (u?.startsWith('https://') ? u : undefined);
+
+export function JobPage() {
+  const { id = '' } = useParams();
+  const { result, reload } = useJobsGet<JobDetail>(
+    `/api/v1/jobs/${encodeURIComponent(id)}`,
+    {},
+    true,
+  );
+  const j = result.state === 'ready' ? result.data : undefined;
+  const url = ghUrl(j?.html_url);
+  return (
+    <Page>
+      <Breadcrumbs
+        trail={[
+          { to: '/jobs', label: 'Jobs' },
+          ...(j
+            ? [
+                {
+                  to: `/jobs/run/${j.run_id}?attempt=${j.run_attempt}`,
+                  label: `Run ${j.run_id}`,
+                },
+              ]
+            : []),
+          { label: j ? j.job_name : 'Job' },
+        ]}
+      />
+      {j ? null : (
+        <PageHeader title="Job" lead="One job: where it built and how long it took." />
+      )}
+      <Load result={result} what="the job" reload={reload}>
+        {(job) => <JobBody j={job} />}
+      </Load>
+      {j && url ? (
+        <ActionBar
+          secondary={
+            <>
+              {j.head_sha ? (
+                <ExternalButton
+                  href={`https://github.com/${j.repository}/commit/${j.head_sha}`}
+                >
+                  Open the commit
+                </ExternalButton>
+              ) : null}
+              {j.pull_request ? (
+                <ExternalButton
+                  href={`https://github.com/${j.repository}/pull/${j.pull_request}`}
+                >
+                  Open the pull request
+                </ExternalButton>
+              ) : null}
+            </>
+          }
+          primary={
+            <ExternalButton href={url} kind="primary">
+              Open the run on GitHub
+            </ExternalButton>
+          }
+        />
+      ) : null}
+    </Page>
+  );
+}
+
+function JobBody({ j }: { j: JobDetail }) {
+  const now = Date.now();
+  const s = jobStatus(j);
+  const when = (t: string | undefined) => (t ? formatDateTime(t) : 'not yet');
+  const waited = waitedSeconds(j, now);
+  const runner = j.runner;
+  const steps = stepRows(j, now);
+  const navigate = useNavigate();
+  const ran =
+    j.state === 'running' && j.started_at
+      ? (now - Date.parse(j.started_at)) / 1000
+      : j.run_seconds;
+  const durations = j.history.map((h) => h.seconds);
+  const last = j.history[j.history.length - 1];
+  return (
+    <Stack>
+      <PageHeader
+        title={j.job_name}
+        lead={`${j.repository}, ${j.workflow ?? 'workflow'}, run ${formatNumber(j.run_id)}, attempt ${j.run_attempt}.`}
+      />
+      <Cluster>
+        <Status kind={s.kind} word={s.word} />
+        {j.state === 'queued' && j.queue_position ? (
+          <Badge>{`number ${j.queue_position} in the queue`}</Badge>
+        ) : null}
+        {j.attempts.length > 1 ? (
+          <Badge>{`attempt ${j.run_attempt} of ${j.attempts.length}`}</Badge>
+        ) : null}
+      </Cluster>
+      {j.state === 'queued' ? (
+        <Section title="Queue">
+          <Facts
+            items={[
+              {
+                name: 'Place',
+                value: j.queue_position
+                  ? `number ${j.queue_position}`
+                  : 'not in the queue yet',
+              },
+              {
+                name: 'Why it waits',
+                value: j.queue_position
+                  ? waitWords(j)
+                  : (j.wait_text ?? 'waits for the jobs it needs'),
+              },
+              { name: 'Waiting for', value: secondsOrNone(waited) },
+              {
+                name: 'Should start',
+                value: j.queue_eta
+                  ? `${etaWords(j.queue_eta)} (a forecast, not a promise)`
+                  : 'not known',
+              },
+            ]}
+          />
+        </Section>
+      ) : null}
+      <Section title="Project and code">
+        <Facts
+          items={[
+            {
+              name: 'Repository',
+              value: <TextLink to={repoPath(j.repository)}>{j.repository}</TextLink>,
+            },
+            { name: 'Workflow', value: j.workflow ?? 'not known' },
+            { name: 'Branch', value: j.branch },
+            { name: 'Worktree or task', value: j.worktree ?? 'not reported' },
+            { name: 'Commit', value: j.head_sha ? j.head_sha.slice(0, 7) : 'not known' },
+            {
+              name: 'Pull request',
+              value: j.pull_request ? `#${j.pull_request}` : 'none',
+            },
+            { name: 'Started by', value: j.trigger ?? 'not known' },
+          ]}
+        />
+      </Section>
+      <Section title="Run and attempts">
+        <Stack>
+          {j.attempts.length > 1 ? (
+            <Tabs
+              label="Attempts of this job"
+              tabs={j.attempts.map((a) => ({
+                id: String(a.job_id),
+                label: `Attempt ${a.attempt}${a.result ? `, ${a.result === 'success' ? 'success' : a.result.replace('_', ' ')}` : ''}`,
+              }))}
+              current={String(j.id)}
+              onChange={(id) => void navigate(`/jobs/${id}`)}
+            />
+          ) : null}
+          <Text tone="muted">
+            {`This job is one of the jobs of run ${formatNumber(j.run_id)}. The graph shows how they depend on each other; the line marked critical path is the longest chain.`}
+          </Text>
+          <RunGraph job={j} />
+          <Cluster>
+            <LinkButton to={`/jobs/run/${j.run_id}?attempt=${j.run_attempt}`}>
+              Open the whole run
+            </LinkButton>
+          </Cluster>
+        </Stack>
+      </Section>
+      <Section
+        title="Steps"
+        hint="Each step on one time line, with its forecast range after the bar."
+      >
+        {j.state === 'queued' ? (
+          <Empty title="The job has not started, so no step has run. The forecast of each step shows once it runs." />
+        ) : (
+          <Waterfall
+            label={`Steps of ${j.job_name}`}
+            rows={steps.rows}
+            {...(steps.nowSec !== undefined ? { nowSec: steps.nowSec } : {})}
+            emptyText="This job reported no steps."
+          />
+        )}
+      </Section>
+      <Section title="Runner">
+        {runner ? (
+          <Facts
+            items={[
+              { name: 'Runner', value: runner.name },
+              { name: 'Runner type', value: RUNNER_KIND_WORDS[runner.kind] },
+              { name: 'Machine', value: runner.machine_name },
+              { name: 'Backend', value: `${runner.backend}, ${runner.isolation}` },
+              {
+                name: 'Cache',
+                value:
+                  runner.cache === 'warm'
+                    ? 'warm, the caches were ready'
+                    : 'cold, the caches were rebuilt',
+              },
+              { name: 'Labels', value: j.labels.join(', ') || 'none' },
+            ]}
+          />
+        ) : (
+          <Empty title="No runner yet. The pool places the job when a slot is free." />
+        )}
+      </Section>
+      <Section title="Times">
+        <Facts
+          items={[
+            { name: 'Queued at', value: when(j.queued_at) },
+            {
+              name: 'Waited',
+              value:
+                waited === undefined
+                  ? 'not yet'
+                  : `${formatDuration(waited)}${j.wait_reason && j.state !== 'queued' ? `, ${waitWords(j)}` : ''}`,
+            },
+            { name: 'Started', value: when(j.started_at) },
+            { name: 'Run time', value: secondsOrNone(ran) },
+            {
+              name: 'Clean-up',
+              value:
+                j.cleanup_seconds !== undefined
+                  ? formatDuration(j.cleanup_seconds)
+                  : 'not yet',
+            },
+            { name: 'Finished', value: when(j.completed_at) },
+          ]}
+        />
+      </Section>
+      <Section title="Forecast">
+        <Facts
+          items={[
+            { name: 'This job should take', value: forecastWords(j.forecast) },
+            { name: 'Based on', value: basisWords(j.forecast) },
+            ...(j.run_eta && j.state !== 'done'
+              ? [{ name: 'The run should end', value: etaWords(j.run_eta) }]
+              : []),
+            ...(j.state === 'done' &&
+            j.forecast.basis !== 'not_enough_history' &&
+            j.run_seconds !== undefined
+              ? [
+                  {
+                    name: 'It took',
+                    value: `${formatDuration(j.run_seconds)}, ${
+                      j.run_seconds >= j.forecast.lo && j.run_seconds <= j.forecast.hi
+                        ? 'inside the range'
+                        : j.run_seconds > j.forecast.hi
+                          ? 'slower than the range'
+                          : 'faster than the range'
+                    }`,
+                  },
+                ]
+              : []),
+          ]}
+        />
+      </Section>
+      <Section
+        title="History of this job"
+        hint={`The same job in earlier runs: ${j.job_key}.`}
+      >
+        {durations.length < 2 ? (
+          <Empty title="Not enough runs yet to draw a history." />
+        ) : (
+          <Stack>
+            <Facts
+              items={[
+                { name: 'Runs kept', value: formatNumber(durations.length) },
+                { name: 'Middle run time', value: formatDuration(median(durations)) },
+                {
+                  name: 'Last run',
+                  value: last
+                    ? `${formatDuration(last.seconds)}, ${last.result.replace('_', ' ')}`
+                    : 'none',
+                },
+                {
+                  name: 'Trend',
+                  value: (
+                    <Sparkline
+                      label={`Run times of ${j.job_name}, last ${durations.length} runs`}
+                      values={durations}
+                      unit="seconds"
+                      markLast
+                    />
+                  ),
+                },
+              ]}
+            />
+            <TrendChart
+              label={`Run time of ${j.job_name} over its last ${durations.length} runs`}
+              unit="seconds"
+              emptyText="No runs yet."
+              series={[
+                {
+                  id: 'run',
+                  label: 'Run time',
+                  points: j.history.map((h) => ({
+                    x: Date.parse(h.at),
+                    y: h.seconds,
+                    note: `${h.result.replace('_', ' ')} on ${h.branch}`,
+                  })),
+                },
+              ]}
+            />
+            <Text tone="muted">{`Forecast range of this job: ${forecastWords(j.forecast)}${j.forecast.basis === 'not_enough_history' ? '' : `, ${rangeWords(j.forecast.lo, j.forecast.hi)}`}.`}</Text>
+          </Stack>
+        )}
+      </Section>
+    </Stack>
+  );
+}
+
+function RunGraph({ job }: { job: JobItem }) {
+  const navigate = useNavigate();
+  const { result, reload } = useJobsGet<RunItem>(
+    `/api/v1/runs/${job.run_id}`,
+    { attempt: job.run_attempt },
+    true,
+  );
+  return (
+    <Load result={result} what="the run" reload={reload}>
+      {(run) => (
+        <JobGraph
+          label={`Jobs of run ${run.id}`}
+          nodes={graphNodes(
+            run,
+            Date.now(),
+            (x) => void navigate(`/jobs/${x.id}`),
+            job.id,
+          )}
+          edges={run.edges}
+          emptyText="This run has no other jobs."
+        />
+      )}
+    </Load>
+  );
+}

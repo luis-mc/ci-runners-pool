@@ -241,7 +241,14 @@ function Palette({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function AppShell({ children }: { children?: ReactNode }) {
+export function AppShell({
+  children,
+  banner,
+}: {
+  children?: ReactNode;
+  /** An extra banner for every screen; only the review build passes one. */
+  banner?: ReactNode;
+}) {
   const session = useSession();
   const live = useLiveState();
   const navigate = useNavigate();
@@ -343,6 +350,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
     .filter((j): j is ActivityJob => j !== undefined);
 
   const banners: ReactNode[] = [];
+  if (banner) banners.push(<div key="extra">{banner}</div>);
   const open = setup ? firstOpenStep(setup) : undefined;
   if (open)
     banners.push(

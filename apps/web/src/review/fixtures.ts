@@ -135,15 +135,44 @@ const R = (
 });
 const [GAME, LINUX] = MACHINES as [MachineRec, MachineRec];
 export const RUNNERS: RunnerRec[] = [
-  R('crsp-gameroom-hyperv-1', 'ephemeral', GAME, 'hyperv', 'VM', 'windows', ['standard', 'heavy']),
-  R('crsp-gameroom-hyperv-2', 'ephemeral', GAME, 'hyperv', 'VM', 'windows', ['standard', 'heavy']),
-  R('crsp-gameroom-win-1', 'persistent', GAME, 'persistent', 'persistent', 'windows', ['light', 'standard']),
-  R('crsp-gameroom-docker-1', 'ephemeral', GAME, 'docker', 'container', 'linux', ['light', 'standard']),
-  R('crsp-gameroom-wsl2-1', 'persistent', GAME, 'wsl2', 'persistent', 'linux', ['light', 'standard', 'heavy']),
-  R('crsp-linuxbox-docker-1', 'ephemeral', LINUX, 'docker', 'container', 'linux', ['light', 'standard']),
-  R('crsp-linuxbox-docker-2', 'ephemeral', LINUX, 'docker', 'container', 'linux', ['light', 'standard', 'heavy']),
-  R('crsp-linuxbox-docker-3', 'ephemeral', LINUX, 'docker', 'container', 'linux', ['standard', 'heavy']),
-  R('crsp-linuxbox-persist-1', 'persistent', LINUX, 'persistent', 'persistent', 'linux', ['light', 'standard']),
+  R('crsp-gameroom-hyperv-1', 'ephemeral', GAME, 'hyperv', 'VM', 'windows', [
+    'standard',
+    'heavy',
+  ]),
+  R('crsp-gameroom-hyperv-2', 'ephemeral', GAME, 'hyperv', 'VM', 'windows', [
+    'standard',
+    'heavy',
+  ]),
+  R('crsp-gameroom-win-1', 'persistent', GAME, 'persistent', 'persistent', 'windows', [
+    'light',
+    'standard',
+  ]),
+  R('crsp-gameroom-docker-1', 'ephemeral', GAME, 'docker', 'container', 'linux', [
+    'light',
+    'standard',
+  ]),
+  R('crsp-gameroom-wsl2-1', 'persistent', GAME, 'wsl2', 'persistent', 'linux', [
+    'light',
+    'standard',
+    'heavy',
+  ]),
+  R('crsp-linuxbox-docker-1', 'ephemeral', LINUX, 'docker', 'container', 'linux', [
+    'light',
+    'standard',
+  ]),
+  R('crsp-linuxbox-docker-2', 'ephemeral', LINUX, 'docker', 'container', 'linux', [
+    'light',
+    'standard',
+    'heavy',
+  ]),
+  R('crsp-linuxbox-docker-3', 'ephemeral', LINUX, 'docker', 'container', 'linux', [
+    'standard',
+    'heavy',
+  ]),
+  R('crsp-linuxbox-persist-1', 'persistent', LINUX, 'persistent', 'persistent', 'linux', [
+    'light',
+    'standard',
+  ]),
 ];
 
 // ---------------------------------------------------------------- workflows
@@ -243,9 +272,30 @@ export const WORKFLOWS: WfTpl[] = [
         base: 250,
         steps: 'test',
       }),
-      J({ name: 'integration', needs: ['unit'], type: 'standard', os: 'linux', base: 330, steps: 'test' }),
-      J({ name: 'build', needs: ['lint', 'typecheck'], type: 'standard', os: 'linux', base: 180, steps: 'build' }),
-      J({ name: 'e2e', needs: ['build', 'integration'], type: 'heavy', os: 'windows', base: 540, steps: 'e2e' }),
+      J({
+        name: 'integration',
+        needs: ['unit'],
+        type: 'standard',
+        os: 'linux',
+        base: 330,
+        steps: 'test',
+      }),
+      J({
+        name: 'build',
+        needs: ['lint', 'typecheck'],
+        type: 'standard',
+        os: 'linux',
+        base: 180,
+        steps: 'build',
+      }),
+      J({
+        name: 'e2e',
+        needs: ['build', 'integration'],
+        type: 'heavy',
+        os: 'windows',
+        base: 540,
+        steps: 'e2e',
+      }),
     ],
   },
   {
@@ -253,7 +303,9 @@ export const WORKFLOWS: WfTpl[] = [
     workflow: 'Docs',
     weight: 4,
     triggers: ['pull_request', 'push'],
-    jobs: [J({ name: 'docs-check', type: 'light', os: 'linux', base: 42, steps: 'light' })],
+    jobs: [
+      J({ name: 'docs-check', type: 'light', os: 'linux', base: 42, steps: 'light' }),
+    ],
   },
   {
     repo: CO,
@@ -274,7 +326,14 @@ export const WORKFLOWS: WfTpl[] = [
         base: 210,
         steps: 'test',
       }),
-      J({ name: 'build', needs: ['lint', 'test'], type: 'standard', os: 'linux', base: 150, steps: 'build' }),
+      J({
+        name: 'build',
+        needs: ['lint', 'test'],
+        type: 'standard',
+        os: 'linux',
+        base: 150,
+        steps: 'build',
+      }),
     ],
   },
   {
@@ -282,7 +341,16 @@ export const WORKFLOWS: WfTpl[] = [
     workflow: 'Visual',
     weight: 2,
     triggers: ['schedule'],
-    jobs: [J({ name: 'e2e-visual', type: 'heavy', os: 'linux', base: 480, steps: 'e2e', past: 3 })],
+    jobs: [
+      J({
+        name: 'e2e-visual',
+        type: 'heavy',
+        os: 'linux',
+        base: 480,
+        steps: 'e2e',
+        past: 3,
+      }),
+    ],
   },
   {
     repo: HA,
@@ -290,8 +358,22 @@ export const WORKFLOWS: WfTpl[] = [
     weight: 5,
     triggers: ['pull_request', 'push'],
     jobs: [
-      J({ name: 'py-test', matrix: [['3.12'], ['3.13']], type: 'standard', os: 'linux', base: 130, steps: 'test' }),
-      J({ name: 'integration', needs: ['py-test'], type: 'heavy', os: 'linux', base: 400, steps: 'e2e' }),
+      J({
+        name: 'py-test',
+        matrix: [['3.12'], ['3.13']],
+        type: 'standard',
+        os: 'linux',
+        base: 130,
+        steps: 'test',
+      }),
+      J({
+        name: 'integration',
+        needs: ['py-test'],
+        type: 'heavy',
+        os: 'linux',
+        base: 400,
+        steps: 'e2e',
+      }),
     ],
   },
   {
@@ -299,15 +381,30 @@ export const WORKFLOWS: WfTpl[] = [
     workflow: 'Firmware',
     weight: 2,
     triggers: ['push'],
-    jobs: [J({ name: 'build-firmware', type: 'heavy', os: 'linux', base: 620, steps: 'build' })],
+    jobs: [
+      J({
+        name: 'build-firmware',
+        type: 'heavy',
+        os: 'linux',
+        base: 620,
+        steps: 'build',
+      }),
+    ],
   },
   {
     repo: DS,
-    workflow: 'Check',
+    workflow: 'Validate',
     weight: 3,
     triggers: ['pull_request', 'push'],
     jobs: [
-      J({ name: 'validate', type: 'light', os: 'linux', base: 36, steps: 'light', past: 2 }),
+      J({
+        name: 'validate',
+        type: 'light',
+        os: 'linux',
+        base: 36,
+        steps: 'light',
+        past: 2,
+      }),
       J({ name: 'docs', type: 'light', os: 'linux', base: 52, steps: 'light', past: 2 }),
     ],
   },
@@ -323,17 +420,93 @@ export const RELEASE: WfTpl = {
     J({ name: 'lint', type: 'light', os: 'linux', base: 70, steps: 'light' }),
     J({ name: 'typecheck', type: 'light', os: 'linux', base: 96, steps: 'light' }),
     J({ name: 'unit-linux', type: 'standard', os: 'linux', base: 250, steps: 'test' }),
-    J({ name: 'unit-windows', type: 'standard', os: 'windows', base: 330, steps: 'test' }),
-    J({ name: 'build-controller', needs: ['lint', 'typecheck'], type: 'standard', os: 'linux', base: 200, steps: 'build' }),
-    J({ name: 'build-agent-linux', needs: ['lint', 'typecheck'], type: 'standard', os: 'linux', base: 170, steps: 'build' }),
-    J({ name: 'build-agent-windows', needs: ['lint', 'typecheck', 'unit-windows'], type: 'standard', os: 'windows', base: 260, steps: 'build' }),
-    J({ name: 'build-web', needs: ['lint', 'unit-linux'], type: 'standard', os: 'linux', base: 140, steps: 'build' }),
-    J({ name: 'integration', needs: ['build-controller', 'build-agent-linux'], type: 'standard', os: 'linux', base: 340, steps: 'test' }),
-    J({ name: 'e2e-web', needs: ['build-web', 'build-controller'], type: 'heavy', os: 'windows', base: 560, steps: 'e2e' }),
-    J({ name: 'package-msi', needs: ['build-agent-windows', 'integration'], type: 'standard', os: 'windows', base: 230, steps: 'build' }),
-    J({ name: 'package-deb', needs: ['build-agent-linux', 'integration'], type: 'standard', os: 'linux', base: 120, steps: 'build' }),
-    J({ name: 'package-docker', needs: ['build-controller', 'e2e-web'], type: 'heavy', os: 'linux', base: 410, steps: 'build' }),
-    J({ name: 'publish', needs: ['package-msi', 'package-deb', 'package-docker'], type: 'light', os: 'linux', base: 90, steps: 'publish' }),
+    J({
+      name: 'unit-windows',
+      type: 'standard',
+      os: 'windows',
+      base: 330,
+      steps: 'test',
+    }),
+    J({
+      name: 'build-controller',
+      needs: ['lint', 'typecheck'],
+      type: 'standard',
+      os: 'linux',
+      base: 200,
+      steps: 'build',
+    }),
+    J({
+      name: 'build-agent-linux',
+      needs: ['lint', 'typecheck'],
+      type: 'standard',
+      os: 'linux',
+      base: 170,
+      steps: 'build',
+    }),
+    J({
+      name: 'build-agent-windows',
+      needs: ['lint', 'typecheck', 'unit-windows'],
+      type: 'standard',
+      os: 'windows',
+      base: 260,
+      steps: 'build',
+    }),
+    J({
+      name: 'build-web',
+      needs: ['lint', 'unit-linux'],
+      type: 'standard',
+      os: 'linux',
+      base: 140,
+      steps: 'build',
+    }),
+    J({
+      name: 'integration',
+      needs: ['build-controller', 'build-agent-linux'],
+      type: 'standard',
+      os: 'linux',
+      base: 340,
+      steps: 'test',
+    }),
+    J({
+      name: 'e2e-web',
+      needs: ['build-web', 'build-controller'],
+      type: 'heavy',
+      os: 'windows',
+      base: 560,
+      steps: 'e2e',
+    }),
+    J({
+      name: 'package-msi',
+      needs: ['build-agent-windows', 'integration'],
+      type: 'standard',
+      os: 'windows',
+      base: 230,
+      steps: 'build',
+    }),
+    J({
+      name: 'package-deb',
+      needs: ['build-agent-linux', 'integration'],
+      type: 'standard',
+      os: 'linux',
+      base: 120,
+      steps: 'build',
+    }),
+    J({
+      name: 'package-docker',
+      needs: ['build-controller', 'e2e-web'],
+      type: 'heavy',
+      os: 'linux',
+      base: 410,
+      steps: 'build',
+    }),
+    J({
+      name: 'publish',
+      needs: ['package-msi', 'package-deb', 'package-docker'],
+      type: 'light',
+      os: 'linux',
+      base: 90,
+      steps: 'publish',
+    }),
   ],
 };
 
@@ -378,8 +551,13 @@ function historyFor(tpl: JobTpl, key: string, matrixFactor: number): HistoryPoin
   const n = tpl.past ?? 30;
   const out: HistoryPoint[] = [];
   for (let i = 0; i < n; i++) {
-    const at = FIXED_NOW - (n - i) * (rng.between(0.6, 1.6) * DAY) - rng.between(0, 0.4) * DAY;
-    const result: JobResult = rng.chance(0.9) ? 'success' : rng.chance(0.7) ? 'failure' : 'cancelled';
+    const at =
+      FIXED_NOW - (n - i) * (rng.between(0.6, 1.6) * DAY) - rng.between(0, 0.4) * DAY;
+    const result: JobResult = rng.chance(0.9)
+      ? 'success'
+      : rng.chance(0.7)
+        ? 'failure'
+        : 'cancelled';
     const drift = 1 + (i / n - 0.5) * 0.06;
     out.push({
       at: iso(at),
@@ -408,9 +586,12 @@ export interface FixtureData {
 
 const WAIT_TEXT: Record<WaitReason, (machine: string) => string> = {
   free_slot: (m) => `waits for a free slot on ${m} (every slot is busy)`,
-  load_over_budget: (m) => `waits until the load of ${m} is under its budget (memory 91% over 80%)`,
-  no_runner_with_labels: () => 'waits for a runner with its labels (self-hosted, windows, crsp-heavy)',
-  repository_parallel_limit: () => "waits for the repository's parallel limit (2 of 2 running)",
+  load_over_budget: (m) =>
+    `waits until the load of ${m} is under its budget (memory 91% over 80%)`,
+  no_runner_with_labels: () =>
+    'waits for a runner with its labels (self-hosted, windows, crsp-heavy)',
+  repository_parallel_limit: () =>
+    "waits for the repository's parallel limit (2 of 2 running)",
   machine_drained: (m) => `waits because ${m} is not taking jobs (it is being drained)`,
   quiet_hours: () => 'waits for quiet hours to end at 18:00',
   load_not_measured: (m) => `waits because the load of ${m} is not measured yet`,
@@ -447,7 +628,8 @@ function makeSteps(
 ): StepItem[] {
   const shares = STEPS[tpl.steps] as readonly Share[];
   const total = shares.reduce((a, s) => a + s[1], 0);
-  const failAt = result === 'success' ? -1 : shares.length - 3 - (rng.chance(0.5) ? 1 : 0);
+  const failAt =
+    result === 'success' ? -1 : shares.length - 3 - (rng.chance(0.5) ? 1 : 0);
   const out: StepItem[] = [];
   let t = startMs;
   let remaining = runSec;
@@ -458,7 +640,9 @@ function makeSteps(
       return;
     }
     const last = i === shares.length - 1;
-    const own = last ? Math.max(1, remaining) : Math.max(1, Math.round((runSec * share) / total * (0.85 + rng.f() * 0.3)));
+    const own = last
+      ? Math.max(1, remaining)
+      : Math.max(1, Math.round(((runSec * share) / total) * (0.85 + rng.f() * 0.3)));
     const sec = Math.min(own, Math.max(1, remaining - (last ? 0 : 1)));
     const stepResult: StepItem['result'] =
       i === failAt ? (result === 'cancelled' ? 'cancelled' : 'failure') : 'success';
@@ -512,7 +696,9 @@ function makeRun(ctx: Ctx, spec: RunSpec): JobItem[] {
   const { tpl } = spec;
   const sha = rng.hex(40);
   const pr = spec.trigger === 'pull_request' ? 40 + (hash(spec.branch) % 60) : undefined;
-  const nodes = tpl.jobs.flatMap((t) => copiesOf(t).map((m) => ({ t, m, id: nodeIdOf(t, m) })));
+  const nodes = tpl.jobs.flatMap((t) =>
+    copiesOf(t).map((m) => ({ t, m, id: nodeIdOf(t, m) })),
+  );
   const byName = (name: string) => nodes.filter((n) => n.t.name === name);
   const made = new Map<string, JobItem>();
   const finish = new Map<string, number>();
@@ -534,7 +720,13 @@ function makeRun(ctx: Ctx, spec: RunSpec): JobItem[] {
     if (spec.only && !spec.only.has(n.id)) continue;
     const needs = (n.t.needs ?? []).flatMap((x) => byName(x).map((d) => d.id));
     // A node whose need failed or never ran does not run (done runs).
-    if (!open && needs.some((d) => failedNodes.has(d) || (spec.only && !spec.only.has(d) ? false : !made.has(d)))) {
+    if (
+      !open &&
+      needs.some(
+        (d) =>
+          failedNodes.has(d) || (spec.only && !spec.only.has(d) ? false : !made.has(d)),
+      )
+    ) {
       if (needs.some((d) => failedNodes.has(d))) {
         failedNodes.add(n.id);
         continue;
@@ -550,12 +742,18 @@ function makeRun(ctx: Ctx, spec: RunSpec): JobItem[] {
     const state0 = open ? (open[n.id] ?? 'blocked') : 'done';
     const factor = matrixFactorOf(n.m);
     const planned = Math.round(n.t.base * factor * rng.noise());
-    const waitBase = open ? rng.between(8, 60) : rng.chance(0.15) ? rng.between(120, 900) : rng.between(4, 70);
+    const waitBase = open
+      ? rng.between(8, 60)
+      : rng.chance(0.15)
+        ? rng.between(120, 900)
+        : rng.between(4, 70);
     const wait = Math.round(waitBase + (spec.busy ?? 0));
 
     // Runner.
     const eligible = RUNNERS.filter(
-      (r) => r.os === (n.m.includes('windows') ? 'windows' : n.t.os) && r.takes.includes(n.t.type),
+      (r) =>
+        r.os === (n.m.includes('windows') ? 'windows' : n.t.os) &&
+        r.takes.includes(n.t.type),
     );
     const runner = rng.pick(eligible.length ? eligible : RUNNERS);
 
@@ -590,15 +788,20 @@ function makeRun(ctx: Ctx, spec: RunSpec): JobItem[] {
         runSec = 0;
       }
     } else {
-      const ready = Math.max(spec.createdAt + 3000, ...needs.map((d) => finish.get(d) ?? 0));
+      const ready = Math.max(
+        spec.createdAt + 3000,
+        ...needs.map((d) => finish.get(d) ?? 0),
+      );
       queuedAt = ready + Math.round(rng.between(1, 4)) * 1000;
       const free = runnerFree.get(runner.id) ?? 0;
       startedAt = Math.max(queuedAt + wait * 1000, free);
       const fail = spec.fail?.node === n.id ? spec.fail.result : undefined;
       result = fail ?? 'success';
       if (result === 'timed_out') runSec = Math.round(planned * 3.2);
-      else if (result === 'failure') runSec = Math.round(planned * rng.between(0.35, 0.9));
-      else if (result === 'cancelled') runSec = Math.round(planned * rng.between(0.2, 0.6));
+      else if (result === 'failure')
+        runSec = Math.round(planned * rng.between(0.35, 0.9));
+      else if (result === 'cancelled')
+        runSec = Math.round(planned * rng.between(0.2, 0.6));
       completedAt = startedAt + runSec * 1000;
       runnerFree.set(runner.id, completedAt + 20_000);
       finish.set(n.id, completedAt + 20_000);
@@ -608,8 +811,12 @@ function makeRun(ctx: Ctx, spec: RunSpec): JobItem[] {
     const forecast = chainForecast(
       {
         jobKey: hist.filter((h) => Date.parse(h.at) < (startedAt ?? FIXED_NOW)),
-        workflow: workflowHistory(ctx, tpl).filter((h) => Date.parse(h.at) < (startedAt ?? FIXED_NOW)),
-        repository: repoHistory(ctx, tpl.repo).filter((h) => Date.parse(h.at) < (startedAt ?? FIXED_NOW)),
+        workflow: workflowHistory(ctx, tpl).filter(
+          (h) => Date.parse(h.at) < (startedAt ?? FIXED_NOW),
+        ),
+        repository: repoHistory(ctx, tpl.repo).filter(
+          (h) => Date.parse(h.at) < (startedAt ?? FIXED_NOW),
+        ),
       },
       startedAt ?? FIXED_NOW,
       runner.machine_name,
@@ -628,7 +835,8 @@ function makeRun(ctx: Ctx, spec: RunSpec): JobItem[] {
             isolation: runner.isolation,
             cache: rng.chance(0.78) ? 'warm' : 'cold',
           };
-    if (runnerRef?.cache === 'cold') runSec = state === 'done' ? Math.round(runSec * 1.18) : runSec;
+    if (runnerRef?.cache === 'cold')
+      runSec = state === 'done' ? Math.round(runSec * 1.18) : runSec;
     if (state === 'done' && startedAt !== undefined && runnerRef?.cache === 'cold')
       completedAt = startedAt + runSec * 1000;
 
@@ -638,7 +846,7 @@ function makeRun(ctx: Ctx, spec: RunSpec): JobItem[] {
       repository_id: repoId(tpl.repo),
       run_id: spec.id,
       run_attempt: spec.attempt,
-      github_job_id: 31_000_000_000 + hash(`${spec.id}-${n.id}`) % 900_000_000,
+      github_job_id: 31_000_000_000 + (hash(`${spec.id}-${n.id}`) % 900_000_000),
       workflow: tpl.workflow,
       job_name: nodeIdOf(n.t, n.m),
       head_sha: sha,
@@ -647,7 +855,7 @@ function makeRun(ctx: Ctx, spec: RunSpec): JobItem[] {
       state,
       created_at: iso(spec.createdAt),
       queued_at: iso(queuedAt),
-      html_url: `https://github.com/${tpl.repo}/actions/runs/${spec.id}/job/${31_000_000_000 + hash(`${spec.id}-${n.id}`) % 900_000_000}`,
+      html_url: `https://github.com/${tpl.repo}/actions/runs/${spec.id}/job/${31_000_000_000 + (hash(`${spec.id}-${n.id}`) % 900_000_000)}`,
       job_key: key,
       node_id: n.id,
       matrix: n.m,
@@ -675,10 +883,24 @@ function makeRun(ctx: Ctx, spec: RunSpec): JobItem[] {
       job.run_seconds = runSec;
       job.result = result as JobResult;
       job.cleanup_seconds =
-        runnerRef?.isolation === 'VM' ? Math.round(rng.between(38, 85)) : Math.round(rng.between(4, 24));
+        runnerRef?.isolation === 'VM'
+          ? Math.round(rng.between(38, 85))
+          : Math.round(rng.between(4, 24));
       job.steps = makeSteps(n.t, startedAt, runSec, result as JobResult, rng, forecast);
     } else if (state === 'running' && startedAt !== undefined) {
-      job.steps = liveSteps(job, ctx.plans.get(id) ?? [], FIXED_NOW);
+      const template: StepItem[] = (STEPS[n.t.steps] as readonly Share[]).map(
+        ([name, share], i) => ({
+          number: i + 1,
+          name,
+          state: 'queued' as const,
+          forecast: stepForecast(forecast, share),
+        }),
+      );
+      job.steps = liveSteps(
+        { ...job, steps: template },
+        ctx.plans.get(id) ?? [],
+        FIXED_NOW,
+      );
     } else {
       job.steps = (STEPS[n.t.steps] as readonly Share[]).map(([name, share], i) => ({
         number: i + 1,
@@ -686,6 +908,11 @@ function makeRun(ctx: Ctx, spec: RunSpec): JobItem[] {
         state: 'queued' as const,
         forecast: stepForecast(forecast, share),
       }));
+    }
+    if (state === 'done' && (job.github_wait_seconds ?? 0) > 90) {
+      const reason: WaitReason = rng.chance(0.7) ? 'free_slot' : 'load_over_budget';
+      job.wait_reason = reason;
+      job.wait_text = WAIT_TEXT[reason](runnerRef?.machine_name ?? 'the machine');
     }
     if (state === 'queued' && state0 === 'queued') {
       job.wait_reason = 'free_slot';
@@ -702,11 +929,17 @@ function makeRun(ctx: Ctx, spec: RunSpec): JobItem[] {
 function planSteps(t: JobTpl, plannedSec: number, rng: Rng): number[] {
   const shares = STEPS[t.steps] as readonly Share[];
   const total = shares.reduce((a, s) => a + s[1], 0);
-  return shares.map(([, s]) => Math.max(1, Math.round(((plannedSec * s) / total) * (0.9 + rng.f() * 0.2))));
+  return shares.map(([, s]) =>
+    Math.max(1, Math.round(((plannedSec * s) / total) * (0.9 + rng.f() * 0.2))),
+  );
 }
 
 /** The steps of a running job at time `now`, from its planned step seconds: done, one running, the rest queued. */
-export function liveSteps(job: JobItem, plan: readonly number[], now: number): StepItem[] {
+export function liveSteps(
+  job: JobItem,
+  plan: readonly number[],
+  now: number,
+): StepItem[] {
   const started = job.started_at ? Date.parse(job.started_at) : now;
   const elapsed = Math.max(0, (now - started) / 1000);
   const base = job.steps ?? [];
@@ -811,17 +1044,29 @@ export function buildFixtures(now = FIXED_NOW): FixtureData {
   const retried = 15;
   times.forEach((at, i) => {
     const tpl = weighted(rng, WORKFLOWS);
-    const branch = weighted(rng, BRANCHES[tpl.repo] as { name: string; weight: number }[]).name;
+    const branch = weighted(
+      rng,
+      BRANCHES[tpl.repo] as { name: string; weight: number }[],
+    ).name;
     const trigger =
-      tpl.triggers.length === 1 ? (tpl.triggers[0] as string) : branch === 'main' ? 'push' : 'pull_request';
+      tpl.triggers.length === 1
+        ? (tpl.triggers[0] as string)
+        : branch === 'main'
+          ? 'push'
+          : 'pull_request';
     const nodeNames = tpl.jobs.flatMap((t) => copiesOf(t).map((m) => nodeIdOf(t, m)));
     const roll = rng.f();
-    const forced: Record<number, JobResult> = { 4: 'cancelled', 9: 'timed_out', 12: 'failure', 22: 'failure' };
+    const forced: Record<number, JobResult> = {
+      4: 'cancelled',
+      9: 'timed_out',
+      12: 'failure',
+      22: 'failure',
+    };
     const fail: RunSpec['fail'] =
       i === retried
         ? { node: 'integration', result: 'failure' }
         : forced[i]
-          ? { node: rng.pick(nodeNames), result: forced[i] as JobResult }
+          ? { node: rng.pick(nodeNames), result: forced[i] }
           : roll < 0.08
             ? { node: rng.pick(nodeNames), result: 'failure' }
             : undefined;
@@ -843,15 +1088,25 @@ export function buildFixtures(now = FIXED_NOW): FixtureData {
   for (const spec of specs) {
     const made = makeRun(ctx, spec);
     jobs.push(...made);
-    if (spec.fail && spec.branch === 'RES14-pool-size' && spec.fail.node === 'integration') {
+    if (
+      spec.fail &&
+      spec.branch === 'RES14-pool-size' &&
+      spec.fail.node === 'integration'
+    ) {
       // The retry: attempt 2 re-runs the failed job and what depends on it.
-      const failedIds = new Set(made.filter((j) => j.result === 'failure').map((j) => j.node_id));
+      const failedIds = new Set(
+        made.filter((j) => j.result === 'failure').map((j) => j.node_id),
+      );
       const again = new Set<string>();
-      for (const n of spec.tpl.jobs.flatMap((t) => copiesOf(t).map((m) => ({ id: nodeIdOf(t, m), t })))) {
+      for (const n of spec.tpl.jobs.flatMap((t) =>
+        copiesOf(t).map((m) => ({ id: nodeIdOf(t, m), t })),
+      )) {
         if (failedIds.has(n.id)) again.add(n.id);
       }
       again.add('e2e').add('build');
-      const last = Math.max(...made.map((j) => Date.parse(j.completed_at ?? j.created_at ?? '')));
+      const last = Math.max(
+        ...made.map((j) => Date.parse(j.completed_at ?? j.created_at ?? '')),
+      );
       jobs.push(
         ...makeRun(ctx, {
           ...spec,
@@ -910,10 +1165,20 @@ export function buildFixtures(now = FIXED_NOW): FixtureData {
       WORKFLOWS[4] as WfTpl,
       'feature/garage-sensor',
       'pull_request',
-      { 'py-test [3.12]': 'running', 'py-test [3.13]': 'running', integration: 'blocked' },
+      {
+        'py-test [3.12]': 'running',
+        'py-test [3.13]': 'running',
+        integration: 'blocked',
+      },
       undefined,
     ],
-    [WORKFLOWS[6] as WfTpl, 'main', 'push', { validate: 'running', docs: 'done' }, undefined],
+    [
+      WORKFLOWS[6] as WfTpl,
+      'main',
+      'push',
+      { validate: 'running', docs: 'done' },
+      undefined,
+    ],
   ];
   open.forEach(([tpl, branch, trigger, states, worktree], i) => {
     jobs.push(
@@ -936,17 +1201,41 @@ export function buildFixtures(now = FIXED_NOW): FixtureData {
       WORKFLOWS[0] as WfTpl,
       'dependabot/npm_and_yarn/vite-8.3.8',
       'pull_request',
-      { lint: 'queued', typecheck: 'queued', 'unit [ubuntu]': 'queued', 'unit [windows]': 'queued', integration: 'blocked', build: 'blocked', e2e: 'blocked' },
+      {
+        lint: 'queued',
+        typecheck: 'queued',
+        'unit [ubuntu]': 'queued',
+        'unit [windows]': 'queued',
+        integration: 'blocked',
+        build: 'blocked',
+        e2e: 'blocked',
+      },
     ],
     [
       WORKFLOWS[2] as WfTpl,
       'feature/series-grouping',
       'pull_request',
-      { lint: 'queued', 'test [ubuntu, 22]': 'queued', 'test [ubuntu, 24]': 'queued', 'test [windows, 24]': 'queued', build: 'blocked' },
+      {
+        lint: 'queued',
+        'test [ubuntu, 22]': 'queued',
+        'test [ubuntu, 24]': 'queued',
+        'test [windows, 24]': 'queued',
+        build: 'blocked',
+      },
     ],
     [WORKFLOWS[5] as WfTpl, 'main', 'push', { 'build-firmware': 'queued' }],
-    [WORKFLOWS[6] as WfTpl, 'wip/css-tokens', 'pull_request', { validate: 'queued', docs: 'blocked' }],
-    [WORKFLOWS[1] as WfTpl, 'HND27-handover-notes', 'pull_request', { 'docs-check': 'queued' }],
+    [
+      WORKFLOWS[6] as WfTpl,
+      'wip/css-tokens',
+      'pull_request',
+      { validate: 'queued', docs: 'blocked' },
+    ],
+    [
+      WORKFLOWS[1] as WfTpl,
+      'HND27-handover-notes',
+      'pull_request',
+      { 'docs-check': 'queued' },
+    ],
     [WORKFLOWS[3] as WfTpl, 'main', 'schedule', { 'e2e-visual': 'queued' }],
   ];
   queuedRuns.forEach(([tpl, branch, trigger, states], i) => {
@@ -992,12 +1281,21 @@ export function buildFixtures(now = FIXED_NOW): FixtureData {
     j.queue_position = i + 1;
     const reason = reasons[i] ?? 'free_slot';
     j.wait_reason = reason;
-    const machine =
-      j.labels.includes('windows') ? 'GameRoomPC' : j.job_type === 'heavy' ? 'linux-box' : i % 2 ? 'linux-box' : 'GameRoomPC';
+    const machine = j.labels.includes('windows')
+      ? 'GameRoomPC'
+      : j.job_type === 'heavy'
+        ? 'linux-box'
+        : i % 2
+          ? 'linux-box'
+          : 'GameRoomPC';
     j.wait_text = `${WAIT_TEXT[reason](machine)}${i > 0 ? `, ${i} ahead in the queue` : ''}`;
     const ahead: Eta[] = queued.slice(0, i).map((q) => etaOf(q.forecast, 240));
     j.queue_eta = finiteEta(
-      queueEta({ runningLeft, freeSlots: Math.max(0, totalSlots - running.length), ahead }),
+      queueEta({
+        runningLeft,
+        freeSlots: Math.max(0, totalSlots - running.length),
+        ahead,
+      }),
     );
   });
 
@@ -1030,7 +1328,11 @@ export function dagOf(jobs: readonly JobItem[], now: number): DagNode[] {
     const base = etaOf(j.forecast, 240);
     let remaining: Eta;
     // The run's range is the sum of p25 to the sum of p75 along the path (forecast method 6).
-    const q = { p50: base.p50, lo: j.forecast.p25 ?? base.lo, hi: j.forecast.p75 ?? base.hi };
+    const q = {
+      p50: base.p50,
+      lo: j.forecast.p25 ?? base.lo,
+      hi: j.forecast.p75 ?? base.hi,
+    };
     if (j.state === 'done') remaining = { p50: 0, lo: 0, hi: 0 };
     else if (j.state === 'running') {
       const ran = j.started_at ? (now - Date.parse(j.started_at)) / 1000 : 0;
@@ -1053,7 +1355,8 @@ export function buildRuns(jobs: readonly JobItem[], now: number): RunItem[] {
   const attemptsOf = new Map<number, number[]>();
   for (const j of jobs) {
     const a = attemptsOf.get(j.run_id) ?? [];
-    if (!a.includes(j.run_attempt)) attemptsOf.set(j.run_id, [...a, j.run_attempt].sort());
+    if (!a.includes(j.run_attempt))
+      attemptsOf.set(j.run_id, [...a, j.run_attempt].sort());
   }
   const runs: RunItem[] = [];
   for (const js of groups.values()) {

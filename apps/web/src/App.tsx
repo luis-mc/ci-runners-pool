@@ -9,6 +9,7 @@ import {
   PageHeader,
 } from '@crsp/ui';
 import type { ApiClient } from '@crsp/contract';
+import type { ReactNode } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { ApiProvider } from './api/api';
 import { SignInPage, NoAccess } from './auth/SignIn';
@@ -48,7 +49,13 @@ import { UpdateCompactPage, UpdateReviewPage } from './screens/settings/Updates'
 import { SetupPage } from './screens/setup/Setup';
 
 /** No valid session: every path but /sign-in and /setup goes to /sign-in and keeps the path (R5.8). */
-function Gate({ factory }: { factory: EventSourceFactory | undefined }) {
+function Gate({
+  factory,
+  banner,
+}: {
+  factory: EventSourceFactory | undefined;
+  banner: ReactNode;
+}) {
   const session = useSession();
   const location = useLocation();
   const s = session.state;
@@ -87,7 +94,7 @@ function Gate({ factory }: { factory: EventSourceFactory | undefined }) {
   return (
     <LiveProvider {...(factory ? { factory } : {})}>
       <ThemeApplier />
-      <AppShell>
+      <AppShell {...(banner ? { banner } : {})}>
         <FaultBoundary key={location.pathname}>
           <Outlet />
         </FaultBoundary>
@@ -146,10 +153,16 @@ function CompactGate() {
 export function App({
   client,
   eventSource,
+  jobsRoutes,
+  banner,
 }: {
   client?: ApiClient;
   /** A stream factory for tests; the browser's EventSource is used when it is not given. */
   eventSource?: EventSourceFactory;
+  /** Replaces the Jobs routes. Only the review build passes it; the console does not. */
+  jobsRoutes?: ReactNode;
+  /** A banner in every signed-in screen. Only the review build passes it. */
+  banner?: ReactNode;
 }) {
   return (
     <ApiProvider {...(client ? { client } : {})}>
@@ -162,7 +175,7 @@ export function App({
               <Route element={<CompactGate />}>
                 <Route path="update" element={<UpdateCompactPage />} />
               </Route>
-              <Route element={<Gate factory={eventSource} />}>
+              <Route element={<Gate factory={eventSource} banner={banner} />}>
                 <Route index element={<Overview />} />
                 <Route path="repositories" element={<RepositoriesList />} />
                 <Route path="repositories/turn-on" element={<TurnOnPoolPage />} />
@@ -178,21 +191,28 @@ export function App({
                 <Route path="pool/machines/:id" element={<MachineDetail />} />
                 <Route path="pool/runners/add" element={<AddRunnersPage />} />
                 <Route path="pool/images/:imageId" element={<ImageDetail />} />
-                <Route element={<JobsLayout />}>
-                  <Route path="jobs" element={<JobsList />} />
-                  <Route
-                    path="jobs/repository"
-                    element={<JobsGrouped by="repository" />}
-                  />
-                  <Route path="jobs/machine" element={<JobsGrouped by="machine" />} />
-                  <Route
-                    path="jobs/runner-type"
-                    element={<JobsGrouped by="runner-type" />}
-                  />
-                  <Route path="jobs/job-type" element={<JobsGrouped by="job-type" />} />
-                  <Route path="jobs/trends" element={<JobsTrends />} />
-                </Route>
-                <Route path="jobs/:id" element={<JobDetail />} />
+                {jobsRoutes ?? (
+                  <>
+                    <Route element={<JobsLayout />}>
+                      <Route path="jobs" element={<JobsList />} />
+                      <Route
+                        path="jobs/repository"
+                        element={<JobsGrouped by="repository" />}
+                      />
+                      <Route path="jobs/machine" element={<JobsGrouped by="machine" />} />
+                      <Route
+                        path="jobs/runner-type"
+                        element={<JobsGrouped by="runner-type" />}
+                      />
+                      <Route
+                        path="jobs/job-type"
+                        element={<JobsGrouped by="job-type" />}
+                      />
+                      <Route path="jobs/trends" element={<JobsTrends />} />
+                    </Route>
+                    <Route path="jobs/:id" element={<JobDetail />} />
+                  </>
+                )}
                 {MOVED.map(([from, to]) => (
                   <Route key={from} path={from} element={<MovedTo to={to} />} />
                 ))}

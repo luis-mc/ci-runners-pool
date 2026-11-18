@@ -115,3 +115,4 @@ One entry per change, `- C<n>: what changed (file; source)`.
 - C110: new component 52, `Sparkline`: a small line with its label and last, lowest and highest value as text (components.md 52, content.md Chart words; RES15)
 - C111: new component 53, `Heatmap`: weekday by hour grid in five steps with an outlined peak and a day table (components.md 53, content.md Chart words; RES15)
 - C112: new component 54, `ForecastChart`: forecast against actual with a diagonal, range brackets with end caps, round dots inside and diamonds outside the range (components.md 54, content.md Chart words; RES15)
+- C113: words of the Jobs section added: tabs, columns, queue order, forecast, history and chart words (content.md; RES15 review build)

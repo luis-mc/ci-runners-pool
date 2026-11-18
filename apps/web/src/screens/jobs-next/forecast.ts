@@ -89,7 +89,10 @@ export function usableHistory(
   machine?: string,
 ): { points: HistoryPoint[]; machine?: string } {
   const recent = history
-    .filter((h) => h.result === 'success' && now - Date.parse(h.at) <= MAX_AGE_DAYS * 86_400_000)
+    .filter(
+      (h) =>
+        h.result === 'success' && now - Date.parse(h.at) <= MAX_AGE_DAYS * 86_400_000,
+    )
     .sort((a, b) => a.at.localeCompare(b.at));
   if (machine) {
     const same = recent.filter((h) => h.machine === machine);
@@ -105,7 +108,11 @@ export interface HistoryChain {
 }
 
 /** Job key first; with fewer than 5 samples the workflow, then the repository; else 'not enough history'. */
-export function chainForecast(chain: HistoryChain, now: number, machine?: string): Forecast {
+export function chainForecast(
+  chain: HistoryChain,
+  now: number,
+  machine?: string,
+): Forecast {
   const levels: ['job_key' | 'workflow' | 'repository', readonly HistoryPoint[]][] = [
     ['job_key', chain.jobKey],
     ['workflow', chain.workflow],
@@ -227,5 +234,7 @@ export function insideRange(
   points: readonly { actual: number; lo: number; hi: number }[],
 ): number {
   if (points.length === 0) return 0;
-  return points.filter((p) => p.actual >= p.lo && p.actual <= p.hi).length / points.length;
+  return (
+    points.filter((p) => p.actual >= p.lo && p.actual <= p.hi).length / points.length
+  );
 }

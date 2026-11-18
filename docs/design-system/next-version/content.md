@@ -936,3 +936,38 @@ The words of Settings > Access > Webhooks and the link on the repository page (g
 | Write the address without a user name, a query or a #fragment. | Mistake. |
 | The App does not listen for workflow jobs yet. On GitHub, open the App's permissions page and under Subscribe to events tick Workflow job, then save. Jobs are learned by webhooks once you have done that. | Guided step; its button is Open the App on GitHub. |
 | Turn on webhooks | Link at the end of the repository note "no webhook"; goes to Settings > Access > Webhooks. |
+
+## Jobs section words (RES15 review build)
+
+The words of the new Jobs section (web-console 4.6, proposed). A wait names what is happening (UX-29); a status is a word, a glyph and a colour (UX-58); a chart has a text equivalent (UX-41, UX-17).
+
+| Word | Where and meaning |
+|---|---|
+| Queue, Running, Done | Tabs and pane titles of the three lists. |
+| By repository, By machine, By runner, By runner type, By job type, Charts | The sub-section tabs. |
+| Order | Column: the job's place in the queue, 1 is next. |
+| Workflow and job, Branch, Runner and machine, Waited, Ran, Forecast, Starts, Doing now, Progress | Column heads. |
+| Why it waits | Column: the wait reason in words (UX-29), a long one behind Details. |
+| not placed yet | A queued job has no runner. |
+| (worktree {name}) | After the branch, only when the job reported a worktree or task. |
+| not reported | Fact value when the job did not report a worktree or task. |
+| Show 25 more | Button of the Done pane; adds 25 jobs up to 100. |
+| Only the last 100 done jobs are kept. Older ones are not shown. | Note under the Done list at the limit. |
+| Showing {n} of {m} kept done jobs. | Note under the Done list. |
+| Showing only jobs of {filter}. / Show every job | Note and button when a group row opened a filtered list. |
+| Open jobs | Button of a group row. |
+| about 6 to 9 min, about 40 to 55 s | A forecast or ETA range. |
+| not enough history yet | No forecast: fewer than 5 runs. No number is made up. |
+| median of the last {n} runs on {machine} | The basis of a forecast; also "of the jobs of this workflow" and "of this repository". |
+| changed lately, so the last 10 runs count | Added to the basis when the median moved by more than a quarter. |
+| in about 3 to 4 min / now | When a queued job should start; "(a forecast, not a promise)" on the job page. |
+| Open the run on GitHub | The one primary of the job and run pages. |
+| Open the commit, Open the pull request | Secondary buttons on the job page. |
+| Open the whole run | Button to the run page. |
+| Project and code, Run and attempts, Steps, Runner, Times, Forecast, History of this job | Pane titles of the job page. |
+| Job graph, Timeline | Pane titles of the run page. |
+| persistent, state kept between jobs / ephemeral, fresh for every job | Runner type (UX-61). |
+| warm, the caches were ready / cold, the caches were rebuilt | Cache state of a job. |
+| Run time and wait per day, Jobs per day, Forecast against actual, Busiest hours | Chart pane titles. |
+| {n}% of {m} finished jobs ran inside their forecast range. The aim is about 80%. | Line over Forecast against actual. |
+| Review build with fake data. Nothing here is real and nothing is saved. | Banner of the review build only. |

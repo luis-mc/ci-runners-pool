@@ -31,7 +31,10 @@ describe('forecastFromSamples', () => {
     expect(f.samples).toBe(4);
   });
   it('takes the median and p25..p90', () => {
-    const f = forecastFromSamples([100, 100, 100, 100, 100, 100, 100, 100, 100, 300], 'job_key');
+    const f = forecastFromSamples(
+      [100, 100, 100, 100, 100, 100, 100, 100, 100, 300],
+      'job_key',
+    );
     expect(f.p50).toBe(100);
     expect(f.lo).toBeLessThanOrEqual(90);
     expect(f.hi).toBeGreaterThanOrEqual(110);
@@ -47,7 +50,11 @@ describe('forecastFromSamples', () => {
 
 const NOW = Date.parse('2026-11-18T14:30:00Z');
 const day = (n: number) => new Date(NOW - n * 86_400_000).toISOString();
-const hp = (daysAgo: number, seconds: number, over: Partial<HistoryPoint> = {}): HistoryPoint => ({
+const hp = (
+  daysAgo: number,
+  seconds: number,
+  over: Partial<HistoryPoint> = {},
+): HistoryPoint => ({
   at: day(daysAgo),
   seconds,
   result: 'success',
@@ -75,19 +82,27 @@ describe('usableHistory', () => {
     ];
     expect(usableHistory(h, NOW, 'linux-box').points).toHaveLength(6);
     expect(usableHistory(h, NOW, 'linux-box').machine).toBe('linux-box');
-    expect(usableHistory(h.slice(0, 3).concat(h.slice(6)), NOW, 'linux-box').machine).toBeUndefined();
+    expect(
+      usableHistory(h.slice(0, 3).concat(h.slice(6)), NOW, 'linux-box').machine,
+    ).toBeUndefined();
   });
 });
 
 describe('drift', () => {
   it('uses the last 10 when the median moved by more than a quarter', () => {
-    const f = forecastFromSamples([...Array<number>(20).fill(100), ...Array<number>(10).fill(160)], 'job_key');
+    const f = forecastFromSamples(
+      [...Array<number>(20).fill(100), ...Array<number>(10).fill(160)],
+      'job_key',
+    );
     expect(f.changed_lately).toBe(true);
     expect(f.p50).toBe(160);
     expect(f.samples).toBe(10);
   });
   it('stays on the whole sample when steady', () => {
-    const f = forecastFromSamples([...Array<number>(20).fill(100), ...Array<number>(10).fill(110)], 'job_key');
+    const f = forecastFromSamples(
+      [...Array<number>(20).fill(100), ...Array<number>(10).fill(110)],
+      'job_key',
+    );
     expect(f.changed_lately).toBeUndefined();
     expect(f.samples).toBe(30);
   });
@@ -97,11 +112,17 @@ describe('chainForecast', () => {
   const few = [1, 2, 3].map((n) => hp(n, 10));
   const many = [50, 52, 51, 53, 50, 54].map((n, i) => hp(i + 1, n));
   it('uses the job key when it has enough samples', () => {
-    expect(chainForecast({ jobKey: many, workflow: few, repository: few }, NOW).basis).toBe('job_key');
+    expect(
+      chainForecast({ jobKey: many, workflow: few, repository: few }, NOW).basis,
+    ).toBe('job_key');
   });
   it('falls back to the workflow, then the repository', () => {
-    expect(chainForecast({ jobKey: few, workflow: many, repository: few }, NOW).basis).toBe('workflow');
-    expect(chainForecast({ jobKey: few, workflow: few, repository: many }, NOW).basis).toBe('repository');
+    expect(
+      chainForecast({ jobKey: few, workflow: many, repository: few }, NOW).basis,
+    ).toBe('workflow');
+    expect(
+      chainForecast({ jobKey: few, workflow: few, repository: many }, NOW).basis,
+    ).toBe('repository');
   });
   it('says not enough history when nothing has 5', () => {
     const f = chainForecast({ jobKey: few, workflow: few, repository: few }, NOW);

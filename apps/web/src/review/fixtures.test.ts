@@ -17,7 +17,9 @@ describe('review fixtures', () => {
     expect(n('running')).toBe(8);
     expect(n('done')).toBeGreaterThan(140);
     expect(n('done')).toBeLessThan(200);
-    expect(a.jobs.filter((j) => j.queue_position !== undefined).length).toBeGreaterThanOrEqual(12);
+    expect(
+      a.jobs.filter((j) => j.queue_position !== undefined).length,
+    ).toBeGreaterThanOrEqual(12);
   });
   it('has a retried attempt, matrix jobs, a 14-job run and some worktrees', () => {
     expect(a.runs.some((r) => r.attempt === 2)).toBe(true);
