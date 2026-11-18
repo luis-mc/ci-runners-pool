@@ -30,7 +30,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('the shell (R5.3)', () => {
-  it('has the header, the eight areas, one headline and the main landmark', async () => {
+  it('has the header, the six areas, one headline and the main landmark', async () => {
     renderApp(signedIn(), '/');
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Overview' }),
@@ -43,16 +43,7 @@ describe('the shell (R5.3)', () => {
       within(nav)
         .getAllByRole('link')
         .map((a) => a.textContent),
-    ).toEqual([
-      'Overview',
-      'Repositories',
-      'Machines',
-      'Runners',
-      'Jobs',
-      'Images and caches',
-      'Doctor',
-      'Settings',
-    ]);
+    ).toEqual(['Overview', 'Shared Pool', 'Repositories', 'Jobs', 'Doctor', 'Settings']);
     expect(
       within(nav).getByRole('link', { name: 'Overview' }).getAttribute('aria-current'),
     ).toBe('page');
@@ -205,9 +196,11 @@ describe('the command palette (R5.4)', () => {
     await screen.findByRole('heading', { name: 'Overview' });
     fireEvent.keyDown(document, { key: 'k', ctrlKey: true });
     const dialog = await screen.findByRole('dialog', { name: 'Commands' });
-    fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'runn' } });
+    fireEvent.change(within(dialog).getByRole('textbox'), {
+      target: { value: 'shared' },
+    });
     fireEvent.keyDown(within(dialog).getByRole('textbox'), { key: 'Enter' });
-    expect(await screen.findByRole('heading', { name: 'Runners' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Shared Pool' })).toBeTruthy();
   });
 
   it('opens with Cmd+K and closes with Escape', async () => {
@@ -250,10 +243,10 @@ describe('the command palette (R5.4)', () => {
     await user.keyboard('j');
     expect((box as HTMLInputElement).value).toBe('j');
     await user.clear(box);
-    await user.keyboard('ru');
+    await user.keyboard('sha');
     const options = () => within(dialog).getAllByRole('option');
     expect(options().map((o) => o.textContent)).toEqual(
-      expect.arrayContaining([expect.stringContaining('Runners')]),
+      expect.arrayContaining([expect.stringContaining('Shared Pool')]),
     );
     expect(within(dialog).queryByRole('option', { name: /Doctor/ })).toBeNull();
     await user.clear(box);
@@ -265,9 +258,9 @@ describe('the command palette (R5.4)', () => {
     expect(document.activeElement).toBe(within(options()[0]!).getByRole('button'));
     await user.keyboard('{ArrowUp}');
     expect(document.activeElement).toBe(box);
-    await user.type(box, 'Runners');
+    await user.type(box, 'Shared Pool');
     await user.keyboard('{Enter}');
-    expect(await screen.findByRole('heading', { name: 'Runners' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Shared Pool' })).toBeTruthy();
     expect(screen.queryByRole('dialog', { name: 'Commands' })).toBeNull();
   });
 
@@ -295,10 +288,12 @@ describe('sessions (R5.8 to R5.12)', () => {
     const api = signedIn().on('GET', '/api/v1/me', () =>
       apiError(401, 'unauthenticated', 'Sign in.'),
     );
-    renderApp(api, '/machines');
+    renderApp(api, '/pool/machines');
     const button = await screen.findByRole('button', { name: 'Sign in with GitHub' });
     fireEvent.click(button);
-    expect(assign).toHaveBeenCalledWith('/auth/github/login?return_to=%2Fmachines');
+    expect(assign).toHaveBeenCalledWith(
+      '/auth/github/login?return_to=%2Fpool%2Fmachines',
+    );
   });
 
   it('says the tray link expired and offers GitHub sign-in (tray R5.7)', async () => {
@@ -313,7 +308,7 @@ describe('sessions (R5.8 to R5.12)', () => {
 
   it('refuses a return path that is not on this origin (R5.9)', async () => {
     const { safeReturnPath } = await import('../auth/session');
-    expect(safeReturnPath('/machines/m1')).toBe('/machines/m1');
+    expect(safeReturnPath('/pool/machines/m1')).toBe('/pool/machines/m1');
     expect(safeReturnPath('//evil.example')).toBe('/');
     expect(safeReturnPath('https://evil.example/x')).toBe('/');
     expect(safeReturnPath('/\\evil')).toBe('/');
@@ -335,14 +330,16 @@ describe('sessions (R5.8 to R5.12)', () => {
     const api = signedIn().on('GET', '/api/v1/machines', () =>
       apiError(401, 'session_expired', 'The session ended.'),
     );
-    renderApp(api, '/machines');
+    renderApp(api, '/pool/machines');
     const dialog = await screen.findByRole('dialog', { name: 'Session ended' });
     expect(
       within(dialog).getByRole('button', { name: 'Sign in with GitHub' }),
     ).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Machines' })).toBeTruthy();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Sign in with GitHub' }));
-    expect(assign).toHaveBeenCalledWith('/auth/github/login?return_to=%2Fmachines');
+    expect(assign).toHaveBeenCalledWith(
+      '/auth/github/login?return_to=%2Fpool%2Fmachines',
+    );
   });
 
   it('signs out on the server and goes to sign-in (R5.12)', async () => {
@@ -375,14 +372,16 @@ describe('sessions (R5.8 to R5.12)', () => {
         github_signin: { state: 'ended' },
       })
       .on('POST', '/api/v1/auth/logout', undefined);
-    renderApp(api, '/machines');
+    renderApp(api, '/pool/machines');
     await screen.findByRole('heading', { name: 'Machines' });
     expect(screen.getByRole('img', { name: 'GitHub sign-in ended' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /octo/ }));
     expect(screen.getByText('GitHub sign-in: ended')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Sign in with GitHub again' }));
     await waitFor(() =>
-      expect(assign).toHaveBeenCalledWith('/auth/github/login?return_to=%2Fmachines'),
+      expect(assign).toHaveBeenCalledWith(
+        '/auth/github/login?return_to=%2Fpool%2Fmachines',
+      ),
     );
     expect(api.count('POST', '/api/v1/auth/logout')).toBe(1);
   });
@@ -405,7 +404,7 @@ describe('sessions (R5.8 to R5.12)', () => {
 
   it('shows a machine list through the same shell', async () => {
     const api = signedIn().on('GET', '/api/v1/machines', { items: [machine()] });
-    renderApp(api, '/machines');
+    renderApp(api, '/pool/machines');
     expect(await screen.findByRole('link', { name: 'build-1' })).toBeTruthy();
   });
 });
@@ -426,7 +425,7 @@ describe('the menu on a phone (UX-15, UX-16)', () => {
       expect(screen.queryByRole('navigation', { name: 'Areas' })).toBeNull();
       fireEvent.click(button);
       const nav = screen.getByRole('navigation', { name: 'Areas' });
-      expect(within(nav).getAllByRole('link')).toHaveLength(8);
+      expect(within(nav).getAllByRole('link')).toHaveLength(6);
       expect(screen.getByRole('button', { name: 'Close the menu' })).toBeTruthy();
     } finally {
       vi.unstubAllGlobals();

@@ -226,7 +226,27 @@ describe('Jobs screen', () => {
     expect(await screen.findByText('ci.yml / test')).toBeTruthy();
   });
 
-  it('loads earlier jobs with Show earlier and keeps the rows when that fails', async () => {
+  it('keeps the last 100 finished jobs and pages in the rest with See all (D34)', async () => {
+    const api = jobsApi({ history: [job()], next: 'j1' });
+    renderApp(api, '/jobs');
+    await screen.findByText('ci.yml / test');
+    expect(screen.getByText('Showing the last 100 finished jobs.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'See all' })).toBeTruthy();
+    expect(
+      api.calls.filter(
+        (c) => c.query.get('state') === 'done' && c.query.get('limit') === '100',
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(api.calls.some((c) => c.query.get('cursor'))).toBe(false);
+  });
+
+  it('has no See all when every finished job is already shown (D34)', async () => {
+    renderApp(jobsApi({ history: [job()] }), '/jobs');
+    await screen.findByText('ci.yml / test');
+    expect(screen.queryByRole('button', { name: 'See all' })).toBeNull();
+  });
+
+  it('loads earlier jobs with See all and keeps the rows when that fails', async () => {
     let calls = 0;
     const api = jobsApi({ history: [job()], next: 'j1' }).on(
       'GET',
@@ -245,7 +265,7 @@ describe('Jobs screen', () => {
     );
     renderApp(api, '/jobs');
     await screen.findByText('ci.yml / test');
-    fireEvent.click(screen.getByRole('button', { name: 'Show earlier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'See all' }));
     expect(await screen.findByText(/Could not load earlier jobs/)).toBeTruthy();
     expect(screen.getByText('ci.yml / test')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
@@ -370,7 +390,7 @@ describe('Jobs panes and states (UX-4, UX-6, UX-10, UX-17)', () => {
   it('offers Add runners once, as the one primary, when there are no jobs', async () => {
     renderApp(jobsApi(), '/jobs');
     const add = await screen.findByRole('button', { name: 'Add runners' });
-    expect(add.getAttribute('href')).toBe('/runners/add');
+    expect(add.getAttribute('href')).toBe('/pool/runners/add');
     expect(screen.getAllByRole('button', { name: 'Add runners' })).toHaveLength(1);
     expect(
       screen

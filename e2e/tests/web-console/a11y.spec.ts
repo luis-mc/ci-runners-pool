@@ -18,7 +18,7 @@ const screens = [
   // The state of an agent that needs recovery (web-console R5.33): the page and the list.
   {
     name: 'machine detail needing recovery',
-    url: '/machines/m1',
+    url: '/pool/machines/m1',
     signedOut: false,
     recovery: true,
   },
@@ -46,7 +46,7 @@ const screens = [
   },
   {
     name: 'machines needing recovery',
-    url: '/machines',
+    url: '/pool/machines',
     signedOut: false,
     recovery: true,
   },

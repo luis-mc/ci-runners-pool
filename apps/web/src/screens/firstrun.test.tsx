@@ -79,43 +79,54 @@ describe('Add runners (findings 10, 11, 12)', () => {
       .on('GET', '/api/v1/github/installations', page(installs))
       .on('GET', '/api/v1/github/repositories', page(repos));
 
-  it('offers no organization when the App is on a personal account only', async () => {
-    renderApp(
-      api(
-        [{ ...org, id: 1, account_login: 'octo', account_type: 'User' }],
-        [repository({ pool_on: true })],
-      ),
-      '/runners/add',
-    );
+  it('asks System, Machine, Number and Labels, and no repository (D31)', async () => {
+    renderApp(api([org], [repository({ pool_on: true })]), '/pool/runners/add');
     await screen.findByRole('group', { name: 'Add runners' });
-    await screen.findByRole('radio', { name: 'octo/app' });
+    await screen.findByRole('textbox', { name: /Labels/ });
+    expect(screen.getByText('System')).toBeTruthy();
+    expect(screen.getByText('Number of runners')).toBeTruthy();
+    for (const name of ['Repository', 'Organization', 'Scope'])
+      expect(screen.queryByText(name)).toBeNull();
+    expect(screen.queryByRole('radio', { name: 'octo/app' })).toBeNull();
     expect(screen.queryByRole('radio', { name: 'An organization' })).toBeNull();
-    expect(screen.queryByRole('textbox', { name: 'Organization' })).toBeNull();
     expect(
-      screen.getByRole('button', { name: 'Install the App on an organization' }),
+      screen.getByText('Runners serve every repository that uses the pool.'),
     ).toBeTruthy();
   });
 
-  it('offers an organization the App is installed on, as a choice and not a text box', async () => {
-    renderApp(api([org], [repository({ pool_on: true })]), '/runners/add');
-    await screen.findByRole('group', { name: 'Add runners' });
-    fireEvent.click(await screen.findByRole('radio', { name: 'An organization' }));
-    expect(await screen.findByRole('radio', { name: 'acme' })).toBeTruthy();
-    expect(screen.queryByRole('textbox', { name: 'Organization' })).toBeNull();
+  it('plans the runners with no scope', async () => {
+    const plan = {
+      id: 'rp1',
+      area: 'runners',
+      state: 'planned',
+      steps: [],
+      created_at: '2026-11-18T00:00:00Z',
+    };
+    const a = api([], [repository({ pool_on: true })]).on(
+      'POST',
+      '/api/v1/runner-plans',
+      plan,
+    );
+    renderApp(a, '/pool/runners/add');
+    await screen.findByRole('textbox', { name: /Labels/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await waitFor(() => expect(a.count('POST', '/api/v1/runner-plans')).toBe(1));
+    const body = a.calls.find(
+      (c) => c.method === 'POST' && c.path === '/api/v1/runner-plans',
+    )?.body as Record<string, unknown>;
+    expect(body).toBeDefined();
+    expect('scope' in body).toBe(false);
+    expect(body.count).toBe(1);
   });
 
-  it('chooses the only repository and fills the labels the repository asks for', async () => {
+  it('fills the labels the first pool repository asks for', async () => {
     const repo = repository({
       pool_on: true,
       variables: [
         { name: 'RUNS_ON_LINUX', status: 'ok', value: '["self-hosted","crsp-home"]' },
       ],
     });
-    renderApp(api([], [repo]), '/runners/add');
-    const radio = await screen.findByRole<HTMLInputElement>('radio', {
-      name: 'octo/app',
-    });
-    expect(radio.checked).toBe(true);
+    renderApp(api([], [repo]), '/pool/runners/add');
     await waitFor(() =>
       expect(
         screen.getByRole<HTMLInputElement>('textbox', { name: /Labels/ }).value,
@@ -124,13 +135,12 @@ describe('Add runners (findings 10, 11, 12)', () => {
   });
 
   it('keeps labels the user wrote', async () => {
-    renderApp(api([], [repository({ pool_on: true })]), '/runners/add');
+    renderApp(api([], [repository({ pool_on: true })]), '/pool/runners/add');
     const labels = await screen.findByRole<HTMLInputElement>('textbox', {
       name: /Labels/,
     });
     fireEvent.change(labels, { target: { value: 'mine' } });
-    fireEvent.click(await screen.findByRole('radio', { name: 'octo/app' }));
-    expect(labels.value).toBe('mine');
+    await waitFor(() => expect(labels.value).toBe('mine'));
   });
 });
 
@@ -168,7 +178,7 @@ describe('Runners explain themselves (findings 5, 6)', () => {
     const api = signedIn().on('GET', '/api/v1/runners', {
       items: [runner({ name: 'crsp-light-1', labels: ['self-hosted', 'crsp-light'] })],
     });
-    renderApp(api, '/runners');
+    renderApp(api, '/pool/runners');
     expect(await screen.findByText(/light runners\. The pool made them/)).toBeTruthy();
   });
 
@@ -176,7 +186,7 @@ describe('Runners explain themselves (findings 5, 6)', () => {
     const api = signedIn().on('GET', '/api/v1/runners', {
       items: [runner({ state: 'failed', failed_reason: 'The folder is left behind.' })],
     });
-    renderApp(api, '/runners');
+    renderApp(api, '/pool/runners');
     expect(await screen.findByText(/1 runner failed\./)).toBeTruthy();
     expect(screen.getByText('The folder is left behind.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Remove' })).toBeTruthy();
@@ -199,13 +209,13 @@ describe('the machine page (findings 7, 8, 9)', () => {
   });
 
   it('writes a backend reason once', async () => {
-    renderApp(signedIn().on('GET', '/api/v1/machines/m1', m), '/machines/m1');
+    renderApp(signedIn().on('GET', '/api/v1/machines/m1', m), '/pool/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
     expect(screen.getAllByText(/no \/dev\/kvm/)).toHaveLength(1);
   });
 
   it('says an installed backend is not turned on and ticks it on request', async () => {
-    renderApp(signedIn().on('GET', '/api/v1/machines/m1', m), '/machines/m1');
+    renderApp(signedIn().on('GET', '/api/v1/machines/m1', m), '/pool/machines/m1');
     const tick = await screen.findByRole('button', { name: 'Tick docker' });
     fireEvent.click(tick);
     const box = screen.getByRole<HTMLInputElement>('checkbox', { name: /docker/ });
@@ -213,7 +223,7 @@ describe('the machine page (findings 7, 8, 9)', () => {
   });
 
   it('keeps Remove in its own section with what it does', async () => {
-    renderApp(signedIn().on('GET', '/api/v1/machines/m1', m), '/machines/m1');
+    renderApp(signedIn().on('GET', '/api/v1/machines/m1', m), '/pool/machines/m1');
     const section = await screen.findByRole('region', { name: 'Remove this machine' });
     expect(within(section).getByText(/Jobs that run there finish first/)).toBeTruthy();
     expect(within(section).getByRole('button', { name: 'Remove' })).toBeTruthy();

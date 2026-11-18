@@ -160,12 +160,15 @@ export function JobsList() {
     null,
   );
   const [loadingMore, setLoadingMore] = useState(false);
+  // D34: the list keeps the last 100 finished jobs; See all pages in the rest.
+  const [seeAll, setSeeAll] = useState(false);
   const [moreError, setMoreError] = useState<string | undefined>(undefined);
   const first = history.result.state === 'loading' ? undefined : history.result;
   const firstData = first && 'data' in first ? first.data : undefined;
   useEffect(() => {
     setMore(null);
     setMoreError(undefined);
+    setSeeAll(false);
   }, [firstData]);
   const cursor = more ? more.cursor : firstData?.next_cursor;
   const loadMore = () => {
@@ -360,6 +363,23 @@ export function JobsList() {
                           {formatCount(rows.length, 'job')} already loaded.
                         </Message>
                       ) : null}
+                      {cursor && !seeAll ? (
+                        <Message
+                          tone="note"
+                          action={
+                            <Button
+                              onPress={() => {
+                                setSeeAll(true);
+                                loadMore();
+                              }}
+                            >
+                              See all
+                            </Button>
+                          }
+                        >
+                          {`Showing the last ${PAGE} finished jobs.`}
+                        </Message>
+                      ) : null}
                       <TimeAxis
                         label="Job history"
                         rows={rows}
@@ -374,7 +394,7 @@ export function JobsList() {
                             ? () => zoom(-1)
                             : undefined
                         }
-                        hasMore={Boolean(cursor)}
+                        hasMore={seeAll && Boolean(cursor)}
                         onLoadMore={loadMore}
                         loadingMore={loadingMore}
                         emptyText={
@@ -397,7 +417,7 @@ export function JobsList() {
       {noJobs ? (
         <ActionBar
           primary={
-            <LinkButton to="/runners/add" kind="primary">
+            <LinkButton to="/pool/runners/add" kind="primary">
               Add runners
             </LinkButton>
           }

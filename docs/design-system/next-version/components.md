@@ -14,7 +14,7 @@ One numbered section per shared component. A part that nearly fits is extended w
 
 ## 2. Top menu and breadcrumbs
 
-- **Used for:** moving between the main areas, and showing the path back up.
+- **Used for:** moving between the main areas, and showing the path back up. The console has exactly six areas: Overview, Shared Pool, Repositories, Jobs, Doctor, Settings. An area with parts (Shared Pool, Jobs, Settings) shows them as one tab row (component 3) under the menu, never as more menu items.
 - **Looks:** a row of the main areas, starting on the frame edge, with the current one marked as a tab is marked: bold primary text and a 3 px underline, never a box (UX-69). A quiet trail of links shows the path back up. The top bar above it holds the product name and status on the left and Commands and the login on the right inside the same frame; at phone width it is two lines, name and login, then status and Commands.
 - **Source:** `packages/ui/src/components/Shell.tsx` (`Header`, `TopMenu`)
 - **Rules:** UX-1, UX-3, UX-16, UX-17, UX-69.

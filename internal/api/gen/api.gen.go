@@ -3490,12 +3490,14 @@ type PlanRepositoryChangesRequestChangesPool string
 
 // PlanRunnersRequest defines model for PlanRunnersRequest.
 type PlanRunnersRequest struct {
-	Count     int         `json:"count"`
-	Kind      RunnerKind  `json:"kind"`
-	Labels    *[]string   `json:"labels,omitempty"`
-	MachineId string      `json:"machine_id"`
-	Os        OS          `json:"os"`
-	Scope     RunnerScope `json:"scope"`
+	Count     int        `json:"count"`
+	Kind      RunnerKind `json:"kind"`
+	Labels    *[]string  `json:"labels,omitempty"`
+	MachineId string     `json:"machine_id"`
+	Os        OS         `json:"os"`
+
+	// Scope Optional. Left out, the runners serve the pool: the server takes the first repository with the pool on and adds the pool label (until every pool repository gets its own registration).
+	Scope *RunnerScope `json:"scope,omitempty"`
 }
 
 // PlanStep defines model for PlanStep.

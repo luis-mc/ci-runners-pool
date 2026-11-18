@@ -20,7 +20,7 @@ test('a signed-out visitor is sent to sign-in and the deep link is kept', async 
       body: '<h1>GitHub</h1>',
     });
   });
-  await page.goto('/machines/m1');
+  await page.goto('/pool/machines/m1');
   await expect(page).toHaveURL(/\/sign-in$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
   await page.getByRole('button', { name: 'Sign in with GitHub' }).click();
@@ -31,7 +31,7 @@ test('after sign-in the deep link opens its screen with the session shell', asyn
   page,
 }) => {
   await signedIn().install(page);
-  await page.goto('/machines/m1');
+  await page.goto('/pool/machines/m1');
   await expect(page.getByRole('heading', { level: 1, name: 'build-1' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Areas' })).toBeVisible();
 });
