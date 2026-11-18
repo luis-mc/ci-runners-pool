@@ -35,6 +35,9 @@ func (e *Engine) Gate(ctx context.Context, req GateRequest) (Decision, error) {
 		return err
 	})
 	e.notifyFreed(freed)
+	if err == nil {
+		e.emitDecision(req.MachineID, req.Job, dec)
+	}
 	return dec, err
 }
 
@@ -43,6 +46,7 @@ func (e *Engine) Gate(ctx context.Context, req GateRequest) (Decision, error) {
 func (e *Engine) Beat(ctx context.Context, machineID, gateID string, load Load) (Decision, error) {
 	var dec Decision
 	var freed []Freed
+	var job JobRef
 	err := e.store.Atomically(ctx, func(tx slots.Tx) error {
 		now := e.now()
 		f, err := e.staleSlots(tx, machineID, now)
@@ -60,10 +64,14 @@ func (e *Engine) Beat(ctx context.Context, machineID, gateID string, load Load) 
 		req := GateRequest{GateID: gateID, MachineID: machineID, Load: load,
 			Job: fromJob(t.Job), EventClass: t.EventClass,
 			Holder: Holder{Machine: t.Holder.Machine, HolderPID: t.Holder.PID, GatePID: t.Holder.GatePID, HolderStarted: t.Holder.Started}}
+		job = req.Job
 		dec, err = e.evaluate(tx, req, false, now)
 		return err
 	})
 	e.notifyFreed(freed)
+	if err == nil {
+		e.emitDecision(machineID, job, dec)
+	}
 	return dec, err
 }
 

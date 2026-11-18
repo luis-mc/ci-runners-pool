@@ -389,6 +389,10 @@ func (s *Server) repoRoutes(w http.ResponseWriter, r *http.Request) {
 		s.runs(w, r, full)
 	case strings.HasPrefix(rest, "actions/runs/") && strings.HasSuffix(rest, "/jobs"):
 		s.runJobs(w, r, full, rest)
+	case strings.HasPrefix(rest, "actions/runs/") && !strings.Contains(strings.TrimPrefix(rest, "actions/runs/"), "/"):
+		// One run: its workflow file is the one the fake serves first (ci.yml), at the branch.
+		id, _ := strconv.ParseInt(strings.TrimPrefix(rest, "actions/runs/"), 10, 64)
+		writeJSON(w, 200, map[string]any{"id": id, "path": ".github/workflows/ci.yml@refs/heads/main"})
 	case strings.HasPrefix(rest, "actions/jobs/"):
 		id, _ := strconv.ParseInt(strings.TrimPrefix(rest, "actions/jobs/"), 10, 64)
 		for _, j := range s.Jobs {
