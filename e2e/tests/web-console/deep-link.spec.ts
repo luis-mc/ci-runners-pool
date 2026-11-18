@@ -24,7 +24,7 @@ test('a signed-out visitor is sent to sign-in and the deep link is kept', async 
   await expect(page).toHaveURL(/\/sign-in$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
   await page.getByRole('button', { name: 'Sign in with GitHub' }).click();
-  await expect.poll(() => loginUrl).toContain('return_to=%2Fmachines%2Fm1');
+  await expect.poll(() => loginUrl).toContain('return_to=%2Fpool%2Fmachines%2Fm1');
 });
 
 test('after sign-in the deep link opens its screen with the session shell', async ({

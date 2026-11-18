@@ -91,7 +91,7 @@ test('Jobs: an empty pool says so', async ({ page }) => {
   ).toBeVisible();
 });
 
-test('Doctor: findings by area, then Run the doctor is busy until the run ends', async ({
+test('Doctor: findings by area, then Run checks again is busy until the run ends', async ({
   page,
 }) => {
   let state = 'running';
@@ -120,13 +120,13 @@ test('Doctor: findings by area, then Run the doctor is busy until the run ends',
   await expect(page.getByRole('region', { name: 'Workflow labels' })).toContainText(
     'failed',
   );
-  await page.getByRole('button', { name: 'Run the doctor' }).click();
+  await page.getByRole('button', { name: 'Run checks again' }).click();
   await expect(page.getByRole('button', { name: 'Running the doctor' })).toBeDisabled();
   await expect(
     page.getByRole('progressbar', { name: 'Running the doctor' }),
   ).toBeVisible();
   state = 'done';
-  await expect(page.getByRole('button', { name: 'Run the doctor' })).toBeEnabled({
+  await expect(page.getByRole('button', { name: 'Run checks again' })).toBeEnabled({
     timeout: 10_000,
   });
   expect(mock.count('POST', '/api/v1/doctor/runs')).toBe(1);

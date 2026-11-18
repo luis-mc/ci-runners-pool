@@ -22,6 +22,8 @@ async function controls(page: Page): Promise<string[]> {
     document
       .querySelectorAll<HTMLInputElement>('input[type=radio][name]')
       .forEach((r) => {
+        // A disabled radio (an option the machine cannot offer) is not a stop of its group.
+        if (r.disabled) return;
         const cur = radioStop.get(r.name) as HTMLInputElement | undefined;
         if (!cur || (r.checked && !cur.checked)) radioStop.set(r.name, r);
       });

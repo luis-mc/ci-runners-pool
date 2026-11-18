@@ -129,7 +129,11 @@ test('runners: Select all N and Clear sit in the toolbar inside the pane (UX-12)
   await page.goto('/pool/runners');
   const pane = page.getByRole('region', { name: 'Runners' });
   await expect(pane.getByRole('button', { name: /^Select all \d+$/ })).toBeVisible();
-  await expect(pane.getByRole('columnheader', { name: 'Isolation' })).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: 'Machine build-1' })
+      .getByRole('columnheader', { name: 'Isolation' }),
+  ).toBeVisible();
   await pane.getByRole('button', { name: /^Select all \d+$/ }).click();
   await pane.getByRole('button', { name: 'Clear' }).click();
   await expect(pane.getByRole('button', { name: 'Clear' })).toBeDisabled();

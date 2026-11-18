@@ -294,7 +294,7 @@ for (const width of [360, 393]) {
     await button.click();
     await expect(
       page.getByRole('navigation', { name: 'Areas' }).getByRole('link'),
-    ).toHaveCount(8);
+    ).toHaveCount(6);
   });
 }
 

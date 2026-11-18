@@ -263,7 +263,7 @@ test('The owner adds a user', async ({ page }) => {
   await mock.install(page);
   await page.goto('/settings/users');
   await page.getByRole('textbox', { name: 'GitHub login' }).fill('bob');
-  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect.poll(() => mock.count('POST', '/api/v1/users')).toBe(1);
 });
 
@@ -310,12 +310,12 @@ test('Images and caches opens from the menu and says that there are no images ye
   await mock.install(page);
   await page.goto('/');
   await page.getByRole('link', { name: 'Shared Pool' }).click();
-  await page.getByRole('tab', { name: 'Images and caches' }).click();
+  await page.getByRole('tab', { name: 'Images and caches', exact: true }).click();
   await expect(
     page.getByRole('heading', { level: 1, name: 'Images and caches' }),
   ).toBeVisible();
   await expect(page.getByText(/Each machine has one Linux image\./)).toBeVisible();
-  await page.getByRole('tab', { name: 'Caches' }).click();
+  await page.getByRole('tab', { name: 'Caches', exact: true }).click();
   const card = page.getByRole('region', { name: 'Tool cache of crsp-linux-1' });
   await expect(card).toContainText('3.2 GB of 10.0 GB (32%)');
   await expect(card).toContainText('never');

@@ -114,11 +114,12 @@ const MEASURES = {
       if (r.width < 43.5 || r.height < 43.5) bad.push(label(e) + ' is ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' px');
     }
     return bad;`,
-  /** UX-4: one primary button on the screen (a screen that offers an action has exactly one). */
+  /** UX-4: one primary button on the screen (a screen that offers an action has exactly one). The tabs that
+   *  switch the section, the sort buttons of a table head and the row buttons of a table are not the screen's actions. */
   primary: `${VISIBLE}
-    const all = Array.from(document.querySelectorAll('[data-primary], button[data-kind=primary]')).filter(visible);
+    const all = Array.from(document.querySelectorAll('[data-primary], button[data-kind=primary], a[data-button][data-kind=primary]')).filter(visible);
     const names = all.map(label);
-    const hasActions = Array.from(document.querySelectorAll('main button, main a[data-button]')).some(visible);
+    const hasActions = Array.from(document.querySelectorAll('main button, main a[data-button]')).some((e) => visible(e) && !e.closest('[role=tablist], table, [role=table], [role=row]'));
     if (names.length > 1) return ['more than one primary: ' + names.join(' | ')];
     if (names.length === 0 && hasActions) return ['no primary button although the screen has actions'];
     return [];`,
