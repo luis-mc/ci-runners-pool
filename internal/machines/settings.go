@@ -75,7 +75,7 @@ func (s *Service) view(ctx context.Context, m Machine) (View, error) {
 	if err != nil {
 		return View{}, err
 	}
-	s.fillPolicy(&m)
+	s.fillPolicy(&m, set)
 	v := View{Machine: m, Settings: set, Policy: capFor(s.Policy(m.ID), set.EffectiveCPUCap()), Engine: s.Engine(m.ID), Compact: s.CompactStatus(m, set)}
 	if m.Online {
 		v.RunnerServices = s.RunnerServices(m.ID)

@@ -952,6 +952,45 @@ func (e MachineState) Valid() bool {
 	}
 }
 
+// Defines values for MachineTakingReason.
+const (
+	MachineTakingReasonBaseImageMissing MachineTakingReason = "base_image_missing"
+	MachineTakingReasonBusy             MachineTakingReason = "busy"
+	MachineTakingReasonDiskLow          MachineTakingReason = "disk_low"
+	MachineTakingReasonModePaused       MachineTakingReason = "mode_paused"
+	MachineTakingReasonOffline          MachineTakingReason = "offline"
+	MachineTakingReasonOnBattery        MachineTakingReason = "on_battery"
+	MachineTakingReasonQuietHours       MachineTakingReason = "quiet_hours"
+	MachineTakingReasonStopped          MachineTakingReason = "stopped"
+	MachineTakingReasonTrayPaused       MachineTakingReason = "tray_paused"
+)
+
+// Valid indicates whether the value is a known member of the MachineTakingReason enum.
+func (e MachineTakingReason) Valid() bool {
+	switch e {
+	case MachineTakingReasonBaseImageMissing:
+		return true
+	case MachineTakingReasonBusy:
+		return true
+	case MachineTakingReasonDiskLow:
+		return true
+	case MachineTakingReasonModePaused:
+		return true
+	case MachineTakingReasonOffline:
+		return true
+	case MachineTakingReasonOnBattery:
+		return true
+	case MachineTakingReasonQuietHours:
+		return true
+	case MachineTakingReasonStopped:
+		return true
+	case MachineTakingReasonTrayPaused:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for NotificationChannelScope.
 const (
 	NotificationChannelScopePersonal NotificationChannelScope = "personal"
@@ -3099,6 +3138,9 @@ type Machine struct {
 
 	// State active and drained are set by the user; draining while a drain waits.
 	State MachineState `json:"state"`
+
+	// Taking The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows.
+	Taking MachineTaking `json:"taking"`
 }
 
 // MachineChange A change that waits for a drain (machines R5.30 to R5.33).
@@ -3328,6 +3370,16 @@ type MachineSettingsUpdatePause string
 
 // MachineState active and drained are set by the user; draining while a drain waits.
 type MachineState string
+
+// MachineTaking The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows.
+type MachineTaking struct {
+	// Reason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+	Reason     *MachineTakingReason `json:"reason,omitempty"`
+	TakingJobs bool                 `json:"taking_jobs"`
+}
+
+// MachineTakingReason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+type MachineTakingReason string
 
 // NotificationChannel One channel. No secret is returned: `secret_set` and `smtp.has_password` say only whether one is set.
 type NotificationChannel struct {
