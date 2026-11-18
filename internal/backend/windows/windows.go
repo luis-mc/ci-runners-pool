@@ -28,6 +28,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/hygiene"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/poolsize"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
@@ -200,6 +201,10 @@ func (b *Backend) want(r backend.RunnerSpec, account string) (persistent.Meta, s
 	folder := b.Folder(r.Name)
 	hookDir := Join(folder, "hooks")
 	kv := runnercache.EnvJoin(folder, r.CacheQuota, Join)
+	// Each persistent runner keeps its dependencies in its own folder, and its
+	// hooks clean after every job (runners R5.90, R5.91).
+	maps.Copy(kv, runnercache.DependencyEnvJoin(folder, Join))
+	kv[hygiene.EnvRunnerDir] = folder
 	if r.MaxParallel > 0 {
 		maps.Copy(kv, poolsize.Env(r.MaxParallel))
 	}
@@ -270,7 +275,7 @@ func (b *Backend) start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	case persistent.Already:
 		return h, nil
 	case persistent.RewriteEnv:
-		if err := b.writeHooksAndEnv(folder, wantEnv); err != nil {
+		if err := b.writeHooksAndEnv(folder, wantEnv, r.KeepDependencies); err != nil {
 			return h, err
 		}
 		if err := persistent.WriteMeta(b.d.FS, Join(folder, persistent.MetaFile), wantMeta); err != nil {
@@ -343,7 +348,7 @@ func (b *Backend) start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	if err := b.rights.Grant(ctx, account, r.WindowsSymlinkRight); err != nil {
 		return h, err
 	}
-	if err := b.writeHooksAndEnv(folder, wantEnv); err != nil {
+	if err := b.writeHooksAndEnv(folder, wantEnv, r.KeepDependencies); err != nil {
 		return h, err
 	}
 	if err := persistent.WriteMeta(b.d.FS, Join(folder, persistent.MetaFile), wantMeta); err != nil {
@@ -404,7 +409,7 @@ func (b *Backend) runner(ctx context.Context, step, folder string, args []string
 	return nil
 }
 
-func (b *Backend) writeHooksAndEnv(folder, env string) error {
+func (b *Backend) writeHooksAndEnv(folder, env string, keep bool) error {
 	hookDir := Join(folder, "hooks")
 	if err := b.d.FS.MkdirAll(hookDir, 0o755); err != nil {
 		return err
@@ -418,7 +423,14 @@ func (b *Backend) writeHooksAndEnv(folder, env string) error {
 			return err
 		}
 	}
-	return b.d.FS.WriteFile(Join(folder, ".env"), []byte(env), 0o644)
+	if err := b.d.FS.WriteFile(Join(folder, ".env"), []byte(env), 0o644); err != nil {
+		return err
+	}
+	// The setting Keep downloaded dependencies is written once; the agent changes it later (runners R5.90).
+	if b.d.FS.Exists(Join(folder, hygiene.SettingsFile)) {
+		return nil
+	}
+	return hygiene.WriteKeep(b.d.FS, folder, keep)
 }
 
 // Stop stops the service. Callers drain first and check for an idle runner

@@ -41,6 +41,10 @@ type Link struct {
 	// Now is a seam for tests.
 	Now func() time.Time
 
+	// Hygiene takes the clean-up reports of persistent runners and answers
+	// with their settings (runners R5.90, R5.91). Nil ignores them.
+	Hygiene HygieneSink
+
 	mu      sync.Mutex
 	pending map[string]chan *agentv1.RunnerResult
 	reports map[string]Report
@@ -95,6 +99,9 @@ func (l *Link) OnMessage(machineID string, msg *agentv1.SessionRequest) bool {
 			default:
 			}
 		}
+		return true
+	case *agentv1.SessionRequest_RunnerClean:
+		l.onRunnerClean(machineID, m.RunnerClean)
 		return true
 	case *agentv1.SessionRequest_MachineReport:
 		l.mu.Lock()
@@ -177,7 +184,7 @@ func (a *Agent) AddRunner(ctx context.Context, machineID string, spec backend.Ru
 			RunnerId: spec.ID, Name: spec.Name, Os: spec.OS, Arch: spec.Arch, Kind: kind, Backend: be,
 			Labels: spec.Labels, GithubUrl: spec.GitHubURL, RunnerGroup: spec.Group,
 			RunnerVersion: spec.RunnerVersion, RunnerSha256: spec.RunnerSHA256, WindowsSymlinkRight: spec.WindowsSymlinkRight,
-			ExtraPackages: spec.ExtraPackages,
+			ExtraPackages: spec.ExtraPackages, KeepDependencies: &spec.KeepDependencies,
 		}}
 		if cfg.JITConfig != "" {
 			add.Start = &agentv1.AddRunner_JitConfig{JitConfig: cfg.JITConfig}
@@ -225,4 +232,38 @@ func (a *Agent) DrainRunner(ctx context.Context, machineID, runnerID string) err
 		return &agentv1.SessionResponse{Message: &agentv1.SessionResponse_DrainRunner{DrainRunner: &agentv1.DrainRunner{CommandId: id, RunnerId: runnerID}}}
 	})
 	return err
+}
+
+// HygieneSink is the controller side of the clean-up of persistent runners
+// (runners.Service satisfies it).
+type HygieneSink interface {
+	ReportClean(ctx context.Context, machineID, runnerName string, cacheBytes int64, uncleanReason string) error
+	KeepDependencies(ctx context.Context, machineID, runnerName string) bool
+	ClearCachePending(machineID, runnerName string) bool
+}
+
+// onRunnerClean records what the agent read from each runner folder and answers
+// each runner with its settings: the keep setting, and a Clear now that is
+// waiting. The agent clears when the runner is idle and reports again, which
+// ends the pending flag (runners R5.90).
+func (l *Link) onRunnerClean(machineID string, rc *agentv1.RunnerClean) {
+	if l.Hygiene == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	for _, st := range rc.GetRunners() {
+		name := st.GetRunnerName()
+		pending := l.Hygiene.ClearCachePending(machineID, name)
+		// A report taken while a Clear now waits does not end it: the agent has
+		// not cleared yet.
+		if !pending {
+			_ = l.Hygiene.ReportClean(ctx, machineID, name, st.GetDependencyCacheBytes(), st.GetUncleanReason())
+		}
+		_ = l.Sender.Send(machineID, &agentv1.SessionResponse{Message: &agentv1.SessionResponse_RunnerHygiene{RunnerHygiene: &agentv1.RunnerHygiene{
+			RunnerName: name, ServiceName: st.GetServiceName(),
+			KeepDependencies: l.Hygiene.KeepDependencies(ctx, machineID, name),
+			ClearCache:       l.Hygiene.ClearCachePending(machineID, name),
+		}}})
+	}
 }

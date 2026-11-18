@@ -116,6 +116,10 @@ type RunnerSpec struct {
 	// ExtraPackages are the extra distribution packages of the repository's
 	// pool (runners R5.51); the image is built with them.
 	ExtraPackages []string
+	// KeepDependencies is the persistent runner's setting Keep downloaded
+	// dependencies (runners R5.90). The backends write it to the runner folder;
+	// the clean-up hooks read it. A runner made before the setting keeps.
+	KeepDependencies bool
 	// Pool is what the repository's pool settings ask for (runners R5.50,
 	// R5.54). The zero value asks for the base image only.
 	Pool PoolSetup

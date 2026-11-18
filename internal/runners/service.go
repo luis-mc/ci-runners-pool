@@ -675,7 +675,7 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 		return fail(fmt.Errorf("registration token: %w", err))
 	}
 	spec := backend.RunnerSpec{ID: id, Name: a.Name, OS: a.OS, Arch: a.Arch, Labels: a.Labels, GitHubURL: t.URL, Group: t.Group,
-		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, WindowsSymlinkRight: a.OS == "windows" && a.Symlink, CacheQuota: s.CacheQuota, MaxParallel: a.MaxParallel}
+		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, WindowsSymlinkRight: a.OS == "windows" && a.Symlink, CacheQuota: s.CacheQuota, MaxParallel: a.MaxParallel, KeepDependencies: a.KeepDependencies}
 	// Names GitHub already knows before the add: only a registration that the
 	// add itself made is removed when it fails.
 	before, listErr := s.GitHub.ListRunners(ctx, t.InstallationID, t.Scope)

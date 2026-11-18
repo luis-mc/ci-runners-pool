@@ -267,6 +267,8 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// reason and is sent nothing. No command or flag reads this setting.
 	if d.Link != nil {
 		runnerSvc.Updater = &agentlink.Updater{L: d.Link, Bundles: pinBundles{svc: d.Machines}}
+		// The clean-up reports of persistent runners reach the runner service (runners R5.90, R5.91).
+		d.Link.Hygiene = runnerSvc
 	}
 	if d.Ops != nil && d.Ops.Settings != nil {
 		set := d.Ops.Settings
