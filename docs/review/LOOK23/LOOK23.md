@@ -83,3 +83,76 @@ under the hood" first and JIT come later.
 Notes from the screens: the mock data is invented (2 machines, 6 runners, 2 busy); "Live updates paused" is the
 mock having no live stream; words "slot" and "serving now" are not in `content` yet; prototype reuses only shared
 parts (Page, Section, Table, Facts, NumberField, Message, Status).
+
+## 4. Option D: the owner's product model and navigation (2026-11-17)
+
+Model: ONE POOL across one or more machines, each with runners; the pool is the main thing to configure;
+Repositories is the opt-in step ("Use pool" / "Stop using pool" in the action bar, PR #236).
+
+Top navigation, as decided: **Overview, Shared Pool, Repositories, Jobs, Doctor, Settings.**
+Machines, Runners and Images and caches stop being top-level areas.
+
+Screens: `index.html` section "Option D" (first run, pool ready no repositories, running; 1300 and 393;
+Phosphor dark). Code: `prototype-D.patch` (throwaway, needs the LOOK26 action bar), `shoot-D.js`. App code on
+this branch is unchanged. The six items fit on a phone through the existing Menu button: the list opens as
+two lines of three and the current area is named on the button.
+
+### Shared Pool (`/pool`)
+
+Tabs: **Summary**, **Machines**, **Runners**, **Images and caches**, **Size and backends**.
+
+- Summary: first-run guide (1 Add a machine, 2 Set runners, 3 Choose repositories; a step stays disabled with its
+  reason until the one before is done), then The pool (machines online, runners and busy, repositories using the
+  pool, health, capacity bar) and Runners per system.
+- Add runners lives under Shared Pool > Runners (`/pool/runners/add`): System, Machine, Number, Labels. No
+  repository choice; a note points to Repositories. Same plan/apply wizard as today underneath.
+- Repositories: while the pool has no runners the list is grey, "Use pool" is disabled with the reason, and a
+  message points to Shared Pool. With runners, selecting rows shows "n selected" and enables the buttons.
+- Jobs: tabs **All** (running, queued, done limited to 50 rows), **By repository**, **By machine**, **By runner
+  type** (persistent, light, ephemeral), **By job type** (light, standard, heavy), **Trends** (wait time,
+  duration and failures per day, drawn with the shared level bar; no new chart part). Each grouped tab shows
+  running, queued, done, failed, average wait, average duration. Opening a row would filter All.
+
+### Where every current page goes
+
+| Today | Route today | In option D | New route |
+| --- | --- | --- | --- |
+| Overview | `/` | Overview, unchanged | `/` |
+| Repositories list, detail | `/repositories`, `/repositories/:owner/:name` | Repositories, unchanged except the pool opt-in in the action bar | same |
+| Turn on pool | `/repositories/turn-on` | Folded into "Use pool" on Repositories | `/repositories` |
+| Machines list | `/machines` | Shared Pool > Machines | `/pool/machines` |
+| Add machine | `/machines/add` | Shared Pool > Machines > Add a machine | `/pool/machines/add` |
+| Machine page (policy, Docker disk, recovery) | `/machines/:id` | Shared Pool > Machines > machine | `/pool/machines/:id` |
+| Pool size (`PoolSize`) | part of Machines | Shared Pool > Size and backends | `/pool/size` |
+| Runners list | `/runners` | Shared Pool > Runners | `/pool/runners` |
+| Add runners | `/runners/add` | Shared Pool > Runners > Add runners, no repository | `/pool/runners/add` |
+| Images and caches | `/images`, `/images/:imageId`, `/caches` | Shared Pool > Images and caches | `/pool/images`, `/pool/images/:imageId` |
+| Jobs list | `/jobs` | Jobs > All | `/jobs` |
+| Job detail | `/jobs/:id` | Jobs, same detail page | `/jobs/:id` |
+| (new) | | Jobs > By repository, machine, runner type, job type, Trends | `/jobs/repository`, `/jobs/machine`, `/jobs/runner-type`, `/jobs/job-type`, `/jobs/trends` |
+| Doctor | `/doctor` | Doctor, unchanged | `/doctor` |
+| Settings and its tabs, update review | `/settings/*` | Settings, unchanged | same |
+| Setup (first run) | `/setup` | Unchanged; its steps match the Shared Pool guide | `/setup` |
+
+Old addresses should redirect (`/machines*`, `/runners*`, `/images*`, `/caches`) so bookmarks and the setup banner keep working.
+The command palette (`AREAS` in `shell/Shell.tsx`) and its commands "Add a machine", "Add runners" move to the new routes.
+
+### How A, B and C fit
+
+- **A** (Add runners without repository, slots) is the Add runners page inside Shared Pool > Runners. D shows it
+  without the Repository question and keeps A's note, now a link to Repositories.
+- **B** (runners grouped by machine, capacity on top) becomes the Shared Pool Summary plus the Runners tab:
+  capacity and per-system counts on Summary, machine grouping in the list. Not drawn twice.
+- **C** (steppers on the machine page, read-only Runners) fits as Shared Pool > Machines > machine; with C the
+  Runners tab is read-only and the Add runners page is not needed. D was drawn with A's page because the owner
+  asked for "Add runners inside Runners"; C remains a later simplification.
+- The "How crsp works" strip is replaced by the first-run guide on the Shared Pool landing.
+
+### Open points
+
+- Mock data is invented (2 machines, 6 runners, up to 3 running jobs); "Live updates paused" is the mock having no stream.
+- New words ("Shared Pool", "Use pool", "Stop using pool", "Serving now", "Trends", "runner type", "job type")
+  are not in `content` yet; design-system `next-version` first.
+- Jobs aggregates (averages, per-day trends) need an API: the list endpoint is not enough for 7-day trends.
+- The Overview "pool" cards and the header status link should point to Shared Pool.
+- Whether macOS appears as its own row in Runners per system when no machine has it (hidden here).

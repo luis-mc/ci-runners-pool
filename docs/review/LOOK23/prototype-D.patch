@@ -1,0 +1,752 @@
+diff --git a/apps/web/src/App.tsx b/apps/web/src/App.tsx
+index 4d823c5..b541ae3 100644
+--- a/apps/web/src/App.tsx
++++ b/apps/web/src/App.tsx
+@@ -41,6 +41,7 @@ import {
+ } from './screens/settings/Settings';
+ import { UpdateReviewPage } from './screens/settings/Updates';
+ import { SetupPage } from './screens/setup/Setup';
++import * as D from './screens/look23/D';
+ 
+ /** No valid session: every path but /sign-in and /setup goes to /sign-in and keeps the path (R5.8). */
+ function Gate({ factory }: { factory: EventSourceFactory | undefined }) {
+@@ -109,7 +110,20 @@ export function App({
+               <Route path="/setup" element={<SetupPage />} />
+               <Route element={<Gate factory={eventSource} />}>
+                 <Route index element={<Overview />} />
+-                <Route path="repositories" element={<RepositoriesList />} />
++                <Route path="pool" element={<D.PoolSummary />} />
++                <Route path="pool/machines" element={<D.PoolMachines />} />
++                <Route path="pool/runners" element={<D.PoolRunners />} />
++                <Route path="pool/runners/add" element={<D.PoolAddRunners />} />
++                <Route path="pool/images" element={<D.PoolImages />} />
++                <Route path="pool/size" element={<D.PoolSize />} />
++                <Route path="repositories" element={<D.RepositoriesD />} />
++                <Route path="jobs" element={<D.JobsAll />} />
++                <Route path="jobs/repository" element={<D.JobsByRepo />} />
++                <Route path="jobs/machine" element={<D.JobsByMachine />} />
++                <Route path="jobs/runner-type" element={<D.JobsByRunner />} />
++                <Route path="jobs/job-type" element={<D.JobsByType />} />
++                <Route path="jobs/trends" element={<D.JobsTrends />} />
++                <Route path="repositories-old" element={<RepositoriesList />} />
+                 <Route path="repositories/turn-on" element={<TurnOnPoolPage />} />
+                 <Route path="repositories/:owner/:name" element={<RepositoryDetail />} />
+                 <Route path="machines" element={<MachinesList />} />
+@@ -117,7 +131,7 @@ export function App({
+                 <Route path="machines/:id" element={<MachineDetail />} />
+                 <Route path="runners" element={<RunnersList />} />
+                 <Route path="runners/add" element={<AddRunnersPage />} />
+-                <Route path="jobs" element={<JobsList />} />
++                <Route path="jobs-old" element={<JobsList />} />
+                 <Route path="jobs/:id" element={<JobDetail />} />
+                 <Route path="images" element={<ImagesAndCaches />} />
+                 <Route path="images/:imageId" element={<ImageDetail />} />
+diff --git a/apps/web/src/screens/look23/D.tsx b/apps/web/src/screens/look23/D.tsx
+new file mode 100644
+index 0000000..73a4476
+--- /dev/null
++++ b/apps/web/src/screens/look23/D.tsx
+@@ -0,0 +1,686 @@
++// LOOK23 option D prototype (throwaway, never committed as app code; the diff is kept in docs/review/LOOK23).
++// Six top-level areas; Shared Pool with sub-sections; Repositories as the opt-in step; Jobs with sub-sections.
++// Data is a fixed fixture chosen by ?state=first|ready|running (read once at load).
++import {
++  ActionBar,
++  Breadcrumbs,
++  Button,
++  ChoiceField,
++  Empty,
++  Facts,
++  LevelBar,
++  LinkButton,
++  Message,
++  NumberField,
++  Page,
++  PageHeader,
++  Section,
++  Stack,
++  Status,
++  Table,
++  Tabs,
++  Text,
++  TextField,
++  TextLink,
++  selectedStatus,
++  type Column,
++} from '@crsp/ui';
++import { useState, type ReactNode } from 'react';
++import { useNavigate } from 'react-router-dom';
++
++export type PoolState = 'first' | 'ready' | 'running';
++const q = new URLSearchParams(window.location.search).get('state');
++export const STATE: PoolState = q === 'ready' || q === 'running' ? q : 'first';
++export const CHART = new URLSearchParams(window.location.search).get('chart') === '1';
++
++interface M {
++  id: string;
++  name: string;
++  system: string;
++  online: boolean;
++  runners: number;
++  busy: number;
++  slots: number;
++}
++interface R {
++  id: string;
++  name: string;
++  machine: string;
++  system: string;
++  type: 'Persistent' | 'Light' | 'Ephemeral';
++  state: 'idle' | 'busy';
++  serving: string;
++}
++interface Repo {
++  id: string;
++  name: string;
++  visibility: string;
++  using: boolean;
++}
++interface J {
++  id: string;
++  repo: string;
++  job: string;
++  machine: string;
++  runnerType: R['type'];
++  jobType: 'Light' | 'Standard' | 'Heavy';
++  state: 'queued' | 'running' | 'done';
++  result: 'ok' | 'failed' | '';
++  waitS: number;
++  durS: number;
++  when: string;
++}
++
++const MACHINES: M[] =
++  STATE === 'first'
++    ? []
++    : [
++        { id: 'm1', name: 'build-1', system: 'Linux', online: true, runners: 4, busy: STATE === 'running' ? 2 : 0, slots: 4 },
++        { id: 'm2', name: 'win-1', system: 'Windows', online: true, runners: 2, busy: STATE === 'running' ? 1 : 0, slots: 2 },
++      ];
++const RUNNERS: R[] =
++  STATE === 'first'
++    ? []
++    : [
++        { id: 'r1', name: 'crsp-linux-1', machine: 'build-1', system: 'Linux', type: 'Persistent', state: STATE === 'running' ? 'busy' : 'idle', serving: STATE === 'running' ? 'octo/app, test' : 'waiting for a job' },
++        { id: 'r2', name: 'crsp-linux-2', machine: 'build-1', system: 'Linux', type: 'Persistent', state: STATE === 'running' ? 'busy' : 'idle', serving: STATE === 'running' ? 'octo/api, lint' : 'waiting for a job' },
++        { id: 'r3', name: 'crsp-linux-3', machine: 'build-1', system: 'Linux', type: 'Ephemeral', state: 'idle', serving: 'waiting for a job' },
++        { id: 'r4', name: 'crsp-linux-4', machine: 'build-1', system: 'Linux', type: 'Ephemeral', state: 'idle', serving: 'waiting for a job' },
++        { id: 'r5', name: 'crsp-win-1', machine: 'win-1', system: 'Windows', type: 'Persistent', state: STATE === 'running' ? 'busy' : 'idle', serving: STATE === 'running' ? 'octo/app, win-test' : 'waiting for a job' },
++        { id: 'r6', name: 'crsp-win-2', machine: 'win-1', system: 'Windows', type: 'Light', state: 'idle', serving: 'waiting for a job' },
++      ];
++const REPOS_ALL = ['octo/app', 'octo/api', 'octo/docs', 'octo/infra', 'octo/site'];
++const REPOS: Repo[] = REPOS_ALL.map((name, i) => ({
++  id: name,
++  name,
++  visibility: i === 4 ? 'public' : 'private',
++  using: STATE === 'running' && i < 2,
++}));
++const JOBS: J[] =
++  STATE !== 'running'
++    ? []
++    : [
++        { id: 'j1', repo: 'octo/app', job: 'test', machine: 'build-1', runnerType: 'Persistent', jobType: 'Standard', state: 'running', result: '', waitS: 12, durS: 214, when: 'started 3 min ago' },
++        { id: 'j2', repo: 'octo/api', job: 'lint', machine: 'build-1', runnerType: 'Persistent', jobType: 'Light', state: 'running', result: '', waitS: 4, durS: 41, when: 'started 41 s ago' },
++        { id: 'j3', repo: 'octo/app', job: 'win-test', machine: 'win-1', runnerType: 'Persistent', jobType: 'Standard', state: 'running', result: '', waitS: 95, durS: 380, when: 'started 6 min ago' },
++        { id: 'j4', repo: 'octo/api', job: 'build', machine: '', runnerType: 'Ephemeral', jobType: 'Heavy', state: 'queued', result: '', waitS: 70, durS: 0, when: 'waits for a free slot' },
++        { id: 'j5', repo: 'octo/app', job: 'package', machine: '', runnerType: 'Ephemeral', jobType: 'Heavy', state: 'queued', result: '', waitS: 33, durS: 0, when: 'waits for a free slot' },
++        { id: 'j6', repo: 'octo/app', job: 'test', machine: 'build-1', runnerType: 'Persistent', jobType: 'Standard', state: 'done', result: 'ok', waitS: 8, durS: 232, when: '14 min ago' },
++        { id: 'j7', repo: 'octo/api', job: 'lint', machine: 'build-1', runnerType: 'Persistent', jobType: 'Light', state: 'done', result: 'ok', waitS: 3, durS: 38, when: '21 min ago' },
++        { id: 'j8', repo: 'octo/app', job: 'win-test', machine: 'win-1', runnerType: 'Persistent', jobType: 'Standard', state: 'done', result: 'failed', waitS: 140, durS: 410, when: '40 min ago' },
++        { id: 'j9', repo: 'octo/api', job: 'build', machine: 'build-1', runnerType: 'Ephemeral', jobType: 'Heavy', state: 'done', result: 'ok', waitS: 61, durS: 505, when: '1 h ago' },
++        { id: 'j10', repo: 'octo/app', job: 'package', machine: 'build-1', runnerType: 'Ephemeral', jobType: 'Heavy', state: 'done', result: 'ok', waitS: 48, durS: 612, when: '2 h ago' },
++        { id: 'j11', repo: 'octo/api', job: 'test', machine: 'win-1', runnerType: 'Light', jobType: 'Light', state: 'done', result: 'failed', waitS: 22, durS: 77, when: '3 h ago' },
++      ];
++
++const DONE_LIMIT = 50;
++const mins = (s: number) => (s < 90 ? `${s} s` : `${Math.round(s / 60)} min`);
++const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
++const avg = (xs: number[]) => (xs.length ? Math.round(sum(xs) / xs.length) : 0);
++
++/* ---------- Shared Pool ---------- */
++
++const POOL_TABS = [
++  { id: 'summary', label: 'Summary', to: '/pool' },
++  { id: 'machines', label: 'Machines', to: '/pool/machines' },
++  { id: 'runners', label: 'Runners', to: '/pool/runners' },
++  { id: 'images', label: 'Images and caches', to: '/pool/images' },
++  { id: 'size', label: 'Size and backends', to: '/pool/size' },
++] as const;
++
++function PoolPage({
++  tab,
++  lead,
++  action,
++  children,
++}: {
++  tab: (typeof POOL_TABS)[number]['id'];
++  lead: string;
++  action?: ReactNode;
++  children: ReactNode;
++}) {
++  const navigate = useNavigate();
++  return (
++    <Page>
++      <PageHeader title="Shared Pool" lead={lead} action={action} />
++      <Tabs
++        label="Shared Pool sections"
++        tabs={POOL_TABS}
++        current={tab}
++        onChange={(id) => void navigate(POOL_TABS.find((t) => t.id === id)?.to ?? '/pool')}
++      />
++      {children}
++    </Page>
++  );
++}
++
++function FirstRunGuide() {
++  const hasM = MACHINES.length > 0;
++  const hasR = RUNNERS.length > 0;
++  const hasRepo = REPOS.some((r) => r.using);
++  return (
++    <Section title="Set up the pool" hint="Three steps. Each one opens when the one before is done.">
++      <Facts
++        items={[
++          {
++            name: '1 Add a machine',
++            value: hasM ? (
++              <Status kind="ok" word={`done, ${MACHINES.length} machines`} />
++            ) : (
++              <Stack>
++                <Text>A computer that runs your jobs. Linux, Windows or macOS.</Text>
++                <LinkButton to="/pool/machines" kind="primary">
++                  Add a machine
++                </LinkButton>
++              </Stack>
++            ),
++          },
++          {
++            name: '2 Set runners',
++            value: hasR ? (
++              <Status kind="ok" word={`done, ${RUNNERS.length} runners`} />
++            ) : (
++              <Stack>
++                <Text>How many jobs each machine runs at once, per system.</Text>
++                <Button disabled reason="Add a machine first.">
++                  Add runners
++                </Button>
++              </Stack>
++            ),
++          },
++          {
++            name: '3 Choose repositories',
++            value: hasRepo ? (
++              <Status kind="ok" word="done, 2 repositories use the pool" />
++            ) : (
++              <Stack>
++                <Text>Pick the repositories that use the pool.</Text>
++                {hasR ? (
++                  <LinkButton to="/repositories" kind="primary">
++                    Choose repositories
++                  </LinkButton>
++                ) : (
++                  <Button disabled reason="Set runners first.">
++                    Choose repositories
++                  </Button>
++                )}
++              </Stack>
++            ),
++          },
++        ]}
++      />
++    </Section>
++  );
++}
++
++function bySystem() {
++  return ['Linux', 'Windows', 'macOS'].map((s) => {
++    const ms = MACHINES.filter((m) => m.system === s);
++    const rs = RUNNERS.filter((r) => r.system === s);
++    return { system: s, machines: ms.length, runners: rs.length, busy: rs.filter((r) => r.state === 'busy').length };
++  });
++}
++
++export function PoolSummary() {
++  const slots = sum(MACHINES.map((m) => m.slots));
++  const busy = RUNNERS.filter((r) => r.state === 'busy').length;
++  const online = MACHINES.filter((m) => m.online).length;
++  const sysCols: Column<ReturnType<typeof bySystem>[number]>[] = [
++    { id: 'system', header: 'System', cell: (x) => x.system },
++    { id: 'machines', header: 'Machines', cell: (x) => String(x.machines) },
++    { id: 'runners', header: 'Runners', cell: (x) => String(x.runners) },
++    { id: 'busy', header: 'Busy', cell: (x) => String(x.busy) },
++  ];
++  const repos = REPOS.filter((r) => r.using).length;
++  return (
++    <PoolPage
++      tab="summary"
++      lead="One pool across your machines. Set it up here, then choose repositories."
++      action={
++        MACHINES.length > 0 ? (
++          <LinkButton to="/pool/runners/add" kind="primary">
++            Add runners
++          </LinkButton>
++        ) : undefined
++      }
++    >
++      {MACHINES.length === 0 || repos === 0 ? <FirstRunGuide /> : null}
++      {MACHINES.length > 0 ? (
++        <>
++          <Section title="The pool">
++            <Facts
++              items={[
++                { name: 'Machines', value: `${online} of ${MACHINES.length} online` },
++                { name: 'Runners', value: `${RUNNERS.length}, ${busy} busy` },
++                { name: 'Repositories', value: repos === 0 ? 'none use the pool yet' : `${repos} use the pool` },
++                {
++                  name: 'Health',
++                  value: <Status kind="ok" word="all machines and runners healthy" />,
++                },
++              ]}
++            />
++            <LevelBar label="Capacity" value={busy} max={slots} text={`${busy} of ${slots} job slots in use`} />
++          </Section>
++          <Section title="Runners per system">
++            <Table caption="Runners per system" columns={sysCols} rows={bySystem().filter((x) => x.machines > 0)} rowKey={(x) => x.system} />
++          </Section>
++        </>
++      ) : null}
++    </PoolPage>
++  );
++}
++
++export function PoolMachines() {
++  const cols: Column<M>[] = [
++    { id: 'name', header: 'Machine', cell: (x) => x.name, sort: (x) => x.name },
++    { id: 'system', header: 'System', cell: (x) => x.system },
++    { id: 'state', header: 'State', cell: (x) => <Status kind={x.online ? 'ok' : 'failed'} word={x.online ? 'online' : 'offline'} /> },
++    { id: 'runners', header: 'Runners', cell: (x) => `${x.runners}, ${x.busy} busy` },
++  ];
++  return (
++    <PoolPage
++      tab="machines"
++      lead="The computers in the pool."
++      action={
++        <LinkButton to="/pool/machines" kind="primary">
++          Add a machine
++        </LinkButton>
++      }
++    >
++      {MACHINES.length === 0 ? (
++        <Empty title="No machines yet. Add the first machine, then set its runners." />
++      ) : (
++        <Section title="Machines" count={MACHINES.length}>
++          <Table caption="Machines" columns={cols} rows={MACHINES} rowKey={(x) => x.id} />
++        </Section>
++      )}
++    </PoolPage>
++  );
++}
++
++export function PoolRunners() {
++  const cols: Column<R>[] = [
++    { id: 'name', header: 'Runner', cell: (x) => x.name, sort: (x) => x.name },
++    { id: 'machine', header: 'Machine', cell: (x) => x.machine, sort: (x) => x.machine },
++    { id: 'system', header: 'System', cell: (x) => x.system },
++    { id: 'type', header: 'Type', cell: (x) => x.type, secondary: true },
++    { id: 'state', header: 'State', cell: (x) => <Status kind={x.state === 'busy' ? 'running' : 'ok'} word={x.state} /> },
++    { id: 'serving', header: 'Serving now', cell: (x) => x.serving, secondary: true },
++  ];
++  return (
++    <PoolPage
++      tab="runners"
++      lead="Runners on every machine. They serve every repository that uses the pool."
++      action={
++        MACHINES.length > 0 ? (
++          <LinkButton to="/pool/runners/add" kind="primary">
++            Add runners
++          </LinkButton>
++        ) : (
++          <Button kind="primary" disabled reason="Add a machine first.">
++            Add runners
++          </Button>
++        )
++      }
++    >
++      {RUNNERS.length === 0 ? (
++        <Empty
++          title="No runners yet. Add a machine to the pool, then set its runners."
++          action={
++            <LinkButton to="/pool/machines" kind="primary">
++              Add a machine
++            </LinkButton>
++          }
++        />
++      ) : (
++        <Section title="Runners" count={RUNNERS.length}>
++          <Table caption="Runners" columns={cols} rows={RUNNERS} rowKey={(x) => x.id} />
++        </Section>
++      )}
++    </PoolPage>
++  );
++}
++
++export function PoolAddRunners() {
++  const navigate = useNavigate();
++  const [system, setSystem] = useState('Linux');
++  const [machine, setMachine] = useState('build-1');
++  const [count, setCount] = useState(2);
++  const [labels, setLabels] = useState('self-hosted, crsp-home');
++  return (
++    <Page>
++      <Breadcrumbs
++        trail={[
++          { to: '/pool', label: 'Shared Pool' },
++          { to: '/pool/runners', label: 'Runners' },
++          { label: 'Add runners' },
++        ]}
++      />
++      <PageHeader title="Add runners" lead="Runners join the pool. They serve every repository that uses the pool." />
++      <Section title="What to add">
++        <Stack>
++          <ChoiceField
++            label="System"
++            value={system}
++            onChange={setSystem}
++            choices={[
++              { value: 'Linux', label: 'Linux' },
++              { value: 'Windows', label: 'Windows' },
++            ]}
++          />
++          <ChoiceField
++            label="Machine"
++            value={machine}
++            onChange={setMachine}
++            choices={[
++              { value: 'build-1', label: 'build-1', description: 'Linux, online' },
++              { value: 'win-1', label: 'win-1', description: 'Windows, online' },
++            ]}
++          />
++          <NumberField label="Number of runners" value={count} min={1} max={32} onChange={setCount} />
++          <TextField label="Labels" value={labels} onChange={setLabels} />
++          <Message tone="note">
++            No repository to choose here. Choose which repositories use the pool on{' '}
++            <TextLink to="/repositories">Repositories</TextLink>.
++          </Message>
++        </Stack>
++      </Section>
++      <ActionBar
++        secondary={<Button onPress={() => void navigate('/pool/runners')}>Cancel</Button>}
++        primary={<Button kind="primary">Add runners</Button>}
++      />
++    </Page>
++  );
++}
++
++export function PoolImages() {
++  const rows = [
++    { id: 'i1', name: 'crsp-ubuntu-24', size: '3.1 GB', machines: 'build-1', used: '2 h ago' },
++    { id: 'i2', name: 'crsp-win-2025', size: '9.4 GB', machines: 'win-1', used: '3 h ago' },
++  ];
++  const cols: Column<(typeof rows)[number]>[] = [
++    { id: 'name', header: 'Image', cell: (x) => x.name },
++    { id: 'size', header: 'Size', cell: (x) => x.size },
++    { id: 'machines', header: 'On', cell: (x) => x.machines },
++    { id: 'used', header: 'Last used', cell: (x) => x.used, secondary: true },
++  ];
++  return (
++    <PoolPage tab="images" lead="Runner images and caches on the pool's machines.">
++      {MACHINES.length === 0 ? (
++        <Empty title="No images yet. They appear when the first machine joins the pool." />
++      ) : (
++        <>
++          <Section title="Images" count={rows.length}>
++            <Table caption="Images" columns={cols} rows={rows} rowKey={(x) => x.id} />
++          </Section>
++          <Section title="Caches">
++            <LevelBar label="Cache disk" value={38} max={100} text="38 GB of 100 GB used" />
++          </Section>
++        </>
++      )}
++    </PoolPage>
++  );
++}
++
++export function PoolSize() {
++  const cols: Column<M>[] = [
++    { id: 'name', header: 'Machine', cell: (x) => x.name },
++    { id: 'slots', header: 'Job slots', cell: (x) => String(x.slots) },
++    { id: 'backend', header: 'Backend', cell: (x) => (x.system === 'Linux' ? 'docker' : 'docker, native'), secondary: true },
++  ];
++  return (
++    <PoolPage tab="size" lead="How big the pool is and how each machine runs jobs.">
++      {MACHINES.length === 0 ? (
++        <Empty title="No machines yet. Pool size and backends are set per machine." />
++      ) : (
++        <Section title="Pool size and backends">
++          <Table caption="Pool size" columns={cols} rows={MACHINES} rowKey={(x) => x.id} />
++        </Section>
++      )}
++    </PoolPage>
++  );
++}
++
++/* ---------- Repositories ---------- */
++
++export function RepositoriesD() {
++  const [sel, setSel] = useState<Set<string>>(new Set());
++  const noRunners = RUNNERS.length === 0;
++  const cols: Column<Repo>[] = [
++    { id: 'name', header: 'Repository', cell: (x) => x.name, sort: (x) => x.name },
++    { id: 'vis', header: 'Visibility', cell: (x) => x.visibility, secondary: true },
++    {
++      id: 'pool',
++      header: 'Pool',
++      cell: (x) => <Status kind={x.using ? 'ok' : 'waiting'} word={x.using ? 'uses the pool' : 'not using the pool'} />,
++    },
++  ];
++  const picked = REPOS.filter((r) => sel.has(r.id));
++  const anyUsing = picked.some((r) => r.using);
++  const anyNot = picked.some((r) => !r.using);
++  return (
++    <Page>
++      <PageHeader title="Repositories" lead="Choose which repositories use the shared pool." />
++      {noRunners ? (
++        <Message
++          tone="needs-you"
++          action={
++            <LinkButton to="/pool" kind="primary">
++              Open Shared Pool
++            </LinkButton>
++          }
++        >
++          The pool has no runners yet. Set up the pool first, then choose repositories here.
++        </Message>
++      ) : null}
++      <Section title="Repositories" count={REPOS.length}>
++        <Table
++          caption="Repositories"
++          columns={cols}
++          rows={REPOS}
++          rowKey={(x) => x.id}
++          selected={noRunners ? new Set() : sel}
++          {...(noRunners
++            ? {}
++            : {
++                onToggle: (k: string) =>
++                  setSel((s) => {
++                    const n = new Set(s);
++                    if (n.has(k)) n.delete(k);
++                    else n.add(k);
++                    return n;
++                  }),
++              })}
++          toggleLabel={(x) => `Select ${x.name}`}
++          inactive={() => noRunners}
++        />
++      </Section>
++      <ActionBar
++        status={picked.length > 0 ? selectedStatus(picked.length) : undefined}
++        secondary={
++          <Button disabled={noRunners || !anyUsing} {...(noRunners ? { reason: 'The pool has no runners yet.' } : {})}>
++            Stop using pool
++          </Button>
++        }
++        primary={
++          <Button
++            kind="primary"
++            disabled={noRunners || !anyNot}
++            {...(noRunners ? { reason: 'Set up the pool first.' } : !anyNot ? { reason: 'Select a repository first.' } : {})}
++          >
++            Use pool
++          </Button>
++        }
++      />
++    </Page>
++  );
++}
++
++/* ---------- Jobs ---------- */
++
++const JOB_TABS = [
++  { id: 'all', label: 'All', to: '/jobs' },
++  { id: 'repo', label: 'By repository', to: '/jobs/repository' },
++  { id: 'machine', label: 'By machine', to: '/jobs/machine' },
++  { id: 'runner', label: 'By runner type', to: '/jobs/runner-type' },
++  { id: 'type', label: 'By job type', to: '/jobs/job-type' },
++  { id: 'trends', label: 'Trends', to: '/jobs/trends' },
++] as const;
++
++function JobsPage({ tab, children }: { tab: (typeof JOB_TABS)[number]['id']; children: ReactNode }) {
++  const navigate = useNavigate();
++  return (
++    <Page>
++      <PageHeader title="Jobs" lead="Everything queued, running and done in the pool." />
++      <Tabs
++        label="Jobs sections"
++        tabs={JOB_TABS}
++        current={tab}
++        onChange={(id) => void navigate(JOB_TABS.find((t) => t.id === id)?.to ?? '/jobs')}
++      />
++      {JOBS.length === 0 ? (
++        <Empty
++          title={
++            RUNNERS.length === 0
++              ? 'No jobs yet. Set up the pool, then choose repositories.'
++              : 'No jobs yet. Choose repositories that use the pool and their jobs appear here.'
++          }
++          action={
++            <LinkButton to={RUNNERS.length === 0 ? '/pool' : '/repositories'} kind="primary">
++              {RUNNERS.length === 0 ? 'Open Shared Pool' : 'Choose repositories'}
++            </LinkButton>
++          }
++        />
++      ) : (
++        children
++      )}
++    </Page>
++  );
++}
++
++const jobCols: Column<J>[] = [
++  { id: 'repo', header: 'Repository', cell: (x) => x.repo, sort: (x) => x.repo },
++  { id: 'job', header: 'Job', cell: (x) => x.job },
++  { id: 'where', header: 'Machine', cell: (x) => x.machine || 'none yet', secondary: true },
++  {
++    id: 'state',
++    header: 'State',
++    cell: (x) =>
++      x.state === 'queued' ? (
++        <Status kind="waiting" word="queued" />
++      ) : x.state === 'running' ? (
++        <Status kind="running" word="running" />
++      ) : (
++        <Status kind={x.result === 'ok' ? 'ok' : 'failed'} word={x.result === 'ok' ? 'passed' : 'failed'} />
++      ),
++  },
++  { id: 'wait', header: 'Waited', cell: (x) => mins(x.waitS), secondary: true },
++  { id: 'when', header: 'When', cell: (x) => x.when, secondary: true },
++];
++
++export function JobsAll() {
++  const q1 = JOBS.filter((j) => j.state === 'queued');
++  const r1 = JOBS.filter((j) => j.state === 'running');
++  const d1 = JOBS.filter((j) => j.state === 'done').slice(0, DONE_LIMIT);
++  return (
++    <JobsPage tab="all">
++      <Section title="Running" count={r1.length}>
++        <Table caption="Running jobs" columns={jobCols} rows={r1} rowKey={(x) => x.id} />
++      </Section>
++      <Section title="Queued" count={q1.length}>
++        <Table caption="Queued jobs" columns={jobCols} rows={q1} rowKey={(x) => x.id} />
++      </Section>
++      <Section title="Done" count={d1.length} hint={`The last ${DONE_LIMIT} jobs. Older jobs are kept in the job history on Settings.`}>
++        <Table caption="Done jobs" columns={jobCols} rows={d1} rowKey={(x) => x.id} />
++      </Section>
++    </JobsPage>
++  );
++}
++
++interface G {
++  key: string;
++  running: number;
++  queued: number;
++  done: number;
++  failed: number;
++  wait: number;
++  dur: number;
++}
++function group(by: (j: J) => string): G[] {
++  const keys = [...new Set(JOBS.map(by).filter(Boolean))];
++  return keys.map((key) => {
++    const mine = JOBS.filter((j) => by(j) === key);
++    const done = mine.filter((j) => j.state === 'done');
++    return {
++      key,
++      running: mine.filter((j) => j.state === 'running').length,
++      queued: mine.filter((j) => j.state === 'queued').length,
++      done: done.length,
++      failed: done.filter((j) => j.result === 'failed').length,
++      wait: avg(mine.map((j) => j.waitS)),
++      dur: avg(done.map((j) => j.durS)),
++    };
++  });
++}
++
++function Grouped({ tab, label, by }: { tab: (typeof JOB_TABS)[number]['id']; label: string; by: (j: J) => string }) {
++  const cols: Column<G>[] = [
++    { id: 'key', header: label, cell: (x) => x.key, sort: (x) => x.key },
++    { id: 'running', header: 'Running', cell: (x) => String(x.running) },
++    { id: 'queued', header: 'Queued', cell: (x) => String(x.queued) },
++    { id: 'done', header: 'Done', cell: (x) => String(x.done), secondary: true },
++    { id: 'failed', header: 'Failed', cell: (x) => String(x.failed), secondary: true },
++    { id: 'wait', header: 'Avg wait', cell: (x) => mins(x.wait), secondary: true },
++    { id: 'dur', header: 'Avg duration', cell: (x) => mins(x.dur), secondary: true },
++  ];
++  const rows = group(by);
++  return (
++    <JobsPage tab={tab}>
++      <Section title={label} count={rows.length} hint="Open a row to see its jobs.">
++        <Table caption={`Jobs ${label.toLowerCase()}`} columns={cols} rows={rows} rowKey={(x) => x.key} onOpen={() => undefined} />
++      </Section>
++    </JobsPage>
++  );
++}
++
++export const JobsByRepo = () => <Grouped tab="repo" label="By repository" by={(j) => j.repo} />;
++export const JobsByMachine = () => <Grouped tab="machine" label="By machine" by={(j) => j.machine} />;
++export const JobsByRunner = () => <Grouped tab="runner" label="By runner type" by={(j) => j.runnerType} />;
++export const JobsByType = () => <Grouped tab="type" label="By job type" by={(j) => j.jobType} />;
++
++export function JobsTrends() {
++  const days = [
++    { d: 'Today', wait: 62, dur: 310, failed: 2 },
++    { d: 'Yesterday', wait: 48, dur: 295, failed: 1 },
++    { d: '2 days ago', wait: 130, dur: 340, failed: 4 },
++    { d: '3 days ago', wait: 55, dur: 288, failed: 0 },
++    { d: '4 days ago', wait: 41, dur: 270, failed: 1 },
++    { d: '5 days ago', wait: 39, dur: 281, failed: 0 },
++    { d: '6 days ago', wait: 72, dur: 301, failed: 3 },
++  ];
++  return (
++    <JobsPage tab="trends">
++      <Section title="Wait time per day" hint="Average time a job waited for a runner, last 7 days.">
++        <Stack>
++          {days.map((x) => (
++            <LevelBar key={x.d} label={x.d} value={x.wait} max={150} text={mins(x.wait)} />
++          ))}
++        </Stack>
++      </Section>
++      <Section title="Duration per day" hint="Average time a job ran, last 7 days.">
++        <Stack>
++          {days.map((x) => (
++            <LevelBar key={x.d} label={x.d} value={x.dur} max={400} text={mins(x.dur)} />
++          ))}
++        </Stack>
++      </Section>
++      <Section title="Failures per day">
++        <Stack>
++          {days.map((x) => (
++            <LevelBar key={x.d} label={x.d} value={x.failed} max={5} text={`${x.failed} failed`} />
++          ))}
++        </Stack>
++      </Section>
++    </JobsPage>
++  );
++}
+diff --git a/apps/web/src/shell/Shell.tsx b/apps/web/src/shell/Shell.tsx
+index 02efa5f..7ce28f7 100644
+--- a/apps/web/src/shell/Shell.tsx
++++ b/apps/web/src/shell/Shell.tsx
+@@ -86,11 +86,9 @@ function AreaMenu() {
+ 
+ export const AREAS: readonly NavItem[] = [
+   { to: '/', label: 'Overview', end: true },
++  { to: '/pool', label: 'Shared Pool' },
+   { to: '/repositories', label: 'Repositories' },
+-  { to: '/machines', label: 'Machines' },
+-  { to: '/runners', label: 'Runners' },
+   { to: '/jobs', label: 'Jobs' },
+-  { to: '/images', label: 'Images and caches' },
+   { to: '/doctor', label: 'Doctor' },
+   { to: '/settings', label: 'Settings' },
+ ];
