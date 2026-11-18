@@ -296,6 +296,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// registration for each pool repository, made and removed with the pool
 	// switch and by the reconcile loop (runners R5.88).
 	runnerSvc.PoolRepos = poolRepos(repoStore)
+	rsvc.SetEphemeral(runnerSvc)
 	rsvc.SetRegistrar(runnerSvc)
 	rsvc.SetFleet(runnerSvc)
 
@@ -316,10 +317,11 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 			return gh, nil
 		},
 		Store: doctor.NewMemStore(), Events: hub, Logger: logger, PoolName: pool,
-		KVM:     reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
-		Engines: reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
-		Extra:   checks.KVMReportedChecks(),
-		Demand:  quietSource{wd: quietDemand},
+		KVM:       reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
+		Engines:   reportSources{fleet: doctorFleet{machines: d.Machines}, link: d.Link},
+		Extra:     checks.KVMReportedChecks(),
+		Demand:    quietSource{wd: quietDemand},
+		Ephemeral: runnerSvc,
 	})
 
 	c.Options.Version, c.Options.DB, c.Options.Logger = version, d.DB, logger
