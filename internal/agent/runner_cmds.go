@@ -40,6 +40,7 @@ func SpecFromProto(p *agentv1.RunnerSpec) backend.RunnerSpec {
 		GitHubURL: p.GetGithubUrl(), Group: p.GetRunnerGroup(), RunnerVersion: p.GetRunnerVersion(),
 		RunnerSHA256: p.GetRunnerSha256(), WindowsSymlinkRight: p.GetWindowsSymlinkRight(),
 		ExtraPackages: p.GetExtraPackages(), KeepDependencies: p.KeepDependencies == nil || p.GetKeepDependencies(),
+		Container: p.GetKind() == "persistent" && p.GetBackend() == string(backend.Docker),
 	}
 }
 

@@ -120,6 +120,10 @@ type RunnerSpec struct {
 	// dependencies (runners R5.90). The backends write it to the runner folder;
 	// the clean-up hooks read it. A runner made before the setting keeps.
 	KeepDependencies bool
+	// Container asks for a persistent runner in the long-lived Linux pool
+	// container of a Windows machine (runners R5.93). It is set with a
+	// registration token, never with a JIT config.
+	Container bool
 	// Pool is what the repository's pool settings ask for (runners R5.50,
 	// R5.54). The zero value asks for the base image only.
 	Pool PoolSetup

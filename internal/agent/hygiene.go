@@ -47,6 +47,29 @@ func dependencyBytes(fsys runnercache.FS, folder string) int64 {
 	return runnercache.Total(es)
 }
 
+// ContainerRunners is the persistent Linux runners of the pool container of a
+// Windows machine (runners R5.93): their folders are inside the container, so
+// the container backend reads and changes them.
+type ContainerRunners interface {
+	// Clean gives the state of each runner: name, dependency bytes, unclean reason.
+	Clean(ctx context.Context) ([]ContainerClean, error)
+	// Apply writes the keep setting of a runner and clears its dependencies when asked.
+	Apply(ctx context.Context, name string, keep, clear bool) error
+}
+
+// ContainerClean is one persistent container runner's clean-up state.
+type ContainerClean struct {
+	Name            string
+	DependencyBytes int64
+	UncleanReason   string
+}
+
+// containerSource is the part of a CacheSource that also has container runners.
+type containerSource interface{ ContainerRunners() ContainerRunners }
+
+// ContainerRunners implements containerSource.
+func (f FoundRunners) ContainerRunners() ContainerRunners { return f.Container }
+
 // CleanStatuses reads the state of every runner whose hooks clean.
 func CleanStatuses(ctx context.Context, src CacheSource, fsys runnercache.FS) []*agentv1.RunnerCleanStatus {
 	if src == nil {
@@ -57,6 +80,13 @@ func CleanStatuses(ctx context.Context, src CacheSource, fsys runnercache.FS) []
 		return nil
 	}
 	var out []*agentv1.RunnerCleanStatus
+	if cs, ok := src.(containerSource); ok && cs.ContainerRunners() != nil {
+		if states, err := cs.ContainerRunners().Clean(ctx); err == nil {
+			for _, s := range states {
+				out = append(out, &agentv1.RunnerCleanStatus{RunnerName: s.Name, DependencyCacheBytes: s.DependencyBytes, UncleanReason: s.UncleanReason})
+			}
+		}
+	}
 	for _, r := range rs {
 		if r.Folder == "" || !managesClean(r.Folder) {
 			continue
@@ -102,6 +132,7 @@ func (l *link) applyHygiene(ctx context.Context, m *agentv1.RunnerHygiene) {
 		}
 	}
 	if folder == "" {
+		l.applyContainerHygiene(ctx, m)
 		return
 	}
 	if hygiene.ReadKeep(sysFS{}, folder) != m.GetKeepDependencies() {
@@ -158,4 +189,67 @@ func (l *link) clearDependencies(ctx context.Context, runner, folder string) {
 		case <-t.C:
 		}
 	}
+}
+
+// applyContainerHygiene is applyHygiene for a runner in the pool container. The
+// controller sent a Clear now or a changed setting; the agent carries it out
+// when the runner is idle and reports again.
+func (l *link) applyContainerHygiene(ctx context.Context, m *agentv1.RunnerHygiene) {
+	cs, ok := l.cfg.Caches.(containerSource)
+	if !ok || cs.ContainerRunners() == nil {
+		return
+	}
+	cr := cs.ContainerRunners()
+	name := m.GetRunnerName()
+	known := false
+	if states, err := cr.Clean(ctx); err == nil {
+		for _, s := range states {
+			known = known || s.Name == name
+		}
+	}
+	if !known {
+		return
+	}
+	if !m.GetClearCache() {
+		if err := cr.Apply(ctx, name, m.GetKeepDependencies(), false); err != nil {
+			l.cfg.Logger.Warn("hygiene setting not written", "runner", name, "err", err)
+		}
+		if m.GetKeepDependencies() {
+			return
+		}
+	}
+	l.hyg.mu.Lock()
+	if l.hyg.active == nil {
+		l.hyg.active = map[string]bool{}
+	}
+	if l.hyg.active[name] {
+		l.hyg.mu.Unlock()
+		return
+	}
+	l.hyg.active[name] = true
+	l.hyg.mu.Unlock()
+	go func() {
+		defer func() { l.hyg.mu.Lock(); delete(l.hyg.active, name); l.hyg.mu.Unlock() }()
+		poll := l.cfg.DrainPollEvery
+		if poll <= 0 {
+			poll = 2 * time.Second
+		}
+		defer l.cfg.Gate.ReleaseRunner(name)
+		t := time.NewTicker(poll)
+		defer t.Stop()
+		for {
+			if idle, _ := l.cfg.Gate.HoldRunner(name); idle {
+				if err := cr.Apply(ctx, name, m.GetKeepDependencies(), true); err != nil {
+					l.cfg.Logger.Warn("dependency cache not cleared", "runner", name, "err", err)
+				}
+				l.reportClean(ctx)
+				return
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+			}
+		}
+	}()
 }
