@@ -49,6 +49,9 @@ func AccountName(runnerName string, taken func(string) bool) string {
 	for strings.HasPrefix(slug, AccountPrefix) {
 		slug = strings.TrimLeft(strings.TrimPrefix(slug, AccountPrefix), "-")
 	}
+	if slug == strings.TrimSuffix(AccountPrefix, "-") {
+		slug = ""
+	}
 	if slug == "" {
 		slug = "runner"
 	}

@@ -68,7 +68,7 @@ describe('the banner names the next step (finding 3)', () => {
 describe('the header and the machine list agree (finding 1)', () => {
   it('counts the machines online, never "no machines", while one is up', async () => {
     renderApp(signedIn(), '/');
-    expect(await screen.findByText('1 of 1 online')).toBeTruthy();
+    expect(await screen.findByText('1 of 1 machine online')).toBeTruthy();
     expect(screen.queryByText('no machines')).toBeNull();
   });
 });
