@@ -104,7 +104,18 @@ describe('Doctor screen', () => {
     );
     const labels = screen.getByRole('region', { name: 'Workflow labels' });
     expect(within(labels).getByText('failed')).toBeTruthy();
-    expect(within(labels).getByText(/needs \[self-hosted, linux, arm64\]/)).toBeTruthy();
+    // LOOK19: the detail is one clipped line with a Details button; the full text opens in a row under it.
+    const details = within(labels).getByRole('button', { name: 'Details' });
+    expect(details.getAttribute('aria-expanded')).toBe('false');
+    expect(within(labels).queryByRole('region', { name: /Details/ })).toBeNull();
+    fireEvent.click(details);
+    expect(details.getAttribute('aria-expanded')).toBe('true');
+    expect(within(labels).getByRole('region', { name: /Details/ }).textContent).toBe(
+      '.github/workflows/ci.yml:12 needs [self-hosted, linux, arm64]',
+    );
+    expect(details.getAttribute('aria-controls')).toBe(
+      within(labels).getByRole('region', { name: /Details/ }).id,
+    );
     expect(
       within(labels).getByRole('button', { name: 'Open' }).getAttribute('href'),
     ).toBe('/pool/runners');

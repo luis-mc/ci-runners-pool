@@ -98,6 +98,21 @@ function jobsApi(items: { queue?: Job[]; history?: Job[]; next?: string } = {}) 
 }
 
 describe('wait reasons and results in words', () => {
+  it('shows a long wait reason as one line with a Details button that opens it', async () => {
+    const text =
+      'waits for a free slot on any Linux machine that carries the labels self-hosted and arm64';
+    renderApp(
+      jobsApi({ queue: [{ ...queued, wait_text: text }], history: [job()] }),
+      '/jobs',
+    );
+    const table = await screen.findByRole('table', { name: 'Queued jobs' });
+    const button = within(table).getByRole('button', { name: 'Details' });
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(button);
+    expect(within(table).getByRole('region', { name: /Details/ }).textContent).toBe(text);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('says why a queued job waits (UX-29), preferring the server line', () => {
     expect(waitWords({ wait_reason: 'free_slot', wait_text: 'waits on box-1' })).toBe(
       'waits on box-1',

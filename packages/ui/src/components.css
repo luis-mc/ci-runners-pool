@@ -851,6 +851,24 @@ body {
 .ds-table__pick {
   inline-size: var(--ds-target-min);
 }
+/* Long free text in a cell: one line with an ellipsis; its button opens the full text in a full-width row (LOOK19). */
+.ds-table__clip {
+  display: block;
+  max-inline-size: 40ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-color-text-muted);
+}
+.ds-table tr[data-list-row]:focus .ds-table__clip,
+.ds-table tr[data-list-row]:focus-within .ds-table__clip,
+.ds-table tr[data-active] .ds-table__clip {
+  color: inherit;
+}
+.ds-table__expanded td {
+  background: var(--ds-color-selection);
+  overflow-wrap: anywhere;
+}
 /* At phone width every row is a stack of "name  value" lines (UX-25, UX-69). The lead cell is the title line. A
    column marked secondary is left out. */
 @media (max-width: 599px) {
@@ -890,6 +908,16 @@ body {
   }
   .ds-table td.ds-table__pick {
     display: block;
+  }
+  .ds-table__clip {
+    max-inline-size: 100%;
+  }
+  .ds-table__expanded td::before {
+    content: none;
+  }
+  .ds-table__expanded td {
+    display: block;
+    padding: var(--ds-space-2) var(--ds-space-3);
   }
   .ds-table td.ds-table__pick::before {
     content: none;

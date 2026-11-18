@@ -23,6 +23,9 @@ export interface ButtonProps {
   reasonIsWait?: boolean | undefined;
   /** The id of a line on the page that says what the button waits for (a busy button points at it). */
   describedBy?: string | undefined;
+  /** This button shows or hides the region `controls` (a disclosure button): sets aria-expanded and aria-controls. */
+  expanded?: boolean | undefined;
+  controls?: string | undefined;
 }
 
 export function Button({
@@ -38,6 +41,8 @@ export function Button({
   part,
   reasonIsWait = false,
   describedBy,
+  expanded,
+  controls,
 }: ButtonProps) {
   const reasonId = useId();
   const locked = disabled || busy;
@@ -53,6 +58,8 @@ export function Button({
         disabled={locked}
         aria-busy={busy || undefined}
         aria-describedby={showReason ? reasonId : describedBy}
+        aria-expanded={expanded}
+        aria-controls={controls}
         title={title}
         data-part={part}
         onClick={onPress}
