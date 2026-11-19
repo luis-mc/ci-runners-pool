@@ -160,6 +160,8 @@ Canonical JSON (`registry.CanonicalJSON`): one object, no whitespace, keys in by
 
 ### REG4: records, pull metrics, layer accounting, read API (R5.29 to R5.36)
 
+**Built (REG4).** R5.29 to R5.36 are built in `internal/registry/records/` and `internal/api/handlers_registry_reg4.go`. Where the text leaves a choice: a pull counts in `registry_pull_daily` only when it is done and came from the registry (`source` pulled), once per pull id; local use and local builds are rows but no count. A registry event of a pull moves the image's last pull time and counts nothing (the agent's `PullReport` is the one count). Time saved is the agent's figure, or the typical build time of the profile and arch minus the pull time. The images list leaves out staged and refused images unless the `state` filter asks for them.
+
 **R5.29** — Image states: `staged`, `refused`, `current`, `variant`, `superseded`, `deleted` (`registry.State`, `registry_images.state`).
 
 **R5.30** — Every `PullReport` becomes a `registry_pulls` row (by `pull_id`, so a resent report is one row) and, when done, a `registry_pull_daily` count; rows are kept 30 days, daily totals 180 days.
@@ -359,8 +361,8 @@ Rows for R5.13 to R5.20 (agent ensure-image), R5.21 and R5.22 (key), R5.59 to R5
 | R5.24, R5.27 | `internal/registry/keys/update_test.go` (built: TestStandardPointerMovesAloneCustomNever, TestPointerPerRepository), `internal/store/registry_keys_test.go` (built) |
 | R5.25, R5.26 | `internal/registry/keys/update_test.go` (built: TestUpdateOfDetected, TestNoUpdateCases, TestBranchVariantThenMerge) |
 | R5.28 | `internal/registry/keys/keys_test.go` (built: TestSimilar) |
-| R5.29 to R5.32 | internal/registry/records/records_test.go |
-| R5.33 to R5.36 | internal/api/handlers_registry_read_test.go |
+| R5.29 to R5.32 | `internal/registry/records/records_test.go` (built: TestLocatorEnsure, TestLayerAccounting, TestLayerAccountingTiesAndBadInput, TestPromotedHookAccountsLayers, TestRecordPull, TestRecordPush, TestRecordEvent, TestPrune) |
+| R5.33 to R5.36 | `internal/registry/records/records_test.go` (built: TestOverview, TestOverviewWhereStates, TestImagesFilters, TestImageDetail, TestPullsListAndTimeLeft, TestNextCleanup); `internal/api/handlers_registry_read_test.go` (built: one test per handler, the 501 and error cases) |
 | R5.37 to R5.40 | apps/web/src/screens/registry/*.test.tsx; e2e/registry/registry.spec.ts |
 | R5.41, R5.42 | internal/registry/retention/budget_test.go; internal/api/handlers_registry_retention_test.go (built, REG6) |
 | R5.43 to R5.45, R5.49, R5.50 | internal/registry/retention/rules_test.go (built, REG6) |

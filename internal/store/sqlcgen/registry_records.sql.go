@@ -156,6 +156,154 @@ func (q *Queries) GetRegistryImage(ctx context.Context, id string) (RegistryImag
 	return i, err
 }
 
+const getRegistryImageByManifest = `-- name: GetRegistryImageByManifest :one
+SELECT id, kind, name, image_tag, profile_id, arch, state, manifest_digest, staged_name, stack_hash, base_name, base_digest, key_input, source_repository, commit_sha, branch, branch_gone_at, pushed_by, pushed_at, promoted_at, refused_why, replaces_id, replaced_by_id, keep_until, size_bytes, unique_bytes, last_pull_at, scan_state, deleted_at, deleted_by, created_at, updated_at FROM registry_images
+WHERE manifest_digest = ? AND state IN ('current', 'variant', 'superseded')
+ORDER BY promoted_at DESC LIMIT 1
+`
+
+func (q *Queries) GetRegistryImageByManifest(ctx context.Context, manifestDigest string) (RegistryImage, error) {
+	row := q.queryRow(ctx, q.getRegistryImageByManifestStmt, getRegistryImageByManifest, manifestDigest)
+	var i RegistryImage
+	err := row.Scan(
+		&i.ID,
+		&i.Kind,
+		&i.Name,
+		&i.ImageTag,
+		&i.ProfileID,
+		&i.Arch,
+		&i.State,
+		&i.ManifestDigest,
+		&i.StagedName,
+		&i.StackHash,
+		&i.BaseName,
+		&i.BaseDigest,
+		&i.KeyInput,
+		&i.SourceRepository,
+		&i.CommitSha,
+		&i.Branch,
+		&i.BranchGoneAt,
+		&i.PushedBy,
+		&i.PushedAt,
+		&i.PromotedAt,
+		&i.RefusedWhy,
+		&i.ReplacesID,
+		&i.ReplacedByID,
+		&i.KeepUntil,
+		&i.SizeBytes,
+		&i.UniqueBytes,
+		&i.LastPullAt,
+		&i.ScanState,
+		&i.DeletedAt,
+		&i.DeletedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRegistryImageByTag = `-- name: GetRegistryImageByTag :one
+SELECT id, kind, name, image_tag, profile_id, arch, state, manifest_digest, staged_name, stack_hash, base_name, base_digest, key_input, source_repository, commit_sha, branch, branch_gone_at, pushed_by, pushed_at, promoted_at, refused_why, replaces_id, replaced_by_id, keep_until, size_bytes, unique_bytes, last_pull_at, scan_state, deleted_at, deleted_by, created_at, updated_at FROM registry_images
+WHERE image_tag = ? AND state IN ('current', 'variant', 'superseded')
+ORDER BY promoted_at DESC LIMIT 1
+`
+
+func (q *Queries) GetRegistryImageByTag(ctx context.Context, imageTag string) (RegistryImage, error) {
+	row := q.queryRow(ctx, q.getRegistryImageByTagStmt, getRegistryImageByTag, imageTag)
+	var i RegistryImage
+	err := row.Scan(
+		&i.ID,
+		&i.Kind,
+		&i.Name,
+		&i.ImageTag,
+		&i.ProfileID,
+		&i.Arch,
+		&i.State,
+		&i.ManifestDigest,
+		&i.StagedName,
+		&i.StackHash,
+		&i.BaseName,
+		&i.BaseDigest,
+		&i.KeyInput,
+		&i.SourceRepository,
+		&i.CommitSha,
+		&i.Branch,
+		&i.BranchGoneAt,
+		&i.PushedBy,
+		&i.PushedAt,
+		&i.PromotedAt,
+		&i.RefusedWhy,
+		&i.ReplacesID,
+		&i.ReplacedByID,
+		&i.KeepUntil,
+		&i.SizeBytes,
+		&i.UniqueBytes,
+		&i.LastPullAt,
+		&i.ScanState,
+		&i.DeletedAt,
+		&i.DeletedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRegistryPullByID = `-- name: GetRegistryPullByID :one
+SELECT id, pull_id, machine_id, image_id, image_tag, manifest_digest, source, state, bytes_done, bytes_total, seconds, saved_seconds, repository, job_id, error, started_at, finished_at, updated_at FROM registry_pulls WHERE pull_id = ?
+`
+
+func (q *Queries) GetRegistryPullByID(ctx context.Context, pullID string) (RegistryPull, error) {
+	row := q.queryRow(ctx, q.getRegistryPullByIDStmt, getRegistryPullByID, pullID)
+	var i RegistryPull
+	err := row.Scan(
+		&i.ID,
+		&i.PullID,
+		&i.MachineID,
+		&i.ImageID,
+		&i.ImageTag,
+		&i.ManifestDigest,
+		&i.Source,
+		&i.State,
+		&i.BytesDone,
+		&i.BytesTotal,
+		&i.Seconds,
+		&i.SavedSeconds,
+		&i.Repository,
+		&i.JobID,
+		&i.Error,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRegistryPushByID = `-- name: GetRegistryPushByID :one
+SELECT id, push_id, machine_id, image_tag, staged_name, target_name, manifest_digest, state, image_id, seconds, error, started_at, finished_at, updated_at FROM registry_pushes WHERE push_id = ?
+`
+
+func (q *Queries) GetRegistryPushByID(ctx context.Context, pushID string) (RegistryPush, error) {
+	row := q.queryRow(ctx, q.getRegistryPushByIDStmt, getRegistryPushByID, pushID)
+	var i RegistryPush
+	err := row.Scan(
+		&i.ID,
+		&i.PushID,
+		&i.MachineID,
+		&i.ImageTag,
+		&i.StagedName,
+		&i.TargetName,
+		&i.ManifestDigest,
+		&i.State,
+		&i.ImageID,
+		&i.Seconds,
+		&i.Error,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const insertRegistryImageLayer = `-- name: InsertRegistryImageLayer :exec
 INSERT INTO registry_image_layers (image_id, layer_digest, position) VALUES (?, ?, ?)
 ON CONFLICT (image_id, layer_digest) DO NOTHING
@@ -332,6 +480,93 @@ func (q *Queries) ListRegistryImages(ctx context.Context, arg ListRegistryImages
 	return items, nil
 }
 
+const listRegistryLayerHolders = `-- name: ListRegistryLayerHolders :many
+SELECT il.layer_digest, i.id AS image_id, i.kind, i.promoted_at, i.pushed_at
+FROM registry_image_layers il JOIN registry_images i ON i.id = il.image_id
+WHERE il.layer_digest IN (SELECT x.layer_digest FROM registry_image_layers x WHERE x.image_id = ?)
+  AND i.state <> 'deleted'
+`
+
+type ListRegistryLayerHoldersRow struct {
+	LayerDigest string
+	ImageID     string
+	Kind        string
+	PromotedAt  string
+	PushedAt    string
+}
+
+func (q *Queries) ListRegistryLayerHolders(ctx context.Context, imageID string) ([]ListRegistryLayerHoldersRow, error) {
+	rows, err := q.query(ctx, q.listRegistryLayerHoldersStmt, listRegistryLayerHolders, imageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRegistryLayerHoldersRow
+	for rows.Next() {
+		var i ListRegistryLayerHoldersRow
+		if err := rows.Scan(
+			&i.LayerDigest,
+			&i.ImageID,
+			&i.Kind,
+			&i.PromotedAt,
+			&i.PushedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRegistryLayerUseOfImage = `-- name: ListRegistryLayerUseOfImage :many
+SELECT l.digest, l.size_bytes, l.charged_to,
+       (SELECT count(*) FROM registry_image_layers o JOIN registry_images oi ON oi.id = o.image_id
+        WHERE o.layer_digest = l.digest AND oi.state <> 'deleted') AS live_holders
+FROM registry_image_layers il JOIN registry_layers l ON l.digest = il.layer_digest
+WHERE il.image_id = ?
+`
+
+type ListRegistryLayerUseOfImageRow struct {
+	Digest      string
+	SizeBytes   int64
+	ChargedTo   string
+	LiveHolders int64
+}
+
+func (q *Queries) ListRegistryLayerUseOfImage(ctx context.Context, imageID string) ([]ListRegistryLayerUseOfImageRow, error) {
+	rows, err := q.query(ctx, q.listRegistryLayerUseOfImageStmt, listRegistryLayerUseOfImage, imageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRegistryLayerUseOfImageRow
+	for rows.Next() {
+		var i ListRegistryLayerUseOfImageRow
+		if err := rows.Scan(
+			&i.Digest,
+			&i.SizeBytes,
+			&i.ChargedTo,
+			&i.LiveHolders,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRegistryPullDaily = `-- name: ListRegistryPullDaily :many
 SELECT image_id, day, pulls, builds_saved, saved_seconds FROM registry_pull_daily WHERE image_id = ? AND day >= ? ORDER BY day
 `
@@ -458,6 +693,25 @@ func (q *Queries) ListRegistryPushesInFlight(ctx context.Context) ([]RegistryPus
 	return items, nil
 }
 
+const machinePullSpeed = `-- name: MachinePullSpeed :one
+SELECT CAST(coalesce(sum(bytes_done), 0) AS INTEGER) AS bytes, CAST(coalesce(sum(seconds), 0.0) AS REAL) AS seconds
+FROM (SELECT bytes_done, seconds FROM registry_pulls
+      WHERE machine_id = ? AND state = 'done' AND source = 'pulled' AND seconds > 0 AND bytes_done > 0
+      ORDER BY started_at DESC LIMIT 5)
+`
+
+type MachinePullSpeedRow struct {
+	Bytes   int64
+	Seconds float64
+}
+
+func (q *Queries) MachinePullSpeed(ctx context.Context, machineID string) (MachinePullSpeedRow, error) {
+	row := q.queryRow(ctx, q.machinePullSpeedStmt, machinePullSpeed, machineID)
+	var i MachinePullSpeedRow
+	err := row.Scan(&i.Bytes, &i.Seconds)
+	return i, err
+}
+
 const setRegistryImageLastPull = `-- name: SetRegistryImageLastPull :exec
 UPDATE registry_images SET last_pull_at = ? WHERE id = ? AND last_pull_at < ?
 `
@@ -487,6 +741,33 @@ type SetRegistryImageSizesParams struct {
 func (q *Queries) SetRegistryImageSizes(ctx context.Context, arg SetRegistryImageSizesParams) error {
 	_, err := q.exec(ctx, q.setRegistryImageSizesStmt, setRegistryImageSizes, arg.SizeBytes, arg.UniqueBytes, arg.ID)
 	return err
+}
+
+const setRegistryLayerCharge = `-- name: SetRegistryLayerCharge :exec
+UPDATE registry_layers SET charged_to = ? WHERE digest = ? AND charged_to <> ?
+`
+
+type SetRegistryLayerChargeParams struct {
+	ChargedTo   string
+	Digest      string
+	ChargedTo_2 string
+}
+
+func (q *Queries) SetRegistryLayerCharge(ctx context.Context, arg SetRegistryLayerChargeParams) error {
+	_, err := q.exec(ctx, q.setRegistryLayerChargeStmt, setRegistryLayerCharge, arg.ChargedTo, arg.Digest, arg.ChargedTo_2)
+	return err
+}
+
+const sumRegistryBytesPulledSince = `-- name: SumRegistryBytesPulledSince :one
+SELECT CAST(coalesce(sum(bytes_done), 0) AS INTEGER) AS bytes FROM registry_pulls
+WHERE state = 'done' AND source = 'pulled' AND started_at >= ?
+`
+
+func (q *Queries) SumRegistryBytesPulledSince(ctx context.Context, startedAt string) (int64, error) {
+	row := q.queryRow(ctx, q.sumRegistryBytesPulledSinceStmt, sumRegistryBytesPulledSince, startedAt)
+	var bytes int64
+	err := row.Scan(&bytes)
+	return bytes, err
 }
 
 const sumRegistryLayersByKind = `-- name: SumRegistryLayersByKind :many
@@ -521,6 +802,40 @@ func (q *Queries) SumRegistryLayersByKind(ctx context.Context) ([]SumRegistryLay
 	return items, nil
 }
 
+const sumRegistryPullDailyByImageSince = `-- name: SumRegistryPullDailyByImageSince :many
+SELECT image_id, CAST(sum(pulls) AS INTEGER) AS pulls, CAST(coalesce(sum(saved_seconds), 0.0) AS REAL) AS saved_seconds
+FROM registry_pull_daily WHERE day >= ? GROUP BY image_id
+`
+
+type SumRegistryPullDailyByImageSinceRow struct {
+	ImageID      string
+	Pulls        int64
+	SavedSeconds float64
+}
+
+func (q *Queries) SumRegistryPullDailyByImageSince(ctx context.Context, day string) ([]SumRegistryPullDailyByImageSinceRow, error) {
+	rows, err := q.query(ctx, q.sumRegistryPullDailyByImageSinceStmt, sumRegistryPullDailyByImageSince, day)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SumRegistryPullDailyByImageSinceRow
+	for rows.Next() {
+		var i SumRegistryPullDailyByImageSinceRow
+		if err := rows.Scan(&i.ImageID, &i.Pulls, &i.SavedSeconds); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sumRegistryPullDailySince = `-- name: SumRegistryPullDailySince :one
 SELECT coalesce(sum(pulls), 0) AS pulls, coalesce(sum(builds_saved), 0) AS builds_saved,
        coalesce(sum(saved_seconds), 0.0) AS saved_seconds
@@ -538,6 +853,73 @@ func (q *Queries) SumRegistryPullDailySince(ctx context.Context, day string) (Su
 	var i SumRegistryPullDailySinceRow
 	err := row.Scan(&i.Pulls, &i.BuildsSaved, &i.SavedSeconds)
 	return i, err
+}
+
+const sumRegistrySharedLayersByKind = `-- name: SumRegistrySharedLayersByKind :many
+SELECT l.charged_to, CAST(coalesce(sum(l.size_bytes), 0) AS INTEGER) AS bytes FROM registry_layers l
+WHERE (SELECT count(DISTINCT i.kind) FROM registry_image_layers il JOIN registry_images i ON i.id = il.image_id
+       WHERE il.layer_digest = l.digest AND i.state <> 'deleted') > 1
+GROUP BY l.charged_to
+`
+
+type SumRegistrySharedLayersByKindRow struct {
+	ChargedTo string
+	Bytes     int64
+}
+
+func (q *Queries) SumRegistrySharedLayersByKind(ctx context.Context) ([]SumRegistrySharedLayersByKindRow, error) {
+	rows, err := q.query(ctx, q.sumRegistrySharedLayersByKindStmt, sumRegistrySharedLayersByKind)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SumRegistrySharedLayersByKindRow
+	for rows.Next() {
+		var i SumRegistrySharedLayersByKindRow
+		if err := rows.Scan(&i.ChargedTo, &i.Bytes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const sumRegistryUsedByKind = `-- name: SumRegistryUsedByKind :many
+SELECT charged_to, CAST(coalesce(sum(size_bytes), 0) AS INTEGER) AS bytes FROM registry_layers GROUP BY charged_to
+`
+
+type SumRegistryUsedByKindRow struct {
+	ChargedTo string
+	Bytes     int64
+}
+
+func (q *Queries) SumRegistryUsedByKind(ctx context.Context) ([]SumRegistryUsedByKindRow, error) {
+	rows, err := q.query(ctx, q.sumRegistryUsedByKindStmt, sumRegistryUsedByKind)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SumRegistryUsedByKindRow
+	for rows.Next() {
+		var i SumRegistryUsedByKindRow
+		if err := rows.Scan(&i.ChargedTo, &i.Bytes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const upsertRegistryLayer = `-- name: UpsertRegistryLayer :exec

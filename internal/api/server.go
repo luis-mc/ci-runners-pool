@@ -86,6 +86,9 @@ type Options struct {
 	// RegistryRetention serves the registry budgets, store settings, image delete and
 	// cleanup routes (handlers_registry_reg6.go). Nil answers 501.
 	RegistryRetention RegistryRetentionService
+	// RegistryRead serves the pool registry read routes: overview, images, image page, pulls (handlers_registry_reg4.go,
+	// registry R5.33 to R5.36). Nil answers 501.
+	RegistryRead RegistryReadService
 	// Compare serves the speed comparison route (handlers_compare.go). Nil answers 501.
 	Compare CompareService
 	// Trial serves the trial mode routes (handlers_trial.go). Nil answers 501.

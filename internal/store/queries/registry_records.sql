@@ -91,3 +91,58 @@ ON CONFLICT (push_id) DO UPDATE SET
 
 -- name: ListRegistryPushesInFlight :many
 SELECT * FROM registry_pushes WHERE state IN ('pushing', 'waiting_controller', 'pushed') ORDER BY started_at;
+
+-- name: GetRegistryImageByManifest :one
+SELECT * FROM registry_images
+WHERE manifest_digest = ? AND state IN ('current', 'variant', 'superseded')
+ORDER BY promoted_at DESC LIMIT 1;
+
+-- name: GetRegistryImageByTag :one
+SELECT * FROM registry_images
+WHERE image_tag = ? AND state IN ('current', 'variant', 'superseded')
+ORDER BY promoted_at DESC LIMIT 1;
+
+-- name: GetRegistryPullByID :one
+SELECT * FROM registry_pulls WHERE pull_id = ?;
+
+-- name: GetRegistryPushByID :one
+SELECT * FROM registry_pushes WHERE push_id = ?;
+
+-- name: SumRegistryBytesPulledSince :one
+SELECT CAST(coalesce(sum(bytes_done), 0) AS INTEGER) AS bytes FROM registry_pulls
+WHERE state = 'done' AND source = 'pulled' AND started_at >= ?;
+
+-- name: SumRegistryPullDailyByImageSince :many
+SELECT image_id, CAST(sum(pulls) AS INTEGER) AS pulls, CAST(coalesce(sum(saved_seconds), 0.0) AS REAL) AS saved_seconds
+FROM registry_pull_daily WHERE day >= ? GROUP BY image_id;
+
+-- name: MachinePullSpeed :one
+SELECT CAST(coalesce(sum(bytes_done), 0) AS INTEGER) AS bytes, CAST(coalesce(sum(seconds), 0.0) AS REAL) AS seconds
+FROM (SELECT bytes_done, seconds FROM registry_pulls
+      WHERE machine_id = ? AND state = 'done' AND source = 'pulled' AND seconds > 0 AND bytes_done > 0
+      ORDER BY started_at DESC LIMIT 5);
+
+-- name: ListRegistryLayerHolders :many
+SELECT il.layer_digest, i.id AS image_id, i.kind, i.promoted_at, i.pushed_at
+FROM registry_image_layers il JOIN registry_images i ON i.id = il.image_id
+WHERE il.layer_digest IN (SELECT x.layer_digest FROM registry_image_layers x WHERE x.image_id = ?)
+  AND i.state <> 'deleted';
+
+-- name: ListRegistryLayerUseOfImage :many
+SELECT l.digest, l.size_bytes, l.charged_to,
+       (SELECT count(*) FROM registry_image_layers o JOIN registry_images oi ON oi.id = o.image_id
+        WHERE o.layer_digest = l.digest AND oi.state <> 'deleted') AS live_holders
+FROM registry_image_layers il JOIN registry_layers l ON l.digest = il.layer_digest
+WHERE il.image_id = ?;
+
+-- name: SetRegistryLayerCharge :exec
+UPDATE registry_layers SET charged_to = ? WHERE digest = ? AND charged_to <> ?;
+
+-- name: SumRegistrySharedLayersByKind :many
+SELECT l.charged_to, CAST(coalesce(sum(l.size_bytes), 0) AS INTEGER) AS bytes FROM registry_layers l
+WHERE (SELECT count(DISTINCT i.kind) FROM registry_image_layers il JOIN registry_images i ON i.id = il.image_id
+       WHERE il.layer_digest = l.digest AND i.state <> 'deleted') > 1
+GROUP BY l.charged_to;
+
+-- name: SumRegistryUsedByKind :many
+SELECT charged_to, CAST(coalesce(sum(size_bytes), 0) AS INTEGER) AS bytes FROM registry_layers GROUP BY charged_to;
