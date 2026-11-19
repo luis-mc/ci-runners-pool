@@ -2542,9 +2542,11 @@ button.ds-jobgraph__node:hover {
   .ds-table[data-one-line] .ds-table__value:has(> [data-long]) > .ds-table__text {
     flex: none;
   }
-  /* A grow cell with a reason and its Details button is wide enough for both, so the button never covers the next cell. */
+  /* A grow cell with a status word, its reason and a Details button is wide enough for the word and the button, so the button never covers the next cell. */
   .ds-table[data-one-line]
-    td[data-kind='grow']:has(> .ds-table__value > .ds-button-wrap) {
+    td[data-kind='grow']:has(> .ds-table__value > .ds-table__text .ds-status):has(
+      > .ds-table__value > .ds-button-wrap
+    ) {
     min-inline-size: calc(var(--ds-cell-grow-min) * 2.5);
   }
   .ds-table[data-one-line] td[data-kind='grow'] .ds-table__value {

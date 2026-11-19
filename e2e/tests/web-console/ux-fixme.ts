@@ -108,6 +108,8 @@ export const FIXME: Record<string, string> = {
   'rowActionWords|/pool/size|data': 'T4: B08',
   'rowActionWords|/pool/size|stress': 'T4: B08',
   'textOverBorder|/|stress': 'T4: B07 N2',
+  'textOverBorder|/pool/size|stress':
+    'T4: B08 (the long Open label no longer wraps after LOOK39 T2; the word Open removes it)',
   'textOverText|/|stress': 'T4: B06',
   'wordBroken|/pool/size|stress': 'T4: B08',
   'wrapped|/pool/size|stress': 'T4: B08',
