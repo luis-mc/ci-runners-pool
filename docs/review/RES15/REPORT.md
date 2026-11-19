@@ -153,3 +153,33 @@ The owner saw the same action under three names (Jobs, Open runs, Open jobs), a 
 8. Dates in the Done tables use the short form; the Job and Run pages keep the full form.
 
 **Guard.** `e2e/tests/review/review-layout.spec.ts` (UX-72), for every Jobs screen, the Job and Run pages and Charts, at 1300 px: (a) a row in a table body is taller than one line plus padding, or rows of one table differ in height; (b) a head or a button in a table is taller than the button token (wraps); (c) a button label is not a word of the *Row action words* table of content.md. At 393 px: the action of every card of a list sits at the same place and size. It failed on the previous build (first run: Queue, Running, Done, group and job tables, 130 px rows, labels *Jobs*, *Open runs*, *Open jobs*, wrapped *Open jobs*) and passes on this one.
+
+## 11. RES18 column widths (owner report, measured at 1220 px after RES17)
+
+**Problem.** After RES17 every column of the Done table was about 110 px wide, so short values were cut ("aedf79f, p…", "Release #8…") and nothing gained.
+
+**Fix, in the shared table part (`packages/ui`, component 15), not per screen.**
+
+1. Every column of a one-line table is `fit` or `grow` (`kind`; default: grow for long text, else fit). Fit: as wide as its widest value or head, one line, never cut (dates, times, counts, result, short ids, the row action). Grow: shares the width that is left, at least `--ds-cell-grow-min` (6rem, replaces `--ds-cell-max`), cut with an ellipsis, full text on hover. Repository, workflow, branch, job name, runner and machine, why it waits, running now, slowest job are grow.
+2. Branch cut in the middle (`middle`: the start and the last six characters stay, "fix/co…-cache"). New part `Cut`: a name cut at its start with a fixed end, used for the workflow (`Docs … #8133`, the number never cut), the job in the Jobs view (`CI / lint, attempt 2`) and the slowest job (`docs-che…, 39 s`: name first, time never cut).
+3. *Commit and event* split into *Commit* (fit, 7 characters) and *Event* (fit: push, PR #87, schedule). Both sort. The Run page keeps one line, Commit and event.
+4. Measured at 1300 px (the page content is at most 1168 px wide, so 1220 px is the same layout), Done runs: Finished 109, Repository 136, Workflow 130, Branch 130, Commit 75, Event 83, Jobs done 92, Slowest job 147, Result 104, action 128. Queue runs: Place 52, Repository 152, Workflow 146, Branch 146, Commit 75, Event 83, Starts 176, Why it waits 177. Before: every column 90 to 147.
+
+**Columns that went into the detail** (so that no fit value is cut and no table scrolls sideways at 1300 px):
+
+| Table | Column moved | Where it is now |
+|---|---|---|
+| Done runs | Total time | opened run: "Total time: ..." |
+| Running runs | Time so far | opened run: "Time so far: ..." |
+| Queue runs | Jobs queued | opened run: "Jobs: x of y done, z queued" |
+| Queue jobs | Waited | Job page (it has Waited) |
+
+Least useful because each is also on the Run or Job page and none is needed to pick a row. Result, Commit, Event and Slowest job stay.
+
+**Where it applies.** Every table that uses the shared Table with `oneLine`: Queue, Running, Done in Runs and Jobs view, By repository, machine, runner, runner type, job type. Charts, the Run page jobs and the Job page steps have no table; they draw the waterfall and the chart parts, which do not use column widths.
+
+**Guard** (`review-layout.spec.ts`, UX-72), now at 1300 and 1220 px: fails when a fit cell is cut (an element that can cut, with scrollWidth over clientWidth), when a table ends past its pane or the page scrolls sideways, plus the RES17 checks (one line, one row height, head and button do not wrap, button words). Shown to fail at 800 px ("the table needs sideways scroll"). Unit tests for the kind logic, the middle cut and the kind attributes: `packages/ui/src/components/TableExpand.test.tsx`.
+
+**Docs.** UX-72 reworded ("short values never cut; only long names are cut"), components.md 15 (column kinds, `Cut`), tokens.md, content.md (Commit, Event), CHANGES C119, all in `docs/design-system/next-version/`. The production console is unchanged. App and all 88 shots rebuilt (1300 and 393 px, Phosphor dark and light).
+
+**Human check left.** Grow columns share the rest equally, so a long repository name ("ci-runners-sh…") is still cut at about 130 px; the full name is on hover and in the detail. Say if repository should get a wider share.

@@ -155,6 +155,7 @@ export function GroupTab({ by }: { by: GroupBy }) {
       header: spec.what[0]?.toUpperCase() + spec.what.slice(1),
       cell: (g) => g.name,
       sort: (g) => g.name,
+      kind: 'grow',
     },
     ...(by === 'runner-type'
       ? [
@@ -162,6 +163,7 @@ export function GroupTab({ by }: { by: GroupBy }) {
             id: 'backend',
             header: 'Backend',
             cell: (g: Group) => g.backends.join(', ') || 'none',
+            kind: 'grow' as const,
             secondary: true,
           },
         ]

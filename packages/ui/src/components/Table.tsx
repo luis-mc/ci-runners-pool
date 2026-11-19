@@ -23,6 +23,65 @@ export interface Column<T> {
   long?: ((row: T) => LongText | null | undefined) | undefined;
   /** The full text of a cell whose node is not plain text, shown on hover when a one-line table cuts the cell (UX-72). */
   title?: ((row: T) => string) | undefined;
+  /**
+   * How a one-line table sizes the column (RES18, UX-72). `fit`: as wide as its widest value, never cut (dates, times,
+   * counts, a result, a short id). `grow`: shares the width that is left, cut with an ellipsis, full text on hover.
+   * Without one: `grow` for a column with `long` text, else `fit`.
+   */
+  kind?: ColumnKind | undefined;
+  /** A grow column whose text is cut in the middle (a branch): the start and the last characters stay. */
+  middle?: ((row: T) => string) | undefined;
+}
+
+export type ColumnKind = 'fit' | 'grow';
+
+/** The kind of a column: its own, else `grow` for long text and `fit` for everything else. */
+export function columnKind<T>(c: Pick<Column<T>, 'kind' | 'long'>): ColumnKind {
+  return c.kind ?? (c.long ? 'grow' : 'fit');
+}
+
+const MIDDLE_TAIL = 6;
+
+/** The two parts of a text cut in the middle: the start that may be cut, and the end that stays. */
+export function splitMiddle(text: string, tail = MIDDLE_TAIL): [string, string] {
+  if (text.length <= tail * 2) return [text, ''];
+  return [text.slice(0, text.length - tail), text.slice(text.length - tail)];
+}
+
+/**
+ * Text that a one-line table may cut (RES18, UX-72): the start is cut with an ellipsis, the end never. Give `tail` for
+ * a fixed end (a run number, a time) or `middle` for a plain text cut in the middle (a branch, keeping its last
+ * characters). The page passes data; it never draws the cut.
+ */
+export function Cut({
+  children,
+  tail,
+  middle,
+}: {
+  children?: ReactNode;
+  tail?: string | undefined;
+  middle?: string | undefined;
+}) {
+  if (middle !== undefined) {
+    const [head, end] = splitMiddle(middle);
+    return (
+      <span className="ds-cut" title={middle}>
+        <span className="ds-cut__head" aria-hidden="true">
+          {head}
+        </span>
+        <span className="ds-cut__tail" aria-hidden="true">
+          {end}
+        </span>
+        <span className="ds-visually-hidden">{middle}</span>
+      </span>
+    );
+  }
+  return (
+    <span className="ds-cut">
+      <span className="ds-cut__head">{children}</span>
+      <span className="ds-cut__tail">{tail}</span>
+    </span>
+  );
 }
 
 /** The row action of a table (component 56): the same words for the same action in every list (UX-72). */
@@ -159,6 +218,7 @@ export function Table<T>({
               <th
                 key={c.id}
                 scope="col"
+                data-kind={oneLine ? columnKind(c) : undefined}
                 aria-sort={
                   sortBy?.id === c.id
                     ? sortBy.dir === 1
@@ -189,7 +249,9 @@ export function Table<T>({
             ))}
             {detail || action ? (
               <th scope="col" className="ds-table__action">
-                <span className="ds-visually-hidden">{detail?.label ?? action?.label}</span>
+                <span className="ds-visually-hidden">
+                  {detail?.label ?? action?.label}
+                </span>
               </th>
             ) : null}
           </tr>
@@ -232,13 +294,14 @@ export function Table<T>({
                     <td
                       key={c.id}
                       data-label={c.header}
+                      data-kind={oneLine ? columnKind(c) : undefined}
                       data-lead={i === 0 || undefined}
                       data-secondary={(i > 0 && c.secondary) || undefined}
                     >
                       <span className="ds-table__value">
                         {oneLine ? (
                           <span className="ds-table__text" title={cellTitle(c, row)}>
-                            {c.cell(row)}
+                            {c.middle ? <Cut middle={c.middle(row)} /> : c.cell(row)}
                           </span>
                         ) : (
                           c.cell(row)
@@ -288,7 +351,11 @@ export function Table<T>({
                       {(() => {
                         const to = action.to(row);
                         return to ? (
-                          <RowAction to={to} label={action.label} name={action.name(row)} />
+                          <RowAction
+                            to={to}
+                            label={action.label}
+                            name={action.name(row)}
+                          />
                         ) : null;
                       })()}
                     </td>
@@ -296,7 +363,11 @@ export function Table<T>({
                 </tr>
                 {isOpen && detail ? (
                   <tr className="ds-table__expanded">
-                    <td colSpan={columns.length + (detail || action ? 1 : 0) + (onToggle ? 1 : 0)}>
+                    <td
+                      colSpan={
+                        columns.length + (detail || action ? 1 : 0) + (onToggle ? 1 : 0)
+                      }
+                    >
                       <div
                         id={regionId}
                         role="region"

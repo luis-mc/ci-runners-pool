@@ -3,6 +3,7 @@
 import {
   CappedList,
   Cluster,
+  Cut,
   LinkButton,
   ShortText,
   Stack,
@@ -17,7 +18,14 @@ import {
 import { runRows } from './runViews';
 import { summarize } from './runSummary';
 import type { JobItem, RunItem } from './model';
-import { etaOne, startRange, sourceWords, taskIdOf, waitWords } from './words';
+import {
+  commitWords,
+  etaOne,
+  eventWords,
+  startRange,
+  taskIdOf,
+  waitWords,
+} from './words';
 
 export type RunKind = 'queue' | 'running' | 'done';
 
@@ -39,31 +47,45 @@ export function runColumns(kind: RunKind, now: number): Column<RunItem>[] {
     header: 'Repository',
     cell: (r) => r.repository.split('/')[1] ?? r.repository,
     sort: (r) => r.repository,
+    kind: 'grow',
   };
   const workflow: Column<RunItem> = {
     id: 'workflow',
     header: 'Workflow',
     cell: (r) => (
-      <>
+      <Cut tail={` #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`}>
         <TextLink to={`/jobs/run/${r.id}?attempt=${r.attempt}`}>{r.workflow}</TextLink>
-        {` #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`}
-      </>
+      </Cut>
     ),
-    title: (r) => `${r.workflow} #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`,
+    kind: 'grow',
+    title: (r) =>
+      `${r.workflow} #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`,
     sort: (r) => r.workflow,
   };
   const branch: Column<RunItem> = {
     id: 'branch',
     header: 'Branch',
     cell: (r) => <BranchWords branch={r.branch} />,
+    middle: (r) => r.branch,
     title: (r) => r.branch,
     sort: (r) => r.branch,
+    kind: 'grow',
     secondary: true,
   };
-  const source: Column<RunItem> = {
-    id: 'source',
-    header: 'Commit and event',
-    cell: (r) => sourceWords(r),
+  const commit: Column<RunItem> = {
+    id: 'commit',
+    header: 'Commit',
+    cell: (r) => commitWords(r),
+    sort: (r) => commitWords(r),
+    kind: 'fit',
+    secondary: true,
+  };
+  const event: Column<RunItem> = {
+    id: 'event',
+    header: 'Event',
+    cell: (r) => eventWords(r),
+    sort: (r) => eventWords(r),
+    kind: 'fit',
     secondary: true,
   };
   const status: Column<RunItem> = {
@@ -93,14 +115,8 @@ export function runColumns(kind: RunKind, now: number): Column<RunItem>[] {
       repo,
       workflow,
       branch,
-      source,
-      {
-        id: 'queued',
-        header: 'Jobs queued',
-        cell: (r) => `${sum(r).queuedJobs} of ${sum(r).total}`,
-        sort: (r) => sum(r).queuedJobs,
-        secondary: true,
-      },
+      commit,
+      event,
       {
         id: 'starts',
         header: 'Starts',
@@ -114,6 +130,7 @@ export function runColumns(kind: RunKind, now: number): Column<RunItem>[] {
         id: 'why',
         header: 'Why it waits',
         cell: () => null,
+        kind: 'grow',
         long: (r) => {
           const n = sum(r).next;
           return n ? { full: waitWords(n) } : null;
@@ -126,7 +143,8 @@ export function runColumns(kind: RunKind, now: number): Column<RunItem>[] {
       repo,
       workflow,
       branch,
-      source,
+      commit,
+      event,
       doneOf,
       {
         id: 'now',
@@ -134,14 +152,11 @@ export function runColumns(kind: RunKind, now: number): Column<RunItem>[] {
         cell: (r) => (
           <CappedList items={sum(r).runningJobs.map((j) => j.job_name)} max={1} />
         ),
-        title: (r) => sum(r).runningJobs.map((j) => j.job_name).join(', '),
-        secondary: true,
-      },
-      {
-        id: 'elapsed',
-        header: 'Time so far',
-        cell: (r) => formatDuration(sum(r).elapsed),
-        sort: (r) => sum(r).elapsed,
+        title: (r) =>
+          sum(r)
+            .runningJobs.map((j) => j.job_name)
+            .join(', '),
+        kind: 'grow',
         secondary: true,
       },
       {
@@ -166,22 +181,26 @@ export function runColumns(kind: RunKind, now: number): Column<RunItem>[] {
     repo,
     workflow,
     branch,
-    source,
+    commit,
+    event,
     doneOf,
-    {
-      id: 'took',
-      header: 'Total time',
-      cell: (r) => formatDuration(sum(r).elapsed),
-      sort: (r) => sum(r).elapsed,
-      secondary: true,
-    },
     {
       id: 'slowest',
       header: 'Slowest job',
       cell: (r) => {
         const s = sum(r).slowest;
-        return s ? `${formatDuration(s.seconds)}, ${s.job.job_name}` : 'none';
+        return s ? (
+          <Cut tail={`, ${formatDuration(s.seconds)}`}>{s.job.job_name}</Cut>
+        ) : (
+          'none'
+        );
       },
+      title: (r) => {
+        const s = sum(r).slowest;
+        return s ? `${s.job.job_name}, ${formatDuration(s.seconds)}` : 'none';
+      },
+      sort: (r) => sum(r).slowest?.seconds ?? 0,
+      kind: 'grow',
       secondary: true,
     },
     status,
@@ -199,10 +218,11 @@ export function RunDetail({
   open: (j: JobItem) => void;
 }) {
   const view = runRows(run, now, open);
+  const facts = summarize(run, now);
   return (
     <Stack>
       <Text tone="muted">
-        {`Run ${run.id}${run.attempt > 1 ? `, attempt ${run.attempt}` : ''}, ${run.jobs.length} jobs: queue wait is the light part of a bar, the run the dark part. Open a job to see its steps. Branch: ${run.branch}. Task: ${taskIdOf(run.branch) ?? 'none in the branch name'}. Worktree: ${run.worktree ?? 'not reported'}.`}
+        {`Run ${run.id}${run.attempt > 1 ? `, attempt ${run.attempt}` : ''}, ${run.jobs.length} jobs: queue wait is the light part of a bar, the run the dark part. Open a job to see its steps. ${facts.finishedAt ? 'Total time' : 'Time so far'}: ${formatDuration(facts.elapsed)}. Jobs: ${facts.doneJobs} of ${facts.total} done, ${facts.queuedJobs} queued. Branch: ${run.branch}. Task: ${taskIdOf(run.branch) ?? 'none in the branch name'}. Worktree: ${run.worktree ?? 'not reported'}.`}
       </Text>
       <Waterfall
         label={`Jobs of run ${run.id}`}

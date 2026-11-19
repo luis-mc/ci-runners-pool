@@ -94,6 +94,19 @@ export function sourceWords(r: {
   return `${sha}, ${r.pull_request ? `PR #${r.pull_request}` : (r.trigger ?? 'push')}`;
 }
 
+/** The commit of a run: its first 7 characters. */
+export function commitWords(r: { head_sha?: string | undefined }): string {
+  return r.head_sha ? r.head_sha.slice(0, 7) : 'no commit';
+}
+
+/** What started a run: a pull request, or the trigger (push, schedule). */
+export function eventWords(r: {
+  trigger?: string | undefined;
+  pull_request?: number | undefined;
+}): string {
+  return r.pull_request ? `PR #${r.pull_request}` : (r.trigger ?? 'push');
+}
+
 /** What is kept and for how long (owner decision 2), said in the Done and Charts footers. */
 export const RETENTION_WORDS =
   'crsp keeps steps for 30 days, jobs for 90 days and daily summaries for 400 days.';

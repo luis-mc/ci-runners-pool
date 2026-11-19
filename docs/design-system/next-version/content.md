@@ -982,7 +982,7 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 | Jobs done, Jobs queued | Column: "7 of 9". |
 | Total time, Time so far, Ends | Columns of a done run, of a running run, and the end forecast of a running run (one number: "in about 7 min"). |
 | Slowest job, Running now | Columns: the job that took longest, the job that runs now. |
-| Commit and event | Column: the short commit and the event or pull request ("a1b2c3d, PR #52"). |
+| Commit, Event | Columns of a run: the 7-character commit ("a1b2c3d"), and what started it ("push", "PR #52", "schedule"). The Run page keeps one line, Commit and event. |
 | Result | Column of a run: success, failure, timed out, cancelled, running or waiting. |
 | (task RES15) | After the branch, when the branch starts with a task id. A worktree shows as "(worktree {name})" only when the job reported it, otherwise "not reported". |
 | Task, Worktree | Facts of the Job and Run pages. "none in the branch name" and "not reported" are their empty words. |

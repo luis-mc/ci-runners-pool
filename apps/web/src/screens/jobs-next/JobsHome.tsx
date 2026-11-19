@@ -4,6 +4,7 @@
 import {
   Button,
   Cluster,
+  Cut,
   Empty,
   ExportButton,
   LinkButton,
@@ -154,11 +155,10 @@ function BranchCell({ j }: { j: JobItem }) {
 
 function JobCell({ j }: { j: JobItem }) {
   return (
-    <>
+    <Cut tail={j.run_attempt > 1 ? `, attempt ${j.run_attempt}` : ''}>
       {`${j.workflow ?? 'workflow'} / `}
       <TextLink to={`/jobs/${j.id}`}>{j.job_name}</TextLink>
-      {j.run_attempt > 1 ? `, attempt ${j.run_attempt}` : ''}
-    </>
+    </Cut>
   );
 }
 
@@ -175,6 +175,7 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
     header: 'Repository',
     cell: (j) => j.repository.split('/')[1] ?? j.repository,
     sort: (j) => j.repository,
+    kind: 'grow',
   };
   const job: Column<JobItem> = {
     id: 'job',
@@ -182,13 +183,16 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
     cell: (j) => <JobCell j={j} />,
     title: (j) => `${j.workflow ?? 'workflow'} / ${j.job_name}`,
     sort: (j) => j.job_name,
+    kind: 'grow',
   };
   const branch: Column<JobItem> = {
     id: 'branch',
     header: 'Branch',
     cell: (j) => <BranchCell j={j} />,
+    middle: (j) => j.branch,
     title: (j) => j.branch,
     sort: (j) => j.branch,
+    kind: 'grow',
     secondary: true,
   };
   const where: Column<JobItem> = {
@@ -196,6 +200,7 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
     header: 'Runner and machine',
     cell: (j) => whereWords(j),
     sort: (j) => j.runner?.name ?? '',
+    kind: 'grow',
     secondary: true,
   };
   const waited: Column<JobItem> = {
@@ -229,7 +234,6 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
       repo,
       job,
       branch,
-      waited,
       {
         id: 'starts',
         header: 'Starts',
@@ -241,6 +245,7 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
         id: 'why',
         header: 'Why it waits',
         cell: () => null,
+        kind: 'grow',
         long: (j) => ({ full: waitWords(j) }),
         secondary: true,
       },
@@ -260,6 +265,7 @@ export function jobColumns(kind: Kind, now: number): Column<JobItem>[] {
           const at = steps.find((s) => s.state === 'running');
           return at ? `${at.name} (step ${at.number} of ${steps.length})` : 'starting';
         },
+        kind: 'grow',
         secondary: true,
       },
       {

@@ -107,6 +107,18 @@ const ROW_SOURCE = (labels: string[]) => `(() => {
     const tall = Math.max(0, ...heights);
     if (tall > oneLine) out.add(name + ': a row is ' + tall + ' px high, more than one line (' + oneLine + ' px)');
     if (new Set(heights).size > 1) out.add(name + ': rows differ in height: ' + [...new Set(heights)].join(', ') + ' px');
+    // RES18: a table needs no sideways scroll, and a fit cell is never cut (its text is whole).
+    const frame = t.closest('.ds-table-frame') || t.parentElement;
+    const box = t.closest('.ds-pane') || document.documentElement;
+    const room = box === document.documentElement ? box.clientWidth : box.getBoundingClientRect().right;
+    if (t.getBoundingClientRect().right > room + 1 || frame.scrollWidth > frame.clientWidth + 1)
+      out.add(name + ': the table needs sideways scroll (it ends at ' + Math.round(t.getBoundingClientRect().right) + ' px, its pane at ' + Math.round(room) + ' px)');
+    if (document.documentElement.scrollWidth > document.documentElement.clientWidth + 1)
+      out.add(name + ': the page scrolls sideways');
+    t.querySelectorAll('tbody td[data-kind="fit"], thead th[data-kind="fit"]').forEach((c) => {
+      const cut = [c, ...c.querySelectorAll('*')].find((e) => getComputedStyle(e).overflowX !== 'visible' && e.scrollWidth > e.clientWidth + 1 && e.clientWidth > 0);
+      if (cut) out.add(name + ': a fit cell is cut: "' + (c.textContent || '').trim() + '" in <' + cut.tagName + ' class=' + cut.getAttribute('class') + '> (' + cut.scrollWidth + ' px in ' + cut.clientWidth + ' px)');
+    });
     t.querySelectorAll('thead th').forEach((th) => {
       const h = th.getBoundingClientRect().height;
       if (h > oneLine) out.add(name + ': the head "' + (th.textContent || '').trim() + '" wraps (' + Math.round(h) + ' px high)');
@@ -140,6 +152,17 @@ const CARD_SOURCE = `(() => [...document.querySelectorAll('table.ds-table')]
 const ROW_SCREENS = reviewScreens().filter((s) => !s.expand);
 
 for (const s of ROW_SCREENS) {
+  test(`rows of ${s.name} at 1220 px are one line, no fit cell cut, no sideways scroll`, async ({
+    page,
+  }) => {
+    await open(page, s.hash, 'phosphor', 'dark');
+    await page.setViewportSize({ width: 1220, height: 900 });
+    await page.waitForTimeout(150);
+    expect(await page.evaluate<string[]>(ROW_SOURCE([...allowedLabels()]))).toEqual([]);
+  });
+}
+
+for (const s of ROW_SCREENS) {
   test(`rows of ${s.name} are one line with one set of words`, async ({ page }) => {
     await open(page, s.hash, 'phosphor', 'dark');
     expect(await page.evaluate<string[]>(ROW_SOURCE([...allowedLabels()]))).toEqual([]);
@@ -147,7 +170,9 @@ for (const s of ROW_SCREENS) {
 }
 
 for (const s of ROW_SCREENS) {
-  test(`cards of ${s.name} at 393 px have the action in the same place`, async ({ page }) => {
+  test(`cards of ${s.name} at 393 px have the action in the same place`, async ({
+    page,
+  }) => {
     await open(page, s.hash, 'phosphor', 'dark');
     await page.setViewportSize({ width: 393, height: 852 });
     await page.waitForTimeout(150);
