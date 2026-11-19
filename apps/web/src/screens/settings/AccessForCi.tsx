@@ -182,6 +182,7 @@ function AccessCredentials({ version }: { version: number }) {
               <Table
                 caption="Access for CI"
                 columns={columns}
+                oneLine
                 rows={d.items}
                 rowKey={(c) => c.id}
               />

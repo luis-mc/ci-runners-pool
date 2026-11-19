@@ -93,7 +93,7 @@ const CASES: {
   {
     measure: 'rowActionWords',
     needle: 'is not a Row action word',
-    bad: '<table><tbody><tr><td>a</td><td><button>Edit</button></td></tr></tbody></table>',
+    bad: '<table><tbody><tr><td>a</td><td><button>Modify</button></td></tr></tbody></table>',
     good: '<table><tbody><tr><td>a</td><td><button>Open run</button> <button>Remove</button></td></tr></tbody></table>',
   },
 ];

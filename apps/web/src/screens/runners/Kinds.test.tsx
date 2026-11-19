@@ -196,8 +196,11 @@ describe('Runner page (runners R5.89, R5.90)', () => {
     });
     renderApp(api, '/pool/runners');
     const table = await screen.findByRole('table', { name: /^Runners on/ });
-    expect(within(table).getByText('Persistent. Keeps dependencies: no')).toBeTruthy();
-    expect(within(table).getByText('Ephemeral')).toBeTruthy();
+    // The Isolation cell is one line; the kind and what it keeps are in its hover text (UX-72).
+    expect(
+      table.querySelector('[title*="Persistent. Keeps dependencies: no"]'),
+    ).toBeTruthy();
+    expect(table.querySelector('[title*="Ephemeral"]')).toBeTruthy();
   });
 
   it('saves the keep-dependencies setting with Save', async () => {

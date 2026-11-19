@@ -6,39 +6,7 @@
 // with the fix task that removes it: T1 sticky bar and key-hint bar, T2 button nowrap, T3 tables, T4 long names on
 // cards and Pool size Open, T5 row action words, T6 Message and Chip wrapping and the pane gap, T7 heatmap labels
 // and the h1 while loading. A fix task deletes its lines and the guard then holds the fix.
-export const FIXME: Record<string, string> = {
-  // T2
-  'wordBroken|/pool/runners|stress': 'T2: B04',
-  'wrapped|/pool/runners|stress': 'T2: B04',
-  'wrapped|/repositories|data': 'T2: B12',
-  'wrapped|/repositories|stress': 'T2: B12',
-  'wrapped|/repositories/turn-on|empty': 'T2: B13',
-  'wrapped|/settings/access|data': 'T2: B11',
-  'wrapped|/settings/access|stress': 'T2: B11',
-  'wrapped|/settings/app|data': 'T2: B11',
-  'wrapped|/settings/app|stress': 'T2: B11',
-  'wrapped|/settings/users|data': 'T2: B11',
-  'wrapped|/settings/users|stress': 'T2: B11',
-  // T3
-  'rowHeights|/pool/runners|stress': 'T3: B05',
-  'rowHeights|/settings/access|data': 'T3: B10',
-  'rowHeights|/settings/access|stress': 'T3: B10',
-  'rowHeights|/settings/app|data': 'T3: B10',
-  'rowHeights|/settings/app|stress': 'T3: B10',
-  'rowHeights|/settings/users|data': 'T3: B10',
-  'rowHeights|/settings/users|stress': 'T3: B10',
-  // T5
-  'rowActionWords|/doctor|data': 'T5: B09 (Copy)',
-  'rowActionWords|/doctor|stress': 'T5: B09 (Copy)',
-  'rowActionWords|/repositories|data': 'T5: B09 (Off)',
-  'rowActionWords|/repositories|stress': 'T5: B09 (Off)',
-  'rowActionWords|/settings/access|data': 'T5: B09',
-  'rowActionWords|/settings/access|stress': 'T5: B09',
-  'rowActionWords|/settings/app|data': 'T5: B09',
-  'rowActionWords|/settings/app|stress': 'T5: B09',
-  'rowActionWords|/settings/users|data': 'T5: B09',
-  'rowActionWords|/settings/users|stress': 'T5: B09',
-};
+export const FIXME: Record<string, string> = {};
 
 export function fixmeFor(
   check: string,

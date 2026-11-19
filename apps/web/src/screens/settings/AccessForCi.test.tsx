@@ -134,7 +134,7 @@ describe('Revoke (R5.90, UX-62)', () => {
   });
 });
 
-describe('Set up parity for this repository (R5.91)', () => {
+describe('Set up parity (R5.91)', () => {
   const pick = async () => {
     await screen.findByRole('button', { name: 'Set up parity' });
     fireEvent.click(screen.getByRole('radio', { name: 'octo/app' }));

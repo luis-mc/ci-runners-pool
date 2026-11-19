@@ -119,7 +119,7 @@ describe('Repositories: active types, Visibility and greyed public rows', () => 
     expect(
       within(screen.getByRole('group', { name: 'Repositories toolbar' })).getByRole(
         'button',
-        { name: /Types: / },
+        { name: /Types/ },
       ),
     ).toBe(chip);
     fireEvent.click(chip);
