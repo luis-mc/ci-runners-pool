@@ -1106,3 +1106,25 @@ The words of the Doctor finding that lists runner services, folders, accounts an
 | {kind} {name}: {result}. {reason} | One line of the result list in the finding. |
 | Runner leftovers on {machine}: {kind} {name} removed, ... | Done message when every item went and the finding is gone. |
 | The agent has no administrator rights. Run it as a service with rights. | The reason beside a disabled Remove when the finding says the agent needs rights. |
+
+## Registry words (RES20, owner decision D18 of 19 Nov 2026)
+
+The words of the Registry tab under Images and caches: the registry of ready-made job images that is part of crsp and not public. A row action there is `Open` (Row action words).
+
+| Where | Word |
+|---|---|
+| Tab | Registry |
+| Sections | Disk, Recommendations, Images in the registry, Where it came from, Layers shared with other images, Pulls by day, Machines that hold it, What is in it, Delete, Registry budgets, Budgets, Cleanup rules |
+| Cards | Standard images, Custom images, Last 7 days, Where it runs |
+| Facts | Pulls, Builds avoided, Time saved, Machine, Folder, Free on the disk, Next cleanup, Shared layers, Only this image holds, Last pulled, Software, Known vulnerabilities, Signed by crsp |
+| Columns | Image, Key, Kind, Arch, Repos, Size, Pulls, Last pulled, State, Frees, Decided by |
+| Kinds | Standard, Custom |
+| States | in use, current, newer one found, superseded, unused {n} days, variant of {branch} |
+| Decided by | your yes, crsp on {date} |
+| Buttons | Edit budgets, Review the newer image, Review the unused image, Review the budget, Review the replacement, Replace the image, Delete |
+| Replace wizard | Replace an image; steps Compare, Review, Replacing, Done; Keep the old image for {n} days; Open the registry |
+| Budget fields | Standard images, Custom images, Suggest deleting an image unused for {n} days, Keep a replaced image for {n} days |
+| Delete question | Delete {profile} {key}?; {size} freed; the layers shared with other images stay |
+| Refusal | A runner uses this image. The registry refuses to delete it until that job ends. |
+| Add runners | Pulling the job image from the registry on {machine}, {done} of {total} GB, about {time} left; The registry has key {key}, signed by crsp |
+| Note words | crsp never deletes what you may still want without your yes. Layers two images share are stored once. |

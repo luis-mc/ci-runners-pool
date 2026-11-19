@@ -10,6 +10,10 @@ interface LooseClient {
     path: string,
     init?: unknown,
   ): Promise<{ data?: unknown; error?: unknown; response: Response }>;
+  DELETE(
+    path: string,
+    init?: unknown,
+  ): Promise<{ data?: unknown; error?: unknown; response: Response }>;
 }
 
 /** Seconds between refreshes of a screen that shows a build that runs. */
@@ -43,4 +47,11 @@ export function usePostFn(): (path: string) => Promise<unknown> {
   const client = useClient() as unknown as LooseClient;
   return (path: string) =>
     unwrap(client.POST(path, {}) as Promise<{ data?: unknown; response: Response }>);
+}
+
+/** A delete on a proposed endpoint (the registry deletes an image). */
+export function useDeleteFn(): (path: string) => Promise<unknown> {
+  const client = useClient() as unknown as LooseClient;
+  return (path: string) =>
+    unwrap(client.DELETE(path, {}) as Promise<{ data?: unknown; response: Response }>);
 }

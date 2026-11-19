@@ -28,7 +28,15 @@ interface Stage {
   detail: string;
 }
 
-export function AddRunnersBuildingPage() {
+/** `build`: the machine builds the job image. `pull`: the registry has it, the machine pulls it (RES20). */
+export function AddRunnersBuildingPage({ mode = 'build' }: { mode?: 'build' | 'pull' }) {
+  const pull = mode === 'pull';
+  const imageWork = pull
+    ? 'Pulling the job image from the registry on Pi lab'
+    : 'Building the job image on Pi lab';
+  const imageNow = pull
+    ? '2.1 of 3.4 GB, about 1 min left'
+    : 'Step 4 of 6, Browsers layer, about 14 min left';
   const navigate = useNavigate();
   const [phase, setPhase] = usePhase('running');
   const [two, setTwo] = useState(true);
@@ -37,17 +45,21 @@ export function AddRunnersBuildingPage() {
   const failed = phase === 'failed';
   const rows: Stage[] = [
     {
-      name: 'Building the job image on Pi lab',
+      name: imageWork,
       state: failed
         ? { kind: 'failed', word: 'failed' }
         : stages > 1 || phase === 'done' || phase === 'done-after-reload'
           ? { kind: 'ok', word: 'ready' }
           : { kind: 'running', word: 'building' },
       detail: failed
-        ? 'Browsers layer: the download did not match its pin.'
+        ? pull
+          ? 'The registry did not answer. The image can be built here instead.'
+          : 'Browsers layer: the download did not match its pin.'
         : stages > 1
-          ? 'Built in 36 min'
-          : 'Step 4 of 6, Browsers layer, about 14 min left',
+          ? pull
+            ? 'Pulled in 3 min'
+            : 'Built in 36 min'
+          : imageNow,
     },
     {
       name: 'Registering runner pi-2',
@@ -79,7 +91,7 @@ export function AddRunnersBuildingPage() {
       ? {
           text:
             stages <= 1
-              ? 'Building the job image on Pi lab, step 4 of 6, about 14 min left'
+              ? `${imageWork}, ${imageNow}`
               : `Registering runner ${stages - 1} of ${two ? 2 : 1}`,
           value: stages,
           max: rows.length + 1,
@@ -92,7 +104,11 @@ export function AddRunnersBuildingPage() {
       />
       <PageHeader
         title="Add runners"
-        lead="Runners on Pi lab. The job image is built first when the machine has none."
+        lead={
+          pull
+            ? 'Runners on Pi lab. The job image is pulled first from the registry when the machine has none.'
+            : 'Runners on Pi lab. The job image is built first when the machine has none.'
+        }
       />
       <Stack>
         <Wizard
@@ -139,9 +155,9 @@ export function AddRunnersBuildingPage() {
           {current === 0 ? (
             <Stack>
               <Message tone="needs-you">
-                Pi lab has no job image for Go, Node and Postgres yet. It is built first,
-                once, about 36 min. Runners start when it is ready. You can close this
-                page; the work goes on.
+                {pull
+                  ? 'Pi lab has no job image for Go, Node and Postgres yet. The registry has one for arm64, so it is pulled, about 3 min. Runners start when it is ready. You can close this page; the work goes on.'
+                  : 'Pi lab has no job image for Go, Node and Postgres yet. It is built first, once, about 36 min. Runners start when it is ready. You can close this page; the work goes on.'}
               </Message>
               <CheckRow
                 label="2 runners on Pi lab"
@@ -158,13 +174,17 @@ export function AddRunnersBuildingPage() {
                   { name: 'Runners', value: two ? '2 on Pi lab' : '1 on Pi lab' },
                   {
                     name: 'Job image',
-                    value: 'Go, Node and Postgres, arm64: build it here, about 36 min',
+                    value: pull
+                      ? 'Go, Node and Postgres, arm64: pull it from the registry, 3.4 GB, about 3 min'
+                      : 'Go, Node and Postgres, arm64: build it here, about 36 min',
                   },
                   {
                     name: 'Ready-made image',
-                    value: 'The registry has none for arm64 yet',
+                    value: pull
+                      ? 'The registry has key b7e204, signed by crsp'
+                      : 'The registry has none for arm64 yet',
                   },
-                  { name: 'Disk', value: 'about 3.2 GB' },
+                  { name: 'Disk', value: pull ? 'about 3.4 GB' : 'about 3.2 GB' },
                 ]}
               />
               <Text tone="muted">
@@ -177,8 +197,9 @@ export function AddRunnersBuildingPage() {
             <Stack>
               {failed ? (
                 <Message tone="problem">
-                  The job image did not build, so no runner was added. Nothing was changed
-                  on Pi lab. Open the build to read why.
+                  {pull
+                    ? 'The job image could not be pulled, so no runner was added. Nothing was changed on Pi lab. Build it here instead, about 36 min.'
+                    : 'The job image did not build, so no runner was added. Nothing was changed on Pi lab. Open the build to read why.'}
                 </Message>
               ) : null}
               {phase === 'stopped' ? (
@@ -187,7 +208,7 @@ export function AddRunnersBuildingPage() {
                 </Message>
               ) : null}
               <Progress
-                label="Building the job image on Pi lab"
+                label={imageWork}
                 value={failed ? 0 : Math.min(stages, 2) * 40}
                 max={100}
               />
@@ -198,7 +219,15 @@ export function AddRunnersBuildingPage() {
                 rowKey={(s) => s.name}
                 oneLine
               />
-              <LinkButton to="/pool/images/builds/bld_3">Open the build</LinkButton>
+              <LinkButton
+                to={
+                  pull
+                    ? '/pool/images/registry/reg_std_go_arm'
+                    : '/pool/images/builds/bld_3'
+                }
+              >
+                {pull ? 'Open the image' : 'Open the build'}
+              </LinkButton>
             </Stack>
           ) : null}
           {current === 3 ? (

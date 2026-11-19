@@ -1,11 +1,11 @@
-// Helpers for the RES19 review build: a static server for docs/review/RES19/app and the screens to visit.
+// Helpers for the RES19 and RES20 review build: a static server for docs/review/RES20/app and the screens to visit.
 import { existsSync, readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
 import { PROFILES } from '../../../apps/web/src/review/fixtures';
 
-export const APP_DIR = resolve('docs/review/RES19/app');
-export const SHOTS_DIR = resolve('docs/review/RES19/shots');
+export const APP_DIR = resolve('docs/review/RES20/app');
+export const SHOTS_DIR = resolve('docs/review/RES20/shots');
 
 const TYPES: Record<string, string> = {
   '.html': 'text/html',
@@ -66,7 +66,13 @@ export const WIZARD_PHASES = [
 ] as const;
 
 /** The add-runners wizard is shown in the five states that differ most. */
-export const ADD_RUNNERS_PHASES = ['first-run', 'ready-to-review', 'running', 'failed', 'done'] as const;
+export const ADD_RUNNERS_PHASES = [
+  'first-run',
+  'ready-to-review',
+  'running',
+  'failed',
+  'done',
+] as const;
 
 function exactly(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -96,14 +102,42 @@ export function reviewScreens(): ReviewScreen[] {
     page('build-running', '#/pool/images/builds/bld_3', `${name('p_go_web')} on Pi lab`),
     page('build-failed', '#/pool/images/builds/bld_7', `${name('p_rust')} on Build box`),
     page('build-ready', '#/pool/images/builds/bld_1', `${name('p_go_web')} on Build box`),
-    page('build-pulled', '#/pool/images/builds/bld_2', `${name('p_go_web')} on Studio PC`),
-    page('build-out-of-date', '#/pool/images/builds/bld_5', `${name('p_node')} on Studio PC`),
+    page(
+      'build-pulled',
+      '#/pool/images/builds/bld_2',
+      `${name('p_go_web')} on Studio PC`,
+    ),
+    page(
+      'build-out-of-date',
+      '#/pool/images/builds/bld_5',
+      `${name('p_node')} on Studio PC`,
+    ),
     page('build-queued', '#/pool/images/builds/bld_10', `${name('p_py')} on Build box`),
-    page('stack-ml-notebooks', '#/pool/images/stacks/luis-mc/ml-notebooks', 'luis-mc/ml-notebooks'),
-    page('stack-docs-site-conflict', '#/pool/images/stacks/luis-mc/docs-site', 'luis-mc/docs-site'),
-    page('stack-mobile-client-new', '#/pool/images/stacks/luis-mc/mobile-client', 'luis-mc/mobile-client'),
-    page('stack-dev-standards-compose', '#/pool/images/stacks/luis-mc/dev-standards', 'luis-mc/dev-standards'),
-    page('cache-cargo-over-quota', '#/pool/images/caches/c_cargo', 'Cargo registry and target'),
+    page(
+      'stack-ml-notebooks',
+      '#/pool/images/stacks/luis-mc/ml-notebooks',
+      'luis-mc/ml-notebooks',
+    ),
+    page(
+      'stack-docs-site-conflict',
+      '#/pool/images/stacks/luis-mc/docs-site',
+      'luis-mc/docs-site',
+    ),
+    page(
+      'stack-mobile-client-new',
+      '#/pool/images/stacks/luis-mc/mobile-client',
+      'luis-mc/mobile-client',
+    ),
+    page(
+      'stack-dev-standards-compose',
+      '#/pool/images/stacks/luis-mc/dev-standards',
+      'luis-mc/dev-standards',
+    ),
+    page(
+      'cache-cargo-over-quota',
+      '#/pool/images/caches/c_cargo',
+      'Cargo registry and target',
+    ),
     page('cache-gradle-empty', '#/pool/images/caches/c_gradle', 'Gradle and Maven'),
   ];
   for (const phase of WIZARD_PHASES)
@@ -116,12 +150,67 @@ export function reviewScreens(): ReviewScreen[] {
       phase,
     });
   out.push({
-    ...page('profile-wizard-edit', '#/pool/images/profiles/p_go_web/edit?phase=first-run', 'Edit profile'),
+    ...page(
+      'profile-wizard-edit',
+      '#/pool/images/profiles/p_go_web/edit?phase=first-run',
+      'Edit profile',
+    ),
     phase: 'first-run',
   });
+  out.push(
+    tab('registry-overview', '?tab=registry'),
+    page(
+      'registry-image-update-found',
+      '#/pool/images/registry/reg_c_docs_v4',
+      'Node web apps',
+    ),
+    page(
+      'registry-image-in-use',
+      '#/pool/images/registry/reg_std_go_x64',
+      'Go, Node and Postgres',
+    ),
+    page(
+      'registry-image-superseded',
+      '#/pool/images/registry/reg_c_docs_v2',
+      'Node web apps',
+    ),
+    page(
+      'registry-image-unused',
+      '#/pool/images/registry/reg_c_mobile_old',
+      'Rust and Windows packaging',
+    ),
+    page(
+      'registry-image-variant',
+      '#/pool/images/registry/reg_c_ml_wasm',
+      'Python and uv',
+    ),
+    page('registry-budgets', '#/pool/images/registry/budgets', 'Registry budgets'),
+  );
+  for (const phase of WIZARD_PHASES)
+    out.push({
+      ...page(
+        `registry-replace-${phase}`,
+        `#/pool/images/registry/reg_c_docs_v4/replace?phase=${phase}`,
+        'Replace an image',
+      ),
+      phase,
+    });
   for (const phase of ADD_RUNNERS_PHASES)
     out.push({
-      ...page(`add-runners-building-${phase}`, `#/pool/runners/add-building?phase=${phase}`, 'Add runners'),
+      ...page(
+        `add-runners-pulling-${phase}`,
+        `#/pool/runners/add-pulling?phase=${phase}`,
+        'Add runners',
+      ),
+      phase,
+    });
+  for (const phase of ADD_RUNNERS_PHASES)
+    out.push({
+      ...page(
+        `add-runners-building-${phase}`,
+        `#/pool/runners/add-building?phase=${phase}`,
+        'Add runners',
+      ),
       phase,
     });
   return out;

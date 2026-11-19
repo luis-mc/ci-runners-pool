@@ -31,6 +31,7 @@ import { useGet } from './api';
 import { CachesTab } from './Caches';
 import type { DiskUse, ImageBuild, ImagesOverview } from './model';
 import { ProfilesTab } from './Profiles';
+import { RegistryTab } from './Registry';
 import { StacksTab } from './Stacks';
 import {
   STATE_WORD,
@@ -47,6 +48,7 @@ const TABS = [
   { id: 'profiles', label: 'Profiles' },
   { id: 'stacks', label: 'Stacks' },
   { id: 'caches', label: 'Caches' },
+  { id: 'registry', label: 'Registry' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -61,7 +63,7 @@ export function ImagesHome() {
   const failed = ready?.builds.find(
     (b) => b.state === 'failed' && latestFailed(ready.builds, b),
   );
-  const next = nextStep(ready, failed);
+  const next = tab === 'registry' ? undefined : nextStep(ready, failed);
   return (
     <Page>
       <PageHeader
@@ -81,6 +83,7 @@ export function ImagesHome() {
             {tab === 'profiles' ? <ProfilesTab data={data} /> : null}
             {tab === 'stacks' ? <StacksTab /> : null}
             {tab === 'caches' ? <CachesTab /> : null}
+            {tab === 'registry' ? <RegistryTab /> : null}
           </>
         )}
       </Load>

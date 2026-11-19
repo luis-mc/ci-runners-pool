@@ -3,9 +3,9 @@ import { renameSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 
-// The review build (RES19): review.html -> docs/review/RES19/app/index.html, relative paths, so a plain
+// The review build (RES20): review.html -> docs/review/RES20/app/index.html, relative paths, so a plain
 // `python3 -m http.server` from that folder serves it. No controller is needed: the data is fake.
-const outDir = resolve(import.meta.dirname, '../../docs/review/RES19/app');
+const outDir = resolve(import.meta.dirname, '../../docs/review/RES20/app');
 
 /** The built page is named review.html; the folder's front page is index.html. */
 function indexName(): Plugin {

@@ -19,6 +19,8 @@ import {
   liveBuild,
   poolRows,
 } from './fixtures';
+import { compareFixture, registryFixtures } from './registryFixtures';
+import type { RegistryOverview } from '../screens/images-next/registryModel';
 
 const OWNER: Schemas['User'] = {
   id: 1,
@@ -139,6 +141,15 @@ export class ReviewApi {
   private confirmed = new Set<string>();
   private retried = new Map<string, number>();
   private cleared = new Set<string>();
+  /** Registry changes of this page view: deleted images, replaced images, edited budgets. */
+  private deleted = new Set<string>();
+  private replaced = new Set<string>();
+  private budgets: {
+    standard?: number;
+    custom?: number;
+    unused?: number;
+    keep?: number;
+  } = {};
 
   constructor(now: () => number = () => FIXED_NOW) {
     this.now = now;
@@ -212,6 +223,101 @@ export class ReviewApi {
     };
   }
 
+  /** The registry as this page view has changed it. */
+  registry(): RegistryOverview {
+    const GB = 1e9;
+    const base = registryFixtures();
+    const images = base.images
+      .filter((i) => !this.deleted.has(i.id))
+      .map((i) => {
+        if (this.replaced.has(i.id)) return { ...i, state: 'current' as const };
+        if (i.replaced_by && this.replaced.has(i.replaced_by))
+          return {
+            ...i,
+            state: 'superseded' as const,
+            keep_until: new Date(this.now() + 7 * 86_400_000).toISOString(),
+          };
+        return i;
+      });
+    const gone = (to: string) => {
+      const m = /registry\/(reg_[a-z0-9_]+)/.exec(to);
+      return m?.[1] ? this.deleted.has(m[1]) || this.replaced.has(m[1]) : false;
+    };
+    const b = this.budgets;
+    const freed = base.images
+      .filter((i) => this.deleted.has(i.id) && i.kind === 'custom')
+      .reduce((n, i) => n + i.unique_bytes, 0);
+    const custom = {
+      ...base.custom,
+      used_bytes: base.custom.used_bytes - freed,
+      budget_bytes: (b.custom ?? base.custom.budget_bytes / GB) * GB,
+    };
+    return {
+      ...base,
+      images,
+      standard: {
+        ...base.standard,
+        budget_bytes: (b.standard ?? base.standard.budget_bytes / GB) * GB,
+      },
+      custom,
+      unused_days: b.unused ?? base.unused_days,
+      keep_old_days: b.keep ?? base.keep_old_days,
+      recommendations: base.recommendations.filter(
+        (r) =>
+          !gone(r.to) &&
+          !(r.kind === 'over budget' && custom.used_bytes <= custom.budget_bytes),
+      ),
+    };
+  }
+
+  /** Writes of the registry: delete refuses while a runner uses the image (409), the rest changes the fake state. */
+  private registryWrite(
+    method: string,
+    path: string,
+    query: URLSearchParams,
+  ): Response | undefined {
+    const img = /^\/api\/v1\/registry\/images\/([^/]+)(\/replace)?$/.exec(path);
+    if (img?.[1]) {
+      const id = img[1];
+      if (method === 'POST' && img[2]) {
+        this.replaced.add(id);
+        return new Response(null, { status: 204 });
+      }
+      if (method === 'DELETE') {
+        const found = this.registry().images.find((i) => i.id === id);
+        const busy = found?.machines.filter((m) => m.state === 'used now') ?? [];
+        if (busy.length > 0)
+          return json(
+            {
+              error: {
+                code: 'needs_confirmation',
+                message: 'A runner uses this image.',
+                details: busy.map((m) => ({
+                  text: `${m.job ?? 'a job'} on ${m.runner ?? 'a runner'} (${m.machine})`,
+                })),
+              },
+            },
+            409,
+          );
+        this.deleted.add(id);
+        return new Response(null, { status: 204 });
+      }
+    }
+    if (method === 'POST' && path === '/api/v1/registry/budgets') {
+      const n = (k: string) => (query.has(k) ? Number(query.get(k)) : undefined);
+      this.budgets = {
+        ...this.budgets,
+        ...Object.fromEntries(
+          (['standard', 'custom', 'unused', 'keep'] as const)
+            .map((k) => [k, n(k)] as const)
+            .filter(([, v]) => v !== undefined),
+        ),
+      };
+      return new Response(null, { status: 204 });
+    }
+    return undefined;
+  }
+
   fetch = (input: Request | string, init?: RequestInit): Promise<Response> =>
     Promise.resolve(this.answer(input, init));
 
@@ -229,7 +335,8 @@ export class ReviewApi {
     const req = typeof input === 'string' ? new Request(input, init) : input;
     const url = new URL(req.url);
     const path = url.pathname;
-    if (req.method !== 'GET') return this.post(path);
+    if (req.method !== 'GET')
+      return this.registryWrite(req.method, path, url.searchParams) ?? this.post(path);
 
     switch (path) {
       case '/api/v1/me':
@@ -293,6 +400,8 @@ export class ReviewApi {
         const body: StackSummary = { scans, rows: poolRows(scans) };
         return json(body);
       }
+      case '/api/v1/registry':
+        return json(this.registry());
       case '/api/v1/cache-tools':
         return json({
           items: this.caches.map((c) =>
@@ -302,6 +411,15 @@ export class ReviewApi {
           ),
         });
       default:
+    }
+    const regImg = /^\/api\/v1\/registry\/images\/([^/]+?)(\/compare)?$/.exec(path);
+    if (regImg?.[1]) {
+      if (regImg[2]) {
+        const c = compareFixture(regImg[1]);
+        return c ? json(c) : notFound('comparison');
+      }
+      const i = this.registry().images.find((x) => x.id === regImg[1]);
+      return i ? json(i) : notFound('image');
     }
     const profile = /^\/api\/v1\/image-profiles\/([^/]+)$/.exec(path);
     if (profile?.[1]) {

@@ -1,5 +1,5 @@
-// Screenshots of the review build (RES19): every screen at 1300 and 393 px, Phosphor dark and Phosphor light,
-// with a frozen clock, into docs/review/RES19/shots/<screen>-<width>-<theme>.png. It is a spec only so that
+// Screenshots of the review build (RES20): every screen at 1300 and 393 px, Phosphor dark and Phosphor light,
+// with a frozen clock, into docs/review/RES20/shots/<screen>-<width>-<theme>.png. It is a spec only so that
 // Playwright's runner compiles it; it does nothing unless REVIEW_SHOTS=1:
 //
 //   pnpm --filter web build:review
@@ -7,13 +7,11 @@
 import { test } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import {
-  SHOTS_DIR,
-  THEMES,
-  hasApp,
-  reviewScreens,
-  serveApp,
-} from './review-app';
+import { SHOTS_DIR, THEMES, hasApp, reviewScreens, serveApp } from './review-app';
+
+/** RES20 shoots its own screens; the RES19 screens stay in docs/review/RES19/shots. */
+const isRes20 = (s: { name: string }) =>
+  s.name.startsWith('registry-') || s.name.startsWith('add-runners-pulling-');
 
 const WIDTHS = [
   { width: 1300, height: 900 },
@@ -41,7 +39,7 @@ test('screenshots of every review screen', async ({ browser }) => {
     for (const size of WIDTHS) {
       const page = await context.newPage();
       await page.setViewportSize(size);
-      for (const s of reviewScreens()) {
+      for (const s of reviewScreens().filter(isRes20)) {
         await page.goto(`${url}?freeze${s.hash}`);
         await page.reload();
         await page.locator('h1').first().waitFor();

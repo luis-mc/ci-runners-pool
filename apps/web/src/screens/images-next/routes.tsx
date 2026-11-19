@@ -8,6 +8,8 @@ import { ImagesHome } from './ImagesHome';
 import { ProfilePage } from './Profiles';
 import { ProfileWizardPage } from './ProfileWizard';
 import { StackPage } from './Stacks';
+import { RegistryBudgetsPage, RegistryImagePage } from './Registry';
+import { RegistryReplacePage } from './RegistryReplace';
 
 export const imagesNextRoutes = {
   tab: <Route path="images" element={<ImagesHome />} />,
@@ -27,6 +29,13 @@ export const imagesNextRoutes = {
       />
       <Route path="pool/images/caches/:id" element={<CachePage />} />
       <Route path="pool/runners/add-building" element={<AddRunnersBuildingPage />} />
+      <Route
+        path="pool/runners/add-pulling"
+        element={<AddRunnersBuildingPage mode="pull" />}
+      />
+      <Route path="pool/images/registry/budgets" element={<RegistryBudgetsPage />} />
+      <Route path="pool/images/registry/:id" element={<RegistryImagePage />} />
+      <Route path="pool/images/registry/:id/replace" element={<RegistryReplacePage />} />
     </>
   ),
 };

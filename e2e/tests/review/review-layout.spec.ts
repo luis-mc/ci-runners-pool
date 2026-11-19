@@ -1,20 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { expectDomLayout } from '../../../scripts/design/dom-layout';
-import {
-  OTHER_AREAS,
-  THEMES,
-  hasApp,
-  reviewScreens,
-  serveApp,
-} from './review-app';
+import { OTHER_AREAS, THEMES, hasApp, reviewScreens, serveApp } from './review-app';
 
-// The review build (RES19) at 360, 393 and 1300 px, dark and light, with the shared DOM layout checker. The
-// review build holds fake data and lives in docs/review/RES19/app; it is served here by a small static server.
+// The review build (RES20) at 360, 393 and 1300 px, dark and light, with the shared DOM layout checker. The
+// review build holds fake data and lives in docs/review/RES20/app; it is served here by a small static server.
 // The known list stays untouched: a breach is fixed, never listed.
 test.skip(
   !hasApp(),
-  'docs/review/RES19/app is not built (pnpm --filter web build:review)',
+  'docs/review/RES20/app is not built (pnpm --filter web build:review)',
 );
 
 let url = '';
@@ -216,20 +210,29 @@ for (const s of WIZARD_SCREENS) {
     const wizard = page.locator('.ds-wizard');
     await expect(wizard).toHaveAttribute('data-phase', phase);
     const later = wizard.locator('.ds-steps__item[data-standing="later"] button');
-    for (let i = 0; i < (await later.count()); i++) await expect(later.nth(i)).toBeDisabled();
+    for (let i = 0; i < (await later.count()); i++)
+      await expect(later.nth(i)).toBeDisabled();
     const stop = wizard.getByRole('button', { name: /^Stop/ });
     if (phase === 'running') await expect(stop).toBeVisible();
     else await expect(stop).toHaveCount(0);
     if (phase === 'running') {
-      await expect(wizard.locator('[aria-busy="true"], [data-busy="true"]').first()).toBeVisible();
-      await expect(wizard.locator('.ds-steps__item[data-standing="done"] button:not([disabled])')).toHaveCount(0);
+      await expect(
+        wizard.locator('[aria-busy="true"], [data-busy="true"]').first(),
+      ).toBeVisible();
+      await expect(
+        wizard.locator('.ds-steps__item[data-standing="done"] button:not([disabled])'),
+      ).toHaveCount(0);
     }
     if (phase === 'done' || phase === 'done-after-reload') {
       await expect(wizard.locator('.ds-message[data-tone="done"]')).toBeVisible();
-      await expect(wizard.getByRole('button', { name: /Start again|Open/ }).first()).toBeVisible();
+      await expect(
+        wizard.getByRole('button', { name: /Start again|Open/ }).first(),
+      ).toBeVisible();
     }
-    if (phase === 'ready-to-review') await expect(wizard.getByText('Nothing has changed yet.')).toBeVisible();
-    if (phase === 'failed') await expect(wizard.getByRole('button', { name: 'Try again' })).toBeVisible();
+    if (phase === 'ready-to-review')
+      await expect(wizard.getByText('Nothing has changed yet.')).toBeVisible();
+    if (phase === 'failed')
+      await expect(wizard.getByRole('button', { name: 'Try again' })).toBeVisible();
   });
 }
 
@@ -240,4 +243,68 @@ test('every status shows a word', async ({ page }) => {
     const empty = await page.locator('.ds-status .ds-status__word:empty').count();
     expect(empty).toBe(0);
   }
+});
+
+// RES20, the Registry. D18: an image a runner uses is never deleted; the question card stays open and names the job.
+test('the registry refuses to delete an image a runner uses', async ({ page }) => {
+  await open(page, '#/pool/images/registry/reg_std_go_x64', 'phosphor', 'dark');
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  const card = page.getByRole('dialog');
+  await expect(card).toBeVisible();
+  await card.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(
+    card.getByText(/job 8133 of luis-mc\/ci-runners-shared-pool/),
+  ).toBeVisible();
+  await expect(card).toBeVisible();
+  await expect(page.locator('h1')).toHaveText('Go, Node and Postgres');
+});
+
+test('the registry deletes an unused image after a yes and goes back to the tab', async ({
+  page,
+}) => {
+  await open(page, '#/pool/images/registry/reg_c_mobile_old', 'phosphor', 'dark');
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  const card = page.getByRole('dialog');
+  await expect(card.getByText(/3\.9 GB freed/)).toBeVisible();
+  await card.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(page.locator('h1')).toHaveText('Images and caches');
+  await expect(
+    page.getByRole('link', { name: /Rust and Windows packaging/ }),
+  ).toHaveCount(0);
+});
+
+// UX-4: the registry tab has one primary, the first recommendation that waits for the owner.
+test('the registry tab has one primary: the newer image', async ({ page }) => {
+  await open(page, '#/pool/images?tab=registry', 'phosphor', 'dark');
+  const bar = page.locator('.ds-action-bar');
+  await expect(bar.getByRole('button', { name: 'Review the newer image' })).toBeVisible();
+  await expect(bar.locator('[data-kind="primary"]')).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'Recommendations' })).toBeVisible();
+});
+
+// The replace flow compares the stack files of the old and the new image.
+test('the replace wizard names both images and keeps the old one for N days', async ({
+  page,
+}) => {
+  await open(
+    page,
+    '#/pool/images/registry/reg_c_docs_v4/replace?phase=first-run',
+    'phosphor',
+    'dark',
+  );
+  await expect(page.getByText('@playwright/test 1.64.0')).toBeVisible();
+  await expect(page.getByText('@playwright/test 1.65.1')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /^Keep the old image for\s*7/ }),
+  ).toBeVisible();
+});
+
+// UX-104 style edit page: the budgets count their changes.
+test('the budgets page counts unsaved changes', async ({ page }) => {
+  await open(page, '#/pool/images/registry/budgets', 'phosphor', 'dark');
+  await page.getByRole('button', { name: /^Custom images\s*15/ }).click();
+  for (const key of ['2', '5'])
+    await page.getByRole('button', { name: key, exact: true }).click();
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(page.getByText('Unsaved changes (1)')).toBeVisible();
 });
