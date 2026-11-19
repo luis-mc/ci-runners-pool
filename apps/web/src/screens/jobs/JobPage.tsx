@@ -57,10 +57,7 @@ const ghUrl = (u: string | undefined) => (u?.startsWith('https://') ? u : undefi
 
 /** The repository's page on the GitHub the controller is set to (OPS35): the part of the job's
  * own GitHub address up to the repository, so the console never writes a GitHub host itself. */
-function repoPage(
-  jobUrl: string | undefined,
-  repository: string,
-): string | undefined {
+function repoPage(jobUrl: string | undefined, repository: string): string | undefined {
   const at = jobUrl?.indexOf(`/${repository}/`) ?? -1;
   return jobUrl && at > 0 ? jobUrl.slice(0, at + repository.length + 1) : undefined;
 }
