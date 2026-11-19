@@ -3,6 +3,7 @@
 // active row, Enter opens it (UX-57): the shell sets `data-list-row` and the handler reads it.
 import { Fragment, useId, useMemo, useState, type ReactNode } from 'react';
 import { Button } from './Button';
+import { RowAction } from './RowAction';
 import { useKeyHints } from './KeyHints';
 import { Pane } from './Pane';
 
@@ -20,6 +21,18 @@ export interface Column<T> {
    * under the row. `short` is a server-given short form; without one the table cuts the text itself.
    */
   long?: ((row: T) => LongText | null | undefined) | undefined;
+  /** The full text of a cell whose node is not plain text, shown on hover when a one-line table cuts the cell (UX-72). */
+  title?: ((row: T) => string) | undefined;
+}
+
+/** The row action of a table (component 57): the same words for the same action in every list (UX-72). */
+export interface RowActionSpec<T> {
+  /** One of the Row action words of content.md. */
+  label: string;
+  /** The page it opens; null leaves the row without the button. */
+  to: (row: T) => string | null;
+  /** What it opens, for a screen reader. */
+  name: (row: T) => string;
 }
 
 export interface LongText {
@@ -57,6 +70,13 @@ export function CappedList({
 
 const LONG_AT = 40;
 
+/** The hover text of a cut cell: the column's own full text, else the cell when it is plain text. */
+function cellTitle<T>(c: Column<T>, row: T): string | undefined {
+  if (c.title) return c.title(row);
+  const v = c.cell(row);
+  return typeof v === 'string' && v.length > 0 ? v : undefined;
+}
+
 export function Table<T>({
   caption,
   columns,
@@ -70,6 +90,9 @@ export function Table<T>({
   title,
   expandLabel = 'Details',
   rowLabel,
+  detail,
+  action,
+  oneLine = false,
 }: {
   caption: string;
   /** Draws the table inside a pane with this title and the row count; leave out when the page already has one. */
@@ -88,6 +111,15 @@ export function Table<T>({
   expandLabel?: string | undefined;
   /** Names a row for the region the button opens (a screen reader reads it with the button's word). */
   rowLabel?: ((row: T) => string) | undefined;
+  /**
+   * A row that opens in place to more than text: a last column holds a button (`label`) that opens a full-width row
+   * under it with `render(row)` (a run opens to its jobs). The button's name carries `rowLabel`.
+   */
+  detail?: { label: string; render: (row: T) => ReactNode } | undefined;
+  /** A last column with the row action (component 57). */
+  action?: RowActionSpec<T> | undefined;
+  /** Every cell is one line, cut with an ellipsis, and every row has one height (UX-72). */
+  oneLine?: boolean | undefined;
 }) {
   const base = useId();
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
@@ -118,7 +150,7 @@ export function Table<T>({
   }, [rows, columns, sortBy]);
   const table = (
     <div className="ds-table-frame">
-      <table className="ds-table">
+      <table className="ds-table" data-one-line={oneLine || undefined}>
         <caption className="ds-visually-hidden">{caption}</caption>
         <thead>
           <tr>
@@ -155,6 +187,11 @@ export function Table<T>({
                 )}
               </th>
             ))}
+            {detail || action ? (
+              <th scope="col" className="ds-table__action">
+                <span className="ds-visually-hidden">{detail?.label ?? action?.label}</span>
+              </th>
+            ) : null}
           </tr>
         </thead>
         <tbody>
@@ -199,7 +236,13 @@ export function Table<T>({
                       data-secondary={(i > 0 && c.secondary) || undefined}
                     >
                       <span className="ds-table__value">
-                        {c.cell(row)}
+                        {oneLine ? (
+                          <span className="ds-table__text" title={cellTitle(c, row)}>
+                            {c.cell(row)}
+                          </span>
+                        ) : (
+                          c.cell(row)
+                        )}
                         {(() => {
                           const long = c.long?.(row);
                           if (!long) return null;
@@ -229,10 +272,46 @@ export function Table<T>({
                       </span>
                     </td>
                   ))}
+                  {detail ? (
+                    <td data-label={detail.label} className="ds-table__action">
+                      <Button
+                        onPress={() => toggleOpen(key)}
+                        expanded={isOpen}
+                        controls={regionId}
+                      >
+                        {detail.label}
+                      </Button>
+                    </td>
+                  ) : null}
+                  {action ? (
+                    <td className="ds-table__action">
+                      {(() => {
+                        const to = action.to(row);
+                        return to ? (
+                          <RowAction to={to} label={action.label} name={action.name(row)} />
+                        ) : null;
+                      })()}
+                    </td>
+                  ) : null}
                 </tr>
-                {isOpen && expandedText !== undefined ? (
+                {isOpen && detail ? (
                   <tr className="ds-table__expanded">
-                    <td colSpan={columns.length + (onToggle ? 1 : 0)}>
+                    <td colSpan={columns.length + (detail || action ? 1 : 0) + (onToggle ? 1 : 0)}>
+                      <div
+                        id={regionId}
+                        role="region"
+                        aria-label={
+                          rowLabel ? `${detail.label}: ${rowLabel(row)}` : detail.label
+                        }
+                      >
+                        {detail.render(row)}
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+                {isOpen && !detail && expandedText !== undefined ? (
+                  <tr className="ds-table__expanded">
+                    <td colSpan={columns.length + (action ? 1 : 0) + (onToggle ? 1 : 0)}>
                       <div
                         id={regionId}
                         role="region"

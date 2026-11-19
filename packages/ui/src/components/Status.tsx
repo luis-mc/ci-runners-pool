@@ -2,7 +2,7 @@
 // UX-61: a runner names its isolation.
 export type StatusKind = 'ok' | 'waiting' | 'failed' | 'info' | 'running' | 'off';
 
-const GLYPH: Record<StatusKind, string> = {
+export const STATUS_GLYPH: Record<StatusKind, string> = {
   ok: '✓',
   waiting: '◷',
   failed: '✕',
@@ -15,7 +15,7 @@ export function Status({ kind, word }: { kind: StatusKind; word: string }) {
   return (
     <span className="ds-status" data-status={kind}>
       <span aria-hidden="true" className="ds-status__glyph">
-        {GLYPH[kind]}
+        {STATUS_GLYPH[kind]}
       </span>{' '}
       <span className="ds-status__word">{word}</span>
     </span>
