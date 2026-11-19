@@ -101,6 +101,51 @@ func (q *Queries) InsertRegistryReplacePlan(ctx context.Context, arg InsertRegis
 	return err
 }
 
+const listRegistryReplacePlansByState = `-- name: ListRegistryReplacePlansByState :many
+SELECT id, new_image_id, old_image_id, keep_days, keep_until, repositories, machines, state, steps_done, steps_total, error, created_by, created_at, started_at, finished_at, rolled_back_by, rolled_back_at FROM registry_replace_plans WHERE state = ? ORDER BY created_at
+`
+
+func (q *Queries) ListRegistryReplacePlansByState(ctx context.Context, state string) ([]RegistryReplacePlan, error) {
+	rows, err := q.query(ctx, q.listRegistryReplacePlansByStateStmt, listRegistryReplacePlansByState, state)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RegistryReplacePlan
+	for rows.Next() {
+		var i RegistryReplacePlan
+		if err := rows.Scan(
+			&i.ID,
+			&i.NewImageID,
+			&i.OldImageID,
+			&i.KeepDays,
+			&i.KeepUntil,
+			&i.Repositories,
+			&i.Machines,
+			&i.State,
+			&i.StepsDone,
+			&i.StepsTotal,
+			&i.Error,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.StartedAt,
+			&i.FinishedAt,
+			&i.RolledBackBy,
+			&i.RolledBackAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const restoreRegistryImage = `-- name: RestoreRegistryImage :execrows
 UPDATE registry_images SET state = 'current', replaced_by_id = '', keep_until = '',
     updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')

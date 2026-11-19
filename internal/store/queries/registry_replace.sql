@@ -29,3 +29,6 @@ WHERE id = ? AND state IN ('current', 'variant');
 UPDATE registry_images SET state = 'current', replaced_by_id = '', keep_until = '',
     updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 WHERE id = ? AND state = 'superseded';
+
+-- name: ListRegistryReplacePlansByState :many
+SELECT * FROM registry_replace_plans WHERE state = ? ORDER BY created_at;
